@@ -22,9 +22,7 @@ import i18n from '../i18n';
 import { useGameState, UseGameStateReturn } from '@/hooks/useGameState';
 import GameInfoBar from '@/components/GameInfoBar';
 import { useGameTimer } from '@/hooks/useGameTimer';
-import useAutoBackup from '@/hooks/useAutoBackup';
 import { exportFullBackup } from '@/utils/fullBackup';
-import { sendBackupEmail } from '@/utils/sendBackupEmail';
 // Import the new game session reducer and related types
 import {
   gameSessionReducer,
@@ -46,7 +44,6 @@ import {
   getLastHomeTeamName as utilGetLastHomeTeamName,
   saveLastHomeTeamName as utilSaveLastHomeTeamName,
   updateAppSettings as utilUpdateAppSettings,
-  getAppSettings,
 } from '@/utils/appSettings';
 import { deleteSeason as utilDeleteSeason, updateSeason as utilUpdateSeason, addSeason as utilAddSeason } from '@/utils/seasons';
 import { deleteTournament as utilDeleteTournament, updateTournament as utilUpdateTournament, addTournament as utilAddTournament } from '@/utils/tournaments';
@@ -382,25 +379,12 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   const [hasSkippedInitialSetup, setHasSkippedInitialSetup] = useState<boolean>(skipInitialSetup);
   const [defaultTeamNameSetting, setDefaultTeamNameSetting] = useState<string>('');
   const [appLanguage, setAppLanguage] = useState<string>(i18n.language);
-  const [autoBackupEnabled, setAutoBackupEnabled] = useState<boolean>(false);
-  const [backupIntervalHours, setBackupIntervalHours] = useState<number>(24);
-  const [lastBackupTime, setLastBackupTime] = useState<string | null>(null);
-  const [backupEmail, setBackupEmail] = useState<string>('');
 
   useEffect(() => {
     utilGetLastHomeTeamName().then((name) => setDefaultTeamNameSetting(name));
   }, []);
 
-  useAutoBackup();
 
-  useEffect(() => {
-    getAppSettings().then((s) => {
-      setAutoBackupEnabled(s.autoBackupEnabled ?? false);
-      setBackupIntervalHours(s.autoBackupIntervalHours ?? 24);
-      setLastBackupTime(s.lastBackupTime ?? null);
-      setBackupEmail(s.backupEmail ?? '');
-    });
-  }, []);
 
   useEffect(() => {
     i18n.changeLanguage(appLanguage);
@@ -1397,24 +1381,13 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
 
   const handleCreateAndSendBackup = async () => {
     try {
-      const json = await exportFullBackup();
-      if (backupEmail) {
-        const confirmSend = window.confirm(
-          t('settingsModal.sendBackupPrompt', 'Send backup via email?'),
-        );
-        if (confirmSend) {
-          await sendBackupEmail(json, backupEmail);
-          alert(t('settingsModal.sendBackupSuccess', 'Backup sent successfully.'));
-        }
-      }
-      const iso = new Date().toISOString();
-      setLastBackupTime(iso);
-      utilUpdateAppSettings({ lastBackupTime: iso }).catch(() => {});
+      await exportFullBackup();
+      alert(t('settingsModal.backupCreated', 'Backup created successfully.'));
     } catch (err) {
-      logger.error('Failed to send backup', err);
+      logger.error('Failed to create backup', err);
       const message = err instanceof Error ? err.message : String(err);
       alert(
-        `${t('settingsModal.sendBackupError', 'Failed to send backup.')}: ${message}`,
+        `${t('settingsModal.backupError', 'Failed to create backup.')}: ${message}`,
       );
     }
   };
@@ -1957,12 +1930,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     setIsGameSettingsModalOpen(false); // Corrected State Setter
   };
   const handleOpenSettingsModal = () => {
-    getAppSettings().then((s) => {
-      setAutoBackupEnabled(s.autoBackupEnabled ?? false);
-      setBackupIntervalHours(s.autoBackupIntervalHours ?? 24);
-      setLastBackupTime(s.lastBackupTime ?? null);
-      setBackupEmail(s.backupEmail ?? '');
-    });
     setIsSettingsModalOpen(true);
   };
   const handleCloseSettingsModal = () => {
@@ -2767,24 +2734,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         }}
         onResetGuide={handleShowAppGuide}
         onHardResetApp={handleHardResetApp}
-        autoBackupEnabled={autoBackupEnabled}
-        backupIntervalHours={backupIntervalHours}
-        lastBackupTime={lastBackupTime || undefined}
-        backupEmail={backupEmail}
-        onAutoBackupEnabledChange={(enabled) => {
-          setAutoBackupEnabled(enabled);
-          utilUpdateAppSettings({ autoBackupEnabled: enabled }).catch(() => {});
-        }}
-        onBackupIntervalChange={(hours) => {
-          const val = Math.max(1, hours);
-          setBackupIntervalHours(val);
-          utilUpdateAppSettings({ autoBackupIntervalHours: val }).catch(() => {});
-        }}
-        onBackupEmailChange={(email) => {
-          setBackupEmail(email);
-          utilUpdateAppSettings({ backupEmail: email }).catch(() => {});
-        }}
-        onSendBackup={handleCreateAndSendBackup}
+        onCreateBackup={handleCreateAndSendBackup}
       />
 
       <PlayerAssessmentModal

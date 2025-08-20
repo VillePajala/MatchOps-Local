@@ -14,14 +14,7 @@ interface SettingsModalProps {
   onDefaultTeamNameChange: (name: string) => void;
   onResetGuide: () => void;
   onHardResetApp: () => void;
-  autoBackupEnabled: boolean;
-  backupIntervalHours: number;
-  lastBackupTime?: string | null;
-  backupEmail: string;
-  onAutoBackupEnabledChange: (enabled: boolean) => void;
-  onBackupIntervalChange: (hours: number) => void;
-  onBackupEmailChange: (email: string) => void;
-  onSendBackup: () => void;
+  onCreateBackup: () => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -33,14 +26,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onDefaultTeamNameChange,
   onResetGuide,
   onHardResetApp,
-  autoBackupEnabled,
-  backupIntervalHours,
-  lastBackupTime,
-  backupEmail,
-  onAutoBackupEnabledChange,
-  onBackupIntervalChange,
-  onBackupEmailChange,
-  onSendBackup,
+  onCreateBackup,
 }) => {
   const { t } = useTranslation();
   const [teamName, setTeamName] = useState(defaultTeamName);
@@ -121,55 +107,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             <div className="pt-2 border-t border-slate-700/40 space-y-2">
               <h3 className="text-lg font-semibold text-slate-200">
-                {t('settingsModal.backupTitle', 'Automatic Backup')}
+                {t('settingsModal.backupTitle', 'Backup')}
               </h3>
-              <label className="inline-flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={autoBackupEnabled}
-                  onChange={(e) => onAutoBackupEnabledChange(e.target.checked)}
-                  className="form-checkbox h-5 w-5 text-indigo-600 bg-slate-600 border-slate-500 rounded focus:ring-indigo-500"
-                />
-                <span className="text-sm text-slate-300">
-                  {t('settingsModal.autoBackupLabel', 'Enable Automatic Backup')}
-                </span>
-              </label>
-              <div>
-                <label htmlFor="backup-interval" className={labelStyle}>{t('settingsModal.backupIntervalLabel', 'Backup Interval (hours)')}</label>
-                <input
-                  id="backup-interval"
-                  type="number"
-                  min={1}
-                  value={backupIntervalHours}
-                  onChange={(e) => onBackupIntervalChange(Number(e.target.value))}
-                  className={inputStyle}
-                />
-              </div>
-              <div>
-                <label htmlFor="backup-email" className={labelStyle}>{t('settingsModal.backupEmailLabel', 'Backup Email')}</label>
-                <input
-                  id="backup-email"
-                  type="email"
-                  value={backupEmail}
-                  onChange={(e) => onBackupEmailChange(e.target.value)}
-                  className={inputStyle}
-                />
-              </div>
               <button
-                onClick={onSendBackup}
+                onClick={onCreateBackup}
                 className={primaryButtonStyle}
-                disabled={!backupEmail}
               >
-                {t('settingsModal.sendBackupButton', 'Create & Send Backup')}
+                {t('settingsModal.createBackupButton', 'Create Backup')}
               </button>
               <p className="text-sm text-slate-300">
                 {t(
-                  'settingsModal.sendBackupDescription',
-                  'A backup file will download and your email app will open. Attach the file before sending.'
+                  'settingsModal.backupDescription',
+                  'Download a backup file containing all your data.'
                 )}
-              </p>
-              <p className="text-sm text-slate-300">
-                {t('settingsModal.lastBackupLabel', 'Last Backup')}: {lastBackupTime ? new Date(lastBackupTime).toLocaleString() : t('settingsModal.never', 'Never')}
               </p>
             </div>
             <div className="pt-2 border-t border-slate-700/40 space-y-2">
