@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: batch updates in GameSettingsModal to prevent localStorage conflicts on mobile"
+  "notes": "fix: prevent infinite loop in GameSettingsModal tournament/season effects"
 }

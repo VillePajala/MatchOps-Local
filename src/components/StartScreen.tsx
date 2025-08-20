@@ -9,7 +9,6 @@ import {
   getAppSettings,
 } from '@/utils/appSettings';
 import { exportFullBackup } from '@/utils/fullBackup';
-import { sendBackupEmail } from '@/utils/sendBackupEmail';
 import logger from '@/utils/logger';
 
 interface StartScreenProps {
@@ -59,24 +58,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
   const handleBackupNow = async () => {
     try {
-      const settings = await getAppSettings();
-      const json = await exportFullBackup();
-      if (settings.backupEmail) {
-        const confirmSend = window.confirm(
-          t('settingsModal.sendBackupPrompt', 'Send backup via email?'),
-        );
-        if (confirmSend) {
-          await sendBackupEmail(json, settings.backupEmail);
-          alert(t('settingsModal.sendBackupSuccess', 'Backup sent successfully.'));
-        }
-      }
-      const iso = new Date().toISOString();
-      updateAppSettings({ lastBackupTime: iso }).catch(() => {});
+      await exportFullBackup();
+      alert(t('settingsModal.backupCreated', 'Backup created successfully.'));
     } catch (err) {
-      logger.error('Failed to send backup', err);
+      logger.error('Failed to create backup', err);
       const message = err instanceof Error ? err.message : String(err);
       alert(
-        `${t('settingsModal.sendBackupError', 'Failed to send backup.')}: ${message}`,
+        `${t('settingsModal.backupError', 'Failed to create backup.')}: ${message}`,
       );
     }
   };
