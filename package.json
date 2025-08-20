@@ -5,10 +5,18 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/generate-release-notes.mjs && node scripts/generate-manifest.mjs && next build",
+    "build:analyze": "npm run build && node scripts/bundle-analysis.mjs",
     "start": "next start",
     "lint": "next lint",
+    "lint:fix": "next lint --fix",
     "test": "jest",
     "test:unit": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage --watchAll=false",
+    "type-check": "tsc --noEmit",
+    "security:audit": "npm audit",
+    "security:fix": "npm audit fix",
+    "ci": "npm run lint && npm run type-check && npm run test:coverage && npm run build",
     "generate:i18n-types": "node scripts/generate-i18n-types.mjs"
   },
   "dependencies": {
