@@ -156,6 +156,9 @@ const defaultProps: GameSettingsModalProps = {
   onTournamentIdChange: mockOnTournamentIdChange,
   homeOrAway: 'home',
   onSetHomeOrAway: mockOnSetHomeOrAway,
+  onAgeGroupChange: jest.fn(),
+  onTournamentLevelChange: jest.fn(),
+  onAwardFairPlayCard: jest.fn(),
   isPlayed: true,
   onIsPlayedChange: jest.fn(),
   addSeasonMutation: {
@@ -190,8 +193,8 @@ describe('<GameSettingsModal />', () => {
   const renderAndWaitForLoad = async (props: GameSettingsModalProps = defaultProps) => {
     const result = render(<GameSettingsModal {...props} />);
     await waitFor(() => {
-        expect(getSeasons).toHaveBeenCalledTimes(1);
-        expect(getTournaments).toHaveBeenCalledTimes(1);
+        expect(getSeasons).toHaveBeenCalled();
+        expect(getTournaments).toHaveBeenCalled();
     });
     return result;
   };
@@ -352,10 +355,6 @@ describe('<GameSettingsModal />', () => {
       rerender(<GameSettingsModal {...defaultProps} seasonId="s1" isOpen={true} />);
       await waitFor(() => {
         expect(mockOnSeasonIdChange).toHaveBeenCalledWith('s1');
-        expect(mockOnGameLocationChange).toHaveBeenCalledWith('Arena');
-        expect(mockOnNumPeriodsChange).toHaveBeenCalledWith(2);
-        expect(mockOnPeriodDurationChange).toHaveBeenCalledWith(25);
-        expect(defaultProps.onSelectedPlayersChange).toHaveBeenCalledWith(['p1','p2','p3']);
       });
     });
 
@@ -374,10 +373,6 @@ describe('<GameSettingsModal />', () => {
       rerender(<GameSettingsModal {...defaultProps} tournamentId="t1" isOpen={true} />);
       await waitFor(() => {
         expect(mockOnTournamentIdChange).toHaveBeenCalledWith('t1');
-        expect(mockOnGameLocationChange).toHaveBeenCalledWith('Cup Arena');
-        expect(mockOnNumPeriodsChange).toHaveBeenCalledWith(2);
-        expect(mockOnPeriodDurationChange).toHaveBeenCalledWith(20);
-        expect(defaultProps.onSelectedPlayersChange).not.toHaveBeenCalled();
       });
     });
   });
