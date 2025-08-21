@@ -4,13 +4,6 @@
   --background: #ffffff;
   --foreground: #171717;
   
-  /* Local Version Theme - Deep Purple/Indigo */
-  --app-bg-darkest: #0f0821;   /* Deep purple-black (replaces slate-950) */
-  --app-bg-dark: #1a1335;      /* Dark purple (replaces slate-900) */
-  --app-bg-medium: #2d1b69;    /* Medium purple (replaces slate-800) */
-  --app-bg-light: #3730a3;     /* Purple-indigo (replaces slate-700) */
-  --app-bg-lighter: #4c1d95;   /* Lighter purple (replaces slate-600) */
-  --app-bg-lightest: #6d28d9;  /* Accent purple (replaces slate-500) */
 }
 
 @media (prefers-color-scheme: dark) {

@@ -48,7 +48,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
     'w-64 px-4 py-2 rounded-md text-lg font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500';
 
   const containerStyle =
-    'relative flex flex-col items-center justify-center min-h-screen bg-app-950 text-slate-100 font-display overflow-hidden py-24';
+    'relative flex flex-col items-center justify-center min-h-screen bg-slate-950 text-slate-100 font-display overflow-hidden py-24';
 
   const taglineStyle =
     'text-xl text-slate-300 mb-6 text-center max-w-sm drop-shadow-lg italic';
@@ -77,18 +77,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
       <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
       <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
       <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
-      <Image
-        src="/ball.png"
-        alt=""
-        width={320}
-        height={320}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 blur-2xl pointer-events-none"
-      />
 
       <div className="relative z-10 flex flex-col items-center space-y-5">
         <h1 className={titleStyle}>
-          <span className="block">MatchDay</span>
-          <span className="block">Coach</span>
+          <span className="block">MatchOps</span>
+          <span className="block">Local</span>
         </h1>
         <p className={taglineStyle}>{t('startScreen.tagline', 'Elevate Your Game')}</p>
         <div className="flex flex-col items-center">
