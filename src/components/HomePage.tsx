@@ -2409,7 +2409,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
 
   if (isLoading && !initialLoadComplete) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-900 text-white">
+      <div className="flex items-center justify-center h-screen bg-app-900 text-white">
         {/* You can replace this with a more sophisticated loading spinner component */}
         <p>Loading Game Data...</p>
       </div>
@@ -2417,14 +2417,14 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   }
 
   // Define a consistent, premium style for the top and bottom bars
-  const barStyle = "bg-gradient-to-b from-slate-700 to-slate-800 shadow-lg";
+  const barStyle = "bg-gradient-to-b from-app-700 to-app-800 shadow-lg";
   // We can add a noise texture via pseudo-elements or a background image later if desired
 
   // Determine which players are available for the current game based on selected IDs
 
 
   return (
-    <main className="flex flex-col h-screen bg-slate-900 text-slate-50 overflow-hidden">
+    <main className="flex flex-col h-screen bg-app-900 text-slate-50 overflow-hidden">
       {/* Top Section: Player Bar, Game Info */}
       <div className={barStyle}>
         <PlayerBar

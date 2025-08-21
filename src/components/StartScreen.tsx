@@ -48,7 +48,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
     'w-64 px-4 py-2 rounded-md text-lg font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500';
 
   const containerStyle =
-    'relative flex flex-col items-center justify-center min-h-screen bg-slate-950 text-slate-100 font-display overflow-hidden py-24';
+    'relative flex flex-col items-center justify-center min-h-screen bg-app-950 text-slate-100 font-display overflow-hidden py-24';
 
   const taglineStyle =
     'text-xl text-slate-300 mb-6 text-center max-w-sm drop-shadow-lg italic';

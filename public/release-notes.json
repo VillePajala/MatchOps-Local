@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "chore: update logo images and add Zone.Identifier files"
+  "notes": "fix: resolve remaining GameSettingsModal test failures"
 }
