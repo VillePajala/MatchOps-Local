@@ -98,7 +98,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           <span className="absolute inset-0 -z-10 blur-[6px] opacity-60 [background:radial-gradient(closest-side,rgba(234,179,8,0.35),transparent_70%)]" />
         </div>
         <div className="relative">
-          <p className={taglineStyle}>{t('startScreen.tagline', 'Suunnittele * Kirjaa * Arvioi')}</p>
+          <p className={taglineStyle}>{t('startScreen.tagline', 'Suunnittele · Kirjaa · Arvioi')}</p>
           <span className="absolute inset-0 -z-10 mx-auto w-[80%] h-full pointer-events-none [background:radial-gradient(closest-side,rgba(99,102,241,0.12),transparent_70%)] blur-md" />
         </div>
           <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto" />
