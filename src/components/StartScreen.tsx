@@ -101,7 +101,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto mb-6 sm:mb-8" />
           
           {/* Buttons container with responsive spacing */}
-          <div className="w-full flex flex-col items-center gap-2 sm:gap-3 px-2 mb-6 sm:mb-8">
+          <div className="w-full flex flex-col items-center gap-2 sm:gap-3 px-2">
             {canResume && onResumeGame ? (
               <button className={primaryButtonStyle} onClick={onResumeGame}>
                 {t('startScreen.resumeGame', 'Resume Last Game')}
@@ -124,7 +124,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
       </div>
 
       {/* Bottom-centered language switcher with safe area */}
-      <div className="absolute left-1/2 -translate-x-1/2 bottom-8 md:bottom-6 z-20 px-4">
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-20 md:bottom-16 z-20 px-4">
         <div className="flex rounded-lg bg-slate-800/70 border border-slate-600 backdrop-blur-sm overflow-hidden">
           <button
             aria-label={t('startScreen.languageEnglish', 'English')}
