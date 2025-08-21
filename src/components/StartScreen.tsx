@@ -45,9 +45,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
   const primaryButtonStyle =
     'w-64 px-4 py-3 rounded-md text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md';
 
-  const secondaryButtonStyle =
-    'w-64 px-4 py-3 rounded-md text-lg font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500';
-
   const containerStyle =
     'relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-950 text-slate-100 font-display overflow-hidden';
 
@@ -104,7 +101,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto mb-6 sm:mb-8" />
           
           {/* Buttons container with responsive spacing */}
-          <div className="w-full flex flex-col items-center gap-2 sm:gap-3 px-2">
+          <div className="w-full flex flex-col items-center gap-2 sm:gap-3 px-2 mb-6 sm:mb-8">
             {canResume && onResumeGame ? (
               <button className={primaryButtonStyle} onClick={onResumeGame}>
                 {t('startScreen.resumeGame', 'Resume Last Game')}
@@ -113,13 +110,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
             <button className={primaryButtonStyle} onClick={onStartNewGame}>
               {t('startScreen.startNewGame', 'Start New Game')}
             </button>
-            <button className={secondaryButtonStyle} onClick={onLoadGame}>
+            <button className={primaryButtonStyle} onClick={onLoadGame}>
               {t('startScreen.loadGame', 'Load Game')}
             </button>
-            <button className={secondaryButtonStyle} onClick={onCreateSeason}>
+            <button className={primaryButtonStyle} onClick={onCreateSeason}>
               {t('startScreen.createSeasonTournament', 'Create Season/Tournament')}
             </button>
-            <button className={secondaryButtonStyle} onClick={onViewStats}>
+            <button className={primaryButtonStyle} onClick={onViewStats}>
               {t('startScreen.viewStats', 'View Stats')}
             </button>
           </div>
