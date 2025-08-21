@@ -34,7 +34,7 @@ describe('usePlayerAssessments', () => {
 
   it('saves assessment', async () => {
     mockedGet.mockResolvedValue({});
-    mockedSave.mockResolvedValue({ assessments: { p1: assessment } } as AppState);
+    mockedSave.mockResolvedValue({ assessments: { p1: assessment } } as unknown as AppState);
     const { result } = renderHook(() => usePlayerAssessments('g1'));
     await act(async () => {
       await result.current.saveAssessment('p1', assessment);
@@ -45,7 +45,7 @@ describe('usePlayerAssessments', () => {
 
   it('deletes assessment', async () => {
     mockedGet.mockResolvedValue({ p1: assessment });
-    mockedDelete.mockResolvedValue({ assessments: {} } as AppState);
+    mockedDelete.mockResolvedValue({ assessments: {} } as unknown as AppState);
     const { result } = renderHook(() => usePlayerAssessments('g1'));
     await act(async () => {
       await result.current.deleteAssessment('p1');

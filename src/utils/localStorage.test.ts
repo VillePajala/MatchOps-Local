@@ -6,7 +6,7 @@ describe('localStorage utilities', () => {
     setItem: jest.fn(),
     removeItem: jest.fn(),
     clear: jest.fn()
-  } as unknown as Storage;
+  };
 
   beforeEach(() => {
     Object.defineProperty(window, 'localStorage', { value: storageMock });

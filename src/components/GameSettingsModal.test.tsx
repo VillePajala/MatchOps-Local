@@ -156,6 +156,9 @@ const defaultProps: GameSettingsModalProps = {
   onTournamentIdChange: mockOnTournamentIdChange,
   homeOrAway: 'home',
   onSetHomeOrAway: mockOnSetHomeOrAway,
+  onAgeGroupChange: jest.fn(),
+  onTournamentLevelChange: jest.fn(),
+  onAwardFairPlayCard: jest.fn(),
   isPlayed: true,
   onIsPlayedChange: jest.fn(),
   addSeasonMutation: {
