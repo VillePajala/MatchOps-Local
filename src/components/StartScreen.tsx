@@ -120,7 +120,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
             <button className={primaryButtonStyle} onClick={onViewStats}>
               {t('startScreen.viewStats', 'View Stats')}
             </button>
-          </div>
         </div>
       </div>
 
