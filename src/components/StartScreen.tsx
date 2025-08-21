@@ -84,24 +84,25 @@ const StartScreen: React.FC<StartScreenProps> = ({
       <div className="absolute inset-0 pointer-events-none animate-rotate-slow opacity-10 [background:conic-gradient(from_150deg_at_65%_38%,theme(colors.cyan.400)/0.35_0deg,transparent_60deg,transparent_300deg,theme(colors.indigo.500)/0.35_360deg)]" />
 
       {/* Safe container with proper bounds */}
-      <div className="relative z-10 flex flex-col items-center w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-6 sm:py-8 mt-6 sm:mt-8 space-y-3 sm:space-y-4">
-        {/* Content container with responsive padding and max-height handling */}
-        <div className="w-full flex flex-col items-center space-y-3 sm:space-y-4 max-h-[85vh] overflow-visible">
-        <div className="relative">
-          <h1 className={titleStyle}>
-            <span className="block">MatchOps</span>
-            <span className="block">Local</span>
-          </h1>
-          <span className="absolute inset-0 -z-10 blur-[6px] opacity-60 [background:radial-gradient(closest-side,rgba(234,179,8,0.35),transparent_70%)]" />
+      <div className="relative z-10 flex flex-col items-center justify-between w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-6 sm:py-8 h-[calc(100vh-8rem)] sm:h-[calc(100vh-6rem)]">
+        {/* Title section */}
+        <div className="flex flex-col items-center space-y-3 sm:space-y-4">
+          <div className="relative">
+            <h1 className={titleStyle}>
+              <span className="block">MatchOps</span>
+              <span className="block">Local</span>
+            </h1>
+            <span className="absolute inset-0 -z-10 blur-[6px] opacity-60 [background:radial-gradient(closest-side,rgba(234,179,8,0.35),transparent_70%)]" />
+          </div>
+          <div className="relative">
+            <p className={taglineStyle}>{t('startScreen.tagline', 'Suunnittele · Kirjaa · Arvioi')}</p>
+            <span className="absolute inset-0 -z-10 mx-auto w-[80%] h-full pointer-events-none [background:radial-gradient(closest-side,rgba(99,102,241,0.12),transparent_70%)] blur-md" />
+          </div>
+          <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto" />
         </div>
-        <div className="relative">
-          <p className={taglineStyle}>{t('startScreen.tagline', 'Suunnittele · Kirjaa · Arvioi')}</p>
-          <span className="absolute inset-0 -z-10 mx-auto w-[80%] h-full pointer-events-none [background:radial-gradient(closest-side,rgba(99,102,241,0.12),transparent_70%)] blur-md" />
-        </div>
-          <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto mb-6 sm:mb-8" />
           
-          {/* Buttons container with responsive spacing */}
-          <div className="w-full flex flex-col items-center gap-2 sm:gap-3 px-2">
+        {/* Buttons container with responsive spacing */}
+        <div className="w-full flex flex-col items-center gap-2 sm:gap-3 px-2">
             {canResume && onResumeGame ? (
               <button className={primaryButtonStyle} onClick={onResumeGame}>
                 {t('startScreen.resumeGame', 'Resume Last Game')}
