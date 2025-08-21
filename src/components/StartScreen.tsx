@@ -86,8 +86,24 @@ const StartScreen: React.FC<StartScreenProps> = ({
       {/* Safe container with proper bounds */}
       <div className="relative z-10 flex flex-col items-center w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-6 sm:py-8 h-[calc(100vh-8rem)] sm:h-[calc(100vh-6rem)]">
         
-        {/* Buttons container with responsive spacing - moved higher */}
-        <div className="w-full flex flex-col items-center gap-2 sm:gap-3 px-2 mt-8 sm:mt-12">
+        {/* Title section */}
+        <div className="flex flex-col items-center space-y-3 sm:space-y-4">
+          <div className="relative">
+            <h1 className={titleStyle}>
+              <span className="block">MatchOps</span>
+              <span className="block">Local</span>
+            </h1>
+            <span className="absolute inset-0 -z-10 blur-[6px] opacity-60 [background:radial-gradient(closest-side,rgba(234,179,8,0.35),transparent_70%)]" />
+          </div>
+          <div className="relative">
+            <p className={taglineStyle}>{t('startScreen.tagline', 'Suunnittele · Kirjaa · Arvioi')}</p>
+            <span className="absolute inset-0 -z-10 mx-auto w-[80%] h-full pointer-events-none [background:radial-gradient(closest-side,rgba(99,102,241,0.12),transparent_70%)] blur-md" />
+          </div>
+          <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto" />
+        </div>
+
+        {/* Buttons container with responsive spacing - positioned higher */}
+        <div className="w-full flex flex-col items-center gap-2 sm:gap-3 px-2 mt-4 sm:mt-6">
             {canResume && onResumeGame ? (
               <button className={primaryButtonStyle} onClick={onResumeGame}>
                 {t('startScreen.resumeGame', 'Resume Last Game')}
@@ -107,24 +123,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
             </button>
         </div>
 
-        {/* Spacer to push title to bottom */}
+        {/* Spacer to push content up and leave space for language switcher */}
         <div className="flex-grow"></div>
-
-        {/* Title section - moved lower */}
-        <div className="flex flex-col items-center space-y-3 sm:space-y-4">
-          <div className="relative">
-            <h1 className={titleStyle}>
-              <span className="block">MatchOps</span>
-              <span className="block">Local</span>
-            </h1>
-            <span className="absolute inset-0 -z-10 blur-[6px] opacity-60 [background:radial-gradient(closest-side,rgba(234,179,8,0.35),transparent_70%)]" />
-          </div>
-          <div className="relative">
-            <p className={taglineStyle}>{t('startScreen.tagline', 'Suunnittele · Kirjaa · Arvioi')}</p>
-            <span className="absolute inset-0 -z-10 mx-auto w-[80%] h-full pointer-events-none [background:radial-gradient(closest-side,rgba(99,102,241,0.12),transparent_70%)] blur-md" />
-          </div>
-          <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto" />
-        </div>
       </div>
 
       {/* Bottom-centered language switcher with safe area */}
