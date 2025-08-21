@@ -104,7 +104,8 @@ Object.defineProperty(window, "confirm", { value: jest.fn() });
 const originalLocation: Location = window.location;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (window as any).location; // Need to delete first to reassign
-window.location = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window as any).location = {
   ...originalLocation,
   reload: jest.fn(),
 };

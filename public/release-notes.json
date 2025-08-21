@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: prevent infinite loop in GameSettingsModal tournament/season effects"
+  "notes": "chore: update logo images and add Zone.Identifier files"
 }
