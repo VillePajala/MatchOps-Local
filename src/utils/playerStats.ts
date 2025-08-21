@@ -1,4 +1,4 @@
-import { Player, Season, Tournament } from '@/types';
+import { Player, Season, Tournament, PlayerStatAdjustment } from '@/types';
 import { AppState } from '@/types';
 
 // Define a type for the processed stats
@@ -31,7 +31,13 @@ export interface GameStats {
  * @param tournaments - The collection of all tournaments.
  * @returns The calculated stats for the player.
  */
-export const calculatePlayerStats = (player: Player, savedGames: { [key: string]: AppState }, seasons: Season[], tournaments: Tournament[]): PlayerStats => {
+export const calculatePlayerStats = (
+  player: Player,
+  savedGames: { [key: string]: AppState },
+  seasons: Season[],
+  tournaments: Tournament[],
+  adjustments?: PlayerStatAdjustment[]
+): PlayerStats => {
   const gameByGameStats: GameStats[] = [];
   const performanceBySeason: { [seasonId: string]: { name: string, gamesPlayed: number, goals: number, assists: number, points: number } } = {};
   const performanceByTournament: { [tournamentId: string]: { name: string, gamesPlayed: number, goals: number, assists: number, points: number } } = {};
@@ -91,9 +97,26 @@ export const calculatePlayerStats = (player: Player, savedGames: { [key: string]
     }
   });
 
-  const totalGoals = gameByGameStats.reduce((sum, game) => sum + game.goals, 0);
-  const totalAssists = gameByGameStats.reduce((sum, game) => sum + game.assists, 0);
-  const totalGames = gameByGameStats.length;
+  // Apply adjustments (external games) scoped by season
+  const adjustmentsForPlayer = (adjustments || []).filter(a => a.playerId === player.id);
+
+  // Merge adjustments into season performance
+  adjustmentsForPlayer.forEach(adj => {
+    const seasonId = adj.seasonId;
+    if (!seasonId) return;
+    if (!performanceBySeason[seasonId]) {
+      const seasonInfo = seasons.find(s => s.id === seasonId);
+      performanceBySeason[seasonId] = { name: seasonInfo?.name || 'Unknown Season', gamesPlayed: 0, goals: 0, assists: 0, points: 0 };
+    }
+    performanceBySeason[seasonId].gamesPlayed += (adj.gamesPlayedDelta || 0);
+    performanceBySeason[seasonId].goals += (adj.goalsDelta || 0);
+    performanceBySeason[seasonId].assists += (adj.assistsDelta || 0);
+    performanceBySeason[seasonId].points += (adj.goalsDelta || 0) + (adj.assistsDelta || 0);
+  });
+
+  const totalGoals = gameByGameStats.reduce((sum, game) => sum + game.goals, 0) + adjustmentsForPlayer.reduce((s, a) => s + (a.goalsDelta || 0), 0);
+  const totalAssists = gameByGameStats.reduce((sum, game) => sum + game.assists, 0) + adjustmentsForPlayer.reduce((s, a) => s + (a.assistsDelta || 0), 0);
+  const totalGames = gameByGameStats.length + adjustmentsForPlayer.reduce((s, a) => s + (a.gamesPlayedDelta || 0), 0);
   const avgGoalsPerGame = totalGames > 0 ? totalGoals / totalGames : 0;
   const avgAssistsPerGame = totalGames > 0 ? totalAssists / totalGames : 0;
 

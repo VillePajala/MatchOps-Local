@@ -59,3 +59,24 @@ export interface Tournament {
 
 export * from './playerAssessment';
 export * from "./game";
+
+// Player-level manual stat adjustments (e.g., external games not tracked in app)
+export interface PlayerStatAdjustment {
+  id: string;
+  playerId: string;
+  seasonId: string; // scope by season
+  teamId?: string; // optional, could be "External" or another team id
+  tournamentId?: string; // optional tournament context
+  externalTeamName?: string; // optional name of the team the player represented
+  opponentName?: string; // optional opponent name
+  scoreFor?: number; // optional score for player's team
+  scoreAgainst?: number; // optional score against
+  gameDate?: string; // optional specific date of the game(s)
+  homeOrAway?: 'home' | 'away' | 'neutral'; // relative to externalTeamName
+  gamesPlayedDelta: number; // may be 0
+  goalsDelta: number; // may be 0
+  assistsDelta: number; // may be 0
+  note?: string; // optional note shown in UI
+  createdBy?: string; // optional user identifier
+  appliedAt: string; // ISO timestamp
+}
