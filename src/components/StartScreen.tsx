@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 import {
