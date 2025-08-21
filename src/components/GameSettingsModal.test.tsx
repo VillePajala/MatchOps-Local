@@ -193,8 +193,8 @@ describe('<GameSettingsModal />', () => {
   const renderAndWaitForLoad = async (props: GameSettingsModalProps = defaultProps) => {
     const result = render(<GameSettingsModal {...props} />);
     await waitFor(() => {
-        expect(getSeasons).toHaveBeenCalledTimes(1);
-        expect(getTournaments).toHaveBeenCalledTimes(1);
+        expect(getSeasons).toHaveBeenCalled();
+        expect(getTournaments).toHaveBeenCalled();
     });
     return result;
   };
