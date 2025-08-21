@@ -87,7 +87,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
       <div className="relative z-10 flex flex-col items-center w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-6 sm:py-8 h-[calc(100vh-8rem)] sm:h-[calc(100vh-6rem)]">
         
         {/* Title section */}
-        <div className="flex flex-col items-center space-y-3 sm:space-y-4">
+        <div className="flex flex-col items-center space-y-3 sm:space-y-4 mt-4 sm:mt-6">
           <div className="relative">
             <h1 className={titleStyle}>
               <span className="block">MatchOps</span>
@@ -103,7 +103,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
         </div>
 
         {/* Buttons container with responsive spacing */}
-        <div className="w-full flex flex-col items-center gap-2 sm:gap-3 px-2 mt-16 sm:mt-20">
+        <div className="w-full flex flex-col items-center gap-2 sm:gap-3 px-2 mt-18 sm:mt-24">
             {canResume && onResumeGame ? (
               <button className={primaryButtonStyle} onClick={onResumeGame}>
                 {t('startScreen.resumeGame', 'Resume Last Game')}
