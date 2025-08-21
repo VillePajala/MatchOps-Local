@@ -377,7 +377,7 @@
   },
   "timerOverlay.subIntervalLabel": "Vaihdon Aikaväli:",
   "startScreen": {
-    "tagline": "Suunnittele * Kirjaa * Arvioi",
+    "tagline": "Suunnittele · Kirjaa · Arvioi",
     "startNewGame": "Aloita uusi ottelu",
     "loadGame": "Lataa peli",
     "resumeGame": "Jatka edellistä peliä",
