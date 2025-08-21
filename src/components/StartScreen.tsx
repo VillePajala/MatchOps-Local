@@ -43,19 +43,19 @@ const StartScreen: React.FC<StartScreenProps> = ({
   }, [language]);
 
   const primaryButtonStyle =
-    'w-64 px-4 py-3 rounded-md text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md';
+    'w-full max-w-64 px-4 py-3 rounded-md text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md';
 
   const secondaryButtonStyle =
-    'w-64 px-4 py-3 rounded-md text-lg font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500';
+    'w-full max-w-64 px-4 py-3 rounded-md text-lg font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500';
 
   const containerStyle =
-    'relative flex flex-col items-center justify-center min-h-screen bg-slate-950 text-slate-100 font-display overflow-hidden py-8 sm:py-16 md:py-24 px-4 pb-16 md:pb-14';
+    'relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-950 text-slate-100 font-display overflow-hidden';
 
   const taglineStyle =
-    'text-xl sm:text-2xl text-slate-200/95 text-center tracking-wide drop-shadow-md relative';
+    'text-lg sm:text-xl md:text-2xl text-slate-200/95 text-center tracking-wide drop-shadow-md relative px-4';
 
   const titleStyle =
-    'relative text-6xl sm:text-7xl lg:text-9xl font-semibold tracking-tight leading-[0.9] drop-shadow-lg mb-2 text-center text-yellow-400';
+    'relative text-4xl xs:text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-semibold tracking-tight leading-[0.9] drop-shadow-lg mb-2 text-center text-yellow-400 px-4';
 
   
 
@@ -86,7 +86,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
       {/* 11) Conic rotating highlight */}
       <div className="absolute inset-0 pointer-events-none animate-rotate-slow opacity-10 [background:conic-gradient(from_150deg_at_65%_38%,theme(colors.cyan.400)/0.35_0deg,transparent_60deg,transparent_300deg,theme(colors.indigo.500)/0.35_360deg)]" />
 
-      <div className="relative z-10 flex flex-col items-center w-full max-w-sm sm:max-w-md mt-2 sm:mt-0 space-y-6">
+      {/* Safe container with proper bounds */}
+      <div className="relative z-10 flex flex-col items-center w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-8 sm:py-12 space-y-4 sm:space-y-6">
+        {/* Content container with responsive padding and max-height handling */}
+        <div className="w-full flex flex-col items-center space-y-4 sm:space-y-6 max-h-[85vh] overflow-visible">
         <div className="relative">
           <h1 className={titleStyle}>
             <span className="block">MatchOps</span>
@@ -98,31 +101,33 @@ const StartScreen: React.FC<StartScreenProps> = ({
           <p className={taglineStyle}>{t('startScreen.tagline', 'Suunnittele * Kirjaa * Arvioi')}</p>
           <span className="absolute inset-0 -z-10 mx-auto w-[80%] h-full pointer-events-none [background:radial-gradient(closest-side,rgba(99,102,241,0.12),transparent_70%)] blur-md" />
         </div>
-        <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto mt-2 sm:mt-4 mb-6" />
-        <div className="w-full flex flex-col items-center gap-2 mt-1">
-          {canResume && onResumeGame ? (
-            <button className={primaryButtonStyle} onClick={onResumeGame}>
-              {t('startScreen.resumeGame', 'Resume Last Game')}
-            </button>
-          ) : null}
-          <button className={primaryButtonStyle} onClick={onStartNewGame}>
-            {t('startScreen.startNewGame', 'Start New Game')}
-          </button>
-          <button className={secondaryButtonStyle} onClick={onLoadGame}>
-            {t('startScreen.loadGame', 'Load Game')}
-          </button>
-          <button className={secondaryButtonStyle} onClick={onCreateSeason}>
-            {t('startScreen.createSeasonTournament', 'Create Season/Tournament')}
-          </button>
-          <button className={secondaryButtonStyle} onClick={onViewStats}>
-            {t('startScreen.viewStats', 'View Stats')}
-          </button>
+          <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto" />
           
+          {/* Buttons container with responsive spacing */}
+          <div className="w-full flex flex-col items-center gap-3 sm:gap-4 px-2">
+            {canResume && onResumeGame ? (
+              <button className={primaryButtonStyle} onClick={onResumeGame}>
+                {t('startScreen.resumeGame', 'Resume Last Game')}
+              </button>
+            ) : null}
+            <button className={primaryButtonStyle} onClick={onStartNewGame}>
+              {t('startScreen.startNewGame', 'Start New Game')}
+            </button>
+            <button className={secondaryButtonStyle} onClick={onLoadGame}>
+              {t('startScreen.loadGame', 'Load Game')}
+            </button>
+            <button className={secondaryButtonStyle} onClick={onCreateSeason}>
+              {t('startScreen.createSeasonTournament', 'Create Season/Tournament')}
+            </button>
+            <button className={secondaryButtonStyle} onClick={onViewStats}>
+              {t('startScreen.viewStats', 'View Stats')}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Bottom-centered language switcher (absolute) per spec */}
-      <div className="absolute left-1/2 -translate-x-1/2 bottom-8 md:bottom-6 z-20">
+      {/* Bottom-centered language switcher with safe area */}
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-8 md:bottom-6 z-20 px-4">
         <div className="flex rounded-lg bg-slate-800/70 border border-slate-600 backdrop-blur-sm overflow-hidden">
           <button
             aria-label={t('startScreen.languageEnglish', 'English')}
