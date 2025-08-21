@@ -84,7 +84,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
       <div className="absolute inset-0 pointer-events-none animate-rotate-slow opacity-10 [background:conic-gradient(from_150deg_at_65%_38%,theme(colors.cyan.400)/0.35_0deg,transparent_60deg,transparent_300deg,theme(colors.indigo.500)/0.35_360deg)]" />
 
       {/* Safe container with proper bounds */}
-      <div className="relative z-10 flex flex-col items-center w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-6 sm:py-8 space-y-3 sm:space-y-4">
+      <div className="relative z-10 flex flex-col items-center w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-6 sm:py-8 mt-6 sm:mt-8 space-y-3 sm:space-y-4">
         {/* Content container with responsive padding and max-height handling */}
         <div className="w-full flex flex-col items-center space-y-3 sm:space-y-4 max-h-[85vh] overflow-visible">
         <div className="relative">
@@ -124,7 +124,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
       </div>
 
       {/* Bottom-centered language switcher with safe area */}
-      <div className="absolute left-1/2 -translate-x-1/2 bottom-20 md:bottom-16 z-20 px-4">
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-8 md:bottom-6 z-20 px-4">
         <div className="flex rounded-lg bg-slate-800/70 border border-slate-600 backdrop-blur-sm overflow-hidden">
           <button
             aria-label={t('startScreen.languageEnglish', 'English')}
