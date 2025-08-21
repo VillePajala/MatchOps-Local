@@ -338,15 +338,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
           const assessmentsDone = Object.keys(game.assessments || {}).length;
           const assessmentsComplete = totalPlayers > 0 && assessmentsDone >= totalPlayers;
           const isExpanded = expandedIds.has(gameId);
-          const getResultColor = () => {
-            if (game.homeScore > game.awayScore) {
-              return game.homeOrAway === 'home' ? 'bg-green-500' : 'bg-red-500';
-            }
-            if (game.awayScore > game.homeScore) {
-              return game.homeOrAway === 'home' ? 'bg-red-500' : 'bg-green-500';
-            }
-            return 'bg-gray-500';
-          };
 
           // Get the index for alternating card styles
           const index = filteredGameIds.indexOf(gameId);
@@ -362,8 +353,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
               } ${openMenuId === gameId ? 'z-10' : ''}`}
               data-testid={`game-item-${gameId}`}
             >
-              <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none rounded-lg" />
-              <span className={`absolute inset-y-0 left-0 w-1 rounded-l-md ${getResultColor()}`} />
               <button
                 type="button"
                 onClick={() => toggleExpanded(gameId)}
@@ -373,14 +362,20 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className={`text-lg ${game.homeOrAway === 'home' ? 'font-semibold' : 'font-normal'} ${
-                      isCurrent ? 'text-indigo-400' : (game.homeOrAway === 'home' ? 'text-slate-100' : 'text-slate-300')
+                    <h3 className={`text-lg ${
+                      // "Your team" based on homeOrAway setting
+                      game.homeOrAway === 'home' 
+                        ? `font-semibold ${isCurrent ? 'text-indigo-400' : 'text-slate-100'}` 
+                        : `font-normal ${isCurrent ? 'text-indigo-300' : 'text-slate-300'}`
                     }`}>
                       {displayHomeTeamName}
                     </h3>
                     <span className="text-slate-400 font-medium">vs</span>
-                    <h3 className={`text-lg ${game.homeOrAway === 'away' ? 'font-semibold' : 'font-normal'} ${
-                      isCurrent ? 'text-indigo-400' : (game.homeOrAway === 'away' ? 'text-slate-100' : 'text-slate-300')
+                    <h3 className={`text-lg ${
+                      // "Your team" based on homeOrAway setting  
+                      game.homeOrAway === 'away' 
+                        ? `font-semibold ${isCurrent ? 'text-indigo-400' : 'text-slate-100'}` 
+                        : `font-normal ${isCurrent ? 'text-indigo-300' : 'text-slate-300'}`
                     }`}>
                       {displayAwayTeamName}
                     </h3>
