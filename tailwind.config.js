@@ -7,6 +7,9 @@ module.exports = {
   ],
   theme: {
     extend: {
+      screens: {
+        'xs': '475px',
+      },
       fontFamily: {
         sans: ['var(--font-rajdhani)', 'Inter', 'sans-serif'],
         display: ['var(--font-rajdhani)', 'sans-serif'],
