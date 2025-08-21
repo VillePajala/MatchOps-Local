@@ -43,17 +43,20 @@ const StartScreen: React.FC<StartScreenProps> = ({
     updateAppSettings({ language }).catch(() => {});
   }, [language]);
 
-  const buttonStyle =
-    'w-64 px-4 py-2 rounded-md text-lg font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500';
+  const primaryButtonStyle =
+    'w-64 px-4 py-3 rounded-md text-lg font-semibold text-white bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm';
+
+  const secondaryButtonStyle =
+    'w-64 px-4 py-3 rounded-md text-lg font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500';
 
   const containerStyle =
     'relative flex flex-col items-center justify-center min-h-screen bg-slate-950 text-slate-100 font-display overflow-hidden py-24';
 
   const taglineStyle =
-    'text-xl text-slate-300 mb-6 text-center max-w-sm drop-shadow-lg italic';
+    'text-xl text-slate-300 text-center max-w-sm drop-shadow-lg';
 
   const titleStyle =
-    'text-5xl font-bold text-yellow-400 tracking-wide drop-shadow-lg mb-8 text-center';
+    'text-5xl font-bold text-yellow-400 tracking-wide drop-shadow-lg mb-4 text-center';
 
   const handleBackupNow = async () => {
     try {
@@ -82,7 +85,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
           <span className="block">MatchOps</span>
           <span className="block">Local</span>
         </h1>
-        <p className={taglineStyle}>{t('startScreen.tagline', 'Elevate Your Game')}</p>
+        <p className={taglineStyle}>{t('startScreen.tagline', 'Suunnittele • Kirjaa • Arvioi')}</p>
+        <div className="h-px w-40 bg-slate-500/30 my-4" />
         <div className="flex flex-col items-center">
           <span className="text-sm font-medium text-slate-300 mb-1">
             {t('startScreen.languageLabel', 'Language')}
@@ -91,41 +95,37 @@ const StartScreen: React.FC<StartScreenProps> = ({
             <button
               aria-label={t('startScreen.languageEnglish', 'English')}
               onClick={() => setLanguage('en')}
-              className={`w-10 h-8 rounded-md border text-xl flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${language === 'en' ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-700 border-slate-600 text-white hover:bg-slate-600'}`}
+              className={`w-12 h-8 rounded-md text-xs font-semibold flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${language === 'en' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-200 hover:bg-slate-600'}`}
             >
-              <span role="img" aria-hidden="true">
-                🇬🇧
-              </span>
+              EN
             </button>
             <button
               aria-label={t('startScreen.languageFinnish', 'Finnish')}
               onClick={() => setLanguage('fi')}
-              className={`w-10 h-8 rounded-md border text-xl flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${language === 'fi' ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-slate-700 border-slate-600 text-white hover:bg-slate-600'}`}
+              className={`w-12 h-8 rounded-md text-xs font-semibold flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${language === 'fi' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-200 hover:bg-slate-600'}`}
             >
-              <span role="img" aria-hidden="true">
-                🇫🇮
-              </span>
+              FI
             </button>
           </div>
         </div>
         {canResume && onResumeGame ? (
-          <button className={buttonStyle} onClick={onResumeGame}>
+          <button className={primaryButtonStyle} onClick={onResumeGame}>
             {t('startScreen.resumeGame', 'Resume Last Game')}
           </button>
         ) : null}
-        <button className={buttonStyle} onClick={onStartNewGame}>
+        <button className={primaryButtonStyle} onClick={onStartNewGame}>
           {t('startScreen.startNewGame', 'Start New Game')}
         </button>
-        <button className={buttonStyle} onClick={onLoadGame}>
+        <button className={secondaryButtonStyle} onClick={onLoadGame}>
           {t('startScreen.loadGame', 'Load Game')}
         </button>
-        <button className={buttonStyle} onClick={onCreateSeason}>
+        <button className={secondaryButtonStyle} onClick={onCreateSeason}>
           {t('startScreen.createSeasonTournament', 'Create Season/Tournament')}
         </button>
-        <button className={buttonStyle} onClick={onViewStats}>
+        <button className={secondaryButtonStyle} onClick={onViewStats}>
           {t('startScreen.viewStats', 'View Stats')}
         </button>
-        <button className={buttonStyle} onClick={handleBackupNow}>
+        <button className={secondaryButtonStyle} onClick={handleBackupNow}>
           {t('startScreen.backupNow', 'Backup Now')}
         </button>
       </div>

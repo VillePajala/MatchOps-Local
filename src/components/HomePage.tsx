@@ -22,7 +22,6 @@ import i18n from '../i18n';
 import { useGameState, UseGameStateReturn } from '@/hooks/useGameState';
 import GameInfoBar from '@/components/GameInfoBar';
 import { useGameTimer } from '@/hooks/useGameTimer';
-import { exportFullBackup } from '@/utils/fullBackup';
 // Import the new game session reducer and related types
 import {
   gameSessionReducer,
@@ -1379,18 +1378,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     }
   }, [t]);
 
-  const handleCreateAndSendBackup = async () => {
-    try {
-      await exportFullBackup();
-      alert(t('settingsModal.backupCreated', 'Backup created successfully.'));
-    } catch (err) {
-      logger.error('Failed to create backup', err);
-      const message = err instanceof Error ? err.message : String(err);
-      alert(
-        `${t('settingsModal.backupError', 'Failed to create backup.')}: ${message}`,
-      );
-    }
-  };
 
   
   // Placeholder handlers for Save/Load Modals
@@ -2734,7 +2721,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         }}
         onResetGuide={handleShowAppGuide}
         onHardResetApp={handleHardResetApp}
-        onCreateBackup={handleCreateAndSendBackup}
       />
 
       <PlayerAssessmentModal

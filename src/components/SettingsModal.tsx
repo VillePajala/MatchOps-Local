@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '@/utils/bytes';
 import packageJson from '../../package.json';
+import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp } from 'react-icons/hi2';
+import { exportFullBackup, importFullBackup } from '@/utils/fullBackup';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -14,7 +16,6 @@ interface SettingsModalProps {
   onDefaultTeamNameChange: (name: string) => void;
   onResetGuide: () => void;
   onHardResetApp: () => void;
-  onCreateBackup: () => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -26,12 +27,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onDefaultTeamNameChange,
   onResetGuide,
   onHardResetApp,
-  onCreateBackup,
 }) => {
   const { t } = useTranslation();
   const [teamName, setTeamName] = useState(defaultTeamName);
   const [resetConfirm, setResetConfirm] = useState('');
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
+  const restoreFileInputRef = useRef<HTMLInputElement>(null);
   const MAX_LOCAL_STORAGE = 5 * 1024 * 1024; // 5 MB assumption for localStorage
 
   useEffect(() => {
@@ -52,6 +53,28 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       }
     }
   }, [isOpen, MAX_LOCAL_STORAGE]);
+
+  const handleRestore = () => {
+    restoreFileInputRef.current?.click();
+  };
+  
+  const handleRestoreFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const jsonContent = e.target?.result as string;
+      if (jsonContent) {
+        importFullBackup(jsonContent);
+      } else {
+        alert(t('settingsModal.importReadError', 'Error reading file content.'));
+      }
+    };
+    reader.onerror = () => alert(t('settingsModal.importReadError', 'Error reading file content.'));
+    reader.readAsText(file);
+    event.target.value = '';
+  };
 
   if (!isOpen) return null;
 
@@ -105,20 +128,38 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 className={inputStyle}
               />
             </div>
-            <div className="pt-2 border-t border-slate-700/40 space-y-2">
+            <div className="pt-2 border-t border-slate-700/40 space-y-3">
               <h3 className="text-lg font-semibold text-slate-200">
-                {t('settingsModal.backupTitle', 'Backup')}
+                {t('settingsModal.backupTitle', 'Data Management')}
               </h3>
-              <button
-                onClick={onCreateBackup}
-                className={primaryButtonStyle}
-              >
-                {t('settingsModal.createBackupButton', 'Create Backup')}
-              </button>
+              <input
+                type="file"
+                ref={restoreFileInputRef}
+                onChange={handleRestoreFileSelected}
+                accept=".json"
+                style={{ display: "none" }}
+                data-testid="restore-backup-input"
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  onClick={exportFullBackup}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium shadow-sm transition-colors"
+                >
+                  <HiOutlineDocumentArrowDown className="h-5 w-5" />
+                  {t('settingsModal.backupButton', 'Backup All Data')}
+                </button>
+                <button
+                  onClick={handleRestore}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-md text-sm font-medium shadow-sm transition-colors"
+                >
+                  <HiOutlineDocumentArrowUp className="h-5 w-5" />
+                  {t('settingsModal.restoreButton', 'Restore from Backup')}
+                </button>
+              </div>
               <p className="text-sm text-slate-300">
                 {t(
                   'settingsModal.backupDescription',
-                  'Download a backup file containing all your data.'
+                  'Export your data to a backup file or restore from a previous backup. All data will be replaced when restoring.'
                 )}
               </p>
             </div>
