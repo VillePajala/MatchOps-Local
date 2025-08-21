@@ -101,7 +101,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           <p className={taglineStyle}>{t('startScreen.tagline', 'Suunnittele · Kirjaa · Arvioi')}</p>
           <span className="absolute inset-0 -z-10 mx-auto w-[80%] h-full pointer-events-none [background:radial-gradient(closest-side,rgba(99,102,241,0.12),transparent_70%)] blur-md" />
         </div>
-          <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto" />
+          <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto mb-6 sm:mb-8" />
           
           {/* Buttons container with responsive spacing */}
           <div className="w-full flex flex-col items-center gap-2 sm:gap-3 px-2">
