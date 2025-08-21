@@ -7,8 +7,7 @@ import {
   updateAppSettings,
   getAppSettings,
 } from '@/utils/appSettings';
-import { exportFullBackup } from '@/utils/fullBackup';
-import logger from '@/utils/logger';
+ 
 
 interface StartScreenProps {
   onStartNewGame: () => void;
@@ -44,90 +43,102 @@ const StartScreen: React.FC<StartScreenProps> = ({
   }, [language]);
 
   const primaryButtonStyle =
-    'w-64 px-4 py-3 rounded-md text-lg font-semibold text-white bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm';
+    'w-64 px-4 py-3 rounded-md text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md';
 
   const secondaryButtonStyle =
     'w-64 px-4 py-3 rounded-md text-lg font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500';
 
   const containerStyle =
-    'relative flex flex-col items-center justify-center min-h-screen bg-slate-950 text-slate-100 font-display overflow-hidden py-24';
+    'relative flex flex-col items-center justify-center min-h-screen bg-slate-950 text-slate-100 font-display overflow-hidden py-8 sm:py-16 md:py-24 px-4 pb-16 md:pb-14';
 
   const taglineStyle =
-    'text-xl text-slate-300 text-center max-w-sm drop-shadow-lg';
+    'text-xl sm:text-2xl text-slate-200/95 text-center tracking-wide drop-shadow-md relative';
 
   const titleStyle =
-    'text-5xl font-bold text-yellow-400 tracking-wide drop-shadow-lg mb-4 text-center';
+    'relative text-6xl sm:text-7xl lg:text-9xl font-semibold tracking-tight leading-[0.9] drop-shadow-lg mb-2 text-center text-yellow-400';
 
-  const handleBackupNow = async () => {
-    try {
-      await exportFullBackup();
-      alert(t('settingsModal.backupCreated', 'Backup created successfully.'));
-    } catch (err) {
-      logger.error('Failed to create backup', err);
-      const message = err instanceof Error ? err.message : String(err);
-      alert(
-        `${t('settingsModal.backupError', 'Failed to create backup.')}: ${message}`,
-      );
-    }
-  };
+  
 
   return (
     <div className={containerStyle}>
+      {/* 1) Noise */}
       <div className="absolute inset-0 bg-noise-texture" />
+      {/* 2) Radial base gradient */}
       <div className="absolute inset-0 bg-gradient-radial from-slate-950 via-slate-900/80 to-slate-900" />
-      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
+      {/* 3) Animated aurora sweep */}
+      <div className="absolute inset-0 pointer-events-none animate-gradient [background:linear-gradient(120deg,theme(colors.indigo.950),theme(colors.blue.900),theme(colors.cyan.900),theme(colors.indigo.950))] opacity-25" />
+      {/* 4) Subtle grid */}
+      <div className="absolute inset-0 pointer-events-none sm:opacity-[0.06] opacity-[0.05] [background-image:linear-gradient(to_right,rgba(255,255,255,.25)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,.25)_1px,transparent_1px)] [background-size:40px_40px]" />
+      {/* 5) Diagonal color wash */}
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/30 via-sky-700/20 to-cyan-600/30 mix-blend-overlay" />
+      {/* 6) Top/bottom blue tint */}
       <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
-      <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
-      <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
+      {/* 7) Title spotlight */}
+      <div className="absolute top-[28%] left-1/2 -translate-x-1/2 w-[60vw] h-[32vh] pointer-events-none opacity-50 [background:radial-gradient(closest-side,rgba(56,189,248,0.10),transparent_70%)] blur-[28px]" />
+      {/* 8) Large blurred corner glows */}
+      <div className="absolute -inset-[50px] bg-sky-400/10 blur-3xl top-0 opacity-50" />
+      <div className="absolute -inset-[50px] bg-indigo-600/10 blur-3xl bottom-0 opacity-50" />
+      {/* 9) Radial color accents */}
+      <div className="pointer-events-none absolute inset-0 opacity-60 [background:radial-gradient(60%_50%_at_12%_12%,theme(colors.indigo.700)/0.25_0%,transparent_70%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-60 [background:radial-gradient(50%_40%_at_88%_78%,theme(colors.sky.500)/0.25_0%,transparent_70%)]" />
+      {/* 10) Vignette */}
+      <div className="absolute inset-0 pointer-events-none [background:radial-gradient(120%_90%_at_50%_50%,transparent_60%,rgba(0,0,0,0.25)_100%)]" />
+      {/* 11) Conic rotating highlight */}
+      <div className="absolute inset-0 pointer-events-none animate-rotate-slow opacity-10 [background:conic-gradient(from_150deg_at_65%_38%,theme(colors.cyan.400)/0.35_0deg,transparent_60deg,transparent_300deg,theme(colors.indigo.500)/0.35_360deg)]" />
 
-      <div className="relative z-10 flex flex-col items-center space-y-5">
-        <h1 className={titleStyle}>
-          <span className="block">MatchOps</span>
-          <span className="block">Local</span>
-        </h1>
-        <p className={taglineStyle}>{t('startScreen.tagline', 'Suunnittele • Kirjaa • Arvioi')}</p>
-        <div className="h-px w-40 bg-slate-500/30 my-4" />
-        <div className="flex flex-col items-center">
-          <span className="text-sm font-medium text-slate-300 mb-1">
-            {t('startScreen.languageLabel', 'Language')}
-          </span>
-          <div className="flex space-x-2">
-            <button
-              aria-label={t('startScreen.languageEnglish', 'English')}
-              onClick={() => setLanguage('en')}
-              className={`w-12 h-8 rounded-md text-xs font-semibold flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${language === 'en' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-200 hover:bg-slate-600'}`}
-            >
-              EN
-            </button>
-            <button
-              aria-label={t('startScreen.languageFinnish', 'Finnish')}
-              onClick={() => setLanguage('fi')}
-              className={`w-12 h-8 rounded-md text-xs font-semibold flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${language === 'fi' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-200 hover:bg-slate-600'}`}
-            >
-              FI
-            </button>
-          </div>
+      <div className="relative z-10 flex flex-col items-center w-full max-w-sm sm:max-w-md mt-2 sm:mt-0 space-y-6">
+        <div className="relative">
+          <h1 className={titleStyle}>
+            <span className="block">MatchOps</span>
+            <span className="block">Local</span>
+          </h1>
+          <span className="absolute inset-0 -z-10 blur-[6px] opacity-60 [background:radial-gradient(closest-side,rgba(234,179,8,0.35),transparent_70%)]" />
         </div>
-        {canResume && onResumeGame ? (
-          <button className={primaryButtonStyle} onClick={onResumeGame}>
-            {t('startScreen.resumeGame', 'Resume Last Game')}
+        <div className="relative">
+          <p className={taglineStyle}>{t('startScreen.tagline', 'Suunnittele * Kirjaa * Arvioi')}</p>
+          <span className="absolute inset-0 -z-10 mx-auto w-[80%] h-full pointer-events-none [background:radial-gradient(closest-side,rgba(99,102,241,0.12),transparent_70%)] blur-md" />
+        </div>
+        <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto mt-2 sm:mt-4 mb-6" />
+        <div className="w-full flex flex-col items-center gap-2 mt-1">
+          {canResume && onResumeGame ? (
+            <button className={primaryButtonStyle} onClick={onResumeGame}>
+              {t('startScreen.resumeGame', 'Resume Last Game')}
+            </button>
+          ) : null}
+          <button className={primaryButtonStyle} onClick={onStartNewGame}>
+            {t('startScreen.startNewGame', 'Start New Game')}
           </button>
-        ) : null}
-        <button className={primaryButtonStyle} onClick={onStartNewGame}>
-          {t('startScreen.startNewGame', 'Start New Game')}
-        </button>
-        <button className={secondaryButtonStyle} onClick={onLoadGame}>
-          {t('startScreen.loadGame', 'Load Game')}
-        </button>
-        <button className={secondaryButtonStyle} onClick={onCreateSeason}>
-          {t('startScreen.createSeasonTournament', 'Create Season/Tournament')}
-        </button>
-        <button className={secondaryButtonStyle} onClick={onViewStats}>
-          {t('startScreen.viewStats', 'View Stats')}
-        </button>
-        <button className={secondaryButtonStyle} onClick={handleBackupNow}>
-          {t('startScreen.backupNow', 'Backup Now')}
-        </button>
+          <button className={secondaryButtonStyle} onClick={onLoadGame}>
+            {t('startScreen.loadGame', 'Load Game')}
+          </button>
+          <button className={secondaryButtonStyle} onClick={onCreateSeason}>
+            {t('startScreen.createSeasonTournament', 'Create Season/Tournament')}
+          </button>
+          <button className={secondaryButtonStyle} onClick={onViewStats}>
+            {t('startScreen.viewStats', 'View Stats')}
+          </button>
+          
+        </div>
+      </div>
+
+      {/* Bottom-centered language switcher (absolute) per spec */}
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-8 md:bottom-6 z-20">
+        <div className="flex rounded-lg bg-slate-800/70 border border-slate-600 backdrop-blur-sm overflow-hidden">
+          <button
+            aria-label={t('startScreen.languageEnglish', 'English')}
+            onClick={() => setLanguage('en')}
+            className={`px-3 h-8 text-xs font-bold transition-colors ${language === 'en' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700/60'}`}
+          >
+            EN
+          </button>
+          <button
+            aria-label={t('startScreen.languageFinnish', 'Finnish')}
+            onClick={() => setLanguage('fi')}
+            className={`px-3 h-8 text-xs font-bold transition-colors border-l border-slate-600/60 ${language === 'fi' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700/60'}`}
+          >
+            FI
+          </button>
+        </div>
       </div>
     </div>
   );

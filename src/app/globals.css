@@ -147,3 +147,17 @@ body > div {
     text-wrap: balance;
   }
 }
+
+/* Grid background similar to login screen */
+.bg-grid-squares {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: -1px -1px;
+}
+
+/* Subtle vignette darkening toward edges */
+.bg-vignette {
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,0.6) 100%);
+}
