@@ -22,7 +22,7 @@ const config = manifestConfig[branch] || manifestConfig.default;
 
 export const metadata: Metadata = {
   title: config.appName,
-  description: "Soccer Tactics and Timer App for Coaches",
+  description: "MatchOps Local - Comprehensive coaching assistant for match day management, tactics, and player analysis",
   icons: {
     icon: config.iconPath,
     apple: config.iconPath,
