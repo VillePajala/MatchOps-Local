@@ -45,6 +45,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
   const primaryButtonStyle =
     'w-64 px-4 py-3 rounded-md text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md';
 
+  const disabledButtonStyle =
+    'w-64 px-4 py-3 rounded-md text-lg font-semibold text-slate-400 bg-gradient-to-r from-slate-700 to-slate-600 cursor-not-allowed shadow-md opacity-50';
+
   const containerStyle =
     'relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-950 text-slate-100 font-display overflow-hidden';
 
@@ -104,11 +107,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
         {/* Buttons container with responsive spacing */}
         <div className="w-full flex flex-col items-center gap-2 sm:gap-3 px-2 mt-12 sm:mt-16">
-            {canResume && onResumeGame ? (
-              <button className={primaryButtonStyle} onClick={onResumeGame}>
-                {t('startScreen.resumeGame', 'Resume Last Game')}
-              </button>
-            ) : null}
+            <button 
+              className={canResume && onResumeGame ? primaryButtonStyle : disabledButtonStyle}
+              onClick={canResume && onResumeGame ? onResumeGame : undefined}
+              disabled={!canResume || !onResumeGame}
+            >
+              {t('startScreen.resumeGame', 'Resume Last Game')}
+            </button>
             <button className={primaryButtonStyle} onClick={onStartNewGame}>
               {t('startScreen.startNewGame', 'Start New Game')}
             </button>
