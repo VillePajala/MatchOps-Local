@@ -30,6 +30,7 @@ import {
     // HiOutlineXCircle, // REMOVE unused
     // HiOutlineRectangleGroup, // REMOVE unused
     HiOutlineTrophy,
+    HiBars3, // Hamburger menu icon
 } from 'react-icons/hi2'; // Using hi2 for Heroicons v2 Outline
 // REMOVE FaClock, FaUsers, FaCog (FaFutbol remains)
 import { FaFutbol } from 'react-icons/fa';
@@ -103,7 +104,13 @@ const ControlBar: React.FC<ControlBarProps> = ({
   const { t } = useTranslation(); // Standard hook
   logger.log('[ControlBar Render] Received highlightRosterButton prop:', highlightRosterButton); // <<< Log prop value
   const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
+  
+  // Touch/Mouse drag handling state
+  const dragStartX = useRef<number>(0);
+  const dragStartTime = useRef<number>(0);
   
   // --- RE-ADD BUTTON STYLES --- 
   // Consistent Button Styles - Adjusted active state
@@ -119,13 +126,78 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
   const handleSettingsButtonClick = () => {
     setIsSettingsMenuOpen(!isSettingsMenuOpen);
+    setDragOffset(0); // Reset drag offset when toggling
   };
 
-  // Close settings menu if clicking outside
+  // Drag gesture handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      dragStartX.current = e.touches[0].clientX;
+      dragStartTime.current = Date.now();
+      setIsDragging(true);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isDragging && e.touches.length === 1) {
+      const currentX = e.touches[0].clientX;
+      const diff = currentX - dragStartX.current;
+      
+      // Only allow leftward drags (negative diff)
+      if (diff <= 0) {
+        const newOffset = Math.max(-320, diff); // Clamp to panel width
+        setDragOffset(newOffset);
+        
+        // Prevent page scroll when drag exceeds 10px
+        if (Math.abs(diff) > 10) {
+          e.preventDefault();
+        }
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (isDragging) {
+      // If dragged beyond 30% of panel width (-96px), close
+      if (dragOffset < -96) {
+        setIsSettingsMenuOpen(false);
+      }
+      setDragOffset(0);
+      setIsDragging(false);
+    }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    dragStartX.current = e.clientX;
+    setIsDragging(true);
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - dragStartX.current;
+      if (diff <= 0) {
+        setDragOffset(Math.max(-320, diff));
+      }
+    };
+    
+    const handleMouseUp = () => {
+      if (dragOffset < -96) {
+        setIsSettingsMenuOpen(false);
+      }
+      setDragOffset(0);
+      setIsDragging(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  // Close settings menu if clicking outside or on overlay
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (settingsMenuRef.current && !settingsMenuRef.current.contains(event.target as Node)) {
         setIsSettingsMenuOpen(false);
+        setDragOffset(0);
       }
     };
 
@@ -141,18 +213,24 @@ const ControlBar: React.FC<ControlBarProps> = ({
   }, [isSettingsMenuOpen]);
 
   const iconSize = "w-5 h-5"; // Standard icon size class
-  const menuIconSize = "w-5 h-5 mr-2"; // Smaller icon size for menu items
 
   // Helper to wrap handlers to also close the menu & reset view
   const wrapHandler = (handler: () => void) => () => {
     handler();
     setIsSettingsMenuOpen(false);
+    setDragOffset(0);
+  };
+  
+  const handleOverlayClick = () => {
+    setIsSettingsMenuOpen(false);
+    setDragOffset(0);
   };
 
   // Callback to handle StartNewGame button click
   const handleStartNewGame = () => {
     onStartNewGame();
     setIsSettingsMenuOpen(false);
+    setDragOffset(0);
   };
 
   return (
@@ -263,116 +341,142 @@ const ControlBar: React.FC<ControlBarProps> = ({
             className={`${baseButtonStyle} ${secondaryColor}`}
             title={t('controlBar.settings') ?? "Settings"}
           >
-            <HiOutlineCog6Tooth className={iconSize} />
+            <HiBars3 className={`${iconSize} transition-transform duration-150 ${isSettingsMenuOpen ? 'rotate-90' : ''}`} />
           </button>
 
-          {/* Settings Dropdown Menu (REORGANIZED) */}
+          {/* Overlay (scrim) - only when menu is open */}
           {isSettingsMenuOpen && (
             <div 
-               // Adjust position higher up to not overlap control bar too much
-               className={`fixed top-auto bottom-10 left-4 right-4 pt-1 pb-2 mt-auto mb-0 max-h-[85%] bg-slate-800/98 backdrop-blur-sm rounded-t-md shadow-xl z-50 border-x border-t border-slate-600/50 overflow-hidden transition-all duration-200 ease-in-out transform ${isSettingsMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full'}`}
-            >
-               {/* Wrapper for Menu View */}
-               <div className="flex w-full transition-transform duration-200 ease-out">
-
-                   {/* --- Main Menu View --- */}
-                   <div className="w-full flex-shrink-0 overflow-y-auto max-h-[85vh]">
-                     <div className="px-3 py-2 flex justify-between items-center border-b border-slate-700/80">
-                       <h3 className="text-base font-semibold text-yellow-300">{t('controlBar.menu.title', 'Menu')}</h3>
-                       <button onClick={() => { setIsSettingsMenuOpen(false); }} className="text-slate-400 hover:text-slate-200" title={t('common.closeMenu', 'Close Menu') ?? undefined}><HiOutlineChevronLeft className="w-5 h-5"/></button>
-                     </div>
-                     <nav className="flex flex-col p-2 space-y-1 text-sm">
-                       {/* Group 1: Game Management */} 
-                       <div className="py-0.5">
-                         <button onClick={wrapHandler(onQuickSave)} className="w-full flex items-center px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-600/75">
-                           <HiOutlineArchiveBoxArrowDown className={menuIconSize} /> {t('controlBar.saveGame', 'Save')}
-                         </button>
-                         <button onClick={wrapHandler(onOpenLoadGameModal)} className="w-full flex items-center px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-600/75">
-                           <HiOutlineFolderOpen className={menuIconSize} /> {t('controlBar.loadGame', 'Load Game...')}
-                         </button>
-                         <button onClick={handleStartNewGame} className="w-full flex items-center px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-600/75">
-                           <HiOutlineArrowPath className={menuIconSize} /> {t('controlBar.newGameButton', 'New Game')}
-                         </button>
-                       </div>
-                       
-                       {/* Divider - slightly more visible */}
-                       <div className="my-1 border-t border-slate-600/40"></div>
-  
-                       {/* Group 2: Roster & Settings */}
-                       <div className="py-0.5">
-                         <button onClick={wrapHandler(onOpenGameSettingsModal)} className={`w-full flex items-center px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-600/75 ${!isGameLoaded ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!isGameLoaded}>
-                           <HiOutlineAdjustmentsHorizontal className={menuIconSize} /> {t('controlBar.gameSettingsButton', 'Game Settings')}
-                         </button>
-                         <button onClick={wrapHandler(onOpenRosterModal)} className="w-full flex items-center px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-600/75">
-                           <HiOutlineUsers className={menuIconSize} /> {t('controlBar.manageRoster', 'Manage Roster')}
-                         </button>
-                         <button onClick={wrapHandler(onOpenSeasonTournamentModal)} className="w-full flex items-center px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-600/75">
-                            <HiOutlineTrophy className={menuIconSize} /> {t('controlBar.manageSeasonsAndTournaments', 'Manage Seasons & Tournaments')}
-                         </button>
-                       </div>
-
-                       {/* ADD Subtle Divider - slightly more visible */}
-                       <hr className="border-slate-600/40 my-1 mx-2" />
-                     
-                       {/* Group 3: Information/Export */} 
-                       <div className="py-0.5">
-                        <button onClick={wrapHandler(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-600/75">
-                          <HiOutlineClipboardDocumentList className={menuIconSize} />{t('controlBar.stats', 'Stats')}
-                        </button>
-                        <button
-                          onClick={wrapHandler(onOpenPlayerAssessmentModal)}
-                          className="w-full flex items-center px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-600/75"
-                          title={t('instructionsModal.controlBar.assessPlayers') ?? undefined}
-                        >
-                          <HiOutlineClipboard className={menuIconSize} />{t('controlBar.assessPlayers', 'Assess Players')}
-                        </button>
-                        <button onClick={wrapHandler(onToggleTrainingResources)} className="w-full flex items-center px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-600/75">
-                          <HiOutlineBookOpen className={menuIconSize} />{t('controlBar.training', 'Training')}
-                        </button>
-                         {/* Coaching Materials Link (MOVED HERE AND STYLED CONSISTENTLY) */}
-                         <a
-                           href="https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           onClick={() => { setIsSettingsMenuOpen(false); }} // Close menu on click
-                           className="w-full flex items-center px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-600/75"
-                         >
-                           <HiOutlineArrowTopRightOnSquare className={menuIconSize} />
-                           {t('controlBar.coachingMaterials', 'Coaching Materials')} 
-                         </a>
-                         {/* Export Data - Link to Load Modal for now, as it has Export All */} 
-                         <button onClick={wrapHandler(onOpenLoadGameModal)} className="w-full flex items-center px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-600/75">
-                           <HiOutlineDocumentArrowDown className={menuIconSize} />{t('controlBar.exportData', 'Export Data')}
-                         </button>
-                       </div>
-                       
-                       {/* ADD Subtle Divider - slightly more visible */}
-                       <hr className="border-slate-600/40 my-1 mx-2" />
-                       
-                       {/* Group 4: External Links */}
-                       <div className="py-0.5">
-                         <a href="https://taso.palloliitto.fi" target="_blank" rel="noopener noreferrer" className="w-full flex items-center px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-600/75" onClick={wrapHandler(() => {})}>
-                           <HiOutlineArrowTopRightOnSquare className={menuIconSize} />{t('controlBar.tasoLink', 'Taso')}
-                         </a>
-                       </div>
-
-                       {/* ADD Subtle Divider - slightly more visible */}
-                       <hr className="border-slate-600/40 my-1 mx-2" />
-
-                     {/* Group 5: App Settings */}
-                     <div className="py-0.5">
-                       <button onClick={wrapHandler(onOpenSettingsModal)} className="w-full flex items-center px-3 py-1.5 text-sm text-slate-100 hover:bg-slate-600/75">
-                         <HiOutlineCog6Tooth className={menuIconSize} /> {t('controlBar.appSettings', 'App Settings')}
-                       </button>
-                     </div>
-
-                     </nav>
-                   </div>{/* End Main Menu View */}
-
-                   
-               </div> {/* End inner wrapper */} 
-            </div>
+              className="fixed inset-0 bg-black/50 z-40"
+              onClick={handleOverlayClick}
+            />
           )}
+
+          {/* Settings Side Panel */}
+          <div 
+            ref={settingsMenuRef}
+            className={`fixed top-0 left-0 h-full w-80 z-50 flex flex-col bg-slate-800/98 backdrop-blur-sm shadow-xl border-r border-slate-600/50 ${
+              isDragging ? '' : 'transition-transform duration-300 ease-in-out'
+            } ${
+              isSettingsMenuOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}
+            style={isDragging ? { transform: `translateX(${dragOffset}px)` } : {}}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleMouseDown}
+          >
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-slate-700/80 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-yellow-300">{t('controlBar.menu.title', 'Menu')}</h3>
+              <button 
+                onClick={() => { setIsSettingsMenuOpen(false); setDragOffset(0); }} 
+                className="text-slate-400 hover:text-slate-200 p-1 rounded"
+                title={t('common.closeMenu', 'Close Menu') ?? undefined}
+              >
+                <HiOutlineChevronLeft className="w-5 h-5"/>
+              </button>
+            </div>
+            {/* Navigation content */}
+            <nav className="flex flex-col p-4 space-y-1 overflow-y-auto flex-1">
+              {/* Section: Game Management */}
+              <div className="mb-4">
+                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                  {t('controlBar.menu.gameManagement', 'Game Management')}
+                </h4>
+                <button onClick={wrapHandler(onQuickSave)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+                  <HiOutlineArchiveBoxArrowDown className="w-5 h-5 mr-2" /> {t('controlBar.saveGame', 'Save')}
+                </button>
+                <button onClick={wrapHandler(onOpenLoadGameModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+                  <HiOutlineFolderOpen className="w-5 h-5 mr-2" /> {t('controlBar.loadGame', 'Load Game...')}
+                </button>
+                <button onClick={handleStartNewGame} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+                  <HiOutlineArrowPath className="w-5 h-5 mr-2" /> {t('controlBar.newGameButton', 'New Game')}
+                </button>
+              </div>
+
+              {/* Section: Setup & Configuration */}
+              <div className="mb-4">
+                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                  {t('controlBar.menu.setupConfig', 'Setup & Configuration')}
+                </h4>
+                <button 
+                  onClick={wrapHandler(onOpenGameSettingsModal)} 
+                  className={`w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors ${
+                    !isGameLoaded ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  disabled={!isGameLoaded}
+                >
+                  <HiOutlineAdjustmentsHorizontal className="w-5 h-5 mr-2" /> {t('controlBar.gameSettingsButton', 'Game Settings')}
+                </button>
+                <button onClick={wrapHandler(onOpenRosterModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+                  <HiOutlineUsers className="w-5 h-5 mr-2" /> {t('controlBar.manageRoster', 'Manage Roster')}
+                </button>
+                <button onClick={wrapHandler(onOpenSeasonTournamentModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+                  <HiOutlineTrophy className="w-5 h-5 mr-2" /> {t('controlBar.manageSeasonsAndTournaments', 'Manage Seasons & Tournaments')}
+                </button>
+              </div>
+
+              {/* Section: Analysis & Tools */}
+              <div className="mb-4">
+                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                  {t('controlBar.menu.analysisTools', 'Analysis & Tools')}
+                </h4>
+                <button onClick={wrapHandler(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+                  <HiOutlineClipboardDocumentList className="w-5 h-5 mr-2" />{t('controlBar.stats', 'Stats')}
+                </button>
+                <button
+                  onClick={wrapHandler(onOpenPlayerAssessmentModal)}
+                  className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
+                  title={t('instructionsModal.controlBar.assessPlayers') ?? undefined}
+                >
+                  <HiOutlineClipboard className="w-5 h-5 mr-2" />{t('controlBar.assessPlayers', 'Assess Players')}
+                </button>
+                <button onClick={wrapHandler(onToggleTrainingResources)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+                  <HiOutlineBookOpen className="w-5 h-5 mr-2" />{t('controlBar.training', 'Training')}
+                </button>
+                <button onClick={wrapHandler(onOpenLoadGameModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+                  <HiOutlineDocumentArrowDown className="w-5 h-5 mr-2" />{t('controlBar.exportData', 'Export Data')}
+                </button>
+              </div>
+
+              {/* Section: Resources */}
+              <div className="mb-4">
+                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                  {t('controlBar.menu.resources', 'Resources')}
+                </h4>
+                <a
+                  href="https://www.palloliitto.fi/valmentajien-materiaalit-jalkapallo"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => { setIsSettingsMenuOpen(false); setDragOffset(0); }}
+                  className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
+                >
+                  <HiOutlineArrowTopRightOnSquare className="w-5 h-5 mr-2" />
+                  {t('controlBar.coachingMaterials', 'Coaching Materials')} 
+                </a>
+                <a 
+                  href="https://taso.palloliitto.fi" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors" 
+                  onClick={wrapHandler(() => {})}
+                >
+                  <HiOutlineArrowTopRightOnSquare className="w-5 h-5 mr-2" />{t('controlBar.tasoLink', 'Taso')}
+                </a>
+              </div>
+
+              {/* Section: Settings */}
+              <div>
+                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                  {t('controlBar.menu.settings', 'Settings')}
+                </h4>
+                <button onClick={wrapHandler(onOpenSettingsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+                  <HiOutlineCog6Tooth className="w-5 h-5 mr-2" /> {t('controlBar.appSettings', 'App Settings')}
+                </button>
+              </div>
+            </nav>
+          </div>
         </div>
       </div>
     </div>
