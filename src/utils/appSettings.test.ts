@@ -168,7 +168,7 @@ describe('App Settings Utilities', () => {
       );
     });
 
-    it('should update the backup email', async () => {
+    it('should update the language setting', async () => {
       const currentSettings: AppSettings = {
         currentGameId: 'game123',
         lastHomeTeamName: 'Team A',
@@ -188,6 +188,7 @@ describe('App Settings Utilities', () => {
         APP_SETTINGS_KEY,
         JSON.stringify({
           ...currentSettings,
+          language: 'fi',
           useDemandCorrection: false,
         })
       );
