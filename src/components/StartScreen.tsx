@@ -103,7 +103,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
         </div>
 
         {/* Buttons container with responsive spacing */}
-        <div className="w-full flex flex-col items-center gap-2 sm:gap-3 px-2 mt-18 sm:mt-24">
+        <div className="w-full flex flex-col items-center gap-2 sm:gap-3 px-2 mt-12 sm:mt-16">
             {canResume && onResumeGame ? (
               <button className={primaryButtonStyle} onClick={onResumeGame}>
                 {t('startScreen.resumeGame', 'Resume Last Game')}
