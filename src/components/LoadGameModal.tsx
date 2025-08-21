@@ -301,7 +301,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
     );
   } else {
     mainContent = (
-      <ul className="scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-1 px-1">
+      <ul className="scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-1 px-1 overflow-x-hidden">
         {/* Display general game load/delete errors here, above the list but inside scroll area if many games */}
         {gameLoadError && processingGameId === null && ( // Show if error is general, not for a specific item in loop
           <li className="px-3 py-2 bg-red-700/20 border-b border-red-600 text-red-300 text-xs" role="alert">
@@ -348,7 +348,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
           return (
             <li
               key={gameId}
-              className={`relative mb-5 last:mb-0 ${cardBaseStyles} rounded-lg border shadow-lg transition-all duration-200 hover:shadow-xl ${
+              className={`relative mb-5 last:mb-0 ${cardBaseStyles} rounded-lg border shadow-lg transition-all duration-200 hover:shadow-xl overflow-hidden ${
                 isCurrent ? 'ring-2 ring-indigo-500 border-indigo-500' : ''
               } ${openMenuId === gameId ? 'z-10' : ''}`}
               data-testid={`game-item-${gameId}`}
@@ -360,9 +360,9 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                 aria-label={isExpanded ? t('loadGameModal.collapseCard', 'Collapse details') : t('loadGameModal.expandCard', 'Expand details')}
                 className="w-full p-5 text-left hover:bg-slate-700/20 transition-colors rounded-lg flex justify-between items-start"
               >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className={`text-lg ${
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-2 min-w-0 flex-wrap sm:flex-nowrap">
+                    <h3 className={`text-lg truncate min-w-0 ${
                       // "Your team" based on homeOrAway setting
                       game.homeOrAway === 'home' 
                         ? `font-semibold ${isCurrent ? 'text-indigo-400' : 'text-slate-100'}` 
@@ -370,8 +370,8 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                     }`}>
                       {displayHomeTeamName}
                     </h3>
-                    <span className="text-slate-400 font-medium">vs</span>
-                    <h3 className={`text-lg ${
+                    <span className="text-slate-400 font-medium shrink-0">vs</span>
+                    <h3 className={`text-lg truncate min-w-0 ${
                       // "Your team" based on homeOrAway setting  
                       game.homeOrAway === 'away' 
                         ? `font-semibold ${isCurrent ? 'text-indigo-400' : 'text-slate-100'}` 
@@ -408,7 +408,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                   )}
 
                   {/* Meta row */}
-                  <div className="flex items-center gap-4 text-sm text-slate-400 mb-3">
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400 mb-3">
                     {game.gameDate && (
                       <div className="flex items-center gap-1">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -451,7 +451,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                     )}
                   </div>
                 </div>
-                <div className="ml-6 flex items-center gap-4">
+                <div className="ml-6 flex items-center gap-4 shrink-0">
                   <div className="text-right">
                     <div className={`text-2xl font-bold ${(() => {
                       if (game.homeScore === game.awayScore) return 'text-gray-300';

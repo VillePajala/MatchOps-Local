@@ -84,7 +84,7 @@ export const exportFullBackup = async (): Promise<string> => {
     // Generate filename with timestamp
     const now = new Date();
     const timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}_${now.getHours().toString().padStart(2, "0")}${now.getMinutes().toString().padStart(2, "0")}${now.getSeconds().toString().padStart(2, "0")}`;
-    a.download = `SoccerApp_Backup_${timestamp}.json`;
+    a.download = `MatchOpsLocal_Backup_${timestamp}.json`;
 
     a.href = url;
     document.body.appendChild(a);

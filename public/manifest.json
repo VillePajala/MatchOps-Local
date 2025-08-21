@@ -1,6 +1,6 @@
 {
-  "name": "MatchDay Coach (Dev)",
-  "short_name": "Dev App",
+  "name": "MatchOps Local (Dev)",
+  "short_name": "MatchOps Dev",
   "description": "Soccer Tactics and Timer App for Coaches",
   "start_url": "/",
   "display": "fullscreen",
