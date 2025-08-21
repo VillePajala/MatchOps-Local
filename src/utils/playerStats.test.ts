@@ -7,30 +7,44 @@ describe('calculatePlayerStats', () => {
   const seasons: Season[] = [{ id: 's1', name: 'Season 1' } as Season];
   const tournaments: Tournament[] = [{ id: 't1', name: 'Tourn 1' } as Tournament];
 
-  const game1: AppState = {
+  const game1 = {
     teamName: 'A', opponentName: 'B', gameDate: '2024-01-01', homeScore: 2, awayScore: 1,
-    gameNotes: '', homeOrAway: 'home', numberOfPeriods: 2, periodDurationMinutes: 1,
-    currentPeriod: 1, gameStatus: 'gameEnd', selectedPlayerIds: ['p1'], seasonId: 's1',
+    gameNotes: '', homeOrAway: 'home' as const, numberOfPeriods: 2 as const, periodDurationMinutes: 1,
+    currentPeriod: 1, gameStatus: 'gameEnd' as const, selectedPlayerIds: ['p1'], seasonId: 's1',
     tournamentId: '', gameLocation: '', gameTime: '',
     gameEvents: [{ id: 'g1', type: 'goal', time: 10, scorerId: 'p1' } as GameEvent],
     timeElapsedInSeconds: 0, startTimestamp: null,
     isTimerRunning: false, subIntervalMinutes: 1, nextSubDueTimeSeconds: 0,
-    subAlertLevel: 'none', lastSubConfirmationTimeSeconds: 0,
+    subAlertLevel: 'none' as const, lastSubConfirmationTimeSeconds: 0,
     completedIntervalDurations: [], showPlayerNames: true,
     assessments: {},
+    playersOnField: [],
+    opponents: [],
+    drawings: [],
+    availablePlayers: [],
+    tacticalDiscs: [],
+    tacticalBallPosition: null,
+    tacticalDrawings: [],
   } as AppState;
 
-  const game2: AppState = {
+  const game2 = {
     teamName: 'A', opponentName: 'C', gameDate: '2024-02-01', homeScore: 0, awayScore: 1,
-    gameNotes: '', homeOrAway: 'home', numberOfPeriods: 2, periodDurationMinutes: 1,
-    currentPeriod: 1, gameStatus: 'gameEnd', selectedPlayerIds: ['p1'], seasonId: '',
+    gameNotes: '', homeOrAway: 'home' as const, numberOfPeriods: 2 as const, periodDurationMinutes: 1,
+    currentPeriod: 1, gameStatus: 'gameEnd' as const, selectedPlayerIds: ['p1'], seasonId: '',
     tournamentId: 't1', gameLocation: '', gameTime: '',
     gameEvents: [{ id: 'a1', type: 'goal', time: 20, scorerId: 'other', assisterId: 'p1' } as GameEvent],
     timeElapsedInSeconds: 0, startTimestamp: null,
     isTimerRunning: false, subIntervalMinutes: 1, nextSubDueTimeSeconds: 0,
-    subAlertLevel: 'none', lastSubConfirmationTimeSeconds: 0,
+    subAlertLevel: 'none' as const, lastSubConfirmationTimeSeconds: 0,
     completedIntervalDurations: [], showPlayerNames: true,
     assessments: {},
+    playersOnField: [],
+    opponents: [],
+    drawings: [],
+    availablePlayers: [],
+    tacticalDiscs: [],
+    tacticalBallPosition: null,
+    tacticalDrawings: [],
   } as AppState;
 
   const savedGames = { g1: game1, g2: game2 };

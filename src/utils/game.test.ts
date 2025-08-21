@@ -72,6 +72,9 @@ const migrateGameState = (state: unknown): GameState => {
     lastSubConfirmationTimeSeconds: currentState.lastSubConfirmationTimeSeconds ?? 0,
     gameLocation: currentState.gameLocation ?? "",
     gameTime: currentState.gameTime ?? "",
+    tacticalDiscs: Array.isArray(currentState.tacticalDiscs) ? currentState.tacticalDiscs : [],
+    tacticalDrawings: Array.isArray(currentState.tacticalDrawings) ? currentState.tacticalDrawings : [],
+    tacticalBallPosition: currentState.tacticalBallPosition ?? null,
     ...currentState, // Spread original state
     schemaVersion: CURRENT_SCHEMA_VERSION, // Ensure current schema version
   };
@@ -82,6 +85,8 @@ const migrateGameState = (state: unknown): GameState => {
   newState.selectedPlayerIds = Array.isArray(newState.selectedPlayerIds) ? newState.selectedPlayerIds : [];
   newState.opponents = Array.isArray(newState.opponents) ? newState.opponents : [];
   newState.drawings = Array.isArray(newState.drawings) ? newState.drawings : [];
+  newState.tacticalDiscs = Array.isArray(newState.tacticalDiscs) ? newState.tacticalDiscs : [];
+  newState.tacticalDrawings = Array.isArray(newState.tacticalDrawings) ? newState.tacticalDrawings : [];
   newState.gameEvents = Array.isArray(newState.gameEvents) ? newState.gameEvents : [];
   newState.completedIntervalDurations = Array.isArray(newState.completedIntervalDurations) ? newState.completedIntervalDurations : [];
 
@@ -118,6 +123,9 @@ const createValidGameState = (overrides: Partial<GameState> = {}): GameState => 
   lastSubConfirmationTimeSeconds: 0,
   gameLocation: "",
   gameTime: "",
+  tacticalDiscs: [],
+  tacticalDrawings: [],
+  tacticalBallPosition: null,
   schemaVersion: CURRENT_SCHEMA_VERSION, // Use constant
   ...overrides,
 });

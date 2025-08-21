@@ -1,0 +1,12 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm ci",
+  "devCommand": "npm run dev",
+  "github": {
+    "enabled": true,
+    "autoAlias": true
+  },
+  "public": false
+}

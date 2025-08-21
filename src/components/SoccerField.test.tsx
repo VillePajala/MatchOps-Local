@@ -127,6 +127,13 @@ describe('SoccerField', () => {
     onPlayerDropViaTouch: jest.fn(),
     onPlayerDragCancelViaTouch: jest.fn(),
     timeElapsedInSeconds: 300,
+    isTacticsBoardView: false,
+    tacticalDiscs: [],
+    onTacticalDiscMove: jest.fn(),
+    onTacticalDiscRemove: jest.fn(),
+    onToggleTacticalDiscType: jest.fn(),
+    tacticalBallPosition: null,
+    onTacticalBallMove: jest.fn(),
   };
 
   beforeEach(() => {

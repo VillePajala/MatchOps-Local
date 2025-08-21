@@ -48,10 +48,6 @@ describe('App Settings Utilities', () => {
         lastHomeTeamName: '',
         language: 'en',
         hasSeenAppGuide: false,
-        autoBackupEnabled: false,
-        autoBackupIntervalHours: 24,
-        lastBackupTime: undefined,
-        backupEmail: '',
         useDemandCorrection: false
       });
     });
@@ -68,10 +64,6 @@ describe('App Settings Utilities', () => {
         lastHomeTeamName: 'Team X',
         language: 'en', // From default settings
         hasSeenAppGuide: false,
-        autoBackupEnabled: false,
-        autoBackupIntervalHours: 24,
-        lastBackupTime: undefined,
-        backupEmail: '',
         useDemandCorrection: false
       });
     });
@@ -88,10 +80,6 @@ describe('App Settings Utilities', () => {
         lastHomeTeamName: '',
         language: 'en',
         hasSeenAppGuide: false,
-        autoBackupEnabled: false,
-        autoBackupIntervalHours: 24,
-        lastBackupTime: undefined,
-        backupEmail: '',
         useDemandCorrection: false
       });
       
@@ -111,10 +99,6 @@ describe('App Settings Utilities', () => {
         lastHomeTeamName: '',
         language: 'en',
         hasSeenAppGuide: false,
-        autoBackupEnabled: false,
-        autoBackupIntervalHours: 24,
-        lastBackupTime: undefined,
-        backupEmail: '',
         useDemandCorrection: false
       });
       consoleSpy.mockRestore();
@@ -159,8 +143,6 @@ describe('App Settings Utilities', () => {
         lastHomeTeamName: 'Team A',
         language: 'en',
         hasSeenAppGuide: false,
-        autoBackupEnabled: false,
-        autoBackupIntervalHours: 24
       };
       localStorageMock.getItem.mockReturnValue(JSON.stringify(currentSettings));
       
@@ -171,10 +153,6 @@ describe('App Settings Utilities', () => {
         lastHomeTeamName: 'Team A', // Preserved
         language: 'en', // Preserved
         hasSeenAppGuide: false,
-        autoBackupEnabled: false,
-        autoBackupIntervalHours: 24,
-        lastBackupTime: undefined,
-        backupEmail: '',
         useDemandCorrection: false
       });
       
@@ -185,40 +163,32 @@ describe('App Settings Utilities', () => {
           lastHomeTeamName: 'Team A',
           language: 'en',
           hasSeenAppGuide: false,
-          autoBackupEnabled: false,
-          autoBackupIntervalHours: 24,
-          lastBackupTime: undefined,
-          backupEmail: '',
           useDemandCorrection: false
         })
       );
     });
 
-    it('should update the backup email', async () => {
+    it('should update the language setting', async () => {
       const currentSettings: AppSettings = {
         currentGameId: 'game123',
         lastHomeTeamName: 'Team A',
         language: 'en',
         hasSeenAppGuide: false,
-        autoBackupEnabled: false,
-        autoBackupIntervalHours: 24,
       };
       localStorageMock.getItem.mockReturnValue(JSON.stringify(currentSettings));
 
-      const result = await updateAppSettings({ backupEmail: 'a@test.com' });
+      const result = await updateAppSettings({ language: 'fi' });
 
       expect(result).toEqual({
         ...currentSettings,
-        lastBackupTime: undefined,
-        backupEmail: 'a@test.com',
+        language: 'fi',
         useDemandCorrection: false,
       });
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
         APP_SETTINGS_KEY,
         JSON.stringify({
           ...currentSettings,
-          lastBackupTime: undefined,
-          backupEmail: 'a@test.com',
+          language: 'fi',
           useDemandCorrection: false,
         })
       );
@@ -228,9 +198,7 @@ describe('App Settings Utilities', () => {
       const currentSettings: AppSettings = {
         currentGameId: 'initialGame',
         lastHomeTeamName: 'InitialTeam',
-        language: 'en',
-        autoBackupEnabled: false,
-        autoBackupIntervalHours: 24
+        language: 'en'
       };
       // Simulate getAppSettings returning current settings initially
       localStorageMock.getItem.mockReturnValueOnce(JSON.stringify(currentSettings));
@@ -279,8 +247,6 @@ describe('App Settings Utilities', () => {
         lastHomeTeamName: 'Team B',
         language: 'fi',
         hasSeenAppGuide: false,
-        autoBackupEnabled: false,
-        autoBackupIntervalHours: 24
       };
       localStorageMock.getItem.mockReturnValue(JSON.stringify(currentSettings));
       // Mock setItem to simulate successful save by updateAppSettings
@@ -295,9 +261,6 @@ describe('App Settings Utilities', () => {
           lastHomeTeamName: 'Team B',
           language: 'fi',
           hasSeenAppGuide: false,
-          autoBackupEnabled: false,
-          autoBackupIntervalHours: 24,
-          backupEmail: '',
           useDemandCorrection: false
         })
       );
@@ -365,9 +328,6 @@ describe('App Settings Utilities', () => {
         lastHomeTeamName: 'Old Team Name',
         language: 'en',
         hasSeenAppGuide: false,
-        autoBackupEnabled: false,
-        autoBackupIntervalHours: 24,
-        backupEmail: ''
       };
       localStorageMock.getItem.mockReturnValue(JSON.stringify(currentSettings)); // For getAppSettings call in updateAppSettings
       localStorageMock.setItem.mockImplementation(() => {}); // Default successful save
@@ -423,10 +383,6 @@ describe('App Settings Utilities', () => {
           lastHomeTeamName: '',
           language: 'en',
           hasSeenAppGuide: false,
-          autoBackupEnabled: false,
-          autoBackupIntervalHours: 24,
-          lastBackupTime: undefined,
-          backupEmail: '',
           useDemandCorrection: false
         })
       );
