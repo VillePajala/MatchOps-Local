@@ -465,8 +465,8 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
       context.restore();
       context.beginPath();
       context.arc(absX, absY, opponentRadius, 0, Math.PI * 2);
-      context.strokeStyle = 'rgba(0, 0, 0, 0.25)';
-      context.lineWidth = 1;
+      context.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+      context.lineWidth = 1.5;
       context.stroke();
     });
     }
@@ -482,27 +482,32 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
           return;
         }
 
-        context.beginPath();
-        context.arc(absX, absY, tacticalDiscRadius, 0, Math.PI * 2);
+        // Draw shadow first
         context.save();
         context.shadowColor = 'rgba(0, 0, 0, 0.5)';
         context.shadowBlur = 5;
         context.shadowOffsetX = 1;
         context.shadowOffsetY = 2;
+        
+        context.beginPath();
+        context.arc(absX, absY, tacticalDiscRadius, 0, Math.PI * 2);
 
+        // Fill colors per specification
         if (disc.type === 'home') {
           context.fillStyle = '#7E22CE'; // Purple
-          context.strokeStyle = '#581C87';
         } else if (disc.type === 'opponent') {
           context.fillStyle = '#DC2626'; // Red
-          context.strokeStyle = '#B91C1C';
         } else if (disc.type === 'goalie') {
           context.fillStyle = '#F97316'; // Orange
-          context.strokeStyle = '#D97706';
         }
 
         context.fill();
         context.restore();
+        
+        // Add border per specification
+        context.beginPath();
+        context.arc(absX, absY, tacticalDiscRadius, 0, Math.PI * 2);
+        context.strokeStyle = 'rgba(255, 255, 255, 0.7)';
         context.lineWidth = 1.5;
         context.stroke();
       });
@@ -594,8 +599,8 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
       context.restore();
       context.beginPath();
       context.arc(absX, absY, playerRadius, 0, Math.PI * 2);
-      context.strokeStyle = 'rgba(0, 0, 0, 0.25)';
-      context.lineWidth = 1;
+      context.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+      context.lineWidth = 1.5;
       context.stroke();
       
       // --- End Disc Redesign ---
