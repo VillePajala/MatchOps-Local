@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: resolve remaining GameSettingsModal test failures"
+  "notes": "feat: implement distinctive purple theme for local version"
 }
