@@ -9,7 +9,8 @@ The app is designed to be an all-in-one digital assistant for game day, from pre
 
 ### ⚽ Tactics & Gameplay
 
-*   **Interactive Field:** Drag and drop players and opponents directly onto the pitch.
+*   **Enhanced Soccer Field:** Beautifully rendered field with realistic grass textures, mowing patterns, and professional lighting effects for an immersive coaching experience.
+*   **Interactive Field:** Drag and drop players and opponents directly onto the pitch with refined visual styling and smooth animations.
 *   **Dedicated Tactics Board:** Toggle to a clean, separate view for designing plays. Use colored discs (home, opponent, goalie) and a freehand drawing tool to illustrate strategies.
 *   **Live Game Clock:** A simple and reliable timer with start, pause, and reset functionality, including a large overlay view for high visibility.
 *   **Substitution Timer:** Set a custom interval to receive on-screen alerts, ensuring timely player rotations.
@@ -23,6 +24,7 @@ The app is designed to be an all-in-one digital assistant for game day, from pre
 *   **Aggregate Views:** Filter stats by the current game, or see aggregated totals for an entire **Season**, **Tournament**, or **All-Time**.
 *   **Sortable Player Data:** Instantly sort players by Games Played, Goals, Assists, Total Points, and Average Points per Game.
 *   **Individual Player Deep-Dive:** Click any player to open a dedicated modal showing their complete game log and a **performance trend graph** for goals and assists over time.
+*   **External Games Integration:** Add external games and statistics that weren't tracked in the app, with full team context, scores, and dates for comprehensive player records.
 *   **Data Export:** Export stats for a single game or aggregated data to **JSON** or **CSV** for offline analysis or sharing.
 *   **Performance Ratings:** Assess players after each match on key metrics and view averages and trend graphs. Enable *Weight by Difficulty* to factor in each game's demand level.
 
@@ -39,11 +41,12 @@ The app is designed to be an all-in-one digital assistant for game day, from pre
 ### 🚀 Technology & Usability
 
 *   **Progressive Web App (PWA):** Installable on any device (desktop or mobile) for a native, offline-capable experience.
+*   **Modern UI/UX:** Professional sliding side panel navigation with touch gestures, refined game cards with alternating surfaces, and intuitive three-dot action menus.
 *   **Automatic Update Notifications:** A banner appears in-app when a new version is released, ensuring you're always using the latest features.
 *   **Responsive Design:** A clean, touch-friendly interface that works seamlessly on tablets, phones, and laptops.
 *   **Internationalization:** Full support for English and Finnish.
 *   **Vercel Analytics:** Web analytics are enabled to help improve the user experience.
-*   **Settings Modal:** Adjust language, default team name and automatic backup interval, view storage usage and perform a hard reset when needed.
+*   **Enhanced Settings:** Professional sliding settings panel with organized sections for easy navigation and configuration.
 
 ## Tech Stack
 
