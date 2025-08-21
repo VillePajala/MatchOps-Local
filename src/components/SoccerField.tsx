@@ -43,6 +43,9 @@ const PLAYER_RADIUS = 20;
 const DOUBLE_TAP_TIME_THRESHOLD = 300; // ms
 const DOUBLE_TAP_POS_THRESHOLD = 15; // pixels
 
+// Background cache for performance optimization
+const backgroundCache: Map<string, HTMLCanvasElement> = new Map();
+
 // Helper function to generate a noise pattern on an off-screen canvas
 const createNoisePattern = (
   ctx: CanvasRenderingContext2D,
@@ -81,6 +84,182 @@ const formatTime = (totalSeconds: number): string => {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
+
+// Helper function to create and cache the field background
+const createFieldBackground = (
+  context: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  isTacticsView: boolean
+): HTMLCanvasElement => {
+  const cacheKey = `${W}x${H}-${isTacticsView ? 'tactics' : 'normal'}`;
+  
+  // Check if we have a cached version
+  if (backgroundCache.has(cacheKey)) {
+    return backgroundCache.get(cacheKey)!;
+  }
+
+  // Create offscreen canvas for background
+  const offscreenCanvas = document.createElement('canvas');
+  offscreenCanvas.width = W;
+  offscreenCanvas.height = H;
+  const offscreenCtx = offscreenCanvas.getContext('2d');
+  if (!offscreenCtx) throw new Error('Could not get offscreen context');
+
+  // 1. Base solid grass color
+  offscreenCtx.fillStyle = '#427B44';
+  offscreenCtx.fillRect(0, 0, W, H);
+
+  // 2. Add dual noise patterns
+  const cloudPattern = createNoisePattern(offscreenCtx, 400, 400, 0.02);
+  if (cloudPattern) {
+    offscreenCtx.fillStyle = cloudPattern;
+    offscreenCtx.fillRect(0, 0, W, H);
+  }
+  
+  const grainPattern = createNoisePattern(offscreenCtx, 100, 100, 0.03);
+  if (grainPattern) {
+    offscreenCtx.fillStyle = grainPattern;
+    offscreenCtx.fillRect(0, 0, W, H);
+  }
+
+  // 3. Mowing stripes with soft-light blend mode
+  const numStripes = 9;
+  const stripeWidth = W / numStripes;
+  offscreenCtx.globalCompositeOperation = 'soft-light';
+  
+  for (let i = 0; i < numStripes; i++) {
+    const x = i * stripeWidth;
+    offscreenCtx.fillStyle = (i % 2 === 0) ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)';
+    offscreenCtx.fillRect(x, 0, stripeWidth, H);
+  }
+  
+  offscreenCtx.globalCompositeOperation = 'source-over';
+
+  // 4. Lighting overlays
+  const linearGradient = offscreenCtx.createLinearGradient(0, 0, 0, H);
+  linearGradient.addColorStop(0, 'rgba(0, 0, 0, 0.03)');
+  linearGradient.addColorStop(1, 'rgba(0, 0, 0, 0.25)');
+  offscreenCtx.fillStyle = linearGradient;
+  offscreenCtx.fillRect(0, 0, W, H);
+  
+  const hotspotRadius = H * 0.8;
+  const radialGradient = offscreenCtx.createRadialGradient(
+    W / 2, H * 0.3, 0,
+    W / 2, H * 0.3, hotspotRadius
+  );
+  radialGradient.addColorStop(0, 'rgba(255, 255, 255, 0.10)');
+  radialGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  offscreenCtx.fillStyle = radialGradient;
+  offscreenCtx.fillRect(0, 0, W, H);
+
+  // 5. Draw field lines and markings with shadows
+  offscreenCtx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+  offscreenCtx.lineWidth = 2;
+  offscreenCtx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+  offscreenCtx.shadowBlur = 2;
+  offscreenCtx.shadowOffsetY = 1;
+  
+  const lineMargin = 5;
+  const centerRadius = Math.min(W, H) * 0.08;
+  const penaltyBoxWidth = W * 0.6;
+  const penaltyBoxHeight = H * 0.18;
+  const goalBoxWidth = W * 0.3;
+  const goalBoxHeight = H * 0.07;
+  const penaltySpotDist = H * 0.12;
+  const cornerRadius = Math.min(W, H) * 0.02;
+
+  // Outer boundary
+  offscreenCtx.beginPath();
+  offscreenCtx.strokeRect(lineMargin, lineMargin, W - 2 * lineMargin, H - 2 * lineMargin);
+
+  // Halfway line
+  offscreenCtx.beginPath();
+  offscreenCtx.moveTo(lineMargin, H / 2);
+  offscreenCtx.lineTo(W - lineMargin, H / 2);
+  offscreenCtx.stroke();
+
+  // Center circle
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(W / 2, H / 2, centerRadius, 0, Math.PI * 2);
+  offscreenCtx.stroke();
+
+  // Top Penalty Area & Arc
+  offscreenCtx.beginPath();
+  const topPenaltyX = (W - penaltyBoxWidth) / 2;
+  offscreenCtx.rect(topPenaltyX, lineMargin, penaltyBoxWidth, penaltyBoxHeight);
+  offscreenCtx.stroke();
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(W / 2, lineMargin + penaltyBoxHeight, centerRadius * 0.8, 0, Math.PI, false);
+  offscreenCtx.stroke();
+
+  // Top Goal Area
+  offscreenCtx.beginPath();
+  const topGoalX = (W - goalBoxWidth) / 2;
+  offscreenCtx.strokeRect(topGoalX, lineMargin, goalBoxWidth, goalBoxHeight);
+  offscreenCtx.stroke();
+
+  // Bottom Penalty Area & Arc
+  offscreenCtx.beginPath();
+  const bottomPenaltyY = H - lineMargin - penaltyBoxHeight;
+  offscreenCtx.rect(topPenaltyX, bottomPenaltyY, penaltyBoxWidth, penaltyBoxHeight);
+  offscreenCtx.stroke();
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(W / 2, H - lineMargin - penaltyBoxHeight, centerRadius * 0.8, Math.PI, 0, false);
+  offscreenCtx.stroke();
+
+  // Bottom Goal Area
+  offscreenCtx.beginPath();
+  const bottomGoalY = H - lineMargin - goalBoxHeight;
+  offscreenCtx.strokeRect(topGoalX, bottomGoalY, goalBoxWidth, goalBoxHeight);
+  offscreenCtx.stroke();
+
+  // Corner Arcs
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(lineMargin, lineMargin, cornerRadius, 0, Math.PI / 2);
+  offscreenCtx.stroke();
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(W - lineMargin, lineMargin, cornerRadius, Math.PI / 2, Math.PI);
+  offscreenCtx.stroke();
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(lineMargin, H - lineMargin, cornerRadius, Math.PI * 1.5, 0);
+  offscreenCtx.stroke();
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(W - lineMargin, H - lineMargin, cornerRadius, Math.PI, Math.PI * 1.5);
+  offscreenCtx.stroke();
+
+  // Reset shadow effects
+  offscreenCtx.shadowColor = 'transparent';
+  offscreenCtx.shadowBlur = 0;
+  offscreenCtx.shadowOffsetY = 0;
+  
+  // Draw filled spots (no shadow)
+  offscreenCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  const spotRadius = 3;
+  // Center Spot
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(W / 2, H / 2, spotRadius, 0, Math.PI * 2);
+  offscreenCtx.fill();
+  // Top Penalty Spot
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(W / 2, lineMargin + penaltySpotDist, spotRadius, 0, Math.PI * 2);
+  offscreenCtx.fill();
+  // Bottom Penalty Spot
+  offscreenCtx.beginPath();
+  offscreenCtx.arc(W / 2, H - lineMargin - penaltySpotDist, spotRadius, 0, Math.PI * 2);
+  offscreenCtx.fill();
+
+  // Draw Goals
+  const goalWidth = W * 0.15;
+  const goalHeight = 5;
+  offscreenCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+  offscreenCtx.fillRect((W - goalWidth) / 2, lineMargin, goalWidth, goalHeight);
+  offscreenCtx.fillRect((W - goalWidth) / 2, H - lineMargin - goalHeight, goalWidth, goalHeight);
+
+  // Cache the result
+  backgroundCache.set(cacheKey, offscreenCanvas);
+  return offscreenCanvas;
 };
 
 const SoccerField: React.FC<SoccerFieldProps> = ({
@@ -164,48 +343,21 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
       return; 
     }
 
-    // --- Clear and Draw Background/Field Lines --- 
-    // New color palette for a more natural and subtle look
-    const lightStripeGreen = '#5b995e'; // Made lighter color closer to base
-    const darkStripeGreen = '#508153';  // Made darker color closer to base
-    
-    // 1. Create and draw the base mowing stripes
-    const numStripes = 9;
-    const gradient = context.createLinearGradient(0, 0, W, 0);
+    // --- Draw Cached Background ---
+    // Use prerendered background for performance
+    const backgroundCanvas = createFieldBackground(context, W, H, isTacticsBoardView);
+    context.drawImage(backgroundCanvas, 0, 0);
 
-    for (let i = 0; i < numStripes; i++) {
-      const color = (i % 2 === 0) ? lightStripeGreen : darkStripeGreen;
-      gradient.addColorStop(i / numStripes, color);
-      gradient.addColorStop((i + 1) / numStripes, color);
-    }
-
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, W, H);
-
-    // 2. Add a subtle noise texture layer
-    const noisePattern = createNoisePattern(context, 100, 100, 0.03); // 3% opacity noise
-    if (noisePattern) {
-        context.fillStyle = noisePattern;
-        context.fillRect(0, 0, W, H);
-    }
-    
-    // 3. Add a vignette lighting effect
-    const vignette = context.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.4, W / 2, H / 2, Math.max(W, H));
-    vignette.addColorStop(0, 'rgba(0,0,0,0)');
-    vignette.addColorStop(1, 'rgba(0,0,0,0.2)'); // Darken edges by 20%
-    context.fillStyle = vignette;
-    context.fillRect(0, 0, W, H);
-
-    // --- Draw Tactical Mode Border ---
+    // --- Draw Tactical Mode Overlays ---
     if (isTacticsBoardView) {
-      context.strokeStyle = 'rgba(255, 255, 255, 0.5)'; // Subtle white for a cleaner look
-      context.lineWidth = 2; // Can be a bit thinner now
+      context.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      context.lineWidth = 2;
       context.strokeRect(0, 0, W, H);
 
-      // --- Draw Tactical Grid Overlay ---
-      context.strokeStyle = 'rgba(255, 255, 255, 0.1)'; // Faint white grid lines
+      // Draw Tactical Grid Overlay
+      context.strokeStyle = 'rgba(255, 255, 255, 0.1)';
       context.lineWidth = 1;
-      const gridSpacing = 40; // pixels
+      const gridSpacing = 40;
 
       // Draw vertical lines
       for (let x = gridSpacing; x < W; x += gridSpacing) {
@@ -222,107 +374,7 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
         context.lineTo(W, y);
         context.stroke();
       }
-      // --- End Tactical Grid Overlay ---
     }
-
-    context.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-    context.lineWidth = 2; // No DPR scaling needed here
-    const lineMargin = 5; // No DPR scaling
-    const centerRadius = Math.min(W, H) * 0.08; // Use W/H (CSS)
-    const penaltyBoxWidth = W * 0.6; // Use W (CSS)
-    const penaltyBoxHeight = H * 0.18; // Use H (CSS)
-    const goalBoxWidth = W * 0.3; // Use W
-    const goalBoxHeight = H * 0.07; // Use H
-    const penaltySpotDist = H * 0.12; // Use H
-    const cornerRadius = Math.min(W, H) * 0.02; // Use W/H
-
-    // Outer boundary (using CSS W/H and non-scaled margin)
-    context.beginPath();
-    context.strokeRect(lineMargin, lineMargin, W - 2 * lineMargin, H - 2 * lineMargin);
-
-    // Halfway line
-    context.beginPath();
-    context.moveTo(lineMargin, H / 2);
-    context.lineTo(W - lineMargin, H / 2);
-    context.stroke();
-
-    // Center circle
-    context.beginPath();
-    context.arc(W / 2, H / 2, centerRadius, 0, Math.PI * 2);
-    context.stroke();
-
-    // Top Penalty Area & Arc
-    context.beginPath();
-    const topPenaltyX = (W - penaltyBoxWidth) / 2;
-    context.rect(topPenaltyX, lineMargin, penaltyBoxWidth, penaltyBoxHeight);
-    context.stroke();
-    context.beginPath();
-    context.arc(W / 2, lineMargin + penaltyBoxHeight, centerRadius * 0.8, 0, Math.PI, false);
-    context.stroke();
-
-    // Top Goal Area
-    context.beginPath();
-    const topGoalX = (W - goalBoxWidth) / 2;
-    context.strokeRect(topGoalX, lineMargin, goalBoxWidth, goalBoxHeight);
-    context.stroke();
-
-    // Bottom Penalty Area & Arc
-    context.beginPath();
-    const bottomPenaltyY = H - lineMargin - penaltyBoxHeight;
-    context.rect(topPenaltyX, bottomPenaltyY, penaltyBoxWidth, penaltyBoxHeight);
-    context.stroke();
-    context.beginPath();
-    context.arc(W / 2, H - lineMargin - penaltyBoxHeight, centerRadius * 0.8, Math.PI, 0, false);
-    context.stroke();
-
-    // Bottom Goal Area
-    context.beginPath();
-    const bottomGoalY = H - lineMargin - goalBoxHeight;
-    context.strokeRect(topGoalX, bottomGoalY, goalBoxWidth, goalBoxHeight);
-    context.stroke();
-
-    // Corner Arcs
-    context.beginPath();
-    context.arc(lineMargin, lineMargin, cornerRadius, 0, Math.PI / 2);
-    context.stroke();
-    context.beginPath();
-    context.arc(W - lineMargin, lineMargin, cornerRadius, Math.PI / 2, Math.PI);
-    context.stroke();
-    context.beginPath();
-    context.arc(lineMargin, H - lineMargin, cornerRadius, Math.PI * 1.5, 0);
-    context.stroke();
-    context.beginPath();
-    context.arc(W - lineMargin, H - lineMargin, cornerRadius, Math.PI, Math.PI * 1.5);
-    context.stroke();
-
-    // Draw filled spots
-    context.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    const spotRadius = 3; // No DPR scaling
-    // Center Spot
-    context.beginPath();
-    context.arc(W / 2, H / 2, spotRadius, 0, Math.PI * 2);
-    context.fill();
-    // Top Penalty Spot
-    context.beginPath();
-    context.arc(W / 2, lineMargin + penaltySpotDist, spotRadius, 0, Math.PI * 2);
-    context.fill();
-    // Bottom Penalty Spot
-    context.beginPath();
-    context.arc(W / 2, H - lineMargin - penaltySpotDist, spotRadius, 0, Math.PI * 2);
-    context.fill();
-
-    // --- Draw Goals ---
-    const goalWidth = W * 0.15;
-    const goalHeight = 5; // A fixed pixel height for the line
-    context.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    
-    // Top Goal
-    context.fillRect((W - goalWidth) / 2, lineMargin, goalWidth, goalHeight);
-    
-    // Bottom Goal
-    context.fillRect((W - goalWidth) / 2, H - lineMargin - goalHeight, goalWidth, goalHeight);
-
-    // --- End Field Lines ---
 
     // --- Draw User Drawings --- (lineWidth only change needed)
     context.strokeStyle = '#FB923C';
