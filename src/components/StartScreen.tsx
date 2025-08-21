@@ -87,7 +87,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
       <div className="relative z-10 flex flex-col items-center w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-6 sm:py-8 h-[calc(100vh-8rem)] sm:h-[calc(100vh-6rem)]">
         
         {/* Title section */}
-        <div className="flex flex-col items-center space-y-3 sm:space-y-4 mt-4 sm:mt-6">
+        <div className="flex flex-col items-center mt-4 sm:mt-6">
           <div className="relative">
             <h1 className={titleStyle}>
               <span className="block">MatchOps</span>
@@ -95,11 +95,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
             </h1>
             <span className="absolute inset-0 -z-10 blur-[6px] opacity-60 [background:radial-gradient(closest-side,rgba(234,179,8,0.35),transparent_70%)]" />
           </div>
-          <div className="relative">
+          <div className="relative mt-3 sm:mt-4">
             <p className={taglineStyle}>{t('startScreen.tagline', 'Suunnittele · Kirjaa · Arvioi')}</p>
             <span className="absolute inset-0 -z-10 mx-auto w-[80%] h-full pointer-events-none [background:radial-gradient(closest-side,rgba(99,102,241,0.12),transparent_70%)] blur-md" />
           </div>
-          <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto mt-4 sm:mt-6" />
+          <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto mt-6 sm:mt-8" />
         </div>
 
         {/* Buttons container with responsive spacing */}
