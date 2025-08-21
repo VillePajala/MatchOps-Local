@@ -5,3 +5,4 @@ export const APP_SETTINGS_KEY = 'soccerAppSettings';
 export const MASTER_ROSTER_KEY = 'soccerMasterRoster';
 export const LAST_HOME_TEAM_NAME_KEY = 'lastHomeTeamName';
 export const TIMER_STATE_KEY = 'soccerTimerState';
+export const PLAYER_ADJUSTMENTS_KEY = 'soccerPlayerAdjustments';
