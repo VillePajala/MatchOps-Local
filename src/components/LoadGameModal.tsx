@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SavedGamesCollection } from '@/types'; // Keep this if SavedGamesCollection is from here
 import { Season, Tournament } from '@/types'; // Corrected import path
@@ -10,17 +10,12 @@ import {
   HiOutlineTrash,
   HiOutlineDocumentText,
   HiOutlineTableCells,
-  HiOutlineDocumentArrowUp,
   HiOutlineClock,
   HiOutlineMapPin,
   HiOutlineMagnifyingGlass,
   HiOutlineChevronDown,
   HiOutlineChevronUp
 } from 'react-icons/hi2';
-// REMOVE unused Fa icons and useGameState hook
-// import { FaTimes, FaUpload, FaDownload, FaTrash, FaExclamationTriangle, FaSearch } from 'react-icons/fa';
-// import { useGameState } from '@/hooks/useGameState';
-import { exportFullBackup, importFullBackup } from '@/utils/fullBackup';
 // Import new utility functions
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';
 import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
@@ -72,8 +67,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   const [filterType, setFilterType] = useState<'season' | 'tournament' | null>(null);
   const [filterId, setFilterId] = useState<string | null>(null);
   const [showUnplayedOnly, setShowUnplayedOnly] = useState<boolean>(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const restoreFileInputRef = useRef<HTMLInputElement>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   // State for seasons and tournaments
@@ -190,25 +183,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       setOpenMenuId(null); // Close menu after delete
     }
   };
-  
-  // Effect to close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setOpenMenuId(null);
-      }
-    };
-
-    if (openMenuId) {
-      document.addEventListener('mousedown', handleClickOutside);
-    } else {
-      document.removeEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [openMenuId]);
 
   // --- Event Handlers ---
   const handleBadgeClick = (type: 'season' | 'tournament', id: string) => {
@@ -231,28 +205,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       setFilterType(null);
       setFilterId(null);
     }
-  };
-
-  const handleRestore = () => {
-    restoreFileInputRef.current?.click();
-  };
-  
-  const handleRestoreFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const jsonContent = e.target?.result as string;
-      if (jsonContent) {
-        importFullBackup(jsonContent);
-      } else {
-        alert(t('loadGameModal.importReadError', 'Error reading file content.'));
-      }
-    };
-    reader.onerror = () => alert(t('loadGameModal.importReadError', 'Error reading file content.'));
-    reader.readAsText(file);
-    event.target.value = '';
   };
 
   const toggleExpanded = (id: string) => {
@@ -592,35 +544,9 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
           {mainContent}
         </div>
         <div className="p-4 border-t border-slate-700/20 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">
-          <div className="flex flex-col gap-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-               <input
-                 type="file"
-                 ref={restoreFileInputRef}
-                 onChange={handleRestoreFileSelected}
-                 accept=".json"
-                 style={{ display: "none" }}
-                 data-testid="restore-backup-input"
-               />
-               <button
-                 onClick={exportFullBackup}
-                 className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium shadow-sm transition-colors"
-               >
-                 <HiOutlineDocumentArrowDown className="h-5 w-5" />
-                 {t('loadGameModal.backupButton', 'Backup All Data')}
-               </button>
-               <button
-                 onClick={handleRestore}
-                 className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-md text-sm font-medium shadow-sm transition-colors"
-               >
-                 <HiOutlineDocumentArrowUp className="h-5 w-5" />
-                 {t('loadGameModal.restoreButton', 'Restore from Backup')}
-               </button>
-            </div>
-            <button onClick={onClose} className="w-full px-4 py-2 rounded-md font-semibold text-slate-200 bg-slate-700 hover:bg-slate-600 transition-colors">
-              {t('common.close', 'Close')}
-            </button>
-          </div>
+          <button onClick={onClose} className="w-full px-4 py-2 rounded-md font-semibold text-slate-200 bg-slate-700 hover:bg-slate-600 transition-colors">
+            {t('common.close', 'Close')}
+          </button>
         </div>
       </div>
     </div>
