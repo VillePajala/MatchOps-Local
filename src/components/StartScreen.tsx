@@ -43,10 +43,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
   }, [language]);
 
   const primaryButtonStyle =
-    'w-full max-w-64 px-4 py-3 rounded-md text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md';
+    'w-64 px-4 py-3 rounded-md text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md';
 
   const secondaryButtonStyle =
-    'w-full max-w-64 px-4 py-3 rounded-md text-lg font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500';
+    'w-64 px-4 py-3 rounded-md text-lg font-semibold bg-slate-700 hover:bg-slate-600 text-slate-200 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500';
 
   const containerStyle =
     'relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-950 text-slate-100 font-display overflow-hidden';
@@ -55,7 +55,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
     'text-lg sm:text-xl md:text-2xl text-slate-200/95 text-center tracking-wide drop-shadow-md relative px-4';
 
   const titleStyle =
-    'relative text-4xl xs:text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-semibold tracking-tight leading-[0.9] drop-shadow-lg mb-2 text-center text-yellow-400 px-4';
+    'relative text-6xl xs:text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[12rem] font-semibold tracking-tight leading-[0.85] drop-shadow-lg mb-2 text-center text-yellow-400 px-4';
 
   
 
@@ -87,9 +87,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
       <div className="absolute inset-0 pointer-events-none animate-rotate-slow opacity-10 [background:conic-gradient(from_150deg_at_65%_38%,theme(colors.cyan.400)/0.35_0deg,transparent_60deg,transparent_300deg,theme(colors.indigo.500)/0.35_360deg)]" />
 
       {/* Safe container with proper bounds */}
-      <div className="relative z-10 flex flex-col items-center w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-8 sm:py-12 space-y-4 sm:space-y-6">
+      <div className="relative z-10 flex flex-col items-center w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-6 sm:py-8 space-y-3 sm:space-y-4">
         {/* Content container with responsive padding and max-height handling */}
-        <div className="w-full flex flex-col items-center space-y-4 sm:space-y-6 max-h-[85vh] overflow-visible">
+        <div className="w-full flex flex-col items-center space-y-3 sm:space-y-4 max-h-[85vh] overflow-visible">
         <div className="relative">
           <h1 className={titleStyle}>
             <span className="block">MatchOps</span>
@@ -104,7 +104,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto" />
           
           {/* Buttons container with responsive spacing */}
-          <div className="w-full flex flex-col items-center gap-3 sm:gap-4 px-2">
+          <div className="w-full flex flex-col items-center gap-2 sm:gap-3 px-2">
             {canResume && onResumeGame ? (
               <button className={primaryButtonStyle} onClick={onResumeGame}>
                 {t('startScreen.resumeGame', 'Resume Last Game')}
