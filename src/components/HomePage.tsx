@@ -17,6 +17,7 @@ import SeasonTournamentManagementModal from '@/components/SeasonTournamentManage
 import InstructionsModal from '@/components/InstructionsModal';
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
 import usePlayerAssessments from '@/hooks/usePlayerAssessments';
+import { exportFullBackup } from '@/utils/fullBackup';
 import { useTranslation } from 'react-i18next';
 import i18n from '../i18n';
 import { useGameState, UseGameStateReturn } from '@/hooks/useGameState';
@@ -2842,6 +2843,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         }}
         onResetGuide={handleShowAppGuide}
         onHardResetApp={handleHardResetApp}
+        onCreateBackup={exportFullBackup}
       />
 
       <PlayerAssessmentModal

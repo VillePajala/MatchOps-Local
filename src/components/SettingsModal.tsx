@@ -16,6 +16,7 @@ interface SettingsModalProps {
   onDefaultTeamNameChange: (name: string) => void;
   onResetGuide: () => void;
   onHardResetApp: () => void;
+  onCreateBackup: () => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -27,6 +28,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onDefaultTeamNameChange,
   onResetGuide,
   onHardResetApp,
+  onCreateBackup,
 }) => {
   const { t } = useTranslation();
   const [teamName, setTeamName] = useState(defaultTeamName);
@@ -142,7 +144,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
-                  onClick={exportFullBackup}
+                  onClick={onCreateBackup}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium shadow-sm transition-colors"
                 >
                   <HiOutlineDocumentArrowDown className="h-5 w-5" />
