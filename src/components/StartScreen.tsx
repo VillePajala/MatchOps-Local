@@ -59,10 +59,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
   }, [language]);
 
   const primaryButtonStyle =
-    'w-full px-3 py-2.5 rounded-md text-sm sm:text-base font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md text-center leading-tight';
+    'w-full px-4 py-3 rounded-lg text-base font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-lg text-center leading-tight';
 
   const disabledButtonStyle =
-    'w-full px-3 py-2.5 rounded-md text-sm sm:text-base font-semibold text-slate-400 bg-gradient-to-r from-slate-700 to-slate-600 cursor-not-allowed shadow-md opacity-50 text-center leading-tight';
+    'w-full px-4 py-3 rounded-lg text-base font-semibold text-slate-400 bg-gradient-to-r from-slate-700 to-slate-600 cursor-not-allowed shadow-lg opacity-50 text-center leading-tight';
 
   const containerStyle =
     'relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-950 text-slate-100 font-display overflow-hidden';
@@ -71,7 +71,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
     'text-lg sm:text-xl md:text-2xl text-slate-200/95 text-center tracking-wide drop-shadow-md relative px-4';
 
   const titleStyle =
-    'relative text-6xl xs:text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] xl:text-[12rem] font-semibold tracking-tight leading-[0.85] drop-shadow-lg mb-2 text-center text-yellow-400 px-4';
+    'relative text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold tracking-tight leading-[0.9] drop-shadow-lg mb-1.5 text-center text-yellow-400 px-4';
 
   
 
@@ -103,10 +103,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
       <div className="absolute inset-0 pointer-events-none animate-rotate-slow opacity-10 [background:conic-gradient(from_150deg_at_65%_38%,theme(colors.cyan.400)/0.35_0deg,transparent_60deg,transparent_300deg,theme(colors.indigo.500)/0.35_360deg)]" />
 
       {/* Safe container with proper bounds */}
-      <div className="relative z-10 flex flex-col items-center w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-6 sm:py-8 h-[calc(100vh-8rem)] sm:h-[calc(100vh-6rem)]">
+      <div className="relative z-10 grid grid-rows-[auto_1fr] items-start w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-6 sm:py-8 h-[calc(100dvh-8rem)] sm:h-[calc(100dvh-6rem)]">
         
         {/* Title section */}
-        <div className="flex flex-col items-center mt-4 sm:mt-6">
+        <div className="row-start-1 relative flex flex-col items-center mt-2 sm:mt-4">
           <div className="relative">
             <h1 className={titleStyle}>
               <span className="block">MatchOps</span>
@@ -114,17 +114,17 @@ const StartScreen: React.FC<StartScreenProps> = ({
             </h1>
             <span className="absolute inset-0 -z-10 blur-[6px] opacity-60 [background:radial-gradient(closest-side,rgba(234,179,8,0.35),transparent_70%)]" />
           </div>
-          <div className="relative mt-3 sm:mt-4">
+          <div className="relative mt-2 sm:mt-3">
             <p className={taglineStyle}>{t('startScreen.tagline', 'Suunnittele · Kirjaa · Arvioi')}</p>
             <span className="absolute inset-0 -z-10 mx-auto w-[80%] h-full pointer-events-none [background:radial-gradient(closest-side,rgba(99,102,241,0.12),transparent_70%)] blur-md" />
           </div>
-          <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto mt-6 sm:mt-8" />
+          <div className="h-px w-32 sm:w-48 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto mt-6 sm:mt-8" />
         </div>
 
         {/* Conditional interface based on user type */}
         {isFirstTimeUser ? (
           /* FIRST-TIME USER: Simplified Interface */
-          <div className="w-full flex flex-col items-center justify-center flex-1 px-4 py-8 gap-6 max-w-sm mx-auto">
+          <div className="row-start-2 w-full flex flex-col items-center justify-end min-h-[38vh] sm:min-h-[40vh] px-4 pt-4 pb-6 sm:pb-8 gap-4 sm:gap-5 max-w-sm mx-auto">
             {/* Large Get Started button */}
             <button 
               className="w-full px-6 py-4 rounded-lg text-lg font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xl text-center"
@@ -143,7 +143,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           </div>
         ) : (
           /* EXPERIENCED USER: Full-Featured Interface */
-          <div className="w-full flex flex-col items-center justify-center flex-1 px-4 py-6 gap-1.5 max-w-sm mx-auto">
+          <div className="row-start-2 w-full flex flex-col items-center justify-center flex-1 px-4 pt-14 pb-6 gap-3 max-w-sm mx-auto">
             {/* Show Setup Roster as primary action for users without players */}
             {!hasPlayers && (
               <button className={primaryButtonStyle} onClick={onSetupRoster}>
@@ -151,12 +151,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
               </button>
             )}
             
-            {/* Resume/Explore button */}
+            {/* Resume Last Game button - always shown, dimmed when unavailable */}
             <button 
-              className={primaryButtonStyle}
-              onClick={canResume && onResumeGame ? onResumeGame : onExploreApp}
+              className={canResume ? primaryButtonStyle : disabledButtonStyle}
+              onClick={canResume && onResumeGame ? onResumeGame : undefined}
+              disabled={!canResume}
             >
-              {canResume ? t('startScreen.resumeGame', 'Resume Last Game') : t('startScreen.exploreApp', 'Explore App')}
+              {t('startScreen.resumeGame', 'Resume Last Game')}
             </button>
             
             {/* Create Game button - grayed out if no players */}

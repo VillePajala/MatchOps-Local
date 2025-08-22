@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "style: replace asterisks with proper middle dot character in tagline"
+  "notes": "feat: implement dual-mode start screen with first-time user detection"
 }

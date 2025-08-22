@@ -435,11 +435,11 @@
     "languageEnglish": "Englanti",
     "languageFinnish": "Suomi",
     "createSeasonTournament": "Kaudet & Turnaukset",
-    "createFirstSeasonTournament": "Ensimmäinen kausi/turnaus",
+    "createFirstSeasonTournament": "Luo kausi/turnaus",
     "viewStats": "Näytä tilastot",
     "backupNow": "Varmuuskopioi nyt",
     "setupRoster": "Luo kokoonpano",
-    "howItWorks": "Näin se toimii",
+    "howItWorks": "Näin äppi toimii",
     "getStarted": "Aloita tästä"
   },
   "workspace": {
@@ -449,13 +449,14 @@
     "statusAction": "Luo peli"
   },
   "firstGame": {
-    "title": "Valmis seuraamaan ensimmäistä peliäsi?",
-    "desc": "Luo peli aloittaaksesi pelaajien sijainnin seurannan, maalien kirjaamisen ja joukkueesi suorituksen analysoinnin.",
+    "title": "Kaikki valmista ensimmäiseen otteluun!",
+    "desc": "Nyt voit luoda ensimmäisen ottelusi. Halutessasi voit ensin luoda kauden tai turnauksen, johon liittää ottelusi sen luontivaiheessa.",
     "titleNoPlayers": "Valmis aloittamaan?",
-    "descNoPlayers": "Luo ensin joukkueen kokoonpano, sitten luo ensimmäinen pelisi aloittaaksesi pelaajien sijainnin, maalien ja suorituksen seurannan.",
+    "descNoPlayers": "Lisää ensin pelaajia joukkueeseesi, jotta voit luoda ensimmäisen ottelusi.",
     "setupRoster": "Luo kokoonpano",
     "rosterFirst": "Lisää pelaajat ensin, sitten luo pelisi",
-    "createGame": "Luo ensimmäinen pelisi",
+    "createGame": "Luo ensimmäinen ottelu",
+    "createSeasonFirst": "Luo ensin kausi/turnaus",
     "orExperiment": "Tai kokeile ensin:",
     "experimentOption": "Käytä väliaikaista työtilaa testaamiseen",
     "workspaceWarning": "Väliaikainen työtila - muutoksia ei tallenneta",
