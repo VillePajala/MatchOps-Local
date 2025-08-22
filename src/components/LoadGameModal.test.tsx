@@ -26,11 +26,9 @@ jest.mock('react-i18next', () => ({
 // Mock utility modules
 jest.mock('@/utils/seasons');
 jest.mock('@/utils/tournaments');
-jest.mock('@/utils/fullBackup');
 
 import * as seasonsUtils from '@/utils/seasons';
 import * as tournamentsUtils from '@/utils/tournaments';
-import * as fullBackupUtils from '@/utils/fullBackup';
 
 // Sample Data
 const sampleSeasons: Season[] = [{ id: 'season_1', name: 'Spring League' }];
@@ -73,59 +71,65 @@ describe('LoadGameModal', () => {
   beforeEach(() => {
     (seasonsUtils.getSeasons as jest.Mock).mockResolvedValue(sampleSeasons);
     (tournamentsUtils.getTournaments as jest.Mock).mockResolvedValue(sampleTournaments);
-    (fullBackupUtils.exportFullBackup as jest.Mock).mockClear();
-    (fullBackupUtils.importFullBackup as jest.Mock).mockClear();
     (window.confirm as jest.Mock) = jest.fn();
     Object.values(mockHandlers).forEach(mock => mock.mockClear());
   });
 
-  const renderModal = (props = {}) => {
+  const renderModal = async (props = {}) => {
     const defaultProps = {
       isOpen: true,
       savedGames: createSampleGames(),
       ...mockHandlers,
       ...props,
     };
-    return render(<LoadGameModal {...defaultProps} />);
+    let result;
+    await act(async () => {
+      result = render(<LoadGameModal {...defaultProps} />);
+    });
+    return result!;
   };
   
   it('renders correctly and displays games', async () => {
-    renderModal();
-    expect(await screen.findByText('Lions vs Tigers')).toBeInTheDocument();
-    expect(screen.getByText('Hawks vs Eagles')).toBeInTheDocument();
+    await renderModal();
+    expect(await screen.findByText('Lions')).toBeInTheDocument();
+    expect(screen.getByText('Tigers')).toBeInTheDocument();
+    expect(screen.getByText('Hawks')).toBeInTheDocument();
+    expect(screen.getByText('Eagles')).toBeInTheDocument();
   });
 
   it('filters games by search input', async () => {
-    renderModal();
-    await screen.findByText('Lions vs Tigers'); // wait for load
+    await renderModal();
+    await screen.findByText('Lions'); // wait for load
     
     const searchInput = screen.getByPlaceholderText('loadGameModal.filterPlaceholder');
       fireEvent.change(searchInput, { target: { value: 'Lions' } });
 
-    expect(await screen.findByText('Lions vs Tigers')).toBeInTheDocument();
-    expect(screen.queryByText('Hawks vs Eagles')).not.toBeInTheDocument();
+    expect(await screen.findByText('Lions')).toBeInTheDocument();
+    expect(screen.getByText('Tigers')).toBeInTheDocument();
+    expect(screen.queryByText('Hawks')).not.toBeInTheDocument();
     });
 
   it('shows a NOT PLAYED badge for unplayed games', async () => {
-    renderModal();
+    await renderModal();
     const badge = await screen.findByText('loadGameModal.unplayedBadge');
     expect(badge).toBeInTheDocument();
   });
 
   it('filters to only unplayed games when toggle checked', async () => {
-    renderModal();
-    await screen.findByText('Lions vs Tigers');
+    await renderModal();
+    await screen.findByText('Lions');
 
     const toggle = screen.getByLabelText('loadGameModal.showUnplayedOnly');
     fireEvent.click(toggle);
 
-    expect(screen.queryByText('Lions vs Tigers')).not.toBeInTheDocument();
-    expect(screen.getByText('Hawks vs Eagles')).toBeInTheDocument();
+    expect(screen.queryByText('Lions')).not.toBeInTheDocument();
+    expect(screen.getByText('Hawks')).toBeInTheDocument();
+    expect(screen.getByText('Eagles')).toBeInTheDocument();
   });
 
   it('calls onLoad and onClose when a game is loaded', async () => {
-    renderModal();
-    const gameItem = await screen.findByText('Lions vs Tigers');
+    await renderModal();
+    const gameItem = await screen.findByText('Lions');
     fireEvent.click(gameItem.closest('button')!);
     const loadButton = within(gameItem.closest('li')!).getByRole('button', { name: /loadGameModal.loadButton/i });
 
@@ -136,53 +140,38 @@ describe('LoadGameModal', () => {
 
   it('calls onDelete when delete is confirmed', async () => {
     (window.confirm as jest.Mock).mockReturnValue(true);
-    renderModal();
-    const gameItem = await screen.findByText('Hawks vs Eagles');
+    await renderModal();
+    const gameItem = await screen.findByText('Hawks');
     fireEvent.click(gameItem.closest('button')!);
-    const optionsButton = within(gameItem.closest('li')!).getByTitle('Options');
-    fireEvent.click(optionsButton);
-
-    const deleteButton = await screen.findByRole('button', { name: 'loadGameModal.deleteMenuItem' });
-      fireEvent.click(deleteButton);
+    const deleteButton = within(gameItem.closest('li')!).getByTitle('Delete');
+    fireEvent.click(deleteButton);
     
     expect(window.confirm).toHaveBeenCalled();
       expect(mockHandlers.onDelete).toHaveBeenCalledWith('game_1659223456_def');
     });
 
-  it('calls exportFullBackup when the backup button is clicked', async () => {
-    renderModal();
-    const backupButton = await screen.findByRole('button', { name: 'loadGameModal.backupButton' });
-    fireEvent.click(backupButton);
-    expect(fullBackupUtils.exportFullBackup).toHaveBeenCalled();
+  it('calls onExportOneJson when JSON export button is clicked', async () => {
+    await renderModal();
+    const gameItem = await screen.findByText('Lions');
+    fireEvent.click(gameItem.closest('button')!);
+    const exportButton = within(gameItem.closest('li')!).getByTitle('Export JSON');
+    fireEvent.click(exportButton);
+    expect(mockHandlers.onExportOneJson).toHaveBeenCalledWith('game_1659123456_abc');
     });
 
-  it('triggers file input when restore button is clicked', async () => {
-    renderModal();
-    const restoreButton = await screen.findByRole('button', { name: 'loadGameModal.restoreButton' });
-    const fileInput = screen.getByTestId('restore-backup-input');
-       const clickSpy = jest.spyOn(fileInput, 'click').mockImplementation(() => {});
-
-      fireEvent.click(restoreButton);
-      expect(clickSpy).toHaveBeenCalled();
-      clickSpy.mockRestore();
+  it('calls onExportOneCsv when CSV export button is clicked', async () => {
+    await renderModal();
+    const gameItem = await screen.findByText('Lions');
+    fireEvent.click(gameItem.closest('button')!);
+    const csvExportButton = within(gameItem.closest('li')!).getByTitle('Export CSV');
+    fireEvent.click(csvExportButton);
+    expect(mockHandlers.onExportOneCsv).toHaveBeenCalledWith('game_1659123456_abc');
     });
 
-  it('calls importFullBackup on file selection', async () => {
-    renderModal();
-    const fileInput = screen.getByTestId('restore-backup-input');
-    const fileContent = '{"data":"test"}';
-    const file = new File([fileContent], 'backup.json', { type: 'application/json' });
-
-        await act(async () => {
-          fireEvent.change(fileInput, { target: { files: [file] } });
-    });
-    
-    // This part is tricky as the FileReader logic is internal.
-    // We assume the component calls importFullBackup. A better test might involve spying on FileReader.
-    // For now, we trust the implementation calls the mock.
-    // Let's add a small delay to see if the async logic inside completes.
-    await new Promise(r => setTimeout(r, 100));
-
-    expect(fullBackupUtils.importFullBackup).toHaveBeenCalledWith(fileContent);
+  it('displays current game indicator when loaded', async () => {
+    await renderModal({ currentGameId: 'game_1659123456_abc' });
+    const gameItem = await screen.findByText('Lions');
+    const currentBadge = within(gameItem.closest('li')!).getByText('loadGameModal.currentlyLoaded');
+    expect(currentBadge).toBeInTheDocument();
   });
 });
