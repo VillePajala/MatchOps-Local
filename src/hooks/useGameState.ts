@@ -9,7 +9,7 @@ import {
 import {
     updatePlayer as updatePlayerInMasterRoster,
     getMasterRoster as getMasterRosterFromManager,
-    setGoalieStatus as setGoalieStatusInMasterRoster // Import setGoalieStatus
+    // setGoalieStatus as setGoalieStatusInMasterRoster // No longer used - using per-game implementation
 } from '@/utils/masterRosterManager';
 import logger from '@/utils/logger';
 
@@ -176,7 +176,7 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
 
     // --- Add Goalie Handler Here ---
     const handleToggleGoalie = useCallback(async (playerId: string) => {
-        logger.log(`[useGameState:handleToggleGoalie] Called for ${playerId}`);
+        logger.log(`[useGameState:handleToggleGoalie] Per-game toggle called for ${playerId}`);
         const playerToToggle = availablePlayers.find(p => p.id === playerId);
         if (!playerToToggle) {
             logger.error(`[useGameState:handleToggleGoalie] Player ${playerId} not found.`);
@@ -185,33 +185,39 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
         const targetGoalieStatus = !(playerToToggle.isGoalie ?? false);
 
         try {
-            const updatedPlayerFromManager = await setGoalieStatusInMasterRoster(playerId, targetGoalieStatus);
+            // Update goalie status per-game instead of globally
+            const updatedAvailablePlayers = availablePlayers.map(p => {
+                if (p.id === playerId) {
+                    return { ...p, isGoalie: targetGoalieStatus };
+                }
+                // If setting this player as goalie, unset any other goalies in this game
+                if (targetGoalieStatus && p.isGoalie) {
+                    return { ...p, isGoalie: false };
+                }
+                return p;
+            });
 
-            if (updatedPlayerFromManager) {
-                const latestRoster = await getMasterRosterFromManager();
-                setAvailablePlayers(latestRoster);
+            setAvailablePlayers(updatedAvailablePlayers);
 
-                let newPlayersOnFieldState: Player[] = [];
-                setPlayersOnField(prevPlayersOnField => {
-                    newPlayersOnFieldState = prevPlayersOnField.map(p => {
-                        if (p.id === playerId) return { ...p, isGoalie: targetGoalieStatus };
-                        if (targetGoalieStatus && p.id !== playerId && p.isGoalie) return { ...p, isGoalie: false };
-          return p;
-        });
-                    return newPlayersOnFieldState; // Return the newly computed state
-                });
+            // Update players on field to match the goalie change
+            const newPlayersOnFieldState = playersOnField.map(fieldPlayer => {
+                const updatedPlayer = updatedAvailablePlayers.find(p => p.id === fieldPlayer.id);
+                return updatedPlayer ? { ...fieldPlayer, isGoalie: updatedPlayer.isGoalie } : fieldPlayer;
+            });
 
-                // Save history for playersOnField change using the computed state
-                saveStateToHistory({ playersOnField: newPlayersOnFieldState });
+            setPlayersOnField(newPlayersOnFieldState);
+
+            // Save history for playersOnField change using the computed state
+            saveStateToHistory({ 
+                playersOnField: newPlayersOnFieldState,
+                availablePlayers: updatedAvailablePlayers 
+            });
     
-                logger.log(`[useGameState:handleToggleGoalie] Goalie status for ${playerId} to ${targetGoalieStatus}. Roster and field updated.`);
-            } else {
-                logger.error(`[useGameState:handleToggleGoalie] Failed to update goalie status for ${playerId} via masterRosterManager.`);
-            }
+            logger.log(`[useGameState:handleToggleGoalie] Per-game goalie status for ${playerId} to ${targetGoalieStatus}. Local state updated.`);
         } catch (error) {
             logger.error(`[useGameState:handleToggleGoalie] Error toggling goalie for ID ${playerId}:`, error);
         }
-    }, [availablePlayers, saveStateToHistory, setAvailablePlayers, setPlayersOnField]);
+    }, [availablePlayers, playersOnField, saveStateToHistory, setAvailablePlayers, setPlayersOnField]);
 
     // ... (more handlers will be moved here later)
 

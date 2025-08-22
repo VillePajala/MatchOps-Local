@@ -322,7 +322,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     handleAddPlayer,
     handleUpdatePlayer,
     handleRemovePlayer,
-    handleSetGoalieStatus,
+    // handleSetGoalieStatus, // No longer used - using per-game implementation
   } = useRoster({
     initialPlayers: initialState.availablePlayers,
     selectedPlayerIds: gameSessionState.selectedPlayerIds,
@@ -1701,17 +1701,47 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         return;
     }
     const targetGoalieStatus = !player.isGoalie;
-    logger.log(`[Page.tsx] handleToggleGoalieForModal attempting mutation for ID: ${playerId}, target status: ${targetGoalieStatus}`);
+    logger.log(`[Page.tsx] handleToggleGoalieForModal per-game toggle for ID: ${playerId}, target status: ${targetGoalieStatus}`);
     
     setRosterError(null); // Clear previous specific errors
 
     try {
-      await handleSetGoalieStatus(playerId, targetGoalieStatus);
-      logger.log(`[Page.tsx] goalie toggle success for ${playerId}.`);
+      // Update goalie status per-game instead of globally
+      const updatedAvailablePlayers = availablePlayers.map(p => {
+        if (p.id === playerId) {
+          return { ...p, isGoalie: targetGoalieStatus };
+        }
+        // If setting this player as goalie, unset any other goalies in this game
+        if (targetGoalieStatus && p.isGoalie) {
+          return { ...p, isGoalie: false };
+        }
+        return p;
+      });
+
+      // Update local state
+      setAvailablePlayers(updatedAvailablePlayers);
+
+      // Update field players to reflect goalie status change
+      const updatedFieldPlayers = playersOnField.map(fieldPlayer => {
+        const updatedAvailablePlayer = updatedAvailablePlayers.find(p => p.id === fieldPlayer.id);
+        return updatedAvailablePlayer ? { ...fieldPlayer, isGoalie: updatedAvailablePlayer.isGoalie } : fieldPlayer;
+      });
+      setPlayersOnField(updatedFieldPlayers);
+
+      // Save the updated state
+      if (currentGameId) {
+        await utilSaveGame(currentGameId, {
+          ...gameSessionState,
+          availablePlayers: updatedAvailablePlayers,
+          playersOnField: updatedFieldPlayers,
+        });
+      }
+
+      logger.log(`[Page.tsx] per-game goalie toggle success for ${playerId}.`);
     } catch (error) {
-      logger.error(`[Page.tsx] Exception during goalie toggle of ${playerId}:`, error);
+      logger.error(`[Page.tsx] Exception during per-game goalie toggle of ${playerId}:`, error);
     }
-  }, [availablePlayers, handleSetGoalieStatus, setRosterError, t]);
+  }, [availablePlayers, playersOnField, currentGameId, gameSessionState, setAvailablePlayers, setPlayersOnField, setRosterError, t]);
 
   // --- END Roster Management Handlers ---
 
