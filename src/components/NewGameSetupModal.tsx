@@ -416,15 +416,27 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // ... handleHourChange and handleMinuteChange functions ...
   const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (value.length <= 2) {
-      setGameHour(value);
+    // Only allow numeric input and limit to 2 characters
+    const numericValue = value.replace(/[^0-9]/g, '');
+    if (numericValue.length <= 2) {
+      const hourNum = parseInt(numericValue, 10);
+      // Validate hour range (0-23) if number is complete
+      if (numericValue === '' || (hourNum >= 0 && hourNum <= 23)) {
+        setGameHour(numericValue);
+      }
     }
   };
 
   const handleMinuteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (value.length <= 2) {
-      setGameMinute(value);
+    // Only allow numeric input and limit to 2 characters
+    const numericValue = value.replace(/[^0-9]/g, '');
+    if (numericValue.length <= 2) {
+      const minuteNum = parseInt(numericValue, 10);
+      // Validate minute range (0-59) if number is complete
+      if (numericValue === '' || (minuteNum >= 0 && minuteNum <= 59)) {
+        setGameMinute(numericValue);
+      }
     }
   };
 
@@ -681,17 +693,19 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
 
                     {/* Game Date */}
-                    <div className="mb-4">
-                      <label htmlFor="gameDateInput" className="block text-sm font-medium text-slate-300 mb-1">
+                    <div className="mb-6">
+                      <label htmlFor="gameDateInput" className="block text-sm font-medium text-slate-300 mb-2">
                         {t('newGameSetupModal.gameDateLabel', 'Game Date')}
                       </label>
                       <input
                         type="date"
                         id="gameDateInput"
+                        name="gameDate"
                         value={gameDate}
                         onChange={(e) => setGameDate(e.target.value)}
                         onKeyDown={handleKeyDown}
                         className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                        autoComplete="off"
                         disabled={isLoading}
                       />
                     </div>
@@ -714,33 +728,45 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     </div>
 
                     {/* Game Time */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-slate-300 mb-1">
+                    <div className="mb-6 pt-2 border-t border-slate-700/40">
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
                         {t('newGameSetupModal.gameTimeLabel', 'Time (Optional)')}
                       </label>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-3 max-w-xs">
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={2}
                           value={gameHour}
                           onChange={handleHourChange}
                           onKeyDown={handleKeyDown}
                           placeholder={t('newGameSetupModal.hourPlaceholder', 'HH')}
-                          className="w-1/2 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                          min="0"
-                          max="23"
+                          className="w-1/2 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck="false"
                           disabled={isLoading}
+                          onFocus={(e) => e.target.select()}
                         />
-                        <span className="text-slate-400">:</span>
+                        <span className="text-slate-400 font-mono">:</span>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={2}
                           value={gameMinute}
                           onChange={handleMinuteChange}
                           onKeyDown={handleKeyDown}
                           placeholder={t('newGameSetupModal.minutePlaceholder', 'MM')}
-                          className="w-1/2 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                          min="0"
-                          max="59"
+                          className="w-1/2 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck="false"
                           disabled={isLoading}
+                          onFocus={(e) => e.target.select()}
                         />
                       </div>
                     </div>
@@ -786,12 +812,25 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           {t('newGameSetupModal.periodDurationLabel', 'Period Duration (minutes)')}
                         </label>
                       <input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           id="periodDurationInput"
                           value={localPeriodDurationString}
-                          onChange={(e) => setLocalPeriodDurationString(e.target.value)}
-                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                          min="1"
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const numericValue = value.replace(/[^0-9]/g, '');
+                            // Allow reasonable period durations (1-999 minutes)
+                            if (numericValue === '' || (parseInt(numericValue, 10) >= 1 && parseInt(numericValue, 10) <= 999)) {
+                              setLocalPeriodDurationString(numericValue);
+                            }
+                          }}
+                          className="w-full max-w-xs px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck="false"
+                          placeholder="15"
                         />
                       </div>
 
