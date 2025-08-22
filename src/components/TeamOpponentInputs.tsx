@@ -40,6 +40,7 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
         <input
           type="text"
           id="teamNameInput"
+          name="teamName"
           ref={teamInputRef}
           value={teamName}
           onChange={(e) => onTeamNameChange(e.target.value)}
@@ -47,6 +48,10 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
           className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
           onKeyDown={onKeyDown}
           disabled={disabled}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="words"
+          spellCheck="true"
         />
       </div>
       <div className="mb-4">
@@ -56,6 +61,7 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
         <input
           type="text"
           id="opponentNameInput"
+          name="opponentName"
           ref={opponentInputRef}
           value={opponentName}
           onChange={(e) => onOpponentNameChange(e.target.value)}
@@ -63,6 +69,10 @@ const TeamOpponentInputs: React.FC<TeamOpponentInputsProps> = ({
           className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
           onKeyDown={onKeyDown}
           disabled={disabled}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="words"
+          spellCheck="true"
         />
       </div>
     </>
