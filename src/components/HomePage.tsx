@@ -130,7 +130,7 @@ const initialState: AppState = {
 };
 
 interface HomePageProps {
-  initialAction?: 'newGame' | 'loadGame' | 'resumeGame' | 'season' | 'stats';
+  initialAction?: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster';
   skipInitialSetup?: boolean;
 }
 
@@ -344,6 +344,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
   const [currentGameId, setCurrentGameId] = useState<string | null>(DEFAULT_GAME_ID);
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
+  const [hasUsedWorkspace, setHasUsedWorkspace] = useState<boolean>(false);
   
   // This ref needs to be declared after currentGameId
   const gameIdRef = useRef(currentGameId);
@@ -421,23 +422,50 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
 
   useEffect(() => {
     if (!initialAction) return;
-    switch (initialAction) {
-      case 'newGame':
-        setIsNewGameSetupModalOpen(true);
-        break;
-      case 'loadGame':
-        setIsLoadGameModalOpen(true);
-        break;
-      case 'season':
-        setIsSeasonTournamentModalOpen(true);
-        break;
-      case 'stats':
-        setIsGameStatsModalOpen(true);
-        break;
-      default:
-        break;
-    }
-  }, [initialAction, setIsNewGameSetupModalOpen, setIsLoadGameModalOpen, setIsSeasonTournamentModalOpen, setIsGameStatsModalOpen]);
+    
+    // Only process the initial action once
+    const processAction = () => {
+      switch (initialAction) {
+        case 'newGame':
+          // Check if roster is empty before opening new game modal
+          if (availablePlayers.length === 0) {
+            const shouldOpenRoster = window.confirm(
+              t('controlBar.noPlayersForNewGame') ?? 'You need at least one player in your roster to create a game. Would you like to add players now?'
+            );
+            
+            if (shouldOpenRoster) {
+              setIsRosterModalOpen(true);
+            }
+          } else {
+            setIsNewGameSetupModalOpen(true);
+          }
+          break;
+        case 'loadGame':
+          setIsLoadGameModalOpen(true);
+          break;
+        case 'season':
+          setIsSeasonTournamentModalOpen(true);
+          break;
+        case 'stats':
+          setIsGameStatsModalOpen(true);
+          break;
+        case 'roster':
+          setIsRosterModalOpen(true);
+          break;
+        case 'explore':
+          // Explore mode - just let user access the temporary workspace
+          // The first-game overlay will appear automatically for DEFAULT_GAME_ID
+          // No modal needs to be opened, user can explore the interface freely
+          break;
+        default:
+          break;
+      }
+    };
+    
+    processAction();
+    // Only run once when initialAction changes, not when availablePlayers or t changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialAction, setIsNewGameSetupModalOpen, setIsLoadGameModalOpen, setIsSeasonTournamentModalOpen, setIsGameStatsModalOpen, setIsRosterModalOpen]);
   
   // --- Modal States handled via context ---
 
@@ -2178,6 +2206,18 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
 
   // --- Start New Game Handler (Uses Quick Save) ---
   const handleStartNewGame = useCallback(() => {
+    // Check if roster is empty first
+    if (availablePlayers.length === 0) {
+      const shouldOpenRoster = window.confirm(
+        t('controlBar.noPlayersForNewGame') ?? 'No players in roster. Would you like to add players now?'
+      );
+      
+      if (shouldOpenRoster) {
+        setIsRosterModalOpen(true);
+      }
+      return; // Exit early regardless of user choice
+    }
+    
     // Check if the current game is potentially unsaved (not the default ID and not null)
     if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
       // Prompt to save first
@@ -2233,7 +2273,8 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
 
   }, [t, currentGameId, savedGames, handleQuickSaveGame, setIsNewGameSetupModalOpen,
       // <<< ADD dependencies >>>
-      availablePlayers, gameSessionState.selectedPlayerIds, setPlayerIdsForNewGame
+      availablePlayers, gameSessionState.selectedPlayerIds, setPlayerIdsForNewGame,
+      setIsRosterModalOpen
      ]); 
   // --- END Start New Game Handler ---
 
@@ -2434,6 +2475,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         />
       </div>
 
+
       {/* Main Content: Soccer Field */}
       <div className="flex-grow relative bg-black">
         {/* Pass rel drawing handlers to SoccerField */}
@@ -2494,6 +2536,89 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           tacticalBallPosition={tacticalBallPosition}
           onTacticalBallMove={handleTacticalBallMove}
         />
+
+        {/* First Game Setup Overlay */}
+        {currentGameId === DEFAULT_GAME_ID && playersOnField.length === 0 && drawings.length === 0 && !hasUsedWorkspace && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+            <div className="bg-slate-800/95 border border-indigo-500/50 rounded-xl p-8 max-w-md mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
+              <div className="text-center">
+                <div className="mb-4">
+                  <div className="w-16 h-16 mx-auto bg-indigo-600/20 rounded-full flex items-center justify-center mb-3">
+                    <div className="text-3xl">⚽</div>
+                  </div>
+                  <h3 className="text-2xl font-bold text-indigo-300 mb-2">
+                    {availablePlayers.length === 0 
+                      ? t('firstGame.titleNoPlayers', 'Ready to get started?')
+                      : t('firstGame.title', 'Ready to track your first game?')
+                    }
+                  </h3>
+                  <p className="text-slate-300 text-sm leading-relaxed mb-6">
+                    {availablePlayers.length === 0 
+                      ? t('firstGame.descNoPlayers', 'First, set up your team roster, then create your first game to start tracking player positions, goals, and performance.')
+                      : t('firstGame.desc', 'Create a game to start tracking player positions, recording goals, and analyzing your team\'s performance.')
+                    }
+                  </p>
+                </div>
+                
+                <div className="space-y-3">
+                  {availablePlayers.length === 0 ? (
+                    <>
+                      <button 
+                        onClick={() => setIsRosterModalOpen(true)}
+                        className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                      >
+                        {t('firstGame.setupRoster', 'Set Up Team Roster')}
+                      </button>
+                      <div className="text-xs text-slate-400">
+                        {t('firstGame.rosterFirst', 'Add players first, then create your game')}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <button 
+                        onClick={() => setIsNewGameSetupModalOpen(true)}
+                        className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                      >
+                        {t('firstGame.createGame', 'Create Your First Game')}
+                      </button>
+                    </>
+                  )}
+                  
+                  <div className="border-t border-slate-600 pt-4 mt-6">
+                    <div className="text-xs text-slate-400 mb-2">
+                      {t('firstGame.orExperiment', 'Or experiment first:')}
+                    </div>
+                    <button 
+                      onClick={() => setHasUsedWorkspace(true)}
+                      className="text-xs text-slate-400 hover:text-slate-300 underline transition-colors"
+                    >
+                      {t('firstGame.useWorkspace', 'Use temporary workspace for testing')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Temporary Workspace Warning (shows at top when using workspace) */}
+        {currentGameId === DEFAULT_GAME_ID && (playersOnField.length > 0 || drawings.length > 0 || hasUsedWorkspace) && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-40">
+            <div className="bg-amber-600/95 border border-amber-500/50 rounded-lg px-6 py-3 shadow-xl backdrop-blur-sm max-w-md">
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-3 h-3 bg-amber-200 rounded-full animate-pulse flex-shrink-0"></div>
+                <span className="text-amber-100 font-medium flex-1">{t('firstGame.workspaceWarning', 'Temporary workspace - changes won\'t be saved')}</span>
+                <button 
+                  onClick={() => setIsNewGameSetupModalOpen(true)}
+                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-amber-900 rounded-md text-xs font-semibold transition-colors shadow-sm flex-shrink-0"
+                >
+                  {t('firstGame.createRealGame', 'Create real game')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Other components that might overlay or interact with the field */}
       </div>
 
@@ -2732,6 +2857,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         onSave={handleSavePlayerAssessment}
         onDelete={handleDeletePlayerAssessment}
       />
+
     </main>
   );
 }
