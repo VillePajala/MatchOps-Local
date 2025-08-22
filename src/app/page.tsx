@@ -73,7 +73,6 @@ export default function Home() {
           onStartNewGame={() => handleAction('newGame')}
           onLoadGame={() => handleAction('loadGame')}
           onResumeGame={() => handleAction('resumeGame')}
-          onExploreApp={() => handleAction('explore')}
           onGetStarted={() => handleAction('getStarted')}
           canResume={canResume}
           onCreateSeason={() => handleAction('season')}

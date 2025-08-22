@@ -14,7 +14,6 @@ interface StartScreenProps {
   onStartNewGame: () => void;
   onLoadGame: () => void;
   onResumeGame?: () => void;
-  onExploreApp: () => void;
   onGetStarted: () => void;
   onCreateSeason: () => void;
   onViewStats: () => void;
@@ -30,7 +29,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onStartNewGame,
   onLoadGame,
   onResumeGame,
-  onExploreApp,
   onGetStarted,
   onCreateSeason,
   onViewStats,
