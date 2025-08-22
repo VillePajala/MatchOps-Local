@@ -804,9 +804,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         }
         // --- END TIMER RESTORATION LOGIC ---
 
-        // Only show automatic instructions for experienced users, not first-time users following natural onboarding
+        // Only show automatic instructions for experienced users with specific actions, not first-time users
         const seenGuide = await getHasSeenAppGuide();
-        if (!seenGuide && initialAction !== null) {
+        const hasAnyData = Object.keys(savedGames).length > 0; // Check if user has any saved games
+        if (!seenGuide && initialAction !== null && hasAnyData) {
           setIsInstructionsModalOpen(true);
         }
 

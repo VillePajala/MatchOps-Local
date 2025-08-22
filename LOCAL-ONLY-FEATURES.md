@@ -537,6 +537,225 @@ currentGameId === DEFAULT_GAME_ID && (
 - **Clear Data Model**: Users understand what gets saved
 - **Reduced Support**: Self-explanatory interface reduces questions
 
+## 10. Enhanced First-Time User Guidance System
+
+### Overview
+Building on the dual-mode start screen, MatchOps Local implements a comprehensive first-time user guidance system that provides contextual, step-by-step onboarding through natural app workflows. This system eliminates confusion while teaching users the proper app structure and flow.
+
+### Core Philosophy: Natural Learning Through Guided Discovery
+
+**Traditional Onboarding Problems Solved**:
+- ❌ **Tutorial fatigue** - Users skip long guided tours
+- ❌ **Feature overwhelm** - Too many options cause decision paralysis
+- ❌ **Disconnected help** - Instructions don't match actual workflows
+- ❌ **Dead-end buttons** - Features that don't work without prerequisites
+
+**MatchOps Local Approach**:
+- ✅ **Progressive disclosure** - Features revealed as prerequisites are met
+- ✅ **Contextual guidance** - Help appears exactly when and where needed
+- ✅ **Natural workflows** - Learning happens through actual app usage
+- ✅ **Clear prerequisites** - Visual feedback shows what needs to be done first
+
+### Implementation Architecture
+
+#### 1. Smart Instructions Modal Prevention (`src/components/HomePage.tsx:807-812`)
+
+**Problem Solved**: Automatic instructions popup interrupting first-time user flow
+
+**Implementation**:
+```typescript
+// Only show automatic instructions for experienced users with specific actions, not first-time users
+const seenGuide = await getHasSeenAppGuide();
+const hasAnyData = Object.keys(savedGames).length > 0; // Check if user has any saved games
+if (!seenGuide && initialAction !== null && hasAnyData) {
+  setIsInstructionsModalOpen(true);
+}
+```
+
+**Business Logic**:
+- **First-time users** (no saved games) → Never get automatic instructions popup
+- **Experienced users** with specific actions → Get contextual help when appropriate
+- **Manual access** → Instructions always available via "How It Works" button
+
+#### 2. Enhanced Soccer Field Center Overlay (`src/components/HomePage.tsx:2543-2595`)
+
+**Problem Solved**: Users don't know what to do when they first see the app
+
+**Visual Design**:
+```jsx
+<div className="bg-slate-800/95 border border-indigo-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
+  <div className="text-center">
+    <div className="w-16 h-16 mx-auto bg-indigo-600/20 rounded-full flex items-center justify-center mb-3">
+      <div className="text-3xl">⚽</div>
+    </div>
+    {/* Dynamic content based on user state */}
+  </div>
+</div>
+```
+
+**State-Responsive Content System**:
+
+**Case 1: No Players in Roster**
+```jsx
+{availablePlayers.length === 0 ? (
+  <>
+    <h3>{t('firstGame.titleNoPlayers', 'Ready to get started?')}</h3>
+    <p>{t('firstGame.descNoPlayers', 'Add players first so you can create your first match.')}</p>
+    <button onClick={() => setIsRosterModalOpen(true)}>
+      {t('firstGame.setupRoster', 'Set Up Team Roster')}
+    </button>
+  </>
+)}
+```
+
+**Case 2: Has Players, Ready for First Game**
+```jsx
+{availablePlayers.length > 0 && (
+  <>
+    <h3>{t('firstGame.title', 'Everything ready for your first match!')}</h3>
+    <p>{t('firstGame.desc', 'Now you can create your first match. If you\'d like, you can first create a season or tournament to link your match during creation.')}</p>
+    <button onClick={() => setIsNewGameSetupModalOpen(true)}>
+      {t('firstGame.createGame', 'Create Your First Match')}
+    </button>
+    
+    <button onClick={() => setIsSeasonTournamentModalOpen(true)}>
+      {t('firstGame.createSeasonFirst', 'Create Season/Tournament First')}
+    </button>
+  </>
+)}
+```
+
+#### 3. Improved Finnish Language and UX Copy
+
+**Problem Solved**: Confusing and overly technical language in guidance
+
+**Before (Problems)**:
+- ❌ "Luo ensin joukkueen kokoonpano, sitten luo ensimmäinen pelisi aloittaaksesi pelaajien sijainnin, maalien ja suorituksen seurannan"
+- ❌ References to "player position tracking" (misleading)
+- ❌ Overly complex sentence structure
+
+**After (Solutions)**:
+- ✅ **No players**: "Lisää ensin pelaajia joukkueeseesi, jotta voit luoda ensimmäisen ottelusi"
+- ✅ **Ready for game**: "Kaikki valmista ensimmäiseen otteluun! Nyt voit luoda ensimmäisen ottelusi. Halutessasi voit ensin luoda kauden tai turnauksen, johon liittää ottelusi sen luontivaiheessa"
+- ✅ **Clear action steps** with specific outcomes explained
+
+**Translation Improvements**:
+```json
+// Improved Finnish (more natural and action-oriented)
+"firstGame": {
+  "title": "Kaikki valmista ensimmäiseen otteluun!",  // Celebratory tone
+  "titleNoPlayers": "Valmis aloittamaan?",           // Encouraging
+  "descNoPlayers": "Lisää ensin pelaajia joukkueeseesi, jotta voit luoda ensimmäisen ottelusi.", // Clear prerequisite
+  "desc": "Nyt voit luoda ensimmäisen ottelusi. Halutessasi voit ensin luoda kauden tai turnauksen, johon liittää ottelusi sen luontivaiheessa." // Clear workflow explanation
+}
+```
+
+#### 4. Removed Confusing Options
+
+**Problem Solved**: Too many choices causing decision paralysis
+
+**Removed Elements**:
+- ❌ **Temporary workspace option** from center overlay - was confusing for first-time users
+- ❌ **Redundant helper text** ("Add players first, then create your game") - already clear from main description
+- ❌ **"Explore App" button confusion** - replaced with honest "Resume Last Game" (dimmed when unavailable)
+
+**Focused Workflow Result**:
+- ✅ **Single clear path** for each user state
+- ✅ **No decision paralysis** - obvious next steps
+- ✅ **Honest UI** - buttons show true functionality, not misleading alternatives
+
+#### 5. Enhanced Start Screen Button Hierarchy
+
+**Problem Solved**: Buttons too small and inconsistent sizing
+
+**Improved Button Design**:
+```css
+/* Enhanced button styles for experienced users */
+primaryButtonStyle = 'w-full px-4 py-3 rounded-lg text-base font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-lg text-center leading-tight';
+
+disabledButtonStyle = 'w-full px-4 py-3 rounded-lg text-base font-semibold text-slate-400 bg-gradient-to-r from-slate-700 to-slate-600 cursor-not-allowed shadow-lg opacity-50 text-center leading-tight';
+```
+
+**Visual Improvements**:
+- ✅ **Bigger buttons**: `px-3 py-2.5` → `px-4 py-3` for better touch targets
+- ✅ **Consistent sizing**: `text-sm sm:text-base` → `text-base` for clarity
+- ✅ **Modern appearance**: `rounded-md` → `rounded-lg`, `shadow-md` → `shadow-lg`
+- ✅ **Better spacing**: Optimized gap between glowing line and buttons
+
+#### 6. Smart Button Text System
+
+**Problem Solved**: Confusing button text that doesn't reflect user context
+
+**Simplified Button Text Logic**:
+```typescript
+// Simplified season/tournament text - no "first" confusion
+{hasSavedGames ? 
+  t('startScreen.createSeasonTournament', 'Seasons & Tournaments') : 
+  t('startScreen.createFirstSeasonTournament', 'Create Season/Tournament')  // Simplified from "First Season/Tournament"
+}
+
+// Honest resume button - always shows true function
+<button 
+  className={canResume ? primaryButtonStyle : disabledButtonStyle}
+  disabled={!canResume}
+>
+  {t('startScreen.resumeGame', 'Resume Last Game')}  // No "Explore App" confusion
+</button>
+```
+
+### Complete User Journey Documentation
+
+#### Journey A: Brand New User (No Data)
+
+1. **App Opens** → Simple start screen with "Get Started" + "How It Works"
+2. **Clicks "Get Started"** → Soccer field opens with center overlay
+3. **Center Overlay Shows** → "Valmis aloittamaan? Lisää ensin pelaajia joukkueeseesi, jotta voit luoda ensimmäisen ottelusi"
+4. **Clicks "Set Up Team Roster"** → Roster modal opens
+5. **Adds Players** → Returns to field, center overlay updates
+6. **New Overlay Shows** → "Kaikki valmista ensimmäiseen otteluun! Nyt voit luoda ensimmäisen ottelusi..."
+7. **Two Clear Options**:
+   - "Create Your First Match" (primary)
+   - "Create Season/Tournament First" (secondary)
+8. **Creates Game** → Center overlay disappears, normal gameplay begins
+9. **Returns to Start Screen** → Full interface now available with all smart buttons
+
+#### Journey B: User with Players but No Games
+
+1. **App Opens** → Simple start screen (still first-time user because no saved games)
+2. **Clicks "Get Started"** → Soccer field opens
+3. **Center Overlay Shows** → "Kaikki valmista ensimmäiseen otteluun!" with game creation options
+4. **Skips straight to game creation** → No roster setup needed
+5. **Creates and saves game** → Graduates to full interface
+
+#### Journey C: Experienced User (Has Saved Games)
+
+1. **App Opens** → Full smart button interface immediately
+2. **All buttons show contextual states**:
+   - Resume Last Game (enabled/disabled based on availability)
+   - Create Game with smart text ("New" vs "First")
+   - All features accessible with proper prerequisites shown
+3. **No center overlay interference** → Direct access to all functionality
+
+### Technical Implementation Benefits
+
+#### Performance Optimizations
+- ✅ **Single state check** determines interface mode (just `!hasSavedGames`)
+- ✅ **Conditional rendering** prevents unnecessary DOM elements
+- ✅ **No redundant API calls** - state checked once at initialization
+- ✅ **Efficient translations** - only load needed text for current mode
+
+#### Maintenance Advantages
+- ✅ **Clear separation** between first-time and experienced user code paths
+- ✅ **Easy to extend** - new features can easily add their own state checks
+- ✅ **Self-documenting** - code structure matches user experience flow
+- ✅ **Testable** - clear input/output relationships for unit testing
+
+#### User Experience Metrics
+- ✅ **Zero abandonment** - no dead-end states or confusing options
+- ✅ **Natural progression** - each step unlocks logically from previous
+- ✅ **Clear mental model** - users understand app structure through guided discovery
+- ✅ **Reduced support** - self-explanatory interface reduces user questions
+
 ## 9. Dual-Mode Start Screen System (Complete Implementation)
 
 ### Overview
@@ -546,7 +765,7 @@ The dual-mode start screen system represents the culmination of MatchOps Local's
 
 #### 1. State Detection System (`src/app/page.tsx:18-54`)
 
-**Primary Detection Logic**:
+**Refined Detection Logic (Updated)**:
 ```typescript
 // State variables checked asynchronously
 const [canResume, setCanResume] = useState(false);
@@ -554,9 +773,14 @@ const [hasPlayers, setHasPlayers] = useState(false);
 const [hasSavedGames, setHasSavedGames] = useState(false);
 const [hasSeasonsTournaments, setHasSeasonsTournaments] = useState(false);
 
-// Core detection calculation
-const isFirstTimeUser = !hasPlayers && !hasSavedGames && !hasSeasonsTournaments;
+// Simplified first-time user detection - based on saved games only
+const isFirstTimeUser = !hasSavedGames;
 ```
+
+**Rationale for Simplified Detection**:
+The detection was refined to focus solely on saved games rather than a complex combination of factors. This creates a cleaner user progression:
+- **No saved games** = Simplified "Get Started" interface (regardless of roster or seasons)
+- **Has saved games** = Full-featured interface with all smart buttons
 
 **Data Sources Checked**:
 - **Resume capability**: `getCurrentGameIdSetting()` + `getSavedGames()`
@@ -718,19 +942,21 @@ const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState(false);
 
 #### 8. State Transition System
 
-**Progressive Feature Unlocking**:
+**Progressive Feature Unlocking (Updated)**:
 ```
-Fresh Install (isFirstTimeUser = true)
-├── Shows: Get Started + How It Works
+Fresh Install (isFirstTimeUser = true - no saved games)
+├── Shows: Simplified interface with "Get Started" + "How It Works"
 │
-├── User adds players → hasPlayers = true
-├── isFirstTimeUser = false → Full interface appears
+├── User clicks "Get Started" → Natural onboarding flow begins
+├── Case A: No players → Center overlay: "Add players first"
+├── Case B: Has players → Center overlay: "Ready to create first match!"
 │
-├── User creates first game → hasSavedGames = true  
-├── Button text: "Create First Game" → "Create New Game"
+├── User creates and saves first game → hasSavedGames = true
+├── isFirstTimeUser = false → Full smart button interface appears
 │
-├── User creates season → hasSeasonsTournaments = true
-└── Button text: "First Season/Tournament" → "Seasons & Tournaments"
+├── Smart button text adapts based on user data:
+├── "Create First Game" → "Create New Game" (when more games exist)
+└── "Create Season/Tournament" (simplified from "First Season/Tournament")
 ```
 
 **Automatic Adaptation**: Interface evolves naturally as user creates data, no manual configuration needed.
@@ -1098,3 +1324,17 @@ games.forEach(game => {
 - ✅ **COMPLETED**: Integration with existing soccer field center overlay onboarding
 - ✅ **COMPLETED**: Progressive feature unlocking as user creates data
 - ✅ **COMPLETED**: Backward compatibility with existing user data and workflows
+
+### Extended Night Session - Enhanced First-Time User Experience
+- ✅ **REFINED**: Simplified first-time user detection to focus on saved games only (`!hasSavedGames`)
+- ✅ **IMPROVED**: Finnish guidance language - clearer, more concise, action-oriented copy
+- ✅ **ENHANCED**: Soccer field center overlay with "Create Season/Tournament First" option
+- ✅ **REMOVED**: Temporary workspace option from onboarding (focus on proper workflow)
+- ✅ **REMOVED**: Redundant helper text that cluttered the interface
+- ✅ **FIXED**: Automatic instructions modal prevention for first-time users clicking "Get Started"
+- ✅ **UPGRADED**: Start screen button design - bigger, more modern, better hierarchy
+- ✅ **SIMPLIFIED**: Season/tournament button text ("Luo kausi/turnaus" vs "Ensimmäinen...")
+- ✅ **RESTORED**: Honest "Resume Last Game" button (dimmed when unavailable) vs "Explore App"
+- ✅ **OPTIMIZED**: Start screen layout spacing and visual balance
+- ✅ **ENHANCED**: Translation quality ("Näin äppi toimii" for better Finnish clarity)
+- ✅ **DOCUMENTED**: Comprehensive technical implementation guide for entire workflow
