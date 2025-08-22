@@ -585,7 +585,7 @@ describe("exportFullBackup", () => {
 
     const mockAnchor = (document.createElement as jest.Mock).mock.results[0]
       .value;
-    expect(mockAnchor.download).toBe("SoccerApp_Backup_20230115_103000.json"); // Check filename
+    expect(mockAnchor.download).toBe("MatchOpsLocal_Backup_20230115_103000.json"); // Check filename
     expect(document.body.appendChild).toHaveBeenCalledWith(mockAnchor);
     expect(clickSpy).toHaveBeenCalledTimes(1);
     expect(document.body.removeChild).toHaveBeenCalledWith(mockAnchor);
