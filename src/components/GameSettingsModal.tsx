@@ -237,31 +237,45 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // Handle time changes
   const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Ensure we're storing a string, not a number that could become NaN
-    setGameHour(value === '' ? '' : value);
-    
-    if (value === '') {
-      // If hour is empty, update the time string accordingly
-      onGameTimeChange(gameMinute ? `:${gameMinute.padStart(2, '0')}` : '');
-    } else {
-      const formattedHour = value.padStart(2, '0');
-      const formattedMinute = gameMinute.padStart(2, '0');
-      onGameTimeChange(`${formattedHour}:${formattedMinute}`);
+    // Only allow numeric input and limit to 2 characters
+    const numericValue = value.replace(/[^0-9]/g, '');
+    if (numericValue.length <= 2) {
+      const hourNum = parseInt(numericValue, 10);
+      // Validate hour range (0-23) if number is complete
+      if (numericValue === '' || (hourNum >= 0 && hourNum <= 23)) {
+        setGameHour(numericValue);
+        
+        if (numericValue === '') {
+          // If hour is empty, update the time string accordingly
+          onGameTimeChange(gameMinute ? `:${gameMinute.padStart(2, '0')}` : '');
+        } else {
+          const formattedHour = numericValue.padStart(2, '0');
+          const formattedMinute = gameMinute.padStart(2, '0');
+          onGameTimeChange(`${formattedHour}:${formattedMinute}`);
+        }
+      }
     }
   };
 
   const handleMinuteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Ensure we're storing a string, not a number that could become NaN
-    setGameMinute(value === '' ? '' : value);
-    
-    if (value === '') {
-      // If minute is empty, update the time string accordingly
-      onGameTimeChange(gameHour ? `${gameHour.padStart(2, '0')}:` : '');
-    } else {
-      const formattedHour = gameHour.padStart(2, '0');
-      const formattedMinute = value.padStart(2, '0');
-      onGameTimeChange(`${formattedHour}:${formattedMinute}`);
+    // Only allow numeric input and limit to 2 characters
+    const numericValue = value.replace(/[^0-9]/g, '');
+    if (numericValue.length <= 2) {
+      const minuteNum = parseInt(numericValue, 10);
+      // Validate minute range (0-59) if number is complete
+      if (numericValue === '' || (minuteNum >= 0 && minuteNum <= 59)) {
+        setGameMinute(numericValue);
+        
+        if (numericValue === '') {
+          // If minute is empty, update the time string accordingly
+          onGameTimeChange(gameHour ? `${gameHour.padStart(2, '0')}:` : '');
+        } else {
+          const formattedHour = gameHour.padStart(2, '0');
+          const formattedMinute = numericValue.padStart(2, '0');
+          onGameTimeChange(`${formattedHour}:${formattedMinute}`);
+        }
+      }
     }
   };
 
@@ -1099,45 +1113,57 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               </h3>
               <div className="space-y-4">
                 {/* Game Date */}
-                <div className="mb-4">
-                  <label htmlFor="gameDateInput" className="block text-sm font-medium text-slate-300 mb-1">
+                <div className="mb-6">
+                  <label htmlFor="gameDateInput" className="block text-sm font-medium text-slate-300 mb-2">
                     {t('gameSettingsModal.gameDateLabel', 'Game Date')}
                   </label>
                   <input
                     type="date"
                     id="gameDateInput"
+                    name="gameDate"
                     value={gameDate}
                     onChange={(e) => onGameDateChange(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                    autoComplete="off"
                   />
                 </div>
 
                 {/* Game Time */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                <div className="mb-6 pt-2 border-t border-slate-700/40">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">
                     {t('gameSettingsModal.gameTimeLabel', 'Time (Optional)')}
                   </label>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-3 max-w-xs">
                     <input
                       type="text"
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      maxLength={2}
                       value={gameHour}
                       onChange={handleHourChange}
                       placeholder={t('gameSettingsModal.hourPlaceholder', 'HH')}
-                      className="w-1/2 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                      maxLength={2}
+                      className="w-1/2 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      onFocus={(e) => e.target.select()}
                     />
-                    <span className="text-slate-400">:</span>
+                    <span className="text-slate-400 font-mono">:</span>
                     <input
                       type="text"
                       inputMode="numeric"
                       pattern="[0-9]*"
+                      maxLength={2}
                       value={gameMinute}
                       onChange={handleMinuteChange}
                       placeholder={t('gameSettingsModal.minutePlaceholder', 'MM')}
-                      className="w-1/2 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                      maxLength={2}
+                      className="w-1/2 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      onFocus={(e) => e.target.select()}
                     />
                   </div>
                 </div>
@@ -1150,10 +1176,15 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   <input
                     type="text"
                     id="gameLocationInput"
+                    name="gameLocation"
                     value={gameLocation}
                     onChange={(e) => onGameLocationChange(e.target.value)}
                     placeholder={t('gameSettingsModal.locationPlaceholder', 'e.g., Central Park Field 2')}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="words"
+                    spellCheck="true"
                   />
                 </div>
 
@@ -1242,12 +1273,26 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       {t('gameSettingsModal.periodDurationLabel', 'Period Duration (minutes)')}
                     </label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       id="periodDurationInput"
                       value={periodDurationMinutes}
-                      onChange={(e) => onPeriodDurationChange(parseInt(e.target.value, 10))}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                      min="1"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        const numericValue = value.replace(/[^0-9]/g, '');
+                        // Allow reasonable period durations (1-999 minutes)
+                        const duration = parseInt(numericValue, 10);
+                        if (numericValue === '' || (duration >= 1 && duration <= 999)) {
+                          onPeriodDurationChange(numericValue === '' ? 1 : duration);
+                        }
+                      }}
+                      className="w-full max-w-xs px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      placeholder="15"
                     />
                   </div>
 
@@ -1363,10 +1408,25 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         <input
                           ref={goalTimeInputRef}
                           type="text"
+                          inputMode="numeric"
                           value={editGoalTime}
-                          onChange={(e) => setEditGoalTime(e.target.value)}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Allow digits, colon, and reasonable time format
+                            const filteredValue = value.replace(/[^0-9:]/g, '');
+                            // Limit to reasonable length for MM:SS format
+                            if (filteredValue.length <= 5) {
+                              setEditGoalTime(filteredValue);
+                            }
+                          }}
                           placeholder={t('gameSettingsModal.timeFormatPlaceholder', 'MM:SS')}
                           className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck="false"
+                          maxLength={5}
+                          onFocus={(e) => e.target.select()}
                         />
                         {event.type === 'goal' && (
                           <>
