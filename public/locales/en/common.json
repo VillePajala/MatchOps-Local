@@ -71,21 +71,54 @@
   "timerOverlay.periodEnded": "End of Period {currentPeriod}",
   "timerOverlay.gameEnded": "Game Ended",
   "instructionsModal": {
-    "title": "App Guide",
-    "closeButton": "Close guide",
-    "closeText": "Click outside the modal or use the 'X' button to close.",
-    "playerBarTitle": "Player Bar (Top)",
-    "playerBar": {
-      "selectPlayer": "Select Player: Tap a player disk to select it for placement.",
-      "deselectPlayer": "Deselect Player: Tap the selected player disk again or tap the bar background.",
-      "scrollBar": "Scroll Bar: If players overflow, swipe horizontally to scroll."
+    "title": "How It Works",
+    "closeButton": "Close",
+    "gettingStarted": {
+      "title": "Getting Started",
+      "intro": "MatchOps Local helps you track your team's performance during games. Here's how to begin:",
+      "step1Title": "Create Your Roster",
+      "step1Desc": "Add your players with names and jersey numbers. This is required before you can start tracking games.",
+      "step2Title": "Start a New Game",
+      "step2Desc": "Set up the match details: opponent, date, time, and game format (periods, duration).",
+      "step3Title": "Select Active Players",
+      "step3Desc": "Choose which players are participating in this game from your roster.",
+      "step4Title": "Track the Action",
+      "step4Desc": "Drag players onto the field, log goals, track substitutions, and capture tactical notes."
     },
-    "fieldAreaTitle": "Field Area",
-    "fieldArea": {
-      "movePlayer": "Move Player/Opponent: Drag a disk placed on the field.",
-      "addPlacePlayer": "Add/Place Player: Select a player from the top bar, then tap or drag to the field.",
-      "removePlayer": "Remove Player/Opponent: Double-tap/click a disk on the field.",
-      "drawLines": "Draw Lines: Drag on an empty area of the field."
+    "duringGame": {
+      "title": "During the Game",
+      "fieldTitle": "Managing the Field",
+      "dragPlayers": "Drag player discs from the top bar onto the field to show positions",
+      "drawTactics": "Draw arrows and lines to capture tactics and movements",
+      "trackSubs": "Use the timer overlay to track substitution intervals",
+      "scoringTitle": "Recording Events",
+      "logGoals": "Click goal buttons to record who scored and assisted",
+      "timer": "Start/stop the game timer to track actual playing time",
+      "periods": "Advance through periods/halves as the game progresses"
+    },
+    "afterGame": {
+      "title": "After the Game",
+      "saveGame": "Save your game to review later or continue tracking",
+      "assessPlayers": "Rate player performance and add notes",
+      "viewStats": "View individual and team statistics across games",
+      "exportData": "Export your data for further analysis"
+    },
+    "keyFeatures": {
+      "title": "Key Features",
+      "seasons": "Seasons",
+      "seasonsDesc": "Organize games by season for long-term tracking",
+      "tournaments": "Tournaments",
+      "tournamentsDesc": "Track special events and cup competitions separately",
+      "tacticsBoard": "Tactics Mode",
+      "tacticsBoardDesc": "Plan formations and strategies without game tracking",
+      "offlineFirst": "Offline First",
+      "offlineFirstDesc": "Everything saves locally - no internet required"
+    },
+    "tips": {
+      "title": "Pro Tips",
+      "tip1": "Double-tap players on the field to remove them quickly",
+      "tip2": "Use the hamburger menu for quick access to all features",
+      "tip3": "Games auto-save to browser storage - no account needed"
     },
     "controlBarTitle": "Control Bar (Bottom)",
     "controlBar": {
@@ -109,7 +142,9 @@
       "gameSettingsButton": "Adjust match settings.",
       "manageSeasonsAndTournaments": "Manage seasons and tournaments.",
       "exportData": "Export saved matches and stats.",
-      "assessPlayers": "Open the player assessment modal after a game."
+      "assessPlayers": "Open the player assessment modal after a game.",
+      "noPlayersForNewGame": "You need at least one player in your roster to create a game. Would you like to add players now?",
+      "howItWorks": "How It Works"
     },
     "timerOverlayTitle": "Match Clock Overlay",
     "timerOverlay": {
@@ -465,15 +500,40 @@
   },
   "startScreen": {
     "tagline": "Plan · Record · Assess",
-    "startNewGame": "Start New Game",
+    "createNewGame": "Create New Game",
+    "createFirstGame": "Create First Game",
     "loadGame": "Load Game",
     "resumeGame": "Resume Last Game",
+    "exploreApp": "Explore App",
     "languageLabel": "Language",
     "languageEnglish": "English",
     "languageFinnish": "Finnish",
-    "createSeasonTournament": "Create Season/Tournament",
+    "createSeasonTournament": "Seasons & Tournaments",
+    "createFirstSeasonTournament": "First Season/Tournament",
     "viewStats": "View Stats",
-    "backupNow": "Backup Now"
+    "backupNow": "Backup Now",
+    "setupRoster": "Setup Team Roster",
+    "howItWorks": "How It Works",
+    "getStarted": "Get Started"
+  },
+  "workspace": {
+    "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
+    "createGame": "Create Game",
+    "statusUnsaved": "Temporary workspace - not saved",
+    "statusAction": "Create game"
+  },
+  "firstGame": {
+    "title": "Ready to track your first game?",
+    "desc": "Create a game to start tracking player positions, recording goals, and analyzing your team's performance.",
+    "titleNoPlayers": "Ready to get started?",
+    "descNoPlayers": "First, set up your team roster, then create your first game to start tracking player positions, goals, and performance.",
+    "setupRoster": "Set Up Team Roster",
+    "rosterFirst": "Add players first, then create your game",
+    "createGame": "Create Your First Game",
+    "orExperiment": "Or experiment first:",
+    "experimentOption": "Use temporary workspace for testing",
+    "workspaceWarning": "Temporary workspace - changes won't be saved",
+    "createRealGame": "Create real game"
   },
   "seasonTournamentModal": {
     "confirmDelete": "Are you sure you want to delete {{name}}?",
@@ -685,7 +745,7 @@
     "dismissButton": "Dismiss"
   },
   "installPrompt": {
-    "message": "Install Coaching Companion for a faster, offline experience!",
+    "message": "Install MatchOps Local for a faster, offline experience!",
     "installButton": "Install",
     "dismissButton": "Not now"
   },

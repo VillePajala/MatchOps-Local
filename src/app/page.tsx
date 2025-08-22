@@ -6,32 +6,63 @@ import StartScreen from '@/components/StartScreen';
 import { useState, useEffect } from 'react';
 import { getCurrentGameIdSetting } from '@/utils/appSettings';
 import { getSavedGames } from '@/utils/savedGames';
+import { getMasterRoster } from '@/utils/masterRosterManager';
+import { getSeasons } from '@/utils/seasons';
+import { getTournaments } from '@/utils/tournaments';
 
 export default function Home() {
   const [screen, setScreen] = useState<'start' | 'home'>('start');
-  const [initialAction, setInitialAction] = useState<'newGame' | 'loadGame' | 'resumeGame' | 'season' | 'stats' | null>(null);
+  const [initialAction, setInitialAction] = useState<'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | null>(null);
   const [canResume, setCanResume] = useState(false);
+  const [hasPlayers, setHasPlayers] = useState(false);
+  const [hasSavedGames, setHasSavedGames] = useState(false);
+  const [hasSeasonsTournaments, setHasSeasonsTournaments] = useState(false);
+  
+  // Detect if this is a first-time user
+  const isFirstTimeUser = !hasPlayers && !hasSavedGames && !hasSeasonsTournaments;
 
   useEffect(() => {
-    const checkResume = async () => {
+    const checkAppState = async () => {
       try {
+        // Check for resume capability
         const lastId = await getCurrentGameIdSetting();
-        if (!lastId) return;
         const games = await getSavedGames();
-        if (games[lastId]) {
+        
+        if (lastId && games[lastId]) {
           setCanResume(true);
         }
+        
+        // Check if user has any saved games
+        setHasSavedGames(Object.keys(games).length > 0);
+        
+        // Check if user has any players in roster
+        const roster = await getMasterRoster();
+        setHasPlayers(roster.length > 0);
+        
+        // Check if user has any seasons or tournaments
+        const seasons = await getSeasons();
+        const tournaments = await getTournaments();
+        setHasSeasonsTournaments(seasons.length > 0 || tournaments.length > 0);
       } catch {
         setCanResume(false);
+        setHasSavedGames(false);
+        setHasPlayers(false);
+        setHasSeasonsTournaments(false);
       }
     };
-    checkResume();
+    checkAppState();
   }, []);
 
   const handleAction = (
-    action: 'newGame' | 'loadGame' | 'resumeGame' | 'season' | 'stats'
+    action: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'getStarted' | 'season' | 'stats' | 'roster'
   ) => {
-    setInitialAction(action);
+    // For getStarted, we want to go to the main app with no specific action
+    // This will trigger the soccer field center overlay for first-time users
+    if (action === 'getStarted') {
+      setInitialAction(null); // No specific action - let the natural onboarding flow take over
+    } else {
+      setInitialAction(action);
+    }
     setScreen('home');
   };
 
@@ -42,9 +73,16 @@ export default function Home() {
           onStartNewGame={() => handleAction('newGame')}
           onLoadGame={() => handleAction('loadGame')}
           onResumeGame={() => handleAction('resumeGame')}
+          onExploreApp={() => handleAction('explore')}
+          onGetStarted={() => handleAction('getStarted')}
           canResume={canResume}
           onCreateSeason={() => handleAction('season')}
           onViewStats={() => handleAction('stats')}
+          onSetupRoster={() => handleAction('roster')}
+          hasPlayers={hasPlayers}
+          hasSavedGames={hasSavedGames}
+          hasSeasonsTournaments={hasSeasonsTournaments}
+          isFirstTimeUser={isFirstTimeUser}
         />
       ) : (
         <HomePage initialAction={initialAction ?? undefined} skipInitialSetup />

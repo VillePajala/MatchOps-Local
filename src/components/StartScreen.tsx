@@ -7,27 +7,43 @@ import {
   updateAppSettings,
   getAppSettings,
 } from '@/utils/appSettings';
+import InstructionsModal from '@/components/InstructionsModal';
  
 
 interface StartScreenProps {
   onStartNewGame: () => void;
   onLoadGame: () => void;
   onResumeGame?: () => void;
+  onExploreApp: () => void;
+  onGetStarted: () => void;
   onCreateSeason: () => void;
   onViewStats: () => void;
+  onSetupRoster: () => void;
   canResume?: boolean;
+  hasPlayers?: boolean;
+  hasSavedGames?: boolean;
+  hasSeasonsTournaments?: boolean;
+  isFirstTimeUser?: boolean;
 }
 
 const StartScreen: React.FC<StartScreenProps> = ({
   onStartNewGame,
   onLoadGame,
   onResumeGame,
+  onExploreApp,
+  onGetStarted,
   onCreateSeason,
   onViewStats,
+  onSetupRoster,
   canResume = false,
+  hasPlayers = false,
+  hasSavedGames = false,
+  hasSeasonsTournaments = false,
+  isFirstTimeUser = false,
 }) => {
   const { t } = useTranslation();
   const [language, setLanguage] = useState<string>(i18n.language);
+  const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState(false);
 
   useEffect(() => {
     getAppSettings().then((settings) => {
@@ -43,10 +59,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
   }, [language]);
 
   const primaryButtonStyle =
-    'w-64 px-4 py-3 rounded-md text-lg font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md';
+    'w-full px-3 py-2.5 rounded-md text-sm sm:text-base font-semibold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-md text-center leading-tight';
 
   const disabledButtonStyle =
-    'w-64 px-4 py-3 rounded-md text-lg font-semibold text-slate-400 bg-gradient-to-r from-slate-700 to-slate-600 cursor-not-allowed shadow-md opacity-50';
+    'w-full px-3 py-2.5 rounded-md text-sm sm:text-base font-semibold text-slate-400 bg-gradient-to-r from-slate-700 to-slate-600 cursor-not-allowed shadow-md opacity-50 text-center leading-tight';
 
   const containerStyle =
     'relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-950 text-slate-100 font-display overflow-hidden';
@@ -105,31 +121,81 @@ const StartScreen: React.FC<StartScreenProps> = ({
           <div className="h-px w-36 sm:w-52 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto mt-6 sm:mt-8" />
         </div>
 
-        {/* Buttons container with responsive spacing */}
-        <div className="w-full flex flex-col items-center gap-2 sm:gap-3 px-2 mt-12 sm:mt-16">
+        {/* Conditional interface based on user type */}
+        {isFirstTimeUser ? (
+          /* FIRST-TIME USER: Simplified Interface */
+          <div className="w-full flex flex-col items-center justify-center flex-1 px-4 py-8 gap-6 max-w-sm mx-auto">
+            {/* Large Get Started button */}
             <button 
-              className={canResume && onResumeGame ? primaryButtonStyle : disabledButtonStyle}
-              onClick={canResume && onResumeGame ? onResumeGame : undefined}
-              disabled={!canResume || !onResumeGame}
+              className="w-full px-6 py-4 rounded-lg text-lg font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xl text-center"
+              onClick={onGetStarted}
             >
-              {t('startScreen.resumeGame', 'Resume Last Game')}
+              {t('startScreen.getStarted', 'Get Started')}
             </button>
-            <button className={primaryButtonStyle} onClick={onStartNewGame}>
-              {t('startScreen.startNewGame', 'Start New Game')}
+            
+            {/* Secondary help button */}
+            <button 
+              className="w-full px-4 py-2.5 rounded-md text-sm font-medium text-slate-300 bg-slate-800/50 hover:bg-slate-700/50 transition-colors border border-slate-600"
+              onClick={() => setIsInstructionsModalOpen(true)}
+            >
+              {t('startScreen.howItWorks', 'How It Works')}
             </button>
-            <button className={primaryButtonStyle} onClick={onLoadGame}>
+          </div>
+        ) : (
+          /* EXPERIENCED USER: Full-Featured Interface */
+          <div className="w-full flex flex-col items-center justify-center flex-1 px-4 py-6 gap-1.5 max-w-sm mx-auto">
+            {/* Show Setup Roster as primary action for users without players */}
+            {!hasPlayers && (
+              <button className={primaryButtonStyle} onClick={onSetupRoster}>
+                {t('startScreen.setupRoster', 'Setup Team Roster')}
+              </button>
+            )}
+            
+            {/* Resume/Explore button */}
+            <button 
+              className={primaryButtonStyle}
+              onClick={canResume && onResumeGame ? onResumeGame : onExploreApp}
+            >
+              {canResume ? t('startScreen.resumeGame', 'Resume Last Game') : t('startScreen.exploreApp', 'Explore App')}
+            </button>
+            
+            {/* Create Game button - grayed out if no players */}
+            <button 
+              className={hasPlayers ? primaryButtonStyle : disabledButtonStyle}
+              onClick={hasPlayers ? onStartNewGame : undefined}
+              disabled={!hasPlayers}
+            >
+              {hasSavedGames ? t('startScreen.createNewGame', 'Create New Game') : t('startScreen.createFirstGame', 'Create First Game')}
+            </button>
+            
+            {/* Load Game button */}
+            <button 
+              className={hasSavedGames ? primaryButtonStyle : disabledButtonStyle} 
+              onClick={hasSavedGames ? onLoadGame : undefined}
+              disabled={!hasSavedGames}
+            >
               {t('startScreen.loadGame', 'Load Game')}
             </button>
-            <button className={primaryButtonStyle} onClick={onCreateSeason}>
-              {t('startScreen.createSeasonTournament', 'Create Season/Tournament')}
+            
+            {/* Create Season/Tournament button - grayed out if no players */}
+            <button 
+              className={hasPlayers ? primaryButtonStyle : disabledButtonStyle}
+              onClick={hasPlayers ? onCreateSeason : undefined}
+              disabled={!hasPlayers}
+            >
+              {hasSeasonsTournaments ? t('startScreen.createSeasonTournament', 'Seasons & Tournaments') : t('startScreen.createFirstSeasonTournament', 'First Season/Tournament')}
             </button>
-            <button className={primaryButtonStyle} onClick={onViewStats}>
+            
+            {/* View Stats button */}
+            <button 
+              className={hasSavedGames ? primaryButtonStyle : disabledButtonStyle} 
+              onClick={hasSavedGames ? onViewStats : undefined}
+              disabled={!hasSavedGames}
+            >
               {t('startScreen.viewStats', 'View Stats')}
             </button>
-        </div>
-
-        {/* Spacer to push content up and leave space for language switcher */}
-        <div className="flex-grow"></div>
+          </div>
+        )}
       </div>
 
       {/* Bottom-centered language switcher with safe area */}
@@ -151,6 +217,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Instructions Modal */}
+      <InstructionsModal
+        isOpen={isInstructionsModalOpen}
+        onClose={() => setIsInstructionsModalOpen(false)}
+      />
     </div>
   );
 };

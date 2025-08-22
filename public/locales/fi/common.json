@@ -71,9 +71,55 @@
   "timerOverlay.gameEnded": "Peli päättyi",
   "timerOverlay.editOpponentNameTitle": "Klikkaa muokataksesi vastustajan nimeä",
   "instructionsModal": {
-    "title": "Sovellusopas",
-    "closeButton": "Sulje opas",
-    "closeText": "Sulje napsauttamalla modaalin ulkopuolella tai käyttämällä 'X'-painiketta.",
+    "title": "Näin se toimii",
+    "closeButton": "Sulje",
+    "gettingStarted": {
+      "title": "Aloittaminen",
+      "intro": "MatchOps Local auttaa sinua seuraamaan joukkueesi suoritusta peleissä. Näin pääset alkuun:",
+      "step1Title": "Luo kokoonpano",
+      "step1Desc": "Lisää pelaajat nimillä ja pelinumeroilla. Tämä vaaditaan ennen kuin voit alkaa seurata pelejä.",
+      "step2Title": "Aloita uusi peli",
+      "step2Desc": "Aseta ottelun tiedot: vastustaja, päivämäärä, aika ja peliformaatti (erät, kesto).",
+      "step3Title": "Valitse aktiiviset pelaajat",
+      "step3Desc": "Valitse mitkä pelaajat osallistuvat tähän peliin kokoonpanostasi.",
+      "step4Title": "Seuraa toimintaa",
+      "step4Desc": "Vedä pelaajia kentälle, kirjaa maalit, seuraa vaihtoja ja tallenna taktisia muistiinpanoja."
+    },
+    "duringGame": {
+      "title": "Pelin aikana",
+      "fieldTitle": "Kentän hallinta",
+      "dragPlayers": "Vedä pelaajalaattoja yläpalkista kentälle näyttämään sijainnit",
+      "drawTactics": "Piirrä nuolia ja viivoja taktiikan ja liikkeiden tallentamiseksi",
+      "trackSubs": "Käytä ajastinnäkymää vaihtojen seurantaan",
+      "scoringTitle": "Tapahtumien kirjaus",
+      "logGoals": "Klikkaa maalipainikkeita kirjataksesi tekijän ja syöttäjän",
+      "timer": "Käynnistä/pysäytä peliajastin seurataksesi todellista peliaikaa",
+      "periods": "Etene erien/puoliaikojen läpi pelin edetessä"
+    },
+    "afterGame": {
+      "title": "Pelin jälkeen",
+      "saveGame": "Tallenna pelisi myöhempää tarkastelua tai jatkamista varten",
+      "assessPlayers": "Arvioi pelaajien suoritus ja lisää muistiinpanoja",
+      "viewStats": "Katsele yksilö- ja joukkuetilastoja pelien välillä",
+      "exportData": "Vie datasi jatkoanalyysiä varten"
+    },
+    "keyFeatures": {
+      "title": "Keskeisiä ominaisuuksia",
+      "seasons": "Kaudet",
+      "seasonsDesc": "Järjestä pelit kausittain pitkäaikaista seurantaa varten",
+      "tournaments": "Turnaukset",
+      "tournamentsDesc": "Seuraa erikoistapahtumia ja cup-kilpailuja erikseen",
+      "tacticsBoard": "Taktiikkatila",
+      "tacticsBoardDesc": "Suunnittele muodostelmia ja strategioita ilman pelin seurantaa",
+      "offlineFirst": "Offline-ensisijainen",
+      "offlineFirstDesc": "Kaikki tallentuu paikallisesti - internet-yhteyttä ei tarvita"
+    },
+    "tips": {
+      "title": "Ammattilaisvinkit",
+      "tip1": "Kaksoisnapauta pelaajia kentällä poistaaksesi ne nopeasti",
+      "tip2": "Käytä hampurilaisvalikkoa päästäksesi nopeasti kaikkiin ominaisuuksiin",
+      "tip3": "Pelit tallentuvat automaattisesti selaimen muistiin - tiliä ei tarvita"
+    },
     "playerBarTitle": "Pelaajapalkki (Yläosa)",
     "playerBar": {
       "selectPlayer": "Valitse pelaaja: Napauta pelaajakiekkoa valitaksesi sen sijoittamista varten.",
@@ -109,7 +155,9 @@
       "gameSettingsButton": "Säädä otteluasetuksia.",
       "manageSeasonsAndTournaments": "Hallinnoi kausia ja turnauksia.",
       "exportData": "Vie tallennetut pelit ja tilastot.",
-      "assessPlayers": "Avaa pelaaja-arviointi pelin p\u00e4\u00e4tytty\u00e4."
+      "assessPlayers": "Avaa pelaaja-arviointi pelin p\u00e4\u00e4tytty\u00e4.",
+      "noPlayersForNewGame": "Tarvitset vähintään yhden pelaajan kokoonpanoon luodaksesi pelin. Haluatko lisätä pelaajia nyt?",
+      "howItWorks": "Näin se toimii"
     },
     "timerOverlayTitle": "Ottelukello",
     "timerOverlay": {
@@ -378,15 +426,40 @@
   "timerOverlay.subIntervalLabel": "Vaihdon Aikaväli:",
   "startScreen": {
     "tagline": "Suunnittele · Kirjaa · Arvioi",
-    "startNewGame": "Aloita uusi ottelu",
+    "createNewGame": "Luo uusi ottelu",
+    "createFirstGame": "Luo ensimmäinen ottelu",
     "loadGame": "Lataa peli",
     "resumeGame": "Jatka edellistä peliä",
+    "exploreApp": "Tutustu sovellukseen",
     "languageLabel": "Kieli",
     "languageEnglish": "Englanti",
     "languageFinnish": "Suomi",
-    "createSeasonTournament": "Luo kausi/turnaus",
+    "createSeasonTournament": "Kaudet & Turnaukset",
+    "createFirstSeasonTournament": "Ensimmäinen kausi/turnaus",
     "viewStats": "Näytä tilastot",
-    "backupNow": "Varmuuskopioi nyt"
+    "backupNow": "Varmuuskopioi nyt",
+    "setupRoster": "Luo kokoonpano",
+    "howItWorks": "Näin se toimii",
+    "getStarted": "Aloita tästä"
+  },
+  "workspace": {
+    "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
+    "createGame": "Luo peli",
+    "statusUnsaved": "Väliaikainen työtila - ei tallennettu",
+    "statusAction": "Luo peli"
+  },
+  "firstGame": {
+    "title": "Valmis seuraamaan ensimmäistä peliäsi?",
+    "desc": "Luo peli aloittaaksesi pelaajien sijainnin seurannan, maalien kirjaamisen ja joukkueesi suorituksen analysoinnin.",
+    "titleNoPlayers": "Valmis aloittamaan?",
+    "descNoPlayers": "Luo ensin joukkueen kokoonpano, sitten luo ensimmäinen pelisi aloittaaksesi pelaajien sijainnin, maalien ja suorituksen seurannan.",
+    "setupRoster": "Luo kokoonpano",
+    "rosterFirst": "Lisää pelaajat ensin, sitten luo pelisi",
+    "createGame": "Luo ensimmäinen pelisi",
+    "orExperiment": "Tai kokeile ensin:",
+    "experimentOption": "Käytä väliaikaista työtilaa testaamiseen",
+    "workspaceWarning": "Väliaikainen työtila - muutoksia ei tallenneta",
+    "createRealGame": "Luo oikea peli"
   },
   "seasonTournamentModal": {
     "confirmDelete": "Haluatko varmasti poistaa {{name}}?",
@@ -676,7 +749,7 @@
     "dismissButton": "Sulje"
   },
   "installPrompt": {
-    "message": "Asenna Coaching Companion saadaksesi nopeamman ja offline-toimivan kokemuksen!",
+    "message": "Asenna MatchOps Local saadaksesi nopeamman ja offline-toimivan kokemuksen!",
     "installButton": "Asenna",
     "dismissButton": "Ei nyt"
   },

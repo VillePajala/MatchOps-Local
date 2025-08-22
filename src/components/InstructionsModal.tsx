@@ -32,63 +32,90 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 space-y-6">
-          <p className="text-sm text-slate-300">{t('instructionsModal.closeText')}</p>
-
-          <section className="space-y-2">
-            <h3 className="text-xl font-semibold text-yellow-300">{t('instructionsModal.playerBarTitle')}</h3>
-            <ul className="list-disc list-inside space-y-1 text-slate-300">
-              <li>{t('instructionsModal.playerBar.selectPlayer')}</li>
-              <li>{t('instructionsModal.playerBar.deselectPlayer')}</li>
-              <li>{t('instructionsModal.playerBar.scrollBar')}</li>
-            </ul>
+          {/* Getting Started */}
+          <section className="space-y-3">
+            <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.gettingStarted.title')}</h3>
+            <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+              <p className="text-slate-200 mb-3">{t('instructionsModal.gettingStarted.intro')}</p>
+              <ol className="list-decimal list-inside space-y-2 text-slate-300">
+                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step1Title')}</span> - {t('instructionsModal.gettingStarted.step1Desc')}</li>
+                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step2Title')}</span> - {t('instructionsModal.gettingStarted.step2Desc')}</li>
+                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step3Title')}</span> - {t('instructionsModal.gettingStarted.step3Desc')}</li>
+                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step4Title')}</span> - {t('instructionsModal.gettingStarted.step4Desc')}</li>
+              </ol>
+            </div>
           </section>
 
-          <section className="space-y-2">
-            <h3 className="text-xl font-semibold text-yellow-300">{t('instructionsModal.fieldAreaTitle')}</h3>
-            <ul className="list-disc list-inside space-y-1 text-slate-300">
-              <li>{t('instructionsModal.fieldArea.movePlayer')}</li>
-              <li>{t('instructionsModal.fieldArea.addPlacePlayer')}</li>
-              <li>{t('instructionsModal.fieldArea.removePlayer')}</li>
-              <li>{t('instructionsModal.fieldArea.drawLines')}</li>
-            </ul>
+          {/* During the Game */}
+          <section className="space-y-3">
+            <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.duringGame.title')}</h3>
+            <div className="space-y-3">
+              <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                <h4 className="text-lg font-semibold text-indigo-300 mb-2">{t('instructionsModal.duringGame.fieldTitle')}</h4>
+                <ul className="list-disc list-inside space-y-1 text-slate-300">
+                  <li>{t('instructionsModal.duringGame.dragPlayers')}</li>
+                  <li>{t('instructionsModal.duringGame.drawTactics')}</li>
+                  <li>{t('instructionsModal.duringGame.trackSubs')}</li>
+                </ul>
+              </div>
+              
+              <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                <h4 className="text-lg font-semibold text-indigo-300 mb-2">{t('instructionsModal.duringGame.scoringTitle')}</h4>
+                <ul className="list-disc list-inside space-y-1 text-slate-300">
+                  <li>{t('instructionsModal.duringGame.logGoals')}</li>
+                  <li>{t('instructionsModal.duringGame.timer')}</li>
+                  <li>{t('instructionsModal.duringGame.periods')}</li>
+                </ul>
+              </div>
+            </div>
           </section>
 
-          <section className="space-y-2">
-            <h3 className="text-xl font-semibold text-yellow-300">{t('instructionsModal.controlBarTitle')}</h3>
-            <ul className="list-disc list-inside space-y-1 text-slate-300">
-              <li>{t('instructionsModal.controlBar.undoRedo')}</li>
-              <li>{t('instructionsModal.controlBar.toggleNames')}</li>
-              <li>{t('instructionsModal.controlBar.placeAllPlayers')}</li>
-              <li>{t('instructionsModal.controlBar.clearDrawings')}</li>
-              <li>{t('instructionsModal.controlBar.addOpponent')}</li>
-              <li>{t('instructionsModal.controlBar.resetField')}</li>
-              <li>{t('instructionsModal.controlBar.toggleTimerOverlay')}</li>
-              <li>{t('instructionsModal.controlBar.timerControls')}</li>
-              <li>{t('instructionsModal.controlBar.help')}</li>
-              <li>{t('instructionsModal.controlBar.languageToggle')}</li>
-              <li>{t('instructionsModal.controlBar.hardReset')}</li>
-              <li>{t('instructionsModal.controlBar.saveGameAs')}</li>
-              <li>{t('instructionsModal.controlBar.loadGame')}</li>
-            </ul>
+          {/* After the Game */}
+          <section className="space-y-3">
+            <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.afterGame.title')}</h3>
+            <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+              <ul className="list-disc list-inside space-y-1 text-slate-300">
+                <li>{t('instructionsModal.afterGame.saveGame')}</li>
+                <li>{t('instructionsModal.afterGame.assessPlayers')}</li>
+                <li>{t('instructionsModal.afterGame.viewStats')}</li>
+                <li>{t('instructionsModal.afterGame.exportData')}</li>
+              </ul>
+            </div>
           </section>
 
-          <section className="space-y-2">
-            <h3 className="text-xl font-semibold text-yellow-300">{t('instructionsModal.timerOverlayTitle')}</h3>
-            <ul className="list-disc list-inside space-y-1 text-slate-300">
-              <li>{t('instructionsModal.timerOverlay.setInterval')}</li>
-              <li>{t('instructionsModal.timerOverlay.subAlerts')}</li>
-              <li>{t('instructionsModal.timerOverlay.confirmSub')}</li>
-              <li>{t('instructionsModal.timerOverlay.playTimeHistory')}</li>
-              <li>{t('instructionsModal.timerOverlay.editOpponentNameTitle')}</li>
-            </ul>
+          {/* Key Features */}
+          <section className="space-y-3">
+            <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.keyFeatures.title')}</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.keyFeatures.seasons')}</h4>
+                <p className="text-sm text-slate-300">{t('instructionsModal.keyFeatures.seasonsDesc')}</p>
+              </div>
+              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.keyFeatures.tournaments')}</h4>
+                <p className="text-sm text-slate-300">{t('instructionsModal.keyFeatures.tournamentsDesc')}</p>
+              </div>
+              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.keyFeatures.tacticsBoard')}</h4>
+                <p className="text-sm text-slate-300">{t('instructionsModal.keyFeatures.tacticsBoardDesc')}</p>
+              </div>
+              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.keyFeatures.offlineFirst')}</h4>
+                <p className="text-sm text-slate-300">{t('instructionsModal.keyFeatures.offlineFirstDesc')}</p>
+              </div>
+            </div>
           </section>
 
-          <section className="space-y-2">
-            <h3 className="text-xl font-semibold text-yellow-300">{t('instructionsModal.generalTitle')}</h3>
-            <ul className="list-disc list-inside space-y-1 text-slate-300">
-              <li>{t('instructionsModal.general.touchInteractions')}</li>
-              <li>{t('instructionsModal.general.saving')}</li>
-            </ul>
+          {/* Tips */}
+          <section className="space-y-3">
+            <h3 className="text-xl font-semibold text-yellow-300">{t('instructionsModal.tips.title')}</h3>
+            <div className="bg-indigo-900/30 rounded-lg p-4 border border-indigo-700/50">
+              <ul className="list-disc list-inside space-y-1 text-slate-300">
+                <li>{t('instructionsModal.tips.tip1')}</li>
+                <li>{t('instructionsModal.tips.tip2')}</li>
+                <li>{t('instructionsModal.tips.tip3')}</li>
+              </ul>
+            </div>
           </section>
         </div>
 
