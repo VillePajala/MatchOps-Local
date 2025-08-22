@@ -804,8 +804,9 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         }
         // --- END TIMER RESTORATION LOGIC ---
 
+        // Only show automatic instructions for experienced users, not first-time users following natural onboarding
         const seenGuide = await getHasSeenAppGuide();
-        if (!seenGuide) {
+        if (!seenGuide && initialAction !== null) {
           setIsInstructionsModalOpen(true);
         }
 
@@ -843,7 +844,8 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     setCurrentGameId,
     setHasSkippedInitialSetup,
     t,
-    initialLoadComplete
+    initialLoadComplete,
+    initialAction // Used to determine if instructions modal should show automatically
   ]);
 
   // --- NEW: Robust Visibility Change Handling ---
@@ -2540,7 +2542,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         {/* First Game Setup Overlay */}
         {currentGameId === DEFAULT_GAME_ID && playersOnField.length === 0 && drawings.length === 0 && !hasUsedWorkspace && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-            <div className="bg-slate-800/95 border border-indigo-500/50 rounded-xl p-8 max-w-md mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
+            <div className="bg-slate-800/95 border border-indigo-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
               <div className="text-center">
                 <div className="mb-4">
                   <div className="w-16 h-16 mx-auto bg-indigo-600/20 rounded-full flex items-center justify-center mb-3">
@@ -2569,9 +2571,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
                       >
                         {t('firstGame.setupRoster', 'Set Up Team Roster')}
                       </button>
-                      <div className="text-xs text-slate-400">
-                        {t('firstGame.rosterFirst', 'Add players first, then create your game')}
-                      </div>
                     </>
                   ) : (
                     <>
@@ -2579,22 +2578,17 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
                         onClick={() => setIsNewGameSetupModalOpen(true)}
                         className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
                       >
-                        {t('firstGame.createGame', 'Create Your First Game')}
+                        {t('firstGame.createGame', 'Create Your First Match')}
+                      </button>
+                      
+                      <button 
+                        onClick={() => setIsSeasonTournamentModalOpen(true)}
+                        className="w-full px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors border border-slate-600"
+                      >
+                        {t('firstGame.createSeasonFirst', 'Create Season/Tournament First')}
                       </button>
                     </>
                   )}
-                  
-                  <div className="border-t border-slate-600 pt-4 mt-6">
-                    <div className="text-xs text-slate-400 mb-2">
-                      {t('firstGame.orExperiment', 'Or experiment first:')}
-                    </div>
-                    <button 
-                      onClick={() => setHasUsedWorkspace(true)}
-                      className="text-xs text-slate-400 hover:text-slate-300 underline transition-colors"
-                    >
-                      {t('firstGame.useWorkspace', 'Use temporary workspace for testing')}
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
