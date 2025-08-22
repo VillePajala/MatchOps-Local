@@ -344,7 +344,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
   const [currentGameId, setCurrentGameId] = useState<string | null>(DEFAULT_GAME_ID);
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
-  const [hasUsedWorkspace, setHasUsedWorkspace] = useState<boolean>(false);
+  const [hasUsedWorkspace] = useState<boolean>(false);
   
   // This ref needs to be declared after currentGameId
   const gameIdRef = useRef(currentGameId);
@@ -846,7 +846,8 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     setHasSkippedInitialSetup,
     t,
     initialLoadComplete,
-    initialAction // Used to determine if instructions modal should show automatically
+    initialAction, // Used to determine if instructions modal should show automatically
+    savedGames // Used to check if user has any saved games for instructions modal logic
   ]);
 
   // --- NEW: Robust Visibility Change Handling ---
