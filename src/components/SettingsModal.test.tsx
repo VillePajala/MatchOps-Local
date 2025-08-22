@@ -88,7 +88,7 @@ describe('<SettingsModal />', () => {
 
   test('backup button triggers callback', () => {
     render(<SettingsModal {...defaultProps} />);
-    const backupButton = screen.getByRole('button', { name: /Create Backup/i });
+    const backupButton = screen.getByRole('button', { name: /Backup All Data/i });
     fireEvent.click(backupButton);
     expect(defaultProps.onCreateBackup).toHaveBeenCalled();
   });
