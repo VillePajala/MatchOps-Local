@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: update LoadGameModal tests to match actual component interface"
+  "notes": "feat: stabilize mobile inputs in GameSettingsModal"
 }
