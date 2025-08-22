@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { formatBytes } from '@/utils/bytes';
 import packageJson from '../../package.json';
 import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp } from 'react-icons/hi2';
-import { exportFullBackup, importFullBackup } from '@/utils/fullBackup';
+import { importFullBackup } from '@/utils/fullBackup';
 
 interface SettingsModalProps {
   isOpen: boolean;
