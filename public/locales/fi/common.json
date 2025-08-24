@@ -742,7 +742,9 @@
     "adjustmentsInfo": "Ulkoiset tilastot lisätään läpinäkyvästi kokonaissummiin.",
     "requiredFields": "Joukkueen ja vastustajan nimet ovat pakollisia.",
     "deleteConfirmMessage": "Haluatko varmasti poistaa tämän ulkoisen pelin merkinnän? Tätä toimintoa ei voi perua.",
-    "deleteError": "Ulkoisen pelin merkinnän poisto epäonnistui."
+    "deleteError": "Ulkoisen pelin merkinnän poisto epäonnistui.",
+    "includeInSeasonTournament": "Sisällytä kausi/turnaus-tilastoihin",
+    "includeInSeasonTournamentHelp": "Valitse tämä, jos ulkoinen peli pelattiin samassa joukkueessa"
   },
   "updateBanner": {
     "message": "Sovelluksesta on saatavilla uusi versio.",

@@ -97,21 +97,39 @@ export const calculatePlayerStats = (
     }
   });
 
-  // Apply adjustments (external games) scoped by season
+  // Apply adjustments (external games) scoped by season and tournament
   const adjustmentsForPlayer = (adjustments || []).filter(a => a.playerId === player.id);
 
-  // Merge adjustments into season performance
+  // Merge adjustments into season and tournament performance
   adjustmentsForPlayer.forEach(adj => {
-    const seasonId = adj.seasonId;
-    if (!seasonId) return;
-    if (!performanceBySeason[seasonId]) {
-      const seasonInfo = seasons.find(s => s.id === seasonId);
-      performanceBySeason[seasonId] = { name: seasonInfo?.name || 'Unknown Season', gamesPlayed: 0, goals: 0, assists: 0, points: 0 };
+    // Only add to season/tournament stats if includeInSeasonTournament is true
+    // This prevents external games from different teams polluting team-specific statistics
+    if (adj.includeInSeasonTournament) {
+      // Add to season performance if seasonId exists
+      if (adj.seasonId) {
+        if (!performanceBySeason[adj.seasonId]) {
+          const seasonInfo = seasons.find(s => s.id === adj.seasonId);
+          performanceBySeason[adj.seasonId] = { name: seasonInfo?.name || 'Unknown Season', gamesPlayed: 0, goals: 0, assists: 0, points: 0 };
+        }
+        performanceBySeason[adj.seasonId].gamesPlayed += (adj.gamesPlayedDelta || 0);
+        performanceBySeason[adj.seasonId].goals += (adj.goalsDelta || 0);
+        performanceBySeason[adj.seasonId].assists += (adj.assistsDelta || 0);
+        performanceBySeason[adj.seasonId].points += (adj.goalsDelta || 0) + (adj.assistsDelta || 0);
+      }
+
+      // Add to tournament performance if tournamentId exists
+      if (adj.tournamentId) {
+        if (!performanceByTournament[adj.tournamentId]) {
+          const tournamentInfo = tournaments.find(t => t.id === adj.tournamentId);
+          performanceByTournament[adj.tournamentId] = { name: tournamentInfo?.name || 'Unknown Tournament', gamesPlayed: 0, goals: 0, assists: 0, points: 0 };
+        }
+        performanceByTournament[adj.tournamentId].gamesPlayed += (adj.gamesPlayedDelta || 0);
+        performanceByTournament[adj.tournamentId].goals += (adj.goalsDelta || 0);
+        performanceByTournament[adj.tournamentId].assists += (adj.assistsDelta || 0);
+        performanceByTournament[adj.tournamentId].points += (adj.goalsDelta || 0) + (adj.assistsDelta || 0);
+      }
     }
-    performanceBySeason[seasonId].gamesPlayed += (adj.gamesPlayedDelta || 0);
-    performanceBySeason[seasonId].goals += (adj.goalsDelta || 0);
-    performanceBySeason[seasonId].assists += (adj.assistsDelta || 0);
-    performanceBySeason[seasonId].points += (adj.goalsDelta || 0) + (adj.assistsDelta || 0);
+    // Note: Stats always count toward overall totals regardless of includeInSeasonTournament flag
   });
 
   const totalGoals = gameByGameStats.reduce((sum, game) => sum + game.goals, 0) + adjustmentsForPlayer.reduce((s, a) => s + (a.goalsDelta || 0), 0);

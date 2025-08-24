@@ -64,7 +64,7 @@ export * from "./game";
 export interface PlayerStatAdjustment {
   id: string;
   playerId: string;
-  seasonId: string; // scope by season
+  seasonId?: string; // optional season association
   teamId?: string; // optional, could be "External" or another team id
   tournamentId?: string; // optional tournament context
   externalTeamName?: string; // optional name of the team the player represented
@@ -73,6 +73,7 @@ export interface PlayerStatAdjustment {
   scoreAgainst?: number; // optional score against
   gameDate?: string; // optional specific date of the game(s)
   homeOrAway?: 'home' | 'away' | 'neutral'; // relative to externalTeamName
+  includeInSeasonTournament?: boolean; // whether to include in season/tournament statistics
   gamesPlayedDelta: number; // may be 0
   goalsDelta: number; // may be 0
   assistsDelta: number; // may be 0
