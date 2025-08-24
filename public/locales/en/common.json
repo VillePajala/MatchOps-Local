@@ -738,7 +738,9 @@
     "adjustmentsInfo": "External stats are transparently added to totals.",
     "requiredFields": "Team and opponent names are required.",
     "deleteConfirmMessage": "Are you sure you want to delete this external game entry? This action cannot be undone.",
-    "deleteError": "Failed to delete the external game entry."
+    "deleteError": "Failed to delete the external game entry.",
+    "includeInSeasonTournament": "Include in season/tournament statistics",
+    "includeInSeasonTournamentHelp": "Check this if the external game was played for the same team"
   },
   "updateBanner": {
     "message": "A new version of the app is available.",

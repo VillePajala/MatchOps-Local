@@ -41,10 +41,11 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [adjScoreAgainst, setAdjScoreAgainst] = useState<number | ''>('');
   const [adjGameDate, setAdjGameDate] = useState('');
   const [adjHomeAway, setAdjHomeAway] = useState<'home' | 'away' | 'neutral'>('neutral');
-  const [adjGames, setAdjGames] = useState(0);
+  const [adjGames, setAdjGames] = useState(1);
   const [adjGoals, setAdjGoals] = useState(0);
   const [adjAssists, setAdjAssists] = useState(0);
   const [adjNote, setAdjNote] = useState('');
+  const [adjIncludeInSeasonTournament, setAdjIncludeInSeasonTournament] = useState(false);
   const [editingAdjId, setEditingAdjId] = useState<string | null>(null);
   const [editGames, setEditGames] = useState<number>(0);
   const [editGoals, setEditGoals] = useState<number>(0);
@@ -57,6 +58,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [editGameDate, setEditGameDate] = useState('');
   const [editScoreFor, setEditScoreFor] = useState<number | ''>('');
   const [editScoreAgainst, setEditScoreAgainst] = useState<number | ''>('');
+  const [editIncludeInSeasonTournament, setEditIncludeInSeasonTournament] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null);
 
@@ -248,10 +250,9 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   return;
                 }
                 
-                const seasonId = adjSeasonId || seasons[0]?.id || '';
                 const created = await addPlayerAdjustment({
                   playerId: player.id,
-                  seasonId,
+                  seasonId: adjSeasonId || undefined,
                   tournamentId: adjTournamentId || undefined,
                   externalTeamName: adjExternalTeam.trim(),
                   opponentName: adjOpponentName.trim(),
@@ -263,31 +264,29 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   goalsDelta: Math.max(0, Number(adjGoals) || 0),
                   assistsDelta: Math.max(0, Number(adjAssists) || 0),
                   note: adjNote.trim() || undefined,
+                  includeInSeasonTournament: adjIncludeInSeasonTournament,
                 });
                 setAdjustments(prev => [...prev, created]);
                 setShowAdjForm(false);
                 // Reset form
-                setAdjGames(0); setAdjGoals(0); setAdjAssists(0); setAdjNote('');
+                setAdjGames(1); setAdjGoals(0); setAdjAssists(0); setAdjNote('');
                 setAdjTournamentId(''); setAdjExternalTeam(''); setAdjOpponentName(''); setAdjScoreFor(''); setAdjScoreAgainst('');
                 setAdjGameDate(new Date().toISOString().split('T')[0]);
                 setAdjHomeAway('neutral');
+                setAdjIncludeInSeasonTournament(false);
               }}
             >
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.season', 'Season')} <span className="text-red-400">*</span></label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.season', 'Season')}</label>
                 <select
-                  value={adjSeasonId || (seasons[0]?.id || '')}
+                  value={adjSeasonId}
                   onChange={(e) => setAdjSeasonId(e.target.value)}
                   className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
-                  required
                 >
-                  {seasons.length === 0 ? (
-                    <option value="">{t('playerStats.noSeasonsAvailable', 'No seasons available')}</option>
-                  ) : (
-                    seasons.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))
-                  )}
+                  <option value="">{t('playerStats.noSeason', 'No season')}</option>
+                  {seasons.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -325,26 +324,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   <span>{leftScoreLabel}</span>
                   <span>{rightScoreLabel}</span>
                 </div>
-                <div className="flex items-center gap-1" aria-label={`${leftScoreLabel} - ${rightScoreLabel}`}>
-                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => {
-                    const current = getLeftScore();
-                    setLeftScore(current === '' ? 0 : Math.max(0, (current as number) - 1));
-                  }}>-</button>
-                  <input aria-label={`${leftScoreLabel} ${t('playerStats.goals', 'Goals')}`} type="tel" inputMode="numeric" pattern="[0-9]*" value={getLeftScore()} onChange={e => setLeftScore(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))} className="w-16 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-1 text-sm" placeholder="0" min="0" />
-                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => {
-                    const current = getLeftScore();
-                    setLeftScore(current === '' ? 1 : (current as number) + 1);
-                  }}>+</button>
-                  <span className="mx-2 text-lg font-bold">-</span>
-                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => {
-                    const current = getRightScore();
-                    setRightScore(current === '' ? 0 : Math.max(0, (current as number) - 1));
-                  }}>-</button>
-                  <input aria-label={`${rightScoreLabel} ${t('playerStats.goals', 'Goals')}`} type="tel" inputMode="numeric" pattern="[0-9]*" value={getRightScore()} onChange={e => setRightScore(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))} className="w-16 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-1 text-sm" placeholder="0" min="0" />
-                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => {
-                    const current = getRightScore();
-                    setRightScore(current === '' ? 1 : (current as number) + 1);
-                  }}>+</button>
+                <div className="flex items-center gap-2" aria-label={`${leftScoreLabel} - ${rightScoreLabel}`}>
+                  <input aria-label={`${leftScoreLabel} ${t('playerStats.goals', 'Goals')}`} type="number" inputMode="numeric" pattern="[0-9]*" value={getLeftScore()} onChange={e => setLeftScore(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))} className="w-16 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-1 text-sm" placeholder="0" min="0" />
+                  <span className="mx-1 text-lg font-bold">-</span>
+                  <input aria-label={`${rightScoreLabel} ${t('playerStats.goals', 'Goals')}`} type="number" inputMode="numeric" pattern="[0-9]*" value={getRightScore()} onChange={e => setRightScore(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0))} className="w-16 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-1 text-sm" placeholder="0" min="0" />
                 </div>
               </div>
               <div>
@@ -352,7 +335,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 <input type="date" value={adjGameDate} onChange={e => setAdjGameDate(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gamesPlayed_short', 'GP')}</label>
+                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gamesPlayed', 'Games')}</label>
                 <div className="flex items-center gap-2">
                   <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setAdjGames(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
                   <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(adjGames)} onChange={e => setAdjGames(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
@@ -374,6 +357,22 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(adjAssists)} onChange={e => setAdjAssists(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
                   <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setAdjAssists(v => (Number(v) || 0) + 1)}>+</button>
                 </div>
+              </div>
+              <div className="lg:col-span-3">
+                <label className="flex items-center gap-2">
+                  <input 
+                    type="checkbox"
+                    checked={adjIncludeInSeasonTournament}
+                    onChange={(e) => setAdjIncludeInSeasonTournament(e.target.checked)}
+                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-600 border-slate-500 rounded"
+                  />
+                  <span className="text-xs text-slate-400">
+                    {t('playerStats.includeInSeasonTournament', 'Include in season/tournament statistics')}
+                  </span>
+                </label>
+                <p className="text-xs text-slate-500 mt-1 ml-6">
+                  {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
+                </p>
               </div>
               <div className="lg:col-span-3">
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.note', 'Note')}</label>
@@ -469,6 +468,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                                   setEditGameDate(a.gameDate || '');
                                   setEditScoreFor(typeof a.scoreFor === 'number' ? a.scoreFor : '');
                                   setEditScoreAgainst(typeof a.scoreAgainst === 'number' ? a.scoreAgainst : '');
+                                  setEditIncludeInSeasonTournament(a.includeInSeasonTournament || false);
                                   setShowActionsMenu(null);
                                 }}
                               >
@@ -584,6 +584,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 gameDate: editGameDate || undefined,
                 scoreFor: typeof editScoreFor === 'number' ? editScoreFor : undefined,
                 scoreAgainst: typeof editScoreAgainst === 'number' ? editScoreAgainst : undefined,
+                includeInSeasonTournament: editIncludeInSeasonTournament,
               });
               if (updated) {
                 setAdjustments(prev => prev.map(x => x.id === updated.id ? updated : x));
@@ -622,36 +623,16 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 <span>{editHomeAway === 'away' ? (editOpponentName || t('playerStats.opponent', 'Opponent')) : (editExternalTeam || t('playerStats.team', 'Team'))}</span>
                 <span>{editHomeAway === 'away' ? (editExternalTeam || t('playerStats.team', 'Team')) : (editOpponentName || t('playerStats.opponent', 'Opponent'))}</span>
               </div>
-              <div className="flex items-center gap-1" aria-label={`${editHomeAway === 'away' ? (editOpponentName || t('playerStats.opponent', 'Opponent')) : (editExternalTeam || t('playerStats.team', 'Team'))} - ${editHomeAway === 'away' ? (editExternalTeam || t('playerStats.team', 'Team')) : (editOpponentName || t('playerStats.opponent', 'Opponent'))}`}>
-                <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => {
-                  const setEditLeftScore = (val: number | '') => (editHomeAway === 'away' ? setEditScoreAgainst(val) : setEditScoreFor(val));
-                  const currentVal = editHomeAway === 'away' ? editScoreAgainst : editScoreFor;
-                  setEditLeftScore(currentVal === '' ? 0 : Math.max(0, (currentVal as number) - 1));
-                }}>-</button>
-                <input aria-label={`${editHomeAway === 'away' ? (editOpponentName || t('playerStats.opponent', 'Opponent')) : (editExternalTeam || t('playerStats.team', 'Team'))} ${t('playerStats.goals', 'Goals')}`} type="tel" inputMode="numeric" pattern="[0-9]*" value={editHomeAway === 'away' ? editScoreAgainst : editScoreFor} onChange={e => {
+              <div className="flex items-center gap-2" aria-label={`${editHomeAway === 'away' ? (editOpponentName || t('playerStats.opponent', 'Opponent')) : (editExternalTeam || t('playerStats.team', 'Team'))} - ${editHomeAway === 'away' ? (editExternalTeam || t('playerStats.team', 'Team')) : (editOpponentName || t('playerStats.opponent', 'Opponent'))}`}>
+                <input aria-label={`${editHomeAway === 'away' ? (editOpponentName || t('playerStats.opponent', 'Opponent')) : (editExternalTeam || t('playerStats.team', 'Team'))} ${t('playerStats.goals', 'Goals')}`} type="number" inputMode="numeric" pattern="[0-9]*" value={editHomeAway === 'away' ? editScoreAgainst : editScoreFor} onChange={e => {
                   const val = e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0);
                   void (editHomeAway === 'away' ? setEditScoreAgainst(val) : setEditScoreFor(val));
                 }} className="w-16 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-1 text-sm" placeholder="0" min="0" />
-                <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => {
-                  const setEditLeftScore = (val: number | '') => (editHomeAway === 'away' ? setEditScoreAgainst(val) : setEditScoreFor(val));
-                  const currentVal = editHomeAway === 'away' ? editScoreAgainst : editScoreFor;
-                  setEditLeftScore(currentVal === '' ? 1 : (currentVal as number) + 1);
-                }}>+</button>
-                <span className="mx-2 text-lg font-bold">-</span>
-                <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => {
-                  const setEditRightScore = (val: number | '') => (editHomeAway === 'away' ? setEditScoreFor(val) : setEditScoreAgainst(val));
-                  const currentVal = editHomeAway === 'away' ? editScoreFor : editScoreAgainst;
-                  setEditRightScore(currentVal === '' ? 0 : Math.max(0, (currentVal as number) - 1));
-                }}>-</button>
-                <input aria-label={`${editHomeAway === 'away' ? (editExternalTeam || t('playerStats.team', 'Team')) : (editOpponentName || t('playerStats.opponent', 'Opponent'))} ${t('playerStats.goals', 'Goals')}`} type="tel" inputMode="numeric" pattern="[0-9]*" value={editHomeAway === 'away' ? editScoreFor : editScoreAgainst} onChange={e => {
+                <span className="mx-1 text-lg font-bold">-</span>
+                <input aria-label={`${editHomeAway === 'away' ? (editExternalTeam || t('playerStats.team', 'Team')) : (editOpponentName || t('playerStats.opponent', 'Opponent'))} ${t('playerStats.goals', 'Goals')}`} type="number" inputMode="numeric" pattern="[0-9]*" value={editHomeAway === 'away' ? editScoreFor : editScoreAgainst} onChange={e => {
                   const val = e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0);
                   void (editHomeAway === 'away' ? setEditScoreFor(val) : setEditScoreAgainst(val));
                 }} className="w-16 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-1 text-sm" placeholder="0" min="0" />
-                <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => {
-                  const setEditRightScore = (val: number | '') => (editHomeAway === 'away' ? setEditScoreFor(val) : setEditScoreAgainst(val));
-                  const currentVal = editHomeAway === 'away' ? editScoreFor : editScoreAgainst;
-                  setEditRightScore(currentVal === '' ? 1 : (currentVal as number) + 1);
-                }}>+</button>
               </div>
             </div>
             <div>
@@ -659,7 +640,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               <input type="date" value={editGameDate} onChange={e => setEditGameDate(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gamesPlayed_short', 'GP')}</label>
+              <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gamesPlayed', 'Games')}</label>
               <div className="flex items-center gap-2">
                 <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditGames(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
                 <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editGames)} onChange={e => setEditGames(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
@@ -681,6 +662,22 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editAssists)} onChange={e => setEditAssists(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
                 <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditAssists(v => (Number(v) || 0) + 1)}>+</button>
               </div>
+            </div>
+            <div className="lg:col-span-3">
+              <label className="flex items-center gap-2">
+                <input 
+                  type="checkbox"
+                  checked={editIncludeInSeasonTournament}
+                  onChange={(e) => setEditIncludeInSeasonTournament(e.target.checked)}
+                  className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-600 border-slate-500 rounded"
+                />
+                <span className="text-xs text-slate-400">
+                  {t('playerStats.includeInSeasonTournament', 'Include in season/tournament statistics')}
+                </span>
+              </label>
+              <p className="text-xs text-slate-500 mt-1 ml-6">
+                {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
+              </p>
             </div>
             <div className="lg:col-span-3">
               <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.note', 'Note')}</label>
