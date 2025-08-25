@@ -9,6 +9,7 @@ import { getSavedGames } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import { getSeasons } from '@/utils/seasons';
 import { getTournaments } from '@/utils/tournaments';
+import { runMigration } from '@/utils/migration';
 
 export default function Home() {
   const [screen, setScreen] = useState<'start' | 'home'>('start');
@@ -24,6 +25,9 @@ export default function Home() {
   useEffect(() => {
     const checkAppState = async () => {
       try {
+        // Run migration first (idempotent - safe to run multiple times)
+        await runMigration();
+        
         // Check for resume capability
         const lastId = await getCurrentGameIdSetting();
         const games = await getSavedGames();

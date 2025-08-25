@@ -272,14 +272,20 @@ Implementation notes:
 
 ## Implementation Progress
 
-### ✅ Phase 1: Data Layer & Migration (In Progress)
+### ✅ Phase 1: Data Layer & Migration (COMPLETED)
 - ✅ Fixed DEFAULT_GAME_ID inconsistency (`LoadGameModal.tsx` now imports from constants)
 - ✅ Added Team and TeamPlayer interfaces to types
 - ✅ Extended Season, Tournament, and AppState with optional `teamId`
 - ✅ Added new storage keys: `TEAMS_INDEX_KEY`, `ACTIVE_TEAM_ID_KEY`, `TEAM_ROSTERS_KEY`, `APP_DATA_VERSION_KEY`
 - ✅ Created complete `src/utils/teams.ts` with CRUD operations
 - ✅ Implemented comprehensive migration system in `src/utils/migration.ts`
-- 🚧 Next: Add team-aware React Query keys
+- ✅ Added team-aware React Query keys and `useTeamGameDataQueries` hook
+- ✅ Committed: 949 lines added across 9 files
+
+### 🚧 Phase 2: Core UI - Team Manager & Switcher (In Progress)
+- 🚧 Create Team Manager modal component
+- ⏳ Implement team switcher component
+- ⏳ Update start screen for team awareness
 
 ## Phased Implementation & Estimates
 
