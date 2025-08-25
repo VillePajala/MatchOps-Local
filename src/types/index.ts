@@ -20,6 +20,28 @@ export interface PlayerStatRow extends Player {
   avgPoints: number;
 }
 
+// Team entity for multi-team support
+export interface Team {
+  id: string;                 // team_...
+  name: string;               // "PEPO U10"
+  color?: string;             // brand/accent (optional)
+  createdAt: string;          // ISO timestamp
+  updatedAt: string;          // ISO timestamp
+}
+
+// Team player (reuses existing Player shape where possible)
+export interface TeamPlayer {
+  id: string;                 // player_...
+  name: string;
+  nickname?: string;
+  jerseyNumber?: string;
+  isGoalie?: boolean;
+  color?: string;
+  notes?: string;
+  receivedFairPlayCard?: boolean;
+  // Note: relX/relY are removed as they're field-specific, not roster-specific
+}
+
 export interface Season {
   id: string;
   name: string;
@@ -36,6 +58,7 @@ export interface Season {
   color?: string;
   badge?: string;
   ageGroup?: string;
+  teamId?: string;            // NEW: optional team association (global if omitted)
 }
 
 export interface Tournament {
@@ -55,6 +78,7 @@ export interface Tournament {
   badge?: string;
   level?: string;
   ageGroup?: string;
+  teamId?: string;            // NEW: optional team association (global if omitted)
 }
 
 export * from './playerAssessment';

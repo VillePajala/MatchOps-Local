@@ -19,6 +19,7 @@ import {
 // Import new utility functions
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';
 import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
+import { DEFAULT_GAME_ID } from '@/config/constants';
 
 export interface LoadGameModalProps {
   isOpen: boolean;
@@ -40,8 +41,7 @@ export interface LoadGameModalProps {
   processingGameId?: string | null;
 }
 
-// Define the default game ID constant if not imported (consider sharing from page.tsx)
-const DEFAULT_GAME_ID = '__default_unsaved__'; 
+// DEFAULT_GAME_ID now imported from constants 
 
 const LoadGameModal: React.FC<LoadGameModalProps> = ({
   isOpen,
