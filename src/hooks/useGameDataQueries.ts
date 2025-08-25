@@ -118,7 +118,7 @@ export function useTeamGameDataQueries(teamId?: string): TeamGameDataQueriesResu
 
   // Get seasons (filtered by team or global)
   const seasons = useQuery<Season[], Error>({
-    queryKey: queryKeys.teamSeasons(effectiveTeamId),
+    queryKey: queryKeys.teamSeasons(effectiveTeamId || undefined),
     queryFn: async () => {
       const allSeasons = await getSeasons();
       // Filter seasons: include team-specific or global (no teamId)
@@ -130,7 +130,7 @@ export function useTeamGameDataQueries(teamId?: string): TeamGameDataQueriesResu
 
   // Get tournaments (filtered by team or global)
   const tournaments = useQuery<Tournament[], Error>({
-    queryKey: queryKeys.teamTournaments(effectiveTeamId),
+    queryKey: queryKeys.teamTournaments(effectiveTeamId || undefined),
     queryFn: async () => {
       const allTournaments = await getTournaments();
       // Filter tournaments: include team-specific or global (no teamId)
@@ -142,7 +142,7 @@ export function useTeamGameDataQueries(teamId?: string): TeamGameDataQueriesResu
 
   // Get saved games (filtered by team)
   const savedGames = useQuery<SavedGamesCollection | null, Error>({
-    queryKey: queryKeys.teamSavedGames(effectiveTeamId),
+    queryKey: queryKeys.teamSavedGames(effectiveTeamId || undefined),
     queryFn: async () => {
       const allGames = await getSavedGames();
       if (!effectiveTeamId || !allGames) return allGames;
