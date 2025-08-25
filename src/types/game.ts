@@ -76,6 +76,7 @@ export interface AppState {
   tacticalDiscs: TacticalDisc[];
   tacticalDrawings: Point[][];
   tacticalBallPosition: Point | null;
+  teamId?: string;              // NEW: the team this game belongs to
 }
 
 export interface SavedGamesCollection {
