@@ -32,12 +32,12 @@ The local version implements a sophisticated dual-mode start screen that elimina
 
 ### Core Detection Logic
 
-**First-Time User Detection** (`src/app/page.tsx:18-50`):
+**First-Time User Detection (current implementation)** (`src/app/page.tsx`):
 ```typescript
-const isFirstTimeUser = !hasPlayers && !hasSavedGames && !hasSeasonsTournaments;
+const isFirstTimeUser = !hasSavedGames;
 ```
 
-**State Variables Checked**:
+**State Variables Checked (for button states/text, not for first-time detection)**:
 - **hasPlayers**: Whether roster contains any players (`getMasterRoster()`)
 - **hasSavedGames**: Whether any games have been saved (`getSavedGames()`)
 - **hasSeasonsTournaments**: Whether seasons or tournaments exist (`getSeasons()`, `getTournaments()`)
@@ -86,9 +86,9 @@ const isFirstTimeUser = !hasPlayers && !hasSavedGames && !hasSeasonsTournaments;
 
 **Smart Button Behavior**:
 
-1. **Resume/Explore Button** (Always enabled):
-   - **Has resumable game**: "Jatka edellistä peliä" (Resume Last Game)
-   - **No resumable game**: "Tutustu sovellukseen" (Explore App)
+1. **Resume Last Game Button** (Always shown):
+   - **Enabled when**: Resumable game exists → "Jatka edellistä peliä" / "Resume Last Game"
+   - **Disabled when**: No resumable game (dimmed)
 
 2. **Create Game Button** (Smart text):
    - **Has saved games**: "Luo uusi ottelu" (Create New Game)
@@ -168,8 +168,7 @@ if (availablePlayers.length === 0) {
 4. **Smart Messaging**: 
    - No players: "Ready to get started?" → "Setup Team Roster"
    - Has players: "Ready to track your first game?" → "Create Your First Game"
-5. **Experimentation Option**: "Use temporary workspace for testing"
-6. **Workspace Warning**: Top banner when actively using temporary workspace
+5. **Workspace Warning**: Top banner when actively using the temporary workspace
 
 #### Workspace Awareness System Integration:
 - **Temporary workspace indicators** appear when using DEFAULT_GAME_ID
@@ -321,7 +320,8 @@ The local version implements a sophisticated first-game onboarding flow that gui
 ```typescript
 // Core state variables in HomePage.tsx
 const [currentGameId, setCurrentGameId] = useState<string | null>(DEFAULT_GAME_ID);
-const [hasUsedWorkspace, setHasUsedWorkspace] = useState<boolean>(false);
+// Optional: hasUsedWorkspace is currently not toggled in code (defaults to false)
+const [hasUsedWorkspace, /* setHasUsedWorkspace */] = useState<boolean>(false);
 const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
 const [playersOnField, setPlayersOnField] = useState<Player[]>([]);
 const [drawings, setDrawings] = useState<DrawnElement[]>([]);
@@ -333,7 +333,7 @@ const [drawings, setDrawings] = useState<DrawnElement[]>([]);
 
 #### 2. Soccer Field Center Overlay
 
-**Location**: `src/components/HomePage.tsx:2535-2597`
+**Location**: `src/components/HomePage.tsx` (First-game overlay block)
 
 **Business Logic**:
 ```javascript
@@ -390,27 +390,12 @@ drawings.length === 0 &&                  // No drawings made
 )}
 ```
 
-#### 4. Experimentation Option
+#### 4. Experimentation Option (optional, currently disabled)
 
-**UI Implementation**:
-```jsx
-<div className="border-t border-slate-600 pt-4 mt-6">
-  <div className="text-xs text-slate-400 mb-2">
-    {t('firstGame.orExperiment')}              // "Or experiment first:"
-  </div>
-  <button 
-    onClick={() => setHasUsedWorkspace(true)}
-    className="text-xs text-slate-400 hover:text-slate-300 underline"
-  >
-    {t('firstGame.experimentOption')}          // "Use temporary workspace for testing"
-  </button>
-</div>
-```
-
-**Business Logic**:
-- Clicking sets `hasUsedWorkspace = true`
-- This hides the center overlay permanently
-- Triggers workspace warning to appear at top
+The prior concept of an explicit "experiment first" toggle is not enabled in the current code. The overlay hides automatically as soon as players are placed on the field or drawings are made. If you want to enable a manual experimentation toggle:
+- Add `const [hasUsedWorkspace, setHasUsedWorkspace] = useState(false);` in `HomePage`.
+- Render an "experiment first" button that calls `setHasUsedWorkspace(true)`.
+- Keep the warning banner logic as-is (it already checks `hasUsedWorkspace` in addition to other signals).
 
 #### 5. Workspace Warning Banner
 
@@ -421,8 +406,8 @@ drawings.length === 0 &&                  // No drawings made
 // Shows when ANY of these are true:
 currentGameId === DEFAULT_GAME_ID && (
   playersOnField.length > 0 ||    // Players placed
-  drawings.length > 0 ||           // Drawings made
-  hasUsedWorkspace                 // Explicitly chose to experiment
+  drawings.length > 0 ||          // Drawings made
+  hasUsedWorkspace                // Optional: if manual toggle is enabled
 )
 ```
 
@@ -463,6 +448,7 @@ currentGameId === DEFAULT_GAME_ID && (
   "setupRoster": "Set Up Team Roster",
   "rosterFirst": "Add players first, then create your game",
   "createGame": "Create Your First Game",
+  "createSeasonFirst": "Create Season/Tournament First",
   "orExperiment": "Or experiment first:",
   "experimentOption": "Use temporary workspace for testing",
   "workspaceWarning": "Temporary workspace - changes won't be saved",
@@ -480,6 +466,7 @@ currentGameId === DEFAULT_GAME_ID && (
   "setupRoster": "Luo kokoonpano",
   "rosterFirst": "Lisää pelaajat ensin, sitten luo pelisi",
   "createGame": "Luo ensimmäinen pelisi",
+  "createSeasonFirst": "Luo ensin kausi/turnaus",
   "orExperiment": "Tai kokeile ensin:",
   "experimentOption": "Käytä väliaikaista työtilaa testaamiseen",
   "workspaceWarning": "Väliaikainen työtila - muutoksia ei tallenneta",
@@ -686,20 +673,20 @@ disabledButtonStyle = 'w-full px-4 py-3 rounded-lg text-base font-semibold text-
 
 **Problem Solved**: Confusing button text that doesn't reflect user context
 
-**Simplified Button Text Logic**:
+**Button Text Logic (current)**:
 ```typescript
-// Simplified season/tournament text - no "first" confusion
-{hasSavedGames ? 
-  t('startScreen.createSeasonTournament', 'Seasons & Tournaments') : 
-  t('startScreen.createFirstSeasonTournament', 'Create Season/Tournament')  // Simplified from "First Season/Tournament"
+// Season/Tournament button text switches based on data availability
+{hasSeasonsTournaments ?
+  t('startScreen.createSeasonTournament', 'Seasons & Tournaments') :
+  t('startScreen.createFirstSeasonTournament', 'Create Season/Tournament')
 }
 
-// Honest resume button - always shows true function
+// Resume button - always shown, disabled when not resumable
 <button 
   className={canResume ? primaryButtonStyle : disabledButtonStyle}
   disabled={!canResume}
 >
-  {t('startScreen.resumeGame', 'Resume Last Game')}  // No "Explore App" confusion
+  {t('startScreen.resumeGame', 'Resume Last Game')}
 </button>
 ```
 
@@ -1058,226 +1045,407 @@ try {
 - **Feature adoption metrics**: Measure success of simplified interface
 - **Performance monitoring**: Optimize state detection timing
 
-## 8. External Events System
+## 8. External Matches System
 
 ### Overview
-The local version implements a comprehensive external events system that allows coaches to log game events that occur outside of player field positions, providing complete game statistics tracking.
+The local version implements a comprehensive external matches system that allows adding player statistics from games played outside of MatchOps tracking (e.g., games with other teams, tournaments not tracked in the app). This feature enables maintaining complete career statistics for players who participate in multiple teams or external competitions.
 
-### Event Types Supported
+### Business Logic
 
-The system supports the following event types (`GameEventType`):
-- **goal**: Goals scored by the home team
-- **opponentGoal**: Goals scored by the opponent
-- **substitution**: Player substitutions
-- **periodEnd**: End of game periods
-- **gameEnd**: End of the game
-- **fairPlayCard**: Fair play cards awarded
+#### Core Purpose
+This feature solves a critical real-world problem: players often participate in multiple teams, tournaments, or special events that aren't tracked within MatchOps. Without this feature, coaches would have incomplete statistics for their players, missing valuable performance data from:
+- National team games
+- School team matches
+- Tournament games with other clubs
+- Guest appearances with other teams
+- Training camps and friendly matches
 
-### Architecture
+#### Key Business Rules
+1. **Flexible Association**: External games can be optionally linked to existing seasons or tournaments
+2. **Team Context Preservation**: Tracks which team the player represented (external team name)
+3. **Statistical Integrity**: External stats are transparently added to overall totals
+4. **Selective Inclusion**: Option to include/exclude from season/tournament statistics based on team context
+5. **Data Validation**: Prevents unrealistic entries (e.g., 20+ goals per game)
+6. **Historical Accuracy**: Maintains game dates and scores for complete match history
+
+### Technical Implementation
 
 #### 1. Data Model
 
-**GameEvent Interface** (`src/types/game.ts`):
+**PlayerStatAdjustment Interface** (`src/types/index.ts:64-83`):
 ```typescript
-export interface GameEvent {
+export interface PlayerStatAdjustment {
   id: string;
-  type: 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard';
-  time: number;        // Game time in seconds
-  period?: number;      // Which period the event occurred in
-  scorerId?: string;    // Player ID who scored (for goals)
-  assisterId?: string;  // Player ID who assisted (for goals)
-  entityId?: string;    // Generic entity ID for other events
+  playerId: string;
+  seasonId?: string;                // Optional season association
+  teamId?: string;                  // Optional team identifier
+  tournamentId?: string;            // Optional tournament context
+  externalTeamName?: string;        // Name of the team the player represented
+  opponentName?: string;            // Name of the opponent team
+  scoreFor?: number;                // Score for player's team
+  scoreAgainst?: number;            // Score against player's team
+  gameDate?: string;                // Date of the game(s)
+  homeOrAway?: 'home' | 'away' | 'neutral';  // Game location context
+  includeInSeasonTournament?: boolean;       // Include in season/tournament stats
+  gamesPlayedDelta: number;         // Number of games to add
+  goalsDelta: number;               // Number of goals to add
+  assistsDelta: number;             // Number of assists to add
+  note?: string;                    // Optional descriptive note
+  createdBy?: string;               // User identifier
+  appliedAt: string;                // Timestamp when adjustment was created
 }
 ```
 
-#### 2. Goal Logging Modal
+#### 2. Storage Layer
 
-**Component**: `src/components/GoalLogModal.tsx`
-
-**Features**:
-- Dual-purpose modal for logging own team and opponent goals
-- Player selection dropdowns for scorer and assister
-- Time display showing when the goal is being logged
-- Automatic sorting of players alphabetically
-
-**Key Props**:
+**Player Adjustments Manager** (`src/utils/playerAdjustments.ts`):
 ```typescript
-interface GoalLogModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onLogGoal: (scorerId: string, assisterId?: string) => void;
-  onLogOpponentGoal: (time: number) => void;
-  availablePlayers: Player[];
-  currentTime: number;
-}
+// Core CRUD operations for external game stats
+export const getAllPlayerAdjustments = async (): Promise<PlayerAdjustmentsIndex>
+export const getAdjustmentsForPlayer = async (playerId: string): Promise<PlayerStatAdjustment[]>
+export const addPlayerAdjustment = async (adj: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'>): Promise<PlayerStatAdjustment>
+export const updatePlayerAdjustment = async (playerId: string, adjustmentId: string, patch: Partial<PlayerStatAdjustment>): Promise<PlayerStatAdjustment | null>
+export const deletePlayerAdjustment = async (playerId: string, adjustmentId: string): Promise<boolean>
 ```
 
-**UI Implementation**:
-- Dropdown for scorer selection (required)
-- Dropdown for assist selection (optional)
-- Separate button for logging opponent goals
-- Real-time display of current game time (MM:SS format)
+**Storage Structure**:
+- Data persisted in localStorage under `PLAYER_ADJUSTMENTS_KEY`
+- Indexed by player ID for efficient retrieval
+- Each adjustment has unique ID with timestamp and random suffix
 
-#### 3. Event Handlers in HomePage
+#### 3. Statistics Calculation
 
-**Goal Event Handler** (`src/components/HomePage.tsx:1236`):
+**Player Stats Calculator** (`src/utils/playerStats.ts`):
 ```typescript
-const handleAddGoalEvent = (scorerId: string, assisterId?: string) => {
-  const newEvent: GameEvent = {
-    id: uuidv4(),
-    type: 'goal',
-    time: timeElapsedInSeconds,
-    period: gameSessionState.currentPeriod,
-    scorerId,
-    assisterId,
-  };
+export const calculatePlayerStats = (
+  player: Player,
+  savedGames: { [key: string]: AppState },
+  seasons: Season[],
+  tournaments: Tournament[],
+  adjustments?: PlayerStatAdjustment[]
+): PlayerStats => {
+  // ... process regular games ...
   
-  // Update home score
-  dispatchGameSession({ 
-    type: 'UPDATE_HOME_SCORE', 
-    payload: gameSessionState.homeScore + 1 
-  });
+  // Apply external game adjustments
+  const adjustmentsForPlayer = (adjustments || []).filter(a => a.playerId === player.id);
   
-  // Add event to game events list
-  dispatchGameSession({ 
-    type: 'ADD_GAME_EVENT', 
-    payload: newEvent 
-  });
-};
-```
-
-**Opponent Goal Handler** (`src/components/HomePage.tsx:1268`):
-```typescript
-const handleLogOpponentGoal = (time: number) => {
-  const newEvent: GameEvent = {
-    id: uuidv4(),
-    type: 'opponentGoal',
-    time: time,
-    period: gameSessionState.currentPeriod,
-  };
-  
-  // Update away score
-  dispatchGameSession({ 
-    type: 'UPDATE_AWAY_SCORE', 
-    payload: gameSessionState.awayScore + 1 
-  });
-  
-  // Add event to game events list
-  dispatchGameSession({ 
-    type: 'ADD_GAME_EVENT', 
-    payload: newEvent 
-  });
-};
-```
-
-#### 4. Event Display and Management
-
-**Game Stats Modal** (`src/components/GameStatsModal.tsx`):
-- Displays all game events chronologically
-- Allows editing of event times
-- Supports deletion of events
-- Shows scorer and assister names for goals
-- Displays time in MM:SS format
-
-**Event List Features**:
-- Edit button for modifying event time
-- Delete button for removing events
-- Visual differentiation between event types
-- Period indicators for multi-period games
-
-#### 5. Player Statistics Integration
-
-**Player Stats Calculation** (`src/utils/playerStats.ts`):
-```typescript
-// Goals and assists are calculated from game events
-games.forEach(game => {
-  game.gameEvents?.forEach(event => {
-    if (event.type === 'goal') {
-      if (event.scorerId === player.id) {
-        stats.goals += 1;
+  adjustmentsForPlayer.forEach(adj => {
+    // Only add to season/tournament stats if includeInSeasonTournament is true
+    if (adj.includeInSeasonTournament) {
+      if (adj.seasonId) {
+        performanceBySeason[adj.seasonId].gamesPlayed += (adj.gamesPlayedDelta || 0);
+        performanceBySeason[adj.seasonId].goals += (adj.goalsDelta || 0);
+        performanceBySeason[adj.seasonId].assists += (adj.assistsDelta || 0);
       }
-      if (event.assisterId === player.id) {
-        stats.assists += 1;
+      if (adj.tournamentId) {
+        performanceByTournament[adj.tournamentId].gamesPlayed += (adj.gamesPlayedDelta || 0);
+        performanceByTournament[adj.tournamentId].goals += (adj.goalsDelta || 0);
+        performanceByTournament[adj.tournamentId].assists += (adj.assistsDelta || 0);
       }
     }
+    // Stats always count toward overall totals regardless of includeInSeasonTournament flag
   });
-});
+  
+  // Add adjustments to total calculations
+  const totalGoals = gameByGameStats.reduce((sum, game) => sum + game.goals, 0) 
+                     + adjustmentsForPlayer.reduce((s, a) => s + (a.goalsDelta || 0), 0);
+  const totalAssists = gameByGameStats.reduce((sum, game) => sum + game.assists, 0) 
+                       + adjustmentsForPlayer.reduce((s, a) => s + (a.assistsDelta || 0), 0);
+  const totalGames = gameByGameStats.length 
+                     + adjustmentsForPlayer.reduce((s, a) => s + (a.gamesPlayedDelta || 0), 0);
+}
 ```
 
-**Statistics Tracked Per Player**:
-- Total goals scored
-- Total assists made
-- Games played
-- Win/loss/draw record
-- Performance assessments
+### User Interface & Styling
 
-#### 6. Visual Indicators
+#### 1. Main UI Component (`src/components/PlayerStatsView.tsx`)
 
-**Player Disk Component** (`src/components/PlayerDisk.tsx`):
-- Shows goal count badge on player disks
-- Visual indicator for players who have scored
-- Real-time updates as goals are logged
+**Add External Stats Button** (Line 209-215):
+```jsx
+<button
+  type="button"
+  className="text-sm px-3 py-1.5 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600"
+  onClick={() => setShowAdjForm(v => !v)}
+>
+  {t('playerStats.addExternalStats', 'Add external stats')}
+</button>
+```
 
-**Player Bar** (`src/components/PlayerBar.tsx`):
-- Displays goals for each player in the roster
-- Updates dynamically during the game
+**Form Layout** (Lines 217-386):
+- **Container**: Dark semi-transparent background with border (`bg-slate-800/60 p-4 rounded-lg border border-slate-600`)
+- **Grid System**: Responsive 3-column layout (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3`)
+- **Input Fields**: Dark theme inputs with focus states (`bg-slate-700 border-slate-600 focus:ring-2 focus:ring-indigo-500`)
 
-### Implementation Flow
+#### 2. Key Form Elements
 
-1. **User Initiates Goal Logging**:
-   - Clicks "Log Goal" button in ControlBar
-   - GoalLogModal opens
+**Home/Away Selector** (Lines 287-300):
+```jsx
+<select value={adjHomeAway} onChange={e => setAdjHomeAway(e.target.value as 'home' | 'away' | 'neutral')}
+  className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm">
+  <option value="home">{t('playerStats.home', 'Home')}</option>
+  <option value="away">{t('playerStats.away', 'Away')}</option>
+  <option value="neutral">{t('playerStats.neutral', 'Neutral')}</option>
+</select>
+```
 
-2. **Goal Entry**:
-   - Selects scorer from dropdown (required)
-   - Optionally selects assister
-   - Clicks "Log Own Goal" or "Log Opponent Goal"
+**Score Input with Dynamic Labels** (Lines 322-332):
+```jsx
+<div className="flex items-center gap-2">
+  <input type="number" value={getLeftScore()} onChange={e => setLeftScore(e.target.value)}
+    className="w-16 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-1" />
+  <span className="mx-1 text-lg font-bold">-</span>
+  <input type="number" value={getRightScore()} onChange={e => setRightScore(e.target.value)}
+    className="w-16 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-1" />
+</div>
+```
+- Score labels dynamically swap based on home/away selection
+- Visual feedback shows which team is home/away
 
-3. **Data Update**:
-   - GameEvent created with unique ID
-   - Score updated (home or away)
-   - Event added to gameEvents array
-   - UI updates immediately
+**Numeric Input with +/- Buttons** (Lines 338-343):
+```jsx
+<div className="flex items-center gap-2">
+  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600"
+    onClick={() => setAdjGames(v => Math.max(0, v - 1))}>-</button>
+  <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(adjGames)}
+    className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2" />
+  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600"
+    onClick={() => setAdjGames(v => v + 1)}>+</button>
+</div>
+```
+- Mobile-optimized with `inputMode="numeric"` for number keypads
+- Increment/decrement buttons for easy touch interaction
 
-4. **Persistence**:
-   - Events saved with game data
-   - Available in game history
-   - Used for player statistics
+**Include in Stats Checkbox** (Lines 361-376):
+```jsx
+<label className="flex items-center gap-2">
+  <input type="checkbox" checked={adjIncludeInSeasonTournament}
+    onChange={(e) => setAdjIncludeInSeasonTournament(e.target.checked)}
+    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-600 border-slate-500 rounded" />
+  <span className="text-xs text-slate-400">
+    {t('playerStats.includeInSeasonTournament', 'Include in season/tournament statistics')}
+  </span>
+</label>
+<p className="text-xs text-slate-500 mt-1 ml-6">
+  {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
+</p>
+```
+
+#### 3. External Stats Display (Lines 390-542)
+
+**List Container**:
+```jsx
+<div className="mt-1 space-y-3">
+  {adjustments.map(a => (
+    <div key={a.id} className="bg-slate-700/40 p-3 rounded-lg border border-slate-600/50">
+```
+
+**Entry Header with Badges**:
+```jsx
+<div className="flex items-center gap-2">
+  <span className="font-semibold text-slate-200">{dateText}</span>
+  {seasonName && (
+    <span className="px-2 py-0.5 bg-blue-600/20 text-blue-300 text-xs rounded-full border border-blue-500/30">
+      {seasonName}
+    </span>
+  )}
+  {tournamentName && (
+    <span className="px-2 py-0.5 bg-purple-600/20 text-purple-300 text-xs rounded-full border border-purple-500/30">
+      {tournamentName}
+    </span>
+  )}
+</div>
+```
+
+**Actions Menu** (3-dot menu):
+```jsx
+<button type="button" className="p-1 hover:bg-slate-600 rounded transition-colors"
+  onClick={() => setShowActionsMenu(showActionsMenu === a.id ? null : a.id)}>
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+    <circle cx="8" cy="2.5" r="1.5"/>
+    <circle cx="8" cy="8" r="1.5"/>
+    <circle cx="8" cy="13.5" r="1.5"/>
+  </svg>
+</button>
+```
+
+#### 4. Delete Confirmation Modal (Lines 694-728)
+
+```jsx
+<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+  <div className="bg-slate-800 p-6 rounded-lg shadow-xl border border-slate-600 max-w-md w-full mx-4">
+    <h3 className="text-lg font-semibold text-slate-100 mb-4">
+      {t('common.confirmDelete', 'Confirm Delete')}
+    </h3>
+    <p className="text-slate-300 mb-6">
+      {t('playerStats.deleteConfirmMessage', 'Are you sure you want to delete this external game entry?')}
+    </p>
+    <div className="flex justify-end gap-3">
+      <button className="px-4 py-2 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600">
+        {t('common.cancel', 'Cancel')}
+      </button>
+      <button className="px-4 py-2 bg-red-600 rounded hover:bg-red-500 text-white">
+        {t('common.delete', 'Delete')}
+      </button>
+    </div>
+  </div>
+</div>
+```
+
+### Data Validation
+
+**Comprehensive Input Validation**:
+```typescript
+// Required fields validation
+if (!adjExternalTeam.trim()) {
+  alert(t('playerStats.teamRequired', 'Team name is required.'));
+  return;
+}
+if (!adjOpponentName.trim()) {
+  alert(t('playerStats.opponentRequired', 'Opponent name is required.'));
+  return;
+}
+
+// Sanity checks
+if (adjGames < 0 || adjGoals < 0 || adjAssists < 0) {
+  alert(t('playerStats.negativeStatsError', 'Stats cannot be negative.'));
+  return;
+}
+if (adjGames === 0 && adjGoals === 0 && adjAssists === 0) {
+  alert(t('playerStats.emptyStatsError', 'Please enter at least one statistic.'));
+  return;
+}
+
+// Unrealistic data prevention
+if (adjGames > 0 && adjGoals > adjGames * 20) {
+  alert(t('playerStats.unrealisticGoalsError', 'Goals per game seems unrealistic.'));
+  return;
+}
+if (adjGames > 0 && adjAssists > adjGames * 20) {
+  alert(t('playerStats.unrealisticAssistsError', 'Assists per game seems unrealistic.'));
+  return;
+}
+```
 
 ### Translation Support
 
 **English** (`public/locales/en/common.json`):
 ```json
-"goalLogModal": {
-  "title": "Log Goal",
-  "scorer": "Scorer",
-  "assist": "Assist (optional)",
-  "logOwnGoal": "Log Own Goal",
-  "logOpponentGoal": "Log Opponent Goal",
-  "time": "Time"
+"playerStats": {
+  "addExternalStats": "Add external stats",
+  "externalTeam": "External team",
+  "opponent": "Opponent",
+  "home": "Home",
+  "away": "Away", 
+  "neutral": "Neutral",
+  "score": "Score",
+  "gameDate": "Game date",
+  "gamesPlayed": "Games",
+  "goals": "Goals",
+  "assists": "Assists",
+  "note": "Note",
+  "noteOptional": "Optional note about this game",
+  "includeInSeasonTournament": "Include in season/tournament statistics",
+  "includeInSeasonTournamentHelp": "Check this if the external game was played for the same team",
+  "adjustmentsInfo": "External stats are transparently added to totals.",
+  "teamRequired": "Team name is required.",
+  "opponentRequired": "Opponent name is required.",
+  "negativeStatsError": "Stats cannot be negative.",
+  "emptyStatsError": "Please enter at least one statistic.",
+  "unrealisticGoalsError": "Goals per game seems unrealistic.",
+  "deleteConfirmMessage": "Are you sure you want to delete this external game entry?"
 }
 ```
 
 **Finnish** (`public/locales/fi/common.json`):
 ```json
-"goalLogModal": {
-  "title": "Kirjaa maali",
-  "scorer": "Maalintekijä",
-  "assist": "Syöttäjä (valinnainen)",
-  "logOwnGoal": "Kirjaa oma maali",
-  "logOpponentGoal": "Kirjaa vastustajan maali",
-  "time": "Aika"
+"playerStats": {
+  "addExternalStats": "Lisää ulkoisia tilastoja",
+  "externalTeam": "Ulkoinen joukkue",
+  "opponent": "Vastustaja",
+  "home": "Koti",
+  "away": "Vieras",
+  "neutral": "Neutraali",
+  "score": "Tulos",
+  "gameDate": "Pelin päivämäärä",
+  "gamesPlayed": "Pelit",
+  "goals": "Maalit",
+  "assists": "Syötöt",
+  "note": "Huomautus",
+  "noteOptional": "Valinnainen huomautus pelistä",
+  "includeInSeasonTournament": "Sisällytä kausi-/turnaustilastoihin",
+  "includeInSeasonTournamentHelp": "Valitse tämä, jos ulkoinen peli pelattiin samalle joukkueelle",
+  "adjustmentsInfo": "Ulkoiset tilastot lisätään läpinäkyvästi kokonaismääriin.",
+  "teamRequired": "Joukkueen nimi vaaditaan.",
+  "opponentRequired": "Vastustajan nimi vaaditaan.",
+  "negativeStatsError": "Tilastot eivät voi olla negatiivisia.",
+  "emptyStatsError": "Anna vähintään yksi tilasto.",
+  "unrealisticGoalsError": "Maaleja per peli vaikuttaa epärealistiselta.",
+  "deleteConfirmMessage": "Haluatko varmasti poistaa tämän ulkoisen pelin merkinnän?"
 }
 ```
 
+### User Flow
+
+#### Adding External Game Stats
+
+1. **Access Point**: User opens Player Stats View for any player
+2. **Initiate Entry**: Clicks "Add external stats" button
+3. **Form Display**: Expandable form appears below the button
+4. **Required Data Entry**:
+   - Select season (if exists) or tournament (optional)
+   - Select home/away/neutral status
+   - Enter team name (required)
+   - Enter opponent name (required)
+   - Enter score (optional but recommended)
+   - Select game date (defaults to today)
+5. **Stats Entry**:
+   - Use +/- buttons or type to enter games played
+   - Enter goals scored by the player
+   - Enter assists made by the player
+6. **Team Context Decision**:
+   - Check "Include in season/tournament statistics" if game was for the same team
+   - Leave unchecked if game was for a different team (stats still count in totals)
+7. **Optional Note**: Add descriptive note about the game
+8. **Save**: Click Save button to persist the adjustment
+
+#### Viewing External Game Stats
+
+1. **Automatic Display**: External game entries appear below the "Add external stats" button
+2. **Visual Indicators**:
+   - Date prominently displayed
+   - Season/tournament badges if associated
+   - Score display adapts to home/away context
+   - Team and opponent names clearly shown
+3. **Stats Summary**: Games, goals, and assists shown for each entry
+4. **Note Display**: Any notes appear below the stats
+
+#### Editing External Game Stats
+
+1. **Access**: Click 3-dot menu on any external game entry
+2. **Select Edit**: Choose "Edit" from dropdown menu
+3. **Edit Form**: Same form as add, pre-populated with existing values
+4. **Modify**: Change any values as needed
+5. **Save**: Click Save to update the entry
+
+#### Deleting External Game Stats
+
+1. **Access**: Click 3-dot menu on any external game entry
+2. **Select Delete**: Choose "Delete" from dropdown menu
+3. **Confirmation Modal**: Safety dialog appears
+4. **Confirm**: Click Delete button to permanently remove entry
+5. **Stats Update**: Player totals automatically recalculated
+
 ### Benefits
 
-- **Complete Game Records**: All significant events tracked
-- **Player Performance**: Accurate goal and assist statistics
-- **Flexible Entry**: Can log events during or after the game
-- **Error Correction**: Events can be edited or deleted
-- **Team Statistics**: Automatic score calculation
-- **Historical Analysis**: Events preserved for future review
+- **Complete Career Tracking**: Maintains full statistics across all teams and competitions
+- **Flexible Association**: Can link to specific seasons/tournaments or keep separate
+- **Team Context Preservation**: Distinguishes between same-team and different-team games
+- **Statistical Integrity**: External stats transparently integrated into totals
+- **Data Validation**: Prevents unrealistic or invalid entries
+- **Easy Management**: Full CRUD operations with intuitive UI
+- **Mobile Optimized**: Touch-friendly controls and numeric keyboards
+- **Audit Trail**: Each adjustment timestamped for tracking
+- **Visual Clarity**: Badges and formatting make entries easy to understand
 
 ## Recent Updates (2025-08-22)
 
