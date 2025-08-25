@@ -1,398 +1,562 @@
-# Multi-Team Support – Design & Implementation Plan
+# Multi-Team Support Implementation Plan
 
-## Summary
+## Vision & Requirements
 
-Introduce first-class Teams so a user can manage multiple teams (each with its own roster, seasons, tournaments) and associate a team when creating games. The goal is to remove the current one-team assumption and enable workflows like tracking multiple club teams in one season or a tournament with multiple teams.
+### Core Concept
+Teams are **manageable data entities** (similar to seasons/tournaments). Users select teams during specific workflows (game creation, stats filtering) rather than having a global "active team" that changes the entire app context.
 
-## Goals
+### User Stories
+- **As a coach**, I can create and manage multiple teams with independent rosters
+- **As a coach**, when creating a new game, I select which team I'm playing as
+- **As a coach**, selecting a team automatically loads that team's roster for player selection
+- **As a coach**, I can view statistics filtered by specific teams to compare performance
+- **As a coach**, seasons and tournaments remain global entities that any team can participate in
+- **As a coach**, I can manage team rosters independently without affecting other teams
 
-- Create and manage multiple teams with their own rosters and settings
-- Associate games with a specific team; filter views by active team
-- Scope seasons and tournaments to a team (optional global items still supported)
-- Keep backward compatibility (automatic migration from current one-team model)
+### Key Principles
+1. **No Global Team State** - Teams are selected contextually, not app-wide
+2. **Entity-Based Design** - Teams are data entities like seasons/tournaments
+3. **Contextual Selection** - Team selection happens in relevant modals (New Game, Stats)
+4. **Data Isolation** - Each team has its own roster, but shares seasons/tournaments
+5. **Backward Compatibility** - Existing games without team associations remain functional
 
-## Non-Goals (for initial version)
+## Data Model
 
-- Cross-device/cloud sync or user accounts
-- Role-based permissions or multi-coach collaboration
-- Deep player identity sharing across teams (see Enhancements)
-
-## User Stories
-
-- As a coach, I can create multiple teams (e.g., U9, U10) and switch between them.
-- As a coach, each team has its own roster; creating a game uses that roster by default.
-- As a coach, I can optionally scope seasons/tournaments to a team and pick them during game creation.
-- As a coach, saved games, stats, and loads are filtered to the active team.
-
-## Data Model Changes
-
-### New Entities
-
+### Team Entity
 ```typescript
-// New team entity (stored locally)
 export interface Team {
-  id: string;                 // team_...
-  name: string;               // "PEPO U10"
-  color?: string;             // brand/accent (optional)
+  id: string;                 // "team_<timestamp>"
+  name: string;               // "Galaxy U10", "Barcelona Youth"
+  color?: string;             // "#FF0000" for visual identification
   createdAt: string;          // ISO timestamp
   updatedAt: string;          // ISO timestamp
 }
 
-// Team roster item (reuse existing Player shape where possible)
-export interface TeamPlayer {
-  id: string;                 // player_...
-  name: string;
-  nickname?: string;
-  jerseyNumber?: string;
-  isGoalie?: boolean;
-  color?: string;
-  // future: linkId to a shared person profile
+export interface TeamRoster {
+  teamId: string;
+  players: Player[];          // Reuse existing Player interface
 }
 ```
 
-### Existing Types to Extend
-
+### Game Association
 ```typescript
-// Saved game state (existing AppState) – add teamId
 export interface AppState {
   // ...existing fields...
-  teamId?: string;            // NEW: the team this game belongs to
+  teamId?: string;            // Which team was selected for this game
 }
-
-// Seasons and Tournaments (add optional team scoping)
-export interface Season { id: string; name: string; /* ... */ teamId?: string; }
-export interface Tournament { id: string; name: string; /* ... */ teamId?: string; }
-
-// External adjustments already support teamId (keep as-is)
-export interface PlayerStatAdjustment { teamId?: string; /* existing fields */ }
 ```
 
-Notes:
-- AppState gains `teamId` for filtering and attribution.
-- `Season`/`Tournament` get optional `teamId`. If omitted, they are global (selectable by any team if desired).
+### Storage Keys
+```typescript
+// New storage keys for teams
+const TEAMS_KEY = 'soccerTeams';                    // Team[]
+const TEAM_ROSTERS_KEY = 'soccerTeamRosters';      // { [teamId: string]: Player[] }
 
-## Storage & Keys
+// Existing keys (unchanged)
+const SAVED_GAMES_KEY = 'savedSoccerGames';        // Games now optionally have teamId
+const SEASONS_KEY = 'soccerSeasons';               // Remain global
+const TOURNAMENTS_KEY = 'soccerTournaments';       // Remain global
+const MASTER_ROSTER_KEY = 'masterRoster';          // Remains as fallback/default
+```
 
-Use consistent key naming (see `src/config/storageKeys.ts`). Proposed keys:
+## Implementation Phases
 
-- `soccerTeamsIndex` → `{ [teamId: string]: Team }`
-- `soccerActiveTeamId` → `string | null`
-- `soccerTeamRosters` → `{ [teamId: string]: TeamPlayer[] }`
-- Reuse existing:
-  - `savedGames` (game objects gain `teamId`; listing functions must filter by active team)
-  - `PLAYER_ADJUSTMENTS_KEY` (entries should include `teamId` going forward)
-  - seasons/tournaments storage – extend objects with `teamId`
+### Phase 1: Core Team Management (2-3 days)
 
-Alternative: store rosters inline within `soccerTeamsIndex`. Chosen split (separate `soccerTeamRosters`) avoids large index payload updates on each roster change.
+#### 1.1 Data Layer Implementation
+**File: `src/utils/teams.ts`**
+```typescript
+// Team CRUD operations
+export const getTeams = async (): Promise<Team[]>
+export const addTeam = async (team: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>): Promise<Team>
+export const updateTeam = async (teamId: string, updates: Partial<Team>): Promise<Team | null>
+export const deleteTeam = async (teamId: string): Promise<boolean>
 
-### React Query Keys (Team-Aware)
+// Team roster management
+export const getTeamRoster = async (teamId: string): Promise<Player[]>
+export const setTeamRoster = async (teamId: string, players: Player[]): Promise<void>
+export const addPlayerToTeamRoster = async (teamId: string, player: Player): Promise<void>
+export const updatePlayerInTeamRoster = async (teamId: string, player: Player): Promise<void>
+export const removePlayerFromTeamRoster = async (teamId: string, playerId: string): Promise<void>
+```
 
-Update `src/config/queryKeys.ts` to be team-aware so caches are scoped and invalidated per team:
+#### 1.2 Team Management Modal
+**File: `src/components/TeamManagementModal.tsx`**
 
-```ts
-// src/config/queryKeys.ts
-export const queryKeys = {
-  masterRoster: (teamId: string) => ['teams', teamId, 'roster'] as const,
-  seasons: (teamId?: string) => ['seasons', teamId ?? 'global'] as const,
-  tournaments: (teamId?: string) => ['tournaments', teamId ?? 'global'] as const,
-  savedGames: (teamId?: string) => ['savedGames', teamId ?? 'all'] as const,
-  appSettingsCurrentGameId: ['appSettingsCurrentGameId'] as const,
+Features to implement:
+- **Team List**: Display all teams with visual indicators (color, name)
+- **Team CRUD**: Create, edit, rename, duplicate, delete teams
+- **Team Selection**: Click to select and manage individual team
+- **Roster Management**: Full player CRUD for selected team's roster
+- **Visual Elements**: Color picker, team badges
+- **Confirmation Dialogs**: Delete confirmations with impact warnings
+- **Import/Export**: Import master roster to team, export team roster
+
+UI Structure:
+```
+┌─ Team Management Modal ────────────────────────────────┐
+│ Teams                                            [×]   │
+├────────────────────────────────────────────────────────┤
+│ [New Team]                                             │
+│                                                        │
+│ Team List          │  Selected Team Details           │
+│ ┌─────────────────┐ │  ┌──────────────────────────────┐ │
+│ │ 🔴 Galaxy U10   │ │  │ Team Name: [Galaxy U10    ] │ │
+│ │ 🔵 Barcelona FC │ │  │ Color: [🔴🔵🟢🟡⚪⚫]        │ │
+│ │ 🟢 Real Madrid  │ │  │                              │ │
+│ └─────────────────┘ │  │ Roster (15 players):         │ │
+│                     │  │ ┌────────────────────────────┐ │ │
+│                     │  │ │ #10 Alice Johnson        │ │ │
+│                     │  │ │ #7  Bob Smith            │ │ │
+│                     │  │ │ ... (scrollable)         │ │ │
+│                     │  │ └────────────────────────────┘ │ │
+│                     │  │                              │ │
+│                     │  │ [Manage Roster] [Import...] │ │
+│                     │  │ [Edit] [Duplicate] [Delete] │ │
+│                     │  └──────────────────────────────┘ │
+└────────────────────────────────────────────────────────┘
+```
+
+#### 1.3 Integration Points
+- **Main Menu**: Add "Manage Teams" option to hamburger menu
+- **Settings Modal**: Add teams section with team count and management link
+- **React Query**: Add team-related query keys and cache management
+
+### Phase 2: Game Creation Integration (1-2 days)
+
+#### 2.1 Enhanced New Game Setup Modal
+**File: `src/components/NewGameSetupModal.tsx`**
+
+Key changes:
+1. **Team Selection Dropdown**: Add team selector at the top of scrollable content
+2. **Roster Loading**: When team is selected, load that team's roster
+3. **Auto-Population**: Pre-select all players from the selected team's roster
+4. **Fallback Behavior**: If no team selected, use master roster (backward compatibility)
+5. **Team Association**: Pass selected teamId to game creation
+
+Enhanced flow:
+```typescript
+const handleTeamSelection = async (teamId: string) => {
+  if (teamId) {
+    // Load team's roster
+    const teamRoster = await getTeamRoster(teamId);
+    setAvailablePlayersForSetup(teamRoster);
+    setSelectedPlayerIds(teamRoster.map(p => p.id));
+    
+    // Auto-fill team name (but keep it editable)
+    const team = teams.find(t => t.id === teamId);
+    if (team) {
+      setHomeTeamName(team.name);
+    }
+  } else {
+    // Fallback to master roster
+    const masterRoster = await getMasterRoster();
+    setAvailablePlayersForSetup(masterRoster);
+    setSelectedPlayerIds([]);
+    setHomeTeamName('');
+  }
 };
 ```
 
-Refactor `useGameDataQueries` to accept `teamId` and use these keys. On team switch, call `queryClient.invalidateQueries({ queryKey: ['teams', oldTeamId] })` and invalidate per-resource keys as needed.
+UI Changes:
+- Move team selection from fixed header to scrollable area
+- Keep team/opponent name inputs in fixed header for easy access
+- Add visual team indicator next to team name when team is selected
 
-## Migration Strategy (Backward Compatibility)
+#### 2.2 Game State Integration
+**File: `src/app/page.tsx`**
 
-Trigger once at app startup (idempotent):
+Update `handleStartNewGameWithSetup` function:
+```typescript
+const handleStartNewGameWithSetup = (
+  // ...existing parameters...
+  teamId: string | null
+) => {
+  const newGameState = {
+    // ...existing state...
+    teamId: teamId || undefined, // Store team association
+  };
+  
+  // Continue with existing game creation logic
+};
+```
 
-1. Create a default team from current data
-   - Generate `team_<timestamp>`; name from current default team name (from settings or fallback "My Team").
-   - Write to `soccerTeamsIndex`; set `soccerActiveTeamId`.
-2. Move roster into `soccerTeamRosters[teamId]`
-   - Copy players from `getMasterRoster()`
-3. Tag existing seasons/tournaments with `teamId`
-   - Update season/tournament objects to include the new team id
-4. Update saved games to include `teamId`
-   - For each saved game, set `teamId` to the default team
-5. External player adjustments
-   - For entries without `teamId`, set to default team id (non-destructive; preserves external context fields)
+### Phase 3: Load Game & Statistics (1-2 days)
 
-Store a migration version flag (e.g., `appDataVersion = 2`) to skip on subsequent runs.
+#### 3.1 Load Game Modal Enhancement
+**File: `src/components/LoadGameModal.tsx`**
 
-Additional migration notes:
-- Ensure every `PlayerStatAdjustment` without `teamId` is assigned to the default team.
-- Normalize any local `DEFAULT_GAME_ID` redefinitions to use `src/config/constants.ts`.
-
-## API/Utils Changes
-
-Introduce team-aware variants with safe defaults and maintain wrappers for backward compatibility.
-
-- Roster
-  - `getMasterRoster()` → deprecate; new `getTeamRoster(teamId: string)`
-  - `addPlayerToRoster(teamId, player)`, `updatePlayerInRoster(teamId, player)`, `removePlayerFromRoster(teamId, playerId)`
-  - Provide `getActiveTeamId()` and `setActiveTeamId()` in `appSettings`
-
-- Seasons/Tournaments
-  - `getSeasons(teamId?: string)` – when provided, filter by `teamId` or global
-  - `addSeason({... , teamId })` – require team context in UI flows
-
-- Saved Games
-  - When creating a game, require `teamId` and store on `AppState`
-  - Update list/load/export functions to filter by `teamId` (except backups)
-
-- Player Stats
-  - Prefer adding optional `teamId?: string` to `calculatePlayerStats(...)` and filter inside the function.
-  - Alternatively, enforce pre-filtered inputs at call sites; in either case, update `PlayerStatsView` to pass `teamId` and to request team-scoped adjustments.
-
-- Player Adjustments
-  - Add `getAdjustmentsForPlayer(playerId: string, teamId?: string)` and filter by `teamId` when provided.
-  - When saving new adjustments, always set `teamId`.
-
-## UI/UX Updates
-
-### Global/Start Screen
-
-- Team Switcher (top or start screen): shows active team; dropdown to switch; shortcut to Team Manager
-- First-time experience: if no teams exist → show "Create Team" primary action
-- Buttons and detection (`hasPlayers`, `hasSavedGames`, etc.) are computed for the active team context
-
-### Team Manager (New Modal)
-
-- CRUD teams: Create, Rename, Delete (with confirmation), Duplicate
-- Manage roster for the selected team (reuses current RosterSettings UI scoped by `teamId`)
-- Optional: team color/logo
-
-### New Game Setup
-
-- Add "Team" selector (required if multiple teams exist; preselect active team)
-- Seasons/Tournaments dropdown filtered by the chosen team (plus global items)
-
-### HomePage / Field
-
-- All roster-related actions use the active team’s roster
-- Overlays and warnings remain unchanged but respect team-scoped state
-
-### Load Game
-
-- Filter by active team; show a team badge on each game card
-- If user loads a game from another team, prompt to switch active team (and then load)
-
-### Stats
-
-- Player stats and adjustments views filter data by team
-- Add a team selector where relevant
-
-### Backup/Restore
-
-- Backup includes teams index, rosters, and team-linked fields
-- Restore older backups triggers the migration flow
-
-## i18n Keys (Additions)
-
-```json
-// startScreen
-"startScreen": {
-  "team": "Team",
-  "createTeam": "Create Team",
-  "manageTeams": "Manage Teams"
+Add team filtering without changing global state:
+```typescript
+interface LoadGameModalProps {
+  // ...existing props...
+  teams: Team[];  // Pass teams list from parent
 }
 
-// teamManager
-"teamManager": {
-  "title": "Teams",
-  "newTeam": "New Team",
-  "rename": "Rename",
-  "duplicate": "Duplicate",
-  "delete": "Delete",
-  "confirmDelete": "Delete team \"{name}\"? All associated data remains but will be unassigned.",
-  "namePlaceholder": "Team name",
-  "roster": "Roster",
-  "noTeams": "No teams yet. Create your first team to get started."
+// Inside component:
+const [selectedTeamFilter, setSelectedTeamFilter] = useState<string | 'all'>('all');
+
+// Filter games by team selection
+const filteredByTeam = savedGames.filter(game => 
+  selectedTeamFilter === 'all' || 
+  game.teamId === selectedTeamFilter ||
+  (!game.teamId && selectedTeamFilter === 'legacy') // Handle legacy games
+);
+```
+
+UI Structure:
+```
+┌─ Load Game ────────────────────────────────────────────┐
+│ Load Saved Game                                  [×]   │
+├────────────────────────────────────────────────────────┤
+│ Filters:                                               │
+│ Team: [All Teams ▼] Season: [All ▼] Search: [____]   │
+├────────────────────────────────────────────────────────┤
+│ ┌─ Game List (scrollable) ─────────────────────────────┐ │
+│ │ 🔴 Galaxy U10 vs Barcelona FC    2024-03-15        │ │
+│ │ 🔵 Barcelona FC vs Real Madrid   2024-03-12        │ │  
+│ │ 📄 Legacy Game vs City FC        2024-03-10        │ │
+│ └──────────────────────────────────────────────────────┘ │
+└────────────────────────────────────────────────────────┘
+```
+
+#### 3.2 Statistics Enhancement
+**File: `src/components/GameStatsModal.tsx`**
+**File: `src/components/PlayerStatsView.tsx`**
+
+Add team-aware statistics:
+```typescript
+// In GameStatsModal
+const [selectedTeamFilter, setSelectedTeamFilter] = useState<string | 'all'>('all');
+
+// Filter data for statistics
+const getFilteredGamesForStats = () => {
+  return savedGames.filter(game => {
+    // Team filter
+    const teamMatch = selectedTeamFilter === 'all' || 
+                     game.teamId === selectedTeamFilter ||
+                     (!game.teamId && selectedTeamFilter === 'legacy');
+    
+    // Continue with existing season/tournament filtering
+    return teamMatch && /* existing filters */;
+  });
+};
+```
+
+Enhance `calculatePlayerStats` function:
+```typescript
+// In src/utils/playerStats.ts
+export const calculatePlayerStats = (
+  player: Player,
+  savedGames: SavedGame[],
+  seasons: Season[],
+  tournaments: Tournament[],
+  adjustments: PlayerStatAdjustment[],
+  teamId?: string  // Optional team filtering
+): PlayerStats => {
+  // Filter games by team if specified
+  const relevantGames = teamId 
+    ? savedGames.filter(game => game.teamId === teamId)
+    : savedGames;
+  
+  // Filter adjustments by team if specified
+  const relevantAdjustments = teamId
+    ? adjustments.filter(adj => adj.teamId === teamId || !adj.teamId) // Include legacy adjustments
+    : adjustments;
+  
+  // Continue with existing calculation logic
+};
+```
+
+### Phase 4: Data Migration & Compatibility (1 day)
+
+#### 4.1 Migration Strategy
+**File: `src/utils/migration.ts`**
+
+Create a gentle migration that preserves all existing data:
+
+```typescript
+export const migrateToMultiTeam = async (): Promise<void> => {
+  // Check if migration is needed
+  const existingTeams = await getTeams();
+  if (existingTeams.length > 0) {
+    return; // Already migrated or teams exist
+  }
+
+  // Check if there's existing data to migrate
+  const masterRoster = await getMasterRoster();
+  const savedGames = await getSavedGames();
+  
+  if (masterRoster.length === 0 && Object.keys(savedGames).length === 0) {
+    return; // Fresh installation, no migration needed
+  }
+
+  // Create default team from existing data
+  const defaultTeamName = 'My Team'; // Could be from app settings
+  const defaultTeam = await addTeam({
+    name: defaultTeamName,
+    color: '#FF0000'
+  });
+
+  // Copy master roster to default team
+  if (masterRoster.length > 0) {
+    await setTeamRoster(defaultTeam.id, masterRoster);
+  }
+
+  // No need to modify existing games - they'll work without teamId
+  // Future games will have team association
+  
+  console.log('Multi-team migration completed:', defaultTeam);
+};
+```
+
+#### 4.2 Backward Compatibility
+- **Games without teamId**: Display as "Legacy Game" in load modal
+- **Master roster**: Remains available as fallback option
+- **Statistics**: Include option to view "All Games" (including legacy)
+- **No breaking changes**: All existing functionality continues to work
+
+### Phase 5: UI Integration & Polish (1 day)
+
+#### 5.1 Navigation Integration
+**File: `src/components/ControlBar.tsx`**
+- Add "Manage Teams" option to hamburger menu
+- Show team count in menu if teams exist
+
+**File: `src/components/StartScreen.tsx`**  
+- Add teams overview section showing team count
+- Add quick access to team management
+
+#### 5.2 Visual Enhancements
+- **Team Badges**: Show team colors as small circles/badges
+- **Team Names**: Display team names in game cards and lists
+- **Icons**: Use team-specific icons/colors throughout UI
+- **Empty States**: Helpful messages when no teams exist
+
+#### 5.3 Responsive Design
+- Ensure team management modal works on mobile
+- Optimize team selection dropdowns for touch
+- Maintain accessibility standards
+
+### Phase 6: Testing & Quality Assurance (1-2 days)
+
+#### 6.1 Unit Tests
+**File: `src/utils/teams.test.ts`**
+- Test all CRUD operations
+- Test roster management functions
+- Test data isolation between teams
+- Test migration scenarios
+
+**File: `src/utils/teamIntegration.test.ts`**
+- Test game creation with team selection
+- Test statistics filtering by team
+- Test load game filtering
+- Test backward compatibility
+
+#### 6.2 Integration Tests
+- Test complete user workflows:
+  1. Create team → Add players → Create game → Load game
+  2. Multiple teams → Switch between them → Verify data isolation
+  3. Migration from single-team → Multi-team setup
+  4. Statistics comparison between teams
+
+#### 6.3 Edge Cases
+- Empty teams (no players)
+- Team deletion with existing games
+- Invalid team IDs in saved games
+- Concurrent team operations
+- Large numbers of teams/players
+
+## Technical Implementation Details
+
+### Query Keys Strategy
+```typescript
+// src/config/queryKeys.ts
+export const queryKeys = {
+  // Teams
+  teams: ['teams'] as const,
+  teamRoster: (teamId: string) => ['teams', teamId, 'roster'] as const,
+  
+  // Global entities (unchanged)
+  seasons: ['seasons'] as const,
+  tournaments: ['tournaments'] as const,
+  savedGames: ['savedGames'] as const,
+  
+  // Legacy (maintained for backward compatibility)
+  masterRoster: ['masterRoster'] as const,
+};
+```
+
+### React Query Integration
+```typescript
+// src/hooks/useTeamQueries.ts
+export const useTeamsQuery = () => {
+  return useQuery({
+    queryKey: queryKeys.teams,
+    queryFn: getTeams,
+  });
+};
+
+export const useTeamRosterQuery = (teamId: string | null) => {
+  return useQuery({
+    queryKey: queryKeys.teamRoster(teamId!),
+    queryFn: () => getTeamRoster(teamId!),
+    enabled: !!teamId,
+  });
+};
+
+// Mutations with proper cache invalidation
+export const useAddTeamMutation = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: addTeam,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams });
+    },
+  });
+};
+```
+
+### Error Handling Strategy
+```typescript
+// Graceful degradation for missing teams
+export const getTeamRosterWithFallback = async (teamId?: string): Promise<Player[]> => {
+  if (!teamId) {
+    return getMasterRoster(); // Fallback to master roster
+  }
+  
+  try {
+    const roster = await getTeamRoster(teamId);
+    return roster.length > 0 ? roster : getMasterRoster();
+  } catch (error) {
+    console.warn('Failed to load team roster, falling back to master roster:', error);
+    return getMasterRoster();
+  }
+};
+```
+
+## Internationalization
+
+### New Translation Keys
+```json
+{
+  "teamManager": {
+    "title": "Teams",
+    "newTeam": "New Team",
+    "teamName": "Team Name",
+    "teamColor": "Team Color",
+    "roster": "Roster",
+    "manageRoster": "Manage Roster",
+    "importRoster": "Import Master Roster",
+    "noTeams": "No teams yet.",
+    "createFirst": "Create your first team to get started.",
+    "selectTeam": "Select a team or create a new one",
+    "confirmDelete": "Delete team \"{name}\"?",
+    "deleteWarning": "This will permanently delete the team. Games and statistics will remain but won't be associated with this team.",
+    "rename": "Rename",
+    "duplicate": "Duplicate",
+    "rosterCount": "Players: {{count}}"
+  },
+  "newGameSetupModal": {
+    "selectTeam": "Select Team",
+    "noTeam": "No Team (Use Master Roster)"
+  },
+  "loadGameModal": {
+    "teamFilter": "Filter by Team",
+    "allTeams": "All Teams",
+    "legacyGames": "Legacy Games"
+  },
+  "gameStatsModal": {
+    "teamFilter": "Team Filter",
+    "compareTeams": "Compare Teams"
+  },
+  "controlBar": {
+    "manageTeams": "Manage Teams"
+  }
 }
 ```
 
-## Code Impact Assessment (Current Codebase)
+### Finnish Translations
+```json
+{
+  "teamManager": {
+    "title": "Joukkueet",
+    "newTeam": "Uusi joukkue",
+    "teamName": "Joukkueen nimi",
+    "teamColor": "Joukkueen väri",
+    "roster": "Kokoonpano",
+    "manageRoster": "Hallinnoi kokoonpanoa",
+    "importRoster": "Tuo pääroster",
+    "noTeams": "Ei vielä joukkueita.",
+    "createFirst": "Luo ensimmäinen joukkue aloittaaksesi.",
+    "selectTeam": "Valitse joukkue tai luo uusi",
+    "confirmDelete": "Poista joukkue \"{name}\"?",
+    "deleteWarning": "Tämä poistaa joukkueen pysyvästi. Pelit ja tilastot säilyvät, mutta eivät ole enää yhdistettyjä tähän joukkueeseen.",
+    "rename": "Nimeä uudelleen",
+    "duplicate": "Monista",
+    "rosterCount": "Pelaajia: {{count}}"
+  }
+}
+```
 
-### Roster Dependencies and Single-Team Assumptions
+## Success Criteria
 
-- Direct usages of `getMasterRoster()`:
-  - `src/app/page.tsx` (first-time checks)
-  - `src/components/NewGameSetupModal.tsx`
-  - `src/utils/masterRoster.ts` (internal operations repeatedly call `getMasterRoster()`)
-  - Tests under `src/utils/masterRoster*.test.ts`
-- Manager wrapper: `src/utils/masterRosterManager.ts` exposes `getMasterRoster` etc.
+### Functional Requirements
+1. ✅ **Team Management**: Users can create, edit, delete, and duplicate teams
+2. ✅ **Independent Rosters**: Each team maintains its own player roster
+3. ✅ **Game Association**: New games are associated with selected team
+4. ✅ **Statistics Filtering**: Stats can be filtered and compared by team
+5. ✅ **Backward Compatibility**: Existing games continue to work
+6. ✅ **Data Migration**: Smooth transition from single-team to multi-team
 
-Action items:
-- Introduce `getTeamRoster(teamId: string)` and `getActiveTeamId()`.
-- Provide temporary shim `getMasterRoster = () => getTeamRoster(getActiveTeamId())` in `masterRosterManager.ts` to limit blast radius while refactoring.
-- Replace imports of `getMasterRoster` in UI files with the team-aware versions.
+### Technical Requirements
+1. ✅ **No Global State**: Teams are contextual selections, not app-wide state
+2. ✅ **Data Isolation**: Team data is properly isolated and doesn't leak
+3. ✅ **Performance**: Team operations are efficient and don't impact app performance
+4. ✅ **Error Handling**: Graceful degradation when team data is missing
+5. ✅ **Testing**: Comprehensive test coverage for all team functionality
 
-### React Query Usage and Cache Strategy
+### User Experience Requirements
+1. ✅ **Intuitive Interface**: Team management is easy to discover and use
+2. ✅ **Visual Clarity**: Teams are visually distinct with colors/badges
+3. ✅ **Workflow Integration**: Team selection fits naturally into existing workflows
+4. ✅ **Mobile Friendly**: All team features work well on mobile devices
+5. ✅ **Accessibility**: All team interfaces meet accessibility standards
 
-- Current keys (team-agnostic): `src/config/queryKeys.ts` uses static arrays like `['masterRoster']`, `['savedGames']`.
-- TanStack usage found in:
-  - `src/components/HomePage.tsx` (useMutation/useQueryClient)
-  - `src/hooks/useGameDataQueries.ts` (useQuery)
+## Risk Mitigation
 
-Action items:
-- Refactor `queryKeys` to functions with `teamId` (see proposal above).
-- Update `useGameDataQueries(teamId)` to use team keys and filter data accordingly.
-- On active team change, invalidate `masterRoster(teamId)`, `seasons(teamId)`, `tournaments(teamId)`, and optionally `savedGames(teamId)`.
+### Data Loss Prevention
+- **Backup Strategy**: Automatic backup before any migration
+- **Rollback Plan**: Ability to restore previous state if migration fails
+- **Validation**: Extensive validation of migrated data
+- **Testing**: Comprehensive testing with real user data scenarios
 
-### Stats Calculations and External Adjustments
+### Performance Considerations
+- **Lazy Loading**: Team rosters loaded on-demand
+- **Caching**: Proper React Query caching for team data
+- **Pagination**: If needed for teams/players lists in the future
+- **Optimization**: Efficient data structures and queries
 
-- `src/utils/playerStats.ts` iterates all `savedGames` without team filtering and merges adjustments with no team filter.
-- `src/components/PlayerStatsView.tsx` calls `getAdjustmentsForPlayer(player.id)` without `teamId` and passes unfiltered `savedGames`.
+### User Experience Risks
+- **Learning Curve**: Clear documentation and helpful UI hints
+- **Feature Discovery**: Prominent placement of team management features
+- **Error Recovery**: Clear error messages and recovery paths
+- **Progressive Enhancement**: New features don't break existing workflows
 
-Action items:
-- Add optional `teamId` param to `calculatePlayerStats` and filter:
-  - Only include games where `game.teamId === teamId` (when provided)
-  - Only include seasons/tournaments where `teamId` matches or is global
-- Extend `getAdjustmentsForPlayer(playerId, teamId)` to filter by `teamId`.
-- Update `PlayerStatsView` to pass `teamId` (from active team context) to both calls.
+## Implementation Timeline
 
-### DEFAULT_GAME_ID Workspace
+### Week 1 (Days 1-5)
+- **Days 1-2**: Phase 1 (Core Team Management)
+- **Days 3-4**: Phase 2 (Game Creation Integration) 
+- **Day 5**: Phase 3 (Load Game & Statistics)
 
-- Source of truth: `src/config/constants.ts` → `export const DEFAULT_GAME_ID = 'unsaved_game'`.
-- Inconsistency: `src/components/LoadGameModal.tsx` defines `const DEFAULT_GAME_ID = '__default_unsaved__';` locally.
+### Week 2 (Days 6-10)
+- **Day 6**: Phase 4 (Data Migration & Compatibility)
+- **Day 7**: Phase 5 (UI Integration & Polish)
+- **Days 8-9**: Phase 6 (Testing & Quality Assurance)
+- **Day 10**: Final integration, documentation, and deployment preparation
 
-Action items:
-- Replace local constant with import from `@/config/constants` to ensure consistent behavior and easier team scoping later.
-- Keep workspace behavior per active team (unsaved workspace should be isolated by team context in UI logic).
+**Total Estimated Effort: 8-10 working days**
 
-### Team Deletion and Orphaned Data
-
-Policy options (pick one for v1):
-- Prevent deletion if any games/seasons/tournaments exist for the team (surface counts in confirm modal).
-- Or allow soft delete: mark team as archived and keep data accessible in read-only mode until reassigned.
-
-Implementation notes:
-- If soft delete: add `archived?: boolean` to `Team` and hide by default; add a reassignment tool later.
-
-## Implementation Progress
-
-### ✅ Phase 1: Data Layer & Migration (COMPLETED)
-- ✅ Fixed DEFAULT_GAME_ID inconsistency (`LoadGameModal.tsx` now imports from constants)
-- ✅ Added Team and TeamPlayer interfaces to types
-- ✅ Extended Season, Tournament, and AppState with optional `teamId`
-- ✅ Added new storage keys: `TEAMS_INDEX_KEY`, `ACTIVE_TEAM_ID_KEY`, `TEAM_ROSTERS_KEY`, `APP_DATA_VERSION_KEY`
-- ✅ Created complete `src/utils/teams.ts` with CRUD operations
-- ✅ Implemented comprehensive migration system in `src/utils/migration.ts`
-- ✅ Added team-aware React Query keys and `useTeamGameDataQueries` hook
-- ✅ Committed: 949 lines added across 9 files
-
-### 🚧 Phase 2: Core UI - Team Manager & Switcher (In Progress)
-- 🚧 Create Team Manager modal component
-- ⏳ Implement team switcher component
-- ⏳ Update start screen for team awareness
-
-## Phased Implementation & Estimates
-
-1) Data Layer & Migration (1–2 days)
-- ✅ Add storage keys, team entity, migration function, `teamId` on games/seasons/tournaments
-- ✅ Active team setting; wrappers for old utils
-
-2) Core UI – Team Switcher & Manager (1–2 days)
-- Start screen updates; simple Team Manager modal; roster scoped by team
-
-3) Game Creation & Filtering (1–2 days)
-- Team selection in New Game Setup; filter Load Game by team; `AppState.teamId` usage
-
-4) Seasons/Tournaments Scoping (0.5–1 day)
-- Filter and creation flows set `teamId`; show badge
-
-5) Stats & Adjustments (0.5–1 day)
-- Filter inputs/outputs by team; ensure adjustments carry teamId
-
-6) Polish & Back-Compat Cleanup (0.5–1 day)
-- Remove deprecated entry points; finalize documentation; QA
-
-Total: ~4–8 days depending on depth and polish.
-
-## Difficulty & Risk
-
-- Difficulty: Medium-High – touches multiple modules (roster, games, seasons/tournaments, stats)
-- Primary risks:
-  - Migration correctness (assigning `teamId` reliably)
-  - Hidden usages of one-team assumptions (e.g., `getMasterRoster()`)
-  - UI surface area (filters, selectors) introducing complexity
-
-Mitigations:
-- Keep a clear Active Team context
-- Maintain compatibility wrappers temporarily
-- Add visible team badges in UI where ambiguity is possible
-
-## Blind Spots / Decisions
-
-- Shared players across teams: are they independent copies or linked profiles?
-  - v1: independent per-team roster; later: optional shared "Person" profiles
-- Seasons/Tournaments across teams: allow global items; recommend scoping to team for clarity
-- External Adjustments: ensure `teamId` is set to avoid cross-team pollution
-- Temporary workspace (`DEFAULT_GAME_ID`): remains per active team context
-- Data import from older backups: migration reliability and id collisions
-
-## Enhancements (Future)
-
-- Team branding (logo, colors), quick theme per team
-- Player linking across teams (single identity, per-team jersey numbers)
-- Opponent library per team
-- Calendar/schedule per team and cross-team views
-- Multi-coach profiles and permissions
-
-## Acceptance Criteria
-
-- Users can create 2+ teams and switch between them
-- Each team has an independent roster; creating a game requires/selects a team
-- Load Game shows only that team’s games by default (with an option to view all)
-- Seasons/Tournaments can be created for a team and are available in creation flows
-- Migration preserves existing data and creates a default team with prior roster/games
-
-## Test Plan (High-Level)
-
-- Migration: cold start with existing data → default team created, data tagged
-- Team CRUD: create/rename/duplicate/delete; roster operations per team
-- New Game: team selection; correct roster available; saved game has `teamId`
-- Load/Stats: data filtered by team; switching team updates lists
-- Seasons/Tournaments: filtering and association behavior
-
-
-## Detailed Testing Plan
-
-### Migration Tests
-- Seed legacy data (single roster, saved games, seasons/tournaments, adjustments without teamId) and run app init → verify:
-  - Default team created and set active; roster copied into `soccerTeamRosters[teamId]`
-  - All saved games now have `teamId`
-  - Seasons/Tournaments tagged with `teamId`
-  - Adjustments without `teamId` assigned to default team
-  - Idempotency: running migration twice makes no additional changes
-
-### Cross-Team Scenarios
-- Create two teams A and B with distinct rosters; create games for both; assert:
-  - Load Game lists only active team by default; toggling team switches list
-  - New Game Setup preselects active team; switching team updates selectable roster
-  - Stats show only games/adjustments for active team
-  - Seasons/Tournaments dropdowns reflect team scoping + global items
-
-### Query & Caching
-- Verify `useGameDataQueries(teamId)` re-fetches on team change and invalidates relevant caches
-- Ensure no data leaks between teams in UI when switching rapidly
-
-### Workspace Behavior
-- With `DEFAULT_GAME_ID`, ensure overlays/warnings work per active team context (no cross bleed)
-
-### Deletion Policies
-- Prevent deletion when dependent entities exist (or validate archive flow if chosen)
-
-## UI Polish – Team Switcher
-
-- Placement: top bar or start screen; always visible when >1 team exists
-- Behavior:
-  - Show active team name with badge/color
-  - Opening menu shows all teams + “Manage Teams” and “Create Team”
-  - Indicate loading state during team switch (spinner on button + optimistic UI)
-- Accessibility:
-  - Keyboard navigable menu; ARIA roles; focus management
-  - Localized labels using new i18n keys
-
-
+This comprehensive plan provides a clear, step-by-step roadmap for implementing multi-team support while maintaining the integrity of existing functionality and user experience.
