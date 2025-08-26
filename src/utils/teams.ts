@@ -131,43 +131,84 @@ export const getAllTeamRosters = async (): Promise<TeamRostersIndex> => {
   }
 };
 
+// Lock mechanism for atomic roster operations
+let rosterOperationLock: Promise<void> | null = null;
+
+const withRosterLock = async <T>(operation: () => Promise<T>): Promise<T> => {
+  // Wait for any existing operation to complete
+  while (rosterOperationLock) {
+    await rosterOperationLock;
+  }
+  
+  // Create a new lock for this operation
+  let releaseLock: () => void;
+  rosterOperationLock = new Promise<void>((resolve) => {
+    releaseLock = resolve;
+  });
+  
+  try {
+    const result = await operation();
+    return result;
+  } finally {
+    // Release the lock
+    releaseLock!();
+    rosterOperationLock = null;
+  }
+};
+
 export const getTeamRoster = async (teamId: string): Promise<TeamPlayer[]> => {
-  const rostersIndex = await getAllTeamRosters();
-  return rostersIndex[teamId] || [];
+  return withRosterLock(async () => {
+    const rostersIndex = await getAllTeamRosters();
+    return rostersIndex[teamId] || [];
+  });
 };
 
 export const setTeamRoster = async (teamId: string, roster: TeamPlayer[]): Promise<void> => {
-  const rostersIndex = await getAllTeamRosters();
-  rostersIndex[teamId] = roster;
-  setLocalStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+  return withRosterLock(async () => {
+    const rostersIndex = await getAllTeamRosters();
+    rostersIndex[teamId] = roster;
+    setLocalStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+  });
 };
 
-// Add player to team roster
+// Add player to team roster (atomic operation)
 export const addPlayerToRoster = async (teamId: string, player: TeamPlayer): Promise<void> => {
-  const roster = await getTeamRoster(teamId);
-  const updatedRoster = [...roster, player];
-  await setTeamRoster(teamId, updatedRoster);
+  return withRosterLock(async () => {
+    const rostersIndex = await getAllTeamRosters();
+    const roster = rostersIndex[teamId] || [];
+    const updatedRoster = [...roster, player];
+    rostersIndex[teamId] = updatedRoster;
+    setLocalStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+  });
 };
 
-// Update player in team roster
+// Update player in team roster (atomic operation)
 export const updatePlayerInRoster = async (teamId: string, playerId: string, updates: Partial<TeamPlayer>): Promise<boolean> => {
-  const roster = await getTeamRoster(teamId);
-  const playerIndex = roster.findIndex(p => p.id === playerId);
-  if (playerIndex === -1) return false;
+  return withRosterLock(async () => {
+    const rostersIndex = await getAllTeamRosters();
+    const roster = rostersIndex[teamId] || [];
+    const playerIndex = roster.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) return false;
 
-  roster[playerIndex] = { ...roster[playerIndex], ...updates };
-  await setTeamRoster(teamId, roster);
-  return true;
+    roster[playerIndex] = { ...roster[playerIndex], ...updates };
+    rostersIndex[teamId] = roster;
+    setLocalStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+    return true;
+  });
 };
 
-// Remove player from team roster
+// Remove player from team roster (atomic operation)
 export const removePlayerFromRoster = async (teamId: string, playerId: string): Promise<boolean> => {
-  const roster = await getTeamRoster(teamId);
-  const filteredRoster = roster.filter(p => p.id !== playerId);
-  if (filteredRoster.length === roster.length) return false; // Player not found
+  return withRosterLock(async () => {
+    const rostersIndex = await getAllTeamRosters();
+    const roster = rostersIndex[teamId] || [];
+    const filteredRoster = roster.filter(p => p.id !== playerId);
+    if (filteredRoster.length === roster.length) return false; // Player not found
 
-  await setTeamRoster(teamId, filteredRoster);
-  return true;
+    rostersIndex[teamId] = filteredRoster;
+    setLocalStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+    return true;
+  });
 };
 
 // Duplicate team (with new player IDs)
@@ -184,9 +225,9 @@ export const duplicateTeam = async (teamId: string): Promise<Team | null> => {
   });
 
   // Duplicate roster with new player IDs (per plan: globally unique IDs)
-  const newRoster: TeamPlayer[] = originalRoster.map(player => ({
+  const newRoster: TeamPlayer[] = originalRoster.map((player, index) => ({
     ...player,
-    id: `player_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`, // New globally unique ID
+    id: `player_${Date.now()}_${Math.random().toString(36).slice(2, 11)}_${index}`, // More unique ID with index
   }));
 
   await setTeamRoster(newTeam.id, newRoster);

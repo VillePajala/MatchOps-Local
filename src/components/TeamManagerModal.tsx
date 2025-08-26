@@ -27,6 +27,7 @@ interface TeamManagerModalProps {
   onClose: () => void;
   teams: Team[];
   onManageRoster?: (teamId: string) => void;
+  onManageOrphanedGames?: () => void;
 }
 
 const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
@@ -34,6 +35,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   onClose,
   teams,
   onManageRoster,
+  onManageOrphanedGames,
 }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -107,15 +109,15 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
   // Close actions menu when clicking outside
   useEffect(() => {
+    if (!actionsMenuTeamId) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
         setActionsMenuTeamId(null);
       }
     };
 
-    if (actionsMenuTeamId) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -219,7 +221,12 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="team-manager-title"
+    >
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
@@ -227,9 +234,9 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
         {/* Header */}
         <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
+          <h1 id="team-manager-title" className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
             {t('teamManager.title', 'Teams')}
-          </h2>
+          </h1>
         </div>
 
         {/* Scrollable Content */}
@@ -239,7 +246,8 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
             {!isCreatingTeam ? (
               <button
                 onClick={() => setIsCreatingTeam(true)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                aria-label={t('teamManager.createNewTeam', 'Create new team')}
               >
                 <HiOutlinePlus className="w-5 h-5" />
                 {t('teamManager.newTeam', 'New Team')}
@@ -446,7 +454,19 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 bg-slate-800/50 border-t border-slate-700/20 backdrop-blur-sm flex justify-end items-center gap-4 flex-shrink-0">
+        <div className="px-6 py-3 bg-slate-800/50 border-t border-slate-700/20 backdrop-blur-sm flex justify-between items-center gap-4 flex-shrink-0">
+          {onManageOrphanedGames ? (
+            <button 
+              onClick={onManageOrphanedGames}
+              className="px-4 py-2 rounded-md font-medium text-amber-300 bg-amber-900/20 hover:bg-amber-900/30 border border-amber-600/30 transition-colors text-sm"
+              title={t('teamManager.manageOrphanedGames', 'Manage games from deleted teams')}
+            >
+              {t('teamManager.orphanedGames', 'Orphaned Games')}
+            </button>
+          ) : (
+            <div />
+          )}
+          
           <button
             onClick={onClose}
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors"

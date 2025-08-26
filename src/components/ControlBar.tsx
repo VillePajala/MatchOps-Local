@@ -239,10 +239,10 @@ const ControlBar: React.FC<ControlBarProps> = ({
     <div className="bg-gradient-to-b from-slate-800 to-slate-900 p-2 shadow-md flex flex-wrap justify-center items-center gap-x-4 gap-y-2 relative z-40">
       {/* Left Group: Undo/Redo */}
       <div className="flex items-center gap-1">
-        <button onClick={onUndo} disabled={!canUndo} className={`${baseButtonStyle} ${secondaryColor}`} title={t('controlBar.undo') ?? "Undo"}>
+        <button onClick={onUndo} disabled={!canUndo} className={`${baseButtonStyle} ${secondaryColor}`} title={t('controlBar.undo', 'Undo')}>
             <HiOutlineArrowUturnLeft className={iconSize}/>
         </button>
-        <button onClick={onRedo} disabled={!canRedo} className={`${baseButtonStyle} ${secondaryColor}`} title={t('controlBar.redo') ?? "Redo"}>
+        <button onClick={onRedo} disabled={!canRedo} className={`${baseButtonStyle} ${secondaryColor}`} title={t('controlBar.redo', 'Redo')}>
             <HiOutlineArrowUturnRight className={iconSize}/>
         </button>
       </div>
@@ -264,25 +264,25 @@ const ControlBar: React.FC<ControlBarProps> = ({
             <button onClick={onAddOpponentDisc} className={`${baseButtonStyle} bg-red-600 hover:bg-red-500 focus:ring-red-500`} title={t('controlBar.addOpponentDisc', 'Add Opponent Disc') ?? "Add Opponent Disc"}>
               <HiOutlinePlusCircle className={iconSize}/>
             </button>
-            <button onClick={onClearDrawings} className={`${baseButtonStyle} ${clearColor}`} title={t('controlBar.clearDrawings') ?? "Clear Drawings"}>
+            <button onClick={onClearDrawings} className={`${baseButtonStyle} ${clearColor}`} title={t('controlBar.clearDrawings', 'Clear Drawings')}>
                 <HiOutlineBackspace className={iconSize}/>
             </button>
-            <button onClick={onResetField} className={`${baseButtonStyle} ${resetColor}`} title={t('controlBar.resetField') ?? "Reset Field"}>
+            <button onClick={onResetField} className={`${baseButtonStyle} ${resetColor}`} title={t('controlBar.resetField', 'Reset Field')}>
                 <HiOutlineTrash className={iconSize}/>
             </button>
           </>
         ) : (
           <>
-        <button onClick={onPlaceAllPlayers} className={`${baseButtonStyle} bg-purple-600 hover:bg-purple-500 focus:ring-purple-500`} title={t('controlBar.placeAllPlayers') ?? "Place All Players on Field"}>
+        <button onClick={onPlaceAllPlayers} className={`${baseButtonStyle} bg-purple-600 hover:bg-purple-500 focus:ring-purple-500`} title={t('controlBar.placeAllPlayers', 'Place All Players on Field')}>
             <HiOutlineSquares2X2 className={iconSize}/>
         </button>
-        <button onClick={onAddOpponent} className={`${baseButtonStyle} bg-red-600 hover:bg-red-500 focus:ring-red-500`} title={t('controlBar.addOpponent') ?? "Add Opponent"}>
+        <button onClick={onAddOpponent} className={`${baseButtonStyle} bg-red-600 hover:bg-red-500 focus:ring-red-500`} title={t('controlBar.addOpponent', 'Add Opponent')}>
             <HiOutlinePlusCircle className={iconSize}/>
         </button>
-        <button onClick={onClearDrawings} className={`${baseButtonStyle} ${clearColor}`} title={t('controlBar.clearDrawings') ?? "Clear Drawings"}>
+        <button onClick={onClearDrawings} className={`${baseButtonStyle} ${clearColor}`} title={t('controlBar.clearDrawings', 'Clear Drawings')}>
             <HiOutlineBackspace className={iconSize}/>
         </button>
-        <button onClick={onResetField} className={`${baseButtonStyle} ${resetColor}`} title={t('controlBar.resetField') ?? "Reset Field"}>
+        <button onClick={onResetField} className={`${baseButtonStyle} ${resetColor}`} title={t('controlBar.resetField', 'Reset Field')}>
             <HiOutlineTrash className={iconSize}/>
         </button>
           </>
@@ -321,7 +321,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
         <button
           onClick={onToggleInstructionsModal}
           className={`${baseButtonStyle} ${secondaryColor}`}
-          title={t('controlBar.appGuide') ?? 'App Guide'}
+          title={t('controlBar.appGuide', 'App Guide')}
         >
             <HiOutlineQuestionMarkCircle className={iconSize} />
         </button>
@@ -341,7 +341,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
           <button
             onClick={handleSettingsButtonClick}
             className={`${baseButtonStyle} ${secondaryColor}`}
-            title={t('controlBar.settings') ?? "Settings"}
+            title={t('controlBar.settings', 'Settings')}
           >
             <HiBars3 className={`${iconSize} transition-transform duration-150 ${isSettingsMenuOpen ? 'rotate-90' : ''}`} />
           </button>

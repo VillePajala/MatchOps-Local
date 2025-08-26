@@ -52,13 +52,12 @@ export interface Season {
   endDate?: string;
   gameDates?: string[];
   archived?: boolean;
-  defaultRosterId?: string;
-  defaultRoster?: string[];
   notes?: string;
   color?: string;
   badge?: string;
   ageGroup?: string;
   // Note: teamId removed - seasons are global entities per plan
+  // Note: roster management removed - teams handle rosters now
 }
 
 export interface Tournament {
@@ -71,14 +70,13 @@ export interface Tournament {
   endDate?: string;
   gameDates?: string[];
   archived?: boolean;
-  defaultRosterId?: string;
-  defaultRoster?: string[];
   notes?: string;
   color?: string;
   badge?: string;
   level?: string;
   ageGroup?: string;
   // Note: teamId removed - tournaments are global entities per plan
+  // Note: roster management removed - teams handle rosters now
 }
 
 export * from './playerAssessment';
