@@ -3,8 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  HiOutlineXMark,
+import {
   HiOutlinePencil,
   HiOutlineTrash,
   HiOutlineUsers,
@@ -15,11 +14,11 @@ import {
 import { Team } from '@/types';
 import { queryKeys } from '@/config/queryKeys';
 import {
-  createTeam,
+  addTeam,
   updateTeam,
   deleteTeam,
   duplicateTeam,
-  setActiveTeamId,
+  countGamesForTeam,
 } from '@/utils/teams';
 import logger from '@/utils/logger';
 
@@ -27,8 +26,6 @@ interface TeamManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
   teams: Team[];
-  activeTeamId: string | null;
-  onTeamSwitch?: (teamId: string) => void;
   onManageRoster?: (teamId: string) => void;
 }
 
@@ -36,8 +33,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   isOpen,
   onClose,
   teams,
-  activeTeamId,
-  onTeamSwitch,
   onManageRoster,
 }) => {
   const { t } = useTranslation();
@@ -52,6 +47,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   const [editTeamColor, setEditTeamColor] = useState('#6366F1');
   const [actionsMenuTeamId, setActionsMenuTeamId] = useState<string | null>(null);
   const [deleteConfirmTeamId, setDeleteConfirmTeamId] = useState<string | null>(null);
+  const [deleteTeamGamesCount, setDeleteTeamGamesCount] = useState<number>(0);
 
   // Refs
   const actionsMenuRef = useRef<HTMLDivElement>(null);
@@ -60,7 +56,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
   // Mutations
   const createTeamMutation = useMutation({
-    mutationFn: createTeam,
+    mutationFn: addTeam,
     onSuccess: (newTeam) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.teams });
       setIsCreatingTeam(false);
@@ -99,8 +95,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   });
 
   const duplicateTeamMutation = useMutation({
-    mutationFn: ({ sourceTeamId, newName }: { sourceTeamId: string; newName: string }) =>
-      duplicateTeam(sourceTeamId, newName),
+    mutationFn: (teamId: string) => duplicateTeam(teamId),
     onSuccess: (newTeam) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.teams });
       logger.log('[TeamManager] Duplicated team:', newTeam);
@@ -188,7 +183,10 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     setEditTeamColor('#6366F1');
   };
 
-  const handleDeleteTeam = (teamId: string) => {
+  const handleDeleteTeam = async (teamId: string) => {
+    // Load games count for impact warning
+    const gamesCount = await countGamesForTeam(teamId);
+    setDeleteTeamGamesCount(gamesCount);
     setDeleteConfirmTeamId(teamId);
     setActionsMenuTeamId(null);
   };
@@ -196,35 +194,16 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   const handleConfirmDelete = () => {
     if (!deleteConfirmTeamId) return;
     
-    // If deleting active team, clear active team
-    if (deleteConfirmTeamId === activeTeamId) {
-      const remainingTeams = teams.filter(t => t.id !== deleteConfirmTeamId);
-      if (remainingTeams.length > 0) {
-        setActiveTeamId(remainingTeams[0].id);
-      } else {
-        setActiveTeamId(null);
-      }
-    }
-    
+    // Note: Active team concept removed - teams are contextually selected
     deleteTeamMutation.mutate(deleteConfirmTeamId);
   };
 
   const handleDuplicateTeam = (team: Team) => {
-    const newName = `${team.name} Copy`; // Simple fallback - can be improved with proper i18n later
-    duplicateTeamMutation.mutate({
-      sourceTeamId: team.id,
-      newName,
-    });
+    duplicateTeamMutation.mutate(team.id);
     setActionsMenuTeamId(null);
   };
 
-  const handleSwitchTeam = (teamId: string) => {
-    setActiveTeamId(teamId);
-    queryClient.invalidateQueries({ queryKey: ['teams'] }); // Invalidate team-related queries
-    if (onTeamSwitch) {
-      onTeamSwitch(teamId);
-    }
-  };
+  // Note: Team switching removed - teams are now contextually selected
 
   const predefinedColors = [
     '#6366F1', // Indigo
@@ -240,24 +219,21 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 rounded-lg shadow-xl border border-slate-600 w-full max-w-2xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
+      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-600">
-          <h2 className="text-xl font-semibold text-slate-100">
+        <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
+          <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
             {t('teamManager.title', 'Teams')}
           </h2>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-300 p-1 rounded transition-colors"
-            aria-label="Close"
-          >
-            <HiOutlineXMark className="w-6 h-6" />
-          </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto min-h-0 p-6">
           {/* Create New Team */}
           <div className="mb-6">
             {!isCreatingTeam ? (
@@ -401,11 +377,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                         <div>
                           <h3 className="font-medium text-slate-100 flex items-center gap-2">
                             {team.name}
-                            {team.id === activeTeamId && (
-                              <span className="px-2 py-0.5 bg-green-600/20 text-green-300 text-xs rounded-full border border-green-500/30">
-                                {t('teamManager.active', 'Active')}
-                              </span>
-                            )}
+                            {/* Note: Active team indicator removed - teams are contextually selected */}
                           </h3>
                           <p className="text-sm text-slate-400">
                             {t('teamManager.createdAt', 'Created {{date}}', {
@@ -416,14 +388,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {team.id !== activeTeamId && (
-                          <button
-                            onClick={() => handleSwitchTeam(team.id)}
-                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-sm font-medium transition-colors"
-                          >
-                            {t('teamManager.switchTo', 'Switch')}
-                          </button>
-                        )}
+{/* Note: Team switching UI removed - teams are contextually selected */}
                         
                         {onManageRoster && (
                           <button
@@ -480,19 +445,46 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           )}
         </div>
 
+        {/* Footer */}
+        <div className="px-6 py-3 bg-slate-800/50 border-t border-slate-700/20 backdrop-blur-sm flex justify-end items-center gap-4 flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors"
+          >
+            {t('common.doneButton', 'Done')}
+          </button>
+        </div>
+
         {/* Delete Confirmation Modal */}
         {deleteConfirmTeamId && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70]">
             <div className="bg-slate-800 p-6 rounded-lg border border-slate-600 max-w-md w-full mx-4">
               <h3 className="text-lg font-semibold text-slate-100 mb-4">
                 {t('common.confirmDelete', 'Confirm Delete')}
               </h3>
-              <p className="text-slate-300 mb-6">
-                {t('teamManager.confirmDelete', 
-                  'Delete team "{{name}}"? All associated data remains but will be unassigned.',
-                  { name: teams.find(t => t.id === deleteConfirmTeamId)?.name || '' }
+              <div className="text-slate-300 mb-6 space-y-3">
+                <p>
+                  {t('teamManager.confirmDelete', 
+                    'Delete team "{{name}}"?',
+                    { name: teams.find(t => t.id === deleteConfirmTeamId)?.name || '' }
+                  )}
+                </p>
+                {deleteTeamGamesCount > 0 && (
+                  <div className="p-3 bg-amber-900/20 border border-amber-600/30 rounded-md">
+                    <p className="text-amber-300 text-sm font-medium">
+                      {t('teamManager.deleteImpactWarning', 
+                        'This will orphan {{count}} game(s). Games will remain but won\'t be associated with this team.',
+                        { count: deleteTeamGamesCount }
+                      )}
+                    </p>
+                  </div>
                 )}
-              </p>
+                {deleteTeamGamesCount === 0 && (
+                  <p className="text-slate-400 text-sm">
+                    {t('teamManager.noGamesImpact', 'No games are associated with this team.')}
+                  </p>
+                )}
+              </div>
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setDeleteConfirmTeamId(null)}

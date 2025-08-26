@@ -7,7 +7,7 @@ import { getSeasons } from '@/utils/seasons';
 import { getTournaments } from '@/utils/tournaments';
 import { getSavedGames } from '@/utils/savedGames';
 import { getCurrentGameIdSetting } from '@/utils/appSettings';
-import { getTeams, getTeamRoster, getActiveTeamId } from '@/utils/teams';
+import { getTeams, getTeamRoster } from '@/utils/teams';
 import type {
   Player,
   Season,
@@ -100,14 +100,11 @@ export function useTeamGameDataQueries(teamId?: string): TeamGameDataQueriesResu
     queryFn: getTeams,
   });
 
-  // Get active team ID
-  const activeTeamIdQuery = useQuery<string | null, Error>({
-    queryKey: queryKeys.activeTeamId,
-    queryFn: () => Promise.resolve(getActiveTeamId()),
-  });
-
-  // Use provided teamId or active team ID
-  const effectiveTeamId = teamId || activeTeamIdQuery.data;
+  // Note: Active team concept removed - teams are contextually selected
+  // This will be refactored in Phase 2 when implementing contextual team selection
+  
+  // Use provided teamId (no fallback to global active team)
+  const effectiveTeamId = teamId;
 
   // Get team roster (only if we have a team ID)
   const teamRoster = useQuery<TeamPlayer[], Error>({
@@ -116,46 +113,22 @@ export function useTeamGameDataQueries(teamId?: string): TeamGameDataQueriesResu
     enabled: !!effectiveTeamId,
   });
 
-  // Get seasons (filtered by team or global)
+  // Get seasons (global entities - no team filtering per plan)
   const seasons = useQuery<Season[], Error>({
-    queryKey: queryKeys.teamSeasons(effectiveTeamId || undefined),
-    queryFn: async () => {
-      const allSeasons = await getSeasons();
-      // Filter seasons: include team-specific or global (no teamId)
-      return allSeasons.filter(season => 
-        !season.teamId || season.teamId === effectiveTeamId
-      );
-    },
+    queryKey: queryKeys.seasons,
+    queryFn: getSeasons,
   });
 
-  // Get tournaments (filtered by team or global)
+  // Get tournaments (global entities - no team filtering per plan)  
   const tournaments = useQuery<Tournament[], Error>({
-    queryKey: queryKeys.teamTournaments(effectiveTeamId || undefined),
-    queryFn: async () => {
-      const allTournaments = await getTournaments();
-      // Filter tournaments: include team-specific or global (no teamId)
-      return allTournaments.filter(tournament => 
-        !tournament.teamId || tournament.teamId === effectiveTeamId
-      );
-    },
+    queryKey: queryKeys.tournaments,
+    queryFn: getTournaments,
   });
 
-  // Get saved games (filtered by team)
+  // Get saved games (global collection - filtering happens at UI level)
   const savedGames = useQuery<SavedGamesCollection | null, Error>({
-    queryKey: queryKeys.teamSavedGames(effectiveTeamId || undefined),
-    queryFn: async () => {
-      const allGames = await getSavedGames();
-      if (!effectiveTeamId || !allGames) return allGames;
-      
-      // Filter games by team
-      const filteredGames: SavedGamesCollection = {};
-      Object.entries(allGames).forEach(([gameId, gameState]) => {
-        if (!gameState.teamId || gameState.teamId === effectiveTeamId) {
-          filteredGames[gameId] = gameState;
-        }
-      });
-      return filteredGames;
-    },
+    queryKey: queryKeys.savedGames,
+    queryFn: getSavedGames,
     initialData: {},
   });
 
@@ -166,7 +139,6 @@ export function useTeamGameDataQueries(teamId?: string): TeamGameDataQueriesResu
 
   const loading =
     teams.isLoading ||
-    activeTeamIdQuery.isLoading ||
     teamRoster.isLoading ||
     seasons.isLoading ||
     tournaments.isLoading ||
@@ -175,7 +147,6 @@ export function useTeamGameDataQueries(teamId?: string): TeamGameDataQueriesResu
 
   const error =
     teams.error ||
-    activeTeamIdQuery.error ||
     teamRoster.error ||
     seasons.error ||
     tournaments.error ||
@@ -185,7 +156,7 @@ export function useTeamGameDataQueries(teamId?: string): TeamGameDataQueriesResu
 
   return {
     teams: teams.data || [],
-    activeTeamId: activeTeamIdQuery.data || null,
+    activeTeamId: null, // Active team concept removed
     teamRoster: teamRoster.data || [],
     seasons: seasons.data || [],
     tournaments: tournaments.data || [],

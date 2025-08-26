@@ -14,6 +14,8 @@ import RosterSettingsModal from '@/components/RosterSettingsModal';
 import GameSettingsModal from '@/components/GameSettingsModal';
 import SettingsModal from '@/components/SettingsModal';
 import SeasonTournamentManagementModal from '@/components/SeasonTournamentManagementModal';
+import TeamManagerModal from '@/components/TeamManagerModal';
+import TeamRosterModal from '@/components/TeamRosterModal';
 import InstructionsModal from '@/components/InstructionsModal';
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
 import usePlayerAssessments from '@/hooks/usePlayerAssessments';
@@ -47,8 +49,9 @@ import {
 } from '@/utils/appSettings';
 import { deleteSeason as utilDeleteSeason, updateSeason as utilUpdateSeason, addSeason as utilAddSeason } from '@/utils/seasons';
 import { deleteTournament as utilDeleteTournament, updateTournament as utilUpdateTournament, addTournament as utilAddTournament } from '@/utils/tournaments';
+import { getTeams, getTeam } from '@/utils/teams';
 // Import Player from types directory
-import { Player, Season, Tournament } from '@/types';
+import { Player, Season, Tournament, Team } from '@/types';
 // Import saveMasterRoster utility
 import type { GameEvent, AppState, SavedGamesCollection, TimerState, PlayerAssessment } from "@/types";
 import { saveMasterRoster } from '@/utils/masterRoster';
@@ -58,6 +61,7 @@ import { useGameDataQueries } from '@/hooks/useGameDataQueries';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useTacticalBoard } from '@/hooks/useTacticalBoard';
 import { useRoster } from '@/hooks/useRoster';
+import { useTeamsQuery } from '@/hooks/useTeamQueries';
 import { useModalContext } from '@/contexts/ModalProvider';
 // Import async localStorage utilities
 import {
@@ -266,6 +270,9 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     error: gameDataError,
   } = useGameDataQueries();
 
+  // Teams query for multi-team support
+  const { data: teams = [] } = useTeamsQuery();
+
   const isMasterRosterQueryLoading = isGameDataLoading;
   const areSeasonsQueryLoading = isGameDataLoading;
   const areTournamentsQueryLoading = isGameDataLoading;
@@ -416,6 +423,9 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   const { showToast } = useToast();
   // const [isPlayerStatsModalOpen, setIsPlayerStatsModalOpen] = useState(false);
   const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<Player | null>(null);
+  const [isTeamManagerOpen, setIsTeamManagerOpen] = useState<boolean>(false);
+  const [isTeamRosterModalOpen, setIsTeamRosterModalOpen] = useState<boolean>(false);
+  const [selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
 
   // --- Timer State (Still needed here) ---
   const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
@@ -483,6 +493,9 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   const [loadGamesListError, setLoadGamesListError] = useState<string | null>(null);
   const [isGameLoading, setIsGameLoading] = useState(false); // For loading a specific game
   const [gameLoadError, setGameLoadError] = useState<string | null>(null);
+  const [orphanedGameInfo, setOrphanedGameInfo] = useState<{ teamId: string; teamName?: string } | null>(null);
+  const [isTeamReassignModalOpen, setIsTeamReassignModalOpen] = useState(false);
+  const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
   const [isGameDeleting, setIsGameDeleting] = useState(false); // For deleting a specific game
   const [gameDeleteError, setGameDeleteError] = useState<string | null>(null);
   const [processingGameId, setProcessingGameId] = useState<string | null>(null); // To track which game item is being processed
@@ -510,6 +523,63 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     initialBallPosition: initialState.tacticalBallPosition,
     saveStateToHistory,
   });
+
+  // Load teams when orphaned game is detected
+  useEffect(() => {
+    if (orphanedGameInfo) {
+      getTeams().then(teams => {
+        setAvailableTeams(teams);
+      }).catch(error => {
+        logger.error('[ORPHANED GAME] Error loading teams:', error);
+        setAvailableTeams([]);
+      });
+    }
+  }, [orphanedGameInfo]);
+
+  // Handle team reassignment for orphaned games
+  const handleTeamReassignment = async (newTeamId: string | null) => {
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) {
+      logger.error('[TEAM REASSIGN] No current game to reassign');
+      return;
+    }
+
+    try {
+      // Get current game data
+      const currentGame = savedGames[currentGameId];
+      if (!currentGame) {
+        logger.error('[TEAM REASSIGN] Current game not found');
+        return;
+      }
+
+      // Update game with new teamId
+      const updatedGame = {
+        ...currentGame,
+        teamId: newTeamId || undefined
+      };
+
+      // Save updated game
+      await utilSaveGame(currentGameId, updatedGame);
+      
+      // Update local state
+      setSavedGames(prev => ({
+        ...prev,
+        [currentGameId]: updatedGame
+      }));
+
+      // Clear orphaned state if team was assigned
+      if (newTeamId) {
+        setOrphanedGameInfo(null);
+      }
+
+      // Close modal
+      setIsTeamReassignModalOpen(false);
+
+      // Show success message (could add a toast notification here)
+      logger.log('[TEAM REASSIGN] Game reassigned to team:', newTeamId);
+    } catch (error) {
+      logger.error('[TEAM REASSIGN] Error reassigning team:', error);
+    }
+  };
 
   // --- Mutation for Adding a new Season ---
   const addSeasonMutation = useMutation<
@@ -859,8 +929,32 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   }, []);
 
   // Helper function to load game state from game data
-  const loadGameStateFromData = (gameData: AppState | null, isInitialDefaultLoad = false) => {
+  const loadGameStateFromData = async (gameData: AppState | null, isInitialDefaultLoad = false) => {
     logger.log('[LOAD GAME STATE] Called with gameData:', gameData, 'isInitialDefaultLoad:', isInitialDefaultLoad);
+
+    // Check for orphaned game (has teamId but team doesn't exist)
+    if (gameData?.teamId) {
+      try {
+        const team = await getTeam(gameData.teamId);
+        if (!team) {
+          // Team was deleted - game is orphaned
+          setOrphanedGameInfo({ 
+            teamId: gameData.teamId,
+            teamName: gameData.teamName // Preserve original team name if available
+          });
+        } else {
+          // Team exists - clear any previous orphaned state
+          setOrphanedGameInfo(null);
+        }
+      } catch (error) {
+        logger.error('[LOAD GAME] Error checking team existence:', error);
+        // Assume orphaned on error
+        setOrphanedGameInfo({ teamId: gameData.teamId, teamName: gameData.teamName });
+      }
+    } else {
+      // No teamId - legacy game or "No Team" selection
+      setOrphanedGameInfo(null);
+    }
 
     if (gameData) {
       // gameData is AppState, map its fields directly to GameSessionState partial payload
@@ -962,20 +1056,24 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
 
   // --- Effect to load game state when currentGameId changes or savedGames updates ---
   useEffect(() => {
-    logger.log('[EFFECT game load] currentGameId or savedGames changed:', { currentGameId });
-    if (!initialLoadComplete) {
-      logger.log('[EFFECT game load] Initial load not complete, skipping game state application.');
-      return; 
-    }
+    const loadGame = async () => {
+      logger.log('[EFFECT game load] currentGameId or savedGames changed:', { currentGameId });
+      if (!initialLoadComplete) {
+        logger.log('[EFFECT game load] Initial load not complete, skipping game state application.');
+        return; 
+      }
 
-    let gameToLoad: AppState | null = null; // Ensure this is AppState
-    if (currentGameId && currentGameId !== DEFAULT_GAME_ID && savedGames[currentGameId]) {
-      logger.log(`[EFFECT game load] Found game data for ${currentGameId}`);
-      gameToLoad = savedGames[currentGameId] as AppState; // Cast to AppState
-    } else {
-      logger.log('[EFFECT game load] No specific game to load or ID is default. Applying default game state.');
-    }
-    loadGameStateFromData(gameToLoad); 
+      let gameToLoad: AppState | null = null; // Ensure this is AppState
+      if (currentGameId && currentGameId !== DEFAULT_GAME_ID && savedGames[currentGameId]) {
+        logger.log(`[EFFECT game load] Found game data for ${currentGameId}`);
+        gameToLoad = savedGames[currentGameId] as AppState; // Cast to AppState
+      } else {
+        logger.log('[EFFECT game load] No specific game to load or ID is default. Applying default game state.');
+      }
+      await loadGameStateFromData(gameToLoad); 
+    };
+    
+    loadGame();
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentGameId, savedGames, initialLoadComplete]); // IMPORTANT: initialLoadComplete ensures this runs after master roster is loaded.
@@ -1341,6 +1439,24 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     setIsGameStatsModalOpen(!isGameStatsModalOpen);
   };
 
+  const handleOpenTeamManagerModal = () => {
+    setIsTeamManagerOpen(true);
+  };
+  const handleCloseTeamManagerModal = () => {
+    setIsTeamManagerOpen(false);
+  };
+
+  const handleManageTeamRoster = (teamId: string) => {
+    setSelectedTeamForRoster(teamId);
+    setIsTeamRosterModalOpen(true);
+    setIsTeamManagerOpen(false); // Close team manager modal
+  };
+
+  const handleCloseTeamRosterModal = () => {
+    setIsTeamRosterModalOpen(false);
+    setSelectedTeamForRoster(null);
+  };
+
   // Placeholder handlers for updating game info (will be passed to modal)
   const handleOpponentNameChange = (newName: string) => {
     logger.log('[page.tsx] handleOpponentNameChange called with:', newName);
@@ -1449,7 +1565,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     if (gameDataToLoad) {
       try {
         // Dispatch to reducer to load the game state
-        loadGameStateFromData(gameDataToLoad); // This now primarily uses the reducer
+        await loadGameStateFromData(gameDataToLoad); // This now primarily uses the reducer
 
         // Update current game ID and save settings
         setCurrentGameId(gameId);
@@ -2094,7 +2210,9 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     demandFactor: number,
     ageGroup: string,
     tournamentLevel: string,
-    isPlayed: boolean
+    isPlayed: boolean,
+    teamId: string | null, // Add team ID parameter
+    availablePlayersForGame: Player[] // Add the actual roster for the game
   ) => {
       // ADD LOGGING HERE:
       logger.log('[handleStartNewGameWithSetup] Received Params:', { 
@@ -2112,7 +2230,9 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         demandFactor,
         ageGroup,
         tournamentLevel,
-        isPlayed
+        isPlayed,
+        teamId,
+        availablePlayersCount: availablePlayersForGame.length
       });
       // No need to log initialState references anymore
 
@@ -2140,7 +2260,8 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           homeOrAway: homeOrAway, // <<< Step 4b: Use parameter value
           demandFactor: demandFactor,
           isPlayed: isPlayed,
-          availablePlayers: availablePlayers, // <<< ADD: Use current global roster
+          teamId: teamId || undefined, // Add team ID to game state
+          availablePlayers: availablePlayersForGame, // Use the roster from the modal (team roster or master roster)
           selectedPlayerIds: finalSelectedPlayerIds, // <-- USE PASSED OR FALLBACK
           playersOnField: [], // Always start with empty field
           opponents: [], // Always start with empty opponents
@@ -2511,6 +2632,28 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       </div>
 
 
+      {/* Orphaned Game Warning Banner */}
+      {orphanedGameInfo && (
+        <div className="bg-amber-500/20 border-b border-amber-500/30 px-4 py-2">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <div className="flex items-center gap-2">
+              <span className="text-amber-400 text-xl">⚠️</span>
+              <span className="text-amber-300 text-sm font-medium">
+                {t('orphanedGame.banner', 'Original team "{{teamName}}" no longer exists. Using master roster.', {
+                  teamName: orphanedGameInfo.teamName || t('orphanedGame.unknownTeam', 'Unknown Team')
+                })}
+              </span>
+            </div>
+            <button
+              onClick={() => setIsTeamReassignModalOpen(true)}
+              className="px-3 py-1 bg-amber-500/30 hover:bg-amber-500/40 text-amber-300 rounded-md text-sm font-medium transition-colors"
+            >
+              {t('orphanedGame.reassignButton', 'Reassign to Team')}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content: Soccer Field */}
       <div className="flex-grow relative bg-black">
         {/* Pass rel drawing handlers to SoccerField */}
@@ -2680,6 +2823,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           onToggleInstructionsModal={handleToggleInstructionsModal}
           onOpenSettingsModal={handleOpenSettingsModal}
           onOpenPlayerAssessmentModal={openPlayerAssessmentModal}
+          onOpenTeamManagerModal={handleOpenTeamManagerModal}
         />
       </div>
 
@@ -2692,6 +2836,19 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       <InstructionsModal
         isOpen={isInstructionsModalOpen}
         onClose={handleToggleInstructionsModal}
+      />
+      <TeamManagerModal
+        isOpen={isTeamManagerOpen}
+        onClose={handleCloseTeamManagerModal}
+        teams={teams}
+        onManageRoster={handleManageTeamRoster}
+      />
+      
+      <TeamRosterModal
+        isOpen={isTeamRosterModalOpen}
+        onClose={handleCloseTeamRosterModal}
+        teamId={selectedTeamForRoster}
+        team={teams.find(t => t.id === selectedTeamForRoster) || null}
       />
       {/* Goal Log Modal */}
       <GoalLogModal 
@@ -2759,6 +2916,12 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           initialPlayerSelection={playerIdsForNewGame} // <<< Pass the state here
           demandFactor={newGameDemandFactor}
           onDemandFactorChange={setNewGameDemandFactor}
+          onManageTeamRoster={(teamId) => {
+            // Close new game modal and open team roster modal for the specific team
+            setIsNewGameSetupModalOpen(false);
+            setSelectedTeamForRoster(teamId);
+            setIsTeamRosterModalOpen(true);
+          }}
           onStart={handleStartNewGameWithSetup} // CORRECTED Handler
           onCancel={handleCancelNewGameSetup} 
           // Pass the new mutation functions
@@ -2885,6 +3048,53 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         onSave={handleSavePlayerAssessment}
         onDelete={handleDeletePlayerAssessment}
       />
+
+      {/* Team Reassignment Modal for Orphaned Games */}
+      {isTeamReassignModalOpen && orphanedGameInfo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold text-yellow-400 mb-4">
+              {t('orphanedGame.reassignTitle', 'Reassign Game to Team')}
+            </h2>
+            <p className="text-slate-300 mb-4">
+              {t('orphanedGame.reassignDescription', 'Select a team to associate this game with, or choose "No Team" to use the master roster.')}
+            </p>
+            
+            <div className="space-y-2 mb-6 max-h-60 overflow-y-auto">
+              <button
+                onClick={() => handleTeamReassignment(null)}
+                className="w-full text-left px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-200 transition-colors"
+              >
+                {t('orphanedGame.noTeam', 'No Team (Use Master Roster)')}
+              </button>
+              {availableTeams.map(team => (
+                <button
+                  key={team.id}
+                  onClick={() => handleTeamReassignment(team.id)}
+                  className="w-full text-left px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-200 transition-colors flex items-center gap-2"
+                >
+                  {team.color && (
+                    <span 
+                      className="w-4 h-4 rounded-full border border-slate-500" 
+                      style={{ backgroundColor: team.color }}
+                    />
+                  )}
+                  {team.name}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsTeamReassignModalOpen(false)}
+                className="flex-1 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-md font-medium transition-colors"
+              >
+                {t('common.cancel', 'Cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </main>
   );

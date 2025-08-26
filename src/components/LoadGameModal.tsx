@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SavedGamesCollection } from '@/types'; // Keep this if SavedGamesCollection is from here
-import { Season, Tournament } from '@/types'; // Corrected import path
+import { Season, Tournament, Team } from '@/types'; // Corrected import path
 import logger from '@/utils/logger';
 import {
   HiOutlineDocumentArrowDown,
@@ -19,6 +19,7 @@ import {
 // Import new utility functions
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';
 import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
+import { getTeams } from '@/utils/teams';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 
 export interface LoadGameModalProps {
@@ -64,14 +65,15 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   const { t, i18n } = useTranslation();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState<string>('');
-  const [filterType, setFilterType] = useState<'season' | 'tournament' | null>(null);
+  const [filterType, setFilterType] = useState<'season' | 'tournament' | 'team' | null>(null);
   const [filterId, setFilterId] = useState<string | null>(null);
   const [showUnplayedOnly, setShowUnplayedOnly] = useState<boolean>(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  // State for seasons and tournaments
+  // State for seasons, tournaments, and teams
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
 
   // Load seasons and tournaments on mount or when modal opens
   useEffect(() => {
@@ -90,6 +92,14 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
         } catch (error) {
         logger.error("Error loading tournaments via utility:", error);
         setTournaments([]);
+      }
+
+      try {
+          const loadedTeamsData = await getTeams();
+          setTeams(Array.isArray(loadedTeamsData) ? loadedTeamsData : []);
+        } catch (error) {
+        logger.error("Error loading teams via utility:", error);
+        setTeams([]);
       }
       };
       fetchModalData();
@@ -130,6 +140,14 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       }
       if (filterType === 'tournament') {
         match = gameData.tournamentId === filterId;
+      }
+      if (filterType === 'team') {
+        // Match games that have the selected team ID, or handle legacy games
+        if (filterId === 'legacy') {
+          match = !gameData.teamId; // Legacy games have no teamId
+        } else {
+          match = gameData.teamId === filterId;
+        }
       }
 
       return match;
@@ -185,7 +203,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   };
 
   // --- Event Handlers ---
-  const handleBadgeClick = (type: 'season' | 'tournament', id: string) => {
+  const handleBadgeClick = (type: 'season' | 'tournament' | 'team', id: string) => {
     if (filterType === type && filterId === id) {
       // Clicked the currently active filter badge, so clear it
       setFilterType(null);
@@ -270,9 +288,11 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
           if (!game) return null;
           const isCurrent = gameId === currentGameId;
 
-          // Find Season/Tournament Name
+          // Find Season/Tournament/Team Name
           const season = seasons.find(s => s.id === game.seasonId);
           const tournament = tournaments.find(tourn => tourn.id === game.tournamentId);
+          const team = teams.find(t => t.id === game.teamId);
+          const isOrphaned = game.teamId && !team; // Game has teamId but team doesn't exist
           const contextName = season?.name || tournament?.name;
           const contextType = season ? 'Season' : (tournament ? 'Tournament' : null);
           const contextId = season?.id || tournament?.id;
@@ -332,32 +352,92 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                       {displayAwayTeamName}
                     </h3>
                   </div>
-                  {/* Context badge */}
-                  {contextName && contextType && contextId && (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
+                  {/* Context badges */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {contextName && contextType && contextId && (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleBadgeClick(contextType.toLowerCase() as ('season' | 'tournament'), contextId);
+                          }
+                        }}
+                        onClick={(e) => {
                           e.stopPropagation();
                           handleBadgeClick(contextType.toLowerCase() as ('season' | 'tournament'), contextId);
-                        }
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleBadgeClick(contextType.toLowerCase() as ('season' | 'tournament'), contextId);
-                      }}
-                      className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
-                        contextType.toLowerCase() === 'tournament' 
-                          ? 'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30' 
-                          : 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
-                      } ${filterType === contextType.toLowerCase() && filterId === contextId ? 'ring-2 ring-indigo-500' : ''}`}
-                      title={t('loadGameModal.filterByTooltip', 'Filter by {{name}}', { replace: { name: contextName } }) ?? `Filter by ${contextName}`}
-                    >
-                      {contextName}
-                    </span>
-                  )}
+                        }}
+                        className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+                          contextType.toLowerCase() === 'tournament' 
+                            ? 'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30' 
+                            : 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
+                        } ${filterType === contextType.toLowerCase() && filterId === contextId ? 'ring-2 ring-indigo-500' : ''}`}
+                        title={t('loadGameModal.filterByTooltip', 'Filter by {{name}}', { replace: { name: contextName } }) ?? `Filter by ${contextName}`}
+                      >
+                        {contextName}
+                      </span>
+                    )}
+
+                    {/* Team badge or orphaned indicator */}
+                    {isOrphaned ? (
+                      <span
+                        className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                        title={t('loadGameModal.orphanedGameTooltip', 'Original team no longer exists')}
+                      >
+                        ⚠️ {t('loadGameModal.orphanedTeam', 'Team Deleted')}
+                      </span>
+                    ) : team ? (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleBadgeClick('team', team.id);
+                          }
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleBadgeClick('team', team.id);
+                        }}
+                        className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
+                          filterType === 'team' && filterId === team.id ? 'ring-2 ring-green-500' : ''
+                        }`}
+                        style={{ 
+                          backgroundColor: team.color ? `${team.color}20` : '#10B98120',
+                          color: team.color || '#10B981'
+                        }}
+                        title={t('loadGameModal.filterByTeam', 'Filter by team {{name}}', { replace: { name: team.name } }) ?? `Filter by team ${team.name}`}
+                      >
+                        {team.name}
+                      </span>
+                    ) : (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleBadgeClick('team', 'legacy');
+                          }
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleBadgeClick('team', 'legacy');
+                        }}
+                        className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 ${
+                          filterType === 'team' && filterId === 'legacy' ? 'ring-2 ring-amber-500' : ''
+                        }`}
+                        title={t('loadGameModal.legacyGameTooltip', 'Legacy game (no team assigned)')}
+                      >
+                        {t('loadGameModal.legacy', 'Legacy')}
+                      </span>
+                    )}
+                  </div>
 
                   {/* Meta row */}
                   <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400 mb-3">
@@ -530,15 +610,76 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             <input type="text" placeholder={t('loadGameModal.filterPlaceholder', 'Filter by name, date, etc...')} value={searchText} onChange={handleSearchChange} className="w-full pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
             <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
           </div>
-          <label className="mt-2 flex items-center gap-2 text-sm text-slate-300">
-            <input
-              type="checkbox"
-              checked={showUnplayedOnly}
-              onChange={(e) => setShowUnplayedOnly(e.target.checked)}
-              className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
-            />
-            {t('loadGameModal.showUnplayedOnly', 'Show only unplayed games')}
-          </label>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-2 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                checked={showUnplayedOnly}
+                onChange={(e) => setShowUnplayedOnly(e.target.checked)}
+                className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
+              />
+              {t('loadGameModal.showUnplayedOnly', 'Show only unplayed games')}
+            </label>
+          </div>
+
+          {/* Team Filter Section */}
+          {teams.length > 0 && (
+            <div className="mt-3">
+              <div className="text-xs text-slate-400 mb-2">
+                {t('loadGameModal.teamFilter', 'Filter by Team:')}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {/* All Teams option */}
+                <button
+                  onClick={() => {
+                    setFilterType(null);
+                    setFilterId(null);
+                  }}
+                  className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium transition-colors ${
+                    filterType !== 'team' 
+                      ? 'bg-slate-600/80 text-slate-200 hover:bg-slate-600' 
+                      : 'bg-slate-700/60 text-slate-400 hover:bg-slate-700'
+                  }`}
+                >
+                  {t('loadGameModal.allTeams', 'All Teams')}
+                </button>
+
+                {/* Legacy games option */}
+                <button
+                  onClick={() => handleBadgeClick('team', 'legacy')}
+                  className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium transition-colors ${
+                    filterType === 'team' && filterId === 'legacy'
+                      ? 'bg-amber-500/30 text-amber-300 ring-2 ring-amber-500/50' 
+                      : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
+                  }`}
+                >
+                  {t('loadGameModal.legacyGames', 'Legacy Games')}
+                </button>
+
+                {/* Team filter buttons */}
+                {teams.map((team) => (
+                  <button
+                    key={team.id}
+                    onClick={() => handleBadgeClick('team', team.id)}
+                    className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium transition-colors ${
+                      filterType === 'team' && filterId === team.id
+                        ? 'bg-green-500/30 text-green-300 ring-2 ring-green-500/50' 
+                        : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                    }`}
+                    style={team.color ? { 
+                      backgroundColor: `${team.color}20`, 
+                      color: team.color,
+                      ...(filterType === 'team' && filterId === team.id ? { 
+                        boxShadow: `0 0 0 2px ${team.color}80` 
+                      } : {})
+                    } : undefined}
+                  >
+                    {team.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6">
           {mainContent}

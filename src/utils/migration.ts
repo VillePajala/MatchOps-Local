@@ -1,14 +1,10 @@
 import { Team, TeamPlayer, Player } from '@/types';
-import { SavedGamesCollection } from '@/types/game';
 import { APP_DATA_VERSION_KEY } from '@/config/storageKeys';
 import { getLocalStorageItem, setLocalStorageItem } from './localStorage';
 import { getMasterRoster } from './masterRosterManager';
-import { getSavedGames } from './savedGames';
-import { getSeasons } from './seasons';
-import { getTournaments } from './tournaments';
-import { getAllPlayerAdjustments } from './playerAdjustments';
+// Note: Removed imports for global entity migration (seasons/tournaments/saved games/adjustments remain global)
 import { getLastHomeTeamName } from './appSettings';
-import { createTeam, setActiveTeamId, setTeamRoster } from './teams';
+import { addTeam, setTeamRoster } from './teams';
 import logger from './logger';
 
 const CURRENT_DATA_VERSION = 2;
@@ -49,22 +45,18 @@ export const runMigration = async (): Promise<void> => {
     await migrateRosterToTeam(defaultTeam.id);
     logger.log('[Migration] Migrated roster to team');
 
-    // Step 3: Tag existing seasons/tournaments with teamId
-    await migrateSeasonsToTeam(defaultTeam.id);
-    await migrateTournamentsToTeam(defaultTeam.id);
-    logger.log('[Migration] Migrated seasons and tournaments');
+    // Step 3: Seasons and tournaments remain global (no teamId tagging per plan)
+    logger.log('[Migration] Seasons and tournaments remain global entities');
 
-    // Step 4: Update saved games to include teamId
-    await migrateSavedGamesToTeam(defaultTeam.id);
-    logger.log('[Migration] Migrated saved games');
+    // Step 4: Saved games remain untagged (legacy games stay global per plan) 
+    logger.log('[Migration] Saved games remain global (legacy data preserved)');
 
-    // Step 5: Update external player adjustments
-    await migratePlayerAdjustmentsToTeam(defaultTeam.id);
-    logger.log('[Migration] Migrated player adjustments');
+    // Step 5: Player adjustments remain untagged (historical data preserved)
+    logger.log('[Migration] Player adjustments remain global (historical data preserved)');
 
     // Step 6: Set as active team
-    setActiveTeamId(defaultTeam.id);
-    logger.log('[Migration] Set default team as active');
+    // Note: Active team concept removed - teams are contextually selected
+    logger.log('[Migration] Created default team for legacy data');
 
     // Step 7: Update app data version
     setAppDataVersion(CURRENT_DATA_VERSION);
@@ -87,7 +79,7 @@ const createDefaultTeam = async (): Promise<Team> => {
     teamName = MIGRATION_TEAM_NAME_FALLBACK;
   }
 
-  return await createTeam({
+  return await addTeam({
     name: teamName,
     color: '#6366F1', // Default indigo color
   });
@@ -119,100 +111,15 @@ const migrateRosterToTeam = async (teamId: string): Promise<void> => {
   }
 };
 
-// Add teamId to existing seasons
-const migrateSeasonsToTeam = async (teamId: string): Promise<void> => {
-  try {
-    const seasons = await getSeasons();
-    const updatedSeasons = seasons.map(season => ({
-      ...season,
-      teamId: season.teamId || teamId, // Only set if not already set
-    }));
-
-    // Save updated seasons back to localStorage
-    setLocalStorageItem('soccerSeasons', JSON.stringify(updatedSeasons));
-  } catch (error) {
-    logger.warn('[Migration] Could not migrate seasons:', error);
-  }
-};
-
-// Add teamId to existing tournaments
-const migrateTournamentsToTeam = async (teamId: string): Promise<void> => {
-  try {
-    const tournaments = await getTournaments();
-    const updatedTournaments = tournaments.map(tournament => ({
-      ...tournament,
-      teamId: tournament.teamId || teamId, // Only set if not already set
-    }));
-
-    // Save updated tournaments back to localStorage
-    setLocalStorageItem('soccerTournaments', JSON.stringify(updatedTournaments));
-  } catch (error) {
-    logger.warn('[Migration] Could not migrate tournaments:', error);
-  }
-};
-
-// Add teamId to existing saved games
-const migrateSavedGamesToTeam = async (teamId: string): Promise<void> => {
-  try {
-    const savedGames = await getSavedGames();
-    const updatedGames: SavedGamesCollection = {};
-
-    Object.entries(savedGames).forEach(([gameId, gameState]) => {
-      updatedGames[gameId] = {
-        ...gameState,
-        teamId: gameState.teamId || teamId, // Only set if not already set
-      };
-    });
-
-    // Save updated games back to localStorage
-    setLocalStorageItem('savedSoccerGames', JSON.stringify(updatedGames));
-  } catch (error) {
-    logger.warn('[Migration] Could not migrate saved games:', error);
-  }
-};
-
-// Add teamId to existing player adjustments
-const migratePlayerAdjustmentsToTeam = async (teamId: string): Promise<void> => {
-  try {
-    const adjustmentsIndex = await getAllPlayerAdjustments();
-    let hasUpdates = false;
-
-    Object.keys(adjustmentsIndex).forEach(playerId => {
-      const adjustments = adjustmentsIndex[playerId];
-      adjustments.forEach(adjustment => {
-        if (!adjustment.teamId) {
-          adjustment.teamId = teamId;
-          hasUpdates = true;
-        }
-      });
-    });
-
-    if (hasUpdates) {
-      // Save updated adjustments back to localStorage
-      setLocalStorageItem('soccerPlayerAdjustments', JSON.stringify(adjustmentsIndex));
-    }
-  } catch (error) {
-    logger.warn('[Migration] Could not migrate player adjustments:', error);
-  }
-};
+// Note: Previous functions removed per plan - seasons/tournaments/saved games/adjustments remain global
+// - migrateSeasonsToTeam: Seasons remain global entities (no teamId tagging)
+// - migrateTournamentsToTeam: Tournaments remain global entities (no teamId tagging) 
+// - migrateSavedGamesToTeam: Legacy games preserved as global (no historical data mutation)
+// - migratePlayerAdjustmentsToTeam: Historical adjustments preserved (no retrospective tagging)
 
 // Create compatibility shims for existing code during migration
 export const getMasterRosterCompat = async (): Promise<Player[]> => {
-  // If migration is complete, get roster from active team
-  if (!isMigrationNeeded()) {
-    const { getActiveTeamId, getTeamRoster } = await import('./teams');
-    const activeTeamId = getActiveTeamId();
-    if (activeTeamId) {
-      const teamRoster = await getTeamRoster(activeTeamId);
-      // Convert TeamPlayer back to Player for compatibility
-      return teamRoster.map(teamPlayer => ({
-        ...teamPlayer,
-        relX: undefined,
-        relY: undefined,
-      })) as Player[];
-    }
-  }
-  
-  // Fallback to original method during migration
+  // Note: Active team concept removed - this function now just returns master roster
+  // This will be refactored when implementing contextual team selection
   return getMasterRoster();
 };
