@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineUserPlus } from 'react-icons/hi2';
 import { Team, Player } from '@/types';
-import { useTeamRosterQuery, useAddPlayerToRosterMutation, useRemovePlayerFromRosterMutation, useSetTeamRosterMutation } from '@/hooks/useTeamQueries';
+import { useTeamRosterQuery, useAddPlayerToRosterMutation, useSetTeamRosterMutation } from '@/hooks/useTeamQueries';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import logger from '@/utils/logger';
@@ -34,7 +34,6 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
   // Queries and mutations
   const { data: teamRoster = [], isLoading: isLoadingRoster } = useTeamRosterQuery(teamId);
   const addPlayerToRosterMutation = useAddPlayerToRosterMutation();
-  const removePlayerFromRosterMutation = useRemovePlayerFromRosterMutation();
   const setTeamRosterMutation = useSetTeamRosterMutation();
 
   // Reset form when modal opens
