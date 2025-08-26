@@ -78,6 +78,7 @@ const OrphanedGameHandler: React.FC<OrphanedGameHandlerProps> = ({
       
       // Clear selection
       setSelectedReassignments(prev => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { [gameId]: _removed, ...rest } = prev;
         return rest;
       });
