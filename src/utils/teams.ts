@@ -1,7 +1,7 @@
 import { Team, TeamPlayer } from '@/types';
+import type { AppState } from '@/types/game';
 import { 
-  TEAMS_INDEX_KEY, 
-  ACTIVE_TEAM_ID_KEY, 
+  TEAMS_INDEX_KEY,
   TEAM_ROSTERS_KEY 
 } from '@/config/storageKeys';
 import { getLocalStorageItem, setLocalStorageItem } from './localStorage';
@@ -39,12 +39,38 @@ export const getTeam = async (teamId: string): Promise<Team | null> => {
   return teamsIndex[teamId] || null;
 };
 
+// Validate team name uniqueness (case-insensitive, normalized)
+const validateTeamName = async (name: string, excludeTeamId?: string): Promise<void> => {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    throw new Error('Team name cannot be empty');
+  }
+  if (trimmed.length > 48) {
+    throw new Error('Team name cannot exceed 48 characters');
+  }
+
+  const teams = await getTeams();
+  const normalizedName = trimmed.toLowerCase().normalize('NFKC');
+  
+  const existingTeam = teams.find(team => 
+    team.id !== excludeTeamId && 
+    team.name.toLowerCase().normalize('NFKC') === normalizedName
+  );
+  
+  if (existingTeam) {
+    throw new Error(`A team named '${trimmed}' already exists.`);
+  }
+};
+
 // Create new team
-export const createTeam = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>): Promise<Team> => {
+export const addTeam = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>): Promise<Team> => {
+  await validateTeamName(teamData.name);
+  
   const now = new Date().toISOString();
   const team: Team = {
     id: `team_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     ...teamData,
+    name: teamData.name.trim(), // Ensure trimmed
     createdAt: now,
     updatedAt: now,
   };
@@ -64,6 +90,12 @@ export const updateTeam = async (teamId: string, updates: Partial<Omit<Team, 'id
   const teamsIndex = await getAllTeams();
   const existing = teamsIndex[teamId];
   if (!existing) return null;
+
+  // Validate name if being updated
+  if (updates.name !== undefined) {
+    await validateTeamName(updates.name, teamId);
+    updates.name = updates.name.trim();
+  }
 
   const updatedTeam: Team = {
     ...existing,
@@ -86,19 +118,7 @@ export const deleteTeam = async (teamId: string): Promise<boolean> => {
   return true;
 };
 
-// Active team management
-export const getActiveTeamId = (): string | null => {
-  const stored = getLocalStorageItem(ACTIVE_TEAM_ID_KEY);
-  return stored || null;
-};
-
-export const setActiveTeamId = (teamId: string | null): void => {
-  if (teamId) {
-    setLocalStorageItem(ACTIVE_TEAM_ID_KEY, teamId);
-  } else {
-    localStorage.removeItem(ACTIVE_TEAM_ID_KEY);
-  }
-};
+// Note: Active team management removed - teams are contextually selected
 
 // Team roster management
 export const getAllTeamRosters = async (): Promise<TeamRostersIndex> => {
@@ -150,25 +170,46 @@ export const removePlayerFromRoster = async (teamId: string, playerId: string): 
   return true;
 };
 
-// Duplicate team (creates new team with copied roster)
-export const duplicateTeam = async (sourceTeamId: string, newName: string): Promise<Team | null> => {
-  const sourceTeam = await getTeam(sourceTeamId);
-  if (!sourceTeam) return null;
+// Duplicate team (with new player IDs)
+export const duplicateTeam = async (teamId: string): Promise<Team | null> => {
+  const originalTeam = await getTeam(teamId);
+  if (!originalTeam) return null;
 
-  const sourceRoster = await getTeamRoster(sourceTeamId);
-
-  // Create new team
-  const newTeam = await createTeam({
-    name: newName,
-    color: sourceTeam.color,
+  const originalRoster = await getTeamRoster(teamId);
+  
+  // Create new team with "(Copy)" suffix
+  const newTeam = await addTeam({
+    name: `${originalTeam.name} (Copy)`,
+    color: originalTeam.color,
   });
 
-  // Copy roster with new player IDs
-  const copiedRoster: TeamPlayer[] = sourceRoster.map(player => ({
+  // Duplicate roster with new player IDs (per plan: globally unique IDs)
+  const newRoster: TeamPlayer[] = originalRoster.map(player => ({
     ...player,
-    id: `player_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    id: `player_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`, // New globally unique ID
   }));
 
-  await setTeamRoster(newTeam.id, copiedRoster);
+  await setTeamRoster(newTeam.id, newRoster);
   return newTeam;
+};
+
+// Count games associated with a team (for deletion impact analysis)
+export const countGamesForTeam = async (teamId: string): Promise<number> => {
+  try {
+    const savedGamesJson = getLocalStorageItem('savedSoccerGames');
+    if (!savedGamesJson) return 0;
+    
+    const savedGames = JSON.parse(savedGamesJson);
+    let count = 0;
+    
+    for (const gameState of Object.values(savedGames)) {
+      if ((gameState as AppState).teamId === teamId) {
+        count++;
+      }
+    }
+    
+    return count;
+  } catch {
+    return 0;
+  }
 };

@@ -58,7 +58,7 @@ export interface Season {
   color?: string;
   badge?: string;
   ageGroup?: string;
-  teamId?: string;            // NEW: optional team association (global if omitted)
+  // Note: teamId removed - seasons are global entities per plan
 }
 
 export interface Tournament {
@@ -78,7 +78,7 @@ export interface Tournament {
   badge?: string;
   level?: string;
   ageGroup?: string;
-  teamId?: string;            // NEW: optional team association (global if omitted)
+  // Note: teamId removed - tournaments are global entities per plan
 }
 
 export * from './playerAssessment';

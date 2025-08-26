@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Player, Season, Tournament } from '@/types';
+import { Player, Season, Tournament, Team } from '@/types';
 import { HiPlusCircle } from 'react-icons/hi';
 import logger from '@/utils/logger';
+import { getTeams, getTeamRoster } from '@/utils/teams';
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';
 import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
 import { getMasterRoster } from '@/utils/masterRosterManager';
@@ -21,6 +22,7 @@ interface NewGameSetupModalProps {
   initialPlayerSelection: string[] | null;
   demandFactor: number;
   onDemandFactorChange: (factor: number) => void;
+  onManageTeamRoster?: (teamId: string) => void; // Optional callback to open team roster management
   onStart: (
     initialSelectedPlayerIds: string[],
     homeTeamName: string,
@@ -36,7 +38,9 @@ interface NewGameSetupModalProps {
     demandFactor: number,
     ageGroup: string,
     tournamentLevel: string,
-    isPlayed: boolean
+    isPlayed: boolean,
+    teamId: string | null, // Add team selection parameter
+    availablePlayersForGame: Player[] // Add the actual roster to use for the game
   ) => void;
   onCancel: () => void;
   addSeasonMutation: UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
@@ -50,6 +54,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   initialPlayerSelection,
   demandFactor,
   onDemandFactorChange,
+  onManageTeamRoster,
   onStart,
   onCancel,
   addSeasonMutation,
@@ -95,6 +100,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [availablePlayersForSetup, setAvailablePlayersForSetup] = useState<Player[]>([]);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>(initialPlayerSelection || []);
 
+  // Team selection state
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [isTeamNameAutoFilled, setIsTeamNameAutoFilled] = useState<boolean>(false);
+  
   // NEW: Loading and error states for initial data fetch
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +119,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       setGameMinute('');
       setSelectedSeasonId(null);
       setSelectedTournamentId(null);
+      setSelectedTeamId(null);
       setShowNewSeasonInput(false);
       setNewSeasonName('');
       setShowNewTournamentInput(false);
@@ -145,6 +156,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
           const tournamentsData = await utilGetTournaments();
           setTournaments(Array.isArray(tournamentsData) ? tournamentsData : []);
 
+          const teamsData = await getTeams();
+          setTeams(Array.isArray(teamsData) ? teamsData : []);
+
           // MOVED Focus to run earlier, but can be adjusted if data loading causes issues with it.
           // setTimeout(() => nameInputRef.current?.focus(), 100); 
         } catch (err) {
@@ -153,6 +167,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
           setHomeTeamName(t('newGameSetupModal.defaultTeamName', 'My Team'));
           setSeasons([]);
           setTournaments([]);
+          setTeams([]);
           setAvailablePlayersForSetup([]); // Reset on error too
           setSelectedPlayerIds(initialPlayerSelection || []); // Reset selection on error
         } finally {
@@ -173,6 +188,78 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       setNewSeasonName('');
     } else {
       setSelectedSeasonId(null);
+    }
+  };
+
+  // Team selection handler with roster auto-load and name auto-fill
+  const handleTeamSelection = async (teamId: string | null) => {
+    setSelectedTeamId(teamId);
+    
+    if (teamId) {
+      try {
+        // Load team's roster
+        const teamRoster = await getTeamRoster(teamId);
+        if (teamRoster && teamRoster.length > 0) {
+          setAvailablePlayersForSetup(teamRoster);
+          setSelectedPlayerIds(teamRoster.map(p => p.id));
+        } else {
+          // Team roster is empty - prompt user to manage roster
+          const shouldManageRoster = window.confirm(
+            t('newGameSetupModal.emptyTeamRosterPrompt', 
+              'The selected team has no players. Would you like to manage the team roster now, or continue with the master roster as fallback?'
+            )
+          );
+          
+          if (shouldManageRoster && onManageTeamRoster) {
+            // Close this modal and open team roster management
+            onManageTeamRoster(teamId);
+            return; // Don't continue with fallback if user wants to manage roster
+          }
+          
+          // Fallback to master roster if team roster is empty
+          const masterRoster = await getMasterRoster();
+          setAvailablePlayersForSetup(masterRoster || []);
+          setSelectedPlayerIds(masterRoster?.map(p => p.id) || []);
+        }
+        
+        // Auto-fill team name (but keep it editable)
+        const team = teams.find(t => t.id === teamId);
+        if (team) {
+          setHomeTeamName(team.name);
+          setIsTeamNameAutoFilled(true);
+        }
+      } catch (error) {
+        logger.error('[NewGameSetupModal] Error loading team roster:', error);
+        // Fallback to master roster on error
+        const masterRoster = await getMasterRoster();
+        setAvailablePlayersForSetup(masterRoster || []);
+        setSelectedPlayerIds(masterRoster?.map(p => p.id) || []);
+      }
+    } else {
+      // No team selected - use master roster
+      try {
+        const masterRoster = await getMasterRoster();
+        setAvailablePlayersForSetup(masterRoster || []);
+        setSelectedPlayerIds(masterRoster?.map(p => p.id) || []);
+        
+        // Clear team name only if it was auto-filled (preserve manual input)
+        if (isTeamNameAutoFilled) {
+          setHomeTeamName('');
+          setIsTeamNameAutoFilled(false);
+        }
+      } catch (error) {
+        logger.error('[NewGameSetupModal] Error loading master roster:', error);
+        setAvailablePlayersForSetup([]);
+        setSelectedPlayerIds([]);
+      }
+    }
+  };
+
+  const handleTeamNameChange = (newName: string) => {
+    setHomeTeamName(newName);
+    // If user manually changes the name, it's no longer auto-filled
+    if (isTeamNameAutoFilled) {
+      setIsTeamNameAutoFilled(false);
     }
   };
 
@@ -375,7 +462,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       demandFactor,
       ageGroup,
       tournamentLevel,
-      isPlayed
+      isPlayed,
+      selectedTeamId, // Add team selection parameter
+      availablePlayersForSetup // Pass the actual roster being used in the modal
     );
 
     // Modal will be closed by parent component after onStart
@@ -492,7 +581,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
             <TeamOpponentInputs
               teamName={homeTeamName}
               opponentName={opponentName}
-              onTeamNameChange={setHomeTeamName}
+              onTeamNameChange={handleTeamNameChange}
               onOpponentNameChange={setOpponentName}
               teamLabel={t('newGameSetupModal.homeTeamName', 'Your Team Name') + ' *'}
               teamPlaceholder={t('newGameSetupModal.homeTeamPlaceholder', 'e.g., Galaxy U10')}
@@ -513,6 +602,43 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     modalContent
                   ) : (
                     <>
+                    {/* Team Selection Section */}
+                    <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+                      <h3 className="text-lg font-semibold text-slate-200 mb-3">
+                        {t('newGameSetupModal.teamLabel', 'Team Selection')}
+                      </h3>
+                      <div className="mb-4">
+                        <label htmlFor="teamSelect" className="block text-sm font-medium text-slate-300 mb-1">
+                          {t('newGameSetupModal.selectTeamLabel', 'Select Team')}
+                        </label>
+                        <select
+                          id="teamSelect"
+                          value={selectedTeamId || ''}
+                          onChange={(e) => handleTeamSelection(e.target.value || null)}
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                          disabled={isLoading}
+                        >
+                          <option value="">
+                            {t('newGameSetupModal.noTeamMasterRoster', 'No Team (Use Master Roster)')}
+                          </option>
+                          {teams.map((team) => (
+                            <option key={team.id} value={team.id}>
+                              {team.name}
+                            </option>
+                          ))}
+                        </select>
+                        {selectedTeamId && (
+                          <p className="mt-1 text-sm text-slate-400">
+                            {t('newGameSetupModal.teamSelectedNote', 'Player roster will be loaded from selected team.')}
+                          </p>
+                        )}
+                        {!selectedTeamId && (
+                          <p className="mt-1 text-sm text-slate-400">
+                            {t('newGameSetupModal.masterRosterNote', 'Using master roster - all players available.')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
 
                     {/* Season & Tournament Section */}
                     <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">

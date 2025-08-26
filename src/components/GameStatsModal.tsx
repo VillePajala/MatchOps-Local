@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import type { TranslationKey } from '@/i18n-types';
 import logger from '@/utils/logger';
 // Import types from the types directory
-import { Player, PlayerStatRow, Season, Tournament } from '@/types';
+import { Player, PlayerStatRow, Season, Tournament, Team } from '@/types';
 import { GameEvent, SavedGamesCollection } from '@/types';
 // ADD new import for keys
 // import { SEASONS_LIST_KEY, TOURNAMENTS_LIST_KEY } from '@/config/constants';
@@ -16,6 +16,7 @@ import { GameEvent, SavedGamesCollection } from '@/types';
 // <<< ADD imports for utility functions >>>
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';
 import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
+import { getTeams as utilGetTeams } from '@/utils/teams';
 import { FaSort, FaSortUp, FaSortDown, FaEdit, FaSave, FaTimes, FaTrashAlt } from 'react-icons/fa';
 import PlayerStatsView from './PlayerStatsView';
 import { calculateTeamAssessmentAverages } from '@/utils/assessmentStats';
@@ -34,6 +35,7 @@ interface SavedGame {
   selectedPlayerIds?: string[];
   seasonId?: string | null;
   tournamentId?: string | null;
+  teamId?: string | null;
   gameEvents?: GameEvent[];
   // Note: Add other properties from AppState if they are accessed via 'game' variable below
 }
@@ -197,9 +199,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const goalTimeInputRef = useRef<HTMLInputElement>(null);
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [activeTab, setActiveTab] = useState<StatsTab>('currentGame');
   const [selectedSeasonIdFilter, setSelectedSeasonIdFilter] = useState<string | 'all'>('all');
   const [selectedTournamentIdFilter, setSelectedTournamentIdFilter] = useState<string | 'all'>('all');
+  const [selectedTeamIdFilter, setSelectedTeamIdFilter] = useState<string | 'all' | 'legacy'>('all');
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents); // Ensure local copy for editing/deleting
   const [localFairPlayPlayerId, setLocalFairPlayPlayerId] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -227,7 +231,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   }, [availablePlayers]);
 
   // --- Effects ---
-  // Load seasons/tournaments
+  // Load seasons/tournaments/teams
   useEffect(() => {
     const loadData = async () => { 
     if (isOpen) {
@@ -242,6 +246,12 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         setTournaments(loadedTournaments);
         } catch (error) { 
           logger.error("Failed to load tournaments:", error); setTournaments([]); 
+    }
+      try {
+          const loadedTeams = await utilGetTeams();
+        setTeams(loadedTeams);
+        } catch (error) { 
+          logger.error("Failed to load teams:", error); setTeams([]); 
     }
       }
     };
@@ -278,6 +288,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   useEffect(() => {
       setSelectedSeasonIdFilter('all');
       setSelectedTournamentIdFilter('all');
+      setSelectedTeamIdFilter('all');
   }, [activeTab]);
 
   // Update localGameEvents when main gameEvents change
@@ -666,6 +677,17 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         const game: SavedGame | undefined = savedGames?.[gameId];
         if (!game) return false;
 
+        // Apply team filter first (affects all tabs)
+        if (selectedTeamIdFilter !== 'all') {
+          if (selectedTeamIdFilter === 'legacy') {
+            // Only include games without teamId (legacy games)
+            if (game.teamId != null && game.teamId !== '') return false;
+          } else {
+            // Only include games with specific teamId
+            if (game.teamId !== selectedTeamIdFilter) return false;
+          }
+        }
+
         if (activeTab === 'season') {
           // Stricter Check: If 'all', include only if it has a seasonId AND NOT a tournamentId.
           return selectedSeasonIdFilter === 'all'
@@ -816,6 +838,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     filterText,
     selectedSeasonIdFilter,
     selectedTournamentIdFilter,
+    selectedTeamIdFilter,
     currentGameId,
     selectedPlayerIds
   ]);
@@ -972,6 +995,54 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               )}
+
+              {/* Team Filter (available for all tabs except player) */}
+              {activeTab !== 'player' && teams.length > 0 && (
+                <div className="w-full mt-2">
+                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                    {t('loadGameModal.filterByTeam', 'Filter by Team')}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setSelectedTeamIdFilter('all')}
+                      className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium transition-colors ${
+                        selectedTeamIdFilter === 'all'
+                          ? 'bg-green-500/30 text-green-300 ring-2 ring-green-500/50'
+                          : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                      }`}
+                    >
+                      {t('loadGameModal.allTeamsFilter', 'All Teams')}
+                    </button>
+                    <button
+                      onClick={() => setSelectedTeamIdFilter('legacy')}
+                      className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium transition-colors ${
+                        selectedTeamIdFilter === 'legacy'
+                          ? 'bg-slate-500/30 text-slate-300 ring-2 ring-slate-500/50'
+                          : 'bg-slate-500/20 text-slate-400 hover:bg-slate-500/30'
+                      }`}
+                    >
+                      {t('loadGameModal.legacyGamesFilter', 'Legacy Games')}
+                    </button>
+                    {teams.map((team) => (
+                      <button
+                        key={team.id}
+                        onClick={() => setSelectedTeamIdFilter(team.id)}
+                        className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium transition-colors ${
+                          selectedTeamIdFilter === team.id
+                            ? 'bg-green-500/30 text-green-300 ring-2 ring-green-500/50'
+                            : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                        }`}
+                        style={team.color ? {
+                          backgroundColor: `${team.color}20`,
+                          color: team.color
+                        } : undefined}
+                      >
+                        {team.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1031,6 +1102,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   onGameClick={onGameClick}
                   seasons={seasons}
                   tournaments={tournaments}
+                  teamId={selectedTeamIdFilter !== 'all' && selectedTeamIdFilter !== 'legacy' ? selectedTeamIdFilter : undefined}
                 />
               </div>
             </div>
