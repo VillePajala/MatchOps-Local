@@ -26,3 +26,125 @@ Manage multiple teams as curated sub-rosters. Select a team during game creation
 
 ## Full Design & Acceptance Criteria
 See `../../MULTI-TEAM-SUPPORT.md` for the complete plan, risks, migration, testing, and success criteria.
+
+---
+
+## Architecture and Differences vs Pre‑Team State
+
+### Before (no teams)
+- Only one global roster ("master kokoonpano") existed.
+- New Game used the master roster as both the available list and the initial selection (often all selected).
+- Saved games had no `teamId`; Load/Stats could not be filtered by team.
+- Editing who belongs to the roster was done in the global Roster Settings.
+
+### Now (teams as first‑class entities)
+- Teams are data entities with their own rosters; master kokoonpano still exists as the global source of truth.
+- New Game behavior:
+  - Available players for setup = full master kokoonpano.
+  - If a Team is selected, players from that team are pre‑selected within the master list; if No Team is selected, default pre‑selection is the entire master list (or empty if desired).
+  - On start, we persist both the actual available player list (from master) and the chosen selection for that game; we also persist `teamId` if a team was chosen.
+- In‑game editing (Game Settings):
+  - Team context (if any) is preselected; the available list remains the master list saved with the game.
+  - Coaches can add/remove which players are selected for that game without changing team membership.
+  - Team membership is managed only in Team Manager; Game Settings only changes the game’s selection.
+- Load/Stats can filter by specific team or show All/Legacy.
+
+### Data and Storage
+- Teams index: `soccerTeams` → `Team[]` (or keyed index in implementation)
+- Team rosters: `soccerTeamRosters` → `{ [teamId]: Player[] }`
+- AppState (per saved game): adds optional `teamId` and persists `availablePlayers` and `selectedPlayerIds` for that game snapshot.
+- Seasons/Tournaments remain global; no `teamId` there.
+
+### Query Keys & Hooks
+- `queryKeys.teams`, `queryKeys.teamRoster(teamId)`; global `seasons`, `tournaments`, `savedGames` unchanged.
+- Hooks in `src/hooks/useTeamQueries.ts` encapsulate CRUD and cache invalidation for teams and rosters.
+
+---
+
+## New Game Flow (team‑aware pre‑selection)
+
+1) Team selection dropdown (or No Team) in `NewGameSetupModal.tsx`.
+2) Available list = full master kokoonpano.
+3) Pre‑selected IDs:
+   - If Team selected: pre‑select only those master players whose names match the team roster (robust normalization; IDs differ by design).
+   - If No Team: optionally select all from master, or none depending on UX configuration.
+4) On Confirm:
+   - `HomePage.handleStartNewGameWithSetup(...)` receives `(teamId, availablePlayersForGame, selectedPlayerIds, ...)`.
+   - Game state is created with `teamId` (if any), `availablePlayers` set to the full list shown in the modal, and `selectedPlayerIds` as chosen.
+
+Rationale:
+- Keeps a single authoritative player pool (master), while teams act as curated pre‑selections that speed up setup.
+- Avoids fragmenting the available list; team membership does not remove non‑team players from availability.
+
+---
+
+## Game Settings Flow (edit selection during game)
+
+- Opens with the game’s `teamId` preselected (if present) and uses the game’s saved `availablePlayers` list (master snapshot).
+- The selection can be freely adjusted (add/remove players) without changing team membership.
+- Changes are saved back into the game session (`selectedPlayerIds`), keeping availability intact.
+
+Difference from pre‑team state:
+- Before: only one roster; selection edits implicitly modified the global roster via older flows in some places.
+- Now: selection edits modify only the game; team membership is edited solely via Team Manager.
+
+---
+
+## Team Manager & Roster Editing
+
+### Selecting From Master (edit team membership)
+- UI lists the full master kokoonpano.
+- Pre‑selection: players already in the team are automatically checked using robust name matching (Unicode normalization + lowercasing + trimming).
+- Save action replaces the team roster with the exact selected set (no duplicates), generating new team‑local player IDs.
+
+Why replace instead of append:
+- Guarantees that toggling checkboxes yields an exact match for membership.
+- Avoids duplicate team members and keeps the UX predictable.
+
+Edge cases handled:
+- Name matching with diacritics (ä/ö, composed vs decomposed forms) via `.normalize('NFKC')` before comparing.
+- Empty team → no pre‑selection; coach can build membership from master.
+
+---
+
+## Backward Compatibility
+
+- Legacy games (no `teamId`) remain valid and appear under All/Legacy in Load/Stats.
+- Master kokoonpano remains the global list; team rosters are curated subsets, not a replacement.
+- Seasons/Tournaments remain global and unscoped.
+
+---
+
+## Risks & Mitigations
+
+- Duplicate names across master may pre‑select unintended players.
+  - Mitigation: prefer stable identifiers if/when master players have unique keys across imports; for now, normalization + review is sufficient.
+- Team deletion may orphan games.
+  - Mitigation: orphaned banner + reassign flow; Load/Stats still show legacy.
+- Performance with large master lists.
+  - Mitigation: simple client filtering; virtualize lists if needed.
+
+---
+
+## Developer Checklist
+
+- Data
+  - [ ] `soccerTeams` and `soccerTeamRosters` keys present and validated
+  - [ ] `AppState.teamId?` persisted on new games when team selected
+
+- New Game
+  - [ ] Available list uses master kokoonpano
+  - [ ] Team pre‑selection applied (normalized name match)
+  - [ ] `availablePlayers` and `selectedPlayerIds` saved on create
+
+- Game Settings
+  - [ ] Team preselected if present; selection changes don’t affect team membership
+
+- Team Manager
+  - [ ] Full master list shown in selection
+  - [ ] Pre‑checked = current team
+  - [ ] Save uses replace semantics (no duplicates; new IDs)
+
+- UX
+  - [ ] Load modal has All/Team/Legacy filters
+  - [ ] Stats accept optional team filter
