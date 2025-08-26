@@ -78,7 +78,7 @@ const OrphanedGameHandler: React.FC<OrphanedGameHandlerProps> = ({
       
       // Clear selection
       setSelectedReassignments(prev => {
-        const { [gameId]: _, ...rest } = prev;
+        const { [gameId]: _removed, ...rest } = prev;
         return rest;
       });
 

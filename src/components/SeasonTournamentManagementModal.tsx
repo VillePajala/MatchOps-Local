@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Season, Tournament, Player } from '@/types';
+import { Season, Tournament } from '@/types';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
 import { HiPlusCircle, HiOutlinePencil, HiOutlineTrash, HiOutlineCheck, HiOutlineX } from 'react-icons/hi';

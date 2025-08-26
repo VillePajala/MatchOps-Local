@@ -226,7 +226,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const [gameMinute, setGameMinute] = useState<string>('');
 
   // State for team roster integration
-  const [teamRoster, setTeamRoster] = useState<Player[]>([]);
+  const [, setTeamRoster] = useState<Player[]>([]);
   const [adjustedSelectedPlayerIds, setAdjustedSelectedPlayerIds] = useState<string[]>(selectedPlayerIds);
 
   // Load team roster when modal opens with teamId

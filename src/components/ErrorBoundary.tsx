@@ -113,11 +113,13 @@ export const withErrorBoundary = <P extends object>(
   fallback?: ReactNode,
   onError?: (error: Error, errorInfo: ErrorInfo) => void
 ) => {
-  return (props: P) => (
+  const WrappedComponent = (props: P) => (
     <ErrorBoundary fallback={fallback} onError={onError}>
       <Component {...props} />
     </ErrorBoundary>
   );
+  WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name || 'Component'})`;
+  return WrappedComponent;
 };
 
 // Hook for error boundary in functional components (requires react-error-boundary)

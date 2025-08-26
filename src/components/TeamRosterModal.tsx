@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HiOutlineXMark, HiOutlinePlus, HiOutlineUserPlus } from 'react-icons/hi2';
+import { HiOutlineUserPlus } from 'react-icons/hi2';
 import { Team, Player } from '@/types';
 import { useTeamRosterQuery, useAddPlayerToRosterMutation, useRemovePlayerFromRosterMutation, useSetTeamRosterMutation } from '@/hooks/useTeamQueries';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import PlayerSelectionSection from './PlayerSelectionSection';
-import { validatePlayer, sanitizePlayerName, sanitizeNotes, logValidationError } from '@/utils/validation';
 import logger from '@/utils/logger';
 
 interface TeamRosterModalProps {
@@ -88,15 +87,6 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
     }
   }, [isSelectingFromMaster, masterRosterPlayers.length, teamRoster]);
 
-  const handleRemovePlayer = async (playerId: string) => {
-    if (!teamId) return;
-    
-    try {
-      await removePlayerFromRosterMutation.mutateAsync({ teamId, playerId });
-    } catch (error) {
-      logger.error('Failed to remove player from team roster:', error);
-    }
-  };
 
 
   const handleSelectFromMaster = () => {
