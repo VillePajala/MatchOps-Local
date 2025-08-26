@@ -1480,11 +1480,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                          <div className="flex items-center gap-2">
                           {isEditingNotes ? (
                             <>
-                              <button onClick={handleSaveNotes} className="p-1.5 text-green-400 hover:text-green-300 rounded bg-slate-700 hover:bg-slate-600" title={t('common.saveChanges') ?? 'Tallenna'}><FaSave /></button>
-                              <button onClick={handleCancelEditNotes} className="p-1.5 text-red-400 hover:text-red-300 rounded bg-slate-700 hover:bg-slate-600" title={t('common.cancel') ?? 'Peruuta'}><FaTimes /></button>
+                              <button onClick={handleSaveNotes} className="p-1.5 text-green-400 hover:text-green-300 rounded bg-slate-700 hover:bg-slate-600" title={t('common.saveChanges', 'Save Changes')}><FaSave /></button>
+                              <button onClick={handleCancelEditNotes} className="p-1.5 text-red-400 hover:text-red-300 rounded bg-slate-700 hover:bg-slate-600" title={t('common.cancel', 'Cancel')}><FaTimes /></button>
                             </>
                           ) : (
-                            <button onClick={() => setIsEditingNotes(true)} className="p-1.5 text-slate-400 hover:text-indigo-400 rounded bg-slate-700 hover:bg-slate-600" title={t('common.edit') ?? 'Muokkaa'}><FaEdit /></button>
+                            <button onClick={() => setIsEditingNotes(true)} className="p-1.5 text-slate-400 hover:text-indigo-400 rounded bg-slate-700 hover:bg-slate-600" title={t('common.edit', 'Edit')}><FaEdit /></button>
                           )}
                         </div>
                       </div>

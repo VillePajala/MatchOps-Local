@@ -73,6 +73,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [tournamentLevel, setTournamentLevel] = useState('');
   const homeTeamInputRef = useRef<HTMLInputElement>(null);
   const opponentInputRef = useRef<HTMLInputElement>(null);
+  const teamSelectionRequestRef = useRef<number>(0); // Track current team selection request
 
   // State for seasons and tournaments
   const [seasons, setSeasons] = useState<Season[]>([]);
@@ -193,33 +194,60 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   // Team selection handler with roster auto-load and name auto-fill
   const handleTeamSelection = async (teamId: string | null) => {
+    // Increment request counter to track this request
+    const requestId = ++teamSelectionRequestRef.current;
+    
     setSelectedTeamId(teamId);
     
     if (teamId) {
       try {
-        // Load team's roster
-        const teamRoster = await getTeamRoster(teamId);
+        // Load both team roster and master roster
+        const [teamRoster, masterRoster] = await Promise.all([
+          getTeamRoster(teamId),
+          getMasterRoster()
+        ]);
+        
+        // Check if this is still the current request
+        if (requestId !== teamSelectionRequestRef.current) {
+          return; // A newer request has been made, abandon this one
+        }
+        
+        // Always show master roster, but pre-select only team players
+        setAvailablePlayersForSetup(masterRoster || []);
+        
         if (teamRoster && teamRoster.length > 0) {
-          setAvailablePlayersForSetup(teamRoster);
-          setSelectedPlayerIds(teamRoster.map(p => p.id));
+          // Create a set of team player names for comparison (since IDs differ)
+          const teamPlayerNames = new Set(
+            teamRoster.map(p => p.name.toLowerCase().trim())
+          );
+          
+          // Select master roster players that match team roster names
+          const selectedIds = (masterRoster || [])
+            .filter(p => teamPlayerNames.has(p.name.toLowerCase().trim()))
+            .map(p => p.id);
+          
+          setSelectedPlayerIds(selectedIds);
         } else {
-          // Team roster is empty - prompt user to manage roster
+          // Team roster is empty - no players pre-selected
+          setSelectedPlayerIds([]);
+          
+          // Optionally prompt user to manage roster
           const shouldManageRoster = window.confirm(
             t('newGameSetupModal.emptyTeamRosterPrompt', 
-              'The selected team has no players. Would you like to manage the team roster now, or continue with the master roster as fallback?'
+              'The selected team has no players. Would you like to manage the team roster now?'
             )
           );
           
           if (shouldManageRoster && onManageTeamRoster) {
             // Close this modal and open team roster management
             onManageTeamRoster(teamId);
-            return; // Don't continue with fallback if user wants to manage roster
+            return;
           }
-          
-          // Fallback to master roster if team roster is empty
-          const masterRoster = await getMasterRoster();
-          setAvailablePlayersForSetup(masterRoster || []);
-          setSelectedPlayerIds(masterRoster?.map(p => p.id) || []);
+        }
+        
+        // Check if this is still the current request before updating team name
+        if (requestId !== teamSelectionRequestRef.current) {
+          return;
         }
         
         // Auto-fill team name (but keep it editable)
@@ -230,15 +258,33 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         }
       } catch (error) {
         logger.error('[NewGameSetupModal] Error loading team roster:', error);
+        
+        // Check if this is still the current request
+        if (requestId !== teamSelectionRequestRef.current) {
+          return;
+        }
+        
         // Fallback to master roster on error
         const masterRoster = await getMasterRoster();
+        
+        // Check again after async operation
+        if (requestId !== teamSelectionRequestRef.current) {
+          return;
+        }
+        
         setAvailablePlayersForSetup(masterRoster || []);
-        setSelectedPlayerIds(masterRoster?.map(p => p.id) || []);
+        setSelectedPlayerIds([]); // No players selected on error
       }
     } else {
       // No team selected - use master roster
       try {
         const masterRoster = await getMasterRoster();
+        
+        // Check if this is still the current request
+        if (requestId !== teamSelectionRequestRef.current) {
+          return;
+        }
+        
         setAvailablePlayersForSetup(masterRoster || []);
         setSelectedPlayerIds(masterRoster?.map(p => p.id) || []);
         
@@ -271,9 +317,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         setAgeGroup(s.ageGroup || '');
         setLocalNumPeriods((s.periodCount as 1 | 2) || 2);
         setLocalPeriodDurationString(s.periodDuration ? String(s.periodDuration) : '10');
-        if (s.defaultRoster && s.defaultRoster.length > 0) {
-          setSelectedPlayerIds(s.defaultRoster);
-        }
       }
     }
   }, [selectedSeasonId, seasons, availablePlayersForSetup]);
@@ -299,9 +342,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         setTournamentLevel(t.level || '');
         setLocalNumPeriods((t.periodCount as 1 | 2) || 2);
         setLocalPeriodDurationString(t.periodDuration ? String(t.periodDuration) : '10');
-        if (t.defaultRoster && t.defaultRoster.length > 0) {
-          setSelectedPlayerIds(t.defaultRoster);
-        }
       }
     }
   }, [selectedTournamentId, tournaments, availablePlayersForSetup]);

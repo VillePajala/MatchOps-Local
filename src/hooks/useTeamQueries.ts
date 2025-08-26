@@ -63,6 +63,8 @@ export const useDeleteTeamMutation = () => {
       if (success) {
         queryClient.invalidateQueries({ queryKey: queryKeys.teams });
         queryClient.removeQueries({ queryKey: queryKeys.teamRoster(teamId) });
+        // Invalidate saved games since team deletion affects orphaned games
+        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
       }
     },
   });

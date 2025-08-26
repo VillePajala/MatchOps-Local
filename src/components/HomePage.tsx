@@ -16,6 +16,8 @@ import SettingsModal from '@/components/SettingsModal';
 import SeasonTournamentManagementModal from '@/components/SeasonTournamentManagementModal';
 import TeamManagerModal from '@/components/TeamManagerModal';
 import TeamRosterModal from '@/components/TeamRosterModal';
+import OrphanedGameHandler from '@/components/OrphanedGameHandler';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import InstructionsModal from '@/components/InstructionsModal';
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
 import usePlayerAssessments from '@/hooks/usePlayerAssessments';
@@ -140,7 +142,6 @@ interface HomePageProps {
 }
 
 function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
-  logger.log('--- page.tsx RENDER ---');
   const { t } = useTranslation(); // Get translation function
   const queryClient = useQueryClient(); // Get query client instance
 
@@ -184,7 +185,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
 
 
   useEffect(() => {
-    logger.log('[gameSessionState CHANGED]', gameSessionState);
   }, [gameSessionState]);
 
   // --- History Management ---
@@ -352,7 +352,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
   const [currentGameId, setCurrentGameId] = useState<string | null>(DEFAULT_GAME_ID);
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
-  const [hasUsedWorkspace] = useState<boolean>(false);
   
   // This ref needs to be declared after currentGameId
   const gameIdRef = useRef(currentGameId);
@@ -426,6 +425,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState<boolean>(false);
   const [isTeamRosterModalOpen, setIsTeamRosterModalOpen] = useState<boolean>(false);
   const [selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
+  const [isOrphanedGamesOpen, setIsOrphanedGamesOpen] = useState<boolean>(false);
 
   // --- Timer State (Still needed here) ---
   const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
@@ -441,7 +441,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           // Check if roster is empty before opening new game modal
           if (availablePlayers.length === 0) {
             const shouldOpenRoster = window.confirm(
-              t('controlBar.noPlayersForNewGame') ?? 'You need at least one player in your roster to create a game. Would you like to add players now?'
+              t('controlBar.noPlayersForNewGame', 'You need at least one player in your roster to create a game. Would you like to add players now?')
             );
             
             if (shouldOpenRoster) {
@@ -770,7 +770,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
 
         // Only save to history if actual changes were made to playersOnField
         if (JSON.stringify(prevPlayersOnField) !== JSON.stringify(nextPlayersOnField)) {
-          // logger.log('[EFFECT syncPoF] playersOnField updated due to availablePlayers change. Saving to history.');
           saveStateToHistory({ playersOnField: nextPlayersOnField });
         }
         return nextPlayersOnField;
@@ -783,9 +782,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   
   useEffect(() => {
     const loadInitialAppData = async () => {
-      logger.log('[EFFECT init] Coordinating initial application data from TanStack Query...');
       if (initialLoadComplete) {
-        logger.log('[EFFECT init] Initial load already complete. Skipping.');
         return;
       }
       // This useEffect now primarily ensures that dependent state updates happen
@@ -796,7 +793,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       try {
         const oldRosterJson = getLocalStorageItem('availablePlayers');
         if (oldRosterJson) {
-          logger.log('[EFFECT init] Migrating old roster data...');
           setLocalStorageItem(MASTER_ROSTER_KEY, oldRosterJson);
           removeLocalStorageItem('availablePlayers');
           // Consider invalidating and refetching masterRoster query here if migration happens
@@ -804,7 +800,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         }
         const oldSeasonsJson = getLocalStorageItem('soccerSeasonsList'); // Another old key
       if (oldSeasonsJson) {
-          logger.log('[EFFECT init] Migrating old seasons data...');
           setLocalStorageItem(SEASONS_LIST_KEY, oldSeasonsJson); // New key
           // queryClient.invalidateQueries(queryKeys.seasons);
       }
@@ -816,7 +811,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
 
       // 4. Update local savedGames state from useQuery for allSavedGames
       if (isAllSavedGamesQueryLoading) {
-        logger.log('[EFFECT init] All saved games are loading via TanStack Query...');
         setIsLoadingGamesList(true);
       }
       if (allSavedGamesQueryResultData) {
@@ -832,13 +826,11 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       
       // 5. Determine and set current game ID and related state from useQuery data
       if (isCurrentGameIdSettingQueryLoading || isAllSavedGamesQueryLoading) { 
-        logger.log('[EFFECT init] Waiting for current game ID setting and/or saved games list to load...');
       } else {
         const lastGameIdSetting = currentGameIdSettingQueryResultData;
         const currentSavedGames = allSavedGamesQueryResultData || {}; 
 
         if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID && currentSavedGames[lastGameIdSetting]) {
-          logger.log(`[EFFECT init] Restoring last saved game: ${lastGameIdSetting} from TanStack Query data.`);
           setCurrentGameId(lastGameIdSetting);
           setHasSkippedInitialSetup(true);
         } else {
@@ -859,7 +851,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           if (savedTimerStateJSON) {
             const savedTimerState: TimerState = JSON.parse(savedTimerStateJSON);
             if (savedTimerState && savedTimerState.gameId === lastGameId) {
-              logger.log('[EFFECT init] Found a saved timer state for the current game. Restoring...');
               const elapsedOfflineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
               const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
               
@@ -884,7 +875,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
 
         // This is now the single source of truth for loading completion.
         setInitialLoadComplete(true);
-        logger.log('[EFFECT init] Initial application data coordination complete.');
       }
     };
 
@@ -1456,6 +1446,11 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     setIsTeamRosterModalOpen(false);
     setSelectedTeamForRoster(null);
   };
+  const handleBackToTeamManager = () => {
+    setIsTeamRosterModalOpen(false);
+    setSelectedTeamForRoster(null);
+    setIsTeamManagerOpen(true); // Reopen team manager modal
+  };
 
   // Placeholder handlers for updating game info (will be passed to modal)
   const handleOpponentNameChange = (newName: string) => {
@@ -1998,6 +1993,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           completedIntervalDurations: gameSessionState.completedIntervalDurations, // Use gameSessionState for completedIntervalDurations
           lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds, // Use gameSessionState for lastSubConfirmationTimeSeconds
           homeOrAway: gameSessionState.homeOrAway,
+          teamId: savedGames[currentGameId]?.teamId, // Preserve the teamId from the current game
           // VOLATILE TIMER STATES ARE EXCLUDED:
           // timeElapsedInSeconds: gameSessionState.timeElapsedInSeconds, // REMOVE from AppState snapshot
           // isTimerRunning: gameSessionState.isTimerRunning, // REMOVE from AppState snapshot
@@ -2214,27 +2210,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     teamId: string | null, // Add team ID parameter
     availablePlayersForGame: Player[] // Add the actual roster for the game
   ) => {
-      // ADD LOGGING HERE:
-      logger.log('[handleStartNewGameWithSetup] Received Params:', { 
-        initialSelectedPlayerIds,
-        homeTeamName, 
-        opponentName, 
-        gameDate, 
-        gameLocation, 
-        gameTime, 
-        seasonId, 
-        tournamentId, 
-        numPeriods,
-        periodDuration,
-        homeOrAway,
-        demandFactor,
-        ageGroup,
-        tournamentLevel,
-        isPlayed,
-        teamId,
-        availablePlayersCount: availablePlayersForGame.length
-      });
-      // No need to log initialState references anymore
 
       // Determine the player selection for the new game
       const finalSelectedPlayerIds = initialSelectedPlayerIds && initialSelectedPlayerIds.length > 0 
@@ -2281,12 +2256,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       };
 
       // Log the constructed state *before* saving
-      // logger.log('[handleStartNewGameWithSetup] Constructed newGameState:', {
-      //     periods: newGameState.numberOfPeriods,
-      //     duration: newGameState.periodDurationMinutes,
-      //     // REMOVED: numAvailablePlayers: newGameState.availablePlayers.length // Log roster size
-      // });
-      logger.log('[handleStartNewGameWithSetup] DIRECTLY CONSTRUCTED newGameState:', JSON.parse(JSON.stringify(newGameState)));
 
       // 2. Auto-generate ID
       const newGameId = `game_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -2365,7 +2334,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     // Check if roster is empty first
     if (availablePlayers.length === 0) {
       const shouldOpenRoster = window.confirm(
-        t('controlBar.noPlayersForNewGame') ?? 'No players in roster. Would you like to add players now?'
+        t('controlBar.noPlayersForNewGame', 'No players in roster. Would you like to add players now?')
       );
       
       if (shouldOpenRoster) {
@@ -2716,7 +2685,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         />
 
         {/* First Game Setup Overlay */}
-        {currentGameId === DEFAULT_GAME_ID && playersOnField.length === 0 && drawings.length === 0 && !hasUsedWorkspace && (
+        {currentGameId === DEFAULT_GAME_ID && playersOnField.length === 0 && drawings.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
             <div className="bg-slate-800/95 border border-indigo-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
               <div className="text-center">
@@ -2772,7 +2741,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         )}
 
         {/* Temporary Workspace Warning (shows at top when using workspace) */}
-        {currentGameId === DEFAULT_GAME_ID && (playersOnField.length > 0 || drawings.length > 0 || hasUsedWorkspace) && (
+        {currentGameId === DEFAULT_GAME_ID && (playersOnField.length > 0 || drawings.length > 0) && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-40">
             <div className="bg-amber-600/95 border border-amber-500/50 rounded-lg px-6 py-3 shadow-xl backdrop-blur-sm max-w-md">
               <div className="flex items-center gap-3 text-sm">
@@ -2837,19 +2806,37 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         isOpen={isInstructionsModalOpen}
         onClose={handleToggleInstructionsModal}
       />
-      <TeamManagerModal
-        isOpen={isTeamManagerOpen}
-        onClose={handleCloseTeamManagerModal}
-        teams={teams}
-        onManageRoster={handleManageTeamRoster}
-      />
+      <ErrorBoundary>
+        <TeamManagerModal
+          isOpen={isTeamManagerOpen}
+          onClose={handleCloseTeamManagerModal}
+          teams={teams}
+          onManageRoster={handleManageTeamRoster}
+          onManageOrphanedGames={() => setIsOrphanedGamesOpen(true)}
+        />
+      </ErrorBoundary>
       
-      <TeamRosterModal
-        isOpen={isTeamRosterModalOpen}
-        onClose={handleCloseTeamRosterModal}
-        teamId={selectedTeamForRoster}
-        team={teams.find(t => t.id === selectedTeamForRoster) || null}
-      />
+      <ErrorBoundary>
+        <TeamRosterModal
+          isOpen={isTeamRosterModalOpen}
+          onClose={handleCloseTeamRosterModal}
+          onBack={handleBackToTeamManager}
+          teamId={selectedTeamForRoster}
+          team={teams.find(t => t.id === selectedTeamForRoster) || null}
+        />
+      </ErrorBoundary>
+
+      <ErrorBoundary>
+        <OrphanedGameHandler
+          isOpen={isOrphanedGamesOpen}
+          onClose={() => setIsOrphanedGamesOpen(false)}
+          onRefresh={() => {
+            // Refresh saved games and teams data
+            queryClient.invalidateQueries({ queryKey: ['savedGames'] });
+            queryClient.invalidateQueries({ queryKey: ['teams'] });
+          }}
+        />
+      </ErrorBoundary>
       {/* Goal Log Modal */}
       <GoalLogModal 
         isOpen={isGoalLogModalOpen}
@@ -2958,7 +2945,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         onClose={handleCloseSeasonTournamentModal}
         seasons={seasons}
         tournaments={tournaments}
-        availablePlayers={availablePlayers}
         addSeasonMutation={addSeasonMutation}
         addTournamentMutation={addTournamentMutation}
         updateSeasonMutation={updateSeasonMutation}
@@ -2979,6 +2965,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         isOpen={isGameSettingsModalOpen}
         onClose={handleCloseGameSettingsModal}
         currentGameId={currentGameId}
+        teamId={savedGames[currentGameId || '']?.teamId}
         teamName={gameSessionState.teamName}
         opponentName={gameSessionState.opponentName}
         gameDate={gameSessionState.gameDate}
