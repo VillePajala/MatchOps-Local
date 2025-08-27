@@ -61,7 +61,7 @@ describe('Saved Games Utilities', () => {
     teamName: 'Dragons',
     gameEvents: [mockEvent1],
     opponentName: 'Tigers',
-    gameDate: '2023-04-15T14:00:00.000Z',
+    gameDate: '2023-04-15',
     homeScore: 1,
     awayScore: 0,
     gameNotes: 'Game notes',
@@ -555,7 +555,8 @@ describe('Saved Games Utilities', () => {
       expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
       const saved = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
       expect(saved['existing_game_id']).toEqual(mockGame1_AppState);
-      expect(saved['imported_1']).toEqual(gamesToImport['imported_1']);
+      expect(saved['imported_1']).toMatchObject(gamesToImport['imported_1']);
+      expect(saved['imported_1'].demandFactor).toBe(1); // Schema adds default value
     });
 
     it('should import games (as AppState) and overwrite existing if overwrite is true, then resolve with count', async () => {
@@ -571,7 +572,11 @@ describe('Saved Games Utilities', () => {
       
       expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
       const saved = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
-      expect(saved).toEqual(expect.objectContaining(gamesToImport));
+      // Check each game matches but allow for schema defaults
+      expect(saved['imported_1']).toMatchObject(gamesToImport['imported_1']);
+      expect(saved['imported_1'].demandFactor).toBe(1);
+      expect(saved['existing_game_id']).toMatchObject(gamesToImport['existing_game_id']);
+      expect(saved['existing_game_id'].demandFactor).toBe(1);
     });
 
     it('should resolve with 0 if JSON is valid but contains no new games to import (overwrite false)', async () => {
