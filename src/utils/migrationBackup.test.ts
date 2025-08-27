@@ -293,8 +293,8 @@ describe('Migration Backup System', () => {
         await createMigrationBackup(2);
         fail('Should have thrown error');
       } catch (error) {
-        expect(error.message).toContain('soccerMasterRoster');
-        expect(error.message).toContain('Quota exceeded');
+        expect((error as Error).message).toContain('soccerMasterRoster');
+        expect((error as Error).message).toContain('Quota exceeded');
       }
     });
 

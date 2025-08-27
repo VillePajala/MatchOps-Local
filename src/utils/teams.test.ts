@@ -30,8 +30,7 @@ describe('Teams Lock Integration', () => {
     name,
     isGoalie: false,
     jerseyNumber: id,
-    notes: '',
-    position: { relX: 0.5, relY: 0.5 }
+    notes: ''
   });
 
   it('should prevent race conditions when multiple operations modify roster concurrently', async () => {

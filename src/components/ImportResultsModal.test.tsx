@@ -21,7 +21,8 @@ const mockImportResult = {
 describe('ImportResultsModal', () => {
   beforeEach(() => {
     // Mock i18n translations
-    jest.spyOn(i18n, 't').mockImplementation((key: string, options?: { count?: number; skipped?: number }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (jest.spyOn(i18n, 't') as any).mockImplementation((key: string, options?: any) => {
       const translations: Record<string, string> = {
         'importResults.title': 'Import Results',
         'importResults.importing': 'Importing Games',
