@@ -26,4 +26,4 @@ self.addEventListener('fetch', (event) => {
   // This is where you would add caching logic for offline support
   event.respondWith(fetch(event.request));
 });
-// Build Timestamp: 2025-08-25T19:03:57.025Z
+// Build Timestamp: 2025-08-27T11:26:22.056Z

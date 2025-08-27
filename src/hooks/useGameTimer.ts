@@ -6,6 +6,7 @@ import {
   getLocalStorageItem,
 } from '@/utils/localStorage';
 import { useWakeLock } from './useWakeLock';
+import { usePrecisionTimer, useTimerRestore } from './usePrecisionTimer';
 import { GameSessionState, GameSessionAction } from './useGameSessionReducer';
 
 interface UseGameTimerArgs {
@@ -58,94 +59,93 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   );
 
   const stateRef = useRef(state);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   stateRef.current = state;
+
+  const { handleVisibilityChange } = useTimerRestore();
+
+  // Precision timer callback
+  const handleTimerTick = useCallback((elapsedSeconds: number) => {
+    const s = stateRef.current;
+    const periodEnd = s.currentPeriod * s.periodDurationMinutes * 60;
+
+    // Save timer state periodically
+    if (currentGameId) {
+      const timerState = {
+        gameId: currentGameId,
+        timeElapsedInSeconds: elapsedSeconds,
+        timestamp: Date.now(),
+      };
+      setLocalStorageItem(TIMER_STATE_KEY, JSON.stringify(timerState));
+    }
+
+    // Check if period/game should end
+    if (elapsedSeconds >= periodEnd) {
+      removeLocalStorageItem(TIMER_STATE_KEY);
+      if (s.currentPeriod === s.numberOfPeriods) {
+        dispatch({ type: 'END_PERIOD_OR_GAME', payload: { newStatus: 'gameEnd', finalTime: periodEnd } });
+      } else {
+        dispatch({ type: 'END_PERIOD_OR_GAME', payload: { newStatus: 'periodEnd', finalTime: periodEnd } });
+      }
+    } else {
+      dispatch({ type: 'SET_TIMER_ELAPSED', payload: elapsedSeconds });
+    }
+  }, [currentGameId, dispatch]);
+
+  // Initialize precision timer
+  const precisionTimer = usePrecisionTimer({
+    onTick: handleTimerTick,
+    isRunning: state.isTimerRunning && state.gameStatus === 'inProgress',
+    startTime: state.timeElapsedInSeconds,
+    interval: 100 // Update every 100ms for smooth UI, but tick only on second boundaries
+  });
 
   useEffect(() => {
     syncWakeLock(state.isTimerRunning);
-
-    const startInterval = () => {
-      if (intervalRef.current) return;
-      intervalRef.current = setInterval(() => {
-        const s = stateRef.current;
-        const periodEnd = s.currentPeriod * s.periodDurationMinutes * 60;
-        const nextTime = Math.round(s.timeElapsedInSeconds) + 1;
-
-        if (currentGameId) {
-          const timerState = {
-            gameId: currentGameId,
-            timeElapsedInSeconds: nextTime,
-            timestamp: Date.now(),
-          };
-          setLocalStorageItem(TIMER_STATE_KEY, JSON.stringify(timerState));
-        }
-
-        if (nextTime >= periodEnd) {
-          clearInterval(intervalRef.current!);
-          intervalRef.current = null;
-          removeLocalStorageItem(TIMER_STATE_KEY);
-          if (s.currentPeriod === s.numberOfPeriods) {
-            dispatch({ type: 'END_PERIOD_OR_GAME', payload: { newStatus: 'gameEnd', finalTime: periodEnd } });
-          } else {
-            dispatch({ type: 'END_PERIOD_OR_GAME', payload: { newStatus: 'periodEnd', finalTime: periodEnd } });
-          }
-        } else {
-          dispatch({ type: 'SET_TIMER_ELAPSED', payload: nextTime });
-        }
-      }, 1000);
-    };
-
-    if (state.isTimerRunning && state.gameStatus === 'inProgress') {
-      startInterval();
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [state.isTimerRunning, state.gameStatus, state.currentPeriod, state.periodDurationMinutes, state.numberOfPeriods, currentGameId, dispatch, syncWakeLock]);
+  }, [state.isTimerRunning, syncWakeLock]);
 
   useEffect(() => {
-    const handleVisibilityChange = async () => {
+    const handleDocumentVisibilityChange = async () => {
       if (document.hidden) {
+        // Save timer state when tab becomes hidden
         if (state.isTimerRunning) {
           const timerState = {
             gameId: currentGameId || '',
-            timeElapsedInSeconds: state.timeElapsedInSeconds,
+            timeElapsedInSeconds: precisionTimer.getCurrentTime(),
             timestamp: Date.now(),
           };
           setLocalStorageItem(TIMER_STATE_KEY, JSON.stringify(timerState));
           dispatch({ type: 'PAUSE_TIMER_FOR_HIDDEN' });
         }
       } else {
+        // Restore timer state when tab becomes visible
         const savedTimerStateJSON = getLocalStorageItem(TIMER_STATE_KEY);
-        if (savedTimerStateJSON) {
+        if (savedTimerStateJSON && state.isTimerRunning) {
           const savedTimerState = JSON.parse(savedTimerStateJSON);
           if (savedTimerState && savedTimerState.gameId === currentGameId) {
-            dispatch({
-              type: 'RESTORE_TIMER_STATE',
-              payload: {
-                savedTime: savedTimerState.timeElapsedInSeconds,
-                timestamp: savedTimerState.timestamp,
-              },
-            });
+            // Use the precision restore utility
+            handleVisibilityChange(
+              savedTimerState.timestamp,
+              savedTimerState.timeElapsedInSeconds,
+              (restoredTime) => {
+                dispatch({
+                  type: 'RESTORE_TIMER_STATE',
+                  payload: {
+                    savedTime: restoredTime,
+                    timestamp: savedTimerState.timestamp,
+                  },
+                });
+              }
+            );
           }
         }
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleDocumentVisibilityChange);
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handleDocumentVisibilityChange);
     };
-  }, [state.isTimerRunning, state.timeElapsedInSeconds, currentGameId, dispatch]);
+  }, [state.isTimerRunning, currentGameId, dispatch, precisionTimer, handleVisibilityChange]);
 
   return {
     timeElapsedInSeconds: state.timeElapsedInSeconds,

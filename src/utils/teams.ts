@@ -5,6 +5,7 @@ import {
   TEAM_ROSTERS_KEY 
 } from '@/config/storageKeys';
 import { getLocalStorageItem, setLocalStorageItem } from './localStorage';
+import { withRosterLock } from './lockManager';
 
 // Team index storage format: { [teamId: string]: Team }
 export interface TeamsIndex {
@@ -131,30 +132,8 @@ export const getAllTeamRosters = async (): Promise<TeamRostersIndex> => {
   }
 };
 
-// Lock mechanism for atomic roster operations
-let rosterOperationLock: Promise<void> | null = null;
-
-const withRosterLock = async <T>(operation: () => Promise<T>): Promise<T> => {
-  // Wait for any existing operation to complete
-  while (rosterOperationLock) {
-    await rosterOperationLock;
-  }
-  
-  // Create a new lock for this operation
-  let releaseLock: () => void;
-  rosterOperationLock = new Promise<void>((resolve) => {
-    releaseLock = resolve;
-  });
-  
-  try {
-    const result = await operation();
-    return result;
-  } finally {
-    // Release the lock
-    releaseLock!();
-    rosterOperationLock = null;
-  }
-};
+// Lock mechanism for atomic roster operations is now handled by lockManager
+// The withRosterLock function is imported from './lockManager'
 
 export const getTeamRoster = async (teamId: string): Promise<TeamPlayer[]> => {
   return withRosterLock(async () => {
