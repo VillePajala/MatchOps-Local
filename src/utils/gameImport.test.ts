@@ -37,8 +37,7 @@ describe('Game Import with Partial Success', () => {
     jest.clearAllMocks();
   });
 
-  const createValidGameData = (id: string, teamName: string = 'Test Team'): AppState => ({
-    id,
+  const createValidGameData = (gameId: string, teamName: string = 'Test Team'): AppState => ({
     teamName,
     opponentName: 'Opponent',
     gameDate: '2023-01-01',

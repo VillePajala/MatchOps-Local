@@ -199,8 +199,7 @@ describe('LockManager', () => {
       
       // Try to acquire with short timeout
       const timedOutAcquisition = lockManager.acquire(resource, { 
-        timeout: shortTimeout,
-        maxRetries: 0 // Disable retries for this test
+        timeout: shortTimeout
       });
 
       await expect(timedOutAcquisition).rejects.toThrow(/timeout/i);
