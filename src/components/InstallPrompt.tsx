@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import styles from "./InstallPrompt.module.css";
 import logger from "@/utils/logger";
+import { getLocalStorageItem, setLocalStorageItem } from "@/utils/localStorage";
 
 // Define proper interfaces for better type safety
 interface BeforeInstallPromptEvent extends Event {
@@ -38,7 +39,7 @@ const InstallPrompt: React.FC = () => {
     }
 
     // Check localStorage to see if the user dismissed the prompt recently
-    const lastPromptTime = localStorage.getItem("installPromptDismissed");
+    const lastPromptTime = getLocalStorageItem("installPromptDismissed");
     if (
       lastPromptTime &&
       Date.now() - Number(lastPromptTime) < 24 * 60 * 60 * 1000
@@ -87,7 +88,7 @@ const InstallPrompt: React.FC = () => {
       } else {
         logger.log("User dismissed the install prompt");
         // Store the time when dismissed to avoid showing it again too soon
-        localStorage.setItem("installPromptDismissed", Date.now().toString());
+        setLocalStorageItem("installPromptDismissed", Date.now().toString());
       }
     } catch (error) {
       logger.error("Error showing install prompt:", error);
@@ -98,7 +99,7 @@ const InstallPrompt: React.FC = () => {
   };
 
   const handleDismiss = () => {
-    localStorage.setItem("installPromptDismissed", Date.now().toString());
+    setLocalStorageItem("installPromptDismissed", Date.now().toString());
     setIsVisible(false);
   };
 

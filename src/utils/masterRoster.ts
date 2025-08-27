@@ -1,6 +1,7 @@
 import { MASTER_ROSTER_KEY } from '@/config/storageKeys';
 import type { Player } from '@/types';
 import logger from '@/utils/logger';
+import { getLocalStorageItem, setLocalStorageItem } from '@/utils/localStorage';
 
 /**
  * Retrieves the master roster of players from localStorage.
@@ -8,7 +9,7 @@ import logger from '@/utils/logger';
  */
 export const getMasterRoster = async (): Promise<Player[]> => {
   try {
-    const rosterJson = localStorage.getItem(MASTER_ROSTER_KEY);
+    const rosterJson = getLocalStorageItem(MASTER_ROSTER_KEY);
     if (!rosterJson) {
       return Promise.resolve([]);
     }
@@ -26,7 +27,7 @@ export const getMasterRoster = async (): Promise<Player[]> => {
  */
 export const saveMasterRoster = async (players: Player[]): Promise<boolean> => {
   try {
-    localStorage.setItem(MASTER_ROSTER_KEY, JSON.stringify(players));
+    setLocalStorageItem(MASTER_ROSTER_KEY, JSON.stringify(players));
     return Promise.resolve(true);
   } catch (error) {
     logger.error('[saveMasterRoster] Error saving master roster to localStorage:', error);

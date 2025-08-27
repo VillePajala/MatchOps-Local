@@ -34,38 +34,88 @@ export const runMigration = async (): Promise<void> => {
     return;
   }
 
-  logger.log('[Migration] Starting migration to version', CURRENT_DATA_VERSION);
+  const currentVersion = getAppDataVersion();
+  logger.log(`[Migration] Starting migration from version ${currentVersion} to version ${CURRENT_DATA_VERSION}`);
+
+  // Import backup functions here to avoid circular dependencies
+  const { 
+    createMigrationBackup, 
+    restoreMigrationBackup, 
+    clearMigrationBackup,
+    hasMigrationBackup,
+    getMigrationBackupInfo
+  } = await import('./migrationBackup');
+
+  // Check for existing backup (from failed previous migration)
+  if (hasMigrationBackup()) {
+    const backupInfo = getMigrationBackupInfo();
+    logger.warn('[Migration] Found existing migration backup from:', new Date(backupInfo?.timestamp || 0));
+    logger.warn('[Migration] This suggests a previous migration failed. Backup will be replaced.');
+  }
+
+  // Create backup before migration
+  let backup;
+  try {
+    backup = await createMigrationBackup(CURRENT_DATA_VERSION);
+    logger.log('[Migration] Created backup successfully');
+  } catch (error) {
+    logger.error('[Migration] Failed to create backup:', error);
+    throw new Error(`Cannot proceed with migration - backup creation failed: ${error}`);
+  }
 
   try {
-    // Step 1: Create default team from current data
-    const defaultTeam = await createDefaultTeam();
-    logger.log('[Migration] Created default team:', defaultTeam);
-
-    // Step 2: Move roster to team rosters
-    await migrateRosterToTeam(defaultTeam.id);
-    logger.log('[Migration] Migrated roster to team');
-
-    // Step 3: Seasons and tournaments remain global (no teamId tagging per plan)
-    logger.log('[Migration] Seasons and tournaments remain global entities');
-
-    // Step 4: Saved games remain untagged (legacy games stay global per plan) 
-    logger.log('[Migration] Saved games remain global (legacy data preserved)');
-
-    // Step 5: Player adjustments remain untagged (historical data preserved)
-    logger.log('[Migration] Player adjustments remain global (historical data preserved)');
-
-    // Step 6: Set as active team
-    // Note: Active team concept removed - teams are contextually selected
-    logger.log('[Migration] Created default team for legacy data');
-
-    // Step 7: Update app data version
+    // Execute migration steps
+    await performMigrationSteps();
+    
+    // Update app data version only if all steps succeed
     setAppDataVersion(CURRENT_DATA_VERSION);
+    
+    // Clear backup on successful migration
+    clearMigrationBackup();
     logger.log('[Migration] Migration completed successfully');
 
   } catch (error) {
-    logger.error('[Migration] Migration failed:', error);
-    throw error;
+    logger.error('[Migration] Migration failed, attempting rollback:', error);
+    
+    try {
+      await restoreMigrationBackup(backup);
+      clearMigrationBackup();
+      logger.log('[Migration] Successfully rolled back to previous state');
+      
+      // Re-throw the original migration error
+      throw new Error(`Migration failed and was rolled back: ${error}`);
+      
+    } catch (rollbackError) {
+      logger.error('[Migration] CRITICAL: Rollback failed:', rollbackError);
+      
+      // Don't clear backup if rollback failed - user might need it
+      throw new Error(`Migration failed and rollback unsuccessful. Original error: ${error}. Rollback error: ${rollbackError}. Please restore from a manual backup or contact support.`);
+    }
   }
+};
+
+// Execute the actual migration steps
+const performMigrationSteps = async (): Promise<void> => {
+  // Step 1: Create default team from current data
+  const defaultTeam = await createDefaultTeam();
+  logger.log('[Migration] Created default team:', defaultTeam);
+
+  // Step 2: Move roster to team rosters
+  await migrateRosterToTeam(defaultTeam.id);
+  logger.log('[Migration] Migrated roster to team');
+
+  // Step 3: Seasons and tournaments remain global (no teamId tagging per plan)
+  logger.log('[Migration] Seasons and tournaments remain global entities');
+
+  // Step 4: Saved games remain untagged (legacy games stay global per plan) 
+  logger.log('[Migration] Saved games remain global (legacy data preserved)');
+
+  // Step 5: Player adjustments remain untagged (historical data preserved)
+  logger.log('[Migration] Player adjustments remain global (historical data preserved)');
+
+  // Step 6: Set as active team
+  // Note: Active team concept removed - teams are contextually selected
+  logger.log('[Migration] Created default team for legacy data');
 };
 
 // Create default team from current data
@@ -116,6 +166,70 @@ const migrateRosterToTeam = async (teamId: string): Promise<void> => {
 // - migrateTournamentsToTeam: Tournaments remain global entities (no teamId tagging) 
 // - migrateSavedGamesToTeam: Legacy games preserved as global (no historical data mutation)
 // - migratePlayerAdjustmentsToTeam: Historical adjustments preserved (no retrospective tagging)
+
+/**
+ * Manual recovery function for failed migrations
+ * This can be called from settings or developer tools
+ */
+export const recoverFromFailedMigration = async (): Promise<boolean> => {
+  const { 
+    hasMigrationBackup, 
+    restoreMigrationBackup, 
+    clearMigrationBackup,
+    getMigrationBackupInfo,
+    validateMigrationBackup
+  } = await import('./migrationBackup');
+
+  if (!hasMigrationBackup()) {
+    logger.log('[Migration Recovery] No migration backup found');
+    return false;
+  }
+
+  const backupInfo = getMigrationBackupInfo();
+  if (!backupInfo) {
+    logger.error('[Migration Recovery] Backup exists but cannot read info');
+    return false;
+  }
+
+  logger.log(`[Migration Recovery] Found backup from ${new Date(backupInfo.timestamp)} (version ${backupInfo.version})`);
+
+  try {
+    // Load and validate the backup
+    const backupData = JSON.parse(getLocalStorageItem('MIGRATION_BACKUP_TEMP') || '{}');
+    const validation = validateMigrationBackup(backupData);
+    
+    if (!validation.valid) {
+      logger.error('[Migration Recovery] Backup validation failed:', validation.errors);
+      return false;
+    }
+
+    // Restore from backup
+    await restoreMigrationBackup();
+    clearMigrationBackup();
+    
+    logger.log('[Migration Recovery] Successfully restored from backup');
+    return true;
+
+  } catch (error) {
+    logger.error('[Migration Recovery] Recovery failed:', error);
+    return false;
+  }
+};
+
+/**
+ * Get migration status and backup info
+ */
+export const getMigrationStatus = async () => {
+  const { hasMigrationBackup, getMigrationBackupInfo } = await import('./migrationBackup');
+  
+  return {
+    currentVersion: getAppDataVersion(),
+    targetVersion: CURRENT_DATA_VERSION,
+    migrationNeeded: isMigrationNeeded(),
+    hasBackup: hasMigrationBackup(),
+    backupInfo: getMigrationBackupInfo()
+  };
+};
 
 // Create compatibility shims for existing code during migration
 export const getMasterRosterCompat = async (): Promise<Player[]> => {

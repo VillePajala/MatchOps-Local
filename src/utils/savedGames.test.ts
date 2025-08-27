@@ -280,7 +280,6 @@ describe('Saved Games Utilities', () => {
 
   describe('createGame', () => {
     const mockDateNow = 1234567890123;
-    const expectedNewGameId = `game_${mockDateNow}`;
 
     beforeEach(() => {
       jest.spyOn(Date, 'now').mockReturnValue(mockDateNow);
@@ -299,7 +298,10 @@ describe('Saved Games Utilities', () => {
       const result = await createGame(initialGamePartial);
       
       expect(result).not.toBeNull();
-      expect(result.gameId).toBe(expectedNewGameId);
+      // Check that the new ID format is used (game_timestamp_uuid)
+      expect(result.gameId).toMatch(/^game_\d+_[a-f0-9]{8}$/);
+      // Verify the timestamp part matches our mock
+      expect(result.gameId).toContain(`game_${mockDateNow}_`);
       expect(result.gameData.teamName).toBe('New Team FC');
       expect(result.gameData.seasonId).toBe('season_2077');
       // Check some default fields from AppState that createGame sets
@@ -310,7 +312,7 @@ describe('Saved Games Utilities', () => {
       // Verify it was saved to localStorage
       expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
       const savedCollection = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
-      expect(savedCollection[expectedNewGameId]).toEqual(result.gameData);
+      expect(savedCollection[result.gameId]).toEqual(result.gameData);
     });
 
     it('should use full AppState defaults for unspecified fields', async () => {
@@ -545,8 +547,10 @@ describe('Saved Games Utilities', () => {
       };
       const jsonData = JSON.stringify(gamesToImport);
       
-      // importGamesFromJson now returns Promise<number>
-      await expect(importGamesFromJson(jsonData, false)).resolves.toBe(1);
+      // importGamesFromJson now returns Promise<ImportResult>
+      const result = await importGamesFromJson(jsonData, false);
+      expect(result.successful).toBe(1);
+      expect(result.failed).toHaveLength(0);
       
       expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
       const saved = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
@@ -561,7 +565,9 @@ describe('Saved Games Utilities', () => {
       };
       const jsonData = JSON.stringify(gamesToImport);
       
-      await expect(importGamesFromJson(jsonData, true)).resolves.toBe(2);
+      const result = await importGamesFromJson(jsonData, true);
+      expect(result.successful).toBe(2);
+      expect(result.failed).toHaveLength(0);
       
       expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
       const saved = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
@@ -573,7 +579,9 @@ describe('Saved Games Utilities', () => {
         'existing_game_id': mockGame1_AppState, // Game that already exists
       };
       const jsonData = JSON.stringify(gamesToImport);
-      await expect(importGamesFromJson(jsonData, false)).resolves.toBe(0);
+      const result = await importGamesFromJson(jsonData, false);
+      expect(result.successful).toBe(0);
+      expect(result.skipped).toBe(1);
       expect(localStorageMock.setItem).not.toHaveBeenCalled(); // setItem shouldn't be called if no new games are added
     });
 
@@ -590,7 +598,11 @@ describe('Saved Games Utilities', () => {
       };
       const jsonData = JSON.stringify(gamesToImport);
 
-      await expect(importGamesFromJson(jsonData, false)).rejects.toThrow('Invalid game data');
+      const result = await importGamesFromJson(jsonData, false);
+      expect(result.successful).toBe(0);
+      expect(result.failed).toHaveLength(1);
+      expect(result.failed[0].gameId).toBe('invalid');
+      expect(result.failed[0].error).toContain('teamName');
       expect(localStorageMock.setItem).not.toHaveBeenCalled();
     });
 
