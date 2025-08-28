@@ -2808,6 +2808,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
                     <li>• {t('firstGameGuide.tapToSelect', 'Tap player disc to select')}</li>
                     <li>• {t('firstGameGuide.yellowBorder', 'Selected player gets yellow border')}</li>
                     <li>• {t('firstGameGuide.tapFieldPlace', 'Tap field to place player')}</li>
+                    <li>• {t('firstGameGuide.goalieInstructions', 'When player is on field, tap shield icon to set as goalie')}</li>
                   </ul>
                 </div>
 
