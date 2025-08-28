@@ -2818,10 +2818,21 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
                     {t('firstGameGuide.theField', 'The Field')}
                   </h3>
                   <ul className="text-xs text-slate-300 space-y-0.5">
-                    <li>• {t('firstGameGuide.tapToPlace', 'Tap to place selected player')}</li>
                     <li>• {t('firstGameGuide.dragToAdjust', 'Drag players to adjust positions')}</li>
                     <li>• {t('firstGameGuide.doubleTapRemove', 'Double-tap to remove from field')}</li>
                     <li>• {t('firstGameGuide.drawTactics', 'Draw arrows for tactical plans')}</li>
+                  </ul>
+                </div>
+
+                {/* Tactical View & Settings */}
+                <div className="bg-slate-700/50 rounded-lg p-3">
+                  <h3 className="font-semibold text-indigo-200 mb-1.5 text-sm">
+                    {t('firstGameGuide.tacticalView', 'Tactical View')}
+                  </h3>
+                  <ul className="text-xs text-slate-300 space-y-0.5">
+                    <li>• {t('firstGameGuide.tacticalViewDesc', 'Show/hide player numbers and tactical drawings')}</li>
+                    <li>• {t('firstGameGuide.gameSettingsDesc', 'Edit match details and opponent discs')}</li>
+                    <li>• {t('firstGameGuide.opponentDiscsDesc', 'Add opponent players to the field')}</li>
                   </ul>
                 </div>
 
@@ -2832,7 +2843,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
                   </h3>
                   <div className="space-y-1.5 text-xs">
                     <div className="flex items-start gap-2">
-                      <span className="text-purple-400 font-mono text-[10px] mt-0.5">[⊞]</span>
+                      <span className="text-purple-400 font-mono text-[10px] mt-0.5">[▣]</span>
                       <div>
                         <span className="font-medium text-slate-200">
                           {t('firstGameGuide.placeAll', 'Place All')}
@@ -2852,7 +2863,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
                     </div>
 
                     <div className="flex items-start gap-2">
-                      <span className="text-green-400 font-mono text-[10px] mt-0.5">[⏱]</span>
+                      <span className="text-green-400 font-mono text-[10px] mt-0.5">[🕐]</span>
                       <div>
                         <span className="font-medium text-slate-200">
                           {t('firstGameGuide.timer', 'Timer')}
@@ -2862,7 +2873,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
                     </div>
 
                     <div className="flex items-start gap-2">
-                      <span className="text-slate-400 font-mono text-[10px] mt-0.5">[☰]</span>
+                      <span className="text-slate-400 font-mono text-[10px] mt-0.5">[≡]</span>
                       <div>
                         <span className="font-medium text-slate-200">
                           {t('firstGameGuide.menu', 'Menu')}
