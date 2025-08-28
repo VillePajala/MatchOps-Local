@@ -18,6 +18,7 @@ interface StartScreenProps {
   onCreateSeason: () => void;
   onViewStats: () => void;
   onSetupRoster: () => void;
+  onManageTeams: () => void;
   canResume?: boolean;
   hasPlayers?: boolean;
   hasSavedGames?: boolean;
@@ -33,6 +34,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onCreateSeason,
   onViewStats,
   onSetupRoster,
+  onManageTeams,
   canResume = false,
   hasPlayers = false,
   hasSavedGames = false,
@@ -183,6 +185,15 @@ const StartScreen: React.FC<StartScreenProps> = ({
               disabled={!hasPlayers}
             >
               {hasSeasonsTournaments ? t('startScreen.createSeasonTournament', 'Seasons & Tournaments') : t('startScreen.createFirstSeasonTournament', 'First Season/Tournament')}
+            </button>
+            
+            {/* Manage Teams button - grayed out if no players */}
+            <button 
+              className={hasPlayers ? primaryButtonStyle : disabledButtonStyle}
+              onClick={hasPlayers ? onManageTeams : undefined}
+              disabled={!hasPlayers}
+            >
+              {t('startScreen.manageTeams', 'Manage Teams')}
             </button>
             
             {/* View Stats button */}

@@ -82,20 +82,8 @@ import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 
 
-// Placeholder data - Initialize new fields
-const initialAvailablePlayersData: Player[] = [
-  { id: 'p1', name: 'Player 1', isGoalie: false, jerseyNumber: '1', notes: '' },
-  { id: 'p2', name: 'Player 2', isGoalie: false, jerseyNumber: '2', notes: '' },
-  { id: 'p3', name: 'Player 3', isGoalie: false, jerseyNumber: '3', notes: '' },
-  { id: 'p4', name: 'Player 4', isGoalie: false, jerseyNumber: '4', notes: '' },
-  { id: 'p5', name: 'Player 5', isGoalie: false, jerseyNumber: '5', notes: '' },
-  { id: 'p6', name: 'Player 6', isGoalie: false, jerseyNumber: '6', notes: '' },
-  { id: 'p7', name: 'Player 7', isGoalie: false, jerseyNumber: '7', notes: '' },
-  { id: 'p8', name: 'Player 8', isGoalie: false, jerseyNumber: '8', notes: '' },
-  { id: 'p9', name: 'Player 9', isGoalie: false, jerseyNumber: '9', notes: '' },
-  { id: 'p10', name: 'Player 10', isGoalie: false, jerseyNumber: '10', notes: '' },
-  { id: 'p11', name: 'Player 11', isGoalie: false, jerseyNumber: '11', notes: '' },
-];
+// Empty initial data for clean app start
+const initialAvailablePlayersData: Player[] = [];
 
 const initialState: AppState = {
   playersOnField: [], // Start with no players on field
@@ -118,8 +106,8 @@ const initialState: AppState = {
   currentPeriod: 1,
   gameStatus: 'notStarted', // Initialize game status
   demandFactor: 1,
-  // Initialize selectedPlayerIds with all players from initial data
-  selectedPlayerIds: initialAvailablePlayersData.map(p => p.id),
+  // Initialize selectedPlayerIds as empty for clean app start
+  selectedPlayerIds: [],
   // gameType: 'season', // REMOVED
   seasonId: '', // Initialize season ID
   tournamentId: '', // Initialize tournament ID
@@ -137,7 +125,7 @@ const initialState: AppState = {
 };
 
 interface HomePageProps {
-  initialAction?: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster';
+  initialAction?: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | 'teams';
   skipInitialSetup?: boolean;
 }
 
@@ -462,6 +450,9 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           break;
         case 'roster':
           setIsRosterModalOpen(true);
+          break;
+        case 'teams':
+          setIsTeamManagerOpen(true);
           break;
         case 'explore':
           // Explore mode - just let user access the temporary workspace
@@ -2724,6 +2715,13 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
                         className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
                       >
                         {t('firstGame.createGame', 'Create Your First Match')}
+                      </button>
+                      
+                      <button 
+                        onClick={handleOpenTeamManagerModal}
+                        className="w-full px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                      >
+                        {t('firstGame.createTeam', 'Create First Team')}
                       </button>
                       
                       <button 

@@ -4,8 +4,10 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '@/utils/bytes';
 import packageJson from '../../package.json';
-import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp } from 'react-icons/hi2';
+import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineChartBar } from 'react-icons/hi2';
 import { importFullBackup } from '@/utils/fullBackup';
+import { useGameImport } from '@/hooks/useGameImport';
+import ImportResultsModal from './ImportResultsModal';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -35,6 +37,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [resetConfirm, setResetConfirm] = useState('');
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
   const restoreFileInputRef = useRef<HTMLInputElement>(null);
+  const gameImportFileInputRef = useRef<HTMLInputElement>(null);
+  const [showImportResults, setShowImportResults] = useState(false);
+  const { importFromFile, isImporting, lastResult } = useGameImport();
   const MAX_LOCAL_STORAGE = 5 * 1024 * 1024; // 5 MB assumption for localStorage
 
   useEffect(() => {
@@ -75,6 +80,26 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     };
     reader.onerror = () => alert(t('settingsModal.importReadError', 'Error reading file content.'));
     reader.readAsText(file);
+    event.target.value = '';
+  };
+
+  const handleGameImportFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const result = await importFromFile(file, false); // Don't overwrite by default
+      setShowImportResults(true);
+      
+      if (result.success && result.successful > 0) {
+        // Success message is handled by the ImportResultsModal
+      } else if (result.warnings.length > 0 || result.failed.length > 0) {
+        console.error('Game import issues:', { warnings: result.warnings, failed: result.failed });
+      }
+    } catch (error) {
+      alert(t('settingsModal.gameImportError', 'Error importing games: ') + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+    
     event.target.value = '';
   };
 
@@ -142,6 +167,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 style={{ display: "none" }}
                 data-testid="restore-backup-input"
               />
+              <input
+                type="file"
+                ref={gameImportFileInputRef}
+                onChange={handleGameImportFileChange}
+                accept=".json"
+                style={{ display: "none" }}
+                data-testid="game-import-input"
+              />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   onClick={onCreateBackup}
@@ -156,6 +189,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 >
                   <HiOutlineDocumentArrowUp className="h-5 w-5" />
                   {t('settingsModal.restoreButton', 'Restore from Backup')}
+                </button>
+                <button
+                  onClick={() => gameImportFileInputRef.current?.click()}
+                  disabled={isImporting}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium shadow-sm transition-colors"
+                >
+                  <HiOutlineChartBar className="h-5 w-5" />
+                  {isImporting ? t('settingsModal.importing', 'Importing...') : t('settingsModal.importGamesButton', 'Import Games')}
                 </button>
               </div>
               <p className="text-sm text-slate-300">
@@ -261,6 +302,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* Import Results Modal */}
+      <ImportResultsModal
+        isOpen={showImportResults}
+        onClose={() => setShowImportResults(false)}
+        importResult={lastResult}
+        isImporting={isImporting}
+      />
     </div>
   );
 };

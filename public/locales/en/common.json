@@ -48,7 +48,8 @@
     "coachingMaterials": "Coaching Materials",
     "backupRestore": "Backup & Restore",
     "toggleLanguage": "Change Language",
-    "backButton": "Back"
+    "backButton": "Back",
+    "howItWorks": "How It Works"
   },
   "common": {
     "notSet": "Not Set",
@@ -501,7 +502,14 @@
     "demandFactorLabel": "Game Demand Level",
     "homeOrAwayLabel": "Your Team is",
     "unplayedToggle": "Not played yet",
-    "confirmAndStart": "Confirm & Start Game"
+    "confirmAndStart": "Confirm & Start Game",
+    "teamLabel": "Team Selection",
+    "selectTeamLabel": "Select Team",
+    "noTeamMasterRoster": "No Team (Use Master Roster)",
+    "teamSelectedNote": "Player roster will be loaded from selected team.",
+    "masterRosterNote": "Using master roster - all players available.",
+    "emptyTeamRosterPrompt": "The selected team has no players. Would you like to manage the team roster now?",
+    "gameTeamsLabel": "Game Teams"
   },
   "gameSettingsModal": {
     "unknownPlayer": "Unknown Player",
@@ -599,7 +607,8 @@
     "backupNow": "Backup Now",
     "setupRoster": "Setup Team Roster",
     "howItWorks": "How It Works",
-    "getStarted": "Get Started"
+    "getStarted": "Get Started",
+    "manageTeams": "Manage Teams"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
@@ -609,13 +618,14 @@
   },
   "firstGame": {
     "title": "Ready to create your first match!",
-    "desc": "Now you can create your first match and start tracking games. If you'd like, you can first create a season or tournament.",
+    "desc": "If you'd like, you can first create your first team, tournament, or season.",
     "titleNoPlayers": "Ready to get started?",
-    "descNoPlayers": "First, you need to add some players to your team to create your first match.",
+    "descNoPlayers": "First, add players so you can create your first team and match.",
     "setupRoster": "Set Up Team Roster",
     "rosterFirst": "Add players first, then create your game",
     "createGame": "Create Your First Match",
     "createSeasonFirst": "Create Season/Tournament First",
+    "createTeam": "Create First Team",
     "orExperiment": "Or experiment first:",
     "experimentOption": "Use temporary workspace for testing",
     "workspaceWarning": "Temporary workspace - changes won't be saved",
@@ -713,7 +723,10 @@
     "backupButton": "Backup All Data",
     "restoreButton": "Restore from Backup",
     "backupDescription": "Export your data to a backup file or restore from a previous backup. All data will be replaced when restoring.",
-    "importReadError": "Error reading backup file content."
+    "importReadError": "Error reading backup file content.",
+    "importGamesButton": "Import Games",
+    "importing": "Importing...",
+    "gameImportError": "Error importing games: "
   },
   "playerAssessmentModal": {
     "title": "Assess Players",
@@ -812,5 +825,13 @@
     "restoreKeyError": "Failed to restore item {{key}}. Import canceled.",
     "restoreSuccess": "Backup restored. Reloading app...",
     "restoreError": "Error importing backup: {{error}}"
+  },
+  "orphanedGame": {
+    "noTeam": "No Team (Use Master Roster)",
+    "banner": "Original team \"{{teamName}}\" no longer exists. Using master roster.",
+    "unknownTeam": "Unknown Team",
+    "reassignButton": "Reassign to Team",
+    "reassignTitle": "Reassign Game to Team",
+    "reassignDescription": "Select a team to associate this game with, or choose \"No Team\" to use the master roster."
   }
 }

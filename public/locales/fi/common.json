@@ -47,7 +47,8 @@
     "coachingMaterials": "Valmennusmateriaalit",
     "backupRestore": "Varmuuskopiointi & Palautus",
     "toggleLanguage": "Vaihda kieli",
-    "backButton": "Takaisin"
+    "backButton": "Takaisin",
+    "howItWorks": "Näin se toimii"
   },
   "common": {
     "notSet": "Ei asetettu",
@@ -513,7 +514,14 @@
     "demandFactorLabel": "Pelin vaativuustaso",
     "homeOrAwayLabel": "Joukkueesi on",
     "unplayedToggle": "Ei vielä pelattu",
-    "confirmAndStart": "Vahvista ja aloita peli"
+    "confirmAndStart": "Vahvista ja aloita peli",
+    "teamLabel": "Joukkueen valinta",
+    "selectTeamLabel": "Valitse joukkue",
+    "noTeamMasterRoster": "Ei joukkuetta (Käytä pääkokoonpanoa)",
+    "teamSelectedNote": "Pelaajat ladataan valitusta joukkueesta.",
+    "masterRosterNote": "Käytössä pääkokoonpano – kaikki pelaajat käytettävissä.",
+    "emptyTeamRosterPrompt": "Valitussa joukkueessa ei ole pelaajia. Haluatko hallita kokoonpanoa nyt?",
+    "gameTeamsLabel": "Pelin joukkueet"
   },
   "startScreen": {
     "tagline": "Suunnittele · Kirjaa · Arvioi",
@@ -531,7 +539,8 @@
     "backupNow": "Varmuuskopioi nyt",
     "setupRoster": "Luo kokoonpano",
     "howItWorks": "Näin äppi toimii",
-    "getStarted": "Aloita tästä"
+    "getStarted": "Aloita tästä",
+    "manageTeams": "Hallitse joukkueita"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
@@ -541,13 +550,14 @@
   },
   "firstGame": {
     "title": "Kaikki valmista ensimmäiseen otteluun!",
-    "desc": "Nyt voit luoda ensimmäisen ottelusi. Halutessasi voit ensin luoda kauden tai turnauksen, johon liittää ottelusi sen luontivaiheessa.",
+    "desc": "Halutessasi voit luoda ensin ensimmäisen joukkueesi, turnauksesi tai kautesi.",
     "titleNoPlayers": "Valmis aloittamaan?",
-    "descNoPlayers": "Lisää ensin pelaajia joukkueeseesi, jotta voit luoda ensimmäisen ottelusi.",
+    "descNoPlayers": "Lisää ensin pelaajia, jotta voit luoda ensimmäisen joukkueesi ja ottelusi.",
     "setupRoster": "Luo kokoonpano",
     "rosterFirst": "Lisää pelaajat ensin, sitten luo pelisi",
     "createGame": "Luo ensimmäinen ottelu",
     "createSeasonFirst": "Luo ensin kausi/turnaus",
+    "createTeam": "Luo ensimmäinen joukkue",
     "orExperiment": "Tai kokeile ensin:",
     "experimentOption": "Käytä väliaikaista työtilaa testaamiseen",
     "workspaceWarning": "Väliaikainen työtila - muutoksia ei tallenneta",
@@ -725,7 +735,10 @@
     "backupButton": "Varmuuskopioi kaikki tiedot",
     "restoreButton": "Palauta varmuuskopiosta",
     "backupDescription": "Vie tietosi varmuuskopiotiedostoon tai palauta aiemmasta varmuuskopiosta. Kaikki tiedot korvataan palautettaessa.",
-    "importReadError": "Virhe varmuuskopiotiedoston lukemisessa."
+    "importReadError": "Virhe varmuuskopiotiedoston lukemisessa.",
+    "importGamesButton": "Tuo pelejä",
+    "importing": "Tuodaan...",
+    "gameImportError": "Virhe pelien tuonnissa: "
   },
   "playerAssessmentModal": {
     "title": "Arvioi Pelaajat",
@@ -824,5 +837,13 @@
     "restoreKeyError": "Kohteen {{key}} palautus epäonnistui. Tuonti peruttiin.",
     "restoreSuccess": "Varmuuskopio palautettu. Sovellus latautuu uudelleen...",
     "restoreError": "Virhe varmuuskopion tuonnissa: {{error}}"
+  },
+  "orphanedGame": {
+    "noTeam": "Ei joukkuetta (Käytä pääkokoonpanoa)",
+    "banner": "Alkuperäistä joukkuetta \"{{teamName}}\" ei enää ole. Käytetään pääkokoonpanoa.",
+    "unknownTeam": "Tuntematon joukkue",
+    "reassignButton": "Liitä joukkueeseen",
+    "reassignTitle": "Liitä peli joukkueeseen",
+    "reassignDescription": "Valitse joukkue, johon peli liitetään, tai valitse \"Ei joukkuetta\" käyttääksesi pääkokoonpanoa."
   }
 }

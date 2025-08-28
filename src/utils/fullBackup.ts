@@ -18,6 +18,7 @@ import {
   removeLocalStorageItem,
 } from "./localStorage";
 import type { PlayerAdjustmentsIndex } from './playerAdjustments';
+import { processImportedGames } from './gameImportHelper';
 
 // Define the structure of the backup file
 interface FullBackupData {
@@ -139,13 +140,60 @@ export const importFullBackup = async (
 
     logger.log("User confirmed import. Proceeding to overwrite data...");
 
+    // --- Process games to ensure proper player mapping ---
+    let processedSavedGames = backupData.localStorage[SAVED_GAMES_KEY];
+    
+    if (processedSavedGames && typeof processedSavedGames === 'object') {
+      try {
+        // Get current roster for player mapping
+        const currentRosterJson = getLocalStorageItem(MASTER_ROSTER_KEY);
+        let currentRoster: Player[] = [];
+        
+        if (currentRosterJson) {
+          try {
+            currentRoster = JSON.parse(currentRosterJson) as Player[];
+          } catch (error) {
+            logger.warn('Could not parse current roster for player mapping:', error);
+          }
+        }
+        
+        // Process imported games to ensure proper player integration
+        if (currentRoster.length > 0) {
+          const { processedGames, mappingReport } = processImportedGames(
+            processedSavedGames as SavedGamesCollection,
+            currentRoster
+          );
+          
+          processedSavedGames = processedGames;
+          
+          logger.log('Game import processing completed:', mappingReport);
+          
+          // Show user-friendly summary
+          if (mappingReport.gamesWithMappedPlayers > 0) {
+            const message = `Successfully processed ${mappingReport.totalGames} games. ${mappingReport.gamesWithMappedPlayers} games had players mapped to your current roster. This ensures imported games appear in player statistics.`;
+            // We'll show this after the main success message
+            setTimeout(() => alert(message), 1000);
+          }
+        }
+      } catch (error) {
+        logger.error('Error processing imported games for player mapping:', error);
+        // Continue with import even if processing fails
+      }
+    }
+
     // --- Overwrite localStorage ---
     const keysToRestore = Object.keys(backupData.localStorage) as Array<
       keyof FullBackupData["localStorage"]
     >;
 
     for (const key of keysToRestore) {
-      const dataToRestore = backupData.localStorage[key];
+      let dataToRestore = backupData.localStorage[key];
+      
+      // Use processed games if we processed them
+      if (key === SAVED_GAMES_KEY && processedSavedGames) {
+        dataToRestore = processedSavedGames;
+      }
+      
       if (dataToRestore !== undefined && dataToRestore !== null) {
         try {
           setLocalStorageItem(key, JSON.stringify(dataToRestore));
