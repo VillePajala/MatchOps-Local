@@ -138,3 +138,17 @@ Context: Generated `i18n-types.ts` includes duplicate keys (e.g., `controlBar.ba
 - ✅ **StartScreen Teams button**: Added successfully with proper Finnish translation "Hallitse joukkueita"
 - ✅ **i18n type generation**: 713 unique keys, no duplicates in TypeScript union types
 - Fixed HomePage interface and action handler to support 'teams' initial action
+
+
+13. ✅ **COMPLETED** - Load Game: team filter labels under translation
+
+Context: The Load Game view showed English labels ("Filter by Team:", "All Teams", "Legacy Games") in Finnish.
+
+Implementation
+- Added missing keys to locales:
+  - EN `loadGameModal.teamFilter`, `loadGameModal.allTeams`, `loadGameModal.legacyGames`
+  - FI `loadGameModal.teamFilter` ("Suodata joukkueella:"), `loadGameModal.allTeams` ("Kaikki joukkueet"), `loadGameModal.legacyGames` ("Legacy-pelit")
+- Verified component usage in `GameStatsModal.tsx` and `LoadGameModal.tsx` maps to these keys
+
+Verification
+- Open Load Game view → confirm labels localized correctly in both languages
