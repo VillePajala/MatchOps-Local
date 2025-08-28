@@ -908,7 +908,16 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     if (!initialLoadComplete) return;
     
     const firstGameGuideShown = getLocalStorageItem('hasSeenFirstGameGuide');
+    console.log('[FirstGameGuide] Checking conditions:', {
+      firstGameGuideShown,
+      currentGameId,
+      isNotDefaultGame: currentGameId !== DEFAULT_GAME_ID,
+      playersOnFieldCount: playersOnField.length,
+      shouldShow: !firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID && playersOnField.length === 0
+    });
+    
     if (!firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID && playersOnField.length === 0) {
+      console.log('[FirstGameGuide] Showing first game guide');
       setShowFirstGameGuide(true);
     }
   }, [initialLoadComplete, currentGameId, playersOnField.length]);
@@ -3232,6 +3241,27 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Debug button to reset first game guide - REMOVE IN PRODUCTION */}
+      {process.env.NODE_ENV === 'development' && (
+        <button 
+          onClick={() => {
+            removeLocalStorageItem('hasSeenFirstGameGuide');
+            console.log('[FirstGameGuide] Reset hasSeenFirstGameGuide');
+            setShowFirstGameGuide(false);
+            // Force re-check after a moment
+            setTimeout(() => {
+              const firstGameGuideShown = getLocalStorageItem('hasSeenFirstGameGuide');
+              if (!firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID && playersOnField.length === 0) {
+                setShowFirstGameGuide(true);
+              }
+            }, 100);
+          }}
+          className="fixed bottom-4 left-4 z-50 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs"
+        >
+          Reset First Game Guide
+        </button>
       )}
 
     </main>
