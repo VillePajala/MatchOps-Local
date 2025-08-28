@@ -39,6 +39,7 @@ See `../../MULTI-TEAM-SUPPORT.md` for the complete plan, risks, migration, testi
 
 ### Now (teams as first‑class entities)
 - Teams are data entities with their own rosters; master kokoonpano still exists as the global source of truth.
+- **Master Roster Management**: RosterSettingsModal now exclusively manages the master roster - team name functionality removed to avoid confusion with separate team management.
 - New Game behavior:
   - Available players for setup = full master kokoonpano.
   - If a Team is selected, players from that team are pre‑selected within the master list; if No Team is selected, default pre‑selection is the entire master list (or empty if desired).
@@ -46,7 +47,7 @@ See `../../MULTI-TEAM-SUPPORT.md` for the complete plan, risks, migration, testi
 - In‑game editing (Game Settings):
   - Team context (if any) is preselected; the available list remains the master list saved with the game.
   - Coaches can add/remove which players are selected for that game without changing team membership.
-  - Team membership is managed only in Team Manager; Game Settings only changes the game’s selection.
+  - Team membership is managed only in Team Manager; Game Settings only changes the game's selection.
 - Load/Stats can filter by specific team or show All/Legacy.
 
 ### Data and Storage
@@ -107,11 +108,33 @@ Edge cases handled:
 
 ---
 
+## Migration & Data Versioning
+
+### Migration System (v1 → v2)
+Multi-team support introduced automatic data versioning to ensure smooth transitions:
+
+- **Fresh Installations**: New users get data version 2 immediately - no migration needed, no default team created
+- **Existing v1 Data**: Automatic migration creates a default team from existing roster data, preserves all historical data
+- **Migration Safety**: Full backup/restore system with rollback capability on migration failure
+- **Idempotent Operations**: Safe to run multiple times, migration only occurs once
+
+### Migration Components
+- **Version Detection**: `src/utils/migration.ts` - `getAppDataVersion()`, `checkForExistingData()`
+- **Migration Logic**: Creates default team from existing roster, maintains data integrity
+- **Backup System**: `src/utils/migrationBackup.ts` - automatic backup before migration
+- **Recovery**: Manual recovery functions for failed migrations
+
+### Key Storage Keys
+- `appDataVersion`: Current data schema version (1 = pre-teams, 2 = multi-team)
+- `soccerTeams`: Teams index for multi-team support
+- `soccerTeamRosters`: Per-team roster data
+
 ## Backward Compatibility
 
 - Legacy games (no `teamId`) remain valid and appear under All/Legacy in Load/Stats.
 - Master kokoonpano remains the global list; team rosters are curated subsets, not a replacement.
 - Seasons/Tournaments remain global and unscoped.
+- Historical data preserved through migration with no data loss.
 
 ---
 
