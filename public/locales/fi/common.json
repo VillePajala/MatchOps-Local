@@ -41,7 +41,7 @@
     "gameSettingsButton": "Otteluasetukset",
     "manageRoster": "Kokoonpanoasetukset",
     "manageSeasonsAndTournaments": "Hallinnoi kausia ja turnauksia",
-    "manageTeams": "Hallitse joukkueita",
+    "manageTeams": "Hallinnoi joukkueita",
     "assessPlayers": "Arvioi pelaajat",
     "appSettings": "Asetukset",
     "coachingMaterials": "Valmennusmateriaalit",
@@ -540,7 +540,7 @@
     "setupRoster": "Luo kokoonpano",
     "howItWorks": "Näin äppi toimii",
     "getStarted": "Aloita tästä",
-    "manageTeams": "Hallitse joukkueita"
+    "manageTeams": "Hallinnoi joukkueita"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
@@ -558,7 +558,7 @@
     "createGame": "Luo ensimmäinen ottelu",
     "createSeasonFirst": "Luo ensin kausi/turnaus",
     "createTeam": "Luo ensimmäinen joukkue",
-    "manageTeams": "Hallitse joukkueita",
+    "manageTeams": "Hallinnoi joukkueita",
     "manageSeasonsAndTournaments": "Hallinnoi kausia ja turnauksia",
     "orExperiment": "Tai kokeile ensin:",
     "experimentOption": "Käytä väliaikaista työtilaa testaamiseen",
