@@ -1,5 +1,11 @@
 import { Team, TeamPlayer, Player } from '@/types';
-import { APP_DATA_VERSION_KEY } from '@/config/storageKeys';
+import { 
+  APP_DATA_VERSION_KEY, 
+  MASTER_ROSTER_KEY, 
+  SAVED_GAMES_KEY, 
+  SEASONS_LIST_KEY, 
+  TOURNAMENTS_LIST_KEY 
+} from '@/config/storageKeys';
 import { getLocalStorageItem, setLocalStorageItem } from './localStorage';
 import { getMasterRoster } from './masterRosterManager';
 // Note: Removed imports for global entity migration (seasons/tournaments/saved games/adjustments remain global)
@@ -10,6 +16,17 @@ import logger from './logger';
 const CURRENT_DATA_VERSION = 2;
 const MIGRATION_TEAM_NAME_FALLBACK = 'My Team';
 
+// Check if there's any existing app data (used to detect fresh installations)
+const checkForExistingData = (): boolean => {
+  // Check for key data that would exist in a v1 installation
+  const masterRoster = getLocalStorageItem(MASTER_ROSTER_KEY);
+  const savedGames = getLocalStorageItem(SAVED_GAMES_KEY);
+  const seasons = getLocalStorageItem(SEASONS_LIST_KEY);
+  const tournaments = getLocalStorageItem(TOURNAMENTS_LIST_KEY);
+  
+  return !!(masterRoster || savedGames || seasons || tournaments);
+};
+
 // Check if migration is needed
 export const isMigrationNeeded = (): boolean => {
   const currentVersion = getAppDataVersion();
@@ -19,7 +36,21 @@ export const isMigrationNeeded = (): boolean => {
 // Get current app data version
 export const getAppDataVersion = (): number => {
   const stored = getLocalStorageItem(APP_DATA_VERSION_KEY);
-  return stored ? parseInt(stored, 10) : 1; // Default to version 1 for existing data
+  if (stored) {
+    return parseInt(stored, 10);
+  }
+  
+  // For fresh installations with no version stored, check if there's any existing data
+  // If no existing data, set to current version immediately to avoid unnecessary migration
+  const hasExistingData = checkForExistingData();
+  if (!hasExistingData) {
+    // Fresh installation - set to current version
+    setAppDataVersion(CURRENT_DATA_VERSION);
+    return CURRENT_DATA_VERSION;
+  }
+  
+  // Has existing data but no version - this is a v1 installation that needs migration
+  return 1;
 };
 
 // Set app data version
