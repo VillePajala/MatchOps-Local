@@ -558,6 +558,8 @@
     "createGame": "Luo ensimmäinen ottelu",
     "createSeasonFirst": "Luo ensin kausi/turnaus",
     "createTeam": "Luo ensimmäinen joukkue",
+    "manageTeams": "Hallitse joukkueita",
+    "manageSeasonsAndTournaments": "Hallinnoi kausia ja turnauksia",
     "orExperiment": "Tai kokeile ensin:",
     "experimentOption": "Käytä väliaikaista työtilaa testaamiseen",
     "workspaceWarning": "Väliaikainen työtila - muutoksia ei tallenneta",
