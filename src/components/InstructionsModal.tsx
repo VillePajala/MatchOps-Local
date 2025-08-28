@@ -37,11 +37,14 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.gettingStarted.title')}</h3>
             <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
               <p className="text-slate-200 mb-3">{t('instructionsModal.gettingStarted.intro')}</p>
-              <ol className="list-decimal list-inside space-y-2 text-slate-300">
+              <ol className="list-none space-y-2 text-slate-300">
                 <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step1Title')}</span> - {t('instructionsModal.gettingStarted.step1Desc')}</li>
                 <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step2Title')}</span> - {t('instructionsModal.gettingStarted.step2Desc')}</li>
                 <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step3Title')}</span> - {t('instructionsModal.gettingStarted.step3Desc')}</li>
                 <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step4Title')}</span> - {t('instructionsModal.gettingStarted.step4Desc')}</li>
+                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step5Title')}</span> - {t('instructionsModal.gettingStarted.step5Desc')}</li>
+                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step6Title')}</span> - {t('instructionsModal.gettingStarted.step6Desc')}</li>
+                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step7Title')}</span> - {t('instructionsModal.gettingStarted.step7Desc')}</li>
               </ol>
             </div>
           </section>
@@ -83,18 +86,41 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             </div>
           </section>
 
+          {/* Main Concepts */}
+          <section className="space-y-3">
+            <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.mainConcepts.title')}</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.mainConcepts.game')}</h4>
+                <p className="text-sm text-slate-300">{t('instructionsModal.mainConcepts.gameDesc')}</p>
+              </div>
+              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.mainConcepts.roster')}</h4>
+                <p className="text-sm text-slate-300">{t('instructionsModal.mainConcepts.rosterDesc')}</p>
+              </div>
+              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.mainConcepts.team')}</h4>
+                <p className="text-sm text-slate-300">{t('instructionsModal.mainConcepts.teamDesc')}</p>
+              </div>
+              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.mainConcepts.season')}</h4>
+                <p className="text-sm text-slate-300">{t('instructionsModal.mainConcepts.seasonDesc')}</p>
+              </div>
+              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.mainConcepts.tournament')}</h4>
+                <p className="text-sm text-slate-300">{t('instructionsModal.mainConcepts.tournamentDesc')}</p>
+              </div>
+              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.mainConcepts.statistics')}</h4>
+                <p className="text-sm text-slate-300">{t('instructionsModal.mainConcepts.statisticsDesc')}</p>
+              </div>
+            </div>
+          </section>
+
           {/* Key Features */}
           <section className="space-y-3">
             <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.keyFeatures.title')}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.keyFeatures.seasons')}</h4>
-                <p className="text-sm text-slate-300">{t('instructionsModal.keyFeatures.seasonsDesc')}</p>
-              </div>
-              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.keyFeatures.tournaments')}</h4>
-                <p className="text-sm text-slate-300">{t('instructionsModal.keyFeatures.tournamentsDesc')}</p>
-              </div>
               <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
                 <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.keyFeatures.tacticsBoard')}</h4>
                 <p className="text-sm text-slate-300">{t('instructionsModal.keyFeatures.tacticsBoardDesc')}</p>
