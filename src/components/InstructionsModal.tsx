@@ -32,19 +32,17 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 space-y-6">
-          {/* Getting Started */}
+          {/* Pre-Game Setup */}
           <section className="space-y-3">
-            <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.gettingStarted.title')}</h3>
+            <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.preGame.title')}</h3>
             <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-              <p className="text-slate-200 mb-3">{t('instructionsModal.gettingStarted.intro')}</p>
+              <p className="text-slate-200 mb-3">{t('instructionsModal.preGame.intro')}</p>
               <ol className="list-none space-y-2 text-slate-300">
-                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step1Title')}</span> - {t('instructionsModal.gettingStarted.step1Desc')}</li>
-                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step2Title')}</span> - {t('instructionsModal.gettingStarted.step2Desc')}</li>
-                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step3Title')}</span> - {t('instructionsModal.gettingStarted.step3Desc')}</li>
-                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step4Title')}</span> - {t('instructionsModal.gettingStarted.step4Desc')}</li>
-                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step5Title')}</span> - {t('instructionsModal.gettingStarted.step5Desc')}</li>
-                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step6Title')}</span> - {t('instructionsModal.gettingStarted.step6Desc')}</li>
-                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.gettingStarted.step7Title')}</span> - {t('instructionsModal.gettingStarted.step7Desc')}</li>
+                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.preGame.step1Title')}</span> - {t('instructionsModal.preGame.step1Desc')}</li>
+                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.preGame.step2Title')}</span> - {t('instructionsModal.preGame.step2Desc')}</li>
+                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.preGame.step3Title')}</span> - {t('instructionsModal.preGame.step3Desc')}</li>
+                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.preGame.step4Title')}</span> - {t('instructionsModal.preGame.step4Desc')}</li>
+                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.preGame.step5Title')}</span> - {t('instructionsModal.preGame.step5Desc')}</li>
               </ol>
             </div>
           </section>
@@ -52,36 +50,24 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
           {/* During the Game */}
           <section className="space-y-3">
             <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.duringGame.title')}</h3>
-            <div className="space-y-3">
-              <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                <h4 className="text-lg font-semibold text-indigo-300 mb-2">{t('instructionsModal.duringGame.fieldTitle')}</h4>
-                <ul className="list-disc list-inside space-y-1 text-slate-300">
-                  <li>{t('instructionsModal.duringGame.dragPlayers')}</li>
-                  <li>{t('instructionsModal.duringGame.drawTactics')}</li>
-                  <li>{t('instructionsModal.duringGame.trackSubs')}</li>
-                </ul>
-              </div>
-              
-              <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                <h4 className="text-lg font-semibold text-indigo-300 mb-2">{t('instructionsModal.duringGame.scoringTitle')}</h4>
-                <ul className="list-disc list-inside space-y-1 text-slate-300">
-                  <li>{t('instructionsModal.duringGame.logGoals')}</li>
-                  <li>{t('instructionsModal.duringGame.timer')}</li>
-                  <li>{t('instructionsModal.duringGame.periods')}</li>
-                </ul>
-              </div>
+            <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+              <ol className="list-none space-y-2 text-slate-300">
+                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.duringGame.step6Title')}</span> - {t('instructionsModal.duringGame.step6Desc')}</li>
+                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.duringGame.step7Title')}</span> - {t('instructionsModal.duringGame.step7Desc')}</li>
+              </ol>
             </div>
           </section>
 
           {/* After the Game */}
           <section className="space-y-3">
-            <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.afterGame.title')}</h3>
+            <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.afterGameSection.title')}</h3>
             <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
               <ul className="list-disc list-inside space-y-1 text-slate-300">
-                <li>{t('instructionsModal.afterGame.saveGame')}</li>
-                <li>{t('instructionsModal.afterGame.assessPlayers')}</li>
-                <li>{t('instructionsModal.afterGame.viewStats')}</li>
-                <li>{t('instructionsModal.afterGame.exportData')}</li>
+                <li>{t('instructionsModal.afterGameSection.saveGame')}</li>
+                <li>{t('instructionsModal.afterGameSection.assessPlayers')}</li>
+                <li>{t('instructionsModal.afterGameSection.viewStats')}</li>
+                <li>{t('instructionsModal.afterGameSection.exportData')}</li>
+                <li>{t('instructionsModal.afterGameSection.reviewGame')}</li>
               </ul>
             </div>
           </section>
