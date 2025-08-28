@@ -419,7 +419,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState<boolean>(false);
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
-  const [hasSeenFirstGameGuide, setHasSeenFirstGameGuide] = useState<boolean>(false);
 
   useEffect(() => {
     if (!initialAction) return;
@@ -866,12 +865,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           setIsInstructionsModalOpen(true);
         }
 
-        // Check if we should show first game interface guide
-        const firstGameGuideShown = getLocalStorageItem('hasSeenFirstGameGuide');
-        if (!firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID && playersOnField.length === 0) {
-          setShowFirstGameGuide(true);
-        }
-
         // This is now the single source of truth for loading completion.
         setInitialLoadComplete(true);
       }
@@ -909,6 +902,16 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     initialAction, // Used to determine if instructions modal should show automatically
     savedGames // Used to check if user has any saved games for instructions modal logic
   ]);
+
+  // Check if we should show first game interface guide
+  useEffect(() => {
+    if (!initialLoadComplete) return;
+    
+    const firstGameGuideShown = getLocalStorageItem('hasSeenFirstGameGuide');
+    if (!firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID && playersOnField.length === 0) {
+      setShowFirstGameGuide(true);
+    }
+  }, [initialLoadComplete, currentGameId, playersOnField.length]);
 
   // --- NEW: Robust Visibility Change Handling ---
   // --- Wake Lock Effect ---
