@@ -418,6 +418,8 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   // --- Timer State (Still needed here) ---
   const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState<boolean>(false);
+  const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
+  const [hasSeenFirstGameGuide, setHasSeenFirstGameGuide] = useState<boolean>(false);
 
   useEffect(() => {
     if (!initialAction) return;
@@ -862,6 +864,12 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         const hasAnyData = Object.keys(savedGames).length > 0; // Check if user has any saved games
         if (!seenGuide && initialAction !== null && hasAnyData) {
           setIsInstructionsModalOpen(true);
+        }
+
+        // Check if we should show first game interface guide
+        const firstGameGuideShown = getLocalStorageItem('hasSeenFirstGameGuide');
+        if (!firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID && playersOnField.length === 0) {
+          setShowFirstGameGuide(true);
         }
 
         // This is now the single source of truth for loading completion.
@@ -2764,6 +2772,125 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
                   className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-amber-900 rounded-md text-xs font-semibold transition-colors shadow-sm flex-shrink-0"
                 >
                   {t('firstGame.createRealGame', 'Create real game')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* First Game Interface Guide */}
+        {showFirstGameGuide && currentGameId !== DEFAULT_GAME_ID && (
+          <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+            <div className="bg-slate-800/95 border border-indigo-500/50 rounded-xl p-8 max-w-md pointer-events-auto shadow-2xl backdrop-blur-sm">
+              
+              {/* Header */}
+              <div className="text-center mb-6">
+                <div className="text-3xl mb-2">⚽</div>
+                <h2 className="text-2xl font-bold text-indigo-300">
+                  {t('firstGameGuide.title', 'Welcome to Your First Game!')}
+                </h2>
+                <p className="text-slate-400 text-sm mt-1">
+                  {t('firstGameGuide.subtitle', "Let's quickly go over the basics")}
+                </p>
+              </div>
+
+              {/* Sections */}
+              <div className="space-y-4">
+                
+                {/* Player Selection */}
+                <div className="bg-slate-700/50 rounded-lg p-4">
+                  <h3 className="font-semibold text-indigo-200 mb-2">
+                    {t('firstGameGuide.playerSelection', 'Player Selection (Top Bar)')}
+                  </h3>
+                  <ul className="text-sm text-slate-300 space-y-1">
+                    <li>• {t('firstGameGuide.tapToSelect', 'Tap player disc to select')}</li>
+                    <li>• {t('firstGameGuide.yellowBorder', 'Selected player gets yellow border')}</li>
+                    <li>• {t('firstGameGuide.tapFieldPlace', 'Tap field to place player')}</li>
+                  </ul>
+                </div>
+
+                {/* Field */}
+                <div className="bg-slate-700/50 rounded-lg p-4">
+                  <h3 className="font-semibold text-indigo-200 mb-2">
+                    {t('firstGameGuide.theField', 'The Field')}
+                  </h3>
+                  <ul className="text-sm text-slate-300 space-y-1">
+                    <li>• {t('firstGameGuide.tapToPlace', 'Tap to place selected player')}</li>
+                    <li>• {t('firstGameGuide.dragToAdjust', 'Drag players to adjust positions')}</li>
+                    <li>• {t('firstGameGuide.doubleTapRemove', 'Double-tap to remove from field')}</li>
+                    <li>• {t('firstGameGuide.drawTactics', 'Draw arrows for tactical plans')}</li>
+                  </ul>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="bg-slate-700/50 rounded-lg p-4">
+                  <h3 className="font-semibold text-indigo-200 mb-3">
+                    {t('firstGameGuide.quickActions', 'Quick Actions (Bottom Bar)')}
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start gap-2">
+                      <span className="text-purple-400">⬜</span>
+                      <div>
+                        <span className="font-medium text-slate-200">
+                          {t('firstGameGuide.placeAll', 'Place All')}
+                        </span>
+                        <span className="text-slate-400"> - {t('firstGameGuide.placeAllDesc', 'Auto-arrange players on field')}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-start gap-2">
+                      <span className="text-yellow-400">⚽</span>
+                      <div>
+                        <span className="font-medium text-slate-200">
+                          {t('firstGameGuide.logGoal', 'Log Goal')}
+                        </span>
+                        <span className="text-slate-400"> - {t('firstGameGuide.logGoalDesc', 'Record goals during game')}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2">
+                      <span className="text-green-400">🕐</span>
+                      <div>
+                        <span className="font-medium text-slate-200">
+                          {t('firstGameGuide.timer', 'Timer')}
+                        </span>
+                        <span className="text-slate-400"> - {t('firstGameGuide.timerDesc', 'Show game clock & substitutions')}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2">
+                      <span className="text-slate-400">☰</span>
+                      <div>
+                        <span className="font-medium text-slate-200">
+                          {t('firstGameGuide.menu', 'Menu')}
+                        </span>
+                        <span className="text-slate-400"> - {t('firstGameGuide.menuDesc', 'Access all features & settings')}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 mt-6">
+                <button 
+                  onClick={() => {
+                    setShowFirstGameGuide(false);
+                    setLocalStorageItem('hasSeenFirstGameGuide', 'true');
+                  }}
+                  className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-semibold text-white transition-colors"
+                >
+                  {t('firstGameGuide.gotIt', "Got it, let's start!")}
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowFirstGameGuide(false);
+                    setLocalStorageItem('hasSeenFirstGameGuide', 'true');
+                    setIsInstructionsModalOpen(true);
+                  }}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors"
+                >
+                  {t('firstGameGuide.needHelp', 'Need more help?')}
                 </button>
               </div>
             </div>
