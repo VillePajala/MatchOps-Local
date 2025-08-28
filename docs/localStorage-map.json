@@ -85,6 +85,7 @@
     "autoBackupIntervalHours": 24,
     "useDemandCorrection": false
   },
+  "hasSeenFirstGameGuide": "true",
   "soccerMasterRoster": [
     {
       "id": "player_1",
