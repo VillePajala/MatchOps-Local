@@ -341,7 +341,7 @@
     }
   },
   "rosterSettingsModal": {
-    "title": "Hallitse Kokoonpanoa",
+    "title": "Pääkokoonpano",
     "unsetGoalie": "Poista maalivahdin merkintä",
     "setGoalie": "Aseta maalivahdiksi",
     "playerNotes": "Pelaajan Muistiinpanot",

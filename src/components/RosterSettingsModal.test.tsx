@@ -14,7 +14,6 @@ jest.mock('react-i18next', () => ({
 const mockOnClose = jest.fn();
 const mockOnAddPlayer = jest.fn();
 const mockOnRemovePlayer = jest.fn();
-const mockOnTeamNameChange = jest.fn();
 const mockOnRenamePlayer = jest.fn();
 const mockOnSetJerseyNumber = jest.fn();
 const mockOnSetPlayerNotes = jest.fn();
@@ -37,8 +36,6 @@ const defaultProps = {
   onAddPlayer: mockOnAddPlayer,
   selectedPlayerIds: [],
   onTogglePlayerSelection: mockOnTogglePlayerSelection,
-  teamName: 'Test Team Name',
-  onTeamNameChange: mockOnTeamNameChange,
   onOpenPlayerStats: mockOnOpenPlayerStats,
 };
 

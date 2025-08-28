@@ -23,8 +23,6 @@ interface RosterSettingsModalProps {
   onAddPlayer: (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => void;
   selectedPlayerIds: string[];
   onTogglePlayerSelection: (playerId: string) => void;
-  teamName: string;
-  onTeamNameChange: (newName: string) => void;
   isRosterUpdating?: boolean;
   rosterError?: string | null;
   onOpenPlayerStats: (playerId: string) => void;
@@ -41,8 +39,6 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   onAddPlayer,
   selectedPlayerIds,
   onTogglePlayerSelection,
-  teamName,
-  onTeamNameChange,
   isRosterUpdating,
   rosterError,
   onOpenPlayerStats,
@@ -51,10 +47,6 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [editPlayerData, setEditPlayerData] = useState<{ name: string; jerseyNumber: string; notes: string; nickname: string }>({ name: '', jerseyNumber: '', notes: '', nickname: '' });
 
-  // State for team name editing
-  const [isEditingTeamName, setIsEditingTeamName] = useState(false);
-  const [editedTeamName, setEditedTeamName] = useState(teamName);
-  const teamNameInputRef = useRef<HTMLInputElement>(null);
 
   // State for adding a new player
   const [isAddingPlayer, setIsAddingPlayer] = useState(false);
@@ -204,39 +196,6 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   };
   // --- End New Player Handlers ---
 
-  // Handle team name input change
-  const handleTeamNameInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditedTeamName(e.target.value);
-  };
-
-  // Handle team name save
-  const handleSaveTeamName = () => {
-    if (editedTeamName.trim()) {
-      onTeamNameChange(editedTeamName.trim());
-    } else {
-      setEditedTeamName(teamName); // Reset to original if empty
-    }
-    setIsEditingTeamName(false);
-  };
-
-  // Handle cancel team name edit
-  const handleCancelTeamNameEdit = () => {
-    setEditedTeamName(teamName);
-    setIsEditingTeamName(false);
-  };
-
-  // Focus team name input when editing starts
-  useEffect(() => {
-    if (isEditingTeamName && teamNameInputRef.current) {
-      teamNameInputRef.current.focus();
-      teamNameInputRef.current.select();
-    }
-  }, [isEditingTeamName]);
-
-  // Update team name state when prop changes
-  useEffect(() => {
-    setEditedTeamName(teamName);
-  }, [teamName]);
 
   if (!isOpen) return null;
 
@@ -303,35 +262,6 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                 {t('rosterSettingsModal.addPlayerButton', 'Add Player')}
               </button>
 
-              {/* Team Name */}
-              <div className="mt-4 mx-4 bg-gradient-to-r from-slate-900/80 to-slate-800/80 rounded-lg shadow-inner">
-                {isEditingTeamName ? (
-                  <div className="p-2">
-                    <input
-                      ref={teamNameInputRef}
-                      type="text"
-                      value={editedTeamName}
-                      onChange={handleTeamNameInputChange}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveTeamName();
-                        if (e.key === 'Escape') handleCancelTeamNameEdit();
-                      }}
-                      onBlur={handleSaveTeamName}
-                      className={`${inputBaseStyle} text-base`}
-                    />
-                  </div>
-                ) : (
-                  <div
-                    className="group flex items-center justify-between p-2 cursor-pointer"
-                    onClick={() => setIsEditingTeamName(true)}
-                  >
-                    <p className="text-base text-slate-100 font-semibold group-hover:text-yellow-400 transition-colors">
-                      {teamName}
-                    </p>
-                    <HiOutlinePencil className="w-4 h-4 text-slate-500 group-hover:text-yellow-400 transition-colors" />
-                  </div>
-                )}
-              </div>
 
             </div>
           </div>
