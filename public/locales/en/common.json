@@ -164,23 +164,34 @@
   "instructionsModal": {
     "title": "How It Works",
     "closeButton": "Close",
-    "gettingStarted": {
-      "title": "Getting Started",
+    "preGame": {
+      "title": "Pre-Game Setup",
       "intro": "MatchOps Local helps you track your teams' performance during games:",
       "step1Title": "1. Create Your Roster",
-      "step1Desc": "Add your players with names",
+      "step1Desc": "Add all available players with names. This is your master registry to select players from for games. You can add players at any time.",
       "step2Title": "2. Create Team (optional)",
-      "step2Desc": "Organize players into teams",
+      "step2Desc": "Organize players into teams if you have multiple squads (e.g., A-team, B-team, age groups). Teams can be reused across multiple games.",
       "step3Title": "3. Create Tournament / Season (optional)",
-      "step3Desc": "Organize games into tournaments or seasons",
+      "step3Desc": "Create a season for long-term tracking or tournament for specific competitions. Get separate statistics for each tournament/season.",
       "step4Title": "4. Start a New Game",
-      "step4Desc": "Link game to specific team and tournament / season if desired",
+      "step4Desc": "Set opponent, date, time, and game format. Link game to team and tournament/season if you want organized statistics.",
       "step5Title": "5. Plan Formation",
-      "step5Desc": "Position players on field in your desired formation",
+      "step5Desc": "Drag players from top bar onto field in your desired formation. Set goalkeeper, move players around, and plan positions."
+    },
+    "duringGame": {
+      "title": "During the Game",
       "step6Title": "6. Plan / Draw Tactical Patterns",
-      "step6Desc": "Use tactics mode for drawing and planning",
-      "step7Title": "7. Start Game Clock",
-      "step7Desc": "When ready, start game clock and record match events in real-time"
+      "step6Desc": "Use tactics mode to draw arrows and lines. Save tactical plans, running routes, and game situations on the field.",
+      "step7Title": "7. Start Game Clock & Record Events",
+      "step7Desc": "Start the timer and record goals, substitutions, and other events in real-time. Track playing time and substitution intervals automatically."
+    },
+    "afterGameSection": {
+      "title": "After the Game",
+      "saveGame": "Save game automatically or manually for later review",
+      "assessPlayers": "Rate player performance and add notes about each player's development",
+      "viewStats": "Review detailed statistics: goals, assists, playing time, ratings",
+      "exportData": "Export all your data in CSV format for further analysis or backup",
+      "reviewGame": "Review game events, tactical drawings, and formations"
     },
     "duringGame": {
       "title": "During the Game",

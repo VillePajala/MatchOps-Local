@@ -164,25 +164,36 @@
   "instructionsModal": {
     "title": "Näin se toimii",
     "closeButton": "Sulje",
-    "gettingStarted": {
-      "title": "Aloittaminen",
+    "preGame": {
+      "title": "Ennen peliä",
       "intro": "MatchOps Local auttaa sinua seuraamaan joukkueidesi suoritusta peleissä:",
       "step1Title": "1. Luo kokoonpano",
-      "step1Desc": "Lisää pelaajat nimillä",
+      "step1Desc": "Lisää kaikki käytettävissä olevat pelaajat nimillä. Tämä on perusrekisteri josta valitset pelaajat peleihin. Voit lisätä pelaajia milloin tahansa.",
       "step2Title": "2. Luo joukkue (valinnainen)",
-      "step2Desc": "Järjestä pelaajat joukkueisiin",
-      "step3Title": "3. Luo turnaus / kausi (valinnainen)",
-      "step3Desc": "Järjestä pelit turnauksiin tai kausiin",
+      "step2Desc": "Järjestä pelaajat joukkueisiin jos sinulla on useita kokoonpanoja (esim. A-joukkue, B-joukkue, ikäluokat). Joukkueita voi käyttää useissa peleissä.",
+      "step3Title": "3. Luo turnaus / kausi (valinnainen)", 
+      "step3Desc": "Luo kausi pitkäaikaiselle seurannalle tai turnaus tietylle kilpailulle. Saat erilliset tilastot jokaiselle turnaukselle/kaudelle.",
       "step4Title": "4. Aloita uusi peli",
-      "step4Desc": "Liitä peli halutessasi tiettyyn joukkueeseen ja turnaukseen / kauteen",
-      "step5Title": "5. Suunnittele kokoonpano",
-      "step5Desc": "Sijoita pelaajat kentälle haluamaasi muodostelmaan",
-      "step6Title": "6. Suunnittele / piirrä taktisia kuvioita",
-      "step6Desc": "Käytä taktiikka-tilaa piirtämiseen ja suunnitteluun",
-      "step7Title": "7. Käynnistä pelikello",
-      "step7Desc": "Kun valmista, käynnistä pelikello ja kirjaa ottelutapahtumia reaaliaikaisesti"
+      "step4Desc": "Aseta vastustaja, päivämäärä, aika ja peliformaatti. Liitä peli joukkueeseen ja turnaukseen/kauteen jos haluat järjestää tilastoja.",
+      "step5Title": "5. Suunnittele kokoonpano", 
+      "step5Desc": "Vedä pelaajat yläpalkista kentälle haluamaasi muodostelmaan. Voit asettaa maalivahdin, siirtää pelaajia ja suunnitella sijoitukset."
     },
     "duringGame": {
+      "title": "Pelin aikana",
+      "step6Title": "6. Suunnittele / piirrä taktisia kuvioita",
+      "step6Desc": "Käytä taktiikka-tilaa piirtääksesi nuolia ja viivoja. Tallenna taktisia suunnitelmia, juoksureittejä ja pelitilanteita kentälle.",
+      "step7Title": "7. Käynnistä pelikello ja kirjaa tapahtumia",
+      "step7Desc": "Käynnistä ajastin ja kirjaa maalit, vaihdot ja muut tapahtumat reaaliaikaisesti. Seuraa peliaikaa ja vaihtovälejä automaattisesti."
+    },
+    "afterGameSection": {
+      "title": "Pelin jälkeen",
+      "saveGame": "Tallenna peli automaattisesti tai manuaalisesti myöhempää tarkastelua varten",
+      "assessPlayers": "Arvioi pelaajien suoritus ja lisää muistiinpanoja kunkin pelaajan kehityksestä",
+      "viewStats": "Tarkastele yksityiskohtaisia tilastoja: maalit, syötöt, peliajat, arvosanat",
+      "exportData": "Vie kaikki datasi CSV-muodossa jatkoanalyysiä tai varmuuskopiointia varten",
+      "reviewGame": "Käy läpi pelin tapahtumat, taktisia piirroksia ja kokoonpanoja"
+    },
+    "legacyDuringGame": {
       "title": "Pelin aikana",
       "fieldTitle": "Kentän hallinta",
       "dragPlayers": "Vedä pelaajalaattoja yläpalkista kentälle näyttämään sijainnit",
