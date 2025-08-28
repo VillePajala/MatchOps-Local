@@ -44,6 +44,7 @@ describe('StartScreen', () => {
       onViewStats: jest.fn(),
       onGetStarted: jest.fn(),
       onSetupRoster: jest.fn(),
+      onManageTeams: jest.fn(),
     };
 
     render(
@@ -55,6 +56,7 @@ describe('StartScreen', () => {
         onCreateSeason={handlers.onCreateSeason}
         onViewStats={handlers.onViewStats}
         onSetupRoster={handlers.onSetupRoster}
+        onManageTeams={handlers.onManageTeams}
         canResume={true}
         hasPlayers={true}
         hasSavedGames={true}
@@ -90,6 +92,7 @@ describe('StartScreen', () => {
       onViewStats: jest.fn(),
       onGetStarted: jest.fn(),
       onSetupRoster: jest.fn(),
+      onManageTeams: jest.fn(),
     };
 
     render(
@@ -101,6 +104,7 @@ describe('StartScreen', () => {
         onCreateSeason={handlers.onCreateSeason}
         onViewStats={handlers.onViewStats}
         onSetupRoster={handlers.onSetupRoster}
+        onManageTeams={handlers.onManageTeams}
         canResume={false}
         hasPlayers={false}
         hasSavedGames={false}
