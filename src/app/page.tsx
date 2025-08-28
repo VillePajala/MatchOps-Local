@@ -13,7 +13,7 @@ import { runMigration } from '@/utils/migration';
 
 export default function Home() {
   const [screen, setScreen] = useState<'start' | 'home'>('start');
-  const [initialAction, setInitialAction] = useState<'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | null>(null);
+  const [initialAction, setInitialAction] = useState<'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | 'teams' | null>(null);
   const [canResume, setCanResume] = useState(false);
   const [hasPlayers, setHasPlayers] = useState(false);
   const [hasSavedGames, setHasSavedGames] = useState(false);
@@ -58,7 +58,7 @@ export default function Home() {
   }, []);
 
   const handleAction = (
-    action: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'getStarted' | 'season' | 'stats' | 'roster'
+    action: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'getStarted' | 'season' | 'stats' | 'roster' | 'teams'
   ) => {
     // For getStarted, we want to go to the main app with no specific action
     // This will trigger the soccer field center overlay for first-time users
@@ -82,6 +82,7 @@ export default function Home() {
           onCreateSeason={() => handleAction('season')}
           onViewStats={() => handleAction('stats')}
           onSetupRoster={() => handleAction('roster')}
+          onManageTeams={() => handleAction('teams')}
           hasPlayers={hasPlayers}
           hasSavedGames={hasSavedGames}
           hasSeasonsTournaments={hasSeasonsTournaments}

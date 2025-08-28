@@ -344,6 +344,12 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                 placeholder={t('rosterSettingsModal.searchPlaceholder', 'Search players...')}
                 value={searchText}
                 onChange={handleSearchChange}
+                onFocus={(e) => {
+                  // Prevent focus stealing when user is adding a player
+                  if (isAddingPlayer) {
+                    e.target.blur();
+                  }
+                }}
                 className={inputBaseStyle}
               />
             </div>
@@ -352,8 +358,19 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
               <div className={`${cardStyle} mx-4 space-y-3`}>
                 <h3 className="text-lg font-semibold text-slate-200">{t('rosterSettingsModal.addPlayerButton', 'Add Player')}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <input type="text" name="name" placeholder={t('rosterSettingsModal.playerNamePlaceholder', 'Player Name')} value={newPlayerData.name} onChange={handleNewPlayerInputChange} className={inputBaseStyle} autoFocus />
-                  <input type="text" name="nickname" placeholder={t('rosterSettingsModal.nicknamePlaceholder', 'Nickname (Optional)')} value={newPlayerData.nickname} onChange={handleNewPlayerInputChange} className={inputBaseStyle} />
+                  <input type="text" name="name" placeholder={t('rosterSettingsModal.playerNamePlaceholder', 'Player Name')} value={newPlayerData.name} onChange={handleNewPlayerInputChange} className={inputBaseStyle} />
+                  <input 
+                    type="text" 
+                    name="nickname" 
+                    placeholder={t('rosterSettingsModal.nicknamePlaceholder', 'Nickname (Optional)')} 
+                    value={newPlayerData.nickname} 
+                    onChange={handleNewPlayerInputChange} 
+                    onFocus={(e) => {
+                      // Ensure focus stays on this field when user taps/clicks on it
+                      e.stopPropagation();
+                    }}
+                    className={inputBaseStyle} 
+                  />
                 </div>
                 <input type="text" name="jerseyNumber" placeholder={t('rosterSettingsModal.jerseyHeader', '#')} value={newPlayerData.jerseyNumber} onChange={handleNewPlayerInputChange} className={`${inputBaseStyle} w-24 text-center`} maxLength={3} />
                 <textarea name="notes" placeholder={t('rosterSettingsModal.notesPlaceholder', 'Player notes...')} value={newPlayerData.notes} onChange={handleNewPlayerInputChange} className={`${inputBaseStyle} h-20 resize-none`} rows={3} />

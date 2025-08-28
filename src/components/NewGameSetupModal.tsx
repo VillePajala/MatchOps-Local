@@ -616,22 +616,39 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
             </h2>
           </div>
 
-          {/* Fixed Controls Section */}
+          {/* Fixed Controls Section - Team Selection */}
           <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20">
-            <TeamOpponentInputs
-              teamName={homeTeamName}
-              opponentName={opponentName}
-              onTeamNameChange={handleTeamNameChange}
-              onOpponentNameChange={setOpponentName}
-              teamLabel={t('newGameSetupModal.homeTeamName', 'Your Team Name') + ' *'}
-              teamPlaceholder={t('newGameSetupModal.homeTeamPlaceholder', 'e.g., Galaxy U10')}
-              opponentLabel={t('newGameSetupModal.opponentNameLabel', 'Opponent Name') + ' *'}
-              opponentPlaceholder={t('newGameSetupModal.opponentPlaceholder', 'Enter opponent name')}
-              teamInputRef={homeTeamInputRef}
-              opponentInputRef={opponentInputRef}
-              onKeyDown={handleKeyDown}
-              disabled={isLoading}
-            />
+            <div className="mb-4">
+              <label htmlFor="teamSelectTop" className="block text-sm font-medium text-slate-300 mb-1">
+                {t('newGameSetupModal.selectTeamLabel', 'Select Team')}
+              </label>
+              <select
+                id="teamSelectTop"
+                value={selectedTeamId || ''}
+                onChange={(e) => handleTeamSelection(e.target.value || null)}
+                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                disabled={isLoading}
+              >
+                <option value="">
+                  {t('newGameSetupModal.noTeamMasterRoster', 'No Team (Use Master Roster)')}
+                </option>
+                {teams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+              {selectedTeamId && (
+                <p className="mt-1 text-xs text-slate-400">
+                  {t('newGameSetupModal.teamSelectedNote', 'Player roster will be loaded from selected team.')}
+                </p>
+              )}
+              {!selectedTeamId && (
+                <p className="mt-1 text-xs text-slate-400">
+                  {t('newGameSetupModal.masterRosterNote', 'Using master roster - all players available.')}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Scrollable Content Area */}
@@ -642,42 +659,25 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     modalContent
                   ) : (
                     <>
-                    {/* Team Selection Section */}
+                    {/* Team & Opponent Names Section */}
                     <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
                       <h3 className="text-lg font-semibold text-slate-200 mb-3">
-                        {t('newGameSetupModal.teamLabel', 'Team Selection')}
+                        {t('newGameSetupModal.gameTeamsLabel', 'Game Teams')}
                       </h3>
-                      <div className="mb-4">
-                        <label htmlFor="teamSelect" className="block text-sm font-medium text-slate-300 mb-1">
-                          {t('newGameSetupModal.selectTeamLabel', 'Select Team')}
-                        </label>
-                        <select
-                          id="teamSelect"
-                          value={selectedTeamId || ''}
-                          onChange={(e) => handleTeamSelection(e.target.value || null)}
-                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                          disabled={isLoading}
-                        >
-                          <option value="">
-                            {t('newGameSetupModal.noTeamMasterRoster', 'No Team (Use Master Roster)')}
-                          </option>
-                          {teams.map((team) => (
-                            <option key={team.id} value={team.id}>
-                              {team.name}
-                            </option>
-                          ))}
-                        </select>
-                        {selectedTeamId && (
-                          <p className="mt-1 text-sm text-slate-400">
-                            {t('newGameSetupModal.teamSelectedNote', 'Player roster will be loaded from selected team.')}
-                          </p>
-                        )}
-                        {!selectedTeamId && (
-                          <p className="mt-1 text-sm text-slate-400">
-                            {t('newGameSetupModal.masterRosterNote', 'Using master roster - all players available.')}
-                          </p>
-                        )}
-                      </div>
+                      <TeamOpponentInputs
+                        teamName={homeTeamName}
+                        opponentName={opponentName}
+                        onTeamNameChange={handleTeamNameChange}
+                        onOpponentNameChange={setOpponentName}
+                        teamLabel={t('newGameSetupModal.homeTeamName', 'Your Team Name') + ' *'}
+                        teamPlaceholder={t('newGameSetupModal.homeTeamPlaceholder', 'e.g., Galaxy U10')}
+                        opponentLabel={t('newGameSetupModal.opponentNameLabel', 'Opponent Name') + ' *'}
+                        opponentPlaceholder={t('newGameSetupModal.opponentPlaceholder', 'Enter opponent name')}
+                        teamInputRef={homeTeamInputRef}
+                        opponentInputRef={opponentInputRef}
+                        onKeyDown={handleKeyDown}
+                        disabled={isLoading}
+                      />
                     </div>
 
                     {/* Season & Tournament Section */}
