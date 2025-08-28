@@ -2930,8 +2930,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         onAddPlayer={handleAddPlayerForModal}
            selectedPlayerIds={gameSessionState.selectedPlayerIds}
         onTogglePlayerSelection={handleTogglePlayerSelection}
-        teamName={gameSessionState.teamName}
-        onTeamNameChange={handleTeamNameChange}
         // Pass loading and error states
         isRosterUpdating={isRosterUpdating}
         rosterError={rosterError}

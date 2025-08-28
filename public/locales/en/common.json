@@ -329,7 +329,7 @@
     }
   },
   "rosterSettingsModal": {
-    "title": "Manage Roster",
+    "title": "Master Roster",
     "unsetGoalie": "Unset Goalie",
     "setGoalie": "Set Goalie",
     "playerNotes": "Player Notes",
