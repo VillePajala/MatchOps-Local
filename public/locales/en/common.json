@@ -626,6 +626,8 @@
     "createGame": "Create Your First Match",
     "createSeasonFirst": "Create Season/Tournament First",
     "createTeam": "Create First Team",
+    "manageTeams": "Manage Teams",
+    "manageSeasonsAndTournaments": "Manage Seasons & Tournaments",
     "orExperiment": "Or experiment first:",
     "experimentOption": "Use temporary workspace for testing",
     "workspaceWarning": "Temporary workspace - changes won't be saved",

@@ -2719,16 +2719,30 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
                       
                       <button 
                         onClick={handleOpenTeamManagerModal}
-                        className="w-full px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                        className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors shadow-lg ${
+                          teams.length > 0 
+                            ? 'bg-slate-600 hover:bg-slate-500 text-slate-300 border border-slate-500' 
+                            : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                        }`}
                       >
-                        {t('firstGame.createTeam', 'Create First Team')}
+                        {teams.length > 0 
+                          ? t('firstGame.manageTeams', 'Manage Teams') 
+                          : t('firstGame.createTeam', 'Create First Team')
+                        }
                       </button>
                       
                       <button 
                         onClick={() => setIsSeasonTournamentModalOpen(true)}
-                        className="w-full px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-colors border border-slate-600"
+                        className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors border border-slate-600 ${
+                          (seasonsQueryResultData && seasonsQueryResultData.length > 0) || (tournamentsQueryResultData && tournamentsQueryResultData.length > 0)
+                            ? 'bg-slate-600 hover:bg-slate-500 text-slate-300' 
+                            : 'bg-slate-700 hover:bg-slate-600 text-white'
+                        }`}
                       >
-                        {t('firstGame.createSeasonFirst', 'Create Season/Tournament First')}
+                        {(seasonsQueryResultData && seasonsQueryResultData.length > 0) || (tournamentsQueryResultData && tournamentsQueryResultData.length > 0)
+                          ? t('firstGame.manageSeasonsAndTournaments', 'Manage Seasons & Tournaments') 
+                          : t('firstGame.createSeasonFirst', 'Create Season/Tournament First')
+                        }
                       </button>
                     </>
                   )}
