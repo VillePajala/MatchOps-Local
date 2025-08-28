@@ -131,7 +131,7 @@ describe('gameImportHelper', () => {
         ],
         selectedPlayerIds: ['unknown1', 'unknown2'],
         gameEvents: [
-          { id: 'event1', type: 'goal', time: 1500, scorerId: 'unknown1', assisterId: 'unknown2', entityId: undefined }
+          { id: 'event1', type: 'goal' as const, time: 1500, scorerId: 'unknown1', assisterId: 'unknown2', entityId: undefined }
         ]
       };
 
