@@ -31,7 +31,6 @@ interface StartScreenProps {
 const titleFont = Audiowide({ subsets: ['latin'], weight: '400' });
 
 const StartScreen: React.FC<StartScreenProps> = ({
-  onStartNewGame,
   onLoadGame,
   onResumeGame,
   onGetStarted,
@@ -48,8 +47,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
   const { t } = useTranslation();
   const [language, setLanguage] = useState<string>(i18n.language);
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState(false);
-
-  type CSSVars = React.CSSProperties & { ['--holo-start']?: string, ['--holo-angle3']?: string };
 
   useEffect(() => {
     getAppSettings().then((settings) => {
@@ -72,9 +69,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
   const containerStyle =
     'relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-950 text-slate-100 font-display overflow-hidden';
-
-  const taglineStyle =
-    'text-lg sm:text-xl md:text-[1.4rem] text-slate-200/95 text-center tracking-wide drop-shadow-md relative px-4';
 
   const titleStyle =
     'relative text-6xl sm:text-8xl md:text-9xl lg:text-[10rem] font-extrabold tracking-tight leading-[0.9] drop-shadow-lg mb-1.5 text-center px-4';
@@ -157,7 +151,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 data-text="Match"
                 style={{
                   // Different base angle for each word via --holo-start
-                  ['--holo-start' as any]: '0deg',
+                  ['--holo-start' as string]: '0deg',
                   background: `${logoGradientPrimary}, ${logoGradientSecondary}, ${logoGradientTertiary}`,
                   backgroundBlendMode: 'screen',
                   WebkitBackgroundClip: 'text',
@@ -171,7 +165,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 className="logo-line start-logo-gradient-animate"
                 data-text="Ops"
                 style={{
-                  ['--holo-start' as any]: '45deg',
+                  ['--holo-start' as string]: '45deg',
                   background: `${logoGradientPrimary}, ${logoGradientSecondary}, ${logoGradientTertiary}`,
                   backgroundBlendMode: 'screen',
                   WebkitBackgroundClip: 'text',
@@ -185,7 +179,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 className="logo-line start-logo-gradient-animate"
                 data-text="Local"
                 style={{
-                  ['--holo-start' as any]: '95deg',
+                  ['--holo-start' as string]: '95deg',
                   background: `${logoGradientPrimary}, ${logoGradientSecondary}, ${logoGradientTertiary}`,
                   backgroundBlendMode: 'screen',
                   WebkitBackgroundClip: 'text',
