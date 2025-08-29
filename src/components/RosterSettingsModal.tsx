@@ -21,8 +21,6 @@ interface RosterSettingsModalProps {
   onSetPlayerNotes: (playerId: string, notes: string) => void;
   onRemovePlayer: (playerId: string) => void;
   onAddPlayer: (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => void;
-  selectedPlayerIds: string[];
-  onTogglePlayerSelection: (playerId: string) => void;
   isRosterUpdating?: boolean;
   rosterError?: string | null;
   onOpenPlayerStats: (playerId: string) => void;
@@ -37,8 +35,6 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   onSetPlayerNotes,
   onRemovePlayer,
   onAddPlayer,
-  selectedPlayerIds,
-  onTogglePlayerSelection,
   isRosterUpdating,
   rosterError,
   onOpenPlayerStats,
@@ -241,14 +237,10 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
             <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
               {/* Player Counter Section - Always visible */}
               <div className="mb-5 text-center text-sm">
-                <div className="flex justify-center items-center gap-8 text-slate-300">
+                <div className="flex justify-center items-center text-slate-300">
                   <span>
                     <span className="text-yellow-400 font-semibold">{availablePlayers.length}</span>
                     {" "}{t('rosterSettingsModal.totalPlayersShort', 'Total Players')}
-                  </span>
-                  <span>
-                    <span className="text-yellow-400 font-semibold">{selectedPlayerIds.length}</span>
-                    {" "}{t('rosterSettingsModal.selectedPlayersShort', 'Selected')}
                   </span>
                 </div>
               </div>
@@ -357,8 +349,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                       </div>
                     ) : (
                       <div className="flex items-center gap-3">
-                        <input type="checkbox" checked={selectedPlayerIds.includes(player.id)} onChange={() => onTogglePlayerSelection(player.id)} className="form-checkbox h-5 w-5 text-indigo-600 bg-slate-600 border-slate-500 rounded focus:ring-indigo-500 shrink-0" disabled={isRosterUpdating} />
-                        <div className="flex-grow flex items-center gap-2 truncate pl-2">
+                        <div className="flex-grow flex items-center gap-2 truncate">
                           <span className="text-base text-slate-100 truncate" title={player.name}>{player.nickname || player.name}</span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
