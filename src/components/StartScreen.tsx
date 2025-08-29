@@ -124,91 +124,103 @@ const StartScreen: React.FC<StartScreenProps> = ({
         {/* Conditional interface based on user type */}
         {isFirstTimeUser ? (
           /* FIRST-TIME USER: Simplified Interface */
-          <div className="row-start-2 w-full flex flex-col items-center justify-end min-h-[38vh] sm:min-h-[40vh] px-4 pt-4 pb-6 sm:pb-8 gap-4 sm:gap-5 max-w-sm mx-auto">
-            {/* Large Get Started button */}
-            <button 
-              className="w-full px-6 py-4 rounded-lg text-lg font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xl text-center"
-              onClick={onGetStarted}
-            >
-              {t('startScreen.getStarted', 'Get Started')}
-            </button>
-            
-            {/* Secondary help button */}
-            <button 
-              className="w-full px-4 py-2.5 rounded-md text-sm font-medium text-slate-300 bg-slate-800/50 hover:bg-slate-700/50 transition-colors border border-slate-600"
-              onClick={() => setIsInstructionsModalOpen(true)}
-            >
-              {t('startScreen.howItWorks', 'How It Works')}
-            </button>
+          <div className="row-start-2 w-full flex flex-col h-full max-w-sm mx-auto pb-[calc(2rem+2rem)] md:pb-[calc(1.5rem+2rem)]">
+            {/* Top spacer to balance with fixed language switcher */}
+            <div className="flex-1" />
+            <div className="w-full flex flex-col items-center px-4 gap-4 sm:gap-5">
+              {/* Large Get Started button */}
+              <button 
+                className="w-full px-6 py-4 rounded-lg text-lg font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xl text-center"
+                onClick={onGetStarted}
+              >
+                {t('startScreen.getStarted', 'Get Started')}
+              </button>
+              
+              {/* Secondary help button */}
+              <button 
+                className="w-full px-4 py-2.5 rounded-md text-sm font-medium text-slate-300 bg-slate-800/50 hover:bg-slate-700/50 transition-colors border border-slate-600"
+                onClick={() => setIsInstructionsModalOpen(true)}
+              >
+                {t('startScreen.howItWorks', 'How It Works')}
+              </button>
+            </div>
+            {/* Bottom spacer mirrors the top to create equal gaps */}
+            <div className="flex-1" />
           </div>
         ) : (
           /* EXPERIENCED USER: Full-Featured Interface */
-          <div className="row-start-2 w-full flex flex-col items-center justify-center flex-1 px-4 pt-14 pb-6 gap-3 max-w-sm mx-auto">
-            {/* Show Setup Roster as primary action for users without players */}
-            {!hasPlayers && (
-              <button className={primaryButtonStyle} onClick={onSetupRoster}>
-                {t('startScreen.setupRoster', 'Setup Team Roster')}
+          <div className="row-start-2 w-full flex flex-col h-full max-w-sm mx-auto pb-[calc(2rem+2rem)] md:pb-[calc(1.5rem+2rem)]">
+            {/* Top spacer ensures equal space above first button */}
+            <div className="flex-1" />
+            <div className="w-full flex flex-col items-center px-4 gap-3">
+              {/* Show Setup Roster as primary action for users without players */}
+              {!hasPlayers && (
+                <button className={primaryButtonStyle} onClick={onSetupRoster}>
+                  {t('startScreen.setupRoster', 'Setup Team Roster')}
+                </button>
+              )}
+              
+              {/* Resume Last Game button - always shown, dimmed when unavailable */}
+              <button 
+                className={canResume ? primaryButtonStyle : disabledButtonStyle}
+                onClick={canResume && onResumeGame ? onResumeGame : undefined}
+                disabled={!canResume}
+              >
+                {t('startScreen.resumeGame', 'Resume Last Game')}
               </button>
-            )}
-            
-            {/* Resume Last Game button - always shown, dimmed when unavailable */}
-            <button 
-              className={canResume ? primaryButtonStyle : disabledButtonStyle}
-              onClick={canResume && onResumeGame ? onResumeGame : undefined}
-              disabled={!canResume}
-            >
-              {t('startScreen.resumeGame', 'Resume Last Game')}
-            </button>
-            
-            {/* Create Game button - grayed out if no players */}
-            <button 
-              className={hasPlayers ? primaryButtonStyle : disabledButtonStyle}
-              onClick={hasPlayers ? onStartNewGame : undefined}
-              disabled={!hasPlayers}
-            >
-              {hasSavedGames ? t('startScreen.createNewGame', 'Create New Game') : t('startScreen.createFirstGame', 'Create First Game')}
-            </button>
-            
-            {/* Load Game button */}
-            <button 
-              className={hasSavedGames ? primaryButtonStyle : disabledButtonStyle} 
-              onClick={hasSavedGames ? onLoadGame : undefined}
-              disabled={!hasSavedGames}
-            >
-              {t('startScreen.loadGame', 'Load Game')}
-            </button>
-            
-            {/* Create Season/Tournament button - grayed out if no players */}
-            <button 
-              className={hasPlayers ? primaryButtonStyle : disabledButtonStyle}
-              onClick={hasPlayers ? onCreateSeason : undefined}
-              disabled={!hasPlayers}
-            >
-              {hasSeasonsTournaments ? t('startScreen.createSeasonTournament', 'Seasons & Tournaments') : t('startScreen.createFirstSeasonTournament', 'First Season/Tournament')}
-            </button>
-            
-            {/* Manage Teams button - grayed out if no players */}
-            <button 
-              className={hasPlayers ? primaryButtonStyle : disabledButtonStyle}
-              onClick={hasPlayers ? onManageTeams : undefined}
-              disabled={!hasPlayers}
-            >
-              {t('startScreen.manageTeams', 'Manage Teams')}
-            </button>
-            
-            {/* View Stats button */}
-            <button 
-              className={hasSavedGames ? primaryButtonStyle : disabledButtonStyle} 
-              onClick={hasSavedGames ? onViewStats : undefined}
-              disabled={!hasSavedGames}
-            >
-              {t('startScreen.viewStats', 'View Stats')}
-            </button>
+              
+              {/* Create Game button - grayed out if no players */}
+              <button 
+                className={hasPlayers ? primaryButtonStyle : disabledButtonStyle}
+                onClick={hasPlayers ? onStartNewGame : undefined}
+                disabled={!hasPlayers}
+              >
+                {hasSavedGames ? t('startScreen.createNewGame', 'Create New Game') : t('startScreen.createFirstGame', 'Create First Game')}
+              </button>
+              
+              {/* Load Game button */}
+              <button 
+                className={hasSavedGames ? primaryButtonStyle : disabledButtonStyle} 
+                onClick={hasSavedGames ? onLoadGame : undefined}
+                disabled={!hasSavedGames}
+              >
+                {t('startScreen.loadGame', 'Load Game')}
+              </button>
+              
+              {/* Create Season/Tournament button - grayed out if no players */}
+              <button 
+                className={hasPlayers ? primaryButtonStyle : disabledButtonStyle}
+                onClick={hasPlayers ? onCreateSeason : undefined}
+                disabled={!hasPlayers}
+              >
+                {hasSeasonsTournaments ? t('startScreen.createSeasonTournament', 'Seasons & Tournaments') : t('startScreen.createFirstSeasonTournament', 'First Season/Tournament')}
+              </button>
+              
+              {/* Manage Teams button - grayed out if no players */}
+              <button 
+                className={hasPlayers ? primaryButtonStyle : disabledButtonStyle}
+                onClick={hasPlayers ? onManageTeams : undefined}
+                disabled={!hasPlayers}
+              >
+                {t('startScreen.manageTeams', 'Manage Teams')}
+              </button>
+              
+              {/* View Stats button */}
+              <button 
+                className={hasSavedGames ? primaryButtonStyle : disabledButtonStyle} 
+                onClick={hasSavedGames ? onViewStats : undefined}
+                disabled={!hasSavedGames}
+              >
+                {t('startScreen.viewStats', 'View Stats')}
+              </button>
+            </div>
+            {/* Bottom spacer mirrors the top to create equal gaps */}
+            <div className="flex-1" />
           </div>
         )}
       </div>
 
-      {/* Bottom-centered language switcher with safe area */}
+      {/* Bottom-centered language switcher with safe area (fixed) */}
       <div className="absolute left-1/2 -translate-x-1/2 bottom-8 md:bottom-6 z-20 px-4">
         <div className="flex rounded-lg bg-slate-800/70 border border-slate-600 backdrop-blur-sm overflow-hidden">
           <button
