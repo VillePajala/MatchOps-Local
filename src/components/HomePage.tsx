@@ -1958,22 +1958,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       logger.log(`[page.tsx] Updated Fair Play card award. ${playerId ? `Awarded to ${playerId}` : 'Cleared'}`);
     }, [availablePlayers, playersOnField, setAvailablePlayers, setPlayersOnField, saveStateToHistory, currentGameId]);
 
-  // --- NEW: Handler to Toggle Player Selection for Current Match ---
-  const handleTogglePlayerSelection = (playerId: string) => {
-    const currentSelectedIds = gameSessionState.selectedPlayerIds;
-    const isSelected = currentSelectedIds.includes(playerId);
-    
-    let newSelectedIds;
-    if (isSelected) {
-      // If player is already selected, remove them
-      newSelectedIds = currentSelectedIds.filter(id => id !== playerId);
-    } else {
-      // If player is not selected, add them
-      newSelectedIds = [...currentSelectedIds, playerId];
-    }
-
-    dispatchGameSession({ type: 'SET_SELECTED_PLAYER_IDS', payload: newSelectedIds });
-  };
 
   const handleUpdateSelectedPlayers = (playerIds: string[]) => {
     // This function is used by GameSettingsModal to set the roster for that specific game.
@@ -3172,8 +3156,6 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         onSetPlayerNotes={handleSetPlayerNotesForModal}
         onRemovePlayer={handleRemovePlayerForModal} 
         onAddPlayer={handleAddPlayerForModal}
-           selectedPlayerIds={gameSessionState.selectedPlayerIds}
-        onTogglePlayerSelection={handleTogglePlayerSelection}
         // Pass loading and error states
         isRosterUpdating={isRosterUpdating}
         rosterError={rosterError}
