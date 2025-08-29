@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { Audiowide } from 'next/font/google';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 import {
@@ -26,6 +27,9 @@ interface StartScreenProps {
   isFirstTimeUser?: boolean;
 }
 
+// Title/logo font (must be at module scope for next/font)
+const titleFont = Audiowide({ subsets: ['latin'], weight: '400' });
+
 const StartScreen: React.FC<StartScreenProps> = ({
   onStartNewGame,
   onLoadGame,
@@ -44,6 +48,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
   const { t } = useTranslation();
   const [language, setLanguage] = useState<string>(i18n.language);
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState(false);
+
+  type CSSVars = React.CSSProperties & { ['--holo-start']?: string, ['--holo-angle3']?: string };
 
   useEffect(() => {
     getAppSettings().then((settings) => {
@@ -68,10 +74,44 @@ const StartScreen: React.FC<StartScreenProps> = ({
     'relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-950 text-slate-100 font-display overflow-hidden';
 
   const taglineStyle =
-    'text-lg sm:text-xl md:text-2xl text-slate-200/95 text-center tracking-wide drop-shadow-md relative px-4';
+    'text-lg sm:text-xl md:text-[1.4rem] text-slate-200/95 text-center tracking-wide drop-shadow-md relative px-4';
 
   const titleStyle =
-    'relative text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold tracking-tight leading-[0.9] drop-shadow-lg mb-1.5 text-center text-yellow-400 px-4';
+    'relative text-6xl sm:text-8xl md:text-9xl lg:text-[10rem] font-extrabold tracking-tight leading-[0.9] drop-shadow-lg mb-1.5 text-center px-4';
+
+  /*
+   * A vibrant, high-contrast palette designed to pop against the dark UI
+   * and complement (not compete with) the indigo/violet button colors.
+   * It emphasizes cyan, lime, yellow, and magenta.
+   */
+  const logoGradientPrimary = `conic-gradient(from calc(var(--holo-angle, 0deg) + var(--holo-start, 0deg)) at 50% 50%,
+    #22d3ee 0deg,    /* Cyan */
+    #a3e635 60deg,   /* Lime */
+    #fde047 120deg,  /* Yellow */
+    #f97316 180deg,  /* Orange */
+    #e83d6d 240deg,  /* Magenta */
+    #8b5cf6 300deg,  /* A brighter, distinct Violet */
+    #22d3ee 360deg   /* Cyan (to loop) */
+  )`;
+
+  // A secondary gradient with complementary, translucent colors to add depth and shimmer.
+  const logoGradientSecondary = `conic-gradient(from calc(var(--holo-angle2, 0deg) + var(--holo-start, 0deg)) at 50% 50%,
+    rgba(34,211,238,0.4) 0deg,     /* Cyan */
+    rgba(163,230,53,0.35) 90deg,   /* Lime */
+    rgba(232,61,109,0.4) 180deg,   /* Magenta */
+    rgba(253,224,71,0.35) 270deg,  /* Yellow */
+    rgba(34,211,238,0.4) 360deg    /* Cyan (to loop) */
+  )`;
+  
+  // A slow, tertiary wash of color to prevent static areas
+  const logoGradientTertiary = `conic-gradient(from calc(var(--holo-angle3, 0deg) + var(--holo-start, 0deg)) at 50% 50%,
+    rgba(236,72,153,0.2) 0deg,
+    rgba(234,179,8,0.15) 120deg,
+    rgba(132,204,22,0.15) 240deg,
+    rgba(236,72,153,0.2) 360deg
+  )`;
+
+  // 3D extrude handled via pseudo-element on each line (see .logo-line in globals.css)
 
   
 
@@ -89,8 +129,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/30 via-sky-700/20 to-cyan-600/30 mix-blend-overlay" />
       {/* 6) Top/bottom blue tint */}
       <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
-      {/* 7) Title spotlight (shifted slightly lower) */}
-      <div className="absolute top-[36%] left-1/2 -translate-x-1/2 w-[60vw] h-[32vh] pointer-events-none opacity-50 [background:radial-gradient(closest-side,rgba(56,189,248,0.10),transparent_70%)] blur-[28px]" />
+      {/* 7) Title spotlight (nudged higher) */}
+      <div className="absolute top-[22%] left-1/2 -translate-x-1/2 w-[60vw] h-[32vh] pointer-events-none opacity-50 [background:radial-gradient(closest-side,rgba(56,189,248,0.10),transparent_70%)] blur-[28px]" />
       {/* 8) Large blurred corner glows */}
       <div className="absolute -inset-[50px] bg-sky-400/10 blur-3xl top-0 opacity-50" />
       <div className="absolute -inset-[50px] bg-indigo-600/10 blur-3xl bottom-0 opacity-50" />
@@ -105,26 +145,64 @@ const StartScreen: React.FC<StartScreenProps> = ({
       {/* Safe container with proper bounds */}
       <div className="relative z-10 grid grid-rows-[auto_1fr] items-start w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-6 sm:py-8 h-[calc(100dvh-8rem)] sm:h-[calc(100dvh-6rem)]">
         
-        {/* Title section (shifted slightly lower) */}
-        <div className="row-start-1 relative flex flex-col items-center mt-12 sm:mt-16">
+        {/* Title section (nudged higher) */}
+        <div className="row-start-1 relative flex flex-col items-center mt-2 sm:mt-4">
           <div className="relative">
-            <h1 className={titleStyle}>
-              <span className="block">MatchOps</span>
-              <span className="block">Local</span>
+            <h1
+              className={`${titleFont.className} ${titleStyle} start-title`}
+              style={{ letterSpacing: '0.015em' }}
+            >
+              <span
+                className="logo-line start-logo-gradient-animate"
+                data-text="Match"
+                style={{
+                  // Different base angle for each word via --holo-start
+                  ['--holo-start' as any]: '0deg',
+                  background: `${logoGradientPrimary}, ${logoGradientSecondary}, ${logoGradientTertiary}`,
+                  backgroundBlendMode: 'screen',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                }}
+              >
+                Match
+              </span>
+              <span
+                className="logo-line start-logo-gradient-animate"
+                data-text="Ops"
+                style={{
+                  ['--holo-start' as any]: '45deg',
+                  background: `${logoGradientPrimary}, ${logoGradientSecondary}, ${logoGradientTertiary}`,
+                  backgroundBlendMode: 'screen',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                }}
+              >
+                Ops
+              </span>
+              <span
+                className="logo-line start-logo-gradient-animate"
+                data-text="Local"
+                style={{
+                  ['--holo-start' as any]: '95deg',
+                  background: `${logoGradientPrimary}, ${logoGradientSecondary}, ${logoGradientTertiary}`,
+                  backgroundBlendMode: 'screen',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                }}
+              >
+                Local
+              </span>
             </h1>
-            <span className="absolute inset-0 -z-10 blur-[6px] opacity-60 [background:radial-gradient(closest-side,rgba(234,179,8,0.35),transparent_70%)]" />
           </div>
-          <div className="relative mt-2 sm:mt-3">
-            <p className={taglineStyle}>{t('startScreen.tagline', 'Suunnittele · Kirjaa · Arvioi')}</p>
-            <span className="absolute inset-0 -z-10 mx-auto w-[80%] h-full pointer-events-none [background:radial-gradient(closest-side,rgba(99,102,241,0.12),transparent_70%)] blur-md" />
-          </div>
-          <div className="h-px w-32 sm:w-48 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto mt-6 sm:mt-8" />
         </div>
 
         {/* Conditional interface based on user type */}
         {isFirstTimeUser ? (
           /* FIRST-TIME USER: Simplified Interface */
-          <div className="row-start-2 w-full flex flex-col h-full max-w-sm mx-auto pb-[calc(2rem+2rem)] md:pb-[calc(1.5rem+2rem)]">
+          <div className="row-start-2 w-full flex flex-col h-full max-w-sm mx-auto py-8 md:py-7">
             {/* Top spacer to balance with fixed language switcher */}
             <div className="flex-1" />
             <div className="w-full flex flex-col items-center px-4 gap-4 sm:gap-5">
@@ -149,7 +227,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           </div>
         ) : (
           /* EXPERIENCED USER: Full-Featured Interface */
-          <div className="row-start-2 w-full flex flex-col h-full max-w-sm mx-auto pb-[calc(2rem+2rem)] md:pb-[calc(1.5rem+2rem)]">
+          <div className="row-start-2 w-full flex flex-col h-full max-w-sm mx-auto py-8 md:py-7">
             {/* Top spacer ensures equal space above first button */}
             <div className="flex-1" />
             <div className="w-full flex flex-col items-center px-4 gap-3">
@@ -167,15 +245,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 disabled={!canResume}
               >
                 {t('startScreen.resumeGame', 'Resume Last Game')}
-              </button>
-              
-              {/* Create Game button - grayed out if no players */}
-              <button 
-                className={hasPlayers ? primaryButtonStyle : disabledButtonStyle}
-                onClick={hasPlayers ? onStartNewGame : undefined}
-                disabled={!hasPlayers}
-              >
-                {hasSavedGames ? t('startScreen.createNewGame', 'Create New Game') : t('startScreen.createFirstGame', 'Create First Game')}
               </button>
               
               {/* Load Game button */}
