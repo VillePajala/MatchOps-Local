@@ -926,15 +926,19 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       firstGameGuideShown,
       currentGameId,
       isNotDefaultGame: currentGameId !== DEFAULT_GAME_ID,
-      playersOnFieldCount: playersOnField.length,
-      shouldShow: !firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID && playersOnField.length === 0
+      shouldShow: !firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID
     });
     
-    if (!firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID && playersOnField.length === 0) {
-      console.log('[FirstGameGuide] Showing first game guide');
-      setShowFirstGameGuide(true);
+    if (!firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
+      // Add small delay to ensure game state is fully settled
+      const timer = setTimeout(() => {
+        console.log('[FirstGameGuide] Showing first game guide after delay');
+        setShowFirstGameGuide(true);
+      }, 150);
+      
+      return () => clearTimeout(timer);
     }
-  }, [initialLoadComplete, currentGameId, playersOnField.length]);
+  }, [initialLoadComplete, currentGameId]);
 
   // --- NEW: Robust Visibility Change Handling ---
   // --- Wake Lock Effect ---
