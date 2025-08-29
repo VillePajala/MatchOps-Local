@@ -22,22 +22,28 @@ const UpdateBanner: React.FC<UpdateBannerProps> = ({ onUpdate, notes, onDismiss 
   };
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-800 text-white p-4 rounded-lg shadow-lg border border-slate-700 flex flex-col sm:flex-row items-center gap-2 sm:gap-4 z-50">
-      <p className="text-sm">{t("updateBanner.message")}</p>
-      {notes ? <p className="text-xs text-slate-300">{notes}</p> : null}
-      <button
-        onClick={onUpdate}
-        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-md text-sm transition-colors"
-      >
-        {t("updateBanner.reloadButton")}
-      </button>
-      <button
-        onClick={handleDismiss}
-        className="text-slate-400 hover:text-slate-200"
-        aria-label={t("updateBanner.dismissButton")}
-      >
-        <HiOutlineXMark className="w-5 h-5" />
-      </button>
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-md bg-gradient-to-r from-slate-800 to-slate-900 text-white p-4 rounded-xl shadow-2xl border border-slate-700/50 z-50">
+      <div className="flex items-start gap-3">
+        <div className="flex-1">
+          <p className="text-sm font-medium mb-1">{t("updateBanner.message")}</p>
+          {notes && <p className="text-xs text-slate-400">{notes}</p>}
+        </div>
+        <button
+          onClick={handleDismiss}
+          className="text-slate-500 hover:text-slate-300 transition-colors"
+          aria-label={t("updateBanner.dismissButton")}
+        >
+          <HiOutlineXMark className="w-5 h-5" />
+        </button>
+      </div>
+      <div className="mt-3 flex gap-2">
+        <button
+          onClick={onUpdate}
+          className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-sm transition-all hover:shadow-lg"
+        >
+          {t("updateBanner.reloadButton")}
+        </button>
+      </div>
     </div>
   );
 };
