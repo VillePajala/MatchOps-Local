@@ -19,8 +19,9 @@ export default function Home() {
   const [hasSavedGames, setHasSavedGames] = useState(false);
   const [hasSeasonsTournaments, setHasSeasonsTournaments] = useState(false);
   
-  // Detect if this is a first-time user (no games created yet)
-  const isFirstTimeUser = !hasSavedGames;
+  // A user is considered "first time" if they haven't created a roster OR a game yet.
+  // This ensures they are guided through the full setup process.
+  const isFirstTimeUser = !hasPlayers || !hasSavedGames;
 
   useEffect(() => {
     const checkAppState = async () => {
