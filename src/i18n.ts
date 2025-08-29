@@ -10,10 +10,26 @@ export const resources = {
   en: { translation: en },
 } as const;
 
+// Get initial language from localStorage or default to 'fi'
+const getInitialLanguage = (): string => {
+  if (typeof window !== 'undefined') {
+    try {
+      const settingsJson = window.localStorage.getItem('appSettings');
+      if (settingsJson) {
+        const settings = JSON.parse(settingsJson);
+        return settings.language || 'fi';
+      }
+    } catch {
+      // Ignore errors and fall back to default
+    }
+  }
+  return 'fi';
+};
+
 if (!i18n.isInitialized) {
   i18n.use(initReactI18next).init({
-    lng: 'fi',
-    fallbackLng: 'en',
+    lng: getInitialLanguage(),
+    fallbackLng: 'fi',
     resources,
     interpolation: { escapeValue: false },
     debug: false,
