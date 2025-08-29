@@ -180,21 +180,6 @@
     },
     "duringGame": {
       "title": "During the Game",
-      "step6Title": "6. Plan / Draw Tactical Patterns",
-      "step6Desc": "Use tactics mode to draw arrows and lines. Save tactical plans, running routes, and game situations on the field.",
-      "step7Title": "7. Start Game Clock & Record Events",
-      "step7Desc": "Start the timer and record goals, substitutions, and other events in real-time. Track playing time and substitution intervals automatically."
-    },
-    "afterGameSection": {
-      "title": "After the Game",
-      "saveGame": "Save game automatically or manually for later review",
-      "assessPlayers": "Rate player performance and add notes about each player's development",
-      "viewStats": "Review detailed statistics: goals, assists, playing time, ratings",
-      "exportData": "Export all your data in CSV format for further analysis or backup",
-      "reviewGame": "Review game events, tactical drawings, and formations"
-    },
-    "duringGame": {
-      "title": "During the Game",
       "fieldTitle": "Managing the Field",
       "dragPlayers": "Drag player discs from the top bar onto the field to show positions",
       "drawTactics": "Draw arrows and lines to capture tactics and movements",
@@ -203,6 +188,14 @@
       "logGoals": "Click goal buttons to record who scored and assisted",
       "timer": "Start/stop the game timer to track actual playing time",
       "periods": "Advance through periods/halves as the game progresses"
+    },
+    "afterGameSection": {
+      "title": "After the Game",
+      "saveGame": "Save game automatically or manually for later review",
+      "assessPlayers": "Rate player performance and add notes about each player's development",
+      "viewStats": "Review detailed statistics: goals, assists, playing time, ratings",
+      "exportData": "Export all your data in CSV format for further analysis or backup",
+      "reviewGame": "Review game events, tactical drawings, and formations"
     },
     "afterGame": {
       "title": "After the Game",
@@ -277,6 +270,19 @@
     "general": {
       "touchInteractions": "Touch: Double-tap is used for removing/editing.",
       "saving": "Saving: All changes are saved automatically to your browser."
+    },
+    "advanced": {
+      "title": "Advanced Features",
+      "saveLoad": "Quick-save and open saved games from the menu",
+      "teams": "Manage teams and rosters in team management",
+      "seasonsTournaments": "Create and manage seasons and tournaments for stats",
+      "assessments": "Assess players and record development notes",
+      "backupRestore": "Back up and restore your data for safety",
+      "exportData": "Export games as CSV/JSON for further analysis",
+      "training": "Open training resources for inspiration",
+      "language": "Switch language on the fly",
+      "fullscreen": "Enter fullscreen for better visibility",
+      "settings": "Adjust app settings to fit your workflow"
     }
   },
   "warmup": {
@@ -455,6 +461,9 @@
     "restoreButton": "Restore from Backup",
     "currentlyLoaded": "Loaded",
     "filterByTooltip": "Filter by {{name}}",
+    "teamFilter": "Filter by Team:",
+    "allTeams": "All Teams",
+    "legacyGames": "Legacy Games",
     "expandCard": "Expand game details",
     "collapseCard": "Collapse game details",
     "assessmentsIncomplete": "Assessments incomplete",
@@ -673,12 +682,15 @@
     "dragToAdjust": "Drag players to adjust positions",
     "doubleTapRemove": "Double-tap to remove from field",
     "drawTactics": "Draw arrows for tactical plans",
+    "placeAllTip": "Place all players at once with:",
+    "addOpponentTip": "Add opponents with:",
+    "clearDrawingsTip": "Clear drawings with:",
+    "resetFieldTip": "Reset field with:",
     "tacticalView": "Tactical View",
-    "tacticalViewDesc": "Show/hide player numbers and tactical drawings",
-    "gameSettings": "Game Settings",
-    "gameSettingsDesc": "Edit match details and opponent discs",
-    "opponentDiscs": "Opponent Discs",
-    "opponentDiscsDesc": "Add opponent players to the field",
+    "tacticalSwitchTip": "Switch to tactical mode by pressing:",
+    "addHomeDiscTip": "Add a home disc with:",
+    "addOpponentDiscTip": "Add an opponent disc with:",
+    "drawLinesTip": "Draw lines on the field with your finger",
     "quickActions": "Quick Actions (Bottom Bar)",
     "placeAll": "Place All",
     "placeAllDesc": "Auto-arrange players on field",
@@ -688,6 +700,14 @@
     "timerDesc": "Show game clock & substitutions",
     "menu": "Menu",
     "menuDesc": "Access all features & settings",
+    "undoRedoTip": "Undo/Redo your last actions:",
+    "logGoalTip": "Log a goal:",
+    "rosterTip": "Open roster settings:",
+    "gameSettingsTip": "Open game settings:",
+    "statsTip": "Show stats:",
+    "timerOverlayTip": "Show/hide large timer:",
+    "helpTip": "Open help:",
+    "menuTip": "Open the menu for more:",
     "gotIt": "Got it, let's start!",
     "needHelp": "Need more help?"
   },

@@ -89,8 +89,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/30 via-sky-700/20 to-cyan-600/30 mix-blend-overlay" />
       {/* 6) Top/bottom blue tint */}
       <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
-      {/* 7) Title spotlight */}
-      <div className="absolute top-[28%] left-1/2 -translate-x-1/2 w-[60vw] h-[32vh] pointer-events-none opacity-50 [background:radial-gradient(closest-side,rgba(56,189,248,0.10),transparent_70%)] blur-[28px]" />
+      {/* 7) Title spotlight (shifted slightly lower) */}
+      <div className="absolute top-[36%] left-1/2 -translate-x-1/2 w-[60vw] h-[32vh] pointer-events-none opacity-50 [background:radial-gradient(closest-side,rgba(56,189,248,0.10),transparent_70%)] blur-[28px]" />
       {/* 8) Large blurred corner glows */}
       <div className="absolute -inset-[50px] bg-sky-400/10 blur-3xl top-0 opacity-50" />
       <div className="absolute -inset-[50px] bg-indigo-600/10 blur-3xl bottom-0 opacity-50" />
@@ -105,8 +105,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
       {/* Safe container with proper bounds */}
       <div className="relative z-10 grid grid-rows-[auto_1fr] items-start w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-6 sm:py-8 h-[calc(100dvh-8rem)] sm:h-[calc(100dvh-6rem)]">
         
-        {/* Title section */}
-        <div className="row-start-1 relative flex flex-col items-center mt-2 sm:mt-4">
+        {/* Title section (shifted slightly lower) */}
+        <div className="row-start-1 relative flex flex-col items-center mt-12 sm:mt-16">
           <div className="relative">
             <h1 className={titleStyle}>
               <span className="block">MatchOps</span>

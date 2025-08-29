@@ -2,7 +2,28 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { HiOutlineXMark } from 'react-icons/hi2';
+import {
+  HiOutlineXMark,
+  HiOutlineSquares2X2,
+  HiOutlinePlusCircle,
+  HiOutlineBackspace,
+  HiOutlineTrash,
+  HiOutlineClipboard,
+  HiOutlineUsers,
+  HiOutlineAdjustmentsHorizontal,
+  HiOutlineClipboardDocumentList,
+  HiOutlineClock,
+  HiOutlineQuestionMarkCircle,
+  HiBars3,
+  HiOutlineFolderOpen,
+  HiOutlineArchiveBoxArrowDown,
+  HiOutlineTrophy,
+  HiOutlineDocumentArrowDown,
+  HiOutlineGlobeAlt,
+  HiOutlineArrowsPointingOut,
+  HiOutlineCog6Tooth,
+  HiOutlineBookOpen,
+} from 'react-icons/hi2';
 
 interface InstructionsModalProps {
   isOpen: boolean;
@@ -32,93 +53,139 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 space-y-6">
-          {/* Pre-Game Setup */}
+          {/* Base: Use First Game Guide content */}
           <section className="space-y-3">
-            <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.preGame.title')}</h3>
+            <h3 className="text-2xl font-bold text-yellow-300">{t('firstGameGuide.playerSelection', 'Player Selection (Top Bar)')}</h3>
             <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-              <p className="text-slate-200 mb-3">{t('instructionsModal.preGame.intro')}</p>
-              <ol className="list-none space-y-2 text-slate-300">
-                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.preGame.step1Title')}</span> - {t('instructionsModal.preGame.step1Desc')}</li>
-                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.preGame.step2Title')}</span> - {t('instructionsModal.preGame.step2Desc')}</li>
-                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.preGame.step3Title')}</span> - {t('instructionsModal.preGame.step3Desc')}</li>
-                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.preGame.step4Title')}</span> - {t('instructionsModal.preGame.step4Desc')}</li>
-                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.preGame.step5Title')}</span> - {t('instructionsModal.preGame.step5Desc')}</li>
-              </ol>
-            </div>
-          </section>
-
-          {/* During the Game */}
-          <section className="space-y-3">
-            <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.duringGame.title')}</h3>
-            <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-              <ol className="list-none space-y-2 text-slate-300">
-                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.duringGame.step6Title')}</span> - {t('instructionsModal.duringGame.step6Desc')}</li>
-                <li><span className="font-semibold text-yellow-200">{t('instructionsModal.duringGame.step7Title')}</span> - {t('instructionsModal.duringGame.step7Desc')}</li>
-              </ol>
-            </div>
-          </section>
-
-          {/* After the Game */}
-          <section className="space-y-3">
-            <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.afterGameSection.title')}</h3>
-            <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-              <ul className="list-disc list-inside space-y-1 text-slate-300">
-                <li>{t('instructionsModal.afterGameSection.saveGame')}</li>
-                <li>{t('instructionsModal.afterGameSection.assessPlayers')}</li>
-                <li>{t('instructionsModal.afterGameSection.viewStats')}</li>
-                <li>{t('instructionsModal.afterGameSection.exportData')}</li>
-                <li>{t('instructionsModal.afterGameSection.reviewGame')}</li>
+              <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
+                <li>{t('firstGameGuide.tapToSelect', 'Tap player disc to select')}</li>
+                <li>{t('firstGameGuide.goalieInstructions', 'When player is selected, tap shield icon to set as goalie')}</li>
+                <li>{t('firstGameGuide.tapFieldPlace', 'Tap field to place player')}</li>
               </ul>
             </div>
           </section>
 
-          {/* Main Concepts */}
           <section className="space-y-3">
-            <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.mainConcepts.title')}</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.mainConcepts.game')}</h4>
-                <p className="text-sm text-slate-300">{t('instructionsModal.mainConcepts.gameDesc')}</p>
-              </div>
-              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.mainConcepts.roster')}</h4>
-                <p className="text-sm text-slate-300">{t('instructionsModal.mainConcepts.rosterDesc')}</p>
-              </div>
-              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.mainConcepts.team')}</h4>
-                <p className="text-sm text-slate-300">{t('instructionsModal.mainConcepts.teamDesc')}</p>
-              </div>
-              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.mainConcepts.season')}</h4>
-                <p className="text-sm text-slate-300">{t('instructionsModal.mainConcepts.seasonDesc')}</p>
-              </div>
-              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.mainConcepts.tournament')}</h4>
-                <p className="text-sm text-slate-300">{t('instructionsModal.mainConcepts.tournamentDesc')}</p>
-              </div>
-              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.mainConcepts.statistics')}</h4>
-                <p className="text-sm text-slate-300">{t('instructionsModal.mainConcepts.statisticsDesc')}</p>
-              </div>
+            <h3 className="text-2xl font-bold text-yellow-300">{t('firstGameGuide.theField', 'The Field')}</h3>
+            <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+              <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
+                <li>{t('firstGameGuide.dragToAdjust', 'Drag players by dragging')}</li>
+                <li>{t('firstGameGuide.doubleTapRemove', 'Double-tap to remove a player from the field')}</li>
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.placeAllTip', 'Place all players at once with:')}</span>
+                  <HiOutlineSquares2X2 aria-hidden className="inline-block align-[-2px] ml-2 text-purple-300" size={18} />
+                </li>
+                <li>{t('firstGameGuide.drawTactics', 'You can draw on the field with your finger')}</li>
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.addOpponentTip', 'Add opponents with:')}</span>
+                  <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-red-300" size={18} />
+                </li>
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.clearDrawingsTip', 'Clear drawings with:')}</span>
+                  <HiOutlineBackspace aria-hidden className="inline-block align-[-2px] ml-2 text-amber-300" size={18} />
+                </li>
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.resetFieldTip', 'Reset field with:')}</span>
+                  <HiOutlineTrash aria-hidden className="inline-block align-[-2px] ml-2 text-red-400" size={18} />
+                </li>
+              </ul>
             </div>
           </section>
 
-          {/* Key Features */}
           <section className="space-y-3">
-            <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.keyFeatures.title')}</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.keyFeatures.tacticsBoard')}</h4>
-                <p className="text-sm text-slate-300">{t('instructionsModal.keyFeatures.tacticsBoardDesc')}</p>
-              </div>
-              <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
-                <h4 className="text-md font-semibold text-indigo-300 mb-1">{t('instructionsModal.keyFeatures.offlineFirst')}</h4>
-                <p className="text-sm text-slate-300">{t('instructionsModal.keyFeatures.offlineFirstDesc')}</p>
-              </div>
+            <h3 className="text-2xl font-bold text-yellow-300">{t('firstGameGuide.tacticalView', 'Tactical View')}</h3>
+            <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+              <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.tacticalSwitchTip', 'Switch to tactical mode by pressing:')}</span>
+                  <HiOutlineClipboard aria-hidden className="inline-block align-[-2px] ml-2 text-indigo-300" size={18} />
+                </li>
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.addHomeDiscTip', 'Add a home disc with:')}</span>
+                  <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-purple-300" size={18} />
+                </li>
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.addOpponentDiscTip', 'Add an opponent disc with:')}</span>
+                  <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-red-300" size={18} />
+                </li>
+                <li>{t('firstGameGuide.drawLinesTip', 'Draw lines on the field with your finger')}</li>
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.clearDrawingsTip', 'Clear drawings with:')}</span>
+                  <HiOutlineBackspace aria-hidden className="inline-block align-[-2px] ml-2 text-amber-300" size={18} />
+                </li>
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.resetFieldTip', 'Reset field with:')}</span>
+                  <HiOutlineTrash aria-hidden className="inline-block align-[-2px] ml-2 text-red-400" size={18} />
+                </li>
+              </ul>
             </div>
           </section>
 
-          {/* Tips */}
+          <section className="space-y-3">
+            <h3 className="text-2xl font-bold text-yellow-300">{t('firstGameGuide.quickActions', 'Quick Actions (Bottom Bar)')}</h3>
+            <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+              <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.undoRedoTip', 'Undo/Redo your last actions:')}</span>
+                  <span className="inline-flex items-center ml-2 gap-1 align-[-2px]">
+                    <svg className="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 010 8h-1"/></svg>
+                    <svg className="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 10l4 4-4 4"/><path d="M19 14H8a4 4 0 010-8h1"/></svg>
+                  </span>
+                </li>
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.logGoalTip', 'Log a goal:')}</span>
+                  <span className="inline-block align-[-2px] ml-2 text-blue-300">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
+                  </span>
+                </li>
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.rosterTip', 'Open roster settings:')}</span>
+                  <HiOutlineUsers aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
+                </li>
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.gameSettingsTip', 'Open game settings:')}</span>
+                  <HiOutlineAdjustmentsHorizontal aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
+                </li>
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.statsTip', 'Show stats:')}</span>
+                  <HiOutlineClipboardDocumentList aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
+                </li>
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.timerOverlayTip', 'Show/hide large timer:')}</span>
+                  <HiOutlineClock aria-hidden className="inline-block align-[-2px] ml-2 text-green-300" size={18} />
+                </li>
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.helpTip', 'Open help:')}</span>
+                  <HiOutlineQuestionMarkCircle aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
+                </li>
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.menuTip', 'Open the menu for more:')}</span>
+                  <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
+                </li>
+              </ul>
+            </div>
+          </section>
+
+          {/* Advanced features (keep existing section) */}
+          <section className="space-y-3">
+            <h3 className="text-2xl font-bold text-yellow-300">{t('instructionsModal.advanced.title', 'Advanced Features')}</h3>
+            <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+              <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
+                <li><span>{t('instructionsModal.advanced.saveLoad')}</span> <span className="inline-flex items-center gap-1 ml-2 align-[-2px]"><HiOutlineArchiveBoxArrowDown className="text-slate-300" size={18}/><HiOutlineFolderOpen className="text-slate-300" size={18}/></span></li>
+                <li><span>{t('instructionsModal.advanced.teams')}</span> <HiOutlineUsers className="inline-block ml-2 text-slate-300 align-[-2px]" size={18}/></li>
+                <li><span>{t('instructionsModal.advanced.seasonsTournaments')}</span> <HiOutlineTrophy className="inline-block ml-2 text-slate-300 align-[-2px]" size={18}/></li>
+                <li><span>{t('instructionsModal.advanced.assessments')}</span> <HiOutlineClipboard className="inline-block ml-2 text-slate-300 align-[-2px]" size={18}/></li>
+                <li><span>{t('instructionsModal.advanced.backupRestore')}</span> <HiOutlineDocumentArrowDown className="inline-block ml-2 text-slate-300 align-[-2px]" size={18}/></li>
+                <li><span>{t('instructionsModal.advanced.exportData')}</span> <HiOutlineDocumentArrowDown className="inline-block ml-2 text-slate-300 align-[-2px]" size={18}/></li>
+                <li><span>{t('instructionsModal.advanced.training')}</span> <HiOutlineBookOpen className="inline-block ml-2 text-slate-300 align-[-2px]" size={18}/></li>
+                <li><span>{t('instructionsModal.advanced.language')}</span> <HiOutlineGlobeAlt className="inline-block ml-2 text-slate-300 align-[-2px]" size={18}/></li>
+                <li><span>{t('instructionsModal.advanced.fullscreen')}</span> <HiOutlineArrowsPointingOut className="inline-block ml-2 text-slate-300 align-[-2px]" size={18}/></li>
+                <li><span>{t('instructionsModal.advanced.settings')}</span> <HiOutlineCog6Tooth className="inline-block ml-2 text-slate-300 align-[-2px]" size={18}/></li>
+              </ul>
+            </div>
+          </section>
+
+          {/* Tips (retain) */}
           <section className="space-y-3">
             <h3 className="text-xl font-semibold text-yellow-300">{t('instructionsModal.tips.title')}</h3>
             <div className="bg-indigo-900/30 rounded-lg p-4 border border-indigo-700/50">
