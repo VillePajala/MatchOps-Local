@@ -21,10 +21,6 @@ interface RosterSettingsModalProps {
   onSetPlayerNotes: (playerId: string, notes: string) => void;
   onRemovePlayer: (playerId: string) => void;
   onAddPlayer: (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => void;
-  selectedPlayerIds: string[];
-  onTogglePlayerSelection: (playerId: string) => void;
-  teamName: string;
-  onTeamNameChange: (newName: string) => void;
   isRosterUpdating?: boolean;
   rosterError?: string | null;
   onOpenPlayerStats: (playerId: string) => void;
@@ -39,10 +35,6 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   onSetPlayerNotes,
   onRemovePlayer,
   onAddPlayer,
-  selectedPlayerIds,
-  onTogglePlayerSelection,
-  teamName,
-  onTeamNameChange,
   isRosterUpdating,
   rosterError,
   onOpenPlayerStats,
@@ -51,10 +43,6 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [editPlayerData, setEditPlayerData] = useState<{ name: string; jerseyNumber: string; notes: string; nickname: string }>({ name: '', jerseyNumber: '', notes: '', nickname: '' });
 
-  // State for team name editing
-  const [isEditingTeamName, setIsEditingTeamName] = useState(false);
-  const [editedTeamName, setEditedTeamName] = useState(teamName);
-  const teamNameInputRef = useRef<HTMLInputElement>(null);
 
   // State for adding a new player
   const [isAddingPlayer, setIsAddingPlayer] = useState(false);
@@ -204,39 +192,6 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   };
   // --- End New Player Handlers ---
 
-  // Handle team name input change
-  const handleTeamNameInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditedTeamName(e.target.value);
-  };
-
-  // Handle team name save
-  const handleSaveTeamName = () => {
-    if (editedTeamName.trim()) {
-      onTeamNameChange(editedTeamName.trim());
-    } else {
-      setEditedTeamName(teamName); // Reset to original if empty
-    }
-    setIsEditingTeamName(false);
-  };
-
-  // Handle cancel team name edit
-  const handleCancelTeamNameEdit = () => {
-    setEditedTeamName(teamName);
-    setIsEditingTeamName(false);
-  };
-
-  // Focus team name input when editing starts
-  useEffect(() => {
-    if (isEditingTeamName && teamNameInputRef.current) {
-      teamNameInputRef.current.focus();
-      teamNameInputRef.current.select();
-    }
-  }, [isEditingTeamName]);
-
-  // Update team name state when prop changes
-  useEffect(() => {
-    setEditedTeamName(teamName);
-  }, [teamName]);
 
   if (!isOpen) return null;
 
@@ -282,14 +237,10 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
             <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
               {/* Player Counter Section - Always visible */}
               <div className="mb-5 text-center text-sm">
-                <div className="flex justify-center items-center gap-8 text-slate-300">
+                <div className="flex justify-center items-center text-slate-300">
                   <span>
                     <span className="text-yellow-400 font-semibold">{availablePlayers.length}</span>
                     {" "}{t('rosterSettingsModal.totalPlayersShort', 'Total Players')}
-                  </span>
-                  <span>
-                    <span className="text-yellow-400 font-semibold">{selectedPlayerIds.length}</span>
-                    {" "}{t('rosterSettingsModal.selectedPlayersShort', 'Selected')}
                   </span>
                 </div>
               </div>
@@ -303,35 +254,6 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                 {t('rosterSettingsModal.addPlayerButton', 'Add Player')}
               </button>
 
-              {/* Team Name */}
-              <div className="mt-4 mx-4 bg-gradient-to-r from-slate-900/80 to-slate-800/80 rounded-lg shadow-inner">
-                {isEditingTeamName ? (
-                  <div className="p-2">
-                    <input
-                      ref={teamNameInputRef}
-                      type="text"
-                      value={editedTeamName}
-                      onChange={handleTeamNameInputChange}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveTeamName();
-                        if (e.key === 'Escape') handleCancelTeamNameEdit();
-                      }}
-                      onBlur={handleSaveTeamName}
-                      className={`${inputBaseStyle} text-base`}
-                    />
-                  </div>
-                ) : (
-                  <div
-                    className="group flex items-center justify-between p-2 cursor-pointer"
-                    onClick={() => setIsEditingTeamName(true)}
-                  >
-                    <p className="text-base text-slate-100 font-semibold group-hover:text-yellow-400 transition-colors">
-                      {teamName}
-                    </p>
-                    <HiOutlinePencil className="w-4 h-4 text-slate-500 group-hover:text-yellow-400 transition-colors" />
-                  </div>
-                )}
-              </div>
 
             </div>
           </div>
@@ -344,6 +266,12 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                 placeholder={t('rosterSettingsModal.searchPlaceholder', 'Search players...')}
                 value={searchText}
                 onChange={handleSearchChange}
+                onFocus={(e) => {
+                  // Prevent focus stealing when user is adding a player
+                  if (isAddingPlayer) {
+                    e.target.blur();
+                  }
+                }}
                 className={inputBaseStyle}
               />
             </div>
@@ -352,8 +280,19 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
               <div className={`${cardStyle} mx-4 space-y-3`}>
                 <h3 className="text-lg font-semibold text-slate-200">{t('rosterSettingsModal.addPlayerButton', 'Add Player')}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <input type="text" name="name" placeholder={t('rosterSettingsModal.playerNamePlaceholder', 'Player Name')} value={newPlayerData.name} onChange={handleNewPlayerInputChange} className={inputBaseStyle} autoFocus />
-                  <input type="text" name="nickname" placeholder={t('rosterSettingsModal.nicknamePlaceholder', 'Nickname (Optional)')} value={newPlayerData.nickname} onChange={handleNewPlayerInputChange} className={inputBaseStyle} />
+                  <input type="text" name="name" placeholder={t('rosterSettingsModal.playerNamePlaceholder', 'Player Name')} value={newPlayerData.name} onChange={handleNewPlayerInputChange} className={inputBaseStyle} />
+                  <input 
+                    type="text" 
+                    name="nickname" 
+                    placeholder={t('rosterSettingsModal.nicknamePlaceholder', 'Nickname (Optional)')} 
+                    value={newPlayerData.nickname} 
+                    onChange={handleNewPlayerInputChange} 
+                    onFocus={(e) => {
+                      // Ensure focus stays on this field when user taps/clicks on it
+                      e.stopPropagation();
+                    }}
+                    className={inputBaseStyle} 
+                  />
                 </div>
                 <input type="text" name="jerseyNumber" placeholder={t('rosterSettingsModal.jerseyHeader', '#')} value={newPlayerData.jerseyNumber} onChange={handleNewPlayerInputChange} className={`${inputBaseStyle} w-24 text-center`} maxLength={3} />
                 <textarea name="notes" placeholder={t('rosterSettingsModal.notesPlaceholder', 'Player notes...')} value={newPlayerData.notes} onChange={handleNewPlayerInputChange} className={`${inputBaseStyle} h-20 resize-none`} rows={3} />
@@ -410,8 +349,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                       </div>
                     ) : (
                       <div className="flex items-center gap-3">
-                        <input type="checkbox" checked={selectedPlayerIds.includes(player.id)} onChange={() => onTogglePlayerSelection(player.id)} className="form-checkbox h-5 w-5 text-indigo-600 bg-slate-600 border-slate-500 rounded focus:ring-indigo-500 shrink-0" disabled={isRosterUpdating} />
-                        <div className="flex-grow flex items-center gap-2 truncate pl-2">
+                        <div className="flex-grow flex items-center gap-2 truncate">
                           <span className="text-base text-slate-100 truncate" title={player.name}>{player.nickname || player.name}</span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">

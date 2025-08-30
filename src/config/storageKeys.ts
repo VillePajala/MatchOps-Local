@@ -6,3 +6,8 @@ export const MASTER_ROSTER_KEY = 'soccerMasterRoster';
 export const LAST_HOME_TEAM_NAME_KEY = 'lastHomeTeamName';
 export const TIMER_STATE_KEY = 'soccerTimerState';
 export const PLAYER_ADJUSTMENTS_KEY = 'soccerPlayerAdjustments';
+
+// Multi-team storage keys
+export const TEAMS_INDEX_KEY = 'soccerTeamsIndex';
+export const TEAM_ROSTERS_KEY = 'soccerTeamRosters';
+export const APP_DATA_VERSION_KEY = 'appDataVersion';

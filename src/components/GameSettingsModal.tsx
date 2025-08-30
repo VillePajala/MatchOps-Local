@@ -9,6 +9,7 @@ import { Season, Tournament, Player } from '@/types';
 import { AppState } from '@/types';
 import { getSeasons } from '@/utils/seasons';
 import { getTournaments } from '@/utils/tournaments';
+import { getTeamRoster } from '@/utils/teams';
 import { updateGameDetails, updateGameEvent, removeGameEvent } from '@/utils/savedGames';
 import { UseMutationResult } from '@tanstack/react-query';
 import { TFunction } from 'i18next';
@@ -35,6 +36,7 @@ export interface GameSettingsModalProps {
   onClose: () => void;
   // --- Data for the current game ---
   currentGameId: string | null;
+  teamId?: string;
   teamName: string;
   opponentName: string;
   gameDate: string;
@@ -119,6 +121,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   isOpen,
   onClose,
   currentGameId,
+  teamId,
   teamName,
   opponentName,
   gameDate,
@@ -221,6 +224,48 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // State for game time
   const [gameHour, setGameHour] = useState<string>('');
   const [gameMinute, setGameMinute] = useState<string>('');
+
+  // State for team roster integration
+  const [, setTeamRoster] = useState<Player[]>([]);
+  const [adjustedSelectedPlayerIds, setAdjustedSelectedPlayerIds] = useState<string[]>(selectedPlayerIds);
+
+  // Load team roster when modal opens with teamId
+  useEffect(() => {
+    const loadTeamRoster = async () => {
+      if (isOpen && teamId) {
+        try {
+          const roster = await getTeamRoster(teamId);
+          setTeamRoster(roster || []);
+          
+          if (roster && roster.length > 0) {
+            // Create a set of team player names for comparison (since IDs differ)
+            const teamPlayerNames = new Set(
+              roster.map(p => p.name.toLowerCase().trim())
+            );
+            
+            // Select master roster players that match team roster names
+            const selectedIds = availablePlayers
+              .filter(p => teamPlayerNames.has(p.name.toLowerCase().trim()))
+              .map(p => p.id);
+            
+            setAdjustedSelectedPlayerIds(selectedIds);
+          } else {
+            // No team roster - clear selections
+            setAdjustedSelectedPlayerIds([]);
+          }
+        } catch (error) {
+          logger.error('[GameSettingsModal] Error loading team roster:', error);
+          setTeamRoster([]);
+          setAdjustedSelectedPlayerIds([]);
+        }
+      } else {
+        // No teamId - use original selection
+        setAdjustedSelectedPlayerIds(selectedPlayerIds);
+      }
+    };
+    
+    loadTeamRoster();
+  }, [isOpen, teamId, availablePlayers, selectedPlayerIds]);
 
   // Initialize game time state from prop
   useEffect(() => {
@@ -1377,8 +1422,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 {/* Player Selection Section */}
                 <PlayerSelectionSection
                   availablePlayers={availablePlayers}
-                  selectedPlayerIds={selectedPlayerIds}
-                  onSelectedPlayersChange={onSelectedPlayersChange}
+                  selectedPlayerIds={adjustedSelectedPlayerIds}
+                  onSelectedPlayersChange={(playerIds: string[]) => {
+                    setAdjustedSelectedPlayerIds(playerIds);
+                    onSelectedPlayersChange(playerIds);
+                  }}
                   title={t('gameSettingsModal.selectPlayers', 'Select Players')}
                   playersSelectedText={t('gameSettingsModal.playersSelected', 'selected')}
                   selectAllText={t('gameSettingsModal.selectAll', 'Select All')}

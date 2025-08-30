@@ -20,6 +20,28 @@ export interface PlayerStatRow extends Player {
   avgPoints: number;
 }
 
+// Team entity for multi-team support
+export interface Team {
+  id: string;                 // team_...
+  name: string;               // "PEPO U10"
+  color?: string;             // brand/accent (optional)
+  createdAt: string;          // ISO timestamp
+  updatedAt: string;          // ISO timestamp
+}
+
+// Team player (reuses existing Player shape where possible)
+export interface TeamPlayer {
+  id: string;                 // player_...
+  name: string;
+  nickname?: string;
+  jerseyNumber?: string;
+  isGoalie?: boolean;
+  color?: string;
+  notes?: string;
+  receivedFairPlayCard?: boolean;
+  // Note: relX/relY are removed as they're field-specific, not roster-specific
+}
+
 export interface Season {
   id: string;
   name: string;
@@ -30,12 +52,12 @@ export interface Season {
   endDate?: string;
   gameDates?: string[];
   archived?: boolean;
-  defaultRosterId?: string;
-  defaultRoster?: string[];
   notes?: string;
   color?: string;
   badge?: string;
   ageGroup?: string;
+  // Note: teamId removed - seasons are global entities per plan
+  // Note: roster management removed - teams handle rosters now
 }
 
 export interface Tournament {
@@ -48,13 +70,13 @@ export interface Tournament {
   endDate?: string;
   gameDates?: string[];
   archived?: boolean;
-  defaultRosterId?: string;
-  defaultRoster?: string[];
   notes?: string;
   color?: string;
   badge?: string;
   level?: string;
   ageGroup?: string;
+  // Note: teamId removed - tournaments are global entities per plan
+  // Note: roster management removed - teams handle rosters now
 }
 
 export * from './playerAssessment';

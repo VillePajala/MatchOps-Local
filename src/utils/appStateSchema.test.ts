@@ -28,7 +28,11 @@ describe('appStateSchema', () => {
   };
 
   it('parses valid state', () => {
-    expect(appStateSchema.parse(valid)).toEqual(valid);
+    const result = appStateSchema.parse(valid);
+    // The schema may add default values, so we check that our input is contained in the result
+    expect(result).toMatchObject(valid);
+    // Check that demandFactor gets the default value
+    expect(result.demandFactor).toBe(1);
   });
 
   it('fails for invalid data', () => {

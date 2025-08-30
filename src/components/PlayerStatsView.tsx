@@ -23,9 +23,10 @@ interface PlayerStatsViewProps {
   onGameClick: (gameId: string) => void;
   seasons: Season[];
   tournaments: Tournament[];
+  teamId?: string; // Optional team filtering
 }
 
-const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments }) => {
+const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId }) => {
   const { t, i18n } = useTranslation();
 
   const [showRatings, setShowRatings] = useState(false);
@@ -130,8 +131,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
   const playerStats: PlayerStatsData | null = useMemo(() => {
     if (!player) return null;
-    return calculatePlayerStats(player, savedGames, seasons, tournaments, adjustments);
-  }, [player, savedGames, seasons, tournaments, adjustments]);
+    return calculatePlayerStats(player, savedGames, seasons, tournaments, adjustments, teamId);
+  }, [player, savedGames, seasons, tournaments, adjustments, teamId]);
 
   if (!player || !playerStats) {
     return (

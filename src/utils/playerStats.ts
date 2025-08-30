@@ -36,7 +36,8 @@ export const calculatePlayerStats = (
   savedGames: { [key: string]: AppState },
   seasons: Season[],
   tournaments: Tournament[],
-  adjustments?: PlayerStatAdjustment[]
+  adjustments?: PlayerStatAdjustment[],
+  teamId?: string  // Optional team filtering
 ): PlayerStats => {
   const gameByGameStats: GameStats[] = [];
   const performanceBySeason: { [seasonId: string]: { name: string, gamesPlayed: number, goals: number, assists: number, points: number } } = {};
@@ -46,6 +47,12 @@ export const calculatePlayerStats = (
     if (game.isPlayed === false) {
       return;
     }
+    
+    // Filter by team if specified
+    if (teamId && game.teamId !== teamId) {
+      return;
+    }
+    
     // Check if the player was part of this game's roster
     if (game.selectedPlayerIds?.includes(player.id)) {
       const goals = game.gameEvents?.filter(e => e.type === 'goal' && e.scorerId === player.id).length || 0;
@@ -98,7 +105,15 @@ export const calculatePlayerStats = (
   });
 
   // Apply adjustments (external games) scoped by season and tournament
-  const adjustmentsForPlayer = (adjustments || []).filter(a => a.playerId === player.id);
+  // Filter adjustments by player and optionally by team
+  const adjustmentsForPlayer = (adjustments || []).filter(a => {
+    if (a.playerId !== player.id) return false;
+    // If team filter is active, only include adjustments for that team or legacy adjustments without teamId
+    if (teamId) {
+      return a.teamId === teamId || !a.teamId; // Include legacy adjustments
+    }
+    return true;
+  });
 
   // Merge adjustments into season and tournament performance
   adjustmentsForPlayer.forEach(adj => {

@@ -114,11 +114,11 @@ const mockGameEvents: GameEvent[] = [
   { id: 'goal2', type: 'opponentGoal' as GameEventType, time: 300 },
 ];
 const mockSeasons: Season[] = [
-  { id: 's1', name: 'Spring League 2024', location: 'Arena', periodCount: 2, periodDuration: 25, defaultRoster: ['p1', 'p2', 'p3'] },
+  { id: 's1', name: 'Spring League 2024', location: 'Arena', periodCount: 2, periodDuration: 25 },
   { id: 's2', name: 'Winter League 2023', location: 'Dome', periodCount: 1, periodDuration: 30 },
 ];
 const mockTournaments: Tournament[] = [
-  { id: 't1', name: 'Summer Cup', location: 'Cup Arena', periodCount: 2, periodDuration: 20, defaultRoster: ['p1', 'p2'] },
+  { id: 't1', name: 'Summer Cup', location: 'Cup Arena', periodCount: 2, periodDuration: 20 },
   { id: 't2', name: 'Annual Gala', location: 'Gala Field', periodCount: 2, periodDuration: 15 },
 ];
 

@@ -1,6 +1,7 @@
 import { TOURNAMENTS_LIST_KEY } from '@/config/storageKeys';
 import type { Tournament } from '@/types'; // Import Tournament type from shared types
 import logger from '@/utils/logger';
+import { getLocalStorageItem, setLocalStorageItem } from '@/utils/localStorage';
 
 // Define the Tournament type (consider moving to a shared types file)
 // export interface Tournament { // Remove local definition
@@ -15,7 +16,7 @@ import logger from '@/utils/logger';
  */
 export const getTournaments = async (): Promise<Tournament[]> => {
   try {
-    const tournamentsJson = localStorage.getItem(TOURNAMENTS_LIST_KEY);
+    const tournamentsJson = getLocalStorageItem(TOURNAMENTS_LIST_KEY);
     if (!tournamentsJson) {
       return Promise.resolve([]);
     }
@@ -40,7 +41,7 @@ export const getTournaments = async (): Promise<Tournament[]> => {
  */
 export const saveTournaments = async (tournaments: Tournament[]): Promise<boolean> => {
   try {
-    localStorage.setItem(TOURNAMENTS_LIST_KEY, JSON.stringify(tournaments));
+    setLocalStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(tournaments));
     return Promise.resolve(true);
   } catch (error) {
     logger.error('[saveTournaments] Error saving tournaments to localStorage:', error);

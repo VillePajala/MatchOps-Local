@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { Audiowide } from 'next/font/google';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 import {
@@ -18,6 +19,7 @@ interface StartScreenProps {
   onCreateSeason: () => void;
   onViewStats: () => void;
   onSetupRoster: () => void;
+  onManageTeams: () => void;
   canResume?: boolean;
   hasPlayers?: boolean;
   hasSavedGames?: boolean;
@@ -25,14 +27,17 @@ interface StartScreenProps {
   isFirstTimeUser?: boolean;
 }
 
+// Title/logo font (must be at module scope for next/font)
+const titleFont = Audiowide({ subsets: ['latin'], weight: '400' });
+
 const StartScreen: React.FC<StartScreenProps> = ({
-  onStartNewGame,
   onLoadGame,
   onResumeGame,
   onGetStarted,
   onCreateSeason,
   onViewStats,
   onSetupRoster,
+  onManageTeams,
   canResume = false,
   hasPlayers = false,
   hasSavedGames = false,
@@ -65,11 +70,42 @@ const StartScreen: React.FC<StartScreenProps> = ({
   const containerStyle =
     'relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-950 text-slate-100 font-display overflow-hidden';
 
-  const taglineStyle =
-    'text-lg sm:text-xl md:text-2xl text-slate-200/95 text-center tracking-wide drop-shadow-md relative px-4';
-
   const titleStyle =
-    'relative text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold tracking-tight leading-[0.9] drop-shadow-lg mb-1.5 text-center text-yellow-400 px-4';
+    'relative text-6xl sm:text-8xl md:text-9xl lg:text-[10rem] font-extrabold tracking-tight leading-[0.9] drop-shadow-lg mb-1.5 text-center px-4';
+
+  /*
+   * A vibrant, high-contrast palette designed to pop against the dark UI
+   * and complement (not compete with) the indigo/violet button colors.
+   * It emphasizes cyan, lime, yellow, and magenta.
+   */
+  const logoGradientPrimary = `conic-gradient(from calc(var(--holo-angle, 0deg) + var(--holo-start, 0deg)) at 50% 50%,
+    #22d3ee 0deg,    /* Cyan */
+    #a3e635 60deg,   /* Lime */
+    #fde047 120deg,  /* Yellow */
+    #f97316 180deg,  /* Orange */
+    #e83d6d 240deg,  /* Magenta */
+    #8b5cf6 300deg,  /* A brighter, distinct Violet */
+    #22d3ee 360deg   /* Cyan (to loop) */
+  )`;
+
+  // A secondary gradient with complementary, translucent colors to add depth and shimmer.
+  const logoGradientSecondary = `conic-gradient(from calc(var(--holo-angle2, 0deg) + var(--holo-start, 0deg)) at 50% 50%,
+    rgba(34,211,238,0.4) 0deg,     /* Cyan */
+    rgba(163,230,53,0.35) 90deg,   /* Lime */
+    rgba(232,61,109,0.4) 180deg,   /* Magenta */
+    rgba(253,224,71,0.35) 270deg,  /* Yellow */
+    rgba(34,211,238,0.4) 360deg    /* Cyan (to loop) */
+  )`;
+  
+  // A slow, tertiary wash of color to prevent static areas
+  const logoGradientTertiary = `conic-gradient(from calc(var(--holo-angle3, 0deg) + var(--holo-start, 0deg)) at 50% 50%,
+    rgba(236,72,153,0.2) 0deg,
+    rgba(234,179,8,0.15) 120deg,
+    rgba(132,204,22,0.15) 240deg,
+    rgba(236,72,153,0.2) 360deg
+  )`;
+
+  // 3D extrude handled via pseudo-element on each line (see .logo-line in globals.css)
 
   
 
@@ -87,8 +123,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/30 via-sky-700/20 to-cyan-600/30 mix-blend-overlay" />
       {/* 6) Top/bottom blue tint */}
       <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
-      {/* 7) Title spotlight */}
-      <div className="absolute top-[28%] left-1/2 -translate-x-1/2 w-[60vw] h-[32vh] pointer-events-none opacity-50 [background:radial-gradient(closest-side,rgba(56,189,248,0.10),transparent_70%)] blur-[28px]" />
+      {/* 7) Title spotlight (nudged higher) */}
+      <div className="absolute top-[22%] left-1/2 -translate-x-1/2 w-[60vw] h-[32vh] pointer-events-none opacity-50 [background:radial-gradient(closest-side,rgba(56,189,248,0.10),transparent_70%)] blur-[28px]" />
       {/* 8) Large blurred corner glows */}
       <div className="absolute -inset-[50px] bg-sky-400/10 blur-3xl top-0 opacity-50" />
       <div className="absolute -inset-[50px] bg-indigo-600/10 blur-3xl bottom-0 opacity-50" />
@@ -103,101 +139,151 @@ const StartScreen: React.FC<StartScreenProps> = ({
       {/* Safe container with proper bounds */}
       <div className="relative z-10 grid grid-rows-[auto_1fr] items-start w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-6 sm:py-8 h-[calc(100dvh-8rem)] sm:h-[calc(100dvh-6rem)]">
         
-        {/* Title section */}
+        {/* Title section (nudged higher) */}
         <div className="row-start-1 relative flex flex-col items-center mt-2 sm:mt-4">
           <div className="relative">
-            <h1 className={titleStyle}>
-              <span className="block">MatchOps</span>
-              <span className="block">Local</span>
+            <h1
+              className={`${titleFont.className} ${titleStyle} start-title`}
+              style={{ letterSpacing: '0.015em' }}
+            >
+              <span
+                className="logo-line start-logo-gradient-animate"
+                data-text="Match"
+                style={{
+                  // Different base angle for each word via --holo-start
+                  ['--holo-start' as string]: '0deg',
+                  background: `${logoGradientPrimary}, ${logoGradientSecondary}, ${logoGradientTertiary}`,
+                  backgroundBlendMode: 'screen',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                }}
+              >
+                Match
+              </span>
+              <span
+                className="logo-line start-logo-gradient-animate"
+                data-text="Ops"
+                style={{
+                  ['--holo-start' as string]: '45deg',
+                  background: `${logoGradientPrimary}, ${logoGradientSecondary}, ${logoGradientTertiary}`,
+                  backgroundBlendMode: 'screen',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                }}
+              >
+                Ops
+              </span>
+              <span
+                className="logo-line start-logo-gradient-animate"
+                data-text="Local"
+                style={{
+                  ['--holo-start' as string]: '95deg',
+                  background: `${logoGradientPrimary}, ${logoGradientSecondary}, ${logoGradientTertiary}`,
+                  backgroundBlendMode: 'screen',
+                  WebkitBackgroundClip: 'text',
+                  backgroundClip: 'text',
+                  color: 'transparent',
+                }}
+              >
+                Local
+              </span>
             </h1>
-            <span className="absolute inset-0 -z-10 blur-[6px] opacity-60 [background:radial-gradient(closest-side,rgba(234,179,8,0.35),transparent_70%)]" />
           </div>
-          <div className="relative mt-2 sm:mt-3">
-            <p className={taglineStyle}>{t('startScreen.tagline', 'Suunnittele · Kirjaa · Arvioi')}</p>
-            <span className="absolute inset-0 -z-10 mx-auto w-[80%] h-full pointer-events-none [background:radial-gradient(closest-side,rgba(99,102,241,0.12),transparent_70%)] blur-md" />
-          </div>
-          <div className="h-px w-32 sm:w-48 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent mx-auto mt-6 sm:mt-8" />
         </div>
 
         {/* Conditional interface based on user type */}
         {isFirstTimeUser ? (
           /* FIRST-TIME USER: Simplified Interface */
-          <div className="row-start-2 w-full flex flex-col items-center justify-end min-h-[38vh] sm:min-h-[40vh] px-4 pt-4 pb-6 sm:pb-8 gap-4 sm:gap-5 max-w-sm mx-auto">
-            {/* Large Get Started button */}
-            <button 
-              className="w-full px-6 py-4 rounded-lg text-lg font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xl text-center"
-              onClick={onGetStarted}
-            >
-              {t('startScreen.getStarted', 'Get Started')}
-            </button>
-            
-            {/* Secondary help button */}
-            <button 
-              className="w-full px-4 py-2.5 rounded-md text-sm font-medium text-slate-300 bg-slate-800/50 hover:bg-slate-700/50 transition-colors border border-slate-600"
-              onClick={() => setIsInstructionsModalOpen(true)}
-            >
-              {t('startScreen.howItWorks', 'How It Works')}
-            </button>
+          <div className="row-start-2 w-full flex flex-col h-full max-w-sm mx-auto py-8 md:py-7">
+            {/* Top spacer to balance with fixed language switcher */}
+            <div className="flex-1" />
+            <div className="w-full flex flex-col items-center px-4 gap-4 sm:gap-5">
+              {/* Large Get Started button */}
+              <button 
+                className="w-full px-6 py-4 rounded-lg text-lg font-bold text-white bg-gradient-to-r from-indigo-600 to-violet-700 hover:from-indigo-500 hover:to-violet-600 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xl text-center"
+                onClick={onGetStarted}
+              >
+                {t('startScreen.getStarted', 'Get Started')}
+              </button>
+              
+              {/* Secondary help button */}
+              <button 
+                className="w-full px-4 py-2.5 rounded-md text-sm font-medium text-slate-300 bg-slate-800/50 hover:bg-slate-700/50 transition-colors border border-slate-600"
+                onClick={() => setIsInstructionsModalOpen(true)}
+              >
+                {t('startScreen.howItWorks', 'How It Works')}
+              </button>
+            </div>
+            {/* Bottom spacer mirrors the top to create equal gaps */}
+            <div className="flex-1" />
           </div>
         ) : (
           /* EXPERIENCED USER: Full-Featured Interface */
-          <div className="row-start-2 w-full flex flex-col items-center justify-center flex-1 px-4 pt-14 pb-6 gap-3 max-w-sm mx-auto">
-            {/* Show Setup Roster as primary action for users without players */}
-            {!hasPlayers && (
-              <button className={primaryButtonStyle} onClick={onSetupRoster}>
-                {t('startScreen.setupRoster', 'Setup Team Roster')}
+          <div className="row-start-2 w-full flex flex-col h-full max-w-sm mx-auto py-8 md:py-7">
+            {/* Top spacer ensures equal space above first button */}
+            <div className="flex-1" />
+            <div className="w-full flex flex-col items-center px-4 gap-3">
+              {/* Show Setup Roster as primary action for users without players */}
+              {!hasPlayers && (
+                <button className={primaryButtonStyle} onClick={onSetupRoster}>
+                  {t('startScreen.setupRoster', 'Setup Team Roster')}
+                </button>
+              )}
+              
+              {/* Resume Last Game button - always shown, dimmed when unavailable */}
+              <button 
+                className={canResume ? primaryButtonStyle : disabledButtonStyle}
+                onClick={canResume && onResumeGame ? onResumeGame : undefined}
+                disabled={!canResume}
+              >
+                {t('startScreen.resumeGame', 'Resume Last Game')}
               </button>
-            )}
-            
-            {/* Resume Last Game button - always shown, dimmed when unavailable */}
-            <button 
-              className={canResume ? primaryButtonStyle : disabledButtonStyle}
-              onClick={canResume && onResumeGame ? onResumeGame : undefined}
-              disabled={!canResume}
-            >
-              {t('startScreen.resumeGame', 'Resume Last Game')}
-            </button>
-            
-            {/* Create Game button - grayed out if no players */}
-            <button 
-              className={hasPlayers ? primaryButtonStyle : disabledButtonStyle}
-              onClick={hasPlayers ? onStartNewGame : undefined}
-              disabled={!hasPlayers}
-            >
-              {hasSavedGames ? t('startScreen.createNewGame', 'Create New Game') : t('startScreen.createFirstGame', 'Create First Game')}
-            </button>
-            
-            {/* Load Game button */}
-            <button 
-              className={hasSavedGames ? primaryButtonStyle : disabledButtonStyle} 
-              onClick={hasSavedGames ? onLoadGame : undefined}
-              disabled={!hasSavedGames}
-            >
-              {t('startScreen.loadGame', 'Load Game')}
-            </button>
-            
-            {/* Create Season/Tournament button - grayed out if no players */}
-            <button 
-              className={hasPlayers ? primaryButtonStyle : disabledButtonStyle}
-              onClick={hasPlayers ? onCreateSeason : undefined}
-              disabled={!hasPlayers}
-            >
-              {hasSeasonsTournaments ? t('startScreen.createSeasonTournament', 'Seasons & Tournaments') : t('startScreen.createFirstSeasonTournament', 'First Season/Tournament')}
-            </button>
-            
-            {/* View Stats button */}
-            <button 
-              className={hasSavedGames ? primaryButtonStyle : disabledButtonStyle} 
-              onClick={hasSavedGames ? onViewStats : undefined}
-              disabled={!hasSavedGames}
-            >
-              {t('startScreen.viewStats', 'View Stats')}
-            </button>
+              
+              {/* Load Game button */}
+              <button 
+                className={hasSavedGames ? primaryButtonStyle : disabledButtonStyle} 
+                onClick={hasSavedGames ? onLoadGame : undefined}
+                disabled={!hasSavedGames}
+              >
+                {t('startScreen.loadGame', 'Load Game')}
+              </button>
+              
+              {/* Create Season/Tournament button - grayed out if no players */}
+              <button 
+                className={hasPlayers ? primaryButtonStyle : disabledButtonStyle}
+                onClick={hasPlayers ? onCreateSeason : undefined}
+                disabled={!hasPlayers}
+              >
+                {hasSeasonsTournaments ? t('startScreen.createSeasonTournament', 'Seasons & Tournaments') : t('startScreen.createFirstSeasonTournament', 'First Season/Tournament')}
+              </button>
+              
+              {/* Manage Teams button - grayed out if no players */}
+              <button 
+                className={hasPlayers ? primaryButtonStyle : disabledButtonStyle}
+                onClick={hasPlayers ? onManageTeams : undefined}
+                disabled={!hasPlayers}
+              >
+                {t('startScreen.manageTeams', 'Manage Teams')}
+              </button>
+              
+              {/* View Stats button */}
+              <button 
+                className={hasSavedGames ? primaryButtonStyle : disabledButtonStyle} 
+                onClick={hasSavedGames ? onViewStats : undefined}
+                disabled={!hasSavedGames}
+              >
+                {t('startScreen.viewStats', 'View Stats')}
+              </button>
+            </div>
+            {/* Bottom spacer mirrors the top to create equal gaps */}
+            <div className="flex-1" />
           </div>
         )}
       </div>
 
-      {/* Bottom-centered language switcher with safe area */}
+      {/* Bottom-centered language switcher with safe area (fixed) */}
       <div className="absolute left-1/2 -translate-x-1/2 bottom-8 md:bottom-6 z-20 px-4">
         <div className="flex rounded-lg bg-slate-800/70 border border-slate-600 backdrop-blur-sm overflow-hidden">
           <button
