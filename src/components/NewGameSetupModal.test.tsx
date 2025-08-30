@@ -174,7 +174,11 @@ describe('NewGameSetupModal', () => {
     });
     expect(mockOnStart).toHaveBeenCalledWith(
       expect.arrayContaining(['player1', 'player2']), 'New Team Name', 'Opponent Team',
-      expect.any(String), '', '', null, null, 2, 10, 'home', 1, '', '', true
+      expect.any(String), '', '', null, null, 2, 10, 'home', 1, '', '', true, null,
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'player1', name: 'John Doe' }),
+        expect.objectContaining({ id: 'player2', name: 'Jane Smith' })
+      ])
     );
   });
 
@@ -225,7 +229,11 @@ describe('NewGameSetupModal', () => {
     await waitFor(() => {
       expect(mockOnStart).toHaveBeenCalledWith(
         expect.arrayContaining(['player1', 'player2']), 'Last Team', 'Opponent Team',
-        expect.any(String), '', '', null, null, 2, 10, 'home', 1, '', '', false
+        expect.any(String), '', '', null, null, 2, 10, 'home', 1, '', '', false, null,
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'player1', name: 'John Doe' }),
+          expect.objectContaining({ id: 'player2', name: 'Jane Smith' })
+        ])
       );
     });
   });

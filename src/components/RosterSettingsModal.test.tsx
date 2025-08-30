@@ -14,7 +14,6 @@ jest.mock('react-i18next', () => ({
 const mockOnClose = jest.fn();
 const mockOnAddPlayer = jest.fn();
 const mockOnRemovePlayer = jest.fn();
-const mockOnTeamNameChange = jest.fn();
 const mockOnRenamePlayer = jest.fn();
 const mockOnSetJerseyNumber = jest.fn();
 const mockOnSetPlayerNotes = jest.fn();
@@ -37,8 +36,6 @@ const defaultProps = {
   onAddPlayer: mockOnAddPlayer,
   selectedPlayerIds: [],
   onTogglePlayerSelection: mockOnTogglePlayerSelection,
-  teamName: 'Test Team Name',
-  onTeamNameChange: mockOnTeamNameChange,
   onOpenPlayerStats: mockOnOpenPlayerStats,
 };
 
@@ -144,21 +141,6 @@ describe('<RosterSettingsModal />', () => {
     expect(mockOnRemovePlayer).toHaveBeenCalledWith('p1');
   });
 
-  test('edits team name', () => {
-    render(<RosterSettingsModal {...defaultProps} />);
-    
-    // Click the team name container to edit
-    fireEvent.click(screen.getByText('Test Team Name'));
-    
-    // Change the name
-    const input = screen.getByDisplayValue('Test Team Name');
-    fireEvent.change(input, { target: { value: 'New Team Name' }});
-    
-    // Save by blurring
-    fireEvent.blur(input);
-    
-    expect(mockOnTeamNameChange).toHaveBeenCalledWith('New Team Name');
-  });
 
   test('toggles player selection', () => {
     render(<RosterSettingsModal {...defaultProps} />);

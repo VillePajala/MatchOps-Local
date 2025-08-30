@@ -1,20 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Season, Tournament, Player } from '@/types';
+import { Season, Tournament } from '@/types';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
 import { HiPlusCircle, HiOutlinePencil, HiOutlineTrash, HiOutlineCheck, HiOutlineX } from 'react-icons/hi';
 import { UseMutationResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import RosterSelection from './RosterSelection';
 
 interface SeasonTournamentManagementModalProps {
     isOpen: boolean;
     onClose: () => void;
     seasons: Season[];
     tournaments: Tournament[];
-    availablePlayers: Player[];
     addSeasonMutation: UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
     addTournamentMutation: UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>;
     updateSeasonMutation: UseMutationResult<Season | null, Error, Season, unknown>;
@@ -24,7 +22,7 @@ interface SeasonTournamentManagementModalProps {
 }
 
 const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalProps> = ({
-    isOpen, onClose, seasons, tournaments, availablePlayers,
+    isOpen, onClose, seasons, tournaments,
     addSeasonMutation, addTournamentMutation,
     updateSeasonMutation, deleteSeasonMutation,
     updateTournamentMutation, deleteTournamentMutation
@@ -60,9 +58,6 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
 
     const [newSeasonFields, setNewSeasonFields] = useState<Partial<Season>>({});
     const [newTournamentFields, setNewTournamentFields] = useState<Partial<Tournament>>({});
-    const [newSeasonRoster, setNewSeasonRoster] = useState<string[]>(availablePlayers.map(p => p.id));
-    const [newTournamentRoster, setNewTournamentRoster] = useState<string[]>(availablePlayers.map(p => p.id));
-    const [editRoster, setEditRoster] = useState<string[]>(availablePlayers.map(p => p.id));
 
     const [stats, setStats] = useState<Record<string, { games: number; goals: number }>>({});
 
@@ -96,17 +91,15 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     const handleSave = (type: 'season' | 'tournament') => {
         if (type === 'season' && newSeasonName.trim()) {
             const sanitized = sanitizeFields(newSeasonFields);
-            addSeasonMutation.mutate({ name: newSeasonName.trim(), ...sanitized, defaultRoster: newSeasonRoster });
+            addSeasonMutation.mutate({ name: newSeasonName.trim(), ...sanitized });
             setNewSeasonName('');
             setNewSeasonFields({});
-            setNewSeasonRoster(availablePlayers.map(p => p.id));
             setShowNewSeasonInput(false);
         } else if (type === 'tournament' && newTournamentName.trim()) {
             const sanitized = sanitizeFields(newTournamentFields);
-            addTournamentMutation.mutate({ name: newTournamentName.trim(), ...sanitized, defaultRoster: newTournamentRoster });
+            addTournamentMutation.mutate({ name: newTournamentName.trim(), ...sanitized });
             setNewTournamentName('');
             setNewTournamentFields({});
-            setNewTournamentRoster(availablePlayers.map(p => p.id));
             setShowNewTournamentInput(false);
         }
     };
@@ -125,7 +118,6 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
             ageGroup: (item as Tournament).ageGroup ?? (item as Season).ageGroup,
             level: (item as Tournament).level,
         });
-        setEditRoster(item.defaultRoster ?? availablePlayers.map(p => p.id));
     };
 
     const handleCancelEdit = () => {
@@ -137,7 +129,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     const handleSaveEdit = (id: string, type: 'season' | 'tournament') => {
         if (editingName.trim()) {
             const sanitized = sanitizeFields(editingFields);
-            const base = { id, name: editingName.trim(), ...sanitized, defaultRoster: editRoster } as Season;
+            const base = { id, name: editingName.trim(), ...sanitized } as Season;
             if (type === 'season') {
                 updateSeasonMutation.mutate(base);
             } else {
@@ -229,11 +221,6 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                             </>
                         )}
                         <textarea value={(type==='season'?newSeasonFields.notes:newTournamentFields.notes) || ''} onChange={(e)=>type==='season'?setNewSeasonFields(f=>({...f,notes:e.target.value})):setNewTournamentFields(f=>({...f,notes:e.target.value}))} placeholder={t('seasonTournamentModal.notesLabel')} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500" />
-                        <RosterSelection
-                            players={availablePlayers}
-                            selectedIds={type==='season'?newSeasonRoster:newTournamentRoster}
-                            onChange={ids=> type==='season'?setNewSeasonRoster(ids):setNewTournamentRoster(ids)}
-                        />
                         <div className="flex items-center gap-2">
                             <label className="text-slate-200 text-sm flex items-center gap-1"><input type="checkbox" checked={(type==='season'?newSeasonFields.archived:newTournamentFields.archived) || false} onChange={(e)=>type==='season'?setNewSeasonFields(f=>({...f,archived:e.target.checked})):setNewTournamentFields(f=>({...f,archived:e.target.checked}))} className="form-checkbox h-4 w-4" />{t('seasonTournamentModal.archiveLabel')}</label>
                         </div>
@@ -275,7 +262,6 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                         </>
                                     )}
                                     <textarea value={editingFields.notes || ''} onChange={e=>setEditingFields(f=>({...f,notes:e.target.value}))} placeholder={t('seasonTournamentModal.notesLabel')} className="w-full px-2 py-1 bg-slate-700 border border-slate-600 rounded-md text-white" />
-                                    <RosterSelection players={availablePlayers} selectedIds={editRoster} onChange={setEditRoster} />
                                     <label className="text-slate-200 text-sm flex items-center gap-1"><input type="checkbox" checked={editingFields.archived || false} onChange={e=>setEditingFields(f=>({...f,archived:e.target.checked}))} className="form-checkbox h-4 w-4" />{t('seasonTournamentModal.archiveLabel')}</label>
                                     <div className="flex justify-end gap-2">
                                         <button onClick={() => handleSaveEdit(item.id, type)} className="p-1 text-green-400 hover:text-green-300" aria-label={`Save ${item.name}`}><HiOutlineCheck className="w-5 h-5" /></button>

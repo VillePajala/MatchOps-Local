@@ -7,6 +7,7 @@ import {
 import type { SavedGamesCollection, AppState, GameEvent as PageGameEvent, Point, Opponent, IntervalLog } from '@/types';
 import type { Player } from '@/types';
 import logger from '@/utils/logger';
+import { appStateSchema } from './appStateSchema';
 
 // Note: AppState (imported from @/types) is the primary type used for live game state
 // and for storing games in localStorage via SavedGamesCollection.
@@ -151,7 +152,19 @@ export const deleteGame = async (gameId: string): Promise<string | null> => {
  */
 export const createGame = async (gameData: Partial<AppState>): Promise<{ gameId: string, gameData: AppState }> => {
   try {
-    const gameId = `game_${Date.now()}`;
+    // Generate unique ID combining timestamp (for sorting) and UUID (for uniqueness)
+    const timestamp = Date.now();
+    let uuid: string;
+    
+    // Use crypto.randomUUID if available, fallback to timestamp-based UUID for compatibility
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      uuid = crypto.randomUUID().split('-')[0]; // Use first part of UUID for brevity
+    } else {
+      // Fallback: generate pseudo-random hex string
+      uuid = Math.random().toString(16).substring(2, 10);
+    }
+    
+    const gameId = `game_${timestamp}_${uuid}`;
     const newGameAppState: AppState = {
       playersOnField: gameData.playersOnField || [],
       opponents: gameData.opponents || [],
@@ -416,49 +429,261 @@ export const exportGamesAsJson = async (): Promise<string | null> => {
 };
 
 /**
- * Imports games from a JSON string into localStorage
+ * Import games from a JSON string, supporting overwrite option
  * @param jsonData - JSON string of games to import
  * @param overwrite - Whether to overwrite existing games with the same ID
- * @returns Promise resolving to the number of games successfully imported, or null on error
+ * @returns Promise resolving to detailed import results
  */
-import { appStateSchema } from './appStateSchema';
+
+export interface ImportResult {
+  successful: number;
+  skipped: number;
+  failed: Array<{
+    gameId: string;
+    error: string;
+  }>;
+  warnings: string[];
+}
 
 export const importGamesFromJson = async (
   jsonData: string,
   overwrite: boolean = false
-): Promise<number> => {
-  let importedCount = 0;
+): Promise<ImportResult> => {
+  const result: ImportResult = {
+    successful: 0,
+    skipped: 0,
+    failed: [],
+    warnings: []
+  };
+
   try {
-    const gamesToImport = JSON.parse(jsonData) as SavedGamesCollection;
-    if (typeof gamesToImport !== 'object' || gamesToImport === null) {
+    const parsedData = JSON.parse(jsonData);
+    
+    // Handle both single game and collection formats
+    let gamesToImport: SavedGamesCollection;
+    if (parsedData.savedSoccerGames) {
+      // Full export format
+      gamesToImport = parsedData.savedSoccerGames;
+    } else if (parsedData.id && parsedData.teamName) {
+      // Single game format
+      gamesToImport = { [parsedData.id]: parsedData };
+    } else if (typeof parsedData === 'object' && parsedData !== null) {
+      // Game collection format
+      gamesToImport = parsedData;
+    } else {
       throw new Error('Invalid JSON data format for import.');
     }
 
     const existingGames = await getSavedGames();
-    const gamesToSave: SavedGamesCollection = { ...existingGames }; // Make a mutable copy
+    const gamesToSave: SavedGamesCollection = { ...existingGames };
 
-    for (const gameId in gamesToImport) {
-      if (Object.prototype.hasOwnProperty.call(gamesToImport, gameId)) {
+    for (const [gameId, gameData] of Object.entries(gamesToImport)) {
+      try {
+        // Skip existing games if not overwriting
         if (existingGames[gameId] && !overwrite) {
-          logger.log(`Skipping import for existing game ID: ${gameId} (overwrite is false).`);
+          result.skipped++;
+          result.warnings.push(`Game ${gameId} already exists (skipped)`);
           continue;
         }
-        const validation = appStateSchema.safeParse(gamesToImport[gameId]);
+
+        // Validate game data
+        const validation = appStateSchema.safeParse(gameData);
         if (!validation.success) {
-          throw new Error(`Invalid game data for ID ${gameId}`);
+          const errorMessages = validation.error.errors
+            .map(e => `${e.path.join('.')}: ${e.message}`)
+            .join(', ');
+          result.failed.push({
+            gameId,
+            error: errorMessages
+          });
+          continue;
         }
-        gamesToSave[gameId] = validation.data;
-        importedCount++;
+
+        // Additional data integrity checks
+        const validatedData = validation.data;
+        if (!validatedData.teamName || !validatedData.opponentName) {
+          result.failed.push({
+            gameId,
+            error: 'Missing required team information'
+          });
+          continue;
+        }
+
+        // Check for reasonable score values
+        if (validatedData.homeScore < 0 || validatedData.awayScore < 0) {
+          result.failed.push({
+            gameId,
+            error: 'Invalid score values (cannot be negative)'
+          });
+          continue;
+        }
+
+        // Check for reasonable game duration
+        if (validatedData.periodDurationMinutes < 1 || validatedData.periodDurationMinutes > 120) {
+          result.failed.push({
+            gameId,
+            error: 'Invalid period duration (must be 1-120 minutes)'
+          });
+          continue;
+        }
+
+        gamesToSave[gameId] = validatedData;
+        result.successful++;
+        
+      } catch (error) {
+        result.failed.push({
+          gameId,
+          error: error instanceof Error ? error.message : 'Unknown error occurred'
+        });
       }
     }
 
-    if (importedCount > 0 || (overwrite && Object.keys(gamesToImport).length > 0) ) {
-        await saveGames(gamesToSave);
+    // Save all valid games
+    if (result.successful > 0) {
+      await saveGames(gamesToSave);
+      logger.log(`Successfully imported ${result.successful} games`);
     }
 
-    return importedCount;
+    // Log summary
+    if (result.failed.length > 0) {
+      logger.warn(`Import completed with ${result.failed.length} failures`);
+    }
+    if (result.skipped > 0) {
+      logger.log(`Skipped ${result.skipped} existing games`);
+    }
+
+    return result;
+    
   } catch (error) {
-    logger.error('Error importing games from JSON:', error);
-    throw error; // Propagate error
+    logger.error('Import games error:', error);
+    throw new Error(`Failed to parse import file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
+/**
+ * Legacy wrapper for backward compatibility
+ * @deprecated Use importGamesFromJson instead
+ */
+export const importGamesFromJsonLegacy = async (
+  jsonData: string,
+  overwrite: boolean = false
+): Promise<number> => {
+  const result = await importGamesFromJson(jsonData, overwrite);
+  return result.successful;
+};
+
+export interface GameValidationResult {
+  isValid: boolean;
+  isResumable: boolean;
+  errors: string[];
+  warnings: string[];
+  game?: AppState;
+}
+
+/**
+ * Validates a game's data structure and determines if it can be resumed
+ * @param gameId - The ID of the game to validate
+ * @param gameData - Optional game data to validate (if not provided, fetches from storage)
+ * @returns Promise resolving to validation results
+ */
+export const validateAndGetResumableGame = async (
+  gameId: string, 
+  gameData?: AppState
+): Promise<GameValidationResult> => {
+  const result: GameValidationResult = {
+    isValid: false,
+    isResumable: false,
+    errors: [],
+    warnings: []
+  };
+
+  try {
+    // Get game data if not provided
+    let game: AppState;
+    if (gameData) {
+      game = gameData;
+    } else {
+      const games = await getSavedGames();
+      const foundGame = games[gameId];
+      if (!foundGame) {
+        result.errors.push(`Game with ID ${gameId} not found`);
+        return result;
+      }
+      game = foundGame;
+    }
+
+    // Validate against schema
+    try {
+      const validatedGame = appStateSchema.parse(game);
+      result.isValid = true;
+      result.game = validatedGame;
+    } catch (schemaError: unknown) {
+      result.errors.push(`Schema validation failed: ${(schemaError as Error)?.message || 'Invalid game data structure'}`);
+      return result;
+    }
+
+    // Check if game can be resumed
+    if (game.gameStatus === 'gameEnd') {
+      result.warnings.push('Game has already ended - cannot be resumed');
+      result.isResumable = false;
+    } else if (game.gameStatus === 'notStarted') {
+      result.warnings.push('Game has not been started yet');
+      result.isResumable = true;
+    } else if (game.gameStatus === 'inProgress' || game.gameStatus === 'periodEnd') {
+      result.isResumable = true;
+    } else {
+      result.warnings.push(`Unexpected game status: ${game.gameStatus}`);
+      result.isResumable = false;
+    }
+
+    // Additional validation checks
+    if (!game.teamName?.trim()) {
+      result.errors.push('Team name is missing or empty');
+    }
+    
+    if (!game.opponentName?.trim()) {
+      result.errors.push('Opponent name is missing or empty');
+    }
+
+    if (!game.gameDate || !/^\d{4}-\d{2}-\d{2}$/.test(game.gameDate)) {
+      result.errors.push('Game date is missing or invalid format (expected YYYY-MM-DD)');
+    }
+
+    if (game.homeScore < 0 || game.awayScore < 0) {
+      result.errors.push('Scores cannot be negative');
+    }
+
+    if (game.currentPeriod < 1 || game.currentPeriod > game.numberOfPeriods) {
+      result.errors.push(`Invalid current period: ${game.currentPeriod} (must be between 1 and ${game.numberOfPeriods})`);
+    }
+
+    if (game.periodDurationMinutes < 1 || game.periodDurationMinutes > 120) {
+      result.errors.push(`Invalid period duration: ${game.periodDurationMinutes} minutes`);
+    }
+
+    // Check for data inconsistencies
+    if (game.playersOnField.length > 11) {
+      result.warnings.push(`Too many players on field (${game.playersOnField.length}), maximum is 11`);
+    }
+
+    if (game.selectedPlayerIds.some(id => !game.availablePlayers.find(p => p.id === id) && !game.playersOnField.find(p => p.id === id))) {
+      result.warnings.push('Some selected players are not in available players or on field');
+    }
+
+    // If no critical errors, game is resumable (even with warnings)
+    if (result.errors.length === 0) {
+      result.isResumable = result.isResumable && game.gameStatus !== 'gameEnd';
+    } else {
+      result.isResumable = false;
+    }
+
+    return result;
+
+  } catch (error) {
+    logger.error('Error validating game:', error);
+    result.errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    result.isValid = false;
+    result.isResumable = false;
+    return result;
   }
 };

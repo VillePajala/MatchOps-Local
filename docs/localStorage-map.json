@@ -1,63 +1,129 @@
 {
+  "_comment": "localStorage mapping for MatchOps Local with multi-team support (v2)",
+  "appDataVersion": "2",
   "soccerSeasons": [
     {
       "id": "season_1",
-      "name": "Sample Season"
+      "name": "Sample Season",
+      "startDate": "2024-01-01",
+      "endDate": "2024-06-30"
     }
   ],
   "soccerTournaments": [
     {
       "id": "tournament_1",
-      "name": "Sample Tournament"
+      "name": "Sample Tournament",
+      "startDate": "2024-03-01",
+      "endDate": "2024-03-15"
     }
   ],
+  "soccerTeams": [
+    {
+      "id": "team_1234567890",
+      "name": "Galaxy U10",
+      "color": "#6366F1",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "soccerTeamRosters": {
+    "team_1234567890": [
+      {
+        "id": "teamplayer_1",
+        "name": "Alice Johnson",
+        "nickname": "AJ",
+        "jerseyNumber": "10",
+        "isGoalie": false,
+        "color": "#3B82F6",
+        "notes": "Fast runner, good at defense"
+      }
+    ]
+  },
   "savedSoccerGames": {
     "game_1": {
-      "teamName": "Team A",
-      "opponentName": "Team B",
+      "teamName": "Galaxy U10",
+      "teamId": "team_1234567890",
+      "opponentName": "Lions FC",
       "playersOnField": [],
       "opponents": [],
       "drawings": [],
-      "availablePlayers": [],
+      "availablePlayers": [
+        {
+          "id": "player_1",
+          "name": "Alice Johnson",
+          "nickname": "AJ",
+          "jerseyNumber": "10"
+        }
+      ],
       "showPlayerNames": true,
       "gameEvents": [],
       "gameDate": "2024-01-01",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
-      "gameNotes": "",
+      "gameNotes": "Great defensive performance",
       "homeOrAway": "home",
       "numberOfPeriods": 2,
       "periodDurationMinutes": 45,
-      "currentPeriod": 1,
-      "gameStatus": "notStarted",
-      "selectedPlayerIds": [],
+      "currentPeriod": 2,
+      "gameStatus": "ended",
+      "selectedPlayerIds": ["player_1"],
       "seasonId": "season_1",
-      "tournamentId": "tournament_1",
+      "tournamentId": null,
       "tacticalDiscs": [],
       "tacticalDrawings": [],
-      "tacticalBallPosition": null
+      "tacticalBallPosition": null,
+      "gameLocation": "Home Stadium",
+      "gameTime": "14:00"
     }
   },
   "soccerAppSettings": {
-    "currentGameId": null,
-    "lastHomeTeamName": "",
+    "currentGameId": "game_1",
+    "lastHomeTeamName": "Galaxy U10",
     "language": "en",
-    "hasSeenAppGuide": false,
+    "hasSeenAppGuide": true,
     "autoBackupEnabled": false,
     "autoBackupIntervalHours": 24,
     "useDemandCorrection": false
   },
+  "hasSeenFirstGameGuide": "true",
   "soccerMasterRoster": [
     {
       "id": "player_1",
-      "name": "Sample Player"
+      "name": "Alice Johnson",
+      "nickname": "AJ",
+      "jerseyNumber": "10",
+      "isGoalie": false,
+      "color": "#3B82F6",
+      "notes": "Fast runner, good at defense"
+    },
+    {
+      "id": "player_2", 
+      "name": "Bob Smith",
+      "nickname": "Bobby",
+      "jerseyNumber": "1",
+      "isGoalie": true,
+      "color": "#EF4444",
+      "notes": "Reliable goalkeeper"
     }
   ],
-  "lastHomeTeamName": "FC Sample",
+  "lastHomeTeamName": "Galaxy U10",
   "soccerTimerState": {
     "gameId": "game_1",
-    "timeElapsedInSeconds": 0,
+    "timeElapsedInSeconds": 5400,
     "timestamp": 1752494829206
   },
+  "soccerPlayerAdjustments": [
+    {
+      "id": "adj_1",
+      "playerId": "player_1",
+      "seasonId": "season_1",
+      "adjustments": {
+        "goals": 2,
+        "assists": 1,
+        "gamesPlayed": 3
+      },
+      "note": "External tournament stats"
+    }
+  ],
   "installPromptDismissed": "1752494829206"
 }

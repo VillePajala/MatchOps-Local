@@ -30,7 +30,7 @@ export interface AppSettings {
 const DEFAULT_APP_SETTINGS: AppSettings = {
   currentGameId: null,
   lastHomeTeamName: '',
-  language: 'en',
+  language: 'fi',
   hasSeenAppGuide: false,
   useDemandCorrection: false,
 };
