@@ -10,7 +10,7 @@ Manage multiple teams as curated sub-rosters. Select a team during game creation
 - Stats: team filter (optional), passed to calculators
 
 ## Data Model (summary)
-- `Team` and `TeamRoster` stored via `soccerTeams`, `soccerTeamRosters`
+- `Team` and `TeamRoster` stored via `TEAMS_INDEX_KEY` (`'soccerTeamsIndex'`) and `TEAM_ROSTERS_KEY` (`'soccerTeamRosters'`) in `src/config/storageKeys.ts`
 - `AppState.teamId?: string` (per-game association)
 - Seasons/Tournaments remain global
 
@@ -51,8 +51,8 @@ See `../../MULTI-TEAM-SUPPORT.md` for the complete plan, risks, migration, testi
 - Load/Stats can filter by specific team or show All/Legacy.
 
 ### Data and Storage
-- Teams index: `soccerTeams` → `Team[]` (or keyed index in implementation)
-- Team rosters: `soccerTeamRosters` → `{ [teamId]: Player[] }`
+- Teams index: `TEAMS_INDEX_KEY` (`'soccerTeamsIndex'`) → `{ [teamId: string]: Team }`
+- Team rosters: `TEAM_ROSTERS_KEY` (`'soccerTeamRosters'`) → `{ [teamId: string]: TeamPlayer[] }`
 - AppState (per saved game): adds optional `teamId` and persists `availablePlayers` and `selectedPlayerIds` for that game snapshot.
 - Seasons/Tournaments remain global; no `teamId` there.
 
@@ -125,9 +125,9 @@ Multi-team support introduced automatic data versioning to ensure smooth transit
 - **Recovery**: Manual recovery functions for failed migrations
 
 ### Key Storage Keys
-- `appDataVersion`: Current data schema version (1 = pre-teams, 2 = multi-team)
-- `soccerTeams`: Teams index for multi-team support
-- `soccerTeamRosters`: Per-team roster data
+- `APP_DATA_VERSION_KEY` (`'appDataVersion'`): Current data schema version (1 = pre-teams, 2 = multi-team)
+- `TEAMS_INDEX_KEY` (`'soccerTeamsIndex'`): Teams index for multi-team support
+- `TEAM_ROSTERS_KEY` (`'soccerTeamRosters'`): Per-team roster data
 
 ## Backward Compatibility
 
@@ -152,7 +152,7 @@ Multi-team support introduced automatic data versioning to ensure smooth transit
 ## Developer Checklist
 
 - Data
-  - [ ] `soccerTeams` and `soccerTeamRosters` keys present and validated
+  - [ ] `TEAMS_INDEX_KEY` (`'soccerTeamsIndex'`) and `TEAM_ROSTERS_KEY` (`'soccerTeamRosters'`) keys present and validated
   - [ ] `AppState.teamId?` persisted on new games when team selected
 
 - New Game
