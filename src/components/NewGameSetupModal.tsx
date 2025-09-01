@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Player, Season, Tournament, Team } from '@/types';
-import { HiPlusCircle } from 'react-icons/hi';
+import { HiPlusCircle } from 'react-icons/hi2';
 import logger from '@/utils/logger';
 import { getTeams, getTeamRoster } from '@/utils/teams';
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';

@@ -239,11 +239,11 @@ const ControlBar: React.FC<ControlBarProps> = ({
     <div className="bg-gradient-to-b from-slate-800 to-slate-900 p-2 shadow-md flex flex-wrap justify-center items-center gap-x-4 gap-y-2 relative z-40">
       {/* Left Group: Undo/Redo */}
       <div className="flex items-center gap-1">
-        <button onClick={onUndo} disabled={!canUndo} className={`${baseButtonStyle} ${secondaryColor}`} title={t('controlBar.undo', 'Undo')}>
-            <HiOutlineArrowUturnLeft className={iconSize}/>
+        <button onClick={onUndo} disabled={!canUndo} className={`${baseButtonStyle} ${secondaryColor}`} title={t('controlBar.undo', 'Undo')} aria-label={t('controlBar.undo', 'Undo')}>
+            <HiOutlineArrowUturnLeft className={iconSize} aria-hidden="true"/>
         </button>
-        <button onClick={onRedo} disabled={!canRedo} className={`${baseButtonStyle} ${secondaryColor}`} title={t('controlBar.redo', 'Redo')}>
-            <HiOutlineArrowUturnRight className={iconSize}/>
+        <button onClick={onRedo} disabled={!canRedo} className={`${baseButtonStyle} ${secondaryColor}`} title={t('controlBar.redo', 'Redo')} aria-label={t('controlBar.redo', 'Redo')}>
+            <HiOutlineArrowUturnRight className={iconSize} aria-hidden="true"/>
         </button>
       </div>
 
@@ -253,37 +253,38 @@ const ControlBar: React.FC<ControlBarProps> = ({
           onClick={onToggleTacticsBoard} 
           className={`${baseButtonStyle} ${isTacticsBoardView ? 'bg-indigo-600 hover:bg-indigo-500 focus:ring-indigo-500' : secondaryColor}`} 
           title={t(isTacticsBoardView ? 'controlBar.toggleTacticsBoardHide' : 'controlBar.toggleTacticsBoardShow') ?? (isTacticsBoardView ? "Show Players" : "Show Tactics Board")}
+          aria-label={t(isTacticsBoardView ? 'controlBar.toggleTacticsBoardHide' : 'controlBar.toggleTacticsBoardShow') ?? (isTacticsBoardView ? "Show Players" : "Show Tactics Board")}
         >
-            <HiOutlineClipboard className={iconSize}/>
+            <HiOutlineClipboard className={iconSize} aria-hidden="true"/>
         </button>
         {isTacticsBoardView ? (
           <>
-            <button onClick={onAddHomeDisc} className={`${baseButtonStyle} bg-purple-600 hover:bg-purple-500 focus:ring-purple-500`} title={t('controlBar.addHomeDisc', 'Add Home Disc') ?? "Add Home Disc"}>
-              <HiOutlinePlusCircle className={iconSize}/>
+            <button onClick={onAddHomeDisc} className={`${baseButtonStyle} bg-purple-600 hover:bg-purple-500 focus:ring-purple-500`} title={t('controlBar.addHomeDisc', 'Add Home Disc') ?? "Add Home Disc"} aria-label={t('controlBar.addHomeDisc', 'Add Home Disc') ?? "Add Home Disc"}>
+              <HiOutlinePlusCircle className={iconSize} aria-hidden="true"/>
             </button>
-            <button onClick={onAddOpponentDisc} className={`${baseButtonStyle} bg-red-600 hover:bg-red-500 focus:ring-red-500`} title={t('controlBar.addOpponentDisc', 'Add Opponent Disc') ?? "Add Opponent Disc"}>
-              <HiOutlinePlusCircle className={iconSize}/>
+            <button onClick={onAddOpponentDisc} className={`${baseButtonStyle} bg-red-600 hover:bg-red-500 focus:ring-red-500`} title={t('controlBar.addOpponentDisc', 'Add Opponent Disc') ?? "Add Opponent Disc"} aria-label={t('controlBar.addOpponentDisc', 'Add Opponent Disc') ?? "Add Opponent Disc"}>
+              <HiOutlinePlusCircle className={iconSize} aria-hidden="true"/>
             </button>
-            <button onClick={onClearDrawings} className={`${baseButtonStyle} ${clearColor}`} title={t('controlBar.clearDrawings', 'Clear Drawings')}>
-                <HiOutlineBackspace className={iconSize}/>
+            <button onClick={onClearDrawings} className={`${baseButtonStyle} ${clearColor}`} title={t('controlBar.clearDrawings', 'Clear Drawings')} aria-label={t('controlBar.clearDrawings', 'Clear Drawings')}>
+                <HiOutlineBackspace className={iconSize} aria-hidden="true"/>
             </button>
-            <button onClick={onResetField} className={`${baseButtonStyle} ${resetColor}`} title={t('controlBar.resetField', 'Reset Field')}>
-                <HiOutlineTrash className={iconSize}/>
+            <button onClick={onResetField} className={`${baseButtonStyle} ${resetColor}`} title={t('controlBar.resetField', 'Reset Field')} aria-label={t('controlBar.resetField', 'Reset Field')}>
+                <HiOutlineTrash className={iconSize} aria-hidden="true"/>
             </button>
           </>
         ) : (
           <>
-        <button onClick={onPlaceAllPlayers} className={`${baseButtonStyle} bg-purple-600 hover:bg-purple-500 focus:ring-purple-500`} title={t('controlBar.placeAllPlayers', 'Place All Players on Field')}>
-            <HiOutlineSquares2X2 className={iconSize}/>
+        <button onClick={onPlaceAllPlayers} className={`${baseButtonStyle} bg-purple-600 hover:bg-purple-500 focus:ring-purple-500`} title={t('controlBar.placeAllPlayers', 'Place All Players on Field')} aria-label={t('controlBar.placeAllPlayers', 'Place All Players on Field')}>
+            <HiOutlineSquares2X2 className={iconSize} aria-hidden="true"/>
         </button>
-        <button onClick={onAddOpponent} className={`${baseButtonStyle} bg-red-600 hover:bg-red-500 focus:ring-red-500`} title={t('controlBar.addOpponent', 'Add Opponent')}>
-            <HiOutlinePlusCircle className={iconSize}/>
+        <button onClick={onAddOpponent} className={`${baseButtonStyle} bg-red-600 hover:bg-red-500 focus:ring-red-500`} title={t('controlBar.addOpponent', 'Add Opponent')} aria-label={t('controlBar.addOpponent', 'Add Opponent')}>
+            <HiOutlinePlusCircle className={iconSize} aria-hidden="true"/>
         </button>
-        <button onClick={onClearDrawings} className={`${baseButtonStyle} ${clearColor}`} title={t('controlBar.clearDrawings', 'Clear Drawings')}>
-            <HiOutlineBackspace className={iconSize}/>
+        <button onClick={onClearDrawings} className={`${baseButtonStyle} ${clearColor}`} title={t('controlBar.clearDrawings', 'Clear Drawings')} aria-label={t('controlBar.clearDrawings', 'Clear Drawings')}>
+            <HiOutlineBackspace className={iconSize} aria-hidden="true"/>
         </button>
-        <button onClick={onResetField} className={`${baseButtonStyle} ${resetColor}`} title={t('controlBar.resetField', 'Reset Field')}>
-            <HiOutlineTrash className={iconSize}/>
+        <button onClick={onResetField} className={`${baseButtonStyle} ${resetColor}`} title={t('controlBar.resetField', 'Reset Field')} aria-label={t('controlBar.resetField', 'Reset Field')}>
+            <HiOutlineTrash className={iconSize} aria-hidden="true"/>
         </button>
           </>
         )}
@@ -292,8 +293,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
       {/* Right Group: Live/Info Actions & Settings */}
       <div className="flex items-center gap-1">
         {/* Log Goal (Moved Here, Use FaFutbol Icon) */}
-        <button onClick={onToggleGoalLogModal} className={`${baseButtonStyle} ${logGoalColor}`} title={t('controlBar.logGoal', 'Log Goal') ?? "Log Goal"}>
-            <FaFutbol size={18} />
+        <button onClick={onToggleGoalLogModal} className={`${baseButtonStyle} ${logGoalColor}`} title={t('controlBar.logGoal', 'Log Goal') ?? "Log Goal"} aria-label={t('controlBar.logGoal', 'Log Goal') ?? "Log Goal"}>
+            <FaFutbol size={18} aria-hidden="true" />
         </button>
 
         {/* <<< ADD Roster Settings Button >>> */}
@@ -302,8 +303,9 @@ const ControlBar: React.FC<ControlBarProps> = ({
             onClick={onOpenRosterModal}
             className={`${baseButtonStyle} ${highlightRosterButton ? 'bg-indigo-600 hover:bg-indigo-500 focus:ring-indigo-500 animate-pulse' : secondaryColor}`}
             title={t('controlBar.rosterSettings', 'Roster Settings') ?? "Roster Settings"}
+            aria-label={t('controlBar.rosterSettings', 'Roster Settings') ?? "Roster Settings"}
         >
-            <HiOutlineUsers className={iconSize} />
+            <HiOutlineUsers className={iconSize} aria-hidden="true" />
         </button>
 
         {/* <<< ADD Game Settings Button >>> */}
@@ -314,16 +316,18 @@ const ControlBar: React.FC<ControlBarProps> = ({
             // disabled={!isGameLoaded} 
             className={`${baseButtonStyle} ${secondaryColor}`}
             title={t('controlBar.gameSettings', 'Game Settings') ?? "Game Settings"}
+            aria-label={t('controlBar.gameSettings', 'Game Settings') ?? "Game Settings"}
         >
-            <HiOutlineAdjustmentsHorizontal className={iconSize} />
+            <HiOutlineAdjustmentsHorizontal className={iconSize} aria-hidden="true" />
         </button>
 
         <button
           onClick={onToggleInstructionsModal}
           className={`${baseButtonStyle} ${secondaryColor}`}
           title={t('controlBar.appGuide', 'App Guide')}
+          aria-label={t('controlBar.appGuide', 'App Guide')}
         >
-            <HiOutlineQuestionMarkCircle className={iconSize} />
+            <HiOutlineQuestionMarkCircle className={iconSize} aria-hidden="true" />
         </button>
 
         {/* Toggle Overlay Button */}
@@ -331,8 +335,9 @@ const ControlBar: React.FC<ControlBarProps> = ({
           onClick={onToggleLargeTimerOverlay}
           className={`${baseButtonStyle} bg-green-600 hover:bg-green-700 focus:ring-green-500`}
           title={t(showLargeTimerOverlay ? 'controlBar.toggleTimerOverlayHide' : 'controlBar.toggleTimerOverlayShow') ?? (showLargeTimerOverlay ? "Hide Large Timer" : "Show Large Timer")}
+          aria-label={t(showLargeTimerOverlay ? 'controlBar.toggleTimerOverlayHide' : 'controlBar.toggleTimerOverlayShow') ?? (showLargeTimerOverlay ? "Hide Large Timer" : "Show Large Timer")}
         >
-            {showLargeTimerOverlay ? <HiOutlineStopCircle className={iconSize} /> : <HiOutlineClock className={iconSize} />}
+            {showLargeTimerOverlay ? <HiOutlineStopCircle className={iconSize} aria-hidden="true" /> : <HiOutlineClock className={iconSize} aria-hidden="true" />}
         </button>
         
         
