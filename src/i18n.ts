@@ -1,5 +1,6 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { APP_SETTINGS_KEY } from '@/config/storageKeys';
 // Use the comprehensive translation files
 // Load translations from the public folder so all keys are available
 import fi from '../public/locales/fi/common.json';
@@ -14,7 +15,7 @@ export const resources = {
 const getInitialLanguage = (): string => {
   if (typeof window !== 'undefined') {
     try {
-      const settingsJson = window.localStorage.getItem('appSettings');
+      const settingsJson = window.localStorage.getItem(APP_SETTINGS_KEY);
       if (settingsJson) {
         const settings = JSON.parse(settingsJson);
         return settings.language || 'fi';
