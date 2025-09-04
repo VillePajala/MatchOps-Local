@@ -1,65 +1,102 @@
-'use client';
-
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { HiOutlineExclamationTriangle } from 'react-icons/hi2';
+import React, { Component, ReactNode } from 'react';
+import { HiExclamationTriangle } from 'react-icons/hi2';
 import logger from '@/utils/logger';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+  showErrorDetails?: boolean;
 }
 
 interface State {
   hasError: boolean;
-  error?: Error;
-  errorInfo?: ErrorInfo;
+  error: Error | null;
+  errorInfo: React.ErrorInfo | null;
 }
 
 class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
+    };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    // Update state so the next render will show the fallback UI
+    return {
+      hasError: true,
+      error,
+      errorInfo: null,
+    };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    this.setState({ errorInfo });
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Log error details
+    logger.error('ErrorBoundary caught an error:', error, errorInfo);
     
-    // Log error
-    logger.error('[ErrorBoundary] Caught error:', error);
-    logger.error('[ErrorBoundary] Error info:', errorInfo);
+    // Update state with error info
+    this.setState({
+      error,
+      errorInfo,
+    });
 
-    // Call custom error handler if provided
+    // Call the onError callback if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
   }
 
+  componentDidUpdate(prevProps: Props) {
+    // Reset error state when children change (e.g., route change)
+    if (prevProps.children !== this.props.children && this.state.hasError) {
+      this.setState({
+        hasError: false,
+        error: null,
+        errorInfo: null,
+      });
+    }
+  }
+
   handleRetry = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+    });
+  };
+
+  handleRefresh = () => {
+    window.location.reload();
   };
 
   render() {
     if (this.state.hasError) {
+      // If a custom fallback is provided, use it
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
+      // Default fallback UI
       return (
         <div className="flex flex-col items-center justify-center min-h-[200px] p-6 bg-slate-800 rounded-lg border border-slate-700">
           <div className="flex items-center mb-4">
-            <HiOutlineExclamationTriangle className="w-8 h-8 text-amber-400 mr-3" />
-            <h3 className="text-xl font-semibold text-slate-200">Something went wrong</h3>
+            <HiExclamationTriangle 
+              className="w-8 h-8 text-amber-400 mr-3" 
+              aria-hidden="true"
+            />
+            <h3 className="text-xl font-semibold text-slate-200">
+              Something went wrong
+            </h3>
           </div>
           
           <p className="text-slate-400 text-center mb-4 max-w-md">
             An unexpected error occurred. This has been logged and will be investigated.
           </p>
-          
+
           <div className="flex gap-3">
             <button
               onClick={this.handleRetry}
@@ -67,30 +104,31 @@ class ErrorBoundary extends Component<Props, State> {
             >
               Try Again
             </button>
-            
             <button
-              onClick={() => window.location.reload()}
+              onClick={this.handleRefresh}
               className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-md font-medium transition-colors"
             >
               Refresh Page
             </button>
           </div>
 
-          {/* Development-only error details */}
-          {process.env.NODE_ENV === 'development' && (
+          {/* Error Details (Development only) */}
+          {(this.props.showErrorDetails || process.env.NODE_ENV === 'development') && this.state.error && (
             <details className="mt-6 w-full">
               <summary className="cursor-pointer text-sm text-slate-400 hover:text-slate-300">
                 Show error details (dev only)
               </summary>
               <div className="mt-2 p-3 bg-slate-900 rounded text-xs text-slate-300 overflow-auto">
                 <div className="mb-2">
-                  <strong>Error:</strong> {this.state.error?.message}
+                  <strong>Error:</strong> {this.state.error.message}
                 </div>
-                <div className="mb-2">
-                  <strong>Stack:</strong>
-                  <pre className="whitespace-pre-wrap">{this.state.error?.stack}</pre>
-                </div>
-                {this.state.errorInfo && (
+                {this.state.error.stack && (
+                  <div className="mb-2">
+                    <strong>Stack:</strong>
+                    <pre className="whitespace-pre-wrap">{this.state.error.stack}</pre>
+                  </div>
+                )}
+                {this.state.errorInfo?.componentStack && (
                   <div>
                     <strong>Component Stack:</strong>
                     <pre className="whitespace-pre-wrap">{this.state.errorInfo.componentStack}</pre>
@@ -103,36 +141,9 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
+    // If no error, render children normally
     return this.props.children;
   }
 }
-
-// Higher-order component for easy wrapping
-export const withErrorBoundary = <P extends object>(
-  Component: React.ComponentType<P>,
-  fallback?: ReactNode,
-  onError?: (error: Error, errorInfo: ErrorInfo) => void
-) => {
-  const WrappedComponent = (props: P) => (
-    <ErrorBoundary fallback={fallback} onError={onError}>
-      <Component {...props} />
-    </ErrorBoundary>
-  );
-  WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name || 'Component'})`;
-  return WrappedComponent;
-};
-
-// Hook for error boundary in functional components (requires react-error-boundary)
-export const useErrorHandler = () => {
-  return (error: Error, errorInfo?: ErrorInfo) => {
-    logger.error('[ErrorHandler] Manual error:', error);
-    if (errorInfo) {
-      logger.error('[ErrorHandler] Error info:', errorInfo);
-    }
-    
-    // Re-throw to trigger error boundary
-    throw error;
-  };
-};
 
 export default ErrorBoundary;

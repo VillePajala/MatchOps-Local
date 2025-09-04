@@ -1,9 +1,33 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 
 import SettingsModal from './SettingsModal';
+
+// Create test query client
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: { retry: false },
+    mutations: { retry: false }
+  },
+  logger: {
+    log: console.log,
+    warn: console.warn,
+    error: () => {},
+  },
+});
+
+// Test wrapper with providers
+const TestWrapper = ({ children }: { children: React.ReactNode }) => {
+  const queryClient = createTestQueryClient();
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  );
+};
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -41,14 +65,22 @@ describe('<SettingsModal />', () => {
   });
 
   test('renders when open', () => {
-    render(<SettingsModal {...defaultProps} />);
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
     expect(screen.getByText('App Settings')).toBeInTheDocument();
     expect(screen.getByLabelText('Language')).toBeInTheDocument();
     expect(screen.getByLabelText('Default Team Name')).toBeInTheDocument();
   });
 
   test('displays storage usage when available', async () => {
-    render(<SettingsModal {...defaultProps} />);
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
     expect(await screen.findByText('Storage Usage')).toBeInTheDocument();
     expect(await screen.findByText(/1\.0 MB.*5\.0 MB/)).toBeInTheDocument();
   });
@@ -58,18 +90,30 @@ describe('<SettingsModal />', () => {
       usage: 512 * 1024,
       quota: 2 * 1048576,
     });
-    render(<SettingsModal {...defaultProps} />);
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
     expect(await screen.findByText(/512\.0 KB.*5\.0 MB/)).toBeInTheDocument();
   });
 
   test('calls onClose when Done clicked', () => {
-    render(<SettingsModal {...defaultProps} />);
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
     fireEvent.click(screen.getByRole('button', { name: /Done/i }));
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
   test('requires typing RESET before Hard Reset', () => {
-    render(<SettingsModal {...defaultProps} />);
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
     const resetBtn = screen.getByRole('button', { name: /Hard Reset App/i });
     expect(resetBtn).toBeDisabled();
     fireEvent.change(
@@ -81,20 +125,32 @@ describe('<SettingsModal />', () => {
   });
 
   test('calls onResetGuide when Reset App Guide clicked', () => {
-    render(<SettingsModal {...defaultProps} />);
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
     fireEvent.click(screen.getByRole('button', { name: /Reset App Guide/i }));
     expect(defaultProps.onResetGuide).toHaveBeenCalled();
   });
 
   test('backup button triggers callback', () => {
-    render(<SettingsModal {...defaultProps} />);
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
     const backupButton = screen.getByRole('button', { name: /Backup All Data/i });
     fireEvent.click(backupButton);
     expect(defaultProps.onCreateBackup).toHaveBeenCalled();
   });
 
   test('does not auto focus team name input on open', () => {
-    render(<SettingsModal {...defaultProps} />);
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
     const input = screen.getByLabelText('Default Team Name');
     expect(input).not.toHaveFocus();
   });

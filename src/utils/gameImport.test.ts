@@ -84,7 +84,10 @@ describe('Game Import with Partial Success', () => {
     });
 
     it('should handle single game format', async () => {
-      const singleGame = createValidGameData('single-game', 'Single Team');
+      const singleGame = {
+        ...createValidGameData('single-game', 'Single Team'),
+        id: 'single-game' // Single game format needs id field
+      };
       
       const result = await importGamesFromJson(JSON.stringify(singleGame));
 
@@ -181,7 +184,7 @@ describe('Game Import with Partial Success', () => {
       // But our custom validation should catch specific issues
       expect(result.failed.length).toBe(3);
       expect(errorMessages.some(msg => msg.includes('period duration') || msg.includes('teamName'))).toBe(true);
-      expect(errorMessages.some(msg => msg.includes('score values'))).toBe(true);
+      expect(errorMessages.some(msg => msg.includes('Score cannot be negative'))).toBe(true);
     });
 
     it('should handle existing games with overwrite options', async () => {
@@ -266,7 +269,7 @@ describe('Game Import with Partial Success', () => {
 
       expect(result.successful).toBe(1); // Only valid-scores
       expect(result.failed).toHaveLength(2);
-      expect(result.failed.every(f => f.error.includes('score values'))).toBe(true);
+      expect(result.failed.every(f => f.error.includes('Score cannot be negative'))).toBe(true);
     });
 
     it('should reject games with invalid period durations', async () => {
@@ -286,7 +289,8 @@ describe('Game Import with Partial Success', () => {
 
       expect(result.successful).toBe(1); // Only valid-duration
       expect(result.failed).toHaveLength(2);
-      expect(result.failed.every(f => f.error.includes('period duration'))).toBe(true);
+      expect(result.failed.some(f => f.error.includes('Period duration must be at least 1 minute'))).toBe(true);
+      expect(result.failed.some(f => f.error.includes('Period duration cannot exceed 120 minutes'))).toBe(true);
     });
 
     it('should reject games missing required fields', async () => {
@@ -306,7 +310,8 @@ describe('Game Import with Partial Success', () => {
 
       expect(result.successful).toBe(1); // Only valid-game
       expect(result.failed).toHaveLength(2);
-      expect(result.failed.every(f => f.error.includes('required team information'))).toBe(true);
+      expect(result.failed.some(f => f.error.includes('Team name is required'))).toBe(true);
+      expect(result.failed.some(f => f.error.includes('Opponent name is required'))).toBe(true);
     });
   });
 

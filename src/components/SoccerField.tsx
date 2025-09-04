@@ -1158,7 +1158,7 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
 
   // --- Render Canvas ---
   return (
-    <div className={`w-full h-full relative bg-green-700`}>
+    <div className={`w-full h-full relative bg-green-700`} data-testid="soccer-field">
       <canvas
         ref={canvasRef}
         className="absolute top-0 left-0 w-full h-full touch-none" // Added touch-none
