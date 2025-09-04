@@ -18,6 +18,7 @@ This documentation covers everything about the MatchOps-Local project - what it 
 ### 📊 **Project Status & Direction**
 - **[PROJECT_STATUS.md](./PROJECT_STATUS.md)** - Current implementation status and maturity
 - **[ROADMAP.md](./ROADMAP.md)** - Strategic vision and future development plans
+- **[PUBLICATION_ROADMAP.md](./PUBLICATION_ROADMAP.md)** - Complete path to professional app store publication
 
 ## 📂 Specialized Documentation
 
