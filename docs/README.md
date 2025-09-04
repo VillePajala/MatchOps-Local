@@ -13,15 +13,11 @@ This documentation covers everything about the MatchOps-Local project - what it 
 
 ### 🏗️ **Technical Foundation**  
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - System design and technical decisions
-- **[MULTI-TEAM-SUPPORT.md](./MULTI-TEAM-SUPPORT.md)** - Multi-team architecture design
 - **[TECHNOLOGY_DECISIONS.md](./TECHNOLOGY_DECISIONS.md)** - Why we chose specific technologies
 
 ### 📊 **Project Status & Direction**
 - **[PROJECT_STATUS.md](./PROJECT_STATUS.md)** - Current implementation status and maturity
 - **[ROADMAP.md](./ROADMAP.md)** - Strategic vision and future development plans
-
-### 📚 **Additional Resources**
-- **[LOCAL-ONLY-FEATURES.md](./LOCAL-ONLY-FEATURES.md)** - Comprehensive feature documentation
 
 ## 📂 Specialized Documentation
 
