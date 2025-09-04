@@ -8,6 +8,11 @@ This section contains guides and resources for developers working on MatchOps-Lo
 - **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Complete guide for new contributors
 - **[STYLE_GUIDE.md](./STYLE_GUIDE.md)** - Code style and conventions
 
+### Code Quality & Reviews
+- **[CODE_REVIEW_2025.md](./CODE_REVIEW_2025.md)** - Current comprehensive code review (September 2025)
+- **[CODE_REVIEW.md](./CODE_REVIEW.md)** - Historical code review and analysis
+- **[SECURITY_ADVISORIES.md](./SECURITY_ADVISORIES.md)** - Security considerations and guidelines
+
 ### Project Management  
 - **[TODO.md](./TODO.md)** - Current project tasks and priorities
 - **[BUG_FIX_PLAN.md](./BUG_FIX_PLAN.md)** - Systematic bug resolution approach

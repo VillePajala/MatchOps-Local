@@ -88,7 +88,7 @@ For detailed setup instructions, see [docs/deployment/](docs/deployment/).
 
 ### **For Developers**
 - **[Contributing Guide](docs/development/CONTRIBUTING.md)** - How to contribute to the project
-- **[Architecture Documentation](docs/architecture/)** - Detailed technical documentation
+- **[Project Documentation](docs/project/)** - Vision, philosophy, and architecture
 - **[Testing Strategy](docs/testing/)** - Comprehensive testing approach
 
 ### **Complete Documentation**
@@ -97,7 +97,6 @@ Browse all documentation in the [docs/](docs/) directory, organized by:
 - **[Development](docs/development/)** - Contribution guides and development processes
 - **[Features](docs/features/)** - Detailed feature specifications and implementation
 - **[Testing](docs/testing/)** - Testing strategies and quality assurance
-- **[Architecture](docs/architecture/)** - System design and technical decisions
 
 ## 🤝 Contributing
 
