@@ -702,46 +702,54 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       // alert(t('newGameSetupModal.errors.addTournamentFailedUnexpected', 'An unexpected error occurred while adding tournament: {tournamentName}.', { tournamentName: variables.name }));
     },
   });
-  useEffect(() => {
-    if (isMasterRosterQueryLoading) {
-      logger.log('[TanStack Query] Master Roster is loading...');
-    }
-    if (masterRosterQueryResultData) {
-      setAvailablePlayers(masterRosterQueryResultData);
-    }
-    if (isMasterRosterQueryError) {
-      logger.error('[TanStack Query] Error loading master roster:', masterRosterQueryErrorData);
-      setAvailablePlayers([]);
-    }
-  }, [masterRosterQueryResultData, isMasterRosterQueryLoading, isMasterRosterQueryError, masterRosterQueryErrorData]);
+  // TEMPORARY: Disable this effect to fix the infinite loop - need to investigate React Query setup
+  // useEffect(() => {
+  //   if (isMasterRosterQueryLoading) {
+  //     logger.log('[TanStack Query] Master Roster is loading...');
+  //   }
+  //   if (masterRosterQueryResultData) {
+  //     // Only update if the data has actually changed to prevent infinite loops
+  //     setAvailablePlayers(prevPlayers => {
+  //       const isDifferent = JSON.stringify(prevPlayers) !== JSON.stringify(masterRosterQueryResultData);
+  //       if (isDifferent) {
+  //         return masterRosterQueryResultData;
+  //       }
+  //       return prevPlayers;
+  //     });
+  //   }
+  //   if (isMasterRosterQueryError) {
+  //     logger.error('[TanStack Query] Error loading master roster:', masterRosterQueryErrorData);
+  //     setAvailablePlayers(prev => prev.length > 0 ? [] : prev); // Only update if not already empty
+  //   }
+  // }, [masterRosterQueryResultData, isMasterRosterQueryLoading, isMasterRosterQueryError, masterRosterQueryErrorData]);
 
-  // --- Effect to update seasons from useQuery ---
-  useEffect(() => {
-    if (areSeasonsQueryLoading) {
-      logger.log('[TanStack Query] Seasons are loading...');
-    }
-    if (seasonsQueryResultData) {
-      setSeasons(Array.isArray(seasonsQueryResultData) ? seasonsQueryResultData : []);
-    }
-    if (isSeasonsQueryError) {
-      logger.error('[TanStack Query] Error loading seasons:', seasonsQueryErrorData);
-      setSeasons([]);
-    }
-  }, [seasonsQueryResultData, areSeasonsQueryLoading, isSeasonsQueryError, seasonsQueryErrorData]);
+  // TEMPORARY: Disable this effect to fix the infinite loop - need to investigate React Query setup
+  // useEffect(() => {
+  //   if (areSeasonsQueryLoading) {
+  //     logger.log('[TanStack Query] Seasons are loading...');
+  //   }
+  //   if (seasonsQueryResultData) {
+  //     setSeasons(Array.isArray(seasonsQueryResultData) ? seasonsQueryResultData : []);
+  //   }
+  //   if (isSeasonsQueryError) {
+  //     logger.error('[TanStack Query] Error loading seasons:', seasonsQueryErrorData);
+  //     setSeasons([]);
+  //   }
+  // }, [seasonsQueryResultData, areSeasonsQueryLoading, isSeasonsQueryError, seasonsQueryErrorData]);
 
-  // --- Effect to update tournaments from useQuery ---
-  useEffect(() => {
-    if (areTournamentsQueryLoading) {
-      logger.log('[TanStack Query] Tournaments are loading...');
-    }
-    if (tournamentsQueryResultData) {
-      setTournaments(Array.isArray(tournamentsQueryResultData) ? tournamentsQueryResultData : []);
-    }
-    if (isTournamentsQueryError) {
-      logger.error('[TanStack Query] Error loading tournaments:', tournamentsQueryErrorData);
-      setTournaments([]);
-    }
-  }, [tournamentsQueryResultData, areTournamentsQueryLoading, isTournamentsQueryError, tournamentsQueryErrorData]);
+  // TEMPORARY: Disable this effect to fix the infinite loop - need to investigate React Query setup
+  // useEffect(() => {
+  //   if (areTournamentsQueryLoading) {
+  //     logger.log('[TanStack Query] Tournaments are loading...');
+  //   }
+  //   if (tournamentsQueryResultData) {
+  //     setTournaments(Array.isArray(tournamentsQueryResultData) ? tournamentsQueryResultData : []);
+  //   }
+  //   if (isTournamentsQueryError) {
+  //     logger.error('[TanStack Query] Error loading tournaments:', tournamentsQueryErrorData);
+  //     setTournaments([]);
+  //   }
+  // }, [tournamentsQueryResultData, areTournamentsQueryLoading, isTournamentsQueryError, tournamentsQueryErrorData]);
 
   // --- Effect to sync playersOnField details with availablePlayers changes ---
   useEffect(() => {
