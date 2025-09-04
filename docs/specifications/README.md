@@ -4,12 +4,6 @@ Formal technical documentation and system specifications for MatchOps-Local.
 
 ## 📋 Core Specifications
 
-### Product Documentation
-- **[PRD-product-requirements-document.md](./PRD-product-requirements-document.md)**
-  - Product vision and scope
-  - Feature requirements and priorities
-  - Success metrics and KPIs
-
 ### System Requirements  
 - **[SRS-software-requirements-specification.md](./SRS-software-requirements-specification.md)**
   - Technical requirements and constraints
