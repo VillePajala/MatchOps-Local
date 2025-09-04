@@ -2590,18 +2590,24 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
 
 
   return (
-    <main className="flex flex-col h-screen bg-slate-900 text-slate-50 overflow-hidden">
+    <main className="flex flex-col h-screen bg-slate-900 text-slate-50 overflow-hidden" data-testid="home-page">
       {/* Top Section: Player Bar, Game Info */}
       <div className={barStyle}>
-        <PlayerBar
-          players={playersForCurrentGame}
-          onPlayerDragStartFromBar={handlePlayerDragStartFromBar}
-          selectedPlayerIdFromBar={draggingPlayerFromBarInfo?.id}
-          onBarBackgroundClick={handleDeselectPlayer}
-          gameEvents={gameSessionState.gameEvents}
-          onPlayerTapInBar={handlePlayerTapInBar}
-          onToggleGoalie={handleToggleGoalieForModal}
-        />
+        <ErrorBoundary fallback={
+          <div className="p-4 bg-red-900/20 border border-red-700 text-red-300">
+            Player bar crashed. Please refresh the page.
+          </div>
+        }>
+          <PlayerBar
+            players={playersForCurrentGame}
+            onPlayerDragStartFromBar={handlePlayerDragStartFromBar}
+            selectedPlayerIdFromBar={draggingPlayerFromBarInfo?.id}
+            onBarBackgroundClick={handleDeselectPlayer}
+            gameEvents={gameSessionState.gameEvents}
+            onPlayerTapInBar={handlePlayerTapInBar}
+            onToggleGoalie={handleToggleGoalieForModal}
+          />
+        </ErrorBoundary>
         <GameInfoBar
           teamName={gameSessionState.teamName}
           opponentName={gameSessionState.opponentName}
@@ -2669,33 +2675,42 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           />
         )}
 
-        <SoccerField
-          players={playersOnField}
-          opponents={opponents}
-          drawings={isTacticsBoardView ? tacticalDrawings : drawings}
-          onPlayerMove={handlePlayerMove}
-          onPlayerMoveEnd={handlePlayerMoveEnd}
-          onPlayerRemove={handlePlayerRemove}
-          onOpponentMove={handleOpponentMove}
-          onOpponentMoveEnd={handleOpponentMoveEnd}
-          onOpponentRemove={handleOpponentRemove}
-          onPlayerDrop={handleDropOnField}
-          showPlayerNames={gameSessionState.showPlayerNames}
-          onDrawingStart={isTacticsBoardView ? handleTacticalDrawingStart : handleDrawingStart}
-          onDrawingAddPoint={isTacticsBoardView ? handleTacticalDrawingAddPoint : handleDrawingAddPoint}
-          onDrawingEnd={isTacticsBoardView ? handleTacticalDrawingEnd : handleDrawingEnd}
-          draggingPlayerFromBarInfo={draggingPlayerFromBarInfo}
-          onPlayerDropViaTouch={handlePlayerDropViaTouch}
-          onPlayerDragCancelViaTouch={handlePlayerDragCancelViaTouch}
-          timeElapsedInSeconds={timeElapsedInSeconds}
-          isTacticsBoardView={isTacticsBoardView}
-          tacticalDiscs={tacticalDiscs}
-          onTacticalDiscMove={handleTacticalDiscMove}
-          onTacticalDiscRemove={handleTacticalDiscRemove}
-          onToggleTacticalDiscType={handleToggleTacticalDiscType}
-          tacticalBallPosition={tacticalBallPosition}
-          onTacticalBallMove={handleTacticalBallMove}
-        />
+        <ErrorBoundary fallback={
+          <div className="flex items-center justify-center h-full bg-red-900/20 border border-red-700 text-red-300">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-2">Soccer Field Crashed</h3>
+              <p className="text-sm">Please refresh the page to continue.</p>
+            </div>
+          </div>
+        }>
+          <SoccerField
+            players={playersOnField}
+            opponents={opponents}
+            drawings={isTacticsBoardView ? tacticalDrawings : drawings}
+            onPlayerMove={handlePlayerMove}
+            onPlayerMoveEnd={handlePlayerMoveEnd}
+            onPlayerRemove={handlePlayerRemove}
+            onOpponentMove={handleOpponentMove}
+            onOpponentMoveEnd={handleOpponentMoveEnd}
+            onOpponentRemove={handleOpponentRemove}
+            onPlayerDrop={handleDropOnField}
+            showPlayerNames={gameSessionState.showPlayerNames}
+            onDrawingStart={isTacticsBoardView ? handleTacticalDrawingStart : handleDrawingStart}
+            onDrawingAddPoint={isTacticsBoardView ? handleTacticalDrawingAddPoint : handleDrawingAddPoint}
+            onDrawingEnd={isTacticsBoardView ? handleTacticalDrawingEnd : handleDrawingEnd}
+            draggingPlayerFromBarInfo={draggingPlayerFromBarInfo}
+            onPlayerDropViaTouch={handlePlayerDropViaTouch}
+            onPlayerDragCancelViaTouch={handlePlayerDragCancelViaTouch}
+            timeElapsedInSeconds={timeElapsedInSeconds}
+            isTacticsBoardView={isTacticsBoardView}
+            tacticalDiscs={tacticalDiscs}
+            onTacticalDiscMove={handleTacticalDiscMove}
+            onTacticalDiscRemove={handleTacticalDiscRemove}
+            onToggleTacticalDiscType={handleToggleTacticalDiscType}
+            tacticalBallPosition={tacticalBallPosition}
+            onTacticalBallMove={handleTacticalBallMove}
+          />
+        </ErrorBoundary>
 
         {/* First Game Setup Overlay */}
         {currentGameId === DEFAULT_GAME_ID && playersOnField.length === 0 && drawings.length === 0 && (

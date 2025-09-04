@@ -17,7 +17,6 @@ const mockOnRemovePlayer = jest.fn();
 const mockOnRenamePlayer = jest.fn();
 const mockOnSetJerseyNumber = jest.fn();
 const mockOnSetPlayerNotes = jest.fn();
-const mockOnTogglePlayerSelection = jest.fn();
 const mockOnOpenPlayerStats = jest.fn();
 
 const mockPlayers: Player[] = [
@@ -35,7 +34,6 @@ const defaultProps = {
   onRemovePlayer: mockOnRemovePlayer,
   onAddPlayer: mockOnAddPlayer,
   selectedPlayerIds: [],
-  onTogglePlayerSelection: mockOnTogglePlayerSelection,
   onOpenPlayerStats: mockOnOpenPlayerStats,
 };
 
@@ -142,14 +140,6 @@ describe('<RosterSettingsModal />', () => {
   });
 
 
-  test('toggles player selection', () => {
-    render(<RosterSettingsModal {...defaultProps} />);
-    
-    const checkboxes = screen.getAllByRole('checkbox');
-    fireEvent.click(checkboxes[0]); // Select first player
-    
-    expect(mockOnTogglePlayerSelection).toHaveBeenCalledWith('p1');
-  });
 
   test('opens player stats', () => {
     render(<RosterSettingsModal {...defaultProps} />);

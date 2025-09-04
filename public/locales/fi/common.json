@@ -678,7 +678,22 @@
     "searchPlaceholder": "Etsi..."
   },
   "teamManager": {
+    "title": "Joukkueet",
+    "createNewTeam": "Luo uusi joukkue",
+    "newTeam": "Uusi joukkue",
+    "teamName": "Joukkueen nimi",
+    "namePlaceholder": "Syötä joukkueen nimi",
+    "teamColor": "Joukkueen väri",
+    "noTeams": "Ei joukkueita vielä. Luo ensimmäinen joukkue aloittaaksesi.",
+    "createdAt": "Luotu {{date}}",
+    "roster": "Kokoonpano",
+    "rename": "Nimeä uudelleen",
+    "duplicate": "Kopioi",
+    "delete": "Poista",
+    "manageOrphanedGames": "Hallinnoi poistettujen joukkueiden pelejä",
+    "orphanedGames": "Orpoperit",
     "confirmDelete": "Poistetaanko joukkue \"{{name}}\"?",
+    "deleteImpactWarning": "Tämä tekee {{count}} pelistä orpoja. Pelit säilyvät, mutta ne eivät liity tähän joukkueeseen.",
     "noGamesImpact": "Tähän joukkueeseen ei ole liitetty otteluita."
   },
   "teamRosterModal": {

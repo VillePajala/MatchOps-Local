@@ -3,6 +3,7 @@
 import ModalProvider from '@/contexts/ModalProvider';
 import HomePage from '@/components/HomePage';
 import StartScreen from '@/components/StartScreen';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { useState, useEffect } from 'react';
 import { getCurrentGameIdSetting } from '@/utils/appSettings';
 import { getSavedGames } from '@/utils/savedGames';
@@ -72,26 +73,34 @@ export default function Home() {
   };
 
   return (
-    <ModalProvider>
-      {screen === 'start' ? (
-        <StartScreen
-          onStartNewGame={() => handleAction('newGame')}
-          onLoadGame={() => handleAction('loadGame')}
-          onResumeGame={() => handleAction('resumeGame')}
-          onGetStarted={() => handleAction('getStarted')}
-          canResume={canResume}
-          onCreateSeason={() => handleAction('season')}
-          onViewStats={() => handleAction('stats')}
-          onSetupRoster={() => handleAction('roster')}
-          onManageTeams={() => handleAction('teams')}
-          hasPlayers={hasPlayers}
-          hasSavedGames={hasSavedGames}
-          hasSeasonsTournaments={hasSeasonsTournaments}
-          isFirstTimeUser={isFirstTimeUser}
-        />
-      ) : (
-        <HomePage initialAction={initialAction ?? undefined} skipInitialSetup />
-      )}
-    </ModalProvider>
+    <ErrorBoundary onError={(error, errorInfo) => {
+      console.error('App-level error caught:', error, errorInfo);
+    }}>
+      <ModalProvider>
+        {screen === 'start' ? (
+          <ErrorBoundary>
+            <StartScreen
+              onStartNewGame={() => handleAction('newGame')}
+              onLoadGame={() => handleAction('loadGame')}
+              onResumeGame={() => handleAction('resumeGame')}
+              onGetStarted={() => handleAction('getStarted')}
+              canResume={canResume}
+              onCreateSeason={() => handleAction('season')}
+              onViewStats={() => handleAction('stats')}
+              onSetupRoster={() => handleAction('roster')}
+              onManageTeams={() => handleAction('teams')}
+              hasPlayers={hasPlayers}
+              hasSavedGames={hasSavedGames}
+              hasSeasonsTournaments={hasSeasonsTournaments}
+              isFirstTimeUser={isFirstTimeUser}
+            />
+          </ErrorBoundary>
+        ) : (
+          <ErrorBoundary>
+            <HomePage initialAction={initialAction ?? undefined} skipInitialSetup />
+          </ErrorBoundary>
+        )}
+      </ModalProvider>
+    </ErrorBoundary>
   );
 }
