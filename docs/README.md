@@ -4,18 +4,31 @@ Welcome to the MatchOps-Local documentation! This directory contains all project
 
 ## 📁 Documentation Structure
 
+### 🎯 [Project](./project/)
+Project vision, philosophy, and strategic direction:
+- **PROJECT_OVERVIEW.md** - What MatchOps-Local is and why it exists
+- **LOCAL_FIRST_PHILOSOPHY.md** - Principles and benefits of local-first design
+- **ARCHITECTURE.md** - System design and technical architecture
+- **TECHNOLOGY_DECISIONS.md** - Rationale behind all technical choices
+- **PROJECT_STATUS.md** - Current implementation status and maturity
+- **ROADMAP.md** - Strategic vision and future development plans
+- **COMPETITIVE_ANALYSIS.md** - How we compare to other coaching software
+- **MULTI-TEAM-SUPPORT.md** - Multi-team architecture design
+
 ### 🛠️ [Development](./development/)
 Development guides, contribution guidelines, and project planning:
 - **CONTRIBUTING.md** - How to contribute to the project
+- **CODE_REVIEW_2025.md** - Current code review and analysis (September 2025)
+- **CODE_REVIEW.md** - Historical code review
 - **BUG_FIX_PLAN.md** - Systematic approach to bug resolution  
 - **BUG_REPORT.md** - Known issues and their status
+- **SECURITY_ADVISORIES.md** - Security considerations and advisories
 - **AGENTS.md** - AI agent configurations and usage
 - **TODO.md** - Project task tracking and priorities
 - **STYLE_GUIDE.md** - Code style and conventions
 
 ### 📋 [Specifications](./specifications/)
 Formal technical and design specifications:
-- **PRD-product-requirements-document.md** - Product requirements and scope
 - **SRS-software-requirements-specification.md** - System requirements and constraints
 - **UID-user-interface-design-document.md** - UI/UX design specifications
 
@@ -42,14 +55,6 @@ Feature documentation, implementation plans, and user guides:
 ### 📖 [Guides](./guides/)
 User guides and documentation:
 - **LOCAL-ONLY-FEATURES.md** - Local-only functionality guide
-- **website-design-plan.md** - Website design and branding
-
-### 🏗️ [Architecture](./architecture/)
-System architecture, code reviews, and security:
-- **CODE_REVIEW_2025.md** - Current code review and analysis (September 2025)
-- **CODE_REVIEW.md** - Historical code review
-- **MULTI-TEAM-SUPPORT.md** - Multi-team architecture design
-- **SECURITY_ADVISORIES.md** - Security considerations and advisories
 
 ### 📦 [Archive](./archive/)
 Historical documents and deprecated content:
@@ -59,10 +64,12 @@ Historical documents and deprecated content:
 
 ## 🔍 Quick Navigation
 
-- **New to the project?** Start with [CONTRIBUTING.md](./development/CONTRIBUTING.md)
-- **Need to understand features?** Check [Features](./features/) section
-- **Looking for testing info?** Visit [Testing](./testing/) section  
-- **Want technical specs?** See [Specifications](./specifications/) section
+- **New to the project?** Start with [Project Overview](./project/PROJECT_OVERVIEW.md)
+- **Want to understand the vision?** Read [Local-First Philosophy](./project/LOCAL_FIRST_PHILOSOPHY.md)
+- **Need technical details?** Check [Architecture](./project/ARCHITECTURE.md)
+- **Looking to contribute?** See [Contributing Guide](./development/CONTRIBUTING.md)
+- **Need testing info?** Visit [Testing](./testing/) section  
+- **Want feature details?** Browse [Features](./features/) section
 
 ## 📝 Document Conventions
 

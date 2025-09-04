@@ -13,6 +13,7 @@ This section contains comprehensive documentation about the MatchOps-Local proje
 
 ### 🏗️ **Technical Foundation**  
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - System design and technical decisions
+- **[MULTI-TEAM-SUPPORT.md](./MULTI-TEAM-SUPPORT.md)** - Multi-team architecture design
 - **[TECHNOLOGY_DECISIONS.md](./TECHNOLOGY_DECISIONS.md)** - Why we chose specific technologies
 
 ### 📊 **Project Status & Direction**
