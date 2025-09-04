@@ -43,7 +43,7 @@ const customRender = (
   options?: Omit<RenderOptions, 'wrapper'>,
 ) => render(ui, { wrapper: AllTheProviders, ...options });
 
-// Re-export everything from testing library
+// Re-export everything from testing library except render (we'll override it)
 export * from '@testing-library/react';
 export { customRender as render };
 
@@ -87,7 +87,6 @@ export const createMockGameEvent = (overrides: Partial<GameEvent> = {}): GameEve
   id: `event-${Math.random().toString(36).substr(2, 9)}`,
   type: 'goal',
   time: Math.floor(Math.random() * 2700), // Random time within 45 min
-  scorerId: `player-${Math.random().toString(36).substr(2, 9)}`,
   ...overrides,
 });
 
@@ -134,6 +133,9 @@ export const createMockGameState = (overrides: Partial<AppState> = {}): AppState
   gameEvents: [],
   gameNotes: '',
   showPlayerNames: true,
+  tacticalDiscs: [],
+  tacticalDrawings: [],
+  tacticalBallPosition: null,
   ...overrides,
 });
 
@@ -142,11 +144,11 @@ export const createMockSavedGame = (overrides: Partial<AppState> = {}): AppState
   return {
     ...gameState,
     gameEvents: [
-      createMockGameEvent({ type: 'goal', timestamp: 450, playerId: gameState.availablePlayers[0].id }),
-      createMockGameEvent({ type: 'substitution', timestamp: 900, playerId: gameState.availablePlayers[1].id }),
+      createMockGameEvent({ type: 'goal', time: 450, scorerId: gameState.availablePlayers[0].id }),
+      createMockGameEvent({ type: 'substitution', time: 900, entityId: gameState.availablePlayers[1].id }),
     ],
     homeScore: 1,
-    gameStatus: 'completed',
+    gameStatus: 'gameEnd',
   };
 };
 
@@ -323,12 +325,11 @@ export const simulateGameSession = async () => {
   
   // Add some game events
   gameState.gameEvents = [
-    createMockGameEvent({ type: 'goal', timestamp: 450 }),
-    createMockGameEvent({ type: 'substitution', timestamp: 900 }),
+    createMockGameEvent({ type: 'goal', time: 450 }),
+    createMockGameEvent({ type: 'substitution', time: 900 }),
   ];
   gameState.homeScore = 1;
-  gameState.gameStatus = 'in_progress';
-  gameState.timeElapsed = 1200; // 20 minutes
+  gameState.gameStatus = 'inProgress';
   
   return { players, gameState };
 };
@@ -360,8 +361,8 @@ export const measureRenderTime = async (renderFn: () => void): Promise<number> =
 };
 
 export const measureMemoryUsage = (): number => {
-  if (performance.memory) {
-    return performance.memory.usedJSHeapSize;
+  if ('memory' in performance && performance.memory) {
+    return (performance.memory as any).usedJSHeapSize;
   }
   return 0;
 };
@@ -417,8 +418,4 @@ if (typeof afterEach === 'function') {
   });
 }
 
-// re-export everything from React Testing Library
-export * from '@testing-library/react';
-
-// override render method with our custom implementation
-export { customRender as render };
+// Note: Exports are handled at the top of the file after the customRender definition
