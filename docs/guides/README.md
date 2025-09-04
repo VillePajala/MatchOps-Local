@@ -11,11 +11,6 @@ User-facing documentation and guides for MatchOps-Local.
   - Feature walkthroughs
   - Troubleshooting common issues
 
-### Design & Branding
-- **[website-design-plan.md](./website-design-plan.md)** - Website design guidelines and branding
-  - Visual identity and branding
-  - Design system and components
-  - Implementation guidelines
 
 ## 🎯 Guide Types
 
@@ -42,10 +37,10 @@ User-facing documentation and guides for MatchOps-Local.
 - Review best practices sections
 - Understand data management features
 
-### For Administrators
-- Review configuration options
-- Understand privacy and security features
-- Learn backup and recovery procedures
+### For Organizations
+- Understand local-first privacy benefits
+- Learn about deployment and setup options
+- Review data ownership and control features
 
 ## 🔄 Guide Maintenance
 
@@ -67,6 +62,6 @@ When adding new guides:
 ## 🔍 Finding Information
 
 - **Quick answers**: Check LOCAL-ONLY-FEATURES.md first
-- **Visual references**: See website-design-plan.md for UI elements
+- **Technical details**: Check LOCAL-ONLY-FEATURES.md for implementation specifics
 - **Specific features**: Look for dedicated feature guides
 - **Technical issues**: Review troubleshooting sections
