@@ -78,24 +78,24 @@ For detailed setup instructions, see [docs/deployment/](docs/deployment/).
 ## 📖 Documentation
 
 ### **New to MatchOps-Local?**
-- **[Project Overview](docs/project/PROJECT_OVERVIEW.md)** - What MatchOps-Local is and why it exists
-- **[Local-First Philosophy](docs/project/LOCAL_FIRST_PHILOSOPHY.md)** - Why local-first matters for coaching software
+- **[Project Overview](docs/PROJECT_OVERVIEW.md)** - What MatchOps-Local is and why it exists
+- **[Local-First Philosophy](docs/LOCAL_FIRST_PHILOSOPHY.md)** - Why local-first matters for coaching software
 
 ### **Understanding the Project**
-- **[Architecture Overview](docs/project/ARCHITECTURE.md)** - Technical design and system architecture
-- **[Competitive Analysis](docs/project/COMPETITIVE_ANALYSIS.md)** - How we compare to other coaching software
-- **[Current Status](docs/project/PROJECT_STATUS.md)** - Implementation status and maturity level
+- **[Architecture Overview](docs/ARCHITECTURE.md)** - Technical design and system architecture
+- **[Competitive Analysis](docs/COMPETITIVE_ANALYSIS.md)** - How we compare to other coaching software
+- **[Current Status](docs/PROJECT_STATUS.md)** - Implementation status and maturity level
 
 ### **For Developers**
 - **[Contributing Guide](docs/development/CONTRIBUTING.md)** - How to contribute to the project
-- **[Project Documentation](docs/project/)** - Vision, philosophy, and architecture
+- **[Development Guides](docs/development/)** - Code reviews, bug reports, and development processes
 - **[Testing Strategy](docs/testing/)** - Comprehensive testing approach
 
 ### **Complete Documentation**
-Browse all documentation in the [docs/](docs/) directory, organized by:
-- **[Project](docs/project/)** - Vision, philosophy, and strategic direction
+Browse all documentation in the [docs/](docs/) directory with primary project documentation at the root level:
+- **[Core Documentation](docs/)** - Project vision, philosophy, and strategic direction
 - **[Development](docs/development/)** - Contribution guides and development processes
-- **[Features](docs/features/)** - Detailed feature specifications and implementation
+- **[Features](docs/features/)** - Detailed feature specifications and implementation plans
 - **[Testing](docs/testing/)** - Testing strategies and quality assurance
 
 ## 🤝 Contributing
