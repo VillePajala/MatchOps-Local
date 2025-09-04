@@ -66,15 +66,15 @@ describe('StartScreen', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Resume Last Game' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create New Game' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Load Game' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Seasons & Tournaments' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Manage Teams' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'View Stats' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'English' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Finnish' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Create New Game' }));
-    expect(handlers.onStartNewGame).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Manage Teams' }));
+    expect(handlers.onManageTeams).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Resume Last Game' }));
     expect(handlers.onResumeGame).toHaveBeenCalled();
@@ -121,7 +121,7 @@ describe('StartScreen', () => {
 
     // Should not show full interface buttons
     expect(screen.queryByRole('button', { name: 'Resume Last Game' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Create New Game' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Manage Teams' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Load Game' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Get Started' }));

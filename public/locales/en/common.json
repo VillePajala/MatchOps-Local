@@ -737,7 +737,22 @@
     "searchPlaceholder": "Search..."
   },
   "teamManager": {
+    "title": "Teams",
+    "createNewTeam": "Create new team",
+    "newTeam": "New Team",
+    "teamName": "Team Name",
+    "namePlaceholder": "Enter team name",
+    "teamColor": "Team Color",
+    "noTeams": "No teams yet. Create your first team to get started.",
+    "createdAt": "Created {{date}}",
+    "roster": "Roster",
+    "rename": "Rename",
+    "duplicate": "Duplicate",
+    "delete": "Delete",
+    "manageOrphanedGames": "Manage games from deleted teams",
+    "orphanedGames": "Orphaned Games",
     "confirmDelete": "Delete team \"{{name}}\"?",
+    "deleteImpactWarning": "This will orphan {{count}} game(s). Games will remain but won't be associated with this team.",
     "noGamesImpact": "No games are associated with this team."
   },
   "teamRosterModal": {
