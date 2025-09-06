@@ -315,17 +315,16 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         };
     }
     case 'RESET_TIMER_ONLY': {
-      const periodStartTime = state.currentPeriod > 1 
-        ? (state.currentPeriod - 1) * state.periodDurationMinutes * 60 
-        : 0;
-      const nextSubDue = periodStartTime + (state.subIntervalMinutes * 60);
+      const nextSubDue = state.subIntervalMinutes * 60;
       return {
         ...state,
-        timeElapsedInSeconds: periodStartTime,
+        timeElapsedInSeconds: 0,
         isTimerRunning: false,
+        currentPeriod: 1,
+        gameStatus: 'notStarted',
         nextSubDueTimeSeconds: nextSubDue,
         subAlertLevel: 'none',
-        lastSubConfirmationTimeSeconds: periodStartTime,
+        lastSubConfirmationTimeSeconds: 0,
       };
     }
     case 'RESET_TIMER_AND_GAME_PROGRESS': {

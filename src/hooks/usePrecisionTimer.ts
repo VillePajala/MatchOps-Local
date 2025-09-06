@@ -17,68 +17,44 @@ export const usePrecisionTimer = ({
   startTime = 0,
   interval = 100
 }: PrecisionTimerOptions) => {
-  const rafRef = useRef<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const startTimestampRef = useRef<number | null>(null);
-  const initialTimeRef = useRef<number>(startTime);
-  const lastTickRef = useRef<number>(0);
+  const baseTimeRef = useRef<number>(startTime);
+  const lastTickValueRef = useRef<number>(startTime);
 
-  // Reset initial time when startTime changes
+  // Update base time when startTime changes (for pauses/resumes)
   useEffect(() => {
-    initialTimeRef.current = startTime;
+    baseTimeRef.current = startTime;
+    lastTickValueRef.current = startTime;
   }, [startTime]);
 
   const tick = useCallback(() => {
-    if (!startTimestampRef.current) return;
-
-    const now = performance.now();
-    const elapsedMs = now - startTimestampRef.current;
-    const preciseElapsedSeconds = initialTimeRef.current + (elapsedMs / 1000);
-    const roundedSeconds = Math.floor(preciseElapsedSeconds);
-
-    // Only call onTick when we cross a second boundary to avoid excessive updates
-    if (roundedSeconds !== lastTickRef.current) {
-      lastTickRef.current = roundedSeconds;
-      onTick(roundedSeconds);
-    }
+    // Simple increment-based timer - just add 1 second each tick
+    const newTime = lastTickValueRef.current + 1;
+    lastTickValueRef.current = newTime;
+    onTick(newTime);
   }, [onTick]);
 
   const start = useCallback(() => {
-    if (startTimestampRef.current) return; // Already running
-
-    startTimestampRef.current = performance.now();
-    lastTickRef.current = Math.floor(initialTimeRef.current);
-
-    // Use requestAnimationFrame for smoothness, but limit updates to interval
-    const animate = () => {
-      tick();
-      if (startTimestampRef.current) {
-        rafRef.current = requestAnimationFrame(animate);
-      }
-    };
-
-    // Also use setInterval as fallback when tab is not active
+    if (intervalRef.current) return; // Already running
+    
+    // Use setInterval for consistent 1-second ticks
     intervalRef.current = setInterval(tick, interval);
-    animate();
   }, [tick, interval]);
 
   const stop = useCallback(() => {
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    startTimestampRef.current = null;
   }, []);
 
   const reset = useCallback((newStartTime = 0) => {
     stop();
-    initialTimeRef.current = newStartTime;
-    lastTickRef.current = Math.floor(newStartTime);
-  }, [stop]);
+    baseTimeRef.current = newStartTime;
+    lastTickValueRef.current = newStartTime;
+    // Immediately call onTick to update UI with reset time
+    onTick(newStartTime);
+  }, [stop, onTick]);
 
   // Handle isRunning changes
   useEffect(() => {
@@ -91,7 +67,7 @@ export const usePrecisionTimer = ({
     return () => {
       stop();
     };
-  }, [isRunning, start, stop]);
+  }, [isRunning]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -105,12 +81,7 @@ export const usePrecisionTimer = ({
     stop,
     reset,
     getCurrentTime: useCallback(() => {
-      if (!startTimestampRef.current) {
-        return initialTimeRef.current;
-      }
-      const now = performance.now();
-      const elapsedMs = now - startTimestampRef.current;
-      return initialTimeRef.current + (elapsedMs / 1000);
+      return lastTickValueRef.current;
     }, [])
   };
 };
