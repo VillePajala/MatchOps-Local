@@ -18,26 +18,40 @@ export const usePrecisionTimer = ({
   interval = 100
 }: PrecisionTimerOptions) => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const baseTimeRef = useRef<number>(startTime);
-  const lastTickValueRef = useRef<number>(startTime);
+  const startTimestampRef = useRef<number | null>(null);
+  const initialTimeRef = useRef<number>(startTime);
+  const lastTickRef = useRef<number>(Math.floor(startTime));
 
-  // Update base time when startTime changes (for pauses/resumes)
+  // Update initial time when startTime changes and timer is not running
   useEffect(() => {
-    baseTimeRef.current = startTime;
-    lastTickValueRef.current = startTime;
+    if (!startTimestampRef.current) {
+      initialTimeRef.current = startTime;
+      lastTickRef.current = Math.floor(startTime);
+    }
   }, [startTime]);
 
   const tick = useCallback(() => {
-    // Simple increment-based timer - just add 1 second each tick
-    const newTime = lastTickValueRef.current + 1;
-    lastTickValueRef.current = newTime;
-    onTick(newTime);
+    if (!startTimestampRef.current) return;
+
+    const now = performance.now();
+    const elapsedMs = now - startTimestampRef.current;
+    const preciseElapsedSeconds = initialTimeRef.current + (elapsedMs / 1000);
+    const roundedSeconds = Math.floor(preciseElapsedSeconds);
+
+    // Only call onTick when we cross a second boundary to avoid excessive updates
+    if (roundedSeconds !== lastTickRef.current) {
+      lastTickRef.current = roundedSeconds;
+      onTick(roundedSeconds);
+    }
   }, [onTick]);
 
   const start = useCallback(() => {
-    if (intervalRef.current) return; // Already running
-    
-    // Use setInterval for consistent 1-second ticks
+    if (startTimestampRef.current) return; // Already running
+
+    startTimestampRef.current = performance.now();
+    lastTickRef.current = Math.floor(initialTimeRef.current);
+
+    // Single setInterval for precision checking - no requestAnimationFrame conflicts
     intervalRef.current = setInterval(tick, interval);
   }, [tick, interval]);
 
@@ -46,14 +60,15 @@ export const usePrecisionTimer = ({
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+    startTimestampRef.current = null;
   }, []);
 
   const reset = useCallback((newStartTime = 0) => {
     stop();
-    baseTimeRef.current = newStartTime;
-    lastTickValueRef.current = newStartTime;
+    initialTimeRef.current = newStartTime;
+    lastTickRef.current = Math.floor(newStartTime);
     // Immediately call onTick to update UI with reset time
-    onTick(newStartTime);
+    onTick(Math.floor(newStartTime));
   }, [stop, onTick]);
 
   // Handle isRunning changes
@@ -67,7 +82,7 @@ export const usePrecisionTimer = ({
     return () => {
       stop();
     };
-  }, [isRunning]);
+  }, [isRunning, start, stop]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -81,7 +96,12 @@ export const usePrecisionTimer = ({
     stop,
     reset,
     getCurrentTime: useCallback(() => {
-      return lastTickValueRef.current;
+      if (!startTimestampRef.current) {
+        return initialTimeRef.current;
+      }
+      const now = performance.now();
+      const elapsedMs = now - startTimestampRef.current;
+      return initialTimeRef.current + (elapsedMs / 1000);
     }, [])
   };
 };

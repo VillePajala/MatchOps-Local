@@ -315,6 +315,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         };
     }
     case 'RESET_TIMER_ONLY': {
+      // PRODUCT OWNER APPROVED: Reset to 0:00 of first period instead of current period start
+      // This provides a true "reset to beginning" behavior that users expect from a reset button
       const nextSubDue = state.subIntervalMinutes * 60;
       return {
         ...state,

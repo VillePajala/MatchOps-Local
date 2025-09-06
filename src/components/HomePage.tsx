@@ -702,54 +702,59 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       // alert(t('newGameSetupModal.errors.addTournamentFailedUnexpected', 'An unexpected error occurred while adding tournament: {tournamentName}.', { tournamentName: variables.name }));
     },
   });
-  // TEMPORARY: Disable this effect to fix the infinite loop - need to investigate React Query setup
-  // useEffect(() => {
-  //   if (isMasterRosterQueryLoading) {
-  //     logger.log('[TanStack Query] Master Roster is loading...');
-  //   }
-  //   if (masterRosterQueryResultData) {
-  //     // Only update if the data has actually changed to prevent infinite loops
-  //     setAvailablePlayers(prevPlayers => {
-  //       const isDifferent = JSON.stringify(prevPlayers) !== JSON.stringify(masterRosterQueryResultData);
-  //       if (isDifferent) {
-  //         return masterRosterQueryResultData;
-  //       }
-  //       return prevPlayers;
-  //     });
-  //   }
-  //   if (isMasterRosterQueryError) {
-  //     logger.error('[TanStack Query] Error loading master roster:', masterRosterQueryErrorData);
-  //     setAvailablePlayers(prev => prev.length > 0 ? [] : prev); // Only update if not already empty
-  //   }
-  // }, [masterRosterQueryResultData, isMasterRosterQueryLoading, isMasterRosterQueryError, masterRosterQueryErrorData]);
+  // Fixed: Sync master roster from React Query to local state
+  useEffect(() => {
+    if (isMasterRosterQueryLoading) {
+      logger.log('[TanStack Query] Master Roster is loading...');
+      return;
+    }
+    
+    if (isMasterRosterQueryError) {
+      logger.error('[TanStack Query] Error loading master roster:', masterRosterQueryErrorData);
+      setAvailablePlayers([]);
+      return;
+    }
+    
+    if (masterRosterQueryResultData && Array.isArray(masterRosterQueryResultData)) {
+      setAvailablePlayers(masterRosterQueryResultData);
+    }
+  }, [masterRosterQueryResultData, isMasterRosterQueryLoading, isMasterRosterQueryError, masterRosterQueryErrorData, setAvailablePlayers]);
 
-  // TEMPORARY: Disable this effect to fix the infinite loop - need to investigate React Query setup
-  // useEffect(() => {
-  //   if (areSeasonsQueryLoading) {
-  //     logger.log('[TanStack Query] Seasons are loading...');
-  //   }
-  //   if (seasonsQueryResultData) {
-  //     setSeasons(Array.isArray(seasonsQueryResultData) ? seasonsQueryResultData : []);
-  //   }
-  //   if (isSeasonsQueryError) {
-  //     logger.error('[TanStack Query] Error loading seasons:', seasonsQueryErrorData);
-  //     setSeasons([]);
-  //   }
-  // }, [seasonsQueryResultData, areSeasonsQueryLoading, isSeasonsQueryError, seasonsQueryErrorData]);
+  // Fixed: Sync seasons from React Query to local state
+  useEffect(() => {
+    if (areSeasonsQueryLoading) {
+      logger.log('[TanStack Query] Seasons are loading...');
+      return;
+    }
+    
+    if (isSeasonsQueryError) {
+      logger.error('[TanStack Query] Error loading seasons:', seasonsQueryErrorData);
+      setSeasons([]);
+      return;
+    }
+    
+    if (seasonsQueryResultData && Array.isArray(seasonsQueryResultData)) {
+      setSeasons(seasonsQueryResultData);
+    }
+  }, [seasonsQueryResultData, areSeasonsQueryLoading, isSeasonsQueryError, seasonsQueryErrorData, setSeasons]);
 
-  // TEMPORARY: Disable this effect to fix the infinite loop - need to investigate React Query setup
-  // useEffect(() => {
-  //   if (areTournamentsQueryLoading) {
-  //     logger.log('[TanStack Query] Tournaments are loading...');
-  //   }
-  //   if (tournamentsQueryResultData) {
-  //     setTournaments(Array.isArray(tournamentsQueryResultData) ? tournamentsQueryResultData : []);
-  //   }
-  //   if (isTournamentsQueryError) {
-  //     logger.error('[TanStack Query] Error loading tournaments:', tournamentsQueryErrorData);
-  //     setTournaments([]);
-  //   }
-  // }, [tournamentsQueryResultData, areTournamentsQueryLoading, isTournamentsQueryError, tournamentsQueryErrorData]);
+  // Fixed: Sync tournaments from React Query to local state  
+  useEffect(() => {
+    if (areTournamentsQueryLoading) {
+      logger.log('[TanStack Query] Tournaments are loading...');
+      return;
+    }
+    
+    if (isTournamentsQueryError) {
+      logger.error('[TanStack Query] Error loading tournaments:', tournamentsQueryErrorData);
+      setTournaments([]);
+      return;
+    }
+    
+    if (tournamentsQueryResultData && Array.isArray(tournamentsQueryResultData)) {
+      setTournaments(tournamentsQueryResultData);
+    }
+  }, [tournamentsQueryResultData, areTournamentsQueryLoading, isTournamentsQueryError, tournamentsQueryErrorData, setTournaments]);
 
   // --- Effect to sync playersOnField details with availablePlayers changes ---
   useEffect(() => {
@@ -1196,6 +1201,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     }
     }
   // Depend only on load completion and skip status
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialLoadComplete, hasSkippedInitialSetup, currentGameId]);
 
   // --- Player Management Handlers (Updated for relative coords) ---
@@ -1228,6 +1234,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     const updatedPlayersOnField = playersOnField.filter(p => p.id !== playerId);
     setPlayersOnField(updatedPlayersOnField); 
     saveStateToHistory({ playersOnField: updatedPlayersOnField });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playersOnField, saveStateToHistory]); 
   
 
@@ -1243,6 +1250,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       setDrawings([]);
       saveStateToHistory({ playersOnField: [], opponents: [], drawings: [] });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isTacticsBoardView, saveStateToHistory, clearTacticalElements]);
 
   const handleClearDrawingsForView = () => {
@@ -1753,7 +1761,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     } catch (error) {
       logger.error(`[Page.tsx] Exception during rename of ${playerId}:`, error);
     }
-  }, [handleUpdatePlayer]);
+  }, [handleUpdatePlayer, setRosterError]);
   
   const handleSetJerseyNumberForModal = useCallback(async (playerId: string, jerseyNumber: string) => {
     logger.log(`[Page.tsx] handleSetJerseyNumberForModal attempting mutation for ID: ${playerId}, new number: ${jerseyNumber}`);
@@ -1765,7 +1773,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     } catch (error) {
       logger.error(`[Page.tsx] Exception during jersey number update of ${playerId}:`, error);
     }
-  }, [handleUpdatePlayer]);
+  }, [handleUpdatePlayer, setRosterError]);
 
   const handleSetPlayerNotesForModal = useCallback(async (playerId: string, notes: string) => {
     logger.log(`[Page.tsx] handleSetPlayerNotesForModal attempting mutation for ID: ${playerId}`);
@@ -1777,7 +1785,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     } catch (error) {
       logger.error(`[Page.tsx] Exception during notes update of ${playerId}:`, error);
     }
-  }, [handleUpdatePlayer]);
+  }, [handleUpdatePlayer, setRosterError]);
 
       // ... (rest of the code remains unchanged)
 
@@ -1791,7 +1799,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       } catch (error) {
         logger.error(`[Page.tsx] Exception during removal of ${playerId}:`, error);
       }
-    }, [handleRemovePlayer]);
+    }, [handleRemovePlayer, setRosterError]);
 
     // ... (rest of the code remains unchanged)
 
@@ -1837,7 +1845,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         // Set a generic error message if rosterError hasn't been set by the mutation's onError callback.
         setRosterError(t('rosterSettingsModal.errors.addFailed', 'Error adding player {playerName}. Please try again.', { playerName: playerData.name }));
       }
-    }, [masterRosterQueryResultData, handleAddPlayer, t]);
+    }, [masterRosterQueryResultData, handleAddPlayer, t, setRosterError]);
 
     // ... (rest of the code remains unchanged)
 
@@ -1889,7 +1897,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     } catch (error) {
       logger.error(`[Page.tsx] Exception during per-game goalie toggle of ${playerId}:`, error);
     }
-  }, [availablePlayers, playersOnField, currentGameId, gameSessionState, t]);
+  }, [availablePlayers, playersOnField, currentGameId, gameSessionState, t, setAvailablePlayers, setPlayersOnField, setRosterError]);
 
   // --- END Roster Management Handlers ---
 
@@ -1968,7 +1976,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       saveStateToHistory({ playersOnField: updatedPlayersOnField });
 
       logger.log(`[page.tsx] Updated Fair Play card award. ${playerId ? `Awarded to ${playerId}` : 'Cleared'}`);
-    }, [availablePlayers, playersOnField, saveStateToHistory, currentGameId]);
+    }, [availablePlayers, playersOnField, saveStateToHistory, currentGameId, setAvailablePlayers, setPlayersOnField]);
 
 
   const handleUpdateSelectedPlayers = (playerIds: string[]) => {
@@ -2348,7 +2356,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     setNewGameDemandFactor(1);
 
   // REMOVED initialState from dependencies
-  }, []); // Updated dependencies
+  }, [setIsNewGameSetupModalOpen]); // Updated dependencies
 
   // --- Start New Game Handler (Uses Quick Save) ---
   const handleStartNewGame = useCallback(() => {
@@ -2418,7 +2426,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     setIsNewGameSetupModalOpen(true); // Open setup modal (moved here for save & continue path)
 
   }, [t, currentGameId, savedGames, handleQuickSaveGame,
-      availablePlayers, gameSessionState.selectedPlayerIds
+      availablePlayers, gameSessionState.selectedPlayerIds, setIsNewGameSetupModalOpen, setIsRosterModalOpen
      ]); 
   // --- END Start New Game Handler ---
 
@@ -2533,7 +2541,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     saveStateToHistory({ playersOnField: newFieldPlayers });
     
     logger.log(`Successfully placed ${playersToPlace.length} players on the field`);
-         }, [playersOnField, gameSessionState.selectedPlayerIds, availablePlayers, saveStateToHistory]);
+         }, [playersOnField, gameSessionState.selectedPlayerIds, availablePlayers, saveStateToHistory, setPlayersOnField]);
 
   // --- END Quick Save Handler ---
 

@@ -91,12 +91,21 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     }
   }, [currentGameId, dispatch]);
 
-  // Initialize precision timer
+  // Initialize precision timer with stable startTime reference
+  const stableStartTimeRef = useRef(state.timeElapsedInSeconds);
+  
+  // Only update startTime when timer is not running (paused/stopped)
+  useEffect(() => {
+    if (!state.isTimerRunning) {
+      stableStartTimeRef.current = state.timeElapsedInSeconds;
+    }
+  }, [state.isTimerRunning, state.timeElapsedInSeconds]);
+
   const precisionTimer = usePrecisionTimer({
     onTick: handleTimerTick,
     isRunning: state.isTimerRunning && state.gameStatus === 'inProgress',
-    startTime: state.timeElapsedInSeconds,
-    interval: 1000 // Update every 1000ms (1 second) for accurate timing
+    startTime: stableStartTimeRef.current,
+    interval: 100 // Check every 100ms for smooth UI, calculate precisely with performance.now()
   });
 
   useEffect(() => {
