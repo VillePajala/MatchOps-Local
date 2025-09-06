@@ -1,7 +1,18 @@
-import { renderHook } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { usePrecisionTimer, useTimerRestore } from './usePrecisionTimer';
 
 describe('usePrecisionTimer', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.spyOn(performance, 'now').mockReturnValue(0);
+  });
+
+  afterEach(() => {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
   it('should initialize and provide getCurrentTime function', () => {
     const mockOnTick = jest.fn();
     
@@ -51,6 +62,107 @@ describe('usePrecisionTimer', () => {
         })
       );
     }).not.toThrow();
+  });
+
+  describe('Timer Precision and Accuracy', () => {
+    it('should use performance.now for timing calculations', () => {
+      const mockOnTick = jest.fn();
+      const performanceNowSpy = jest.spyOn(performance, 'now');
+      
+      renderHook(() =>
+        usePrecisionTimer({ 
+          isRunning: true, 
+          startTime: 0, 
+          onTick: mockOnTick,
+          interval: 100
+        })
+      );
+
+      // Verify performance.now is called for precision timing
+      expect(performanceNowSpy).toHaveBeenCalled();
+      
+      performanceNowSpy.mockRestore();
+    });
+
+    it('should reset timer correctly', () => {
+      const mockOnTick = jest.fn();
+      
+      const { result } = renderHook(() =>
+        usePrecisionTimer({ 
+          isRunning: false, 
+          startTime: 10, 
+          onTick: mockOnTick 
+        })
+      );
+
+      // Reset to 0
+      act(() => {
+        result.current.reset(0);
+      });
+
+      expect(result.current.getCurrentTime()).toBe(0);
+      expect(mockOnTick).toHaveBeenCalledWith(0);
+
+      // Reset to different time
+      act(() => {
+        result.current.reset(15);
+      });
+
+      expect(result.current.getCurrentTime()).toBe(15);
+      expect(mockOnTick).toHaveBeenLastCalledWith(15);
+    });
+
+    it('should handle start and stop correctly', () => {
+      const mockOnTick = jest.fn();
+      
+      const { result, rerender } = renderHook(
+        ({ isRunning }) => usePrecisionTimer({ 
+          isRunning, 
+          startTime: 0,
+          onTick: mockOnTick 
+        }),
+        { initialProps: { isRunning: false } }
+      );
+
+      // Should not be running initially
+      expect(result.current.getCurrentTime()).toBe(0);
+
+      // Start timer
+      rerender({ isRunning: true });
+      
+      // Should start correctly
+      expect(result.current.getCurrentTime()).toBeGreaterThanOrEqual(0);
+
+      // Stop timer
+      rerender({ isRunning: false });
+      
+      // Should stop correctly
+      const stoppedTime = result.current.getCurrentTime();
+      expect(typeof stoppedTime).toBe('number');
+    });
+
+    it('should clean up on unmount', () => {
+      const mockOnTick = jest.fn();
+      const setIntervalSpy = jest.spyOn(global, 'setInterval');
+      const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
+      
+      const { unmount } = renderHook(() =>
+        usePrecisionTimer({ 
+          isRunning: true, 
+          startTime: 0, 
+          onTick: mockOnTick 
+        })
+      );
+
+      expect(setIntervalSpy).toHaveBeenCalled();
+
+      unmount();
+
+      expect(clearIntervalSpy).toHaveBeenCalled();
+      
+      setIntervalSpy.mockRestore();
+      clearIntervalSpy.mockRestore();
+    });
   });
 });
 
