@@ -96,7 +96,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     onTick: handleTimerTick,
     isRunning: state.isTimerRunning && state.gameStatus === 'inProgress',
     startTime: state.timeElapsedInSeconds,
-    interval: 100 // Update every 100ms for smooth UI, but tick only on second boundaries
+    interval: 1000 // Update every 1000ms (1 second) for accurate timing
   });
 
   useEffect(() => {
