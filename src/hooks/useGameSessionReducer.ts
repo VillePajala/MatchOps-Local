@@ -315,8 +315,14 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         };
     }
     case 'RESET_TIMER_ONLY': {
-      // PRODUCT OWNER APPROVED: Reset to 0:00 of first period instead of current period start
-      // This provides a true "reset to beginning" behavior that users expect from a reset button
+      // UX DECISION - PRODUCT OWNER APPROVED: Reset to 0:00 of first period
+      // 
+      // Previous behavior: Reset only to start of current period (e.g., 10:00 → 10:00 in period 2)  
+      // New behavior: Complete reset to game beginning (any time → 0:00 period 1)
+      //
+      // Rationale: Users expect a "reset" button to return to the very beginning, not just 
+      // the current period. This matches behavior of stopwatches and is more intuitive.
+      // Coaches can use pause/resume for period-level control.
       const nextSubDue = state.subIntervalMinutes * 60;
       return {
         ...state,
