@@ -94,7 +94,7 @@ describe('HomePage Component - Deep Testing', () => {
       expect(buttons.length).toBeGreaterThan(3);
       
       // Should have some enabled buttons
-      const enabledButtons = buttons.filter(btn => !btn.disabled);
+      const enabledButtons = buttons.filter(btn => !(btn as HTMLButtonElement).disabled);
       expect(enabledButtons.length).toBeGreaterThan(0);
     });
 
@@ -107,7 +107,7 @@ describe('HomePage Component - Deep Testing', () => {
 
       // Find and click the first enabled button
       const buttons = screen.getAllByRole('button');
-      const enabledButtons = buttons.filter(btn => !btn.disabled);
+      const enabledButtons = buttons.filter(btn => !(btn as HTMLButtonElement).disabled);
       
       if (enabledButtons.length > 0) {
         // This should not crash the application
@@ -151,7 +151,7 @@ describe('HomePage Component - Deep Testing', () => {
       }, { timeout: 5000 });
 
       // Click multiple buttons rapidly
-      const buttons = screen.getAllByRole('button').filter(btn => !btn.disabled);
+      const buttons = screen.getAllByRole('button').filter(btn => !(btn as HTMLButtonElement).disabled);
       
       for (let i = 0; i < Math.min(buttons.length, 3); i++) {
         buttons[i].click();
@@ -190,7 +190,7 @@ describe('HomePage Component - Deep Testing', () => {
       }, { timeout: 5000 });
 
       // Simulate some interactions
-      const buttons = screen.getAllByRole('button').filter(btn => !btn.disabled);
+      const buttons = screen.getAllByRole('button').filter(btn => !(btn as HTMLButtonElement).disabled);
       if (buttons.length > 0) {
         for (let i = 0; i < Math.min(buttons.length, 2); i++) {
           buttons[i].click();

@@ -1,6 +1,16 @@
 import { renderHook, act } from '@testing-library/react';
 import { usePrecisionTimer, useTimerRestore } from './usePrecisionTimer';
 
+interface MemoryInfo {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
+interface PerformanceWithMemory extends Performance {
+  memory?: MemoryInfo;
+}
+
 describe('usePrecisionTimer', () => {
   beforeEach(() => {
     jest.useFakeTimers();

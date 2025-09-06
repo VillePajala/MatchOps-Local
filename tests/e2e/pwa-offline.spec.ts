@@ -55,7 +55,7 @@ test.describe('PWA and Offline Functionality', () => {
             updateViaCache: registration?.updateViaCache
           };
         } catch (error) {
-          return { error: error.message };
+          return { error: (error as Error).message };
         }
       }
       return { hasServiceWorker: false };
@@ -89,7 +89,7 @@ test.describe('PWA and Offline Functionality', () => {
             totalCachedItems
           };
         } catch (error) {
-          return { error: error.message };
+          return { error: (error as Error).message };
         }
       }
       return { hasCaches: false };
@@ -98,7 +98,7 @@ test.describe('PWA and Offline Functionality', () => {
     if (!cacheInfo.hasCaches) {
       test.skip(true, 'Cache API not available');
     } else {
-      expect(cacheInfo.cacheNames.length).toBeGreaterThan(0);
+      expect(cacheInfo.cacheNames?.length || 0).toBeGreaterThan(0);
       expect(cacheInfo.totalCachedItems).toBeGreaterThan(0);
     }
   });
@@ -241,7 +241,7 @@ test.describe('PWA and Offline Functionality', () => {
             canCheckForUpdates: true
           };
         } catch (error) {
-          return { error: error.message };
+          return { error: (error as Error).message };
         }
       }
       return { canCheckForUpdates: false };
