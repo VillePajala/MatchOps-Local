@@ -360,9 +360,21 @@ export const measureRenderTime = async (renderFn: () => void): Promise<number> =
   return performance.now() - startTime;
 };
 
+// Type-safe interface for Chrome's performance.memory extension
+interface MemoryInfo {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
+interface PerformanceWithMemory extends Performance {
+  memory?: MemoryInfo;
+}
+
 export const measureMemoryUsage = (): number => {
-  if ('memory' in performance && performance.memory) {
-    return (performance.memory as any).usedJSHeapSize;
+  const perf = performance as PerformanceWithMemory;
+  if (perf.memory && 'usedJSHeapSize' in perf.memory) {
+    return perf.memory.usedJSHeapSize;
   }
   return 0;
 };

@@ -1897,7 +1897,12 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     } catch (error) {
       logger.error(`[Page.tsx] Exception during per-game goalie toggle of ${playerId}:`, error);
     }
-  }, [availablePlayers, playersOnField, currentGameId, gameSessionState, t, setAvailablePlayers, setPlayersOnField, setRosterError]);
+  }, [
+    // Data dependencies (values that change the function's behavior)
+    availablePlayers, playersOnField, currentGameId, gameSessionState, t,
+    // Setter dependencies (React guarantees these are stable but ESLint requires them)
+    setAvailablePlayers, setPlayersOnField, setRosterError
+  ]);
 
   // --- END Roster Management Handlers ---
 
