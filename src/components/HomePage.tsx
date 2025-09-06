@@ -482,7 +482,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     processAction();
     // Only run once when initialAction changes, not when availablePlayers or t changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialAction, setIsNewGameSetupModalOpen, setIsLoadGameModalOpen, setIsSeasonTournamentModalOpen, setIsGameStatsModalOpen, setIsRosterModalOpen]);
+  }, [initialAction]);
   
   // --- Modal States handled via context ---
 
@@ -702,44 +702,57 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       // alert(t('newGameSetupModal.errors.addTournamentFailedUnexpected', 'An unexpected error occurred while adding tournament: {tournamentName}.', { tournamentName: variables.name }));
     },
   });
+  // Fixed: Sync master roster from React Query to local state
   useEffect(() => {
     if (isMasterRosterQueryLoading) {
       logger.log('[TanStack Query] Master Roster is loading...');
+      return;
     }
-    if (masterRosterQueryResultData) {
-      setAvailablePlayers(masterRosterQueryResultData);
-    }
+    
     if (isMasterRosterQueryError) {
       logger.error('[TanStack Query] Error loading master roster:', masterRosterQueryErrorData);
       setAvailablePlayers([]);
+      return;
+    }
+    
+    if (masterRosterQueryResultData && Array.isArray(masterRosterQueryResultData)) {
+      setAvailablePlayers(masterRosterQueryResultData);
     }
   }, [masterRosterQueryResultData, isMasterRosterQueryLoading, isMasterRosterQueryError, masterRosterQueryErrorData, setAvailablePlayers]);
 
-  // --- Effect to update seasons from useQuery ---
+  // Fixed: Sync seasons from React Query to local state
   useEffect(() => {
     if (areSeasonsQueryLoading) {
       logger.log('[TanStack Query] Seasons are loading...');
+      return;
     }
-    if (seasonsQueryResultData) {
-      setSeasons(Array.isArray(seasonsQueryResultData) ? seasonsQueryResultData : []);
-    }
+    
     if (isSeasonsQueryError) {
       logger.error('[TanStack Query] Error loading seasons:', seasonsQueryErrorData);
       setSeasons([]);
+      return;
+    }
+    
+    if (seasonsQueryResultData && Array.isArray(seasonsQueryResultData)) {
+      setSeasons(seasonsQueryResultData);
     }
   }, [seasonsQueryResultData, areSeasonsQueryLoading, isSeasonsQueryError, seasonsQueryErrorData, setSeasons]);
 
-  // --- Effect to update tournaments from useQuery ---
+  // Fixed: Sync tournaments from React Query to local state  
   useEffect(() => {
     if (areTournamentsQueryLoading) {
       logger.log('[TanStack Query] Tournaments are loading...');
+      return;
     }
-    if (tournamentsQueryResultData) {
-      setTournaments(Array.isArray(tournamentsQueryResultData) ? tournamentsQueryResultData : []);
-    }
+    
     if (isTournamentsQueryError) {
       logger.error('[TanStack Query] Error loading tournaments:', tournamentsQueryErrorData);
       setTournaments([]);
+      return;
+    }
+    
+    if (tournamentsQueryResultData && Array.isArray(tournamentsQueryResultData)) {
+      setTournaments(tournamentsQueryResultData);
     }
   }, [tournamentsQueryResultData, areTournamentsQueryLoading, isTournamentsQueryError, tournamentsQueryErrorData, setTournaments]);
 
@@ -1188,7 +1201,8 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     }
     }
   // Depend only on load completion and skip status
-  }, [initialLoadComplete, hasSkippedInitialSetup, currentGameId, setIsNewGameSetupModalOpen]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialLoadComplete, hasSkippedInitialSetup, currentGameId]);
 
   // --- Player Management Handlers (Updated for relative coords) ---
   // Wrapped handleDropOnField in useCallback as suggested
@@ -1220,7 +1234,8 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     const updatedPlayersOnField = playersOnField.filter(p => p.id !== playerId);
     setPlayersOnField(updatedPlayersOnField); 
     saveStateToHistory({ playersOnField: updatedPlayersOnField });
-  }, [playersOnField, saveStateToHistory, setPlayersOnField]); 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playersOnField, saveStateToHistory]); 
   
 
 
@@ -1235,7 +1250,8 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       setDrawings([]);
       saveStateToHistory({ playersOnField: [], opponents: [], drawings: [] });
     }
-    }, [isTacticsBoardView, saveStateToHistory, setDrawings, setOpponents, setPlayersOnField, clearTacticalElements]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isTacticsBoardView, saveStateToHistory, clearTacticalElements]);
 
   const handleClearDrawingsForView = () => {
     if (isTacticsBoardView) {
@@ -1881,7 +1897,12 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     } catch (error) {
       logger.error(`[Page.tsx] Exception during per-game goalie toggle of ${playerId}:`, error);
     }
-  }, [availablePlayers, playersOnField, currentGameId, gameSessionState, setAvailablePlayers, setPlayersOnField, setRosterError, t]);
+  }, [
+    // Data dependencies (values that change the function's behavior)
+    availablePlayers, playersOnField, currentGameId, gameSessionState, t,
+    // Setter dependencies (React guarantees these are stable but ESLint requires them)
+    setAvailablePlayers, setPlayersOnField, setRosterError
+  ]);
 
   // --- END Roster Management Handlers ---
 
@@ -1960,7 +1981,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       saveStateToHistory({ playersOnField: updatedPlayersOnField });
 
       logger.log(`[page.tsx] Updated Fair Play card award. ${playerId ? `Awarded to ${playerId}` : 'Cleared'}`);
-    }, [availablePlayers, playersOnField, setAvailablePlayers, setPlayersOnField, saveStateToHistory, currentGameId]);
+    }, [availablePlayers, playersOnField, saveStateToHistory, currentGameId, setAvailablePlayers, setPlayersOnField]);
 
 
   const handleUpdateSelectedPlayers = (playerIds: string[]) => {
@@ -2340,7 +2361,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     setNewGameDemandFactor(1);
 
   // REMOVED initialState from dependencies
-  }, [setHasSkippedInitialSetup, setIsNewGameSetupModalOpen]); // Updated dependencies
+  }, [setIsNewGameSetupModalOpen]); // Updated dependencies
 
   // --- Start New Game Handler (Uses Quick Save) ---
   const handleStartNewGame = useCallback(() => {
@@ -2409,10 +2430,8 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
        setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds);  // Use the current selection
     setIsNewGameSetupModalOpen(true); // Open setup modal (moved here for save & continue path)
 
-  }, [t, currentGameId, savedGames, handleQuickSaveGame, setIsNewGameSetupModalOpen,
-      // <<< ADD dependencies >>>
-      availablePlayers, gameSessionState.selectedPlayerIds, setPlayerIdsForNewGame,
-      setIsRosterModalOpen
+  }, [t, currentGameId, savedGames, handleQuickSaveGame,
+      availablePlayers, gameSessionState.selectedPlayerIds, setIsNewGameSetupModalOpen, setIsRosterModalOpen
      ]); 
   // --- END Start New Game Handler ---
 

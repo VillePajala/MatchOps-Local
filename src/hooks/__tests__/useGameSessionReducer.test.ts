@@ -39,16 +39,18 @@ describe('gameSessionReducer', () => {
     expect(state.homeScore).toBe(0);
   });
 
-  test('reset timer only resets to start of current period', () => {
+  test('reset timer resets to beginning (0:00, period 1)', () => {
     const state = gameSessionReducer(
-      { ...baseState, currentPeriod: 2, timeElapsedInSeconds: 650, subIntervalMinutes: 5 },
+      { ...baseState, currentPeriod: 2, timeElapsedInSeconds: 650, subIntervalMinutes: 5, gameStatus: 'inProgress' },
       { type: 'RESET_TIMER_ONLY' }
     );
-    const periodStart = (2 - 1) * 10 * 60;
-    expect(state.timeElapsedInSeconds).toBe(periodStart);
+    // New behavior: Reset to 0:00 of first period
+    expect(state.timeElapsedInSeconds).toBe(0);
+    expect(state.currentPeriod).toBe(1);
+    expect(state.gameStatus).toBe('notStarted');
     expect(state.isTimerRunning).toBe(false);
-    expect(state.nextSubDueTimeSeconds).toBe(periodStart + 5 * 60);
-    expect(state.lastSubConfirmationTimeSeconds).toBe(periodStart);
+    expect(state.nextSubDueTimeSeconds).toBe(5 * 60); // First substitution at 5 minutes
+    expect(state.lastSubConfirmationTimeSeconds).toBe(0);
     expect(state.subAlertLevel).toBe('none');
   });
 

@@ -55,7 +55,10 @@ describe('ErrorBoundary', () => {
 
   it('should show error details in development mode', () => {
     const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'development';
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value: 'development',
+      configurable: true,
+    });
 
     render(
       <ErrorBoundary showErrorDetails={true}>
@@ -65,7 +68,10 @@ describe('ErrorBoundary', () => {
 
     expect(screen.getAllByText(/test error/i)[0]).toBeInTheDocument();
     
-    process.env.NODE_ENV = originalEnv;
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value: originalEnv,
+      configurable: true,
+    });
   });
 
   it('should call onError callback when error occurs', () => {

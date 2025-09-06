@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: implement P0 tactical code quality improvements"
+  "notes": "fix: restore precision timer with professional test coverage and re-enable React Query effects"
 }
