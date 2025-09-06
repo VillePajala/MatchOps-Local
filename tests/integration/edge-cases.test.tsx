@@ -69,7 +69,7 @@ describe('Edge Cases and Error Handling Tests', () => {
       expect(screen.getByText(/matchops/i)).toBeVisible();
       
       // Simulate user interaction that triggers save
-      const buttons = screen.getAllByRole('button').filter(btn => !btn.disabled);
+      const buttons = screen.getAllByRole('button').filter(btn => !(btn as HTMLButtonElement).disabled);
       if (buttons.length > 0) {
         fireEvent.click(buttons[0]);
       }
@@ -172,7 +172,7 @@ describe('Edge Cases and Error Handling Tests', () => {
         isTacticsBoardView: false,
         tacticalDiscs: Array.from({ length: 20 }, (_, i) => ({ 
           id: `disc-${i}`, 
-          type: i % 2 === 0 ? 'home' as const : 'away' as const, 
+          type: i % 2 === 0 ? 'home' as const : 'opponent' as const, 
           relX: Math.random(), 
           relY: Math.random() 
         })),
@@ -345,7 +345,7 @@ describe('Edge Cases and Error Handling Tests', () => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
       }, { timeout: 5000 });
 
-      const buttons = screen.getAllByRole('button').filter(btn => !btn.disabled);
+      const buttons = screen.getAllByRole('button').filter(btn => !(btn as HTMLButtonElement).disabled);
       
       // Simulate rapid concurrent operations
       const promises = buttons.slice(0, 3).map(async (button, index) => {

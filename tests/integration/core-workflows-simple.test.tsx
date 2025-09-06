@@ -175,7 +175,7 @@ describe('Core User Workflows Integration Tests (Simplified)', () => {
 
     it('should handle localStorage errors gracefully', async () => {
       // Simulate localStorage quota exceeded
-      mockStorage.setItem = jest.fn(() => {
+      mockStorage.setItem = jest.fn((_key: string, _value: string) => {
         throw new Error('QuotaExceededError');
       });
       
@@ -185,7 +185,7 @@ describe('Core User Workflows Integration Tests (Simplified)', () => {
           mockStorage.setItem('test', 'data');
         } catch (error) {
           // Error handled gracefully
-          expect(error.message).toBe('QuotaExceededError');
+          expect((error as Error).message).toBe('QuotaExceededError');
         }
       }).not.toThrow();
     });

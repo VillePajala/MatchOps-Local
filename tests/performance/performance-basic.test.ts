@@ -8,6 +8,16 @@ import {
   measureMemoryUsage 
 } from '../utils/test-utils';
 
+interface MemoryInfo {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
+interface PerformanceWithMemory extends Performance {
+  memory?: MemoryInfo;
+}
+
 // Mock performance.memory for testing
 const mockPerformanceMemory = {
   usedJSHeapSize: 10000000,
@@ -59,12 +69,12 @@ describe('Performance Tests - Basic', () => {
 
   describe('Memory Usage Tracking', () => {
     it('should track memory usage changes', () => {
-      const initialMemory = performance.memory?.usedJSHeapSize || 0;
+      const initialMemory = (performance as PerformanceWithMemory).memory?.usedJSHeapSize || 0;
       
       // Simulate memory increase
       mockPerformanceMemory.usedJSHeapSize = initialMemory + 1000000; // +1MB
       
-      const finalMemory = performance.memory?.usedJSHeapSize || 0;
+      const finalMemory = (performance as PerformanceWithMemory).memory?.usedJSHeapSize || 0;
       const memoryIncrease = finalMemory - initialMemory;
       
       expect(memoryIncrease).toBe(1000000);
@@ -157,7 +167,7 @@ describe('Performance Tests - Basic', () => {
 
   describe('Memory Leak Prevention', () => {
     it('should not accumulate memory during repeated operations', () => {
-      const initialMemory = performance.memory?.usedJSHeapSize || 0;
+      const initialMemory = (performance as PerformanceWithMemory).memory?.usedJSHeapSize || 0;
       
       // Perform repeated operations
       for (let i = 0; i < 100; i++) {
@@ -167,7 +177,7 @@ describe('Performance Tests - Basic', () => {
       }
       
       // In testing, memory should not grow significantly
-      const finalMemory = performance.memory?.usedJSHeapSize || 0;
+      const finalMemory = (performance as PerformanceWithMemory).memory?.usedJSHeapSize || 0;
       expect(typeof finalMemory).toBe('number');
       expect(finalMemory).toBeGreaterThanOrEqual(initialMemory);
     });
