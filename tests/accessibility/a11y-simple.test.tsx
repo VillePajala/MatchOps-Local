@@ -145,7 +145,7 @@ describe('Accessibility Tests (Simplified)', () => {
       const { container } = render(<SimpleA11yTestComponent />);
       
       const results = await axe(container);
-      expect(results).toHaveNoViolations();
+      (expect(results) as any).toHaveNoViolations();
     });
 
     it('should have proper heading hierarchy', () => {
@@ -231,10 +231,10 @@ describe('Accessibility Tests (Simplified)', () => {
       // Check sections are properly labeled by their headings
       const sections = screen.getAllByRole('region', { hidden: true });
       const gameControlsSection = sections.find(section => 
-        section.getAttribute('aria-labelledby') === 'game-controls'
+        (section as HTMLElement).getAttribute('aria-labelledby') === 'game-controls'
       );
       const rosterSection = sections.find(section => 
-        section.getAttribute('aria-labelledby') === 'player-roster'
+        (section as HTMLElement).getAttribute('aria-labelledby') === 'player-roster'
       );
       
       // If sections don't exist, just verify the heading IDs are present
@@ -251,7 +251,7 @@ describe('Accessibility Tests (Simplified)', () => {
       const buttons = screen.getAllByRole('button');
       buttons.forEach(button => {
         expect(button).toHaveAttribute('aria-label');
-        expect(button.getAttribute('aria-label')).toBeTruthy();
+        expect((button as HTMLElement).getAttribute('aria-label')).toBeTruthy();
       });
     });
   });
@@ -281,7 +281,7 @@ describe('Accessibility Tests (Simplified)', () => {
       
       const focusableElements = screen.getAllByRole('button');
       focusableElements.forEach(element => {
-        element.focus();
+        (element as HTMLElement).focus();
         expect(document.activeElement).toBe(element);
       });
     });
@@ -293,11 +293,11 @@ describe('Accessibility Tests (Simplified)', () => {
       const fieldPlayer = screen.getByTestId('field-player-1');
       
       // Field should be focusable
-      field.focus();
+      (field as HTMLElement).focus();
       expect(document.activeElement).toBe(field);
       
       // Player positions should be focusable
-      fieldPlayer.focus();
+      (fieldPlayer as HTMLElement).focus();
       expect(document.activeElement).toBe(fieldPlayer);
     });
   });
@@ -308,7 +308,7 @@ describe('Accessibility Tests (Simplified)', () => {
       
       const playerButtons = screen.getAllByTestId(/player-button-/);
       playerButtons.forEach(button => {
-        const ariaLabel = button.getAttribute('aria-label');
+        const ariaLabel = (button as HTMLElement).getAttribute('aria-label');
         expect(ariaLabel).toMatch(/Select player .+, jersey number \d+/);
       });
     });
