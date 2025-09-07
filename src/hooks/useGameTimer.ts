@@ -94,9 +94,9 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   // Initialize precision timer with stable startTime reference
   const stableStartTimeRef = useRef(state.timeElapsedInSeconds);
   
-  // Only update startTime when timer is not running (paused/stopped)
+  // Update startTime when timer is not running (paused/stopped) to ensure proper synchronization
   useEffect(() => {
-    if (!state.isTimerRunning) {
+    if (!state.isTimerRunning && stableStartTimeRef.current !== state.timeElapsedInSeconds) {
       stableStartTimeRef.current = state.timeElapsedInSeconds;
     }
   }, [state.isTimerRunning, state.timeElapsedInSeconds]);
