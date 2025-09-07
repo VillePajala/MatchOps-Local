@@ -10,20 +10,9 @@ import { Player, Opponent, Point } from '@/types';
 const createMockPlayer = (id: string, overrides?: Partial<Player>): Player => ({
   id,
   name: `Player ${id}`,
-  number: parseInt(id) || 1,
-  position: 'midfielder',
-  isGoalie: false,
-  isActive: true,
-  createdAt: new Date().toISOString(),
+  jerseyNumber: id,
   relX: 0.3,
   relY: 0.4,
-  assessment: {
-    overall: 75,
-    technical: 70,
-    tactical: 75,
-    physical: 80,
-    mental: 70
-  },
   ...overrides,
 });
 
@@ -228,7 +217,7 @@ describe('SoccerField Component - Interaction Testing', () => {
         isTacticsBoardView: true,
         tacticalDiscs: [
           { id: 'disc1', type: 'home' as const, relX: 0.3, relY: 0.4 },
-          { id: 'disc2', type: 'away' as const, relX: 0.7, relY: 0.6 },
+          { id: 'disc2', type: 'opponent' as const, relX: 0.7, relY: 0.6 },
         ],
       };
       

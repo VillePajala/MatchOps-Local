@@ -8,6 +8,16 @@ import {
   measureMemoryUsage 
 } from '../utils/test-utils';
 
+interface MemoryInfo {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
+interface PerformanceWithMemory extends Performance {
+  memory?: MemoryInfo;
+}
+
 // Mock performance.memory for testing
 const mockPerformanceMemory = {
   usedJSHeapSize: 10000000,
@@ -59,12 +69,12 @@ describe('Performance Testing Infrastructure', () => {
 
   describe('Memory Usage Tracking', () => {
     it('should track memory usage changes', () => {
-      const initialMemory = performance.memory?.usedJSHeapSize || 0;
+      const initialMemory = (performance as PerformanceWithMemory).memory?.usedJSHeapSize || 0;
       
       // Simulate memory increase
       mockPerformanceMemory.usedJSHeapSize = initialMemory + 1000000; // +1MB
       
-      const finalMemory = performance.memory?.usedJSHeapSize || 0;
+      const finalMemory = (performance as PerformanceWithMemory).memory?.usedJSHeapSize || 0;
       const memoryIncrease = finalMemory - initialMemory;
       
       expect(memoryIncrease).toBe(1000000);
@@ -135,8 +145,8 @@ describe('Performance Testing Infrastructure', () => {
       // Simulate near memory limit
       mockPerformanceMemory.usedJSHeapSize = mockPerformanceMemory.jsHeapSizeLimit - 1000000; // 1MB from limit
       
-      const memoryUsage = performance.memory?.usedJSHeapSize || 0;
-      const memoryLimit = performance.memory?.jsHeapSizeLimit || 0;
+      const memoryUsage = (performance as PerformanceWithMemory).memory?.usedJSHeapSize || 0;
+      const memoryLimit = (performance as PerformanceWithMemory).memory?.jsHeapSizeLimit || 0;
       const memoryPressure = memoryUsage / memoryLimit;
       
       expect(memoryPressure).toBeGreaterThan(0.95); // More than 95% memory used
@@ -227,7 +237,7 @@ describe('Performance Testing Infrastructure', () => {
 
   describe('Memory Leak Detection', () => {
     it('should not accumulate memory during repeated operations', () => {
-      const initialMemory = performance.memory?.usedJSHeapSize || 0;
+      const initialMemory = (performance as PerformanceWithMemory).memory?.usedJSHeapSize || 0;
       
       // Perform repeated operations
       for (let i = 0; i < 100; i++) {
@@ -237,7 +247,7 @@ describe('Performance Testing Infrastructure', () => {
       }
       
       // Simulate memory being the same after cleanup
-      const finalMemory = performance.memory?.usedJSHeapSize || 0;
+      const finalMemory = (performance as PerformanceWithMemory).memory?.usedJSHeapSize || 0;
       
       // In real scenarios, memory should not increase significantly
       // For testing, we just ensure the measurement works

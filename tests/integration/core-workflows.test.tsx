@@ -13,6 +13,16 @@ import {
   simulateGameSession
 } from '../utils/test-utils';
 
+interface MemoryInfo {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
+interface PerformanceWithMemory extends Performance {
+  memory?: MemoryInfo;
+}
+
 // Mock next/router
 jest.mock('next/router', () => ({
   useRouter() {
@@ -96,14 +106,15 @@ describe('Core User Workflows Integration Tests', () => {
         homeScore: 1,
       });
 
-      // Mock saved game data in localStorage
+      // Mock saved game data in localStorage  
+      const gameId = 'test-game-' + Date.now();
       mockStorage.setItem('soccerAppSettings', JSON.stringify({
-        currentGameId: gameState.id,
+        currentGameId: gameId,
         language: 'en'
       }));
 
       mockStorage.setItem('soccerSavedGames', JSON.stringify({
-        [gameState.id]: gameState
+        [gameId]: gameState
       }));
 
       render(<HomePage />);
@@ -183,12 +194,13 @@ describe('Core User Workflows Integration Tests', () => {
       const gameState = createMockGameState({
         teamName: 'Persistence Test Team',
         homeScore: 2,
-        gameStatus: 'in_progress' as const,
+        gameStatus: 'inProgress' as const,
       });
 
       // Setup localStorage with game data
+      const gameId = 'test-persistence-game-' + Date.now();
       mockStorage.setItem('soccerSavedGames', JSON.stringify({
-        [gameState.id]: gameState
+        [gameId]: gameState
       }));
 
       render(<HomePage />);
@@ -287,7 +299,7 @@ describe('Core User Workflows Integration Tests', () => {
         configurable: true,
       });
 
-      const initialMemory = performance.memory?.usedJSHeapSize || 0;
+      const initialMemory = (performance as PerformanceWithMemory).memory?.usedJSHeapSize || 0;
 
       const { unmount } = render(<HomePage />);
 
@@ -303,7 +315,7 @@ describe('Core User Workflows Integration Tests', () => {
         global.gc();
       }
 
-      const finalMemory = performance.memory?.usedJSHeapSize || 0;
+      const finalMemory = (performance as PerformanceWithMemory).memory?.usedJSHeapSize || 0;
       
       // Should not leak significant memory (this is a rough check)
       // In a real test environment, we'd use more sophisticated memory monitoring
