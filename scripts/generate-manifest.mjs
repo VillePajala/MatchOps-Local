@@ -26,19 +26,27 @@ async function generateManifest() {
     "short_name": config.shortName,
     "description": "Soccer Tactics and Timer App for Coaches",
     "start_url": "/",
+    "scope": "/",
     "display": "fullscreen",
+    "orientation": "portrait-primary",
     "background_color": "#111827",
     "theme_color": config.themeColor,
+    "categories": ["sports", "productivity"],
+    "lang": "en-US",
+    "dir": "ltr",
+    "prefer_related_applications": false,
     "icons": [
       {
-        "src": config.iconPath,
+        "src": "/icons/icon-192x192.png",
         "sizes": "192x192",
-        "type": "image/png"
+        "type": "image/png",
+        "purpose": "maskable any"
       },
       {
-        "src": config.iconPath,
+        "src": "/icons/icon-512x512.png",
         "sizes": "512x512",
-        "type": "image/png"
+        "type": "image/png",
+        "purpose": "maskable any"
       }
     ]
   };

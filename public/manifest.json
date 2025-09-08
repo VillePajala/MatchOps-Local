@@ -3,9 +3,18 @@
   "short_name": "MatchOps Dev",
   "description": "Soccer Tactics and Timer App for Coaches",
   "start_url": "/",
+  "scope": "/",
   "display": "fullscreen",
+  "orientation": "portrait-primary",
   "background_color": "#111827",
   "theme_color": "#4f46e5",
+  "categories": [
+    "sports",
+    "productivity"
+  ],
+  "lang": "en-US",
+  "dir": "ltr",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -15,7 +24,7 @@
     },
     {
       "src": "/icons/icon-512x512.png",
-      "sizes": "512x512", 
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable any"
     }
