@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: restore precision timer with professional test coverage and re-enable React Query effects"
+  "notes": "fix: remove unused PerformanceWithMemory interface in precision timer test"
 }

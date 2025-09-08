@@ -59,7 +59,7 @@ const PlayerBar: React.FC<PlayerBarProps> = ({ players, onPlayerDragStartFromBar
         <div className="flex-shrink-0 mr-2">
           <Image
             className="h-16 w-16"
-            src="/pepo-logo.png"
+            src="/logos/match_ops_local_logo_transparent.png"
             alt="MatchOps Local Logo"
             width={64}
             height={64}
