@@ -59,7 +59,7 @@ jobs:
         run: npm run test:critical
         
       - name: Run utility unit tests (fast)
-        run: jest src/utils/ src/hooks/ --watchAll=false --coverage=false
+        run: npx jest src/utils/ src/hooks/ --watchAll=false --coverage=false
       
       - name: Upload coverage
         uses: codecov/codecov-action@v3
