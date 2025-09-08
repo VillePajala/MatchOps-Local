@@ -1,6 +1,22 @@
-// Listen for the install event
+// Caching strategy for PWA offline support
+const CACHE_NAME = 'matchops-v1';
+const STATIC_RESOURCES = [
+  '/',
+  '/manifest.json',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
+  '/logos/match_ops_local_logo_transparent.png'
+];
+
+// Listen for the install event - cache static resources
 self.addEventListener('install', (event) => {
   console.log('[SW] Service worker installing...');
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('[SW] Caching static resources');
+      return cache.addAll(STATIC_RESOURCES);
+    })
+  );
   // Do NOT call self.skipWaiting() here.
   // We want to wait for the user to click the update button.
 });
@@ -20,10 +36,41 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Basic fetch handler (can be expanded for caching strategies)
+// Enhanced fetch handler with offline support
 self.addEventListener('fetch', (event) => {
-  // For now, just pass through the request
-  // This is where you would add caching logic for offline support
-  event.respondWith(fetch(event.request));
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Handle same-origin requests
+  if (url.origin === location.origin) {
+    event.respondWith(
+      caches.match(request).then((response) => {
+        if (response) {
+          console.log('[SW] Serving from cache:', request.url);
+          return response;
+        }
+        
+        // Fetch from network and cache for next time
+        return fetch(request).then((fetchResponse) => {
+          // Only cache successful responses
+          if (fetchResponse.status === 200) {
+            const responseClone = fetchResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
+          return fetchResponse;
+        }).catch(() => {
+          // Offline fallback for HTML requests
+          if (request.destination === 'document') {
+            return caches.match('/');
+          }
+        });
+      })
+    );
+  } else {
+    // Pass through external requests
+    event.respondWith(fetch(request));
+  }
 });
-// Build Timestamp: 2025-09-08T07:33:14.447Z
+// Build Timestamp: 2025-09-08T11:57:50.872Z
