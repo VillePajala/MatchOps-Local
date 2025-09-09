@@ -190,4 +190,47 @@ export const logConfig = {
   enableSentry: config.monitoring.sentry.enabled,
 } as const;
 
+/**
+ * Runtime environment validation helper
+ * Useful for health checks or startup validation
+ */
+export function validateEnvironment(): { valid: boolean; errors?: string[] } {
+  try {
+    // Force re-parse to validate current environment
+    const tempEnv = parseEnvironment();
+    
+    // Additional runtime checks
+    const errors: string[] = [];
+    
+    // Check for critical production requirements
+    if (config.isProduction) {
+      if (!tempEnv.NEXT_PUBLIC_SENTRY_DSN && !tempEnv.NEXT_PUBLIC_SENTRY_FORCE_ENABLE) {
+        errors.push('Production deployment missing Sentry configuration');
+      }
+    }
+    
+    // Check for conflicting configurations
+    if (config.monitoring.sentry.enabled && !tempEnv.NEXT_PUBLIC_SENTRY_DSN) {
+      errors.push('Sentry monitoring enabled but DSN not configured');
+    }
+    
+    return {
+      valid: errors.length === 0,
+      errors: errors.length > 0 ? errors : undefined
+    };
+  } catch (error) {
+    return {
+      valid: false,
+      errors: [error instanceof Error ? error.message : 'Environment validation failed']
+    };
+  }
+}
+
+/**
+ * Simple boolean version for quick checks
+ */
+export function isEnvironmentValid(): boolean {
+  return validateEnvironment().valid;
+}
+
 export default env;

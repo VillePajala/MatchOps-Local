@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/generate-release-notes.mjs && node scripts/generate-manifest.mjs && next build",
-    "build:analyze": "node scripts/analyze-bundle.mjs",
+    "build:analyze": "ANALYZE=true npm run build && node scripts/analyze-bundle.mjs",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
@@ -33,7 +33,9 @@
     "e2e:debug": "playwright test --debug",
     "e2e:headed": "playwright test --headed",
     "e2e:install": "playwright install --with-deps",
-    "e2e:report": "playwright show-report"
+    "e2e:report": "playwright show-report",
+    "size-limit": "size-limit",
+    "size-limit:why": "size-limit --why"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
@@ -59,6 +61,7 @@
     "@eslint/eslintrc": "^3",
     "@next/bundle-analyzer": "^15.5.2",
     "@playwright/test": "^1.55.0",
+    "@size-limit/preset-app": "^11.2.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
@@ -75,6 +78,7 @@
     "jest-environment-jsdom": "^30.1.2",
     "jest-html-reporters": "^3.1.7",
     "jest-junit": "^16.0.0",
+    "size-limit": "^11.2.0",
     "tailwindcss": "^4",
     "ts-jest": "^29.4.1",
     "typescript": "^5.9.2"
