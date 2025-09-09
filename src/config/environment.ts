@@ -48,7 +48,7 @@ function parseEnvironment() {
   if (typeof window !== 'undefined') {
     // Browser environment - use minimal validation
     return {
-      NODE_ENV: (process.env.NODE_ENV as any) || 'development',
+      NODE_ENV: (process.env.NODE_ENV as 'development' | 'test' | 'production') || 'development',
       NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
       NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
       NEXT_PUBLIC_SENTRY_RELEASE: process.env.NEXT_PUBLIC_SENTRY_RELEASE,
@@ -61,7 +61,7 @@ function parseEnvironment() {
       NEXT_PUBLIC_FEATURE_PWA_INSTALL: process.env.NEXT_PUBLIC_FEATURE_PWA_INSTALL !== 'false',
       VERCEL_GIT_COMMIT_REF: process.env.VERCEL_GIT_COMMIT_REF,
       VERCEL_URL: process.env.VERCEL_URL,
-      VERCEL_ENV: process.env.VERCEL_ENV as any,
+      VERCEL_ENV: process.env.VERCEL_ENV as 'development' | 'preview' | 'production' | undefined,
       NEXT_PUBLIC_PERFORMANCE_MONITORING: process.env.NEXT_PUBLIC_PERFORMANCE_MONITORING === 'true',
       NEXT_PUBLIC_DEBUG_MODE: process.env.NEXT_PUBLIC_DEBUG_MODE === 'true',
       // Server-only variables are undefined in browser
