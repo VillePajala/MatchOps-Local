@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { HiOutlineChatBubbleLeftEllipsis, HiOutlineXMark } from 'react-icons/hi2';
-import { captureMessage } from '@/lib/sentry';
 
 interface ErrorFeedbackProps {
   error?: Error | null;
@@ -14,6 +13,7 @@ export default function ErrorFeedback({ error }: ErrorFeedbackProps) {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Handle auto-close timeout with proper cleanup
   useEffect(() => {
@@ -23,19 +23,35 @@ export default function ErrorFeedback({ error }: ErrorFeedbackProps) {
         setSubmitted(false);
         setFeedback('');
         setEmail('');
+        setSubmitError(null);
       }, 2000);
 
       return () => clearTimeout(timeout);
     }
   }, [submitted]);
 
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      setIsOpen(false);
+      setSubmitted(false);
+      setFeedback('');
+      setEmail('');
+      setSubmitError(null);
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!feedback.trim()) return;
 
     setIsSubmitting(true);
+    setSubmitError(null);
 
     try {
+      // Dynamically import Sentry to reduce bundle size
+      const { captureMessage } = await import('@/lib/sentry');
+      
       // Send feedback to Sentry
       captureMessage('User Error Feedback', 'info', {
         feedback: feedback.trim(),
@@ -48,6 +64,7 @@ export default function ErrorFeedback({ error }: ErrorFeedbackProps) {
       setSubmitted(true);
     } catch (err) {
       console.error('Failed to send feedback:', err);
+      setSubmitError('Failed to send feedback. Please try again later.');
     } finally {
       setIsSubmitting(false);
     }
@@ -87,6 +104,11 @@ export default function ErrorFeedback({ error }: ErrorFeedbackProps) {
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
+            {submitError && (
+              <div className="mb-4 p-3 bg-red-900/20 border border-red-600/30 rounded-md">
+                <p className="text-red-400 text-sm">{submitError}</p>
+              </div>
+            )}
             <div className="mb-4">
               <label htmlFor="feedback" className="block text-sm font-medium text-slate-300 mb-2">
                 What happened? (Optional)

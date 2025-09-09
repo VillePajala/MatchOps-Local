@@ -44,9 +44,13 @@ const environmentSchema = z.object({
  * This will throw an error if required variables are missing or invalid
  */
 function parseEnvironment() {
-  // Check if we're in a browser environment or during build time
-  if (typeof window !== 'undefined') {
-    // Browser environment - use minimal validation
+  // Explicit environment detection for validation strategy
+  const isBrowser = typeof window !== 'undefined';
+  const isBuild = typeof process !== 'undefined' && process.env.NODE_ENV && !isBrowser;
+  const isServer = !isBrowser && !isBuild;
+
+  if (isBrowser) {
+    // Browser environment - use minimal validation for client-side vars only
     return {
       NODE_ENV: (process.env.NODE_ENV as 'development' | 'test' | 'production') || 'development',
       NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -71,12 +75,17 @@ function parseEnvironment() {
     };
   }
 
-  // Server environment or build time - use full validation
+  // Server or build environment - use full validation
   try {
-    return environmentSchema.parse(process.env);
+    const result = environmentSchema.parse(process.env);
+    if (isServer) {
+      // Additional server-side validation if needed
+      console.log(`🔧 Environment validated for ${result.NODE_ENV} mode`);
+    }
+    return result;
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('❌ Invalid environment configuration:');
+      console.error(`❌ Invalid environment configuration (${isBuild ? 'build' : 'server'} mode):`);
       error.issues.forEach(issue => {
         console.error(`  - ${issue.path.join('.')}: ${issue.message}`);
       });

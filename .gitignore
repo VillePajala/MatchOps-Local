@@ -46,3 +46,7 @@ next-env.d.ts
 
 # build artifacts
 public/manifest.json
+
+# security and audit reports
+audit-report.json
+security-report.json

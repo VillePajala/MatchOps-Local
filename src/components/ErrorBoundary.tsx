@@ -1,7 +1,6 @@
 import React, { Component, ReactNode } from 'react';
 import { HiExclamationTriangle } from 'react-icons/hi2';
 import logger from '@/utils/logger';
-import { captureException, setContext } from '@/lib/sentry';
 import ErrorFeedback from './ErrorFeedback';
 
 interface Props {
@@ -46,20 +45,30 @@ class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     });
 
-    // Send error to Sentry with context
-    setContext('errorBoundary', {
-      componentStack: errorInfo.componentStack,
-      errorBoundary: true,
-    });
-    
-    captureException(error, {
-      errorInfo,
-      componentStack: errorInfo.componentStack,
-    });
+    // Dynamically import and send error to Sentry with context
+    this.sendErrorToSentry(error, errorInfo);
 
     // Call the onError callback if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
+    }
+  }
+
+  private async sendErrorToSentry(error: Error, errorInfo: React.ErrorInfo) {
+    try {
+      const { captureException, setContext } = await import('@/lib/sentry');
+      
+      setContext('errorBoundary', {
+        componentStack: errorInfo.componentStack,
+        errorBoundary: true,
+      });
+      
+      captureException(error, {
+        errorInfo,
+        componentStack: errorInfo.componentStack,
+      });
+    } catch (sentryError) {
+      console.error('Failed to send error to Sentry:', sentryError);
     }
   }
 
