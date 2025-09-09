@@ -16,13 +16,15 @@ const nextConfig: NextConfig = {
       {
         source: '/(.*)',
         headers: [
-          // Content Security Policy
+          // Content Security Policy - Secure configuration without unsafe directives
           {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Next.js requires unsafe-eval
-              "style-src 'self' 'unsafe-inline'", // Tailwind requires unsafe-inline
+              // Strict script policy - no unsafe-eval or unsafe-inline
+              "script-src 'self' 'nonce-__CSP_NONCE__' 'strict-dynamic'",
+              // Style policy with hash-based allowances for Tailwind
+              "style-src 'self' 'nonce-__CSP_NONCE__'",
               "img-src 'self' data: blob:",
               "font-src 'self' data:",
               "connect-src 'self' https://*.sentry.io https://vitals.vercel-insights.com",
@@ -32,6 +34,8 @@ const nextConfig: NextConfig = {
               "form-action 'self'",
               "frame-ancestors 'none'",
               "upgrade-insecure-requests",
+              // Report violations for monitoring
+              "report-uri /api/csp-report",
             ].join('; '),
           },
           // Additional security headers

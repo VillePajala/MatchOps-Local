@@ -3,6 +3,7 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { glob } from 'glob';
 
 /**
  * Bundle size monitoring and CI check script
@@ -19,7 +20,7 @@ const REGRESSION_THRESHOLD = 0.05; // 5% increase triggers warning
 /**
  * Get current bundle sizes from build output
  */
-function getCurrentBundleSizes() {
+async function getCurrentBundleSizes() {
   const buildStatsPath = '.next/static';
   
   if (!fs.existsSync(buildStatsPath)) {
@@ -29,11 +30,12 @@ function getCurrentBundleSizes() {
   const sizes = {};
   
   try {
-    // Get JavaScript bundle sizes
-    const jsFiles = execSync(`find ${buildStatsPath} -name "*.js" -type f`, { encoding: 'utf8' })
-      .trim()
-      .split('\n')
-      .filter(Boolean);
+    // Get JavaScript bundle sizes using secure glob instead of shell commands
+    const jsFiles = await glob('**/*.js', { 
+      cwd: buildStatsPath,
+      absolute: true,
+      nodir: true 
+    });
     
     let totalJSSize = 0;
     for (const file of jsFiles) {
@@ -43,11 +45,12 @@ function getCurrentBundleSizes() {
       }
     }
     
-    // Get CSS bundle sizes
-    const cssFiles = execSync(`find ${buildStatsPath} -name "*.css" -type f`, { encoding: 'utf8' })
-      .trim()
-      .split('\n')
-      .filter(Boolean);
+    // Get CSS bundle sizes using secure glob instead of shell commands
+    const cssFiles = await glob('**/*.css', { 
+      cwd: buildStatsPath,
+      absolute: true,
+      nodir: true 
+    });
     
     let totalCSSSize = 0;
     for (const file of cssFiles) {
@@ -192,7 +195,7 @@ function generateReport(currentSizes, trendAnalysis, history) {
 async function main() {
   try {
     // Get current sizes
-    const currentSizes = getCurrentBundleSizes();
+    const currentSizes = await getCurrentBundleSizes();
     
     console.log('📦 Current Bundle Sizes:');
     console.log(`   JavaScript: ${formatSize(currentSizes.totalJS)}`);
