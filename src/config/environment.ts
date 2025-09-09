@@ -43,13 +43,66 @@ const environmentSchema = z.object({
  * Parse and validate environment variables
  * This will throw an error if required variables are missing or invalid
  */
-function parseEnvironment() {
-  // Explicit environment detection for validation strategy
-  const isBrowser = typeof window !== 'undefined';
-  const isBuild = typeof process !== 'undefined' && process.env.NODE_ENV && !isBrowser;
-  const isServer = !isBrowser && !isBuild;
+/**
+ * Type guards for robust environment detection
+ */
+function isBrowserEnvironment(): boolean {
+  return typeof window !== 'undefined' && typeof document !== 'undefined';
+}
 
-  if (isBrowser) {
+function isNodeEnvironment(): boolean {
+  return (
+    typeof process !== 'undefined' &&
+    process.versions !== null &&
+    process.versions.node !== null &&
+    typeof process.env === 'object'
+  );
+}
+
+function isBuildTimeEnvironment(): boolean {
+  return (
+    isNodeEnvironment() &&
+    typeof process.env.NODE_ENV === 'string' &&
+    !isBrowserEnvironment()
+  );
+}
+
+function isServerEnvironment(): boolean {
+  return (
+    isNodeEnvironment() &&
+    !isBrowserEnvironment() &&
+    (!process.env.NODE_ENV || process.env.NODE_ENV !== 'test')
+  );
+}
+
+/**
+ * Runtime environment detection with type guards
+ */
+interface EnvironmentContext {
+  isBrowser: boolean;
+  isBuild: boolean;
+  isServer: boolean;
+  isTest: boolean;
+}
+
+function detectEnvironment(): EnvironmentContext {
+  const isBrowser = isBrowserEnvironment();
+  const isBuild = isBuildTimeEnvironment();
+  const isServer = isServerEnvironment();
+  const isTest = isNodeEnvironment() && process.env.NODE_ENV === 'test';
+
+  return {
+    isBrowser,
+    isBuild,
+    isServer,
+    isTest,
+  };
+}
+
+function parseEnvironment() {
+  const env = detectEnvironment();
+
+  if (env.isBrowser) {
     // Browser environment - use minimal validation for client-side vars only
     return {
       NODE_ENV: (process.env.NODE_ENV as 'development' | 'test' | 'production') || 'development',
@@ -78,18 +131,19 @@ function parseEnvironment() {
   // Server or build environment - use full validation
   try {
     const result = environmentSchema.parse(process.env);
-    if (isServer) {
+    if (env.isServer) {
       // Additional server-side validation if needed
       console.log(`🔧 Environment validated for ${result.NODE_ENV} mode`);
     }
     return result;
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error(`❌ Invalid environment configuration (${isBuild ? 'build' : 'server'} mode):`);
+      const contextLabel = env.isBuild ? 'build' : env.isServer ? 'server' : env.isTest ? 'test' : 'unknown';
+      console.error(`❌ Invalid environment configuration (${contextLabel} mode):`);
       error.issues.forEach(issue => {
         console.error(`  - ${issue.path.join('.')}: ${issue.message}`);
       });
-      throw new Error('Environment validation failed');
+      throw new Error(`Environment validation failed in ${contextLabel} context`);
     }
     throw error;
   }
@@ -232,5 +286,16 @@ export function validateEnvironment(): { valid: boolean; errors?: string[] } {
 export function isEnvironmentValid(): boolean {
   return validateEnvironment().valid;
 }
+
+/**
+ * Export environment detection utilities
+ */
+export const environmentDetection = {
+  isBrowserEnvironment,
+  isNodeEnvironment,
+  isBuildTimeEnvironment,
+  isServerEnvironment,
+  detectEnvironment,
+} as const;
 
 export default env;
