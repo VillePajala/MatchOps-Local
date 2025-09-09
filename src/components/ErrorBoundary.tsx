@@ -1,6 +1,8 @@
 import React, { Component, ReactNode } from 'react';
 import { HiExclamationTriangle } from 'react-icons/hi2';
 import logger from '@/utils/logger';
+import { captureException, setContext } from '@/lib/sentry';
+import ErrorFeedback from './ErrorFeedback';
 
 interface Props {
   children: ReactNode;
@@ -42,6 +44,17 @@ class ErrorBoundary extends Component<Props, State> {
     this.setState({
       error,
       errorInfo,
+    });
+
+    // Send error to Sentry with context
+    setContext('errorBoundary', {
+      componentStack: errorInfo.componentStack,
+      errorBoundary: true,
+    });
+    
+    captureException(error, {
+      errorInfo,
+      componentStack: errorInfo.componentStack,
     });
 
     // Call the onError callback if provided
@@ -97,7 +110,7 @@ class ErrorBoundary extends Component<Props, State> {
             An unexpected error occurred. This has been logged and will be investigated.
           </p>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 mb-4">
             <button
               onClick={this.handleRetry}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-medium transition-colors"
@@ -110,6 +123,11 @@ class ErrorBoundary extends Component<Props, State> {
             >
               Refresh Page
             </button>
+          </div>
+
+          {/* Error Feedback */}
+          <div className="flex justify-center">
+            <ErrorFeedback error={this.state.error} />
           </div>
 
           {/* Error Details (Development only) */}

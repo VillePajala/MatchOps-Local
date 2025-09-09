@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: use npx jest instead of jest in CI for proper command resolution"
+  "notes": "feat: complete Play Store readiness fixes for PWA compliance"
 }

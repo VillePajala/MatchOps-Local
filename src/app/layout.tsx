@@ -6,6 +6,7 @@ import QueryProvider from './QueryProvider';
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import InstallPrompt from "@/components/InstallPrompt";
 import I18nInitializer from "@/components/I18nInitializer";
+import SentryInitializer from "@/components/SentryInitializer";
 import { Analytics } from "@vercel/analytics/react";
 import { manifestConfig } from "@/config/manifest.config.js";
 
@@ -52,6 +53,7 @@ export default function RootLayout({
       </head>
       <body className={rajdhani.variable}>
         <I18nInitializer>
+          <SentryInitializer />
           <ServiceWorkerRegistration />
           <InstallPrompt />
           <QueryProvider>

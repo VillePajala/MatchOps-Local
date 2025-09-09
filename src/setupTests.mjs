@@ -54,6 +54,15 @@ afterEach(() => {
 afterAll(() => {
   // Restore original window.location if it was modified
   if (typeof window !== 'undefined' && originalLocation) {
-    Object.defineProperty(window, 'location', { value: originalLocation });
+    try {
+      Object.defineProperty(window, 'location', { 
+        value: originalLocation,
+        configurable: true,
+        writable: true
+      });
+    } catch {
+      // Location property might not be redefinable in some environments
+      // This is not critical for test functionality
+    }
   }
 }); 
