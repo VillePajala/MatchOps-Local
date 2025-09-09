@@ -26,7 +26,7 @@
     "type-check": "tsc --noEmit",
     "security:audit": "npm audit",
     "security:fix": "npm audit fix",
-    "ci": "npm run lint && npm run type-check && npm run test:coverage && npm run build",
+    "ci": "npm run lint && npm run type-check && npm run test:coverage && npm run build && npm run size-limit",
     "generate:i18n-types": "node scripts/generate-i18n-types.mjs",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
@@ -35,7 +35,9 @@
     "e2e:install": "playwright install --with-deps",
     "e2e:report": "playwright show-report",
     "size-limit": "size-limit",
-    "size-limit:why": "size-limit --why"
+    "size-limit:why": "size-limit --why",
+    "bundle-size:check": "node scripts/bundle-size-check.mjs",
+    "bundle-size:history": "cat bundle-size-history.json | jq '.[].sizes.total' | tail -10"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",

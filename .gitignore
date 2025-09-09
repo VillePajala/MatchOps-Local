@@ -50,3 +50,6 @@ public/manifest.json
 # security and audit reports
 audit-report.json
 security-report.json
+
+# bundle size tracking
+bundle-size-report.json

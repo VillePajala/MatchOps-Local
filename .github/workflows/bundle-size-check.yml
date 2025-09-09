@@ -1,0 +1,127 @@
+name: Bundle Size Check
+
+on:
+  push:
+    branches: [ main, master, production-readiness-improvements ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  bundle-size-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history for accurate size comparison
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Download previous bundle history
+        uses: actions/cache@v3
+        with:
+          path: bundle-size-history.json
+          key: bundle-size-history-${{ github.repository }}-${{ github.ref_name }}
+          restore-keys: |
+            bundle-size-history-${{ github.repository }}-
+            bundle-size-history-
+
+      - name: Run bundle size analysis
+        id: bundle-analysis
+        run: npm run bundle-size:check
+        continue-on-error: true
+
+      - name: Upload bundle size report
+        uses: actions/upload-artifact@v3
+        with:
+          name: bundle-size-report
+          path: bundle-size-report.json
+
+      - name: Save bundle history
+        uses: actions/cache@v3
+        with:
+          path: bundle-size-history.json
+          key: bundle-size-history-${{ github.repository }}-${{ github.ref_name }}-${{ github.sha }}
+
+      - name: Comment PR with bundle size
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            if (!fs.existsSync('bundle-size-report.json')) {
+              console.log('No bundle size report found');
+              return;
+            }
+            
+            const report = JSON.parse(fs.readFileSync('bundle-size-report.json', 'utf8'));
+            
+            const formatSize = (bytes) => {
+              if (bytes === 0) return '0 B';
+              const k = 1024;
+              const sizes = ['B', 'KB', 'MB'];
+              const i = Math.floor(Math.log(bytes) / Math.log(k));
+              return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+            };
+            
+            const currentSize = formatSize(report.sizes.total);
+            const jsSize = formatSize(report.sizes.totalJS);
+            const cssSize = formatSize(report.sizes.totalCSS);
+            
+            let analysisIcon = '📊';
+            if (report.analysis.isRegression) {
+              analysisIcon = '🚨';
+            } else if (report.analysis.isImprovement) {
+              analysisIcon = '✅';
+            }
+            
+            const comment = `## ${analysisIcon} Bundle Size Report
+            
+            | Metric | Size |
+            |--------|------|
+            | **Total Bundle** | **${currentSize}** |
+            | JavaScript | ${jsSize} |
+            | CSS | ${cssSize} |
+            
+            ### Analysis
+            ${report.analysis.analysis || 'No trend analysis available'}
+            
+            ### Budget Status
+            ${report.budgetStatus === 'passed' ? '✅ Within budget limits' : '❌ Exceeds budget limits'}
+            
+            <details>
+            <summary>Size Breakdown</summary>
+            
+            - **Branch:** \`${report.branch}\`
+            - **Commit:** \`${report.commit.substring(0, 7)}\`
+            - **Timestamp:** ${new Date(report.timestamp).toLocaleString()}
+            
+            </details>`;
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Fail on significant regression
+        if: steps.bundle-analysis.outcome == 'failure'
+        run: |
+          echo "Bundle size check failed - see logs above"
+          exit 1

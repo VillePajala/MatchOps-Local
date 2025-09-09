@@ -2,7 +2,7 @@
 
 import React, { Component, ReactNode } from 'react';
 import { HiExclamationCircle } from 'react-icons/hi2';
-import logger from '@/utils/logger';
+import logger, { LogLevel } from '@/utils/logger';
 
 interface Props {
   children: ReactNode;
@@ -43,9 +43,47 @@ class SectionErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     const { sectionName, onError } = this.props;
+    const { retryCount } = this.state;
     
-    // Log section-specific error
-    logger.error(`[${sectionName}] Section error:`, error, errorInfo);
+    // Enhanced structured logging with severity based on retry count
+    const severity = retryCount >= 2 ? LogLevel.CRITICAL : LogLevel.ERROR;
+    const errorId = `section-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    logger.error(
+      'Section component error occurred',
+      error,
+      {
+        component: 'SectionErrorBoundary',
+        section: sectionName,
+        errorId,
+        stack: errorInfo.componentStack,
+        retryCount,
+      },
+      {
+        errorInfo,
+        isRepeatedFailure: retryCount > 0,
+        maxRetriesReached: retryCount >= this.maxRetries,
+        timestamp: new Date().toISOString(),
+      }
+    );
+    
+    // Log as critical if max retries reached
+    if (retryCount >= this.maxRetries) {
+      logger.critical(
+        'Section component failed after maximum retries',
+        error,
+        {
+          component: 'SectionErrorBoundary',
+          section: sectionName,
+          errorId,
+        },
+        {
+          maxRetries: this.maxRetries,
+          finalRetryCount: retryCount,
+          requiresUserIntervention: true,
+        }
+      );
+    }
     
     // Send to Sentry with section context
     this.sendErrorToSentry(error, errorInfo, sectionName);
