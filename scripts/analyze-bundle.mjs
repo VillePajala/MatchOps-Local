@@ -21,16 +21,34 @@ try {
     console.log(`\n✅ Bundle analysis complete!`);
     console.log(`📊 Analysis report available at: ${path.resolve(statsPath)}`);
     
-    // Try to open the analysis report
+    // Try to open the analysis report with better error handling
     try {
       const { platform } = process;
-      const openCommand = platform === 'darwin' ? 'open' : 
-                         platform === 'win32' ? 'start' : 'xdg-open';
+      let openCommand;
       
-      execSync(`${openCommand} "${path.resolve(statsPath)}"`, { stdio: 'ignore' });
+      switch (platform) {
+        case 'darwin':
+          openCommand = 'open';
+          break;
+        case 'win32':
+          openCommand = 'start ""'; // Windows needs empty quotes for paths with spaces
+          break;
+        case 'linux':
+          openCommand = 'xdg-open';
+          break;
+        default:
+          console.log(`💡 Unsupported platform: ${platform}. Please manually open: ${path.resolve(statsPath)}`);
+          throw new Error('Unsupported platform');
+      }
+      
+      execSync(`${openCommand} "${path.resolve(statsPath)}"`, { 
+        stdio: 'ignore',
+        timeout: 5000 // 5 second timeout
+      });
       console.log('🌐 Opening bundle analysis in browser...');
     } catch (error) {
-      console.log('💡 Please manually open the analysis file in your browser');
+      console.log(`💡 Could not auto-open file (${error.message})`);
+      console.log(`🔗 Please manually open: ${path.resolve(statsPath)}`);
     }
   } else {
     console.log('⚠️  Analysis files not found. Check bundle analyzer configuration.');
@@ -64,8 +82,8 @@ Based on current analysis, focus on these areas:
   2. Tree-shake unused utilities (~5kB)
   3. Optimize font loading (~5kB)
 
-🎯 TARGET: Reduce from 500kB → 350kB (30% reduction)
-📊 EXPECTED TOTAL SAVINGS: 70-105kB (14-21% reduction)
+🎯 TARGET: Optimize bundle size based on current analysis
+📊 EXPECTED TOTAL SAVINGS: 70-105kB (varies by current bundle size)
 
 Next steps:
 1. Review .next/analyze/client.html for detailed breakdown

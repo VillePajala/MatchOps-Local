@@ -53,7 +53,9 @@ const ENVIRONMENT_OVERRIDES = {
  * Check if a feature is enabled with environment overrides
  */
 export function useFeature(feature: keyof typeof config.features): boolean {
-  const envOverrides = ENVIRONMENT_OVERRIDES[config.app.branch as keyof typeof ENVIRONMENT_OVERRIDES] || {};
+  // Use proper environment detection instead of git branch
+  const envKey = config.isDevelopment ? 'development' : config.isProduction ? 'production' : 'test';
+  const envOverrides = ENVIRONMENT_OVERRIDES[envKey] || {};
   
   // Check environment override first
   if (feature in envOverrides) {
@@ -114,7 +116,7 @@ export function logFeatureStates(): void {
       console.log(`${enabled ? '✅' : '❌'} ${feature}: ${description}`);
     });
     
-    console.log(`\n📍 Environment: ${config.app.branch}`);
+    console.log(`\n📍 Environment: ${config.isDevelopment ? 'development' : config.isProduction ? 'production' : 'test'}`);
     console.log(`📍 Node ENV: ${process.env.NODE_ENV}`);
     console.groupEnd();
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HiOutlineChatBubbleLeftEllipsis, HiOutlineXMark } from 'react-icons/hi2';
 import { captureMessage } from '@/lib/sentry';
 
@@ -14,6 +14,20 @@ export default function ErrorFeedback({ error }: ErrorFeedbackProps) {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // Handle auto-close timeout with proper cleanup
+  useEffect(() => {
+    if (submitted) {
+      const timeout = setTimeout(() => {
+        setIsOpen(false);
+        setSubmitted(false);
+        setFeedback('');
+        setEmail('');
+      }, 2000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [submitted]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,12 +46,6 @@ export default function ErrorFeedback({ error }: ErrorFeedbackProps) {
       });
 
       setSubmitted(true);
-      setTimeout(() => {
-        setIsOpen(false);
-        setSubmitted(false);
-        setFeedback('');
-        setEmail('');
-      }, 2000);
     } catch (err) {
       console.error('Failed to send feedback:', err);
     } finally {

@@ -44,6 +44,34 @@ const environmentSchema = z.object({
  * This will throw an error if required variables are missing or invalid
  */
 function parseEnvironment() {
+  // Check if we're in a browser environment or during build time
+  if (typeof window !== 'undefined') {
+    // Browser environment - use minimal validation
+    return {
+      NODE_ENV: (process.env.NODE_ENV as any) || 'development',
+      NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+      NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
+      NEXT_PUBLIC_SENTRY_RELEASE: process.env.NEXT_PUBLIC_SENTRY_RELEASE,
+      NEXT_PUBLIC_SENTRY_FORCE_ENABLE: process.env.NEXT_PUBLIC_SENTRY_FORCE_ENABLE === 'true',
+      NEXT_PUBLIC_ANALYTICS_ID: process.env.NEXT_PUBLIC_ANALYTICS_ID,
+      NEXT_PUBLIC_FEATURE_ADVANCED_ANALYTICS: process.env.NEXT_PUBLIC_FEATURE_ADVANCED_ANALYTICS === 'true',
+      NEXT_PUBLIC_FEATURE_PREMIUM_FEATURES: process.env.NEXT_PUBLIC_FEATURE_PREMIUM_FEATURES === 'true',
+      NEXT_PUBLIC_FEATURE_EXPORT_FORMATS: process.env.NEXT_PUBLIC_FEATURE_EXPORT_FORMATS !== 'false',
+      NEXT_PUBLIC_FEATURE_MULTI_LANGUAGE: process.env.NEXT_PUBLIC_FEATURE_MULTI_LANGUAGE !== 'false',
+      NEXT_PUBLIC_FEATURE_PWA_INSTALL: process.env.NEXT_PUBLIC_FEATURE_PWA_INSTALL !== 'false',
+      VERCEL_GIT_COMMIT_REF: process.env.VERCEL_GIT_COMMIT_REF,
+      VERCEL_URL: process.env.VERCEL_URL,
+      VERCEL_ENV: process.env.VERCEL_ENV as any,
+      NEXT_PUBLIC_PERFORMANCE_MONITORING: process.env.NEXT_PUBLIC_PERFORMANCE_MONITORING === 'true',
+      NEXT_PUBLIC_DEBUG_MODE: process.env.NEXT_PUBLIC_DEBUG_MODE === 'true',
+      // Server-only variables are undefined in browser
+      SENTRY_ORG: undefined,
+      SENTRY_PROJECT: undefined,
+      SENTRY_AUTH_TOKEN: undefined,
+    };
+  }
+
+  // Server environment or build time - use full validation
   try {
     return environmentSchema.parse(process.env);
   } catch (error) {
@@ -58,8 +86,16 @@ function parseEnvironment() {
   }
 }
 
-// Export validated environment
-export const env = parseEnvironment();
+// Export validated environment with lazy initialization
+let _env: ReturnType<typeof parseEnvironment> | null = null;
+export const env = new Proxy({} as ReturnType<typeof parseEnvironment>, {
+  get(target, prop) {
+    if (!_env) {
+      _env = parseEnvironment();
+    }
+    return _env[prop as keyof typeof _env];
+  }
+});
 
 /**
  * Environment-specific configurations
