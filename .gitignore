@@ -53,3 +53,6 @@ security-report.json
 
 # bundle size tracking
 bundle-size-report.json
+
+# security audit reports
+security-audit-report.json

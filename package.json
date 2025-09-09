@@ -37,7 +37,9 @@
     "size-limit": "size-limit",
     "size-limit:why": "size-limit --why",
     "bundle-size:check": "node scripts/bundle-size-check.mjs",
-    "bundle-size:history": "cat bundle-size-history.json | jq '.[].sizes.total' | tail -10"
+    "bundle-size:history": "cat bundle-size-history.json | jq '.[].sizes.total' | tail -10",
+    "security:scan": "node scripts/security-audit.mjs",
+    "security:full": "npm run security:audit && npm run security:scan"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",

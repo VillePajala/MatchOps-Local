@@ -11,11 +11,38 @@ const nextConfig: NextConfig = {
     compress: true,
     poweredByHeader: false,
     
-    // Security headers
+    // Comprehensive security headers
     headers: async () => [
       {
         source: '/(.*)',
         headers: [
+          // Content Security Policy
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline'", // Next.js requires unsafe-eval
+              "style-src 'self' 'unsafe-inline'", // Tailwind requires unsafe-inline
+              "img-src 'self' data: blob:",
+              "font-src 'self' data:",
+              "connect-src 'self' https://*.sentry.io https://vitals.vercel-insights.com",
+              "media-src 'none'",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "frame-ancestors 'none'",
+              "upgrade-insecure-requests",
+            ].join('; '),
+          },
+          // Additional security headers
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
+          },
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
@@ -27,6 +54,52 @@ const nextConfig: NextConfig = {
           {
             key: 'X-XSS-Protection',
             value: '1; mode=block',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: [
+              'camera=()',
+              'microphone=()',
+              'geolocation=()',
+              'interest-cohort=()',
+              'payment=()',
+              'usb=()',
+            ].join(', '),
+          },
+        ],
+      },
+      // PWA-specific headers
+      {
+        source: '/manifest.json',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/manifest+json',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/sw.js',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/javascript',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
+          },
+          {
+            key: 'Service-Worker-Allowed',
+            value: '/',
           },
         ],
       },

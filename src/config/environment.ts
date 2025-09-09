@@ -245,21 +245,35 @@ export const logConfig = {
 } as const;
 
 /**
- * Runtime environment validation helper
+ * Runtime environment validation helper with security checks
  * Useful for health checks or startup validation
  */
-export function validateEnvironment(): { valid: boolean; errors?: string[] } {
+export function validateEnvironment(): { valid: boolean; errors?: string[]; warnings?: string[] } {
   try {
     // Force re-parse to validate current environment
     const tempEnv = parseEnvironment();
     
     // Additional runtime checks
     const errors: string[] = [];
+    const warnings: string[] = [];
+    
+    // Security validation - Check for secret exposure
+    const securityValidation = validateSecurityConfiguration();
+    errors.push(...securityValidation.errors);
+    warnings.push(...securityValidation.warnings);
     
     // Check for critical production requirements
     if (config.isProduction) {
       if (!tempEnv.NEXT_PUBLIC_SENTRY_DSN && !tempEnv.NEXT_PUBLIC_SENTRY_FORCE_ENABLE) {
         errors.push('Production deployment missing Sentry configuration');
+      }
+      
+      // Validate Sentry DSN format in production
+      if (tempEnv.NEXT_PUBLIC_SENTRY_DSN) {
+        const sentryDsnPattern = /^https:\/\/[a-f0-9]+@[a-zA-Z0-9.-]+\/\d+$/;
+        if (!sentryDsnPattern.test(tempEnv.NEXT_PUBLIC_SENTRY_DSN)) {
+          errors.push('Invalid Sentry DSN format detected');
+        }
       }
     }
     
@@ -270,7 +284,8 @@ export function validateEnvironment(): { valid: boolean; errors?: string[] } {
     
     return {
       valid: errors.length === 0,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
+      warnings: warnings.length > 0 ? warnings : undefined,
     };
   } catch (error) {
     return {
@@ -278,6 +293,64 @@ export function validateEnvironment(): { valid: boolean; errors?: string[] } {
       errors: [error instanceof Error ? error.message : 'Environment validation failed']
     };
   }
+}
+
+/**
+ * Validate security configuration and check for potential secret exposure
+ */
+function validateSecurityConfiguration(): { errors: string[]; warnings: string[] } {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  
+  // Check for potentially exposed secrets in environment variables
+  const envVars = typeof process !== 'undefined' ? process.env : {};
+  
+  for (const [key, value] of Object.entries(envVars)) {
+    if (!value) continue;
+    
+    // Check for secrets with NEXT_PUBLIC_ prefix (would be exposed to client)
+    if (key.startsWith('NEXT_PUBLIC_')) {
+      // Check for common secret patterns
+      const secretPatterns = [
+        { pattern: /sk-[a-zA-Z0-9-_]{20,}/, name: 'OpenAI API Key' },
+        { pattern: /^[a-f0-9]{32,}$/, name: 'Generic Hash/Token' },
+        { pattern: /xoxb-[0-9]+-[0-9]+-[0-9]+-[a-f0-9]+/, name: 'Slack Bot Token' },
+        { pattern: /ghp_[a-zA-Z0-9]{36}/, name: 'GitHub Personal Access Token' },
+        { pattern: /gho_[a-zA-Z0-9]{36}/, name: 'GitHub OAuth Token' },
+        { pattern: /AKIA[0-9A-Z]{16}/, name: 'AWS Access Key' },
+      ];
+      
+      for (const { pattern, name } of secretPatterns) {
+        if (pattern.test(value)) {
+          errors.push(`Potential ${name} exposed in client-side environment variable: ${key}`);
+        }
+      }
+      
+      // Check for suspiciously long strings that might be secrets
+      if (value.length > 50 && !/^https?:\/\//.test(value) && !key.includes('DSN')) {
+        warnings.push(`Suspiciously long value in client-exposed variable: ${key} (${value.length} chars)`);
+      }
+    }
+    
+    // Validate Sentry auth token is not exposed
+    if (key === 'SENTRY_AUTH_TOKEN' && key.startsWith('NEXT_PUBLIC_')) {
+      errors.push('SENTRY_AUTH_TOKEN must not have NEXT_PUBLIC_ prefix - this would expose it to client');
+    }
+  }
+  
+  // Additional security checks
+  if (config.isProduction) {
+    // Check that server-only secrets are properly configured
+    const serverSecrets = ['SENTRY_AUTH_TOKEN', 'SENTRY_ORG', 'SENTRY_PROJECT'];
+    for (const secret of serverSecrets) {
+      const publicKey = `NEXT_PUBLIC_${secret}`;
+      if (envVars[publicKey]) {
+        errors.push(`Server secret ${secret} incorrectly configured as ${publicKey} - this exposes it to client`);
+      }
+    }
+  }
+  
+  return { errors, warnings };
 }
 
 /**
