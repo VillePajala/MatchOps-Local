@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
 
 export function middleware(request: NextRequest) {
-  // Generate a unique nonce for each request
-  const nonce = crypto.randomBytes(16).toString('base64');
+  // Generate a unique nonce for each request using Web Crypto API (Edge Runtime compatible)
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  const nonce = btoa(String.fromCharCode.apply(null, Array.from(array)));
   
   // Clone the request headers and add the nonce
   const requestHeaders = new Headers(request.headers);
