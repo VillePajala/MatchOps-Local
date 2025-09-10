@@ -80,7 +80,10 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
           }
         })
         .catch((error) => {
-          logger.error('Failed to load master roster:', error);
+          logger.error('Failed to load master roster', error as Error, {
+        component: 'TeamRosterModal',
+        section: 'data-loading',
+      });
           setMasterRosterPlayers([]);
         });
     }
@@ -111,7 +114,10 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
       setIsSelectingFromMaster(false);
       setSelectedPlayerIds([]);
     } catch (error) {
-      logger.error('Failed to add selected players:', error);
+      logger.error('Failed to add selected players', error as Error, {
+        component: 'TeamRosterModal',
+        section: 'general',
+      });
     }
   };
 

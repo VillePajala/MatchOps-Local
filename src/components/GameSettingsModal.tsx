@@ -350,7 +350,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           const loadedSeasonsData = await getSeasons();
           setSeasons(Array.isArray(loadedSeasonsData) ? loadedSeasonsData : []);
       } catch (error) {
-        logger.error('[GameSettingsModal] Error loading seasons:', error);
+        logger.error('[GameSettingsModal] Error loading seasons', error as Error, {
+          component: 'GameSettingsModal',
+          section: 'seasons-loading',
+        });
         setSeasons([]);
         // Set error state for user feedback
         setError(t('gameSettingsModal.errors.loadingSeasonsFailed', 'Failed to load seasons'));
@@ -359,7 +362,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           const loadedTournamentsData = await getTournaments();
           setTournaments(Array.isArray(loadedTournamentsData) ? loadedTournamentsData : []);
       } catch (error) {
-        logger.error('[GameSettingsModal] Error loading tournaments:', error);
+        logger.error('[GameSettingsModal] Error loading tournaments', error as Error, {
+          component: 'GameSettingsModal',
+          section: 'tournaments-loading',
+        });
         setTournaments([]);
         // Set error state for user feedback
         setError(t('gameSettingsModal.errors.loadingTournamentsFailed', 'Failed to load tournaments'));
@@ -448,7 +454,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             updates: batchedUpdates,
           });
         } catch (error) {
-          logger.error('[GameSettingsModal] Error updating game with season data:', error);
+          logger.error('[GameSettingsModal] Error updating game with season data', error as Error, {
+            component: 'GameSettingsModal',
+            section: 'season-update',
+          });
           setError(t('gameSettingsModal.errors.seasonUpdateFailed', 'Failed to apply season settings'));
         }
       }, 100);
@@ -514,7 +523,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             updates: batchedUpdates,
           });
         } catch (error) {
-          logger.error('[GameSettingsModal] Error updating game with season data:', error);
+          logger.error('[GameSettingsModal] Error updating game with season data', error as Error, {
+            component: 'GameSettingsModal',
+            section: 'season-update',
+          });
           setError(t('gameSettingsModal.errors.seasonUpdateFailed', 'Failed to apply season settings'));
         }
       }, 100);
@@ -629,7 +641,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         setError(t('gameSettingsModal.errors.eventNotFound', 'Original event not found for saving.'));
       }
     } catch (err) {
-      logger.error(`[GameSettingsModal] Error updating event ${goalId} in game ${currentGameId}:`, err);
+      logger.error(`[GameSettingsModal] Error updating event ${goalId} in game ${currentGameId}`, err as Error, {
+        component: 'GameSettingsModal',
+        section: 'event-update',
+      });
       setError(t('gameSettingsModal.errors.genericSaveError', 'An unexpected error occurred while saving the event.'));
       // Optionally revert UI:
       // setLocalGameEvents(gameEvents); // Revert local state if save failed
@@ -674,7 +689,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           setLocalGameEvents(originalLocalEvents); // Revert local UI on failure
         }
       } catch (err) {
-        logger.error(`[GameSettingsModal] Error removing event ${goalId} from game ${currentGameId}:`, err);
+        logger.error(`[GameSettingsModal] Error removing event ${goalId} from game ${currentGameId}`, err as Error, {
+          component: 'GameSettingsModal',
+          section: 'event-remove',
+        });
         setError(t('gameSettingsModal.errors.genericDeleteError', 'An unexpected error occurred while deleting the event.'));
         // Consider reverting localGameEvents here as well if an error occurs
       } finally {
@@ -780,7 +798,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         setInlineEditValue('');
       }
     } catch (err) {
-      logger.error(`[GameSettingsModal] Error saving inline edit for ${fieldProcessed} (Game ID: ${currentGameId}):`, err);
+      logger.error(`[GameSettingsModal] Error saving inline edit for ${fieldProcessed} (Game ID: ${currentGameId})`, err as Error, {
+        component: 'GameSettingsModal',
+        section: 'inline-edit',
+      });
       setError(t('gameSettingsModal.errors.genericInlineSaveError', "Error saving changes. Please try again."));
     } finally {
       setIsProcessing(false);
@@ -847,7 +868,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         setShowNewSeasonInput(false);
       }
     } catch (error) {
-      logger.error("Error calling addSeasonMutation.mutateAsync:", error);
+      logger.error('Error calling addSeasonMutation.mutateAsync', error as Error, {
+        component: 'GameSettingsModal',
+        section: 'season-mutation',
+      });
       newSeasonInputRef.current?.focus();
     }
   };
@@ -871,7 +895,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         setShowNewTournamentInput(false);
       }
     } catch (error) {
-      logger.error("Error calling addTournamentMutation.mutateAsync:", error);
+      logger.error('Error calling addTournamentMutation.mutateAsync', error as Error, {
+        component: 'GameSettingsModal',
+        section: 'tournament-mutation',
+      });
       newTournamentInputRef.current?.focus();
     }
   };

@@ -57,7 +57,7 @@ class SectionErrorBoundary extends Component<Props, State> {
           component: 'SectionErrorBoundary',
           section: sectionName,
           errorId,
-          stack: errorInfo.componentStack,
+          stack: errorInfo.componentStack || 'No stack trace available',
           retryCount,
         }
       );
@@ -69,7 +69,7 @@ class SectionErrorBoundary extends Component<Props, State> {
           component: 'SectionErrorBoundary',
           section: sectionName,
           errorId,
-          stack: errorInfo.componentStack,
+          stack: errorInfo.componentStack || 'No stack trace available',
           retryCount,
         },
         {

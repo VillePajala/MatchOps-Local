@@ -388,7 +388,11 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
       const startX = path[0].relX * W;
       const startY = path[0].relY * H;
       if (!Number.isFinite(startX) || !Number.isFinite(startY)) {
-        logger.warn("Skipping drawing path due to non-finite start point", path[0]);
+        logger.warn('Skipping drawing path due to non-finite start point', {
+          component: 'SoccerField',
+          section: 'drawing',
+          point: `${path[0].relX},${path[0].relY}`,
+        });
         return; 
       }
 
@@ -399,7 +403,11 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
         const pointX = path[i].relX * W;
         const pointY = path[i].relY * H;
         if (!Number.isFinite(pointX) || !Number.isFinite(pointY)) {
-          logger.warn("Skipping drawing segment due to non-finite point", path[i]);
+          logger.warn('Skipping drawing segment due to non-finite point', {
+            component: 'SoccerField',
+            section: 'drawing',
+            point: `${path[i].relX},${path[i].relY}`,
+          });
           context.stroke(); 
           context.beginPath();
           context.moveTo(pointX, pointY);
@@ -416,7 +424,12 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
     if (!isTacticsBoardView) {
     opponents.forEach(opponent => {
       if (typeof opponent.relX !== 'number' || typeof opponent.relY !== 'number') {
-        logger.warn("Skipping opponent due to invalid relX/relY", opponent);
+        logger.warn('Skipping opponent due to invalid relX/relY', {
+          component: 'SoccerField',
+          section: 'opponent-rendering',
+          opponentId: opponent.id,
+          position: `${opponent.relX},${opponent.relY}`,
+        });
         return;
       }
       // Calculate absolute positions using CSS dimensions (W/H)
@@ -1128,7 +1141,10 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
         const parsedData = JSON.parse(data);
         droppedPlayerId = parsedData.id;
         if (!droppedPlayerId) throw new Error("ID missing");
-    } catch (error) { logger.error("Drop data error:", error); return; }
+    } catch (error) { logger.error('Drop data error', error as Error, {
+        component: 'SoccerField',
+        section: 'drop-handling',
+      }); return; }
 
     const canvas = canvasRef.current;
     if (!canvas) return;
