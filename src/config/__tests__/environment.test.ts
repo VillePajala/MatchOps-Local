@@ -1,11 +1,13 @@
 // Jest globals for TypeScript
-/* eslint-disable-next-line @typescript-eslint/no-unused-vars */
 import { jest } from '@jest/globals';
 
 // Type for global object mocking
 declare const global: typeof globalThis & {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   window?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   document?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   process?: any;
 };
 
@@ -44,8 +46,11 @@ describe('Environment Detection Type Guards', () => {
     originalProcess = global.process;
     
     // Clean slate for each test
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (global as any).window;
-    delete (global as any).document;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    delete (global as any).document;  
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (global as any).process;
     
     // Clear module cache to force re-evaluation
@@ -111,6 +116,7 @@ describe('Environment Detection Type Guards', () => {
 
     it('should return false when process.versions is null', async () => {
       global.process = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         versions: null as any,
         env: { NODE_ENV: 'test' } as NodeJS.ProcessEnv
       };
@@ -122,6 +128,7 @@ describe('Environment Detection Type Guards', () => {
 
     it('should return false when process.versions.node is null', async () => {
       global.process = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         versions: { node: null as any } as any,
         env: { NODE_ENV: 'test' } as NodeJS.ProcessEnv
       };
@@ -134,6 +141,7 @@ describe('Environment Detection Type Guards', () => {
     it('should return false when process.env is not an object', async () => {
       global.process = {
         versions: mockProcessVersions,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         env: null as any
       };
       
