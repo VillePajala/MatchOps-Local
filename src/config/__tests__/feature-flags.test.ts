@@ -44,7 +44,7 @@ beforeAll(async () => {
   const featureFlags = await import('../feature-flags');
   const environment = await import('../environment');
   
-  useFeature = featureFlags.useFeature;
+  useFeature = featureFlags.useFeature as (feature: string) => boolean;
   getEnabledFeatures = featureFlags.getEnabledFeatures;
   FEATURES = featureFlags.FEATURES;
   

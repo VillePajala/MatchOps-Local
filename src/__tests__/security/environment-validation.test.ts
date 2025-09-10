@@ -209,8 +209,8 @@ describe('Security Environment Validation', () => {
   describe('Environment Context Detection', () => {
     it('should detect browser environment correctly', async () => {
       // Mock browser globals
-      (globalThis as typeof globalThis & { window?: object; document?: object }).window = {};
-      (globalThis as typeof globalThis & { window?: object; document?: object }).document = {};
+      (globalThis as any).window = {};
+      (globalThis as any).document = {};
       
       const { environmentDetection } = await import('@/config/environment');
       
@@ -218,8 +218,8 @@ describe('Security Environment Validation', () => {
       expect(environmentDetection.isServerEnvironment()).toBe(false);
       
       // Cleanup
-      delete (globalThis as typeof globalThis & { window?: object; document?: object }).window;
-      delete (globalThis as typeof globalThis & { window?: object; document?: object }).document;
+      (globalThis as any).window = undefined;
+      (globalThis as any).document = undefined;
     });
 
     it('should detect Node environment correctly', async () => {
@@ -232,7 +232,7 @@ describe('Security Environment Validation', () => {
     it('should handle missing environment gracefully', async () => {
       // Temporarily remove process
       const originalProcess = global.process;
-      delete (globalThis as typeof globalThis & { process?: NodeJS.Process }).process;
+      (globalThis as any).process = undefined;
       
       const { environmentDetection } = await import('@/config/environment');
       
