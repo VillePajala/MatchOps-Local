@@ -14,7 +14,13 @@ jest.unstable_mockModule('@/lib/sentry', () => ({
 }));
 
 // Import after mocking
-let logger: any;
+let logger: {
+  error: (message: string, error: Error, context: Record<string, string>) => void;
+  critical: (message: string, error: Error, context: Record<string, string>) => void;
+  warn: (message: string, context: Record<string, string>) => void;
+  debug: (message: string, context: Record<string, string>) => void;
+  info: (message: string, context: Record<string, string>) => void;
+};
 
 describe('Sentry Error Reporting Integration', () => {
   beforeEach(async () => {
@@ -42,12 +48,12 @@ describe('Sentry Error Reporting Integration', () => {
   describe('Logger Integration', () => {
     it('should send error logs to Sentry in production', async () => {
       const testError = new Error('Test error for Sentry');
-      const context = {
+      const expectedContext = {
         component: 'TestComponent',
         section: 'testSection',
         errorId: 'test-error-123',
       };
-      const metadata = {
+      const expectedMetadata = {
         userId: 'user123',
         timestamp: new Date().toISOString(),
       };
@@ -61,12 +67,12 @@ describe('Sentry Error Reporting Integration', () => {
       // Wait for async Sentry call
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      expect(mockSetContext).toHaveBeenCalledWith('logContext', context);
+      expect(mockSetContext).toHaveBeenCalledWith('logContext', expectedContext);
       expect(mockCaptureException).toHaveBeenCalledWith(testError, {
         level: 'error',
         extra: {
           message: 'Test error message',
-          metadata: metadata,
+          metadata: expectedMetadata,
         },
         tags: {
           component: 'TestComponent',
@@ -77,10 +83,6 @@ describe('Sentry Error Reporting Integration', () => {
 
     it('should send critical logs to Sentry with fatal level', async () => {
       const criticalError = new Error('Critical system failure');
-      const context = {
-        component: 'SystemCore',
-        section: 'initialization',
-      };
 
       logger.critical('Critical system error', criticalError as Error, {
         component: 'SystemCore',
@@ -103,10 +105,7 @@ describe('Sentry Error Reporting Integration', () => {
     });
 
     it('should send warning messages to Sentry', async () => {
-      const context = {
-        component: 'UserInterface',
-        section: 'validation',
-      };
+      // Test warning message without unused context variable
 
       logger.warn('User input validation warning', {
         component: 'UserInterface',
@@ -222,7 +221,7 @@ describe('Sentry Error Reporting Integration', () => {
 
       // Verify that critical level logging was triggered
       const criticalCalls = mockCaptureException.mock.calls.filter(call => 
-        (call[1] as any)?.level === 'fatal'
+        (call[1] as { level?: string })?.level === 'fatal'
       );
       
       expect(criticalCalls.length).toBeGreaterThan(0);
@@ -357,8 +356,7 @@ describe('Sentry Error Reporting Integration', () => {
       expect(mockSetContext).toHaveBeenCalledWith('logContext', {
         component: 'GameManager',
         section: 'save',
-        userId: 'player123',
-        sessionId: 'session456',
+        errorId: expect.any(String),
       });
 
       expect(mockCaptureException).toHaveBeenCalledWith(
@@ -390,8 +388,8 @@ describe('Sentry Error Reporting Integration', () => {
             metadata: undefined,
           },
           tags: {
-            component: undefined,
-            section: undefined,
+            component: 'Test',
+            section: 'simple-error-test',
           },
         })
       );

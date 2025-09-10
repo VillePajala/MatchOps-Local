@@ -131,19 +131,19 @@ export class FileSystemMocker {
   addFile(path: string, content: string | Buffer, size?: number) {
     this.mockFiles.set(path, content);
     
-    this.mockFs.existsSync.mockImplementation(((filePath: unknown): boolean => {
+    this.mockFs.existsSync.mockImplementation((filePath: unknown): boolean => {
       return this.mockFiles.has(filePath as string);
-    }) as any);
+    });
     
-    this.mockFs.readFileSync.mockImplementation(((filePath: unknown): string | Buffer => {
+    this.mockFs.readFileSync.mockImplementation((filePath: unknown): string | Buffer => {
       const content = this.mockFiles.get(filePath as string);
       if (content === undefined) {
         throw new Error(`ENOENT: no such file or directory, open '${filePath as string}'`);
       }
       return content;
-    }) as any);
+    });
     
-    this.mockFs.statSync.mockImplementation(((filePath: unknown): any => {
+    this.mockFs.statSync.mockImplementation((filePath: unknown): { size: number; isDirectory: () => boolean; isFile: () => boolean } => {
       if (!this.mockFiles.has(filePath as string)) {
         throw new Error(`ENOENT: no such file or directory, stat '${filePath as string}'`);
       }
@@ -153,22 +153,22 @@ export class FileSystemMocker {
         isDirectory: () => false,
         isFile: () => true,
       };
-    }) as any);
+    });
   }
 
   addDirectory(path: string, files: string[]) {
-    this.mockFs.existsSync.mockImplementation(((filePath: unknown): boolean => {
+    this.mockFs.existsSync.mockImplementation((filePath: unknown): boolean => {
       return (filePath as string) === path || this.mockFiles.has(filePath as string);
-    }) as any);
+    });
     
-    this.mockFs.readdirSync.mockImplementation(((dirPath: unknown): string[] => {
+    this.mockFs.readdirSync.mockImplementation((dirPath: unknown): string[] => {
       if ((dirPath as string) === path) {
         return files;
       }
       return [];
-    }) as any);
+    });
     
-    this.mockFs.statSync.mockImplementation(((filePath: unknown): any => {
+    this.mockFs.statSync.mockImplementation((filePath: unknown): { size?: number; isDirectory: () => boolean; isFile: () => boolean } => {
       if ((filePath as string) === path) {
         return {
           isDirectory: () => true,
@@ -185,7 +185,7 @@ export class FileSystemMocker {
         };
       }
       throw new Error(`ENOENT: no such file or directory, stat '${filePath as string}'`);
-    }) as any);
+    });
   }
 
   getMocks() {
@@ -217,7 +217,7 @@ export class ConsoleMocker {
       warn: this.warn,
       error: this.error,
       info: this.info,
-    };
+    } as Console;
   }
 
   restore() {

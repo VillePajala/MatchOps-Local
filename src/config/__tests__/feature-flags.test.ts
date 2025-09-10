@@ -35,8 +35,10 @@ jest.unstable_mockModule('../environment', () => ({
 }));
 
 // Import modules for testing
-let useFeature: any, getEnabledFeatures: any, FEATURES: any;
-let config: any;
+let useFeature: (feature: string) => boolean;
+let getEnabledFeatures: () => Record<string, boolean>;
+let FEATURES: Record<string, string>;
+let config: MockConfig;
 
 beforeAll(async () => {
   const featureFlags = await import('../feature-flags');
@@ -58,7 +60,7 @@ describe('Feature Flags', () => {
   describe('useFeature', () => {
     it('should return environment override for development', () => {
       // Mock development environment
-      const mockConfig = config as unknown as MockConfig;
+      const mockConfig = config as MockConfig;
       mockConfig.isDevelopment = true;
       mockConfig.isProduction = false;
       mockIsFeatureEnabled.mockReturnValue(false);
@@ -71,7 +73,7 @@ describe('Feature Flags', () => {
 
     it('should return environment override for test', () => {
       // Mock test environment
-      const mockConfig = config as unknown as MockConfig;
+      const mockConfig = config as MockConfig;
       mockConfig.isDevelopment = false;
       mockConfig.isProduction = false;
       mockIsFeatureEnabled.mockReturnValue(true);
@@ -84,7 +86,7 @@ describe('Feature Flags', () => {
 
     it('should fall back to regular feature flag in production', () => {
       // Mock production environment
-      const mockConfig = config as unknown as MockConfig;
+      const mockConfig = config as MockConfig;
       mockConfig.isDevelopment = false;
       mockConfig.isProduction = true;
       mockIsFeatureEnabled.mockReturnValue(true);
@@ -97,12 +99,12 @@ describe('Feature Flags', () => {
     });
 
     it('should handle unknown features gracefully', () => {
-      const mockConfig = config as unknown as MockConfig;
+      const mockConfig = config as MockConfig;
       mockConfig.isDevelopment = false;
       mockConfig.isProduction = true;
       mockIsFeatureEnabled.mockReturnValue(false);
 
-      const result = useFeature('unknownFeature' as keyof typeof config.features);
+      const result = useFeature('unknownFeature');
       
       expect(result).toBe(false);
       expect(mockIsFeatureEnabled).toHaveBeenCalledWith('unknownFeature');
@@ -111,12 +113,12 @@ describe('Feature Flags', () => {
 
   describe('getEnabledFeatures', () => {
     it('should return all feature states', () => {
-      const mockConfig = config as unknown as MockConfig;
+      const mockConfig = config as MockConfig;
       mockConfig.isDevelopment = true;
       mockConfig.isProduction = false;
-      mockIsFeatureEnabled.mockImplementation(((feature: unknown): boolean => {
+      mockIsFeatureEnabled.mockImplementation((feature: unknown): boolean => {
         return mockConfig.features[(feature as string) as keyof typeof mockConfig.features] || false;
-      }) as any);
+      });
 
       const enabledFeatures = getEnabledFeatures();
 
@@ -142,7 +144,7 @@ describe('Feature Flags', () => {
 
   describe('Environment-specific overrides', () => {
     it('should enable all features in development', () => {
-      const mockConfig = config as unknown as MockConfig;
+      const mockConfig = config as MockConfig;
       mockConfig.isDevelopment = true;
       mockConfig.isProduction = false;
 
@@ -151,7 +153,7 @@ describe('Feature Flags', () => {
     });
 
     it('should disable external features in test', () => {
-      const mockConfig = config as unknown as MockConfig;
+      const mockConfig = config as MockConfig;
       mockConfig.isDevelopment = false;
       mockConfig.isProduction = false;
       mockIsFeatureEnabled.mockReturnValue(true);
@@ -161,7 +163,7 @@ describe('Feature Flags', () => {
     });
 
     it('should use environment variables in production', () => {
-      const mockConfig = config as unknown as MockConfig;
+      const mockConfig = config as MockConfig;
       mockConfig.isDevelopment = false;
       mockConfig.isProduction = true;
       mockIsFeatureEnabled.mockReturnValue(true);
@@ -174,7 +176,7 @@ describe('Feature Flags', () => {
 
   describe('Edge cases', () => {
     it('should handle missing config gracefully', () => {
-      const mockConfig = config as unknown as Partial<MockConfig>;
+      const mockConfig = config as Partial<MockConfig>;
       mockConfig.isDevelopment = undefined;
       mockConfig.isProduction = undefined;
       mockIsFeatureEnabled.mockReturnValue(false);
@@ -188,7 +190,7 @@ describe('Feature Flags', () => {
     });
 
     it('should handle feature flag errors gracefully', () => {
-      const mockConfig = config as unknown as MockConfig;
+      const mockConfig = config as MockConfig;
       mockConfig.isDevelopment = false;
       mockConfig.isProduction = true;
       mockIsFeatureEnabled.mockImplementation(() => {
@@ -203,7 +205,7 @@ describe('Feature Flags', () => {
 describe('Feature Flag Integration', () => {
   it('should work with React components', () => {
     // This test ensures the feature flags work in a React context
-    const mockConfig = config as unknown as MockConfig;
+    const mockConfig = config as MockConfig;
     mockConfig.isDevelopment = true;
     
     const isAnalyticsEnabled = useFeature('advancedAnalytics');
