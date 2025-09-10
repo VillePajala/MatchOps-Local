@@ -97,9 +97,9 @@ describe('Feature Flags', () => {
       const mockConfig = config as unknown as MockConfig;
       mockConfig.isDevelopment = true;
       mockConfig.isProduction = false;
-      (isFeatureEnabled as jest.Mock).mockImplementation((feature: string) => {
-        return mockConfig.features[feature as keyof typeof mockConfig.features] || false;
-      });
+      (isFeatureEnabled as jest.Mock).mockImplementation(((feature: unknown): boolean => {
+        return mockConfig.features[(feature as string) as keyof typeof mockConfig.features] || false;
+      }) as any);
 
       const enabledFeatures = getEnabledFeatures();
 

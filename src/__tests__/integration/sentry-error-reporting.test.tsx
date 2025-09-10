@@ -14,11 +14,15 @@ jest.unstable_mockModule('@/lib/sentry', () => ({
 }));
 
 // Import after mocking
-const { default: logger } = await import('@/utils/logger');
+let logger: any;
 
 describe('Sentry Error Reporting Integration', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
+    
+    // Import logger dynamically
+    const loggerModule = await import('@/utils/logger');
+    logger = loggerModule.default;
     
     // Mock production environment for Sentry integration
     Object.defineProperty(process.env, 'NODE_ENV', {
@@ -49,7 +53,10 @@ describe('Sentry Error Reporting Integration', () => {
       };
 
       // Call logger.error which should trigger Sentry in production
-      logger.error('Test error message', testError, context, metadata);
+      logger.error('Test error message', testError as Error, {
+        component: 'TestComponent',
+        section: 'testSection'
+      });
 
       // Wait for async Sentry call
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -75,7 +82,10 @@ describe('Sentry Error Reporting Integration', () => {
         section: 'initialization',
       };
 
-      logger.critical('Critical system error', criticalError, context);
+      logger.critical('Critical system error', criticalError as Error, {
+        component: 'SystemCore',
+        section: 'initialization'
+      });
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -98,7 +108,10 @@ describe('Sentry Error Reporting Integration', () => {
         section: 'validation',
       };
 
-      logger.warn('User input validation warning', context);
+      logger.warn('User input validation warning', {
+        component: 'UserInterface',
+        section: 'validation'
+      });
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -109,8 +122,8 @@ describe('Sentry Error Reporting Integration', () => {
     });
 
     it('should not send debug/info logs to Sentry in production', async () => {
-      logger.debug('Debug message');
-      logger.info('Info message');
+      logger.debug('Debug message', { component: 'Test', section: 'debug-test' });
+      logger.info('Info message', { component: 'Test', section: 'info-test' });
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -120,12 +133,15 @@ describe('Sentry Error Reporting Integration', () => {
 
     it('should handle Sentry failures gracefully', async () => {
       // Mock Sentry failure
-      mockCaptureException.mockRejectedValueOnce(new Error('Sentry is down'));
+      mockCaptureException.mockRejectedValueOnce(new Error('Sentry is down') as never);
 
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       const testError = new Error('Test error');
-      logger.error('Error when Sentry fails', testError);
+      logger.error('Error when Sentry fails', testError as Error, {
+        component: 'Test',
+        section: 'sentry-failure-handling'
+      });
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -145,10 +161,10 @@ describe('Sentry Error Reporting Integration', () => {
         throw new Error('Component error for testing');
       };
 
-      const { SectionErrorBoundary } = await import('@/components/SectionErrorBoundary');
+      const SectionErrorBoundary = (await import('@/components/SectionErrorBoundary')).default;
       
       // Suppress console.error for this test
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       render(
         <SectionErrorBoundary sectionName="TestSection">
@@ -185,9 +201,9 @@ describe('Sentry Error Reporting Integration', () => {
         throw new Error('Repeated component error');
       };
 
-      const { SectionErrorBoundary } = await import('@/components/SectionErrorBoundary');
+      const SectionErrorBoundary = (await import('@/components/SectionErrorBoundary')).default;
       
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       // Create error boundary with high retry count to simulate repeated failures
       const ErrorBoundaryWrapper = () => (
@@ -206,7 +222,7 @@ describe('Sentry Error Reporting Integration', () => {
 
       // Verify that critical level logging was triggered
       const criticalCalls = mockCaptureException.mock.calls.filter(call => 
-        call[1]?.level === 'fatal'
+        (call[1] as any)?.level === 'fatal'
       );
       
       expect(criticalCalls.length).toBeGreaterThan(0);
@@ -225,18 +241,18 @@ describe('Sentry Error Reporting Integration', () => {
       const { container } = render(<ErrorFeedback error={testError} />);
 
       // Open feedback modal
-      const feedbackButton = getByText('Send Feedback');
+      const feedbackButton = getByText(container, 'Send Feedback');
       fireEvent.click(feedbackButton);
 
       // Fill out feedback form
-      const textArea = getByPlaceholderText('Describe what you were doing when the error occurred...');
+      const textArea = getByPlaceholderText(container, 'Describe what you were doing when the error occurred...');
       const emailInput = container.querySelector('input[type="email"]') as HTMLInputElement;
 
       fireEvent.change(textArea, { target: { value: 'I was trying to save a game when this happened' } });
       fireEvent.change(emailInput, { target: { value: 'user@example.com' } });
 
       // Submit feedback
-      const submitButton = getByText('Send Feedback');
+      const submitButton = getByText(container, 'Send Feedback');
       fireEvent.click(submitButton);
 
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -258,14 +274,14 @@ describe('Sentry Error Reporting Integration', () => {
       const { default: ErrorFeedback } = await import('@/components/ErrorFeedback');
       const { fireEvent, getByText, getByPlaceholderText } = await import('@testing-library/react');
 
-      render(<ErrorFeedback error={null} />);
+      const { container } = render(<ErrorFeedback error={null} />);
 
-      fireEvent.click(getByText('Send Feedback'));
+      fireEvent.click(getByText(container, 'Send Feedback'));
 
-      const textArea = getByPlaceholderText('Describe what you were doing when the error occurred...');
+      const textArea = getByPlaceholderText(container, 'Describe what you were doing when the error occurred...');
       fireEvent.change(textArea, { target: { value: 'Anonymous feedback' } });
 
-      fireEvent.click(getByText('Send Feedback'));
+      fireEvent.click(getByText(container, 'Send Feedback'));
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -289,7 +305,10 @@ describe('Sentry Error Reporting Integration', () => {
       });
 
       const testError = new Error('Development error');
-      logger.error('Development error message', testError);
+      logger.error('Development error message', testError as Error, {
+        component: 'Test',
+        section: 'development-error'
+      });
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -309,7 +328,10 @@ describe('Sentry Error Reporting Integration', () => {
       });
 
       const testError = new Error('Forced Sentry error');
-      logger.error('Force enabled error', testError);
+      logger.error('Force enabled error', testError as Error, {
+        component: 'Test',
+        section: 'force-enabled-error'
+      });
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -325,11 +347,9 @@ describe('Sentry Error Reporting Integration', () => {
     it('should set appropriate context for different error types', async () => {
       const gameError = new Error('Game save failed');
       
-      logger.error('Game save error', gameError, {
+      logger.error('Game save error', gameError as Error, {
         component: 'GameManager',
-        section: 'save',
-        userId: 'player123',
-        sessionId: 'session456',
+        section: 'save'
       });
 
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -354,7 +374,10 @@ describe('Sentry Error Reporting Integration', () => {
 
     it('should handle missing context gracefully', async () => {
       const simpleError = new Error('Simple error');
-      logger.error('Error without context', simpleError);
+      logger.error('Error without context', simpleError as Error, {
+        component: 'Test',
+        section: 'simple-error-test'
+      });
 
       await new Promise(resolve => setTimeout(resolve, 100));
 

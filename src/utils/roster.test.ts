@@ -37,7 +37,10 @@ function getRoster(): Player[] {
   try {
     return JSON.parse(roster);
   } catch (error) {
-    logger.error("Error parsing roster:", error);
+    logger.error("Error parsing roster:", error as Error, {
+      component: 'RosterManager',
+      section: 'parse-roster'
+    });
     return [];
   }
 }
@@ -414,16 +417,16 @@ describe('Roster Persistence', () => {
     localStorageMock.setItem(MASTER_ROSTER_KEY, JSON.stringify(initialRoster));
 
     // Fix: Use the correct function name 'addPlayer' and ensure player object matches Player type
-    const newPlayer = createPlayer({ name: 'Charlie', jerseyNumber: '3', nickname: 'Chuck', notes: '' });
+    const newPlayer = createPlayer({ name: 'Charlie', jerseyNumber: '3', notes: 'Chuck' });
     addPlayer(newPlayer); 
 
     const storedRosterJson = localStorageMock.getItem(MASTER_ROSTER_KEY);
     expect(storedRosterJson).not.toBeNull();
     const storedRoster = JSON.parse(storedRosterJson!);
     expect(storedRoster).toHaveLength(3);
-    // Find the added player by name/nickname as ID is random
+    // Find the added player by name as ID is random
     const addedPlayer = storedRoster.find((p: Player) => p.name === 'Charlie');
     expect(addedPlayer).toBeDefined();
-    expect(addedPlayer.nickname).toBe('Chuck');
+    expect(addedPlayer.notes).toBe('Chuck');
   });
 }); 

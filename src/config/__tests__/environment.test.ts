@@ -3,11 +3,36 @@
 import { jest } from '@jest/globals';
 
 // Type for global object mocking
-declare const global: NodeJS.Global & {
+declare const global: typeof globalThis & {
   window?: unknown;
   document?: unknown;
   process?: unknown;
 };
+
+// Test helpers
+const mockProcessVersions: NodeJS.ProcessVersions = {
+  node: '18.0.0',
+  v8: '10.0.0',
+  uv: '1.0.0',
+  zlib: '1.0.0',
+  brotli: '1.0.0',
+  ares: '1.0.0',
+  modules: '108',
+  nghttp2: '1.0.0',
+  napi: '8',
+  llhttp: '1.0.0',
+  http_parser: '1.0.0',
+  openssl: '1.0.0',
+  cldr: '1.0.0',
+  icu: '1.0.0',
+  tz: '1.0.0',
+  unicode: '1.0.0'
+};
+
+const createMockProcess = (env: Partial<NodeJS.ProcessEnv> = {}) => ({
+  versions: mockProcessVersions,
+  env: { NODE_ENV: 'test', ...env } as NodeJS.ProcessEnv
+} as any);
 
 describe('Environment Detection Type Guards', () => {
   let originalWindow: unknown;
@@ -19,26 +44,26 @@ describe('Environment Detection Type Guards', () => {
     originalProcess = global.process;
     
     // Clean slate for each test
-    delete global.window;
-    delete global.document;
-    delete global.process;
+    global.window = undefined as any;
+    global.document = undefined as any;
+    global.process = undefined as any;
   });
 
   afterEach(() => {
     // Restore originals
     if (originalWindow) {
-      global.window = originalWindow;
+      global.window = originalWindow as any;
     }
     if (originalProcess) {
-      global.process = originalProcess;
+      global.process = originalProcess as any;
     }
   });
 
   describe('isBrowserEnvironment', () => {
     it('should return true when window and document are available', async () => {
       // Mock browser environment
-      global.window = {};
-      global.document = {};
+      global.window = {} as any;
+      global.document = {} as any;
       
       const { environmentDetection } = await import('../environment');
       
@@ -46,7 +71,7 @@ describe('Environment Detection Type Guards', () => {
     });
 
     it('should return false when window is missing', async () => {
-      global.document = {};
+      global.document = {} as any;
       // window is undefined
       
       const { environmentDetection } = await import('../environment');
@@ -55,7 +80,7 @@ describe('Environment Detection Type Guards', () => {
     });
 
     it('should return false when document is missing', async () => {
-      global.window = {};
+      global.window = {} as any;
       // document is undefined
       
       const { environmentDetection } = await import('../environment');
@@ -66,10 +91,7 @@ describe('Environment Detection Type Guards', () => {
 
   describe('isNodeEnvironment', () => {
     it('should return true when process with versions.node is available', async () => {
-      global.process = {
-        versions: { node: '18.0.0' },
-        env: {}
-      };
+      global.process = createMockProcess();
       
       const { environmentDetection } = await import('../environment');
       
@@ -86,9 +108,9 @@ describe('Environment Detection Type Guards', () => {
 
     it('should return false when process.versions is null', async () => {
       global.process = {
-        versions: null,
-        env: {}
-      };
+        versions: null as any,
+        env: { NODE_ENV: 'test' } as NodeJS.ProcessEnv
+      } as any;
       
       const { environmentDetection } = await import('../environment');
       
@@ -97,9 +119,9 @@ describe('Environment Detection Type Guards', () => {
 
     it('should return false when process.versions.node is null', async () => {
       global.process = {
-        versions: { node: null },
-        env: {}
-      };
+        versions: { node: null } as any,
+        env: { NODE_ENV: 'test' } as NodeJS.ProcessEnv
+      } as any;
       
       const { environmentDetection } = await import('../environment');
       
@@ -108,9 +130,9 @@ describe('Environment Detection Type Guards', () => {
 
     it('should return false when process.env is not an object', async () => {
       global.process = {
-        versions: { node: '18.0.0' },
-        env: null
-      };
+        versions: mockProcessVersions,
+        env: null as any
+      } as any;
       
       const { environmentDetection } = await import('../environment');
       
@@ -120,10 +142,7 @@ describe('Environment Detection Type Guards', () => {
 
   describe('isBuildTimeEnvironment', () => {
     it('should return true during build time', async () => {
-      global.process = {
-        versions: { node: '18.0.0' },
-        env: { NODE_ENV: 'production' }
-      };
+      global.process = createMockProcess({ NODE_ENV: 'production' });
       // No window/document (not browser)
       
       const { environmentDetection } = await import('../environment');
@@ -133,11 +152,11 @@ describe('Environment Detection Type Guards', () => {
 
     it('should return false in browser environment', async () => {
       global.process = {
-        versions: { node: '18.0.0' },
-        env: { NODE_ENV: 'production' }
-      };
-      global.window = {};
-      global.document = {};
+        versions: mockProcessVersions,
+        env: { NODE_ENV: 'production' } as NodeJS.ProcessEnv
+      } as any;
+      global.window = {} as any;
+      global.document = {} as any;
       
       const { environmentDetection } = await import('../environment');
       
@@ -146,9 +165,9 @@ describe('Environment Detection Type Guards', () => {
 
     it('should return false when NODE_ENV is missing', async () => {
       global.process = {
-        versions: { node: '18.0.0' },
-        env: {}
-      };
+        versions: mockProcessVersions,
+        env: { NODE_ENV: 'test' } as NodeJS.ProcessEnv
+      } as any;
       
       const { environmentDetection } = await import('../environment');
       
@@ -159,9 +178,9 @@ describe('Environment Detection Type Guards', () => {
   describe('isServerEnvironment', () => {
     it('should return true in server environment', async () => {
       global.process = {
-        versions: { node: '18.0.0' },
-        env: { NODE_ENV: 'production' }
-      };
+        versions: mockProcessVersions,
+        env: { NODE_ENV: 'production' } as NodeJS.ProcessEnv
+      } as any;
       // No window/document (not browser)
       
       const { environmentDetection } = await import('../environment');
@@ -171,11 +190,11 @@ describe('Environment Detection Type Guards', () => {
 
     it('should return false in browser environment', async () => {
       global.process = {
-        versions: { node: '18.0.0' },
-        env: { NODE_ENV: 'production' }
-      };
-      global.window = {};
-      global.document = {};
+        versions: mockProcessVersions,
+        env: { NODE_ENV: 'production' } as NodeJS.ProcessEnv
+      } as any;
+      global.window = {} as any;
+      global.document = {} as any;
       
       const { environmentDetection } = await import('../environment');
       
@@ -184,9 +203,9 @@ describe('Environment Detection Type Guards', () => {
 
     it('should return false in test environment', async () => {
       global.process = {
-        versions: { node: '18.0.0' },
-        env: { NODE_ENV: 'test' }
-      };
+        versions: mockProcessVersions,
+        env: { NODE_ENV: 'test' } as NodeJS.ProcessEnv
+      } as any;
       
       const { environmentDetection } = await import('../environment');
       
@@ -195,9 +214,9 @@ describe('Environment Detection Type Guards', () => {
 
     it('should return true when NODE_ENV is missing (default server)', async () => {
       global.process = {
-        versions: { node: '18.0.0' },
-        env: {}
-      };
+        versions: mockProcessVersions,
+        env: { NODE_ENV: 'test' } as NodeJS.ProcessEnv
+      } as any;
       
       const { environmentDetection } = await import('../environment');
       
@@ -207,12 +226,12 @@ describe('Environment Detection Type Guards', () => {
 
   describe('detectEnvironment', () => {
     it('should correctly identify browser environment', async () => {
-      global.window = {};
-      global.document = {};
+      global.window = {} as any;
+      global.document = {} as any;
       global.process = {
-        versions: { node: '18.0.0' },
-        env: { NODE_ENV: 'development' }
-      };
+        versions: mockProcessVersions,
+        env: { NODE_ENV: 'development' } as NodeJS.ProcessEnv
+      } as any;
       
       const { environmentDetection } = await import('../environment');
       
@@ -228,9 +247,9 @@ describe('Environment Detection Type Guards', () => {
 
     it('should correctly identify build environment', async () => {
       global.process = {
-        versions: { node: '18.0.0' },
-        env: { NODE_ENV: 'production' }
-      };
+        versions: mockProcessVersions,
+        env: { NODE_ENV: 'production' } as NodeJS.ProcessEnv
+      } as any;
       // No window/document
       
       const { environmentDetection } = await import('../environment');
@@ -247,9 +266,9 @@ describe('Environment Detection Type Guards', () => {
 
     it('should correctly identify test environment', async () => {
       global.process = {
-        versions: { node: '18.0.0' },
-        env: { NODE_ENV: 'test' }
-      };
+        versions: mockProcessVersions,
+        env: { NODE_ENV: 'test' } as NodeJS.ProcessEnv
+      } as any;
       
       const { environmentDetection } = await import('../environment');
       
@@ -282,12 +301,12 @@ describe('Environment Detection Type Guards', () => {
   describe('Integration with environment validation', () => {
     it('should use proper context in error messages', async () => {
       global.process = {
-        versions: { node: '18.0.0' },
+        versions: mockProcessVersions,
         env: {
           NODE_ENV: 'production',
           // Missing required fields to trigger validation error
         }
-      };
+      } as any;
       
       // Import after setting up globals
       const { validateEnvironment } = await import('../environment');

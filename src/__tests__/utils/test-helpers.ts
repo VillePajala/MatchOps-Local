@@ -9,14 +9,16 @@ export class EnvironmentMocker {
   private originalEnv: NodeJS.ProcessEnv;
 
   constructor() {
-    this.originalEnv = { ...process.env };
+    this.originalEnv = typeof process !== 'undefined' ? { ...process.env } : { NODE_ENV: 'test' } as NodeJS.ProcessEnv;
   }
 
   setEnv(key: string, value: string | undefined) {
-    if (value === undefined) {
-      delete (process.env as NodeJS.ProcessEnv)[key];
-    } else {
-      (process.env as NodeJS.ProcessEnv)[key] = value;
+    if (typeof process !== 'undefined') {
+      if (value === undefined) {
+        delete (process.env as NodeJS.ProcessEnv)[key];
+      } else {
+        (process.env as NodeJS.ProcessEnv)[key] = value;
+      }
     }
   }
 
@@ -49,13 +51,15 @@ export class EnvironmentMocker {
   }
 
   restore() {
-    // Clear current env
-    Object.keys(process.env).forEach(key => {
-      delete (process.env as NodeJS.ProcessEnv)[key];
-    });
-    
-    // Restore original
-    Object.assign(process.env, this.originalEnv);
+    if (typeof process !== 'undefined') {
+      // Clear current env
+      Object.keys(process.env).forEach(key => {
+        delete (process.env as NodeJS.ProcessEnv)[key];
+      });
+      
+      // Restore original
+      Object.assign(process.env, this.originalEnv);
+    }
   }
 }
 
@@ -80,8 +84,8 @@ export class SentryMocker {
   }
 
   mockSentryFailure() {
-    this.captureException.mockRejectedValue(new Error('Sentry service unavailable'));
-    this.captureMessage.mockRejectedValue(new Error('Sentry service unavailable'));
+    this.captureException.mockRejectedValue(new Error('Sentry service unavailable') as never);
+    this.captureMessage.mockRejectedValue(new Error('Sentry service unavailable') as never);
   }
 
   getLastException() {
@@ -127,52 +131,52 @@ export class FileSystemMocker {
   addFile(path: string, content: string | Buffer, size?: number) {
     this.mockFiles.set(path, content);
     
-    this.mockFs.existsSync.mockImplementation((filePath: string) => {
-      return this.mockFiles.has(filePath);
-    });
+    this.mockFs.existsSync.mockImplementation(((filePath: unknown): boolean => {
+      return this.mockFiles.has(filePath as string);
+    }) as any);
     
-    this.mockFs.readFileSync.mockImplementation((filePath: string) => {
-      const content = this.mockFiles.get(filePath);
+    this.mockFs.readFileSync.mockImplementation(((filePath: unknown): string | Buffer => {
+      const content = this.mockFiles.get(filePath as string);
       if (content === undefined) {
-        throw new Error(`ENOENT: no such file or directory, open '${filePath}'`);
+        throw new Error(`ENOENT: no such file or directory, open '${filePath as string}'`);
       }
       return content;
-    });
+    }) as any);
     
-    this.mockFs.statSync.mockImplementation((filePath: string) => {
-      if (!this.mockFiles.has(filePath)) {
-        throw new Error(`ENOENT: no such file or directory, stat '${filePath}'`);
+    this.mockFs.statSync.mockImplementation(((filePath: unknown): any => {
+      if (!this.mockFiles.has(filePath as string)) {
+        throw new Error(`ENOENT: no such file or directory, stat '${filePath as string}'`);
       }
-      const content = this.mockFiles.get(filePath);
+      const content = this.mockFiles.get(filePath as string);
       return {
         size: size || (typeof content === 'string' ? content.length : content?.length || 0),
         isDirectory: () => false,
         isFile: () => true,
       };
-    });
+    }) as any);
   }
 
   addDirectory(path: string, files: string[]) {
-    this.mockFs.existsSync.mockImplementation((filePath: string) => {
-      return filePath === path || this.mockFiles.has(filePath);
-    });
+    this.mockFs.existsSync.mockImplementation(((filePath: unknown): boolean => {
+      return (filePath as string) === path || this.mockFiles.has(filePath as string);
+    }) as any);
     
-    this.mockFs.readdirSync.mockImplementation((dirPath: string) => {
-      if (dirPath === path) {
+    this.mockFs.readdirSync.mockImplementation(((dirPath: unknown): string[] => {
+      if ((dirPath as string) === path) {
         return files;
       }
       return [];
-    });
+    }) as any);
     
-    this.mockFs.statSync.mockImplementation((filePath: string) => {
-      if (filePath === path) {
+    this.mockFs.statSync.mockImplementation(((filePath: unknown): any => {
+      if ((filePath as string) === path) {
         return {
           isDirectory: () => true,
           isFile: () => false,
         };
       }
       // Handle files in directory
-      const content = this.mockFiles.get(filePath);
+      const content = this.mockFiles.get(filePath as string);
       if (content !== undefined) {
         return {
           size: typeof content === 'string' ? content.length : content.length,
@@ -180,8 +184,8 @@ export class FileSystemMocker {
           isFile: () => true,
         };
       }
-      throw new Error(`ENOENT: no such file or directory, stat '${filePath}'`);
-    });
+      throw new Error(`ENOENT: no such file or directory, stat '${filePath as string}'`);
+    }) as any);
   }
 
   getMocks() {
@@ -375,13 +379,4 @@ export class SecurityTester {
   }
 }
 
-// Export all utilities
-export {
-  EnvironmentMocker,
-  SentryMocker,
-  FileSystemMocker,
-  ConsoleMocker,
-  PerformanceTester,
-  BundleAnalyzer,
-  SecurityTester,
-};
+// All classes are already exported above, no need for additional export block

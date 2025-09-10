@@ -24,7 +24,7 @@ describe('Security Environment Validation', () => {
       
       expect(result.valid).toBe(false);
       expect(result.errors).toContain(
-        expect.stringContaining('OpenAI API Key exposed in client-side environment variable')
+        expect.stringContaining('Potential OpenAI API Key exposed in client-side environment variable')
       );
     });
 
@@ -36,7 +36,7 @@ describe('Security Environment Validation', () => {
       
       expect(result.valid).toBe(false);
       expect(result.errors).toContain(
-        expect.stringContaining('AWS Access Key exposed in client-side environment variable')
+        expect.stringContaining('Potential AWS Access Key exposed in client-side environment variable')
       );
     });
 
@@ -48,7 +48,7 @@ describe('Security Environment Validation', () => {
       
       expect(result.valid).toBe(false);
       expect(result.errors).toContain(
-        expect.stringContaining('GitHub Personal Access Token exposed in client-side environment variable')
+        expect.stringContaining('Potential GitHub Token exposed in client-side environment variable')
       );
     });
 
@@ -176,7 +176,7 @@ describe('Security Environment Validation', () => {
       
       expect(issues).toHaveLength(1);
       expect(issues[0].severity).toBe('error');
-      expect(issues[0].message).toContain('OpenAI API Key exposed');
+      expect(issues[0].message).toContain('OpenAI API Key exposed in client-side variable');
     });
 
     it('should warn about long client-exposed values', () => {
@@ -209,8 +209,8 @@ describe('Security Environment Validation', () => {
   describe('Environment Context Detection', () => {
     it('should detect browser environment correctly', async () => {
       // Mock browser globals
-      (global as NodeJS.Global & { window?: unknown; document?: unknown }).window = {};
-      (global as NodeJS.Global & { window?: unknown; document?: unknown }).document = {};
+      (globalThis as any).window = {};
+      (globalThis as any).document = {};
       
       const { environmentDetection } = await import('@/config/environment');
       
@@ -218,8 +218,8 @@ describe('Security Environment Validation', () => {
       expect(environmentDetection.isServerEnvironment()).toBe(false);
       
       // Cleanup
-      delete (global as NodeJS.Global & { window?: unknown; document?: unknown }).window;
-      delete (global as NodeJS.Global & { window?: unknown; document?: unknown }).document;
+      delete (globalThis as any).window;
+      delete (globalThis as any).document;
     });
 
     it('should detect Node environment correctly', async () => {
@@ -232,7 +232,7 @@ describe('Security Environment Validation', () => {
     it('should handle missing environment gracefully', async () => {
       // Temporarily remove process
       const originalProcess = global.process;
-      delete (global as NodeJS.Global & { process?: unknown }).process;
+      delete (globalThis as any).process;
       
       const { environmentDetection } = await import('@/config/environment');
       
