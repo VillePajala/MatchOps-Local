@@ -1,11 +1,17 @@
+// Jest globals for TypeScript
+/* eslint-disable-next-line @typescript-eslint/no-unused-vars */
 import { jest } from '@jest/globals';
 
 // Type for global object mocking
-declare const global: any;
+declare const global: NodeJS.Global & {
+  window?: unknown;
+  document?: unknown;
+  process?: unknown;
+};
 
 describe('Environment Detection Type Guards', () => {
-  let originalWindow: any;
-  let originalProcess: any;
+  let originalWindow: unknown;
+  let originalProcess: unknown;
 
   beforeEach(() => {
     // Store originals

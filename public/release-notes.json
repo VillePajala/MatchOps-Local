@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: complete Play Store readiness fixes for PWA compliance"
+  "notes": "fix: use Web Crypto API in middleware for Edge Runtime compatibility"
 }

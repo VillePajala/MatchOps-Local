@@ -14,9 +14,9 @@ export class EnvironmentMocker {
 
   setEnv(key: string, value: string | undefined) {
     if (value === undefined) {
-      delete (process.env as any)[key];
+      delete (process.env as NodeJS.ProcessEnv)[key];
     } else {
-      (process.env as any)[key] = value;
+      (process.env as NodeJS.ProcessEnv)[key] = value;
     }
   }
 
@@ -51,7 +51,7 @@ export class EnvironmentMocker {
   restore() {
     // Clear current env
     Object.keys(process.env).forEach(key => {
-      delete (process.env as any)[key];
+      delete (process.env as NodeJS.ProcessEnv)[key];
     });
     
     // Restore original
@@ -105,7 +105,13 @@ export class SentryMocker {
 
 // File system mocking utilities
 export class FileSystemMocker {
-  private mockFs: any;
+  private mockFs: {
+    existsSync: jest.Mock;
+    readFileSync: jest.Mock;
+    writeFileSync: jest.Mock;
+    statSync: jest.Mock;
+    readdirSync: jest.Mock;
+  };
   private mockFiles: Map<string, string | Buffer> = new Map();
   
   constructor() {
@@ -184,7 +190,7 @@ export class FileSystemMocker {
 
   clear() {
     this.mockFiles.clear();
-    Object.values(this.mockFs).forEach((fn: any) => fn.mockClear());
+    Object.values(this.mockFs).forEach((fn) => fn.mockClear());
   }
 }
 

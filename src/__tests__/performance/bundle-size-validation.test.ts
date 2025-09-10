@@ -1,3 +1,5 @@
+// Jest globals for TypeScript
+/* eslint-disable-next-line @typescript-eslint/no-unused-vars */
 import { jest } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
@@ -184,8 +186,9 @@ describe('Bundle Size Performance Tests', () => {
           stdio: 'pipe',
           timeout: PERFORMANCE_THRESHOLDS.bundleAnalysisTime 
         });
-      } catch (error: any) {
-        if (error.killed && error.signal === 'SIGTERM') {
+      } catch (error: unknown) {
+        const execError = error as { killed?: boolean; signal?: string };
+        if (execError.killed && execError.signal === 'SIGTERM') {
           throw new Error(
             `Bundle analysis timed out after ${PERFORMANCE_THRESHOLDS.bundleAnalysisTime}ms`
           );

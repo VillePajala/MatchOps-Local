@@ -254,7 +254,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             setAdjustedSelectedPlayerIds([]);
           }
         } catch (error) {
-          logger.error('[GameSettingsModal] Error loading team roster:', error);
+          logger.error('[GameSettingsModal] Error loading team roster', error as Error, {
+            component: 'GameSettingsModal',
+            section: 'team-roster-loading',
+          });
           setTeamRoster([]);
           setAdjustedSelectedPlayerIds([]);
         }

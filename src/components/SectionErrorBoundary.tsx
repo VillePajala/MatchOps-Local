@@ -2,7 +2,7 @@
 
 import React, { Component, ReactNode } from 'react';
 import { HiExclamationCircle } from 'react-icons/hi2';
-import logger, { LogLevel } from '@/utils/logger';
+import logger from '@/utils/logger';
 
 interface Props {
   children: ReactNode;
@@ -46,41 +46,37 @@ class SectionErrorBoundary extends Component<Props, State> {
     const { retryCount } = this.state;
     
     // Enhanced structured logging with severity based on retry count
-    const severity = retryCount >= 2 ? LogLevel.CRITICAL : LogLevel.ERROR;
     const errorId = `section-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
-    logger.error(
-      'Section component error occurred',
-      error,
-      {
-        component: 'SectionErrorBoundary',
-        section: sectionName,
-        errorId,
-        stack: errorInfo.componentStack,
-        retryCount,
-      },
-      {
-        errorInfo,
-        isRepeatedFailure: retryCount > 0,
-        maxRetriesReached: retryCount >= this.maxRetries,
-        timestamp: new Date().toISOString(),
-      }
-    );
-    
-    // Log as critical if max retries reached
-    if (retryCount >= this.maxRetries) {
+    // Use critical logging for repeated failures
+    if (retryCount >= 2) {
       logger.critical(
-        'Section component failed after maximum retries',
+        'Section component critical failure (multiple retries)',
         error,
         {
           component: 'SectionErrorBoundary',
           section: sectionName,
           errorId,
+          stack: errorInfo.componentStack,
+          retryCount,
+        }
+      );
+    } else {
+      logger.error(
+        'Section component error occurred',
+        error,
+        {
+          component: 'SectionErrorBoundary',
+          section: sectionName,
+          errorId,
+          stack: errorInfo.componentStack,
+          retryCount,
         },
         {
-          maxRetries: this.maxRetries,
-          finalRetryCount: retryCount,
-          requiresUserIntervention: true,
+          errorInfo,
+          isRepeatedFailure: retryCount > 0,
+          maxRetriesReached: retryCount >= this.maxRetries,
+          timestamp: new Date().toISOString(),
         }
       );
     }

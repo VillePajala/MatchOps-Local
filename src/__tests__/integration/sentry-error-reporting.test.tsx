@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import { render } from '@testing-library/react';
+import React from 'react';
 
 // Mock Sentry before imports
 const mockCaptureException = jest.fn();
@@ -257,7 +258,7 @@ describe('Sentry Error Reporting Integration', () => {
       const { default: ErrorFeedback } = await import('@/components/ErrorFeedback');
       const { fireEvent, getByText, getByPlaceholderText } = await import('@testing-library/react');
 
-      const { container } = render(<ErrorFeedback error={null} />);
+      render(<ErrorFeedback error={null} />);
 
       fireEvent.click(getByText('Send Feedback'));
 
@@ -316,7 +317,7 @@ describe('Sentry Error Reporting Integration', () => {
       expect(mockCaptureException).toHaveBeenCalled();
 
       // Cleanup
-      delete (process.env as any).NEXT_PUBLIC_SENTRY_FORCE_ENABLE;
+      delete (process.env as NodeJS.ProcessEnv).NEXT_PUBLIC_SENTRY_FORCE_ENABLE;
     });
   });
 
