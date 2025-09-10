@@ -9,7 +9,7 @@ export const getPlayerAssessments = async (
     const game = await getGame(gameId);
     return game?.assessments || null;
   } catch (error) {
-    logger.error('Error getting player assessments:', error);
+    logger.error('Error getting player assessments', error as Error, { component: 'playerAssessments', section: 'getPlayerAssessments' });
     throw error;
   }
 };
@@ -34,7 +34,7 @@ export const savePlayerAssessment = async (
     };
     return saveGame(gameId, updatedGame);
   } catch (error) {
-    logger.error('Error saving player assessment:', error);
+    logger.error('Error saving player assessment', error as Error, { component: 'playerAssessments', section: 'savePlayerAssessment' });
     throw error;
   }
 };
@@ -57,7 +57,7 @@ export const deletePlayerAssessment = async (
     };
     return saveGame(gameId, updatedGame);
   } catch (error) {
-    logger.error('Error deleting player assessment:', error);
+    logger.error('Error deleting player assessment', error as Error, { component: 'playerAssessments', section: 'deletePlayerAssessment' });
     throw error;
   }
 };

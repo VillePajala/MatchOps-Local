@@ -80,7 +80,7 @@ export const runMigration = async (): Promise<void> => {
   // Check for existing backup (from failed previous migration)
   if (hasMigrationBackup()) {
     const backupInfo = getMigrationBackupInfo();
-    logger.warn('[Migration] Found existing migration backup from:', new Date(backupInfo?.timestamp || 0));
+    logger.warn('[Migration] Found existing migration backup from:', { context: new Date(backupInfo?.timestamp || 0), component: 'migration', section: 'runMigration' });
     logger.warn('[Migration] This suggests a previous migration failed. Backup will be replaced.');
   }
 
@@ -90,7 +90,7 @@ export const runMigration = async (): Promise<void> => {
     backup = await createMigrationBackup(CURRENT_DATA_VERSION);
     logger.log('[Migration] Created backup successfully');
   } catch (error) {
-    logger.error('[Migration] Failed to create backup:', error);
+    logger.error('[Migration] Failed to create backup', error as Error, { component: 'migration', section: 'runMigration' });
     throw new Error(`Cannot proceed with migration - backup creation failed: ${error}`);
   }
 
@@ -106,7 +106,7 @@ export const runMigration = async (): Promise<void> => {
     logger.log('[Migration] Migration completed successfully');
 
   } catch (error) {
-    logger.error('[Migration] Migration failed, attempting rollback:', error);
+    logger.error('[Migration] Migration failed, attempting rollback', error as Error, { component: 'migration', section: 'runMigration' });
     
     try {
       await restoreMigrationBackup(backup);
@@ -117,7 +117,7 @@ export const runMigration = async (): Promise<void> => {
       throw new Error(`Migration failed and was rolled back: ${error}`);
       
     } catch (rollbackError) {
-      logger.error('[Migration] CRITICAL: Rollback failed:', rollbackError);
+      logger.error('[Migration] CRITICAL: Rollback failed', rollbackError as Error, { component: 'migration', section: 'runMigration' });
       
       // Don't clear backup if rollback failed - user might need it
       throw new Error(`Migration failed and rollback unsuccessful. Original error: ${error}. Rollback error: ${rollbackError}. Please restore from a manual backup or contact support.`);
@@ -186,7 +186,7 @@ const migrateRosterToTeam = async (teamId: string): Promise<void> => {
 
     await setTeamRoster(teamId, teamRoster);
   } catch (error) {
-    logger.warn('[Migration] Could not migrate roster:', error);
+    logger.warn('[Migration] Could not migrate roster', { context: error, component: 'migration', section: 'migrateRosterToTeam' });
     // Set empty roster if migration fails
     await setTeamRoster(teamId, []);
   }
@@ -230,7 +230,7 @@ export const recoverFromFailedMigration = async (): Promise<boolean> => {
     const validation = validateMigrationBackup(backupData);
     
     if (!validation.valid) {
-      logger.error('[Migration Recovery] Backup validation failed:', validation.errors);
+      logger.error('[Migration Recovery] Backup validation failed', new Error(validation.errors.join(', ')), { component: 'migration', section: 'recoverFromFailedMigration' });
       return false;
     }
 
@@ -242,7 +242,7 @@ export const recoverFromFailedMigration = async (): Promise<boolean> => {
     return true;
 
   } catch (error) {
-    logger.error('[Migration Recovery] Recovery failed:', error);
+    logger.error('[Migration Recovery] Recovery failed', error as Error, { component: 'migration', section: 'recoverFromFailedMigration' });
     return false;
   }
 };

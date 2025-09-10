@@ -21,7 +21,7 @@ export const migrateSavedGamesIsPlayed = async (): Promise<number> => {
     }
     return updated;
   } catch (error) {
-    logger.error('Error migrating saved games:', error);
+    logger.error('Error migrating saved games', error as Error, { component: 'migrateSavedGames', section: 'migrateSavedGamesIsPlayed' });
     throw error;
   }
 };

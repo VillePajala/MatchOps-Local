@@ -23,7 +23,7 @@ export const getSeasons = async (): Promise<Season[]> => {
     const seasons = JSON.parse(seasonsJson) as Season[];
     return Promise.resolve(seasons.map(s => ({ ...s, ageGroup: s.ageGroup ?? undefined })));
   } catch (error) {
-    logger.error('[getSeasons] Error reading seasons from localStorage:', error);
+    logger.error('[getSeasons] Error reading seasons from localStorage', error as Error, { component: 'seasons', section: 'getSeasons' });
     return Promise.resolve([]); // Resolve with empty array on error
   }
 };
@@ -38,7 +38,7 @@ export const saveSeasons = async (seasons: Season[]): Promise<boolean> => {
     setLocalStorageItem(SEASONS_LIST_KEY, JSON.stringify(seasons));
     return Promise.resolve(true);
   } catch (error) {
-    logger.error('[saveSeasons] Error saving seasons to localStorage:', error);
+    logger.error('[saveSeasons] Error saving seasons to localStorage', error as Error, { component: 'seasons', section: 'saveSeasons' });
     return Promise.resolve(false);
   }
 };
@@ -75,7 +75,7 @@ export const addSeason = async (newSeasonName: string, extra: Partial<Season> = 
     }
     return Promise.resolve(newSeason);
   } catch (error) {
-    logger.error('[addSeason] Unexpected error adding season:', error);
+    logger.error('[addSeason] Unexpected error adding season', error as Error, { component: 'seasons', section: 'addSeason' });
     return Promise.resolve(null);
   }
 };
@@ -116,7 +116,7 @@ export const updateSeason = async (updatedSeasonData: Season): Promise<Season | 
     }
     return Promise.resolve(seasonsToUpdate[seasonIndex]);
   } catch (error) {
-    logger.error('[updateSeason] Unexpected error updating season:', error);
+    logger.error('[updateSeason] Unexpected error updating season', error as Error, { component: 'seasons', section: 'updateSeason' });
     return Promise.resolve(null);
   }
 };
@@ -143,7 +143,7 @@ export const deleteSeason = async (seasonId: string): Promise<boolean> => {
     const success = await saveSeasons(updatedSeasons);
     return Promise.resolve(success);
   } catch (error) {
-    logger.error('[deleteSeason] Unexpected error deleting season:', error);
+    logger.error('[deleteSeason] Unexpected error deleting season', error as Error, { component: 'seasons', section: 'deleteSeason' });
     return Promise.resolve(false);
   }
 }; 

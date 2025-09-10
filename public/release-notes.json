@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: document new environment variables and testing strategy"
+  "notes": "fix: systematically update all logger calls to structured logging format"
 }

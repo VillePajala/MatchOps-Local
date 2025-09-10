@@ -49,7 +49,7 @@ export const getAppSettings = async (): Promise<AppSettings> => {
     const settings = JSON.parse(settingsJson);
     return { ...DEFAULT_APP_SETTINGS, ...settings };
   } catch (error) {
-    logger.error('Error getting app settings from localStorage:', error);
+    logger.error('Error getting app settings from localStorage', error as Error, { component: 'appSettings', section: 'getAppSettings' });
     return DEFAULT_APP_SETTINGS; // Fallback to default on error
   }
 };
@@ -64,7 +64,7 @@ export const saveAppSettings = async (settings: AppSettings): Promise<boolean> =
     setLocalStorageItem(APP_SETTINGS_KEY, JSON.stringify(settings));
     return true;
   } catch (error) {
-    logger.error('Error saving app settings to localStorage:', error);
+    logger.error('Error saving app settings to localStorage', error as Error, { component: 'appSettings', section: 'saveAppSettings' });
     return false;
   }
 };
@@ -135,7 +135,7 @@ export const getLastHomeTeamName = async (): Promise<string> => {
     const legacyValue = getLocalStorageItem(LAST_HOME_TEAM_NAME_KEY);
     return legacyValue || '';
   } catch (error) {
-    logger.error('Error getting last home team name:', error);
+    logger.error('Error getting last home team name', error as Error, { component: 'appSettings', section: 'getLastHomeTeamName' });
     return '';
   }
 };
@@ -153,7 +153,7 @@ export const saveLastHomeTeamName = async (teamName: string): Promise<boolean> =
     setLocalStorageItem(LAST_HOME_TEAM_NAME_KEY, teamName); // Legacy sync save
     return true;
   } catch (error) {
-    logger.error('Error saving last home team name:', error);
+    logger.error('Error saving last home team name', error as Error, { component: 'appSettings', section: 'saveLastHomeTeamName' });
     return false;
   }
 };
@@ -200,7 +200,7 @@ export const resetAppSettings = async (): Promise<boolean> => {
     const success = await saveAppSettings(DEFAULT_APP_SETTINGS);
     return success;
   } catch (error) {
-    logger.error('Error resetting app settings:', error);
+    logger.error('Error resetting app settings', error as Error, { component: 'appSettings', section: 'resetAppSettings' });
     return false;
   }
 };

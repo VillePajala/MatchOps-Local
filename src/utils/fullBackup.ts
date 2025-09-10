@@ -61,7 +61,7 @@ export const generateFullBackupJson = async (): Promise<string> => {
         backupData.localStorage[key as keyof FullBackupData['localStorage']] = JSON.parse(itemJson);
         logger.log(`Backed up data for key: ${key}`);
       } catch (error) {
-        logger.error(`Error parsing localStorage item for key ${key}:`, error);
+        logger.error(`Error parsing localStorage item for key ${key}`, error as Error, { component: 'fullBackup', section: 'generateFullBackupJson' });
         backupData.localStorage[key as keyof FullBackupData['localStorage']] = null;
       }
     } else {
@@ -96,7 +96,7 @@ export const exportFullBackup = async (): Promise<string> => {
     alert(i18n.t("fullBackup.exportSuccess"));
     return jsonString;
   } catch (error) {
-    logger.error("Failed to export full backup:", error);
+    logger.error("Failed to export full backup", error as Error, { component: 'fullBackup', section: 'exportFullBackup' });
     alert(i18n.t("fullBackup.exportError"));
     throw error;
   }
@@ -153,7 +153,7 @@ export const importFullBackup = async (
           try {
             currentRoster = JSON.parse(currentRosterJson) as Player[];
           } catch (error) {
-            logger.warn('Could not parse current roster for player mapping:', error);
+            logger.warn('Could not parse current roster for player mapping', { context: error, component: 'fullBackup', section: 'importFullBackup' });
           }
         }
         
@@ -176,7 +176,7 @@ export const importFullBackup = async (
           }
         }
       } catch (error) {
-        logger.error('Error processing imported games for player mapping:', error);
+        logger.error('Error processing imported games for player mapping', error as Error, { component: 'fullBackup', section: 'importFullBackup' });
         // Continue with import even if processing fails
       }
     }
@@ -200,8 +200,8 @@ export const importFullBackup = async (
           logger.log(`Restored data for key: ${key}`);
         } catch (innerError) {
           logger.error(
-            `Error stringifying or setting localStorage item for key ${key}:`,
-            innerError,
+            `Error stringifying or setting localStorage item for key ${key}`,
+            innerError as Error, { component: 'fullBackup', section: 'importFullBackup' }
           );
           // It's important to alert the user and rethrow or handle appropriately
           alert(i18n.t("fullBackup.restoreKeyError", { key }));
@@ -233,7 +233,7 @@ export const importFullBackup = async (
 
     return true; // Indicate success (although reload prevents further action)
   } catch (error) {
-    logger.error("Failed to import full backup:", error);
+    logger.error("Failed to import full backup", error as Error, { component: 'fullBackup', section: 'importFullBackup' });
     // Type check for error before accessing message
     const errorMessage = error instanceof Error ? error.message : String(error);
     alert(i18n.t("fullBackup.restoreError", { error: errorMessage }));

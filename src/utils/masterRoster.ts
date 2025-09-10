@@ -15,7 +15,7 @@ export const getMasterRoster = async (): Promise<Player[]> => {
     }
     return Promise.resolve(JSON.parse(rosterJson) as Player[]);
   } catch (error) {
-    logger.error('[getMasterRoster] Error getting master roster from localStorage:', error);
+    logger.error('[getMasterRoster] Error getting master roster from localStorage', error as Error, { component: 'masterRoster', section: 'getMasterRoster' });
     return Promise.resolve([]); // Return empty array on error
   }
 };
@@ -30,7 +30,7 @@ export const saveMasterRoster = async (players: Player[]): Promise<boolean> => {
     setLocalStorageItem(MASTER_ROSTER_KEY, JSON.stringify(players));
     return Promise.resolve(true);
   } catch (error) {
-    logger.error('[saveMasterRoster] Error saving master roster to localStorage:', error);
+    logger.error('[saveMasterRoster] Error saving master roster to localStorage', error as Error, { component: 'masterRoster', section: 'saveMasterRoster' });
     // Handle potential errors, e.g., localStorage quota exceeded
     return Promise.resolve(false);
   }
@@ -75,7 +75,7 @@ export const addPlayerToRoster = async (playerData: {
     }
     return Promise.resolve(newPlayer);
   } catch (error) {
-    logger.error('[addPlayerToRoster] Unexpected error adding player:', error);
+    logger.error('[addPlayerToRoster] Unexpected error adding player', error as Error, { component: 'masterRoster', section: 'addPlayerToRoster' });
     return Promise.resolve(null);
   }
 };
@@ -132,7 +132,7 @@ export const updatePlayerInRoster = async (
 
     return Promise.resolve(updatedPlayer);
   } catch (error) {
-    logger.error('[updatePlayerInRoster] Unexpected error updating player:', error);
+    logger.error('[updatePlayerInRoster] Unexpected error updating player', error as Error, { component: 'masterRoster', section: 'updatePlayerInRoster' });
     return Promise.resolve(null);
   }
 };
@@ -161,7 +161,7 @@ export const removePlayerFromRoster = async (playerId: string): Promise<boolean>
     return Promise.resolve(success);
 
   } catch (error) {
-    logger.error('[removePlayerFromRoster] Unexpected error removing player:', error);
+    logger.error('[removePlayerFromRoster] Unexpected error removing player', error as Error, { component: 'masterRoster', section: 'removePlayerFromRoster' });
     return Promise.resolve(false);
   }
 };
@@ -229,7 +229,7 @@ export const setPlayerGoalieStatus = async (
     return Promise.resolve(targetPlayer || null); // Should always be targetPlayer if found earlier
 
   } catch (error) {
-    logger.error('[setPlayerGoalieStatus] Unexpected error:', error);
+    logger.error('[setPlayerGoalieStatus] Unexpected error', error as Error, { component: 'masterRoster', section: 'setPlayerGoalieStatus' });
     return Promise.resolve(null);
   }
 };

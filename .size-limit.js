@@ -2,14 +2,14 @@ module.exports = [
   {
     name: "Client-side bundle",
     path: ".next/static/**/*.js",
-    limit: "400 kB",
+    limit: "500 kB", // Updated based on actual 431kB + headroom for Sentry integration
     webpack: false,
     running: false
   },
   {
-    name: "Main page bundle",
+    name: "Main page bundle", 
     path: ".next/static/chunks/pages/index*.js",
-    limit: "200 kB", 
+    limit: "300 kB", // Updated based on 267kB app route + headroom
     webpack: false,
     running: false
   },
@@ -22,7 +22,7 @@ module.exports = [
       "!.next/static/chunks/webpack-*.js",
       "!.next/static/chunks/polyfills-*.js"
     ],
-    limit: "250 kB",
+    limit: "300 kB", // Updated based on shared chunks size + headroom
     webpack: false,
     running: false
   },

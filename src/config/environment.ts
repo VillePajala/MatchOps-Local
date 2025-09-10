@@ -303,10 +303,10 @@ function validateSecurityConfiguration(): { errors: string[]; warnings: string[]
   const warnings: string[] = [];
   
   // Check for potentially exposed secrets in environment variables
-  const envVars = typeof process !== 'undefined' ? process.env : {};
+  const envVars: Record<string, string | undefined> = typeof process !== 'undefined' ? process.env : {};
   
   for (const [key, value] of Object.entries(envVars)) {
-    if (!value) continue;
+    if (!value || typeof value !== 'string') continue;
     
     // Check for secrets with NEXT_PUBLIC_ prefix (would be exposed to client)
     if (key.startsWith('NEXT_PUBLIC_')) {
