@@ -25,13 +25,12 @@ Object.defineProperty(global, 'localStorage', {
 });
 
 // Mock crypto.randomUUID if not available in test environment
-if (!global.crypto?.randomUUID) {
-  Object.defineProperty(global, 'crypto', {
-    value: {
-      randomUUID: jest.fn(() => 'abcd1234-5678-9abc-def0-123456789abc')
-    }
-  });
-}
+const mockRandomUUID = jest.fn(() => 'abcd1234-5678-9abc-def0-123456789abc');
+Object.defineProperty(global, 'crypto', {
+  value: {
+    randomUUID: mockRandomUUID
+  }
+});
 
 // Mock logger
 jest.mock('./logger', () => ({
@@ -44,6 +43,8 @@ describe('Game ID Generation', () => {
   beforeEach(() => {
     mockLocalStorage.clear();
     jest.clearAllMocks();
+    // Reset the randomUUID mock to default behavior
+    mockRandomUUID.mockReturnValue('abcd1234-5678-9abc-def0-123456789abc');
   });
 
   const createValidGameData = (): Partial<AppState> => ({
@@ -82,7 +83,7 @@ describe('Game ID Generation', () => {
   it('should generate different IDs for simultaneous game creation', async () => {
     // Mock crypto.randomUUID to return different values
     let callCount = 0;
-    (global.crypto.randomUUID as jest.Mock).mockImplementation(() => {
+    mockRandomUUID.mockImplementation(() => {
       const uuids = [
         '11111111-2222-3333-4444-555555555555',
         '66666666-7777-8888-9999-aaaaaaaaaaaa',

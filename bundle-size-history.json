@@ -1,0 +1,42 @@
+[
+  {
+    "timestamp": "2025-09-10T10:05:04.558Z",
+    "commit": "local",
+    "branch": "local",
+    "sizes": {
+      "totalJS": 11728445,
+      "totalCSS": 89821,
+      "total": 11818266
+    }
+  },
+  {
+    "timestamp": "2025-09-10T10:05:11.926Z",
+    "commit": "local",
+    "branch": "local",
+    "sizes": {
+      "totalJS": 11728445,
+      "totalCSS": 89821,
+      "total": 11818266
+    }
+  },
+  {
+    "timestamp": "2025-09-10T10:19:01.332Z",
+    "commit": "local",
+    "branch": "local",
+    "sizes": {
+      "totalJS": 11970797,
+      "totalCSS": 89821,
+      "total": 12060618
+    }
+  },
+  {
+    "timestamp": "2025-09-10T10:21:06.369Z",
+    "commit": "local",
+    "branch": "local",
+    "sizes": {
+      "totalJS": 11973789,
+      "totalCSS": 89821,
+      "total": 12063610
+    }
+  }
+]

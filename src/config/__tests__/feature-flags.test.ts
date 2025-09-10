@@ -14,6 +14,9 @@ interface MockConfig {
   };
 }
 
+// Create the mock functions outside the module mock
+const mockIsFeatureEnabled = jest.fn();
+
 // Mock environment module before importing feature flags
 jest.unstable_mockModule('../environment', () => ({
   config: {
@@ -28,15 +31,28 @@ jest.unstable_mockModule('../environment', () => ({
       pwaInstall: true,
     }
   } as MockConfig,
-  isFeatureEnabled: jest.fn(),
+  isFeatureEnabled: mockIsFeatureEnabled,
 }));
 
-const { useFeature, getEnabledFeatures, FEATURES } = await import('../feature-flags');
-const { config, isFeatureEnabled } = await import('../environment');
+// Import modules for testing
+let useFeature: any, getEnabledFeatures: any, FEATURES: any;
+let config: any;
+
+beforeAll(async () => {
+  const featureFlags = await import('../feature-flags');
+  const environment = await import('../environment');
+  
+  useFeature = featureFlags.useFeature;
+  getEnabledFeatures = featureFlags.getEnabledFeatures;
+  FEATURES = featureFlags.FEATURES;
+  
+  config = environment.config;
+});
 
 describe('Feature Flags', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockIsFeatureEnabled.mockClear();
   });
 
   describe('useFeature', () => {
@@ -45,7 +61,7 @@ describe('Feature Flags', () => {
       const mockConfig = config as unknown as MockConfig;
       mockConfig.isDevelopment = true;
       mockConfig.isProduction = false;
-      (isFeatureEnabled as jest.Mock).mockReturnValue(false);
+      mockIsFeatureEnabled.mockReturnValue(false);
 
       const result = useFeature('advancedAnalytics');
       
@@ -58,7 +74,7 @@ describe('Feature Flags', () => {
       const mockConfig = config as unknown as MockConfig;
       mockConfig.isDevelopment = false;
       mockConfig.isProduction = false;
-      (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+      mockIsFeatureEnabled.mockReturnValue(true);
 
       const result = useFeature('pwaInstall');
       
@@ -71,12 +87,12 @@ describe('Feature Flags', () => {
       const mockConfig = config as unknown as MockConfig;
       mockConfig.isDevelopment = false;
       mockConfig.isProduction = true;
-      (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+      mockIsFeatureEnabled.mockReturnValue(true);
 
       const result = useFeature('exportFormats');
       
       // Should call isFeatureEnabled and return its result
-      expect(isFeatureEnabled).toHaveBeenCalledWith('exportFormats');
+      expect(mockIsFeatureEnabled).toHaveBeenCalledWith('exportFormats');
       expect(result).toBe(true);
     });
 
@@ -84,11 +100,12 @@ describe('Feature Flags', () => {
       const mockConfig = config as unknown as MockConfig;
       mockConfig.isDevelopment = false;
       mockConfig.isProduction = true;
-      (isFeatureEnabled as jest.Mock).mockReturnValue(false);
+      mockIsFeatureEnabled.mockReturnValue(false);
 
       const result = useFeature('unknownFeature' as keyof typeof config.features);
       
       expect(result).toBe(false);
+      expect(mockIsFeatureEnabled).toHaveBeenCalledWith('unknownFeature');
     });
   });
 
@@ -97,7 +114,7 @@ describe('Feature Flags', () => {
       const mockConfig = config as unknown as MockConfig;
       mockConfig.isDevelopment = true;
       mockConfig.isProduction = false;
-      (isFeatureEnabled as jest.Mock).mockImplementation(((feature: unknown): boolean => {
+      mockIsFeatureEnabled.mockImplementation(((feature: unknown): boolean => {
         return mockConfig.features[(feature as string) as keyof typeof mockConfig.features] || false;
       }) as any);
 
@@ -137,7 +154,7 @@ describe('Feature Flags', () => {
       const mockConfig = config as unknown as MockConfig;
       mockConfig.isDevelopment = false;
       mockConfig.isProduction = false;
-      (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+      mockIsFeatureEnabled.mockReturnValue(true);
 
       expect(useFeature('pwaInstall')).toBe(false); // Override in test
       expect(useFeature('advancedAnalytics')).toBe(false); // Override in test
@@ -147,11 +164,11 @@ describe('Feature Flags', () => {
       const mockConfig = config as unknown as MockConfig;
       mockConfig.isDevelopment = false;
       mockConfig.isProduction = true;
-      (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+      mockIsFeatureEnabled.mockReturnValue(true);
 
       useFeature('multiLanguage');
       
-      expect(isFeatureEnabled).toHaveBeenCalledWith('multiLanguage');
+      expect(mockIsFeatureEnabled).toHaveBeenCalledWith('multiLanguage');
     });
   });
 
@@ -160,19 +177,21 @@ describe('Feature Flags', () => {
       const mockConfig = config as unknown as Partial<MockConfig>;
       mockConfig.isDevelopment = undefined;
       mockConfig.isProduction = undefined;
-      (isFeatureEnabled as jest.Mock).mockReturnValue(false);
+      mockIsFeatureEnabled.mockReturnValue(false);
 
-      const result = useFeature('exportFormats');
+      // Use a feature that doesn't have test overrides to ensure it falls back to isFeatureEnabled
+      const result = useFeature('premiumFeatures');
       
       // Should fall back to regular feature checking
       expect(result).toBe(false);
+      expect(mockIsFeatureEnabled).toHaveBeenCalledWith('premiumFeatures');
     });
 
     it('should handle feature flag errors gracefully', () => {
       const mockConfig = config as unknown as MockConfig;
       mockConfig.isDevelopment = false;
       mockConfig.isProduction = true;
-      (isFeatureEnabled as jest.Mock).mockImplementation(() => {
+      mockIsFeatureEnabled.mockImplementation(() => {
         throw new Error('Feature flag error');
       });
 
@@ -198,12 +217,12 @@ describe('Feature Flag Integration', () => {
     const mockConfig = config as unknown as MockConfig;
     mockConfig.isDevelopment = false;
     mockConfig.isProduction = true;
-    (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+    mockIsFeatureEnabled.mockReturnValue(true);
 
     const result1 = useFeature('multiLanguage');
     const result2 = useFeature('multiLanguage');
     
     expect(result1).toBe(result2);
-    expect(isFeatureEnabled).toHaveBeenCalledTimes(2);
+    expect(mockIsFeatureEnabled).toHaveBeenCalledTimes(2);
   });
 });
