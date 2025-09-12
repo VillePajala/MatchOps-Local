@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: systematically update all logger calls to structured logging format"
+  "notes": "fix: update GitHub Actions to use non-deprecated versions"
 }
