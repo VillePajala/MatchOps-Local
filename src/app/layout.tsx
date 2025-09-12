@@ -8,7 +8,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 import I18nInitializer from "@/components/I18nInitializer";
 import SentryInitializer from "@/components/SentryInitializer";
 import { Analytics } from "@vercel/analytics/react";
-import { manifestConfig } from "@/config/manifest.config.js";
+import { manifestConfig } from "@/config/manifest.config.mjs";
 
 // Configure Rajdhani font
 const rajdhani = Rajdhani({
