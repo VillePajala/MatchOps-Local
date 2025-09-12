@@ -163,7 +163,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
           // MOVED Focus to run earlier, but can be adjusted if data loading causes issues with it.
           // setTimeout(() => nameInputRef.current?.focus(), 100); 
         } catch (err) {
-          logger.error("[NewGameSetupModal] Error fetching initial data:", err);
+          logger.error('[NewGameSetupModal] Error fetching initial data', err as Error, {
+            component: 'NewGameSetupModal',
+            section: 'data-loading',
+          });
           setError(t('newGameSetupModal.errors.dataLoadFailed', 'Failed to load initial setup data. Please try again.'));
           setHomeTeamName(t('newGameSetupModal.defaultTeamName', 'My Team'));
           setSeasons([]);
@@ -257,7 +260,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
           setIsTeamNameAutoFilled(true);
         }
       } catch (error) {
-        logger.error('[NewGameSetupModal] Error loading team roster:', error);
+        logger.error('[NewGameSetupModal] Error loading team roster', error as Error, {
+          component: 'NewGameSetupModal',
+          section: 'team-roster-loading',
+        });
         
         // Check if this is still the current request
         if (requestId !== teamSelectionRequestRef.current) {
@@ -294,7 +300,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
           setIsTeamNameAutoFilled(false);
         }
       } catch (error) {
-        logger.error('[NewGameSetupModal] Error loading master roster:', error);
+        logger.error('[NewGameSetupModal] Error loading master roster', error as Error, {
+          component: 'NewGameSetupModal',
+          section: 'master-roster-loading',
+        });
         setAvailablePlayersForSetup([]);
         setSelectedPlayerIds([]);
       }
@@ -392,7 +401,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       }
     } catch (error) {
       // This catch is for errors from mutateAsync itself, if not handled by mutation's onError
-      logger.error("Error calling addSeasonMutation.mutateAsync:", error);
+      logger.error('Error calling addSeasonMutation.mutateAsync', error as Error, {
+        component: 'NewGameSetupModal',
+        section: 'season-mutation',
+      });
       // alert(t('newGameSetupModal.errorAddingSeasonGeneric', 'Error initiating add season. See console.'));
       // The actual user-facing error for mutation failure should come from the mutation's onError handler in page.tsx
       newSeasonInputRef.current?.focus();
@@ -424,7 +436,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         logger.warn("addTournamentMutation.mutateAsync completed, but newTournament is null.");
       }
     } catch (error) {
-      logger.error("Error calling addTournamentMutation.mutateAsync:", error);
+      logger.error('Error calling addTournamentMutation.mutateAsync', error as Error, {
+        component: 'NewGameSetupModal',
+        section: 'tournament-mutation',
+      });
       // alert(t('newGameSetupModal.errorAddingTournamentGeneric', 'Error initiating add tournament. See console.'));
       newTournamentInputRef.current?.focus();
     }
@@ -481,7 +496,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     try {
       await utilSaveLastHomeTeamName(trimmedHomeTeamName);
     } catch (error) {
-      logger.error("Failed to save last home team name:", error);
+      logger.error('Failed to save last home team name', error as Error, {
+        component: 'NewGameSetupModal',
+        section: 'team-name-save',
+      });
       // Continue without blocking, as this is not critical for starting the game
     }
     // --- End Save ---

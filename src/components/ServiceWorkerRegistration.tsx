@@ -23,7 +23,10 @@ export default function ServiceWorkerRegistration() {
           setReleaseNotes(data.notes);
         }
       } catch (error) {
-        logger.error('Failed to fetch release notes', error);
+        logger.error('Failed to fetch release notes', error as Error, {
+          component: 'ServiceWorkerRegistration',
+          section: 'release-notes',
+        });
       }
     };
 
@@ -57,7 +60,10 @@ export default function ServiceWorkerRegistration() {
         }
       };
     }).catch(error => {
-      logger.error('[PWA] Service Worker registration failed: ', error);
+      logger.error('[PWA] Service Worker registration failed', error as Error, {
+        component: 'ServiceWorkerRegistration',
+        section: 'pwa-registration',
+      });
     });
 
     // Listen for controller changes

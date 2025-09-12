@@ -21,7 +21,7 @@ export const getMasterRoster = async (): Promise<Player[]> => {
         // logger.log('[masterRosterManager] Roster fetched by util:', roster);
         return roster;
     } catch (error) {
-        logger.error("[masterRosterManager] Error in getMasterRoster:", error);
+        logger.error("[masterRosterManager] Error in getMasterRoster", error as Error, { component: 'masterRosterManager', section: 'getMasterRoster' });
         return []; // Return empty array on error to maintain type consistency
     }
 };
@@ -41,7 +41,7 @@ export const addPlayer = async (
         // logger.log('[masterRosterManager] Player added by util:', newPlayer);
         return newPlayer;
     } catch (error) {
-        logger.error("[masterRosterManager] Error in addPlayer:", error);
+        logger.error("[masterRosterManager] Error in addPlayer", error as Error, { component: 'masterRosterManager', section: 'addPlayer' });
         return null;
     }
 };
@@ -63,7 +63,7 @@ export const updatePlayer = async (
         // logger.log('[masterRosterManager] Player updated by util:', updatedPlayer);
         return updatedPlayer;
     } catch (error) {
-        logger.error(`[masterRosterManager] Error in updatePlayer for ID ${playerId}:`, error);
+        logger.error(`[masterRosterManager] Error in updatePlayer for ID ${playerId}`, error as Error, { component: 'masterRosterManager', section: 'updatePlayer' });
         return null;
     }
 };
@@ -81,7 +81,7 @@ export const removePlayer = async (playerId: string): Promise<boolean> => {
         // logger.log('[masterRosterManager] Player removal by util status:', success);
         return success;
     } catch (error) {
-        logger.error(`[masterRosterManager] Error in removePlayer for ID ${playerId}:`, error);
+        logger.error(`[masterRosterManager] Error in removePlayer for ID ${playerId}`, error as Error, { component: 'masterRosterManager', section: 'removePlayer' });
         return false;
     }
 };
@@ -103,7 +103,7 @@ export const setGoalieStatus = async (
         // logger.log('[masterRosterManager] Goalie status updated by util:', updatedPlayer);
         return updatedPlayer;
     } catch (error) {
-        logger.error(`[masterRosterManager] Error in setGoalieStatus for ID ${playerId}:`, error);
+        logger.error(`[masterRosterManager] Error in setGoalieStatus for ID ${playerId}`, error as Error, { component: 'masterRosterManager', section: 'setGoalieStatus' });
         return null;
     }
 };
@@ -125,7 +125,7 @@ export const setFairPlayCardStatus = async (
         // logger.log('[masterRosterManager] Fair play status updated by util:', updatedPlayer);
         return updatedPlayer;
     } catch (error) {
-        logger.error(`[masterRosterManager] Error in setFairPlayCardStatus for ID ${playerId}:`, error);
+        logger.error(`[masterRosterManager] Error in setFairPlayCardStatus for ID ${playerId}`, error as Error, { component: 'masterRosterManager', section: 'setFairPlayCardStatus' });
         return null;
     }
 }; 

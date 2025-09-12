@@ -1,7 +1,7 @@
 name: Critical Path Guards
 on: 
   push:
-    branches: [ master, main, develop, feature/* ]
+    branches: [ master, main, develop, feature/*, production-readiness-improvements ]
   pull_request:
     branches: [ master, main, develop ]
 

@@ -26,8 +26,13 @@ This documentation covers everything about the MatchOps-Local project - what it 
 - **[development/](./development/)** - Development guides, code reviews, and contribution guidelines
 - **[testing/](./testing/)** - Testing strategies, guides, and quality assurance documentation
 
+### 💼 **Business & Strategy**
+- **[BUSINESS_STRATEGY.md](./BUSINESS_STRATEGY.md)** - High-level business approach and principles
+- **[business/](./business/)** - Detailed business planning and monetization strategy
+
 ### 🔧 **Technical Specifications**
 - **[specifications/](./specifications/)** - Formal technical specifications and system requirements
+- **[specs/](./specs/)** - Detailed technical specifications (IndexedDB migration plan, etc.)
 - **[features/](./features/)** - Detailed feature specifications and implementation plans
 
 ### 📸 **Assets**

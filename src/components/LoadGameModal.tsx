@@ -83,14 +83,20 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
           const loadedSeasonsData = await utilGetSeasons();
           setSeasons(Array.isArray(loadedSeasonsData) ? loadedSeasonsData : []);
         } catch (error) {
-        logger.error("Error loading seasons via utility:", error);
+        logger.error('Error loading seasons via utility', error as Error, {
+        component: 'LoadGameModal',
+        section: 'data-loading',
+      });
         setSeasons([]); 
       }
       try {
           const loadedTournamentsData = await utilGetTournaments();
           setTournaments(Array.isArray(loadedTournamentsData) ? loadedTournamentsData : []);
         } catch (error) {
-        logger.error("Error loading tournaments via utility:", error);
+        logger.error('Error loading tournaments via utility', error as Error, {
+        component: 'LoadGameModal',
+        section: 'data-loading',
+      });
         setTournaments([]);
       }
 
@@ -98,7 +104,10 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
           const loadedTeamsData = await getTeams();
           setTeams(Array.isArray(loadedTeamsData) ? loadedTeamsData : []);
         } catch (error) {
-        logger.error("Error loading teams via utility:", error);
+        logger.error('Error loading teams via utility', error as Error, {
+        component: 'LoadGameModal',
+        section: 'data-loading',
+      });
         setTeams([]);
       }
       };
@@ -184,8 +193,11 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
         if (!isNaN(timestampA) && !isNaN(timestampB)) {
           return timestampB - timestampA;
         }
-      } catch (error) {
-        logger.warn("Could not parse timestamps from game IDs for secondary sort:", a, b, error);
+      } catch {
+        logger.warn(`Could not parse timestamps from game IDs for secondary sort: ${a} vs ${b}`, {
+          component: 'LoadGameModal',
+          section: 'sorting',
+        });
       }
       
       // Fallback if dates are equal and timestamps can't be parsed

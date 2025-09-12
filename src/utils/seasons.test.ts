@@ -119,7 +119,7 @@ describe('Season Management Utilities (localStorage)', () => {
 
     it('should return null and log error if the season name is empty', async () => {
       expect(await addSeason('')).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Season name cannot be empty'));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[addSeason] Validation failed: Season name cannot be empty'));
       expect(await addSeason('   ')).toBeNull();
       expect(consoleErrorSpy).toHaveBeenCalledTimes(2);
     });
@@ -134,7 +134,7 @@ describe('Season Management Utilities (localStorage)', () => {
       localStorageMock.setItem.mockImplementationOnce(() => { throw new Error('Save failed'); });
       expect(await addSeason('Ephemeral Season')).toBeNull();
       // saveSeasons (which is called by addSeason) will log the error.
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveSeasons] Error saving seasons to localStorage:'), expect.any(Error));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveSeasons] Error saving seasons to localStorage'), expect.any(Error));
     });
   });
 
@@ -164,7 +164,7 @@ describe('Season Management Utilities (localStorage)', () => {
     it('should return null and log error if trying to update a non-existent season', async () => {
       const nonExistentSeason: Season = { id: 's99', name: 'Ghost Season' };
       expect(await updateSeason(nonExistentSeason)).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Season with ID s99 not found'));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[updateSeason] Season with ID s99 not found'));
     });
 
     it('should return null and log error if updated name conflicts with another season', async () => {
@@ -179,7 +179,7 @@ describe('Season Management Utilities (localStorage)', () => {
       });
       const seasonToUpdateData: Season = { ...sampleSeasons[0], name: 'Update Fail Season' };
       expect(await updateSeason(seasonToUpdateData)).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveSeasons] Error saving seasons to localStorage:'), expect.any(Error));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveSeasons] Error saving seasons to localStorage'), expect.any(Error));
     });
 
     it('should return null and log error for invalid update data (empty name)', async () => {
@@ -191,7 +191,7 @@ describe('Season Management Utilities (localStorage)', () => {
     it('should return null and log error for invalid update data (missing id)', async () => {
       const invalidSeason = { name: 'Valid Name' } as Season;
       expect(await updateSeason(invalidSeason)).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid season data provided for update'));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[updateSeason] Invalid season data provided for update'));
     });
   });
 
@@ -214,7 +214,7 @@ describe('Season Management Utilities (localStorage)', () => {
       expect(result).toBe(false);
       const currentSeasons = await getSeasons();
       expect(currentSeasons).toHaveLength(sampleSeasons.length);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(`[deleteSeason] Season with id ${nonExistentId} not found.`);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining(`[deleteSeason] Season with id ${nonExistentId} not found.`));
     });
 
     it('should handle deleting the last season and return true', async () => {
@@ -228,7 +228,7 @@ describe('Season Management Utilities (localStorage)', () => {
       localStorageMock.setItem.mockImplementationOnce(() => { throw new Error('Save failed'); });
       const seasonIdToDelete = sampleSeasons[1].id;
       expect(await deleteSeason(seasonIdToDelete)).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveSeasons] Error saving seasons to localStorage:'), expect.any(Error));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveSeasons] Error saving seasons to localStorage'), expect.any(Error));
       const currentSeasons = await getSeasons();
       expect(currentSeasons.find(s => s.id === seasonIdToDelete)).toBeDefined(); // Should still be there if save failed
     });

@@ -81,7 +81,7 @@ afterEach(() => {
     it('should return an empty array and log an error if localStorage data is malformed', async () => {
       localStorageMock.getItem.mockReturnValue('invalid-json-format');
       expect(await getTournaments()).toEqual([]);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[getTournaments] Error getting tournaments from localStorage:'), expect.any(SyntaxError));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[getTournaments] Error getting tournaments from localStorage'), expect.any(SyntaxError));
     });
   });
 
@@ -111,7 +111,7 @@ afterEach(() => {
       const result = await saveTournaments(sampleTournaments);
       expect(result).toBe(false);
       expect(localStorageMock.setItem).toHaveBeenCalledWith(TOURNAMENTS_LIST_KEY, JSON.stringify(sampleTournaments));
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveTournaments] Error saving tournaments to localStorage:'), expect.objectContaining({ message: errorMsg }));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveTournaments] Error saving tournaments to localStorage'), expect.objectContaining({ message: errorMsg }));
     });
   });
 
@@ -164,7 +164,7 @@ afterEach(() => {
       expect(result).toBeNull();
       expect(localStorageMock.setItem).toHaveBeenCalledTimes(1); // Attempted to save
       // Check for the error logged by saveTournaments
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveTournaments] Error saving tournaments to localStorage:'), expect.any(Error));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveTournaments] Error saving tournaments to localStorage'), expect.any(Error));
     });
 
     it('should return null and log error if name is empty, without attempting to save', async () => {
@@ -214,7 +214,7 @@ afterEach(() => {
       
       expect(result).toBeNull();
       expect(localStorageMock.setItem).toHaveBeenCalledTimes(1); // Attempted to save
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveTournaments] Error saving tournaments to localStorage:'), expect.any(Error));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveTournaments] Error saving tournaments to localStorage'), expect.any(Error));
     });
 
     it('should return null and log error if tournament to update is not found, without attempting to save', async () => {
@@ -272,7 +272,7 @@ afterEach(() => {
       
       expect(result).toBe(false);
       expect(localStorageMock.setItem).toHaveBeenCalledTimes(1); // Attempted to save
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveTournaments] Error saving tournaments to localStorage:'), expect.any(Error));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveTournaments] Error saving tournaments to localStorage'), expect.any(Error));
     });
 
     it('should return false and log error if tournament to delete is not found, without attempting to save', async () => {

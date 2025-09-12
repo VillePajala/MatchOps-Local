@@ -56,7 +56,7 @@ export const createMigrationBackup = async (targetVersion: number): Promise<Migr
       const value = getLocalStorageItem(key);
       backup.data[key] = value; // Store null if key doesn't exist
     } catch (error) {
-      logger.error(`[Migration Backup] Failed to backup key "${key}":`, error);
+      logger.error(`[Migration Backup] Failed to backup key "${key}"`, error as Error, { component: 'migrationBackup', section: 'createMigrationBackup' });
       throw new Error(`Failed to backup data for key "${key}": ${error}`);
     }
   }
@@ -70,7 +70,7 @@ export const createMigrationBackup = async (targetVersion: number): Promise<Migr
     logger.log('[Migration Backup] Backup created successfully');
     return backup;
   } catch (error) {
-    logger.error('[Migration Backup] Failed to store backup:', error);
+    logger.error('[Migration Backup] Failed to store backup', error as Error, { component: 'migrationBackup', section: 'createMigrationBackup' });
     throw new Error(`Failed to store migration backup: ${error}`);
   }
 };
@@ -112,7 +112,7 @@ export const restoreMigrationBackup = async (backup?: MigrationBackup): Promise<
     try {
       removeLocalStorageItem(key);
     } catch (error) {
-      logger.warn(`[Migration Backup] Warning: Could not clear key "${key}":`, error);
+      logger.warn(`[Migration Backup] Warning: Could not clear key "${key}"`, { context: error, component: 'migrationBackup', section: 'restoreMigrationBackup' });
     }
   }
 
@@ -130,7 +130,7 @@ export const restoreMigrationBackup = async (backup?: MigrationBackup): Promise<
         restoredCount++;
       }
     } catch (error) {
-      logger.error(`[Migration Backup] Failed to restore key "${key}":`, error);
+      logger.error(`[Migration Backup] Failed to restore key "${key}"`, error as Error, { component: 'migrationBackup', section: 'restoreMigrationBackup' });
       errorCount++;
     }
   }
@@ -150,7 +150,7 @@ export const clearMigrationBackup = (): void => {
     removeLocalStorageItem(MIGRATION_BACKUP_KEY);
     logger.log('[Migration Backup] Temporary backup cleared');
   } catch (error) {
-    logger.warn('[Migration Backup] Could not clear temporary backup:', error);
+    logger.warn('[Migration Backup] Could not clear temporary backup', { context: error, component: 'migrationBackup', section: 'clearMigrationBackup' });
   }
 };
 
@@ -176,7 +176,7 @@ export const getMigrationBackupInfo = (): { timestamp: number; version: number; 
       targetVersion: backup.targetVersion
     };
   } catch (error) {
-    logger.error('[Migration Backup] Failed to parse backup info:', error);
+    logger.error('[Migration Backup] Failed to parse backup info', error as Error, { component: 'migrationBackup', section: 'getMigrationBackupInfo' });
     return null;
   }
 };

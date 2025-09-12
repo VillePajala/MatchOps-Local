@@ -239,19 +239,28 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           const loadedSeasons = await utilGetSeasons(); 
         setSeasons(loadedSeasons);
         } catch (error) { 
-          logger.error("Failed to load seasons:", error); setSeasons([]); 
+          logger.error('Failed to load seasons', error as Error, {
+        component: 'GameStatsModal',
+        section: 'data-loading',
+      }); setSeasons([]); 
         }
       try {
           const loadedTournaments = await utilGetTournaments(); // Await the async call
         setTournaments(loadedTournaments);
         } catch (error) { 
-          logger.error("Failed to load tournaments:", error); setTournaments([]); 
+          logger.error('Failed to load tournaments', error as Error, {
+        component: 'GameStatsModal',
+        section: 'data-loading',
+      }); setTournaments([]); 
     }
       try {
           const loadedTeams = await utilGetTeams();
         setTeams(loadedTeams);
         } catch (error) { 
-          logger.error("Failed to load teams:", error); setTeams([]); 
+          logger.error('Failed to load teams', error as Error, {
+        component: 'GameStatsModal',
+        section: 'data-loading',
+      }); setTeams([]); 
     }
       }
     };

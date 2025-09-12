@@ -206,7 +206,7 @@ describe('App Settings Utilities', () => {
       localStorageMock.setItem.mockImplementationOnce(() => { throw new Error('Save failed'); });
 
       // Expect updateAppSettings to throw the specific error.
-      await expect(updateAppSettings({ currentGameId: 'updatedGame' })).rejects.toThrowError(
+      await expect(updateAppSettings({ currentGameId: 'updatedGame' })).rejects.toThrow(
         'Failed to save updated settings via saveAppSettings within updateAppSettings.'
       );
 

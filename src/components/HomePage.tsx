@@ -536,7 +536,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       getTeams().then(teams => {
         setAvailableTeams(teams);
       }).catch(error => {
-        logger.error('[ORPHANED GAME] Error loading teams:', error);
+        logger.error('[ORPHANED GAME] Error loading teams', error as Error, {
+        component: 'HomePage',
+        section: 'data-loading',
+      });
         setAvailableTeams([]);
       });
     }
@@ -583,7 +586,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       // Show success message (could add a toast notification here)
       logger.log('[TEAM REASSIGN] Game reassigned to team:', newTeamId);
     } catch (error) {
-      logger.error('[TEAM REASSIGN] Error reassigning team:', error);
+      logger.error('[TEAM REASSIGN] Error reassigning team', error as Error, {
+        component: 'HomePage',
+        section: 'reassign',
+      });
     }
   };
 
@@ -605,13 +611,19 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         // For now, relying on query invalidation to refresh the seasons list
       } else {
         // This case might indicate a duplicate name or some other non-exception failure from utilAddSeason
-        logger.warn('[Mutation Non-Success] utilAddSeason returned null for season:', variables.name);
+        logger.warn(`[Mutation Non-Success] utilAddSeason returned null for season: ${variables.name}`, {
+          component: 'HomePage',
+          section: 'mutation',
+        });
         // Consider setting a specific error state for the NewGameSetupModal if it's a common issue
         // alert(t('newGameSetupModal.errors.addSeasonFailed', 'Failed to add season: {seasonName}. It might already exist.', { seasonName: variables.name }));
       }
     },
     onError: (error, variables) => {
-      logger.error(`[Mutation Error] Failed to add season ${variables.name}:`, error);
+      logger.error(`[Mutation Error] Failed to add season ${variables.name}`, error as Error, {
+        component: 'HomePage',
+        section: 'mutation',
+      });
       // alert(t('newGameSetupModal.errors.addSeasonFailedUnexpected', 'An unexpected error occurred while adding season: {seasonName}.', { seasonName: variables.name }));
     },
   });
@@ -672,7 +684,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       });
     },
     onError: (error) => {
-      logger.error("Error updating game details:", error);
+      logger.error('Error updating game details', error as Error, {
+        component: 'HomePage',
+        section: 'update',
+      });
       // Here you could show a toast notification to the user
       },
   });
@@ -693,12 +708,18 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
         // Similar to seasons, could optimistically update or rely on invalidation
       } else {
-        logger.warn('[Mutation Non-Success] utilAddTournament returned null for tournament:', variables.name);
+        logger.warn(`[Mutation Non-Success] utilAddTournament returned null for tournament: ${variables.name}`, {
+          component: 'HomePage',
+          section: 'mutation',
+        });
         // alert(t('newGameSetupModal.errors.addTournamentFailed', 'Failed to add tournament: {tournamentName}. It might already exist.', { tournamentName: variables.name }));
       }
     },
     onError: (error, variables) => {
-      logger.error(`[Mutation Error] Failed to add tournament ${variables.name}:`, error);
+      logger.error(`[Mutation Error] Failed to add tournament ${variables.name}`, error as Error, {
+        component: 'HomePage',
+        section: 'mutation',
+      });
       // alert(t('newGameSetupModal.errors.addTournamentFailedUnexpected', 'An unexpected error occurred while adding tournament: {tournamentName}.', { tournamentName: variables.name }));
     },
   });
@@ -710,7 +731,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     }
     
     if (isMasterRosterQueryError) {
-      logger.error('[TanStack Query] Error loading master roster:', masterRosterQueryErrorData);
+      logger.error('[TanStack Query] Error loading master roster', masterRosterQueryErrorData as Error, {
+        component: 'HomePage',
+        section: 'data-loading',
+      });
       setAvailablePlayers([]);
       return;
     }
@@ -728,7 +752,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     }
     
     if (isSeasonsQueryError) {
-      logger.error('[TanStack Query] Error loading seasons:', seasonsQueryErrorData);
+      logger.error('[TanStack Query] Error loading seasons', seasonsQueryErrorData as Error, {
+        component: 'HomePage',
+        section: 'data-loading',
+      });
       setSeasons([]);
       return;
     }
@@ -746,7 +773,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     }
     
     if (isTournamentsQueryError) {
-      logger.error('[TanStack Query] Error loading tournaments:', tournamentsQueryErrorData);
+      logger.error('[TanStack Query] Error loading tournaments', tournamentsQueryErrorData as Error, {
+        component: 'HomePage',
+        section: 'data-loading',
+      });
       setTournaments([]);
       return;
     }
@@ -823,7 +853,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           // queryClient.invalidateQueries(queryKeys.seasons);
       }
     } catch (migrationError) {
-        logger.error('[EFFECT init] Error during data migration:', migrationError);
+        logger.error('[EFFECT init] Error during data migration', migrationError as Error, {
+          component: 'HomePage',
+          section: 'migration',
+        });
       }
 
       // Master Roster, Seasons, Tournaments are handled by their own useEffects reacting to useQuery.
@@ -837,7 +870,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         setIsLoadingGamesList(false);
       }
       if (isAllSavedGamesQueryError) {
-        logger.error('[EFFECT init] Error loading all saved games via TanStack Query:', allSavedGamesQueryErrorData);
+        logger.error('[EFFECT init] Error loading all saved games via TanStack Query', allSavedGamesQueryErrorData as Error, {
+          component: 'HomePage',
+          section: 'data-loading',
+        });
         setLoadGamesListError(t('loadGameModal.errors.listLoadFailed', 'Failed to load saved games list.'));
       setSavedGames({});
         setIsLoadingGamesList(false);
@@ -880,7 +916,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
             }
           }
         } catch (error) {
-          logger.error('[EFFECT init] Error restoring timer state:', error);
+          logger.error('[EFFECT init] Error restoring timer state', error as Error, {
+        component: 'HomePage',
+        section: 'general',
+      });
           removeLocalStorageItem(TIMER_STATE_KEY);
         }
         // --- END TIMER RESTORATION LOGIC ---
@@ -979,7 +1018,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           setOrphanedGameInfo(null);
         }
       } catch (error) {
-        logger.error('[LOAD GAME] Error checking team existence:', error);
+        logger.error('[LOAD GAME] Error checking team existence', error as Error, {
+        component: 'HomePage',
+        section: 'data-loading',
+      });
         // Assume orphaned on error
         setOrphanedGameInfo({ teamId: gameData.teamId, teamName: gameData.teamName });
       }
@@ -1165,7 +1207,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           await utilSaveCurrentGameIdSetting(currentGameId);
 
       } catch (error) {
-        logger.error("Failed to auto-save state to localStorage:", error);
+        logger.error('Failed to auto-save state to localStorage', error as Error, {
+        component: 'HomePage',
+        section: 'data-saving',
+      });
         alert("Error saving game."); // Notify user
       }
     } else if (initialLoadComplete && currentGameId === DEFAULT_GAME_ID) {
@@ -1435,7 +1480,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   const handleDeleteGameEvent = (goalId: string) => {
     const eventToDelete = gameSessionState.gameEvents.find(e => e.id === goalId);
     if (!eventToDelete) {
-      logger.error("Event to delete not found in gameSessionState.gameEvents:", goalId);
+      logger.warn(`Event to delete not found in gameSessionState.gameEvents: ${goalId}`, {
+        component: 'HomePage',
+        section: 'event-delete',
+      });
       return;
     }
 
@@ -1561,7 +1609,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         await utilResetAppSettings(); // Use utility function
         window.location.reload();
       } catch (error) {
-        logger.error("Error during hard reset:", error);
+        logger.error('Error during hard reset', error as Error, {
+        component: 'HomePage',
+        section: 'general',
+      });
         alert("Failed to reset application data.");
       }
     }
@@ -1615,7 +1666,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         handleCloseLoadGameModal();
 
       } catch(error) {
-          logger.error("Error processing game load:", error);
+          logger.error('Error processing game load', error as Error, {
+        component: 'HomePage',
+        section: 'data-loading',
+      });
           setGameLoadError(t('loadGameModal.errors.loadFailed', 'Error loading game state. Please try again.'));
       } finally {
         setIsGameLoading(false);
@@ -1759,7 +1813,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       await handleUpdatePlayer(playerId, { name: playerData.name, nickname: playerData.nickname });
       logger.log(`[Page.tsx] rename player success for ${playerId}.`);
     } catch (error) {
-      logger.error(`[Page.tsx] Exception during rename of ${playerId}:`, error);
+      logger.error('[Page.tsx] Exception during rename of ${playerId}', error as Error, {
+        component: 'HomePage',
+        section: 'general',
+      });
     }
   }, [handleUpdatePlayer, setRosterError]);
   
@@ -1771,7 +1828,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       await handleUpdatePlayer(playerId, { jerseyNumber });
       logger.log(`[Page.tsx] jersey number update successful for ${playerId}.`);
     } catch (error) {
-      logger.error(`[Page.tsx] Exception during jersey number update of ${playerId}:`, error);
+      logger.error('[Page.tsx] Exception during jersey number update of ${playerId}', error as Error, {
+        component: 'HomePage',
+        section: 'update',
+      });
     }
   }, [handleUpdatePlayer, setRosterError]);
 
@@ -1783,7 +1843,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       await handleUpdatePlayer(playerId, { notes });
       logger.log(`[Page.tsx] notes update successful for ${playerId}.`);
     } catch (error) {
-      logger.error(`[Page.tsx] Exception during notes update of ${playerId}:`, error);
+      logger.error('[Page.tsx] Exception during notes update of ${playerId}', error as Error, {
+        component: 'HomePage',
+        section: 'update',
+      });
     }
   }, [handleUpdatePlayer, setRosterError]);
 
@@ -1797,7 +1860,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         await handleRemovePlayer(playerId);
         logger.log(`[Page.tsx] player removed: ${playerId}.`);
       } catch (error) {
-        logger.error(`[Page.tsx] Exception during removal of ${playerId}:`, error);
+        logger.error('[Page.tsx] Exception during removal of ${playerId}', error as Error, {
+        component: 'HomePage',
+        section: 'general',
+      });
       }
     }, [handleRemovePlayer, setRosterError]);
 
@@ -1841,7 +1907,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       } catch (error) {
         // This catch block is for unexpected errors directly from mutateAsync call itself (e.g., network issues before mutationFn runs).
         // Errors from within mutationFn (like from the addPlayer utility) should ideally be handled by the mutation's onError callback.
-        logger.error(`[Page.tsx] Exception during addPlayerMutation.mutateAsync for player ${playerData.name}:`, error);
+        logger.error('[Page.tsx] Exception during addPlayerMutation.mutateAsync for player ${playerData.name}', error as Error, {
+        component: 'HomePage',
+        section: 'mutation',
+      });
         // Set a generic error message if rosterError hasn't been set by the mutation's onError callback.
         setRosterError(t('rosterSettingsModal.errors.addFailed', 'Error adding player {playerName}. Please try again.', { playerName: playerData.name }));
       }
@@ -1895,7 +1964,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
 
       logger.log(`[Page.tsx] per-game goalie toggle success for ${playerId}.`);
     } catch (error) {
-      logger.error(`[Page.tsx] Exception during per-game goalie toggle of ${playerId}:`, error);
+      logger.error('[Page.tsx] Exception during per-game goalie toggle of ${playerId}', error as Error, {
+        component: 'HomePage',
+        section: 'game',
+      });
     }
   }, [
     // Data dependencies (values that change the function's behavior)
@@ -1972,7 +2044,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           // Optionally, set an error state to inform the user
         }
       } catch (error) {
-        logger.error('[page.tsx] handleAwardFairPlayCard: Error calling saveMasterRoster utility:', error);
+        logger.error('[page.tsx] handleAwardFairPlayCard: Error calling saveMasterRoster utility', error as Error, {
+        component: 'HomePage',
+        section: 'data-saving',
+      });
         // Optionally, set an error state
       }
       // <<< ADD LOG HERE >>>
@@ -2050,7 +2125,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         showToast('Game saved!');
 
       } catch (error) {
-        logger.error("Failed to quick save game state:", error);
+        logger.error('Failed to quick save game state', error as Error, {
+        component: 'HomePage',
+        section: 'data-saving',
+      });
         alert("Error quick saving game.");
       }
     } else {
@@ -2095,7 +2173,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         resetHistory(gameData);
         showToast('Game saved!');
       } catch (error) {
-        logger.error('Failed to save new game:', error);
+        logger.error('Failed to save new game', error as Error, {
+        component: 'HomePage',
+        section: 'data-saving',
+      });
         alert('Error quick saving game.');
       }
     }
@@ -2313,7 +2394,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         logger.log(`Saved new game ${newGameId} and settings via utility functions.`);
 
       } catch (error) {
-         logger.error("Error explicitly saving new game state:", error);
+         logger.error('Error explicitly saving new game state', error as Error, {
+        component: 'HomePage',
+        section: 'data-saving',
+      });
       }
 
       // 4. Reset History with the new state

@@ -29,7 +29,7 @@ export const getTournaments = async (): Promise<Tournament[]> => {
       }))
     );
   } catch (error) {
-    logger.error('[getTournaments] Error getting tournaments from localStorage:', error);
+    logger.error('[getTournaments] Error getting tournaments from localStorage', error as Error, { component: 'tournaments', section: 'getTournaments' });
     return Promise.resolve([]);
   }
 };
@@ -44,7 +44,7 @@ export const saveTournaments = async (tournaments: Tournament[]): Promise<boolea
     setLocalStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(tournaments));
     return Promise.resolve(true);
   } catch (error) {
-    logger.error('[saveTournaments] Error saving tournaments to localStorage:', error);
+    logger.error('[saveTournaments] Error saving tournaments to localStorage', error as Error, { component: 'tournaments', section: 'saveTournaments' });
     return Promise.resolve(false);
   }
 };
@@ -84,7 +84,7 @@ export const addTournament = async (newTournamentName: string, extra: Partial<To
     }
     return Promise.resolve(newTournament);
   } catch (error) {
-    logger.error('[addTournament] Unexpected error adding tournament:', error);
+    logger.error('[addTournament] Unexpected error adding tournament', error as Error, { component: 'tournaments', section: 'addTournament' });
     return Promise.resolve(null);
   }
 };
@@ -129,7 +129,7 @@ export const updateTournament = async (updatedTournamentData: Tournament): Promi
     }
     return Promise.resolve(tournamentsToUpdate[tournamentIndex]);
   } catch (error) {
-    logger.error('[updateTournament] Unexpected error updating tournament:', error);
+    logger.error('[updateTournament] Unexpected error updating tournament', error as Error, { component: 'tournaments', section: 'updateTournament' });
     return Promise.resolve(null);
   }
 };
@@ -156,7 +156,7 @@ export const deleteTournament = async (tournamentId: string): Promise<boolean> =
     const success = await saveTournaments(updatedTournaments);
     return Promise.resolve(success);
   } catch (error) {
-    logger.error('[deleteTournament] Unexpected error deleting tournament:', error);
+    logger.error('[deleteTournament] Unexpected error deleting tournament', error as Error, { component: 'tournaments', section: 'deleteTournament' });
     return Promise.resolve(false);
   }
 }; 

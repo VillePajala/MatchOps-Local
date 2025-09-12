@@ -71,7 +71,7 @@ export const importGamesWithMapping = async (
     try {
       currentRoster = await getMasterRoster();
     } catch (error) {
-      logger.warn('Could not load current roster for player mapping:', error);
+      logger.warn('Could not load current roster for player mapping', { context: error, component: 'gameImport', section: 'importGamesWithMapping' });
     }
 
     // Process imported games to ensure proper player integration
@@ -87,7 +87,7 @@ export const importGamesWithMapping = async (
     try {
       currentGames = await getSavedGames() || {};
     } catch (error) {
-      logger.warn('Could not load current games:', error);
+      logger.warn('Could not load current games', { context: error, component: 'gameImport', section: 'importGamesWithMapping' });
     }
 
     // Merge with existing games
@@ -141,7 +141,7 @@ export const importGamesWithMapping = async (
 
   } catch (error) {
     result.warnings.push(`Import failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    logger.error('Game import failed:', error);
+    logger.error('Game import failed', error as Error, { component: 'gameImport', section: 'importGamesWithMapping' });
   }
 
   return result;

@@ -1,6 +1,7 @@
 import React, { Component, ReactNode } from 'react';
 import { HiExclamationTriangle } from 'react-icons/hi2';
 import logger from '@/utils/logger';
+import ErrorFeedback from './ErrorFeedback';
 
 interface Props {
   children: ReactNode;
@@ -36,7 +37,14 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log error details
-    logger.error('ErrorBoundary caught an error:', error, errorInfo);
+    logger.error('ErrorBoundary caught an error', error, {
+      component: 'ErrorBoundary',
+      section: 'app-level',
+    }, {
+      componentStack: errorInfo.componentStack,
+      errorBoundary: true,
+      timestamp: new Date().toISOString(),
+    });
     
     // Update state with error info
     this.setState({
@@ -44,9 +52,30 @@ class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     });
 
+    // Dynamically import and send error to Sentry with context
+    this.sendErrorToSentry(error, errorInfo);
+
     // Call the onError callback if provided
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
+    }
+  }
+
+  private async sendErrorToSentry(error: Error, errorInfo: React.ErrorInfo) {
+    try {
+      const { captureException, setContext } = await import('@/lib/sentry');
+      
+      setContext('errorBoundary', {
+        componentStack: errorInfo.componentStack,
+        errorBoundary: true,
+      });
+      
+      captureException(error, {
+        errorInfo,
+        componentStack: errorInfo.componentStack,
+      });
+    } catch (sentryError) {
+      console.error('Failed to send error to Sentry:', sentryError);
     }
   }
 
@@ -97,7 +126,7 @@ class ErrorBoundary extends Component<Props, State> {
             An unexpected error occurred. This has been logged and will be investigated.
           </p>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 mb-4">
             <button
               onClick={this.handleRetry}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-medium transition-colors"
@@ -110,6 +139,11 @@ class ErrorBoundary extends Component<Props, State> {
             >
               Refresh Page
             </button>
+          </div>
+
+          {/* Error Feedback */}
+          <div className="flex justify-center">
+            <ErrorFeedback error={this.state.error} />
           </div>
 
           {/* Error Details (Development only) */}

@@ -67,7 +67,10 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       logger.log('[TeamManager] Created team:', newTeam);
     },
     onError: (error) => {
-      logger.error('[TeamManager] Error creating team:', error);
+      logger.error('[TeamManager] Error creating team', error as Error, {
+        component: 'TeamManagerModal',
+        section: 'create',
+      });
     }
   });
 
@@ -80,7 +83,10 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       logger.log('[TeamManager] Updated team:', updatedTeam);
     },
     onError: (error) => {
-      logger.error('[TeamManager] Error updating team:', error);
+      logger.error('[TeamManager] Error updating team', error as Error, {
+        component: 'TeamManagerModal',
+        section: 'update',
+      });
     }
   });
 
@@ -92,7 +98,10 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       logger.log('[TeamManager] Deleted team');
     },
     onError: (error) => {
-      logger.error('[TeamManager] Error deleting team:', error);
+      logger.error('[TeamManager] Error deleting team', error as Error, {
+        component: 'TeamManagerModal',
+        section: 'delete',
+      });
     }
   });
 
@@ -103,7 +112,10 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       logger.log('[TeamManager] Duplicated team:', newTeam);
     },
     onError: (error) => {
-      logger.error('[TeamManager] Error duplicating team:', error);
+      logger.error('[TeamManager] Error duplicating team', error as Error, {
+        component: 'TeamManagerModal',
+        section: 'team',
+      });
     }
   });
 

@@ -91,7 +91,10 @@ const InstallPrompt: React.FC = () => {
         setLocalStorageItem("installPromptDismissed", Date.now().toString());
       }
     } catch (error) {
-      logger.error("Error showing install prompt:", error);
+      logger.error('Error showing install prompt', error as Error, {
+        component: 'InstallPrompt',
+        section: 'prompt-display',
+      });
     }
 
     setInstallPrompt(null);

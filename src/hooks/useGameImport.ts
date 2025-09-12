@@ -43,7 +43,7 @@ export const useGameImport = (): UseGameImportResult => {
       logger.log('Game import mutation completed:', result);
     },
     onError: (error) => {
-      logger.error('Game import mutation failed:', error);
+      logger.error('Game import mutation failed', error as Error, { component: 'useGameImport', section: 'importJsonMutation' });
     }
   });
 
@@ -59,7 +59,7 @@ export const useGameImport = (): UseGameImportResult => {
       logger.log('Game file import mutation completed:', result);
     },
     onError: (error) => {
-      logger.error('Game file import mutation failed:', error);
+      logger.error('Game file import mutation failed', error as Error, { component: 'useGameImport', section: 'importFileMutation' });
     }
   });
 

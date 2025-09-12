@@ -89,7 +89,10 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
     // Find the player data directly from the current prop state INSIDE the handler
     const playerToEdit = availablePlayers.find(p => p.id === playerId);
     if (!playerToEdit) {
-      logger.error("Player not found in availablePlayers for editing:", playerId);
+      logger.warn(`Player not found in availablePlayers for editing: ${playerId}`, {
+        component: 'RosterSettingsModal',
+        section: 'player-edit',
+      });
       return; // Player not found, shouldn't happen
     }
 

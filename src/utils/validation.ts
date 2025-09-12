@@ -123,7 +123,7 @@ export const sanitizeNotes = (notes: string): string => {
 
 // Error logging helper
 export const logValidationError = (context: string, errors: ValidationError[]): void => {
-  logger.error(`[Validation] ${context}:`, errors);
+  logger.error(`[Validation] ${context}`, new Error(errors.map(e => `${e.field}: ${e.message}`).join(', ')), { component: 'validation', section: 'logValidationError' });
 };
 
 // Safe ID validation

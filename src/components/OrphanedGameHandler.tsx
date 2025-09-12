@@ -63,7 +63,10 @@ const OrphanedGameHandler: React.FC<OrphanedGameHandlerProps> = ({
 
       setOrphanedGames(orphaned);
     } catch (error) {
-      logger.error('[OrphanedGameHandler] Error loading orphaned games:', error);
+      logger.error('[OrphanedGameHandler] Error loading orphaned games', error as Error, {
+        component: 'OrphanedGameHandler',
+        section: 'data-loading',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -85,7 +88,10 @@ const OrphanedGameHandler: React.FC<OrphanedGameHandlerProps> = ({
 
       logger.log('[OrphanedGameHandler] Reassigned game:', gameId, 'to team:', newTeamId);
     } catch (error) {
-      logger.error('[OrphanedGameHandler] Error reassigning game:', error);
+      logger.error('[OrphanedGameHandler] Error reassigning game', error as Error, {
+        component: 'OrphanedGameHandler',
+        section: 'reassign',
+      });
     }
   };
 
@@ -99,7 +105,10 @@ const OrphanedGameHandler: React.FC<OrphanedGameHandlerProps> = ({
       setOrphanedGames(prev => prev.filter(og => og.gameId !== gameId));
       logger.log('[OrphanedGameHandler] Deleted orphaned game:', gameId);
     } catch (error) {
-      logger.error('[OrphanedGameHandler] Error deleting game:', error);
+      logger.error('[OrphanedGameHandler] Error deleting game', error as Error, {
+        component: 'OrphanedGameHandler',
+        section: 'delete',
+      });
     }
   };
 
@@ -121,7 +130,10 @@ const OrphanedGameHandler: React.FC<OrphanedGameHandlerProps> = ({
 
       logger.log('[OrphanedGameHandler] Bulk reassigned games:', assignments.length);
     } catch (error) {
-      logger.error('[OrphanedGameHandler] Error in bulk reassign:', error);
+      logger.error('[OrphanedGameHandler] Error in bulk reassign', error as Error, {
+        component: 'OrphanedGameHandler',
+        section: 'reassign',
+      });
     }
   };
 

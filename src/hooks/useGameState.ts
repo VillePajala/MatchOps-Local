@@ -170,7 +170,7 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
                 logger.error(`[useGameState] Failed to update player ${playerId} via masterRosterManager.`);
             }
         } catch (error) {
-            logger.error(`[useGameState] Error in handleRenamePlayer for ID ${playerId}:`, error);
+            logger.error(`[useGameState] Error in handleRenamePlayer for ID ${playerId}`, error as Error, { component: 'useGameState', section: 'handleRenamePlayer' });
         }
     }, [playersOnField, saveStateToHistory, setAvailablePlayers, setPlayersOnField]);
 
@@ -215,7 +215,7 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     
             logger.log(`[useGameState:handleToggleGoalie] Per-game goalie status for ${playerId} to ${targetGoalieStatus}. Local state updated.`);
         } catch (error) {
-            logger.error(`[useGameState:handleToggleGoalie] Error toggling goalie for ID ${playerId}:`, error);
+            logger.error(`[useGameState:handleToggleGoalie] Error toggling goalie for ID ${playerId}`, error as Error, { component: 'useGameState', section: 'handleToggleGoalie' });
         }
     }, [availablePlayers, playersOnField, saveStateToHistory, setAvailablePlayers, setPlayersOnField]);
 

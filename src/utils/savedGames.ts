@@ -55,7 +55,7 @@ export const getSavedGames = async (): Promise<SavedGamesCollection> => {
     }
     return JSON.parse(gamesJson) as SavedGamesCollection;
   } catch (error) {
-    logger.error('Error getting saved games from localStorage:', error);
+    logger.error('Error getting saved games from localStorage', error as Error, { component: 'savedGames', section: 'getSavedGames' });
     throw error;
   }
 };
@@ -70,7 +70,7 @@ export const saveGames = async (games: SavedGamesCollection): Promise<void> => {
     setLocalStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
     return;
   } catch (error) {
-    logger.error('Error saving games to localStorage:', error);
+    logger.error('Error saving games to localStorage', error as Error, { component: 'savedGames', section: 'saveGames' });
     throw error;
   }
 };
@@ -92,7 +92,7 @@ export const saveGame = async (gameId: string, gameData: unknown): Promise<AppSt
     await saveGames(allGames);
     return gameData as AppState;
   } catch (error) {
-    logger.error('Error saving game:', error);
+    logger.error('Error saving game', error as Error, { component: 'savedGames', section: 'saveGame' });
     throw error;
   }
 };
@@ -112,7 +112,7 @@ export const getGame = async (gameId: string): Promise<AppState | null> => {
     const game = allGames[gameId] ? (allGames[gameId] as AppState) : null;
     return game;
   } catch (error) {
-    logger.error('Error getting game:', error);
+    logger.error('Error getting game', error as Error, { component: 'savedGames', section: 'getGame' });
     throw error;
   }
 };
@@ -140,7 +140,7 @@ export const deleteGame = async (gameId: string): Promise<string | null> => {
     logger.log(`deleteGame: Game with ID ${gameId} successfully deleted.`);
     return gameId; // Successfully deleted, return the gameId
   } catch (error) {
-    logger.error('Error deleting game:', error);
+    logger.error('Error deleting game', error as Error, { component: 'savedGames', section: 'deleteGame' });
     throw error; // Re-throw other errors
   }
 };
@@ -204,7 +204,7 @@ export const createGame = async (gameData: Partial<AppState>): Promise<{ gameId:
     const result = await saveGame(gameId, newGameAppState);
     return { gameId, gameData: result };
   } catch (error) {
-    logger.error('Error creating new game:', error);
+    logger.error('Error creating new game', error as Error, { component: 'savedGames', section: 'createGame' });
     throw error; // Rethrow to indicate failure
   }
 };
@@ -218,7 +218,7 @@ export const getAllGameIds = async (): Promise<string[]> => {
     const allGames = await getSavedGames();
     return Object.keys(allGames);
   } catch (error) {
-    logger.error('Error getting all game IDs:', error);
+    logger.error('Error getting all game IDs', error as Error, { component: 'savedGames', section: 'getAllGameIds' });
     throw error;
   }
 };
@@ -248,7 +248,7 @@ export const getFilteredGames = async (filters: {
     }).map(([id, game]) => [id, game as AppState] as [string, AppState]); // Ensure correct tuple type
     return filtered;
   } catch (error) {
-    logger.error('Error filtering games:', error);
+    logger.error('Error filtering games', error as Error, { component: 'savedGames', section: 'getFilteredGames' });
     throw error;
   }
 };
@@ -310,7 +310,7 @@ export const updateGameDetails = async (
     // saveGame now returns a Promise<AppState>
     return saveGame(gameId, updatedGame);
   } catch (error) {
-    logger.error('Error updating game details:', error);
+    logger.error('Error updating game details', error as Error, { component: 'savedGames', section: 'updateGameDetails' });
     throw error; // Propagate error
   }
 };
@@ -336,7 +336,7 @@ export const addGameEvent = async (gameId: string, event: PageGameEvent): Promis
     
     return saveGame(gameId, updatedGame);
   } catch (error) {
-    logger.error('Error adding game event:', error);
+    logger.error('Error adding game event', error as Error, { component: 'savedGames', section: 'addGameEvent' });
     throw error;
   }
 };
@@ -371,7 +371,7 @@ export const updateGameEvent = async (gameId: string, eventIndex: number, eventD
     
     return saveGame(gameId, updatedGame);
   } catch (error) {
-    logger.error('Error updating game event:', error);
+    logger.error('Error updating game event', error as Error, { component: 'savedGames', section: 'updateGameEvent' });
     throw error;
   }
 };
@@ -405,7 +405,7 @@ export const removeGameEvent = async (gameId: string, eventIndex: number): Promi
     
     return saveGame(gameId, updatedGame);
   } catch (error) {
-    logger.error('Error removing game event:', error);
+    logger.error('Error removing game event', error as Error, { component: 'savedGames', section: 'removeGameEvent' });
     throw error;
   }
 };
@@ -423,7 +423,7 @@ export const exportGamesAsJson = async (): Promise<string | null> => {
     }
     return JSON.stringify(allGames, null, 2);
   } catch (error) {
-    logger.error('Error exporting games as JSON:', error);
+    logger.error('Error exporting games as JSON', error as Error, { component: 'savedGames', section: 'exportGamesAsJson' });
     throw error; // Propagate error
   }
 };
@@ -555,7 +555,7 @@ export const importGamesFromJson = async (
     return result;
     
   } catch (error) {
-    logger.error('Import games error:', error);
+    logger.error('Import games error', error as Error, { component: 'savedGames', section: 'importGamesFromJson' });
     throw new Error(`Failed to parse import file: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
@@ -680,7 +680,7 @@ export const validateAndGetResumableGame = async (
     return result;
 
   } catch (error) {
-    logger.error('Error validating game:', error);
+    logger.error('Error validating game', error as Error, { component: 'savedGames', section: 'validateAndGetResumableGame' });
     result.errors.push(`Validation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     result.isValid = false;
     result.isResumable = false;
