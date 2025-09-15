@@ -104,23 +104,24 @@ function parseEnvironment() {
 
   if (env.isBrowser) {
     // Browser environment - use minimal validation for client-side vars only
+    const processEnv = typeof process !== 'undefined' ? process.env : {} as Record<string, string | undefined>;
     return {
-      NODE_ENV: (process.env.NODE_ENV as 'development' | 'test' | 'production') || 'development',
-      NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
-      NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
-      NEXT_PUBLIC_SENTRY_RELEASE: process.env.NEXT_PUBLIC_SENTRY_RELEASE,
-      NEXT_PUBLIC_SENTRY_FORCE_ENABLE: process.env.NEXT_PUBLIC_SENTRY_FORCE_ENABLE === 'true',
-      NEXT_PUBLIC_ANALYTICS_ID: process.env.NEXT_PUBLIC_ANALYTICS_ID,
-      NEXT_PUBLIC_FEATURE_ADVANCED_ANALYTICS: process.env.NEXT_PUBLIC_FEATURE_ADVANCED_ANALYTICS === 'true',
-      NEXT_PUBLIC_FEATURE_PREMIUM_FEATURES: process.env.NEXT_PUBLIC_FEATURE_PREMIUM_FEATURES === 'true',
-      NEXT_PUBLIC_FEATURE_EXPORT_FORMATS: process.env.NEXT_PUBLIC_FEATURE_EXPORT_FORMATS !== 'false',
-      NEXT_PUBLIC_FEATURE_MULTI_LANGUAGE: process.env.NEXT_PUBLIC_FEATURE_MULTI_LANGUAGE !== 'false',
-      NEXT_PUBLIC_FEATURE_PWA_INSTALL: process.env.NEXT_PUBLIC_FEATURE_PWA_INSTALL !== 'false',
-      VERCEL_GIT_COMMIT_REF: process.env.VERCEL_GIT_COMMIT_REF,
-      VERCEL_URL: process.env.VERCEL_URL,
-      VERCEL_ENV: process.env.VERCEL_ENV as 'development' | 'preview' | 'production' | undefined,
-      NEXT_PUBLIC_PERFORMANCE_MONITORING: process.env.NEXT_PUBLIC_PERFORMANCE_MONITORING === 'true',
-      NEXT_PUBLIC_DEBUG_MODE: process.env.NEXT_PUBLIC_DEBUG_MODE === 'true',
+      NODE_ENV: (processEnv.NODE_ENV as 'development' | 'test' | 'production') || 'development',
+      NEXT_PUBLIC_SENTRY_DSN: processEnv.NEXT_PUBLIC_SENTRY_DSN,
+      NEXT_PUBLIC_SENTRY_ENVIRONMENT: processEnv.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
+      NEXT_PUBLIC_SENTRY_RELEASE: processEnv.NEXT_PUBLIC_SENTRY_RELEASE,
+      NEXT_PUBLIC_SENTRY_FORCE_ENABLE: processEnv.NEXT_PUBLIC_SENTRY_FORCE_ENABLE === 'true',
+      NEXT_PUBLIC_ANALYTICS_ID: processEnv.NEXT_PUBLIC_ANALYTICS_ID,
+      NEXT_PUBLIC_FEATURE_ADVANCED_ANALYTICS: processEnv.NEXT_PUBLIC_FEATURE_ADVANCED_ANALYTICS === 'true',
+      NEXT_PUBLIC_FEATURE_PREMIUM_FEATURES: processEnv.NEXT_PUBLIC_FEATURE_PREMIUM_FEATURES === 'true',
+      NEXT_PUBLIC_FEATURE_EXPORT_FORMATS: processEnv.NEXT_PUBLIC_FEATURE_EXPORT_FORMATS !== 'false',
+      NEXT_PUBLIC_FEATURE_MULTI_LANGUAGE: processEnv.NEXT_PUBLIC_FEATURE_MULTI_LANGUAGE !== 'false',
+      NEXT_PUBLIC_FEATURE_PWA_INSTALL: processEnv.NEXT_PUBLIC_FEATURE_PWA_INSTALL !== 'false',
+      VERCEL_GIT_COMMIT_REF: processEnv.VERCEL_GIT_COMMIT_REF,
+      VERCEL_URL: processEnv.VERCEL_URL,
+      VERCEL_ENV: processEnv.VERCEL_ENV as 'development' | 'preview' | 'production' | undefined,
+      NEXT_PUBLIC_PERFORMANCE_MONITORING: processEnv.NEXT_PUBLIC_PERFORMANCE_MONITORING === 'true',
+      NEXT_PUBLIC_DEBUG_MODE: processEnv.NEXT_PUBLIC_DEBUG_MODE === 'true',
       // Server-only variables are undefined in browser
       SENTRY_ORG: undefined,
       SENTRY_PROJECT: undefined,
@@ -332,9 +333,16 @@ function validateSecurityConfiguration(): { errors: string[]; warnings: string[]
       }
     }
     
-    // Validate Sentry auth token is not exposed
-    if (key === 'SENTRY_AUTH_TOKEN' && key.startsWith('NEXT_PUBLIC_')) {
-      errors.push('SENTRY_AUTH_TOKEN must not have NEXT_PUBLIC_ prefix - this would expose it to client');
+    // Validate auth tokens and secrets are not exposed client-side
+    if (key.startsWith('NEXT_PUBLIC_') && (
+      value.includes('auth') && value.includes('token') || 
+      value.includes('secret') || 
+      value.includes('private') || 
+      key.includes('AUTH_TOKEN') ||
+      key.includes('SECRET') ||
+      key.includes('PRIVATE')
+    )) {
+      errors.push(`Potential secret exposed client-side: ${key} - server secrets must not have NEXT_PUBLIC_ prefix`);
     }
   }
   

@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: enable CI workflows for production-readiness-improvements branch"
+  "notes": "fix: resolve CI test timeouts and bundle size validation"
 }

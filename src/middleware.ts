@@ -6,6 +6,11 @@ export function middleware(request: NextRequest) {
   crypto.getRandomValues(array);
   const nonce = btoa(String.fromCharCode.apply(null, Array.from(array)));
   
+  // Validate nonce generation
+  if (!nonce || nonce.length < 16) {
+    throw new Error('CSP nonce generation failed');
+  }
+  
   // Clone the request headers and add the nonce
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-csp-nonce', nonce);

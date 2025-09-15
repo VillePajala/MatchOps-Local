@@ -88,5 +88,45 @@
       "totalCSS": 89821,
       "total": 11566624
     }
+  },
+  {
+    "timestamp": "2025-09-15T09:39:41.885Z",
+    "commit": "local",
+    "branch": "local",
+    "sizes": {
+      "totalJS": 112908,
+      "totalCSS": 0,
+      "total": 112908
+    }
+  },
+  {
+    "timestamp": "2025-09-15T09:40:41.783Z",
+    "commit": "local",
+    "branch": "local",
+    "sizes": {
+      "totalJS": 112908,
+      "totalCSS": 0,
+      "total": 112908
+    }
+  },
+  {
+    "timestamp": "2025-09-15T09:41:30.602Z",
+    "commit": "local",
+    "branch": "local",
+    "sizes": {
+      "totalJS": 112908,
+      "totalCSS": 0,
+      "total": 112908
+    }
+  },
+  {
+    "timestamp": "2025-09-15T09:41:49.610Z",
+    "commit": "local",
+    "branch": "local",
+    "sizes": {
+      "totalJS": 112908,
+      "totalCSS": 0,
+      "total": 112908
+    }
   }
 ]
