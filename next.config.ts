@@ -113,12 +113,10 @@ const nextConfig: NextConfig = {
   // Development-specific configuration
   ...(config.isDevelopment && {
     // Development optimizations
-    experimental: {
-      turbo: {
-        rules: {
-          '*.ts': ['@swc/core'],
-          '*.tsx': ['@swc/core'],
-        },
+    turbopack: {
+      rules: {
+        '*.ts': ['@swc/core'],
+        '*.tsx': ['@swc/core'],
       },
     },
   }),
