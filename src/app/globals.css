@@ -106,6 +106,28 @@ body > div {
 }
 
 /* 
+ * CSS Custom Properties Registration for Animations
+ * These need to be registered for the animations to work properly
+ */
+@property --holo-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --holo-angle2 {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --holo-angle3 {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* 
  * Holographic gradient animations for the start screen title.
  * We're using multiple animations with varied timings and easing
  * to create a more organic, less mechanical movement.
