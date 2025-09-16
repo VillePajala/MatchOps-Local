@@ -27,7 +27,7 @@ async function generateManifest() {
     "description": "Soccer Tactics and Timer App for Coaches",
     "start_url": "/",
     "scope": "/",
-    "display": "fullscreen",
+    "display": "standalone",
     "orientation": "portrait-primary",
     "background_color": "#111827",
     "theme_color": config.themeColor,

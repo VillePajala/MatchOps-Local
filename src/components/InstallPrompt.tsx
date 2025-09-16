@@ -75,6 +75,34 @@ const InstallPrompt: React.FC = () => {
     };
 
     console.log('[InstallPrompt] Setting up event listeners');
+    console.log('[InstallPrompt] Service Worker support:', 'serviceWorker' in navigator);
+    console.log('[InstallPrompt] Current URL protocol:', window.location.protocol);
+    console.log('[InstallPrompt] User agent:', navigator.userAgent);
+    
+    // Check if PWA is already installed
+    if (window.matchMedia) {
+      const standaloneQuery = window.matchMedia('(display-mode: standalone)');
+      console.log('[InstallPrompt] Standalone mode:', standaloneQuery.matches);
+    }
+
+    // Check manifest
+    const manifestLinks = document.querySelectorAll('link[rel="manifest"]');
+    console.log('[InstallPrompt] Manifest links found:', manifestLinks.length);
+    manifestLinks.forEach((link, index) => {
+      console.log(`[InstallPrompt] Manifest ${index + 1}:`, (link as HTMLLinkElement).href);
+    });
+
+    // Check service worker registration
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        console.log('[InstallPrompt] Service Worker registrations:', registrations.length);
+        registrations.forEach((reg, index) => {
+          console.log(`[InstallPrompt] SW ${index + 1} scope:`, reg.scope);
+          console.log(`[InstallPrompt] SW ${index + 1} active:`, !!reg.active);
+        });
+      });
+    }
+
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("focus", checkInstallationStatus); // Re-check on focus
 
