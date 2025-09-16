@@ -4,6 +4,18 @@ import "@testing-library/jest-dom";
 import "@/i18n";
 import InstallPrompt from "./InstallPrompt";
 
+const resetInstallPromptState = () => {
+  const scopedWindow = window as typeof window & {
+    __matchopsInstallPromptListeners?: Set<(event: Event) => void>;
+    __matchopsDeferredInstallPrompt?: Event | null;
+    __matchopsInstallPromptListenerRegistered?: boolean;
+  };
+
+  scopedWindow.__matchopsDeferredInstallPrompt = null;
+  scopedWindow.__matchopsInstallPromptListenerRegistered = false;
+  scopedWindow.__matchopsInstallPromptListeners?.clear();
+};
+
 interface TestInstallEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
@@ -20,6 +32,7 @@ function dispatchInstallEvent(promptMock: jest.Mock) {
 
 describe("InstallPrompt", () => {
   beforeEach(() => {
+    resetInstallPromptState();
     localStorage.clear();
     Object.defineProperty(window, "matchMedia", {
       writable: true,
@@ -47,6 +60,18 @@ describe("InstallPrompt", () => {
     });
 
     expect(promptMock).toHaveBeenCalled();
+  });
+
+  it("shows prompt if event fired before component mounts", async () => {
+    const promptMock = jest.fn().mockResolvedValue(undefined);
+    dispatchInstallEvent(promptMock);
+
+    await act(async () => {
+      render(<InstallPrompt />);
+    });
+
+    const installBtn = await screen.findByText("Asenna");
+    expect(installBtn).toBeInTheDocument();
   });
 
   it("dismisses the prompt", async () => {

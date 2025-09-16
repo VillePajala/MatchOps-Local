@@ -17,6 +17,113 @@ interface IosNavigator extends Navigator {
   standalone?: boolean;
 }
 
+type InstallPromptListener = (event: BeforeInstallPromptEvent) => void;
+
+interface MatchOpsWindow extends Window {
+  __matchopsInstallPromptListeners?: Set<InstallPromptListener>;
+  __matchopsDeferredInstallPrompt?: BeforeInstallPromptEvent | null;
+  __matchopsInstallPromptListenerRegistered?: boolean;
+}
+
+let serverInstallPromptListeners: Set<InstallPromptListener> | null = null;
+let serverDeferredInstallPrompt: BeforeInstallPromptEvent | null = null;
+
+const getMatchOpsWindow = (): MatchOpsWindow | undefined =>
+  typeof window === "undefined" ? undefined : (window as MatchOpsWindow);
+
+const getInstallPromptListeners = (): Set<InstallPromptListener> => {
+  const matchOpsWindow = getMatchOpsWindow();
+  if (matchOpsWindow) {
+    if (!matchOpsWindow.__matchopsInstallPromptListeners) {
+      matchOpsWindow.__matchopsInstallPromptListeners = new Set();
+    }
+    return matchOpsWindow.__matchopsInstallPromptListeners;
+  }
+
+  if (!serverInstallPromptListeners) {
+    serverInstallPromptListeners = new Set();
+  }
+
+  return serverInstallPromptListeners;
+};
+
+const getDeferredInstallPrompt = (): BeforeInstallPromptEvent | null => {
+  const matchOpsWindow = getMatchOpsWindow();
+  if (matchOpsWindow) {
+    return matchOpsWindow.__matchopsDeferredInstallPrompt ?? null;
+  }
+
+  return serverDeferredInstallPrompt;
+};
+
+const setDeferredInstallPrompt = (prompt: BeforeInstallPromptEvent | null): void => {
+  const matchOpsWindow = getMatchOpsWindow();
+  if (matchOpsWindow) {
+    matchOpsWindow.__matchopsDeferredInstallPrompt = prompt;
+  } else {
+    serverDeferredInstallPrompt = prompt;
+  }
+};
+
+const clearDeferredInstallPrompt = (): void => {
+  setDeferredInstallPrompt(null);
+};
+
+const notifyInstallPromptListeners = (promptEvent: BeforeInstallPromptEvent): void => {
+  for (const listener of getInstallPromptListeners()) {
+    try {
+      listener(promptEvent);
+    } catch (error) {
+      logger.error("[InstallPrompt] Listener execution failed", error as Error, {
+        component: "InstallPrompt",
+        section: "listener-notify",
+      });
+    }
+  }
+};
+
+const handleGlobalBeforeInstallPrompt = (event: Event): void => {
+  const promptEvent = event as BeforeInstallPromptEvent;
+  promptEvent.preventDefault();
+  setDeferredInstallPrompt(promptEvent);
+  notifyInstallPromptListeners(promptEvent);
+};
+
+const handleAppInstalled = (): void => {
+  clearDeferredInstallPrompt();
+};
+
+const registerGlobalInstallPromptListener = (): void => {
+  const matchOpsWindow = getMatchOpsWindow();
+  if (!matchOpsWindow || matchOpsWindow.__matchopsInstallPromptListenerRegistered) {
+    return;
+  }
+
+  window.addEventListener("beforeinstallprompt", handleGlobalBeforeInstallPrompt);
+  window.addEventListener("appinstalled", handleAppInstalled);
+  matchOpsWindow.__matchopsInstallPromptListenerRegistered = true;
+};
+
+const subscribeToInstallPrompt = (listener: InstallPromptListener): (() => void) => {
+  registerGlobalInstallPromptListener();
+
+  const listeners = getInstallPromptListeners();
+  listeners.add(listener);
+
+  const storedPrompt = getDeferredInstallPrompt();
+  if (storedPrompt) {
+    listener(storedPrompt);
+  }
+
+  return () => {
+    listeners.delete(listener);
+  };
+};
+
+if (typeof window !== "undefined") {
+  registerGlobalInstallPromptListener();
+}
+
 // This component shows a prompt to install the PWA when available
 const InstallPrompt: React.FC = () => {
   const [installPrompt, setInstallPrompt] =
@@ -56,8 +163,13 @@ const InstallPrompt: React.FC = () => {
     }
 
     // If not installed and not recently dismissed, check if we have a prompt event
-    console.log('[InstallPrompt] Install prompt event:', !!installPrompt);
-    if (installPrompt) {
+    const promptEvent = installPrompt ?? getDeferredInstallPrompt();
+    if (promptEvent && installPrompt !== promptEvent) {
+      setInstallPrompt(promptEvent);
+    }
+
+    console.log('[InstallPrompt] Install prompt event:', !!promptEvent);
+    if (promptEvent) {
       console.log('[InstallPrompt] Setting visible to true');
       setIsVisible(true);
     } else {
@@ -66,19 +178,11 @@ const InstallPrompt: React.FC = () => {
   }, [installPrompt]);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (event: Event) => {
-      console.log('[InstallPrompt] beforeinstallprompt event received!');
-      event.preventDefault();
-      const promptEvent = event as BeforeInstallPromptEvent;
-      setInstallPrompt(promptEvent);
-      setIsVisible(true); // Show immediately when event is caught
-    };
-
     console.log('[InstallPrompt] Setting up event listeners');
     console.log('[InstallPrompt] Service Worker support:', 'serviceWorker' in navigator);
     console.log('[InstallPrompt] Current URL protocol:', window.location.protocol);
     console.log('[InstallPrompt] User agent:', navigator.userAgent);
-    
+
     // Check if PWA is already installed
     if (window.matchMedia) {
       const standaloneQuery = window.matchMedia('(display-mode: standalone)');
@@ -103,7 +207,11 @@ const InstallPrompt: React.FC = () => {
       });
     }
 
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    const unsubscribeInstallPrompt = subscribeToInstallPrompt(promptEvent => {
+      console.log('[InstallPrompt] beforeinstallprompt event received!');
+      setInstallPrompt(promptEvent);
+      setIsVisible(true);
+    });
     window.addEventListener("focus", checkInstallationStatus); // Re-check on focus
 
     // Clear dismissed status in development for testing
@@ -120,10 +228,7 @@ const InstallPrompt: React.FC = () => {
     checkInstallationStatus();
 
     return () => {
-      window.removeEventListener(
-        "beforeinstallprompt",
-        handleBeforeInstallPrompt,
-      );
+      unsubscribeInstallPrompt();
       window.removeEventListener("focus", checkInstallationStatus);
     };
   }, [installPrompt, checkInstallationStatus]); // Rerun effect if installPrompt changes
@@ -149,12 +254,14 @@ const InstallPrompt: React.FC = () => {
       });
     }
 
+    clearDeferredInstallPrompt();
     setInstallPrompt(null);
     setIsVisible(false);
   };
 
   const handleDismiss = () => {
     setLocalStorageItem("installPromptDismissed", Date.now().toString());
+    clearDeferredInstallPrompt();
     setIsVisible(false);
   };
 
