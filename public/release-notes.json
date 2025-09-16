@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: resolve CI test timeouts and bundle size validation"
+  "notes": "fix: update deprecated turbo config to turbopack in Next.js 15"
 }

@@ -19,6 +19,14 @@ export const manifestConfig = {
     themeColor: "#1e293b", // Slate for production
     description: "MatchOps Local - Soccer Coaching Assistant",
   },
+  // Config for production-readiness-improvements branch
+  'production-readiness-improvements': {
+    appName: "MatchOps Local",
+    shortName: "MatchOps Local",
+    iconPath: "/icons/icon-512x512.png",
+    themeColor: "#1e293b", // Slate for production
+    description: "MatchOps Local - Soccer Coaching Assistant",
+  },
   // Config for staging/preview branches
   staging: {
     appName: "MatchOps Local (Staging)",

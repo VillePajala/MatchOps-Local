@@ -23,8 +23,8 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               // Strict script policy - no unsafe-eval or unsafe-inline
               "script-src 'self' 'nonce-__CSP_NONCE__' 'strict-dynamic'",
-              // Style policy with hash-based allowances for Tailwind
-              "style-src 'self' 'nonce-__CSP_NONCE__'",
+              // Style policy - allow unsafe-inline for gradient animations and Tailwind
+              "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob:",
               "font-src 'self' data:",
               "connect-src 'self' https://*.sentry.io https://vitals.vercel-insights.com",

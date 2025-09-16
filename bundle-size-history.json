@@ -128,5 +128,15 @@
       "totalCSS": 0,
       "total": 112908
     }
+  },
+  {
+    "timestamp": "2025-09-15T11:27:21.324Z",
+    "commit": "local",
+    "branch": "local",
+    "sizes": {
+      "totalJS": 45483673,
+      "totalCSS": 217481,
+      "total": 45701154
+    }
   }
 ]
