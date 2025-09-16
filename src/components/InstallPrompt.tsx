@@ -27,11 +27,15 @@ const InstallPrompt: React.FC = () => {
     // Only run this in the browser
     if (typeof window === "undefined") return;
 
+    console.log('[InstallPrompt] Checking installation status...');
+
     // Check if app is already installed (PWA or iOS)
     const isAppInstalled =
       window.matchMedia("(display-mode: standalone)").matches ||
       window.matchMedia("(display-mode: fullscreen)").matches ||
       (window.navigator as IosNavigator).standalone === true;
+
+    console.log('[InstallPrompt] App installed:', isAppInstalled);
 
     if (isAppInstalled) {
       setIsVisible(false); // Hide prompt if installed
@@ -40,29 +44,49 @@ const InstallPrompt: React.FC = () => {
 
     // Check localStorage to see if the user dismissed the prompt recently
     const lastPromptTime = getLocalStorageItem("installPromptDismissed");
+    const timeSinceLastDismiss = lastPromptTime ? Date.now() - Number(lastPromptTime) : null;
+    console.log('[InstallPrompt] Last prompt dismissed:', lastPromptTime, 'Time since:', timeSinceLastDismiss);
+    
     if (
       lastPromptTime &&
       Date.now() - Number(lastPromptTime) < 24 * 60 * 60 * 1000
     ) {
+      console.log('[InstallPrompt] Prompt dismissed recently, not showing');
       return; // Don't show prompt if dismissed in the last 24 hours
     }
 
     // If not installed and not recently dismissed, check if we have a prompt event
+    console.log('[InstallPrompt] Install prompt event:', !!installPrompt);
     if (installPrompt) {
+      console.log('[InstallPrompt] Setting visible to true');
       setIsVisible(true);
+    } else {
+      console.log('[InstallPrompt] No install prompt event available');
     }
   }, [installPrompt]);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event: Event) => {
+      console.log('[InstallPrompt] beforeinstallprompt event received!');
       event.preventDefault();
       const promptEvent = event as BeforeInstallPromptEvent;
       setInstallPrompt(promptEvent);
       setIsVisible(true); // Show immediately when event is caught
     };
 
+    console.log('[InstallPrompt] Setting up event listeners');
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("focus", checkInstallationStatus); // Re-check on focus
+
+    // Clear dismissed status in development for testing
+    if (process.env.NODE_ENV === 'development') {
+      const dismissedTime = getLocalStorageItem("installPromptDismissed");
+      if (dismissedTime) {
+        console.log('[InstallPrompt] [DEV] Clearing dismissed prompt for testing');
+        // Remove localStorage entry in dev for testing
+        localStorage.removeItem("installPromptDismissed");
+      }
+    }
 
     // Initial check
     checkInstallationStatus();
@@ -108,19 +132,39 @@ const InstallPrompt: React.FC = () => {
 
   const { t } = useTranslation();
 
-  if (!isVisible) return null;
+  // Debug version - always show in development
+  const isDev = process.env.NODE_ENV === 'development';
+  const shouldShow = isVisible || (isDev && typeof window !== 'undefined');
+
+  if (!shouldShow) return null;
 
   return (
     <div className={styles.installPrompt}>
-      <p className={styles.installPromptText}>{t("installPrompt.message")}</p>
+      <p className={styles.installPromptText}>
+        {isDev && !isVisible ? 
+          '🔧 [DEV] PWA Install (testing)' : 
+          t("installPrompt.message", "Install this app for the best experience")}
+      </p>
       <div className={styles.installPromptButtons}>
-        <button className={styles.installButton} onClick={handleInstall}>
-          {t("installPrompt.installButton")}
+        <button 
+          className={styles.installButton} 
+          onClick={handleInstall}
+          disabled={!installPrompt}
+        >
+          {t("installPrompt.installButton", "Install")}
+          {isDev && !installPrompt && " (no event)"}
         </button>
         <button className={styles.dismissButton} onClick={handleDismiss}>
-          {t("installPrompt.dismissButton")}
+          {t("installPrompt.dismissButton", "Maybe later")}
         </button>
       </div>
+      {isDev && (
+        <div style={{fontSize: '12px', marginTop: '8px', opacity: 0.7}}>
+          Event available: {installPrompt ? 'Yes' : 'No'} | 
+          Visible: {isVisible ? 'Yes' : 'No'} | 
+          localStorage: {getLocalStorageItem("installPromptDismissed") || 'none'}
+        </div>
+      )}
     </div>
   );
 };
