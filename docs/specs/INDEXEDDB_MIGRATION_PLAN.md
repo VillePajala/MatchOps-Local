@@ -1,5 +1,12 @@
 # IndexedDB Migration Implementation Plan
 
+Status: Authoritative technical plan (phased)
+
+IMPORTANT — Reality Alignment and Scope
+- Status: No IndexedDB code exists yet in the app (as of this review). All persistence runs via `src/utils/localStorage.ts`.
+- Safety Net: A robust backup/rollback system is already implemented (`src/utils/migrationBackup.ts`, `src/utils/fullBackup.ts`).
+- Cutover Strategy: Adopt a phased approach — KV shim first, then optional normalization — to minimize risk and churn.
+
 ## Executive Summary
 
 This document outlines the detailed implementation plan for migrating MatchOps Local from localStorage to IndexedDB. The migration follows a "Big Bang with Safety Net" approach, avoiding dual-write complexity while ensuring zero data loss through comprehensive backup and rollback mechanisms.
@@ -10,7 +17,7 @@ This document outlines the detailed implementation plan for migrating MatchOps L
 - Clean rollback to previous state on any failure
 - Zero data loss guarantee
 
-## Current Architecture Analysis
+## Current Architecture Analysis (Verified)
 
 ### Storage Layer Structure
 
@@ -113,7 +120,121 @@ export const runMigration = async (): Promise<void>
 // Called in src/app/page.tsx on app startup
 ```
 
-## Implementation Plan
+## Implementation Plan (Phased, Execution-Ready)
+
+This plan is adjusted to the current codebase. It avoids dual‑writes and minimizes refactors by first swapping the underlying storage engine for the existing key/value model, then optionally migrating to a normalized schema.
+
+### Phase 0: Key/Value Adapter Shim (Low Risk)
+
+Goal: Introduce an IndexedDB adapter that mimics localStorage semantics (single KV object store), so domain utilities remain unchanged.
+
+Files to add:
+- `src/utils/storageAdapter.ts` — Defines `StorageAdapter` interface.
+- `src/utils/indexedDbKvAdapter.ts` — Minimal KV adapter using `idb` with one object store (e.g., `kv`).
+- `src/utils/storageFactory.ts` — Chooses adapter (`localStorage` vs `indexedDB`) using a `storage-mode` flag in localStorage.
+
+Steps:
+1. Add dependency: `idb` (or `dexie`, but `idb` is lighter).
+2. Implement `IndexedDbKvAdapter` with methods: `getItem`, `setItem`, `removeItem`, `clear`, mirroring `localStorage.ts` API semantics.
+3. Implement `storageFactory` to return the appropriate adapter based on `storage-mode` (default `localStorage`).
+4. Update `src/utils/localStorage.ts` to delegate to the adapter returned by the factory (preserve function signatures to avoid ripple changes).
+
+Acceptance:
+- All reads/writes continue to work with `mode=localStorage`.
+- Flipping `storage-mode=indexedDB` stores and retrieves values transparently from IndexedDB KV.
+- No domain code changes required.
+
+### Phase 1: One‑Time Storage Migration (KV copy with Safety Net)
+
+Goal: Atomically copy existing localStorage keys into IndexedDB KV and switch `storage-mode` to `indexedDB`.
+
+Files to add:
+- `src/utils/indexedDbMigration.ts` — Coordinates backup, copy, flip, rollback.
+
+Steps:
+1. Create comprehensive backup using existing `createMigrationBackup`.
+2. For each critical key (see list below), read value via `localStorage.ts`, write to IDB KV under the same key.
+3. Verify round‑trip reads from IDB match originals (basic checksum/length check per key).
+4. Flip flag `storage-mode=indexedDB` and persist `storage-version` (e.g., `2.0`).
+5. On any error, restore from backup and keep `storage-mode=localStorage`.
+6. Integrate: Extend `runMigration()` to invoke this storage migration once per device.
+
+Critical keys to migrate (source of truth: `src/config/storageKeys.ts`):
+- `savedSoccerGames`, `soccerMasterRoster`, `soccerSeasons`, `soccerTournaments`, `soccerAppSettings`, `soccerTeamsIndex`, `soccerTeamRosters`, `soccerPlayerAdjustments`, `appDataVersion`, `lastHomeTeamName`, `soccerTimerState`.
+
+Acceptance:
+- After migration, `storage-mode=indexedDB` and all data is readable via the adapter.
+- Backup is cleared upon success; retained if rollback occurred.
+- App boots and passes smoke tests with the IDB backend.
+
+### Phase 2 (Optional): Normalized IndexedDB Schema
+
+Goal: Evolve from KV to normalized stores for performance and richer querying.
+
+Files to add:
+- `src/utils/indexedDbStorage.ts` — Rich adapter exposing typed methods (games, players, seasons, tournaments).
+- Migrations to move from KV to normalized stores (read from KV once, fan out into stores; then retire KV keys).
+
+Suggested stores and indexes:
+- `games` (keyPath: `id`; indexes: `seasonId`, `tournamentId`, `gameDate`, `teamId`)
+- `players` (keyPath: `id`; indexes: `teamId`, `name`)
+- `seasons` (keyPath: `id`), `tournaments` (keyPath: `id`)
+
+Steps:
+1. Introduce versioned IDB schema via `openDB(name, version, { upgrade(db, oldVersion, newVersion) { ... } })`.
+2. Implement one‑time KV→normalized migration (idempotent, guarded by `storage-version`).
+3. Update domain utilities progressively to use the normalized adapter APIs (behind the same `storageFactory`).
+4. Keep compatibility shims for one release if needed, then remove KV path.
+
+Acceptance:
+- Filtering and lookups leverage indexes; performance improves for large datasets.
+- All domain utilities work against the new adapter with unchanged external signatures.
+
+---
+
+## Integration Details
+
+### Concurrency & Ordering
+- Run storage migration at app startup before initializing React Query data flows (extend `runMigration()` which is already invoked in `src/app/page.tsx`).
+- Use `lockManager` if necessary to guard write operations during migration.
+
+### Flags & Versioning
+- `storage-mode`: `'localStorage' | 'indexedDB'` — controls adapter selection.
+- `storage-version`: semantic version to gate subsequent migrations (e.g., `2.0.0`).
+- Continue to use `appDataVersion` for app‑level (non‑storage) migrations.
+
+### Rollback Procedure
+- On any failure during copy/verification, restore with `restoreMigrationBackup()` and revert `storage-mode` to `localStorage`.
+- Present a user‑visible error toast with a suggestion to retry; keep backup until success.
+
+### Testing Strategy
+- Unit: adapters (local vs IDB) and migration manager logic with mocked `idb`.
+- Integration: run the app with seeded localStorage, perform migration, validate data in IDB and app behavior.
+- E2E (optional): simulate large datasets to confirm performance remains acceptable.
+
+### Performance Baseline
+- KV first keeps performance parity with localStorage and reduces risk.
+- Normalization later allows partial reads and indexed queries for growth.
+
+---
+
+## Risks & Mitigations (Updated)
+
+- Dual‑write complexity — Avoided entirely by KV swap strategy.
+- Partial migration failures — Mitigated by transactional backup/rollback and per‑key verification.
+- Large payloads (e.g., `savedSoccerGames`) — KV phase keeps single‑key semantics; normalization optional if needed.
+- SW/offline interactions — No change required; the SW caches assets, not storage.
+
+---
+
+## Timeline & Ownership
+
+- Phase 0 (KV adapter): 0.5–1 day
+- Phase 1 (KV copy + flip): 0.5–1 day
+- Phase 2 (normalized stores): 2–4 days (optional)
+
+Each phase should include: PR, review, staging validation, and rollout.
+
 
 ### Phase 1: Foundation Infrastructure (Week 1)
 

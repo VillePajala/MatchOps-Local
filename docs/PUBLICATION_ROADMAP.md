@@ -1,242 +1,46 @@
-# MatchOps-Local: Complete Roadmap to Professional Publication
+# MatchOps-Local: Publication Roadmap (Concise)
 
-**From Current State to Play Store & App Store Success**
+Status: Companion (high‑level overview). Execute via MASTER_EXECUTION_GUIDE.md and PRODUCTION_READINESS_FIX_PLAN.md.
 
----
+## Phases (See MASTER_EXECUTION_GUIDE.md for details)
+- Phase M0: Pre‑migration essentials (tests green, logging via logger, minimal Sentry, PWA dedup)
+- Phase M1: IndexedDB migration (KV adapter + one‑time copy/flip with backup/rollback)
+- Phase P1: Post‑migration hardening (security headers/CSP, SW hardening, analytics gating)
+- Phase P2: PWA + Store packaging (branding, manifest, TWA)
+- Phase P3: Quality gates (a11y, performance, test expansion)
+- Phase P4: Monetization readiness (optional)
+- Phase P5: Release and post‑launch ops
 
-## Executive Summary
+## Milestones
+- M0: Jest + core E2E path green; Sentry events in dev/staging; single SW registration.
+- M1: Storage on IndexedDB (KV); backup cleared; rollback proven.
+- P1: Security headers present; no CSP violations; SW hardened; analytics gated.
+- P2: Manifest/icons verified; screenshots/feature graphic ready; TWA build passes; assetlinks OK.
+- P3: a11y smoke passes; bundle budgets documented; Lighthouse sanity OK.
+- P4: Monetization toggles/flags compliant with Play policies (if applicable).
+- P5: Staged rollout plan, alerts configured, support/triage defined.
 
-This roadmap provides a comprehensive path to transform MatchOps-Local from its current beta state into a professionally published application ready for Google Play Store, Apple App Store, and web distribution. Based on a thorough technical assessment, the project requires **4-6 weeks of focused development** to reach publication-ready status.
+## Assets & Compliance
+- Visuals: Maskable icons (192/512), screenshots (phone/tablet), feature graphic, optional promo video.
+- Legal: Privacy Policy URL, Terms URL in app and store listing.
+- Android: `.well-known/assetlinks.json`, signing key fingerprints.
+- Policy: Play Billing required for in‑app digital goods in TWA; or use paid listing.
 
-**Current Status**: Beta (Production-ready core with critical fixes needed)  
-**Target**: Professional publication across all major platforms  
-**Estimated Timeline**: 4-6 weeks  
-**Estimated Budget**: $0 (all open-source tools and free publishing options available)
+## Ownership
+- Tech: M0/M1/P1 execution; final Release Readiness sign‑off.
+- Design: Icons, screenshots, feature graphic.
+- Legal: Privacy/Terms; listing compliance.
 
----
+## Example Timeline (Adjust)
+- Week 1: M0 essentials; start M1 adapter.
+- Week 2: M1 migration + validation; begin P1 headers/SW.
+- Week 3: Finish P1; P2 packaging; start P3 a11y/perf.
+- Week 4: P3 finalize; prepare P5 staged rollout. P4 optional.
 
-## 🎯 Publication Strategy Overview
-
-### **Multi-Platform Approach**
-1. **Progressive Web App (PWA)**: Primary distribution via web with app-like experience
-2. **Google Play Store**: Android native experience via TWA (Trusted Web Activity)
-3. **Apple App Store**: iOS distribution via PWA or hybrid wrapper
-4. **Direct Web Distribution**: Self-hosted for maximum control
-
-### **Competitive Positioning**
-- **Local-First Privacy**: Primary differentiator from cloud-based competitors
-- **Zero Ongoing Costs**: One-time purchase model vs subscription competitors
-- **Soccer-Specific Features**: Targeted functionality vs generic team management apps
-- **Professional Grade**: Advanced features typically found in expensive enterprise solutions
-
----
-
-## 📋 Phase-by-Phase Development Plan
-
-## **PHASE 1: Critical Technical Fixes** ⚡ (Week 1-2)
-*Foundation stability and technical excellence*
-
-### **Priority 1A: Production Blockers (Week 1)**
-
-#### **Fix TypeScript Compilation Errors** 🚨
-- **Issue**: 40+ TypeScript errors preventing clean production builds
-- **Impact**: Blocks app store submission and professional credibility
-- **Tasks**:
-  - Fix test file property type mismatches in `RosterSettingsModal.test.tsx`, `SettingsModal.test.tsx`
-  - Add missing type declarations for jest-axe
-  - Resolve enum value assignments and property access errors
-  - Fix Performance API memory property access issues
-
-#### **Stabilize Test Suite** 🚨
-- **Issue**: Integration tests failing due to React state management loops
-- **Impact**: Unreliable CI/CD pipeline, production deployment risks
-- **Tasks**:
-  - Fix "Maximum update depth exceeded" errors in HomePage component
-  - Resolve async state update timing issues
-  - Stabilize `useGameTimer.test.ts` and related integration tests
-  - Ensure 100% test suite success rate
-
-#### **Fix React State Management Loops** 🚨
-- **Issue**: Performance and stability problems in core components
-- **Impact**: Poor user experience, potential crashes
-- **Tasks**:
-  - Debug and fix state update loops in HomePage.tsx
-  - Review useEffect dependencies and cleanup functions
-  - Implement proper state update patterns
-  - Add state update logging for debugging
-
-### **Priority 1B: Core Stability (Week 2)**
-
-#### **Error Handling & Logging Enhancement**
-- Implement production-grade error boundary with user feedback
-- Add client-side error tracking and reporting
-- Create graceful fallbacks for critical component failures
-- Add performance monitoring and alerting
-
-#### **Performance Optimization**
-- Fix memory leaks identified in testing
-- Implement lazy loading for modal components
-- Add React.memo for expensive component renders
-- Optimize bundle size with dynamic imports
-
-#### **Security Hardening**
-- Implement Content Security Policy (CSP) headers
-- Add additional input validation for edge cases
-- Review and enhance data sanitization
-- Audit third-party dependencies for vulnerabilities
-
----
-
-## **PHASE 2: Legal & Compliance Foundation** ⚖️ (Week 3)
-*Legal framework for app store publication*
-
-### **Priority 2A: Legal Documents (Critical for Submission)**
-
-#### **Privacy Policy Creation** 🚨
-- **Requirement**: Mandatory for all app stores
-- **Content Requirements**:
-  - Data collection practices (local-only storage)
-  - Cookie usage and browser storage
-  - Third-party integrations (analytics, etc.)
-  - User rights and data portability
-  - Contact information for privacy inquiries
-  - GDPR and CCPA compliance statements
-- **Implementation**: Legal-compliant document hosted at `/privacy-policy`
-
-#### **Terms of Service Development** 🚨
-- **Requirement**: Required for commercial app distribution
-- **Content Requirements**:
-  - Software license and usage rights
-  - User responsibilities and prohibited uses
-  - Limitation of liability and warranties
-  - Intellectual property rights
-  - Termination and suspension policies
-  - Dispute resolution procedures
-- **Implementation**: Legal document hosted at `/terms-of-service`
-
-#### **Cookie Policy & GDPR Compliance**
-- Create comprehensive cookie usage disclosure
-- Implement GDPR-compliant consent management
-- Add data export functionality for user rights
-- Document data processing lawful basis
-
-### **Priority 2B: Content Rating & Compliance**
-
-#### **App Store Content Rating**
-- Complete ESRB/PEGI content rating assessment
-- Document age-appropriate content guidelines
-- Ensure compliance with youth sports data protection
-- Prepare content rating justification documentation
-
-#### **Accessibility Compliance**
-- Complete WCAG 2.1 AA accessibility audit
-- Fix identified accessibility issues
-- Add comprehensive ARIA labels and descriptions
-- Test with screen readers and assistive technologies
-
----
-
-## **PHASE 3: App Store Preparation** 📱 (Week 4)
-*Assets, metadata, and store-specific requirements*
-
-### **Priority 3A: Visual Assets & Marketing**
-
-#### **App Icon Suite Creation** 🎨
-- **Required Sizes**:
-  - 1024x1024 (App Store Connect)
-  - 512x512 (Google Play Console)
-  - 192x192, 96x96, 48x48 (PWA manifest)
-  - Various iOS sizes (120x120, 180x180, etc.)
-- **Design Requirements**:
-  - High-contrast, recognizable at small sizes
-  - Soccer/coaching theme with app branding
-  - Consistent across all platforms
-
-#### **Store Screenshots & Media** 📸
-- **Google Play Requirements**: 
-  - 2-8 screenshots per supported device type
-  - 16:9 or 9:16 aspect ratio
-  - High-quality game management scenarios
-- **Apple App Store Requirements**:
-  - Screenshots for iPhone and iPad
-  - App preview videos (optional but recommended)
-  - Focus on key features and user workflows
-
-#### **Marketing Copy & Descriptions**
-- **Google Play Store Description** (4000 characters max):
-  - Feature highlights and benefits
-  - Target audience (soccer coaches)
-  - Key differentiators (privacy, local-first)
-  - Professional language optimized for discovery
-- **Apple App Store Description**:
-  - Similar content adapted for iOS audience
-  - App Store Optimization (ASO) keywords
-  - Compelling value proposition
-
-### **Priority 3B: Technical Store Configuration**
-
-#### **Google Play Console Setup**
-- Create Google Play Developer account ($25 one-time fee)
-- Configure app signing and security settings
-- Set up Trusted Web Activity (TWA) for PWA distribution
-- Configure Play Store listing and metadata
-
-#### **Apple App Store Connect Setup**
-- Apple Developer Account ($99/year)
-- App Store Connect app creation and configuration
-- PWA wrapper development or hybrid approach
-- iOS-specific testing and optimization
-
-#### **PWA Distribution Enhancement**
-- Optimize web app manifest for all platforms
-- Implement advanced PWA features (background sync, push notifications)
-- Create dedicated install landing page
-- Add PWA app store badges and promotion
-
----
-
-## **PHASE 4: Quality Assurance & Launch Preparation** 🚀 (Week 5-6)
-*Final testing, optimization, and go-live preparation*
-
-### **Priority 4A: Comprehensive Testing**
-
-#### **Cross-Platform Testing Suite**
-- **Devices**: iPhone, Android, iPad, various screen sizes
-- **Browsers**: Safari, Chrome, Firefox, Edge
-- **Operating Systems**: iOS 15+, Android 10+, Windows, macOS
-- **Scenarios**: Installation, offline usage, performance, edge cases
-
-#### **Beta Testing Program**
-- **Internal Testing**: Team and stakeholder validation
-- **Closed Beta**: Invite soccer coaches for real-world testing
-- **Open Beta**: Limited public testing for broader feedback
-- **Feedback Integration**: Rapid iteration based on user input
-
-#### **Performance Optimization**
-- **Load Time Optimization**: Target <3 seconds first load
-- **Bundle Size Optimization**: Minimize JavaScript payload
-- **Battery Usage Testing**: Ensure efficient mobile performance
-- **Offline Performance**: Comprehensive offline scenario testing
-
-### **Priority 4B: Launch Readiness**
-
-#### **Production Infrastructure**
-- **Hosting Setup**: Reliable, fast global CDN deployment
-- **Domain Configuration**: Professional domain with SSL
-- **Analytics Implementation**: Privacy-respecting usage analytics
-- **Error Monitoring**: Production error tracking and alerting
-
-#### **Documentation & Support**
-- **User Documentation**: Getting started guides, feature tutorials
-- **FAQ Creation**: Common questions and troubleshooting
-- **Support Channel**: Contact methods and response procedures
-- **Video Tutorials**: Key feature demonstrations
-
-#### **Release Preparation**
-- **Version Management**: Semantic versioning strategy
-- **Release Notes**: Professional changelog format
-- **Rollback Plan**: Emergency rollback procedures
-- **Monitoring Dashboard**: Production health monitoring
+## References
+- MASTER_EXECUTION_GUIDE.md (sequence, outcomes, acceptance)
+- PRODUCTION_READINESS_FIX_PLAN.md (step‑by‑step tasks)
+- RELEASE_READINESS_CHECKLIST.md (final go/no‑go)
 
 ---
 

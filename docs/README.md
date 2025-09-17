@@ -16,9 +16,15 @@ This documentation covers everything about the MatchOps-Local project - what it 
 - **[TECHNOLOGY_DECISIONS.md](./TECHNOLOGY_DECISIONS.md)** - Why we chose specific technologies
 
 ### 📊 **Project Status & Direction**
+- **[MASTER_EXECUTION_GUIDE.md](./MASTER_EXECUTION_GUIDE.md)** — Start here: step-by-step to Play Store readiness
 - **[PROJECT_STATUS.md](./PROJECT_STATUS.md)** - Current implementation status and maturity
 - **[ROADMAP.md](./ROADMAP.md)** - Strategic vision and future development plans
 - **[PUBLICATION_ROADMAP.md](./PUBLICATION_ROADMAP.md)** - Complete path to professional app store publication
+ - **[RELEASE_READINESS_CHECKLIST.md](./RELEASE_READINESS_CHECKLIST.md)** — One-page final go/no-go checklist
+
+### 🛡️ **Production Readiness**
+- **[PRODUCTION_READINESS_FIX_PLAN.md](./PRODUCTION_READINESS_FIX_PLAN.md)** — Authoritative, step-by-step checklist to reach production readiness (start here)
+- **[development/PRODUCTION_READINESS_ROADMAP.md](./development/PRODUCTION_READINESS_ROADMAP.md)** — Background and strategy (context and rationale)
 
 ## 📂 Specialized Documentation
 
