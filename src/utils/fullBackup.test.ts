@@ -100,15 +100,7 @@ window.alert = jest.fn();
 // Mock window.confirm
 Object.defineProperty(window, "confirm", { value: jest.fn() });
 
-// Mock window.location.reload safely
-const originalLocation: Location = window.location;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-delete (window as any).location; // Need to delete first to reassign
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(window as any).location = {
-  ...originalLocation,
-  reload: jest.fn(),
-};
+// Note: window.location.reload is mocked per-test in beforeEach to avoid global side-effects
 
 // Mock setTimeout/clearTimeout - Let Jest infer the spy types
 const setTimeoutSpy = jest.spyOn(global, "setTimeout");
@@ -154,10 +146,24 @@ describe("importFullBackup", () => {
     // Reset other mocks used in this suite
     (window.confirm as jest.Mock)?.mockClear();
     (window.alert as jest.Mock)?.mockClear(); // Clear global alert mock if it was set
-    (window.location.reload as jest.Mock)?.mockClear();
+    if (typeof (window.location.reload as unknown as { mockClear?: () => void }).mockClear === 'function') {
+      (window.location.reload as unknown as { mockClear: () => void }).mockClear();
+    }
     setTimeoutSpy.mockClear();
     clearTimeoutSpy.mockClear(); // Ensure clearTimeout is also cleared
     jest.useRealTimers(); // Default to real timers
+
+    // Ensure window.location.reload is a mock for tests that assert reload behavior
+    try {
+      Object.defineProperty(window.location, 'reload', {
+        // @ts-expect-error allow test mocking of built-in
+        value: jest.fn(),
+        configurable: true,
+        writable: true,
+      });
+    } catch {
+      // In some environments, redefining may not be allowed; tests should still proceed without reload assertions
+    }
 
     // Mock console methods for this describe block
     consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
@@ -171,6 +177,9 @@ describe("importFullBackup", () => {
     consoleWarnSpy.mockRestore();
     consoleLogSpy.mockRestore();
   });
+
+  // No explicit afterAll restoration here; global setupTests will restore
+  // window.location if it was redefined with a configurable descriptor.
 
   describe("Success Scenarios", () => {
     it("should successfully restore valid backup data and overwrite localStorage", async () => {

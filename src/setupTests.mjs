@@ -26,10 +26,14 @@ const localStorageMock = (() => {
 if (typeof window !== 'undefined') {
   Object.defineProperty(window, 'localStorage', {
     value: localStorageMock,
+    configurable: true,
+    writable: true,
   });
 
   Object.defineProperty(window, 'sessionStorage', {
     value: localStorageMock,
+    configurable: true,
+    writable: true,
   });
 
   // Mock alert/confirm/prompt
