@@ -83,15 +83,30 @@ describe('Game ID Generation', () => {
 
   it('should generate different IDs for simultaneous game creation', async () => {
     // Mock crypto.randomUUID to return different values
+    const originalCrypto = global.crypto;
+    const originalRandomUUID = global.crypto?.randomUUID;
     let callCount = 0;
-    (global.crypto.randomUUID as jest.Mock).mockImplementation(() => {
+    const mockUUID = () => {
       const uuids = [
         '11111111-2222-3333-4444-555555555555',
         '66666666-7777-8888-9999-aaaaaaaaaaaa',
         'bbbbbbbb-cccc-dddd-eeee-ffffffffffff'
       ];
       return uuids[callCount++] || 'abcd1234-5678-9abc-def0-123456789abc';
-    });
+    };
+    const wasMock = jest.isMockFunction(originalRandomUUID);
+    if (wasMock) {
+      (global.crypto.randomUUID as jest.Mock).mockImplementation(mockUUID);
+    } else {
+      Object.defineProperty(global, 'crypto', {
+        value: {
+          ...((originalCrypto as unknown) || {}),
+          randomUUID: jest.fn(mockUUID),
+        } as Crypto,
+        configurable: true,
+        writable: true,
+      });
+    }
 
     const gameData = createValidGameData();
     
@@ -117,6 +132,17 @@ describe('Game ID Generation', () => {
     const uuidParts = ids.map(id => id.split('_')[2]);
     const uniqueUuidParts = new Set(uuidParts);
     expect(uniqueUuidParts.size).toBe(3);
+
+    // Restore original crypto/randomUUID
+    if (wasMock) {
+      (global.crypto.randomUUID as jest.Mock).mockReset();
+    } else {
+      Object.defineProperty(global, 'crypto', {
+        value: originalCrypto,
+        configurable: true,
+        writable: true,
+      });
+    }
   });
 
   it('should maintain backward compatibility with timestamp sorting', async () => {
