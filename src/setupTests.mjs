@@ -1,6 +1,19 @@
 import '@testing-library/jest-dom';
 import 'jest-canvas-mock';
 
+// Initialize i18n for tests with English language
+import i18n from './i18n.ts';
+if (i18n.isInitialized) {
+  i18n.changeLanguage('en');
+} else {
+  i18n.init({
+    lng: 'en',
+    fallbackLng: 'en',
+    debug: false,
+    interpolation: { escapeValue: false },
+  });
+}
+
 // Global handler for unhandled promise rejections in tests
 // This prevents Node.js from crashing when async errors escape Jest's handling
 const originalProcessEmit = process.emit;
@@ -18,7 +31,10 @@ const originalLocation = typeof window !== 'undefined' ? window.location : undef
 
 // Mock localStorage and sessionStorage
 const localStorageMock = (() => {
-  let store = {};
+  let store = {
+    // Initialize with English language for tests
+    'soccerAppSettings': JSON.stringify({ language: 'en' })
+  };
   return {
     getItem: jest.fn(key => store[key] || null),
     setItem: jest.fn((key, value) => {
@@ -28,7 +44,10 @@ const localStorageMock = (() => {
       delete store[key];
     }),
     clear: jest.fn(() => {
-      store = {};
+      store = {
+        // Restore English language setting after clear
+        'soccerAppSettings': JSON.stringify({ language: 'en' })
+      };
     }),
     getAll: () => store,
   };

@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "test: harden fullBackup tests"
+  "notes": "fix: resolve GameSettingsModal test failure by implementing proper state simulation"
 }
