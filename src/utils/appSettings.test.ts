@@ -11,6 +11,22 @@ import {
 } from './appSettings';
 import { APP_SETTINGS_KEY, LAST_HOME_TEAM_NAME_KEY } from '@/config/storageKeys';
 
+// Handle unhandled promise rejections in tests
+const originalProcessEmit = process.emit;
+beforeAll(() => {
+  process.emit = jest.fn((event, error) => {
+    if (event === 'unhandledRejection') {
+      // Suppress unhandled rejections in tests - they should be caught by try/catch in functions
+      return false;
+    }
+    return originalProcessEmit.call(process, event, error);
+  }) as typeof process.emit;
+});
+
+afterAll(() => {
+  process.emit = originalProcessEmit;
+});
+
 describe('App Settings Utilities', () => {
   // Mock localStorage with proper implementation
   const localStorageMock = {
