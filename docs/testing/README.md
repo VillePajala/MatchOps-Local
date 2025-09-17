@@ -27,6 +27,15 @@ Comprehensive testing resources and strategies for MatchOps-Local.
 2. **E2E Tests**: `npx playwright test`
 3. **Coverage**: `npm run test:coverage`
 
+## ✅ Minimal Green Bar (Pre‑Migration Essentials)
+
+Before any storage migration work, ensure these are green to reduce risk:
+
+- Jest unit/integration suite passes locally (fix JSDOM `window.location` cleanup error).
+- One core Playwright path is stable: start → new game → save → load.
+- Logging uses the central `logger` (no stray `console.*` in production code paths).
+- Minimal Sentry integration enabled in dev/staging to capture unexpected errors.
+
 ## 📊 Testing Priorities
 
 Based on TESTING_STRATEGY_2025.md:

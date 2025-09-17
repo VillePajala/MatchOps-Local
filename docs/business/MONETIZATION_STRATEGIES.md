@@ -1,5 +1,9 @@
 # MatchOps-Local App Store Monetization Strategies
 
+Status: Authoritative (canonical monetization reference)
+
+Note: All execution sequencing and release readiness are governed by MASTER_EXECUTION_GUIDE.md and PRODUCTION_READINESS_FIX_PLAN.md. This document focuses on strategy options and trade‑offs.
+
 ## Executive Summary
 
 MatchOps-Local is a comprehensive soccer coaching PWA with a local-first data approach. This document outlines various monetization strategies for app store distribution, analyzing their feasibility, implementation difficulty, and revenue potential based on the current application architecture and 2024-2025 market trends.
@@ -177,6 +181,10 @@ MatchOps-Local is a comprehensive soccer coaching PWA with a local-first data ap
 - **Data Migration:** Ensure smooth transition for existing users
 - **Offline Capability:** Maintain PWA functionality across all tiers
 - **Platform Compliance:** Follow app store guidelines for subscription apps
+
+Policy Notes
+- TWA apps distributing in‑app digital goods must use Play Billing; external payment links are not compliant.
+- A paid Play listing (one‑time purchase to install) can avoid in‑app billing but offers no upsell in‑app.
 
 ## Market Positioning
 

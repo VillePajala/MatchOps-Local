@@ -1,5 +1,7 @@
 # Security Guidelines
 
+Status: Authoritative (current state + planned changes)
+
 ## Environment Variable Security
 
 ### Critical Security Rules
@@ -46,15 +48,21 @@
 
 ## Content Security Policy (CSP)
 
-### CSP Headers Configuration
-Implemented via Next.js security headers to prevent XSS attacks and unauthorized resource loading.
+### Current Status
+- CSP headers are planned but not yet enabled in `next.config.ts`.
+- Implementation is tracked in PRODUCTION_READINESS_FIX_PLAN.md §1 and sequenced as Phase P1 in MASTER_EXECUTION_GUIDE.md.
 
-### Allowed Sources
+### CSP Headers Configuration (Planned)
+Will be implemented via Next.js security headers to prevent XSS and unauthorized resource loading.
+
+### Allowed Sources (Target Policy)
 - **Scripts**: Self-hosted and trusted CDNs only
 - **Styles**: Self-hosted with safe inline styles (hashed)
 - **Images**: Self + data: URIs for PWA icons
 - **Connect**: API endpoints and Sentry only
 - **Fonts**: Self-hosted fonts only
+
+Note: Demo files under `public/demos/` may reference external fonts (Google Fonts) and are not part of the production app. Exclude demo paths from CSP validation or only allow during development.
 
 ## Data Protection
 

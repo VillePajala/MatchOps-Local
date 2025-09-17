@@ -10,7 +10,7 @@ MatchOps Local is designed as a local-first soccer coaching application with pot
 
 ## Business Documentation
 For detailed business strategy and monetization planning, see:
-- **[Monetization Strategy](business/MONETIZATION_STRATEGY.md)** - Comprehensive business planning document
+- **[Monetization Strategies](business/MONETIZATION_STRATEGIES.md)** - Canonical monetization strategy and options
 
 ## Core Principles
 1. **Local-First**: All data stays on user's device
