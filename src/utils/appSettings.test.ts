@@ -25,7 +25,8 @@ describe('App Settings Utilities', () => {
   // Replace global localStorage with mock
   Object.defineProperty(window, 'localStorage', {
     value: localStorageMock,
-    writable: true
+    writable: true,
+    configurable: true,
   });
 
   // Reset mocks before each test

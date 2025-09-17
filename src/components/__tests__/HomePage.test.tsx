@@ -35,6 +35,7 @@ describe('HomePage Component - Deep Testing', () => {
     Object.defineProperty(window, 'localStorage', {
       value: mockLocalStorage(),
       writable: true,
+      configurable: true,
     });
     jest.clearAllMocks();
   });

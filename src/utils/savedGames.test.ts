@@ -42,7 +42,8 @@ describe('Saved Games Utilities', () => {
 
   Object.defineProperty(window, 'localStorage', {
     value: localStorageMock,
-    writable: true
+    writable: true,
+    configurable: true,
   });
 
   const mockPlayer1: Player = { id: 'player_1', name: 'John', jerseyNumber: '10', isGoalie: false, receivedFairPlayCard: false, notes: '' };
