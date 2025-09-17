@@ -15,7 +15,7 @@ const localStorageMock = (() => {
     getStore: () => store // Helper to inspect the mock store
   };
 })();
-Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+Object.defineProperty(window, 'localStorage', { value: localStorageMock, configurable: true, writable: true });
 
 // Utility to create a valid player object
 function createPlayer(overrides: Partial<Player> = {}): Player {

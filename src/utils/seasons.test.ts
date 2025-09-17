@@ -19,7 +19,7 @@ const localStorageMock = (() => {
   };
 })();
 
-Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+Object.defineProperty(window, 'localStorage', { value: localStorageMock, configurable: true, writable: true });
 
 // Mock console.error and console.warn to prevent output during tests and allow assertions
 let consoleErrorSpy: jest.SpyInstance;
