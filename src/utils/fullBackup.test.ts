@@ -264,7 +264,7 @@ describe("importFullBackup", () => {
       // Verify confirmation was called
       expect(window.confirm).toHaveBeenCalledTimes(1);
       expect(window.alert).toHaveBeenCalledWith(
-        "Varmuuskopio palautettu. Sovellus latautuu uudelleen...",
+        "Backup restored. Reloading app...",
       );
 
       // Verify reload was scheduled via setTimeout
@@ -333,7 +333,7 @@ describe("importFullBackup", () => {
 
       // Verify alert and reload were called
       expect(window.alert).toHaveBeenCalledWith(
-        "Varmuuskopio palautettu. Sovellus latautuu uudelleen...",
+        "Backup restored. Reloading app...",
       );
 
       // Advance timers to see if reload would have been called
@@ -408,7 +408,7 @@ describe("importFullBackup", () => {
       expect(localStorageMock.getAll()).toEqual({}); // Storage unchanged
       expect(window.confirm).not.toHaveBeenCalled(); // Confirmation shouldn't be reached
       expect(alertMock).toHaveBeenCalledWith(
-        expect.stringContaining("Virhe varmuuskopion"),
+        expect.stringContaining("Error importing backup"),
       ); // Check alert
       if (jest.isMockFunction(window.location.reload)) {
         expect(window.location.reload).not.toHaveBeenCalled();
@@ -546,7 +546,7 @@ describe("importFullBackup", () => {
         expect(localStorageMock.setItem).toHaveBeenCalled();
         // The actual error message from the implementation contains a different text
         expect(alertMock).toHaveBeenCalledWith(
-          expect.stringContaining("Kohteen"),
+          expect.stringContaining("Failed to restore"),
         );
         if (jest.isMockFunction(window.location.reload)) {
           expect(window.location.reload).not.toHaveBeenCalled();
@@ -644,7 +644,7 @@ describe("exportFullBackup", () => {
     expect(document.body.removeChild).toHaveBeenCalledWith(mockAnchor);
     expect(window.URL.revokeObjectURL).toHaveBeenCalledWith(expect.any(String));
     expect(window.alert).toHaveBeenCalledWith(
-      "Varmuuskopio vietiin onnistuneesti.",
+      "Backup exported successfully.",
     );
 
     // No need to restore dateSpy here, afterEach will handle it.
