@@ -98,12 +98,9 @@ describe('Game ID Generation', () => {
     if (wasMock) {
       (global.crypto.randomUUID as jest.Mock).mockImplementation(mockUUID);
     } else {
+      const merged: any = Object.assign({}, originalCrypto as any, { randomUUID: jest.fn(mockUUID) });
       Object.defineProperty(global, 'crypto', {
-        // Use a widened type to avoid TS structural mismatch with Crypto
-        value: {
-          ...(originalCrypto as unknown),
-          randomUUID: jest.fn(mockUUID),
-        } as Crypto,
+        value: merged,
         configurable: true,
         writable: true,
       });
