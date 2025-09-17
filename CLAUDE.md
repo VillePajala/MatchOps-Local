@@ -80,5 +80,27 @@ The app supports English and Finnish with i18next. All translation files now liv
 ### PWA Features
 The app includes install prompts, update notifications, and works offline. The service worker is updated during build to trigger cache updates.
 
-### Testing Strategy- Unit tests cover utilities and components and are co-located with source files using the `.test.tsx` suffix
+### Testing Strategy
+- Unit tests cover utilities and components and are co-located with source files using the `.test.tsx` suffix
 - The Jest configuration excludes Playwright specs located in the `/tests/` directory
+- Integration tests for Sentry error reporting in `src/__tests__/integration/`
+- Performance tests for bundle size validation in `src/__tests__/performance/`
+- Security tests for environment validation in `src/__tests__/security/`
+
+## Environment Variables
+
+### Required Production Environment Variables
+- `NEXT_PUBLIC_SENTRY_DSN` - Sentry Data Source Name for error reporting (client-side)
+- `SENTRY_AUTH_TOKEN` - Sentry authentication token for build-time source map uploads (server-side)
+
+### Optional Environment Variables
+- `NEXT_PUBLIC_SENTRY_FORCE_ENABLE` - Force enable Sentry in development mode (default: false)
+- `SENTRY_ORG` - Sentry organization name for build configuration
+- `SENTRY_PROJECT` - Sentry project name for build configuration
+- `ANALYZE` - Set to `true` to enable bundle analysis during build
+
+### Security Configuration
+- All client-side environment variables (prefixed with `NEXT_PUBLIC_`) are validated for secret exposure
+- Server-side secrets should never use the `NEXT_PUBLIC_` prefix
+- Environment validation runs automatically during build and startup
+- CSP violations are automatically reported to `/api/csp-report` endpoint
