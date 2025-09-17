@@ -144,26 +144,25 @@ describe("importFullBackup", () => {
     });
 
     // Reset other mocks used in this suite
-    (window.confirm as jest.Mock)?.mockClear();
-    (window.alert as jest.Mock)?.mockClear(); // Clear global alert mock if it was set
-    if (typeof (window.location.reload as unknown as { mockClear?: () => void }).mockClear === 'function') {
-      (window.location.reload as unknown as { mockClear: () => void }).mockClear();
-    }
-    setTimeoutSpy.mockClear();
-    clearTimeoutSpy.mockClear(); // Ensure clearTimeout is also cleared
-    jest.useRealTimers(); // Default to real timers
-
-    // Ensure window.location.reload is a mock for tests that assert reload behavior
+    (window.confirm as jest.Mock)?.mockReset();
+    (window.alert as jest.Mock)?.mockReset();
+    
+    // Always mock reload in each beforeEach and avoid global state
     try {
       Object.defineProperty(window.location, 'reload', {
-        // @ts-expect-error allow test mocking of built-in
         value: jest.fn(),
         configurable: true,
-        writable: true,
+        writable: true
       });
     } catch {
-      // In some environments, redefining may not be allowed; tests should still proceed without reload assertions
+      // Degrade gracefully if property cannot be redefined in some environments
+      // Skip reload assertions in tests that require it
     }
+    
+    setTimeoutSpy.mockClear();
+    clearTimeoutSpy.mockClear();
+    // Keep timers consistent per test - default to real timers
+    jest.useRealTimers();
 
     // Mock console methods for this describe block
     consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
@@ -172,10 +171,15 @@ describe("importFullBackup", () => {
   });
 
   afterEach(() => {
-    // Restore console spies
-    consoleErrorSpy.mockRestore();
-    consoleWarnSpy.mockRestore();
-    consoleLogSpy.mockRestore();
+    // Guard console spies in afterEach - only restore if they exist
+    if (consoleErrorSpy) consoleErrorSpy.mockRestore();
+    if (consoleWarnSpy) consoleWarnSpy.mockRestore();
+    if (consoleLogSpy) consoleLogSpy.mockRestore();
+    
+    // Clear reload mock if it exists and has mockClear
+    if (window.location.reload && 'mockClear' in window.location.reload) {
+      (window.location.reload as jest.Mock).mockClear();
+    }
   });
 
   // No explicit afterAll restoration here; global setupTests will restore

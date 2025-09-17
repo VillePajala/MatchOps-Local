@@ -12,7 +12,7 @@ import {
 import { APP_SETTINGS_KEY, LAST_HOME_TEAM_NAME_KEY } from '@/config/storageKeys';
 
 describe('App Settings Utilities', () => {
-  // Mock localStorage
+  // Mock localStorage with proper implementation
   const localStorageMock = {
     getItem: jest.fn(),
     setItem: jest.fn(),
@@ -24,7 +24,8 @@ describe('App Settings Utilities', () => {
 
   // Replace global localStorage with mock
   Object.defineProperty(window, 'localStorage', {
-    value: localStorageMock
+    value: localStorageMock,
+    writable: true
   });
 
   // Reset mocks before each test
@@ -34,6 +35,10 @@ describe('App Settings Utilities', () => {
     localStorageMock.clear.mockReset();
     localStorageMock.removeItem.mockReset();
     localStorageMock.key.mockReset();
+    
+    // Reset to default behavior - successful operations
+    localStorageMock.setItem.mockImplementation(() => {});
+    localStorageMock.getItem.mockReturnValue(null);
   });
 
   describe('getAppSettings', () => {
