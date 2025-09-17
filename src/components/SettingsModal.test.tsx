@@ -66,14 +66,10 @@ const defaultProps = {
 describe('<SettingsModal />', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    // Mock navigator.storage.estimate properly
-    Object.defineProperty(navigator, 'storage', {
-      configurable: true,
-      writable: true,
-      value: {
-        estimate: jest.fn().mockResolvedValue({ usage: 1048576, quota: 5242880 }),
-      },
-    });
+    // Ensure navigator.storage is undefined by default for clean test state
+    if ('storage' in navigator) {
+      delete (navigator as any).storage;
+    }
   });
 
   test('renders when open', () => {
@@ -87,40 +83,25 @@ describe('<SettingsModal />', () => {
     expect(screen.getByLabelText('Default Team Name')).toBeInTheDocument();
   });
 
-  test.skip('displays storage usage when available', async () => {
-    // Ensure the storage estimate mock is set up
-    const estimateMock = jest.fn().mockResolvedValue({ usage: 1048576, quota: 5242880 });
-    Object.defineProperty(navigator, 'storage', {
-      configurable: true,
-      writable: true,
-      value: { estimate: estimateMock },
-    });
-
+  test('displays storage unavailable message when navigator.storage is not supported', () => {
+    // Don't mock navigator.storage - let it be undefined
     render(
       <TestWrapper>
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
 
-    // Wait for the storage label to appear
-    expect(await screen.findByText('Storage Usage')).toBeInTheDocument();
-
-    // Wait for the storage estimate promise to resolve and display the usage
-    await waitFor(async () => {
-      expect(estimateMock).toHaveBeenCalled();
-      expect(await screen.findByText(/1\.0 MB of 5\.0 MB used/)).toBeInTheDocument();
-    }, { timeout: 2000 });
+    expect(screen.getByText('Storage Usage')).toBeInTheDocument();
+    expect(screen.getByText('Storage usage information unavailable.')).toBeInTheDocument();
   });
 
-  test.skip('displays usage in KB when below 1 MB', async () => {
-    const estimateMock = jest.fn().mockResolvedValue({
-      usage: 512 * 1024,
-      quota: 2 * 1048576,
-    });
-    Object.defineProperty(navigator, 'storage', {
+  test('displays storage usage when available', async () => {
+    // Mock navigator.storage.estimate before rendering
+    const estimateMock = jest.fn().mockResolvedValue({ usage: 1048576, quota: 5242880 });
+    Object.defineProperty(global.navigator, 'storage', {
+      value: { estimate: estimateMock },
       configurable: true,
       writable: true,
-      value: { estimate: estimateMock },
     });
 
     render(
@@ -129,14 +110,44 @@ describe('<SettingsModal />', () => {
       </TestWrapper>
     );
 
-    // Wait for the storage label to appear
+    // Wait for the storage section to appear
     expect(await screen.findByText('Storage Usage')).toBeInTheDocument();
 
-    // Wait for the storage estimate promise to resolve and display the usage
-    await waitFor(async () => {
+    // Wait for the storage estimate to resolve and display
+    await waitFor(() => {
       expect(estimateMock).toHaveBeenCalled();
-      expect(await screen.findByText(/512\.0 KB of 5\.0 MB used/)).toBeInTheDocument();
-    }, { timeout: 2000 });
+    });
+
+    expect(await screen.findByText(/1\.0 MB of 5\.0 MB used/)).toBeInTheDocument();
+  });
+
+  test('displays usage in KB when below 1 MB', async () => {
+    // Mock navigator.storage.estimate with smaller usage
+    const estimateMock = jest.fn().mockResolvedValue({
+      usage: 512 * 1024, // 512 KB
+      quota: 2 * 1048576, // 2 MB (ignored by component, uses MAX_LOCAL_STORAGE)
+    });
+    Object.defineProperty(global.navigator, 'storage', {
+      value: { estimate: estimateMock },
+      configurable: true,
+      writable: true,
+    });
+
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
+
+    // Wait for the storage section to appear
+    expect(await screen.findByText('Storage Usage')).toBeInTheDocument();
+
+    // Wait for the storage estimate to resolve and display
+    await waitFor(() => {
+      expect(estimateMock).toHaveBeenCalled();
+    });
+
+    expect(await screen.findByText(/512\.0 KB of 5\.0 MB used/)).toBeInTheDocument();
   });
 
   test('calls onClose when Done clicked', () => {
