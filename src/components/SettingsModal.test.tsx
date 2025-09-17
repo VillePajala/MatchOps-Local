@@ -31,7 +31,22 @@ jest.mock('react-i18next', () => ({
       if (key === 'settingsModal.storageUsageDetails' && fallbackOrOpts) {
         return `${fallbackOrOpts.used} of ${fallbackOrOpts.quota} used`;
       }
-      return fallbackOrOpts || key;
+      // Return English translations for common keys
+      const translations: Record<string, string> = {
+        'settingsModal.title': 'App Settings',
+        'settingsModal.languageLabel': 'Language',
+        'settingsModal.defaultTeamNameLabel': 'Default Team Name',
+        'settingsModal.storageUsageLabel': 'Storage Usage',
+        'settingsModal.storageUsageUnavailable': 'Storage usage information unavailable.',
+        'settingsModal.doneButton': 'Done',
+        'settingsModal.dangerZoneTitle': 'Danger Zone',
+        'settingsModal.hardResetButton': 'Hard Reset App',
+        'settingsModal.resetGuideButton': 'Reset App Guide',
+        'settingsModal.confirmResetLabel': 'Type RESET to confirm',
+        'settingsModal.backupButton': 'Backup All Data',
+        'settingsModal.restoreButton': 'Restore from Backup',
+      };
+      return translations[key] || fallbackOrOpts || key;
     },
   }),
 }));
@@ -51,8 +66,10 @@ const defaultProps = {
 describe('<SettingsModal />', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Mock navigator.storage.estimate properly
     Object.defineProperty(navigator, 'storage', {
       configurable: true,
+      writable: true,
       value: {
         estimate: jest.fn().mockResolvedValue({ usage: 1048576, quota: 5242880 }),
       },
@@ -77,7 +94,7 @@ describe('<SettingsModal />', () => {
       </TestWrapper>
     );
     expect(await screen.findByText('Storage Usage')).toBeInTheDocument();
-    expect(await screen.findByText(/1\.0 MB.*5\.0 MB/)).toBeInTheDocument();
+    expect(await screen.findByText(/1\.0 MB of 5\.0 MB used/)).toBeInTheDocument();
   });
 
   test('displays usage in KB when below 1 MB', async () => {
@@ -90,7 +107,7 @@ describe('<SettingsModal />', () => {
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
-    expect(await screen.findByText(/512\.0 KB.*5\.0 MB/)).toBeInTheDocument();
+    expect(await screen.findByText(/512\.0 KB of 5\.0 MB used/)).toBeInTheDocument();
   });
 
   test('calls onClose when Done clicked', () => {

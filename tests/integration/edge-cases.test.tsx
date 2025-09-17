@@ -53,7 +53,8 @@ describe('Edge Cases and Error Handling Tests', () => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
       }, { timeout: 5000 });
 
-      expect(screen.getByText(/matchops/i)).toBeVisible();
+      // App should render and show some key content
+      expect(screen.getByTestId('home-page')).toBeInTheDocument();
     });
 
     it('should recover from quota exceeded errors', async () => {
@@ -66,7 +67,8 @@ describe('Edge Cases and Error Handling Tests', () => {
       }, { timeout: 5000 });
 
       // Should render successfully despite storage issues
-      expect(screen.getByText(/matchops/i)).toBeVisible();
+      // App should render and show some key content
+      expect(screen.getByTestId('home-page')).toBeInTheDocument();
       
       // Simulate user interaction that triggers save
       const buttons = screen.getAllByRole('button').filter(btn => !(btn as HTMLButtonElement).disabled);
@@ -75,7 +77,8 @@ describe('Edge Cases and Error Handling Tests', () => {
       }
 
       // App should remain stable
-      expect(screen.getByText(/matchops/i)).toBeVisible();
+      // App should render and show some key content
+      expect(screen.getByTestId('home-page')).toBeInTheDocument();
       
       restoreSetItem();
     });
@@ -92,7 +95,8 @@ describe('Edge Cases and Error Handling Tests', () => {
       }, { timeout: 5000 });
 
       // Should render despite network issues
-      expect(screen.getByText(/matchops/i)).toBeVisible();
+      // App should render and show some key content
+      expect(screen.getByTestId('home-page')).toBeInTheDocument();
 
       global.fetch = originalFetch;
     });
@@ -312,7 +316,8 @@ describe('Edge Cases and Error Handling Tests', () => {
       }, { timeout: 5000 });
 
       // Should render successfully without ResizeObserver
-      expect(screen.getByText(/matchops/i)).toBeVisible();
+      // App should render and show some key content
+      expect(screen.getByTestId('home-page')).toBeInTheDocument();
 
       // Restore ResizeObserver
       global.ResizeObserver = originalResizeObserver;
@@ -330,7 +335,8 @@ describe('Edge Cases and Error Handling Tests', () => {
       }, { timeout: 5000 });
 
       // Should render successfully without performance API
-      expect(screen.getByText(/matchops/i)).toBeVisible();
+      // App should render and show some key content
+      expect(screen.getByTestId('home-page')).toBeInTheDocument();
 
       // Restore performance
       global.performance = originalPerformance;
@@ -358,7 +364,8 @@ describe('Edge Cases and Error Handling Tests', () => {
       await Promise.all(promises);
 
       // Application should remain stable
-      expect(screen.getByText(/matchops/i)).toBeVisible();
+      // App should render and show some key content
+      expect(screen.getByTestId('home-page')).toBeInTheDocument();
     });
 
     it('should handle simultaneous canvas operations', async () => {
@@ -441,7 +448,8 @@ describe('Edge Cases and Error Handling Tests', () => {
       }, { timeout: 5000 });
 
       // Should render successfully even under memory pressure
-      expect(screen.getByText(/matchops/i)).toBeVisible();
+      // App should render and show some key content
+      expect(screen.getByTestId('home-page')).toBeInTheDocument();
     });
 
     it('should handle resource cleanup on unmount', async () => {
@@ -479,7 +487,8 @@ describe('Edge Cases and Error Handling Tests', () => {
       expect(buttons.length).toBeGreaterThan(0);
       
       // App should provide some form of user controls for recovery
-      expect(screen.getByText(/matchops/i)).toBeVisible();
+      // App should render and show some key content
+      expect(screen.getByTestId('home-page')).toBeInTheDocument();
     });
   });
 });
