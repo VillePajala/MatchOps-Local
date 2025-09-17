@@ -141,6 +141,7 @@ describe("importFullBackup", () => {
     Object.defineProperty(window, "localStorage", {
       value: localStorageMock,
       writable: true,
+      configurable: true,
     });
 
     // Reset other mocks used in this suite
@@ -180,6 +181,11 @@ describe("importFullBackup", () => {
     if (window.location.reload && 'mockClear' in window.location.reload) {
       (window.location.reload as jest.Mock).mockClear();
     }
+    // Ensure no stray timers keep the suite alive
+    try {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    } catch {}
   });
 
   // No explicit afterAll restoration here; global setupTests will restore
