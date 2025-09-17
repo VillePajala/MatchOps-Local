@@ -87,6 +87,45 @@ The app includes install prompts, update notifications, and works offline. The s
 - Performance tests for bundle size validation in `src/__tests__/performance/`
 - Security tests for environment validation in `src/__tests__/security/`
 
+## Testing Rules and Principles
+
+### Critical Testing Guidelines
+
+**NEVER SKIP TESTS** unless explicitly requested by the user. Tests exist to catch regressions and ensure code quality.
+
+**Test fixes must make the project more robust, not mask real issues:**
+- Fix the underlying problem, don't just make tests pass
+- Ensure mocks accurately represent real behavior
+- Don't weaken assertions to avoid failures
+- Don't remove test coverage without good reason
+
+**When fixing failing tests:**
+1. **Understand why the test is failing** - Is it a legitimate issue or a test problem?
+2. **Fix the root cause** - Address the actual problem, not just the test symptom
+3. **Improve robustness** - Make tests and code more reliable, not more permissive
+4. **Maintain coverage** - Don't reduce test coverage to fix failures
+5. **Document changes** - Explain why changes were necessary
+
+**Acceptable test modifications:**
+- Updating test expectations to match corrected application behavior
+- Improving test reliability and reducing flakiness
+- Adding better error handling or edge case coverage
+- Fixing incorrect mocks to better represent real dependencies
+
+**Unacceptable test modifications:**
+- Skipping tests to avoid dealing with failures
+- Weakening assertions to prevent failures
+- Removing tests without replacement
+- Making tests pass by ignoring real issues
+- Using overly permissive mocks that hide problems
+
+**Before skipping any test:**
+- Investigate the root cause thoroughly
+- Consider if the test reveals a real issue
+- Explore proper fixes before considering removal
+- Document why skipping is necessary if unavoidable
+- Create a plan to restore the test
+
 ## Environment Variables
 
 ### Required Production Environment Variables

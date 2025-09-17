@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: resolve GameSettingsModal test failure by implementing proper state simulation"
+  "notes": "ci: optimize critical-tests to skip full coverage by default"
 }
