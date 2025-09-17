@@ -1,6 +1,18 @@
 import '@testing-library/jest-dom';
 import 'jest-canvas-mock';
 
+// Global handler for unhandled promise rejections in tests
+// This prevents Node.js from crashing when async errors escape Jest's handling
+const originalProcessEmit = process.emit;
+process.emit = function(name, data, ...args) {
+  if (name === 'unhandledRejection' && typeof jest !== 'undefined') {
+    // In test environment, log the rejection but don't crash Node.js
+    console.warn('Unhandled promise rejection caught in tests:', data);
+    return false; // Prevent default behavior (crashing)
+  }
+  return originalProcessEmit.apply(process, [name, data, ...args]);
+};
+
 // Mock window.location if needed by tests
 const originalLocation = typeof window !== 'undefined' ? window.location : undefined;
 

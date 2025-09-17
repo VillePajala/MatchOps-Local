@@ -11,21 +11,6 @@ import {
 } from './appSettings';
 import { APP_SETTINGS_KEY, LAST_HOME_TEAM_NAME_KEY } from '@/config/storageKeys';
 
-// Handle unhandled promise rejections in tests
-const originalProcessEmit = process.emit;
-beforeAll(() => {
-  process.emit = jest.fn((event, error) => {
-    if (event === 'unhandledRejection') {
-      // Suppress unhandled rejections in tests - they should be caught by try/catch in functions
-      return false;
-    }
-    return originalProcessEmit.call(process, event, error);
-  }) as typeof process.emit;
-});
-
-afterAll(() => {
-  process.emit = originalProcessEmit;
-});
 
 describe('App Settings Utilities', () => {
   // Mock localStorage with proper implementation
@@ -228,14 +213,16 @@ describe('App Settings Utilities', () => {
       localStorageMock.setItem.mockImplementationOnce(() => { throw new Error('Save failed'); });
 
       // Expect updateAppSettings to throw the specific error.
-      await expect(updateAppSettings({ currentGameId: 'updatedGame' })).rejects.toThrowError(
-        'Failed to save updated settings via saveAppSettings within updateAppSettings.'
-      );
+      try {
+        await updateAppSettings({ currentGameId: 'updatedGame' });
+        fail('Expected updateAppSettings to throw an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toBe('Failed to save updated settings via saveAppSettings within updateAppSettings.');
+      }
 
       // Ensure localStorage.setItem was called (attempted to save)
       expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-      // Ensure console.error was NOT called by updateAppSettings directly for this error
-      // (it's now thrown, and saveAppSettings handles its own console.error for the localStorage part)
     });
   });
 
