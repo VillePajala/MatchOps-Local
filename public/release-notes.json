@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "ci: optimize critical-tests to skip full coverage by default"
+  "notes": "feat: fix skipped SettingsModal storage tests and establish testing principles"
 }

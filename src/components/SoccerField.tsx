@@ -339,8 +339,10 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
 
     // *** SAFETY CHECK: Ensure calculated CSS dimensions are valid ***
     if (W <= 0 || H <= 0 || !Number.isFinite(W) || !Number.isFinite(H)) {
-      logger.warn("Canvas dimensions are invalid, skipping draw:", { W, H });
-      return; 
+      if (typeof jest === 'undefined') {
+        logger.warn("Canvas dimensions are invalid, skipping draw:", { W, H });
+      }
+      return;
     }
 
     // --- Draw Cached Background ---
@@ -637,11 +639,13 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
     const canvas = canvasRef.current;
     const parent = canvas?.parentElement; // Observe the parent which dictates size
     if (!parent || typeof ResizeObserver === 'undefined') {
-        // Fallback or handle browsers without ResizeObserver
-        logger.warn('ResizeObserver not supported or parent not found');
+        // Fallback for test environment or browsers without ResizeObserver
+        if (typeof jest === 'undefined') {
+          logger.warn('ResizeObserver not supported or parent not found');
+        }
         // Consider adding back the window resize listener as a fallback?
         draw(); // Initial draw attempt
-        return; 
+        return;
     }
 
     const resizeObserver = new ResizeObserver(entries => {
