@@ -126,6 +126,27 @@ The app includes install prompts, update notifications, and works offline. The s
 - Document why skipping is necessary if unavoidable
 - Create a plan to restore the test
 
+## Git and Version Control Rules
+
+### Critical Git Guidelines
+
+**NEVER COMMIT OR PUSH** unless explicitly requested by the user.
+
+**Always wait for explicit permission before:**
+- Running `git add`
+- Running `git commit`
+- Running `git push`
+- Creating or modifying branches
+- Making any git operations that change repository state
+
+**The user controls when changes are committed:**
+- Complete your work and verify it functions correctly
+- Inform the user when work is ready for commit
+- Wait for their explicit instruction to commit/push
+- Let them review changes before they go into version control
+
+**Exception:** Only commit/push immediately if the user specifically requests it in their message (e.g., "fix this and commit it", "push this change").
+
 ## Environment Variables
 
 ### Required Production Environment Variables
@@ -143,3 +164,4 @@ The app includes install prompts, update notifications, and works offline. The s
 - Server-side secrets should never use the `NEXT_PUBLIC_` prefix
 - Environment validation runs automatically during build and startup
 - CSP violations are automatically reported to `/api/csp-report` endpoint
+- Always investigate throughly and after implemeting anything (feature/fix), always review what you have done throughly and professionally to find the most perfect solution to everything. We do not want quick and dirty implementation unless explicitly asked so
