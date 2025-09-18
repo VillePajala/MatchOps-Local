@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: fix skipped SettingsModal storage tests and establish testing principles"
+  "notes": "feat: enhance error handling and warning suppression with production safety"
 }

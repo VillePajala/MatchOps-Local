@@ -17,8 +17,79 @@ if (i18n.isInitialized) {
 // Track unhandled promise rejections to prevent silent failures
 const unhandledRejections = new Set();
 
-// Import enhanced error detection
-const { shouldFailTest, reportError, createTestFailureError } = require('../tests/utils/error-detection.js');
+// Enhanced error detection logic (inlined for ES module compatibility)
+const criticalErrorTypes = new Set([
+  'SecurityError', 'TypeError', 'ReferenceError', 'SyntaxError',
+  'NetworkError', 'AuthenticationError', 'AuthorizationError'
+]);
+
+const securityKeywords = [
+  'xss', 'csrf', 'cors', 'csp', 'security', 'authentication',
+  'authorization', 'permission', 'origin', 'protocol'
+];
+
+const performanceKeywords = [
+  'memory leak', 'performance', 'timeout', 'slow', 'bundle size', 'memory pressure'
+];
+
+const shouldFailTest = (error) => {
+  const errorMessage = typeof error === 'string' ? error : error?.message || '';
+  const errorType = error?.constructor?.name || '';
+  const errorStack = error?.stack || '';
+
+  // Always fail on critical error types
+  if (criticalErrorTypes.has(errorType)) return true;
+
+  // Always fail on security-related errors
+  if (securityKeywords.some(keyword =>
+    errorMessage.toLowerCase().includes(keyword) ||
+    errorStack.toLowerCase().includes(keyword)
+  )) return true;
+
+  // Always fail on performance issues in tests
+  if (performanceKeywords.some(keyword =>
+    errorMessage.toLowerCase().includes(keyword)
+  )) return true;
+
+  // Fail on network errors that aren't explicitly mocked
+  if (errorMessage.includes('fetch') && errorMessage.includes('failed') && !errorMessage.includes('mock')) {
+    return true;
+  }
+
+  // Allow known test environment limitations
+  const allowedErrors = [
+    'ResizeObserver loop limit exceeded', 'Not implemented: HTMLCanvasElement',
+    'Not implemented: navigation', 'Warning: An update to', 'act(...) warning'
+  ];
+
+  return !allowedErrors.some(allowed => errorMessage.includes(allowed));
+};
+
+const reportError = (error, context = 'error') => {
+  const errorInfo = {
+    type: error?.constructor?.name || 'Unknown',
+    message: error?.message || error,
+    stack: error?.stack,
+    context,
+    testFile: expect.getState()?.testPath,
+    testName: expect.getState()?.currentTestName,
+    timestamp: new Date().toISOString()
+  };
+
+  console.error(`🚨 ${context.toUpperCase()}:`, errorInfo);
+  return errorInfo;
+};
+
+const createTestFailureError = (originalError, context) => {
+  const testState = expect.getState();
+  const testName = testState?.currentTestName || 'unknown test';
+  const message = `${context} in test "${testName}": ${originalError?.message || originalError}`;
+  const enhancedError = new Error(message);
+  enhancedError.stack = originalError?.stack || enhancedError.stack;
+  enhancedError.originalError = originalError;
+  enhancedError.context = context;
+  return enhancedError;
+};
 
 // Enhanced unhandled promise rejection handler
 const handleUnhandledRejection = (event) => {
