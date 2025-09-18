@@ -65,7 +65,7 @@ async function generateIcons() {
             background: { r: 0, g: 0, b: 0, alpha: 0 }
           })
           .toBuffer(),
-        top: Math.round((size - textSize) / 2),
+        top: Math.round((size - textSize) / 2) + 6,
         left: Math.round((size - textSize) / 2)
       }])
       .png()
@@ -95,7 +95,7 @@ async function generateIcons() {
           background: { r: 0, g: 0, b: 0, alpha: 0 }
         })
         .toBuffer(),
-      top: Math.round((32 - faviconTextSize) / 2),
+      top: Math.round((32 - faviconTextSize) / 2) + 1,
       left: Math.round((32 - faviconTextSize) / 2)
     }])
     .png()
