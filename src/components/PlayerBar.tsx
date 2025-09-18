@@ -3,10 +3,11 @@
 import React from 'react';
 import PlayerDisk from './PlayerDisk'; // Import the PlayerDisk component
 import type { Player } from '@/types'; // Import the Player type from central types
-import Image from 'next/image'; // RE-ADD Import
+import { Audiowide } from 'next/font/google';
 import type { GameEvent } from '@/types'; // Correctly import GameEvent type
-// REMOVED unused import
-// import Image from 'next/image'; 
+
+// Title font matching StartScreen
+const titleFont = Audiowide({ subsets: ['latin'], weight: '400' }); 
 
 // Define props for PlayerBar
 interface PlayerBarProps {
@@ -35,6 +36,31 @@ interface PlayerBarProps {
 // ];
 
 const PlayerBar: React.FC<PlayerBarProps> = ({ players, onPlayerDragStartFromBar, selectedPlayerIdFromBar, onBarBackgroundClick, gameEvents, onPlayerTapInBar, onToggleGoalie }) => {
+  // Toned down gradient colors for PlayerBar (subtle colors, not fully grayscale)
+  const logoGradientPrimary = `conic-gradient(from calc(var(--holo-angle, 0deg) + var(--holo-start, 0deg)) at 50% 50%,
+    #67e8f9 0deg,    /* Muted cyan */
+    #86efac 60deg,   /* Muted green */
+    #fde68a 120deg,  /* Muted yellow */
+    #fdba74 180deg,  /* Muted orange */
+    #f9a8d4 240deg,  /* Muted pink */
+    #c4b5fd 300deg,  /* Muted purple */
+    #67e8f9 360deg   /* Loop back to cyan */
+  )`;
+
+  const logoGradientSecondary = `conic-gradient(from calc(var(--holo-angle2, 0deg) + var(--holo-start, 0deg)) at 50% 50%,
+    rgba(103,232,249,0.25) 0deg,
+    rgba(134,239,172,0.2) 90deg,
+    rgba(249,168,212,0.25) 180deg,
+    rgba(253,186,116,0.2) 270deg,
+    rgba(103,232,249,0.25) 360deg
+  )`;
+
+  const logoGradientTertiary = `conic-gradient(from calc(var(--holo-angle3, 0deg) + var(--holo-start, 0deg)) at 50% 50%,
+    rgba(196,181,253,0.15) 0deg,
+    rgba(253,224,138,0.1) 120deg,
+    rgba(134,239,172,0.1) 240deg,
+    rgba(196,181,253,0.15) 360deg
+  )`;
   return (
     <div 
       data-testid="player-bar"
@@ -47,8 +73,8 @@ const PlayerBar: React.FC<PlayerBarProps> = ({ players, onPlayerDragStartFromBar
       }}
     >
       {/* Team Name Display/Edit */}
-      <div 
-        className="flex flex-col items-center flex-shrink-0 py-0.5"
+      <div
+        className="flex flex-col items-center justify-center flex-shrink-0 py-1"
         onClick={() => {
           // Also deselect player when clicking the logo/team name area
           if (onBarBackgroundClick) {
@@ -56,16 +82,53 @@ const PlayerBar: React.FC<PlayerBarProps> = ({ players, onPlayerDragStartFromBar
           }
         }}
       >
-        <div className="flex-shrink-0 mr-2">
-          <Image
-            className="h-16 w-16"
-            src="/logos/match_ops_local_logo_transparent.png"
-            alt="MatchOps Local Logo"
-            width={64}
-            height={64}
-            // priority // Temporarily remove to silence test warning
-          />
-        </div>
+        <h1
+          className={`${titleFont.className} font-extrabold tracking-tight leading-none text-center`}
+          style={{ letterSpacing: '0.015em', fontSize: '0.9rem', lineHeight: '0.95' }}
+        >
+          <span
+            className="logo-line start-logo-gradient-animate"
+            data-text="Match"
+            style={{
+              ['--holo-start' as string]: '0deg',
+              background: `${logoGradientPrimary}, ${logoGradientSecondary}, ${logoGradientTertiary}`,
+              backgroundBlendMode: 'screen',
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              color: 'transparent',
+            }}
+          >
+            Match
+          </span>
+          <span
+            className="logo-line start-logo-gradient-animate"
+            data-text="Ops"
+            style={{
+              ['--holo-start' as string]: '45deg',
+              background: `${logoGradientPrimary}, ${logoGradientSecondary}, ${logoGradientTertiary}`,
+              backgroundBlendMode: 'screen',
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              color: 'transparent',
+            }}
+          >
+            Ops
+          </span>
+          <span
+            className="logo-line start-logo-gradient-animate"
+            data-text="Local"
+            style={{
+              ['--holo-start' as string]: '95deg',
+              background: `${logoGradientPrimary}, ${logoGradientSecondary}, ${logoGradientTertiary}`,
+              backgroundBlendMode: 'screen',
+              WebkitBackgroundClip: 'text',
+              backgroundClip: 'text',
+              color: 'transparent',
+            }}
+          >
+            Local
+          </span>
+        </h1>
       </div>
 
       {/* Separator */}

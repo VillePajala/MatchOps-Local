@@ -77,9 +77,26 @@ body > div {
   }
 }
 
+@keyframes gradient-flow-fast {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 .animate-gradient {
   background-size: 200% 200%;
   animation: gradient-flow 15s ease infinite;
+}
+
+.animate-gradient-fast {
+  background-size: 200% 200%;
+  animation: gradient-flow-fast 3s ease infinite;
 }
 
 /* Start screen logo shine */
