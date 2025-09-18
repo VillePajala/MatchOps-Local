@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const projectRoot = path.join(__dirname, '..');
-const sourceImage = path.join(projectRoot, 'public', 'logos', 'match_ops_local_logo.png');
+const sourceImage = path.join(projectRoot, 'public', 'logos', 'match_ops_local_logo_transparent.png');
 const iconsDir = path.join(projectRoot, 'public', 'icons');
 
 // Icon sizes we need to generate
@@ -39,41 +39,37 @@ async function generateIcons() {
     const sourceInfo = await sharp(sourceImage).metadata();
     console.log(`📏 Source image: ${sourceInfo.width}x${sourceInfo.height}`);
 
-    // Dark blue background color from the logo (#1e3a5f or similar)
-    const backgroundColor = { r: 30, g: 58, b: 95, alpha: 1 };
+    // Darker blue background color
+    const backgroundColor = { r: 15, g: 25, b: 45, alpha: 1 };
 
     // Generate each required size
     for (const { size, name } of iconSizes) {
       const outputPath = path.join(iconsDir, name);
 
-      // Calculate padding (15% of the icon size for better spacing)
-      const padding = Math.round(size * 0.15);
-      const contentSize = size - (padding * 2);
+      // Calculate text size to match current appearance (90% of icon size)
+      const textSize = Math.round(size * 0.9);
 
-      // First, resize the logo with padding
-      const resizedLogo = await sharp(sourceImage)
-        .resize(contentSize, contentSize, {
-          fit: 'contain',
+      // Create a canvas with background color and place transparent logo
+      await sharp({
+        create: {
+          width: size,
+          height: size,
+          channels: 4,
           background: backgroundColor
-        })
-        .toBuffer();
-
-      // Then extend the canvas to add padding around the logo
-      await sharp(resizedLogo)
-        .resize(size, size, {
-          fit: 'contain',
-          background: backgroundColor,
-          position: 'centre'
-        })
-        .extend({
-          top: padding,
-          bottom: padding,
-          left: padding,
-          right: padding,
-          background: backgroundColor
-        })
-        .png()
-        .toFile(outputPath);
+        }
+      })
+      .composite([{
+        input: await sharp(sourceImage)
+          .resize(textSize, textSize, {
+            fit: 'contain',
+            background: { r: 0, g: 0, b: 0, alpha: 0 }
+          })
+          .toBuffer(),
+        top: Math.round((size - textSize) / 2),
+        left: Math.round((size - textSize) / 2)
+      }])
+      .png()
+      .toFile(outputPath);
 
       console.log(`✅ Generated: ${name} (${size}x${size})`);
     }
@@ -81,32 +77,29 @@ async function generateIcons() {
     // Generate favicon.ico (multi-size ICO file)
     const faviconPath = path.join(projectRoot, 'public', 'favicon.ico');
 
-    // Create a 32x32 version for favicon.ico with the same padding approach
-    const faviconPadding = 5;
-    const faviconContentSize = 32 - (faviconPadding * 2);
+    // Create a 32x32 favicon with single background
+    const faviconTextSize = Math.round(32 * 0.9);
 
-    const resizedFavicon = await sharp(sourceImage)
-      .resize(faviconContentSize, faviconContentSize, {
-        fit: 'contain',
+    await sharp({
+      create: {
+        width: 32,
+        height: 32,
+        channels: 4,
         background: backgroundColor
-      })
-      .toBuffer();
-
-    await sharp(resizedFavicon)
-      .resize(32, 32, {
-        fit: 'contain',
-        background: backgroundColor,
-        position: 'centre'
-      })
-      .extend({
-        top: faviconPadding,
-        bottom: faviconPadding,
-        left: faviconPadding,
-        right: faviconPadding,
-        background: backgroundColor
-      })
-      .png()
-      .toFile(faviconPath);
+      }
+    })
+    .composite([{
+      input: await sharp(sourceImage)
+        .resize(faviconTextSize, faviconTextSize, {
+          fit: 'contain',
+          background: { r: 0, g: 0, b: 0, alpha: 0 }
+        })
+        .toBuffer(),
+      top: Math.round((32 - faviconTextSize) / 2),
+      left: Math.round((32 - faviconTextSize) / 2)
+    }])
+    .png()
+    .toFile(faviconPath);
 
     console.log('✅ Generated: favicon.ico');
     

@@ -36,30 +36,30 @@ interface PlayerBarProps {
 // ];
 
 const PlayerBar: React.FC<PlayerBarProps> = ({ players, onPlayerDragStartFromBar, selectedPlayerIdFromBar, onBarBackgroundClick, gameEvents, onPlayerTapInBar, onToggleGoalie }) => {
-  // Toned down gradient colors for PlayerBar (subtle colors, not fully grayscale)
+  // Exact same gradient colors as StartScreen
   const logoGradientPrimary = `conic-gradient(from calc(var(--holo-angle, 0deg) + var(--holo-start, 0deg)) at 50% 50%,
-    #67e8f9 0deg,    /* Muted cyan */
-    #86efac 60deg,   /* Muted green */
-    #fde68a 120deg,  /* Muted yellow */
-    #fdba74 180deg,  /* Muted orange */
-    #f9a8d4 240deg,  /* Muted pink */
-    #c4b5fd 300deg,  /* Muted purple */
-    #67e8f9 360deg   /* Loop back to cyan */
+    #22d3ee 0deg,    /* Cyan */
+    #a3e635 60deg,   /* Lime */
+    #fde047 120deg,  /* Yellow */
+    #f97316 180deg,  /* Orange */
+    #e83d6d 240deg,  /* Magenta */
+    #8b5cf6 300deg,  /* A brighter, distinct Violet */
+    #22d3ee 360deg   /* Cyan (to loop) */
   )`;
 
   const logoGradientSecondary = `conic-gradient(from calc(var(--holo-angle2, 0deg) + var(--holo-start, 0deg)) at 50% 50%,
-    rgba(103,232,249,0.25) 0deg,
-    rgba(134,239,172,0.2) 90deg,
-    rgba(249,168,212,0.25) 180deg,
-    rgba(253,186,116,0.2) 270deg,
-    rgba(103,232,249,0.25) 360deg
+    rgba(34,211,238,0.4) 0deg,     /* Cyan */
+    rgba(163,230,53,0.35) 90deg,   /* Lime */
+    rgba(232,61,109,0.4) 180deg,   /* Magenta */
+    rgba(253,224,71,0.35) 270deg,  /* Yellow */
+    rgba(34,211,238,0.4) 360deg    /* Cyan (to loop) */
   )`;
 
   const logoGradientTertiary = `conic-gradient(from calc(var(--holo-angle3, 0deg) + var(--holo-start, 0deg)) at 50% 50%,
-    rgba(196,181,253,0.15) 0deg,
-    rgba(253,224,138,0.1) 120deg,
-    rgba(134,239,172,0.1) 240deg,
-    rgba(196,181,253,0.15) 360deg
+    rgba(236,72,153,0.2) 0deg,
+    rgba(234,179,8,0.15) 120deg,
+    rgba(132,204,22,0.15) 240deg,
+    rgba(236,72,153,0.2) 360deg
   )`;
   return (
     <div 
