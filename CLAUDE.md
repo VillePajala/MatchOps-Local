@@ -165,3 +165,4 @@ The app includes install prompts, update notifications, and works offline. The s
 - Environment validation runs automatically during build and startup
 - CSP violations are automatically reported to `/api/csp-report` endpoint
 - Always investigate throughly and after implemeting anything (feature/fix), always review what you have done throughly and professionally to find the most perfect solution to everything. We do not want quick and dirty implementation unless explicitly asked so
+- always be prfessional and factual. Do not try to overly please me and defend quality and best bractises even if that would mean disagreeing with my a bit
