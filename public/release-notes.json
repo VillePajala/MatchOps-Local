@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: mark M0 first checklist item as completed"
+  "notes": "feat: replace stray console.* calls with centralized logger"
 }
