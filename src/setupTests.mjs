@@ -14,6 +14,72 @@ if (i18n.isInitialized) {
   });
 }
 
+// Track unhandled promise rejections to prevent silent failures
+const unhandledRejections = new Set();
+
+// Import enhanced error detection
+const { shouldFailTest, reportError, createTestFailureError } = require('../tests/utils/error-detection.js');
+
+// Enhanced unhandled promise rejection handler
+const handleUnhandledRejection = (event) => {
+  const error = event.reason || event;
+  const errorKey = `${error?.message || 'Unknown error'}_${error?.stack?.split('\n')[0] || ''}`;
+
+  // Avoid duplicate reporting
+  if (unhandledRejections.has(errorKey)) {
+    return;
+  }
+  unhandledRejections.add(errorKey);
+
+  // Always report the error with enhanced context
+  const errorInfo = reportError(error, 'unhandled promise rejection');
+
+  // Use enhanced error detection to determine if test should fail
+  if (shouldFailTest(error)) {
+    // Create a test-failing error with proper context
+    const testError = createTestFailureError(error, 'Unhandled promise rejection');
+
+    // This will cause the test to fail
+    setTimeout(() => {
+      throw testError;
+    }, 0);
+  } else {
+    // Log but don't fail for expected/allowed errors
+    console.warn('⚠️  Allowed unhandled rejection (not failing test):', errorInfo.message);
+  }
+};
+
+// Set up global error handlers for tests
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+  // Also handle errors that might slip through
+  const originalError = window.onerror;
+  window.onerror = (message, source, lineno, colno, error) => {
+    console.error('🚨 UNCAUGHT ERROR in test:', { message, source, lineno, colno, error });
+    if (originalError) {
+      return originalError(message, source, lineno, colno, error);
+    }
+    return false;
+  };
+}
+
+if (typeof process !== 'undefined') {
+  process.on('unhandledRejection', handleUnhandledRejection);
+
+  // Handle uncaught exceptions too
+  const originalUncaughtException = process.listeners('uncaughtException');
+  process.on('uncaughtException', (error, origin) => {
+    console.error('🚨 UNCAUGHT EXCEPTION in test:', { error: error.message, stack: error.stack, origin });
+
+    // Call original handlers
+    originalUncaughtException.forEach(handler => {
+      if (typeof handler === 'function') {
+        handler(error, origin);
+      }
+    });
+  });
+}
 
 // Mock window.location if needed by tests
 const originalLocation = typeof window !== 'undefined' ? window.location : undefined;
@@ -72,6 +138,9 @@ if (typeof global !== 'undefined' && global.URL) {
 afterEach(() => {
   jest.restoreAllMocks();
   localStorageMock.clear();
+
+  // Clear unhandled rejection tracking for next test
+  unhandledRejections.clear();
 });
 
 // Clean up after all tests complete
@@ -89,4 +158,13 @@ afterAll(() => {
       // Ignore restoration failures to avoid breaking the test run
     }
   }
-}); 
+
+  // Remove our error handlers
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+  }
+
+  if (typeof process !== 'undefined') {
+    process.removeListener('unhandledRejection', handleUnhandledRejection);
+  }
+});
