@@ -27,7 +27,7 @@ const localStorageMock = (() => {
   };
 })();
 
-Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true });
+Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true, configurable: true });
 
 describe('Tournament Management Utilities (localStorage)', () => {
 let consoleErrorSpy: jest.SpyInstance;

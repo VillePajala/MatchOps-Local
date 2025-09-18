@@ -9,7 +9,7 @@ describe('localStorage utilities', () => {
   };
 
   beforeEach(() => {
-    Object.defineProperty(window, 'localStorage', { value: storageMock });
+    Object.defineProperty(window, 'localStorage', { value: storageMock, configurable: true, writable: true });
     storageMock.getItem.mockReset();
     storageMock.setItem.mockReset();
     storageMock.removeItem.mockReset();

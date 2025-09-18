@@ -67,13 +67,15 @@ describe('Core User Workflows Integration Tests', () => {
         expect(screen.getByTestId('home-page')).toBeInTheDocument();
       }, { timeout: 3000 });
 
-      // Should show new game interface initially
-      expectElementToBeVisible(/new game/i);
+      // Should show setup interface initially (since no players exist)
+      await waitFor(() => {
+        expect(screen.getByText(/setup.*roster|set up.*roster|create.*roster/i)).toBeVisible();
+      });
 
-      // Click new game button (if visible)
-      const newGameButton = screen.queryByRole('button', { name: /new game/i });
-      if (newGameButton) {
-        fireEvent.click(newGameButton);
+      // Click setup roster button (if visible)
+      const setupButton = screen.queryByRole('button', { name: /setup.*roster|set up.*roster|create.*roster/i });
+      if (setupButton) {
+        fireEvent.click(setupButton);
       }
 
       // Wait for game setup

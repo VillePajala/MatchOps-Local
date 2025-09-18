@@ -11,8 +11,9 @@ import {
 } from './appSettings';
 import { APP_SETTINGS_KEY, LAST_HOME_TEAM_NAME_KEY } from '@/config/storageKeys';
 
+
 describe('App Settings Utilities', () => {
-  // Mock localStorage
+  // Mock localStorage with proper implementation
   const localStorageMock = {
     getItem: jest.fn(),
     setItem: jest.fn(),
@@ -24,7 +25,9 @@ describe('App Settings Utilities', () => {
 
   // Replace global localStorage with mock
   Object.defineProperty(window, 'localStorage', {
-    value: localStorageMock
+    value: localStorageMock,
+    writable: true,
+    configurable: true,
   });
 
   // Reset mocks before each test
@@ -34,6 +37,10 @@ describe('App Settings Utilities', () => {
     localStorageMock.clear.mockReset();
     localStorageMock.removeItem.mockReset();
     localStorageMock.key.mockReset();
+    
+    // Reset to default behavior - successful operations
+    localStorageMock.setItem.mockImplementation(() => {});
+    localStorageMock.getItem.mockReturnValue(null);
   });
 
   describe('getAppSettings', () => {
@@ -206,14 +213,16 @@ describe('App Settings Utilities', () => {
       localStorageMock.setItem.mockImplementationOnce(() => { throw new Error('Save failed'); });
 
       // Expect updateAppSettings to throw the specific error.
-      await expect(updateAppSettings({ currentGameId: 'updatedGame' })).rejects.toThrowError(
-        'Failed to save updated settings via saveAppSettings within updateAppSettings.'
-      );
+      try {
+        await updateAppSettings({ currentGameId: 'updatedGame' });
+        fail('Expected updateAppSettings to throw an error');
+      } catch (error) {
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toBe('Failed to save updated settings via saveAppSettings within updateAppSettings.');
+      }
 
       // Ensure localStorage.setItem was called (attempted to save)
       expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-      // Ensure console.error was NOT called by updateAppSettings directly for this error
-      // (it's now thrown, and saveAppSettings handles its own console.error for the localStorage part)
     });
   });
 

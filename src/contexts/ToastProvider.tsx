@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 
 interface Toast {
-  id: number;
+  id: string;
   message: string;
   type: 'success' | 'error' | 'info';
 }
@@ -12,16 +12,39 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
+// Global counter to ensure unique IDs across component remounts
+let globalToastCounter = 0;
+
 export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const timeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const showToast = (message: string, type: Toast['type'] = 'success') => {
-    const id = Date.now();
+    // Create a robust unique ID: timestamp + global counter + random component
+    const id = `toast-${Date.now()}-${++globalToastCounter}-${Math.random().toString(36).substr(2, 9)}`;
+
     setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => {
+
+    // Store timeout reference for potential cleanup
+    const timeoutId = setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
+      timeoutRefs.current.delete(id);
     }, 3000);
+
+    timeoutRefs.current.set(id, timeoutId);
   };
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    const timeouts = timeoutRefs.current;
+    return () => {
+      // Clear all pending timeouts when component unmounts
+      timeouts.forEach(timeoutId => {
+        clearTimeout(timeoutId);
+      });
+      timeouts.clear();
+    };
+  }, []);
 
   return (
     <ToastContext.Provider value={{ showToast }}>

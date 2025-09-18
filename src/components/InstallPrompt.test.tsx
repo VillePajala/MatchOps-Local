@@ -41,7 +41,7 @@ describe("InstallPrompt", () => {
       dispatchInstallEvent(promptMock);
     });
 
-    const installBtn = await screen.findByText("Asenna");
+    const installBtn = await screen.findByText("Install");
     await act(async () => {
       fireEvent.click(installBtn);
     });
@@ -56,7 +56,7 @@ describe("InstallPrompt", () => {
     act(() => {
       dispatchInstallEvent(jest.fn());
     });
-    const dismissBtn = await screen.findByText("Ei nyt");
+    const dismissBtn = await screen.findByText("Not now");
     await act(async () => {
       fireEvent.click(dismissBtn);
     });
