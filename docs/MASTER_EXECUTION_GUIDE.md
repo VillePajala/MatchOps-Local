@@ -61,7 +61,7 @@ Checklist Legend
 Outcome: reduce migration risk with trustworthy tests and basic observability; remove sources of noise.
 
 - M0 Checklist
-  - [ ] Tests: fix JSDOM `window.location` cleanup error; ensure Jest suite is green (FIX_PLAN §8)
+  - [x] Tests: fix JSDOM `window.location` cleanup error; ensure Jest suite is green (FIX_PLAN §8)
   - [ ] Tests: stabilize a core E2E path (start → new game → save → load) per testing/E2E_TESTING_GUIDE.md
   - [ ] Logging: replace stray `console.*` with `logger` (FIX_PLAN §4)
   - [ ] Monitoring: add minimal `@sentry/nextjs` with staging/dev DSN (FIX_PLAN §5)
