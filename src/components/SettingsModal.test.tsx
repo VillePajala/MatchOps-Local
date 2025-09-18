@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 
@@ -31,7 +31,22 @@ jest.mock('react-i18next', () => ({
       if (key === 'settingsModal.storageUsageDetails' && fallbackOrOpts) {
         return `${fallbackOrOpts.used} of ${fallbackOrOpts.quota} used`;
       }
-      return fallbackOrOpts || key;
+      // Return English translations for common keys
+      const translations: Record<string, string> = {
+        'settingsModal.title': 'App Settings',
+        'settingsModal.languageLabel': 'Language',
+        'settingsModal.defaultTeamNameLabel': 'Default Team Name',
+        'settingsModal.storageUsageLabel': 'Storage Usage',
+        'settingsModal.storageUsageUnavailable': 'Storage usage information unavailable.',
+        'settingsModal.doneButton': 'Done',
+        'settingsModal.dangerZoneTitle': 'Danger Zone',
+        'settingsModal.hardResetButton': 'Hard Reset App',
+        'settingsModal.resetGuideButton': 'Reset App Guide',
+        'settingsModal.confirmResetLabel': 'Type RESET to confirm',
+        'settingsModal.backupButton': 'Backup All Data',
+        'settingsModal.restoreButton': 'Restore from Backup',
+      };
+      return translations[key] || fallbackOrOpts || key;
     },
   }),
 }));
@@ -51,12 +66,10 @@ const defaultProps = {
 describe('<SettingsModal />', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    Object.defineProperty(navigator, 'storage', {
-      configurable: true,
-      value: {
-        estimate: jest.fn().mockResolvedValue({ usage: 1048576, quota: 5242880 }),
-      },
-    });
+    // Ensure navigator.storage is undefined by default for clean test state
+    if ('storage' in navigator) {
+      delete (navigator as any).storage;
+    }
   });
 
   test('renders when open', () => {
@@ -70,27 +83,71 @@ describe('<SettingsModal />', () => {
     expect(screen.getByLabelText('Default Team Name')).toBeInTheDocument();
   });
 
-  test('displays storage usage when available', async () => {
+  test('displays storage unavailable message when navigator.storage is not supported', () => {
+    // Don't mock navigator.storage - let it be undefined
     render(
       <TestWrapper>
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
+
+    expect(screen.getByText('Storage Usage')).toBeInTheDocument();
+    expect(screen.getByText('Storage usage information unavailable.')).toBeInTheDocument();
+  });
+
+  test('displays storage usage when available', async () => {
+    // Mock navigator.storage.estimate before rendering
+    const estimateMock = jest.fn().mockResolvedValue({ usage: 1048576, quota: 5242880 });
+    Object.defineProperty(global.navigator, 'storage', {
+      value: { estimate: estimateMock },
+      configurable: true,
+      writable: true,
+    });
+
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
+
+    // Wait for the storage section to appear
     expect(await screen.findByText('Storage Usage')).toBeInTheDocument();
-    expect(await screen.findByText(/1\.0 MB.*5\.0 MB/)).toBeInTheDocument();
+
+    // Wait for the storage estimate to resolve and display
+    await waitFor(() => {
+      expect(estimateMock).toHaveBeenCalled();
+    });
+
+    expect(await screen.findByText(/1\.0 MB of 5\.0 MB used/)).toBeInTheDocument();
   });
 
   test('displays usage in KB when below 1 MB', async () => {
-    (navigator.storage.estimate as jest.Mock).mockResolvedValueOnce({
-      usage: 512 * 1024,
-      quota: 2 * 1048576,
+    // Mock navigator.storage.estimate with smaller usage
+    const estimateMock = jest.fn().mockResolvedValue({
+      usage: 512 * 1024, // 512 KB
+      quota: 2 * 1048576, // 2 MB (ignored by component, uses MAX_LOCAL_STORAGE)
     });
+    Object.defineProperty(global.navigator, 'storage', {
+      value: { estimate: estimateMock },
+      configurable: true,
+      writable: true,
+    });
+
     render(
       <TestWrapper>
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
-    expect(await screen.findByText(/512\.0 KB.*5\.0 MB/)).toBeInTheDocument();
+
+    // Wait for the storage section to appear
+    expect(await screen.findByText('Storage Usage')).toBeInTheDocument();
+
+    // Wait for the storage estimate to resolve and display
+    await waitFor(() => {
+      expect(estimateMock).toHaveBeenCalled();
+    });
+
+    expect(await screen.findByText(/512\.0 KB of 5\.0 MB used/)).toBeInTheDocument();
   });
 
   test('calls onClose when Done clicked', () => {

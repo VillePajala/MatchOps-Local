@@ -36,7 +36,9 @@ jest.mock('./migration', () => ({
 }));
 
 Object.defineProperty(global, 'localStorage', {
-  value: mockLocalStorage
+  value: mockLocalStorage,
+  configurable: true,
+  writable: true,
 });
 
 describe('Migration Backup System', () => {

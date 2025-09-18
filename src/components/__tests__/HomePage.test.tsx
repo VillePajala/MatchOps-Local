@@ -35,6 +35,7 @@ describe('HomePage Component - Deep Testing', () => {
     Object.defineProperty(window, 'localStorage', {
       value: mockLocalStorage(),
       writable: true,
+      configurable: true,
     });
     jest.clearAllMocks();
   });
@@ -62,8 +63,8 @@ describe('HomePage Component - Deep Testing', () => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
       }, { timeout: 5000 });
 
-      // Should show the MatchOps brand
-      expect(screen.getByText(/matchops/i)).toBeVisible();
+      // Should show the MatchOps brand (via logo image)
+      expect(screen.getByRole('img', { name: /MatchOps Local Logo/i })).toBeVisible();
     });
 
     it('should initialize with default game state', async () => {
@@ -140,7 +141,7 @@ describe('HomePage Component - Deep Testing', () => {
       
       // Should still have basic structure
       expect(document.body).toContainHTML('div');
-      expect(screen.getByText(/matchops/i)).toBeVisible();
+      expect(screen.getByRole('img', { name: /MatchOps Local Logo/i })).toBeVisible();
     });
 
     it('should handle rapid interactions gracefully', async () => {

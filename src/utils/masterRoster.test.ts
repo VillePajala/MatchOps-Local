@@ -26,7 +26,9 @@ describe('Master Roster Utilities', () => {
   };
 
   Object.defineProperty(window, 'localStorage', {
-    value: localStorageMock
+    value: localStorageMock,
+    configurable: true,
+    writable: true,
   });
 
   beforeEach(() => {

@@ -17,7 +17,9 @@ const mockLocalStorage = (() => {
 })();
 
 Object.defineProperty(global, 'localStorage', {
-  value: mockLocalStorage
+  value: mockLocalStorage,
+  configurable: true,
+  writable: true,
 });
 
 describe('Teams Lock Integration', () => {
