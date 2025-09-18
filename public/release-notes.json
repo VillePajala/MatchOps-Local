@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: replace stray console.* calls with centralized logger"
+  "notes": "enhance: improve logger type safety and add comprehensive test coverage"
 }
