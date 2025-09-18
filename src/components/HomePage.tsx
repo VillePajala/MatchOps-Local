@@ -935,7 +935,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     if (!initialLoadComplete) return;
     
     const firstGameGuideShown = getLocalStorageItem('hasSeenFirstGameGuide');
-    console.log('[FirstGameGuide] Checking conditions:', {
+    logger.log('[FirstGameGuide] Checking conditions:', {
       firstGameGuideShown,
       currentGameId,
       isNotDefaultGame: currentGameId !== DEFAULT_GAME_ID,
@@ -945,7 +945,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     if (!firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
       // Add small delay to ensure game state is fully settled
       const timer = setTimeout(() => {
-        console.log('[FirstGameGuide] Showing first game guide after delay');
+        logger.log('[FirstGameGuide] Showing first game guide after delay');
         setShowFirstGameGuide(true);
       }, 150);
       

@@ -8,6 +8,7 @@ import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineChartBar
 import { importFullBackup } from '@/utils/fullBackup';
 import { useGameImport } from '@/hooks/useGameImport';
 import ImportResultsModal from './ImportResultsModal';
+import logger from '@/utils/logger';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -94,7 +95,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       if (result.success && result.successful > 0) {
         // Success message is handled by the ImportResultsModal
       } else if (result.warnings.length > 0 || result.failed.length > 0) {
-        console.error('Game import issues:', { warnings: result.warnings, failed: result.failed });
+        logger.error('Game import issues:', { warnings: result.warnings, failed: result.failed });
       }
     } catch (error) {
       alert(t('settingsModal.gameImportError', 'Error importing games: ') + (error instanceof Error ? error.message : 'Unknown error'));
