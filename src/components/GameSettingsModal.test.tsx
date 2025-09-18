@@ -266,12 +266,11 @@ describe('<GameSettingsModal />', () => {
         expect(updateGameDetails).toHaveBeenCalledWith(defaultProps.currentGameId, { gameNotes: newNotes });
       });
 
-      // Force a small wait to ensure React state updates have processed
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // The most important thing is that the functionality works - check the display shows the updated notes
-      const updatedNotesSection = screen.getByRole('heading', { name: t('gameSettingsModal.notesTitle') }).closest('div');
-      expect(within(updatedNotesSection!).getByText(newNotes)).toBeInTheDocument();
+      // Wait for the UI to reflect the updated notes using proper assertion
+      await waitFor(() => {
+        const updatedNotesSection = screen.getByRole('heading', { name: t('gameSettingsModal.notesTitle') }).closest('div');
+        expect(within(updatedNotesSection!).getByText(newNotes)).toBeInTheDocument();
+      });
     });
 
     test('cancels game notes edit with Escape key', async () => {
