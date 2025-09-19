@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: gate Analytics to production environment to reduce noise"
+  "notes": "feat: eliminate PWA component duplication (M0)"
 }

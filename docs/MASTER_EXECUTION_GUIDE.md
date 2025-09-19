@@ -65,9 +65,9 @@ Outcome: reduce migration risk with trustworthy tests and basic observability; r
   - [ ] Tests: stabilize a core E2E path (start → new game → save → load) per testing/E2E_TESTING_GUIDE.md [SKIPPED FOR LATER]
   - [x] Logging: replace stray `console.*` with `logger` (FIX_PLAN §4)
   - [x] Monitoring: add minimal `@sentry/nextjs` with staging/dev DSN (FIX_PLAN §5)
-  - [ ] Analytics (optional early): gate `<Analytics />` to production env to reduce noise (FIX_PLAN §6)
-  - [ ] PWA: render `ServiceWorkerRegistration` and `InstallPrompt` only once (FIX_PLAN §3)
-  - [ ] i18n: ensure only one `I18nInitializer` wraps the app (no duplication)
+  - [x] Analytics (optional early): gate `<Analytics />` to production env to reduce noise (FIX_PLAN §6)
+  - [x] PWA: render `ServiceWorkerRegistration` and `InstallPrompt` only once (FIX_PLAN §3)
+  - [x] i18n: ensure only one `I18nInitializer` wraps the app (no duplication)
 
 Note (optional): You may pre‑apply minimal SW changes now — remove `'/'` from pre‑cache and reduce logs — but leave the full hardening (versioned cleanup, cache policy) to Phase P1.
 
