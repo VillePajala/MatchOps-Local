@@ -20,6 +20,11 @@ const rajdhani = Rajdhani({
 const branch = process.env.VERCEL_GIT_COMMIT_REF || 'development';
 const config = manifestConfig[branch] || manifestConfig.default;
 
+// Analytics configuration - extracted for clarity and build-time optimization
+const isProduction = process.env.NODE_ENV === 'production';
+const analyticsEnabled = process.env.NEXT_PUBLIC_ANALYTICS_ENABLED === 'true';
+const shouldLoadAnalytics = isProduction || analyticsEnabled;
+
 export const metadata: Metadata = {
   title: config.appName,
   description: "MatchOps Local - Comprehensive coaching assistant for match day management, tactics, and player analysis",
@@ -59,8 +64,7 @@ export default function RootLayout({
           </QueryProvider>
         </I18nInitializer>
         {/* Only load Analytics in production or when explicitly enabled */}
-        {(process.env.NODE_ENV === 'production' ||
-          process.env.NEXT_PUBLIC_ANALYTICS_ENABLED === 'true') && <Analytics />}
+        {shouldLoadAnalytics && <Analytics />}
       </body>
     </html>
   );}

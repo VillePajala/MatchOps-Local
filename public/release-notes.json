@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: M0 - Add minimal Sentry monitoring for production error tracking"
+  "notes": "feat: gate Analytics to production environment to reduce noise"
 }
