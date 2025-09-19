@@ -15,8 +15,8 @@ describe('GlobalError', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // Mock window.location.href
-    delete (window as any).location;
-    (window as any).location = { href: '/' };
+    delete (window as unknown as { location: unknown }).location;
+    (window as unknown as { location: { href: string } }).location = { href: '/' };
   });
 
   it('should render error UI with correct message', () => {

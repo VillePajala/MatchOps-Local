@@ -175,6 +175,84 @@ The app includes install prompts, update notifications, and works offline. The s
 
 **Exception:** Only commit/push immediately if the user specifically requests it in their message (e.g., "fix this and commit it", "push this change").
 
+## Vercel Build & ESLint Rules
+
+### Critical Build Guidelines
+
+**ALWAYS ensure code passes Vercel build requirements** by following these patterns to avoid common build failures:
+
+### Common ESLint/TypeScript Issues and Fixes
+
+1. **@typescript-eslint/no-require-imports**
+   ```typescript
+   // ❌ Forbidden in build:
+   const fs = require('fs');
+   const path = require('path');
+
+   // ✅ Correct approach:
+   const fs = await import('fs');
+   const path = await import('path');
+   // or
+   import fs from 'fs';
+   import path from 'path';
+   ```
+
+2. **@typescript-eslint/no-explicit-any**
+   ```typescript
+   // ❌ Forbidden in build:
+   delete (window as any).location;
+   (window as any).location = { href: '/' };
+
+   // ✅ Correct approach:
+   delete (window as unknown as { location: unknown }).location;
+   (window as unknown as { location: { href: string } }).location = { href: '/' };
+   ```
+
+3. **@typescript-eslint/no-unused-vars**
+   ```typescript
+   // ❌ Will fail build:
+   function beforeSend(event, hint) { return event; }
+
+   // ✅ Correct approach:
+   function beforeSend(event) { return event; }
+   // or if parameter is needed for signature:
+   function beforeSend(event, _hint) { return event; }
+   ```
+
+### Prevention Checklist
+
+**Before committing any code, verify:**
+
+1. **Run the build locally**: `npm run build` must pass without errors
+2. **Check linting**: `npm run lint` must pass without errors
+3. **Use TypeScript properly**:
+   - No `any` types (use `unknown` with type assertions)
+   - No `require()` imports (use ES6 imports or dynamic imports)
+   - No unused variables/parameters
+   - Proper type annotations for complex objects
+
+4. **Test file patterns**:
+   - Use ES6 imports for Node.js modules in tests
+   - Use proper TypeScript assertions instead of `any`
+   - Mock browser APIs with proper typing
+   - Use dynamic imports for Node.js-specific operations in test files
+
+5. **Common fixes**:
+   - Replace `require()` with `import` or `await import()`
+   - Replace `any` with `unknown` + type assertions
+   - Add underscore prefix to unused parameters (`_param`)
+   - Use proper interface definitions for complex types
+
+### Build Environment Differences
+
+**Important**: Code that works in development may fail in Vercel builds due to:
+- Stricter ESLint rules in production builds
+- Different TypeScript compiler settings
+- Tree-shaking and optimization differences
+- Static analysis tools being more aggressive
+
+**Always test the production build** before pushing to ensure compatibility.
+
 ## Environment Variables
 
 ### Required Production Environment Variables
