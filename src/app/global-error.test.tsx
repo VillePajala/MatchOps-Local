@@ -11,12 +11,25 @@ jest.mock('@sentry/nextjs', () => ({
 describe('GlobalError', () => {
   const mockReset = jest.fn();
   const mockError = new Error('Test error message');
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
     // Mock window.location.href
     delete (window as unknown as { location: unknown }).location;
     (window as unknown as { location: { href: string } }).location = { href: '/' };
+    // Suppress expected hydration warning for global-error.tsx
+    // Global error boundary must include html/body tags in Next.js
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation((message) => {
+      if (typeof message === 'string' && message.includes('cannot be a child of')) {
+        return; // Suppress expected warning
+      }
+      console.warn(message); // Let other errors through for debugging
+    });
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   it('should render error UI with correct message', () => {

@@ -4,6 +4,15 @@ import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
 import styles from './global-error.module.css';
 
+/**
+ * Global error boundary for Next.js App Router
+ *
+ * IMPORTANT: This component MUST include <html> and <body> tags as per Next.js requirements.
+ * The global-error.tsx file is special - it replaces the entire page when an error occurs,
+ * including the root layout. Therefore, it needs to provide the full HTML structure.
+ *
+ * @see https://nextjs.org/docs/app/api-reference/file-conventions/error#global-errorjs
+ */
 export default function GlobalError({
   error,
   reset,
