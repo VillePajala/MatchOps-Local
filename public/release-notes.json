@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: resolve Vercel build errors and add prevention guidelines"
+  "notes": "feat: gate Analytics to production environment to reduce noise"
 }
