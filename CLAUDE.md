@@ -63,6 +63,27 @@ The build process includes a custom manifest generation step that runs before Ne
 - Comprehensive test coverage in `src/utils/logger.test.ts`
 - Integration tests in `src/components/__tests__/logger-integration.test.tsx`
 
+**Error Monitoring**: Sentry integration for production error tracking:
+- **Configuration Files**:
+  - `src/instrumentation-client.ts` - Client-side Sentry initialization with router tracking
+  - `sentry.server.config.ts` - Server-side error capture configuration
+  - `sentry.edge.config.ts` - Edge runtime error handling
+  - `src/app/global-error.tsx` - Global error boundary with user-friendly UI and Sentry reporting
+- **Environment-Aware Setup**:
+  - Only initializes in production by default (or when `NEXT_PUBLIC_SENTRY_FORCE_ENABLE=true`)
+  - Filters out common browser noise (ResizeObserver, NetworkError)
+  - 10% performance trace sampling in production, 100% in development
+  - Session replays only captured on errors with privacy protection (masks text, blocks media)
+- **Error Handling Guidelines**:
+  - Use structured error messages with clear context
+  - Avoid logging sensitive data in error messages (passwords, tokens, PII)
+  - Test error scenarios with feature flags before production deployment
+  - Monitor Sentry dashboard for new error patterns after deployments
+- **Expected Error Types**:
+  - **Filtered (ignored)**: ResizeObserver errors, generic NetworkError events
+  - **Captured**: Application errors, unhandled promises, React error boundaries
+  - **Enhanced tracking**: Server-side errors via `onRequestError` hook with route context
+
 **Testing**: Jest with React Testing Library, configured for Next.js with custom setup in `jest.config.js`
 
 ## Key Files to Understand
