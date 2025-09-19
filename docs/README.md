@@ -38,7 +38,7 @@ This documentation covers everything about the MatchOps-Local project - what it 
 
 ### 🔧 **Technical Specifications**
 - **[specifications/](./specifications/)** - Formal technical specifications and system requirements
-- **[specs/](./specs/)** - Detailed technical specifications (IndexedDB migration plan, etc.)
+- **[specs/](./specs/)** - Detailed technical specifications (IndexedDB infrastructure replacement plan, etc.)
 - **[features/](./features/)** - Detailed feature specifications and implementation plans
 
 ### 📸 **Assets**

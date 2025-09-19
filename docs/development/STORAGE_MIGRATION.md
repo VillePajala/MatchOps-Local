@@ -1,27 +1,30 @@
-# Storage Migration Overview
+# Storage Infrastructure Upgrade Overview
 
 Status: Authoritative overview (aligned to current code)
 
 ## Current Status
-The application currently uses localStorage for data persistence. This works well for the current scope but may need migration to IndexedDB for enhanced functionality.
+The application currently uses localStorage for data persistence. This works well for the current scope but will be upgraded to IndexedDB for enhanced capacity, performance, and reliability.
 
-## Migration Plan
+## Infrastructure Upgrade Plan
 For detailed technical specifications and implementation plan, see:
-- **[IndexedDB Migration Plan](../specs/INDEXEDDB_MIGRATION_PLAN.md)** — Updated, phased plan aligned with current code (KV shim → KV copy/flip → optional normalization)
+- **[IndexedDB Infrastructure Plan](../specs/INDEXEDDB_MIGRATION_PLAN.md)** — Complete infrastructure replacement plan (KV adapter → infrastructure swap → data transfer → optional normalization)
 
 ## Key Points
-- **Current**: localStorage-based persistence
-- **Near-term**: Optional IndexedDB KV adapter to improve robustness without broad refactor
-- **Future**: Normalized IndexedDB schema if dataset growth warrants it
-- **Priority**: Not required for current production deployment
-- **Complexity**: Moderate (KV phases), higher for normalization
+- **Current**: localStorage-based persistence layer
+- **Upgrade Goal**: Replace localStorage with IndexedDB as the storage infrastructure
+- **Approach**: KV adapter pattern maintains API compatibility while swapping underlying storage
+- **Data Handling**: One-time automatic transfer of existing localStorage data to IndexedDB
+- **Future Enhancement**: Normalized IndexedDB schema for advanced querying if dataset growth warrants it
+- **Priority**: Infrastructure improvement for better capacity and performance
+- **Complexity**: Moderate (infrastructure swap with safety nets)
 
 ## Quick Reference
-- Storage utilities: `src/utils/localStorage.ts`
-- Data managers: `src/utils/masterRosterManager.ts`, `src/utils/savedGames.ts`
-- Backup system: `src/utils/fullBackup.ts`
+- Storage utilities: `src/utils/localStorage.ts` (will become storage abstraction layer)
+- Data managers: `src/utils/masterRosterManager.ts`, `src/utils/savedGames.ts` (APIs remain unchanged)
+- Backup system: `src/utils/fullBackup.ts` (enhanced for infrastructure transition)
 
-## Next Steps
-1. Continue with localStorage for production launch
-2. If/when needed, implement Phase 0 + Phase 1 from the plan (KV adapter + one-time KV migration)
-3. Evaluate data volume and querying needs before proceeding to normalization (Phase 2)
+## Implementation Steps
+1. **Phase 0**: Create IndexedDB KV adapter that mimics localStorage API
+2. **Phase 1**: Implement infrastructure swap with automatic data transfer from localStorage
+3. **Phase 2**: Optional enhancement to normalized IndexedDB schema for advanced features
+4. **Post-deployment**: Monitor performance improvements and user experience
