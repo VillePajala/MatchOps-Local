@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: eliminate PWA component duplication (M0)"
+  "notes": "feat: implement storage adapter interface (Step 0A.1)"
 }

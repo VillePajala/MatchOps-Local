@@ -4,7 +4,8 @@ on:
   push:
     branches: [master]
   pull_request:
-    branches: [master]
+    # Run CI on all PRs regardless of target branch
+    branches: ['**']
 
 jobs:
   lint:
