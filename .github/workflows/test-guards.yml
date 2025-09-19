@@ -3,7 +3,8 @@ on:
   push:
     branches: [ master, main, develop, feature/* ]
   pull_request:
-    branches: [ master, main, develop ]
+    # Run critical path guards on all PRs regardless of target branch
+    branches: ['**']
   workflow_dispatch:
 
 permissions:
