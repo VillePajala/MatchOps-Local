@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: resolve ESLint no-explicit-any errors in logger tests"
+  "notes": "fix: resolve Vercel build errors and add prevention guidelines"
 }
