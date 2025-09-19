@@ -15,10 +15,10 @@ describe('StorageAdapter Interface', () => {
         getItem: async (key: string): Promise<string | null> => {
           return key === 'test' ? 'value' : null;
         },
-        setItem: async (key: string, value: string): Promise<void> => {
+        setItem: async (): Promise<void> => {
           // Mock implementation
         },
-        removeItem: async (key: string): Promise<void> => {
+        removeItem: async (): Promise<void> => {
           // Mock implementation
         },
         clear: async (): Promise<void> => {
@@ -40,8 +40,8 @@ describe('StorageAdapter Interface', () => {
     it('should support async/await pattern', async () => {
       const mockAdapter: StorageAdapter = {
         getItem: async (key: string) => `value-${key}`,
-        setItem: async (key: string, value: string) => {},
-        removeItem: async (key: string) => {},
+        setItem: async () => {},
+        removeItem: async () => {},
         clear: async () => {},
         getBackendName: () => 'mock'
       };
@@ -61,8 +61,8 @@ describe('StorageAdapter Interface', () => {
     it('should handle null returns from getItem', async () => {
       const mockAdapter: StorageAdapter = {
         getItem: async (key: string) => key === 'exists' ? 'value' : null,
-        setItem: async (key: string, value: string) => {},
-        removeItem: async (key: string) => {},
+        setItem: async () => {},
+        removeItem: async () => {},
         clear: async () => {},
         getBackendName: () => 'mock'
       };
