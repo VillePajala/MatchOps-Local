@@ -87,7 +87,12 @@ Acceptance
  Outcome: swap persistence to IndexedDB with minimal churn and rollback safety; defer normalization.
 
 - M1 Checklist
-  - [ ] Add IndexedDB KV adapter and `storage-mode` flag (no domain API changes)
+  - [x] Add IndexedDB KV adapter and `storage-mode` flag (no domain API changes) - **COMPLETED: Step 0A.1 Storage Interface**
+    - ✅ Created `StorageAdapter` interface with error handling (`StorageError`, `StorageErrorType`)
+    - ✅ Added `getKeys()` method for backup/restore functionality
+    - ✅ Comprehensive test suite (11 test cases covering type safety and behavior)
+    - ✅ CI/CD improvements (workflows now run on all PRs regardless of target branch)
+    - 📍 **Next: Step 0A.2 - LocalStorage Adapter Implementation**
   - [ ] Create comprehensive backup before migration (migrationBackup)
   - [ ] Copy critical keys to IDB KV; verify round‑trip per key
   - [ ] Flip `storage-mode` to `indexedDB`; retain rollback path
