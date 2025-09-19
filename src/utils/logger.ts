@@ -10,7 +10,7 @@ export interface Logger {
   log: (message: string, ...data: unknown[]) => void;
 
   /**
-   * Log warning messages (only in development)
+   * Log warning messages (always logged, including production)
    * @param message - Primary warning message
    * @param data - Additional data to log
    */
@@ -30,8 +30,8 @@ const logger: Logger = {
     if (process.env.NODE_ENV !== 'production') console.log(message, ...data);
   },
   warn: (message: string, ...data: unknown[]) => {
-    // Check environment at runtime for better testability
-    if (process.env.NODE_ENV !== 'production') console.warn(message, ...data);
+    // Always show warnings - they indicate potential issues worth investigating
+    console.warn(message, ...data);
   },
   error: (message: string, ...data: unknown[]) => {
     console.error(message, ...data);
