@@ -63,6 +63,27 @@ The build process includes a custom manifest generation step that runs before Ne
 - Comprehensive test coverage in `src/utils/logger.test.ts`
 - Integration tests in `src/components/__tests__/logger-integration.test.tsx`
 
+**Error Monitoring**: Sentry integration for production error tracking:
+- **Configuration Files**:
+  - `src/instrumentation-client.ts` - Client-side Sentry initialization with router tracking
+  - `sentry.server.config.ts` - Server-side error capture configuration
+  - `sentry.edge.config.ts` - Edge runtime error handling
+  - `src/app/global-error.tsx` - Global error boundary with user-friendly UI and Sentry reporting
+- **Environment-Aware Setup**:
+  - Only initializes in production by default (or when `NEXT_PUBLIC_SENTRY_FORCE_ENABLE=true`)
+  - Filters out common browser noise (ResizeObserver, NetworkError)
+  - 10% performance trace sampling in production, 100% in development
+  - Session replays only captured on errors with privacy protection (masks text, blocks media)
+- **Error Handling Guidelines**:
+  - Use structured error messages with clear context
+  - Avoid logging sensitive data in error messages (passwords, tokens, PII)
+  - Test error scenarios with feature flags before production deployment
+  - Monitor Sentry dashboard for new error patterns after deployments
+- **Expected Error Types**:
+  - **Filtered (ignored)**: ResizeObserver errors, generic NetworkError events
+  - **Captured**: Application errors, unhandled promises, React error boundaries
+  - **Enhanced tracking**: Server-side errors via `onRequestError` hook with route context
+
 **Testing**: Jest with React Testing Library, configured for Next.js with custom setup in `jest.config.js`
 
 ## Key Files to Understand
@@ -153,6 +174,84 @@ The app includes install prompts, update notifications, and works offline. The s
 - Let them review changes before they go into version control
 
 **Exception:** Only commit/push immediately if the user specifically requests it in their message (e.g., "fix this and commit it", "push this change").
+
+## Vercel Build & ESLint Rules
+
+### Critical Build Guidelines
+
+**ALWAYS ensure code passes Vercel build requirements** by following these patterns to avoid common build failures:
+
+### Common ESLint/TypeScript Issues and Fixes
+
+1. **@typescript-eslint/no-require-imports**
+   ```typescript
+   // ❌ Forbidden in build:
+   const fs = require('fs');
+   const path = require('path');
+
+   // ✅ Correct approach:
+   const fs = await import('fs');
+   const path = await import('path');
+   // or
+   import fs from 'fs';
+   import path from 'path';
+   ```
+
+2. **@typescript-eslint/no-explicit-any**
+   ```typescript
+   // ❌ Forbidden in build:
+   delete (window as any).location;
+   (window as any).location = { href: '/' };
+
+   // ✅ Correct approach:
+   delete (window as unknown as { location: unknown }).location;
+   (window as unknown as { location: { href: string } }).location = { href: '/' };
+   ```
+
+3. **@typescript-eslint/no-unused-vars**
+   ```typescript
+   // ❌ Will fail build:
+   function beforeSend(event, hint) { return event; }
+
+   // ✅ Correct approach:
+   function beforeSend(event) { return event; }
+   // or if parameter is needed for signature:
+   function beforeSend(event, _hint) { return event; }
+   ```
+
+### Prevention Checklist
+
+**Before committing any code, verify:**
+
+1. **Run the build locally**: `npm run build` must pass without errors
+2. **Check linting**: `npm run lint` must pass without errors
+3. **Use TypeScript properly**:
+   - No `any` types (use `unknown` with type assertions)
+   - No `require()` imports (use ES6 imports or dynamic imports)
+   - No unused variables/parameters
+   - Proper type annotations for complex objects
+
+4. **Test file patterns**:
+   - Use ES6 imports for Node.js modules in tests
+   - Use proper TypeScript assertions instead of `any`
+   - Mock browser APIs with proper typing
+   - Use dynamic imports for Node.js-specific operations in test files
+
+5. **Common fixes**:
+   - Replace `require()` with `import` or `await import()`
+   - Replace `any` with `unknown` + type assertions
+   - Add underscore prefix to unused parameters (`_param`)
+   - Use proper interface definitions for complex types
+
+### Build Environment Differences
+
+**Important**: Code that works in development may fail in Vercel builds due to:
+- Stricter ESLint rules in production builds
+- Different TypeScript compiler settings
+- Tree-shaking and optimization differences
+- Static analysis tools being more aggressive
+
+**Always test the production build** before pushing to ensure compatibility.
 
 ## Environment Variables
 
