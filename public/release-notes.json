@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: mark M0 logging checklist item as completed"
+  "notes": "test: add comprehensive Sentry integration tests and improvements"
 }

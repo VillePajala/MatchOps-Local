@@ -76,9 +76,9 @@ describe('Sentry Configuration', () => {
   });
 
   describe('File Structure', () => {
-    it('should have required Sentry configuration files', () => {
-      const fs = require('fs');
-      const path = require('path');
+    it('should have required Sentry configuration files', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
 
       const requiredFiles = [
         'src/instrumentation.ts',
@@ -96,7 +96,7 @@ describe('Sentry Configuration', () => {
   });
 
   describe('Error Filtering Logic', () => {
-    it('should define proper error filters', () => {
+    it('should define proper error filters', async () => {
       // These are the error types we expect to filter
       const filteredErrors = [
         'ResizeObserver',
@@ -104,8 +104,8 @@ describe('Sentry Configuration', () => {
       ];
 
       // Verify our configuration documents these filters
-      const fs = require('fs');
-      const path = require('path');
+      const fs = await import('fs');
+      const path = await import('path');
       const clientConfig = fs.readFileSync(
         path.join(process.cwd(), 'src/instrumentation-client.ts'),
         'utf8'
