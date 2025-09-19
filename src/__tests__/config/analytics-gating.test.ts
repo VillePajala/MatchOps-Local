@@ -60,9 +60,10 @@ describe('Analytics Environment Gating', () => {
         'utf8'
       );
 
-      // Should contain environment checks
+      // Should contain environment checks with extracted constants
       expect(layoutFile).toContain('NODE_ENV === \'production\'');
       expect(layoutFile).toContain('NEXT_PUBLIC_ANALYTICS_ENABLED');
+      expect(layoutFile).toContain('shouldLoadAnalytics');
       expect(layoutFile).toContain('<Analytics />');
     });
 
