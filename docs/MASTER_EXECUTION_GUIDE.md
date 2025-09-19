@@ -64,7 +64,7 @@ Outcome: reduce migration risk with trustworthy tests and basic observability; r
   - [x] Tests: fix JSDOM `window.location` cleanup error; ensure Jest suite is green (FIX_PLAN §8)
   - [ ] Tests: stabilize a core E2E path (start → new game → save → load) per testing/E2E_TESTING_GUIDE.md [SKIPPED FOR LATER]
   - [x] Logging: replace stray `console.*` with `logger` (FIX_PLAN §4)
-  - [ ] Monitoring: add minimal `@sentry/nextjs` with staging/dev DSN (FIX_PLAN §5)
+  - [x] Monitoring: add minimal `@sentry/nextjs` with staging/dev DSN (FIX_PLAN §5)
   - [ ] Analytics (optional early): gate `<Analytics />` to production env to reduce noise (FIX_PLAN §6)
   - [ ] PWA: render `ServiceWorkerRegistration` and `InstallPrompt` only once (FIX_PLAN §3)
   - [ ] i18n: ensure only one `I18nInitializer` wraps the app (no duplication)

@@ -58,7 +58,9 @@ export default function RootLayout({
             <ClientWrapper>{children}</ClientWrapper>
           </QueryProvider>
         </I18nInitializer>
-        <Analytics />
+        {/* Only load Analytics in production or when explicitly enabled */}
+        {(process.env.NODE_ENV === 'production' ||
+          process.env.NEXT_PUBLIC_ANALYTICS_ENABLED === 'true') && <Analytics />}
       </body>
     </html>
   );}
