@@ -6,6 +6,30 @@
  */
 
 /**
+ * Standardized error types for storage operations
+ */
+export enum StorageErrorType {
+  QUOTA_EXCEEDED = 'QUOTA_EXCEEDED',
+  ACCESS_DENIED = 'ACCESS_DENIED',
+  CORRUPTED_DATA = 'CORRUPTED_DATA',
+  UNKNOWN = 'UNKNOWN'
+}
+
+/**
+ * Standardized storage error with type classification and original error preservation
+ */
+export class StorageError extends Error {
+  constructor(
+    public type: StorageErrorType,
+    message: string,
+    public cause?: Error
+  ) {
+    super(message);
+    this.name = 'StorageError';
+  }
+}
+
+/**
  * Generic storage adapter interface that can be implemented by different storage backends
  */
 export interface StorageAdapter {
@@ -43,6 +67,13 @@ export interface StorageAdapter {
    * @returns The name of the storage backend
    */
   getBackendName(): string;
+
+  /**
+   * Retrieves all keys currently stored in the storage backend
+   * Essential for backup/restore functionality and storage diagnostics
+   * @returns Promise resolving to array of all storage keys
+   */
+  getKeys(): Promise<string[]>;
 }
 
 /**
