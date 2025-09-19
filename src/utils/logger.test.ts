@@ -24,14 +24,22 @@ describe('Logger Utility', () => {
     console.warn = originalConsole.warn;
     console.error = originalConsole.error;
     // Restore original NODE_ENV
-    (process.env as any).NODE_ENV = originalNodeEnv;
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value: originalNodeEnv,
+      writable: true,
+      configurable: true
+    });
     jest.clearAllMocks();
   });
 
   describe('Development Environment', () => {
     beforeEach(() => {
       // Mock development environment
-      (process.env as any).NODE_ENV = 'development';
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'development',
+        writable: true,
+        configurable: true
+      });
     });
 
     it('should log messages in development environment', () => {
@@ -62,7 +70,11 @@ describe('Logger Utility', () => {
   describe('Production Environment', () => {
     beforeEach(() => {
       // Mock production environment
-      (process.env as any).NODE_ENV = 'production';
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'production',
+        writable: true,
+        configurable: true
+      });
     });
 
     it('should not log messages in production environment', () => {
@@ -86,7 +98,11 @@ describe('Logger Utility', () => {
 
   describe('Type Safety', () => {
     beforeEach(() => {
-      (process.env as any).NODE_ENV = 'development';
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'development',
+        writable: true,
+        configurable: true
+      });
     });
 
     it('should require string message as first argument for log', () => {
