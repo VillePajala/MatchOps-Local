@@ -83,10 +83,10 @@ describe('Logger Utility', () => {
       expect(console.log).not.toHaveBeenCalled();
     });
 
-    it('should not log warnings in production environment', () => {
+    it('should still log warnings in production environment', () => {
       logger.warn('Warning message', { warning: 'test' });
 
-      expect(console.warn).not.toHaveBeenCalled();
+      expect(console.warn).toHaveBeenCalledWith('Warning message', { warning: 'test' });
     });
 
     it('should still log errors in production environment', () => {
