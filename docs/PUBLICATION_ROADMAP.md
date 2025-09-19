@@ -4,7 +4,7 @@ Status: Companion (high‑level overview). Execute via MASTER_EXECUTION_GUIDE.md
 
 ## Phases (See MASTER_EXECUTION_GUIDE.md for details)
 - Phase M0: Pre‑migration essentials (tests green, logging via logger, minimal Sentry, PWA dedup)
-- Phase M1: IndexedDB migration (KV adapter + one‑time copy/flip with backup/rollback)
+- Phase M1: IndexedDB infrastructure replacement (KV adapter + one‑time infrastructure swap with backup/rollback)
 - Phase P1: Post‑migration hardening (security headers/CSP, SW hardening, analytics gating)
 - Phase P2: PWA + Store packaging (branding, manifest, TWA)
 - Phase P3: Quality gates (a11y, performance, test expansion)

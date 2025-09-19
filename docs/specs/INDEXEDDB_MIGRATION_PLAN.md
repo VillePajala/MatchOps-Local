@@ -1,4 +1,4 @@
-# IndexedDB Migration Implementation Plan
+# IndexedDB Infrastructure Replacement Plan
 
 Status: Authoritative technical plan (phased)
 
@@ -9,7 +9,7 @@ IMPORTANT — Reality Alignment and Scope
 
 ## Executive Summary
 
-This document outlines the detailed implementation plan for migrating MatchOps Local from localStorage to IndexedDB. The migration follows a "Big Bang with Safety Net" approach, avoiding dual-write complexity while ensuring zero data loss through comprehensive backup and rollback mechanisms.
+This document outlines the detailed implementation plan for replacing MatchOps Local's localStorage infrastructure with IndexedDB. The infrastructure replacement follows a "Cutover with Safety Net" approach, avoiding dual-write complexity while ensuring zero data loss through comprehensive backup and rollback mechanisms.
 
 **Key Principles:**
 - Single source of truth at all times
@@ -122,7 +122,7 @@ export const runMigration = async (): Promise<void>
 
 ## Implementation Plan (Phased, Execution-Ready)
 
-This plan is adjusted to the current codebase. It avoids dual‑writes and minimizes refactors by first swapping the underlying storage engine for the existing key/value model, then optionally migrating to a normalized schema.
+This plan is adjusted to the current codebase. It avoids dual‑writes and minimizes refactors by first swapping the underlying storage infrastructure for the existing key/value model, then optionally enhancing to a normalized schema.
 
 ### Phase 0: Key/Value Adapter Shim (Low Risk)
 
@@ -144,9 +144,9 @@ Acceptance:
 - Flipping `storage-mode=indexedDB` stores and retrieves values transparently from IndexedDB KV.
 - No domain code changes required.
 
-### Phase 1: One‑Time Storage Migration (KV copy with Safety Net)
+### Phase 1: Infrastructure Cutover with Data Transfer (KV copy with Safety Net)
 
-Goal: Atomically copy existing localStorage keys into IndexedDB KV and switch `storage-mode` to `indexedDB`.
+Goal: Replace localStorage infrastructure with IndexedDB while atomically transferring existing data and switching `storage-mode` to `indexedDB`.
 
 Files to add:
 - `src/utils/indexedDbMigration.ts` — Coordinates backup, copy, flip, rollback.
