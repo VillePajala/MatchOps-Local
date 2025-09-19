@@ -57,6 +57,12 @@ The build process includes a custom manifest generation step that runs before Ne
 - Seasons and tournaments (`src/utils/seasons.ts`, `src/utils/tournaments.ts`)
 - App settings (`src/utils/appSettings.ts`)
 
+**Logging**: Centralized logging system with environment-aware behavior:
+- `src/utils/logger.ts` - Type-safe logger utility with development/production modes
+- Replaces direct `console.*` usage throughout the application
+- Comprehensive test coverage in `src/utils/logger.test.ts`
+- Integration tests in `src/components/__tests__/logger-integration.test.tsx`
+
 **Testing**: Jest with React Testing Library, configured for Next.js with custom setup in `jest.config.js`
 
 ## Key Files to Understand
@@ -68,6 +74,7 @@ The build process includes a custom manifest generation step that runs before Ne
 - `src/config/queryKeys.ts` - Defines the keys used for caching and invalidating data with React Query.
 - `src/types/index.ts` - Core TypeScript interfaces (Player, Season, Tournament, AppState).
 - `src/utils/localStorage.ts` - Async localStorage wrapper utilities.
+- `src/utils/logger.ts` - Centralized logging utility with type safety and environment awareness.
 
 ## Development Notes
 

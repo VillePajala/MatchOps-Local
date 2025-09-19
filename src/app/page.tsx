@@ -11,6 +11,7 @@ import { getMasterRoster } from '@/utils/masterRosterManager';
 import { getSeasons } from '@/utils/seasons';
 import { getTournaments } from '@/utils/tournaments';
 import { runMigration } from '@/utils/migration';
+import logger from '@/utils/logger';
 
 export default function Home() {
   const [screen, setScreen] = useState<'start' | 'home'>('start');
@@ -74,7 +75,7 @@ export default function Home() {
 
   return (
     <ErrorBoundary onError={(error, errorInfo) => {
-      console.error('App-level error caught:', error, errorInfo);
+      logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider>
         {screen === 'start' ? (
