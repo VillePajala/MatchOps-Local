@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "test: add comprehensive Sentry integration tests and improvements"
+  "notes": "fix: resolve Vercel build errors and add prevention guidelines"
 }
