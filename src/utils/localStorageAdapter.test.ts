@@ -500,6 +500,22 @@ describe('LocalStorageAdapter', () => {
         })
       );
     });
+
+    it('should handle edge cases in size formatting', async () => {
+      // Test empty string (0 bytes)
+      const emptyValue = '';
+      mockSetItem.mockImplementation(() => {});
+
+      await adapter.setItem('empty', emptyValue);
+
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'Setting item in localStorage',
+        expect.objectContaining({
+          key: 'empty',
+          valueSize: '0B'
+        })
+      );
+    });
   });
 
   describe('Integration with Existing Utilities', () => {
