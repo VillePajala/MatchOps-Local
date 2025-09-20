@@ -303,12 +303,16 @@ describe('LocalStorageAdapter', () => {
 
   describe('getKeys() Implementation', () => {
     it('should return all localStorage keys', async () => {
-      const mockStorage = {
+      const mockStorage: Partial<Storage> = {
         length: 3,
         key: jest.fn()
           .mockReturnValueOnce('key1')
           .mockReturnValueOnce('key2')
-          .mockReturnValueOnce('key3')
+          .mockReturnValueOnce('key3'),
+        getItem: jest.fn(),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+        clear: jest.fn()
       };
       mockGetStorage.mockReturnValue(mockStorage as Storage);
 
@@ -319,9 +323,13 @@ describe('LocalStorageAdapter', () => {
     });
 
     it('should handle empty storage', async () => {
-      const mockStorage = {
+      const mockStorage: Partial<Storage> = {
         length: 0,
-        key: jest.fn()
+        key: jest.fn(),
+        getItem: jest.fn(),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+        clear: jest.fn()
       };
       mockGetStorage.mockReturnValue(mockStorage as Storage);
 
@@ -332,12 +340,16 @@ describe('LocalStorageAdapter', () => {
     });
 
     it('should filter out null keys', async () => {
-      const mockStorage = {
+      const mockStorage: Partial<Storage> = {
         length: 3,
         key: jest.fn()
           .mockReturnValueOnce('key1')
           .mockReturnValueOnce(null)
-          .mockReturnValueOnce('key3')
+          .mockReturnValueOnce('key3'),
+        getItem: jest.fn(),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+        clear: jest.fn()
       };
       mockGetStorage.mockReturnValue(mockStorage as Storage);
 
@@ -348,9 +360,13 @@ describe('LocalStorageAdapter', () => {
 
     it('should perform efficiently with many keys', async () => {
       const keyCount = 1000;
-      const mockStorage = {
+      const mockStorage: Partial<Storage> = {
         length: keyCount,
-        key: jest.fn().mockImplementation((index: number) => `key${index}`)
+        key: jest.fn().mockImplementation((index: number) => `key${index}`),
+        getItem: jest.fn(),
+        setItem: jest.fn(),
+        removeItem: jest.fn(),
+        clear: jest.fn()
       };
       mockGetStorage.mockReturnValue(mockStorage as Storage);
 

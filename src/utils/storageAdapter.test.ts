@@ -48,7 +48,8 @@ describe('StorageAdapter Interface', () => {
         setItem: async () => {},
         removeItem: async () => {},
         clear: async () => {},
-        getBackendName: () => 'mock'
+        getBackendName: () => 'mock',
+        getKeys: async () => ['key1', 'key2']
       };
 
       // Verify async/await works
@@ -69,7 +70,8 @@ describe('StorageAdapter Interface', () => {
         setItem: async () => {},
         removeItem: async () => {},
         clear: async () => {},
-        getBackendName: () => 'mock'
+        getBackendName: () => 'mock',
+        getKeys: async () => ['exists']
       };
 
       const existingValue = await mockAdapter.getItem('exists');
