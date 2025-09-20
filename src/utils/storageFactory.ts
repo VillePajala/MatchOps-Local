@@ -51,6 +51,7 @@ export interface StorageTelemetryEvent {
     failureCount?: number;
     duration?: number;
     error?: string;
+    backoffDelayMs?: number;
   };
 }
 
@@ -122,6 +123,16 @@ export class StorageFactory {
   private cacheVersion: number = 0;
   private telemetryCallback?: (event: StorageTelemetryEvent) => void;
 
+  // Mutex for preventing concurrent adapter creation
+  private adapterCreationMutex: Promise<StorageAdapter> | null = null;
+
+  // Configuration for IndexedDB timeout (configurable via environment)
+  private readonly indexedDBTimeout = parseInt(process.env.NEXT_PUBLIC_INDEXEDDB_TIMEOUT_MS || '1000', 10);
+
+  // Storage size limits for security
+  private readonly maxKeySize = parseInt(process.env.NEXT_PUBLIC_STORAGE_MAX_KEY_SIZE || '1024', 10); // 1KB
+  private readonly maxValueSize = parseInt(process.env.NEXT_PUBLIC_STORAGE_MAX_VALUE_SIZE || '10485760', 10); // 10MB
+
   /**
    * Create and return the appropriate storage adapter based on configuration
    *
@@ -135,6 +146,12 @@ export class StorageFactory {
     try {
       this.logger.debug('Creating storage adapter', { forceMode });
 
+      // Check if another creation is in progress (mutex pattern)
+      if (this.adapterCreationMutex) {
+        this.logger.debug('Adapter creation in progress, waiting for completion');
+        return await this.adapterCreationMutex;
+      }
+
       // Return cached adapter if available and mode hasn't changed
       if (this.cachedAdapter && !forceMode) {
         const currentConfig = this.getStorageConfig();
@@ -147,55 +164,14 @@ export class StorageFactory {
         }
       }
 
-      const config = this.getStorageConfig();
-      const targetMode = forceMode || config.mode;
-
-      this.logger.debug('Determining storage adapter', {
-        targetMode,
-        configMode: config.mode,
-        migrationState: config.migrationState,
-        forceMode
-      });
-
-      // Dispose old adapter before creating new one
-      if (this.cachedAdapter && this.cachedAdapter !== null) {
-        await this.disposeAdapter();
-      }
-
-      let adapter: StorageAdapter;
-
-      if (targetMode === 'indexedDB') {
-        // Attempt to create IndexedDB adapter with fallback
-        adapter = await this.createIndexedDBAdapter(config);
-      } else {
-        // Create localStorage adapter
-        adapter = await this.createLocalStorageAdapter();
-      }
-
-      // Cache the successful adapter and config with version
-      const newCacheVersion = this.cacheVersion + 1;
-      this.cachedAdapter = adapter;
-      this.cachedConfig = { ...config, mode: targetMode };
-      this.cacheVersion = newCacheVersion;
-
-      const duration = Date.now() - startTime;
-      this.logger.debug('Storage adapter created successfully', {
-        backend: adapter.getBackendName(),
-        mode: targetMode,
-        duration
-      });
-
-      // Send telemetry
-      this.sendTelemetry({
-        event: 'adapter_created',
-        mode: targetMode,
-        timestamp: Date.now(),
-        details: { duration }
-      });
-
+      // Start mutex-protected adapter creation
+      this.adapterCreationMutex = this.createAdapterInternal(forceMode, startTime);
+      const adapter = await this.adapterCreationMutex;
+      this.adapterCreationMutex = null; // Release mutex
       return adapter;
 
     } catch (error) {
+      this.adapterCreationMutex = null; // Release mutex on error
       this.logger.error('Failed to create storage adapter', { error, forceMode });
       throw new StorageError(
         StorageErrorType.ACCESS_DENIED,
@@ -203,6 +179,113 @@ export class StorageFactory {
         error instanceof Error ? error : undefined
       );
     }
+  }
+
+  /**
+   * Internal adapter creation method (mutex-protected)
+   */
+  private async createAdapterInternal(forceMode?: StorageMode, startTime: number = Date.now()): Promise<StorageAdapter> {
+    const config = this.getStorageConfig();
+    const targetMode = forceMode || config.mode;
+
+    this.logger.debug('Determining storage adapter', {
+      targetMode,
+      configMode: config.mode,
+      migrationState: config.migrationState,
+      forceMode
+    });
+
+    // Dispose old adapter before creating new one
+    if (this.cachedAdapter && this.cachedAdapter !== null) {
+      await this.disposeAdapter();
+    }
+
+    let adapter: StorageAdapter;
+
+    if (targetMode === 'indexedDB') {
+      // Attempt to create IndexedDB adapter with fallback
+      adapter = await this.createIndexedDBAdapter(config);
+    } else {
+      // Create localStorage adapter
+      adapter = await this.createLocalStorageAdapter();
+    }
+
+    // Cache the successful adapter and config with version
+    const newCacheVersion = this.cacheVersion + 1;
+    this.cachedAdapter = adapter;
+    this.cachedConfig = { ...config, mode: targetMode };
+    this.cacheVersion = newCacheVersion;
+
+    const duration = Date.now() - startTime;
+    this.logger.debug('Storage adapter created successfully', {
+      backend: adapter.getBackendName(),
+      mode: targetMode,
+      duration
+    });
+
+    // Send telemetry
+    this.sendTelemetry({
+      event: 'adapter_created',
+      mode: targetMode,
+      timestamp: Date.now(),
+      details: { duration }
+    });
+
+    return adapter;
+  }
+
+  /**
+   * Validate storage key and value sizes for security
+   *
+   * @param key - Storage key to validate
+   * @param value - Storage value to validate
+   * @throws {StorageError} If key or value exceeds size limits
+   */
+  validateStorageSize(key: string, value: string): void {
+    if (key.length > this.maxKeySize) {
+      throw new StorageError(
+        StorageErrorType.QUOTA_EXCEEDED,
+        `Key size (${key.length} bytes) exceeds maximum allowed size (${this.maxKeySize} bytes)`,
+        new Error('Key too large')
+      );
+    }
+
+    const valueSize = new Blob([value]).size;
+    if (valueSize > this.maxValueSize) {
+      throw new StorageError(
+        StorageErrorType.QUOTA_EXCEEDED,
+        `Value size (${valueSize} bytes) exceeds maximum allowed size (${this.maxValueSize} bytes)`,
+        new Error('Value too large')
+      );
+    }
+  }
+
+  /**
+   * Check available storage quota and warn if approaching limits
+   */
+  async checkStorageQuota(): Promise<{ available: number; used: number; percentage: number }> {
+    try {
+      if ('storage' in navigator && 'estimate' in navigator.storage) {
+        const estimate = await navigator.storage.estimate();
+        const used = estimate.usage || 0;
+        const available = estimate.quota || 0;
+        const percentage = available > 0 ? (used / available) * 100 : 0;
+
+        if (percentage > 90) {
+          this.logger.warn('Storage quota approaching limit', {
+            used,
+            available,
+            percentage: percentage.toFixed(1)
+          });
+        }
+
+        return { available, used, percentage };
+      }
+    } catch (error) {
+      this.logger.debug('Could not check storage quota', { error });
+    }
+
+    return { available: 0, used: 0, percentage: 0 };
   }
 
   /**
@@ -345,7 +428,7 @@ export class StorageFactory {
           this.logger.debug('IndexedDB support test timed out');
           cleanup();
           resolve(false);
-        }, 1000); // Reduced from 2000ms for better initial page load performance
+        }, this.indexedDBTimeout); // Configurable timeout via NEXT_PUBLIC_INDEXEDDB_TIMEOUT_MS
 
         request.onerror = () => {
           this.logger.debug('IndexedDB support test failed', { error: request.error });
@@ -437,11 +520,49 @@ export class StorageFactory {
   }
 
   /**
+   * Calculate exponential backoff delay for retry attempts
+   *
+   * @param failureCount - Number of consecutive failures
+   * @returns Delay in milliseconds before next retry attempt
+   */
+  private calculateBackoffDelay(failureCount: number): number {
+    // Exponential backoff: base delay of 1 second, multiplied by 2^failureCount
+    // Max delay capped at 30 seconds
+    const baseDelay = 1000; // 1 second
+    const exponentialDelay = baseDelay * Math.pow(2, failureCount);
+    const maxDelay = 30000; // 30 seconds
+    return Math.min(exponentialDelay, maxDelay);
+  }
+
+  /**
+   * Check if enough time has passed since last failure to allow retry
+   *
+   * @param lastAttempt - ISO timestamp of last attempt
+   * @param failureCount - Number of consecutive failures
+   * @returns True if enough time has passed for retry
+   */
+  private canRetryAfterBackoff(lastAttempt: string | undefined, failureCount: number): boolean {
+    if (!lastAttempt) return true;
+
+    try {
+      const lastAttemptTime = new Date(lastAttempt).getTime();
+      const now = Date.now();
+      const backoffDelay = this.calculateBackoffDelay(failureCount);
+
+      return (now - lastAttemptTime) >= backoffDelay;
+    } catch {
+      this.logger.debug('Could not parse last attempt time, allowing retry', { lastAttempt });
+      return true;
+    }
+  }
+
+  /**
    * Validate storage version format (semver-like)
    */
   private isValidVersion(version: string): boolean {
-    // Basic semver validation: major.minor.patch
-    const semverRegex = /^\d+\.\d+\.\d+$/;
+    // Enhanced semver validation: major.minor.patch[-prerelease][+build]
+    // Supports: 1.2.3, 1.2.3-alpha, 1.2.3-alpha.1, 1.2.3+build, 1.2.3-alpha+build
+    const semverRegex = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
     return semverRegex.test(version);
   }
 
@@ -484,12 +605,37 @@ export class StorageFactory {
    * Create IndexedDB adapter with intelligent fallback logic
    */
   private async createIndexedDBAdapter(config: StorageConfig): Promise<StorageAdapter> {
+    const failureCount = config.migrationFailureCount || 0;
+
     // Check if too many migration failures occurred
-    if (config.migrationFailureCount && config.migrationFailureCount >= MAX_MIGRATION_FAILURES) {
+    if (failureCount >= MAX_MIGRATION_FAILURES) {
       this.logger.warn('Too many migration failures, falling back to localStorage', {
-        failureCount: config.migrationFailureCount,
+        failureCount,
         maxFailures: MAX_MIGRATION_FAILURES
       });
+      return this.createLocalStorageAdapter();
+    }
+
+    // Check if enough time has passed since last failure (exponential backoff)
+    if (failureCount > 0 && !this.canRetryAfterBackoff(config.lastMigrationAttempt, failureCount)) {
+      const backoffDelay = this.calculateBackoffDelay(failureCount);
+      const nextRetryTime = config.lastMigrationAttempt ?
+        new Date(new Date(config.lastMigrationAttempt).getTime() + backoffDelay).toISOString() :
+        'unknown';
+
+      this.logger.warn('IndexedDB retry blocked by exponential backoff, falling back to localStorage', {
+        failureCount,
+        nextRetryTime,
+        backoffDelayMs: backoffDelay
+      });
+
+      this.sendTelemetry({
+        event: 'fallback_triggered',
+        mode: 'localStorage',
+        timestamp: Date.now(),
+        details: { fallbackReason: 'exponential_backoff', failureCount, backoffDelayMs: backoffDelay }
+      });
+
       return this.createLocalStorageAdapter();
     }
 
