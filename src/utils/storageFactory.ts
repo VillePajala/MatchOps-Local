@@ -117,6 +117,14 @@ export const MAX_MIGRATION_FAILURES = 3;
  * ```
  */
 export class StorageFactory {
+  // Default configuration constants
+  private static readonly DEFAULT_INDEXEDDB_TIMEOUT_MS = 1000;
+  private static readonly DEFAULT_MAX_KEY_SIZE = 1024; // 1KB
+  private static readonly DEFAULT_MAX_VALUE_SIZE = 10485760; // 10MB
+  private static readonly DEFAULT_BACKOFF_BASE_DELAY_MS = 1000; // 1 second
+  private static readonly DEFAULT_BACKOFF_MAX_DELAY_MS = 30000; // 30 seconds
+  private static readonly DEFAULT_MUTEX_TIMEOUT_MS = 5000; // 5 seconds
+
   private readonly logger = createLogger('StorageFactory');
   private cachedAdapter: StorageAdapter | null = null;
   private cachedConfig: StorageConfig | null = null;
@@ -127,11 +135,40 @@ export class StorageFactory {
   private adapterCreationMutex: Promise<StorageAdapter> | null = null;
 
   // Configuration for IndexedDB timeout (configurable via environment)
-  private readonly indexedDBTimeout = parseInt(process.env.NEXT_PUBLIC_INDEXEDDB_TIMEOUT_MS || '1000', 10);
+  private readonly indexedDBTimeout = parseInt(
+    process.env.NEXT_PUBLIC_INDEXEDDB_TIMEOUT_MS || String(StorageFactory.DEFAULT_INDEXEDDB_TIMEOUT_MS),
+    10
+  );
 
   // Storage size limits for security
-  private readonly maxKeySize = parseInt(process.env.NEXT_PUBLIC_STORAGE_MAX_KEY_SIZE || '1024', 10); // 1KB
-  private readonly maxValueSize = parseInt(process.env.NEXT_PUBLIC_STORAGE_MAX_VALUE_SIZE || '10485760', 10); // 10MB
+  private readonly maxKeySize = parseInt(
+    process.env.NEXT_PUBLIC_STORAGE_MAX_KEY_SIZE || String(StorageFactory.DEFAULT_MAX_KEY_SIZE),
+    10
+  );
+  private readonly maxValueSize = parseInt(
+    process.env.NEXT_PUBLIC_STORAGE_MAX_VALUE_SIZE || String(StorageFactory.DEFAULT_MAX_VALUE_SIZE),
+    10
+  );
+
+  /**
+   * Wait for mutex to be released with timeout protection
+   *
+   * @param timeout - Maximum time to wait in milliseconds
+   * @throws {StorageError} If mutex timeout is exceeded
+   */
+  private async waitForMutex(timeout = StorageFactory.DEFAULT_MUTEX_TIMEOUT_MS): Promise<void> {
+    const startTime = Date.now();
+    while (this.adapterCreationMutex && Date.now() - startTime < timeout) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    if (this.adapterCreationMutex) {
+      throw new StorageError(
+        StorageErrorType.ACCESS_DENIED,
+        `Adapter creation mutex timeout after ${timeout}ms`,
+        new Error('Mutex timeout')
+      );
+    }
+  }
 
   /**
    * Create and return the appropriate storage adapter based on configuration
@@ -146,10 +183,35 @@ export class StorageFactory {
     try {
       this.logger.debug('Creating storage adapter', { forceMode });
 
-      // Check if another creation is in progress (mutex pattern)
+      // Check if another creation is in progress (mutex pattern with timeout)
       if (this.adapterCreationMutex) {
         this.logger.debug('Adapter creation in progress, waiting for completion');
-        return await this.adapterCreationMutex;
+        try {
+          await this.waitForMutex();
+          // After waiting, check if we now have a cached adapter
+          if (this.cachedAdapter && !forceMode) {
+            const currentConfig = this.getStorageConfig();
+            if (this.cachedConfig && currentConfig.mode === this.cachedConfig.mode) {
+              return this.cachedAdapter;
+            }
+          }
+        } catch (error) {
+          this.logger.warn('Mutex timeout occurred, proceeding with adapter creation', { error });
+
+          // Send telemetry for mutex timeout
+          this.sendTelemetry({
+            event: 'adapter_failed',
+            mode: forceMode || this.getStorageConfig().mode,
+            timestamp: Date.now(),
+            details: {
+              error: 'mutex_timeout',
+              duration: Date.now() - startTime
+            }
+          });
+
+          // Reset mutex and proceed - this handles stuck mutex scenarios
+          this.adapterCreationMutex = null;
+        }
       }
 
       // Return cached adapter if available and mode hasn't changed
@@ -526,12 +588,10 @@ export class StorageFactory {
    * @returns Delay in milliseconds before next retry attempt
    */
   private calculateBackoffDelay(failureCount: number): number {
-    // Exponential backoff: base delay of 1 second, multiplied by 2^failureCount
-    // Max delay capped at 30 seconds
-    const baseDelay = 1000; // 1 second
-    const exponentialDelay = baseDelay * Math.pow(2, failureCount);
-    const maxDelay = 30000; // 30 seconds
-    return Math.min(exponentialDelay, maxDelay);
+    // Exponential backoff: base delay multiplied by 2^failureCount
+    // Max delay capped at configured maximum
+    const exponentialDelay = StorageFactory.DEFAULT_BACKOFF_BASE_DELAY_MS * Math.pow(2, failureCount);
+    return Math.min(exponentialDelay, StorageFactory.DEFAULT_BACKOFF_MAX_DELAY_MS);
   }
 
   /**
