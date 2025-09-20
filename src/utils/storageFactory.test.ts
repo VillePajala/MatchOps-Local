@@ -225,9 +225,17 @@ describe('Advanced Features', () => {
 
     await factory.createAdapter('localStorage');
 
-    expect(telemetryEvents).toHaveLength(1);
-    expect(telemetryEvents[0].event).toBe('adapter_created');
-    expect(telemetryEvents[0].mode).toBe('localStorage');
+    // Should include audit events and adapter creation event
+    expect(telemetryEvents.length).toBeGreaterThanOrEqual(1);
+
+    // Find the adapter_created event
+    const adapterCreatedEvent = telemetryEvents.find(e => e.event === 'adapter_created');
+    expect(adapterCreatedEvent).toBeDefined();
+    expect(adapterCreatedEvent!.mode).toBe('localStorage');
+
+    // Should include audit logging events
+    const auditEvents = telemetryEvents.filter(e => e.details?.auditAction);
+    expect(auditEvents.length).toBeGreaterThan(0);
   });
 
   test('should dispose adapter properly', async () => {
