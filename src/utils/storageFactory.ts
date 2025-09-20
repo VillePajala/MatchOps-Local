@@ -184,14 +184,16 @@ export class StorageFactory {
   private cachedAdapter: StorageAdapter | null = null;
   private cachedConfig: StorageConfig | null = null;
   private cacheVersion: number = 0;
+  private cachedAdapterVersion: number = -1; // Version when adapter was cached
   private telemetryCallback?: (event: StorageTelemetryEvent) => void;
 
   // Mutex for preventing concurrent adapter creation
   private adapterCreationMutex: Promise<StorageAdapter> | null = null;
 
-  // Rate limiting state
+  // Rate limiting state (persisted across page reloads)
   private operationHistory: number[] = [];
   private lastRateLimitReset = Date.now();
+  private readonly rateLimitStorageKey = '__storage_factory_rate_limits';
 
   // Configuration for IndexedDB timeout (configurable via environment)
   private readonly indexedDBTimeout = parseInt(
@@ -210,22 +212,36 @@ export class StorageFactory {
   );
 
   /**
-   * Wait for mutex to be released with timeout protection
+   * Wait for mutex to be released with timeout protection using Promise race
    *
    * @param timeout - Maximum time to wait in milliseconds
    * @throws {StorageError} If mutex timeout is exceeded
    */
   private async waitForMutex(timeout = StorageFactory.DEFAULT_MUTEX_TIMEOUT_MS): Promise<void> {
-    const startTime = Date.now();
-    while (this.adapterCreationMutex && Date.now() - startTime < timeout) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    if (this.adapterCreationMutex) {
-      throw new StorageError(
-        StorageErrorType.ACCESS_DENIED,
-        `Adapter creation mutex timeout after ${timeout}ms`,
-        new Error('Mutex timeout')
-      );
+    if (!this.adapterCreationMutex) return;
+
+    const mutexPromise = this.adapterCreationMutex.catch(() => {
+      // If the mutex promise rejects, we still want to wait for it to complete
+      // so we can proceed with our own adapter creation
+    });
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new StorageError(
+          StorageErrorType.ACCESS_DENIED,
+          `Adapter creation mutex timeout after ${timeout}ms`,
+          new Error('Mutex timeout')
+        ));
+      }, timeout);
+    });
+
+    try {
+      await Promise.race([mutexPromise, timeoutPromise]);
+    } catch (error) {
+      if (error instanceof StorageError) {
+        throw error;
+      }
+      // If the mutex promise failed for other reasons, we can proceed
     }
   }
 
@@ -280,11 +296,14 @@ export class StorageFactory {
       // Return cached adapter if available and mode hasn't changed
       if (this.cachedAdapter && !forceMode) {
         const currentConfig = this.getStorageConfig();
-        const currentCacheVersion = this.cacheVersion;
         if (this.cachedConfig &&
             currentConfig.mode === this.cachedConfig.mode &&
-            currentCacheVersion === this.cacheVersion) {
-          this.logger.debug('Returning cached adapter', { mode: currentConfig.mode });
+            this.cachedAdapterVersion === this.cacheVersion) {
+          this.logger.debug('Returning cached adapter', {
+            mode: currentConfig.mode,
+            cacheVersion: this.cacheVersion,
+            adapterVersion: this.cachedAdapterVersion
+          });
           return this.cachedAdapter;
         }
       }
@@ -340,6 +359,7 @@ export class StorageFactory {
     this.cachedAdapter = adapter;
     this.cachedConfig = { ...config, mode: targetMode };
     this.cacheVersion = newCacheVersion;
+    this.cachedAdapterVersion = newCacheVersion; // Store version when adapter was cached
 
     const duration = Date.now() - startTime;
     this.logger.debug('Storage adapter created successfully', {
@@ -360,12 +380,56 @@ export class StorageFactory {
   }
 
   /**
+   * Load rate limit state from persistent storage
+   */
+  private loadRateLimitState(): void {
+    try {
+      const stored = sessionStorage.getItem(this.rateLimitStorageKey);
+      if (stored) {
+        const { operationHistory, lastReset } = JSON.parse(stored);
+        const now = Date.now();
+
+        // Only restore if the data is recent (within the window)
+        if (now - lastReset < StorageFactory.DEFAULT_RATE_LIMIT_WINDOW_MS) {
+          this.operationHistory = operationHistory.filter((timestamp: number) =>
+            now - timestamp < StorageFactory.DEFAULT_RATE_LIMIT_WINDOW_MS
+          );
+          this.lastRateLimitReset = lastReset;
+        }
+      }
+    } catch {
+      // If loading fails, start with empty state
+      this.operationHistory = [];
+      this.lastRateLimitReset = Date.now();
+    }
+  }
+
+  /**
+   * Save rate limit state to persistent storage
+   */
+  private saveRateLimitState(): void {
+    try {
+      const state = {
+        operationHistory: this.operationHistory,
+        lastReset: this.lastRateLimitReset
+      };
+      sessionStorage.setItem(this.rateLimitStorageKey, JSON.stringify(state));
+    } catch {
+      // Silently fail if sessionStorage is not available
+    }
+  }
+
+  /**
    * Check if operation is within rate limits
    *
    * @param operationType - Type of operation for audit logging
    * @throws {StorageError} If rate limit is exceeded
    */
   private checkRateLimit(operationType: string): void {
+    // Load persisted state on first check
+    if (this.operationHistory.length === 0 && this.lastRateLimitReset === Date.now()) {
+      this.loadRateLimitState();
+    }
     const now = Date.now();
 
     // Clean old entries (outside the time window)
@@ -415,6 +479,7 @@ export class StorageFactory {
 
     // Record this operation
     this.operationHistory.push(now);
+    this.saveRateLimitState(); // Persist rate limit state
     this.auditLog('operation_allowed', { operationType, operationCount: this.operationHistory.length });
   }
 
@@ -467,13 +532,70 @@ export class StorageFactory {
   }
 
   /**
-   * Validate storage key and value sizes for security
+   * Validate content for XSS prevention
+   *
+   * @param content - Content to validate
+   * @param contentType - Type of content (key, value, etc.)
+   * @throws {StorageError} If content contains suspicious patterns
+   */
+  private validateContentSecurity(content: string, contentType: string): void {
+    // Common XSS patterns to detect
+    const xssPatterns = [
+      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+      /javascript:/gi,
+      /on\w+\s*=/gi, // Event handlers like onclick=, onload=
+      /<iframe\b[^>]*>/gi,
+      /<object\b[^>]*>/gi,
+      /<embed\b[^>]*>/gi,
+      /<form\b[^>]*>/gi,
+      /data:text\/html/gi,
+      /vbscript:/gi,
+      /expression\s*\(/gi // CSS expressions
+    ];
+
+    for (const pattern of xssPatterns) {
+      if (pattern.test(content)) {
+        this.auditLog('xss_content_blocked', {
+          contentType,
+          pattern: pattern.source,
+          contentLength: content.length
+        });
+
+        throw new StorageError(
+          StorageErrorType.ACCESS_DENIED,
+          `Potentially malicious content blocked in ${contentType}`,
+          new Error('XSS content validation failed')
+        );
+      }
+    }
+
+    // Check for suspicious URL schemes
+    const suspiciousSchemes = /(?:javascript|data|vbscript|file|ftp):/gi;
+    if (suspiciousSchemes.test(content)) {
+      this.auditLog('suspicious_url_blocked', {
+        contentType,
+        contentLength: content.length
+      });
+
+      throw new StorageError(
+        StorageErrorType.ACCESS_DENIED,
+        `Suspicious URL scheme detected in ${contentType}`,
+        new Error('URL scheme validation failed')
+      );
+    }
+  }
+
+  /**
+   * Validate storage key and value sizes and content for security
    *
    * @param key - Storage key to validate
    * @param value - Storage value to validate
-   * @throws {StorageError} If key or value exceeds size limits
+   * @throws {StorageError} If key or value exceeds size limits or contains malicious content
    */
   validateStorageSize(key: string, value: string): void {
+    // Validate content for XSS
+    this.validateContentSecurity(key, 'key');
+    this.validateContentSecurity(value, 'value');
     if (key.length > this.maxKeySize) {
       throw new StorageError(
         StorageErrorType.QUOTA_EXCEEDED,
@@ -819,6 +941,7 @@ export class StorageFactory {
         await this.disposeAdapter();
       }
       this.cacheVersion = 0;
+      this.cachedAdapterVersion = -1; // Reset adapter version
 
       this.logger.debug('Storage configuration reset to defaults');
 
