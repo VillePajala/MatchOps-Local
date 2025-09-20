@@ -13,6 +13,35 @@
  * - Browser compatibility detection
  * - Migration state awareness
  * - Development/testing overrides
+ * - Enterprise-grade security and performance optimizations
+ *
+ * FUTURE ENHANCEMENTS (Phase 1):
+ *
+ * 🔗 IndexedDB Connection Pool:
+ * - Implement connection reuse across adapter instances
+ * - Add connection health checks and automatic reconnection
+ * - Reduce browser connection overhead for frequent operations
+ * - Monitor connection state and implement graceful degradation
+ *
+ * 🔒 Advanced Security Features:
+ * - Rate limiting for storage operations to prevent abuse
+ * - Content validation and XSS prevention for stored data
+ * - Optional encryption for sensitive data at rest
+ * - Access control and permission validation
+ * - Audit logging for security-critical operations
+ *
+ * ⚡ Performance Optimizations:
+ * - Batch operations for multiple key-value pairs
+ * - Transaction support for atomic operations
+ * - Lazy loading for large datasets
+ * - Compression for large values
+ * - Background sync and prefetching strategies
+ *
+ * 🧪 Enhanced Testing:
+ * - Stress tests for concurrent adapter creation
+ * - Integration tests with real browser APIs
+ * - Performance benchmarks for large datasets
+ * - Browser-specific edge case testing
  *
  * @see StorageAdapter interface in ./storageAdapter.ts
  * @author Claude Code
@@ -23,6 +52,14 @@ import { LocalStorageAdapter } from './localStorageAdapter';
 import { IndexedDBKvAdapter } from './indexedDbKvAdapter';
 import { createLogger } from './logger';
 import { getLocalStorageItem, setLocalStorageItem, removeLocalStorageItem } from './localStorage';
+
+/**
+ * Extended interface for storage adapters that support connection disposal
+ * Used for type-safe cleanup of IndexedDB connections and other resources
+ */
+interface DisposableAdapter extends StorageAdapter {
+  close?: () => Promise<void>;
+}
 
 /**
  * Available storage modes for the application
@@ -533,8 +570,9 @@ export class StorageFactory {
       });
 
       // If adapter has a close method (like IndexedDB), call it
-      if ('close' in this.cachedAdapter && typeof (this.cachedAdapter as { close?: () => Promise<void> }).close === 'function') {
-        await (this.cachedAdapter as { close: () => Promise<void> }).close();
+      const disposableAdapter = this.cachedAdapter as DisposableAdapter;
+      if (disposableAdapter.close) {
+        await disposableAdapter.close();
       }
 
       // Send telemetry
