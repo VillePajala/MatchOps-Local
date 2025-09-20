@@ -16,7 +16,7 @@
  * @author Claude Code
  */
 
-import { openDB, IDBPDatabase } from 'idb';
+import { openDB, IDBPDatabase, IDBPObjectStore } from 'idb';
 import { createLogger } from './logger';
 import { StorageAdapter, StorageError, StorageErrorType, StorageAdapterConfig } from './storageAdapter';
 
@@ -216,8 +216,7 @@ export class IndexedDBKvAdapter implements StorageAdapter {
    */
   private async withTransaction<T>(
     mode: IDBTransactionMode,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    operation: (store: any) => Promise<T>
+    operation: (store: IDBPObjectStore<unknown, [string], string, IDBTransactionMode>) => Promise<T>
   ): Promise<T> {
     await this.ensureInitialized();
 
@@ -260,7 +259,7 @@ export class IndexedDBKvAdapter implements StorageAdapter {
       this.logger.debug('Getting item from IndexedDB', { key });
 
       const result = await this.withTransaction('readonly', async (store) => {
-        return await store.get(key);
+        return await (store as IDBPObjectStore<unknown, [string], string, 'readonly'>).get(key);
       });
 
       if (result && typeof result.value === 'string') {
@@ -299,7 +298,7 @@ export class IndexedDBKvAdapter implements StorageAdapter {
       });
 
       await this.withTransaction('readwrite', async (store) => {
-        await store.put({ key, value });
+        await (store as IDBPObjectStore<unknown, [string], string, 'readwrite'>).put({ key, value });
       });
 
       // Invalidate cache for large values that might affect storage usage significantly
@@ -333,7 +332,7 @@ export class IndexedDBKvAdapter implements StorageAdapter {
       this.logger.debug('Removing item from IndexedDB', { key });
 
       await this.withTransaction('readwrite', async (store) => {
-        await store.delete(key);
+        await (store as IDBPObjectStore<unknown, [string], string, 'readwrite'>).delete(key);
       });
 
       this.logger.debug('Item removed successfully', { key });
@@ -356,7 +355,7 @@ export class IndexedDBKvAdapter implements StorageAdapter {
       this.logger.debug('Clearing all items from IndexedDB');
 
       await this.withTransaction('readwrite', async (store) => {
-        await store.clear();
+        await (store as IDBPObjectStore<unknown, [string], string, 'readwrite'>).clear();
       });
 
       // Clearing all data significantly affects storage usage
@@ -385,7 +384,7 @@ export class IndexedDBKvAdapter implements StorageAdapter {
       this.logger.debug('Getting all keys from IndexedDB');
 
       const keys = await this.withTransaction('readonly', async (store) => {
-        const idbKeys = await store.getAllKeys();
+        const idbKeys = await (store as IDBPObjectStore<unknown, [string], string, 'readonly'>).getAllKeys();
         return idbKeys as string[];
       });
 
