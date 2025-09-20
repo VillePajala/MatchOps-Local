@@ -124,7 +124,7 @@ describe('LocalStorageAdapter', () => {
         } catch (error) {
           expect(error).toBeInstanceOf(StorageError);
           expect((error as StorageError).type).toBe(StorageErrorType.QUOTA_EXCEEDED);
-          expect((error as StorageError).message).toBe('localStorage storage quota exceeded');
+          expect((error as StorageError).message).toBe('localStorage quota exceeded (key: key, size: 5B)');
           expect((error as StorageError).cause).toBe(quotaError);
         }
       });
@@ -216,7 +216,7 @@ describe('LocalStorageAdapter', () => {
           await adapter.getKeys();
         } catch (error) {
           expect((error as StorageError).type).toBe(StorageErrorType.ACCESS_DENIED);
-          expect((error as StorageError).message).toBe('localStorage not available');
+          expect((error as StorageError).message).toBe('localStorage not available (getKeys operation failed)');
         }
       });
     });

@@ -38,6 +38,12 @@ export class LocalStorageAdapter implements StorageAdapter {
     return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
   }
 
+  /**
+   * Retrieves a value from localStorage
+   * @param key - The storage key to retrieve
+   * @returns The stored value or null if not found
+   * @throws {StorageError} With ACCESS_DENIED type if localStorage is unavailable
+   */
   async getItem(key: string): Promise<string | null> {
     try {
       this.logger.debug('Getting item from localStorage', { key });
@@ -54,6 +60,13 @@ export class LocalStorageAdapter implements StorageAdapter {
     }
   }
 
+  /**
+   * Stores a value in localStorage
+   * @param key - The storage key to use
+   * @param value - The string value to store
+   * @throws {StorageError} With QUOTA_EXCEEDED type if storage limit reached
+   * @throws {StorageError} With ACCESS_DENIED type if localStorage is unavailable
+   */
   async setItem(key: string, value: string): Promise<void> {
     try {
       this.logger.debug('Setting item in localStorage', {
@@ -72,7 +85,7 @@ export class LocalStorageAdapter implements StorageAdapter {
         });
         throw new StorageError(
           StorageErrorType.QUOTA_EXCEEDED,
-          'localStorage storage quota exceeded',
+          `localStorage quota exceeded (key: ${key}, size: ${this.formatSize(value.length)})`,
           error instanceof Error ? error : new Error(String(error))
         );
       }
@@ -87,6 +100,11 @@ export class LocalStorageAdapter implements StorageAdapter {
     }
   }
 
+  /**
+   * Removes a value from localStorage
+   * @param key - The storage key to remove
+   * @throws {StorageError} With ACCESS_DENIED type if localStorage is unavailable
+   */
   async removeItem(key: string): Promise<void> {
     try {
       this.logger.debug('Removing item from localStorage', { key });
@@ -102,6 +120,10 @@ export class LocalStorageAdapter implements StorageAdapter {
     }
   }
 
+  /**
+   * Clears all values from localStorage
+   * @throws {StorageError} With ACCESS_DENIED type if localStorage is unavailable
+   */
   async clear(): Promise<void> {
     try {
       this.logger.debug('Clearing localStorage');
@@ -117,10 +139,19 @@ export class LocalStorageAdapter implements StorageAdapter {
     }
   }
 
+  /**
+   * Returns the name of the storage backend
+   * @returns The string 'localStorage'
+   */
   getBackendName(): string {
     return 'localStorage';
   }
 
+  /**
+   * Retrieves all keys currently stored in localStorage
+   * @returns Array of storage keys, filtered to exclude null values
+   * @throws {StorageError} With ACCESS_DENIED type if localStorage is unavailable
+   */
   async getKeys(): Promise<string[]> {
     try {
       this.logger.debug('Getting localStorage keys');
@@ -130,7 +161,7 @@ export class LocalStorageAdapter implements StorageAdapter {
         this.logger.error('localStorage not available');
         throw new StorageError(
           StorageErrorType.ACCESS_DENIED,
-          'localStorage not available'
+          'localStorage not available (getKeys operation failed)'
         );
       }
 
