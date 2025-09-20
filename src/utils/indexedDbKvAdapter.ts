@@ -52,6 +52,11 @@ export class IndexedDBKvAdapter implements StorageAdapter {
   private db: IDBPDatabase | null = null;
   private initPromise: Promise<void> | null = null;
 
+  // Storage usage caching
+  private storageUsageCache: { used: number; available: number } | null = null;
+  private storageUsageCacheExpiry: number = 0;
+  private readonly STORAGE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
   /**
    * Creates a new IndexedDB adapter instance.
    *
@@ -297,6 +302,11 @@ export class IndexedDBKvAdapter implements StorageAdapter {
         await store.put({ key, value });
       });
 
+      // Invalidate cache for large values that might affect storage usage significantly
+      if (value.length > 100 * 1024) { // 100KB threshold
+        this.invalidateStorageUsageCache();
+      }
+
       this.logger.debug('Item stored successfully', { key });
     } catch (error) {
       this.logger.error('Failed to set item in IndexedDB', {
@@ -348,6 +358,9 @@ export class IndexedDBKvAdapter implements StorageAdapter {
       await this.withTransaction('readwrite', async (store) => {
         await store.clear();
       });
+
+      // Clearing all data significantly affects storage usage
+      this.invalidateStorageUsageCache();
 
       this.logger.debug('All items cleared successfully');
     } catch (error) {
@@ -421,21 +434,57 @@ export class IndexedDBKvAdapter implements StorageAdapter {
 
   /**
    * Get storage usage information if available.
+   * Uses caching to avoid frequent API calls since storage usage changes slowly.
    *
+   * @param forceRefresh - Force refresh of cached data
    * @returns Promise resolving to storage usage data or null if not available
    */
-  async getStorageUsage(): Promise<{ used: number; available: number } | null> {
+  async getStorageUsage(forceRefresh = false): Promise<{ used: number; available: number } | null> {
+    const now = Date.now();
+
+    // Return cached value if valid and not forcing refresh
+    if (!forceRefresh && this.storageUsageCache && now < this.storageUsageCacheExpiry) {
+      this.logger.debug('Returning cached storage usage', {
+        cached: this.storageUsageCache,
+        expiresIn: this.storageUsageCacheExpiry - now
+      });
+      return this.storageUsageCache;
+    }
+
     try {
       if ('storage' in navigator && 'estimate' in navigator.storage) {
         const estimate = await navigator.storage.estimate();
-        return {
+        const usage = {
           used: estimate.usage || 0,
           available: estimate.quota || 0
         };
+
+        // Update cache
+        this.storageUsageCache = usage;
+        this.storageUsageCacheExpiry = now + this.STORAGE_CACHE_TTL;
+
+        this.logger.debug('Updated storage usage cache', {
+          usage,
+          cacheExpiresAt: new Date(this.storageUsageCacheExpiry).toISOString()
+        });
+
+        return usage;
       }
     } catch (error) {
       this.logger.warn('Failed to get storage usage estimate', { error });
     }
     return null;
+  }
+
+  /**
+   * Invalidate the storage usage cache.
+   * Useful after operations that might significantly change storage usage.
+   */
+  private invalidateStorageUsageCache(): void {
+    if (this.storageUsageCache) {
+      this.logger.debug('Invalidating storage usage cache');
+      this.storageUsageCache = null;
+      this.storageUsageCacheExpiry = 0;
+    }
   }
 }

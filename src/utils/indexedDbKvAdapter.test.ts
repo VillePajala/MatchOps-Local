@@ -577,6 +577,120 @@ describe('IndexedDBKvAdapter', () => {
 
       expect(usage).toBeNull();
     });
+
+    it('should cache storage usage estimates', async () => {
+      const mockEstimate = { usage: 1024 * 1024, quota: 100 * 1024 * 1024 };
+      const estimateFn = jest.fn().mockResolvedValue(mockEstimate);
+
+      Object.defineProperty(navigator, 'storage', {
+        value: { estimate: estimateFn },
+        configurable: true
+      });
+
+      // First call should fetch
+      const usage1 = await adapter.getStorageUsage();
+      expect(estimateFn).toHaveBeenCalledTimes(1);
+      expect(usage1).toEqual({
+        used: 1024 * 1024,
+        available: 100 * 1024 * 1024
+      });
+
+      // Second call should use cache
+      const usage2 = await adapter.getStorageUsage();
+      expect(estimateFn).toHaveBeenCalledTimes(1); // Still only called once
+      expect(usage2).toEqual(usage1);
+    });
+
+    it('should allow force refresh of storage usage cache', async () => {
+      const mockEstimate = { usage: 1024 * 1024, quota: 100 * 1024 * 1024 };
+      const estimateFn = jest.fn().mockResolvedValue(mockEstimate);
+
+      Object.defineProperty(navigator, 'storage', {
+        value: { estimate: estimateFn },
+        configurable: true
+      });
+
+      // First call
+      await adapter.getStorageUsage();
+      expect(estimateFn).toHaveBeenCalledTimes(1);
+
+      // Force refresh should fetch again
+      await adapter.getStorageUsage(true);
+      expect(estimateFn).toHaveBeenCalledTimes(2);
+    });
+
+    it('should invalidate cache after large setItem operations', async () => {
+      const mockEstimate = { usage: 1024 * 1024, quota: 100 * 1024 * 1024 };
+      const estimateFn = jest.fn().mockResolvedValue(mockEstimate);
+
+      Object.defineProperty(navigator, 'storage', {
+        value: { estimate: estimateFn },
+        configurable: true
+      });
+
+      // Initialize adapter and get initial usage
+      await adapter.getItem('init');
+      await adapter.getStorageUsage();
+      expect(estimateFn).toHaveBeenCalledTimes(1);
+
+      jest.clearAllMocks();
+
+      // Large value (>100KB) should invalidate cache
+      const largeValue = 'x'.repeat(101 * 1024);
+      await adapter.setItem('large', largeValue);
+
+      // Next call should fetch fresh data
+      await adapter.getStorageUsage();
+      expect(estimateFn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should invalidate cache after clear operation', async () => {
+      const mockEstimate = { usage: 1024 * 1024, quota: 100 * 1024 * 1024 };
+      const estimateFn = jest.fn().mockResolvedValue(mockEstimate);
+
+      Object.defineProperty(navigator, 'storage', {
+        value: { estimate: estimateFn },
+        configurable: true
+      });
+
+      // Initialize adapter and get initial usage
+      await adapter.getItem('init');
+      await adapter.getStorageUsage();
+      expect(estimateFn).toHaveBeenCalledTimes(1);
+
+      jest.clearAllMocks();
+
+      // Clear should invalidate cache
+      await adapter.clear();
+
+      // Next call should fetch fresh data
+      await adapter.getStorageUsage();
+      expect(estimateFn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not invalidate cache for small setItem operations', async () => {
+      const mockEstimate = { usage: 1024 * 1024, quota: 100 * 1024 * 1024 };
+      const estimateFn = jest.fn().mockResolvedValue(mockEstimate);
+
+      Object.defineProperty(navigator, 'storage', {
+        value: { estimate: estimateFn },
+        configurable: true
+      });
+
+      // Initialize adapter and get initial usage
+      await adapter.getItem('init');
+      await adapter.getStorageUsage();
+      expect(estimateFn).toHaveBeenCalledTimes(1);
+
+      jest.clearAllMocks();
+
+      // Small value should not invalidate cache
+      await adapter.setItem('small', 'small value');
+
+      // Next call should use cache (no new fetch)
+      await adapter.getStorageUsage();
+      expect(estimateFn).toHaveBeenCalledTimes(0);
+    });
   });
 
   describe('Error Recovery', () => {
