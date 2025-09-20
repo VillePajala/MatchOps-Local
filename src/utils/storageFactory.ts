@@ -22,7 +22,7 @@ import { StorageAdapter, StorageError, StorageErrorType } from './storageAdapter
 import { LocalStorageAdapter } from './localStorageAdapter';
 import { IndexedDBKvAdapter } from './indexedDbKvAdapter';
 import { createLogger } from './logger';
-import { getLocalStorageItem, setLocalStorageItem } from './localStorage';
+import { getLocalStorageItem, setLocalStorageItem, removeLocalStorageItem } from './localStorage';
 
 /**
  * Available storage modes for the application
@@ -38,6 +38,21 @@ export type MigrationState =
   | 'completed'
   | 'failed'
   | 'rolled-back';
+
+/**
+ * Telemetry events for monitoring storage adapter selection and usage
+ */
+export interface StorageTelemetryEvent {
+  event: 'adapter_created' | 'adapter_failed' | 'fallback_triggered' | 'config_updated' | 'adapter_disposed';
+  mode: StorageMode;
+  timestamp: number;
+  details?: {
+    fallbackReason?: string;
+    failureCount?: number;
+    duration?: number;
+    error?: string;
+  };
+}
 
 /**
  * Configuration for storage system behavior
@@ -104,6 +119,8 @@ export class StorageFactory {
   private readonly logger = createLogger('StorageFactory');
   private cachedAdapter: StorageAdapter | null = null;
   private cachedConfig: StorageConfig | null = null;
+  private cacheVersion: number = 0;
+  private telemetryCallback?: (event: StorageTelemetryEvent) => void;
 
   /**
    * Create and return the appropriate storage adapter based on configuration
@@ -114,13 +131,17 @@ export class StorageFactory {
    * @throws {StorageError} If no suitable storage adapter can be created
    */
   async createAdapter(forceMode?: StorageMode): Promise<StorageAdapter> {
+    const startTime = Date.now();
     try {
       this.logger.debug('Creating storage adapter', { forceMode });
 
       // Return cached adapter if available and mode hasn't changed
       if (this.cachedAdapter && !forceMode) {
         const currentConfig = this.getStorageConfig();
-        if (this.cachedConfig && currentConfig.mode === this.cachedConfig.mode) {
+        const currentCacheVersion = this.cacheVersion;
+        if (this.cachedConfig &&
+            currentConfig.mode === this.cachedConfig.mode &&
+            currentCacheVersion === this.cacheVersion) {
           this.logger.debug('Returning cached adapter', { mode: currentConfig.mode });
           return this.cachedAdapter;
         }
@@ -136,6 +157,11 @@ export class StorageFactory {
         forceMode
       });
 
+      // Dispose old adapter before creating new one
+      if (this.cachedAdapter && this.cachedAdapter !== null) {
+        await this.disposeAdapter();
+      }
+
       let adapter: StorageAdapter;
 
       if (targetMode === 'indexedDB') {
@@ -146,13 +172,25 @@ export class StorageFactory {
         adapter = await this.createLocalStorageAdapter();
       }
 
-      // Cache the successful adapter and config
+      // Cache the successful adapter and config with version
+      const newCacheVersion = this.cacheVersion + 1;
       this.cachedAdapter = adapter;
       this.cachedConfig = { ...config, mode: targetMode };
+      this.cacheVersion = newCacheVersion;
 
+      const duration = Date.now() - startTime;
       this.logger.debug('Storage adapter created successfully', {
         backend: adapter.getBackendName(),
-        mode: targetMode
+        mode: targetMode,
+        duration
+      });
+
+      // Send telemetry
+      this.sendTelemetry({
+        event: 'adapter_created',
+        mode: targetMode,
+        timestamp: Date.now(),
+        details: { duration }
       });
 
       return adapter;
@@ -175,7 +213,12 @@ export class StorageFactory {
   getStorageConfig(): StorageConfig {
     try {
       const mode = (getLocalStorageItem(STORAGE_CONFIG_KEYS.MODE) as StorageMode) || DEFAULT_STORAGE_CONFIG.mode;
-      const version = getLocalStorageItem(STORAGE_CONFIG_KEYS.VERSION) || DEFAULT_STORAGE_CONFIG.version;
+      const rawVersion = getLocalStorageItem(STORAGE_CONFIG_KEYS.VERSION) || DEFAULT_STORAGE_CONFIG.version;
+      // Validate version format
+      const version = this.isValidVersion(rawVersion) ? rawVersion : DEFAULT_STORAGE_CONFIG.version;
+      if (rawVersion !== version) {
+        this.logger.warn('Invalid version format, using default', { rawVersion, version });
+      }
       const migrationState = (getLocalStorageItem(STORAGE_CONFIG_KEYS.MIGRATION_STATE) as MigrationState) || DEFAULT_STORAGE_CONFIG.migrationState;
       const forceMode = getLocalStorageItem(STORAGE_CONFIG_KEYS.FORCE_MODE) as StorageMode | undefined;
       const lastMigrationAttempt = getLocalStorageItem(STORAGE_CONFIG_KEYS.LAST_MIGRATION) || undefined;
@@ -230,7 +273,7 @@ export class StorageFactory {
         if (updates.forceMode === null) {
           // Remove force mode override
           try {
-            localStorage.removeItem(STORAGE_CONFIG_KEYS.FORCE_MODE);
+            removeLocalStorageItem(STORAGE_CONFIG_KEYS.FORCE_MODE);
           } catch (error) {
             this.logger.warn('Could not remove force mode override', { error });
           }
@@ -245,11 +288,15 @@ export class StorageFactory {
         setLocalStorageItem(STORAGE_CONFIG_KEYS.FAILURE_COUNT, updates.migrationFailureCount.toString());
       }
 
-      // Invalidate cached adapter if mode changed
+      // Invalidate cached adapter if mode changed (thread-safe)
       if (updates.mode && updates.mode !== currentConfig.mode) {
         this.logger.debug('Storage mode changed, invalidating cached adapter');
-        this.cachedAdapter = null;
-        this.cachedConfig = null;
+        // Increment version to invalidate cache safely
+        this.cacheVersion++;
+        // Dispose old adapter
+        if (this.cachedAdapter) {
+          await this.disposeAdapter();
+        }
       }
 
       this.logger.debug('Storage configuration updated successfully');
@@ -298,7 +345,7 @@ export class StorageFactory {
           this.logger.debug('IndexedDB support test timed out');
           cleanup();
           resolve(false);
-        }, 2000);
+        }, 1000); // Reduced from 2000ms for better initial page load performance
 
         request.onerror = () => {
           this.logger.debug('IndexedDB support test failed', { error: request.error });
@@ -329,6 +376,76 @@ export class StorageFactory {
   }
 
   /**
+   * Dispose of the current cached adapter and clean up resources
+   * Prevents memory leaks when switching adapters
+   */
+  async disposeAdapter(): Promise<void> {
+    if (!this.cachedAdapter) return;
+
+    try {
+      this.logger.debug('Disposing cached adapter', {
+        backend: this.cachedAdapter.getBackendName()
+      });
+
+      // If adapter has a close method (like IndexedDB), call it
+      if ('close' in this.cachedAdapter && typeof (this.cachedAdapter as { close?: () => Promise<void> }).close === 'function') {
+        await (this.cachedAdapter as { close: () => Promise<void> }).close();
+      }
+
+      // Send telemetry
+      this.sendTelemetry({
+        event: 'adapter_disposed',
+        mode: this.cachedConfig?.mode || 'localStorage',
+        timestamp: Date.now()
+      });
+
+      this.cachedAdapter = null;
+      this.cachedConfig = null;
+    } catch (error) {
+      this.logger.error('Error disposing adapter', { error });
+    }
+  }
+
+  /**
+   * Set telemetry callback for monitoring adapter events
+   *
+   * @param callback - Function to receive telemetry events
+   *
+   * @example
+   * ```typescript
+   * factory.setTelemetryCallback((event) => {
+   *   console.log('Storage event:', event);
+   *   analytics.track('storage_event', event);
+   * });
+   * ```
+   */
+  setTelemetryCallback(callback: (event: StorageTelemetryEvent) => void): void {
+    this.telemetryCallback = callback;
+  }
+
+  /**
+   * Send telemetry event if callback is configured
+   */
+  private sendTelemetry(event: StorageTelemetryEvent): void {
+    if (this.telemetryCallback) {
+      try {
+        this.telemetryCallback(event);
+      } catch (error) {
+        this.logger.debug('Telemetry callback error', { error });
+      }
+    }
+  }
+
+  /**
+   * Validate storage version format (semver-like)
+   */
+  private isValidVersion(version: string): boolean {
+    // Basic semver validation: major.minor.patch
+    const semverRegex = /^\d+\.\d+\.\d+$/;
+    return semverRegex.test(version);
+  }
+
+  /**
    * Reset storage configuration to defaults
    * Useful for testing and error recovery scenarios
    */
@@ -339,15 +456,17 @@ export class StorageFactory {
       // Clear all configuration keys
       Object.values(STORAGE_CONFIG_KEYS).forEach(key => {
         try {
-          localStorage.removeItem(key);
+          removeLocalStorageItem(key);
         } catch (error) {
           this.logger.debug(`Could not remove config key ${key}`, { error });
         }
       });
 
-      // Clear cached adapter
-      this.cachedAdapter = null;
-      this.cachedConfig = null;
+      // Dispose and clear cached adapter
+      if (this.cachedAdapter) {
+        await this.disposeAdapter();
+      }
+      this.cacheVersion = 0;
 
       this.logger.debug('Storage configuration reset to defaults');
 
@@ -404,6 +523,18 @@ export class StorageFactory {
         migrationState: 'failed',
         migrationFailureCount: newFailureCount,
         lastMigrationAttempt: new Date().toISOString()
+      });
+
+      // Send fallback telemetry
+      this.sendTelemetry({
+        event: 'fallback_triggered',
+        mode: 'localStorage',
+        timestamp: Date.now(),
+        details: {
+          fallbackReason: 'IndexedDB creation failed',
+          failureCount: newFailureCount,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }
       });
 
       return this.createLocalStorageAdapter();
