@@ -27,6 +27,17 @@ import { StorageAdapter, StorageError, StorageErrorType } from './storageAdapter
 export class LocalStorageAdapter implements StorageAdapter {
   private logger = createLogger('LocalStorageAdapter');
 
+  /**
+   * Formats byte size into human-readable format
+   * @param bytes - Size in bytes
+   * @returns Formatted string (e.g., "150B", "10.5KB", "2.3MB")
+   */
+  private formatSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes}B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  }
+
   async getItem(key: string): Promise<string | null> {
     try {
       this.logger.debug('Getting item from localStorage', { key });
@@ -37,7 +48,7 @@ export class LocalStorageAdapter implements StorageAdapter {
       this.logger.error('Failed to get item from localStorage', { key, error });
       throw new StorageError(
         StorageErrorType.ACCESS_DENIED,
-        `Failed to access localStorage for key: ${key}`,
+        `Failed to get localStorage item: ${key}`,
         error instanceof Error ? error : new Error(String(error))
       );
     }
@@ -45,7 +56,10 @@ export class LocalStorageAdapter implements StorageAdapter {
 
   async setItem(key: string, value: string): Promise<void> {
     try {
-      this.logger.debug('Setting item in localStorage', { key, valueSize: value.length });
+      this.logger.debug('Setting item in localStorage', {
+        key,
+        valueSize: this.formatSize(value.length)
+      });
       setLocalStorageItem(key, value);
       this.logger.debug('Successfully set item in localStorage', { key });
     } catch (error) {
@@ -53,7 +67,7 @@ export class LocalStorageAdapter implements StorageAdapter {
       if (this.isQuotaExceededError(error)) {
         this.logger.error('localStorage quota exceeded', {
           key,
-          valueSize: value.length,
+          valueSize: this.formatSize(value.length),
           error
         });
         throw new StorageError(
@@ -67,7 +81,7 @@ export class LocalStorageAdapter implements StorageAdapter {
       this.logger.error('Failed to set item in localStorage', { key, error });
       throw new StorageError(
         StorageErrorType.ACCESS_DENIED,
-        `Failed to write to localStorage for key: ${key}`,
+        `Failed to set localStorage item: ${key}`,
         error instanceof Error ? error : new Error(String(error))
       );
     }
@@ -82,7 +96,7 @@ export class LocalStorageAdapter implements StorageAdapter {
       this.logger.error('Failed to remove item from localStorage', { key, error });
       throw new StorageError(
         StorageErrorType.ACCESS_DENIED,
-        `Failed to remove localStorage key: ${key}`,
+        `Failed to remove localStorage item: ${key}`,
         error instanceof Error ? error : new Error(String(error))
       );
     }
@@ -140,7 +154,7 @@ export class LocalStorageAdapter implements StorageAdapter {
 
       throw new StorageError(
         StorageErrorType.ACCESS_DENIED,
-        'Failed to enumerate localStorage keys',
+        'Failed to get localStorage keys',
         error instanceof Error ? error : new Error(String(error))
       );
     }

@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: implement LocalStorage adapter with comprehensive error handling (Step 0A.2)"
+  "notes": "fix: resolve TypeScript compilation errors for LocalStorage adapter"
 }

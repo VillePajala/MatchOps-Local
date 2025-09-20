@@ -7,6 +7,7 @@
 
 import { LocalStorageAdapter } from './localStorageAdapter';
 import { StorageError, StorageErrorType } from './storageAdapter';
+import { createLogger } from './logger';
 
 // Mock the localStorage utilities
 jest.mock('./localStorage', () => ({
@@ -43,9 +44,12 @@ const mockClear = clearLocalStorage as jest.MockedFunction<typeof clearLocalStor
 
 describe('LocalStorageAdapter', () => {
   let adapter: LocalStorageAdapter;
+  let mockLogger: ReturnType<typeof createLogger>;
 
   beforeEach(() => {
     adapter = new LocalStorageAdapter();
+    // Get reference to the mock logger for testing formatted sizes
+    mockLogger = (adapter as unknown as { logger: ReturnType<typeof createLogger> }).logger;
     jest.clearAllMocks();
   });
 
@@ -184,7 +188,7 @@ describe('LocalStorageAdapter', () => {
           await adapter.getItem('key');
         } catch (error) {
           expect((error as StorageError).type).toBe(StorageErrorType.ACCESS_DENIED);
-          expect((error as StorageError).message).toContain('Failed to access localStorage for key: key');
+          expect((error as StorageError).message).toContain('Failed to get localStorage item: key');
         }
       });
 
@@ -425,6 +429,76 @@ describe('LocalStorageAdapter', () => {
 
       // Should handle multiple operations without errors
       await expect(Promise.all(operations)).resolves.toBeDefined();
+    });
+  });
+
+  describe('Size Formatting', () => {
+    it('should format small values in bytes', async () => {
+      const smallValue = 'x'.repeat(512); // 512 bytes
+      mockSetItem.mockImplementation(() => {});
+
+      await adapter.setItem('small', smallValue);
+
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'Setting item in localStorage',
+        expect.objectContaining({
+          key: 'small',
+          valueSize: '512B'
+        })
+      );
+    });
+
+    it('should format medium values in KB', async () => {
+      const mediumValue = 'x'.repeat(10 * 1024); // 10KB
+      mockSetItem.mockImplementation(() => {});
+
+      await adapter.setItem('medium', mediumValue);
+
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'Setting item in localStorage',
+        expect.objectContaining({
+          key: 'medium',
+          valueSize: '10.0KB'
+        })
+      );
+    });
+
+    it('should format large values in MB', async () => {
+      const largeValue = 'x'.repeat(2.5 * 1024 * 1024); // 2.5MB
+      mockSetItem.mockImplementation(() => {});
+
+      await adapter.setItem('large', largeValue);
+
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'Setting item in localStorage',
+        expect.objectContaining({
+          key: 'large',
+          valueSize: '2.5MB'
+        })
+      );
+    });
+
+    it('should format quota error sizes correctly', async () => {
+      const largeValue = 'x'.repeat(100 * 1024); // 100KB
+      const quotaError = new DOMException('Storage quota exceeded', 'QuotaExceededError');
+      mockSetItem.mockImplementation(() => {
+        throw quotaError;
+      });
+
+      try {
+        await adapter.setItem('quota-test', largeValue);
+      } catch {
+        // Expected to throw
+      }
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'localStorage quota exceeded',
+        expect.objectContaining({
+          key: 'quota-test',
+          valueSize: '100.0KB',
+          error: quotaError
+        })
+      );
     });
   });
 
