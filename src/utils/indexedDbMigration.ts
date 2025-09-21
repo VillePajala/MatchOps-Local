@@ -54,7 +54,10 @@ const MIGRATION_CONSTANTS = {
   MAX_CONCURRENT_BATCHES: 3, // Limit parallel batch processing
   DYNAMIC_BATCH_MIN_SIZE: 5,
   DYNAMIC_BATCH_MAX_SIZE: 25,
-  CONNECTION_POOL_SIZE: 5
+  // Dynamic connection pool sizing based on available resources
+  CONNECTION_POOL_SIZE: typeof navigator !== 'undefined' && navigator.hardwareConcurrency
+    ? Math.min(Math.max(navigator.hardwareConcurrency, 2), 8) // 2-8 connections based on CPU cores
+    : 5 // Fallback for environments without navigator.hardwareConcurrency
 } as const;
 
 /**
@@ -80,6 +83,10 @@ export interface MigrationProgress {
   totalKeys: number;
   processedKeys: number;
   percentage: number;
+  estimatedTimeRemainingMs?: number;
+  estimatedTimeRemainingText?: string;
+  elapsedTimeMs?: number;
+  transferSpeedMBps?: number;
   errors: string[];
 }
 
@@ -177,6 +184,7 @@ export interface MigrationConfig {
   keepBackupOnSuccess: boolean;
   enablePartialRecovery: boolean;
   progressCallback?: (progress: MigrationProgress) => void;
+  notificationCallback?: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
 /**
@@ -230,9 +238,16 @@ export class IndexedDbMigrationOrchestrator {
   private completedKeys: number = 0;
   private alerts: Array<{ severity: 'info' | 'warning' | 'error'; message: string; timestamp: number }> = [];
 
+  // Performance Observer for granular timing
+  private performanceObserver: PerformanceObserver | null = null;
+  private performanceEntries: PerformanceEntry[] = [];
+
   constructor(config: Partial<MigrationConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.correlationId = `migration_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Initialize Performance Observer for granular timing
+    this.initializePerformanceObserver();
 
     // Validate browser compatibility on initialization
     this.validateBrowserCompatibility();
@@ -246,6 +261,9 @@ export class IndexedDbMigrationOrchestrator {
     this.transferStartTime = this.startTime;
     this.migrationId = `${this.correlationId}_${Date.now()}`;
 
+    // Mark migration start for performance tracking
+    this.markPerformance('migration_start');
+
     // Structured logging with correlation ID
     logger.info('Starting IndexedDB migration', {
       correlationId: this.correlationId,
@@ -257,6 +275,9 @@ export class IndexedDbMigrationOrchestrator {
 
     // Add initial alert
     this.addAlert('info', 'Migration process initiated');
+
+    // Send user notification for migration start
+    this.sendNotification('Starting data migration to IndexedDB...', 'info');
 
     try {
       // Check compatibility issues first
@@ -326,6 +347,7 @@ export class IndexedDbMigrationOrchestrator {
    */
   private async createBackup(): Promise<void> {
     this.updateState(MigrationState.BACKING_UP, 'Creating backup');
+    this.markPerformance('backup_start');
 
     try {
       logger.debug('Creating comprehensive backup');
@@ -352,6 +374,12 @@ export class IndexedDbMigrationOrchestrator {
 
       // Store only backup reference for large backups to save memory
       this.backup = isLargeBackup ? `<large_backup_ref:${backupKey}>` : backupData;
+
+      this.markPerformance('backup_end');
+      this.measurePerformance('backup_duration', 'backup_start', 'backup_end');
+
+      // Notify user about backup completion
+      this.sendNotification(`Backup created (${backupSizeMB.toFixed(1)} MB)`, 'success');
 
       logger.info('Backup created successfully', {
         size: backupData.length,
@@ -457,6 +485,7 @@ export class IndexedDbMigrationOrchestrator {
    */
   private async transferData(): Promise<void> {
     this.updateState(MigrationState.TRANSFERRING, 'Transferring data');
+    this.markPerformance('transfer_start');
 
     const localAdapter = await this.getPooledAdapter('localStorage');
     const indexedDbAdapter = await this.getPooledAdapter('indexedDB');
@@ -531,8 +560,15 @@ export class IndexedDbMigrationOrchestrator {
     // Clear progress on successful completion
     await this.clearPartialProgress();
 
-    // Log transfer statistics
+    this.markPerformance('transfer_end');
+    this.measurePerformance('transfer_duration', 'transfer_start', 'transfer_end');
+
+    // Notify user about transfer completion
     const totalSize = Object.values(transferStats).reduce((sum, size) => sum + size, 0);
+    const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(1);
+    this.sendNotification(`Data transfer completed (${totalSizeMB} MB)`, 'success');
+
+    // Log transfer statistics
     logger.info('Data transfer completed', {
       processedKeys,
       totalKeys,
@@ -715,6 +751,108 @@ export class IndexedDbMigrationOrchestrator {
    */
   private cleanupConnectionPool(): void {
     this.connectionPool.clear();
+  }
+
+  /**
+   * Initialize Performance Observer for granular timing measurements
+   */
+  private initializePerformanceObserver(): void {
+    // Skip in test environment or if Performance Observer not available
+    if (typeof jest !== 'undefined' || process.env.NODE_ENV === 'test' || typeof PerformanceObserver === 'undefined') {
+      logger.debug('Skipping Performance Observer initialization', {
+        reason: typeof jest !== 'undefined' ? 'test_environment' : 'not_available'
+      });
+      return;
+    }
+
+    try {
+      this.performanceObserver = new PerformanceObserver((list) => {
+        const entries = list.getEntries();
+        for (const entry of entries) {
+          // Filter for migration-related marks and measures
+          if (entry.name.startsWith('migration_')) {
+            this.performanceEntries.push(entry);
+
+            // Log important performance milestones
+            logger.debug('Performance measurement recorded', {
+              correlationId: this.correlationId,
+              name: entry.name,
+              duration: entry.duration,
+              startTime: entry.startTime,
+              entryType: entry.entryType
+            });
+          }
+        }
+
+        // Keep only the last 200 entries to prevent memory bloat
+        if (this.performanceEntries.length > 200) {
+          this.performanceEntries = this.performanceEntries.slice(-200);
+        }
+      });
+
+      // Observe marks and measures
+      this.performanceObserver.observe({ entryTypes: ['mark', 'measure'] });
+
+      logger.debug('Performance Observer initialized successfully', {
+        correlationId: this.correlationId
+      });
+    } catch (error) {
+      logger.warn('Failed to initialize Performance Observer', {
+        correlationId: this.correlationId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  /**
+   * Create performance mark for timing
+   */
+  private markPerformance(name: string): void {
+    if (typeof performance !== 'undefined' && performance.mark) {
+      try {
+        performance.mark(`migration_${this.correlationId}_${name}`);
+      } catch (error) {
+        // Silently ignore performance marking errors
+        logger.debug('Performance mark failed', { name, error });
+      }
+    }
+  }
+
+  /**
+   * Create performance measure between two marks
+   */
+  private measurePerformance(name: string, startMark: string, endMark?: string): void {
+    if (typeof performance !== 'undefined' && performance.measure) {
+      try {
+        const fullStartMark = `migration_${this.correlationId}_${startMark}`;
+        const fullEndMark = endMark ? `migration_${this.correlationId}_${endMark}` : undefined;
+        performance.measure(`migration_${this.correlationId}_${name}`, fullStartMark, fullEndMark);
+      } catch (error) {
+        // Silently ignore performance measuring errors
+        logger.debug('Performance measure failed', { name, startMark, endMark, error });
+      }
+    }
+  }
+
+  /**
+   * Clean up Performance Observer
+   */
+  private cleanupPerformanceObserver(): void {
+    if (this.performanceObserver) {
+      try {
+        this.performanceObserver.disconnect();
+        this.performanceObserver = null;
+        logger.debug('Performance Observer cleaned up', {
+          correlationId: this.correlationId,
+          totalEntries: this.performanceEntries.length
+        });
+      } catch (error) {
+        logger.warn('Error cleaning up Performance Observer', {
+          correlationId: this.correlationId,
+          error
+        });
+      }
+    }
   }
 
   /**
@@ -2190,16 +2328,88 @@ export class IndexedDbMigrationOrchestrator {
    */
   private updateProgress(processed: number, total: number): void {
     const percentage = Math.round((processed / total) * 100);
+    const elapsed = Date.now() - this.startTime;
+
+    // Calculate estimated time remaining
+    let estimatedTimeRemainingMs = 0;
+    if (processed > 0 && processed < total) {
+      const rate = processed / elapsed; // keys per millisecond
+      const remaining = total - processed;
+      estimatedTimeRemainingMs = Math.round(remaining / rate);
+    }
+
+    // Format time remaining
+    const formatTimeRemaining = (ms: number): string => {
+      if (ms <= 0) return '0s';
+      const seconds = Math.floor(ms / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+
+      if (hours > 0) return `${hours}h ${minutes % 60}m`;
+      if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+      return `${seconds}s`;
+    };
 
     if (this.config.progressCallback) {
       this.config.progressCallback({
         state: this.currentState,
-        currentStep: `Processing key ${processed} of ${total}`,
+        currentStep: `Processing key ${processed} of ${total} (${percentage}% complete)`,
         totalKeys: total,
         processedKeys: processed,
         percentage,
+        estimatedTimeRemainingMs,
+        estimatedTimeRemainingText: formatTimeRemaining(estimatedTimeRemainingMs),
+        elapsedTimeMs: elapsed,
+        transferSpeedMBps: this.calculateCurrentTransferSpeed(),
         errors: [...this.errors]
       });
+    }
+
+    // Log progress milestones
+    if (percentage > 0 && percentage % 25 === 0 && processed > 0) {
+      logger.info('Migration progress milestone', {
+        correlationId: this.correlationId,
+        migrationId: this.migrationId,
+        percentage,
+        processedKeys: processed,
+        totalKeys: total,
+        elapsedMs: elapsed,
+        estimatedRemainingMs: estimatedTimeRemainingMs,
+        state: this.currentState
+      });
+    }
+  }
+
+  /**
+   * Calculate current transfer speed
+   */
+  private calculateCurrentTransferSpeed(): number {
+    const elapsed = Date.now() - this.transferStartTime;
+    if (elapsed <= 0 || this.transferredBytes <= 0) return 0;
+
+    return (this.transferredBytes / (1024 * 1024)) / (elapsed / 1000); // MB/s
+  }
+
+  /**
+   * Send user notification if callback is provided
+   */
+  private sendNotification(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
+    if (this.config.notificationCallback) {
+      try {
+        this.config.notificationCallback(message, type);
+        logger.debug('User notification sent', {
+          correlationId: this.correlationId,
+          message,
+          type
+        });
+      } catch (error) {
+        logger.warn('Failed to send user notification', {
+          correlationId: this.correlationId,
+          message,
+          type,
+          error
+        });
+      }
     }
   }
 
@@ -2207,8 +2417,43 @@ export class IndexedDbMigrationOrchestrator {
    * Create migration result with proper cleanup
    */
   private createResult(success: boolean, state: MigrationState): MigrationResult {
-    // Clean up connection pool before returning result
+    const duration = Math.max(0, Date.now() - this.startTime);
+
+    // Mark migration end and create final measurement
+    this.markPerformance('migration_end');
+    this.measurePerformance('total_migration_duration', 'migration_start', 'migration_end');
+
+    // Send final user notification
+    if (success) {
+      const durationText = duration > 60000
+        ? `${(duration / 60000).toFixed(1)} minutes`
+        : `${(duration / 1000).toFixed(1)} seconds`;
+      this.sendNotification(`Migration completed successfully in ${durationText}`, 'success');
+    } else {
+      this.sendNotification('Migration failed. Data has been preserved.', 'error');
+    }
+
+    // Log migration duration for baseline tracking
+    logger.info('Migration completed', {
+      correlationId: this.correlationId,
+      migrationId: this.migrationId,
+      success,
+      state,
+      durationMs: duration,
+      durationMinutes: (duration / 60000).toFixed(2),
+      errorCount: this.errors.length,
+      transferredBytes: this.transferredBytes,
+      transferredMB: (this.transferredBytes / (1024 * 1024)).toFixed(2),
+      keysProcessed: this.completedKeys,
+      totalOperations: this.totalOperations,
+      averageOperationLatency: this.operationLatencies.length > 0
+        ? (this.operationLatencies.reduce((sum, lat) => sum + lat, 0) / this.operationLatencies.length).toFixed(2) + 'ms'
+        : 'N/A'
+    });
+
+    // Clean up resources
     this.cleanupConnectionPool();
+    this.cleanupPerformanceObserver();
 
     // Always release migration lock
     this.releaseMigrationLock();
@@ -2218,7 +2463,7 @@ export class IndexedDbMigrationOrchestrator {
       state,
       errors: [...this.errors],
       backup: this.backup || undefined,
-      duration: Math.max(0, Date.now() - this.startTime)
+      duration
     };
   }
 

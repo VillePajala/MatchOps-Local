@@ -226,19 +226,26 @@ export class StorageFactory {
     });
 
     let timeoutId: NodeJS.Timeout;
+    let isResolved = false;
+
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutId = setTimeout(() => {
-        reject(new StorageError(
-          StorageErrorType.ACCESS_DENIED,
-          `Adapter creation mutex timeout after ${timeout}ms`,
-          new Error('Mutex timeout')
-        ));
+        if (!isResolved) {
+          isResolved = true;
+          reject(new StorageError(
+            StorageErrorType.ACCESS_DENIED,
+            `Adapter creation mutex timeout after ${timeout}ms`,
+            new Error('Mutex timeout')
+          ));
+        }
       }, timeout);
     });
 
     try {
       await Promise.race([mutexPromise, timeoutPromise]);
+      isResolved = true; // Mark as resolved to prevent timeout rejection
     } catch (error) {
+      isResolved = true; // Mark as resolved to prevent timeout rejection
       if (error instanceof StorageError) {
         throw error;
       }
