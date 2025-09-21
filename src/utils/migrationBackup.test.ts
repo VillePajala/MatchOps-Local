@@ -65,10 +65,11 @@ describe('Migration Backup System', () => {
       expect(backup).toMatchObject({
         version: 1,
         targetVersion: 2,
-        timestamp: expect.any(Number),
         data: expect.any(Object),
         checksum: expect.any(String)
       });
+      expect(backup.timestamp).toBeGreaterThan(Date.now() - 5000); // Within last 5 seconds
+      expect(typeof backup.timestamp).toBe('number');
       
       // Should include all critical keys
       expect(backup.data).toHaveProperty('soccerMasterRoster');
