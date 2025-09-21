@@ -239,6 +239,68 @@ Acceptance:
 - Backup is cleared upon success; retained if rollback occurred.
 - App boots and passes smoke tests with the IDB backend.
 
+#### Phase 1 Execution Status:
+
+**Branch Strategy**: Phase 1 is organized into 2 logical branches, each representing a complete functional unit:
+
+1. **Branch 1** (`feat/m1-phase1-migration-engine`): **Complete Migration Engine**
+   - Steps 1B.1, 1B.2, 1B.3 - Core migration functionality with backup, transfer, and verification
+   - Deliverable: Testable migration engine that can safely copy localStorage to IndexedDB
+
+2. **Branch 2** (`feat/m1-phase1-production-integration`): **Production Integration & Safety**
+   - Steps 1B.4, 1B.5, 1B.6 - Atomic cutover, rollback mechanisms, and app integration
+   - Deliverable: Production-ready migration system integrated with app startup
+
+---
+
+**Step 1B.1: Migration Orchestrator Implementation** ⏳ *PENDING* 🔧 *Branch 1*
+- [ ] Create `src/utils/indexedDbMigration.ts` with migration coordinator class
+- [ ] Implement backup creation using existing `createMigrationBackup`
+- [ ] Add migration state tracking and progress monitoring
+- [ ] Define migration configuration and error types
+- [ ] Add comprehensive TypeScript interfaces for migration operations
+- [ ] Create unit tests for orchestrator core functionality
+
+**Step 1B.2: Data Transfer Logic Implementation** ⏳ *PENDING* 🔧 *Branch 1*
+- [ ] Implement localStorage to IndexedDB data copying mechanism
+- [ ] Handle all critical keys from `src/config/storageKeys.ts`
+- [ ] Add support for large payloads (especially `savedSoccerGames`)
+- [ ] Implement progress tracking and user feedback systems
+- [ ] Add batch processing for large datasets
+- [ ] Create comprehensive error handling for transfer failures
+
+**Step 1B.3: Verification System Implementation** ⏳ *PENDING* 🔧 *Branch 1*
+- [ ] Implement checksum validation for transferred data
+- [ ] Add round-trip read verification for data integrity
+- [ ] Create data consistency checks between localStorage and IndexedDB
+- [ ] Implement migration success criteria validation
+- [ ] Add detailed logging for verification steps
+- [ ] Create test cases for verification edge cases
+
+**Step 1B.4: Atomic Cutover Implementation** ⏳ *PENDING* 🚀 *Branch 2*
+- [ ] Implement storage mode switching mechanism
+- [ ] Add atomic flip from localStorage to IndexedDB
+- [ ] Update storage version tracking to `2.0.0`
+- [ ] Ensure cutover atomicity and consistency
+- [ ] Add storage adapter factory integration
+- [ ] Create rollback preparation during cutover
+
+**Step 1B.5: Rollback Mechanism Implementation** ⏳ *PENDING* 🚀 *Branch 2*
+- [ ] Implement comprehensive error detection and recovery
+- [ ] Add automatic backup restoration on migration failure
+- [ ] Maintain localStorage mode when migration fails
+- [ ] Create user notification system for migration status
+- [ ] Add detailed error reporting and diagnostics
+- [ ] Implement cleanup procedures for failed migrations
+
+**Step 1B.6: App Startup Integration** ⏳ *PENDING* 🚀 *Branch 2*
+- [ ] Extend existing `runMigration()` in `src/utils/migration.ts`
+- [ ] Hook migration into `src/app/page.tsx` startup flow
+- [ ] Ensure one-time execution per device with proper guards
+- [ ] Add lock management during migration process
+- [ ] Integrate with React Query and app initialization
+- [ ] Create end-to-end integration tests
+
 ### Phase 2 (Optional): Normalized IndexedDB Schema
 
 Goal: Evolve from KV to normalized stores for performance and richer querying.
@@ -1733,6 +1795,82 @@ export class LegacyDataCleaner {
 
 This implementation plan leverages the existing well-architected localStorage abstraction layer to minimize risk while providing significant benefits in storage capacity, performance, and future scalability.
 
-<function_calls>
-<invoke name="TodoWrite">
-<parameter name="todos">[{"content": "Examine current storage implementation in detail", "status": "completed", "activeForm": "Examining current storage implementation in detail"}, {"content": "Analyze React Query integration patterns", "status": "completed", "activeForm": "Analyzing React Query integration patterns"}, {"content": "Review data validation and schema systems", "status": "completed", "activeForm": "Reviewing data validation and schema systems"}, {"content": "Check backup/restore mechanisms", "status": "completed", "activeForm": "Checking backup/restore mechanisms"}, {"content": "Create detailed implementation plan", "status": "completed", "activeForm": "Creating detailed implementation plan"}]
+---
+
+## Future Enhancements & Production Improvements
+
+### Phase 1B.2 - Production Readiness Enhancements
+
+**Security & Monitoring** (High Priority for Production)
+- **Content Security Policy**: Add CSP headers for IndexedDB operations in production environments
+- **Migration Telemetry**: Implement comprehensive telemetry for migration duration, success rates, and failure patterns
+- **Rate Limiting**: Complete implementation of storage operation rate limiting (framework exists, needs activation)
+- **User-Facing Progress UI**: Add migration progress indicators and user feedback mechanisms
+- **Migration Dry-Run**: Implement dry-run capability for testing migration scenarios without data modification
+
+**Production Monitoring & Alerting**
+- **Migration Success Rate Monitoring**: Alert on migration failure rates >5%
+- **IndexedDB Quota Usage Monitoring**: Track and alert on quota consumption patterns
+- **Performance Benchmarks**: Establish baseline performance metrics for various dataset sizes
+- **Error Classification**: Enhanced error categorization for better troubleshooting
+
+### Phase 2 - Advanced Features & Optimizations
+
+**Performance & Scalability**
+- **Connection Pooling**: Implement IndexedDB connection reuse across adapter instances
+- **Compression**: Add compression for large payloads (>1MB) using LZ4 or similar algorithms
+- **Progressive Migration**: Support for very large datasets with pause/resume capability
+- **Background Processing**: Move migration operations to web workers for non-blocking UX
+
+**Enhanced Security**
+- **Data Encryption**: Implement client-side encryption using Web Crypto API (AES-256-GCM)
+- **Key Derivation**: PBKDF2 or Argon2id for password-based encryption scenarios
+- **Secure Key Rotation**: Automated key rotation and secure deletion of sensitive data
+- **Audit Logging**: Comprehensive audit trail for all storage operations
+
+**Developer Experience**
+- **Migration Debugging Tools**: Enhanced debugging capabilities for migration troubleshooting
+- **Browser Compatibility Testing**: Automated testing across different browser engines
+- **Integration Test Suite**: Real browser API integration tests for edge cases
+- **Performance Profiling**: Built-in profiling tools for migration performance analysis
+
+### Phase 3 - Advanced Architecture
+
+**Schema Evolution**
+- **Normalized IndexedDB Schema**: Move from KV to normalized stores for enhanced performance
+- **Advanced Indexing**: Implement composite indexes for complex query patterns
+- **Schema Versioning**: Robust schema migration system for future data model changes
+- **Query Optimization**: Enhanced query capabilities leveraging IndexedDB indexes
+
+**Enterprise Features**
+- **Multi-Tenant Support**: Support for multiple isolated data contexts
+- **Data Synchronization**: Offline-first synchronization with remote backends
+- **Conflict Resolution**: Advanced merge strategies for concurrent data modifications
+- **Backup Automation**: Automated backup scheduling and retention policies
+
+### Implementation Priority Matrix
+
+| Feature | Impact | Effort | Priority |
+|---------|--------|--------|----------|
+| User Progress UI | High | Medium | 🔴 P0 |
+| Migration Telemetry | High | Low | 🔴 P0 |
+| CSP Headers | High | Low | 🔴 P0 |
+| Dry-Run Capability | High | Medium | 🟡 P1 |
+| Connection Pooling | Medium | High | 🟡 P1 |
+| Data Compression | Medium | Medium | 🟡 P1 |
+| Data Encryption | Medium | High | 🟢 P2 |
+| Progressive Migration | Low | High | 🟢 P2 |
+
+### Risk Mitigation
+
+**Critical Risks Addressed in Current Implementation**
+- ✅ **Backup Storage Quota**: Implemented chunked backup storage in IndexedDB
+- ✅ **Checksum Collisions**: Implemented Web Crypto API with SHA-256 checksums
+- ✅ **Stack Overflow**: Fixed deep equality with circular reference protection
+- ✅ **Magic Numbers**: Extracted all constants to named configuration
+
+**Remaining Risks for Future Phases**
+- **Browser Compatibility**: Edge cases in older browser versions
+- **Quota Enforcement**: Different quota limits across browser vendors
+- **Performance Degradation**: Large dataset migration performance impact
+- **Concurrent Access**: Race conditions during migration process

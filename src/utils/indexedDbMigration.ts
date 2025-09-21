@@ -36,6 +36,19 @@ import {
 const logger = createLogger('indexedDbMigration');
 
 /**
+ * Migration constants
+ */
+const MIGRATION_CONSTANTS = {
+  LARGE_PAYLOAD_THRESHOLD_BYTES: 1024 * 1024, // 1MB
+  DEFAULT_BATCH_SIZE: 10,
+  MAX_RETRIES: 3,
+  EXPONENTIAL_BACKOFF_BASE_MS: 100,
+  BACKUP_CHUNK_SIZE_BYTES: 5 * 1024 * 1024, // 5MB chunks for backup storage
+  BACKUP_DB_NAME: 'migration-backup-db',
+  BACKUP_STORE_NAME: 'backups'
+} as const;
+
+/**
  * Migration state tracking
  */
 export enum MigrationState {
@@ -88,7 +101,7 @@ export interface MigrationConfig {
  */
 const DEFAULT_CONFIG: MigrationConfig = {
   targetVersion: '2.0.0',
-  batchSize: 10,
+  batchSize: MIGRATION_CONSTANTS.DEFAULT_BATCH_SIZE,
   verifyData: true,
   keepBackupOnSuccess: false
 };
@@ -186,13 +199,13 @@ export class IndexedDbMigrationOrchestrator {
         throw new Error('Failed to create backup');
       }
 
-      // Store backup in localStorage for recovery
+      // Store backup securely using IndexedDB to avoid localStorage quota issues
       const backupKey = `migration_backup_${Date.now()}`;
-      localStorage.setItem(backupKey, this.backup);
-      localStorage.setItem('last_migration_backup_key', backupKey);
+      await this.storeBackupSecurely(backupKey, this.backup);
 
       logger.info('Backup created successfully', {
         size: this.backup.length,
+        sizeMB: (this.backup.length / (1024 * 1024)).toFixed(2),
         key: backupKey
       });
     } catch (error) {
@@ -203,6 +216,87 @@ export class IndexedDbMigrationOrchestrator {
         error instanceof Error ? error : undefined
       );
     }
+  }
+
+  /**
+   * Store backup data securely in IndexedDB to avoid localStorage quota issues
+   */
+  private async storeBackupSecurely(backupKey: string, backupData: string): Promise<void> {
+    try {
+      // Open dedicated backup database
+      const db = await this.openBackupDatabase();
+
+      // Store metadata in localStorage for quick access
+      localStorage.setItem('last_migration_backup_key', backupKey);
+      localStorage.setItem(`${backupKey}_metadata`, JSON.stringify({
+        key: backupKey,
+        size: backupData.length,
+        created: Date.now(),
+        chunks: Math.ceil(backupData.length / MIGRATION_CONSTANTS.BACKUP_CHUNK_SIZE_BYTES)
+      }));
+
+      // Store backup data in chunks in IndexedDB
+      const chunks = Math.ceil(backupData.length / MIGRATION_CONSTANTS.BACKUP_CHUNK_SIZE_BYTES);
+      const transaction = db.transaction([MIGRATION_CONSTANTS.BACKUP_STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(MIGRATION_CONSTANTS.BACKUP_STORE_NAME);
+
+      for (let i = 0; i < chunks; i++) {
+        const start = i * MIGRATION_CONSTANTS.BACKUP_CHUNK_SIZE_BYTES;
+        const end = Math.min(start + MIGRATION_CONSTANTS.BACKUP_CHUNK_SIZE_BYTES, backupData.length);
+        const chunk = backupData.slice(start, end);
+
+        await new Promise<void>((resolve, reject) => {
+          const request = store.put({
+            id: `${backupKey}_chunk_${i}`,
+            data: chunk,
+            chunkIndex: i,
+            backupKey,
+            timestamp: Date.now()
+          });
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+      });
+
+      logger.debug('Backup stored in chunks', {
+        backupKey,
+        chunks,
+        sizeMB: (backupData.length / (1024 * 1024)).toFixed(2)
+      });
+
+    } catch (error) {
+      logger.error('Failed to store backup securely', { error, backupKey });
+      // Fallback to localStorage if IndexedDB fails
+      logger.warn('Falling back to localStorage for backup storage');
+      localStorage.setItem(backupKey, backupData);
+      localStorage.setItem('last_migration_backup_key', backupKey);
+    }
+  }
+
+  /**
+   * Open dedicated backup database
+   */
+  private async openBackupDatabase(): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(MIGRATION_CONSTANTS.BACKUP_DB_NAME, 1);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains(MIGRATION_CONSTANTS.BACKUP_STORE_NAME)) {
+          const store = db.createObjectStore(MIGRATION_CONSTANTS.BACKUP_STORE_NAME, { keyPath: 'id' });
+          store.createIndex('backupKey', 'backupKey', { unique: false });
+          store.createIndex('timestamp', 'timestamp', { unique: false });
+        }
+      };
+    });
   }
 
   /**
@@ -341,7 +435,7 @@ export class IndexedDbMigrationOrchestrator {
     localAdapter: StorageAdapter,
     indexedDbAdapter: StorageAdapter
   ): Promise<void> {
-    const maxRetries = 3;
+    const maxRetries = MIGRATION_CONSTANTS.MAX_RETRIES;
 
     for (const key of keys) {
       let retryCount = 0;
@@ -360,7 +454,7 @@ export class IndexedDbMigrationOrchestrator {
           retryCount++;
 
           if (retryCount < maxRetries) {
-            const delay = Math.pow(2, retryCount) * 100; // Exponential backoff
+            const delay = Math.pow(2, retryCount) * MIGRATION_CONSTANTS.EXPONENTIAL_BACKOFF_BASE_MS;
             logger.debug('Retrying key after delay', { key, delay, attempt: retryCount });
             await new Promise(resolve => setTimeout(resolve, delay));
           }
@@ -393,7 +487,7 @@ export class IndexedDbMigrationOrchestrator {
    * Check if payload is considered large
    */
   private isLargePayload(value: string): boolean {
-    return value.length > 1024 * 1024; // 1MB threshold
+    return value.length > MIGRATION_CONSTANTS.LARGE_PAYLOAD_THRESHOLD_BYTES;
   }
 
   /**
@@ -575,13 +669,34 @@ export class IndexedDbMigrationOrchestrator {
   }
 
   /**
-   * Deep equality check for objects
+   * Deep equality check for objects with circular reference protection
    */
   private deepEqual(obj1: unknown, obj2: unknown): boolean {
+    return this.deepEqualWithVisited(obj1, obj2, new WeakSet(), new WeakSet());
+  }
+
+  /**
+   * Deep equality implementation with visited set to prevent stack overflow
+   */
+  private deepEqualWithVisited(
+    obj1: unknown,
+    obj2: unknown,
+    visited1: WeakSet<object>,
+    visited2: WeakSet<object>
+  ): boolean {
     if (obj1 === obj2) return true;
 
     if (obj1 === null || obj2 === null) return false;
     if (typeof obj1 !== 'object' || typeof obj2 !== 'object') return false;
+
+    // Check for circular references
+    if (visited1.has(obj1 as object) || visited2.has(obj2 as object)) {
+      return visited1.has(obj1 as object) && visited2.has(obj2 as object);
+    }
+
+    // Add to visited sets
+    visited1.add(obj1 as object);
+    visited2.add(obj2 as object);
 
     const keys1 = Object.keys(obj1);
     const keys2 = Object.keys(obj2);
@@ -590,7 +705,12 @@ export class IndexedDbMigrationOrchestrator {
 
     for (const key of keys1) {
       if (!keys2.includes(key)) return false;
-      if (!this.deepEqual((obj1 as Record<string, unknown>)[key], (obj2 as Record<string, unknown>)[key])) {
+      if (!this.deepEqualWithVisited(
+        (obj1 as Record<string, unknown>)[key],
+        (obj2 as Record<string, unknown>)[key],
+        visited1,
+        visited2
+      )) {
         return false;
       }
     }
@@ -599,10 +719,35 @@ export class IndexedDbMigrationOrchestrator {
   }
 
   /**
-   * Calculate simple checksum for data integrity
+   * Calculate secure checksum using Web Crypto API for data integrity
    */
   private async calculateChecksum(data: string): Promise<string> {
-    // Simple checksum for now - could be replaced with crypto.subtle.digest
+    try {
+      // Use Web Crypto API for secure SHA-256 hash
+      if (typeof crypto !== 'undefined' && crypto.subtle) {
+        const encoder = new TextEncoder();
+        const dataBuffer = encoder.encode(data);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+        // Include length for additional verification
+        return `sha256-${hashHex}-${data.length}`;
+      } else {
+        // Fallback to simple hash if Web Crypto API not available
+        logger.warn('Web Crypto API not available, using fallback checksum');
+        return this.calculateFallbackChecksum(data);
+      }
+    } catch (error) {
+      logger.warn('Web Crypto API failed, using fallback checksum', { error });
+      return this.calculateFallbackChecksum(data);
+    }
+  }
+
+  /**
+   * Fallback checksum implementation for environments without Web Crypto API
+   */
+  private calculateFallbackChecksum(data: string): string {
     let hash = 0;
     for (let i = 0; i < data.length; i++) {
       const char = data.charCodeAt(i);
@@ -611,7 +756,7 @@ export class IndexedDbMigrationOrchestrator {
     }
 
     // Add length as additional verification
-    return `${Math.abs(hash).toString(16)}-${data.length}`;
+    return `fallback-${Math.abs(hash).toString(16)}-${data.length}`;
   }
 
   /**
@@ -755,24 +900,118 @@ export function isIndexedDbMigrationNeeded(): boolean {
 }
 
 /**
- * Get last migration backup
+ * Get last migration backup (supports both old localStorage and new chunked storage)
  */
-export function getLastMigrationBackup(): string | null {
+export async function getLastMigrationBackup(): Promise<string | null> {
   const backupKey = localStorage.getItem('last_migration_backup_key');
   if (!backupKey) {
     return null;
   }
 
+  // Try to get metadata for chunked backup
+  const metadataStr = localStorage.getItem(`${backupKey}_metadata`);
+  if (metadataStr) {
+    try {
+      const metadata = JSON.parse(metadataStr);
+      // Reconstruct backup from chunks
+      return await reconstructBackupFromChunks(backupKey, metadata.chunks);
+    } catch (error) {
+      logger.warn('Failed to reconstruct backup from chunks', { error, backupKey });
+    }
+  }
+
+  // Fallback to simple localStorage backup
   return localStorage.getItem(backupKey);
 }
 
 /**
- * Clear migration backup
+ * Reconstruct backup data from IndexedDB chunks
  */
-export function clearMigrationBackup(): void {
+async function reconstructBackupFromChunks(backupKey: string, chunkCount: number): Promise<string> {
+  const db = await openBackupDatabase();
+  const transaction = db.transaction([MIGRATION_CONSTANTS.BACKUP_STORE_NAME], 'readonly');
+  const store = transaction.objectStore(MIGRATION_CONSTANTS.BACKUP_STORE_NAME);
+
+  const chunks: string[] = new Array(chunkCount);
+
+  for (let i = 0; i < chunkCount; i++) {
+    const chunk = await new Promise<string>((resolve, reject) => {
+      const request = store.get(`${backupKey}_chunk_${i}`);
+      request.onsuccess = () => {
+        if (request.result) {
+          resolve(request.result.data);
+        } else {
+          reject(new Error(`Chunk ${i} not found`));
+        }
+      };
+      request.onerror = () => reject(request.error);
+    });
+    chunks[i] = chunk;
+  }
+
+  return chunks.join('');
+}
+
+/**
+ * Open backup database (shared utility)
+ */
+async function openBackupDatabase(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(MIGRATION_CONSTANTS.BACKUP_DB_NAME, 1);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(MIGRATION_CONSTANTS.BACKUP_STORE_NAME)) {
+        const store = db.createObjectStore(MIGRATION_CONSTANTS.BACKUP_STORE_NAME, { keyPath: 'id' });
+        store.createIndex('backupKey', 'backupKey', { unique: false });
+        store.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+    };
+  });
+}
+
+/**
+ * Clear migration backup (supports both localStorage and chunked storage)
+ */
+export async function clearMigrationBackup(): Promise<void> {
   const backupKey = localStorage.getItem('last_migration_backup_key');
-  if (backupKey) {
-    localStorage.removeItem(backupKey);
-    localStorage.removeItem('last_migration_backup_key');
+  if (!backupKey) {
+    return;
+  }
+
+  // Clear metadata
+  localStorage.removeItem('last_migration_backup_key');
+  localStorage.removeItem(`${backupKey}_metadata`);
+
+  // Clear simple localStorage backup
+  localStorage.removeItem(backupKey);
+
+  // Clear chunked backup from IndexedDB
+  try {
+    const db = await openBackupDatabase();
+    const transaction = db.transaction([MIGRATION_CONSTANTS.BACKUP_STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(MIGRATION_CONSTANTS.BACKUP_STORE_NAME);
+
+    // Use index to find all chunks for this backup
+    const index = store.index('backupKey');
+    const request = index.openCursor(IDBKeyRange.only(backupKey));
+
+    request.onsuccess = (event) => {
+      const cursor = (event.target as IDBRequest).result;
+      if (cursor) {
+        cursor.delete();
+        cursor.continue();
+      }
+    };
+
+    await new Promise<void>((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+  } catch (error) {
+    logger.warn('Failed to clear chunked backup', { error, backupKey });
   }
 }

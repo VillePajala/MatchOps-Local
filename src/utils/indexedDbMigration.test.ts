@@ -459,19 +459,20 @@ describe('Utility Functions', () => {
   });
 
   describe('Backup Management', () => {
-    test('should retrieve last migration backup', () => {
+    test('should retrieve last migration backup', async () => {
       const backupData = JSON.stringify({ test: 'backup' });
       localStorage.setItem('migration_backup_123', backupData);
       localStorage.setItem('last_migration_backup_key', 'migration_backup_123');
 
-      expect(getLastMigrationBackup()).toBe(backupData);
+      const result = await getLastMigrationBackup();
+      expect(result).toBe(backupData);
     });
 
-    test('should clear migration backup', () => {
+    test('should clear migration backup', async () => {
       localStorage.setItem('migration_backup_123', 'backup');
       localStorage.setItem('last_migration_backup_key', 'migration_backup_123');
 
-      clearMigrationBackup();
+      await clearMigrationBackup();
 
       expect(localStorage.getItem('migration_backup_123')).toBeNull();
       expect(localStorage.getItem('last_migration_backup_key')).toBeNull();
