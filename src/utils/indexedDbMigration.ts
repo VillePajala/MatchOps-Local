@@ -45,7 +45,11 @@ const MIGRATION_CONSTANTS = {
   EXPONENTIAL_BACKOFF_BASE_MS: 100,
   BACKUP_CHUNK_SIZE_BYTES: 5 * 1024 * 1024, // 5MB chunks for backup storage
   BACKUP_DB_NAME: 'migration-backup-db',
-  BACKUP_STORE_NAME: 'backups'
+  BACKUP_STORE_NAME: 'backups',
+  // Rate limiting to prevent abuse
+  MAX_MIGRATIONS_PER_HOUR: 5,
+  MIN_TIME_BETWEEN_MIGRATIONS_MS: 60 * 1000, // 1 minute
+  RATE_LIMIT_STORAGE_KEY: 'migration_rate_limit_data'
 } as const;
 
 /**
@@ -145,6 +149,9 @@ export class IndexedDbMigrationOrchestrator {
     logger.info('Starting IndexedDB migration');
 
     try {
+      // Check rate limiting to prevent abuse
+      this.checkRateLimit();
+
       // Check if migration is already completed
       const storageConfig = getStorageConfig();
       if (storageConfig.mode === 'indexedDB' && storageConfig.version === this.config.targetVersion) {
@@ -367,6 +374,9 @@ export class IndexedDbMigrationOrchestrator {
         const value = await localAdapter.getItem(key);
 
         if (value !== null) {
+          // Validate data before transfer to prevent XSS/injection attacks
+          this.validateDataSecurity(key, value);
+
           // Handle large payloads specially
           if (this.isLargePayload(value)) {
             await this.transferLargePayload(key, value, indexedDbAdapter);
@@ -745,18 +755,187 @@ export class IndexedDbMigrationOrchestrator {
   }
 
   /**
-   * Fallback checksum implementation for environments without Web Crypto API
+   * Check rate limiting to prevent migration abuse
    */
-  private calculateFallbackChecksum(data: string): string {
-    let hash = 0;
-    for (let i = 0; i < data.length; i++) {
-      const char = data.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
+  private checkRateLimit(): void {
+    const now = Date.now();
+    const rateLimitData = this.getRateLimitData();
+
+    // Check minimum time between migrations
+    if (rateLimitData.lastMigration &&
+        (now - rateLimitData.lastMigration) < MIGRATION_CONSTANTS.MIN_TIME_BETWEEN_MIGRATIONS_MS) {
+      const remainingTime = Math.ceil(
+        (MIGRATION_CONSTANTS.MIN_TIME_BETWEEN_MIGRATIONS_MS - (now - rateLimitData.lastMigration)) / 1000
+      );
+      throw new StorageError(
+        StorageErrorType.ACCESS_DENIED,
+        `Migration rate limit exceeded. Please wait ${remainingTime} seconds before trying again.`
+      );
     }
 
-    // Add length as additional verification
-    return `fallback-${Math.abs(hash).toString(16)}-${data.length}`;
+    // Clean up old attempts (older than 1 hour)
+    const oneHourAgo = now - (60 * 60 * 1000);
+    rateLimitData.attempts = rateLimitData.attempts.filter(attempt => attempt > oneHourAgo);
+
+    // Check hourly limit
+    if (rateLimitData.attempts.length >= MIGRATION_CONSTANTS.MAX_MIGRATIONS_PER_HOUR) {
+      const oldestAttempt = Math.min(...rateLimitData.attempts);
+      const resetTime = Math.ceil((oldestAttempt + (60 * 60 * 1000) - now) / 1000 / 60);
+      throw new StorageError(
+        StorageErrorType.ACCESS_DENIED,
+        `Migration rate limit exceeded. Maximum ${MIGRATION_CONSTANTS.MAX_MIGRATIONS_PER_HOUR} attempts per hour. Reset in ${resetTime} minutes.`
+      );
+    }
+
+    // Record this attempt
+    rateLimitData.attempts.push(now);
+    rateLimitData.lastMigration = now;
+    this.saveRateLimitData(rateLimitData);
+
+    logger.info('Rate limit check passed', {
+      attemptsInLastHour: rateLimitData.attempts.length,
+      maxAllowed: MIGRATION_CONSTANTS.MAX_MIGRATIONS_PER_HOUR
+    });
+  }
+
+  /**
+   * Get rate limit data from localStorage
+   */
+  private getRateLimitData(): { attempts: number[]; lastMigration?: number } {
+    try {
+      const data = localStorage.getItem(MIGRATION_CONSTANTS.RATE_LIMIT_STORAGE_KEY);
+      if (data) {
+        return JSON.parse(data);
+      }
+    } catch (error) {
+      logger.warn('Failed to parse rate limit data', { error });
+    }
+    return { attempts: [] };
+  }
+
+  /**
+   * Save rate limit data to localStorage
+   */
+  private saveRateLimitData(data: { attempts: number[]; lastMigration?: number }): void {
+    try {
+      localStorage.setItem(MIGRATION_CONSTANTS.RATE_LIMIT_STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+      logger.warn('Failed to save rate limit data', { error });
+    }
+  }
+
+  /**
+   * Validate data security to prevent XSS/injection attacks during migration
+   */
+  private validateDataSecurity(key: string, value: string): void {
+    // Check for data size limits to prevent DoS attacks
+    if (value.length > 50 * 1024 * 1024) { // 50MB limit
+      throw new StorageError(
+        StorageErrorType.UNKNOWN,
+        `Data size exceeds security limit for key: ${key} (${(value.length / (1024 * 1024)).toFixed(2)}MB)`
+      );
+    }
+
+    // Validate that the value is a valid string (no binary data injection)
+    try {
+      // Ensure the string can be properly encoded/decoded
+      const encoded = new TextEncoder().encode(value);
+      const decoded = new TextDecoder().decode(encoded);
+      if (decoded !== value) {
+        throw new Error('String encoding mismatch');
+      }
+    } catch (error) {
+      logger.warn('Data encoding validation failed', { key, error });
+      throw new StorageError(
+        StorageErrorType.CORRUPTED_DATA,
+        `Invalid data encoding detected for key: ${key}`
+      );
+    }
+
+    // For JSON data, validate structure to prevent injection
+    if (this.isJsonData(key)) {
+      try {
+        const parsed = JSON.parse(value);
+
+        // Check for suspicious patterns that could indicate injection attempts
+        const stringified = JSON.stringify(parsed);
+
+        // Detect potential script injection in JSON
+        const suspiciousPatterns = [
+          /<script[\s\S]*?>[\s\S]*?<\/script>/gi,
+          /javascript:/gi,
+          /on\w+\s*=/gi, // Event handlers like onclick=
+          /<iframe[\s\S]*?>/gi,
+          /data:text\/html/gi
+        ];
+
+        for (const pattern of suspiciousPatterns) {
+          if (pattern.test(stringified)) {
+            logger.warn('Suspicious content detected in JSON data', { key, pattern: pattern.source });
+            throw new StorageError(
+              StorageErrorType.CORRUPTED_DATA,
+              `Potentially malicious content detected in key: ${key}`
+            );
+          }
+        }
+      } catch (jsonError) {
+        if (jsonError instanceof StorageError) {
+          throw jsonError;
+        }
+        // If JSON parsing fails, that's suspicious for keys that should contain JSON
+        logger.warn('JSON validation failed for expected JSON key', { key, error: jsonError });
+        throw new StorageError(
+          StorageErrorType.CORRUPTED_DATA,
+          `Invalid JSON structure for key: ${key}`
+        );
+      }
+    }
+
+    // Additional validation for specific key patterns
+    if (key.includes('script') || key.includes('eval') || key.includes('function')) {
+      logger.warn('Suspicious key name detected', { key });
+      throw new StorageError(
+        StorageErrorType.CORRUPTED_DATA,
+        `Suspicious key name: ${key}`
+      );
+    }
+  }
+
+  /**
+   * Enhanced fallback checksum implementation using CRC32-like algorithm
+   * Significantly stronger than simple hash while avoiding Web Crypto dependency
+   */
+  private calculateFallbackChecksum(data: string): string {
+    // CRC32-like polynomial for better distribution
+    const POLYNOMIAL = 0xEDB88320;
+    let crc = 0xFFFFFFFF;
+
+    // Process data as UTF-8 bytes for consistent cross-platform behavior
+    const utf8Bytes = new TextEncoder().encode(data);
+
+    for (let i = 0; i < utf8Bytes.length; i++) {
+      crc ^= utf8Bytes[i];
+      for (let j = 0; j < 8; j++) {
+        crc = (crc >>> 1) ^ (crc & 1 ? POLYNOMIAL : 0);
+      }
+    }
+
+    // Finalize CRC and add multiple integrity checks
+    crc = (crc ^ 0xFFFFFFFF) >>> 0;
+
+    // Additional integrity measures:
+    // 1. Include data length to detect truncation
+    // 2. Include simple XOR checksum as secondary verification
+    // 3. Include character frequency hash to detect substitution
+    let xorSum = 0;
+    let freqHash = 0;
+    for (let i = 0; i < data.length; i++) {
+      const char = data.charCodeAt(i);
+      xorSum ^= char;
+      freqHash = ((freqHash << 3) + char) % 0x7FFFFFFF;
+    }
+
+    return `crc32-${crc.toString(16)}-${data.length}-${xorSum.toString(16)}-${freqHash.toString(16)}`;
   }
 
   /**

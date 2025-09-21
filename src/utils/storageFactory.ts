@@ -225,8 +225,9 @@ export class StorageFactory {
       // so we can proceed with our own adapter creation
     });
 
+    let timeoutId: NodeJS.Timeout;
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         reject(new StorageError(
           StorageErrorType.ACCESS_DENIED,
           `Adapter creation mutex timeout after ${timeout}ms`,
@@ -242,6 +243,9 @@ export class StorageFactory {
         throw error;
       }
       // If the mutex promise failed for other reasons, we can proceed
+    } finally {
+      // Always clean up the timer to prevent memory leaks
+      clearTimeout(timeoutId!);
     }
   }
 
