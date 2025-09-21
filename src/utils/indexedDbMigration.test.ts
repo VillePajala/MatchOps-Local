@@ -153,14 +153,14 @@ describe('IndexedDbMigrationOrchestrator', () => {
 
   describe('Data Transfer', () => {
     test('should transfer all critical keys', async () => {
-      const testData = {
+      const testData: Record<string, string> = {
         [SAVED_GAMES_KEY]: JSON.stringify({ games: [] }),
         [MASTER_ROSTER_KEY]: JSON.stringify([]),
         [SEASONS_LIST_KEY]: JSON.stringify([])
       };
 
-      mockLocalStorageAdapter.getItem.mockImplementation((key) => testData[key] || null);
-      mockIndexedDbAdapter.getItem.mockImplementation((key) => testData[key] || null);
+      mockLocalStorageAdapter.getItem.mockImplementation((key: string) => testData[key] || null);
+      mockIndexedDbAdapter.getItem.mockImplementation((key: string) => testData[key] || null);
 
       await orchestrator.migrate();
 
