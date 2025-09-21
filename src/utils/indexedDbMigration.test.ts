@@ -376,6 +376,16 @@ describe('IndexedDbMigrationOrchestrator', () => {
           percentage: expect.any(Number)
         })
       );
+
+      // Verify the progress values make sense
+      const progressCall = progressCallback.mock.calls.find(call =>
+        call[0].processedKeys !== undefined
+      )[0];
+      expect(progressCall.totalKeys).toBeGreaterThan(0);
+      expect(progressCall.processedKeys).toBeGreaterThanOrEqual(0);
+      expect(progressCall.processedKeys).toBeLessThanOrEqual(progressCall.totalKeys);
+      expect(progressCall.percentage).toBeGreaterThanOrEqual(0);
+      expect(progressCall.percentage).toBeLessThanOrEqual(100);
     });
 
     test('should report errors in progress', async () => {
@@ -401,9 +411,10 @@ describe('IndexedDbMigrationOrchestrator', () => {
       expect(result).toMatchObject({
         success: true,
         state: MigrationState.COMPLETED,
-        errors: [],
-        duration: expect.any(Number)
+        errors: []
       });
+      expect(result.duration).toBeGreaterThanOrEqual(0);
+      expect(typeof result.duration).toBe('number');
     });
 
     test('should return failed result with errors', async () => {

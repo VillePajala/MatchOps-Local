@@ -376,7 +376,7 @@ export class IndexedDBKvAdapter implements StorageAdapter {
    * @example
    * ```typescript
    * const allKeys = await adapter.getKeys();
-   * console.log(`Found ${allKeys.length} stored items`);
+   * logger.debug('Found stored items', { keyCount: allKeys.length });
    * ```
    */
   async getKeys(): Promise<string[]> {
