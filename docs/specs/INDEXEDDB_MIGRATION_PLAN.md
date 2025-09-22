@@ -106,35 +106,91 @@
 
 **Objective**: Address UX concerns and performance limitations identified in Phase 1
 
-**Step 2.1: Enhanced Progress UI & User Control**
-- ✅ **Performance Optimization**: Throttle progress updates to reduce excessive re-renders (COMPLETED - React.memo + throttled updates)
-- ✅ **Enhanced Progress Display**: Full-screen progress modal with real-time data transfer visualization (COMPLETED)
+## 📊 **PHASE 2 BRANCH STRATEGY**
+
+Phase 2 will be implemented across 5 logical feature branches, each delivering a cohesive set of functionality:
+
+### **Branch 1: `feat/m1-phase2-migration-control`** *(Week 1)*
+**Theme**: User Control & Visibility
+**Scope**: ~500-700 lines | PR reviewable in 15-30 minutes
+**Features**:
+- ⏸️ Pause/Resume functionality with state persistence
+- ❌ Cancel operation with graceful cleanup
+- 📊 Pre-migration size estimation and analysis
+- ⏱️ Time remaining calculator with adaptive estimates
+**Success Criteria**: Users can control migration flow without data loss
+
+### **Branch 2: `feat/m1-phase2-memory-optimization`** *(Week 2)*
+**Theme**: Memory & Performance Management
+**Scope**: ~600-800 lines | Self-contained performance improvements
+**Features**:
+- 📦 Progressive data loading for datasets >100MB
+- 🧠 Memory pressure detection using Performance API
+- 📏 Dynamic chunk sizing based on available memory
+- 🗑️ Forced garbage collection between chunks
+**Success Criteria**: 30% reduction in memory usage, no OOM errors
+
+### **Branch 3: `feat/m1-phase2-background-migration`** *(Week 3)*
+**Theme**: Non-blocking Background Processing
+**Scope**: ~400-600 lines | Independent async functionality
+**Features**:
+- 🎯 Priority-based migration (critical data first)
+- 🔄 Background processing with `requestIdleCallback`
+- 💾 Progress persistence across browser sessions
+- 👁️ Tab visibility handling and throttling
+**Success Criteria**: Migration continues without blocking UI
+
+### **Branch 4: `feat/m1-phase2-browser-compat`** *(Week 4 - Optional)*
+**Theme**: Cross-browser Compatibility
+**Scope**: ~300-500 lines | Browser-specific fixes
+**Features**:
+- 🧭 Safari private mode detection and handling
+- 🔄 Browser-specific fallback strategies
+- 📝 Enhanced error messages per browser
+- ⚠️ Compatibility warnings and guides
+**Success Criteria**: 99%+ success rate across all browsers
+
+### **Branch 5: `feat/m1-phase2-config-telemetry`** *(Week 5 - Optional)*
+**Theme**: Configuration & Production Monitoring
+**Scope**: ~400-500 lines | Analytics and configuration
+**Features**:
+- ⚙️ Configurable timeouts and chunk sizes
+- 📈 Performance API integration
+- 📊 Migration analytics events
+- 🎯 Success rate tracking and reporting
+**Success Criteria**: Full visibility into production migration metrics
+
+**Branch Implementation Order**:
+1. Start with `migration-control` (highest user impact)
+2. Follow with `memory-optimization` (addresses critical issues)
+3. Then `background-migration` (builds on pause/resume)
+4. Optional branches based on production feedback
+
+### **Detailed Feature Breakdown by Branch:**
+
+#### **Branch 1: Migration Control Features**
 - 📋 **Cancel/Pause Capability**: Allow users to pause large migrations and resume later
 - 📋 **Pre-migration Estimation**: Show estimated time and data size before starting
-- 📋 **Background Migration**: Option to migrate non-critical data after app startup
 - 📋 **Migration Preview**: Dry-run capability to test migration without data modification
-- 📋 **Memory Pressure Detection**: Monitor memory usage and adjust migration strategy accordingly
-- 📋 **useCallback Optimization**: Stable callback references to prevent unnecessary component updates
+- 📋 **Enhanced Error Recovery UX**: User-friendly error messages with suggested actions
+- 📋 **Retry Migration Button**: One-click retry option for failed migrations
+- 📋 **Export Backup Data**: Allow users to download backup data for manual recovery
 
-**Step 2.2: Progressive Migration Architecture & Memory Management**
+#### **Branch 2: Memory Optimization Features**
+- 📋 **Streaming/Chunked Processing**: For datasets >100MB, implement streaming to avoid memory overload
+- 📋 **Memory Pressure Detection**: Use `performance.memory` API to monitor browser memory usage
+- 📋 **Progressive Data Loading**: Implement load → migrate → clear → repeat cycle for large datasets
+- 📋 **Automatic Garbage Collection**: Force GC between processing chunks on memory-constrained devices
+- 📋 **Dynamic Chunk Sizing**: Adjust chunk size based on available memory
+- 📋 **Smart Scheduling**: Adapt migration speed based on device performance
+
+#### **Branch 3: Background Migration Features**
 - 📋 **Priority-based Migration**: Migrate critical data first (settings, current game) < 1 second
 - 📋 **Idle-time Processing**: Use `requestIdleCallback` for background data transfer
-- 📋 **Chunk-based Transfer**: Break large datasets into smaller, non-blocking chunks
-- 📋 **Smart Scheduling**: Adapt migration speed based on device performance
-- 📋 **Streaming/Chunked Processing**: For datasets >1000 games, implement streaming to avoid memory overload
+- 📋 **Background Migration**: Option to migrate non-critical data after app startup
 - 📋 **Gradual Migration Strategy**: Non-critical data migration after critical components complete
-- 📋 **Memory Pressure Detection**: Use `performance.memory` API to monitor browser memory usage during migration
-- 📋 **Progressive Data Loading**: Implement load → migrate → clear → repeat cycle for large datasets to minimize memory footprint
-- 📋 **Automatic Garbage Collection**: Force GC between processing chunks on memory-constrained devices
-
-**Step 2.3: Enhanced Error Recovery UX**
-- 📋 **Detailed Error Reporting**: User-friendly error messages with suggested actions
-- 📋 **Retry Count Tracking**: Display retry attempts and progress to users
-- 📋 **Actionable Error Messages**: Context-specific error messages based on failure type
-- 📋 **Retry Migration Button**: One-click retry option for failed migrations
-- 📋 **Help Documentation Links**: Direct links to troubleshooting guides and support
-- 📋 **Export Backup Data**: Allow users to download backup data for manual recovery
-- 📋 **Partial Migration Handling**: Continue with successfully migrated data when possible
+- 📋 **Tab Visibility Handling**: Pause/throttle migration when tab is not visible
+- 📋 **Progress Persistence**: Save migration progress across browser sessions
 - 📋 **Smart Retry Logic**: Exponential backoff with user-configurable retry attempts
 - 📋 **Migration Status API**: Real-time status queries for UI components
 
