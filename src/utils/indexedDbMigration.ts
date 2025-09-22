@@ -368,12 +368,39 @@ export class IndexedDbMigrationOrchestrator {
         this.addAlert('warning', `Large backup detected: ${backupSizeMB.toFixed(2)} MB`);
       }
 
-      // Store backup securely using IndexedDB to avoid localStorage quota issues
+      // Store backup using multi-location strategy for safety
       const backupKey = `migration_backup_${Date.now()}`;
-      await this.storeBackupSecurely(backupKey, backupData);
 
-      // Store only backup reference for large backups to save memory
-      this.backup = isLargeBackup ? `<large_backup_ref:${backupKey}>` : backupData;
+      if (isLargeBackup) {
+        // For large backups, use dual storage strategy
+        try {
+          // Primary: Store in dedicated backup IndexedDB (isolated from main migration)
+          await this.storeBackupSecurely(backupKey, backupData);
+          // Secondary: Store compressed backup in sessionStorage as fallback
+          await this.storeBackupInSessionStorage(backupKey, backupData);
+          this.backup = `<large_backup_ref:${backupKey}>`;
+        } catch (error) {
+          logger.warn('Failed to store backup in IndexedDB, using localStorage fallback', { error });
+          // Fallback: Store in localStorage if possible, or keep in memory
+          try {
+            localStorage.setItem(backupKey, backupData);
+            this.backup = `<localStorage_backup_ref:${backupKey}>`;
+          } catch (localStorageError) {
+            logger.warn('LocalStorage backup also failed, keeping in memory', { localStorageError });
+            this.backup = backupData; // Keep in memory as last resort
+          }
+        }
+      } else {
+        // For small backups, store in both localStorage and sessionStorage
+        try {
+          localStorage.setItem(backupKey, backupData);
+          sessionStorage.setItem(`${backupKey}_session`, backupData);
+          this.backup = backupData;
+        } catch (error) {
+          logger.warn('Failed to store backup in browser storage, keeping in memory', { error });
+          this.backup = backupData; // Keep in memory
+        }
+      }
 
       this.markPerformance('backup_end');
       this.measurePerformance('backup_duration', 'backup_start', 'backup_end');
@@ -396,6 +423,46 @@ export class IndexedDbMigrationOrchestrator {
         'Failed to create backup',
         error instanceof Error ? error : undefined
       );
+    }
+  }
+
+  /**
+   * Store compressed backup in sessionStorage as fallback
+   */
+  private async storeBackupInSessionStorage(backupKey: string, backupData: string): Promise<void> {
+    try {
+      // Simple compression using basic techniques for sessionStorage
+      const compressed = this.compressBackupData(backupData);
+      sessionStorage.setItem(`${backupKey}_compressed`, compressed);
+      sessionStorage.setItem(`${backupKey}_meta`, JSON.stringify({
+        originalSize: backupData.length,
+        compressedSize: compressed.length,
+        timestamp: Date.now(),
+        compressionRatio: (compressed.length / backupData.length * 100).toFixed(1)
+      }));
+
+      logger.debug('Backup stored in sessionStorage', {
+        originalSize: backupData.length,
+        compressedSize: compressed.length,
+        compressionRatio: (compressed.length / backupData.length * 100).toFixed(1) + '%'
+      });
+    } catch (error) {
+      logger.warn('Failed to store backup in sessionStorage', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Simple compression for backup data
+   */
+  private compressBackupData(data: string): string {
+    try {
+      // Use simple RLE compression for JSON data (common in backups)
+      return data.replace(/(.)\1{2,}/g, (match, char) => {
+        return char + '%' + match.length + '%';
+      });
+    } catch {
+      return data; // Return original if compression fails
     }
   }
 
@@ -2312,14 +2379,22 @@ export class IndexedDbMigrationOrchestrator {
     this.currentState = state;
 
     if (this.config.progressCallback) {
-      this.config.progressCallback({
-        state,
-        currentStep: step,
-        totalKeys: CRITICAL_KEYS.length,
-        processedKeys: 0,
-        percentage: 0,
-        errors: [...this.errors]
-      });
+      try {
+        this.config.progressCallback({
+          state,
+          currentStep: step,
+          totalKeys: CRITICAL_KEYS.length,
+          processedKeys: 0,
+          percentage: 0,
+          errors: [...this.errors]
+        });
+      } catch (callbackError) {
+        logger.warn('Progress callback threw an error', {
+          correlationId: this.correlationId,
+          error: callbackError
+        });
+        // Don't let user callback errors crash the migration
+      }
     }
   }
 
@@ -2351,18 +2426,26 @@ export class IndexedDbMigrationOrchestrator {
     };
 
     if (this.config.progressCallback) {
-      this.config.progressCallback({
-        state: this.currentState,
-        currentStep: `Processing key ${processed} of ${total} (${percentage}% complete)`,
-        totalKeys: total,
-        processedKeys: processed,
-        percentage,
-        estimatedTimeRemainingMs,
-        estimatedTimeRemainingText: formatTimeRemaining(estimatedTimeRemainingMs),
-        elapsedTimeMs: elapsed,
-        transferSpeedMBps: this.calculateCurrentTransferSpeed(),
-        errors: [...this.errors]
-      });
+      try {
+        this.config.progressCallback({
+          state: this.currentState,
+          currentStep: `Processing key ${processed} of ${total} (${percentage}% complete)`,
+          totalKeys: total,
+          processedKeys: processed,
+          percentage,
+          estimatedTimeRemainingMs,
+          estimatedTimeRemainingText: formatTimeRemaining(estimatedTimeRemainingMs),
+          elapsedTimeMs: elapsed,
+          transferSpeedMBps: this.calculateCurrentTransferSpeed(),
+          errors: [...this.errors]
+        });
+      } catch (callbackError) {
+        logger.warn('Progress callback threw an error during progress update', {
+          correlationId: this.correlationId,
+          error: callbackError
+        });
+        // Don't let user callback errors crash the migration
+      }
     }
 
     // Log progress milestones
