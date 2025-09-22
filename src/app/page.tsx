@@ -4,6 +4,7 @@ import ModalProvider from '@/contexts/ModalProvider';
 import HomePage from '@/components/HomePage';
 import StartScreen from '@/components/StartScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { MigrationStatus } from '@/components/MigrationStatus';
 import { useState, useEffect } from 'react';
 import { getCurrentGameIdSetting } from '@/utils/appSettings';
 import { getSavedGames } from '@/utils/savedGames';
@@ -101,6 +102,9 @@ export default function Home() {
             <HomePage initialAction={initialAction ?? undefined} skipInitialSetup />
           </ErrorBoundary>
         )}
+
+        {/* Migration status overlay */}
+        <MigrationStatus />
       </ModalProvider>
     </ErrorBoundary>
   );

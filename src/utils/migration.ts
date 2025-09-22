@@ -13,6 +13,8 @@ import { getLastHomeTeamName } from './appSettings';
 import { addTeam, setTeamRoster } from './teams';
 import { getStorageConfig } from './storageFactory';
 import { IndexedDbMigrationOrchestrator } from './indexedDbMigration';
+import { updateMigrationStatus } from '@/hooks/useMigrationStatus';
+import { createMigrationMetrics, completeMigrationMetrics } from './migrationMetrics';
 import logger from './logger';
 
 const CURRENT_DATA_VERSION = 2;
@@ -142,6 +144,18 @@ export const runMigration = async (): Promise<void> => {
   if (indexedDbMigrationNeeded) {
     logger.log('[Migration] Starting IndexedDB storage migration');
 
+    // Start metrics tracking
+    const migrationId = `migration_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const metrics = createMigrationMetrics(migrationId);
+
+    // Notify UI that migration is starting
+    updateMigrationStatus({
+      isRunning: true,
+      progress: null,
+      error: null,
+      showNotification: false
+    });
+
     try {
       const migrationOrchestrator = new IndexedDbMigrationOrchestrator({
         targetVersion: INDEXEDDB_STORAGE_VERSION,
@@ -156,6 +170,14 @@ export const runMigration = async (): Promise<void> => {
             processedKeys: `${progress.processedKeys}/${progress.totalKeys}`,
             estimatedTime: progress.estimatedTimeRemainingText
           });
+
+          // Update UI with progress
+          updateMigrationStatus({
+            isRunning: true,
+            progress,
+            error: null,
+            showNotification: false
+          });
         },
         notificationCallback: (message, type) => {
           logger.log(`[IndexedDB Migration ${type}]`, message);
@@ -169,17 +191,75 @@ export const runMigration = async (): Promise<void> => {
           duration: `${result.duration}ms`,
           state: result.state
         });
+
+        // Complete metrics tracking
+        completeMigrationMetrics(
+          metrics,
+          true,
+          0, // totalDataSizeMB - will be calculated by orchestrator
+          0, // keysTransferred - will be calculated by orchestrator
+          undefined
+        );
+
+        // Migration completed successfully
+        updateMigrationStatus({
+          isRunning: false,
+          progress: null,
+          error: null,
+          showNotification: true
+        });
       } else {
         logger.error('[Migration] IndexedDB storage migration failed', {
           state: result.state,
           errors: result.errors
         });
+
+        const errorMessage = `Storage upgrade failed: ${result.errors.join(', ')}. Continuing with standard storage.`;
+        const errorType = result.errors.length > 0 ? result.errors[0] : 'unknown_error';
+
+        // Complete metrics tracking with failure
+        completeMigrationMetrics(
+          metrics,
+          false,
+          0,
+          0,
+          errorType
+        );
+
+        // Show error notification
+        updateMigrationStatus({
+          isRunning: false,
+          progress: null,
+          error: errorMessage,
+          showNotification: true
+        });
+
         throw new Error(`IndexedDB migration failed: ${result.errors.join(', ')}`);
       }
     } catch (error) {
       logger.error('[Migration] IndexedDB migration error:', error);
+
+      const errorMessage = 'Storage upgrade failed. The app will continue using standard storage.';
+      const errorType = error instanceof Error ? error.message : 'unexpected_error';
+
+      // Complete metrics tracking with exception
+      completeMigrationMetrics(
+        metrics,
+        false,
+        0,
+        0,
+        errorType
+      );
+
+      // Show error notification but don't crash the app
+      updateMigrationStatus({
+        isRunning: false,
+        progress: null,
+        error: errorMessage,
+        showNotification: true
+      });
+
       // Don't throw here - app can still work with localStorage
-      // Just log the error and continue
       logger.warn('[Migration] Continuing with localStorage mode due to IndexedDB migration failure');
     }
   }
