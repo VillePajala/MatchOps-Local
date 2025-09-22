@@ -71,10 +71,15 @@ export const runMigration = async (): Promise<void> => {
   // Then, check if IndexedDB migration is needed
   const storageConfig = getStorageConfig();
   const indexedDbMigrationNeeded = storageConfig.mode === 'localStorage' &&
-                                   storageConfig.version !== INDEXEDDB_STORAGE_VERSION;
+                                   storageConfig.version !== INDEXEDDB_STORAGE_VERSION &&
+                                   storageConfig.forceMode !== 'localStorage';
 
   if (!appMigrationNeeded && !indexedDbMigrationNeeded) {
-    logger.log('[Migration] No migration needed. App version:', getAppDataVersion(), 'Storage mode:', storageConfig.mode);
+    if (storageConfig.forceMode === 'localStorage') {
+      logger.log('[Migration] No migration needed. App version:', getAppDataVersion(), 'Storage mode:', storageConfig.mode, '(localStorage forced)');
+    } else {
+      logger.log('[Migration] No migration needed. App version:', getAppDataVersion(), 'Storage mode:', storageConfig.mode);
+    }
     return;
   }
 
@@ -402,8 +407,9 @@ export const getMigrationStatus = async () => {
     backupInfo: getMigrationBackupInfo(),
     storageMode: storageConfig.mode,
     storageVersion: storageConfig.version,
+    storageForceMode: storageConfig.forceMode,
     indexedDbTargetVersion: INDEXEDDB_STORAGE_VERSION,
-    indexedDbMigrationNeeded: storageConfig.mode === 'localStorage' && storageConfig.version !== INDEXEDDB_STORAGE_VERSION,
+    indexedDbMigrationNeeded: isIndexedDbMigrationNeeded(),
     indexedDbMigrationState: storageConfig.migrationState
   };
 };
@@ -413,7 +419,9 @@ export const getMigrationStatus = async () => {
  */
 export const isIndexedDbMigrationNeeded = (): boolean => {
   const storageConfig = getStorageConfig();
-  return storageConfig.mode === 'localStorage' && storageConfig.version !== INDEXEDDB_STORAGE_VERSION;
+  return storageConfig.mode === 'localStorage' &&
+         storageConfig.version !== INDEXEDDB_STORAGE_VERSION &&
+         storageConfig.forceMode !== 'localStorage';
 };
 
 /**
@@ -425,6 +433,11 @@ export const triggerIndexedDbMigration = async (): Promise<boolean> => {
   if (storageConfig.mode === 'indexedDB') {
     logger.log('[Migration] Already using IndexedDB storage');
     return true;
+  }
+
+  if (storageConfig.forceMode === 'localStorage') {
+    logger.log('[Migration] Migration skipped: localStorage mode is forced');
+    return false;
   }
 
   try {

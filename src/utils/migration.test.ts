@@ -191,6 +191,31 @@ describe('Migration Integration', () => {
         '[Migration] Continuing with localStorage mode due to IndexedDB migration failure'
       );
     });
+
+    it('should skip IndexedDB migration when localStorage is forced', async () => {
+      // Setup: app version is current but localStorage is forced
+      (localStorage.getLocalStorageItem as jest.Mock).mockImplementation((key) => {
+        if (key === 'appDataVersion') return '2';
+        return null;
+      });
+      (getStorageConfig as jest.Mock).mockReturnValue({
+        mode: 'localStorage',
+        version: '1.0.0',
+        migrationState: 'none',
+        forceMode: 'localStorage'
+      });
+
+      await runMigration();
+
+      expect(logger.log).toHaveBeenCalledWith(
+        '[Migration] No migration needed. App version:',
+        2,
+        'Storage mode:',
+        'localStorage',
+        '(localStorage forced)'
+      );
+      expect(IndexedDbMigrationOrchestrator).not.toHaveBeenCalled();
+    });
   });
 
   describe('getMigrationStatus', () => {
@@ -222,6 +247,7 @@ describe('Migration Integration', () => {
         }),
         storageMode: 'localStorage',
         storageVersion: '1.0.0',
+        storageForceMode: undefined,
         indexedDbTargetVersion: '2.0.0',
         indexedDbMigrationNeeded: true,
         indexedDbMigrationState: 'none'
@@ -256,6 +282,16 @@ describe('Migration Integration', () => {
 
       expect(isIndexedDbMigrationNeeded()).toBe(false);
     });
+
+    it('should return false when localStorage is forced', () => {
+      (getStorageConfig as jest.Mock).mockReturnValue({
+        mode: 'localStorage',
+        version: '1.0.0',
+        forceMode: 'localStorage'
+      });
+
+      expect(isIndexedDbMigrationNeeded()).toBe(false);
+    });
   });
 
   describe('triggerIndexedDbMigration', () => {
@@ -268,6 +304,19 @@ describe('Migration Integration', () => {
       const result = await triggerIndexedDbMigration();
 
       expect(result).toBe(true);
+      expect(IndexedDbMigrationOrchestrator).not.toHaveBeenCalled();
+    });
+
+    it('should return false if localStorage is forced', async () => {
+      (getStorageConfig as jest.Mock).mockReturnValue({
+        mode: 'localStorage',
+        version: '1.0.0',
+        forceMode: 'localStorage'
+      });
+
+      const result = await triggerIndexedDbMigration();
+
+      expect(result).toBe(false);
       expect(IndexedDbMigrationOrchestrator).not.toHaveBeenCalled();
     });
 
