@@ -12,7 +12,7 @@ import { getMasterRoster } from './masterRosterManager';
 import { getLastHomeTeamName } from './appSettings';
 import { addTeam, setTeamRoster } from './teams';
 import { getStorageConfig } from './storageFactory';
-import { IndexedDbMigrationOrchestrator } from './indexedDbMigration';
+import { IndexedDbMigrationOrchestratorEnhanced } from './indexedDbMigrationEnhanced';
 import { updateMigrationStatus } from '@/hooks/useMigrationStatus';
 import { createMigrationMetrics, completeMigrationMetrics } from './migrationMetrics';
 import { performStorageQuotaCheck } from './storageQuotaCheck';
@@ -194,7 +194,7 @@ export const runMigration = async (): Promise<void> => {
     });
 
     try {
-      const migrationOrchestrator = new IndexedDbMigrationOrchestrator({
+      const migrationOrchestrator = new IndexedDbMigrationOrchestratorEnhanced({
         targetVersion: INDEXEDDB_STORAGE_VERSION,
         verifyData: true,
         keepBackupOnSuccess: false,

@@ -17,9 +17,17 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
   private bytesProcessedCache: number = 0;
   private totalBytesCache: number = 0;
 
+  // IndexedDB configuration for rollback operations
+  private readonly dbName: string;
+  private readonly storeName: string;
+
   constructor(config: Partial<MigrationConfig> = {}, controlCallbacks?: MigrationControlCallbacks) {
     super(config);
     this.controlManager = new MigrationControlManager(controlCallbacks);
+
+    // Set IndexedDB defaults matching the adapter configuration
+    this.dbName = 'MatchOpsLocal';
+    this.storeName = 'keyValueStore';
   }
 
   /**
@@ -178,7 +186,7 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
     });
 
     // Access IndexedDB to remove migrated entries
-    const dbRequest = indexedDB.open(this.config.databaseName);
+    const dbRequest = indexedDB.open(this.dbName);
 
     return new Promise((resolve, reject) => {
       dbRequest.onerror = () => {
@@ -191,8 +199,8 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
         const db = dbRequest.result;
 
         try {
-          const transaction = db.transaction([this.config.storeName], 'readwrite');
-          const store = transaction.objectStore(this.config.storeName);
+          const transaction = db.transaction([this.storeName], 'readwrite');
+          const store = transaction.objectStore(this.storeName);
 
           // Remove all processed keys from IndexedDB
           for (const key of this.processedKeysCache) {
