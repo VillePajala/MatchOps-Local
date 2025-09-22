@@ -57,7 +57,65 @@ export interface MemoryOptimizedProgress {
 }
 
 /**
- * Memory-optimized migration orchestrator
+ * Performance metrics for migration analysis
+ */
+export interface MigrationPerformanceMetrics {
+  /** Migration start timestamp */
+  startTime: number;
+  /** Migration end timestamp */
+  endTime?: number;
+  /** Total migration duration in milliseconds */
+  duration?: number;
+  /** Number of garbage collection triggers */
+  gcTriggerCount: number;
+  /** Average chunk size during migration */
+  averageChunkSize: number;
+  /** Peak memory usage percentage */
+  peakMemoryUsage: number;
+  /** Memory pressure level distribution */
+  pressureLevelDistribution: Record<MemoryPressureLevel, number>;
+  /** Total number of chunk size adjustments */
+  chunkSizeAdjustments: number;
+}
+
+/**
+ * Memory-optimized migration orchestrator with intelligent memory management
+ *
+ * @example
+ * ```typescript
+ * // Basic usage with default memory optimization
+ * const orchestrator = new IndexedDbMigrationOrchestratorMemoryOptimized({
+ *   targetVersion: '2.0.0',
+ *   memoryOptimizationThreshold: 0.8,
+ *   progressiveLoadingThreshold: 50 * 1024 * 1024 // 50MB
+ * });
+ *
+ * const result = await orchestrator.migrate();
+ * console.log('Migration completed:', result.success);
+ *
+ * // Get performance metrics
+ * const metrics = orchestrator.getPerformanceMetrics();
+ * console.log('GC triggers:', metrics.gcTriggerCount);
+ * console.log('Peak memory:', metrics.peakMemoryUsage + '%');
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Advanced configuration for memory-constrained devices
+ * const orchestrator = new IndexedDbMigrationOrchestratorMemoryOptimized({
+ *   targetVersion: '2.0.0',
+ *   enableMemoryOptimization: true,
+ *   memoryOptimizationThreshold: 0.6, // Lower threshold for constrained devices
+ *   enableProgressiveLoading: true,
+ *   progressiveLoadingThreshold: 25 * 1024 * 1024, // 25MB threshold
+ *   enableForcedGC: true,
+ *   memoryMonitoringInterval: 1000 // More frequent monitoring
+ * });
+ *
+ * const result = await orchestrator.migrate();
+ * const status = orchestrator.getMemoryOptimizationStatus();
+ * console.log('Memory pressure:', status.memoryPressure);
+ * ```
  */
 export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigrationOrchestratorEnhanced {
   private memoryManager: MemoryManager;
@@ -68,6 +126,22 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
   private gcTriggeredRecently = false;
   private lastMemoryCheck: MemoryInfo | null = null;
   private gcTimeoutId: NodeJS.Timeout | null = null;
+
+  // Performance metrics tracking
+  private performanceMetrics: MigrationPerformanceMetrics = {
+    startTime: 0,
+    gcTriggerCount: 0,
+    averageChunkSize: 0,
+    peakMemoryUsage: 0,
+    pressureLevelDistribution: {
+      [MemoryPressureLevel.LOW]: 0,
+      [MemoryPressureLevel.MODERATE]: 0,
+      [MemoryPressureLevel.HIGH]: 0,
+      [MemoryPressureLevel.CRITICAL]: 0
+    },
+    chunkSizeAdjustments: 0
+  };
+  private chunkSizeSamples: number[] = [];
 
   constructor(
     config: MemoryOptimizedMigrationConfig = {},
@@ -84,6 +158,9 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
       memoryMonitoringInterval: 2000,
       ...config
     };
+
+    // Validate configuration
+    this.validateConfig(this.memoryConfig);
 
     this.memoryManager = new MemoryManager({
       moderatePressureThreshold: 0.5,
@@ -103,6 +180,26 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
 
   /**
    * Enhanced migrate with memory optimization
+   *
+   * @example
+   * ```typescript
+   * const orchestrator = new IndexedDbMigrationOrchestratorMemoryOptimized({
+   *   targetVersion: '2.0.0',
+   *   memoryOptimizationThreshold: 0.7
+   * });
+   *
+   * try {
+   *   const result = await orchestrator.migrate();
+   *   if (result.success) {
+   *     console.log('Migration completed successfully');
+   *     console.log('Migrated keys:', result.migratedKeys?.length);
+   *   }
+   * } catch (error) {
+   *   console.error('Migration failed:', error);
+   * }
+   * ```
+   *
+   * @returns Promise resolving to migration result with success status and details
    */
   public async migrate(): Promise<MigrationResult> {
     if (!this.memoryConfig.enableMemoryOptimization) {
@@ -111,6 +208,9 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
     }
 
     logger.log('Starting memory-optimized IndexedDB migration');
+
+    // Initialize performance tracking
+    this.performanceMetrics.startTime = Date.now();
 
     // Start memory monitoring
     this.startMemoryMonitoring();
@@ -126,10 +226,14 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
     try {
       const result = await super.migrate();
 
+      // Finalize performance metrics
+      this.finalizePerformanceMetrics();
+
       logger.log('Memory-optimized migration completed successfully', {
         optimizationActions: this.memoryOptimizationActions,
         finalChunkSize: this.currentChunkSize,
-        gcTriggered: this.gcTriggeredRecently
+        gcTriggered: this.gcTriggeredRecently,
+        performanceMetrics: this.performanceMetrics
       });
 
       return result;
@@ -143,9 +247,7 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
       throw error;
 
     } finally {
-      this.stopMemoryMonitoring();
-      this.cleanupTimeouts();
-      this.memoryManager.cleanup();
+      await this.cleanupMemoryOptimization();
     }
   }
 
@@ -200,6 +302,111 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
   }
 
   /**
+   * Comprehensive cleanup method to prevent memory leaks
+   */
+  private async cleanupMemoryOptimization(): Promise<void> {
+    this.stopMemoryMonitoring();
+    this.cleanupTimeouts();
+    this.memoryManager.cleanup();
+
+    // Clear references to prevent retention
+    this.memoryOptimizationActions = [];
+    this.lastMemoryCheck = null;
+    this.gcTriggeredRecently = false;
+
+    logger.debug('Memory-optimized migration orchestrator cleanup completed');
+  }
+
+  /**
+   * Validate configuration parameters to prevent invalid settings
+   */
+  private validateConfig(config: MemoryOptimizedMigrationConfig): void {
+    const {
+      memoryOptimizationThreshold,
+      progressiveLoadingThreshold,
+      memoryMonitoringInterval
+    } = config;
+
+    if (memoryOptimizationThreshold !== undefined &&
+        (memoryOptimizationThreshold < 0 || memoryOptimizationThreshold > 1)) {
+      throw new Error('memoryOptimizationThreshold must be between 0 and 1');
+    }
+
+    if (progressiveLoadingThreshold !== undefined && progressiveLoadingThreshold < 0) {
+      throw new Error('progressiveLoadingThreshold must be positive');
+    }
+
+    if (memoryMonitoringInterval !== undefined &&
+        (memoryMonitoringInterval < 100 || memoryMonitoringInterval > 60000)) {
+      throw new Error('memoryMonitoringInterval must be between 100ms and 60000ms');
+    }
+
+    logger.debug('Memory optimization configuration validated successfully', { config });
+  }
+
+  /**
+   * Finalize performance metrics at migration end
+   */
+  private finalizePerformanceMetrics(): void {
+    this.performanceMetrics.endTime = Date.now();
+    this.performanceMetrics.duration = this.performanceMetrics.endTime - this.performanceMetrics.startTime;
+
+    // Calculate average chunk size
+    if (this.chunkSizeSamples.length > 0) {
+      this.performanceMetrics.averageChunkSize = Math.round(
+        this.chunkSizeSamples.reduce((sum, size) => sum + size, 0) / this.chunkSizeSamples.length
+      );
+    }
+
+    logger.debug('Performance metrics finalized', this.performanceMetrics);
+  }
+
+  /**
+   * Update performance metrics during migration
+   */
+  private updatePerformanceMetrics(memoryInfo: MemoryInfo | null, pressureLevel: MemoryPressureLevel): void {
+    // Track peak memory usage
+    if (memoryInfo && memoryInfo.usagePercentage > this.performanceMetrics.peakMemoryUsage) {
+      this.performanceMetrics.peakMemoryUsage = memoryInfo.usagePercentage;
+    }
+
+    // Track pressure level distribution
+    this.performanceMetrics.pressureLevelDistribution[pressureLevel]++;
+
+    // Track chunk size samples
+    this.chunkSizeSamples.push(this.currentChunkSize);
+  }
+
+  /**
+   * Get current performance metrics for migration analysis
+   *
+   * @example
+   * ```typescript
+   * const orchestrator = new IndexedDbMigrationOrchestratorMemoryOptimized();
+   *
+   * await orchestrator.migrate();
+   *
+   * // Analyze migration performance
+   * const metrics = orchestrator.getPerformanceMetrics();
+   * console.log('Migration duration:', metrics.duration + 'ms');
+   * console.log('GC triggers:', metrics.gcTriggerCount);
+   * console.log('Average chunk size:', metrics.averageChunkSize);
+   * console.log('Peak memory usage:', metrics.peakMemoryUsage + '%');
+   * console.log('Chunk size adjustments:', metrics.chunkSizeAdjustments);
+   *
+   * // Analyze pressure level distribution
+   * Object.entries(metrics.pressureLevelDistribution).forEach(([level, count]) => {
+   *   console.log(`${level} pressure occurred ${count} times`);
+   * });
+   * ```
+   *
+   * @returns Performance metrics including duration, GC triggers, memory usage, and pressure distribution
+   */
+  public getPerformanceMetrics(): MigrationPerformanceMetrics {
+    return { ...this.performanceMetrics };
+  }
+
+  /**
    * Handle memory pressure events
    */
   private handleMemoryPressureEvent(event: MemoryPressureEvent): void {
@@ -217,6 +424,9 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
       const oldChunkSize = this.currentChunkSize;
       this.currentChunkSize = event.recommendedChunkSize;
 
+      // Track chunk size adjustment
+      this.performanceMetrics.chunkSizeAdjustments++;
+
       this.memoryOptimizationActions.push(
         `Chunk size adjusted: ${oldChunkSize} → ${this.currentChunkSize} (${event.level} pressure)`
       );
@@ -227,6 +437,9 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
         newChunkSize: this.currentChunkSize
       });
     }
+
+    // Update performance metrics
+    this.updatePerformanceMetrics(event.memoryInfo, event.level);
 
     // Force garbage collection if recommended
     if (event.shouldForceGC && !this.gcTriggeredRecently) {
@@ -298,7 +511,7 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
   }
 
   /**
-   * Force garbage collection with throttling
+   * Force garbage collection with throttling and race condition prevention
    */
   private async performGarbageCollection(): Promise<void> {
     if (this.gcTriggeredRecently) {
@@ -308,9 +521,17 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
     try {
       this.gcTriggeredRecently = true;
 
+      // Clear any existing timeout to prevent race conditions
+      if (this.gcTimeoutId) {
+        clearTimeout(this.gcTimeoutId);
+        this.gcTimeoutId = null;
+      }
+
       const success = await this.memoryManager.forceGarbageCollection();
 
       if (success) {
+        // Track GC trigger in performance metrics
+        this.performanceMetrics.gcTriggerCount++;
         this.memoryOptimizationActions.push('Forced garbage collection');
         logger.debug('Garbage collection forced successfully');
       }
@@ -323,6 +544,11 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
 
     } catch (error) {
       this.gcTriggeredRecently = false;
+      // Clear timeout reference on error
+      if (this.gcTimeoutId) {
+        clearTimeout(this.gcTimeoutId);
+        this.gcTimeoutId = null;
+      }
       logger.debug('Failed to force garbage collection', { error });
     }
   }
@@ -366,7 +592,8 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
         try {
           const value = getLocalStorageItem(key);
           if (value) {
-            totalSize += new Blob([value]).size;
+            // Estimate data size with fallback for edge cases
+            totalSize += this.estimateDataSize(value);
           }
         } catch (error) {
           logger.debug(`Failed to get size for key ${key}`, { error });
@@ -383,6 +610,31 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
     } catch (error) {
       logger.error('Failed to estimate total data size', { error });
       return 0;
+    }
+  }
+
+  /**
+   * Estimate data size with fallback for browser compatibility
+   */
+  private estimateDataSize(data: string): number {
+    try {
+      // Primary method: Use Blob for accurate size estimation
+      const blob = new Blob([data]);
+      return blob.size;
+    } catch (error) {
+      try {
+        // Fallback 1: Use TextEncoder for UTF-8 byte length
+        return new TextEncoder().encode(data).length;
+      } catch (encoderError) {
+        // Fallback 2: Estimate based on string length (approximate)
+        // Each character is approximately 2 bytes in UTF-16
+        logger.debug('Using string length estimation fallback', {
+          error,
+          encoderError,
+          dataLength: data.length
+        });
+        return data.length * 2;
+      }
     }
   }
 
@@ -408,6 +660,24 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
 
   /**
    * Get current memory optimization status
+   *
+   * @example
+   * ```typescript
+   * const orchestrator = new IndexedDbMigrationOrchestratorMemoryOptimized();
+   *
+   * // During migration, check current status
+   * const status = orchestrator.getMemoryOptimizationStatus();
+   * console.log('Memory usage:', status.memoryUsage + '%');
+   * console.log('Pressure level:', status.memoryPressure);
+   * console.log('Current chunk size:', status.currentChunkSize);
+   * console.log('Available memory:', status.availableMemoryMB + 'MB');
+   *
+   * if (status.gcTriggered) {
+   *   console.log('Garbage collection was recently triggered');
+   * }
+   * ```
+   *
+   * @returns Current memory optimization status and metrics
    */
   public getMemoryOptimizationStatus(): MemoryOptimizedProgress {
     const memoryInfo = this.lastMemoryCheck || this.memoryManager.getMemoryInfo();

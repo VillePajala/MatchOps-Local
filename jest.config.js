@@ -63,7 +63,6 @@ const customJestConfig = {
 
   // CI-specific optimizations
   ...(process.env.CI && {
-    bail: 1, // Stop on first test failure in CI
     cache: false, // Disable cache in CI for consistent results
     detectOpenHandles: false, // Skip expensive handle detection in CI
     watchman: false, // Disable watchman in CI
