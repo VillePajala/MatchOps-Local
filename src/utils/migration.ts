@@ -475,7 +475,7 @@ export const triggerIndexedDbMigration = async (): Promise<boolean> => {
   try {
     logger.log('[Migration] Manually triggered IndexedDB storage migration');
 
-    const migrationOrchestrator = new IndexedDbMigrationOrchestrator({
+    const migrationOrchestrator = new IndexedDbMigrationOrchestratorEnhanced({
       targetVersion: INDEXEDDB_STORAGE_VERSION,
       verifyData: true,
       keepBackupOnSuccess: false,

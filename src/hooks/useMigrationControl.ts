@@ -60,10 +60,15 @@ export function useMigrationControl(
 
   const controlManagerRef = useRef<MigrationControlManager | null>(null);
   const isMountedRef = useRef(true);
+  const operationQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const lastOperationTimeRef = useRef<number>(0);
 
   // Stabilize callbacks to prevent unnecessary recreation
   const stableCallbacks = useRef(options);
   stableCallbacks.current = options;
+
+  // Debouncing configuration
+  const OPERATION_DEBOUNCE_MS = 500; // Prevent rapid operations
 
   // Initialize control manager
   useEffect(() => {
@@ -115,28 +120,59 @@ export function useMigrationControl(
     };
   }, []); // Empty dependency array - manager is created only once
 
+  // Helper function to queue operations and prevent rapid state changes
+  const queueOperation = useCallback(async <T>(operation: () => Promise<T>, operationName: string): Promise<T | null> => {
+    const now = Date.now();
+    const timeSinceLastOperation = now - lastOperationTimeRef.current;
+
+    // Debounce rapid operations
+    if (timeSinceLastOperation < OPERATION_DEBOUNCE_MS) {
+      logger.log(`Operation ${operationName} debounced`, {
+        timeSinceLastOperation,
+        debounceMs: OPERATION_DEBOUNCE_MS
+      });
+      return null;
+    }
+
+    // Queue the operation to prevent concurrent execution
+    operationQueueRef.current = operationQueueRef.current.then(async () => {
+      if (!isMountedRef.current) {
+        logger.log(`Operation ${operationName} cancelled - component unmounted`);
+        return null;
+      }
+
+      try {
+        lastOperationTimeRef.current = Date.now();
+        return await operation();
+      } catch (error) {
+        logger.error(`Queued operation ${operationName} failed`, error);
+        throw error;
+      }
+    });
+
+    return operationQueueRef.current as Promise<T | null>;
+  }, [OPERATION_DEBOUNCE_MS]);
+
   // Pause migration
   const pauseMigration = useCallback(async () => {
     if (!controlManagerRef.current) return;
 
-    try {
+    await queueOperation(async () => {
       logger.log('Requesting migration pause');
-      await controlManagerRef.current.requestPause();
+      await controlManagerRef.current!.requestPause();
       if (isMountedRef.current) {
         setControl(prev => ({ ...prev, isPaused: true }));
       }
-    } catch (error) {
-      logger.error('Failed to pause migration', error);
-    }
-  }, []);
+    }, 'pauseMigration');
+  }, [queueOperation]);
 
   // Resume migration
   const resumeMigration = useCallback(async () => {
     if (!controlManagerRef.current) return;
 
-    try {
+    await queueOperation(async () => {
       logger.log('Requesting migration resume');
-      const resumeData = await controlManagerRef.current.requestResume();
+      const resumeData = await controlManagerRef.current!.requestResume();
       if (resumeData && isMountedRef.current) {
         setControl(prev => ({
           ...prev,
@@ -145,28 +181,29 @@ export function useMigrationControl(
           resumeData: undefined
         }));
       }
-    } catch (error) {
-      logger.error('Failed to resume migration', error);
-    }
-  }, []);
+    }, 'resumeMigration');
+  }, [queueOperation]);
 
   // Cancel migration
   const cancelMigration = useCallback(async () => {
     if (!controlManagerRef.current) return;
 
-    try {
+    await queueOperation(async () => {
       logger.log('Requesting migration cancellation');
       if (isMountedRef.current) {
         setControl(prev => ({ ...prev, isCancelling: true }));
       }
-      await controlManagerRef.current.requestCancel();
-    } catch (error) {
-      logger.error('Failed to cancel migration', error);
-      if (isMountedRef.current) {
-        setControl(prev => ({ ...prev, isCancelling: false }));
+      try {
+        await controlManagerRef.current!.requestCancel();
+      } catch (error) {
+        logger.error('Failed to cancel migration', error);
+        if (isMountedRef.current) {
+          setControl(prev => ({ ...prev, isCancelling: false }));
+        }
+        throw error;
       }
-    }
-  }, []);
+    }, 'cancelMigration');
+  }, [queueOperation]);
 
   // Estimate migration
   const estimateMigration = useCallback(async (keys: string[]) => {

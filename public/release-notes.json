@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: resolve critical migration control issues for production readiness"
+  "notes": "fix: resolve TypeScript errors and wire enhanced migration orchestrator"
 }
