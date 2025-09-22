@@ -10,12 +10,16 @@ import { MigrationControlCallbacks } from '@/types/migrationControl';
 
 // Mock dependencies
 jest.mock('./localStorageAdapter');
-jest.mock('./checksumUtils');
+jest.mock('./checksumUtils', () => ({
+  generateResumeDataChecksum: jest.fn().mockResolvedValue('mock-checksum'),
+  verifyResumeDataIntegrity: jest.fn().mockReturnValue(true)
+}));
 jest.mock('./logger', () => ({
   createLogger: () => ({
     log: jest.fn(),
     warn: jest.fn(),
-    error: jest.fn()
+    error: jest.fn(),
+    debug: jest.fn()
   })
 }));
 
@@ -32,12 +36,17 @@ const mockLocalStorageAdapter = {
 
 (LocalStorageAdapter as jest.Mock).mockImplementation(() => mockLocalStorageAdapter);
 
-describe.skip('MigrationControlManager', () => {
+describe('MigrationControlManager', () => {
   let manager: MigrationControlManager;
   let mockCallbacks: MigrationControlCallbacks;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
+
+    // Mock the loadResumeData method before creating the instance
+    const loadResumeDataSpy = jest.spyOn(MigrationControlManager.prototype, 'loadResumeData' as any);
+    loadResumeDataSpy.mockImplementation(() => Promise.resolve());
+
     mockCallbacks = {
       onPause: jest.fn(),
       onResume: jest.fn(),
@@ -46,16 +55,23 @@ describe.skip('MigrationControlManager', () => {
       onPreview: jest.fn()
     };
 
-    // Spy on loadResumeData to prevent hanging async operations
-    const managerPrototype = MigrationControlManager.prototype;
-    const loadResumeDataSpy = jest.spyOn(managerPrototype, 'loadResumeData' as any);
-    loadResumeDataSpy.mockImplementation(() => Promise.resolve());
-
     manager = new MigrationControlManager(mockCallbacks);
+
+    // Wait for any async constructor operations to complete
+    await new Promise(resolve => setTimeout(resolve, 10));
   });
 
   afterEach(async () => {
-    await manager.cleanup();
+    if (manager) {
+      try {
+        await manager.cleanup();
+      } catch (error) {
+        // Ensure cleanup doesn't fail tests
+        console.warn('Cleanup failed:', error);
+      }
+    }
+    jest.clearAllTimers();
+    jest.runOnlyPendingTimers();
   });
 
   describe('initialization', () => {
