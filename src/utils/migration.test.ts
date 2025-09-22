@@ -12,7 +12,7 @@ import {
   isIndexedDbMigrationNeeded,
   triggerIndexedDbMigration
 } from './migration';
-import { getStorageConfig, updateStorageConfig } from './storageFactory';
+import { getStorageConfig } from './storageFactory';
 import { IndexedDbMigrationOrchestrator } from './indexedDbMigration';
 import * as migrationBackup from './migrationBackup';
 import * as localStorage from './localStorage';
@@ -130,9 +130,9 @@ describe('Migration Integration', () => {
         errors: [],
         duration: 1000
       });
-      (IndexedDbMigrationOrchestrator as jest.MockedClass<any>).mockImplementation(() => ({
+      (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
         migrate: mockMigrate
-      }));
+      }) as InstanceType<typeof IndexedDbMigrationOrchestrator>);
 
       await runMigration();
 
@@ -173,9 +173,9 @@ describe('Migration Integration', () => {
         errors: ['Storage quota exceeded'],
         duration: 500
       });
-      (IndexedDbMigrationOrchestrator as jest.MockedClass<any>).mockImplementation(() => ({
+      (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
         migrate: mockMigrate
-      }));
+      }) as InstanceType<typeof IndexedDbMigrationOrchestrator>);
 
       // Should not throw - app continues with localStorage
       await runMigration();
@@ -283,9 +283,9 @@ describe('Migration Integration', () => {
         errors: [],
         duration: 1000
       });
-      (IndexedDbMigrationOrchestrator as jest.MockedClass<any>).mockImplementation(() => ({
+      (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
         migrate: mockMigrate
-      }));
+      }) as InstanceType<typeof IndexedDbMigrationOrchestrator>);
 
       const result = await triggerIndexedDbMigration();
 
@@ -305,9 +305,9 @@ describe('Migration Integration', () => {
         errors: ['Failed to transfer data'],
         duration: 500
       });
-      (IndexedDbMigrationOrchestrator as jest.MockedClass<any>).mockImplementation(() => ({
+      (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
         migrate: mockMigrate
-      }));
+      }) as InstanceType<typeof IndexedDbMigrationOrchestrator>);
 
       const result = await triggerIndexedDbMigration();
 
@@ -325,9 +325,9 @@ describe('Migration Integration', () => {
       });
 
       const mockMigrate = jest.fn().mockRejectedValue(new Error('Unexpected error'));
-      (IndexedDbMigrationOrchestrator as jest.MockedClass<any>).mockImplementation(() => ({
+      (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
         migrate: mockMigrate
-      }));
+      }) as InstanceType<typeof IndexedDbMigrationOrchestrator>);
 
       const result = await triggerIndexedDbMigration();
 
