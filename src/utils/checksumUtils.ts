@@ -7,19 +7,97 @@
 
 /**
  * Generate SHA-256 hash of data for integrity verification
+ * Uses Web Crypto API with comprehensive browser compatibility warnings
  */
 export async function generateChecksum(data: string): Promise<string> {
-  if (typeof crypto !== 'undefined' && crypto.subtle) {
+  // Check for Web Crypto API support with detailed warnings
+  if (!isWebCryptoSupported()) {
+    const compatInfo = getWebCryptoCompatibilityInfo();
+
+    // eslint-disable-next-line no-console
+    console.warn('⚠️ Web Crypto API Compatibility Warning:');
+    // eslint-disable-next-line no-console
+    console.warn('Your browser does not fully support the Web Crypto API.');
+    // eslint-disable-next-line no-console
+    console.warn('This may affect data integrity verification during migration.');
+    // eslint-disable-next-line no-console
+    console.warn('Browser Support: Chrome 37+, Firefox 34+, Safari 7+, Edge 12+');
+
+    if (compatInfo.recommendation) {
+      // eslint-disable-next-line no-console
+      console.warn('Recommendation:', compatInfo.recommendation);
+    }
+
+    // eslint-disable-next-line no-console
+    console.warn('Falling back to a simpler checksum algorithm.');
+    return simpleHash(data);
+  }
+
+  try {
     // Use Web Crypto API for modern browsers
     const encoder = new TextEncoder();
     const dataBuffer = encoder.encode(data);
     const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  } else {
-    // Fallback for environments without Web Crypto API
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Web Crypto API operation failed, falling back to simple hash:', error);
     return simpleHash(data);
   }
+}
+
+/**
+ * Check if Web Crypto API is supported in the current environment
+ */
+export function isWebCryptoSupported(): boolean {
+  try {
+    return (
+      typeof crypto !== 'undefined' &&
+      crypto.subtle !== undefined &&
+      typeof crypto.subtle.digest === 'function'
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get detailed browser compatibility information for Web Crypto API
+ */
+export function getWebCryptoCompatibilityInfo(): {
+  supported: boolean;
+  features: {
+    crypto: boolean;
+    subtle: boolean;
+    digest: boolean;
+  };
+  recommendation?: string;
+} {
+  const features = {
+    crypto: typeof crypto !== 'undefined',
+    subtle: typeof crypto !== 'undefined' && crypto.subtle !== undefined,
+    digest: typeof crypto !== 'undefined' && crypto.subtle !== undefined && typeof crypto.subtle.digest === 'function'
+  };
+
+  const supported = features.crypto && features.subtle && features.digest;
+
+  let recommendation;
+  if (!supported) {
+    if (!features.crypto) {
+      recommendation = 'Please update to a modern browser that supports the Web Crypto API (Chrome 37+, Firefox 34+, Safari 7+, Edge 12+)';
+    } else if (!features.subtle) {
+      recommendation = 'Your browser has crypto but not crypto.subtle. This may indicate an insecure context (non-HTTPS). Please use HTTPS.';
+    } else if (!features.digest) {
+      recommendation = 'Your browser supports crypto.subtle but not the digest function. Please update your browser.';
+    }
+  }
+
+  return {
+    supported,
+    features,
+    recommendation
+  };
 }
 
 /**

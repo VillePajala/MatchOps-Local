@@ -262,7 +262,7 @@ export class IndexedDBKvAdapter implements StorageAdapter {
         return await (store as IDBPObjectStore<unknown, [string], string, 'readonly'>).get(key);
       });
 
-      if (result && typeof result.value === 'string') {
+      if (result && result.value !== undefined && typeof result.value === 'string') {
         this.logger.debug('Item retrieved successfully', {
           key,
           valueLength: result.value.length

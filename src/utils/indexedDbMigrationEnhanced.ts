@@ -38,8 +38,8 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
     // Check for incomplete migrations on startup
     await this.recoverFromIncompleteState();
 
-    // Acquire migration lock to prevent concurrent operations
-    const lockAcquired = await migrationMutex.acquireLock('migration');
+    // Acquire migration lock with atomic check-and-set to prevent race conditions
+    const lockAcquired = await this.acquireLockWithRetry();
     if (!lockAcquired) {
       throw new Error('Another migration is already in progress in a different tab. Please wait for it to complete or force-release the lock.');
     }
@@ -437,9 +437,61 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
   }
 
   /**
+   * Acquire migration lock with atomic check-and-set operation to prevent race conditions
+   */
+  private async acquireLockWithRetry(maxAttempts: number = 3): Promise<boolean> {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        // Use double-checked locking pattern
+        const currentLock = migrationMutex.getCurrentLock();
+
+        // If no lock exists or it's stale, try to acquire
+        if (!currentLock || this.isLockStale(currentLock)) {
+          const acquired = await migrationMutex.acquireLock('migration');
+
+          // Verify we actually got the lock (handles race conditions)
+          if (acquired && migrationMutex.isLockOwner()) {
+            return true;
+          }
+        }
+
+        // If this is not the last attempt, wait before retrying
+        if (attempt < maxAttempts) {
+          const backoffDelay = attempt * 1000; // Exponential backoff
+          logger.log(`Lock acquisition attempt ${attempt} failed, retrying in ${backoffDelay}ms`);
+          await new Promise(resolve => setTimeout(resolve, backoffDelay));
+        }
+      } catch (error) {
+        logger.error(`Lock acquisition attempt ${attempt} failed with error:`, error);
+
+        // If this is not the last attempt, continue trying
+        if (attempt < maxAttempts) {
+          continue;
+        }
+      }
+    }
+
+    logger.warn(`Failed to acquire migration lock after ${maxAttempts} attempts`);
+    return false;
+  }
+
+  /**
+   * Check if a lock is stale (helper for lock acquisition)
+   */
+  private isLockStale(lock: { timestamp: number; heartbeat: number }): boolean {
+    const now = Date.now();
+    const lockAge = now - lock.timestamp;
+    const heartbeatAge = now - lock.heartbeat;
+
+    // Lock is stale if it's older than 30 seconds or heartbeat is older than 10 seconds
+    return lockAge > 30000 || heartbeatAge > 10000;
+  }
+
+  /**
    * Clean up resources
    */
   public async cleanup(): Promise<void> {
     await this.controlManager.cleanup();
+    migrationMutex.releaseLock();
   }
 }

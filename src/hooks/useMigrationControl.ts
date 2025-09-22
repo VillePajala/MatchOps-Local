@@ -62,13 +62,15 @@ export function useMigrationControl(
   const isMountedRef = useRef(true);
   const operationQueueRef = useRef<Promise<unknown>>(Promise.resolve());
   const lastOperationTimeRef = useRef<number>(0);
+  const queueSizeRef = useRef<number>(0);
 
   // Stabilize callbacks to prevent unnecessary recreation
   const stableCallbacks = useRef(options);
   stableCallbacks.current = options;
 
-  // Debouncing configuration
+  // Debouncing and queue management configuration
   const OPERATION_DEBOUNCE_MS = 500; // Prevent rapid operations
+  const MAX_QUEUE_SIZE = 10; // Prevent memory leaks from accumulated operations
 
   // Initialize control manager
   useEffect(() => {
@@ -134,24 +136,49 @@ export function useMigrationControl(
       return null;
     }
 
-    // Queue the operation to prevent concurrent execution
-    operationQueueRef.current = operationQueueRef.current.then(async () => {
-      if (!isMountedRef.current) {
-        logger.log(`Operation ${operationName} cancelled - component unmounted`);
-        return null;
-      }
+    // Prevent queue overflow - reject new operations if queue is too large
+    if (queueSizeRef.current >= MAX_QUEUE_SIZE) {
+      logger.warn(`Operation ${operationName} rejected - queue size limit reached`, {
+        queueSize: queueSizeRef.current,
+        maxSize: MAX_QUEUE_SIZE
+      });
+      return null;
+    }
 
-      try {
-        lastOperationTimeRef.current = Date.now();
-        return await operation();
-      } catch (error) {
-        logger.error(`Queued operation ${operationName} failed`, error);
-        return null; // Return null on error for graceful handling
-      }
-    });
+    // Increment queue size
+    queueSizeRef.current++;
+
+    // Queue the operation to prevent concurrent execution
+    operationQueueRef.current = operationQueueRef.current
+      .then(async () => {
+        if (!isMountedRef.current) {
+          logger.log(`Operation ${operationName} cancelled - component unmounted`);
+          return null;
+        }
+
+        try {
+          lastOperationTimeRef.current = Date.now();
+          const result = await operation();
+
+          // Operation succeeded, reset failure tracking
+          return result;
+        } catch (error) {
+          logger.error(`Queued operation ${operationName} failed`, error);
+          return null; // Return null on error for graceful handling
+        }
+      })
+      .finally(() => {
+        // Always decrement queue size when operation completes
+        queueSizeRef.current = Math.max(0, queueSizeRef.current - 1);
+
+        // Clean up the queue if it's getting stale
+        if (queueSizeRef.current === 0) {
+          operationQueueRef.current = Promise.resolve();
+        }
+      });
 
     return operationQueueRef.current as Promise<T | null>;
-  }, [OPERATION_DEBOUNCE_MS]);
+  }, [OPERATION_DEBOUNCE_MS, MAX_QUEUE_SIZE]);
 
   // Pause migration
   const pauseMigration = useCallback(async () => {

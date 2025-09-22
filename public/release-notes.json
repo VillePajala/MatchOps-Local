@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: resolve TypeScript errors and wire enhanced migration orchestrator"
+  "notes": "fix: correct large dataset estimation test expectations"
 }

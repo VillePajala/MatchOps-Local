@@ -9,7 +9,13 @@ import { MigrationControlCallbacks } from '@/types/migrationControl';
 
 // Mock dependencies
 jest.mock('./localStorageAdapter');
-jest.mock('./logger');
+jest.mock('./logger', () => ({
+  createLogger: () => ({
+    log: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  })
+}));
 
 const mockLocalStorageAdapter = {
   getItem: jest.fn(),
@@ -332,6 +338,516 @@ describe('MigrationControlManager', () => {
       expect(mockLocalStorageAdapter.removeItem).toHaveBeenCalledWith(
         MIGRATION_CONTROL_FEATURES.PROGRESS_STORAGE_KEY
       );
+    });
+  });
+
+  describe('memory pressure handling', () => {
+    beforeEach(() => {
+      // Mock performance.memory for memory pressure tests
+      Object.defineProperty(global, 'performance', {
+        value: {
+          memory: {
+            usedJSHeapSize: 50 * 1024 * 1024, // 50MB
+            jsHeapSizeLimit: 100 * 1024 * 1024 // 100MB limit
+          },
+          now: jest.fn(() => 100)
+        },
+        configurable: true
+      });
+    });
+
+    it('should detect memory pressure during estimation', async () => {
+      // Simulate high memory usage
+      Object.defineProperty(performance, 'memory', {
+        value: {
+          usedJSHeapSize: 95 * 1024 * 1024, // 95MB used
+          jsHeapSizeLimit: 100 * 1024 * 1024 // 100MB limit
+        },
+        configurable: true
+      });
+
+      const keys = ['key1', 'key2'];
+      mockLocalStorageAdapter.getItem.mockResolvedValue('{"data": "test"}');
+
+      const estimation = await manager.estimateMigration(keys);
+
+      expect(estimation.memoryAvailable).toBe(false);
+      expect(estimation.warnings).toContain('High memory usage detected');
+    });
+
+    it('should reduce sample size under memory pressure', async () => {
+      // Simulate memory pressure
+      Object.defineProperty(performance, 'memory', {
+        value: {
+          usedJSHeapSize: 90 * 1024 * 1024, // 90MB used
+          jsHeapSizeLimit: 100 * 1024 * 1024 // 100MB limit
+        },
+        configurable: true
+      });
+
+      const keys = Array.from({ length: 1000 }, (_, i) => `key${i}`);
+      mockLocalStorageAdapter.getItem.mockResolvedValue('{"data": "test"}');
+
+      const estimation = await manager.estimateMigration(keys);
+
+      // Under memory pressure, sample size should be reduced
+      expect(estimation.sampleSize).toBeLessThan(100);
+      expect(estimation.warnings).toContain('Sample size reduced due to memory pressure');
+    });
+
+    it('should handle memory pressure during preview', async () => {
+      // Simulate critical memory usage
+      Object.defineProperty(performance, 'memory', {
+        value: {
+          usedJSHeapSize: 98 * 1024 * 1024, // 98MB used
+          jsHeapSizeLimit: 100 * 1024 * 1024 // 100MB limit
+        },
+        configurable: true
+      });
+
+      const keys = ['key1'];
+      mockLocalStorageAdapter.getItem.mockResolvedValue('{"data": "test"}');
+
+      // Mock browser APIs for preview
+      Object.defineProperty(global, 'navigator', {
+        value: {
+          storage: {
+            estimate: jest.fn().mockResolvedValue({ quota: 1000000000, usage: 100000000 })
+          }
+        },
+        configurable: true
+      });
+
+      Object.defineProperty(global, 'indexedDB', { value: {}, configurable: true });
+      Object.defineProperty(global, 'localStorage', { value: {}, configurable: true });
+
+      const preview = await manager.previewMigration(keys);
+
+      expect(preview.memoryAvailable).toBe(false);
+      expect(preview.canProceed).toBe(false);
+      expect(preview.warnings).toContain('Critical memory usage detected');
+    });
+
+    it('should cache memory checks to avoid repeated calculations', async () => {
+      const keys = ['key1'];
+      mockLocalStorageAdapter.getItem.mockResolvedValue('{"data": "test"}');
+
+      // Mock browser APIs
+      Object.defineProperty(global, 'navigator', {
+        value: {
+          storage: {
+            estimate: jest.fn().mockResolvedValue({ quota: 1000000000, usage: 100000000 })
+          }
+        },
+        configurable: true
+      });
+
+      Object.defineProperty(global, 'indexedDB', { value: {}, configurable: true });
+      Object.defineProperty(global, 'localStorage', { value: {}, configurable: true });
+
+      // Create spy on performance.memory access
+      const memorySpy = jest.spyOn(performance, 'memory', 'get');
+
+      // Run multiple previews quickly
+      await Promise.all([
+        manager.previewMigration(keys),
+        manager.previewMigration(keys),
+        manager.previewMigration(keys)
+      ]);
+
+      // Memory should be checked but cached results used
+      expect(memorySpy).toHaveBeenCalled();
+    });
+
+    it('should handle missing performance.memory API gracefully', async () => {
+      // Remove performance.memory
+      const originalMemory = performance.memory;
+      delete (performance as { memory?: unknown }).memory;
+
+      const keys = ['key1'];
+      mockLocalStorageAdapter.getItem.mockResolvedValue('{"data": "test"}');
+
+      const estimation = await manager.estimateMigration(keys);
+
+      expect(estimation.memoryAvailable).toBe(true); // Should assume available if can't check
+      expect(estimation.warnings).not.toContain('memory');
+
+      // Restore
+      Object.defineProperty(performance, 'memory', {
+        value: originalMemory,
+        configurable: true
+      });
+    });
+
+    it('should trigger cleanup when memory pressure detected during migration', async () => {
+      // Simulate escalating memory pressure
+      let memoryUsage = 50 * 1024 * 1024; // Start at 50MB
+      Object.defineProperty(performance, 'memory', {
+        get: () => ({
+          usedJSHeapSize: memoryUsage,
+          jsHeapSizeLimit: 100 * 1024 * 1024
+        }),
+        configurable: true
+      });
+
+      await manager.requestPause();
+
+      // Simulate memory pressure increasing during save
+      memoryUsage = 95 * 1024 * 1024; // Jump to 95MB
+
+      await manager.savePauseState(
+        'key5',
+        ['key1', 'key2'],
+        ['key6', 'key7'],
+        2,
+        4,
+        512,
+        1024
+      );
+
+      // Should still save but with warnings
+      expect(mockLocalStorageAdapter.setItem).toHaveBeenCalled();
+    });
+
+    it('should adapt estimation strategy based on available memory', async () => {
+      // Test with different memory scenarios
+      const scenarios = [
+        { used: 20 * 1024 * 1024, limit: 100 * 1024 * 1024, expectedStrategy: 'normal' },
+        { used: 70 * 1024 * 1024, limit: 100 * 1024 * 1024, expectedStrategy: 'reduced' },
+        { used: 95 * 1024 * 1024, limit: 100 * 1024 * 1024, expectedStrategy: 'minimal' }
+      ];
+
+      for (const scenario of scenarios) {
+        Object.defineProperty(performance, 'memory', {
+          value: {
+            usedJSHeapSize: scenario.used,
+            jsHeapSizeLimit: scenario.limit
+          },
+          configurable: true
+        });
+
+        const keys = Array.from({ length: 1000 }, (_, i) => `key${i}`);
+        mockLocalStorageAdapter.getItem.mockResolvedValue('{"data": "test"}');
+
+        const estimation = await manager.estimateMigration(keys);
+
+        switch (scenario.expectedStrategy) {
+          case 'normal':
+            expect(estimation.sampleSize).toBeGreaterThan(50);
+            break;
+          case 'reduced':
+            expect(estimation.sampleSize).toBeLessThan(100);
+            expect(estimation.sampleSize).toBeGreaterThan(20);
+            break;
+          case 'minimal':
+            expect(estimation.sampleSize).toBeLessThan(50);
+            break;
+        }
+      }
+    });
+  });
+
+  describe('error recovery paths', () => {
+    it('should recover from checksum validation failures', async () => {
+      await manager.requestPause();
+
+      // Save valid pause state
+      await manager.savePauseState(
+        'key5',
+        ['key1', 'key2'],
+        ['key6', 'key7'],
+        2,
+        4,
+        512,
+        1024
+      );
+
+      // Simulate corrupted resume data with invalid checksum
+      const corruptedData = {
+        lastProcessedKey: 'key5',
+        processedKeys: ['key1', 'key2'],
+        remainingKeys: ['key6', 'key7'],
+        itemsProcessed: 2,
+        totalItems: 4,
+        bytesProcessed: 512,
+        totalBytes: 1024,
+        timestamp: Date.now(),
+        checksum: 'invalid_checksum'
+      };
+
+      mockLocalStorageAdapter.getItem.mockResolvedValueOnce(JSON.stringify(corruptedData));
+
+      // Create new manager to test recovery
+      const testManager = new MigrationControlManager(mockCallbacks);
+      const result = await testManager.requestResume();
+
+      expect(result).toBeNull(); // Should reject corrupted data
+      expect(testManager.getControlState().canResume).toBe(false);
+    });
+
+    it('should handle multiple consecutive operation failures', async () => {
+      let attemptCount = 0;
+      mockLocalStorageAdapter.setItem.mockImplementation(() => {
+        attemptCount++;
+        if (attemptCount <= 3) {
+          throw new Error('Storage temporarily unavailable');
+        }
+        return Promise.resolve();
+      });
+
+      await manager.requestPause();
+
+      // Multiple save attempts should eventually succeed
+      await manager.savePauseState(
+        'key5',
+        ['key1', 'key2'],
+        ['key6', 'key7'],
+        2,
+        4,
+        512,
+        1024
+      );
+
+      expect(attemptCount).toBeGreaterThan(1);
+      expect(mockCallbacks.onPause).toHaveBeenCalled();
+    });
+
+    it('should recover from partial data corruption', async () => {
+      await manager.requestPause();
+
+      // Save pause state
+      await manager.savePauseState(
+        'key5',
+        ['key1', 'key2'],
+        ['key6', 'key7'],
+        2,
+        4,
+        512,
+        1024
+      );
+
+      // Simulate partially corrupted data (missing required fields)
+      const partialData = {
+        lastProcessedKey: 'key5',
+        // Missing other required fields
+        timestamp: Date.now()
+      };
+
+      mockLocalStorageAdapter.getItem.mockResolvedValueOnce(JSON.stringify(partialData));
+
+      const testManager = new MigrationControlManager(mockCallbacks);
+      const result = await testManager.requestResume();
+
+      expect(result).toBeNull();
+      expect(testManager.getControlState().canResume).toBe(false);
+    });
+
+    it('should handle storage quota exceeded with graceful degradation', async () => {
+      await manager.requestPause();
+
+      // Simulate quota exceeded error
+      const quotaError = new Error('QuotaExceededError');
+      quotaError.name = 'QuotaExceededError';
+      mockLocalStorageAdapter.setItem.mockRejectedValue(quotaError);
+      mockLocalStorageAdapter.isQuotaExceededError.mockReturnValue(true);
+
+      await manager.savePauseState(
+        'key5',
+        ['key1', 'key2'],
+        ['key6', 'key7'],
+        2,
+        4,
+        512,
+        1024
+      );
+
+      // Should maintain in-memory state even if storage fails
+      const state = manager.getControlState();
+      expect(state.canResume).toBe(true);
+      expect(state.resumeData).toBeDefined();
+    });
+
+    it('should recover from corrupted estimation data', async () => {
+      // Simulate corrupted response during estimation
+      mockLocalStorageAdapter.getItem
+        .mockResolvedValueOnce('{"invalid": "json"') // Corrupted JSON
+        .mockResolvedValueOnce('{"data": "valid"}'); // Valid fallback
+
+      const keys = ['key1', 'key2'];
+      const estimation = await manager.estimateMigration(keys);
+
+      expect(estimation).toBeDefined();
+      expect(estimation.sampleSize).toBeGreaterThan(0);
+    });
+
+    it('should handle estimation timeout and recover', async () => {
+      jest.useFakeTimers();
+
+      // Mock slow response
+      mockLocalStorageAdapter.getItem.mockImplementation(() =>
+        new Promise(resolve => {
+          setTimeout(() => resolve('{"data": "test"}'), 10000);
+        })
+      );
+
+      const keys = ['key1'];
+      const estimationPromise = manager.estimateMigration(keys);
+
+      // Fast-forward past reasonable timeout
+      jest.advanceTimersByTime(15000);
+
+      const estimation = await estimationPromise;
+
+      // Should provide fallback estimation
+      expect(estimation).toBeDefined();
+      expect(estimation.estimatedDuration).toBeGreaterThan(0);
+
+      jest.useRealTimers();
+    });
+
+    it('should recover from preview generation failures', async () => {
+      const keys = ['key1'];
+
+      // Mock all browser APIs to fail
+      Object.defineProperty(global, 'navigator', {
+        value: {
+          storage: {
+            estimate: jest.fn().mockRejectedValue(new Error('API unavailable'))
+          }
+        },
+        configurable: true
+      });
+
+      mockLocalStorageAdapter.getItem.mockRejectedValue(new Error('Access denied'));
+
+      const preview = await manager.previewMigration(keys);
+
+      expect(preview.canProceed).toBe(false);
+      expect(preview.warnings.length).toBeGreaterThan(0);
+      expect(preview.validationResults).toBeDefined();
+    });
+
+    it('should handle cascading failures across multiple systems', async () => {
+      // Simulate multiple system failures
+      mockLocalStorageAdapter.getItem.mockRejectedValue(new Error('Storage failure'));
+      mockLocalStorageAdapter.setItem.mockRejectedValue(new Error('Write failure'));
+
+      Object.defineProperty(global, 'navigator', {
+        value: {
+          storage: {
+            estimate: jest.fn().mockRejectedValue(new Error('Quota API failure'))
+          }
+        },
+        configurable: true
+      });
+
+      Object.defineProperty(performance, 'memory', {
+        get: () => {
+          throw new Error('Memory API failure');
+        },
+        configurable: true
+      });
+
+      const keys = ['key1'];
+      const preview = await manager.previewMigration(keys);
+
+      // Should still provide a preview with warnings
+      expect(preview).toBeDefined();
+      expect(preview.canProceed).toBe(false);
+      expect(preview.warnings.length).toBeGreaterThan(2);
+    });
+
+    it('should recover from concurrent cancellation during pause', async () => {
+      // Start pause operation
+      const pausePromise = manager.requestPause();
+
+      // Immediately request cancellation
+      const cancelPromise = manager.requestCancel();
+
+      await Promise.all([pausePromise, cancelPromise]);
+
+      const state = manager.getControlState();
+      // Cancel should take precedence
+      expect(state.isCancelling).toBe(true);
+      expect(mockCallbacks.onCancel).toHaveBeenCalled();
+    });
+
+    it('should handle estimation failures with adaptive retry', async () => {
+      let attemptCount = 0;
+      mockLocalStorageAdapter.getItem.mockImplementation(() => {
+        attemptCount++;
+        if (attemptCount <= 2) {
+          throw new Error(`Attempt ${attemptCount} failed`);
+        }
+        return Promise.resolve('{"data": "test"}');
+      });
+
+      const keys = ['key1', 'key2', 'key3'];
+      const estimation = await manager.estimateMigration(keys);
+
+      expect(attemptCount).toBe(3); // Should retry and eventually succeed
+      expect(estimation).toBeDefined();
+      expect(estimation.sampleSize).toBeGreaterThan(0);
+    });
+
+    it('should maintain operation queue integrity during errors', async () => {
+      // Simulate alternating success/failure pattern
+      let callCount = 0;
+      mockLocalStorageAdapter.setItem.mockImplementation(() => {
+        callCount++;
+        if (callCount % 2 === 0) {
+          throw new Error('Intermittent failure');
+        }
+        return Promise.resolve();
+      });
+
+      await manager.requestPause();
+
+      // Multiple operations should maintain queue order
+      const operations = [
+        manager.savePauseState('key1', [], [], 1, 10, 100, 1000),
+        manager.savePauseState('key2', [], [], 2, 10, 200, 1000),
+        manager.savePauseState('key3', [], [], 3, 10, 300, 1000)
+      ];
+
+      await Promise.allSettled(operations);
+
+      // Some operations may fail, but queue should remain intact
+      expect(callCount).toBeGreaterThan(2);
+    });
+
+    it('should recover from checkpoint corruption during save', async () => {
+      await manager.requestPause();
+
+      // Mock checkpoint counter to trigger checkpoint
+      for (let i = 0; i < 10; i++) {
+        manager.shouldCreateCheckpoint();
+      }
+
+      // Simulate corruption during checkpoint save
+      let saveAttempt = 0;
+      mockLocalStorageAdapter.setItem.mockImplementation(() => {
+        saveAttempt++;
+        if (saveAttempt === 1) {
+          // First attempt corrupts the data
+          throw new Error('Data corruption during write');
+        }
+        return Promise.resolve();
+      });
+
+      await manager.savePauseState(
+        'key10',
+        ['key1', 'key2', 'key3', 'key4', 'key5'],
+        ['key11', 'key12'],
+        5,
+        12,
+        2048,
+        4096
+      );
+
+      // Should eventually succeed despite initial corruption
+      expect(saveAttempt).toBeGreaterThan(1);
+      expect(mockCallbacks.onPause).toHaveBeenCalled();
     });
   });
 

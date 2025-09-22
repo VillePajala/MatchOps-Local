@@ -15,9 +15,10 @@ import {
 import { MIGRATION_CONTROL_FEATURES } from '@/config/migrationConfig';
 import { LocalStorageAdapter } from './localStorageAdapter';
 import { generateResumeDataChecksum, verifyResumeDataIntegrity } from './checksumUtils';
-import logger from './logger';
+import { createLogger } from './logger';
 
 export class MigrationControlManager {
+  private readonly logger = createLogger('MigrationControlManager');
   private control: MigrationControl;
   private callbacks: MigrationControlCallbacks;
   private sessionId: string;
@@ -43,8 +44,10 @@ export class MigrationControlManager {
       isCancelling: false
     };
 
-    // Check for existing resume data
-    this.loadResumeData();
+    // Check for existing resume data (async, but don't await in constructor)
+    this.loadResumeData().catch(error => {
+      this.logger.error('Failed to load resume data during initialization', { error });
+    });
   }
 
   /**
@@ -60,14 +63,108 @@ export class MigrationControlManager {
       throw new Error('Rate limit exceeded for pause operations. Please wait before trying again.');
     }
 
-    logger.log('Migration pause requested');
+    this.logger.log('Migration pause requested');
     this.control.isPaused = true;
 
     // Will be called by orchestrator at next pause point
   }
 
   /**
-   * Save pause state for resume
+   * Save current migration state for pause/resume functionality with data integrity protection
+   *
+   * This method creates a secure checkpoint of the migration progress that can be used
+   * to resume the migration later. It includes comprehensive validation, checksums for
+   * data integrity, and handles storage failures gracefully.
+   *
+   * @param lastProcessedKey - The key that was last successfully processed
+   * @param processedKeys - Array of all keys that have been successfully migrated
+   * @param remainingKeys - Array of keys that still need to be processed
+   * @param itemsProcessed - Number of items successfully migrated so far
+   * @param totalItems - Total number of items to migrate
+   * @param bytesProcessed - Number of bytes successfully migrated
+   * @param totalBytes - Total number of bytes to migrate
+   * @returns Promise that resolves when state is safely saved
+   *
+   * @example
+   * ```typescript
+   * // Save pause state during migration
+   * await manager.requestPause();
+   *
+   * const currentProgress = {
+   *   lastKey: 'user:456',
+   *   processed: ['user:123', 'user:456'],
+   *   remaining: ['user:789', 'settings:app'],
+   *   itemCount: 2,
+   *   totalItems: 4,
+   *   bytesCount: 1024,
+   *   totalBytes: 2048
+   * };
+   *
+   * try {
+   *   await manager.savePauseState(
+   *     currentProgress.lastKey,
+   *     currentProgress.processed,
+   *     currentProgress.remaining,
+   *     currentProgress.itemCount,
+   *     currentProgress.totalItems,
+   *     currentProgress.bytesCount,
+   *     currentProgress.totalBytes
+   *   );
+   *   console.log('Migration paused successfully');
+   * } catch (error) {
+   *   console.error('Failed to save pause state:', error);
+   * }
+   * ```
+   *
+   * @example
+   * ```typescript
+   * // Save checkpoint at regular intervals during migration
+   * const CHECKPOINT_INTERVAL = 100; // Every 100 items
+   * let processedItems = 0;
+   *
+   * for (const key of migrationKeys) {
+   *   await migrateKey(key);
+   *   processedItems++;
+   *
+   *   // Create checkpoint periodically
+   *   if (processedItems % CHECKPOINT_INTERVAL === 0) {
+   *     await manager.savePauseState(
+   *       key,
+   *       migrationKeys.slice(0, processedItems),
+   *       migrationKeys.slice(processedItems),
+   *       processedItems,
+   *       migrationKeys.length,
+   *       calculateBytesProcessed(),
+   *       estimatedTotalBytes
+   *     );
+   *     console.log(`Checkpoint saved at ${processedItems}/${migrationKeys.length}`);
+   *   }
+   * }
+   * ```
+   *
+   * @example
+   * ```typescript
+   * // Handle storage quota exceeded during pause save
+   * try {
+   *   await manager.savePauseState(
+   *     lastKey, processed, remaining,
+   *     itemCount, totalItems, bytesCount, totalBytes
+   *   );
+   * } catch (error) {
+   *   if (error.name === 'QuotaExceededError') {
+   *     console.warn('Storage quota exceeded, migration state kept in memory only');
+   *     // Migration can still be paused, but won't survive page refresh
+   *     // Consider showing user a warning about this limitation
+   *   } else {
+   *     console.error('Failed to save pause state:', error);
+   *     // Handle other errors appropriately
+   *   }
+   * }
+   * ```
+   *
+   * @throws {Error} When required parameters are missing or invalid
+   * @throws {Error} When storage quota is exceeded and memory fallback fails
+   * @throws {Error} When checksum generation fails critically
    */
   public async savePauseState(
     lastProcessedKey: string,
@@ -99,7 +196,7 @@ export class MigrationControlManager {
     // Persist to storage
     await this.saveResumeData(resumeData);
 
-    logger.log('Migration paused and state saved', {
+    this.logger.log('Migration paused and state saved', {
       itemsProcessed,
       remainingItems: totalItems - itemsProcessed
     });
@@ -120,7 +217,7 @@ export class MigrationControlManager {
       throw new Error('Rate limit exceeded for resume operations. Please wait before trying again.');
     }
 
-    logger.log('Migration resume requested');
+    this.logger.log('Migration resume requested');
     this.control.isPaused = false;
     this.control.canResume = false;
 
@@ -141,7 +238,7 @@ export class MigrationControlManager {
       return;
     }
 
-    logger.log('Migration cancellation requested', { reason });
+    this.logger.log('Migration cancellation requested', { reason });
     this.control.isCancelling = true;
 
     const cancellation: MigrationCancellation = {
@@ -179,11 +276,82 @@ export class MigrationControlManager {
     this.control.isCancelling = false;
     this.callbacks.onCancel?.(cancellation);
 
-    logger.log('Migration cancellation completed', cancellation);
+    this.logger.log('Migration cancellation completed', cancellation);
   }
 
   /**
-   * Estimate migration duration and size
+   * Estimate migration duration and resource requirements using adaptive sampling
+   *
+   * This method analyzes a representative sample of the data to predict migration
+   * performance, memory usage, and completion time. It uses statistical sampling
+   * techniques to provide accurate estimates while minimizing resource usage.
+   *
+   * @param keys - Array of storage keys to analyze for migration estimation
+   * @returns Promise resolving to detailed migration estimation with confidence metrics
+   *
+   * @example
+   * ```typescript
+   * // Basic estimation usage
+   * const keys = ['user:123', 'settings:app', 'cache:data'];
+   * const estimation = await manager.estimateMigration(keys);
+   *
+   * console.log(`Estimated duration: ${estimation.estimatedDuration}ms`);
+   * console.log(`Total data size: ${estimation.totalDataSize} bytes`);
+   * console.log(`Confidence level: ${estimation.confidenceLevel}`);
+   * console.log(`Sample size used: ${estimation.sampleSize}/${keys.length}`);
+   *
+   * // Check confidence and act accordingly
+   * if (estimation.confidenceLevel === 'low') {
+   *   console.warn('Estimation may be less accurate due to large dataset');
+   *   // Consider showing user a warning about estimation accuracy
+   * }
+   * ```
+   *
+   * @example
+   * ```typescript
+   * // Handle estimation with memory pressure detection
+   * try {
+   *   const estimation = await manager.estimateMigration(largeKeySet);
+   *
+   *   if (!estimation.memoryAvailable) {
+   *     console.warn('Memory pressure detected:', estimation.warnings);
+   *     // Reduce batch size, pause other operations, or warn user
+   *     const reducedBatchSize = Math.floor(normalBatchSize / 2);
+   *   }
+   *
+   *   // Check for other warnings
+   *   estimation.warnings.forEach(warning => {
+   *     console.warn('Migration warning:', warning);
+   *   });
+   * } catch (error) {
+   *   console.error('Estimation failed:', error);
+   *   // Fallback to conservative defaults
+   * }
+   * ```
+   *
+   * @example
+   * ```typescript
+   * // Progressive estimation for large datasets
+   * const CHUNK_SIZE = 10000;
+   * const totalKeys = await getAllMigrationKeys();
+   *
+   * for (let i = 0; i < totalKeys.length; i += CHUNK_SIZE) {
+   *   const chunk = totalKeys.slice(i, i + CHUNK_SIZE);
+   *   const estimation = await manager.estimateMigration(chunk);
+   *
+   *   console.log(`Chunk ${i / CHUNK_SIZE + 1} estimation:`, {
+   *     duration: estimation.estimatedDuration,
+   *     size: estimation.totalDataSize,
+   *     confidence: estimation.confidenceLevel
+   *   });
+   *
+   *   // Aggregate results for total estimation
+   * }
+   * ```
+   *
+   * @throws {Error} When keys array is invalid, empty, or contains invalid entries
+   * @throws {Error} When memory pressure prevents safe estimation
+   * @throws {Error} When storage access fails during sampling
    */
   public async estimateMigration(keys: string[]): Promise<MigrationEstimation> {
     // Input validation
@@ -212,7 +380,7 @@ export class MigrationControlManager {
       throw new Error(`Invalid keys detected: ${invalidKeys.slice(0, 5).join(', ')}${invalidKeys.length > 5 ? '...' : ''}`);
     }
 
-    logger.log('Estimating migration', { totalKeys: keys.length });
+    this.logger.log('Estimating migration', { totalKeys: keys.length });
 
     const sampleSize = this.calculateOptimalSampleSize(keys.length);
 
@@ -223,7 +391,7 @@ export class MigrationControlManager {
     // Use stratified sampling for better representation
     const sampleKeys = this.selectStratifiedSample(keys, sampleSize);
 
-    logger.log('Using adaptive sampling strategy', {
+    this.logger.log('Using adaptive sampling strategy', {
       totalKeys: keys.length,
       sampleSize: sampleKeys.length,
       samplingStrategy: sampleKeys.length < keys.length ? 'stratified' : 'complete'
@@ -241,14 +409,14 @@ export class MigrationControlManager {
           sampledItems++;
         }
       } catch (error) {
-        logger.error('Error sampling item for estimation', { key, error });
+        this.logger.error('Error sampling item for estimation', { key, error });
       }
 
       totalTime += performance.now() - itemStart;
 
       // Break if sampling is taking too long (>5 seconds)
       if (totalTime > 5000) {
-        logger.warn('Sampling timeout - using partial data for estimation', {
+        this.logger.warn('Sampling timeout - using partial data for estimation', {
           sampledItems,
           totalTime
         });
@@ -279,14 +447,104 @@ export class MigrationControlManager {
       sampleSize: sampledItems
     };
 
-    logger.log('Migration estimation complete', estimation);
+    this.logger.log('Migration estimation complete', estimation);
     this.callbacks.onEstimation?.(estimation);
 
     return estimation;
   }
 
   /**
-   * Preview migration without actually performing it
+   * Preview migration readiness and compatibility without performing actual migration
+   *
+   * This method performs comprehensive pre-migration checks including storage availability,
+   * API compatibility, memory status, and data validation. It provides detailed insights
+   * into potential migration issues before starting the actual process.
+   *
+   * @param keys - Array of storage keys to validate for migration readiness
+   * @returns Promise resolving to detailed migration preview with readiness assessment
+   *
+   * @example
+   * ```typescript
+   * // Basic migration preview
+   * const keys = await getLocalStorageKeys();
+   * const preview = await manager.previewMigration(keys);
+   *
+   * console.log('Migration readiness:', preview.canProceed);
+   * console.log('Storage available:', preview.storageAvailable);
+   * console.log('API compatible:', preview.apiCompatible);
+   * console.log('Memory available:', preview.memoryAvailable);
+   *
+   * if (!preview.canProceed) {
+   *   console.error('Migration cannot proceed:', preview.warnings);
+   *   // Show user warnings and recommendations
+   * }
+   * ```
+   *
+   * @example
+   * ```typescript
+   * // Detailed preview analysis with validation results
+   * try {
+   *   const preview = await manager.previewMigration(migrationKeys);
+   *
+   *   // Analyze individual key validation results
+   *   preview.validationResults.forEach((result, index) => {
+   *     if (!result.readable) {
+   *       console.error(`Cannot read key: ${result.key}`);
+   *     }
+   *     if (!result.valid) {
+   *       console.warn(`Invalid data for key: ${result.key}`);
+   *     }
+   *   });
+   *
+   *   // Check warnings and provide user feedback
+   *   if (preview.warnings.length > 0) {
+   *     console.warn('Migration warnings detected:');
+   *     preview.warnings.forEach(warning => {
+   *       console.warn('- ' + warning);
+   *     });
+   *   }
+   *
+   *   // Make migration decision
+   *   if (preview.estimatedSuccess && preview.canProceed) {
+   *     console.log('Migration should succeed, proceeding...');
+   *     await startMigration();
+   *   } else {
+   *     console.log('Migration may fail, consider addressing issues first');
+   *   }
+   * } catch (error) {
+   *   console.error('Preview failed:', error);
+   * }
+   * ```
+   *
+   * @example
+   * ```typescript
+   * // Progressive preview for large datasets
+   * const PREVIEW_BATCH_SIZE = 1000;
+   * let overallCanProceed = true;
+   * const allWarnings: string[] = [];
+   *
+   * for (let i = 0; i < largeKeySet.length; i += PREVIEW_BATCH_SIZE) {
+   *   const batch = largeKeySet.slice(i, i + PREVIEW_BATCH_SIZE);
+   *   const batchPreview = await manager.previewMigration(batch);
+   *
+   *   overallCanProceed = overallCanProceed && batchPreview.canProceed;
+   *   allWarnings.push(...batchPreview.warnings);
+   *
+   *   console.log(`Batch ${Math.floor(i / PREVIEW_BATCH_SIZE) + 1} preview:`, {
+   *     canProceed: batchPreview.canProceed,
+   *     validKeys: batchPreview.validationResults.filter(r => r.valid).length,
+   *     warnings: batchPreview.warnings.length
+   *   });
+   * }
+   *
+   * console.log('Overall migration readiness:', {
+   *   canProceed: overallCanProceed,
+   *   totalWarnings: allWarnings.length
+   * });
+   * ```
+   *
+   * @throws {Error} When keys array is invalid or empty
+   * @throws {Error} When system checks fail critically
    */
   public async previewMigration(keys: string[]): Promise<MigrationPreview> {
     // Input validation (same as estimateMigration)
@@ -315,7 +573,7 @@ export class MigrationControlManager {
       throw new Error(`Invalid keys detected: ${invalidKeys.slice(0, 5).join(', ')}${invalidKeys.length > 5 ? '...' : ''}`);
     }
 
-    logger.log('Starting migration preview');
+    this.logger.log('Starting migration preview');
 
     const sampleSize = Math.min(
       MIGRATION_CONTROL_FEATURES.DRY_RUN_SAMPLE_SIZE,
@@ -379,7 +637,7 @@ export class MigrationControlManager {
       apiCompatible
     };
 
-    logger.log('Migration preview complete', preview);
+    this.logger.log('Migration preview complete', preview);
     this.callbacks.onPreview?.(preview);
 
     return preview;
@@ -441,7 +699,7 @@ export class MigrationControlManager {
 
     // Check if limit exceeded
     if (operationData.count >= this.MAX_OPERATIONS_PER_WINDOW) {
-      logger.warn('Rate limit exceeded for operation', {
+      this.logger.warn('Rate limit exceeded for operation', {
         operation,
         count: operationData.count,
         maxOperations: this.MAX_OPERATIONS_PER_WINDOW,
@@ -470,13 +728,13 @@ export class MigrationControlManager {
         JSON.stringify(dataWithChecksum)
       );
 
-      logger.log('Resume data saved with integrity checksum', {
+      this.logger.log('Resume data saved with integrity checksum', {
         dataSize: JSON.stringify(dataWithChecksum).length,
         sessionId: this.sessionId,
         checksum: checksum.substring(0, 8) + '...' // Log partial checksum for debugging
       });
     } catch (error) {
-      logger.error('Failed to save resume data', {
+      this.logger.error('Failed to save resume data', {
         error,
         dataSize: JSON.stringify(data).length,
         sessionId: this.sessionId,
@@ -504,12 +762,12 @@ export class MigrationControlManager {
           if (isValid) {
             this.control.resumeData = resumeData;
             this.control.canResume = true;
-            logger.log('Resume data loaded and verified', {
+            this.logger.log('Resume data loaded and verified', {
               sessionId: resumeData.sessionId,
               checksum: checksum.substring(0, 8) + '...'
             });
           } else {
-            logger.error('Resume data integrity check failed - data may be corrupted', {
+            this.logger.error('Resume data integrity check failed - data may be corrupted', {
               expectedChecksum: checksum.substring(0, 8) + '...',
               sessionId: resumeData.sessionId
             });
@@ -520,13 +778,13 @@ export class MigrationControlManager {
           // Legacy format without checksum - load with warning
           this.control.resumeData = parsedData;
           this.control.canResume = true;
-          logger.warn('Loaded resume data without integrity check (legacy format)', {
+          this.logger.warn('Loaded resume data without integrity check (legacy format)', {
             sessionId: parsedData.sessionId
           });
         }
       }
     } catch (error) {
-      logger.error('Failed to load resume data', {
+      this.logger.error('Failed to load resume data', {
         error,
         sessionId: this.sessionId,
         storageKey: MIGRATION_CONTROL_FEATURES.PROGRESS_STORAGE_KEY
@@ -542,7 +800,7 @@ export class MigrationControlManager {
         MIGRATION_CONTROL_FEATURES.PROGRESS_STORAGE_KEY
       );
     } catch (error) {
-      logger.error('Failed to clear resume data', {
+      this.logger.error('Failed to clear resume data', {
         error,
         sessionId: this.sessionId,
         storageKey: MIGRATION_CONTROL_FEATURES.PROGRESS_STORAGE_KEY
@@ -578,14 +836,14 @@ export class MigrationControlManager {
       const limit = memory.jsHeapSizeLimit;
       result = used / limit < 0.8; // Less than 80% memory used
 
-      logger.log('Memory check performed', {
+      this.logger.log('Memory check performed', {
         used: Math.round(used / 1024 / 1024),
         limit: Math.round(limit / 1024 / 1024),
         percentage: Math.round((used / limit) * 100),
         available: result
       });
     } else {
-      logger.log('Memory API not available, assuming memory is available');
+      this.logger.log('Memory API not available, assuming memory is available');
     }
 
     // Update cache
@@ -648,7 +906,7 @@ export class MigrationControlManager {
 
     const optimalSize = Math.max(minSample, Math.min(correctedSampleSize, maxSample));
 
-    logger.log('Calculated optimal sample size', {
+    this.logger.log('Calculated optimal sample size', {
       totalSize,
       baseSampleSize,
       correctedSampleSize,
