@@ -1,20 +1,23 @@
 import { Team, TeamPlayer, Player } from '@/types';
-import { 
-  APP_DATA_VERSION_KEY, 
-  MASTER_ROSTER_KEY, 
-  SAVED_GAMES_KEY, 
-  SEASONS_LIST_KEY, 
-  TOURNAMENTS_LIST_KEY 
+import {
+  APP_DATA_VERSION_KEY,
+  MASTER_ROSTER_KEY,
+  SAVED_GAMES_KEY,
+  SEASONS_LIST_KEY,
+  TOURNAMENTS_LIST_KEY
 } from '@/config/storageKeys';
 import { getLocalStorageItem, setLocalStorageItem } from './localStorage';
 import { getMasterRoster } from './masterRosterManager';
 // Note: Removed imports for global entity migration (seasons/tournaments/saved games/adjustments remain global)
 import { getLastHomeTeamName } from './appSettings';
 import { addTeam, setTeamRoster } from './teams';
+import { getStorageConfig } from './storageFactory';
+import { IndexedDbMigrationOrchestrator } from './indexedDbMigration';
 import logger from './logger';
 
 const CURRENT_DATA_VERSION = 2;
 const MIGRATION_TEAM_NAME_FALLBACK = 'My Team';
+const INDEXEDDB_STORAGE_VERSION = '2.0.0';
 
 // Check if there's any existing app data (used to detect fresh installations)
 const checkForExistingData = (): boolean => {
@@ -60,67 +63,124 @@ export const setAppDataVersion = (version: number): void => {
 
 // Main migration function (idempotent - safe to run multiple times)
 export const runMigration = async (): Promise<void> => {
-  if (!isMigrationNeeded()) {
-    logger.log('[Migration] No migration needed, current version:', getAppDataVersion());
+  // First, check if app data migration is needed
+  const appMigrationNeeded = isMigrationNeeded();
+
+  // Then, check if IndexedDB migration is needed
+  const storageConfig = getStorageConfig();
+  const indexedDbMigrationNeeded = storageConfig.mode === 'localStorage' &&
+                                   storageConfig.version !== INDEXEDDB_STORAGE_VERSION;
+
+  if (!appMigrationNeeded && !indexedDbMigrationNeeded) {
+    logger.log('[Migration] No migration needed. App version:', getAppDataVersion(), 'Storage mode:', storageConfig.mode);
     return;
   }
 
-  const currentVersion = getAppDataVersion();
-  logger.log(`[Migration] Starting migration from version ${currentVersion} to version ${CURRENT_DATA_VERSION}`);
+  // Handle app data migration first (if needed)
+  if (appMigrationNeeded) {
+    const currentVersion = getAppDataVersion();
+    logger.log(`[Migration] Starting app data migration from version ${currentVersion} to version ${CURRENT_DATA_VERSION}`);
 
-  // Import backup functions here to avoid circular dependencies
-  const { 
-    createMigrationBackup, 
-    restoreMigrationBackup, 
-    clearMigrationBackup,
-    hasMigrationBackup,
-    getMigrationBackupInfo
-  } = await import('./migrationBackup');
+    // Import backup functions here to avoid circular dependencies
+    const {
+      createMigrationBackup,
+      restoreMigrationBackup,
+      clearMigrationBackup,
+      hasMigrationBackup,
+      getMigrationBackupInfo
+    } = await import('./migrationBackup');
 
-  // Check for existing backup (from failed previous migration)
-  if (hasMigrationBackup()) {
-    const backupInfo = getMigrationBackupInfo();
-    logger.warn('[Migration] Found existing migration backup from:', new Date(backupInfo?.timestamp || 0));
-    logger.warn('[Migration] This suggests a previous migration failed. Backup will be replaced.');
-  }
+    // Check for existing backup (from failed previous migration)
+    if (hasMigrationBackup()) {
+      const backupInfo = getMigrationBackupInfo();
+      logger.warn('[Migration] Found existing migration backup from:', new Date(backupInfo?.timestamp || 0));
+      logger.warn('[Migration] This suggests a previous migration failed. Backup will be replaced.');
+    }
 
-  // Create backup before migration
-  let backup;
-  try {
-    backup = await createMigrationBackup(CURRENT_DATA_VERSION);
-    logger.log('[Migration] Created backup successfully');
-  } catch (error) {
-    logger.error('[Migration] Failed to create backup:', error);
-    throw new Error(`Cannot proceed with migration - backup creation failed: ${error}`);
-  }
-
-  try {
-    // Execute migration steps
-    await performMigrationSteps();
-    
-    // Update app data version only if all steps succeed
-    setAppDataVersion(CURRENT_DATA_VERSION);
-    
-    // Clear backup on successful migration
-    clearMigrationBackup();
-    logger.log('[Migration] Migration completed successfully');
-
-  } catch (error) {
-    logger.error('[Migration] Migration failed, attempting rollback:', error);
-    
+    // Create backup before migration
+    let backup;
     try {
-      await restoreMigrationBackup(backup);
+      backup = await createMigrationBackup(CURRENT_DATA_VERSION);
+      logger.log('[Migration] Created backup successfully');
+    } catch (error) {
+      logger.error('[Migration] Failed to create backup:', error);
+      throw new Error(`Cannot proceed with migration - backup creation failed: ${error}`);
+    }
+
+    try {
+      // Execute migration steps
+      await performMigrationSteps();
+
+      // Update app data version only if all steps succeed
+      setAppDataVersion(CURRENT_DATA_VERSION);
+
+      // Clear backup on successful migration
       clearMigrationBackup();
-      logger.log('[Migration] Successfully rolled back to previous state');
-      
-      // Re-throw the original migration error
-      throw new Error(`Migration failed and was rolled back: ${error}`);
-      
-    } catch (rollbackError) {
-      logger.error('[Migration] CRITICAL: Rollback failed:', rollbackError);
-      
-      // Don't clear backup if rollback failed - user might need it
-      throw new Error(`Migration failed and rollback unsuccessful. Original error: ${error}. Rollback error: ${rollbackError}. Please restore from a manual backup or contact support.`);
+      logger.log('[Migration] App data migration completed successfully');
+
+    } catch (error) {
+      logger.error('[Migration] Migration failed, attempting rollback:', error);
+
+      try {
+        await restoreMigrationBackup(backup);
+        clearMigrationBackup();
+        logger.log('[Migration] Successfully rolled back to previous state');
+
+        // Re-throw the original migration error
+        throw new Error(`Migration failed and was rolled back: ${error}`);
+
+      } catch (rollbackError) {
+        logger.error('[Migration] CRITICAL: Rollback failed:', rollbackError);
+
+        // Don't clear backup if rollback failed - user might need it
+        throw new Error(`Migration failed and rollback unsuccessful. Original error: ${error}. Rollback error: ${rollbackError}. Please restore from a manual backup or contact support.`);
+      }
+    }
+  }
+
+  // Handle IndexedDB migration (if needed)
+  if (indexedDbMigrationNeeded) {
+    logger.log('[Migration] Starting IndexedDB storage migration');
+
+    try {
+      const migrationOrchestrator = new IndexedDbMigrationOrchestrator({
+        targetVersion: INDEXEDDB_STORAGE_VERSION,
+        verifyData: true,
+        keepBackupOnSuccess: false,
+        enablePartialRecovery: true,
+        progressCallback: (progress) => {
+          logger.log('[IndexedDB Migration Progress]', {
+            state: progress.state,
+            percentage: `${progress.percentage}%`,
+            currentStep: progress.currentStep,
+            processedKeys: `${progress.processedKeys}/${progress.totalKeys}`,
+            estimatedTime: progress.estimatedTimeRemainingText
+          });
+        },
+        notificationCallback: (message, type) => {
+          logger.log(`[IndexedDB Migration ${type}]`, message);
+        }
+      });
+
+      const result = await migrationOrchestrator.migrate();
+
+      if (result.success) {
+        logger.log('[Migration] IndexedDB storage migration completed successfully', {
+          duration: `${result.duration}ms`,
+          state: result.state
+        });
+      } else {
+        logger.error('[Migration] IndexedDB storage migration failed', {
+          state: result.state,
+          errors: result.errors
+        });
+        throw new Error(`IndexedDB migration failed: ${result.errors.join(', ')}`);
+      }
+    } catch (error) {
+      logger.error('[Migration] IndexedDB migration error:', error);
+      // Don't throw here - app can still work with localStorage
+      // Just log the error and continue
+      logger.warn('[Migration] Continuing with localStorage mode due to IndexedDB migration failure');
     }
   }
 };
@@ -252,14 +312,71 @@ export const recoverFromFailedMigration = async (): Promise<boolean> => {
  */
 export const getMigrationStatus = async () => {
   const { hasMigrationBackup, getMigrationBackupInfo } = await import('./migrationBackup');
-  
+  const storageConfig = getStorageConfig();
+
   return {
     currentVersion: getAppDataVersion(),
     targetVersion: CURRENT_DATA_VERSION,
     migrationNeeded: isMigrationNeeded(),
     hasBackup: hasMigrationBackup(),
-    backupInfo: getMigrationBackupInfo()
+    backupInfo: getMigrationBackupInfo(),
+    storageMode: storageConfig.mode,
+    storageVersion: storageConfig.version,
+    indexedDbTargetVersion: INDEXEDDB_STORAGE_VERSION,
+    indexedDbMigrationNeeded: storageConfig.mode === 'localStorage' && storageConfig.version !== INDEXEDDB_STORAGE_VERSION,
+    indexedDbMigrationState: storageConfig.migrationState
   };
+};
+
+/**
+ * Check if IndexedDB migration is needed
+ */
+export const isIndexedDbMigrationNeeded = (): boolean => {
+  const storageConfig = getStorageConfig();
+  return storageConfig.mode === 'localStorage' && storageConfig.version !== INDEXEDDB_STORAGE_VERSION;
+};
+
+/**
+ * Manually trigger IndexedDB migration (for settings UI)
+ */
+export const triggerIndexedDbMigration = async (): Promise<boolean> => {
+  const storageConfig = getStorageConfig();
+
+  if (storageConfig.mode === 'indexedDB') {
+    logger.log('[Migration] Already using IndexedDB storage');
+    return true;
+  }
+
+  try {
+    logger.log('[Migration] Manually triggered IndexedDB storage migration');
+
+    const migrationOrchestrator = new IndexedDbMigrationOrchestrator({
+      targetVersion: INDEXEDDB_STORAGE_VERSION,
+      verifyData: true,
+      keepBackupOnSuccess: false,
+      enablePartialRecovery: true,
+      progressCallback: (progress) => {
+        logger.log('[IndexedDB Migration Progress]', {
+          state: progress.state,
+          percentage: `${progress.percentage}%`,
+          currentStep: progress.currentStep
+        });
+      }
+    });
+
+    const result = await migrationOrchestrator.migrate();
+
+    if (result.success) {
+      logger.log('[Migration] IndexedDB storage migration completed successfully');
+      return true;
+    } else {
+      logger.error('[Migration] IndexedDB storage migration failed', result.errors);
+      return false;
+    }
+  } catch (error) {
+    logger.error('[Migration] IndexedDB migration error:', error);
+    return false;
+  }
 };
 
 // Create compatibility shims for existing code during migration
