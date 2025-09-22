@@ -132,7 +132,7 @@ describe('Migration Integration', () => {
       });
       (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
         migrate: mockMigrate
-      }) as InstanceType<typeof IndexedDbMigrationOrchestrator>);
+      }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestrator>);
 
       await runMigration();
 
@@ -175,7 +175,7 @@ describe('Migration Integration', () => {
       });
       (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
         migrate: mockMigrate
-      }) as InstanceType<typeof IndexedDbMigrationOrchestrator>);
+      }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestrator>);
 
       // Should not throw - app continues with localStorage
       await runMigration();
@@ -285,7 +285,7 @@ describe('Migration Integration', () => {
       });
       (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
         migrate: mockMigrate
-      }) as InstanceType<typeof IndexedDbMigrationOrchestrator>);
+      }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestrator>);
 
       const result = await triggerIndexedDbMigration();
 
@@ -307,7 +307,7 @@ describe('Migration Integration', () => {
       });
       (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
         migrate: mockMigrate
-      }) as InstanceType<typeof IndexedDbMigrationOrchestrator>);
+      }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestrator>);
 
       const result = await triggerIndexedDbMigration();
 
@@ -327,7 +327,7 @@ describe('Migration Integration', () => {
       const mockMigrate = jest.fn().mockRejectedValue(new Error('Unexpected error'));
       (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
         migrate: mockMigrate
-      }) as InstanceType<typeof IndexedDbMigrationOrchestrator>);
+      }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestrator>);
 
       const result = await triggerIndexedDbMigration();
 
