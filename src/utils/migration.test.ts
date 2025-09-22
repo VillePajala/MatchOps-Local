@@ -522,40 +522,39 @@ describe('Migration Integration', () => {
           migrationState: 'none'
         });
 
-        // Mock first migration (successful)
-        const firstMigrate = jest.fn().mockResolvedValue({
-          success: true,
-          state: 'completed',
-          errors: [],
-          duration: 1000
+        // Mock migration that succeeds once, then fails for concurrent attempts
+        let callCount = 0;
+        const mockMigrate = jest.fn().mockImplementation(() => {
+          callCount++;
+          if (callCount === 1) {
+            return Promise.resolve({
+              success: true,
+              state: 'completed',
+              errors: [],
+              warnings: [],
+              duration: 1000
+            });
+          } else {
+            return Promise.reject(new Error('Migration already in progress'));
+          }
         });
 
-        // Mock second migration (should be blocked/skipped)
-        const secondMigrate = jest.fn().mockRejectedValue(
-          new Error('Migration already in progress')
-        );
+        (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
+          migrate: mockMigrate
+        }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestrator>);
 
-        // Simulate two tabs starting migration
-        const firstTabMigration = async () => {
-          (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
-            migrate: firstMigrate
-          }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestrator>);
-          return runMigration();
-        };
+        // Run migrations concurrently (simulate two tabs)
+        const results = await Promise.allSettled([
+          runMigration(),
+          runMigration()
+        ]);
 
-        const secondTabMigration = async () => {
-          (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
-            migrate: secondMigrate
-          }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestrator>);
-          return runMigration();
-        };
+        // At least one migration should have been attempted
+        expect(mockMigrate).toHaveBeenCalled();
 
-        // Run migrations concurrently
-        await Promise.all([firstTabMigration(), secondTabMigration()]);
-
-        // First migration should succeed
-        expect(firstMigrate).toHaveBeenCalled();
-        // Both should handle gracefully without corrupting data
+        // Should handle multiple tabs gracefully
+        const successfulResults = results.filter(r => r.status === 'fulfilled');
+        expect(successfulResults.length).toBeGreaterThanOrEqual(1);
       });
 
       it('should handle race condition in storage config updates', async () => {
@@ -597,12 +596,9 @@ describe('Migration Integration', () => {
 
         await runMigration();
 
-        // Should handle config changes gracefully
+        // Should handle config changes gracefully - verify migration was attempted
         expect(logger.log).toHaveBeenCalledWith(
-          expect.stringContaining('[Migration]'),
-          expect.anything(),
-          expect.anything(),
-          expect.anything()
+          expect.stringContaining('[Migration]')
         );
       });
     });
@@ -706,7 +702,7 @@ describe('Migration Integration', () => {
         global.navigator = {
           ...originalNavigator,
           storage: undefined
-        } as any;
+        } as unknown as Navigator;
 
         const mockMigrate = jest.fn().mockResolvedValue({
           success: true,

@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { MigrationProgress } from '@/utils/indexedDbMigration';
+import { MIGRATION_SUBSCRIBER_CLEANUP_DELAY } from '@/config/migrationConfig';
 import logger from '@/utils/logger';
 
 export interface MigrationStatusInfo {
@@ -60,7 +61,7 @@ function cleanupStaleSubscribers() {
           logger.debug(`[Migration] Cleaned up ${subscriberCount} stale migration status subscribers`);
         }
       }
-    }, 1000); // 1 second delay to allow natural component cleanup
+    }, MIGRATION_SUBSCRIBER_CLEANUP_DELAY); // Configurable delay to allow natural component cleanup
   }
 }
 

@@ -58,6 +58,9 @@ jest.mock('./logger', () => ({
   })
 }));
 
+// Global mock data accessible to all tests
+let mockLocalStorageData: Record<string, string>;
+
 describe('IndexedDbMigrationOrchestrator', () => {
   let orchestrator: IndexedDbMigrationOrchestrator;
   let progressCallback: jest.Mock;
@@ -65,6 +68,14 @@ describe('IndexedDbMigrationOrchestrator', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     progressCallback = jest.fn();
+
+    // Initialize mock localStorage data
+    mockLocalStorageData = {
+      [SAVED_GAMES_KEY]: JSON.stringify([{ id: 'game1', homeTeam: 'Test Team' }]),
+      [MASTER_ROSTER_KEY]: JSON.stringify([{ id: 'player1', name: 'Test Player' }]),
+      [SEASONS_LIST_KEY]: JSON.stringify([{ id: 'season1', name: 'Test Season' }])
+    };
+
     orchestrator = new IndexedDbMigrationOrchestrator({
       progressCallback
     });
@@ -79,6 +90,20 @@ describe('IndexedDbMigrationOrchestrator', () => {
       version: '1.0.0',
       migrationState: 'not-started'
     });
+
+    // Setup localStorage adapter to use mockLocalStorageData
+    mockLocalStorageAdapter.getItem.mockImplementation((key: string) => {
+      return Promise.resolve(mockLocalStorageData[key] || null);
+    });
+
+    mockLocalStorageAdapter.getKeys.mockResolvedValue(Object.keys(mockLocalStorageData));
+
+    // Setup IndexedDB adapter defaults
+    mockIndexedDbAdapter.getItem.mockImplementation((key: string) => {
+      return Promise.resolve(mockLocalStorageData[key] || null);
+    });
+
+    mockIndexedDbAdapter.setItem.mockResolvedValue(undefined);
 
     (fullBackup.generateFullBackupJson as jest.Mock).mockResolvedValue(
       JSON.stringify({ test: 'backup' })
@@ -546,8 +571,8 @@ describe('Utility Functions', () => {
         });
 
         // Mock the private method for testing
-        (orchestrator1 as any).acquireMigrationLock = mockAcquireLock;
-        (orchestrator2 as any).acquireMigrationLock = mockAcquireLock;
+        (orchestrator1 as unknown as { acquireMigrationLock: typeof mockAcquireLock }).acquireMigrationLock = mockAcquireLock;
+        (orchestrator2 as unknown as { acquireMigrationLock: typeof mockAcquireLock }).acquireMigrationLock = mockAcquireLock;
 
         // Start both migrations
         const [result1, result2] = await Promise.all([
@@ -565,7 +590,7 @@ describe('Utility Functions', () => {
 
         // Mock storage config changing during migration
         let configCallCount = 0;
-        mockStorageFactory.getStorageConfig = jest.fn().mockImplementation(() => {
+        (storageFactory.getStorageConfig as jest.Mock).mockImplementation(() => {
           configCallCount++;
           if (configCallCount <= 2) {
             return { mode: 'localStorage', version: '1.0.0', migrationState: 'none' };
@@ -587,11 +612,11 @@ describe('Utility Functions', () => {
         const orchestrator = new IndexedDbMigrationOrchestrator();
 
         // Mock quota exceeded during backup
-        mockIndexedDbAdapter.set = jest.fn().mockImplementation((key: string) => {
+        mockIndexedDbAdapter.setItem.mockImplementation((key: string) => {
           if (key.includes('backup')) {
-            const quotaError = new Error('QuotaExceededError');
+            const quotaError = new Error('QuotaExceededError: Failed to store backup');
             quotaError.name = 'QuotaExceededError';
-            throw quotaError;
+            return Promise.reject(quotaError);
           }
           return Promise.resolve();
         });
@@ -624,12 +649,13 @@ describe('Utility Functions', () => {
           code: 22
         });
 
-        mockIndexedDbAdapter.set = jest.fn().mockRejectedValue(quotaError);
+        mockIndexedDbAdapter.setItem = jest.fn().mockRejectedValue(quotaError);
 
         const result = await orchestrator.migrate();
 
         expect(result.success).toBe(false);
         expect(result.errors.length).toBeGreaterThan(0);
+        expect(result.errors.some(error => error.includes('QuotaExceededError'))).toBe(true);
       });
     });
 
@@ -638,7 +664,7 @@ describe('Utility Functions', () => {
         const orchestrator = new IndexedDbMigrationOrchestrator();
 
         // Mock IndexedDB being disabled
-        mockIndexedDbAdapter.get = jest.fn().mockRejectedValue(
+        mockIndexedDbAdapter.setItem = jest.fn().mockRejectedValue(
           new Error('InvalidStateError: An attempt was made to use an object that is not, or is no longer, usable')
         );
 
@@ -652,9 +678,13 @@ describe('Utility Functions', () => {
       test('should handle browser compatibility validation', async () => {
         const orchestrator = new IndexedDbMigrationOrchestrator();
 
-        // Mock browser without IndexedDB support
-        const originalIndexedDB = global.indexedDB;
-        global.indexedDB = undefined as any;
+        // Mock adapter creation failure for unsupported browser
+        (storageFactory.createStorageAdapter as jest.Mock).mockImplementation((mode) => {
+          if (mode === 'indexedDB') {
+            throw new Error('IndexedDB not supported in this browser');
+          }
+          return mockLocalStorageAdapter;
+        });
 
         const result = await orchestrator.migrate();
 
@@ -662,9 +692,6 @@ describe('Utility Functions', () => {
         expect(result.errors.some(error =>
           error.includes('IndexedDB') || error.includes('browser')
         )).toBe(true);
-
-        // Restore IndexedDB
-        global.indexedDB = originalIndexedDB;
       });
     });
 
@@ -673,7 +700,7 @@ describe('Utility Functions', () => {
         const orchestrator = new IndexedDbMigrationOrchestrator();
 
         // Mock corrupted data that fails JSON parsing
-        mockLocalStorageAdapter.get = jest.fn().mockImplementation((key: string) => {
+        mockLocalStorageAdapter.getItem = jest.fn().mockImplementation((key: string) => {
           if (key === 'savedSoccerGames') {
             return Promise.resolve('{"incomplete": json data}'); // Invalid JSON
           }
@@ -693,7 +720,7 @@ describe('Utility Functions', () => {
         });
 
         // Mock data that passes transfer but fails verification
-        mockIndexedDbAdapter.get = jest.fn().mockImplementation((key: string) => {
+        mockIndexedDbAdapter.getItem = jest.fn().mockImplementation((key: string) => {
           const originalValue = mockLocalStorageData[key];
           if (originalValue && key === 'savedSoccerGames') {
             // Return slightly modified value to fail checksum

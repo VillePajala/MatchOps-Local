@@ -15,11 +15,13 @@ import { getStorageConfig } from './storageFactory';
 import { IndexedDbMigrationOrchestrator } from './indexedDbMigration';
 import { updateMigrationStatus } from '@/hooks/useMigrationStatus';
 import { createMigrationMetrics, completeMigrationMetrics } from './migrationMetrics';
+import { performStorageQuotaCheck } from './storageQuotaCheck';
+import {
+  CURRENT_DATA_VERSION,
+  INDEXEDDB_STORAGE_VERSION,
+  MIGRATION_TEAM_NAME_FALLBACK
+} from '@/config/migrationConfig';
 import logger from './logger';
-
-const CURRENT_DATA_VERSION = 2;
-const MIGRATION_TEAM_NAME_FALLBACK = 'My Team';
-const INDEXEDDB_STORAGE_VERSION = '2.0.0';
 
 // Check if there's any existing app data (used to detect fresh installations)
 const checkForExistingData = (): boolean => {
@@ -148,6 +150,36 @@ export const runMigration = async (): Promise<void> => {
   // Handle IndexedDB migration (if needed)
   if (indexedDbMigrationNeeded) {
     logger.log('[Migration] Starting IndexedDB storage migration');
+
+    // Perform storage quota pre-flight check
+    logger.log('[Migration] Performing storage quota pre-flight check...');
+    const quotaCheck = await performStorageQuotaCheck();
+
+    if (!quotaCheck.canProceed) {
+      const errorMessage = `Storage quota insufficient for migration. ${quotaCheck.warnings.join('. ')}`;
+      logger.error('[Migration] Storage quota check failed:', {
+        warnings: quotaCheck.warnings,
+        recommendations: quotaCheck.recommendations,
+        currentUsage: quotaCheck.quotaInfo.usage,
+        available: quotaCheck.quotaInfo.available,
+        required: quotaCheck.estimate.totalRequiredSpace
+      });
+
+      // Notify UI of storage quota failure
+      updateMigrationStatus({
+        isRunning: false,
+        progress: null,
+        error: errorMessage + ' ' + quotaCheck.recommendations.join('. '),
+        showNotification: true
+      });
+
+      throw new Error(errorMessage);
+    }
+
+    // Log warnings if any (but proceed)
+    if (quotaCheck.warnings.length > 0) {
+      logger.warn('[Migration] Storage quota warnings:', quotaCheck.warnings);
+    }
 
     // Start metrics tracking
     const migrationId = `migration_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

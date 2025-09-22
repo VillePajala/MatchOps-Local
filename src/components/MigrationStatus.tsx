@@ -2,15 +2,72 @@
  * Migration Status Component
  *
  * Displays migration progress and notifications to users
+ * Optimized to prevent excessive re-renders during migration
  */
 
 'use client';
 
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useMigrationStatus } from '@/hooks/useMigrationStatus';
+import { MigrationProgress } from '@/utils/indexedDbMigration';
 
-export function MigrationStatus() {
+// Throttled progress component to prevent excessive re-renders
+const ThrottledProgress = React.memo(({ progress }: { progress: MigrationProgress | null }) => {
+  const throttledProgress = useMemo(() => {
+    if (!progress) return null;
+
+    // Throttle percentage updates to nearest 0.5% to reduce re-renders
+    const throttledPercentage = Math.round(progress.percentage * 2) / 2;
+
+    return {
+      ...progress,
+      percentage: throttledPercentage
+    };
+  }, [progress]);
+
+  if (!throttledProgress) return null;
+
+  const percentageText = `${throttledProgress.percentage.toFixed(1)}% complete`;
+
+  return (
+    <>
+      <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+        <div
+          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+          style={{ width: `${throttledProgress.percentage}%` }}
+          role="progressbar"
+          aria-valuenow={Math.round(throttledProgress.percentage)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label={`Migration progress: ${throttledProgress.percentage.toFixed(1)}% complete`}
+        ></div>
+      </div>
+
+      <div className="text-sm text-gray-500 space-y-1" aria-live="polite">
+        <div>{percentageText}</div>
+        {throttledProgress.estimatedTimeRemainingText && (
+          <div>Estimated time: {throttledProgress.estimatedTimeRemainingText}</div>
+        )}
+        <div>{throttledProgress.processedKeys}/{throttledProgress.totalKeys} items processed</div>
+      </div>
+    </>
+  );
+});
+
+ThrottledProgress.displayName = 'ThrottledProgress';
+
+function MigrationStatusComponent() {
   const { isRunning, progress, error, showNotification, dismissNotification } = useMigrationStatus();
+
+  // Memoize dismissNotification to prevent re-renders
+  const memoizedDismissNotification = useCallback(() => {
+    dismissNotification();
+  }, [dismissNotification]);
+
+  // Memoize currentStep to prevent unnecessary re-renders
+  const currentStep = useMemo(() => {
+    return progress?.currentStep || 'Preparing migration...';
+  }, [progress?.currentStep]);
 
   // Don't render anything if no migration activity
   if (!isRunning && !showNotification) {
@@ -19,9 +76,6 @@ export function MigrationStatus() {
 
   // Migration in progress
   if (isRunning) {
-    const currentStep = progress?.currentStep || 'Preparing migration...';
-    const percentageText = progress ? `${progress.percentage.toFixed(1)}% complete` : 'Starting...';
-
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div
@@ -44,29 +98,7 @@ export function MigrationStatus() {
               {currentStep}
             </p>
 
-            {progress && (
-              <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${progress.percentage}%` }}
-                  role="progressbar"
-                  aria-valuenow={Math.round(progress.percentage)}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label={`Migration progress: ${progress.percentage.toFixed(1)}% complete`}
-                ></div>
-              </div>
-            )}
-
-            {progress && (
-              <div className="text-sm text-gray-500 space-y-1" aria-live="polite">
-                <div>{percentageText}</div>
-                {progress.estimatedTimeRemainingText && (
-                  <div>Estimated time: {progress.estimatedTimeRemainingText}</div>
-                )}
-                <div>{progress.processedKeys}/{progress.totalKeys} items processed</div>
-              </div>
-            )}
+            <ThrottledProgress progress={progress} />
 
             <p className="text-xs text-gray-400 mt-4">
               Please don&apos;t close the app during this process.
@@ -121,7 +153,7 @@ export function MigrationStatus() {
                   rounded-md text-sm font-medium
                   ${error ? 'text-yellow-800 hover:text-yellow-600' : 'text-green-800 hover:text-green-600'}
                 `}
-                onClick={dismissNotification}
+                onClick={memoizedDismissNotification}
                 aria-label={`Dismiss ${notificationType} notification`}
               >
                 <span className="sr-only">Dismiss notification</span>
@@ -138,3 +170,7 @@ export function MigrationStatus() {
 
   return null;
 }
+
+// Export memoized component to prevent unnecessary re-renders
+export const MigrationStatus = React.memo(MigrationStatusComponent);
+MigrationStatus.displayName = 'MigrationStatus';
