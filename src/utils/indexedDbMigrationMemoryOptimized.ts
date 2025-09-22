@@ -67,6 +67,7 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
   private memoryOptimizationActions: string[] = [];
   private gcTriggeredRecently = false;
   private lastMemoryCheck: MemoryInfo | null = null;
+  private gcTimeoutId: NodeJS.Timeout | null = null;
 
   constructor(
     config: MemoryOptimizedMigrationConfig = {},
@@ -143,6 +144,7 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
 
     } finally {
       this.stopMemoryMonitoring();
+      this.cleanupTimeouts();
       this.memoryManager.cleanup();
     }
   }
@@ -168,9 +170,10 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
     this.memoryManager.startMonitoring();
 
     // Additional periodic checks during migration
-    this.memoryMonitoringInterval = setInterval(() => {
+    const intervalId = setInterval(() => {
       this.performMemoryCheck();
     }, this.memoryConfig.memoryMonitoringInterval || 2000);
+    this.memoryMonitoringInterval = intervalId;
   }
 
   /**
@@ -184,6 +187,16 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
 
     this.memoryManager.stopMonitoring();
     logger.debug('Memory monitoring stopped');
+  }
+
+  /**
+   * Clean up timeout references to prevent memory leaks
+   */
+  private cleanupTimeouts(): void {
+    if (this.gcTimeoutId) {
+      clearTimeout(this.gcTimeoutId);
+      this.gcTimeoutId = null;
+    }
   }
 
   /**
@@ -303,8 +316,9 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
       }
 
       // Reset flag after delay to prevent excessive GC
-      setTimeout(() => {
+      this.gcTimeoutId = setTimeout(() => {
         this.gcTriggeredRecently = false;
+        this.gcTimeoutId = null;
       }, 5000);
 
     } catch (error) {

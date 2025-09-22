@@ -270,13 +270,20 @@ describe('IndexedDbMigrationOrchestratorMemoryOptimized', () => {
     });
 
     it('should enable progressive loading for large datasets', async () => {
-      // Mock large data size
-      const largeDataValue = 'x'.repeat(50 * 1024 * 1024); // 50MB string
-      (localStorage.getLocalStorageItem as jest.Mock).mockReturnValue(largeDataValue);
+      // Mock Blob constructor to return large size without creating actual large data
+      const originalBlob = global.Blob;
+      global.Blob = jest.fn().mockImplementation(() => ({
+        size: 150 * 1024 * 1024 // 150MB mock size
+      })) as unknown as typeof Blob;
+
+      (localStorage.getLocalStorageItem as jest.Mock).mockReturnValue('small-test-data');
 
       const shouldUse = await orchestrator['shouldUseProgressiveLoading']();
 
       expect(shouldUse).toBe(true);
+
+      // Restore original Blob
+      global.Blob = originalBlob;
     });
 
     it('should not enable progressive loading for small datasets', async () => {

@@ -16,6 +16,42 @@
 import logger from './logger';
 
 /**
+ * Type guard to check if performance.memory is available
+ */
+function hasPerformanceMemory(performance: Performance): performance is Performance & {
+  memory: {
+    usedJSHeapSize: number;
+    totalJSHeapSize: number;
+    jsHeapSizeLimit: number;
+  };
+} {
+  return 'memory' in performance &&
+         performance.memory !== null &&
+         typeof performance.memory === 'object' &&
+         'usedJSHeapSize' in performance.memory &&
+         'totalJSHeapSize' in performance.memory &&
+         'jsHeapSizeLimit' in performance.memory;
+}
+
+/**
+ * Type guard to check if navigator.deviceMemory is available
+ */
+function hasDeviceMemory(navigator: Navigator): navigator is Navigator & {
+  deviceMemory: number;
+} {
+  return 'deviceMemory' in navigator && typeof navigator.deviceMemory === 'number';
+}
+
+/**
+ * Type guard to check if window.gc is available
+ */
+function hasWindowGC(window: Window): window is Window & {
+  gc: () => void;
+} {
+  return 'gc' in window && typeof window.gc === 'function';
+}
+
+/**
  * Memory usage information from Performance API
  */
 export interface MemoryInfo {
@@ -105,6 +141,7 @@ export class MemoryManager {
   private monitoringInterval: NodeJS.Timeout | null = null;
   private lastMemoryInfo: MemoryInfo | null = null;
   private isMonitoring = false;
+  private gcTimeoutId: NodeJS.Timeout | null = null;
 
   constructor(config: Partial<MemoryManagerConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -117,18 +154,8 @@ export class MemoryManager {
   public getMemoryInfo(): MemoryInfo | null {
     try {
       // Check if Performance API with memory is available (Chrome/Chromium)
-      if (typeof performance !== 'undefined' &&
-          'memory' in performance &&
-          performance.memory) {
-
-        const memory = performance.memory as unknown as {
-          usedJSHeapSize?: number;
-          totalJSHeapSize?: number;
-          jsHeapSizeLimit?: number;
-        };
-        const usedJSHeapSize = memory.usedJSHeapSize || 0;
-        const totalJSHeapSize = memory.totalJSHeapSize || 0;
-        const jsHeapSizeLimit = memory.jsHeapSizeLimit || 0;
+      if (typeof performance !== 'undefined' && hasPerformanceMemory(performance)) {
+        const { usedJSHeapSize, totalJSHeapSize, jsHeapSizeLimit } = performance.memory;
 
         // Calculate usage percentage
         const usagePercentage = jsHeapSizeLimit > 0
@@ -170,8 +197,8 @@ export class MemoryManager {
   private estimateMemoryUsage(): MemoryInfo | null {
     try {
       // Use navigator.deviceMemory if available (Chrome 63+)
-      if ('deviceMemory' in navigator) {
-        const deviceMemory = (navigator as unknown as { deviceMemory?: number }).deviceMemory as number;
+      if (hasDeviceMemory(navigator)) {
+        const deviceMemory = navigator.deviceMemory;
         const estimatedLimit = deviceMemory * 1024 * 1024 * 1024 * 0.25; // 25% of device memory
         const estimatedUsed = estimatedLimit * 0.3; // Assume 30% usage
 
@@ -292,8 +319,8 @@ export class MemoryManager {
   public async forceGarbageCollection(): Promise<boolean> {
     try {
       // Check if manual GC is available (Chrome with --enable-precise-memory-info)
-      if (typeof window !== 'undefined' && 'gc' in window) {
-        (window as unknown as { gc?: () => void }).gc?.();
+      if (typeof window !== 'undefined' && hasWindowGC(window)) {
+        window.gc();
         logger.debug('Forced garbage collection executed');
         return true;
       }
@@ -304,11 +331,19 @@ export class MemoryManager {
 
       // Request idle callback to allow GC to run
       if ('requestIdleCallback' in window) {
-        return new Promise(resolve => {
-          requestIdleCallback(() => {
-            logger.debug('Encouraged garbage collection via memory pressure');
-            resolve(true);
-          });
+        return new Promise((resolve, reject) => {
+          try {
+            requestIdleCallback(() => {
+              try {
+                logger.debug('Encouraged garbage collection via memory pressure');
+                resolve(true);
+              } catch (error) {
+                reject(error);
+              }
+            });
+          } catch (error) {
+            reject(error);
+          }
         });
       }
 

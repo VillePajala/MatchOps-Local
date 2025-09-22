@@ -23,6 +23,9 @@ const customJestConfig = {
     '/node_modules/',
     '/.next/',
     '<rootDir>/tests/e2e/', // Only ignore E2E Playwright specs
+    '<rootDir>/dist/',
+    '<rootDir>/.vercel/',
+    '<rootDir>/coverage/',
   ],
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
@@ -55,8 +58,19 @@ const customJestConfig = {
   passWithNoTests: true,
   testFailureExitCode: 1,
   maxWorkers: process.env.CI ? 2 : '50%',
-  testTimeout: 30000, // 30 second timeout
+  testTimeout: process.env.CI ? 15000 : 30000, // Shorter timeout in CI
   slowTestThreshold: 5, // Warn about tests > 5s
+
+  // CI-specific optimizations
+  ...(process.env.CI && {
+    bail: 1, // Stop on first test failure in CI
+    cache: false, // Disable cache in CI for consistent results
+    detectOpenHandles: false, // Skip expensive handle detection in CI
+    watchman: false, // Disable watchman in CI
+    haste: {
+      computeSha1: false, // Skip SHA1 computation in CI
+    },
+  }),
   
   // Reduce console noise in CI
   silent: process.env.CI === 'true',
