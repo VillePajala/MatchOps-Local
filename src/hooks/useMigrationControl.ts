@@ -59,36 +59,46 @@ export function useMigrationControl(
   const [isPreviewing, setIsPreviewing] = useState(false);
 
   const controlManagerRef = useRef<MigrationControlManager | null>(null);
+  const isMountedRef = useRef(true);
+
+  // Stabilize callbacks to prevent unnecessary recreation
+  const stableCallbacks = useRef(options);
+  stableCallbacks.current = options;
 
   // Initialize control manager
   useEffect(() => {
     const manager = new MigrationControlManager({
       onPause: () => {
+        if (!isMountedRef.current) return;
         logger.log('Migration paused via hook');
         setControl(prev => ({ ...prev, isPaused: true, canResume: true }));
-        options.onPause?.();
+        stableCallbacks.current.onPause?.();
       },
       onResume: () => {
+        if (!isMountedRef.current) return;
         logger.log('Migration resumed via hook');
         setControl(prev => ({ ...prev, isPaused: false, canResume: false }));
-        options.onResume?.();
+        stableCallbacks.current.onResume?.();
       },
       onCancel: (cancellation) => {
+        if (!isMountedRef.current) return;
         logger.log('Migration cancelled via hook', cancellation);
         setControl(prev => ({ ...prev, isCancelling: false }));
-        options.onCancel?.(cancellation);
+        stableCallbacks.current.onCancel?.(cancellation);
       },
       onEstimation: (est) => {
+        if (!isMountedRef.current) return;
         logger.log('Migration estimation received', est);
         setEstimation(est);
         setIsEstimating(false);
-        options.onEstimation?.(est);
+        stableCallbacks.current.onEstimation?.(est);
       },
       onPreview: (prev) => {
+        if (!isMountedRef.current) return;
         logger.log('Migration preview received', prev);
         setPreview(prev);
         setIsPreviewing(false);
-        options.onPreview?.(prev);
+        stableCallbacks.current.onPreview?.(prev);
       }
     });
 
@@ -100,9 +110,10 @@ export function useMigrationControl(
 
     // Cleanup on unmount
     return () => {
+      isMountedRef.current = false;
       manager.cleanup();
     };
-  }, [options]);
+  }, []); // Empty dependency array - manager is created only once
 
   // Pause migration
   const pauseMigration = useCallback(async () => {
@@ -111,7 +122,9 @@ export function useMigrationControl(
     try {
       logger.log('Requesting migration pause');
       await controlManagerRef.current.requestPause();
-      setControl(prev => ({ ...prev, isPaused: true }));
+      if (isMountedRef.current) {
+        setControl(prev => ({ ...prev, isPaused: true }));
+      }
     } catch (error) {
       logger.error('Failed to pause migration', error);
     }
@@ -124,7 +137,7 @@ export function useMigrationControl(
     try {
       logger.log('Requesting migration resume');
       const resumeData = await controlManagerRef.current.requestResume();
-      if (resumeData) {
+      if (resumeData && isMountedRef.current) {
         setControl(prev => ({
           ...prev,
           isPaused: false,
@@ -143,11 +156,15 @@ export function useMigrationControl(
 
     try {
       logger.log('Requesting migration cancellation');
-      setControl(prev => ({ ...prev, isCancelling: true }));
+      if (isMountedRef.current) {
+        setControl(prev => ({ ...prev, isCancelling: true }));
+      }
       await controlManagerRef.current.requestCancel();
     } catch (error) {
       logger.error('Failed to cancel migration', error);
-      setControl(prev => ({ ...prev, isCancelling: false }));
+      if (isMountedRef.current) {
+        setControl(prev => ({ ...prev, isCancelling: false }));
+      }
     }
   }, []);
 
@@ -159,11 +176,15 @@ export function useMigrationControl(
       setIsEstimating(true);
       logger.log('Starting migration estimation', { keyCount: keys.length });
       const est = await controlManagerRef.current.estimateMigration(keys);
-      setEstimation(est);
+      if (isMountedRef.current) {
+        setEstimation(est);
+      }
     } catch (error) {
       logger.error('Failed to estimate migration', error);
     } finally {
-      setIsEstimating(false);
+      if (isMountedRef.current) {
+        setIsEstimating(false);
+      }
     }
   }, [isEstimating]);
 
@@ -175,11 +196,15 @@ export function useMigrationControl(
       setIsPreviewing(true);
       logger.log('Starting migration preview', { keyCount: keys.length });
       const prev = await controlManagerRef.current.previewMigration(keys);
-      setPreview(prev);
+      if (isMountedRef.current) {
+        setPreview(prev);
+      }
     } catch (error) {
       logger.error('Failed to preview migration', error);
     } finally {
-      setIsPreviewing(false);
+      if (isMountedRef.current) {
+        setIsPreviewing(false);
+      }
     }
   }, [isPreviewing]);
 

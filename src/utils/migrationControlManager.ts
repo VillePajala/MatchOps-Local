@@ -141,9 +141,61 @@ export class MigrationControlManager {
   }
 
   /**
+   * Mark cancellation as completed with rollback status
+   */
+  public async completeCancellation(
+    dataRolledBack: boolean,
+    cleanupCompleted: boolean = true,
+    backupRestored: boolean = false
+  ): Promise<void> {
+    if (!this.control.isCancelling) {
+      return;
+    }
+
+    const cancellation: MigrationCancellation = {
+      reason: 'user_request',
+      timestamp: Date.now(),
+      cleanupCompleted,
+      dataRolledBack,
+      backupRestored
+    };
+
+    this.control.isCancelling = false;
+    this.callbacks.onCancel?.(cancellation);
+
+    logger.log('Migration cancellation completed', cancellation);
+  }
+
+  /**
    * Estimate migration duration and size
    */
   public async estimateMigration(keys: string[]): Promise<MigrationEstimation> {
+    // Input validation
+    if (!Array.isArray(keys)) {
+      throw new Error('Keys must be an array');
+    }
+
+    if (keys.length === 0) {
+      throw new Error('Keys array cannot be empty');
+    }
+
+    if (keys.length > 100000) { // Prevent DoS with excessive keys
+      throw new Error('Too many keys provided for estimation (max: 100,000)');
+    }
+
+    // Validate each key
+    const invalidKeys = keys.filter(key =>
+      typeof key !== 'string' ||
+      key.length === 0 ||
+      key.length > 1000 || // Prevent excessive key lengths
+      key.includes('\x00') || // Null bytes
+      key.includes('\n') || key.includes('\r') // Line breaks
+    );
+
+    if (invalidKeys.length > 0) {
+      throw new Error(`Invalid keys detected: ${invalidKeys.slice(0, 5).join(', ')}${invalidKeys.length > 5 ? '...' : ''}`);
+    }
+
     logger.log('Estimating migration', { totalKeys: keys.length });
 
     const sampleSize = Math.min(
@@ -201,6 +253,32 @@ export class MigrationControlManager {
    * Preview migration without actually performing it
    */
   public async previewMigration(keys: string[]): Promise<MigrationPreview> {
+    // Input validation (same as estimateMigration)
+    if (!Array.isArray(keys)) {
+      throw new Error('Keys must be an array');
+    }
+
+    if (keys.length === 0) {
+      throw new Error('Keys array cannot be empty');
+    }
+
+    if (keys.length > 100000) { // Prevent DoS with excessive keys
+      throw new Error('Too many keys provided for preview (max: 100,000)');
+    }
+
+    // Validate each key
+    const invalidKeys = keys.filter(key =>
+      typeof key !== 'string' ||
+      key.length === 0 ||
+      key.length > 1000 || // Prevent excessive key lengths
+      key.includes('\x00') || // Null bytes
+      key.includes('\n') || key.includes('\r') // Line breaks
+    );
+
+    if (invalidKeys.length > 0) {
+      throw new Error(`Invalid keys detected: ${invalidKeys.slice(0, 5).join(', ')}${invalidKeys.length > 5 ? '...' : ''}`);
+    }
+
     logger.log('Starting migration preview');
 
     const sampleSize = Math.min(

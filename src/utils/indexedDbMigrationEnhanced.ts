@@ -137,8 +137,105 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
   private async handleCancel(): Promise<void> {
     logger.log('Migration cancelled, starting rollback');
 
-    // Rollback will be handled by error handling in parent
-    await this.controlManager.cleanup();
+    let rollbackSuccessful = false;
+
+    try {
+      // Perform actual rollback
+      await this.performRollback();
+      rollbackSuccessful = true;
+      logger.log('Rollback completed successfully');
+    } catch (error) {
+      logger.error('Rollback failed', error);
+      rollbackSuccessful = false;
+      // Don't throw error here, let the control manager handle completion
+    }
+
+    try {
+      // Report cancellation completion with rollback status
+      await this.controlManager.completeCancellation(rollbackSuccessful, true, false);
+    } finally {
+      await this.controlManager.cleanup();
+    }
+
+    // Throw error after cleanup to signal cancellation
+    throw new Error(rollbackSuccessful
+      ? 'Migration cancelled and rolled back successfully'
+      : 'Migration cancelled but rollback failed'
+    );
+  }
+
+  /**
+   * Perform rollback of migrated data
+   */
+  private async performRollback(): Promise<void> {
+    if (this.processedKeysCache.length === 0) {
+      logger.log('No data to rollback');
+      return;
+    }
+
+    logger.log('Rolling back migrated data', {
+      keysToRollback: this.processedKeysCache.length
+    });
+
+    // Access IndexedDB to remove migrated entries
+    const dbRequest = indexedDB.open(this.config.databaseName);
+
+    return new Promise((resolve, reject) => {
+      dbRequest.onerror = () => {
+        const error = new Error(`Failed to open database for rollback: ${dbRequest.error?.message}`);
+        logger.error('Database open failed during rollback', error);
+        reject(error);
+      };
+
+      dbRequest.onsuccess = async () => {
+        const db = dbRequest.result;
+
+        try {
+          const transaction = db.transaction([this.config.storeName], 'readwrite');
+          const store = transaction.objectStore(this.config.storeName);
+
+          // Remove all processed keys from IndexedDB
+          for (const key of this.processedKeysCache) {
+            try {
+              const deleteRequest = store.delete(key);
+
+              // Wait for each delete to complete
+              await new Promise<void>((deleteResolve, deleteReject) => {
+                deleteRequest.onsuccess = () => deleteResolve();
+                deleteRequest.onerror = () => deleteReject(deleteRequest.error);
+              });
+
+              logger.log('Rolled back key', { key });
+            } catch (deleteError) {
+              logger.error('Failed to rollback key', { key, error: deleteError });
+              // Continue with other keys even if one fails
+            }
+          }
+
+          await new Promise<void>((transactionResolve, transactionReject) => {
+            transaction.oncomplete = () => {
+              logger.log('Rollback transaction completed');
+              transactionResolve();
+            };
+            transaction.onerror = () => {
+              transactionReject(transaction.error);
+            };
+          });
+
+          // Clear processed keys cache after successful rollback
+          this.processedKeysCache = [];
+          this.currentKeyIndex = 0;
+          this.bytesProcessedCache = 0;
+
+          resolve();
+        } catch (error) {
+          logger.error('Error during rollback transaction', error);
+          reject(error);
+        } finally {
+          db.close();
+        }
+      };
+    });
   }
 
   /**
