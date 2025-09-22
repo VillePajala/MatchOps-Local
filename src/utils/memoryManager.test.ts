@@ -488,10 +488,13 @@ describe('MemoryManager', () => {
   describe('monitoring', () => {
     beforeEach(() => {
       jest.useFakeTimers();
+      // Enable monitoring for these specific tests
+      process.env.FORCE_MEMORY_MONITORING = 'true';
     });
 
     afterEach(() => {
       jest.useRealTimers();
+      delete process.env.FORCE_MEMORY_MONITORING;
     });
 
     it('should start and stop monitoring correctly', () => {
@@ -617,6 +620,9 @@ describe('MemoryManager', () => {
 
   describe('cleanup', () => {
     it('should clean up all resources', () => {
+      // Enable monitoring for cleanup test
+      process.env.FORCE_MEMORY_MONITORING = 'true';
+
       const callback = jest.fn();
       manager.onMemoryPressure(callback);
       manager.startMonitoring();
@@ -630,6 +636,9 @@ describe('MemoryManager', () => {
       expect(manager['isMonitoring']).toBe(false);
       expect(manager['monitoringInterval']).toBeNull();
       expect(manager['lastMemoryInfo']).toBeNull();
+
+      // Clean up environment
+      delete process.env.FORCE_MEMORY_MONITORING;
     });
   });
 

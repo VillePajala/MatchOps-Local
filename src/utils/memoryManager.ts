@@ -412,6 +412,12 @@ export class MemoryManager {
       return;
     }
 
+    // Skip monitoring in test environment unless explicitly needed
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test' && !process.env.FORCE_MEMORY_MONITORING) {
+      logger.debug('Skipping memory monitoring in test environment');
+      return;
+    }
+
     this.isMonitoring = true;
     logger.debug('Starting memory pressure monitoring', {
       interval: this.config.monitoringInterval

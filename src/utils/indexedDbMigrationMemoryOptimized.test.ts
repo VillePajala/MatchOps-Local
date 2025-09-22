@@ -145,7 +145,14 @@ describe('IndexedDbMigrationOrchestratorMemoryOptimized', () => {
 
   describe('memory monitoring', () => {
     beforeEach(() => {
+      // Enable memory monitoring for these tests
+      process.env.FORCE_MEMORY_MONITORING = 'true';
       orchestrator = new IndexedDbMigrationOrchestratorMemoryOptimized();
+    });
+
+    afterEach(() => {
+      // Clean up environment variable
+      delete process.env.FORCE_MEMORY_MONITORING;
     });
 
     it('should start memory monitoring when enabled', () => {

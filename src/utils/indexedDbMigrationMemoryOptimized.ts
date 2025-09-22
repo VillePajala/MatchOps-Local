@@ -259,6 +259,12 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
       return;
     }
 
+    // Skip monitoring in test environment unless explicitly needed
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test' && !process.env.FORCE_MEMORY_MONITORING) {
+      logger.debug('Skipping memory monitoring in test environment');
+      return;
+    }
+
     logger.debug('Starting memory monitoring', {
       interval: this.memoryConfig.memoryMonitoringInterval
     });
