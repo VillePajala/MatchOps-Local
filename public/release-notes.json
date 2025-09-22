@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: add performance enhancements and fix critical promise rejection issue"
+  "notes": "fix: resolve TypeScript compilation errors in IndexedDB migration tests"
 }
