@@ -537,10 +537,12 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
       }
 
       // Reset flag after delay to prevent excessive GC
+      // Use shorter timeout in test environments to prevent hanging
+      const timeoutMs = typeof process !== 'undefined' && process.env.NODE_ENV === 'test' ? 10 : 5000;
       this.gcTimeoutId = setTimeout(() => {
         this.gcTriggeredRecently = false;
         this.gcTimeoutId = null;
-      }, 5000);
+      }, timeoutMs);
 
     } catch (error) {
       this.gcTriggeredRecently = false;

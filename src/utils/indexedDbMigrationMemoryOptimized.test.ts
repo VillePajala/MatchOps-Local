@@ -80,9 +80,16 @@ describe('IndexedDbMigrationOrchestratorMemoryOptimized', () => {
   });
 
   afterEach(() => {
-    if (orchestrator && orchestrator['stopMemoryMonitoring']) {
-      orchestrator['stopMemoryMonitoring']();
+    if (orchestrator) {
+      // Ensure proper cleanup to prevent hanging tests
+      if (orchestrator['stopMemoryMonitoring']) {
+        orchestrator['stopMemoryMonitoring']();
+      }
+      if (orchestrator['cleanupTimeouts']) {
+        orchestrator['cleanupTimeouts']();
+      }
     }
+    jest.clearAllMocks();
   });
 
   describe('initialization', () => {
