@@ -10,12 +10,11 @@ import {
   MigrationEstimation,
   MigrationCancellation,
   MigrationPreview,
-  MigrationControlEvent,
   MigrationControlCallbacks
 } from '@/types/migrationControl';
 import { MIGRATION_CONTROL_FEATURES } from '@/config/migrationConfig';
-import { LocalStorageAdapter } from './indexedDbAdapters';
-import { logger } from './logger';
+import { LocalStorageAdapter } from './localStorageAdapter';
+import logger from './logger';
 
 export class MigrationControlManager {
   private control: MigrationControl;
@@ -83,6 +82,7 @@ export class MigrationControlManager {
     };
 
     this.control.resumeData = resumeData;
+    this.control.canResume = true; // Enable resume capability
 
     // Persist to storage
     await this.saveResumeData(resumeData);
@@ -152,8 +152,6 @@ export class MigrationControlManager {
 
     let totalSize = 0;
     let totalTime = 0;
-    const startTime = Date.now();
-
     // Sample first N items to estimate speed
     for (let i = 0; i < sampleSize; i++) {
       const key = keys[i];
@@ -229,7 +227,7 @@ export class MigrationControlManager {
         if (size > 1024 * 1024) { // 1MB
           warnings.push(`Large item detected: ${key} (${(size / 1024 / 1024).toFixed(2)}MB)`);
         }
-      } catch (error) {
+      } catch {
         validationResults.push({
           key,
           readable: false,
@@ -364,11 +362,11 @@ export class MigrationControlManager {
   }
 
   private checkMemoryAvailable(): boolean {
-    // @ts-ignore - performance.memory is Chrome-specific
+    // @ts-expect-error - performance.memory is Chrome-specific extension
     if (typeof performance !== 'undefined' && performance.memory) {
-      // @ts-ignore
+      // @ts-expect-error - performance.memory.usedJSHeapSize is Chrome-specific
       const used = performance.memory.usedJSHeapSize;
-      // @ts-ignore
+      // @ts-expect-error - performance.memory.jsHeapSizeLimit is Chrome-specific
       const limit = performance.memory.jsHeapSizeLimit;
       return used / limit < 0.8; // Less than 80% memory used
     }

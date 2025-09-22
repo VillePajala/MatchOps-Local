@@ -2,9 +2,10 @@
  * Tests for useMigrationControl Hook
  */
 
-import { renderHook, act } from '@testing-library/react';
-import { useMigrationControl } from './useMigrationControl';
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { useMigrationControl, UseMigrationControlOptions } from './useMigrationControl';
 import { MigrationControlManager } from '@/utils/migrationControlManager';
+import { MigrationEstimation } from '@/types/migrationControl';
 
 // Mock the MigrationControlManager
 jest.mock('@/utils/migrationControlManager');
@@ -14,7 +15,7 @@ const MockMigrationControlManager = MigrationControlManager as jest.MockedClass<
 
 describe('useMigrationControl', () => {
   let mockManager: jest.Mocked<MigrationControlManager>;
-  let mockCallbacks: any;
+  let mockCallbacks: UseMigrationControlOptions;
 
   beforeEach(() => {
     mockCallbacks = {
@@ -32,8 +33,12 @@ describe('useMigrationControl', () => {
       estimateMigration: jest.fn(),
       previewMigration: jest.fn(),
       getControlState: jest.fn(),
-      cleanup: jest.fn()
-    } as any;
+      cleanup: jest.fn(),
+      savePauseState: jest.fn(),
+      shouldCreateCheckpoint: jest.fn(),
+      isPaused: jest.fn(),
+      isCancelling: jest.fn()
+    } as unknown as jest.Mocked<MigrationControlManager>;
 
     MockMigrationControlManager.mockImplementation(() => mockManager);
 
@@ -97,10 +102,14 @@ describe('useMigrationControl', () => {
 
   describe('pause functionality', () => {
     it('should pause migration successfully', async () => {
-      mockManager.requestPause.mockResolvedValue();
+      mockManager.requestPause.mockResolvedValue(undefined);
 
       const { result } = renderHook(() => useMigrationControl());
 
+      // Ensure initial state has canPause enabled
+      expect(result.current.control.canPause).toBe(true);
+
+      // Simulate the actual pause flow
       await act(async () => {
         await result.current.pauseMigration();
       });
@@ -130,10 +139,10 @@ describe('useMigrationControl', () => {
       const { result } = renderHook(() => useMigrationControl(mockCallbacks));
 
       // Simulate manager calling the callback
-      const managerCallbacks = MockMigrationControlManager.mock.calls[0][0];
+      const managerCallbacks = MockMigrationControlManager.mock.calls[0]?.[0];
 
       act(() => {
-        managerCallbacks.onPause();
+        managerCallbacks?.onPause?.();
       });
 
       expect(result.current.control.isPaused).toBe(true);
@@ -186,10 +195,10 @@ describe('useMigrationControl', () => {
       const { result } = renderHook(() => useMigrationControl(mockCallbacks));
 
       // Simulate manager calling the callback
-      const managerCallbacks = MockMigrationControlManager.mock.calls[0][0];
+      const managerCallbacks = MockMigrationControlManager.mock.calls[0]?.[0];
 
       act(() => {
-        managerCallbacks.onResume();
+        managerCallbacks?.onResume?.();
       });
 
       expect(result.current.control.isPaused).toBe(false);
@@ -241,10 +250,10 @@ describe('useMigrationControl', () => {
       const { result } = renderHook(() => useMigrationControl(mockCallbacks));
 
       // Simulate manager calling the callback
-      const managerCallbacks = MockMigrationControlManager.mock.calls[0][0];
+      const managerCallbacks = MockMigrationControlManager.mock.calls[0]?.[0];
 
       act(() => {
-        managerCallbacks.onCancel(cancellation);
+        managerCallbacks?.onCancel?.(cancellation);
       });
 
       expect(result.current.control.isCancelling).toBe(false);
@@ -280,12 +289,12 @@ describe('useMigrationControl', () => {
     });
 
     it('should handle estimation in progress', async () => {
-      let resolveEstimation: (value: any) => void;
+      let resolveEstimation: (value: unknown) => void;
       const estimationPromise = new Promise(resolve => {
         resolveEstimation = resolve;
       });
 
-      mockManager.estimateMigration.mockReturnValue(estimationPromise);
+      mockManager.estimateMigration.mockReturnValue(estimationPromise as Promise<MigrationEstimation>);
 
       const { result } = renderHook(() => useMigrationControl());
 

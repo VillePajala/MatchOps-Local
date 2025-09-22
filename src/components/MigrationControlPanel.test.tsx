@@ -339,8 +339,7 @@ describe('MigrationControlPanel', () => {
         />
       );
 
-      const spinner = screen.getByTestId('loading-spinner') ||
-                     document.querySelector('.animate-spin');
+      const spinner = document.querySelector('.animate-spin');
       expect(spinner).toBeInTheDocument();
     });
   });

@@ -17,7 +17,7 @@ interface MigrationControlPanelProps {
   isPreviewMode?: boolean;
 }
 
-export const MigrationControlPanel = React.memo<MigrationControlPanelProps>(({
+const MigrationControlPanelComponent = React.memo<MigrationControlPanelProps>(({
   control,
   onPause,
   onResume,
@@ -154,11 +154,16 @@ export const MigrationControlPanel = React.memo<MigrationControlPanelProps>(({
 
       {control.resumeData && (
         <div className="mt-3 p-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded text-sm">
-          {t('migration.status.resumable', 'Previous migration can be resumed from {{progress}}% complete.', {
-            progress: Math.round((control.resumeData.itemsProcessed / control.resumeData.totalItems) * 100)
-          })}
+          {(() => {
+            const progress = Math.round((control.resumeData!.itemsProcessed / control.resumeData!.totalItems) * 100);
+            return t('migration.status.resumable', `Previous migration can be resumed from ${progress}% complete.`);
+          })()}
         </div>
       )}
     </div>
   );
 });
+
+MigrationControlPanelComponent.displayName = 'MigrationControlPanel';
+
+export const MigrationControlPanel = MigrationControlPanelComponent;

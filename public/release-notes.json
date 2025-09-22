@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: resolve TypeScript compilation errors in IndexedDB migration tests"
+  "notes": "feat: implement comprehensive migration control features (Phase 2.1)"
 }

@@ -11,9 +11,10 @@ import { useMigrationStatus } from '@/hooks/useMigrationStatus';
 import { useMigrationControl } from '@/hooks/useMigrationControl';
 import { MigrationControlPanel } from './MigrationControlPanel';
 import { MigrationProgress } from '@/utils/indexedDbMigration';
+import logger from '@/utils/logger';
 
 // Throttled progress component to prevent excessive re-renders
-const ThrottledProgress = React.memo(({ progress }: { progress: MigrationProgress | null }) => {
+const ThrottledProgress = React.memo(function ThrottledProgress({ progress }: { progress: MigrationProgress | null }) {
   const throttledProgress = useMemo(() => {
     if (!progress) return null;
 
@@ -58,7 +59,7 @@ const ThrottledProgress = React.memo(({ progress }: { progress: MigrationProgres
 });
 
 function MigrationStatusEnhancedComponent() {
-  const { status, dismissNotification } = useMigrationStatus();
+  const migrationStatusHook = useMigrationStatus();
   const {
     control,
     estimation,
@@ -67,24 +68,27 @@ function MigrationStatusEnhancedComponent() {
     cancelMigration
   } = useMigrationControl({
     onPause: () => {
-      console.log('Migration paused');
+      // Migration paused - handled by UI
     },
     onResume: () => {
-      console.log('Migration resumed');
+      // Migration resumed - handled by UI
     },
     onCancel: (cancellation) => {
-      console.log('Migration cancelled', cancellation);
+      // Migration cancelled - log for debugging in development only
+      if (process.env.NODE_ENV === 'development') {
+        logger.log('Migration cancelled', cancellation);
+      }
     }
   });
 
   // Memoize dismissNotification callback
   const memoizedDismissNotification = useCallback(() => {
-    dismissNotification();
-  }, [dismissNotification]);
+    migrationStatusHook.dismissNotification();
+  }, [migrationStatusHook]);
 
-  if (!status) return null;
+  if (!migrationStatusHook) return null;
 
-  const { isActive, progress, error, showNotification } = status;
+  const { isRunning: isActive, progress, error, showNotification } = migrationStatusHook;
 
   // Show modal during active migration with controls
   if (isActive && progress) {
@@ -145,7 +149,7 @@ function MigrationStatusEnhancedComponent() {
                   Errors encountered:
                 </p>
                 <ul className="mt-1 text-xs text-red-600 dark:text-red-300">
-                  {progress.errors.slice(0, 3).map((err, idx) => (
+                  {progress.errors.slice(0, 3).map((err: string, idx: number) => (
                     <li key={idx}>• {err}</li>
                   ))}
                 </ul>

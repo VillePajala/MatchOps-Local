@@ -12,7 +12,7 @@ import {
   MigrationPreview,
   MigrationCancellation
 } from '@/types/migrationControl';
-import { logger } from '@/utils/logger';
+import logger from '@/utils/logger';
 
 export interface UseMigrationControlOptions {
   onPause?: () => void;
@@ -102,7 +102,7 @@ export function useMigrationControl(
     return () => {
       manager.cleanup();
     };
-  }, []);
+  }, [options]);
 
   // Pause migration
   const pauseMigration = useCallback(async () => {

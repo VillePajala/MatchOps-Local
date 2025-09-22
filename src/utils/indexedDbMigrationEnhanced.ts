@@ -4,10 +4,10 @@
  * Extends the base migration orchestrator with pause/resume/cancel capabilities
  */
 
-import { IndexedDbMigrationOrchestrator, MigrationProgress, MigrationResult } from './indexedDbMigration';
+import { IndexedDbMigrationOrchestrator, MigrationResult, MigrationConfig } from './indexedDbMigration';
 import { MigrationControlManager } from './migrationControlManager';
-import { MigrationControlCallbacks } from '@/types/migrationControl';
-import { logger } from './logger';
+import { MigrationControlCallbacks, MigrationResumeData, MigrationEstimation, MigrationPreview } from '@/types/migrationControl';
+import logger from './logger';
 
 export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOrchestrator {
   private controlManager: MigrationControlManager;
@@ -17,7 +17,7 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
   private bytesProcessedCache: number = 0;
   private totalBytesCache: number = 0;
 
-  constructor(config: any, controlCallbacks?: MigrationControlCallbacks) {
+  constructor(config: Partial<MigrationConfig> = {}, controlCallbacks?: MigrationControlCallbacks) {
     super(config);
     this.controlManager = new MigrationControlManager(controlCallbacks);
   }
@@ -76,7 +76,7 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
       const key = keysToProcess[i];
 
       // Process the key (implement actual migration logic)
-      await this.processKey(key);
+      await this.processKey();
 
       this.processedKeysCache.push(key);
       this.currentKeyIndex = i + 1;
@@ -87,7 +87,7 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
       }
 
       // Update progress
-      this.updateProgress(i + 1, keysToProcess.length);
+      this.updateMigrationProgress(i + 1, keysToProcess.length);
     }
   }
 
@@ -159,7 +159,7 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
   /**
    * Check for existing resume data
    */
-  private async checkForResumeData(): Promise<any> {
+  private async checkForResumeData(): Promise<MigrationResumeData | null> {
     const controlState = this.controlManager.getControlState();
     if (controlState.canResume && controlState.resumeData) {
       return await this.controlManager.requestResume();
@@ -170,7 +170,7 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
   /**
    * Process a single key (stub - actual implementation in parent)
    */
-  private async processKey(key: string): Promise<void> {
+  private async processKey(): Promise<void> {
     // This would be implemented in the actual migration logic
     // For now, just simulate processing
     await new Promise(resolve => setTimeout(resolve, 10));
@@ -179,7 +179,7 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
   /**
    * Update progress with estimation
    */
-  private updateProgressWithEstimation(estimation: any): void {
+  private updateProgressWithEstimation(estimation: MigrationEstimation): void {
     // Update UI with estimation data
     logger.log('Migration estimation', {
       estimatedDuration: estimation.estimatedDuration,
@@ -189,9 +189,9 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
   }
 
   /**
-   * Update migration progress
+   * Update migration progress with enhanced logging
    */
-  private updateProgress(current: number, total: number): void {
+  private updateMigrationProgress(current: number, total: number): void {
     const percentage = Math.round((current / total) * 100);
     logger.log('Migration progress', {
       current,
@@ -203,7 +203,7 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
   /**
    * Preview migration before starting
    */
-  public async preview(): Promise<any> {
+  public async preview(): Promise<MigrationPreview> {
     const keys = await this.getAllKeys();
     return await this.controlManager.previewMigration(keys);
   }
