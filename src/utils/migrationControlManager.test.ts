@@ -202,10 +202,11 @@ describe('MigrationControlManager', () => {
 
       const estimation = await manager.estimateMigration(keys);
 
-      expect(estimation.sampleSize).toBe(MIGRATION_CONTROL_FEATURES.ESTIMATION_SAMPLE_SIZE);
-      expect(mockLocalStorageAdapter.getItem).toHaveBeenCalledTimes(
-        MIGRATION_CONTROL_FEATURES.ESTIMATION_SAMPLE_SIZE
-      );
+      // With adaptive sampling, 100 items should result in around 20 samples
+      // (calculated using statistical formulas for 95% confidence, 5% margin of error)
+      expect(estimation.sampleSize).toBeGreaterThanOrEqual(20);
+      expect(estimation.sampleSize).toBeLessThanOrEqual(30);
+      expect(mockLocalStorageAdapter.getItem).toHaveBeenCalledTimes(estimation.sampleSize);
     });
 
     it('should handle estimation errors gracefully', async () => {

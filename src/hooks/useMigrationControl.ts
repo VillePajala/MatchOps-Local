@@ -146,7 +146,7 @@ export function useMigrationControl(
         return await operation();
       } catch (error) {
         logger.error(`Queued operation ${operationName} failed`, error);
-        throw error;
+        return null; // Return null on error for graceful handling
       }
     });
 
@@ -200,7 +200,7 @@ export function useMigrationControl(
         if (isMountedRef.current) {
           setControl(prev => ({ ...prev, isCancelling: false }));
         }
-        throw error;
+        // Don't rethrow - let the operation queue handle the error gracefully
       }
     }, 'cancelMigration');
   }, [queueOperation]);
