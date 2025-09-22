@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { MigrationProgress } from '@/utils/indexedDbMigration';
+import logger from '@/utils/logger';
 
 export interface MigrationStatusInfo {
   isRunning: boolean;
@@ -37,6 +38,30 @@ export function updateMigrationStatus(update: Partial<MigrationStatusInfo>) {
   statusSubscribers.forEach(subscriber => {
     subscriber(globalMigrationStatus);
   });
+
+  // Clean up stale subscribers when migration is complete and notification dismissed
+  if (!globalMigrationStatus.isRunning && !globalMigrationStatus.showNotification) {
+    cleanupStaleSubscribers();
+  }
+}
+
+/**
+ * Clean up subscribers when migration is complete to prevent memory leaks
+ */
+function cleanupStaleSubscribers() {
+  // Only cleanup if we have subscribers but no active migration
+  if (statusSubscribers.size > 0) {
+    // Give components a moment to unmount naturally, then cleanup
+    setTimeout(() => {
+      if (!globalMigrationStatus.isRunning && !globalMigrationStatus.showNotification) {
+        const subscriberCount = statusSubscribers.size;
+        statusSubscribers.clear();
+        if (subscriberCount > 0) {
+          logger.debug(`[Migration] Cleaned up ${subscriberCount} stale migration status subscribers`);
+        }
+      }
+    }, 1000); // 1 second delay to allow natural component cleanup
+  }
 }
 
 /**

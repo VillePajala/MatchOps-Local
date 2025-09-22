@@ -19,16 +19,29 @@ export function MigrationStatus() {
 
   // Migration in progress
   if (isRunning) {
+    const currentStep = progress?.currentStep || 'Preparing migration...';
+    const percentageText = progress ? `${progress.percentage.toFixed(1)}% complete` : 'Starting...';
+
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-lg">
+        <div
+          className="bg-white rounded-lg p-6 max-w-md mx-4 shadow-lg"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="migration-title"
+          aria-describedby="migration-description"
+        >
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <div
+              className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"
+              role="status"
+              aria-label="Migration in progress"
+            ></div>
+            <h3 id="migration-title" className="text-lg font-semibold text-gray-900 mb-2">
               Upgrading Storage
             </h3>
-            <p className="text-gray-600 mb-4">
-              {progress?.currentStep || 'Preparing migration...'}
+            <p id="migration-description" className="text-gray-600 mb-4">
+              {currentStep}
             </p>
 
             {progress && (
@@ -36,13 +49,18 @@ export function MigrationStatus() {
                 <div
                   className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${progress.percentage}%` }}
+                  role="progressbar"
+                  aria-valuenow={Math.round(progress.percentage)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`Migration progress: ${progress.percentage.toFixed(1)}% complete`}
                 ></div>
               </div>
             )}
 
             {progress && (
-              <div className="text-sm text-gray-500 space-y-1">
-                <div>{progress.percentage.toFixed(1)}% complete</div>
+              <div className="text-sm text-gray-500 space-y-1" aria-live="polite">
+                <div>{percentageText}</div>
                 {progress.estimatedTimeRemainingText && (
                   <div>Estimated time: {progress.estimatedTimeRemainingText}</div>
                 )}
@@ -61,12 +79,22 @@ export function MigrationStatus() {
 
   // Show notification (success or error)
   if (showNotification) {
+    const notificationType = error ? 'warning' : 'success';
+    const notificationTitle = error ? 'Storage Upgrade Warning' : 'Storage Upgraded Successfully';
+    const notificationMessage = error || 'Your data has been migrated to improved storage for better performance.';
+
     return (
       <div className="fixed top-4 right-4 z-50">
-        <div className={`
-          rounded-lg p-4 shadow-lg max-w-sm
-          ${error ? 'bg-yellow-50 border-l-4 border-yellow-400' : 'bg-green-50 border-l-4 border-green-400'}
-        `}>
+        <div
+          className={`
+            rounded-lg p-4 shadow-lg max-w-sm
+            ${error ? 'bg-yellow-50 border-l-4 border-yellow-400' : 'bg-green-50 border-l-4 border-green-400'}
+          `}
+          role="alert"
+          aria-live="assertive"
+          aria-labelledby="notification-title"
+          aria-describedby="notification-message"
+        >
           <div className="flex">
             <div className="flex-shrink-0">
               {error ? (
@@ -80,11 +108,11 @@ export function MigrationStatus() {
               )}
             </div>
             <div className="ml-3 flex-1">
-              <h3 className={`text-sm font-medium ${error ? 'text-yellow-800' : 'text-green-800'}`}>
-                {error ? 'Storage Upgrade Warning' : 'Storage Upgraded Successfully'}
+              <h3 id="notification-title" className={`text-sm font-medium ${error ? 'text-yellow-800' : 'text-green-800'}`}>
+                {notificationTitle}
               </h3>
-              <div className={`mt-1 text-sm ${error ? 'text-yellow-700' : 'text-green-700'}`}>
-                {error || 'Your data has been migrated to improved storage for better performance.'}
+              <div id="notification-message" className={`mt-1 text-sm ${error ? 'text-yellow-700' : 'text-green-700'}`}>
+                {notificationMessage}
               </div>
             </div>
             <div className="ml-4 flex-shrink-0">
@@ -94,9 +122,10 @@ export function MigrationStatus() {
                   ${error ? 'text-yellow-800 hover:text-yellow-600' : 'text-green-800 hover:text-green-600'}
                 `}
                 onClick={dismissNotification}
+                aria-label={`Dismiss ${notificationType} notification`}
               >
-                <span className="sr-only">Dismiss</span>
-                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <span className="sr-only">Dismiss notification</span>
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
               </button>
