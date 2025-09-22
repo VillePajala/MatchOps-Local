@@ -57,6 +57,14 @@ The build process includes a custom manifest generation step that runs before Ne
 - Seasons and tournaments (`src/utils/seasons.ts`, `src/utils/tournaments.ts`)
 - App settings (`src/utils/appSettings.ts`)
 
+**IndexedDB Migration System**: Enterprise-grade migration control with pause/resume/cancel functionality:
+- `src/utils/migrationControlManager.ts` - Core migration control logic with statistical estimation
+- `src/hooks/useMigrationControl.ts` - React hook for UI integration with memory leak prevention
+- `src/utils/migrationMutex.ts` - Tab coordination and locking mechanism with heartbeat
+- `src/utils/checksumUtils.ts` - Data integrity verification with SHA-256 checksums
+- `src/utils/indexedDbMigrationEnhanced.ts` - Enhanced orchestrator with comprehensive error recovery
+- Comprehensive test coverage with 518+ test cases covering edge cases and error scenarios
+
 **Logging**: Centralized logging system with environment-aware behavior:
 - `src/utils/logger.ts` - Type-safe logger utility with development/production modes
 - Replaces direct `console.*` usage throughout the application
