@@ -43,19 +43,45 @@ Object.defineProperty(global, 'localStorage', {
 
 describe('Migration Backup System', () => {
   beforeEach(() => {
-    mockLocalStorage.clear();
+    // Reset the mock store completely
+    mockLocalStorage.setStore({});
     jest.clearAllMocks();
+
+    // Ensure mocks are properly reset to default behavior
+    mockLocalStorage.getItem.mockImplementation((key: string) => {
+      const store = mockLocalStorage.getStore();
+      return store[key] || null;
+    });
+    mockLocalStorage.setItem.mockImplementation((key: string, value: string) => {
+      const store = mockLocalStorage.getStore();
+      store[key] = value;
+      mockLocalStorage.setStore(store);
+    });
+    mockLocalStorage.removeItem.mockImplementation((key: string) => {
+      const store = mockLocalStorage.getStore();
+      delete store[key];
+      mockLocalStorage.setStore(store);
+    });
+    mockLocalStorage.clear.mockImplementation(() => {
+      mockLocalStorage.setStore({});
+    });
     
     // Set up some test data
     mockLocalStorage.setItem('soccerMasterRoster', JSON.stringify([
       { id: '1', name: 'Player 1' },
       { id: '2', name: 'Player 2' }
     ]));
-    mockLocalStorage.setItem('soccerAppSettings', JSON.stringify({ 
+    mockLocalStorage.setItem('soccerAppSettings', JSON.stringify({
       language: 'en',
       theme: 'light'
     }));
     mockLocalStorage.setItem('appDataVersion', '1');
+  });
+
+  afterEach(() => {
+    // Ensure complete cleanup after each test
+    mockLocalStorage.setStore({});
+    jest.restoreAllMocks();
   });
 
   describe('createMigrationBackup', () => {
@@ -129,11 +155,26 @@ describe('Migration Backup System', () => {
     });
 
     it('should throw error if storage operation fails', async () => {
-      mockLocalStorage.setItem.mockImplementationOnce(() => {
-        throw new Error('Storage quota exceeded');
-      });
-      
-      await expect(createMigrationBackup(2)).rejects.toThrow(/Failed to store migration backup/);
+      // Store original implementation
+      const originalSetItem = mockLocalStorage.setItem;
+
+      try {
+        // Mock only the backup storage call to fail
+        mockLocalStorage.setItem.mockImplementation((key: string, value: string) => {
+          if (key === 'MIGRATION_BACKUP_TEMP') {
+            throw new Error('Storage quota exceeded');
+          }
+          // Use original behavior for other keys
+          const store = mockLocalStorage.getStore();
+          store[key] = value;
+          mockLocalStorage.setStore(store);
+        });
+
+        await expect(createMigrationBackup(2)).rejects.toThrow(/Failed to store migration backup/);
+      } finally {
+        // Restore original implementation to prevent test pollution
+        mockLocalStorage.setItem.mockImplementation(originalSetItem);
+      }
     });
   });
 

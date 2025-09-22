@@ -95,6 +95,32 @@ export const MIGRATION_SUCCESS_MESSAGES = {
   CLEANUP_COMPLETE: 'Migration cleanup completed'
 } as const;
 
+// Migration Control Features (Phase 2.1)
+export const MIGRATION_CONTROL_FEATURES = {
+  // User control capabilities
+  ALLOW_PAUSE: true,
+  ALLOW_CANCEL: true,
+  ALLOW_RESUME: true,
+
+  // Pre-migration estimation
+  ENABLE_SIZE_ESTIMATION: true,
+  ENABLE_TIME_ESTIMATION: true,
+  ESTIMATION_SAMPLE_SIZE: 10, // Sample first N items for speed estimation
+
+  // Migration preview
+  ENABLE_DRY_RUN: true,
+  DRY_RUN_SAMPLE_SIZE: 5, // Items to test in dry run
+
+  // Progress persistence
+  SAVE_PROGRESS_INTERVAL: 5000, // Save progress every 5 seconds
+  PROGRESS_STORAGE_KEY: 'matchops_migration_progress',
+
+  // Resume configuration
+  MAX_RESUME_ATTEMPTS: 3,
+  RESUME_FROM_CHECKPOINT: true,
+  CHECKPOINT_INTERVAL: 50, // Create checkpoint every N items
+} as const;
+
 /**
  * Get migration timeout based on data size
  */
