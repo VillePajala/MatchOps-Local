@@ -483,7 +483,7 @@ describe('MigrationControlManager', () => {
 
     it('should handle cancel when already cancelling gracefully', async () => {
       await manager.requestCancel();
-      const callCount = mockCallbacks.onCancel.mock.calls.length;
+      const callCount = (mockCallbacks.onCancel as jest.Mock)?.mock?.calls?.length || 0;
 
       // Request cancel again
       await manager.requestCancel();

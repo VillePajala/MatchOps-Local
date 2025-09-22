@@ -32,7 +32,7 @@ export class LocalStorageAdapter implements StorageAdapter {
    * @param bytes - Size in bytes
    * @returns Formatted string (e.g., "150B", "10.5KB", "2.3MB")
    */
-  private formatSize(bytes: number): string {
+  public formatSize(bytes: number): string {
     if (bytes <= 0) return '0B';
     if (bytes < 1024) return `${bytes}B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
@@ -196,7 +196,7 @@ export class LocalStorageAdapter implements StorageAdapter {
    * Checks if an error is a quota exceeded error
    * Handles various browser implementations of quota exceeded errors
    */
-  private isQuotaExceededError(error: unknown): boolean {
+  public isQuotaExceededError(error: unknown): boolean {
     if (!error) return false;
 
     // Handle DOMException
