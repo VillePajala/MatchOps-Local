@@ -57,6 +57,12 @@ export interface MigrationEstimation {
   // Confidence
   confidenceLevel: 'low' | 'medium' | 'high';
   sampleSize: number;
+
+  // Resource checks
+  memoryAvailable: boolean;
+
+  // Warnings
+  warnings: string[];
 }
 
 export interface MigrationCancellation {

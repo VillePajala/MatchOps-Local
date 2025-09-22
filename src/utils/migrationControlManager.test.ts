@@ -445,8 +445,9 @@ describe('MigrationControlManager', () => {
       Object.defineProperty(global, 'indexedDB', { value: {}, configurable: true });
       Object.defineProperty(global, 'localStorage', { value: {}, configurable: true });
 
-      // Create spy on performance.memory access
-      const memorySpy = jest.spyOn(performance, 'memory', 'get');
+      // Create spy on performance object access
+      const performanceObj = global.performance as unknown as { memory: unknown };
+      const memorySpy = jest.spyOn(performanceObj, 'memory', 'get');
 
       // Run multiple previews quickly
       await Promise.all([
@@ -461,8 +462,8 @@ describe('MigrationControlManager', () => {
 
     it('should handle missing performance.memory API gracefully', async () => {
       // Remove performance.memory
-      const originalMemory = performance.memory;
-      delete (performance as { memory?: unknown }).memory;
+      const originalMemory = (global.performance as unknown as { memory?: unknown }).memory;
+      delete (global.performance as { memory?: unknown }).memory;
 
       const keys = ['key1'];
       mockLocalStorageAdapter.getItem.mockResolvedValue('{"data": "test"}');
@@ -470,10 +471,10 @@ describe('MigrationControlManager', () => {
       const estimation = await manager.estimateMigration(keys);
 
       expect(estimation.memoryAvailable).toBe(true); // Should assume available if can't check
-      expect(estimation.warnings).not.toContain('memory');
+      expect(estimation.warnings.some(w => w.includes('memory'))).toBe(false);
 
       // Restore
-      Object.defineProperty(performance, 'memory', {
+      Object.defineProperty(global.performance, 'memory', {
         value: originalMemory,
         configurable: true
       });

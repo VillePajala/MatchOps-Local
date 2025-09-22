@@ -378,8 +378,8 @@ describe('MigrationMutex', () => {
       const mutex2 = new MigrationMutex();
 
       // Access private tabId through type assertion for testing
-      const tabId1 = (mutex1 as { tabId: string }).tabId;
-      const tabId2 = (mutex2 as { tabId: string }).tabId;
+      const tabId1 = (mutex1 as unknown as { tabId: string }).tabId;
+      const tabId2 = (mutex2 as unknown as { tabId: string }).tabId;
 
       expect(tabId1).not.toBe(tabId2);
       expect(tabId1).toMatch(/^tab_\d+_[a-z0-9]+$/);

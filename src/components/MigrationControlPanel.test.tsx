@@ -113,7 +113,9 @@ describe('MigrationControlPanel', () => {
       averageItemProcessingTime: 50,
       estimatedThroughput: 209715, // ~200KB/s
       confidenceLevel: 'high',
-      sampleSize: 10
+      sampleSize: 10,
+      memoryAvailable: true,
+      warnings: []
     };
 
     it('should display estimation when provided', () => {

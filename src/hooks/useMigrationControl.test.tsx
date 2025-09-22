@@ -273,7 +273,9 @@ describe('useMigrationControl', () => {
         averageItemProcessingTime: 50,
         estimatedThroughput: 204800,
         confidenceLevel: 'high' as const,
-        sampleSize: 10
+        sampleSize: 10,
+        memoryAvailable: true,
+        warnings: []
       };
 
       mockManager.estimateMigration.mockResolvedValue(estimation);

@@ -436,6 +436,9 @@ export class MigrationControlManager {
     // Calculate confidence based on sample quality
     const confidence = this.calculateConfidenceLevel(sampledItems, keys.length, totalTime);
 
+    // Check memory availability
+    const memoryStatus = this.checkMemoryAvailability();
+
     const estimation: MigrationEstimation = {
       totalDataSize: estimatedTotalSize,
       estimatedCompressedSize: estimatedTotalSize * 0.9, // Assume 10% compression
@@ -444,7 +447,9 @@ export class MigrationControlManager {
       averageItemProcessingTime: averageTime,
       estimatedThroughput: totalTime > 0 ? totalSize / (totalTime / 1000) : 0, // bytes per second
       confidenceLevel: confidence,
-      sampleSize: sampledItems
+      sampleSize: sampledItems,
+      memoryAvailable: memoryStatus.available,
+      warnings: memoryStatus.warnings
     };
 
     this.logger.log('Migration estimation complete', estimation);
@@ -821,30 +826,47 @@ export class MigrationControlManager {
     return true;
   }
 
-  private checkMemoryAvailable(): boolean {
-    // Cache for 5 seconds to avoid repeated checks
-    if (this.memoryCheckCache && Date.now() - this.memoryCheckCache.timestamp < 5000) {
-      return this.memoryCheckCache.result;
-    }
-
-    let result = true; // Assume available if can't check
+  private checkMemoryAvailability(): { available: boolean; warnings: string[] } {
+    const warnings: string[] = [];
+    let available = true; // Assume available if can't check
 
     // Feature detection for Chrome-specific memory API
     if (this.isMemoryAPIAvailable()) {
       const memory = (performance as unknown as { memory: { usedJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
       const used = memory.usedJSHeapSize;
       const limit = memory.jsHeapSizeLimit;
-      result = used / limit < 0.8; // Less than 80% memory used
+      const percentage = used / limit;
+
+      if (percentage > 0.95) {
+        available = false;
+        warnings.push('Critical memory usage detected');
+      } else if (percentage > 0.8) {
+        available = false;
+        warnings.push('High memory usage detected');
+      } else if (percentage > 0.7) {
+        warnings.push('Sample size reduced due to memory pressure');
+      }
 
       this.logger.log('Memory check performed', {
         used: Math.round(used / 1024 / 1024),
         limit: Math.round(limit / 1024 / 1024),
-        percentage: Math.round((used / limit) * 100),
-        available: result
+        percentage: Math.round(percentage * 100),
+        available,
+        warnings: warnings.length
       });
-    } else {
-      this.logger.log('Memory API not available, assuming memory is available');
     }
+
+    return { available, warnings };
+  }
+
+  private checkMemoryAvailable(): boolean {
+    // Cache for 5 seconds to avoid repeated checks
+    if (this.memoryCheckCache && Date.now() - this.memoryCheckCache.timestamp < 5000) {
+      return this.memoryCheckCache.result;
+    }
+
+    const memoryStatus = this.checkMemoryAvailability();
+    const result = memoryStatus.available;
 
     // Update cache
     this.memoryCheckCache = {
