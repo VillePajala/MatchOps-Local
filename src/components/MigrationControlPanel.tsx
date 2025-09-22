@@ -42,7 +42,11 @@ const MigrationControlPanelComponent = React.memo<MigrationControlPanelProps>(({
   };
 
   return (
-    <div className="migration-control-panel p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+    <div
+      className="migration-control-panel p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md"
+      role="region"
+      aria-label={t('migration.controls.panelLabel', 'Migration Control Panel')}
+    >
       {/* Estimation Display */}
       {estimation && !isPreviewMode && (
         <div className="estimation-info mb-4 p-3 bg-blue-50 dark:bg-blue-900 rounded">
@@ -92,7 +96,11 @@ const MigrationControlPanelComponent = React.memo<MigrationControlPanelProps>(({
       )}
 
       {/* Control Buttons */}
-      <div className="control-buttons flex gap-2">
+      <div
+        className="control-buttons flex gap-2"
+        role="toolbar"
+        aria-label={t('migration.controls.toolbarLabel', 'Migration control actions')}
+      >
         {/* Pause/Resume Button */}
         {control.canPause && !control.isPaused && (
           <button
@@ -135,8 +143,17 @@ const MigrationControlPanelComponent = React.memo<MigrationControlPanelProps>(({
         )}
 
         {control.isCancelling && (
-          <div className="flex-1 px-4 py-2 bg-gray-400 text-white rounded-md flex items-center justify-center">
-            <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+          <div
+            className="flex-1 px-4 py-2 bg-gray-400 text-white rounded-md flex items-center justify-center"
+            role="status"
+            aria-live="polite"
+            aria-label={t('migration.controls.cancellingStatus', 'Migration is being cancelled')}
+          >
+            <svg
+              className="animate-spin h-4 w-4 mr-2"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>

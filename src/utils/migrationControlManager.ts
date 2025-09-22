@@ -22,6 +22,7 @@ export class MigrationControlManager {
   private sessionId: string;
   private checkpointCounter: number = 0;
   private localStorageAdapter: LocalStorageAdapter;
+  private memoryCheckCache: { result: boolean; timestamp: number } | null = null;
 
   constructor(callbacks: MigrationControlCallbacks = {}) {
     this.callbacks = callbacks;
@@ -316,7 +317,12 @@ export class MigrationControlManager {
         JSON.stringify(data)
       );
     } catch (error) {
-      logger.error('Failed to save resume data', error);
+      logger.error('Failed to save resume data', {
+        error,
+        dataSize: JSON.stringify(data).length,
+        sessionId: this.sessionId,
+        storageKey: MIGRATION_CONTROL_FEATURES.PROGRESS_STORAGE_KEY
+      });
     }
   }
 
@@ -334,7 +340,11 @@ export class MigrationControlManager {
         });
       }
     } catch (error) {
-      logger.error('Failed to load resume data', error);
+      logger.error('Failed to load resume data', {
+        error,
+        sessionId: this.sessionId,
+        storageKey: MIGRATION_CONTROL_FEATURES.PROGRESS_STORAGE_KEY
+      });
     }
   }
 
@@ -344,7 +354,11 @@ export class MigrationControlManager {
         MIGRATION_CONTROL_FEATURES.PROGRESS_STORAGE_KEY
       );
     } catch (error) {
-      logger.error('Failed to clear resume data', error);
+      logger.error('Failed to clear resume data', {
+        error,
+        sessionId: this.sessionId,
+        storageKey: MIGRATION_CONTROL_FEATURES.PROGRESS_STORAGE_KEY
+      });
     }
   }
 
@@ -362,15 +376,29 @@ export class MigrationControlManager {
   }
 
   private checkMemoryAvailable(): boolean {
+    // Cache for 5 seconds to avoid repeated checks
+    if (this.memoryCheckCache && Date.now() - this.memoryCheckCache.timestamp < 5000) {
+      return this.memoryCheckCache.result;
+    }
+
+    let result = true; // Assume available if can't check
+
     // @ts-expect-error - performance.memory is Chrome-specific extension
     if (typeof performance !== 'undefined' && performance.memory) {
       // @ts-expect-error - performance.memory.usedJSHeapSize is Chrome-specific
       const used = performance.memory.usedJSHeapSize;
       // @ts-expect-error - performance.memory.jsHeapSizeLimit is Chrome-specific
       const limit = performance.memory.jsHeapSizeLimit;
-      return used / limit < 0.8; // Less than 80% memory used
+      result = used / limit < 0.8; // Less than 80% memory used
     }
-    return true; // Assume available if can't check
+
+    // Update cache
+    this.memoryCheckCache = {
+      result,
+      timestamp: Date.now()
+    };
+
+    return result;
   }
 
   private checkAPICompatibility(): boolean {

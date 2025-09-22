@@ -333,4 +333,163 @@ describe('MigrationControlManager', () => {
       );
     });
   });
+
+  describe('edge cases', () => {
+    it('should handle network interruption during pause state save', async () => {
+      await manager.requestPause();
+
+      // Simulate network interruption by making setItem fail
+      mockLocalStorageAdapter.setItem.mockRejectedValueOnce(new Error('Network error'));
+
+      await manager.savePauseState(
+        'key5',
+        ['key1', 'key2'],
+        ['key6', 'key7'],
+        2,
+        4,
+        512,
+        1024
+      );
+
+      // Should still update in-memory state even if storage fails
+      const state = manager.getControlState();
+      expect(state.canResume).toBe(true);
+      expect(state.resumeData).toBeDefined();
+    });
+
+    it('should handle concurrent pause/cancel requests', async () => {
+      const pausePromise = manager.requestPause();
+      const cancelPromise = manager.requestCancel();
+
+      await Promise.all([pausePromise, cancelPromise]);
+
+      const state = manager.getControlState();
+      // Should prioritize cancel over pause
+      expect(state.isCancelling).toBe(true);
+    });
+
+    it('should handle resume with corrupted checkpoint data', async () => {
+      // Simulate corrupted data during initialization
+      mockLocalStorageAdapter.getItem.mockResolvedValueOnce('{invalid:json}');
+
+      // Create a new manager to test loadResumeData with corrupted data
+      const testManager = new MigrationControlManager(mockCallbacks);
+
+      // Should gracefully handle corrupted data and not enable resume
+      const state = testManager.getControlState();
+      expect(state.canResume).toBe(false);
+      expect(state.resumeData).toBeUndefined();
+    });
+
+    it('should handle storage quota exceeded during checkpoint save', async () => {
+      await manager.requestPause();
+
+      // Simulate quota exceeded error
+      const quotaError = new Error('QuotaExceededError');
+      quotaError.name = 'QuotaExceededError';
+      mockLocalStorageAdapter.setItem.mockRejectedValueOnce(quotaError);
+      mockLocalStorageAdapter.isQuotaExceededError.mockReturnValueOnce(true);
+
+      await manager.savePauseState(
+        'key5',
+        ['key1', 'key2'],
+        ['key6', 'key7'],
+        2,
+        4,
+        512,
+        1024
+      );
+
+      // Should still maintain in-memory state
+      const state = manager.getControlState();
+      expect(state.canResume).toBe(true);
+    });
+
+    it('should handle estimation with very large datasets', async () => {
+      const largeKeys = Array.from({ length: 50000 }, (_, i) => `key${i}`);
+      mockLocalStorageAdapter.getItem.mockResolvedValue('{"data": "test"}');
+
+      const estimation = await manager.estimateMigration(largeKeys);
+
+      // Should limit sample size even for very large datasets
+      expect(estimation.sampleSize).toBe(MIGRATION_CONTROL_FEATURES.ESTIMATION_SAMPLE_SIZE);
+      expect(estimation.confidenceLevel).toBe('low'); // Large dataset should have low confidence
+    });
+
+    it('should handle preview with storage API unavailable', async () => {
+      const keys = ['key1'];
+      mockLocalStorageAdapter.getItem.mockResolvedValue('{"data": "test"}');
+
+      // Mock navigator without storage API
+      Object.defineProperty(global, 'navigator', {
+        value: {},
+        configurable: true
+      });
+
+      // Mock required browser APIs to ensure apiCompatible is true
+      Object.defineProperty(global, 'indexedDB', {
+        value: {},
+        configurable: true
+      });
+      Object.defineProperty(global, 'localStorage', {
+        value: {},
+        configurable: true
+      });
+
+      const preview = await manager.previewMigration(keys);
+
+      expect(preview.storageAvailable).toBe(true); // Should assume available if can't check
+      expect(preview.apiCompatible).toBe(true);
+      expect(preview.canProceed).toBe(true);
+    });
+
+    it('should handle memory check caching correctly', () => {
+      // Mock performance.memory
+      Object.defineProperty(global, 'performance', {
+        value: {
+          memory: {
+            usedJSHeapSize: 50 * 1024 * 1024, // 50MB
+            jsHeapSizeLimit: 100 * 1024 * 1024 // 100MB limit
+          }
+        },
+        configurable: true
+      });
+
+      const keys = ['key1'];
+      mockLocalStorageAdapter.getItem.mockResolvedValue('{"data": "test"}');
+
+      // First check should calculate
+      const preview1 = manager.previewMigration(keys);
+
+      // Second check within 5 seconds should use cache
+      const preview2 = manager.previewMigration(keys);
+
+      return Promise.all([preview1, preview2]).then(([p1, p2]) => {
+        expect(p1.memoryAvailable).toBe(p2.memoryAvailable);
+      });
+    });
+
+    it('should handle pause when already paused gracefully', async () => {
+      await manager.requestPause();
+      const state1 = manager.getControlState();
+
+      // Request pause again
+      await manager.requestPause();
+      const state2 = manager.getControlState();
+
+      // State should be unchanged
+      expect(state1).toEqual(state2);
+    });
+
+    it('should handle cancel when already cancelling gracefully', async () => {
+      await manager.requestCancel();
+      const callCount = mockCallbacks.onCancel.mock.calls.length;
+
+      // Request cancel again
+      await manager.requestCancel();
+
+      // Callback should not be called again
+      expect(mockCallbacks.onCancel).toHaveBeenCalledTimes(callCount);
+    });
+  });
 });
