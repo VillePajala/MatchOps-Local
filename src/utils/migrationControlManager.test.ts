@@ -1,5 +1,6 @@
 /**
  * Tests for Migration Control Manager
+ * CI trigger: 2025-09-22
  */
 
 import { MigrationControlManager } from './migrationControlManager';
