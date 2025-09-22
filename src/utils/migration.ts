@@ -12,7 +12,7 @@ import { getMasterRoster } from './masterRosterManager';
 import { getLastHomeTeamName } from './appSettings';
 import { addTeam, setTeamRoster } from './teams';
 import { getStorageConfig } from './storageFactory';
-import { IndexedDbMigrationOrchestratorEnhanced } from './indexedDbMigrationEnhanced';
+import { IndexedDbMigrationOrchestratorMemoryOptimized } from './indexedDbMigrationMemoryOptimized';
 import { updateMigrationStatus } from '@/hooks/useMigrationStatus';
 import { createMigrationMetrics, completeMigrationMetrics } from './migrationMetrics';
 import { performStorageQuotaCheck } from './storageQuotaCheck';
@@ -194,18 +194,34 @@ export const runMigration = async (): Promise<void> => {
     });
 
     try {
-      const migrationOrchestrator = new IndexedDbMigrationOrchestratorEnhanced({
+      const migrationOrchestrator = new IndexedDbMigrationOrchestratorMemoryOptimized({
         targetVersion: INDEXEDDB_STORAGE_VERSION,
         verifyData: true,
         keepBackupOnSuccess: false,
         enablePartialRecovery: true,
+        // Memory optimization settings
+        enableMemoryOptimization: true,
+        memoryOptimizationThreshold: 0.7,
+        enableProgressiveLoading: true,
+        progressiveLoadingThreshold: 100 * 1024 * 1024, // 100MB
+        enableForcedGC: true,
+        memoryMonitoringInterval: 2000, // 2 seconds
         progressCallback: (progress) => {
+          // Get memory optimization status
+          const memoryStatus = migrationOrchestrator.getMemoryOptimizationStatus();
+
           logger.log('[IndexedDB Migration Progress]', {
             state: progress.state,
             percentage: `${progress.percentage}%`,
             currentStep: progress.currentStep,
             processedKeys: `${progress.processedKeys}/${progress.totalKeys}`,
-            estimatedTime: progress.estimatedTimeRemainingText
+            estimatedTime: progress.estimatedTimeRemainingText,
+            // Memory optimization info
+            memoryUsage: `${memoryStatus.memoryUsage.toFixed(1)}%`,
+            memoryPressure: memoryStatus.memoryPressure,
+            chunkSize: memoryStatus.currentChunkSize,
+            availableMemoryMB: memoryStatus.availableMemoryMB,
+            gcTriggered: memoryStatus.gcTriggered
           });
 
           // Update UI with progress
@@ -475,12 +491,12 @@ export const triggerIndexedDbMigration = async (): Promise<boolean> => {
   try {
     logger.log('[Migration] Manually triggered IndexedDB storage migration');
 
-    const migrationOrchestrator = new IndexedDbMigrationOrchestratorEnhanced({
+    const migrationOrchestrator = new IndexedDbMigrationOrchestratorMemoryOptimized({
       targetVersion: INDEXEDDB_STORAGE_VERSION,
       verifyData: true,
       keepBackupOnSuccess: false,
       enablePartialRecovery: true,
-      progressCallback: (progress) => {
+      progressCallback: (progress: { state: string; percentage: number; currentStep?: string }) => {
         logger.log('[IndexedDB Migration Progress]', {
           state: progress.state,
           percentage: `${progress.percentage}%`,

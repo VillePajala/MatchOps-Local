@@ -63,6 +63,7 @@ The build process includes a custom manifest generation step that runs before Ne
 - `src/utils/migrationMutex.ts` - Tab coordination and locking mechanism with heartbeat
 - `src/utils/checksumUtils.ts` - Data integrity verification with SHA-256 checksums
 - `src/utils/indexedDbMigrationEnhanced.ts` - Enhanced orchestrator with comprehensive error recovery
+- `src/utils/indexedDbMigrationMemoryOptimized.ts` - Memory-optimized orchestrator with progressive loading
 - Comprehensive test coverage with 518+ test cases covering edge cases and error scenarios
 
 **Logging**: Centralized logging system with environment-aware behavior:
