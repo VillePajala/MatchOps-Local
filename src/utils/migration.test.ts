@@ -14,6 +14,7 @@ import {
 } from './migration';
 import { getStorageConfig } from './storageFactory';
 import { IndexedDbMigrationOrchestrator } from './indexedDbMigration';
+import { IndexedDbMigrationOrchestratorMemoryOptimized } from './indexedDbMigrationMemoryOptimized';
 import * as migrationBackup from './migrationBackup';
 import * as localStorage from './localStorage';
 import * as masterRosterManager from './masterRosterManager';
@@ -24,6 +25,7 @@ import logger from './logger';
 // Mock dependencies
 jest.mock('./storageFactory');
 jest.mock('./indexedDbMigration');
+jest.mock('./indexedDbMigrationMemoryOptimized');
 jest.mock('./migrationBackup');
 jest.mock('./localStorage');
 jest.mock('./masterRosterManager');
@@ -130,18 +132,32 @@ describe('Migration Integration', () => {
         errors: [],
         duration: 1000
       });
-      (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
-        migrate: mockMigrate
-      }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestrator>);
+      const mockGetMemoryOptimizationStatus = jest.fn().mockReturnValue({
+        memoryUsage: 25,
+        memoryPressure: 'low',
+        currentChunkSize: 1000,
+        availableMemoryMB: 150,
+        gcTriggered: false
+      });
+      (IndexedDbMigrationOrchestratorMemoryOptimized as jest.MockedClass<typeof IndexedDbMigrationOrchestratorMemoryOptimized>).mockImplementation(() => ({
+        migrate: mockMigrate,
+        getMemoryOptimizationStatus: mockGetMemoryOptimizationStatus
+      }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestratorMemoryOptimized>);
 
       await runMigration();
 
-      expect(IndexedDbMigrationOrchestrator).toHaveBeenCalledWith(
+      expect(IndexedDbMigrationOrchestratorMemoryOptimized).toHaveBeenCalledWith(
         expect.objectContaining({
           targetVersion: '2.0.0',
           verifyData: true,
           keepBackupOnSuccess: false,
-          enablePartialRecovery: true
+          enablePartialRecovery: true,
+          enableMemoryOptimization: true,
+          memoryOptimizationThreshold: 0.7,
+          enableProgressiveLoading: true,
+          progressiveLoadingThreshold: 100 * 1024 * 1024,
+          enableForcedGC: true,
+          memoryMonitoringInterval: 2000
         })
       );
       expect(mockMigrate).toHaveBeenCalled();
@@ -173,9 +189,16 @@ describe('Migration Integration', () => {
         errors: ['Storage quota exceeded'],
         duration: 500
       });
-      (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
-        migrate: mockMigrate
-      }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestrator>);
+      (IndexedDbMigrationOrchestratorMemoryOptimized as jest.MockedClass<typeof IndexedDbMigrationOrchestratorMemoryOptimized>).mockImplementation(() => ({
+        migrate: mockMigrate,
+        getMemoryOptimizationStatus: jest.fn().mockReturnValue({
+          memoryUsage: 25,
+          memoryPressure: 'low',
+          currentChunkSize: 1000,
+          availableMemoryMB: 150,
+          gcTriggered: false
+        })
+      }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestratorMemoryOptimized>);
 
       // Should not throw - app continues with localStorage
       await runMigration();
@@ -214,7 +237,7 @@ describe('Migration Integration', () => {
         'localStorage',
         '(localStorage forced)'
       );
-      expect(IndexedDbMigrationOrchestrator).not.toHaveBeenCalled();
+      expect(IndexedDbMigrationOrchestratorMemoryOptimized).not.toHaveBeenCalled();
     });
   });
 
@@ -304,7 +327,7 @@ describe('Migration Integration', () => {
       const result = await triggerIndexedDbMigration();
 
       expect(result).toBe(true);
-      expect(IndexedDbMigrationOrchestrator).not.toHaveBeenCalled();
+      expect(IndexedDbMigrationOrchestratorMemoryOptimized).not.toHaveBeenCalled();
     });
 
     it('should return false if localStorage is forced', async () => {
@@ -317,7 +340,7 @@ describe('Migration Integration', () => {
       const result = await triggerIndexedDbMigration();
 
       expect(result).toBe(false);
-      expect(IndexedDbMigrationOrchestrator).not.toHaveBeenCalled();
+      expect(IndexedDbMigrationOrchestratorMemoryOptimized).not.toHaveBeenCalled();
     });
 
     it('should trigger migration and return true on success', async () => {
@@ -332,9 +355,9 @@ describe('Migration Integration', () => {
         errors: [],
         duration: 1000
       });
-      (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
+      (IndexedDbMigrationOrchestratorMemoryOptimized as jest.MockedClass<typeof IndexedDbMigrationOrchestratorMemoryOptimized>).mockImplementation(() => ({
         migrate: mockMigrate
-      }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestrator>);
+      }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestratorMemoryOptimized>);
 
       const result = await triggerIndexedDbMigration();
 
@@ -354,9 +377,9 @@ describe('Migration Integration', () => {
         errors: ['Failed to transfer data'],
         duration: 500
       });
-      (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
+      (IndexedDbMigrationOrchestratorMemoryOptimized as jest.MockedClass<typeof IndexedDbMigrationOrchestratorMemoryOptimized>).mockImplementation(() => ({
         migrate: mockMigrate
-      }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestrator>);
+      }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestratorMemoryOptimized>);
 
       const result = await triggerIndexedDbMigration();
 
@@ -374,9 +397,9 @@ describe('Migration Integration', () => {
       });
 
       const mockMigrate = jest.fn().mockRejectedValue(new Error('Unexpected error'));
-      (IndexedDbMigrationOrchestrator as jest.MockedClass<typeof IndexedDbMigrationOrchestrator>).mockImplementation(() => ({
+      (IndexedDbMigrationOrchestratorMemoryOptimized as jest.MockedClass<typeof IndexedDbMigrationOrchestratorMemoryOptimized>).mockImplementation(() => ({
         migrate: mockMigrate
-      }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestrator>);
+      }) as unknown as InstanceType<typeof IndexedDbMigrationOrchestratorMemoryOptimized>);
 
       const result = await triggerIndexedDbMigration();
 
