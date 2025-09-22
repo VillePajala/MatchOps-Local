@@ -332,16 +332,25 @@ export class MemoryManager {
       // Request idle callback to allow GC to run
       if ('requestIdleCallback' in window) {
         return new Promise((resolve, reject) => {
+          // Add timeout to prevent hanging in test environments or CI
+          const timeoutId = setTimeout(() => {
+            logger.debug('RequestIdleCallback timeout, resolving GC attempt');
+            resolve(false);
+          }, 100); // 100ms timeout
+
           try {
             requestIdleCallback(() => {
               try {
+                clearTimeout(timeoutId);
                 logger.debug('Encouraged garbage collection via memory pressure');
                 resolve(true);
               } catch (error) {
+                clearTimeout(timeoutId);
                 reject(error);
               }
             });
           } catch (error) {
+            clearTimeout(timeoutId);
             reject(error);
           }
         });
