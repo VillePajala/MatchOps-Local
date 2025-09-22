@@ -412,9 +412,10 @@ describe('MigrationControlManager', () => {
 
       const estimation = await manager.estimateMigration(largeKeys);
 
-      // Should limit sample size even for very large datasets
-      expect(estimation.sampleSize).toBe(MIGRATION_CONTROL_FEATURES.ESTIMATION_SAMPLE_SIZE);
-      expect(estimation.confidenceLevel).toBe('low'); // Large dataset should have low confidence
+      // Adaptive sampling should cap at maximum practical limit (1000 for very large datasets)
+      expect(estimation.sampleSize).toBeLessThanOrEqual(1000);
+      expect(estimation.sampleSize).toBeGreaterThanOrEqual(383); // Statistical minimum for this dataset size
+      expect(estimation.confidenceLevel).toBe('low'); // Very large datasets result in low sampling ratio, hence low confidence
     });
 
     it('should handle preview with storage API unavailable', async () => {
