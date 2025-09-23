@@ -79,6 +79,18 @@ export interface MigrationPerformanceMetrics {
 }
 
 /**
+ * Extended migration result with memory optimization metrics
+ */
+export interface MemoryOptimizedMigrationResult extends MigrationResult {
+  /** Memory optimization performance metrics */
+  memoryMetrics?: MigrationPerformanceMetrics;
+  /** Memory optimization actions taken during migration */
+  memoryOptimizationActions?: string[];
+  /** Final memory usage percentage after migration */
+  finalMemoryUsage?: number;
+}
+
+/**
  * Memory-optimized migration orchestrator with intelligent memory management
  *
  * @example
@@ -202,10 +214,17 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
    *
    * @returns Promise resolving to migration result with success status and details
    */
-  public async migrate(): Promise<MigrationResult> {
+  public async migrate(): Promise<MemoryOptimizedMigrationResult> {
     if (!this.memoryConfig.enableMemoryOptimization) {
       logger.debug('Memory optimization disabled, using standard migration');
-      return super.migrate();
+      const result = await super.migrate();
+      // Return basic result without memory metrics when optimization is disabled
+      return {
+        ...result,
+        memoryMetrics: undefined,
+        memoryOptimizationActions: [],
+        finalMemoryUsage: undefined
+      };
     }
 
     logger.log('Starting memory-optimized IndexedDB migration');
@@ -230,6 +249,9 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
       // Finalize performance metrics
       this.finalizePerformanceMetrics();
 
+      // Get final memory usage
+      const finalMemoryInfo = this.memoryManager.getMemoryInfo();
+
       logger.log('Memory-optimized migration completed successfully', {
         optimizationActions: this.memoryOptimizationActions,
         finalChunkSize: this.currentChunkSize,
@@ -237,7 +259,15 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
         performanceMetrics: this.performanceMetrics
       });
 
-      return result;
+      // Return extended result with memory metrics
+      const memoryOptimizedResult: MemoryOptimizedMigrationResult = {
+        ...result,
+        memoryMetrics: { ...this.performanceMetrics },
+        memoryOptimizationActions: [...this.memoryOptimizationActions],
+        finalMemoryUsage: finalMemoryInfo?.usagePercentage
+      };
+
+      return memoryOptimizedResult;
 
     } catch (error: unknown) {
       logger.error('Memory-optimized migration failed', {
@@ -550,6 +580,32 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
   }
 
   /**
+   * Get GC throttle duration based on current memory pressure
+   */
+  private getGcThrottleDuration(): number {
+    // Use shorter timeout in test environments to prevent hanging
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
+      return 10;
+    }
+
+    const memoryInfo = this.lastMemoryCheck || this.memoryManager.getMemoryInfo();
+    const pressureLevel = this.memoryManager.getMemoryPressureLevel(memoryInfo || undefined);
+
+    // Adaptive throttle duration based on memory pressure
+    switch (pressureLevel) {
+      case MemoryPressureLevel.CRITICAL:
+        return 1000; // 1 second - very responsive during critical situations
+      case MemoryPressureLevel.HIGH:
+        return 2000; // 2 seconds - faster response for high pressure
+      case MemoryPressureLevel.MODERATE:
+        return 3000; // 3 seconds - moderate throttling
+      case MemoryPressureLevel.LOW:
+      default:
+        return 5000; // 5 seconds - standard throttling for normal conditions
+    }
+  }
+
+  /**
    * Force garbage collection using memory manager's improved implementation
    */
   private async performGarbageCollection(): Promise<void> {
@@ -577,8 +633,8 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
       }
 
       // Reset flag after delay to prevent excessive GC
-      // Use shorter timeout in test environments to prevent hanging
-      const timeoutMs = typeof process !== 'undefined' && process.env.NODE_ENV === 'test' ? 10 : 5000;
+      // Use adaptive timeout based on memory pressure
+      const timeoutMs = this.getGcThrottleDuration();
       this.gcTimeoutId = setTimeout(() => {
         this.gcTriggeredRecently = false;
         this.gcTimeoutId = null;
@@ -633,7 +689,8 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
       for (const key of keys) {
         try {
           const value = getLocalStorageItem(key);
-          if (value) {
+          // Enhanced null checks for localStorage items
+          if (value !== null && value !== undefined && typeof value === 'string') {
             // Estimate data size with caching for performance
             totalSize += this.estimateDataSize(value, `localStorage_${key}`);
           }
