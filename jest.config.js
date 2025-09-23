@@ -1,108 +1,67 @@
-import nextJest from 'next/jest.js';
+import nextJest from 'next/jest.js'; // Use .js extension
 
 const createJestConfig = nextJest({
+  // Provide the path to your Next.js app to load next.config.js and .env files in your test environment
   dir: './',
 });
 
+// Add any custom config to be passed to Jest
 /** @type {import('jest').Config} */
 const customJestConfig = {
-  // Aggressive cleanup configuration - ALWAYS active
-  clearMocks: true,
-  resetMocks: true,
-  restoreMocks: true,
-  resetModules: true,
-
-  // Force exit to prevent hanging - CRITICAL for CI
-  forceExit: true,
-  detectOpenHandles: false, // Disabled - causes more problems than it solves
-
-  // Environment setup with comprehensive cleanup
-  testEnvironment: 'jest-environment-jsdom',
+  // Add more setup options before each test is run
   setupFilesAfterEnv: [
-    '<rootDir>/tests/utils/jest-setup.js'
+    '<rootDir>/src/setupTests.mjs',
+    '<rootDir>/tests/utils/test-cleanup.js',
+    '<rootDir>/tests/utils/console-control.js'
   ],
-
-  // Timeout configuration - shorter for CI reliability
-  testTimeout: 8000, // Reduced from 30000/15000
-  slowTestThreshold: 3, // Warn about tests > 3s
-
-  // Performance optimizations
-  maxWorkers: process.env.CI ? 1 : 2, // Reduced concurrency to prevent resource conflicts
-  cache: false, // Disable cache completely to avoid state issues
-  passWithNoTests: true,
-
-  // Module resolution
+  
+  testEnvironment: 'jest-environment-jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
-
-  // Test patterns - more restrictive
-  testMatch: [
-    '<rootDir>/src/**/*.test.{ts,tsx}'
-  ],
-
-  // Ignore patterns
   testPathIgnorePatterns: [
     '/node_modules/',
     '/.next/',
-    '<rootDir>/tests/e2e/',
-    '<rootDir>/dist/',
-    '<rootDir>/.vercel/',
-    '<rootDir>/coverage/',
-    // Temporarily ignore problematic test files
-    '<rootDir>/src/hooks/useMigrationControl.test.tsx',
-    '<rootDir>/src/utils/migration.test.ts',
-    '<rootDir>/src/utils/storageFactory.test.ts',
-    '<rootDir>/src/utils/indexedDbMigration.test.ts',
-    '<rootDir>/src/utils/fullBackup.test.ts'
+    '<rootDir>/tests/e2e/', // Only ignore E2E Playwright specs
   ],
-
-  // Coverage configuration
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
     '!src/**/*.d.ts',
-    '!src/**/*.stories.{js,jsx,ts,tsx}',
-    '!src/**/test-utils/**'
+    '!src/**/*.stories.{js,jsx,ts,tsx}'
   ],
   coverageThreshold: {
     global: {
-      branches: 70, // Reduced from 80
-      functions: 75, // Reduced from 85
-      lines: 75,    // Reduced from 85
-      statements: 75 // Reduced from 85
+      branches: 80,
+      functions: 85,
+      lines: 85,
+      statements: 85
     }
   },
-
-  // Reporting - simplified for CI
-  reporters: process.env.CI
-    ? [['default', { silent: true }]]
-    : ['default'],
-
-  // CI-specific aggressive optimizations
-  ...(process.env.CI && {
-    // Disable features that can cause hanging
-    watchman: false,
-    haste: {
-      computeSha1: false,
-    },
-    // Silent mode in CI
-    silent: true,
-    verbose: false,
-  }),
-
-  // Global configuration to prevent hanging
-  globals: {
-    'ts-jest': {
-      isolatedModules: true
-    }
-  },
-
-  // Transform configuration
-  extensionsToTreatAsEsm: ['.ts', '.tsx'],
-
-  // Error handling
-  errorOnDeprecated: false,
+  
+  // Test patterns - include both src/ and tests/ directories
+  testMatch: [
+    '<rootDir>/src/**/*.test.{ts,tsx}',
+    '<rootDir>/tests/**/*.test.{ts,tsx}'
+  ],
+  
+  // Improved reporting
+  reporters: [
+    'default',
+    ['jest-junit', { outputDirectory: 'test-results', outputName: 'results.xml' }],
+    ['jest-html-reporters', { publicPath: 'test-results', filename: 'report.html' }]
+  ],
+  
+  // Performance optimizations
+  passWithNoTests: true,
   testFailureExitCode: 1,
+  maxWorkers: process.env.CI ? 2 : '50%',
+  testTimeout: 30000, // 30 second timeout
+  slowTestThreshold: 5, // Warn about tests > 5s
+  
+  // Reduce console noise in CI
+  silent: process.env.CI === 'true',
+  verbose: process.env.CI !== 'true',
 };
 
-export default createJestConfig(customJestConfig);
+// createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
+export default createJestConfig(customJestConfig); 

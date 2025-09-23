@@ -42,7 +42,7 @@ const muteConsole = () => {
   console.log = () => {};
   console.info = () => {};
   console.debug = () => {};
-  
+
   // Keep warnings and errors but reduce noise
   console.warn = (...args) => {
     const message = args.join(' ');

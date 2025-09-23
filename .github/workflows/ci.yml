@@ -4,8 +4,7 @@ on:
   push:
     branches: [master]
   pull_request:
-    # Run CI on all PRs regardless of target branch
-    branches: ['**']
+    branches: [master]
 
 jobs:
   lint:
@@ -60,7 +59,7 @@ jobs:
         run: npm run test:critical
         
       - name: Run utility unit tests (fast)
-        run: timeout 600 npx jest src/utils/ src/hooks/ --watchAll=false --coverage=false --runInBand
+        run: npx jest src/utils/ src/hooks/ --watchAll=false --coverage=false
       
       - name: Upload coverage
         uses: codecov/codecov-action@v3
