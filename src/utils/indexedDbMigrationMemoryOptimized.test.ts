@@ -90,7 +90,7 @@ describe('IndexedDbMigrationOrchestratorMemoryOptimized', () => {
           orchestrator['cleanupTimeouts']();
         }
         // Force cleanup of memory manager if accessible
-        if (orchestrator['memoryManager'] && orchestrator['memoryManager'].cleanup) {
+        if (orchestrator['memoryManager']) {
           orchestrator['memoryManager'].cleanup();
         }
       } catch (error) {
