@@ -67,6 +67,7 @@ describe('IndexedDbMigrationOrchestrator', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.clearAllTimers();
     progressCallback = jest.fn();
 
     // Initialize mock localStorage data
@@ -108,6 +109,20 @@ describe('IndexedDbMigrationOrchestrator', () => {
     (fullBackup.generateFullBackupJson as jest.Mock).mockResolvedValue(
       JSON.stringify({ test: 'backup' })
     );
+  });
+
+  afterEach(async () => {
+    // Clean up any pending operations and timers
+    jest.clearAllTimers();
+
+    // Dispose of orchestrator instance
+    if (orchestrator && typeof orchestrator.cleanup === 'function') {
+      try {
+        await orchestrator.cleanup();
+      } catch (error) {
+        // Ignore cleanup errors in tests
+      }
+    }
   });
 
   describe('Migration State Management', () => {
@@ -293,6 +308,15 @@ describe('IndexedDbMigrationOrchestrator', () => {
     });
 
     test('should skip verification when configured', async () => {
+      // Cleanup existing orchestrator
+      if (orchestrator && typeof orchestrator.cleanup === 'function') {
+        try {
+          await orchestrator.cleanup();
+        } catch (error) {
+          // Ignore cleanup errors
+        }
+      }
+
       orchestrator = new IndexedDbMigrationOrchestrator({
         verifyData: false,
         progressCallback
@@ -518,7 +542,7 @@ describe('Utility Functions', () => {
   describe('Edge Case Scenarios', () => {
     describe('Process Interruption During Migration', () => {
       test('should handle unexpected process termination', async () => {
-        const orchestrator = new IndexedDbMigrationOrchestrator();
+        const testOrchestrator = new IndexedDbMigrationOrchestrator();
 
         // Mock IndexedDB connection being lost mid-migration
         mockIndexedDbAdapter.getItem = jest.fn()
@@ -526,7 +550,16 @@ describe('Utility Functions', () => {
           .mockResolvedValueOnce('value2')
           .mockRejectedValue(new Error('Connection lost: process terminated'));
 
-        const result = await orchestrator.migrate();
+        const result = await testOrchestrator.migrate();
+
+        // Cleanup test orchestrator
+        if (typeof testOrchestrator.cleanup === 'function') {
+          try {
+            await testOrchestrator.cleanup();
+          } catch (error) {
+            // Ignore cleanup errors
+          }
+        }
 
         // Should handle the error gracefully - either success or proper rollback
         expect(['completed', 'rolled-back'].includes(result.state)).toBe(true);
@@ -536,7 +569,7 @@ describe('Utility Functions', () => {
       });
 
       test('should handle partial data transfer on sudden termination', async () => {
-        const orchestrator = new IndexedDbMigrationOrchestrator();
+        const testOrchestrator = new IndexedDbMigrationOrchestrator();
 
         // Mock partial transfer before termination
         let transferCount = 0;
@@ -548,7 +581,16 @@ describe('Utility Functions', () => {
           return Promise.resolve();
         });
 
-        const result = await orchestrator.migrate();
+        const result = await testOrchestrator.migrate();
+
+        // Cleanup test orchestrator
+        if (typeof testOrchestrator.cleanup === 'function') {
+          try {
+            await testOrchestrator.cleanup();
+          } catch (error) {
+            // Ignore cleanup errors
+          }
+        }
 
         // Should handle interruption gracefully
         expect(['completed', 'rolled-back'].includes(result.state)).toBe(true);
@@ -562,8 +604,8 @@ describe('Utility Functions', () => {
 
     describe('Concurrent Migration Prevention', () => {
       test('should prevent multiple migrations from running simultaneously', async () => {
-        const orchestrator1 = new IndexedDbMigrationOrchestrator();
-        const orchestrator2 = new IndexedDbMigrationOrchestrator();
+        const testOrchestrator1 = new IndexedDbMigrationOrchestrator();
+        const testOrchestrator2 = new IndexedDbMigrationOrchestrator();
 
         // Mock migration lock acquisition
         let lockAcquired = false;
@@ -576,14 +618,20 @@ describe('Utility Functions', () => {
         });
 
         // Mock the private method for testing
-        (orchestrator1 as unknown as { acquireMigrationLock: typeof mockAcquireLock }).acquireMigrationLock = mockAcquireLock;
-        (orchestrator2 as unknown as { acquireMigrationLock: typeof mockAcquireLock }).acquireMigrationLock = mockAcquireLock;
+        (testOrchestrator1 as unknown as { acquireMigrationLock: typeof mockAcquireLock }).acquireMigrationLock = mockAcquireLock;
+        (testOrchestrator2 as unknown as { acquireMigrationLock: typeof mockAcquireLock }).acquireMigrationLock = mockAcquireLock;
 
         // Start both migrations
         const [result1, result2] = await Promise.all([
-          orchestrator1.migrate(),
-          orchestrator2.migrate()
+          testOrchestrator1.migrate(),
+          testOrchestrator2.migrate()
         ]);
+
+        // Cleanup test orchestrators
+        await Promise.all([
+          testOrchestrator1.cleanup?.(),
+          testOrchestrator2.cleanup?.()
+        ].map(cleanup => cleanup?.catch(() => {})));
 
         // Should handle concurrent attempts gracefully
         // Either both succeed (if no actual conflict) or handle properly
@@ -592,7 +640,7 @@ describe('Utility Functions', () => {
       });
 
       test('should handle storage config race conditions', async () => {
-        const orchestrator = new IndexedDbMigrationOrchestrator();
+        const testOrchestrator = new IndexedDbMigrationOrchestrator();
 
         // Mock storage config changing during migration
         let configCallCount = 0;
@@ -605,7 +653,16 @@ describe('Utility Functions', () => {
           return { mode: 'indexedDB', version: '2.0.0', migrationState: 'completed' };
         });
 
-        const result = await orchestrator.migrate();
+        const result = await testOrchestrator.migrate();
+
+        // Cleanup test orchestrator
+        if (typeof testOrchestrator.cleanup === 'function') {
+          try {
+            await testOrchestrator.cleanup();
+          } catch (error) {
+            // Ignore cleanup errors
+          }
+        }
 
         // Should handle config changes gracefully
         expect(result).toBeDefined();
@@ -615,7 +672,7 @@ describe('Utility Functions', () => {
 
     describe('Storage Quota Management', () => {
       test('should handle quota exceeded during backup creation', async () => {
-        const orchestrator = new IndexedDbMigrationOrchestrator();
+        const testOrchestrator = new IndexedDbMigrationOrchestrator();
 
         // Mock quota exceeded during backup
         mockIndexedDbAdapter.setItem.mockImplementation((key: string) => {
@@ -627,7 +684,16 @@ describe('Utility Functions', () => {
           return Promise.resolve();
         });
 
-        const result = await orchestrator.migrate();
+        const result = await testOrchestrator.migrate();
+
+        // Cleanup test orchestrator
+        if (typeof testOrchestrator.cleanup === 'function') {
+          try {
+            await testOrchestrator.cleanup();
+          } catch (error) {
+            // Ignore cleanup errors
+          }
+        }
 
         // Should handle quota errors gracefully through fallback or rollback
         expect(result).toBeDefined();
@@ -644,12 +710,21 @@ describe('Utility Functions', () => {
       });
 
       test('should handle large data migrations gracefully', async () => {
-        const orchestrator = new IndexedDbMigrationOrchestrator();
+        const testOrchestrator = new IndexedDbMigrationOrchestrator();
 
         // Mock very large data that might cause memory issues
         mockLocalStorageData['largeSavedGames'] = 'x'.repeat(10 * 1024 * 1024); // 10MB
 
-        const result = await orchestrator.migrate();
+        const result = await testOrchestrator.migrate();
+
+        // Cleanup test orchestrator
+        if (typeof testOrchestrator.cleanup === 'function') {
+          try {
+            await testOrchestrator.cleanup();
+          } catch (error) {
+            // Ignore cleanup errors
+          }
+        }
 
         // Should handle large data without crashing
         expect(result).toBeDefined();
@@ -657,7 +732,7 @@ describe('Utility Functions', () => {
       });
 
       test('should provide helpful error messages for quota issues', async () => {
-        const orchestrator = new IndexedDbMigrationOrchestrator();
+        const testOrchestrator = new IndexedDbMigrationOrchestrator();
 
         // Mock quota exceeded with specific error
         const quotaError = Object.assign(new Error('QuotaExceededError: Failed to store item'), {
@@ -667,7 +742,16 @@ describe('Utility Functions', () => {
 
         mockIndexedDbAdapter.setItem = jest.fn().mockRejectedValue(quotaError);
 
-        const result = await orchestrator.migrate();
+        const result = await testOrchestrator.migrate();
+
+        // Cleanup test orchestrator
+        if (typeof testOrchestrator.cleanup === 'function') {
+          try {
+            await testOrchestrator.cleanup();
+          } catch (error) {
+            // Ignore cleanup errors
+          }
+        }
 
         // Should handle quota errors with meaningful error reporting
         if (!result.success) {
@@ -682,14 +766,23 @@ describe('Utility Functions', () => {
 
     describe('Browser Compatibility Edge Cases', () => {
       test('should handle IndexedDB disabled in private browsing', async () => {
-        const orchestrator = new IndexedDbMigrationOrchestrator();
+        const testOrchestrator = new IndexedDbMigrationOrchestrator();
 
         // Mock IndexedDB being disabled
         mockIndexedDbAdapter.setItem = jest.fn().mockRejectedValue(
           new Error('InvalidStateError: An attempt was made to use an object that is not, or is no longer, usable')
         );
 
-        const result = await orchestrator.migrate();
+        const result = await testOrchestrator.migrate();
+
+        // Cleanup test orchestrator
+        if (typeof testOrchestrator.cleanup === 'function') {
+          try {
+            await testOrchestrator.cleanup();
+          } catch (error) {
+            // Ignore cleanup errors
+          }
+        }
 
         // Should handle browser limitations gracefully
         if (!result.success) {
@@ -702,7 +795,7 @@ describe('Utility Functions', () => {
       });
 
       test('should handle browser compatibility validation', async () => {
-        const orchestrator = new IndexedDbMigrationOrchestrator();
+        const testOrchestrator = new IndexedDbMigrationOrchestrator();
 
         // Mock adapter creation failure for unsupported browser
         (storageFactory.createStorageAdapter as jest.Mock).mockImplementation((mode) => {
@@ -712,7 +805,16 @@ describe('Utility Functions', () => {
           return mockLocalStorageAdapter;
         });
 
-        const result = await orchestrator.migrate();
+        const result = await testOrchestrator.migrate();
+
+        // Cleanup test orchestrator
+        if (typeof testOrchestrator.cleanup === 'function') {
+          try {
+            await testOrchestrator.cleanup();
+          } catch (error) {
+            // Ignore cleanup errors
+          }
+        }
 
         // Should handle unsupported browsers gracefully
         if (!result.success) {
@@ -728,7 +830,7 @@ describe('Utility Functions', () => {
 
     describe('Data Integrity Edge Cases', () => {
       test('should handle corrupted localStorage data during migration', async () => {
-        const orchestrator = new IndexedDbMigrationOrchestrator();
+        const testOrchestrator = new IndexedDbMigrationOrchestrator();
 
         // Mock corrupted data that fails JSON parsing
         mockLocalStorageAdapter.getItem = jest.fn().mockImplementation((key: string) => {
@@ -738,7 +840,16 @@ describe('Utility Functions', () => {
           return Promise.resolve(mockLocalStorageData[key] || null);
         });
 
-        const result = await orchestrator.migrate();
+        const result = await testOrchestrator.migrate();
+
+        // Cleanup test orchestrator
+        if (typeof testOrchestrator.cleanup === 'function') {
+          try {
+            await testOrchestrator.cleanup();
+          } catch (error) {
+            // Ignore cleanup errors
+          }
+        }
 
         // Should handle corrupted data gracefully
         if (!result.success) {
@@ -750,7 +861,7 @@ describe('Utility Functions', () => {
       });
 
       test('should handle checksum verification failures', async () => {
-        const orchestrator = new IndexedDbMigrationOrchestrator({
+        const testOrchestrator = new IndexedDbMigrationOrchestrator({
           verifyData: true // Enable verification
         });
 
@@ -764,7 +875,16 @@ describe('Utility Functions', () => {
           return Promise.resolve(originalValue);
         });
 
-        const result = await orchestrator.migrate();
+        const result = await testOrchestrator.migrate();
+
+        // Cleanup test orchestrator
+        if (typeof testOrchestrator.cleanup === 'function') {
+          try {
+            await testOrchestrator.cleanup();
+          } catch (error) {
+            // Ignore cleanup errors
+          }
+        }
 
         // Should handle verification failures appropriately
         if (!result.success) {
@@ -778,12 +898,21 @@ describe('Utility Functions', () => {
       });
 
       test('should handle encoding issues between storage systems', async () => {
-        const orchestrator = new IndexedDbMigrationOrchestrator();
+        const testOrchestrator = new IndexedDbMigrationOrchestrator();
 
         // Mock encoding issue with special characters
         mockLocalStorageData['specialChars'] = '🎮⚽🏆\u0000\uFEFF';
 
-        const result = await orchestrator.migrate();
+        const result = await testOrchestrator.migrate();
+
+        // Cleanup test orchestrator
+        if (typeof testOrchestrator.cleanup === 'function') {
+          try {
+            await testOrchestrator.cleanup();
+          } catch (error) {
+            // Ignore cleanup errors
+          }
+        }
 
         // Should handle special characters without corruption
         expect(result.success).toBe(true);
