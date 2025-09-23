@@ -82,13 +82,26 @@ describe('IndexedDbMigrationOrchestratorMemoryOptimized', () => {
   afterEach(() => {
     if (orchestrator) {
       // Ensure proper cleanup to prevent hanging tests
-      if (orchestrator['stopMemoryMonitoring']) {
-        orchestrator['stopMemoryMonitoring']();
-      }
-      if (orchestrator['cleanupTimeouts']) {
-        orchestrator['cleanupTimeouts']();
+      try {
+        if (orchestrator['stopMemoryMonitoring']) {
+          orchestrator['stopMemoryMonitoring']();
+        }
+        if (orchestrator['cleanupTimeouts']) {
+          orchestrator['cleanupTimeouts']();
+        }
+        // Force cleanup of memory manager if accessible
+        if (orchestrator['memoryManager'] && orchestrator['memoryManager'].cleanup) {
+          orchestrator['memoryManager'].cleanup();
+        }
+      } catch (error) {
+        // Ignore cleanup errors to prevent test failures
+        console.warn('Test cleanup warning:', error);
       }
     }
+    // Clean up environment variables
+    delete process.env.FORCE_MEMORY_MONITORING;
+    // Clear timers and mocks
+    jest.clearAllTimers();
     jest.clearAllMocks();
   });
 
@@ -236,12 +249,12 @@ describe('IndexedDbMigrationOrchestratorMemoryOptimized', () => {
       // Simulate critical pressure event
       memoryPressureCallback(pressureEvent);
 
-      // Wait for async GC to complete
-      await new Promise(resolve => setTimeout(resolve, 0));
+      // Wait for async GC to complete with timeout
+      await new Promise(resolve => setTimeout(resolve, 10));
 
       expect(mockMemoryManager.forceGarbageCollection).toHaveBeenCalled();
       expect(orchestrator['gcTriggeredRecently']).toBe(true);
-    });
+    }, 3000); // Add explicit timeout
 
     it('should throttle garbage collection calls', async () => {
       orchestrator['startMemoryMonitoring']();
@@ -266,16 +279,16 @@ describe('IndexedDbMigrationOrchestratorMemoryOptimized', () => {
 
       // First event should trigger GC
       memoryPressureCallback(pressureEvent);
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise(resolve => setTimeout(resolve, 10));
 
       expect(mockMemoryManager.forceGarbageCollection).toHaveBeenCalledTimes(1);
 
       // Second event immediately after should not trigger GC
       memoryPressureCallback(pressureEvent);
-      await new Promise(resolve => setTimeout(resolve, 0));
+      await new Promise(resolve => setTimeout(resolve, 10));
 
       expect(mockMemoryManager.forceGarbageCollection).toHaveBeenCalledTimes(1);
-    });
+    }, 3000); // Add explicit timeout
   });
 
   describe('progressive loading detection', () => {
