@@ -29,7 +29,7 @@ function cleanupTimers() {
     jest.clearAllTimers();
     jest.clearAllMocks();
   }
-
+  
   // Clear real timers if any leaked through
   let id = setTimeout(() => {}, 0);
   while (id--) {
@@ -46,19 +46,19 @@ function cleanupGlobals() {
     delete global.__MATCH_OPS_TEST_STATE__;
     delete global.__REACT_QUERY_STATE__;
   }
-
+  
   // Clean up window/document globals in browser environment
   if (typeof window !== 'undefined') {
     // Clear localStorage
     if (window.localStorage) {
       window.localStorage.clear();
     }
-
+    
     // Clear sessionStorage
     if (window.sessionStorage) {
       window.sessionStorage.clear();
     }
-
+    
     // Reset any custom properties
     delete window.__MATCH_OPS_TEST_DATA__;
   }
