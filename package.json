@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix",
-    "test": "jest",
+    "test": "CI=true jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --watchAll=false",
     "test:critical": "jest tests/integration/core-workflows-simple.test.tsx",
