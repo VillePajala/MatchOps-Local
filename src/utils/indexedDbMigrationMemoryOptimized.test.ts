@@ -293,12 +293,24 @@ describe('IndexedDbMigrationOrchestratorMemoryOptimized', () => {
         return 'small-data';
       });
 
+      // Mock memory manager to return reasonable data size estimates
+      const mockMemoryManager = orchestrator['memoryManager'] as any;
+      mockMemoryManager.getEstimatedDataSize = jest.fn().mockImplementation((data: string) => {
+        return data.length * 1.2; // Conservative estimate
+      });
+
       const shouldUse = await orchestrator['shouldUseProgressiveLoading']();
 
       expect(shouldUse).toBe(true);
     });
 
     it('should not enable progressive loading for small datasets', async () => {
+      // Mock memory manager to return small data sizes
+      const mockMemoryManager = orchestrator['memoryManager'] as any;
+      mockMemoryManager.getEstimatedDataSize = jest.fn().mockImplementation((data: string) => {
+        return data.length * 1.2; // Conservative estimate - will be small
+      });
+
       // Default mock returns small data
       const shouldUse = await orchestrator['shouldUseProgressiveLoading']();
 
@@ -341,6 +353,12 @@ describe('IndexedDbMigrationOrchestratorMemoryOptimized', () => {
         return mockData[key as keyof typeof mockData] || null;
       });
 
+      // Mock memory manager to return reasonable data size estimates
+      const mockMemoryManager = orchestrator['memoryManager'] as any;
+      mockMemoryManager.getEstimatedDataSize = jest.fn().mockImplementation((data: string) => {
+        return data.length * 1.2; // Conservative estimate
+      });
+
       const totalSize = await orchestrator['estimateTotalDataSize']();
 
       // Should return some positive size (with safety multiplier applied)
@@ -352,6 +370,12 @@ describe('IndexedDbMigrationOrchestratorMemoryOptimized', () => {
       (localStorage.getLocalStorageItem as jest.Mock).mockImplementation((key: string) => {
         if (key === 'savedSoccerGames') return 'x'.repeat(500);
         return null; // Other keys return null
+      });
+
+      // Mock memory manager to return reasonable data size estimates
+      const mockMemoryManager = orchestrator['memoryManager'] as any;
+      mockMemoryManager.getEstimatedDataSize = jest.fn().mockImplementation((data: string) => {
+        return data.length * 1.2; // Conservative estimate
       });
 
       const totalSize = await orchestrator['estimateTotalDataSize']();
