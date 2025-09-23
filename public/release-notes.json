@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: run utility tests sequentially to prevent hanging"
+  "notes": "fix: resolve CI failures in migration tests and linting"
 }

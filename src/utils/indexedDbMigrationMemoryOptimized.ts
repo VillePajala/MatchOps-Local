@@ -238,7 +238,7 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
 
       return result;
 
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Memory-optimized migration failed', {
         error,
         optimizationActions: this.memoryOptimizationActions,
@@ -416,6 +416,11 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
    * Handle memory pressure events
    */
   private handleMemoryPressureEvent(event: MemoryPressureEvent): void {
+    // Skip memory optimization during pause to avoid interference
+    if (this.isPausedState()) {
+      return;
+    }
+
     this.lastMemoryCheck = event.memoryInfo;
 
     logger.debug('Memory pressure event received', {
@@ -473,6 +478,11 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
    * Perform periodic memory checks
    */
   private performMemoryCheck(): void {
+    // Skip memory checks during pause to avoid interference
+    if (this.isPausedState()) {
+      return;
+    }
+
     const memoryInfo = this.memoryManager.getMemoryInfo();
 
     if (!memoryInfo) {
@@ -550,7 +560,7 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
         this.gcTimeoutId = null;
       }, timeoutMs);
 
-    } catch (error) {
+    } catch (error: unknown) {
       this.gcTriggeredRecently = false;
       // Clear timeout reference on error
       if (this.gcTimeoutId) {
@@ -580,7 +590,7 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
 
       return totalDataSize > (this.memoryConfig.progressiveLoadingThreshold || 0);
 
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Failed to estimate data size, using progressive loading', { error });
       return true; // Conservative approach
     }
@@ -603,7 +613,7 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
             // Estimate data size with fallback for edge cases
             totalSize += this.estimateDataSize(value);
           }
-        } catch (error) {
+        } catch (error: unknown) {
           logger.debug(`Failed to get size for key ${key}`, { error });
         }
       }
@@ -615,7 +625,7 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
 
       return totalSize;
 
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Failed to estimate total data size', { error });
       return 0;
     }
@@ -629,7 +639,7 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
       // Primary method: Use Blob for accurate size estimation
       const blob = new Blob([data]);
       return blob.size;
-    } catch (error) {
+    } catch (error: unknown) {
       try {
         // Fallback 1: Use TextEncoder for UTF-8 byte length
         return new TextEncoder().encode(data).length;

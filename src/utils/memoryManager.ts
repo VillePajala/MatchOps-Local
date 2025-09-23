@@ -138,10 +138,10 @@ export type MemoryPressureCallback = (event: MemoryPressureEvent) => void;
 export class MemoryManager {
   private config: MemoryManagerConfig;
   private callbacks: Set<MemoryPressureCallback> = new Set();
-  private monitoringInterval: NodeJS.Timeout | null = null;
+  private monitoringInterval: number | null = null;
   private lastMemoryInfo: MemoryInfo | null = null;
   private isMonitoring = false;
-  private gcTimeoutId: NodeJS.Timeout | null = null;
+  private gcTimeoutId: number | null = null;
 
   constructor(config: Partial<MemoryManagerConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -185,7 +185,7 @@ export class MemoryManager {
       // Fallback: Try to estimate memory usage for non-Chrome browsers
       return this.estimateMemoryUsage();
 
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Failed to get memory info', { error });
       return null;
     }
@@ -223,7 +223,7 @@ export class MemoryManager {
         availableMemory: conservativeLimit * 0.5
       };
 
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Failed to estimate memory usage', { error });
       return null;
     }
@@ -344,12 +344,12 @@ export class MemoryManager {
                 clearTimeout(timeoutId);
                 logger.debug('Encouraged garbage collection via memory pressure');
                 resolve(true);
-              } catch (error) {
+              } catch (error: unknown) {
                 clearTimeout(timeoutId);
                 reject(error);
               }
             });
-          } catch (error) {
+          } catch (error: unknown) {
             clearTimeout(timeoutId);
             reject(error);
           }
@@ -358,7 +358,7 @@ export class MemoryManager {
 
       return false;
 
-    } catch (error) {
+    } catch (error: unknown) {
       logger.debug('Failed to force garbage collection', { error });
       return false;
     }
@@ -425,7 +425,7 @@ export class MemoryManager {
 
     this.monitoringInterval = setInterval(() => {
       this.checkMemoryPressure();
-    }, this.config.monitoringInterval);
+    }, this.config.monitoringInterval) as unknown as number;
 
     // Initial check
     this.checkMemoryPressure();
@@ -487,7 +487,7 @@ export class MemoryManager {
     this.callbacks.forEach(callback => {
       try {
         callback(event);
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Error in memory pressure callback', { error });
       }
     });
