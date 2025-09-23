@@ -307,7 +307,8 @@ describe('MemoryManager', () => {
     it('should enforce minimum chunk size bounds', () => {
       const manager = new MemoryManager({
         maxChunkSize: 50,
-        minChunkSize: 20
+        minChunkSize: 20,
+        defaultChunkSize: 30
       });
 
       const constrainedMemoryInfo = {

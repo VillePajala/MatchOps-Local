@@ -111,6 +111,10 @@ export interface MemoryManagerConfig {
   monitoringInterval: number;
   /** Enable forced garbage collection (default: true) */
   enableForcedGC: boolean;
+  /** Timeout for requestIdleCallback during GC in ms (default: 100) */
+  gcTimeoutMs?: number;
+  /** Minimum time between GC attempts in ms (default: 5000) */
+  gcThrottleMs?: number;
 }
 
 /**
@@ -124,7 +128,9 @@ const DEFAULT_CONFIG: MemoryManagerConfig = {
   maxChunkSize: 1000,
   defaultChunkSize: 100,
   monitoringInterval: 5000,
-  enableForcedGC: true
+  enableForcedGC: true,
+  gcTimeoutMs: 100,
+  gcThrottleMs: 5000
 };
 
 /**
@@ -138,13 +144,17 @@ export type MemoryPressureCallback = (event: MemoryPressureEvent) => void;
 export class MemoryManager {
   private config: MemoryManagerConfig;
   private callbacks: Set<MemoryPressureCallback> = new Set();
+  private callbackCleanupFunctions: Map<MemoryPressureCallback, () => void> = new Map();
   private monitoringInterval: number | null = null;
   private lastMemoryInfo: MemoryInfo | null = null;
   private isMonitoring = false;
   private gcTimeoutId: number | null = null;
+  private lastGCAttempt = 0;
+  private sizeEstimationCache: Map<string, number> = new Map();
 
   constructor(config: Partial<MemoryManagerConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
+    this.validateConfig(this.config);
     logger.debug('MemoryManager initialized', { config: this.config });
   }
 
@@ -199,7 +209,7 @@ export class MemoryManager {
       // Use navigator.deviceMemory if available (Chrome 63+)
       if (hasDeviceMemory(navigator)) {
         const deviceMemory = navigator.deviceMemory;
-        const estimatedLimit = deviceMemory * 1024 * 1024 * 1024 * 0.25; // 25% of device memory
+        const estimatedLimit = deviceMemory * 1024 * 1024 * 1024 * 0.20; // 20% of device memory (more conservative)
         const estimatedUsed = estimatedLimit * 0.3; // Assume 30% usage
 
         return {
@@ -314,9 +324,49 @@ export class MemoryManager {
   }
 
   /**
-   * Force garbage collection if supported
+   * Force garbage collection with throttling and retry logic
    */
-  public async forceGarbageCollection(): Promise<boolean> {
+  public async forceGarbageCollection(retries = 3): Promise<boolean> {
+    // Check throttling - prevent excessive GC calls
+    const now = Date.now();
+    const throttleMs = this.config.gcThrottleMs || 5000;
+    if (now - this.lastGCAttempt < throttleMs) {
+      logger.debug('GC attempt throttled', {
+        timeSinceLastAttempt: now - this.lastGCAttempt,
+        throttleMs
+      });
+      return false;
+    }
+
+    this.lastGCAttempt = now;
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const success = await this.attemptGarbageCollection();
+        if (success) {
+          logger.debug(`GC succeeded on attempt ${attempt}`);
+          return true;
+        }
+
+        // Wait between retries with exponential backoff
+        if (attempt < retries) {
+          await new Promise(resolve => setTimeout(resolve, 100 * attempt));
+        }
+      } catch (error: unknown) {
+        logger.debug(`GC attempt ${attempt} failed`, { error });
+        if (attempt === retries) {
+          logger.debug('All GC attempts failed', { error });
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Single garbage collection attempt
+   */
+  private async attemptGarbageCollection(): Promise<boolean> {
     try {
       // Check if manual GC is available (Chrome with --enable-precise-memory-info)
       if (typeof window !== 'undefined' && hasWindowGC(window)) {
@@ -332,11 +382,11 @@ export class MemoryManager {
       // Request idle callback to allow GC to run
       if ('requestIdleCallback' in window) {
         return new Promise((resolve, reject) => {
-          // Add timeout to prevent hanging in test environments or CI
+          const timeoutMs = this.config.gcTimeoutMs || 100;
           const timeoutId = setTimeout(() => {
             logger.debug('RequestIdleCallback timeout, resolving GC attempt');
             resolve(false);
-          }, 100); // 100ms timeout
+          }, timeoutMs);
 
           try {
             requestIdleCallback(() => {
@@ -494,7 +544,7 @@ export class MemoryManager {
   }
 
   /**
-   * Register callback for memory pressure events
+   * Register callback for memory pressure events with proper cleanup tracking
    */
   public onMemoryPressure(callback: MemoryPressureCallback): () => void {
     this.callbacks.add(callback);
@@ -503,13 +553,20 @@ export class MemoryManager {
       totalCallbacks: this.callbacks.size
     });
 
-    // Return unsubscribe function
-    return () => {
+    // Create cleanup function
+    const cleanup = () => {
       this.callbacks.delete(callback);
+      this.callbackCleanupFunctions.delete(callback);
       logger.debug('Memory pressure callback unregistered', {
         totalCallbacks: this.callbacks.size
       });
     };
+
+    // Store cleanup function for comprehensive cleanup
+    this.callbackCleanupFunctions.set(callback, cleanup);
+
+    // Return unsubscribe function
+    return cleanup;
   }
 
   /**
@@ -531,13 +588,139 @@ export class MemoryManager {
   }
 
   /**
-   * Cleanup resources
+   * Comprehensive cleanup to prevent memory leaks
    */
   public cleanup(): void {
     this.stopMonitoring();
+
+    // Clear all callbacks and their cleanup functions
+    this.callbackCleanupFunctions.forEach(cleanup => {
+      try {
+        cleanup();
+      } catch (error: unknown) {
+        logger.debug('Error during callback cleanup', { error });
+      }
+    });
     this.callbacks.clear();
+    this.callbackCleanupFunctions.clear();
+
+    // Clear caches and references
+    this.sizeEstimationCache.clear();
     this.lastMemoryInfo = null;
+    this.lastGCAttempt = 0;
+
+    // Clear any pending timeouts
+    if (this.gcTimeoutId) {
+      clearTimeout(this.gcTimeoutId);
+      this.gcTimeoutId = null;
+    }
+
     logger.debug('Memory manager cleaned up');
+  }
+
+  /**
+   * Validate configuration to prevent invalid settings
+   */
+  private validateConfig(config: MemoryManagerConfig): void {
+    const {
+      moderatePressureThreshold,
+      highPressureThreshold,
+      criticalPressureThreshold,
+      minChunkSize,
+      maxChunkSize,
+      defaultChunkSize,
+      monitoringInterval,
+      gcThrottleMs
+    } = config;
+
+    // Validate threshold ordering and bounds
+    if (moderatePressureThreshold < 0 || moderatePressureThreshold > 1) {
+      throw new Error('moderatePressureThreshold must be between 0 and 1');
+    }
+    if (highPressureThreshold < 0 || highPressureThreshold > 1) {
+      throw new Error('highPressureThreshold must be between 0 and 1');
+    }
+    if (criticalPressureThreshold < 0 || criticalPressureThreshold > 1) {
+      throw new Error('criticalPressureThreshold must be between 0 and 1');
+    }
+    if (moderatePressureThreshold >= highPressureThreshold) {
+      throw new Error('moderatePressureThreshold must be less than highPressureThreshold');
+    }
+    if (highPressureThreshold >= criticalPressureThreshold) {
+      throw new Error('highPressureThreshold must be less than criticalPressureThreshold');
+    }
+    if (criticalPressureThreshold >= 0.95) {
+      throw new Error('criticalPressureThreshold must be less than 0.95 for safety');
+    }
+
+    // Validate chunk sizes
+    if (minChunkSize <= 0) {
+      throw new Error('minChunkSize must be positive');
+    }
+    if (maxChunkSize <= minChunkSize) {
+      throw new Error('maxChunkSize must be greater than minChunkSize');
+    }
+    if (defaultChunkSize < minChunkSize || defaultChunkSize > maxChunkSize) {
+      throw new Error('defaultChunkSize must be between minChunkSize and maxChunkSize');
+    }
+
+    // Validate intervals
+    if (monitoringInterval < 100 || monitoringInterval > 60000) {
+      throw new Error('monitoringInterval must be between 100ms and 60000ms');
+    }
+    if (gcThrottleMs && (gcThrottleMs < 1000 || gcThrottleMs > 30000)) {
+      throw new Error('gcThrottleMs must be between 1000ms and 30000ms');
+    }
+
+    logger.debug('Memory manager configuration validated successfully');
+  }
+
+  /**
+   * Get cached size estimation or calculate and cache new one
+   */
+  public getEstimatedDataSize(data: string, cacheKey?: string): number {
+    if (cacheKey && this.sizeEstimationCache.has(cacheKey)) {
+      return this.sizeEstimationCache.get(cacheKey)!;
+    }
+
+    let size: number;
+    try {
+      // Primary method: Use Blob for accurate size estimation
+      const blob = new Blob([data]);
+      size = blob.size;
+    } catch (error: unknown) {
+      try {
+        // Fallback 1: Use TextEncoder for UTF-8 byte length
+        size = new TextEncoder().encode(data).length;
+      } catch (encoderError) {
+        // Fallback 2: Estimate based on string length (approximate)
+        // Each character is approximately 2 bytes in UTF-16
+        logger.debug('Using string length estimation fallback', {
+          error,
+          encoderError,
+          dataLength: data.length
+        });
+        size = data.length * 2;
+      }
+    }
+
+    // Apply safety multiplier for conservative estimates
+    const conservativeSize = Math.round(size * 1.2);
+
+    // Cache the result if cache key provided
+    if (cacheKey) {
+      this.sizeEstimationCache.set(cacheKey, conservativeSize);
+
+      // Limit cache size to prevent memory issues
+      if (this.sizeEstimationCache.size > 1000) {
+        const firstKey = this.sizeEstimationCache.keys().next().value;
+        if (firstKey !== undefined) {
+          this.sizeEstimationCache.delete(firstKey);
+        }
+      }
+    }
+
+    return conservativeSize;
   }
 }
 

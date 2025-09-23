@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: resolve CI failures in migration tests and linting"
+  "notes": "fix: prevent test hanging by running tests in CI mode"
 }

@@ -126,6 +126,7 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
   private gcTriggeredRecently = false;
   private lastMemoryCheck: MemoryInfo | null = null;
   private gcTimeoutId: NodeJS.Timeout | null = null;
+  private memoryPressureUnsubscribe: (() => void) | null = null;
 
   // Performance metrics tracking
   private performanceMetrics: MigrationPerformanceMetrics = {
@@ -269,8 +270,8 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
       interval: this.memoryConfig.memoryMonitoringInterval
     });
 
-    // Register for memory pressure events
-    this.memoryManager.onMemoryPressure((event: MemoryPressureEvent) => {
+    // Register for memory pressure events and store unsubscribe function
+    this.memoryPressureUnsubscribe = this.memoryManager.onMemoryPressure((event: MemoryPressureEvent) => {
       this.handleMemoryPressureEvent(event);
     });
 
@@ -285,12 +286,18 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
   }
 
   /**
-   * Stop memory monitoring
+   * Stop memory monitoring and cleanup callbacks
    */
   private stopMemoryMonitoring(): void {
     if (this.memoryMonitoringInterval) {
       clearInterval(this.memoryMonitoringInterval);
       this.memoryMonitoringInterval = null;
+    }
+
+    // Unsubscribe from memory pressure events
+    if (this.memoryPressureUnsubscribe) {
+      this.memoryPressureUnsubscribe();
+      this.memoryPressureUnsubscribe = null;
     }
 
     this.memoryManager.stopMonitoring();
@@ -321,6 +328,22 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
     this.gcTriggeredRecently = false;
 
     logger.debug('Memory-optimized migration orchestrator cleanup completed');
+  }
+
+  /**
+   * Public cleanup method for external cleanup coordination
+   */
+  public async cleanup(): Promise<void> {
+    try {
+      await this.cleanupMemoryOptimization();
+    } catch (error: unknown) {
+      logger.error('Error during memory optimization cleanup', { error });
+    }
+
+    // Call parent cleanup if available
+    if (super.cleanup && typeof super.cleanup === 'function') {
+      await super.cleanup();
+    }
   }
 
   /**
@@ -527,7 +550,7 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
   }
 
   /**
-   * Force garbage collection with throttling and race condition prevention
+   * Force garbage collection using memory manager's improved implementation
    */
   private async performGarbageCollection(): Promise<void> {
     if (this.gcTriggeredRecently) {
@@ -543,6 +566,7 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
         this.gcTimeoutId = null;
       }
 
+      // Use memory manager's improved GC with retry logic
       const success = await this.memoryManager.forceGarbageCollection();
 
       if (success) {
@@ -610,8 +634,8 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
         try {
           const value = getLocalStorageItem(key);
           if (value) {
-            // Estimate data size with fallback for edge cases
-            totalSize += this.estimateDataSize(value);
+            // Estimate data size with caching for performance
+            totalSize += this.estimateDataSize(value, `localStorage_${key}`);
           }
         } catch (error: unknown) {
           logger.debug(`Failed to get size for key ${key}`, { error });
@@ -632,28 +656,10 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
   }
 
   /**
-   * Estimate data size with fallback for browser compatibility
+   * Estimate data size using memory manager's improved estimation with caching
    */
-  private estimateDataSize(data: string): number {
-    try {
-      // Primary method: Use Blob for accurate size estimation
-      const blob = new Blob([data]);
-      return blob.size;
-    } catch (error: unknown) {
-      try {
-        // Fallback 1: Use TextEncoder for UTF-8 byte length
-        return new TextEncoder().encode(data).length;
-      } catch (encoderError) {
-        // Fallback 2: Estimate based on string length (approximate)
-        // Each character is approximately 2 bytes in UTF-16
-        logger.debug('Using string length estimation fallback', {
-          error,
-          encoderError,
-          dataLength: data.length
-        });
-        return data.length * 2;
-      }
-    }
+  private estimateDataSize(data: string, cacheKey?: string): number {
+    return this.memoryManager.getEstimatedDataSize(data, cacheKey);
   }
 
   /**

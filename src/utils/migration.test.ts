@@ -489,13 +489,13 @@ describe('Migration Integration', () => {
       });
 
       it('should handle window beforeunload during migration', async () => {
-        // Setup: migration in progress
+        // Setup: IndexedDB migration in progress
         (localStorage.getLocalStorageItem as jest.Mock).mockImplementation((key) => {
-          if (key === 'appDataVersion') return '1'; // Trigger app migration (current is 2)
+          if (key === 'appDataVersion') return '2'; // Current version to avoid app migration
           return null;
         });
         (getStorageConfig as jest.Mock).mockReturnValue({
-          mode: 'localStorage',
+          mode: 'localStorage', // This will trigger IndexedDB migration
           version: '1.0.0', // Different from INDEXEDDB_STORAGE_VERSION ('2.0.0')
           migrationState: 'none'
         });
@@ -533,13 +533,13 @@ describe('Migration Integration', () => {
 
     describe('Concurrent Migration Attempts (Multiple Tabs)', () => {
       it('should handle multiple tabs attempting migration simultaneously', async () => {
-        // Setup: multiple tab scenario
+        // Setup: IndexedDB migration scenario
         (localStorage.getLocalStorageItem as jest.Mock).mockImplementation((key) => {
-          if (key === 'appDataVersion') return '1'; // Trigger app migration (current is 2)
+          if (key === 'appDataVersion') return '2'; // Current version to avoid app migration
           return null;
         });
         (getStorageConfig as jest.Mock).mockReturnValue({
-          mode: 'localStorage',
+          mode: 'localStorage', // This will trigger IndexedDB migration
           version: '1.0.0', // Different from INDEXEDDB_STORAGE_VERSION ('2.0.0')
           migrationState: 'none'
         });
@@ -682,11 +682,11 @@ describe('Migration Integration', () => {
 
       it('should provide helpful error messages for quota issues', async () => {
         (localStorage.getLocalStorageItem as jest.Mock).mockImplementation((key) => {
-          if (key === 'appDataVersion') return '1'; // Trigger app migration (current is 2)
+          if (key === 'appDataVersion') return '2'; // Current version to avoid app migration
           return null;
         });
         (getStorageConfig as jest.Mock).mockReturnValue({
-          mode: 'localStorage',
+          mode: 'localStorage', // This will trigger IndexedDB migration
           version: '1.0.0', // Different from INDEXEDDB_STORAGE_VERSION ('2.0.0')
           migrationState: 'none'
         });
@@ -710,11 +710,11 @@ describe('Migration Integration', () => {
 
       it('should handle storage estimation errors', async () => {
         (localStorage.getLocalStorageItem as jest.Mock).mockImplementation((key) => {
-          if (key === 'appDataVersion') return '1'; // Trigger app migration (current is 2)
+          if (key === 'appDataVersion') return '2'; // Current version to avoid app migration
           return null;
         });
         (getStorageConfig as jest.Mock).mockReturnValue({
-          mode: 'localStorage',
+          mode: 'localStorage', // This will trigger IndexedDB migration
           version: '1.0.0', // Different from INDEXEDDB_STORAGE_VERSION ('2.0.0')
           migrationState: 'none'
         });
