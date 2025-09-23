@@ -64,6 +64,30 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
+// Mock URL.createObjectURL and revokeObjectURL for file download tests
+global.URL.createObjectURL = jest.fn(() => 'mock-url');
+global.URL.revokeObjectURL = jest.fn();
+
+// Mock document.createElement to return proper elements for file downloads
+const originalCreateElement = document.createElement;
+document.createElement = jest.fn().mockImplementation((tagName) => {
+  if (tagName === 'a') {
+    return {
+      download: '',
+      href: '',
+      click: jest.fn(),
+      style: {},
+      appendChild: jest.fn(),
+      removeChild: jest.fn(),
+    };
+  }
+  return originalCreateElement.call(document, tagName);
+});
+
+// Mock document.body methods
+document.body.appendChild = jest.fn();
+document.body.removeChild = jest.fn();
+
 // Setup cleanup hooks
 beforeEach(() => {
   // Clear all timers before each test
