@@ -114,15 +114,6 @@ describe('IndexedDbMigrationOrchestrator', () => {
   afterEach(async () => {
     // Clean up any pending operations and timers
     jest.clearAllTimers();
-
-    // Dispose of orchestrator instance
-    if (orchestrator && typeof orchestrator.cleanup === 'function') {
-      try {
-        await orchestrator.cleanup();
-      } catch (error) {
-        // Ignore cleanup errors in tests
-      }
-    }
   });
 
   describe('Migration State Management', () => {
@@ -308,15 +299,6 @@ describe('IndexedDbMigrationOrchestrator', () => {
     });
 
     test('should skip verification when configured', async () => {
-      // Cleanup existing orchestrator
-      if (orchestrator && typeof orchestrator.cleanup === 'function') {
-        try {
-          await orchestrator.cleanup();
-        } catch (error) {
-          // Ignore cleanup errors
-        }
-      }
-
       orchestrator = new IndexedDbMigrationOrchestrator({
         verifyData: false,
         progressCallback
@@ -552,15 +534,6 @@ describe('Utility Functions', () => {
 
         const result = await testOrchestrator.migrate();
 
-        // Cleanup test orchestrator
-        if (typeof testOrchestrator.cleanup === 'function') {
-          try {
-            await testOrchestrator.cleanup();
-          } catch (error) {
-            // Ignore cleanup errors
-          }
-        }
-
         // Should handle the error gracefully - either success or proper rollback
         expect(['completed', 'rolled-back'].includes(result.state)).toBe(true);
         if (!result.success) {
@@ -582,15 +555,6 @@ describe('Utility Functions', () => {
         });
 
         const result = await testOrchestrator.migrate();
-
-        // Cleanup test orchestrator
-        if (typeof testOrchestrator.cleanup === 'function') {
-          try {
-            await testOrchestrator.cleanup();
-          } catch (error) {
-            // Ignore cleanup errors
-          }
-        }
 
         // Should handle interruption gracefully
         expect(['completed', 'rolled-back'].includes(result.state)).toBe(true);
@@ -627,12 +591,6 @@ describe('Utility Functions', () => {
           testOrchestrator2.migrate()
         ]);
 
-        // Cleanup test orchestrators
-        await Promise.all([
-          testOrchestrator1.cleanup?.(),
-          testOrchestrator2.cleanup?.()
-        ].map(cleanup => cleanup?.catch(() => {})));
-
         // Should handle concurrent attempts gracefully
         // Either both succeed (if no actual conflict) or handle properly
         const results = [result1, result2];
@@ -655,14 +613,6 @@ describe('Utility Functions', () => {
 
         const result = await testOrchestrator.migrate();
 
-        // Cleanup test orchestrator
-        if (typeof testOrchestrator.cleanup === 'function') {
-          try {
-            await testOrchestrator.cleanup();
-          } catch (error) {
-            // Ignore cleanup errors
-          }
-        }
 
         // Should handle config changes gracefully
         expect(result).toBeDefined();
@@ -686,14 +636,6 @@ describe('Utility Functions', () => {
 
         const result = await testOrchestrator.migrate();
 
-        // Cleanup test orchestrator
-        if (typeof testOrchestrator.cleanup === 'function') {
-          try {
-            await testOrchestrator.cleanup();
-          } catch (error) {
-            // Ignore cleanup errors
-          }
-        }
 
         // Should handle quota errors gracefully through fallback or rollback
         expect(result).toBeDefined();
@@ -717,14 +659,6 @@ describe('Utility Functions', () => {
 
         const result = await testOrchestrator.migrate();
 
-        // Cleanup test orchestrator
-        if (typeof testOrchestrator.cleanup === 'function') {
-          try {
-            await testOrchestrator.cleanup();
-          } catch (error) {
-            // Ignore cleanup errors
-          }
-        }
 
         // Should handle large data without crashing
         expect(result).toBeDefined();
@@ -744,14 +678,6 @@ describe('Utility Functions', () => {
 
         const result = await testOrchestrator.migrate();
 
-        // Cleanup test orchestrator
-        if (typeof testOrchestrator.cleanup === 'function') {
-          try {
-            await testOrchestrator.cleanup();
-          } catch (error) {
-            // Ignore cleanup errors
-          }
-        }
 
         // Should handle quota errors with meaningful error reporting
         if (!result.success) {
@@ -775,14 +701,6 @@ describe('Utility Functions', () => {
 
         const result = await testOrchestrator.migrate();
 
-        // Cleanup test orchestrator
-        if (typeof testOrchestrator.cleanup === 'function') {
-          try {
-            await testOrchestrator.cleanup();
-          } catch (error) {
-            // Ignore cleanup errors
-          }
-        }
 
         // Should handle browser limitations gracefully
         if (!result.success) {
@@ -807,14 +725,6 @@ describe('Utility Functions', () => {
 
         const result = await testOrchestrator.migrate();
 
-        // Cleanup test orchestrator
-        if (typeof testOrchestrator.cleanup === 'function') {
-          try {
-            await testOrchestrator.cleanup();
-          } catch (error) {
-            // Ignore cleanup errors
-          }
-        }
 
         // Should handle unsupported browsers gracefully
         if (!result.success) {
@@ -842,14 +752,6 @@ describe('Utility Functions', () => {
 
         const result = await testOrchestrator.migrate();
 
-        // Cleanup test orchestrator
-        if (typeof testOrchestrator.cleanup === 'function') {
-          try {
-            await testOrchestrator.cleanup();
-          } catch (error) {
-            // Ignore cleanup errors
-          }
-        }
 
         // Should handle corrupted data gracefully
         if (!result.success) {
@@ -877,14 +779,6 @@ describe('Utility Functions', () => {
 
         const result = await testOrchestrator.migrate();
 
-        // Cleanup test orchestrator
-        if (typeof testOrchestrator.cleanup === 'function') {
-          try {
-            await testOrchestrator.cleanup();
-          } catch (error) {
-            // Ignore cleanup errors
-          }
-        }
 
         // Should handle verification failures appropriately
         if (!result.success) {
@@ -905,14 +799,6 @@ describe('Utility Functions', () => {
 
         const result = await testOrchestrator.migrate();
 
-        // Cleanup test orchestrator
-        if (typeof testOrchestrator.cleanup === 'function') {
-          try {
-            await testOrchestrator.cleanup();
-          } catch (error) {
-            // Ignore cleanup errors
-          }
-        }
 
         // Should handle special characters without corruption
         expect(result.success).toBe(true);
