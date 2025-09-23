@@ -24,7 +24,7 @@ jest.mock('./logger', () => ({
 }));
 
 // Mock the problematic loadResumeData method before any instances are created
-jest.spyOn(MigrationControlManager.prototype, 'loadResumeData' as any)
+jest.spyOn(MigrationControlManager.prototype, 'loadResumeData' as keyof MigrationControlManager)
   .mockImplementation(() => Promise.resolve());
 
 const mockLocalStorageAdapter = {
