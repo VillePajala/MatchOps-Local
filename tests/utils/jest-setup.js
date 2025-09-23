@@ -3,62 +3,10 @@
  * This file runs before each test to ensure clean state
  */
 
-// Track all timers and intervals for cleanup
-const activeTimers = new Set();
-const activeIntervals = new Set();
-const activeTimeouts = new Set();
-
-// Override setTimeout to track timers
-const originalSetTimeout = global.setTimeout;
-global.setTimeout = function(callback, delay, ...args) {
-  const id = originalSetTimeout(callback, delay, ...args);
-  activeTimeouts.add(id);
-  return id;
-};
-
-// Override setInterval to track intervals
-const originalSetInterval = global.setInterval;
-global.setInterval = function(callback, delay, ...args) {
-  const id = originalSetInterval(callback, delay, ...args);
-  activeIntervals.add(id);
-  return id;
-};
-
-// Override clearTimeout to untrack
-const originalClearTimeout = global.clearTimeout;
-global.clearTimeout = function(id) {
-  activeTimeouts.delete(id);
-  return originalClearTimeout(id);
-};
-
-// Override clearInterval to untrack
-const originalClearInterval = global.clearInterval;
-global.clearInterval = function(id) {
-  activeIntervals.delete(id);
-  return originalClearInterval(id);
-};
-
-// Cleanup function
+// Cleanup function - minimal implementation to avoid timer conflicts
 function cleanupAllTimers() {
-  // Clear all tracked timeouts
-  activeTimeouts.forEach(id => {
-    try {
-      originalClearTimeout(id);
-    } catch (e) {
-      // Ignore errors - timer might already be cleared
-    }
-  });
-  activeTimeouts.clear();
-
-  // Clear all tracked intervals
-  activeIntervals.forEach(id => {
-    try {
-      originalClearInterval(id);
-    } catch (e) {
-      // Ignore errors - interval might already be cleared
-    }
-  });
-  activeIntervals.clear();
+  // Let Jest's forceExit handle timer cleanup
+  // Individual tests can use jest.useFakeTimers() if needed
 }
 
 // Mock ResizeObserver to prevent browser-specific errors
@@ -142,12 +90,6 @@ afterEach(() => {
   // Force garbage collection if available
   if (global.gc) {
     global.gc();
-  }
-
-  // Clear any remaining jest timers
-  if (jest.getTimerCount && jest.getTimerCount() > 0) {
-    jest.runOnlyPendingTimers();
-    jest.clearAllTimers();
   }
 });
 

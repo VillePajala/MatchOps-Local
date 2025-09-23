@@ -77,11 +77,6 @@ const customJestConfig = {
 
   // CI-specific aggressive optimizations
   ...(process.env.CI && {
-    // Timer mocking to prevent hanging
-    fakeTimers: {
-      enableGlobally: true,
-      advanceTimers: true
-    },
     // Disable features that can cause hanging
     watchman: false,
     haste: {
