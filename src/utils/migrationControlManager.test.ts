@@ -426,4 +426,147 @@ describe('MigrationControlManager', () => {
       );
     });
   });
+
+  describe('Integration Testing - Real Workflow Scenarios', () => {
+    it('should handle complete pause-resume workflow with data integrity', async () => {
+      // Simulate a real migration scenario with multiple steps
+      const migrationData = {
+        lastProcessedKey: 'item-500',
+        processedKeys: Array.from({ length: 500 }, (_, i) => `item-${i}`),
+        remainingKeys: Array.from({ length: 1500 }, (_, i) => `item-${i + 500}`),
+        itemsProcessed: 500,
+        totalItems: 2000,
+        bytesProcessed: 2 * 1024 * 1024, // 2MB
+        totalBytes: 8 * 1024 * 1024 // 8MB
+      };
+
+      // Step 1: Request pause
+      await manager.requestPause();
+      expect(manager.isPaused()).toBe(true);
+
+      // Step 2: Save pause state (this tests real serialization)
+      await manager.savePauseState(
+        migrationData.lastProcessedKey,
+        migrationData.processedKeys,
+        migrationData.remainingKeys,
+        migrationData.itemsProcessed,
+        migrationData.totalItems,
+        migrationData.bytesProcessed,
+        migrationData.totalBytes
+      );
+
+      // Step 3: Verify storage interaction contains real data
+      expect(mockAdapter.setItem).toHaveBeenCalledWith(
+        MIGRATION_CONTROL_FEATURES.PROGRESS_STORAGE_KEY,
+        expect.stringContaining(migrationData.lastProcessedKey)
+      );
+
+      // Step 4: Simulate resumption by setting up mock data
+      const savedData = {
+        ...migrationData,
+        timestamp: Date.now(),
+        sessionId: expect.any(String),
+        checksum: expect.any(String)
+      };
+      mockAdapter.getItem.mockResolvedValue(JSON.stringify(savedData));
+
+      // Step 5: Resume and verify data integrity
+      const resumeData = await manager.requestResume();
+
+      expect(resumeData).not.toBeNull();
+      expect(resumeData!.lastProcessedKey).toBe(migrationData.lastProcessedKey);
+      expect(resumeData!.itemsProcessed).toBe(migrationData.itemsProcessed);
+      expect(resumeData!.remainingKeys).toEqual(migrationData.remainingKeys);
+      expect(resumeData!.bytesProcessed).toBe(migrationData.bytesProcessed);
+
+      // Verify callbacks were triggered with correct sequence
+      expect(mockCallbacks.onPause).toHaveBeenCalled();
+      expect(mockCallbacks.onResume).toHaveBeenCalled();
+    });
+
+    it('should handle memory pressure cancellation with cleanup', async () => {
+      // Simulate a memory-pressure situation
+      await manager.requestPause();
+      await manager.savePauseState('key100', ['key1'], ['key101'], 1, 100, 1024, 102400);
+
+      // Trigger memory pressure cancellation
+      await manager.requestCancel('memory_pressure');
+
+      // Verify proper cleanup sequence
+      expect(manager.isCancelling()).toBe(true);
+      expect(mockCallbacks.onCancel).toHaveBeenCalledWith({
+        reason: 'memory_pressure',
+        timestamp: expect.any(Number),
+        cleanupCompleted: false,
+        dataRolledBack: false,
+        backupRestored: false
+      });
+
+      // Cleanup should remove stored progress
+      await manager.cleanup();
+      expect(mockAdapter.removeItem).toHaveBeenCalledWith(
+        MIGRATION_CONTROL_FEATURES.PROGRESS_STORAGE_KEY
+      );
+    });
+
+    it('should handle checkpoint creation with real timing logic', async () => {
+      // Test the actual checkpoint logic by exercising the counter
+      const checkpointInterval = MIGRATION_CONTROL_FEATURES.CHECKPOINT_INTERVAL;
+
+      // Before interval - no checkpoint (counter: 1, 2, ..., interval-1)
+      for (let i = 1; i < checkpointInterval; i++) {
+        expect(manager.shouldCreateCheckpoint()).toBe(false);
+      }
+
+      // At interval - should create checkpoint (counter: interval)
+      expect(manager.shouldCreateCheckpoint()).toBe(true);
+
+      // Verify next cycle works correctly
+      for (let i = 1; i < checkpointInterval; i++) {
+        expect(manager.shouldCreateCheckpoint()).toBe(false);
+      }
+
+      // Should create checkpoint again at next interval
+      expect(manager.shouldCreateCheckpoint()).toBe(true);
+    });
+
+    it('should validate resume data integrity with checksums', async () => {
+      // Test with corrupted checksum
+      const corruptedData = {
+        lastProcessedKey: 'key5',
+        processedKeys: ['key1', 'key2'],
+        remainingKeys: ['key6', 'key7'],
+        itemsProcessed: 2,
+        totalItems: 4,
+        bytesProcessed: 512,
+        totalBytes: 1024,
+        timestamp: Date.now(),
+        checksum: 'invalid_checksum' // This would fail checksum validation
+      };
+
+      mockAdapter.getItem.mockResolvedValue(JSON.stringify(corruptedData));
+
+      const result = await manager.requestResume();
+
+      // Should reject corrupted data
+      expect(result).toBeNull();
+    });
+
+    it('should handle storage quota exceeded during pause save', async () => {
+      await manager.requestPause();
+
+      // Simulate quota exceeded error
+      const quotaError = new Error('QuotaExceededError');
+      quotaError.name = 'QuotaExceededError';
+      mockAdapter.setItem.mockRejectedValue(quotaError);
+      mockAdapter.isQuotaExceededError.mockReturnValue(true);
+
+      // Should handle gracefully and maintain in-memory state
+      await manager.savePauseState('key1', [], [], 1, 1, 100, 100);
+
+      // Should still be able to resume from memory
+      expect(manager.getControlState().canResume).toBe(true);
+      expect(manager.isPaused()).toBe(true);
+    });
+  });
 });
