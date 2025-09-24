@@ -56,11 +56,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
-      - name: Run critical tests (fastest)
-        run: npm run test:critical
-        
-      - name: Run utility unit tests (fast)
-        run: npx jest src/utils/ src/hooks/ --watchAll=false --coverage=false --forceExit --testTimeout=8000
+      - name: Run all tests
+        run: CI=true npx jest --ci --maxWorkers=1 --forceExit --testTimeout=10000 --bail=1
       
       - name: Upload coverage
         uses: codecov/codecov-action@v3
