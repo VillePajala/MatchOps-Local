@@ -51,7 +51,7 @@ describe('MigrationMutex', () => {
   describe('lock release and cleanup - synchronous only', () => {
     it('should release lock properly', () => {
       // Simulate having a lock without actually acquiring it
-      (mutex as any).lockOwnerStatus = true;
+      (mutex as unknown as { lockOwnerStatus: boolean }).lockOwnerStatus = true;
 
       mutex.releaseLock();
 
@@ -80,7 +80,7 @@ describe('MigrationMutex', () => {
 
     it('should cleanup on instance destruction', () => {
       // Simulate owning a lock
-      (mutex as any).lockOwnerStatus = true;
+      (mutex as unknown as { lockOwnerStatus: boolean }).lockOwnerStatus = true;
 
       mutex.cleanup();
 
@@ -103,11 +103,11 @@ describe('MigrationMutex', () => {
       expect(mutex.isLockOwner()).toBe(false);
 
       // Simulate acquiring lock without async call
-      (mutex as any).lockOwnerStatus = true;
+      (mutex as unknown as { lockOwnerStatus: boolean }).lockOwnerStatus = true;
       expect(mutex.isLockOwner()).toBe(true);
 
       // Simulate releasing lock
-      (mutex as any).lockOwnerStatus = false;
+      (mutex as unknown as { lockOwnerStatus: boolean }).lockOwnerStatus = false;
       expect(mutex.isLockOwner()).toBe(false);
     });
 
@@ -133,8 +133,8 @@ describe('MigrationMutex', () => {
       const mutex2 = new MigrationMutex();
 
       // Access private tabId through type assertion for testing
-      const tabId1 = (mutex1 as any).tabId;
-      const tabId2 = (mutex2 as any).tabId;
+      const tabId1 = (mutex1 as unknown as { tabId: string }).tabId;
+      const tabId2 = (mutex2 as unknown as { tabId: string }).tabId;
 
       expect(tabId1).not.toBe(tabId2);
       expect(tabId1).toMatch(/^tab_\d+_[a-z0-9]+$/);
