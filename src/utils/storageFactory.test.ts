@@ -64,12 +64,12 @@ jest.mock('./indexedDbKvAdapter', () => ({
 describe('StorageFactory Core Functionality', () => {
   let factory: StorageFactory;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     // Clear test store and reset to defaults
     testStore = {};
     factory = new StorageFactory();
     // Reset to default configuration
-    await factory.resetToDefaults();
+    factory.resetToDefaults();
     jest.clearAllMocks();
   });
 
@@ -152,12 +152,12 @@ describe('StorageFactory Core Functionality', () => {
 });
 
 describe('Convenience Functions', () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     // Clear test store and reset global factory instance
     testStore = {};
     // Reset the singleton factory to defaults
     const factory = new StorageFactory();
-    await factory.resetToDefaults();
+    factory.resetToDefaults();
     jest.clearAllMocks();
   });
 
