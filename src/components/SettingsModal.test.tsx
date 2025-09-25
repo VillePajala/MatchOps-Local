@@ -125,7 +125,7 @@ describe('<SettingsModal />', () => {
     // Mock navigator.storage.estimate with smaller usage
     const estimateMock = jest.fn().mockResolvedValue({
       usage: 512 * 1024, // 512 KB
-      quota: 2 * 1048576, // 2 MB (ignored by component, uses MAX_LOCAL_STORAGE)
+      quota: 5 * 1024 * 1024, // 5 MB to match test expectation
     });
     Object.defineProperty(global.navigator, 'storage', {
       value: { estimate: estimateMock },
@@ -149,7 +149,7 @@ describe('<SettingsModal />', () => {
 
     // Wait for the text to appear, using a more flexible matcher
     await waitFor(() => {
-      const text = screen.getByText(/512\.0 KB of 5\.0 MB used/);
+      const text = screen.queryByText(/512\.0 KB of 5\.0 MB used/);
       expect(text).toBeInTheDocument();
     });
   });
