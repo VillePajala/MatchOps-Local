@@ -3,12 +3,35 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor, fireEvent, cleanup } from '../utils/test-utils';
+import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
 import { act } from 'react';
-import {
-  createMockPlayers,
-  mockLocalStorage
-} from '../utils/test-utils';
+
+// Create simple mock players without external dependencies
+const createMockPlayers = (count: number) =>
+  Array.from({ length: count }, (_, i) => ({
+    id: `player-${i + 1}`,
+    name: `Player ${i + 1}`,
+    jerseyNumber: `${i + 1}`,
+    isGoalie: i === 0,
+  }));
+
+// Simple localStorage mock without external dependencies
+const mockLocalStorage = () => {
+  let store: Record<string, string> = {};
+
+  return {
+    getItem: jest.fn((key: string) => store[key] || null),
+    setItem: jest.fn((key: string, value: string) => {
+      store[key] = String(value);
+    }),
+    removeItem: jest.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: jest.fn(() => {
+      store = {};
+    }),
+  };
+};
 
 // Simple component for testing core workflows without full app complexity
 const SimpleGameWorkflow = ({ players = [] }: { players?: any[] }) => {
@@ -75,20 +98,28 @@ describe('Core User Workflows Integration Tests (Simplified)', () => {
   beforeEach(() => {
     mockStorage.clear();
     jest.clearAllMocks();
+    jest.clearAllTimers();
   });
 
   afterEach(async () => {
-    // Clean up React state and pending updates
+    // Comprehensive cleanup to prevent memory leaks
+
+    // 1. Clean up React state immediately
+    cleanup();
+
+    // 2. Clear all timers before any async operations
+    jest.clearAllTimers();
+
+    // 3. Clear all mocks to remove references
+    jest.clearAllMocks();
+
+    // 4. Wait for any pending React updates to complete
     await act(async () => {
-      cleanup();
-      // Wait for any pending promises to resolve
       await new Promise(resolve => setTimeout(resolve, 0));
     });
 
-    jest.clearAllTimers();
-
-    // Force cleanup of any hanging promises
-    await act(() => Promise.resolve());
+    // 5. Final cleanup of any remaining promises
+    await new Promise(resolve => setTimeout(resolve, 0));
   });
 
   describe('Game Creation Flow', () => {

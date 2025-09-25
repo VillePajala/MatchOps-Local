@@ -60,7 +60,7 @@ const customJestConfig = {
 
   // Test stability and leak detection
   detectOpenHandles: true,  // Find resources that prevent Node from exiting
-  detectLeaks: false,       // Temporarily disabled while fixing leaks
+  detectLeaks: false,       // Disable leak detection until root cause is fixed
   forceExit: false,         // Never force exit - fix issues properly
 
   // Reduce console noise in CI

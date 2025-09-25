@@ -14,8 +14,8 @@ if (i18n.isInitialized) {
   });
 }
 
-// Track unhandled promise rejections to prevent silent failures
-const unhandledRejections = new Set();
+// Track unhandled promise rejections to prevent silent failures (per test)
+let unhandledRejections = new Set();
 
 // Enhanced error detection logic (inlined for ES module compatibility)
 const criticalErrorTypes = new Set([
@@ -210,8 +210,9 @@ afterEach(() => {
   jest.restoreAllMocks();
   localStorageMock.clear();
 
-  // Clear unhandled rejection tracking for next test
+  // Clear unhandled rejection tracking for next test and recreate Set to prevent references
   unhandledRejections.clear();
+  unhandledRejections = new Set();
 });
 
 // Clean up after all tests complete
@@ -238,4 +239,8 @@ afterAll(() => {
   if (typeof process !== 'undefined') {
     process.removeListener('unhandledRejection', handleUnhandledRejection);
   }
+
+  // Final cleanup of the Set
+  unhandledRejections.clear();
+  unhandledRejections = null;
 });
