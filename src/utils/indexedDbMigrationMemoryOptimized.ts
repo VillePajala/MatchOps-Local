@@ -364,15 +364,37 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
    * Public cleanup method for external cleanup coordination
    */
   public async cleanup(): Promise<void> {
+    let memoryCleanupError: Error | null = null;
+
     try {
       await this.cleanupMemoryOptimization();
     } catch (error: unknown) {
-      logger.error('Error during memory optimization cleanup', { error });
+      // Log the error but save it to re-throw after parent cleanup
+      logger.error('Critical error during memory optimization cleanup', { error });
+      memoryCleanupError = error instanceof Error ?
+        error :
+        new Error(`Memory cleanup failed: ${String(error)}`);
     }
 
-    // Call parent cleanup if available
-    if (super.cleanup && typeof super.cleanup === 'function') {
-      await super.cleanup();
+    // Always attempt parent cleanup
+    try {
+      if (super.cleanup && typeof super.cleanup === 'function') {
+        await super.cleanup();
+      }
+    } catch (parentError: unknown) {
+      // If both cleanups failed, create a combined error
+      if (memoryCleanupError) {
+        const combinedError = new Error(
+          `Multiple cleanup failures: Memory: ${memoryCleanupError.message}, Parent: ${String(parentError)}`
+        );
+        throw combinedError;
+      }
+      throw parentError;
+    }
+
+    // Re-throw memory cleanup error if parent cleanup succeeded
+    if (memoryCleanupError) {
+      throw memoryCleanupError;
     }
   }
 

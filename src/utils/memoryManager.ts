@@ -118,20 +118,83 @@ export interface MemoryManagerConfig {
 }
 
 /**
+ * Configuration presets for different use cases
+ * Makes it easier to configure without understanding all parameters
+ */
+export const MEMORY_CONFIG_PRESETS = {
+  /**
+   * Aggressive preset for maximum speed
+   * Use when memory is plentiful and speed is priority
+   */
+  AGGRESSIVE: {
+    moderatePressureThreshold: 0.6,
+    highPressureThreshold: 0.8,
+    criticalPressureThreshold: 0.95,
+    minChunkSize: 100,
+    maxChunkSize: 5000,
+    defaultChunkSize: 500,
+    monitoringInterval: 10000,  // Check less frequently
+    enableForcedGC: false,       // Skip GC for speed
+    gcTimeoutMs: 50,
+    gcThrottleMs: 10000
+  } as MemoryManagerConfig,
+
+  /**
+   * Conservative preset for memory-constrained devices
+   * Use on mobile devices or older hardware
+   */
+  CONSERVATIVE: {
+    moderatePressureThreshold: 0.4,
+    highPressureThreshold: 0.6,
+    criticalPressureThreshold: 0.75,
+    minChunkSize: 5,
+    maxChunkSize: 100,
+    defaultChunkSize: 20,
+    monitoringInterval: 2000,   // Check frequently
+    enableForcedGC: true,        // Aggressively manage memory
+    gcTimeoutMs: 200,
+    gcThrottleMs: 2000
+  } as MemoryManagerConfig,
+
+  /**
+   * Balanced preset for general use (default)
+   * Good balance between speed and memory usage
+   */
+  BALANCED: {
+    moderatePressureThreshold: 0.5,
+    highPressureThreshold: 0.7,
+    criticalPressureThreshold: 0.85,
+    minChunkSize: 10,
+    maxChunkSize: 1000,
+    defaultChunkSize: 100,
+    monitoringInterval: 5000,
+    enableForcedGC: true,
+    gcTimeoutMs: 100,
+    gcThrottleMs: 5000
+  } as MemoryManagerConfig,
+
+  /**
+   * Adaptive preset for battery-efficient operation
+   * Adjusts monitoring based on device capabilities
+   */
+  ADAPTIVE: {
+    moderatePressureThreshold: 0.5,
+    highPressureThreshold: 0.7,
+    criticalPressureThreshold: 0.85,
+    minChunkSize: 10,
+    maxChunkSize: 1000,
+    defaultChunkSize: 100,
+    monitoringInterval: 8000,   // Less frequent monitoring for battery
+    enableForcedGC: true,
+    gcTimeoutMs: 150,
+    gcThrottleMs: 8000
+  } as MemoryManagerConfig
+};
+
+/**
  * Default configuration values
  */
-const DEFAULT_CONFIG: MemoryManagerConfig = {
-  moderatePressureThreshold: 0.5,
-  highPressureThreshold: 0.7,
-  criticalPressureThreshold: 0.85,
-  minChunkSize: 10,
-  maxChunkSize: 1000,
-  defaultChunkSize: 100,
-  monitoringInterval: 5000,
-  enableForcedGC: true,
-  gcTimeoutMs: 100,
-  gcThrottleMs: 5000
-};
+const DEFAULT_CONFIG: MemoryManagerConfig = MEMORY_CONFIG_PRESETS.BALANCED;
 
 /**
  * Memory pressure event callback type
@@ -370,9 +433,24 @@ export class MemoryManager {
     try {
       // Check if manual GC is available (Chrome with --enable-precise-memory-info)
       if (typeof window !== 'undefined' && hasWindowGC(window)) {
-        window.gc();
-        logger.debug('Forced garbage collection executed');
-        return true;
+        // CSP-safe environment check - only use window.gc in non-production
+        try {
+          // Avoid CSP violations in production environments
+          const isProduction = process.env.NODE_ENV === 'production';
+          const isSafeEnvironment = process.env.NODE_ENV === 'test' ||
+                                   process.env.NODE_ENV === 'development';
+
+          if (!isProduction && isSafeEnvironment && typeof window.gc === 'function') {
+            window.gc();
+            logger.debug('Forced garbage collection executed');
+            return true;
+          } else if (isProduction) {
+            logger.debug('Skipping window.gc() in production to avoid CSP violations');
+          }
+        } catch (gcError: unknown) {
+          // Silently handle CSP or security errors
+          logger.debug('window.gc() blocked by CSP or security policy', { gcError });
+        }
       }
 
       // Alternative: Create temporary memory pressure to encourage GC
@@ -685,22 +763,31 @@ export class MemoryManager {
 
     let size: number;
     try {
-      // Primary method: Use Blob for accurate size estimation
-      const blob = new Blob([data]);
-      size = blob.size;
+      // Primary method: Use TextEncoder for accurate UTF-8 byte length
+      size = new TextEncoder().encode(data).byteLength;
     } catch (error: unknown) {
       try {
-        // Fallback 1: Use TextEncoder for UTF-8 byte length
-        size = new TextEncoder().encode(data).length;
-      } catch (encoderError) {
-        // Fallback 2: Estimate based on string length (approximate)
-        // Each character is approximately 2 bytes in UTF-16
-        logger.debug('Using string length estimation fallback', {
+        // Fallback 1: Use Blob API for size calculation
+        const blob = new Blob([data]);
+        size = blob.size;
+      } catch (blobError) {
+        // Fallback 2: More accurate estimation based on UTF-16 encoding
+        // Account for actual character encoding complexity
+        logger.debug('Using improved string length estimation fallback', {
           error,
-          encoderError,
+          blobError,
           dataLength: data.length
         });
-        size = data.length * 2;
+
+        // Calculate more accurate size estimation
+        // JSON.stringify adds overhead for escaping and structure
+        try {
+          size = JSON.stringify(data).length * 2.1; // Account for UTF-16 with overhead
+        } catch (jsonError) {
+          // Ultimate fallback: Conservative overestimate
+          size = data.length * 3; // Conservative 3 bytes per character
+          logger.warn('Using conservative size estimation', { jsonError });
+        }
       }
     }
 
