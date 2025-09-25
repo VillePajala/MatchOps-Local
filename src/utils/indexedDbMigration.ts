@@ -1263,9 +1263,32 @@ export class IndexedDbMigrationOrchestrator {
    * Acquire migration lock to prevent race conditions between tabs
    */
   private async acquireMigrationLock(): Promise<boolean> {
-    const lockKey = 'migration_lock';
+    const lockKey = 'indexeddb_migration_internal_lock';
     const lockTimeout = 5 * 60 * 1000; // 5 minutes
+    const developmentTimeout = 30 * 1000; // 30 seconds in development
     const currentTime = Date.now();
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
+    // In development, aggressively clear any existing locks older than 5 seconds
+    if (isDevelopment) {
+      const existingLock = localStorage.getItem(lockKey);
+      if (existingLock) {
+        try {
+          const lockData = JSON.parse(existingLock);
+          if (currentTime - lockData.timestamp > 5000) { // 5 seconds
+            logger.log('Development mode: clearing old migration lock on startup', {
+              lockAge: currentTime - lockData.timestamp,
+              lockData
+            });
+            localStorage.removeItem(lockKey);
+          }
+        } catch {
+          // Invalid lock data, clear it
+          logger.log('Development mode: clearing invalid migration lock');
+          localStorage.removeItem(lockKey);
+        }
+      }
+    }
 
     try {
       // Check for existing lock
@@ -1273,20 +1296,32 @@ export class IndexedDbMigrationOrchestrator {
       if (existingLock) {
         const lockData = JSON.parse(existingLock);
 
-        // Check if lock is still valid
-        if (currentTime - lockData.timestamp < lockTimeout) {
+        // Check if lock is still valid (shorter timeout in development)
+        const effectiveTimeout = isDevelopment ? developmentTimeout : lockTimeout;
+        if (currentTime - lockData.timestamp < effectiveTimeout) {
           // Check if it's the same tab/session
           if (lockData.correlationId === this.correlationId) {
             logger.debug('Migration lock already held by this session');
             return true;
           }
 
-          logger.warn('Migration already in progress in another tab', {
-            correlationId: this.correlationId,
-            existingLock: lockData
-          });
-          this.addAlert('warning', 'Migration blocked: another tab is running migration');
-          return false;
+          // In development mode, be more aggressive about clearing stale locks
+          if (isDevelopment && currentTime - lockData.timestamp > 10000) { // 10 seconds
+            logger.warn('Development mode: clearing stale migration lock', {
+              correlationId: this.correlationId,
+              existingLock: lockData,
+              lockAge: currentTime - lockData.timestamp
+            });
+            localStorage.removeItem(lockKey);
+            // Continue to acquire new lock below
+          } else {
+            logger.warn('Migration already in progress in another tab', {
+              correlationId: this.correlationId,
+              existingLock: lockData
+            });
+            this.addAlert('warning', 'Migration blocked: another tab is running migration');
+            return false;
+          }
         } else {
           // Lock expired, remove it
           logger.info('Removing expired migration lock');
@@ -1331,7 +1366,7 @@ export class IndexedDbMigrationOrchestrator {
    * Release migration lock
    */
   private releaseMigrationLock(): void {
-    const lockKey = 'migration_lock';
+    const lockKey = 'indexeddb_migration_internal_lock';
     try {
       const existingLock = localStorage.getItem(lockKey);
       if (existingLock) {

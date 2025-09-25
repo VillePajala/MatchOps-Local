@@ -259,6 +259,7 @@ Phase 2 will be implemented across 5 logical feature branches, each delivering a
 - ✅ **Storage Quota Pre-flight Checks**: Validate available storage before migration (COMPLETED)
 - ✅ **Quota Warning System**: Alert users when storage is near capacity (COMPLETED)
 - ✅ **Migration Size Estimation**: Calculate required storage space before migration (COMPLETED)
+- 📋 **IndexedDB Reset Integration**: Extend resetAppSettings() to clear IndexedDB data for complete app reset
 - 📋 **Automatic Cleanup Suggestions**: Recommend data cleanup for quota-constrained environments
 - 📋 **Progressive Migration for Quota**: Migrate in stages when storage is limited
 - 📋 **Storage Usage Monitoring**: Real-time tracking of storage consumption during migration
