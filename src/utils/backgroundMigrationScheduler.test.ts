@@ -120,6 +120,20 @@ describe('BackgroundMigrationScheduler', () => {
     it('should initialize tab visibility monitoring', () => {
       expect(mockDocument.addEventListener).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
     });
+
+    it('should validate configuration values', () => {
+      expect(() => new BackgroundMigrationScheduler({ minimumIdleTime: -1 }))
+        .toThrow('minimumIdleTime must be non-negative');
+
+      expect(() => new BackgroundMigrationScheduler({ maximumIdleTime: -1 }))
+        .toThrow('maximumIdleTime must be non-negative');
+
+      expect(() => new BackgroundMigrationScheduler({ idleRetryDelay: -1 }))
+        .toThrow('idleRetryDelay must be non-negative');
+
+      expect(() => new BackgroundMigrationScheduler({ maxConsecutiveAttempts: 0 }))
+        .toThrow('maxConsecutiveAttempts must be at least 1');
+    });
   });
 
   describe('task management', () => {

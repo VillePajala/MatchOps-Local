@@ -96,6 +96,20 @@ export class BackgroundMigrationScheduler {
   private lastPerformanceCheck = Date.now();
 
   constructor(config: Partial<SchedulerConfiguration> = {}) {
+    // Validate configuration values
+    if (config.minimumIdleTime !== undefined && config.minimumIdleTime < 0) {
+      throw new Error('minimumIdleTime must be non-negative');
+    }
+    if (config.maximumIdleTime !== undefined && config.maximumIdleTime < 0) {
+      throw new Error('maximumIdleTime must be non-negative');
+    }
+    if (config.idleRetryDelay !== undefined && config.idleRetryDelay < 0) {
+      throw new Error('idleRetryDelay must be non-negative');
+    }
+    if (config.maxConsecutiveAttempts !== undefined && config.maxConsecutiveAttempts < 1) {
+      throw new Error('maxConsecutiveAttempts must be at least 1');
+    }
+
     this.config = { ...DEFAULT_SCHEDULER_CONFIG, ...config };
     this.initializeMonitoring();
     logger.info('BackgroundMigrationScheduler initialized', {
@@ -233,6 +247,9 @@ export class BackgroundMigrationScheduler {
     if (this.performanceObserver) {
       this.performanceObserver.disconnect();
     }
+
+    // Help garbage collection by clearing task references
+    this.taskQueue.length = 0;
 
     logger.info('BackgroundMigrationScheduler cleanup completed');
   }
