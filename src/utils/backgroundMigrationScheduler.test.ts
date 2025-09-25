@@ -370,17 +370,18 @@ describe('BackgroundMigrationScheduler', () => {
       };
 
       scheduler.addTask(task);
-      scheduler.pauseProcessing(); // Pause first
 
-      // Start with hidden tab
+      // Start with hidden tab (this will cause automatic pausing)
       mockDocument.hidden = true;
-
-      // Simulate tab becoming visible with tasks in queue
-      mockDocument.hidden = false;
       const visibilityHandler = mockDocument.addEventListener.mock.calls.find(
         call => call[0] === 'visibilitychange'
       )?.[1];
 
+      // Trigger visibility change to hidden (should pause)
+      visibilityHandler?.();
+
+      // Simulate tab becoming visible with tasks in queue
+      mockDocument.hidden = false;
       visibilityHandler?.();
 
       expect(scheduler.getStatus().state).toBe(SchedulerState.PROCESSING);
