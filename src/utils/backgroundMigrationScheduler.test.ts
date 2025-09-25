@@ -12,6 +12,7 @@ import {
   createBackgroundScheduler,
   SchedulerConfiguration
 } from './backgroundMigrationScheduler';
+import { MigrationFixtures } from '../tests/fixtures/migration';
 
 // Mock requestIdleCallback and cancelIdleCallback
 const idleCallbacks: Map<number, (deadline: IdleDeadline) => void> = new Map();
@@ -102,25 +103,64 @@ describe('BackgroundMigrationScheduler', () => {
     scheduler = new BackgroundMigrationScheduler(mockConfig);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    // Comprehensive cleanup to prevent memory leaks
     scheduler?.cleanup();
+
+    // Clear all timers and mocks
+    jest.clearAllTimers();
+    jest.clearAllMocks();
+
+    // Clear callback maps
+    idleCallbacks.clear();
+    nextIdleCallbackId = 1;
+    mockTime = 0;
+
+    // Reset document state
+    mockDocument.hidden = false;
+
+    // Allow any pending promises/timers to resolve
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    // Verify cleanup effectiveness
+    expect(idleCallbacks.size).toBe(0);
   });
 
   describe('initialization', () => {
+    /**
+     * Tests basic scheduler initialization with default configuration
+     * Verifies initial state is IDLE and cleanup works properly
+     * @critical
+     */
     it('should initialize with default configuration', () => {
       const defaultScheduler = new BackgroundMigrationScheduler();
       expect(defaultScheduler.getStatus().state).toBe(SchedulerState.IDLE);
       defaultScheduler.cleanup();
     });
 
+    /**
+     * Tests browser feature detection for requestIdleCallback API
+     * Ensures proper capability detection for idle-time processing
+     * @critical
+     */
     it('should detect requestIdleCallback support', () => {
       expect(scheduler.supportsIdleCallback()).toBe(true);
     });
 
+    /**
+     * Tests tab visibility monitoring setup during initialization
+     * Verifies event listener registration for performance optimization
+     * @integration
+     */
     it('should initialize tab visibility monitoring', () => {
       expect(mockDocument.addEventListener).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
     });
 
+    /**
+     * Tests configuration parameter validation during construction
+     * Ensures invalid parameters throw descriptive error messages
+     * @edge-case
+     */
     it('should validate configuration values', () => {
       expect(() => new BackgroundMigrationScheduler({ minimumIdleTime: -1 }))
         .toThrow('minimumIdleTime must be non-negative');
@@ -137,34 +177,18 @@ describe('BackgroundMigrationScheduler', () => {
   });
 
   describe('task management', () => {
+    /**
+     * Tests priority-based task queue ordering and processing initiation
+     * Verifies tasks are sorted by priority (lower number = higher priority)
+     * @critical
+     */
     it('should add tasks to queue in priority order', () => {
-      const task1: BackgroundTask = {
-        id: 'task1',
-        name: 'Low Priority',
-        priority: 10,
-        estimatedDuration: 20,
-        processor: jest.fn().mockResolvedValue(undefined)
-      };
+      const tasks = MigrationFixtures.priorityTaskSet();
+      const [highPriority, mediumPriority, lowPriority] = tasks;
 
-      const task2: BackgroundTask = {
-        id: 'task2',
-        name: 'High Priority',
-        priority: 1,
-        estimatedDuration: 10,
-        processor: jest.fn().mockResolvedValue(undefined)
-      };
-
-      const task3: BackgroundTask = {
-        id: 'task3',
-        name: 'Medium Priority',
-        priority: 5,
-        estimatedDuration: 15,
-        processor: jest.fn().mockResolvedValue(undefined)
-      };
-
-      scheduler.addTask(task1);
-      scheduler.addTask(task2);
-      scheduler.addTask(task3);
+      scheduler.addTask(lowPriority);   // Add in random order
+      scheduler.addTask(highPriority);  // to test sorting
+      scheduler.addTask(mediumPriority);
 
       expect(scheduler.getStatus().queueLength).toBe(3);
 
@@ -175,24 +199,23 @@ describe('BackgroundMigrationScheduler', () => {
       const callbacks = Array.from(idleCallbacks.values());
       expect(callbacks.length).toBe(1);
 
-      // The tasks should be in priority order: task2 (1), task3 (5), task1 (10)
+      // The tasks should be in priority order: high (1), medium (5), low (10)
       // We can't directly inspect the queue, but we can verify processing starts
       expect(mockRequestIdleCallback).toHaveBeenCalled();
     });
 
+    /**
+     * Tests task removal functionality from the processing queue
+     * Verifies both successful and unsuccessful removal scenarios
+     * @critical
+     */
     it('should remove tasks from queue', () => {
-      const task: BackgroundTask = {
-        id: 'task1',
-        name: 'Test Task',
-        priority: 5,
-        estimatedDuration: 20,
-        processor: jest.fn().mockResolvedValue(undefined)
-      };
+      const task = MigrationFixtures.backgroundTask({ id: 'removable-task' });
 
       scheduler.addTask(task);
       expect(scheduler.getStatus().queueLength).toBe(1);
 
-      const removed = scheduler.removeTask('task1');
+      const removed = scheduler.removeTask('removable-task');
       expect(removed).toBe(true);
       expect(scheduler.getStatus().queueLength).toBe(0);
 
@@ -252,6 +275,11 @@ describe('BackgroundMigrationScheduler', () => {
   });
 
   describe('idle time processing', () => {
+    /**
+     * Tests task processing during browser idle time using requestIdleCallback
+     * Verifies proper task execution and completion tracking
+     * @critical
+     */
     it('should process tasks during idle time', async () => {
       const processor = jest.fn().mockResolvedValue(undefined);
       const task: BackgroundTask = {
@@ -276,6 +304,11 @@ describe('BackgroundMigrationScheduler', () => {
       expect(scheduler.getStatus().stats.tasksCompleted).toBe(1);
     });
 
+    /**
+     * Tests task skipping when insufficient idle time is available
+     * Ensures scheduler respects browser performance constraints
+     * @critical
+     */
     it('should skip tasks when insufficient idle time available', async () => {
       const processor = jest.fn().mockResolvedValue(undefined);
       const task: BackgroundTask = {
@@ -298,6 +331,11 @@ describe('BackgroundMigrationScheduler', () => {
       expect(scheduler.getStatus().queueLength).toBe(1); // Task should be back in queue
     });
 
+    /**
+     * Tests error handling during task processing
+     * Verifies graceful error recovery without scheduler failure
+     * @edge-case
+     */
     it('should handle task processing errors gracefully', async () => {
       const processor = jest.fn().mockRejectedValue(new Error('Task failed'));
       const task: BackgroundTask = {
@@ -350,6 +388,11 @@ describe('BackgroundMigrationScheduler', () => {
   });
 
   describe('tab visibility handling', () => {
+    /**
+     * Tests automatic pause when browser tab becomes hidden
+     * Ensures performance optimization during background operation
+     * @integration
+     */
     it('should pause processing when tab becomes hidden', () => {
       const task: BackgroundTask = {
         id: 'test',
@@ -374,6 +417,11 @@ describe('BackgroundMigrationScheduler', () => {
       expect(scheduler.getStatus().stats.tabVisibilityChanges).toBe(1);
     });
 
+    /**
+     * Tests automatic resume when browser tab becomes visible
+     * Verifies proper state restoration after visibility changes
+     * @integration
+     */
     it('should resume processing when tab becomes visible', () => {
       const task: BackgroundTask = {
         id: 'test',
@@ -434,23 +482,72 @@ describe('BackgroundMigrationScheduler', () => {
       expect(scheduler.supportsIdleCallback()).toBe(false);
     });
 
+    /**
+     * Tests setTimeout fallback when requestIdleCallback unavailable
+     * Ensures fallback mechanism processes tasks correctly
+     * @integration @edge-case
+     */
     it('should process tasks using setTimeout fallback', (done) => {
-      const processor = jest.fn().mockResolvedValue(undefined);
-      const task: BackgroundTask = {
-        id: 'test',
-        name: 'Test Task',
-        priority: 1,
-        estimatedDuration: 10,
-        processor
-      };
+      const task = MigrationFixtures.backgroundTask({
+        processor: jest.fn().mockResolvedValue(undefined)
+      });
 
       scheduler.addTask(task);
 
       // Wait for setTimeout to execute
       setTimeout(() => {
-        expect(processor).toHaveBeenCalled();
+        expect(task.processor).toHaveBeenCalled();
         done();
       }, 200);
+    });
+
+    /**
+     * Tests scheduler behavior without requestIdleCallback support
+     * Ensures fallback mechanism properly respects pause/stop commands
+     * @integration @edge-case
+     */
+    it('should cancel fallback timer on pause', (done) => {
+      const processor = jest.fn().mockResolvedValue(undefined);
+      const task = MigrationFixtures.backgroundTask({ processor });
+
+      scheduler.addTask(task);
+
+      // Immediately pause after starting
+      setTimeout(() => {
+        scheduler.pauseProcessing();
+
+        // Wait longer to ensure task didn't execute after pause
+        setTimeout(() => {
+          expect(processor).not.toHaveBeenCalled();
+          expect(scheduler.getStatus().state).toBe(SchedulerState.PAUSED);
+          done();
+        }, 300);
+      }, 50);
+    });
+
+    /**
+     * Tests fallback timer cancellation on stop command
+     * Ensures proper cleanup of setTimeout timers
+     * @integration @edge-case
+     */
+    it('should cancel fallback timer on stop', (done) => {
+      const processor = jest.fn().mockResolvedValue(undefined);
+      const task = MigrationFixtures.backgroundTask({ processor });
+
+      scheduler.addTask(task);
+
+      // Immediately stop after starting
+      setTimeout(() => {
+        scheduler.stopProcessing();
+
+        // Wait longer to ensure task didn't execute after stop
+        setTimeout(() => {
+          expect(processor).not.toHaveBeenCalled();
+          expect(scheduler.getStatus().state).toBe(SchedulerState.IDLE);
+          expect(scheduler.getStatus().queueLength).toBe(0);
+          done();
+        }, 300);
+      }, 50);
     });
   });
 

@@ -91,6 +91,7 @@ export class BackgroundMigrationScheduler {
   private performanceObserver?: PerformanceObserver;
   private visibilityHandler?: () => void;
   private currentIdleCallbackId?: number;
+  private fallbackTimerId?: NodeJS.Timeout;
   private isProcessingLocked = false;
 
   // Performance metrics
@@ -181,11 +182,19 @@ export class BackgroundMigrationScheduler {
    * Pause background processing
    */
   pauseProcessing(): void {
+    // Cancel active idle callback
     if (this.currentIdleCallbackId && typeof cancelIdleCallback === 'function') {
       cancelIdleCallback(this.currentIdleCallbackId);
       this.currentIdleCallbackId = undefined;
     }
 
+    // Cancel fallback timer
+    if (this.fallbackTimerId) {
+      clearTimeout(this.fallbackTimerId);
+      this.fallbackTimerId = undefined;
+    }
+
+    this.isProcessingLocked = false;
     this.state = SchedulerState.PAUSED;
     logger.info('Background processing paused');
   }
@@ -205,7 +214,19 @@ export class BackgroundMigrationScheduler {
    * Stop all background processing and clear queue
    */
   stopProcessing(): void {
-    this.pauseProcessing();
+    // Cancel active idle callback
+    if (this.currentIdleCallbackId && typeof cancelIdleCallback === 'function') {
+      cancelIdleCallback(this.currentIdleCallbackId);
+      this.currentIdleCallbackId = undefined;
+    }
+
+    // Cancel fallback timer
+    if (this.fallbackTimerId) {
+      clearTimeout(this.fallbackTimerId);
+      this.fallbackTimerId = undefined;
+    }
+
+    this.isProcessingLocked = false;
     this.taskQueue = [];
     this.consecutiveAttempts = 0;
     this.state = SchedulerState.IDLE;
@@ -342,7 +363,7 @@ export class BackgroundMigrationScheduler {
 
     if (!this.supportsIdleCallback()) {
       // Fallback to setTimeout if requestIdleCallback not available
-      setTimeout(() => this.processTasksWithTimeout(), this.config.idleRetryDelay);
+      this.fallbackTimerId = setTimeout(() => this.processTasksWithTimeout(), this.config.idleRetryDelay);
       return;
     }
 
