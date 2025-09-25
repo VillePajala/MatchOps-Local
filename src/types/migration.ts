@@ -63,3 +63,19 @@ export interface MigrationOptions {
   batchSize?: number;
   timeout?: number;
 }
+
+/**
+ * Storage adapter interface for migration operations
+ */
+export interface StorageAdapter {
+  /** Get an item from storage */
+  getItem(key: string): Promise<unknown>;
+  /** Set an item in storage */
+  setItem(key: string, value: unknown): Promise<void>;
+  /** Remove an item from storage */
+  removeItem?(key: string): Promise<void>;
+  /** Get all keys from storage (optional for fallback support) */
+  getAllKeys?(): Promise<string[]>;
+  /** Clear all items from storage (optional) */
+  clear?(): Promise<void>;
+}

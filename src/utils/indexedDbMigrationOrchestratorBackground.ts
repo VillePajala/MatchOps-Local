@@ -21,7 +21,8 @@ import {
   MigrationCallbacks,
   MigrationResult,
   MigrationOptions,
-  MigrationState
+  MigrationState,
+  StorageAdapter
 } from '../types/migration';
 import logger from './logger';
 
@@ -120,8 +121,8 @@ export class BackgroundMigrationOrchestrator {
   private callbacks?: BackgroundMigrationCallbacks;
 
   constructor(
-    private sourceAdapter: unknown,
-    private targetAdapter: unknown,
+    private sourceAdapter: StorageAdapter,
+    private targetAdapter: StorageAdapter,
     callbacks?: BackgroundMigrationCallbacks,
     backgroundConfig: Partial<BackgroundMigrationConfig> = {}
   ) {
@@ -260,8 +261,7 @@ export class BackgroundMigrationOrchestrator {
     const sourceKeys = await this.getSourceKeys();
     const dataEntries = await Promise.all(
       sourceKeys.map(async (key) => {
-        const adapter = this.sourceAdapter as { getItem: (key: string) => Promise<unknown> };
-        const data = await adapter.getItem(key);
+        const data = await this.sourceAdapter.getItem(key);
         const size = data ? JSON.stringify(data).length : 0;
         return { key, size, metadata: this.extractMetadata(key, data) };
       })
@@ -309,19 +309,36 @@ export class BackgroundMigrationOrchestrator {
       } as MigrationResult;
     }
 
-    logger.info('Processing critical data', { count: this.criticalData.length });
+    logger.info('Processing critical data', {
+      count: this.criticalData.length,
+      timeout: this.config.criticalDataTimeout
+    });
+
+    const startTime = Date.now();
+    const timeoutMs = this.config.criticalDataTimeout;
 
     const migratedKeys: string[] = [];
     const errors: string[] = [];
 
-    // Process each critical item
+    // Process each critical item with timeout checking
     for (const item of this.criticalData) {
+      // Check if we've exceeded the critical data timeout
+      if (timeoutMs > 0 && Date.now() - startTime > timeoutMs) {
+        const timeoutMsg = `Critical data processing timeout exceeded (${timeoutMs}ms)`;
+        errors.push(timeoutMsg);
+        logger.warn('Critical data processing timeout', {
+          timeoutMs,
+          elapsedMs: Date.now() - startTime,
+          processedCount: migratedKeys.length,
+          totalCount: this.criticalData.length
+        });
+        break;
+      }
+
       try {
-        const sourceAdapter = this.sourceAdapter as { getItem: (key: string) => Promise<unknown> };
-        const targetAdapter = this.targetAdapter as { setItem: (key: string, value: unknown) => Promise<void> };
-        const sourceData = await sourceAdapter.getItem(item.key);
+        const sourceData = await this.sourceAdapter.getItem(item.key);
         if (sourceData !== null) {
-          await targetAdapter.setItem(item.key, sourceData);
+          await this.targetAdapter.setItem(item.key, sourceData);
           migratedKeys.push(item.key);
           this.processedCriticalSize += item.estimatedSize;
 
@@ -330,7 +347,8 @@ export class BackgroundMigrationOrchestrator {
 
           logger.debug('Critical item migrated', {
             key: item.key,
-            size: item.estimatedSize
+            size: item.estimatedSize,
+            elapsedMs: Date.now() - startTime
           });
         }
       } catch (error) {
@@ -410,11 +428,9 @@ export class BackgroundMigrationOrchestrator {
     const item = this.backgroundData.shift()!;
 
     try {
-      const sourceAdapter = this.sourceAdapter as { getItem: (key: string) => Promise<unknown> };
-      const targetAdapter = this.targetAdapter as { setItem: (key: string, value: unknown) => Promise<void> };
-      const sourceData = await sourceAdapter.getItem(item.key);
+      const sourceData = await this.sourceAdapter.getItem(item.key);
       if (sourceData !== null) {
-        await targetAdapter.setItem(item.key, sourceData);
+        await this.targetAdapter.setItem(item.key, sourceData);
         this.processedBackgroundSize += item.estimatedSize;
 
         logger.debug('Background item migrated', {
@@ -526,9 +542,8 @@ export class BackgroundMigrationOrchestrator {
   private async getSourceKeys(): Promise<string[]> {
     // This method should be implemented based on the specific adapter interface
     // For now, we'll assume a method exists or implement a fallback
-    const sourceAdapter = this.sourceAdapter as { getAllKeys?: () => Promise<string[]>; getItem: (key: string) => Promise<unknown> };
-    if (typeof sourceAdapter.getAllKeys === 'function') {
-      return await sourceAdapter.getAllKeys();
+    if (this.sourceAdapter.getAllKeys) {
+      return await this.sourceAdapter.getAllKeys();
     }
 
     // Fallback: iterate through common storage keys
@@ -542,7 +557,7 @@ export class BackgroundMigrationOrchestrator {
 
     const existingKeys: string[] = [];
     for (const key of commonKeys) {
-      const value = await sourceAdapter.getItem(key);
+      const value = await this.sourceAdapter.getItem(key);
       if (value !== null) {
         existingKeys.push(key);
       }
@@ -556,8 +571,8 @@ export class BackgroundMigrationOrchestrator {
  * Create configured background migration orchestrator
  */
 export function createBackgroundMigrationOrchestrator(
-  sourceAdapter: unknown,
-  targetAdapter: unknown,
+  sourceAdapter: StorageAdapter,
+  targetAdapter: StorageAdapter,
   callbacks?: BackgroundMigrationCallbacks,
   config: Partial<BackgroundMigrationConfig> = {}
 ): BackgroundMigrationOrchestrator {

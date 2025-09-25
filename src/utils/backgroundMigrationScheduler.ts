@@ -35,6 +35,7 @@ export interface BackgroundTask {
   priority: number; // Lower numbers = higher priority
   estimatedDuration: number; // Milliseconds
   processor: () => Promise<void>;
+  onError?: (error: Error) => void; // Optional error callback
 }
 
 /**
@@ -90,6 +91,7 @@ export class BackgroundMigrationScheduler {
   private performanceObserver?: PerformanceObserver;
   private visibilityHandler?: () => void;
   private currentIdleCallbackId?: number;
+  private isProcessingLocked = false;
 
   // Performance metrics
   private recentIdleTimes: number[] = [];
@@ -179,7 +181,7 @@ export class BackgroundMigrationScheduler {
    * Pause background processing
    */
   pauseProcessing(): void {
-    if (this.currentIdleCallbackId) {
+    if (this.currentIdleCallbackId && typeof cancelIdleCallback === 'function') {
       cancelIdleCallback(this.currentIdleCallbackId);
       this.currentIdleCallbackId = undefined;
     }
@@ -235,6 +237,22 @@ export class BackgroundMigrationScheduler {
   }
 
   /**
+   * Check if browser supports PerformanceObserver with longtask entries
+   */
+  private isPerformanceObserverSupported(): boolean {
+    if (typeof PerformanceObserver === 'undefined') {
+      return false;
+    }
+
+    try {
+      // Check if longtask entries are supported
+      return PerformanceObserver.supportedEntryTypes?.includes('longtask') ?? false;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Clean up resources
    */
   cleanup(): void {
@@ -284,8 +302,8 @@ export class BackgroundMigrationScheduler {
       document.addEventListener('visibilitychange', this.visibilityHandler);
     }
 
-    // Performance monitoring
-    if (this.config.enablePerformanceMonitoring && typeof PerformanceObserver !== 'undefined') {
+    // Performance monitoring with enhanced feature detection
+    if (this.config.enablePerformanceMonitoring && this.isPerformanceObserverSupported()) {
       try {
         this.performanceObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
@@ -316,9 +334,11 @@ export class BackgroundMigrationScheduler {
    * Schedule the next idle callback
    */
   private scheduleNextIdleCallback(): void {
-    if (this.state !== SchedulerState.PROCESSING || !this.isTabVisible) {
+    if (this.state !== SchedulerState.PROCESSING || !this.isTabVisible || this.isProcessingLocked) {
       return;
     }
+
+    this.isProcessingLocked = true;
 
     if (!this.supportsIdleCallback()) {
       // Fallback to setTimeout if requestIdleCallback not available
@@ -378,29 +398,49 @@ export class BackgroundMigrationScheduler {
             remainingTasks: this.taskQueue.length
           });
         } catch (error) {
+          const taskError = error instanceof Error ? error : new Error(String(error));
           logger.error('Background task failed', {
             taskId: task.id,
             taskName: task.name,
-            error: error instanceof Error ? error.message : String(error)
+            error: taskError.message
           });
+
+          // Call error callback if provided
+          if (task.onError) {
+            try {
+              task.onError(taskError);
+            } catch (callbackError) {
+              logger.error('Task error callback failed', {
+                taskId: task.id,
+                callbackError: callbackError instanceof Error ? callbackError.message : String(callbackError)
+              });
+            }
+          }
         }
       }
 
-      // Update idle time statistics
+      // Update idle time statistics with additional bounds checking
       const idleTime = performance.now() - startTime;
-      this.recentIdleTimes.push(idleTime);
-      if (this.recentIdleTimes.length > 10) {
-        this.recentIdleTimes.shift(); // Keep only recent measurements
+      if (isFinite(idleTime) && idleTime >= 0) {
+        this.recentIdleTimes.push(idleTime);
+        // Ensure we don't exceed our limit even in edge cases
+        while (this.recentIdleTimes.length > 10) {
+          this.recentIdleTimes.shift();
+        }
+        if (this.recentIdleTimes.length > 0) {
+          this.stats.averageIdleTime = this.recentIdleTimes.reduce((a, b) => a + b, 0) / this.recentIdleTimes.length;
+        }
       }
-      this.stats.averageIdleTime = this.recentIdleTimes.reduce((a, b) => a + b, 0) / this.recentIdleTimes.length;
 
       this.consecutiveAttempts++;
 
       // Continue processing if we have more tasks
       if (this.taskQueue.length > 0 && this.consecutiveAttempts < this.config.maxConsecutiveAttempts) {
+        this.isProcessingLocked = false; // Unlock before scheduling next
         this.scheduleNextIdleCallback();
       } else {
         // Take a break or finish
+        this.isProcessingLocked = false; // Unlock processing
         if (this.taskQueue.length === 0) {
           this.state = SchedulerState.IDLE;
           logger.info('Background processing completed - queue empty', { stats: this.stats });
@@ -412,6 +452,7 @@ export class BackgroundMigrationScheduler {
       }
 
     } catch (error) {
+      this.isProcessingLocked = false; // Unlock on error
       logger.error('Error in idle processing', { error: error instanceof Error ? error.message : String(error) });
       this.state = SchedulerState.IDLE;
     }
@@ -442,10 +483,23 @@ export class BackgroundMigrationScheduler {
         remainingTasks: this.taskQueue.length
       });
     } catch (error) {
+      const taskError = error instanceof Error ? error : new Error(String(error));
       logger.error('Background task failed (timeout fallback)', {
         taskId: task.id,
-        error: error instanceof Error ? error.message : String(error)
+        error: taskError.message
       });
+
+      // Call error callback if provided
+      if (task.onError) {
+        try {
+          task.onError(taskError);
+        } catch (callbackError) {
+          logger.error('Task error callback failed (timeout fallback)', {
+            taskId: task.id,
+            callbackError: callbackError instanceof Error ? callbackError.message : String(callbackError)
+          });
+        }
+      }
     }
 
     // Continue processing remaining tasks
@@ -465,7 +519,7 @@ export class BackgroundMigrationScheduler {
       this.state = SchedulerState.THROTTLED;
 
       // Cancel current idle callback
-      if (this.currentIdleCallbackId) {
+      if (this.currentIdleCallbackId && typeof cancelIdleCallback === 'function') {
         cancelIdleCallback(this.currentIdleCallbackId);
         this.currentIdleCallbackId = undefined;
       }
