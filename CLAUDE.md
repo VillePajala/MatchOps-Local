@@ -163,6 +163,372 @@ The app includes install prompts, update notifications, and works offline. The s
 - Document why skipping is necessary if unavoidable
 - Create a plan to restore the test
 
+## Test Writing Guidelines
+
+### Critical Test Documentation Standards
+
+**Use JSDoc comments for all test scenarios:**
+```typescript
+/**
+ * Tests critical user workflow: game creation → player selection → game start
+ * This ensures the core app flow remains functional after changes
+ * @critical
+ */
+it('should create new game → select players → start game', async () => {
+  // Test implementation
+});
+```
+
+**Required JSDoc tags:**
+- `@critical` - For tests that validate core user workflows
+- `@integration` - For tests that validate component interactions
+- `@edge-case` - For boundary condition and error scenario tests
+- `@performance` - For tests that validate performance requirements
+
+### Test Categories and Standards
+
+**1. Critical Workflow Tests (`@critical`)**
+- Must cover primary user journeys (game creation, player management, data persistence)
+- Should never be skipped or weakened
+- Must have comprehensive assertions covering UI state and data consistency
+- Examples: game setup flow, player selection, data saving/loading
+
+**2. Integration Tests (`@integration`)**
+- Validate multiple components working together
+- Test real provider interactions (React Query, Context providers)
+- Cover cross-component state management
+- Examples: modal interactions, form submissions with state updates
+
+**3. Edge Case Tests (`@edge-case`)**
+- Handle boundary conditions and error scenarios
+- Test graceful degradation (storage failures, network errors)
+- Validate error recovery mechanisms
+- Examples: localStorage quota exceeded, malformed data handling
+
+**4. Performance Tests (`@performance`)**
+- Validate bundle size, render performance, memory usage
+- Use realistic data volumes for testing
+- Monitor memory leaks and resource cleanup
+- Examples: large roster rendering, migration performance
+
+### Memory Leak Prevention
+
+**Always implement proper cleanup:**
+```typescript
+afterEach(async () => {
+  // 1. Clean up React state immediately
+  cleanup();
+
+  // 2. Clear all timers and mocks
+  jest.clearAllTimers();
+  jest.clearAllMocks();
+
+  // 3. Wait for pending async operations
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+});
+```
+
+**Jest Configuration Requirements:**
+- `detectOpenHandles: true` - Always enabled to catch resource leaks
+- `detectLeaks: true` - Enable when investigating memory issues
+- `forceExit: false` - Never use; fix root causes instead
+- `testTimeout: 30000` - Reasonable timeout for complex integration tests
+
+### Test Isolation Standards
+
+**Each test must be completely isolated:**
+- No shared state between tests
+- Clean up all global modifications
+- Reset all mocks and timers
+- Clear all data stores (localStorage, sessionStorage)
+
+**Mock Data Best Practices:**
+- Use factory functions for consistent test data
+- Include JSDoc for all mock utilities
+- Provide realistic but deterministic data
+- Support easy customization via overrides
+
+### Async Testing Patterns
+
+**Always use proper async patterns:**
+```typescript
+// ✅ Correct - proper async/await with act()
+await act(async () => {
+  fireEvent.click(button);
+  await waitFor(() => {
+    expect(screen.getByText('Success')).toBeInTheDocument();
+  });
+});
+
+// ❌ Incorrect - missing act() wrapper
+fireEvent.click(button);
+await waitFor(() => {
+  expect(screen.getByText('Success')).toBeInTheDocument();
+});
+```
+
+### Error Testing Requirements
+
+**Always test error scenarios:**
+- Storage failures and quota exceeded errors
+- Network failures and timeout scenarios
+- Invalid data formats and parsing errors
+- Component error boundaries and recovery
+
+**Use descriptive error messages:**
+```typescript
+expect(() => parseData(invalidData)).toThrow(
+  'Invalid game data format: missing required field "teamName"'
+);
+```
+
+### Flaky Test Management
+
+**Jest Retry Configuration:**
+```javascript
+// jest.config.js
+retries: {
+  maxRetries: 2,          // Retry failed tests up to 2 times
+  retryImmediately: true  // Retry immediately rather than at end
+}
+```
+
+**Flaky Test Identification and Tracking:**
+- Automatic tracking of retry attempts with pattern detection
+- Reports generated in `test-results/flaky-tests-report.json`
+- Human-readable summaries for quick analysis
+- Pattern analysis for timing, async, DOM, network, and memory issues
+
+**Common Flaky Test Patterns and Solutions:**
+
+**1. Timing Issues (`timing` pattern)**
+```typescript
+// ❌ Flaky - Fixed delays
+setTimeout(() => expect(result).toBeTruthy(), 100);
+
+// ✅ Robust - Wait for condition
+await waitFor(() => {
+  expect(screen.getByText('Loading complete')).toBeInTheDocument();
+});
+```
+
+**2. Async Operations (`async` pattern)**
+```typescript
+// ❌ Flaky - Missing act() wrapper
+fireEvent.click(button);
+expect(screen.getByText('Success')).toBeInTheDocument();
+
+// ✅ Robust - Proper async handling
+await act(async () => {
+  fireEvent.click(button);
+  await waitFor(() => {
+    expect(screen.getByText('Success')).toBeInTheDocument();
+  });
+});
+```
+
+**3. DOM Timing (`dom` pattern)**
+```typescript
+// ❌ Flaky - Immediate assertion
+render(<Component />);
+expect(screen.getByTestId('dynamic-content')).toBeInTheDocument();
+
+// ✅ Robust - Wait for DOM updates
+render(<Component />);
+await waitFor(() => {
+  expect(screen.getByTestId('dynamic-content')).toBeInTheDocument();
+});
+```
+
+**4. Resource Cleanup (`memory` pattern)**
+```typescript
+// ❌ Flaky - No cleanup
+test('should handle data', () => {
+  const data = createLargeDataSet();
+  // test logic
+}); // data not cleaned up
+
+// ✅ Robust - Proper cleanup
+test('should handle data', () => {
+  const data = createLargeDataSet();
+  // test logic
+
+  afterEach(() => {
+    cleanup();
+    data.clear();
+  });
+});
+```
+
+**Flaky Test Prevention Guidelines:**
+- Always use `waitFor()` instead of fixed timeouts
+- Wrap all async operations in `act()`
+- Clean up all resources in `afterEach()`
+- Mock time-dependent operations with Jest fake timers
+- Use deterministic test data instead of random values
+- Isolate tests completely (no shared global state)
+
+**When a Test Becomes Flaky:**
+1. **Immediate Action**: Mark test with `@flaky` tag and create issue
+2. **Investigation**: Check flaky test report for patterns
+3. **Fix Strategy**: Apply pattern-specific solutions
+4. **Verification**: Run test multiple times locally to confirm fix
+5. **Monitoring**: Remove `@flaky` tag only after confirmed stable
+
+**Flaky Test Reporting:**
+- Reports automatically generated after test runs
+- CI integration shows flaky test trends over time
+- Pattern analysis helps prioritize fixes
+- Recommendations provided for common flaky patterns
+
+### Test Data Management
+
+**Centralized Test Fixtures Architecture:**
+```typescript
+// ✅ Use centralized fixtures
+import { TestFixtures } from '../fixtures';
+
+const player = TestFixtures.players.goalkeeper({ name: 'Custom Keeper' });
+const game = TestFixtures.games.inProgress({ homeScore: 2 });
+const season = TestFixtures.seasons.current();
+```
+
+**Fixture Directory Structure:**
+```
+tests/fixtures/
+├── index.ts          // Main exports and utilities
+├── players.ts        // Player data factories
+├── games.ts          // Game state factories
+├── seasons.ts        // Season management data
+├── tournaments.ts    // Tournament data
+├── settings.ts       // App settings data
+└── errors.ts         // Error scenarios and edge cases
+```
+
+**Fixture Factory Patterns:**
+
+**1. Domain-Specific Factories**
+```typescript
+// Player fixtures with realistic positioning
+const goalkeeper = TestFixtures.players.goalkeeper();
+const defender = TestFixtures.players.defender({ name: 'John Doe' });
+const fullTeam = TestFixtures.players.fullTeam({ count: 11, formation: '4-3-3' });
+
+// Game state fixtures with proper progression
+const newGame = TestFixtures.games.newGame({ teamName: 'FC Test' });
+const inProgress = TestFixtures.games.inProgress({ homeScore: 1 });
+const completed = TestFixtures.games.completed({ homeScore: 2, awayScore: 1 });
+```
+
+**2. Scenario-Based Collections**
+```typescript
+// Pre-configured realistic scenarios
+const derbyMatch = TestFixtures.games.scenarios.derbyMatch();
+const cupFinal = TestFixtures.games.scenarios.cupFinal();
+const trainingMatch = TestFixtures.games.scenarios.trainingMatch();
+
+// Player collections for different needs
+const startingEleven = TestFixtures.players.collections.startingEleven();
+const fullSquad = TestFixtures.players.collections.fullSquad();
+const quickTest = TestFixtures.players.collections.quickTest();
+```
+
+**3. Edge Cases and Error Testing**
+```typescript
+// Edge cases for boundary testing
+const longName = TestFixtures.players.edgeCases.longName();
+const maxScore = TestFixtures.games.edgeCases.maxScore();
+const noPlayers = TestFixtures.games.edgeCases.noPlayers();
+
+// Error scenarios for robust testing
+const quotaError = TestFixtures.errors.storage.quotaExceeded();
+const networkTimeout = TestFixtures.errors.network.timeout();
+const invalidData = TestFixtures.errors.validation.invalidPlayer();
+```
+
+**Test Data Principles:**
+
+**Deterministic Generation:**
+- Use predictable data patterns instead of random values
+- Implement consistent ID generation with `TestIdGenerator`
+- Ensure test reliability through reproducible data
+
+**Memory Efficiency:**
+- Create data on-demand rather than pre-generating large datasets
+- Use factory functions instead of static objects
+- Implement proper cleanup in fixtures
+
+**Realistic but Controlled:**
+- Provide realistic data that reflects real application usage
+- Include edge cases and boundary conditions
+- Support easy customization through overrides pattern
+
+**Type Safety:**
+- Full TypeScript support with proper interfaces
+- Generic factory base classes for consistency
+- IDE autocompletion for all fixture methods
+
+**Test Data Anti-Patterns to Avoid:**
+
+```typescript
+// ❌ Scattered inline data
+const player = { id: '123', name: 'Test', jerseyNumber: '10' };
+
+// ❌ Random data that breaks tests
+const score = Math.floor(Math.random() * 10);
+
+// ❌ Hardcoded arrays in multiple files
+const players = [{ id: '1' }, { id: '2' }, { id: '3' }];
+
+// ❌ No cleanup or resource management
+const largeDataset = Array.from({ length: 10000 }, () => createPlayer());
+```
+
+**Fixture Usage Guidelines:**
+
+**1. Import Pattern:**
+```typescript
+// Single domain import
+import { TestFixtures } from '../fixtures';
+const { players, games } = TestFixtures;
+
+// Direct imports for specific needs
+import * as PlayerFixtures from '../fixtures/players';
+import * as GameFixtures from '../fixtures/games';
+```
+
+**2. Test Structure:**
+```typescript
+describe('Component Tests', () => {
+  // Use realistic scenarios for integration tests
+  const gameScenario = TestFixtures.utils.createCompleteGameScenario({
+    teamSize: 11,
+    gameStatus: 'inProgress',
+    includeEvents: true
+  });
+
+  // Use minimal data for unit tests
+  const minimalPlayer = TestFixtures.players.fieldPlayer({ name: 'Test' });
+});
+```
+
+**3. Performance Testing:**
+```typescript
+// Use performance-specific fixtures for large datasets
+const performanceData = TestFixtures.utils.createPerformanceTestData('large');
+const migrationData = TestFixtures.utils.createMigrationTestData(1000);
+```
+
+**Benefits of Centralized Test Data:**
+- **Consistency**: Same data patterns across all tests
+- **Maintainability**: Single place to update test data structures
+- **Discoverability**: Easy to find and reuse existing test scenarios
+- **Type Safety**: Full IntelliSense support and compile-time checking
+- **Performance**: Memory-efficient on-demand data generation
+- **Reliability**: Deterministic data prevents flaky tests due to randomness
+
 ## Git and Version Control Rules
 
 ### Critical Git Guidelines

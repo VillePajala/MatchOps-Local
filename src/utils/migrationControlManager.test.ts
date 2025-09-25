@@ -196,21 +196,36 @@ describe('MigrationControlManager', () => {
       expect(result).toBeNull();
     });
 
+    /**
+     * Tests the complex pause/resume cycle with full state preservation
+     *
+     * @description This test validates the critical migration resume functionality:
+     * 1. Creates realistic pause state data with progress tracking
+     * 2. Simulates a pause operation that saves state to storage
+     * 3. Validates that resume restores exact state for continuation
+     * 4. Ensures data integrity through the pause/resume cycle
+     *
+     * @critical - Resume failures would lose user progress and corrupt migrations
+     * @integration - Tests storage adapter integration with state management
+     */
     it('should resume with valid data structure', async () => {
+      // Create comprehensive resume data that matches real migration scenarios
       const resumeData = {
-        lastProcessedKey: 'key5',
-        processedKeys: ['key1', 'key2'],
-        remainingKeys: ['key6', 'key7'],
-        itemsProcessed: 2,
-        totalItems: 4,
-        bytesProcessed: 512,
-        totalBytes: 1024,
-        timestamp: Date.now(),
-        checksum: 'mock-checksum'
+        lastProcessedKey: 'key5',        // Last item successfully migrated
+        processedKeys: ['key1', 'key2'], // Items already completed
+        remainingKeys: ['key6', 'key7'], // Items still pending migration
+        itemsProcessed: 2,               // Progress counter for UI updates
+        totalItems: 4,                   // Total items for progress calculation
+        bytesProcessed: 512,             // Memory usage tracking
+        totalBytes: 1024,                // Total memory estimation
+        timestamp: Date.now(),           // When pause occurred
+        checksum: 'mock-checksum'        // Data integrity validation
       };
 
+      // Mock storage to return our test resume data
       mockAdapter.getItem.mockResolvedValue(JSON.stringify(resumeData));
 
+      // Simulate the pause/save cycle that would occur during migration
       await manager.requestPause();
       await manager.savePauseState(
         resumeData.lastProcessedKey,
@@ -222,6 +237,7 @@ describe('MigrationControlManager', () => {
         resumeData.totalBytes
       );
 
+      // Test the critical resume operation
       const result = await manager.requestResume();
 
       expect(result).not.toBeNull();
