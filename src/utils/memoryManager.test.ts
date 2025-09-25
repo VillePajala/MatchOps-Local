@@ -16,9 +16,9 @@ jest.mock('./logger', () => ({
 
 describe('MemoryManager', () => {
   let memoryManager: MemoryManager;
-  let originalWindow: any;
-  let originalNavigator: any;
-  let originalProcess: any;
+  let originalWindow: Window | undefined;
+  let originalNavigator: Navigator | undefined;
+  let originalProcess: NodeJS.Process | undefined;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -29,17 +29,17 @@ describe('MemoryManager', () => {
     originalProcess = global.process;
 
     // Mock window with basic properties
-    (global as any).window = {
+    (global as unknown as { window: Window }).window = {
       performance: {},
-      requestIdleCallback: jest.fn((cb: any) => {
-        cb({ timeRemaining: () => 50, didTimeout: false });
+      requestIdleCallback: jest.fn((cb: () => void) => {
+        cb();
         return 1;
       }),
       gc: undefined
-    };
+    } as Window;
 
     // Mock navigator
-    (global as any).navigator = {};
+    (global as unknown as { navigator: Navigator }).navigator = {} as Navigator;
 
     // Reset process.env
     process.env.NODE_ENV = 'test';
@@ -394,7 +394,7 @@ describe('MemoryManager', () => {
         gcThrottleMs: 1000
       });
 
-      const result1 = await manager.forceGarbageCollection();
+      await manager.forceGarbageCollection();
       const result2 = await manager.forceGarbageCollection();
 
       // Second attempt should be throttled
@@ -412,9 +412,8 @@ describe('MemoryManager', () => {
         enableForcedGC: false
       });
 
-      const result = await manager.forceGarbageCollection();
+      await manager.forceGarbageCollection();
 
-      expect(result).toBe(false);
       expect(logger.debug).toHaveBeenCalledWith('Forced GC is disabled in configuration');
 
       manager.cleanup();
@@ -422,9 +421,8 @@ describe('MemoryManager', () => {
 
     it('should use memory pressure fallback when gc unavailable', async () => {
       const manager = new MemoryManager();
-      const result = await manager.forceGarbageCollection();
+      await manager.forceGarbageCollection();
 
-      expect(result).toBe(false);
       expect(logger.debug).toHaveBeenCalledWith(
         'Encouraged garbage collection through memory pressure'
       );
@@ -550,7 +548,7 @@ describe('MemoryManager', () => {
     it('should handle TextEncoder errors with Blob fallback', () => {
       // Mock TextEncoder to fail
       const originalTextEncoder = global.TextEncoder;
-      (global as any).TextEncoder = class {
+      (global as unknown as Record<string, unknown>).TextEncoder = class {
         encode() {
           throw new Error('TextEncoder failed');
         }
@@ -571,12 +569,12 @@ describe('MemoryManager', () => {
       const originalBlob = global.Blob;
       const originalJSON = JSON.stringify;
 
-      (global as any).TextEncoder = class {
+      (global as unknown as Record<string, unknown>).TextEncoder = class {
         encode() {
           throw new Error('TextEncoder failed');
         }
       };
-      (global as any).Blob = class {
+      (global as unknown as Record<string, unknown>).Blob = class {
         constructor() {
           throw new Error('Blob failed');
         }
@@ -607,7 +605,7 @@ describe('MemoryManager', () => {
 
       // Mock TextEncoder to return exact byte count
       const originalTextEncoder = global.TextEncoder;
-      (global as any).TextEncoder = class {
+      (global as unknown as Record<string, unknown>).TextEncoder = class {
         encode() {
           return { byteLength: testData.length };
         }

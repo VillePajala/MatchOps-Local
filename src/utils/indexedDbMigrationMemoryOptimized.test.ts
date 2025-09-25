@@ -21,7 +21,6 @@ jest.mock('./memoryManager');
 // Mock parent class methods
 const mockGetVersion = jest.fn().mockResolvedValue(1);
 const mockGetData = jest.fn().mockResolvedValue({});
-const mockCleanup = jest.fn();
 
 // Create mock storage adapters
 const createMockAdapter = (): jest.Mocked<StorageAdapter> => ({
@@ -72,7 +71,7 @@ describe('IndexedDbMigrationOrchestratorMemoryOptimized', () => {
       }),
       canPerformMemoryIntensiveOperation: jest.fn().mockReturnValue(true),
       isMemoryConstrainedDevice: jest.fn().mockReturnValue(false)
-    } as any;
+    } as jest.Mocked<MemoryManager>;
 
     (MemoryManager as jest.Mock).mockImplementation(() => mockMemoryManager);
 
@@ -451,7 +450,7 @@ describe('IndexedDbMigrationOrchestratorMemoryOptimized', () => {
         Array.from({ length: 100 }, (_, i) => `key-${i}`)
       );
 
-      const progress = await orchestrator.processChunkedMigration(
+      await orchestrator.processChunkedMigration(
         sourceAdapter,
         targetAdapter,
         10
