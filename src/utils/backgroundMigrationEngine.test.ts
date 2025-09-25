@@ -48,7 +48,7 @@ describe('BackgroundMigrationEngine', () => {
     } as jest.Mocked<StorageAdapter>;
 
     // Setup default mock implementations
-    (sourceAdapter.getAllKeys as jest.Mock).mockResolvedValue([
+    (sourceAdapter.getAllKeys as jest.MockedFunction<() => Promise<string[]>>).mockResolvedValue([
       'soccerAppSettings',
       'soccerMasterRoster',
       'savedSoccerGames',
@@ -564,7 +564,7 @@ describe('BackgroundMigrationEngine', () => {
   describe('Error Handling', () => {
     it('should handle errors during migration', async () => {
       // Reset mocks first
-      sourceAdapter.getAllKeys.mockResolvedValue(['key1', 'key2', 'key3']);
+      (sourceAdapter.getAllKeys as jest.MockedFunction<() => Promise<string[]>>).mockResolvedValue(['key1', 'key2', 'key3']);
       sourceAdapter.getItem.mockRejectedValueOnce(new Error('Read error'));
       sourceAdapter.getItem.mockResolvedValueOnce('value2');
       sourceAdapter.getItem.mockResolvedValueOnce('value3');
