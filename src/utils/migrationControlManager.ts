@@ -46,7 +46,15 @@ export class MigrationControlManager {
 
     // Check for existing resume data (async, but don't await in constructor)
     this.loadResumeData().catch(error => {
-      this.logger.error('Failed to load resume data during initialization', { error });
+      // Use setTimeout to ensure logger is ready, or fallback to console in emergency
+      setTimeout(() => {
+        if (this.logger) {
+          this.logger.error('Failed to load resume data during initialization', { error });
+        } else {
+          // eslint-disable-next-line no-console
+          console.error('Failed to load resume data during initialization:', error);
+        }
+      }, 0);
     });
   }
 

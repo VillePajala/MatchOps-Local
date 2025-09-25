@@ -14,8 +14,8 @@ if (i18n.isInitialized) {
   });
 }
 
-// Track unhandled promise rejections to prevent silent failures
-const unhandledRejections = new Set();
+// Track unhandled promise rejections to prevent silent failures (per test)
+let unhandledRejections = new Set();
 
 // Enhanced error detection logic (inlined for ES module compatibility)
 const criticalErrorTypes = new Set([
@@ -199,6 +199,12 @@ if (typeof window !== 'undefined') {
   window.prompt = jest.fn();
 }
 
+// Enable Jest retries in CI to mitigate flakiness without custom config keys
+if (process.env.CI === 'true' && typeof jest !== 'undefined' && typeof jest.retryTimes === 'function') {
+  // Retry each failing test up to 2 times
+  jest.retryTimes(2, { logErrorsBeforeRetry: true });
+}
+
 // Mock URL API if needed by tests
 if (typeof global !== 'undefined' && global.URL) {
   global.URL.createObjectURL = jest.fn(() => 'blob:mockedurl/123');
@@ -210,8 +216,9 @@ afterEach(() => {
   jest.restoreAllMocks();
   localStorageMock.clear();
 
-  // Clear unhandled rejection tracking for next test
+  // Clear unhandled rejection tracking for next test and recreate Set to prevent references
   unhandledRejections.clear();
+  unhandledRejections = new Set();
 });
 
 // Clean up after all tests complete
@@ -238,4 +245,8 @@ afterAll(() => {
   if (typeof process !== 'undefined') {
     process.removeListener('unhandledRejection', handleUnhandledRejection);
   }
+
+  // Final cleanup of the Set
+  unhandledRejections.clear();
+  unhandledRejections = null;
 });

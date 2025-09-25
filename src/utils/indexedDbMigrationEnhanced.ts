@@ -168,6 +168,13 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
   }
 
   /**
+   * Check if migration is currently paused (protected for subclasses)
+   */
+  protected isPausedState(): boolean {
+    return this.controlManager.getControlState().isPaused;
+  }
+
+  /**
    * Check if migration should cancel
    */
   private checkCancelPoint(): boolean {

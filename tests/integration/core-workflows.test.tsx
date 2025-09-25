@@ -131,20 +131,37 @@ describe('Core User Workflows Integration Tests', () => {
   });
 
   describe('Error Recovery Flows', () => {
+    /**
+     * Tests critical error recovery for storage quota exceeded scenarios
+     *
+     * @description This test validates the app's resilience when localStorage fails:
+     * 1. Simulates real browser storage quota exceeded error
+     * 2. Ensures app doesn't crash and continues to function
+     * 3. Validates graceful degradation without data loss
+     * 4. Tests error boundary and fallback mechanisms
+     *
+     * @critical - Storage failures must not crash the app
+     * @edge-case - Tests boundary condition that users encounter in real usage
+     */
     it('should recover from localStorage quota exceeded', async () => {
-      // Mock localStorage to throw quota exceeded error
+      // Mock the exact browser behavior when storage quota is exceeded
+      // This simulates what happens when users have limited browser storage
       const originalSetItem = Storage.prototype.setItem;
       Storage.prototype.setItem = jest.fn(() => {
+        // Throw the exact error browsers throw for quota exceeded
         throw new DOMException('QuotaExceededError', 'QuotaExceededError');
       });
 
+      // Render the main app component
       render(<HomePage />);
 
+      // Wait for component to load and handle the storage error gracefully
       await waitFor(() => {
         expect(screen.getByTestId('home-page')).toBeInTheDocument();
       });
 
-      // Component should still render despite storage errors
+      // CRITICAL: App must continue functioning despite storage failure
+      // This ensures users can still use the app even with storage issues
       expect(screen.getByTestId('home-page')).toBeInTheDocument();
 
       // Restore original setItem

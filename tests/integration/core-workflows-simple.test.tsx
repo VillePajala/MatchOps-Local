@@ -3,11 +3,12 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '../utils/test-utils';
-import { 
-  createMockPlayers, 
-  mockLocalStorage 
-} from '../utils/test-utils';
+import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
+import { act } from 'react';
+import { TestFixtures } from '../fixtures';
+
+// Use centralized test data instead of inline mock functions
+const { players, settings } = TestFixtures;
 
 // Simple component for testing core workflows without full app complexity
 const SimpleGameWorkflow = ({ players = [] }: { players?: any[] }) => {
@@ -67,23 +68,64 @@ const SimpleGameWorkflow = ({ players = [] }: { players?: any[] }) => {
   );
 };
 
-// Mock localStorage operations
-const mockStorage = mockLocalStorage();
+// Create localStorage mock using centralized settings fixtures
+const createLocalStorageMock = () => {
+  const initialData = settings.localStorageData();
+  let store: Record<string, string> = { ...initialData };
+
+  return {
+    getItem: jest.fn((key: string) => store[key] || null),
+    setItem: jest.fn((key: string, value: string) => {
+      store[key] = String(value);
+    }),
+    removeItem: jest.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: jest.fn(() => {
+      store = { ...initialData };
+    }),
+  };
+};
+
+const mockStorage = createLocalStorageMock();
 
 describe('Core User Workflows Integration Tests (Simplified)', () => {
   beforeEach(() => {
     mockStorage.clear();
     jest.clearAllMocks();
-  });
-
-  afterEach(() => {
     jest.clearAllTimers();
   });
 
+  afterEach(async () => {
+    // Comprehensive cleanup to prevent memory leaks
+
+    // 1. Clean up React state immediately
+    cleanup();
+
+    // 2. Clear all timers before any async operations
+    jest.clearAllTimers();
+
+    // 3. Clear all mocks to remove references
+    jest.clearAllMocks();
+
+    // 4. Wait for any pending React updates to complete
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+
+    // 5. Final cleanup of any remaining promises
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
   describe('Game Creation Flow', () => {
+    /**
+     * Tests critical user workflow: game creation → player selection → game start
+     * This ensures the core app flow remains functional after changes
+     * @critical
+     */
     it('should create new game → select players → start game', async () => {
-      // Setup initial data
-      const mockPlayers = createMockPlayers(6);
+      // Setup initial data using centralized fixtures
+      const mockPlayers = players.collections.quickTest();
       
       render(<SimpleGameWorkflow players={mockPlayers} />);
 
@@ -93,7 +135,7 @@ describe('Core User Workflows Integration Tests (Simplified)', () => {
       
       // Should show players list
       expect(screen.getByTestId('player-list')).toBeInTheDocument();
-      expect(screen.getAllByRole('button')).toHaveLength(7); // 6 players + 1 start button
+      expect(screen.getAllByRole('button')).toHaveLength(4); // 3 players + 1 start button
       
       // Start button should be disabled initially
       expect(screen.getByTestId('start-game')).toBeDisabled();
@@ -122,8 +164,13 @@ describe('Core User Workflows Integration Tests (Simplified)', () => {
       expect(screen.getByTestId('pause-timer')).toBeInTheDocument();
     });
 
+    /**
+     * Tests player selection state management and UI consistency
+     * Validates that selection state remains synchronized with UI
+     * @critical
+     */
     it('should handle player selection and deselection', async () => {
-      const mockPlayers = createMockPlayers(3);
+      const mockPlayers = players.collections.quickTest();
       
       render(<SimpleGameWorkflow players={mockPlayers} />);
       
@@ -157,6 +204,11 @@ describe('Core User Workflows Integration Tests (Simplified)', () => {
   });
 
   describe('Data Persistence Flow', () => {
+    /**
+     * Tests data persistence layer functionality
+     * Ensures localStorage operations work correctly for game data
+     * @critical - Data loss would be catastrophic for users
+     */
     it('should handle localStorage operations', async () => {
       const testData = { gameId: 'test-123', teamName: 'Test Team' };
       
@@ -173,6 +225,11 @@ describe('Core User Workflows Integration Tests (Simplified)', () => {
       expect(parsedData.teamName).toBe('Test Team');
     });
 
+    /**
+     * Tests error recovery for storage failures
+     * Ensures app doesn't crash when localStorage quota is exceeded
+     * @critical - Storage failures must not break the app
+     */
     it('should handle localStorage errors gracefully', async () => {
       // Simulate localStorage quota exceeded
       mockStorage.setItem = jest.fn((_key: string, _value: string) => {
@@ -193,8 +250,9 @@ describe('Core User Workflows Integration Tests (Simplified)', () => {
 
   describe('Error Recovery Flow', () => {
     it('should handle missing required data', async () => {
-      // Test with empty players array
-      render(<SimpleGameWorkflow players={[]} />);
+      // Test with empty players array using edge case fixture
+      const emptyPlayers: any[] = [];
+      render(<SimpleGameWorkflow players={emptyPlayers} />);
       
       expect(screen.getByTestId('game-setup')).toBeInTheDocument();
       expect(screen.getByTestId('player-list')).toBeInTheDocument();
@@ -210,7 +268,7 @@ describe('Core User Workflows Integration Tests (Simplified)', () => {
     });
 
     it('should handle component unmounting cleanly', async () => {
-      const mockPlayers = createMockPlayers(2);
+      const mockPlayers = players.minimalRoster(2);
       
       const { unmount } = render(<SimpleGameWorkflow players={mockPlayers} />);
       
@@ -224,7 +282,7 @@ describe('Core User Workflows Integration Tests (Simplified)', () => {
 
   describe('State Synchronization', () => {
     it('should maintain consistent UI state', async () => {
-      const mockPlayers = createMockPlayers(4);
+      const mockPlayers = players.minimalRoster(4);
       
       render(<SimpleGameWorkflow players={mockPlayers} />);
       
