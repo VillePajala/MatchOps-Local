@@ -3,10 +3,11 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor, fireEvent } from '../utils/test-utils';
-import { 
-  createMockPlayers, 
-  mockLocalStorage 
+import { render, screen, waitFor, fireEvent, cleanup } from '../utils/test-utils';
+import { act } from 'react';
+import {
+  createMockPlayers,
+  mockLocalStorage
 } from '../utils/test-utils';
 
 // Simple component for testing core workflows without full app complexity
@@ -76,8 +77,18 @@ describe('Core User Workflows Integration Tests (Simplified)', () => {
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    // Clean up React state and pending updates
+    await act(async () => {
+      cleanup();
+      // Wait for any pending promises to resolve
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+
     jest.clearAllTimers();
+
+    // Force cleanup of any hanging promises
+    await act(() => Promise.resolve());
   });
 
   describe('Game Creation Flow', () => {

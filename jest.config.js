@@ -57,7 +57,12 @@ const customJestConfig = {
   maxWorkers: process.env.CI ? 2 : '50%',
   testTimeout: 30000, // 30 second timeout
   slowTestThreshold: 5, // Warn about tests > 5s
-  
+
+  // Test stability and leak detection
+  detectOpenHandles: true,  // Find resources that prevent Node from exiting
+  detectLeaks: false,       // Temporarily disabled while fixing leaks
+  forceExit: false,         // Never force exit - fix issues properly
+
   // Reduce console noise in CI
   silent: process.env.CI === 'true',
   verbose: process.env.CI !== 'true',
