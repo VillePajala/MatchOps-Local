@@ -150,7 +150,8 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
       [MemoryPressureLevel.LOW]: 0,
       [MemoryPressureLevel.MODERATE]: 0,
       [MemoryPressureLevel.HIGH]: 0,
-      [MemoryPressureLevel.CRITICAL]: 0
+      [MemoryPressureLevel.CRITICAL]: 0,
+      [MemoryPressureLevel.EMERGENCY]: 0
     },
     chunkSizeAdjustments: 0
   };

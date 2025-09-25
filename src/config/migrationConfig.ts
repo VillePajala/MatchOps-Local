@@ -37,6 +37,14 @@ export const MIGRATION_MEMORY_CHECK_INTERVAL = 1000; // MS between memory checks
 export const MIGRATION_MEMORY_WARNING_THRESHOLD = 100 * 1024 * 1024; // 100MB
 export const MIGRATION_GC_SUGGESTION_THRESHOLD = 50 * 1024 * 1024; // 50MB
 
+// Emergency Memory Protection (Production)
+export const MIGRATION_MEMORY_EMERGENCY_THRESHOLD = 0.95; // 95% memory usage - halt migration
+export const MIGRATION_MEMORY_CRITICAL_THRESHOLD = 0.90; // 90% memory usage - pause and wait
+export const MIGRATION_MEMORY_HIGH_THRESHOLD = 0.85; // 85% memory usage - reduce batch size
+export const MIGRATION_MEMORY_SAFE_THRESHOLD = 0.70; // 70% memory usage - normal operation
+export const MIGRATION_MEMORY_RECOVERY_WAIT_MS = 5000; // Wait 5s for memory recovery
+export const MIGRATION_MIN_AVAILABLE_MEMORY = 20 * 1024 * 1024; // Minimum 20MB free memory required
+
 // UI Update Intervals
 export const MIGRATION_UI_UPDATE_THROTTLE = 100; // MS between UI updates
 export const MIGRATION_PROGRESS_DECIMALS = 1; // Decimal places for progress

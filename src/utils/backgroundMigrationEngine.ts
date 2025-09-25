@@ -16,7 +16,6 @@ import {
 import {
   BackgroundMigrationScheduler,
   BackgroundTask,
-  SchedulerState,
   createBackgroundScheduler
 } from './backgroundMigrationScheduler';
 import { StorageAdapter } from '../types/migration';
@@ -117,8 +116,6 @@ export interface BackgroundMigrationEngineConfig {
 
   // Current context for priority classification
   currentGameId?: string;
-  currentSeasonId?: string;
-  currentTournamentId?: string;
 }
 
 /**
@@ -204,9 +201,7 @@ export class BackgroundMigrationEngine {
 
     // Initialize components
     this.priorityManager = createPriorityManager({
-      currentGameId: this.config.currentGameId,
-      currentSeasonId: this.config.currentSeasonId,
-      currentTournamentId: this.config.currentTournamentId
+      currentGameId: this.config.currentGameId
     });
 
     this.scheduler = createBackgroundScheduler({
@@ -360,8 +355,7 @@ export class BackgroundMigrationEngine {
 
         // Classify the data
         const classification = this.priorityManager.classifyData(key, size, {
-          currentGameId: this.config.currentGameId,
-          currentSeasonId: this.config.currentSeasonId
+          currentGameId: this.config.currentGameId
         });
 
         // Add to appropriate priority bucket
@@ -503,7 +497,6 @@ export class BackgroundMigrationEngine {
 
       // Wait for task completion
       const checkInterval = setInterval(() => {
-        const stats = this.scheduler.getStatistics();
         const completed = batch.every(item => this.processedKeys.has(item.key));
 
         if (completed) {
@@ -832,7 +825,7 @@ export class BackgroundMigrationEngine {
   private getRemainingKeys(): string[] {
     const remaining: string[] = [];
 
-    for (const [_, items] of this.classifiedData) {
+    for (const [, items] of this.classifiedData) {
       for (const item of items) {
         if (!this.processedKeys.has(item.key)) {
           remaining.push(item.key);

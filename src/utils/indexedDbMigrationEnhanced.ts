@@ -8,6 +8,7 @@ import { IndexedDbMigrationOrchestrator, MigrationResult, MigrationConfig } from
 import { MigrationControlManager } from './migrationControlManager';
 import { MigrationControlCallbacks, MigrationResumeData, MigrationEstimation, MigrationPreview } from '@/types/migrationControl';
 import { migrationMutex } from './migrationMutex';
+import { validateMemoryForMigration, checkMigrationMemorySafety } from './migrationMemorySafety';
 import logger from './logger';
 
 export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOrchestrator {
@@ -37,6 +38,21 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
   public async migrate(): Promise<MigrationResult> {
     // Check for incomplete migrations on startup
     await this.recoverFromIncompleteState();
+
+    // Pre-migration memory validation
+    const estimatedDataSize = await this.estimateDataSize();
+    const memoryValidation = await validateMemoryForMigration(estimatedDataSize);
+
+    if (!memoryValidation.canProceed) {
+      const error = `Migration cannot proceed: ${memoryValidation.reason}`;
+      logger.error(error, { recommendation: memoryValidation.recommendation });
+      throw new Error(`${error}. ${memoryValidation.recommendation || 'Please try again later.'}`);
+    }
+
+    logger.log('Pre-migration memory validation passed', {
+      estimatedDataSize,
+      recommendation: memoryValidation.recommendation
+    });
 
     // Acquire migration lock with atomic check-and-set to prevent race conditions
     const lockAcquired = await this.acquireLockWithRetry();
@@ -381,6 +397,49 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
     });
 
     // Checkpoint creation handled by control manager
+  }
+
+  /**
+   * Estimate the size of data that will be migrated
+   */
+  private async estimateDataSize(): Promise<number> {
+    try {
+      const sourceAdapter = this.sourceAdapter;
+      if (!sourceAdapter) {
+        return 0;
+      }
+
+      // Get all keys that will be migrated
+      const keys = await sourceAdapter.getKeys();
+      let estimatedSize = 0;
+
+      // Sample first few items to estimate average size
+      const sampleSize = Math.min(keys.length, 10);
+      const sampleKeys = keys.slice(0, sampleSize);
+
+      for (const key of sampleKeys) {
+        const value = await sourceAdapter.getItem(key);
+        if (value) {
+          estimatedSize += new TextEncoder().encode(key + value).byteLength;
+        }
+      }
+
+      // Extrapolate to total size
+      const averageItemSize = sampleSize > 0 ? estimatedSize / sampleSize : 0;
+      const totalEstimatedSize = Math.round(averageItemSize * keys.length);
+
+      logger.log('Migration data size estimation', {
+        totalKeys: keys.length,
+        sampleSize,
+        averageItemSize,
+        totalEstimatedSize
+      });
+
+      return totalEstimatedSize;
+    } catch (error) {
+      logger.warn('Failed to estimate migration data size, using conservative estimate', { error });
+      return 50 * 1024 * 1024; // 50MB conservative estimate
+    }
   }
 
   /**

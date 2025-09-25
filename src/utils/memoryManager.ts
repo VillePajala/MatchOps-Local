@@ -76,7 +76,8 @@ export enum MemoryPressureLevel {
   LOW = 'low',       // < 50% usage - normal operation
   MODERATE = 'moderate', // 50-70% usage - start optimizing
   HIGH = 'high',     // 70-85% usage - aggressive optimization
-  CRITICAL = 'critical' // > 85% usage - emergency measures
+  CRITICAL = 'critical', // 85-95% usage - emergency measures
+  EMERGENCY = 'emergency' // > 95% usage - halt operation immediately
 }
 
 /**
@@ -315,7 +316,10 @@ export class MemoryManager {
 
     const usage = memory.usagePercentage / 100;
 
-    if (usage >= this.config.criticalPressureThreshold) {
+    // Emergency threshold: > 95% usage - immediate halt required
+    if (usage >= 0.95) {
+      return MemoryPressureLevel.EMERGENCY;
+    } else if (usage >= this.config.criticalPressureThreshold) {
       return MemoryPressureLevel.CRITICAL;
     } else if (usage >= this.config.highPressureThreshold) {
       return MemoryPressureLevel.HIGH;
@@ -521,6 +525,13 @@ export class MemoryManager {
         actions.push('Force garbage collection after each batch');
         actions.push('Consider pausing migration temporarily');
         actions.push('Clear all unnecessary references');
+        break;
+
+      case MemoryPressureLevel.EMERGENCY:
+        actions.push('HALT MIGRATION IMMEDIATELY');
+        actions.push('Force garbage collection');
+        actions.push('Clear all data from memory');
+        actions.push('Wait for memory recovery before resuming');
         break;
     }
 

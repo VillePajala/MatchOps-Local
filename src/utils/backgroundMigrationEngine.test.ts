@@ -4,7 +4,6 @@
 
 import { BackgroundMigrationEngine, MigrationPhase, MigrationStatus, getActiveMigrationStatus } from './backgroundMigrationEngine';
 import { StorageAdapter } from '../types/migration';
-import { MigrationPriority } from './migrationPriorityManager';
 
 // Mock logger
 jest.mock('./logger', () => ({
@@ -40,16 +39,16 @@ describe('BackgroundMigrationEngine', () => {
       getItem: jest.fn(),
       setItem: jest.fn(),
       getAllKeys: jest.fn(),
-    } as any;
+    } as jest.Mocked<StorageAdapter>;
 
     targetAdapter = {
       getItem: jest.fn(),
       setItem: jest.fn(),
       getAllKeys: jest.fn(),
-    } as any;
+    } as jest.Mocked<StorageAdapter>;
 
     // Setup default mock implementations
-    sourceAdapter.getAllKeys.mockResolvedValue([
+    (sourceAdapter.getAllKeys as jest.Mock).mockResolvedValue([
       'soccerAppSettings',
       'soccerMasterRoster',
       'savedSoccerGames',
@@ -59,7 +58,7 @@ describe('BackgroundMigrationEngine', () => {
     ]);
 
     sourceAdapter.getItem.mockImplementation((key) => {
-      const data: Record<string, any> = {
+      const data: Record<string, unknown> = {
         soccerAppSettings: { theme: 'dark', language: 'en' },
         soccerMasterRoster: { players: ['player1', 'player2'] },
         savedSoccerGames: { games: ['game1', 'game2'] },
@@ -158,10 +157,10 @@ describe('BackgroundMigrationEngine', () => {
     it('should use requestIdleCallback when available', async () => {
       // Mock requestIdleCallback
       const mockRequestIdleCallback = jest.fn((callback) => {
-        setTimeout(() => callback({ timeRemaining: () => 50, didTimeout: false } as any), 0);
+        setTimeout(() => callback({ timeRemaining: () => 50, didTimeout: false } as IdleDeadline), 0);
         return 1;
       });
-      (global as any).requestIdleCallback = mockRequestIdleCallback;
+      (global as unknown as { requestIdleCallback: typeof mockRequestIdleCallback }).requestIdleCallback = mockRequestIdleCallback;
 
       engine = new BackgroundMigrationEngine(sourceAdapter, targetAdapter, {
         enableIdleProcessing: true,
@@ -176,7 +175,7 @@ describe('BackgroundMigrationEngine', () => {
 
     it('should fall back to setTimeout when requestIdleCallback not available', async () => {
       // Remove requestIdleCallback
-      delete (global as any).requestIdleCallback;
+      delete (global as unknown as { requestIdleCallback?: unknown }).requestIdleCallback;
 
       engine = new BackgroundMigrationEngine(sourceAdapter, targetAdapter, {
         enableIdleProcessing: true,
@@ -584,11 +583,11 @@ describe('BackgroundMigrationEngine', () => {
 
     it('should handle lock acquisition failure', async () => {
       // Mock lock failure
-      const MigrationMutex = require('./migrationMutex').MigrationMutex;
-      MigrationMutex.mockImplementationOnce(() => ({
+      const { MigrationMutex } = await import('./migrationMutex');
+      (MigrationMutex as jest.MockedClass<typeof MigrationMutex>).mockImplementationOnce(() => ({
         acquireLock: jest.fn().mockResolvedValue(false),
         releaseLock: jest.fn()
-      }));
+      } as unknown as InstanceType<typeof MigrationMutex>));
 
       engine = new BackgroundMigrationEngine(sourceAdapter, targetAdapter);
 
