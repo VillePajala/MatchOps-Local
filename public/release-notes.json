@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "enhance: make IndexedDBKvAdapter tests more robust with real behavior testing"
+  "notes": "fix: comprehensive ESLint type fixes for all test files"
 }
