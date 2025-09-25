@@ -65,11 +65,7 @@ const customJestConfig = {
   detectLeaks: false,       // Disable leak detection until root cause is fixed
   forceExit: false,         // Never force exit - fix issues properly
 
-  // Flaky test management
-  retries: {
-    maxRetries: 2,          // Retry failed tests up to 2 times
-    retryImmediately: true  // Retry immediately rather than at end
-  },
+  // Flaky test management handled via jest.retryTimes() in setupTests.mjs
 
   // Reduce console noise in CI
   silent: process.env.CI === 'true',

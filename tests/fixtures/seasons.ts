@@ -5,7 +5,7 @@
  */
 
 import { Season } from '@/types';
-import { TestIdGenerator, BaseFixture } from './index';
+import { TestIdGenerator, BaseFixture } from './base';
 
 class SeasonFixture extends BaseFixture<Season> {
   protected getDefaults(): Season {

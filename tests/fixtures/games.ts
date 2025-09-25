@@ -6,7 +6,7 @@
  */
 
 import { AppState, GameEvent } from '@/types';
-import { TestIdGenerator, BaseFixture } from './index';
+import { TestIdGenerator, BaseFixture } from './base';
 import * as players from './players';
 
 /**

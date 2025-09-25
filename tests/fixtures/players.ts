@@ -6,7 +6,7 @@
  */
 
 import { Player } from '@/types';
-import { TestIdGenerator, BaseFixture } from './index';
+import { TestIdGenerator, BaseFixture } from './base';
 
 /**
  * Player fixture factory providing various player types and scenarios

@@ -4,7 +4,7 @@
  * Centralized application settings data for testing configuration functionality.
  */
 
-import { TestIdGenerator } from './index';
+import { TestIdGenerator } from './base';
 
 /**
  * Application settings interface for testing

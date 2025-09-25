@@ -5,7 +5,7 @@
  */
 
 import { Tournament } from '@/types';
-import { TestIdGenerator, BaseFixture } from './index';
+import { TestIdGenerator, BaseFixture } from './base';
 
 class TournamentFixture extends BaseFixture<Tournament> {
   protected getDefaults(): Tournament {

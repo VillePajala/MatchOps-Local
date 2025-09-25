@@ -15,6 +15,7 @@
  */
 
 import { Player, Season, Tournament, AppState, GameEvent } from '@/types';
+export { TestIdGenerator, BaseFixture } from './base';
 
 // Import all fixture factories individually to avoid naming conflicts
 import * as PlayersFixtures from './players';
@@ -234,40 +235,4 @@ export interface FixtureFactory<T> {
  * Deterministic ID generator for consistent test data
  * Uses predictable patterns instead of random values for test reliability
  */
-export class TestIdGenerator {
-  private static counters = new Map<string, number>();
-
-  static generate(prefix: string): string {
-    const current = this.counters.get(prefix) || 0;
-    const next = current + 1;
-    this.counters.set(prefix, next);
-    return `${prefix}_${next.toString().padStart(3, '0')}`;
-  }
-
-  static reset(prefix?: string): void {
-    if (prefix) {
-      this.counters.delete(prefix);
-    } else {
-      this.counters.clear();
-    }
-  }
-}
-
-/**
- * Base fixture class providing common functionality
- */
-export abstract class BaseFixture<T> {
-  protected abstract getDefaults(): T;
-
-  create(overrides: Partial<T> = {}): T {
-    return { ...this.getDefaults(), ...overrides };
-  }
-
-  createMany(count: number, overrides: Partial<T> = {}): T[] {
-    return Array.from({ length: count }, (_, i) =>
-      this.create({ ...overrides, ...(this.getVariation ? this.getVariation(i) : {}) } as Partial<T>)
-    );
-  }
-
-  protected getVariation?(index: number): Partial<T>;
-}
+// Re-exported from './base' above to avoid circular imports
