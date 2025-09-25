@@ -13,7 +13,7 @@ jest.mock('@/utils/logger');
 
 const MockMigrationControlManager = MigrationControlManager as jest.MockedClass<typeof MigrationControlManager>;
 
-describe.skip('useMigrationControl', () => {
+describe('useMigrationControl', () => {
   let mockManager: jest.Mocked<MigrationControlManager>;
   let mockCallbacks: UseMigrationControlOptions;
 
