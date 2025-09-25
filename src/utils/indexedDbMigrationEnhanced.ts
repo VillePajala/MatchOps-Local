@@ -8,7 +8,8 @@ import { IndexedDbMigrationOrchestrator, MigrationResult, MigrationConfig } from
 import { MigrationControlManager } from './migrationControlManager';
 import { MigrationControlCallbacks, MigrationResumeData, MigrationEstimation, MigrationPreview } from '@/types/migrationControl';
 import { migrationMutex } from './migrationMutex';
-import { validateMemoryForMigration, checkMigrationMemorySafety } from './migrationMemorySafety';
+import { validateMemoryForMigration } from './migrationMemorySafety';
+import { createStorageAdapter } from './storageFactory';
 import logger from './logger';
 
 export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOrchestrator {
@@ -402,15 +403,13 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
   /**
    * Estimate the size of data that will be migrated
    */
-  private async estimateDataSize(): Promise<number> {
+  protected async estimateDataSize(): Promise<number> {
     try {
-      const sourceAdapter = this.sourceAdapter;
-      if (!sourceAdapter) {
-        return 0;
-      }
+      // Create localStorage adapter for data size estimation
+      const localAdapter = await createStorageAdapter('localStorage');
 
       // Get all keys that will be migrated
-      const keys = await sourceAdapter.getKeys();
+      const keys = await localAdapter.getKeys();
       let estimatedSize = 0;
 
       // Sample first few items to estimate average size
@@ -418,7 +417,7 @@ export class IndexedDbMigrationOrchestratorEnhanced extends IndexedDbMigrationOr
       const sampleKeys = keys.slice(0, sampleSize);
 
       for (const key of sampleKeys) {
-        const value = await sourceAdapter.getItem(key);
+        const value = await localAdapter.getItem(key);
         if (value) {
           estimatedSize += new TextEncoder().encode(key + value).byteLength;
         }

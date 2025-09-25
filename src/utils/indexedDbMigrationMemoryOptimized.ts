@@ -715,7 +715,7 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
           // Enhanced null checks for localStorage items
           if (value !== null && value !== undefined && typeof value === 'string') {
             // Estimate data size with caching for performance
-            totalSize += this.estimateDataSize(value, `localStorage_${key}`);
+            totalSize += this.estimateSpecificDataSize(value, `localStorage_${key}`);
           }
         } catch (error: unknown) {
           logger.debug(`Failed to get size for key ${key}`, { error });
@@ -738,7 +738,16 @@ export class IndexedDbMigrationOrchestratorMemoryOptimized extends IndexedDbMigr
   /**
    * Estimate data size using memory manager's improved estimation with caching
    */
-  private estimateDataSize(data: string, cacheKey?: string): number {
+  protected async estimateDataSize(): Promise<number> {
+    // Call parent implementation to get basic estimation
+    const baseEstimate = await super.estimateDataSize();
+    return baseEstimate;
+  }
+
+  /**
+   * Estimate data size for specific data with caching
+   */
+  private estimateSpecificDataSize(data: string, cacheKey?: string): number {
     return this.memoryManager.getEstimatedDataSize(data, cacheKey);
   }
 

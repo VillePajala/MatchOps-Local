@@ -8,9 +8,6 @@
 import { memoryManager, MemoryPressureLevel } from './memoryManager';
 import logger from './logger';
 import {
-  MIGRATION_MEMORY_EMERGENCY_THRESHOLD,
-  MIGRATION_MEMORY_CRITICAL_THRESHOLD,
-  MIGRATION_MEMORY_HIGH_THRESHOLD,
   MIGRATION_MEMORY_RECOVERY_WAIT_MS,
   MIGRATION_MIN_AVAILABLE_MEMORY
 } from '@/config/migrationConfig';
@@ -36,7 +33,7 @@ export interface MemoryRecoveryResult {
  */
 export async function checkMigrationMemorySafety(): Promise<MemoryCheckResult> {
   const memory = memoryManager.getMemoryInfo();
-  const level = memoryManager.getMemoryPressureLevel(memory);
+  const level = memoryManager.getMemoryPressureLevel(memory || undefined);
 
   const result: MemoryCheckResult = {
     safe: false,
@@ -249,7 +246,7 @@ export async function validateMemoryForMigration(estimatedDataSize: number): Pro
   recommendation?: string;
 }> {
   const memory = memoryManager.getMemoryInfo();
-  const level = memoryManager.getMemoryPressureLevel(memory);
+  const level = memoryManager.getMemoryPressureLevel(memory || undefined);
 
   // Don't start migration if already in critical/emergency state
   if (level === MemoryPressureLevel.EMERGENCY) {

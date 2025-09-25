@@ -67,6 +67,8 @@ export interface MemoryInfo {
   isMemoryConstrained: boolean;
   /** Available memory for new allocations (bytes) */
   availableMemory: number;
+  /** Available bytes (alias for availableMemory for backward compatibility) */
+  availableBytes?: number;
 }
 
 /**
@@ -249,7 +251,8 @@ export class MemoryManager {
           jsHeapSizeLimit,
           usagePercentage,
           isMemoryConstrained,
-          availableMemory
+          availableMemory,
+          availableBytes: availableMemory
         };
 
         this.lastMemoryInfo = memoryInfo;
@@ -276,25 +279,29 @@ export class MemoryManager {
         const estimatedLimit = deviceMemory * 1024 * 1024 * 1024 * 0.20; // 20% of device memory (more conservative)
         const estimatedUsed = estimatedLimit * 0.3; // Assume 30% usage
 
+        const availableMemory = estimatedLimit - estimatedUsed;
         return {
           usedJSHeapSize: estimatedUsed,
           totalJSHeapSize: estimatedUsed,
           jsHeapSizeLimit: estimatedLimit,
           usagePercentage: 30,
           isMemoryConstrained: deviceMemory < 4, // < 4GB RAM
-          availableMemory: estimatedLimit - estimatedUsed
+          availableMemory,
+          availableBytes: availableMemory
         };
       }
 
       // Last resort: Conservative estimates
       const conservativeLimit = 100 * 1024 * 1024; // 100MB
+      const availableMemory = conservativeLimit * 0.5;
       return {
         usedJSHeapSize: conservativeLimit * 0.5,
         totalJSHeapSize: conservativeLimit * 0.5,
         jsHeapSizeLimit: conservativeLimit,
         usagePercentage: 50,
         isMemoryConstrained: true,
-        availableMemory: conservativeLimit * 0.5
+        availableMemory,
+        availableBytes: availableMemory
       };
 
     } catch (error: unknown) {

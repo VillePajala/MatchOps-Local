@@ -9,9 +9,10 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { memoryManager, MemoryPressureLevel } from '@/utils/memoryManager';
+import { MemoryPressureLevel } from '@/utils/memoryManager';
 import { checkMigrationMemorySafety, MemoryCheckResult } from '@/utils/migrationMemorySafety';
 import { HiExclamationTriangle, HiInformationCircle } from 'react-icons/hi2';
+import logger from '@/utils/logger';
 
 interface MigrationMemoryMonitorProps {
   isActive: boolean;
@@ -46,7 +47,7 @@ const MigrationMemoryMonitor: React.FC<MigrationMemoryMonitorProps> = ({
         onMemoryWarning(result.level);
       }
     } catch (error) {
-      console.warn('Failed to check memory status:', error);
+      logger.warn('Failed to check memory status:', error);
     }
   }, [isActive, onMemoryWarning, onMemoryEmergency]);
 
