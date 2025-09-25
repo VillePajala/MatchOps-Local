@@ -67,7 +67,7 @@ export class MigrationPriorityManager {
   /**
    * Classify a data key based on its importance and characteristics
    */
-  classifyData(key: string, size: number, metadata?: any): DataClassification {
+  classifyData(key: string, size: number, metadata?: Record<string, unknown>): DataClassification {
     const priority = this.determinePriority(key, size, metadata);
     const reasoning = this.getClassificationReasoning(key, size, priority, metadata);
 
@@ -85,7 +85,7 @@ export class MigrationPriorityManager {
   /**
    * Classify multiple data entries and sort by priority
    */
-  classifyAndSortData(entries: Array<{ key: string; size: number; metadata?: any }>): DataClassification[] {
+  classifyAndSortData(entries: Array<{ key: string; size: number; metadata?: Record<string, unknown> }>): DataClassification[] {
     const classifications = entries.map(entry =>
       this.classifyData(entry.key, entry.size, entry.metadata)
     );
@@ -139,9 +139,9 @@ export class MigrationPriorityManager {
   /**
    * Determine priority level based on key pattern and characteristics
    */
-  private determinePriority(key: string, size: number, metadata?: any): MigrationPriority {
+  private determinePriority(key: string, size: number, metadata?: Record<string, unknown>): MigrationPriority {
     // Critical data patterns - needed for basic app functionality (override size limits)
-    if (this.isCriticalData(key, metadata)) {
+    if (this.isCriticalData(key)) {
       return MigrationPriority.CRITICAL;
     }
 
@@ -166,7 +166,7 @@ export class MigrationPriorityManager {
   /**
    * Check if data is critical for app functionality
    */
-  private isCriticalData(key: string, metadata?: any): boolean {
+  private isCriticalData(key: string): boolean {
     const lowerKey = key.toLowerCase();
 
     // App settings and configuration
@@ -200,7 +200,7 @@ export class MigrationPriorityManager {
   /**
    * Check if data is important but not critical
    */
-  private isImportantData(key: string, size: number, metadata?: any): boolean {
+  private isImportantData(key: string, size: number, metadata?: Record<string, unknown>): boolean {
     const lowerKey = key.toLowerCase();
 
     // Small datasets are generally important (unless they're already critical)
@@ -210,7 +210,7 @@ export class MigrationPriorityManager {
 
     // Recent games (within background age threshold)
     if (lowerKey.includes('game') || lowerKey.includes('match')) {
-      if (metadata?.lastModified) {
+      if (metadata?.lastModified && typeof metadata.lastModified === 'number') {
         const ageInDays = (Date.now() - metadata.lastModified) / (1000 * 60 * 60 * 24);
         return ageInDays < this.config.backgroundAgeThreshold;
       } else if (lowerKey.includes('game') || lowerKey.includes('stats')) {
@@ -236,7 +236,7 @@ export class MigrationPriorityManager {
     key: string,
     size: number,
     priority: MigrationPriority,
-    metadata?: any
+    metadata?: Record<string, unknown>
   ): string {
     const lowerKey = key.toLowerCase();
 

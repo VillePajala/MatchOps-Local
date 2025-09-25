@@ -1,12 +1,10 @@
 /**
- * IndexedDB Migration Orchestrator - Background Processing
+ * Background Migration Orchestrator - Simplified Implementation
  *
- * Extends the memory-optimized orchestrator with background migration capabilities.
- * Prioritizes critical data for immediate migration while processing non-critical
- * data during idle time to maintain optimal user experience.
+ * Provides background migration capabilities with priority-based processing
+ * that works with the existing migration system architecture.
  */
 
-import { IndexedDbMigrationOrchestratorMemoryOptimized } from './indexedDbMigrationMemoryOptimized';
 import {
   MigrationPriorityManager,
   MigrationPriority,
@@ -16,14 +14,14 @@ import {
 import {
   BackgroundMigrationScheduler,
   BackgroundTask,
-  SchedulerState,
   createBackgroundScheduler
 } from './backgroundMigrationScheduler';
 import {
   MigrationProgress,
   MigrationCallbacks,
   MigrationResult,
-  MigrationOptions
+  MigrationOptions,
+  MigrationState
 } from '../types/migration';
 import logger from './logger';
 
@@ -95,10 +93,10 @@ const DEFAULT_BACKGROUND_CONFIG: BackgroundMigrationConfig = {
 };
 
 /**
- * Migration orchestrator with background processing capabilities
+ * Background migration orchestrator that works with existing adapters
  */
-export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigrationOrchestratorMemoryOptimized {
-  private backgroundConfig: BackgroundMigrationConfig;
+export class BackgroundMigrationOrchestrator {
+  private config: BackgroundMigrationConfig;
   private priorityManager: MigrationPriorityManager;
   private backgroundScheduler: BackgroundMigrationScheduler;
   private currentPhase: BackgroundMigrationPhase = BackgroundMigrationPhase.CRITICAL_PROCESSING;
@@ -119,22 +117,20 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
   private backgroundTaskId?: string;
   private criticalProcessingComplete = false;
   private backgroundProcessingActive = false;
-  private backgroundCallbacks?: BackgroundMigrationCallbacks;
+  private callbacks?: BackgroundMigrationCallbacks;
 
   constructor(
-    sourceAdapter: any,
-    targetAdapter: any,
+    private sourceAdapter: unknown,
+    private targetAdapter: unknown,
     callbacks?: BackgroundMigrationCallbacks,
     backgroundConfig: Partial<BackgroundMigrationConfig> = {}
   ) {
-    super(sourceAdapter, targetAdapter, callbacks);
-
-    this.backgroundConfig = { ...DEFAULT_BACKGROUND_CONFIG, ...backgroundConfig };
-    this.backgroundCallbacks = callbacks;
+    this.config = { ...DEFAULT_BACKGROUND_CONFIG, ...backgroundConfig };
+    this.callbacks = callbacks;
 
     // Initialize priority manager
     this.priorityManager = createPriorityManager({
-      currentGameId: this.backgroundConfig.currentGameId
+      currentGameId: this.config.currentGameId
     });
 
     // Initialize background scheduler
@@ -145,8 +141,8 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
       enablePerformanceMonitoring: true
     });
 
-    logger.info('IndexedDbMigrationOrchestratorBackground initialized', {
-      backgroundConfig: this.backgroundConfig,
+    logger.info('BackgroundMigrationOrchestrator initialized', {
+      backgroundConfig: this.config,
       supportsIdleCallback: this.backgroundScheduler.supportsIdleCallback()
     });
   }
@@ -163,11 +159,11 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
 
       // Phase 2: Process critical data immediately
       this.setPhase(BackgroundMigrationPhase.CRITICAL_PROCESSING);
-      const criticalResult = await this.processCriticalData(options);
+      const criticalResult = await this.processCriticalData();
 
-      if (criticalResult.success && this.backgroundConfig.enableBackgroundProcessing) {
+      if (criticalResult.success && this.config.enableBackgroundProcessing) {
         // Phase 3: Start background processing for remaining data
-        await this.startBackgroundProcessing(options);
+        await this.startBackgroundProcessing();
       }
 
       return criticalResult;
@@ -180,62 +176,40 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
   }
 
   /**
-   * Pause background migration
-   */
-  async pause(): Promise<void> {
-    await super.pause();
-
-    if (this.backgroundProcessingActive) {
-      this.backgroundScheduler.pauseProcessing();
-      this.backgroundCallbacks?.onBackgroundPause?.();
-      logger.info('Background processing paused');
-    }
-  }
-
-  /**
-   * Resume background migration
-   */
-  async resume(): Promise<any> {
-    const resumeData = await super.resume();
-
-    if (this.backgroundProcessingActive) {
-      this.backgroundScheduler.resumeProcessing();
-      this.backgroundCallbacks?.onBackgroundResume?.();
-      logger.info('Background processing resumed');
-    }
-
-    return resumeData;
-  }
-
-  /**
-   * Cancel migration and stop all background processing
-   */
-  async cancel(): Promise<void> {
-    this.backgroundScheduler.stopProcessing();
-    this.backgroundProcessingActive = false;
-    this.setPhase(BackgroundMigrationPhase.CANCELLED);
-
-    await super.cancel();
-    logger.info('Background migration cancelled');
-  }
-
-  /**
    * Get enhanced progress with background processing information
    */
   getProgress(): BackgroundMigrationProgress {
-    const baseProgress = super.getProgress();
-
     const totalProcessed = this.processedCriticalSize + this.processedBackgroundSize;
     const backgroundRemaining = this.backgroundDataSize - this.processedBackgroundSize;
 
+    // Map background migration phase to standard migration state
+    const mapPhaseToState = (phase: BackgroundMigrationPhase): MigrationState => {
+      switch (phase) {
+        case BackgroundMigrationPhase.CRITICAL_PROCESSING:
+        case BackgroundMigrationPhase.BACKGROUND_PROCESSING:
+          return MigrationState.PROCESSING;
+        case BackgroundMigrationPhase.BACKGROUND_WAITING:
+          return MigrationState.PAUSED;
+        case BackgroundMigrationPhase.COMPLETED:
+          return MigrationState.COMPLETED;
+        case BackgroundMigrationPhase.CANCELLED:
+          return MigrationState.CANCELLED;
+        default:
+          return MigrationState.PROCESSING;
+      }
+    };
+
     return {
-      ...baseProgress,
+      state: mapPhaseToState(this.currentPhase),
+      currentStep: `Phase: ${this.currentPhase}`,
+      totalKeys: this.criticalData.length + this.backgroundData.length,
+      processedKeys: this.criticalProcessingComplete ? this.criticalData.length : 0,
+      percentage: this.totalDataSize > 0 ? Math.round((totalProcessed / this.totalDataSize) * 100) : 0,
       phase: this.currentPhase,
       criticalDataComplete: this.criticalProcessingComplete,
       backgroundDataRemaining: backgroundRemaining,
       estimatedBackgroundTime: this.estimateBackgroundTime(backgroundRemaining),
-      canRunInBackground: this.backgroundConfig.enableBackgroundProcessing,
-      percentage: this.totalDataSize > 0 ? Math.round((totalProcessed / this.totalDataSize) * 100) : 0
+      canRunInBackground: this.config.enableBackgroundProcessing
     };
   }
 
@@ -243,7 +217,7 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
    * Update current game ID for priority classification
    */
   updateCurrentGameId(gameId: string | undefined): void {
-    this.backgroundConfig.currentGameId = gameId;
+    this.config.currentGameId = gameId;
     this.priorityManager.updateCurrentGameId(gameId);
     logger.debug('Updated current game ID for background migration', { gameId });
   }
@@ -252,7 +226,7 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
    * Check if background processing is available
    */
   isBackgroundProcessingAvailable(): boolean {
-    return this.backgroundConfig.enableBackgroundProcessing && this.backgroundScheduler.supportsIdleCallback();
+    return this.config.enableBackgroundProcessing && this.backgroundScheduler.supportsIdleCallback();
   }
 
   /**
@@ -273,7 +247,6 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
    */
   cleanup(): void {
     this.backgroundScheduler.cleanup();
-    super.cleanup();
     logger.info('Background migration orchestrator cleanup completed');
   }
 
@@ -287,7 +260,8 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
     const sourceKeys = await this.getSourceKeys();
     const dataEntries = await Promise.all(
       sourceKeys.map(async (key) => {
-        const data = await this.sourceAdapter.getItem(key);
+        const adapter = this.sourceAdapter as { getItem: (key: string) => Promise<unknown> };
+        const data = await adapter.getItem(key);
         const size = data ? JSON.stringify(data).length : 0;
         return { key, size, metadata: this.extractMetadata(key, data) };
       })
@@ -322,33 +296,59 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
   /**
    * Process critical and important data immediately
    */
-  private async processCriticalData(options: MigrationOptions): Promise<MigrationResult> {
+  private async processCriticalData(): Promise<MigrationResult> {
     if (this.criticalData.length === 0) {
       logger.info('No critical data to process');
       this.criticalProcessingComplete = true;
-      this.backgroundCallbacks?.onCriticalComplete?.();
-      return { success: true, migratedKeys: [], errors: [] };
+      this.callbacks?.onCriticalComplete?.();
+      return {
+        success: true,
+        migratedKeys: [],
+        errors: [],
+        state: MigrationState.COMPLETED
+      } as MigrationResult;
     }
 
     logger.info('Processing critical data', { count: this.criticalData.length });
 
-    const criticalKeys = this.criticalData.map(item => item.key);
+    const migratedKeys: string[] = [];
+    const errors: string[] = [];
 
-    // Use parent class migration with only critical keys
-    const originalCallbacks = this.callbacks;
-    this.callbacks = {
-      ...originalCallbacks,
-      onProgress: (progress) => {
-        this.processedCriticalSize = Math.round((progress.percentage / 100) * this.criticalDataSize);
-        this.updateBackgroundProgress();
-        originalCallbacks?.onProgress?.(this.getProgress());
+    // Process each critical item
+    for (const item of this.criticalData) {
+      try {
+        const sourceAdapter = this.sourceAdapter as { getItem: (key: string) => Promise<unknown> };
+        const targetAdapter = this.targetAdapter as { setItem: (key: string, value: unknown) => Promise<void> };
+        const sourceData = await sourceAdapter.getItem(item.key);
+        if (sourceData !== null) {
+          await targetAdapter.setItem(item.key, sourceData);
+          migratedKeys.push(item.key);
+          this.processedCriticalSize += item.estimatedSize;
+
+          // Update progress
+          this.callbacks?.onProgress?.(this.getProgress());
+
+          logger.debug('Critical item migrated', {
+            key: item.key,
+            size: item.estimatedSize
+          });
+        }
+      } catch (error) {
+        const errorMsg = `Failed to migrate ${item.key}: ${error instanceof Error ? error.message : String(error)}`;
+        errors.push(errorMsg);
+        logger.error('Critical item migration failed', { key: item.key, error: errorMsg });
       }
-    };
-
-    const result = await super.migrateKeys(criticalKeys, options);
+    }
 
     this.criticalProcessingComplete = true;
-    this.backgroundCallbacks?.onCriticalComplete?.();
+    this.callbacks?.onCriticalComplete?.();
+
+    const result: MigrationResult = {
+      success: errors.length === 0,
+      migratedKeys,
+      errors,
+      state: errors.length === 0 ? MigrationState.COMPLETED : MigrationState.FAILED
+    };
 
     logger.info('Critical data processing completed', {
       success: result.success,
@@ -362,7 +362,7 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
   /**
    * Start background processing for remaining data
    */
-  private async startBackgroundProcessing(options: MigrationOptions): Promise<void> {
+  private async startBackgroundProcessing(): Promise<void> {
     if (this.backgroundData.length === 0) {
       logger.info('No background data to process');
       this.setPhase(BackgroundMigrationPhase.COMPLETED);
@@ -370,14 +370,14 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
     }
 
     // Wait before starting background processing
-    if (this.backgroundConfig.backgroundProcessingDelay > 0) {
+    if (this.config.backgroundProcessingDelay > 0) {
       this.setPhase(BackgroundMigrationPhase.BACKGROUND_WAITING);
-      await new Promise(resolve => setTimeout(resolve, this.backgroundConfig.backgroundProcessingDelay));
+      await new Promise(resolve => setTimeout(resolve, this.config.backgroundProcessingDelay));
     }
 
     this.setPhase(BackgroundMigrationPhase.BACKGROUND_PROCESSING);
     this.backgroundProcessingActive = true;
-    this.backgroundCallbacks?.onBackgroundStart?.();
+    this.callbacks?.onBackgroundStart?.();
 
     // Create background migration task
     const backgroundTask: BackgroundTask = {
@@ -410,9 +410,11 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
     const item = this.backgroundData.shift()!;
 
     try {
-      const sourceData = await this.sourceAdapter.getItem(item.key);
+      const sourceAdapter = this.sourceAdapter as { getItem: (key: string) => Promise<unknown> };
+      const targetAdapter = this.targetAdapter as { setItem: (key: string, value: unknown) => Promise<void> };
+      const sourceData = await sourceAdapter.getItem(item.key);
       if (sourceData !== null) {
-        await this.targetAdapter.setItem(item.key, sourceData);
+        await targetAdapter.setItem(item.key, sourceData);
         this.processedBackgroundSize += item.estimatedSize;
 
         logger.debug('Background item migrated', {
@@ -423,7 +425,7 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
       }
 
       // Update progress
-      this.updateBackgroundProgress();
+      this.callbacks?.onProgress?.(this.getProgress());
 
       // Schedule next chunk if more data exists
       if (this.backgroundData.length > 0) {
@@ -476,15 +478,7 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
     });
 
     // Final progress update
-    this.updateBackgroundProgress();
-  }
-
-  /**
-   * Update and emit background migration progress
-   */
-  private updateBackgroundProgress(): void {
-    const progress = this.getProgress();
-    this.callbacks?.onProgress?.(progress);
+    this.callbacks?.onProgress?.(this.getProgress());
   }
 
   /**
@@ -492,7 +486,7 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
    */
   private setPhase(phase: BackgroundMigrationPhase): void {
     this.currentPhase = phase;
-    this.backgroundCallbacks?.onPhaseChange?.(phase);
+    this.callbacks?.onPhaseChange?.(phase);
     logger.debug('Migration phase changed', { phase });
   }
 
@@ -510,16 +504,17 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
   /**
    * Extract metadata from key and data for priority classification
    */
-  private extractMetadata(key: string, data: any): any {
-    const metadata: any = {};
+  private extractMetadata(key: string, data: unknown): Record<string, unknown> {
+    const metadata: Record<string, unknown> = {};
 
     // Extract timestamp information if available
     if (data && typeof data === 'object') {
-      if (data.lastModified) metadata.lastModified = data.lastModified;
-      if (data.createdAt) metadata.createdAt = data.createdAt;
-      if (data.timestamp) metadata.timestamp = data.timestamp;
-      if (data.isActive !== undefined) metadata.isActive = data.isActive;
-      if (data.isCurrent !== undefined) metadata.isCurrent = data.isCurrent;
+      const obj = data as Record<string, unknown>;
+      if (obj.lastModified) metadata.lastModified = obj.lastModified;
+      if (obj.createdAt) metadata.createdAt = obj.createdAt;
+      if (obj.timestamp) metadata.timestamp = obj.timestamp;
+      if (obj.isActive !== undefined) metadata.isActive = obj.isActive;
+      if (obj.isCurrent !== undefined) metadata.isCurrent = obj.isCurrent;
     }
 
     return metadata;
@@ -531,8 +526,9 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
   private async getSourceKeys(): Promise<string[]> {
     // This method should be implemented based on the specific adapter interface
     // For now, we'll assume a method exists or implement a fallback
-    if (typeof this.sourceAdapter.getAllKeys === 'function') {
-      return await this.sourceAdapter.getAllKeys();
+    const sourceAdapter = this.sourceAdapter as { getAllKeys?: () => Promise<string[]>; getItem: (key: string) => Promise<unknown> };
+    if (typeof sourceAdapter.getAllKeys === 'function') {
+      return await sourceAdapter.getAllKeys();
     }
 
     // Fallback: iterate through common storage keys
@@ -546,7 +542,7 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
 
     const existingKeys: string[] = [];
     for (const key of commonKeys) {
-      const value = await this.sourceAdapter.getItem(key);
+      const value = await sourceAdapter.getItem(key);
       if (value !== null) {
         existingKeys.push(key);
       }
@@ -560,10 +556,10 @@ export class IndexedDbMigrationOrchestratorBackground extends IndexedDbMigration
  * Create configured background migration orchestrator
  */
 export function createBackgroundMigrationOrchestrator(
-  sourceAdapter: any,
-  targetAdapter: any,
+  sourceAdapter: unknown,
+  targetAdapter: unknown,
   callbacks?: BackgroundMigrationCallbacks,
   config: Partial<BackgroundMigrationConfig> = {}
-): IndexedDbMigrationOrchestratorBackground {
-  return new IndexedDbMigrationOrchestratorBackground(sourceAdapter, targetAdapter, callbacks, config);
+): BackgroundMigrationOrchestrator {
+  return new BackgroundMigrationOrchestrator(sourceAdapter, targetAdapter, callbacks, config);
 }

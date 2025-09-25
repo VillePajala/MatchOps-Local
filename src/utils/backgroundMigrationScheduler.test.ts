@@ -14,10 +14,10 @@ import {
 } from './backgroundMigrationScheduler';
 
 // Mock requestIdleCallback and cancelIdleCallback
-let idleCallbacks: Map<number, (deadline: IdleDeadline) => void> = new Map();
+const idleCallbacks: Map<number, (deadline: IdleDeadline) => void> = new Map();
 let nextIdleCallbackId = 1;
 
-const mockRequestIdleCallback = jest.fn((callback: (deadline: IdleDeadline) => void, options?: any) => {
+const mockRequestIdleCallback = jest.fn((callback: (deadline: IdleDeadline) => void) => {
   const id = nextIdleCallbackId++;
   idleCallbacks.set(id, callback);
   return id;
@@ -72,7 +72,7 @@ Object.defineProperty(global, 'document', {
 
 Object.defineProperty(global, 'PerformanceObserver', {
   value: class MockPerformanceObserver {
-    constructor(private callback: (list: any) => void) {}
+    constructor(private callback: (list: unknown) => void) {}
     observe() {}
     disconnect() {}
   },
