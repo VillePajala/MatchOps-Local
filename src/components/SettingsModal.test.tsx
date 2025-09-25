@@ -147,7 +147,11 @@ describe('<SettingsModal />', () => {
       expect(estimateMock).toHaveBeenCalled();
     });
 
-    expect(await screen.findByText(/512\.0 KB of 5\.0 MB used/)).toBeInTheDocument();
+    // Wait for the text to appear, using a more flexible matcher
+    await waitFor(() => {
+      const text = screen.getByText(/512\.0 KB of 5\.0 MB used/);
+      expect(text).toBeInTheDocument();
+    });
   });
 
   test('calls onClose when Done clicked', () => {
