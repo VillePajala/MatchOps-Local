@@ -117,7 +117,7 @@ describe('MemoryManager', () => {
 
   describe('Memory Information Detection', () => {
     it('should detect Chrome Performance.memory API', () => {
-      (global.window as any).performance = {
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).performance = {
         memory: {
           usedJSHeapSize: 50 * 1024 * 1024,
           totalJSHeapSize: 100 * 1024 * 1024,
@@ -137,7 +137,7 @@ describe('MemoryManager', () => {
     });
 
     it('should detect navigator.deviceMemory API', () => {
-      (global.navigator as any).deviceMemory = 4; // 4GB
+      (global.navigator as Navigator & { deviceMemory?: number }).deviceMemory = 4; // 4GB
 
       const manager = new MemoryManager();
       const info = manager.getMemoryInfo();
@@ -161,7 +161,7 @@ describe('MemoryManager', () => {
     });
 
     it('should identify memory-constrained devices', () => {
-      (global.navigator as any).deviceMemory = 2; // 2GB - constrained device
+      (global.navigator as Navigator & { deviceMemory?: number }).deviceMemory = 2; // 2GB - constrained device
 
       const manager = new MemoryManager();
       const isConstrained = manager.isMemoryConstrainedDevice();
@@ -172,7 +172,7 @@ describe('MemoryManager', () => {
     });
 
     it('should handle partial API availability', () => {
-      (global.window as any).performance = {
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).performance = {
         memory: {
           usedJSHeapSize: 50 * 1024 * 1024,
           totalJSHeapSize: null, // Missing property
@@ -192,7 +192,7 @@ describe('MemoryManager', () => {
 
   describe('Memory Pressure Detection', () => {
     it('should detect LOW pressure level', () => {
-      (global.window as any).performance = {
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).performance = {
         memory: {
           usedJSHeapSize: 30 * 1024 * 1024,  // 30MB used
           totalJSHeapSize: 100 * 1024 * 1024,
@@ -209,7 +209,7 @@ describe('MemoryManager', () => {
     });
 
     it('should detect MODERATE pressure level', () => {
-      (global.window as any).performance = {
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).performance = {
         memory: {
           usedJSHeapSize: 110 * 1024 * 1024,  // 110MB used (55% of 200MB)
           totalJSHeapSize: 150 * 1024 * 1024,
@@ -226,7 +226,7 @@ describe('MemoryManager', () => {
     });
 
     it('should detect HIGH pressure level', () => {
-      (global.window as any).performance = {
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).performance = {
         memory: {
           usedJSHeapSize: 150 * 1024 * 1024,  // 150MB used (75% of 200MB)
           totalJSHeapSize: 180 * 1024 * 1024,
@@ -243,7 +243,7 @@ describe('MemoryManager', () => {
     });
 
     it('should detect CRITICAL pressure level', () => {
-      (global.window as any).performance = {
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).performance = {
         memory: {
           usedJSHeapSize: 180 * 1024 * 1024,  // 180MB used (90% of 200MB)
           totalJSHeapSize: 190 * 1024 * 1024,
@@ -262,7 +262,7 @@ describe('MemoryManager', () => {
 
   describe('Chunk Size Optimization', () => {
     it('should return maximum chunk size under LOW pressure', () => {
-      (global.window as any).performance = {
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).performance = {
         memory: {
           usedJSHeapSize: 30 * 1024 * 1024,
           totalJSHeapSize: 100 * 1024 * 1024,
@@ -279,7 +279,7 @@ describe('MemoryManager', () => {
     });
 
     it('should reduce chunk size under MODERATE pressure', () => {
-      (global.window as any).performance = {
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).performance = {
         memory: {
           usedJSHeapSize: 110 * 1024 * 1024,
           totalJSHeapSize: 150 * 1024 * 1024,
@@ -297,7 +297,7 @@ describe('MemoryManager', () => {
     });
 
     it('should use minimum chunk size under CRITICAL pressure', () => {
-      (global.window as any).performance = {
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).performance = {
         memory: {
           usedJSHeapSize: 180 * 1024 * 1024,
           totalJSHeapSize: 190 * 1024 * 1024,
@@ -343,7 +343,7 @@ describe('MemoryManager', () => {
   describe('Garbage Collection', () => {
     it('should skip GC in production environment', async () => {
       process.env.NODE_ENV = 'production';
-      (global.window as any).gc = jest.fn();
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).gc = jest.fn();
 
       const manager = new MemoryManager();
       const result = await manager.forceGarbageCollection();
@@ -359,10 +359,10 @@ describe('MemoryManager', () => {
 
     it('should execute GC in development environment', async () => {
       process.env.NODE_ENV = 'development';
-      (global.window as any).gc = jest.fn();
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).gc = jest.fn();
 
       const manager = new MemoryManager();
-      const result = await manager.forceGarbageCollection();
+      await manager.forceGarbageCollection();
 
       expect(global.window.gc).toHaveBeenCalled();
       expect(logger.debug).toHaveBeenCalledWith('Forced garbage collection executed');
@@ -372,7 +372,7 @@ describe('MemoryManager', () => {
 
     it('should handle CSP-blocked GC gracefully', async () => {
       process.env.NODE_ENV = 'development';
-      (global.window as any).gc = jest.fn(() => {
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).gc = jest.fn(() => {
         throw new Error('CSP violation');
       });
 
@@ -466,7 +466,7 @@ describe('MemoryManager', () => {
       manager.onPressureChange(onPressureChange);
 
       // Simulate pressure change
-      (global.window as any).performance = {
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).performance = {
         memory: {
           usedJSHeapSize: 30 * 1024 * 1024,
           totalJSHeapSize: 100 * 1024 * 1024,
@@ -477,7 +477,7 @@ describe('MemoryManager', () => {
       manager.startMonitoring();
 
       // Change to HIGH pressure
-      (global.window as any).performance.memory.usedJSHeapSize = 150 * 1024 * 1024;
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).performance.memory.usedJSHeapSize = 150 * 1024 * 1024;
 
       jest.advanceTimersByTime(5000);
 
@@ -623,7 +623,7 @@ describe('MemoryManager', () => {
 
   describe('Emergency Optimization', () => {
     it('should trigger emergency optimization under CRITICAL pressure', () => {
-      (global.window as any).performance = {
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).performance = {
         memory: {
           usedJSHeapSize: 180 * 1024 * 1024,
           totalJSHeapSize: 190 * 1024 * 1024,
@@ -640,7 +640,7 @@ describe('MemoryManager', () => {
     });
 
     it('should not trigger emergency optimization under normal pressure', () => {
-      (global.window as any).performance = {
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).performance = {
         memory: {
           usedJSHeapSize: 50 * 1024 * 1024,
           totalJSHeapSize: 100 * 1024 * 1024,
@@ -657,7 +657,7 @@ describe('MemoryManager', () => {
     });
 
     it('should perform emergency optimization actions', async () => {
-      (global.window as any).performance = {
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).performance = {
         memory: {
           usedJSHeapSize: 180 * 1024 * 1024,
           totalJSHeapSize: 190 * 1024 * 1024,
@@ -797,7 +797,7 @@ describe('MemoryManager', () => {
 
   describe('Memory Status Reporting', () => {
     it('should provide comprehensive memory status', () => {
-      (global.window as any).performance = {
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).performance = {
         memory: {
           usedJSHeapSize: 100 * 1024 * 1024,
           totalJSHeapSize: 150 * 1024 * 1024,
@@ -822,7 +822,7 @@ describe('MemoryManager', () => {
     });
 
     it('should indicate when memory constrained', () => {
-      (global.navigator as any).deviceMemory = 2; // 2GB
+      (global.navigator as Navigator & { deviceMemory?: number }).deviceMemory = 2; // 2GB
 
       const manager = new MemoryManager();
       const status = manager.getMemoryStatus();
@@ -833,7 +833,7 @@ describe('MemoryManager', () => {
     });
 
     it('should prevent operations under critical pressure', () => {
-      (global.window as any).performance = {
+      (global.window as Window & { performance?: { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }; gc?: () => void }).performance = {
         memory: {
           usedJSHeapSize: 190 * 1024 * 1024,
           totalJSHeapSize: 195 * 1024 * 1024,
