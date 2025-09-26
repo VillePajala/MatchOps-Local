@@ -94,25 +94,26 @@ Object.defineProperty(global, 'TextEncoder', {
 });
 
 // Mock indexedDB with successful availability check
-const mockIndexedDBRequest = {
-  onsuccess: null,
-  onerror: null,
-  onblocked: null,
-  result: {
-    close: jest.fn()
-  }
-};
-
 Object.defineProperty(global, 'indexedDB', {
   value: {
     open: jest.fn().mockImplementation(() => {
+      const mockRequest = {
+        onsuccess: null as (() => void) | null,
+        onerror: null as (() => void) | null,
+        onblocked: null as (() => void) | null,
+        result: {
+          close: jest.fn()
+        }
+      };
+
       // Simulate successful IndexedDB availability
       setTimeout(() => {
-        if (mockIndexedDBRequest.onsuccess) {
-          mockIndexedDBRequest.onsuccess();
+        if (mockRequest.onsuccess) {
+          mockRequest.onsuccess();
         }
       }, 0);
-      return mockIndexedDBRequest;
+
+      return mockRequest;
     }),
     deleteDatabase: jest.fn()
   }
@@ -226,7 +227,31 @@ describe('Simplified Migration System', () => {
     });
 
     it('should perform app data migration when needed', async () => {
+      // Clear previous calls
+      jest.clearAllMocks();
+
       mockGetLocalStorageItem.mockReturnValue('1'); // Old version
+
+      // Mock localStorage for lock operations - ensure lock acquisition succeeds
+      mockLocalStorage.getItem.mockImplementation((key) => {
+        if (key === 'migration_lock_cross_tab') {
+          return null; // No existing lock
+        }
+        return null;
+      });
+
+      // Mock successful lock verification
+      mockLocalStorage.setItem.mockImplementation((key, value) => {
+        if (key === 'migration_lock_cross_tab') {
+          // Make getItem return the value we just set
+          mockLocalStorage.getItem.mockImplementation((checkKey) => {
+            if (checkKey === 'migration_lock_cross_tab') {
+              return value;
+            }
+            return null;
+          });
+        }
+      });
 
       const storageFactory = await import('./storageFactory');
       (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
@@ -367,6 +392,9 @@ describe('Simplified Migration System', () => {
     });
 
     it('should clear stale locks and proceed', async () => {
+      // Clear previous calls
+      jest.clearAllMocks();
+
       // Create a stale lock (older than 5 minutes)
       const staleLock = JSON.stringify({
         inProgress: true,
@@ -374,9 +402,14 @@ describe('Simplified Migration System', () => {
         tabId: 'old-tab'
       });
 
+      // Mock sequence: first call gets stale lock, subsequent calls return null (after lock is set)
       mockLocalStorage.getItem
         .mockReturnValueOnce(staleLock) // First call returns stale lock
-        .mockReturnValue(null); // Subsequent calls return null (cleared)
+        .mockReturnValueOnce(JSON.stringify({ // Verification call after setting new lock
+          inProgress: true,
+          startTime: Date.now(),
+          tabId: 'tab_' + Date.now()
+        }));
 
       mockGetLocalStorageItem.mockReturnValue('1'); // Needs app migration
 
@@ -390,8 +423,8 @@ describe('Simplified Migration System', () => {
 
       await runMigration();
 
-      // Should have cleared the stale lock and proceeded with migration
-      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('migration_lock_cross_tab');
+      // Should have set a new lock (the atomic lock logic doesn't removeItem for stale locks, it just overwrites)
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('migration_lock_cross_tab', expect.stringContaining('"inProgress":true'));
 
       const teams = await import('./teams');
       expect(teams.addTeam).toHaveBeenCalled(); // Migration should have proceeded
