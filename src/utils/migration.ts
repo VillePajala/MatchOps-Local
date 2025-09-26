@@ -1,4 +1,10 @@
-import { Team, TeamPlayer, Player } from '@/types';
+/**
+ * Simplified IndexedDB Migration
+ *
+ * A pragmatic migration approach for small datasets (1-3 users)
+ * Removes enterprise complexity while maintaining data integrity
+ */
+
 import {
   APP_DATA_VERSION_KEY,
   MASTER_ROSTER_KEY,
@@ -7,349 +13,225 @@ import {
   TOURNAMENTS_LIST_KEY
 } from '@/config/storageKeys';
 import { getLocalStorageItem, setLocalStorageItem } from './localStorage';
-import { getMasterRoster } from './masterRosterManager';
-// Note: Removed imports for global entity migration (seasons/tournaments/saved games/adjustments remain global)
-import { getLastHomeTeamName } from './appSettings';
-import { addTeam, setTeamRoster } from './teams';
-import { getStorageConfig } from './storageFactory';
-import { IndexedDbMigrationOrchestratorEnhanced } from './indexedDbMigrationEnhanced';
-import { updateMigrationStatus } from '@/hooks/useMigrationStatus';
-import { createMigrationMetrics, completeMigrationMetrics } from './migrationMetrics';
-import { performStorageQuotaCheck } from './storageQuotaCheck';
-import {
-  CURRENT_DATA_VERSION,
-  INDEXEDDB_STORAGE_VERSION,
-  MIGRATION_TEAM_NAME_FALLBACK
-} from '@/config/migrationConfig';
+import { createStorageAdapter, getStorageConfig, updateStorageConfig } from './storageFactory';
+import { CURRENT_DATA_VERSION, INDEXEDDB_STORAGE_VERSION } from '@/config/migrationConfig';
 import logger from './logger';
 
-// Check if there's any existing app data (used to detect fresh installations)
-const checkForExistingData = (): boolean => {
-  // Check for key data that would exist in a v1 installation
-  const masterRoster = getLocalStorageItem(MASTER_ROSTER_KEY);
-  const savedGames = getLocalStorageItem(SAVED_GAMES_KEY);
-  const seasons = getLocalStorageItem(SEASONS_LIST_KEY);
-  const tournaments = getLocalStorageItem(TOURNAMENTS_LIST_KEY);
-  
-  return !!(masterRoster || savedGames || seasons || tournaments);
+// Simple progress callback type
+type ProgressCallback = (progress: {
+  percentage: number;
+  message: string;
+}) => void;
+
+// Migration state for UI updates
+let migrationProgress: ProgressCallback | null = null;
+
+/**
+ * Set a progress callback for UI updates
+ */
+export const setMigrationProgressCallback = (callback: ProgressCallback | null) => {
+  migrationProgress = callback;
 };
 
-// Check if migration is needed
-export const isMigrationNeeded = (): boolean => {
-  const currentVersion = getAppDataVersion();
-  return currentVersion < CURRENT_DATA_VERSION;
-};
-
-// Get current app data version
+/**
+ * Get current app data version
+ */
 export const getAppDataVersion = (): number => {
   const stored = getLocalStorageItem(APP_DATA_VERSION_KEY);
   if (stored) {
     return parseInt(stored, 10);
   }
-  
-  // For fresh installations with no version stored, check if there's any existing data
-  // If no existing data, set to current version immediately to avoid unnecessary migration
-  const hasExistingData = checkForExistingData();
-  if (!hasExistingData) {
-    // Fresh installation - set to current version
+
+  // Check if there's any existing data
+  const hasData = !!(
+    getLocalStorageItem(MASTER_ROSTER_KEY) ||
+    getLocalStorageItem(SAVED_GAMES_KEY) ||
+    getLocalStorageItem(SEASONS_LIST_KEY) ||
+    getLocalStorageItem(TOURNAMENTS_LIST_KEY)
+  );
+
+  // If no data exists, this is a fresh install
+  if (!hasData) {
     setAppDataVersion(CURRENT_DATA_VERSION);
     return CURRENT_DATA_VERSION;
   }
-  
-  // Has existing data but no version - this is a v1 installation that needs migration
+
+  // Has data but no version = v1 installation
   return 1;
 };
 
-// Set app data version
+/**
+ * Set app data version
+ */
 export const setAppDataVersion = (version: number): void => {
   setLocalStorageItem(APP_DATA_VERSION_KEY, version.toString());
 };
 
-// Main migration function (idempotent - safe to run multiple times)
-export const runMigration = async (): Promise<void> => {
-  // First, check if app data migration is needed
-  const appMigrationNeeded = isMigrationNeeded();
+/**
+ * Check if migration is needed
+ */
+export const isMigrationNeeded = (): boolean => {
+  const currentVersion = getAppDataVersion();
+  return currentVersion < CURRENT_DATA_VERSION;
+};
 
-  // Then, check if IndexedDB migration is needed
-  const storageConfig = getStorageConfig();
-  const indexedDbMigrationNeeded = storageConfig.mode === 'localStorage' &&
-                                   storageConfig.version !== INDEXEDDB_STORAGE_VERSION &&
-                                   storageConfig.forceMode !== 'localStorage';
+/**
+ * Check if IndexedDB migration is needed
+ */
+export const isIndexedDbMigrationNeeded = (): boolean => {
+  const config = getStorageConfig();
+  return config.mode === 'localStorage' &&
+         config.version !== INDEXEDDB_STORAGE_VERSION &&
+         config.forceMode !== 'localStorage';
+};
 
-  if (!appMigrationNeeded && !indexedDbMigrationNeeded) {
-    if (storageConfig.forceMode === 'localStorage') {
-      logger.log('[Migration] No migration needed. App version:', getAppDataVersion(), 'Storage mode:', storageConfig.mode, '(localStorage forced)');
+/**
+ * Migration lock with cross-tab coordination
+ */
+interface MigrationLock {
+  inProgress: boolean;
+  startTime: number;
+  tabId: string;
+}
+
+const MIGRATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes timeout
+const MIGRATION_LOCK_KEY = 'migration_lock_cross_tab';
+const CURRENT_TAB_ID = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+/**
+ * Migration configuration constants
+ */
+const MIGRATION_CONFIG = {
+  SUCCESS_RATE_THRESHOLD: 100, // Require 100% success to prevent orphaned data
+} as const;
+
+/**
+ * Main migration function - simplified for small datasets
+ */
+/**
+ * Get cross-tab migration lock from localStorage
+ */
+function getCrossTabLock(): MigrationLock | null {
+  try {
+    const lockData = localStorage.getItem(MIGRATION_LOCK_KEY);
+    return lockData ? JSON.parse(lockData) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Set cross-tab migration lock in localStorage
+ */
+function setCrossTabLock(lock: MigrationLock | null): boolean {
+  try {
+    if (lock) {
+      localStorage.setItem(MIGRATION_LOCK_KEY, JSON.stringify(lock));
     } else {
-      logger.log('[Migration] No migration needed. App version:', getAppDataVersion(), 'Storage mode:', storageConfig.mode);
+      localStorage.removeItem(MIGRATION_LOCK_KEY);
     }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Acquire migration lock with cross-tab coordination
+ */
+function acquireMigrationLock(): boolean {
+  const existingLock = getCrossTabLock();
+
+  if (existingLock) {
+    const timeSinceStart = Date.now() - existingLock.startTime;
+
+    // Check if lock is stale (timeout)
+    if (timeSinceStart > MIGRATION_TIMEOUT_MS) {
+      logger.warn(`[Migration] Clearing stale lock from tab ${existingLock.tabId} (timeout)`);
+      setCrossTabLock(null);
+    } else {
+      // Lock is active and owned by another tab
+      if (existingLock.tabId !== CURRENT_TAB_ID) {
+        logger.log('[Migration] Migration in progress in another tab, skipping');
+        return false;
+      }
+      // Lock is owned by current tab - already in progress
+      logger.log('[Migration] Already in progress in current tab, skipping');
+      return false;
+    }
+  }
+
+  // Try to acquire lock
+  const newLock: MigrationLock = {
+    inProgress: true,
+    startTime: Date.now(),
+    tabId: CURRENT_TAB_ID
+  };
+
+  return setCrossTabLock(newLock);
+}
+
+export const runMigration = async (): Promise<void> => {
+  // Try to acquire cross-tab migration lock
+  if (!acquireMigrationLock()) {
     return;
   }
 
-  // Handle app data migration first (if needed)
-  if (appMigrationNeeded) {
-    const currentVersion = getAppDataVersion();
-    logger.log(`[Migration] Starting app data migration from version ${currentVersion} to version ${CURRENT_DATA_VERSION}`);
+  try {
 
-    // Import backup functions here to avoid circular dependencies
-    const {
-      createMigrationBackup,
-      restoreMigrationBackup,
-      clearMigrationBackup,
-      hasMigrationBackup,
-      getMigrationBackupInfo
-    } = await import('./migrationBackup');
+    const needsAppMigration = isMigrationNeeded();
+    const needsIndexedDbMigration = isIndexedDbMigrationNeeded();
 
-    // Check for existing backup (from failed previous migration)
-    if (hasMigrationBackup()) {
-      const backupInfo = getMigrationBackupInfo();
-      logger.warn('[Migration] Found existing migration backup from:', new Date(backupInfo?.timestamp || 0));
-      logger.warn('[Migration] This suggests a previous migration failed. Backup will be replaced.');
+    if (!needsAppMigration && !needsIndexedDbMigration) {
+      logger.log('[Migration] No migration needed');
+      return;
     }
 
-    // Create backup before migration
-    let backup;
-    try {
-      backup = await createMigrationBackup(CURRENT_DATA_VERSION);
-      logger.log('[Migration] Created backup successfully');
-    } catch (error) {
-      logger.error('[Migration] Failed to create backup:', error);
-      throw new Error(`Cannot proceed with migration - backup creation failed: ${error}`);
-    }
-
-    try {
-      // Execute migration steps
-      await performMigrationSteps();
-
-      // Update app data version only if all steps succeed
+    // Handle app data migration (v1 → v2)
+    if (needsAppMigration) {
+      logger.log('[Migration] Starting app data migration');
+      await performAppDataMigration();
       setAppDataVersion(CURRENT_DATA_VERSION);
-
-      // Clear backup on successful migration
-      clearMigrationBackup();
-      logger.log('[Migration] App data migration completed successfully');
-
-    } catch (error) {
-      logger.error('[Migration] Migration failed, attempting rollback:', error);
-
-      try {
-        await restoreMigrationBackup(backup);
-        clearMigrationBackup();
-        logger.log('[Migration] Successfully rolled back to previous state');
-
-        // Re-throw the original migration error
-        throw new Error(`Migration failed and was rolled back: ${error}`);
-
-      } catch (rollbackError) {
-        logger.error('[Migration] CRITICAL: Rollback failed:', rollbackError);
-
-        // Don't clear backup if rollback failed - user might need it
-        throw new Error(`Migration failed and rollback unsuccessful. Original error: ${error}. Rollback error: ${rollbackError}. Please restore from a manual backup or contact support.`);
-      }
-    }
-  }
-
-  // Handle IndexedDB migration (if needed)
-  if (indexedDbMigrationNeeded) {
-    logger.log('[Migration] Starting IndexedDB storage migration');
-
-    // Perform storage quota pre-flight check
-    logger.log('[Migration] Performing storage quota pre-flight check...');
-    const quotaCheck = await performStorageQuotaCheck();
-
-    if (!quotaCheck.canProceed) {
-      const errorMessage = `Storage quota insufficient for migration. ${quotaCheck.warnings.join('. ')}`;
-      logger.error('[Migration] Storage quota check failed:', {
-        warnings: quotaCheck.warnings,
-        recommendations: quotaCheck.recommendations,
-        currentUsage: quotaCheck.quotaInfo.usage,
-        available: quotaCheck.quotaInfo.available,
-        required: quotaCheck.estimate.totalRequiredSpace
-      });
-
-      // Notify UI of storage quota failure
-      updateMigrationStatus({
-        isRunning: false,
-        progress: null,
-        error: errorMessage + ' ' + quotaCheck.recommendations.join('. '),
-        showNotification: true
-      });
-
-      throw new Error(errorMessage);
+      logger.log('[Migration] App data migration completed');
     }
 
-    // Log warnings if any (but proceed)
-    if (quotaCheck.warnings.length > 0) {
-      logger.warn('[Migration] Storage quota warnings:', quotaCheck.warnings);
+    // Handle IndexedDB migration
+    if (needsIndexedDbMigration) {
+      logger.log('[Migration] Starting IndexedDB migration');
+      await performIndexedDbMigration();
+      logger.log('[Migration] IndexedDB migration completed');
     }
 
-    // Start metrics tracking
-    const migrationId = `migration_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const metrics = createMigrationMetrics(migrationId);
-
-    // Notify UI that migration is starting
-    updateMigrationStatus({
-      isRunning: true,
-      progress: null,
-      error: null,
-      showNotification: false
-    });
-
-    try {
-      const migrationOrchestrator = new IndexedDbMigrationOrchestratorEnhanced({
-        targetVersion: INDEXEDDB_STORAGE_VERSION,
-        verifyData: true,
-        keepBackupOnSuccess: false,
-        enablePartialRecovery: true,
-        progressCallback: (progress) => {
-          logger.log('[IndexedDB Migration Progress]', {
-            state: progress.state,
-            percentage: `${progress.percentage}%`,
-            currentStep: progress.currentStep,
-            processedKeys: `${progress.processedKeys}/${progress.totalKeys}`,
-            estimatedTime: progress.estimatedTimeRemainingText
-          });
-
-          // Update UI with progress
-          updateMigrationStatus({
-            isRunning: true,
-            progress,
-            error: null,
-            showNotification: false
-          });
-        },
-        notificationCallback: (message, type) => {
-          logger.log(`[IndexedDB Migration ${type}]`, message);
-        }
-      });
-
-      const result = await migrationOrchestrator.migrate();
-
-      if (result.success) {
-        logger.log('[Migration] IndexedDB storage migration completed successfully', {
-          duration: `${result.duration}ms`,
-          state: result.state
-        });
-
-        // Complete metrics tracking
-        completeMigrationMetrics(
-          metrics,
-          true,
-          0, // totalDataSizeMB - will be calculated by orchestrator
-          0, // keysTransferred - will be calculated by orchestrator
-          undefined
-        );
-
-        // Migration completed successfully
-        updateMigrationStatus({
-          isRunning: false,
-          progress: null,
-          error: null,
-          showNotification: true
-        });
-      } else {
-        logger.error('[Migration] IndexedDB storage migration failed', {
-          state: result.state,
-          errors: result.errors
-        });
-
-        const errorMessage = `Storage upgrade failed: ${result.errors.join(', ')}. Continuing with standard storage.`;
-        const errorType = result.errors.length > 0 ? result.errors[0] : 'unknown_error';
-
-        // Complete metrics tracking with failure
-        completeMigrationMetrics(
-          metrics,
-          false,
-          0,
-          0,
-          errorType
-        );
-
-        // Show error notification
-        updateMigrationStatus({
-          isRunning: false,
-          progress: null,
-          error: errorMessage,
-          showNotification: true
-        });
-
-        throw new Error(`IndexedDB migration failed: ${result.errors.join(', ')}`);
-      }
-    } catch (error) {
-      logger.error('[Migration] IndexedDB migration error:', error);
-
-      const errorMessage = 'Storage upgrade failed. The app will continue using standard storage.';
-      const errorType = error instanceof Error ? error.message : 'unexpected_error';
-
-      // Complete metrics tracking with exception
-      completeMigrationMetrics(
-        metrics,
-        false,
-        0,
-        0,
-        errorType
-      );
-
-      // Show error notification but don't crash the app
-      updateMigrationStatus({
-        isRunning: false,
-        progress: null,
-        error: errorMessage,
-        showNotification: true
-      });
-
-      // Don't throw here - app can still work with localStorage
-      logger.warn('[Migration] Continuing with localStorage mode due to IndexedDB migration failure');
-    }
+  } catch (error) {
+    logger.error('[Migration] Migration failed:', error);
+    // Don't throw - app can still work with localStorage
+  } finally {
+    // Release cross-tab migration lock
+    setCrossTabLock(null);
+    migrationProgress = null;
   }
 };
 
-// Execute the actual migration steps
-const performMigrationSteps = async (): Promise<void> => {
-  // Step 1: Create default team from current data
-  const defaultTeam = await createDefaultTeam();
-  logger.log('[Migration] Created default team:', defaultTeam);
+/**
+ * Perform app data migration (team structure, etc.)
+ */
+async function performAppDataMigration(): Promise<void> {
+  // Import only what we need to avoid circular dependencies
+  const { getMasterRoster } = await import('./masterRosterManager');
+  const { getLastHomeTeamName } = await import('./appSettings');
+  const { addTeam, setTeamRoster } = await import('./teams');
 
-  // Step 2: Move roster to team rosters
-  await migrateRosterToTeam(defaultTeam.id);
-  logger.log('[Migration] Migrated roster to team');
-
-  // Step 3: Seasons and tournaments remain global (no teamId tagging per plan)
-  logger.log('[Migration] Seasons and tournaments remain global entities');
-
-  // Step 4: Saved games remain untagged (legacy games stay global per plan) 
-  logger.log('[Migration] Saved games remain global (legacy data preserved)');
-
-  // Step 5: Player adjustments remain untagged (historical data preserved)
-  logger.log('[Migration] Player adjustments remain global (historical data preserved)');
-
-  // Step 6: Set as active team
-  // Note: Active team concept removed - teams are contextually selected
-  logger.log('[Migration] Created default team for legacy data');
-};
-
-// Create default team from current data
-const createDefaultTeam = async (): Promise<Team> => {
-  // Try to get team name from settings, fallback to default
-  let teamName: string;
-  try {
-    const lastTeamName = await getLastHomeTeamName();
-    teamName = lastTeamName || MIGRATION_TEAM_NAME_FALLBACK;
-  } catch {
-    teamName = MIGRATION_TEAM_NAME_FALLBACK;
-  }
-
-  return await addTeam({
+  // Create a default team for existing data
+  const teamName = await getLastHomeTeamName() || 'My Team';
+  const team = await addTeam({
     name: teamName,
-    color: '#6366F1', // Default indigo color
+    color: '#6366F1'
   });
-};
 
-// Move existing roster to team roster structure
-const migrateRosterToTeam = async (teamId: string): Promise<void> => {
+  // Migrate roster to team
   try {
-    const masterRoster = await getMasterRoster();
-    
-    // Convert Player[] to TeamPlayer[] (remove field-specific properties)
-    const teamRoster: TeamPlayer[] = masterRoster.map(player => ({
+    const roster = await getMasterRoster();
+    const teamRoster = roster.map(player => ({
       id: player.id,
       name: player.name,
       nickname: player.nickname,
@@ -357,156 +239,168 @@ const migrateRosterToTeam = async (teamId: string): Promise<void> => {
       isGoalie: player.isGoalie,
       color: player.color,
       notes: player.notes,
-      receivedFairPlayCard: player.receivedFairPlayCard,
-      // Note: relX/relY are field-specific and not copied to team roster
+      receivedFairPlayCard: player.receivedFairPlayCard
     }));
-
-    await setTeamRoster(teamId, teamRoster);
+    await setTeamRoster(team.id, teamRoster);
   } catch (error) {
     logger.warn('[Migration] Could not migrate roster:', error);
-    // Set empty roster if migration fails
-    await setTeamRoster(teamId, []);
+    await setTeamRoster(team.id, []);
   }
-};
 
-// Note: Previous functions removed per plan - seasons/tournaments/saved games/adjustments remain global
-// - migrateSeasonsToTeam: Seasons remain global entities (no teamId tagging)
-// - migrateTournamentsToTeam: Tournaments remain global entities (no teamId tagging) 
-// - migrateSavedGamesToTeam: Legacy games preserved as global (no historical data mutation)
-// - migratePlayerAdjustmentsToTeam: Historical adjustments preserved (no retrospective tagging)
+  logger.log('[Migration] Created default team:', team.name);
+}
 
 /**
- * Manual recovery function for failed migrations
- * This can be called from settings or developer tools
+ * Perform simplified IndexedDB migration
  */
-export const recoverFromFailedMigration = async (): Promise<boolean> => {
-  const { 
-    hasMigrationBackup, 
-    restoreMigrationBackup, 
-    clearMigrationBackup,
-    getMigrationBackupInfo,
-    validateMigrationBackup
-  } = await import('./migrationBackup');
-
-  if (!hasMigrationBackup()) {
-    logger.log('[Migration Recovery] No migration backup found');
-    return false;
-  }
-
-  const backupInfo = getMigrationBackupInfo();
-  if (!backupInfo) {
-    logger.error('[Migration Recovery] Backup exists but cannot read info');
-    return false;
-  }
-
-  logger.log(`[Migration Recovery] Found backup from ${new Date(backupInfo.timestamp)} (version ${backupInfo.version})`);
-
+async function performIndexedDbMigration(): Promise<void> {
   try {
-    // Load and validate the backup
-    const backupData = JSON.parse(getLocalStorageItem('MIGRATION_BACKUP_TEMP') || '{}');
-    const validation = validateMigrationBackup(backupData);
-    
-    if (!validation.valid) {
-      logger.error('[Migration Recovery] Backup validation failed:', validation.errors);
-      return false;
+    // Create adapters
+    const sourceAdapter = await createStorageAdapter('localStorage');
+    const targetAdapter = await createStorageAdapter('indexedDB');
+
+    // Get all localStorage keys
+    const allKeys = Object.keys(localStorage).filter(key =>
+      !key.startsWith('migration_') && // Skip migration-specific keys
+      !key.includes('backup') // Skip backup keys
+    );
+
+    const totalKeys = allKeys.length;
+    logger.log(`[Migration] Found ${totalKeys} keys to migrate`);
+
+    // Simple progress tracking
+    let processed = 0;
+    const updateProgress = (message: string) => {
+      processed++;
+      const percentage = Math.round((processed / totalKeys) * 100);
+      logger.log(`[Migration] Progress: ${percentage}% - ${message}`);
+
+      if (migrationProgress) {
+        migrationProgress({ percentage, message });
+      }
+    };
+
+    // Transfer data with simple error handling
+    const errors: string[] = [];
+    const migratedKeys: string[] = [];
+
+    for (const key of allKeys) {
+      try {
+        const value = await sourceAdapter.getItem(key);
+        if (value !== null) {
+          await targetAdapter.setItem(key, value);
+          migratedKeys.push(key);
+        }
+        updateProgress(`Migrated ${migratedKeys.length}/${totalKeys} items`);
+      } catch {
+        // Sanitize key name for logging security
+        const sanitizedKey = key.replace(/[^a-zA-Z0-9_-]/g, '*');
+        const errorMsg = `Failed to migrate key: ${sanitizedKey}`;
+        logger.warn(errorMsg);
+        errors.push(errorMsg);
+        // Continue with other keys even if one fails
+      }
     }
 
-    // Restore from backup
-    await restoreMigrationBackup();
-    clearMigrationBackup();
-    
-    logger.log('[Migration Recovery] Successfully restored from backup');
-    return true;
+    // Check if migration was 100% successful to prevent orphaned data
+    const successRate = (migratedKeys.length / totalKeys) * 100;
+
+    if (successRate < MIGRATION_CONFIG.SUCCESS_RATE_THRESHOLD) {
+      // Clean up partial IndexedDB data on failure
+      try {
+        for (const key of migratedKeys) {
+          try {
+            await targetAdapter.removeItem?.(key);
+          } catch {
+            // Ignore cleanup errors
+          }
+        }
+        logger.log('[Migration] Cleaned up partial data from IndexedDB');
+      } catch {
+        // Ignore cleanup errors
+      }
+
+      throw new Error(`Migration failed: Only ${successRate.toFixed(1)}% of data transferred successfully. All data remains safely in localStorage.`);
+    }
+
+    if (errors.length > 0) {
+      logger.warn(`[Migration] Completed with ${errors.length} errors (${successRate.toFixed(1)}% success rate, ${migratedKeys.length}/${totalKeys} items migrated)`);
+    }
+
+    // Update storage configuration to use IndexedDB
+    updateStorageConfig({
+      mode: 'indexedDB',
+      version: INDEXEDDB_STORAGE_VERSION,
+      migrationState: 'completed'
+    });
+
+    logger.log('[Migration] Storage configuration updated to IndexedDB');
 
   } catch (error) {
-    logger.error('[Migration Recovery] Recovery failed:', error);
-    return false;
+    logger.error('[Migration] IndexedDB migration failed:', error instanceof Error ? error.message : String(error));
+
+    // Update config to indicate failure
+    updateStorageConfig({
+      migrationState: 'failed'
+    });
+
+    // Re-throw to allow caller to handle graceful fallback
+    throw error;
   }
-};
+}
 
 /**
- * Get migration status and backup info
+ * Get migration status for UI
  */
-export const getMigrationStatus = async () => {
-  const { hasMigrationBackup, getMigrationBackupInfo } = await import('./migrationBackup');
-  const storageConfig = getStorageConfig();
+export const getMigrationStatus = () => {
+  const config = getStorageConfig();
 
   return {
     currentVersion: getAppDataVersion(),
     targetVersion: CURRENT_DATA_VERSION,
     migrationNeeded: isMigrationNeeded(),
-    hasBackup: hasMigrationBackup(),
-    backupInfo: getMigrationBackupInfo(),
-    storageMode: storageConfig.mode,
-    storageVersion: storageConfig.version,
-    storageForceMode: storageConfig.forceMode,
-    indexedDbTargetVersion: INDEXEDDB_STORAGE_VERSION,
+    storageMode: config.mode,
+    storageVersion: config.version,
     indexedDbMigrationNeeded: isIndexedDbMigrationNeeded(),
-    indexedDbMigrationState: storageConfig.migrationState
+    migrationState: config.migrationState
   };
-};
-
-/**
- * Check if IndexedDB migration is needed
- */
-export const isIndexedDbMigrationNeeded = (): boolean => {
-  const storageConfig = getStorageConfig();
-  return storageConfig.mode === 'localStorage' &&
-         storageConfig.version !== INDEXEDDB_STORAGE_VERSION &&
-         storageConfig.forceMode !== 'localStorage';
 };
 
 /**
  * Manually trigger IndexedDB migration (for settings UI)
  */
 export const triggerIndexedDbMigration = async (): Promise<boolean> => {
-  const storageConfig = getStorageConfig();
+  const config = getStorageConfig();
 
-  if (storageConfig.mode === 'indexedDB') {
-    logger.log('[Migration] Already using IndexedDB storage');
+  if (config.mode === 'indexedDB') {
+    logger.log('[Migration] Already using IndexedDB');
     return true;
   }
 
-  if (storageConfig.forceMode === 'localStorage') {
-    logger.log('[Migration] Migration skipped: localStorage mode is forced');
+  if (config.forceMode === 'localStorage') {
+    logger.log('[Migration] Migration blocked: localStorage forced');
     return false;
   }
 
   try {
-    logger.log('[Migration] Manually triggered IndexedDB storage migration');
-
-    const migrationOrchestrator = new IndexedDbMigrationOrchestratorEnhanced({
-      targetVersion: INDEXEDDB_STORAGE_VERSION,
-      verifyData: true,
-      keepBackupOnSuccess: false,
-      enablePartialRecovery: true,
-      progressCallback: (progress) => {
-        logger.log('[IndexedDB Migration Progress]', {
-          state: progress.state,
-          percentage: `${progress.percentage}%`,
-          currentStep: progress.currentStep
-        });
-      }
-    });
-
-    const result = await migrationOrchestrator.migrate();
-
-    if (result.success) {
-      logger.log('[Migration] IndexedDB storage migration completed successfully');
-      return true;
-    } else {
-      logger.error('[Migration] IndexedDB storage migration failed', result.errors);
-      return false;
-    }
+    await performIndexedDbMigration();
+    return true;
   } catch (error) {
-    logger.error('[Migration] IndexedDB migration error:', error);
+    logger.error('[Migration] Manual migration failed:', error);
     return false;
   }
 };
 
-// Create compatibility shims for existing code during migration
-export const getMasterRosterCompat = async (): Promise<Player[]> => {
-  // Note: Active team concept removed - this function now just returns master roster
-  // This will be refactored when implementing contextual team selection
+// Compatibility export for existing code
+export const getMasterRosterCompat = async () => {
+  const { getMasterRoster } = await import('./masterRosterManager');
   return getMasterRoster();
+};
+/**
+ * Manual migration lock reset (for debugging/recovery)
+ * Useful if browser crashes during migration leaving lock in place
+ */
+export const resetMigrationLock = (): void => {
+  setCrossTabLock(null);
+  logger.log('[Migration] Manual cross-tab lock reset performed');
 };

@@ -67,6 +67,8 @@ export interface MemoryInfo {
   isMemoryConstrained: boolean;
   /** Available memory for new allocations (bytes) */
   availableMemory: number;
+  /** Available bytes (alias for availableMemory for backward compatibility) */
+  availableBytes?: number;
 }
 
 /**
@@ -76,7 +78,8 @@ export enum MemoryPressureLevel {
   LOW = 'low',       // < 50% usage - normal operation
   MODERATE = 'moderate', // 50-70% usage - start optimizing
   HIGH = 'high',     // 70-85% usage - aggressive optimization
-  CRITICAL = 'critical' // > 85% usage - emergency measures
+  CRITICAL = 'critical', // 85-95% usage - emergency measures
+  EMERGENCY = 'emergency' // > 95% usage - halt operation immediately
 }
 
 /**
@@ -248,7 +251,8 @@ export class MemoryManager {
           jsHeapSizeLimit,
           usagePercentage,
           isMemoryConstrained,
-          availableMemory
+          availableMemory,
+          availableBytes: availableMemory
         };
 
         this.lastMemoryInfo = memoryInfo;
@@ -275,25 +279,29 @@ export class MemoryManager {
         const estimatedLimit = deviceMemory * 1024 * 1024 * 1024 * 0.20; // 20% of device memory (more conservative)
         const estimatedUsed = estimatedLimit * 0.3; // Assume 30% usage
 
+        const availableMemory = estimatedLimit - estimatedUsed;
         return {
           usedJSHeapSize: estimatedUsed,
           totalJSHeapSize: estimatedUsed,
           jsHeapSizeLimit: estimatedLimit,
           usagePercentage: 30,
           isMemoryConstrained: deviceMemory < 4, // < 4GB RAM
-          availableMemory: estimatedLimit - estimatedUsed
+          availableMemory,
+          availableBytes: availableMemory
         };
       }
 
       // Last resort: Conservative estimates
       const conservativeLimit = 100 * 1024 * 1024; // 100MB
+      const availableMemory = conservativeLimit * 0.5;
       return {
         usedJSHeapSize: conservativeLimit * 0.5,
         totalJSHeapSize: conservativeLimit * 0.5,
         jsHeapSizeLimit: conservativeLimit,
         usagePercentage: 50,
         isMemoryConstrained: true,
-        availableMemory: conservativeLimit * 0.5
+        availableMemory,
+        availableBytes: availableMemory
       };
 
     } catch (error: unknown) {
@@ -315,7 +323,10 @@ export class MemoryManager {
 
     const usage = memory.usagePercentage / 100;
 
-    if (usage >= this.config.criticalPressureThreshold) {
+    // Emergency threshold: > 95% usage - immediate halt required
+    if (usage >= 0.95) {
+      return MemoryPressureLevel.EMERGENCY;
+    } else if (usage >= this.config.criticalPressureThreshold) {
       return MemoryPressureLevel.CRITICAL;
     } else if (usage >= this.config.highPressureThreshold) {
       return MemoryPressureLevel.HIGH;
@@ -521,6 +532,13 @@ export class MemoryManager {
         actions.push('Force garbage collection after each batch');
         actions.push('Consider pausing migration temporarily');
         actions.push('Clear all unnecessary references');
+        break;
+
+      case MemoryPressureLevel.EMERGENCY:
+        actions.push('HALT MIGRATION IMMEDIATELY');
+        actions.push('Force garbage collection');
+        actions.push('Clear all data from memory');
+        actions.push('Wait for memory recovery before resuming');
         break;
     }
 

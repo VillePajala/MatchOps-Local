@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "chore: update build artifacts after test stability improvements"
+  "notes": "fix: simplify migration system and address critical edge cases for production reliability"
 }

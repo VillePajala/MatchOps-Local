@@ -5,7 +5,7 @@ import HomePage from '@/components/HomePage';
 import StartScreen from '@/components/StartScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { MigrationStatus } from '@/components/MigrationStatus';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getCurrentGameIdSetting } from '@/utils/appSettings';
 import { getSavedGames } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
@@ -21,45 +21,56 @@ export default function Home() {
   const [hasPlayers, setHasPlayers] = useState(false);
   const [hasSavedGames, setHasSavedGames] = useState(false);
   const [hasSeasonsTournaments, setHasSeasonsTournaments] = useState(false);
-  
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
   // A user is considered "first time" if they haven't created a roster OR a game yet.
   // This ensures they are guided through the full setup process.
   const isFirstTimeUser = !hasPlayers || !hasSavedGames;
 
-  useEffect(() => {
-    const checkAppState = async () => {
-      try {
-        // Run migration first (idempotent - safe to run multiple times)
-        await runMigration();
-        
-        // Check for resume capability
-        const lastId = await getCurrentGameIdSetting();
-        const games = await getSavedGames();
-        
-        if (lastId && games[lastId]) {
-          setCanResume(true);
-        }
-        
-        // Check if user has any saved games
-        setHasSavedGames(Object.keys(games).length > 0);
-        
-        // Check if user has any players in roster
-        const roster = await getMasterRoster();
-        setHasPlayers(roster.length > 0);
-        
-        // Check if user has any seasons or tournaments
-        const seasons = await getSeasons();
-        const tournaments = await getTournaments();
-        setHasSeasonsTournaments(seasons.length > 0 || tournaments.length > 0);
-      } catch {
+  const checkAppState = useCallback(async () => {
+    try {
+      // Run migration first (idempotent - safe to run multiple times)
+      await runMigration();
+
+      // Check for resume capability
+      const lastId = await getCurrentGameIdSetting();
+      const games = await getSavedGames();
+
+      if (lastId && games[lastId]) {
+        setCanResume(true);
+      } else {
         setCanResume(false);
-        setHasSavedGames(false);
-        setHasPlayers(false);
-        setHasSeasonsTournaments(false);
       }
-    };
-    checkAppState();
+
+      // Check if user has any saved games
+      setHasSavedGames(Object.keys(games).length > 0);
+
+      // Check if user has any players in roster
+      const roster = await getMasterRoster();
+      setHasPlayers(roster.length > 0);
+
+      // Check if user has any seasons or tournaments
+      const seasons = await getSeasons();
+      const tournaments = await getTournaments();
+      setHasSeasonsTournaments(seasons.length > 0 || tournaments.length > 0);
+    } catch {
+      setCanResume(false);
+      setHasSavedGames(false);
+      setHasPlayers(false);
+      setHasSeasonsTournaments(false);
+    }
   }, []);
+
+  const handleDataImportSuccess = useCallback(() => {
+    // Trigger app state refresh after data import
+    setRefreshTrigger(prev => prev + 1);
+    // Reset to start screen to let user see the updated state
+    setScreen('start');
+  }, []);
+
+  useEffect(() => {
+    checkAppState();
+  }, [checkAppState, refreshTrigger]);
 
   const handleAction = (
     action: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'getStarted' | 'season' | 'stats' | 'roster' | 'teams'
@@ -99,7 +110,11 @@ export default function Home() {
           </ErrorBoundary>
         ) : (
           <ErrorBoundary>
-            <HomePage initialAction={initialAction ?? undefined} skipInitialSetup />
+            <HomePage
+              initialAction={initialAction ?? undefined}
+              skipInitialSetup
+              onDataImportSuccess={handleDataImportSuccess}
+            />
           </ErrorBoundary>
         )}
 

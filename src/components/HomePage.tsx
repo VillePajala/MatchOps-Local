@@ -140,9 +140,10 @@ const initialState: AppState = {
 interface HomePageProps {
   initialAction?: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | 'teams';
   skipInitialSetup?: boolean;
+  onDataImportSuccess?: () => void;
 }
 
-function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
+function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess }: HomePageProps) {
   const { t } = useTranslation(); // Get translation function
   const queryClient = useQueryClient(); // Get query client instance
 
@@ -3284,6 +3285,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         onResetGuide={handleShowAppGuide}
         onHardResetApp={handleHardResetApp}
         onCreateBackup={exportFullBackup}
+        onDataImportSuccess={onDataImportSuccess}
       />
 
       <PlayerAssessmentModal

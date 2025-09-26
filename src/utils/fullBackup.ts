@@ -105,6 +105,7 @@ export const exportFullBackup = async (): Promise<string> => {
 // Function to import data from a backup file
 export const importFullBackup = async (
   jsonContent: string,
+  onImportSuccess?: () => void,
 ): Promise<boolean> => {
   logger.log("Starting full backup import...");
   try {
@@ -222,16 +223,24 @@ export const importFullBackup = async (
       }
     }
 
-    // --- Final Step: Reload ---
-    logger.log("Data restored successfully. Reloading application...");
+    // --- Final Step: Trigger app refresh ---
+    logger.log("Data restored successfully. Triggering app state refresh...");
     alert(i18n.t("fullBackup.restoreSuccess"));
 
-    // Use setTimeout to ensure the alert is seen before reload
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
+    // Use callback to refresh app state without reload, or fallback to reload
+    if (onImportSuccess) {
+      // Use setTimeout to ensure the alert is seen before refresh
+      setTimeout(() => {
+        onImportSuccess();
+      }, 500);
+    } else {
+      // Fallback to reload for backward compatibility
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    }
 
-    return true; // Indicate success (although reload prevents further action)
+    return true; // Indicate success
   } catch (error) {
     logger.error("Failed to import full backup:", error);
     // Type check for error before accessing message

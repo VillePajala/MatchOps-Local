@@ -57,14 +57,13 @@ The build process includes a custom manifest generation step that runs before Ne
 - Seasons and tournaments (`src/utils/seasons.ts`, `src/utils/tournaments.ts`)
 - App settings (`src/utils/appSettings.ts`)
 
-**IndexedDB Migration System**: Enterprise-grade migration control with pause/resume/cancel functionality:
-- `src/utils/migrationControlManager.ts` - Core migration control logic with statistical estimation
-- `src/hooks/useMigrationControl.ts` - React hook for UI integration with memory leak prevention
-- `src/utils/migrationMutex.ts` - Tab coordination and locking mechanism with heartbeat
-- `src/utils/checksumUtils.ts` - Data integrity verification with SHA-256 checksums
-- `src/utils/indexedDbMigrationEnhanced.ts` - Enhanced orchestrator with comprehensive error recovery
-- `src/utils/indexedDbMigrationMemoryOptimized.ts` - Memory-optimized orchestrator with progressive loading
-- Comprehensive test coverage with 518+ test cases covering edge cases and error scenarios
+**IndexedDB Migration System** ✅ **SIMPLIFIED**: Pragmatic localStorage → IndexedDB migration for small-scale deployments:
+- ✅ `src/utils/migration.ts` - Core migration logic with essential features only (~300 lines)
+- ✅ `src/utils/migration.test.ts` - Focused test coverage for essential functionality (11 tests)
+- ✅ **Simplification**: Reduced from 12 files (~4,700 lines) to 2 files (~400 lines) - 92% complexity reduction
+- ✅ **Removed**: Enterprise features (background processing, memory management, cross-tab coordination, pause/resume)
+- ✅ **Maintained**: Essential features (data transfer, error handling, progress tracking, rollback capability)
+- ✅ **Status**: Production-ready for 1-3 user deployments with appropriate complexity level
 
 **Logging**: Centralized logging system with environment-aware behavior:
 - `src/utils/logger.ts` - Type-safe logger utility with development/production modes
