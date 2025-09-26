@@ -8,8 +8,7 @@
 'use client';
 
 import React, { useMemo, useCallback } from 'react';
-import { useMigrationStatus } from '@/hooks/useMigrationStatus';
-import { MigrationProgress } from '@/utils/indexedDbMigration';
+import { useMigrationStatus, MigrationProgress } from '@/hooks/useMigrationStatus';
 
 // Throttled progress component to prevent excessive re-renders
 const ThrottledProgress = React.memo(({ progress }: { progress: MigrationProgress | null }) => {

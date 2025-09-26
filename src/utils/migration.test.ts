@@ -73,6 +73,60 @@ jest.mock('./logger', () => ({
   }
 }));
 
+jest.mock('@/hooks/useMigrationStatus', () => ({
+  updateMigrationStatus: jest.fn()
+}));
+
+// Mock crypto.subtle for checksum generation
+Object.defineProperty(global, 'crypto', {
+  value: {
+    subtle: {
+      digest: jest.fn().mockResolvedValue(new ArrayBuffer(32))
+    }
+  }
+});
+
+// Mock TextEncoder
+Object.defineProperty(global, 'TextEncoder', {
+  value: jest.fn().mockImplementation(() => ({
+    encode: jest.fn().mockReturnValue(new Uint8Array([1, 2, 3]))
+  }))
+});
+
+// Mock indexedDB with successful availability check
+const mockIndexedDBRequest = {
+  onsuccess: null,
+  onerror: null,
+  onblocked: null,
+  result: {
+    close: jest.fn()
+  }
+};
+
+Object.defineProperty(global, 'indexedDB', {
+  value: {
+    open: jest.fn().mockImplementation(() => {
+      // Simulate successful IndexedDB availability
+      setTimeout(() => {
+        if (mockIndexedDBRequest.onsuccess) {
+          mockIndexedDBRequest.onsuccess();
+        }
+      }, 0);
+      return mockIndexedDBRequest;
+    }),
+    deleteDatabase: jest.fn()
+  }
+});
+
+// Mock window for addEventListener/removeEventListener
+Object.defineProperty(global, 'window', {
+  value: {
+    indexedDB: global.indexedDB,
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn()
+  }
+});
+
 import { getLocalStorageItem, setLocalStorageItem } from './localStorage';
 
 const mockGetLocalStorageItem = getLocalStorageItem as jest.MockedFunction<typeof getLocalStorageItem>;

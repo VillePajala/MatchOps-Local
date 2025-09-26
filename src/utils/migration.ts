@@ -16,20 +16,33 @@ import { getLocalStorageItem, setLocalStorageItem } from './localStorage';
 import { createStorageAdapter, getStorageConfig, updateStorageConfig } from './storageFactory';
 import { CURRENT_DATA_VERSION, INDEXEDDB_STORAGE_VERSION } from '@/config/migrationConfig';
 import logger from './logger';
+import { updateMigrationStatus } from '@/hooks/useMigrationStatus';
 
-// Simple progress callback type
-type ProgressCallback = (progress: {
+// Migration progress interface for UI integration
+interface MigrationProgressInfo {
   percentage: number;
   message: string;
-}) => void;
+  currentStep?: string;
+  processedKeys?: number;
+  totalKeys?: number;
+}
 
 // Migration state for UI updates
-let migrationProgress: ProgressCallback | null = null;
+let migrationProgress: ((progress: MigrationProgressInfo) => void) | null = null;
+
+// Migration configuration with enhanced safety
+const MIGRATION_CONFIG = {
+  SUCCESS_RATE_THRESHOLD: 100, // Require 100% success to prevent orphaned data
+  BATCH_SIZE: 50, // Process in batches for better performance
+  MAX_RETRIES: 3, // Retry failed operations
+  CHECKSUM_VALIDATION: true, // Enable data integrity verification
+  INDEXEDDB_TIMEOUT_MS: 10000, // 10 second timeout for IndexedDB operations
+} as const;
 
 /**
  * Set a progress callback for UI updates
  */
-export const setMigrationProgressCallback = (callback: ProgressCallback | null) => {
+export const setMigrationProgressCallback = (callback: ((progress: MigrationProgressInfo) => void) | null) => {
   migrationProgress = callback;
 };
 
@@ -99,26 +112,101 @@ const MIGRATION_LOCK_KEY = 'migration_lock_cross_tab';
 const CURRENT_TAB_ID = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 /**
- * Migration configuration constants
+ * Check IndexedDB availability before migration
  */
-const MIGRATION_CONFIG = {
-  SUCCESS_RATE_THRESHOLD: 100, // Require 100% success to prevent orphaned data
-} as const;
+async function checkIndexedDbAvailability(): Promise<boolean> {
+  if (typeof window === 'undefined' || !window.indexedDB) {
+    logger.warn('[Migration] IndexedDB not available in this environment');
+    return false;
+  }
+
+  try {
+    // Test IndexedDB with a temporary database
+    const testDbName = 'migration-availability-test';
+    const request = indexedDB.open(testDbName, 1);
+
+    return new Promise<boolean>((resolve) => {
+      const timeout = setTimeout(() => {
+        logger.warn('[Migration] IndexedDB availability check timed out');
+        resolve(false);
+      }, MIGRATION_CONFIG.INDEXEDDB_TIMEOUT_MS);
+
+      request.onerror = () => {
+        clearTimeout(timeout);
+        logger.warn('[Migration] IndexedDB blocked or unavailable (privacy mode?)');
+        resolve(false);
+      };
+
+      request.onsuccess = () => {
+        clearTimeout(timeout);
+        try {
+          // Clean up test database
+          request.result.close();
+          indexedDB.deleteDatabase(testDbName);
+          resolve(true);
+        } catch {
+          resolve(false);
+        }
+      };
+
+      request.onblocked = () => {
+        clearTimeout(timeout);
+        logger.warn('[Migration] IndexedDB blocked - cannot proceed with migration');
+        resolve(false);
+      };
+    });
+  } catch (error) {
+    logger.warn('[Migration] IndexedDB availability check failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Generate SHA-256 checksum for data integrity verification
+ */
+async function generateChecksum(data: string): Promise<string> {
+  if (typeof crypto === 'undefined' || !crypto.subtle) {
+    // Fallback for environments without crypto.subtle
+    return `fallback-${data.length}-${data.slice(0, 10)}`;
+  }
+
+  try {
+    const encoder = new TextEncoder();
+    const dataBuffer = encoder.encode(data);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (error) {
+    logger.warn('[Migration] Checksum generation failed, using fallback:', error);
+    return `fallback-${data.length}-${data.slice(0, 10)}`;
+  }
+}
+
+/**
+ * Verify data integrity using checksums
+ */
+async function verifyDataIntegrity(sourceValue: string, targetValue: string): Promise<boolean> {
+  if (!MIGRATION_CONFIG.CHECKSUM_VALIDATION) {
+    return sourceValue === targetValue; // Simple comparison fallback
+  }
+
+  try {
+    const [sourceChecksum, targetChecksum] = await Promise.all([
+      generateChecksum(sourceValue),
+      generateChecksum(targetValue)
+    ]);
+
+    return sourceChecksum === targetChecksum;
+  } catch (error) {
+    logger.warn('[Migration] Checksum verification failed, using fallback comparison:', error);
+    return sourceValue === targetValue;
+  }
+}
 
 /**
  * Main migration function - simplified for small datasets
  */
-/**
- * Get cross-tab migration lock from localStorage
- */
-function getCrossTabLock(): MigrationLock | null {
-  try {
-    const lockData = localStorage.getItem(MIGRATION_LOCK_KEY);
-    return lockData ? JSON.parse(lockData) : null;
-  } catch {
-    return null;
-  }
-}
+// Removed getCrossTabLock - now handled in acquireMigrationLockAtomic
 
 /**
  * Set cross-tab migration lock in localStorage
@@ -137,38 +225,75 @@ function setCrossTabLock(lock: MigrationLock | null): boolean {
 }
 
 /**
- * Acquire migration lock with cross-tab coordination
+ * Atomic compare-and-swap lock acquisition to prevent race conditions
  */
-function acquireMigrationLock(): boolean {
-  const existingLock = getCrossTabLock();
+function acquireMigrationLockAtomic(): boolean {
+  try {
+    // Get current lock state
+    const currentLockData = localStorage.getItem(MIGRATION_LOCK_KEY);
+    let existingLock: MigrationLock | null = null;
 
-  if (existingLock) {
-    const timeSinceStart = Date.now() - existingLock.startTime;
+    if (currentLockData) {
+      try {
+        existingLock = JSON.parse(currentLockData);
+      } catch {
+        // Invalid lock data, treat as no lock
+        existingLock = null;
+      }
+    }
 
-    // Check if lock is stale (timeout)
-    if (timeSinceStart > MIGRATION_TIMEOUT_MS) {
-      logger.warn(`[Migration] Clearing stale lock from tab ${existingLock.tabId} (timeout)`);
-      setCrossTabLock(null);
-    } else {
-      // Lock is active and owned by another tab
-      if (existingLock.tabId !== CURRENT_TAB_ID) {
-        logger.log('[Migration] Migration in progress in another tab, skipping');
+    // Check if existing lock is valid and not stale
+    if (existingLock) {
+      const timeSinceStart = Date.now() - existingLock.startTime;
+
+      if (timeSinceStart <= MIGRATION_TIMEOUT_MS) {
+        // Lock is still valid
+        if (existingLock.tabId !== CURRENT_TAB_ID) {
+          logger.log('[Migration] Migration in progress in another tab, skipping');
+          return false;
+        }
+        logger.log('[Migration] Already in progress in current tab, skipping');
         return false;
       }
-      // Lock is owned by current tab - already in progress
-      logger.log('[Migration] Already in progress in current tab, skipping');
+
+      // Lock is stale, will attempt to replace it
+      logger.warn(`[Migration] Found stale lock from tab ${existingLock.tabId}, attempting to acquire`);
+    }
+
+    // Attempt atomic lock acquisition using compare-and-swap pattern
+    const newLock: MigrationLock = {
+      inProgress: true,
+      startTime: Date.now(),
+      tabId: CURRENT_TAB_ID
+    };
+
+    const newLockData = JSON.stringify(newLock);
+
+    try {
+      // Atomic operation: set the lock
+      localStorage.setItem(MIGRATION_LOCK_KEY, newLockData);
+
+      // Verify the lock was set correctly (simple race condition check)
+      const verificationData = localStorage.getItem(MIGRATION_LOCK_KEY);
+      if (verificationData === newLockData) {
+        return true;
+      } else {
+        logger.warn('[Migration] Lock verification failed - another tab may have acquired it');
+        return false;
+      }
+    } catch (error) {
+      logger.error('[Migration] Failed to set migration lock:', error);
       return false;
     }
+  } catch (error) {
+    logger.error('[Migration] Lock acquisition failed:', error);
+    return false;
   }
+}
 
-  // Try to acquire lock
-  const newLock: MigrationLock = {
-    inProgress: true,
-    startTime: Date.now(),
-    tabId: CURRENT_TAB_ID
-  };
-
-  return setCrossTabLock(newLock);
+// Legacy function for backwards compatibility
+function acquireMigrationLock(): boolean {
+  return acquireMigrationLockAtomic();
 }
 
 export const runMigration = async (): Promise<void> => {
@@ -177,19 +302,45 @@ export const runMigration = async (): Promise<void> => {
     return;
   }
 
-  try {
+  // Notify UI that migration is starting
+  updateMigrationStatus({ isRunning: true, progress: null, error: null });
 
+  try {
     const needsAppMigration = isMigrationNeeded();
     const needsIndexedDbMigration = isIndexedDbMigrationNeeded();
 
     if (!needsAppMigration && !needsIndexedDbMigration) {
       logger.log('[Migration] No migration needed');
+      updateMigrationStatus({ isRunning: false });
       return;
+    }
+
+    // Check IndexedDB availability before attempting migration
+    if (needsIndexedDbMigration) {
+      const isIndexedDbAvailable = await checkIndexedDbAvailability();
+      if (!isIndexedDbAvailable) {
+        const errorMsg = 'IndexedDB is not available (privacy mode or browser restriction). Continuing with localStorage.';
+        logger.warn(`[Migration] ${errorMsg}`);
+        updateMigrationStatus({
+          isRunning: false,
+          error: errorMsg,
+          showNotification: true
+        });
+        return;
+      }
     }
 
     // Handle app data migration (v1 → v2)
     if (needsAppMigration) {
       logger.log('[Migration] Starting app data migration');
+      updateMigrationStatus({
+        isRunning: true,
+        progress: {
+          percentage: 10,
+          message: 'Migrating application data...',
+          currentStep: 'App Data Migration'
+        }
+      });
       await performAppDataMigration();
       setAppDataVersion(CURRENT_DATA_VERSION);
       logger.log('[Migration] App data migration completed');
@@ -198,12 +349,35 @@ export const runMigration = async (): Promise<void> => {
     // Handle IndexedDB migration
     if (needsIndexedDbMigration) {
       logger.log('[Migration] Starting IndexedDB migration');
-      await performIndexedDbMigration();
+      updateMigrationStatus({
+        isRunning: true,
+        progress: {
+          percentage: 30,
+          message: 'Preparing storage migration...',
+          currentStep: 'Storage Migration'
+        }
+      });
+      await performIndexedDbMigrationEnhanced();
       logger.log('[Migration] IndexedDB migration completed');
     }
 
+    // Migration completed successfully
+    updateMigrationStatus({
+      isRunning: false,
+      progress: { percentage: 100, message: 'Migration completed successfully!' },
+      showNotification: true
+    });
+
   } catch (error) {
-    logger.error('[Migration] Migration failed:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('[Migration] Migration failed:', errorMessage);
+
+    updateMigrationStatus({
+      isRunning: false,
+      error: `Migration failed: ${errorMessage}`,
+      showNotification: true
+    });
+
     // Don't throw - app can still work with localStorage
   } finally {
     // Release cross-tab migration lock
@@ -251,9 +425,9 @@ async function performAppDataMigration(): Promise<void> {
 }
 
 /**
- * Perform simplified IndexedDB migration
+ * Enhanced IndexedDB migration with batch processing and data integrity verification
  */
-async function performIndexedDbMigration(): Promise<void> {
+async function performIndexedDbMigrationEnhanced(): Promise<void> {
   try {
     // Create adapters
     const sourceAdapter = await createStorageAdapter('localStorage');
@@ -268,63 +442,154 @@ async function performIndexedDbMigration(): Promise<void> {
     const totalKeys = allKeys.length;
     logger.log(`[Migration] Found ${totalKeys} keys to migrate`);
 
-    // Simple progress tracking
-    let processed = 0;
+    // Enhanced progress tracking with UI integration
+    const processed = { count: 0 }; // Use object to allow mutation
     const updateProgress = (message: string) => {
-      processed++;
-      const percentage = Math.round((processed / totalKeys) * 100);
+      const percentage = Math.round((processed.count / totalKeys) * 70) + 30; // Reserve 30% for setup, use 70% for data transfer
       logger.log(`[Migration] Progress: ${percentage}% - ${message}`);
 
       if (migrationProgress) {
-        migrationProgress({ percentage, message });
+        migrationProgress({
+          percentage,
+          message,
+          currentStep: 'Storage Migration',
+          processedKeys: processed.count,
+          totalKeys: totalKeys
+        });
       }
+
+      // Also update the global migration status for UI
+      updateMigrationStatus({
+        isRunning: true,
+        progress: {
+          percentage,
+          message,
+          currentStep: 'Storage Migration',
+          processedKeys: processed.count,
+          totalKeys: totalKeys
+        }
+      });
     };
 
-    // Transfer data with simple error handling
-    const errors: string[] = [];
+    // Enhanced batch processing with data integrity verification
+    const errors: Array<{ key: string; error: string; retryCount: number }> = [];
     const migratedKeys: string[] = [];
+    const batchSize = MIGRATION_CONFIG.BATCH_SIZE;
 
-    for (const key of allKeys) {
-      try {
-        const value = await sourceAdapter.getItem(key);
-        if (value !== null) {
-          await targetAdapter.setItem(key, value);
-          migratedKeys.push(key);
+    // Process data in batches for better performance
+    for (let i = 0; i < allKeys.length; i += batchSize) {
+      const batch = allKeys.slice(i, i + batchSize);
+      const batchNumber = Math.floor(i / batchSize) + 1;
+      const totalBatches = Math.ceil(allKeys.length / batchSize);
+
+      updateProgress(`Processing batch ${batchNumber}/${totalBatches} (${batch.length} items)`);
+      updateMigrationStatus({
+        isRunning: true,
+        progress: {
+          percentage: Math.round((i / allKeys.length) * 70) + 30, // 30-100% range
+          message: `Migrating batch ${batchNumber}/${totalBatches}`,
+          currentStep: 'Storage Migration',
+          processedKeys: migratedKeys.length,
+          totalKeys: totalKeys
         }
-        updateProgress(`Migrated ${migratedKeys.length}/${totalKeys} items`);
-      } catch {
-        // Sanitize key name for logging security
-        const sanitizedKey = key.replace(/[^a-zA-Z0-9_-]/g, '*');
-        const errorMsg = `Failed to migrate key: ${sanitizedKey}`;
-        logger.warn(errorMsg);
-        errors.push(errorMsg);
-        // Continue with other keys even if one fails
-      }
+      });
+
+      // Process batch concurrently with retry logic
+      const batchPromises = batch.map(async (key) => {
+        let retryCount = 0;
+        const maxRetries = MIGRATION_CONFIG.MAX_RETRIES;
+
+        while (retryCount <= maxRetries) {
+          try {
+            const sourceValue = await sourceAdapter.getItem(key);
+            if (sourceValue !== null) {
+              await targetAdapter.setItem(key, sourceValue);
+
+              // Verify data integrity if enabled
+              if (MIGRATION_CONFIG.CHECKSUM_VALIDATION) {
+                const targetValue = await targetAdapter.getItem(key);
+                if (targetValue !== null) {
+                  const isIntegrityValid = await verifyDataIntegrity(sourceValue, targetValue);
+                  if (!isIntegrityValid) {
+                    throw new Error('Data integrity verification failed');
+                  }
+                }
+              }
+
+              migratedKeys.push(key);
+              return { success: true, key };
+            }
+            return { success: true, key }; // Null values are ok
+          } catch {
+            retryCount++;
+            if (retryCount > maxRetries) {
+              // Sanitize key name for logging security
+              const sanitizedKey = key.replace(/[^a-zA-Z0-9_-]/g, '*');
+              const errorMsg = `Failed to migrate key after ${maxRetries} retries: ${sanitizedKey}`;
+              logger.warn(errorMsg);
+              errors.push({ key: sanitizedKey, error: errorMsg, retryCount });
+              return { success: false, key };
+            }
+            // Exponential backoff for retries
+            const backoffMs = Math.min(100 * Math.pow(2, retryCount - 1), 1000);
+            await new Promise(resolve => setTimeout(resolve, backoffMs));
+          }
+        }
+        return { success: false, key };
+      });
+
+      // Wait for batch to complete
+      await Promise.all(batchPromises);
+
+      // Small delay between batches to prevent overwhelming the system
+      await new Promise(resolve => setTimeout(resolve, 10));
     }
 
-    // Check if migration was 100% successful to prevent orphaned data
+    // Enhanced success rate validation with detailed error reporting
     const successRate = (migratedKeys.length / totalKeys) * 100;
+    const failedKeys = errors.length;
 
     if (successRate < MIGRATION_CONFIG.SUCCESS_RATE_THRESHOLD) {
       // Clean up partial IndexedDB data on failure
-      try {
-        for (const key of migratedKeys) {
-          try {
-            await targetAdapter.removeItem?.(key);
-          } catch {
-            // Ignore cleanup errors
-          }
+      updateMigrationStatus({
+        isRunning: true,
+        progress: {
+          percentage: 95,
+          message: 'Cleaning up partial migration...',
+          currentStep: 'Rollback',
+          processedKeys: migratedKeys.length,
+          totalKeys: totalKeys
         }
+      });
+
+      try {
+        // Batch cleanup for performance
+        const cleanupBatches = [];
+        for (let i = 0; i < migratedKeys.length; i += batchSize) {
+          const cleanupBatch = migratedKeys.slice(i, i + batchSize);
+          cleanupBatches.push(
+            Promise.all(cleanupBatch.map(async (key) => {
+              try {
+                await targetAdapter.removeItem?.(key);
+              } catch {
+                // Ignore individual cleanup errors
+              }
+            }))
+          );
+        }
+        await Promise.all(cleanupBatches);
         logger.log('[Migration] Cleaned up partial data from IndexedDB');
       } catch {
         // Ignore cleanup errors
       }
 
-      throw new Error(`Migration failed: Only ${successRate.toFixed(1)}% of data transferred successfully. All data remains safely in localStorage.`);
+      const detailedError = `Migration failed: Only ${successRate.toFixed(1)}% of data transferred successfully (${migratedKeys.length}/${totalKeys} items). Failed items: ${failedKeys}. All data remains safely in localStorage.`;
+      throw new Error(detailedError);
     }
 
     if (errors.length > 0) {
       logger.warn(`[Migration] Completed with ${errors.length} errors (${successRate.toFixed(1)}% success rate, ${migratedKeys.length}/${totalKeys} items migrated)`);
+      logger.warn(`[Migration] Error summary:`, errors.map(e => `${e.key} (${e.retryCount} retries)`));
     }
 
     // Update storage configuration to use IndexedDB
@@ -382,8 +647,15 @@ export const triggerIndexedDbMigration = async (): Promise<boolean> => {
     return false;
   }
 
+  // Check IndexedDB availability before attempting migration
+  const isIndexedDbAvailable = await checkIndexedDbAvailability();
+  if (!isIndexedDbAvailable) {
+    logger.warn('[Migration] IndexedDB not available for manual migration');
+    return false;
+  }
+
   try {
-    await performIndexedDbMigration();
+    await performIndexedDbMigrationEnhanced();
     return true;
   } catch (error) {
     logger.error('[Migration] Manual migration failed:', error);

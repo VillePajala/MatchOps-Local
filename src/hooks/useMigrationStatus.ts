@@ -4,7 +4,15 @@
  */
 
 import { useState, useEffect } from 'react';
-import { MigrationProgress } from '@/utils/indexedDbMigration';
+// Simple progress type for the simplified migration system
+export interface MigrationProgress {
+  percentage: number;
+  message: string;
+  currentStep?: string;
+  processedKeys?: number;
+  totalKeys?: number;
+  estimatedTimeRemainingText?: string;
+}
 import { MIGRATION_SUBSCRIBER_CLEANUP_DELAY } from '@/config/migrationConfig';
 import logger from '@/utils/logger';
 
