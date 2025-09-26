@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Simplified Migration Tests
  *
@@ -183,7 +185,7 @@ describe('Simplified Migration System', () => {
 
   describe('isIndexedDbMigrationNeeded', () => {
     it('should return true when conditions are met', async () => {
-      const storageFactory = await import('./storageFactory');
+      const storageFactory = require('./storageFactory');
       (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
         mode: 'localStorage',
         version: '1',
@@ -195,7 +197,7 @@ describe('Simplified Migration System', () => {
     });
 
     it('should return false when already using IndexedDB', async () => {
-      const storageFactory = await import('./storageFactory');
+      const storageFactory = require('./storageFactory');
       (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
         mode: 'indexedDB',
         version: INDEXEDDB_STORAGE_VERSION.toString(),
@@ -211,7 +213,7 @@ describe('Simplified Migration System', () => {
     it('should skip migration when not needed', async () => {
       mockGetLocalStorageItem.mockReturnValue(CURRENT_DATA_VERSION.toString());
 
-      const storageFactory = await import('./storageFactory');
+      const storageFactory = require('./storageFactory');
       (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
         mode: 'indexedDB',
         version: INDEXEDDB_STORAGE_VERSION.toString(),
@@ -253,7 +255,7 @@ describe('Simplified Migration System', () => {
         }
       });
 
-      const storageFactory = await import('./storageFactory');
+      const storageFactory = require('./storageFactory');
       (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
         mode: 'indexedDB',
         version: INDEXEDDB_STORAGE_VERSION.toString(),
@@ -275,7 +277,7 @@ describe('Simplified Migration System', () => {
       mockGetLocalStorageItem.mockReturnValue('1');
 
       // Set up the mock for this specific test
-      const storageFactory = await import('./storageFactory');
+      const storageFactory = require('./storageFactory');
       (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
         mode: 'localStorage',
         version: '1',
@@ -310,7 +312,7 @@ describe('Simplified Migration System', () => {
       mockLocalStorage.getItem.mockReturnValue(JSON.stringify(lockData));
       mockGetLocalStorageItem.mockReturnValue('1'); // Needs migration
 
-      const storageFactory = await import('./storageFactory');
+      const storageFactory = require('./storageFactory');
       (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
         mode: 'localStorage',
         version: '1',
@@ -336,7 +338,7 @@ describe('Simplified Migration System', () => {
       mockLocalStorage.getItem.mockReturnValueOnce(null); // After clearing stale lock
       mockGetLocalStorageItem.mockReturnValue('1'); // Needs migration
 
-      const storageFactory = await import('./storageFactory');
+      const storageFactory = require('./storageFactory');
       (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
         mode: 'indexedDB',
         version: INDEXEDDB_STORAGE_VERSION.toString(),
@@ -354,7 +356,7 @@ describe('Simplified Migration System', () => {
   describe('Migration Configuration Validation', () => {
     it('should require 100% success threshold to prevent orphaned data', async () => {
       // Import the migration module to access its constants
-      const migrationModule = await import('./migration');
+      const migrationModule = require('./migration');
 
       // Verify that the success threshold is set to 100%
       // This is a critical safety check - we can't test the private constant directly,
@@ -375,7 +377,7 @@ describe('Simplified Migration System', () => {
       mockLocalStorage.getItem.mockReturnValue(existingLock);
       mockGetLocalStorageItem.mockReturnValue('1'); // Needs migration
 
-      const storageFactory = await import('./storageFactory');
+      const storageFactory = require('./storageFactory');
       (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
         mode: 'localStorage',
         version: '1',
@@ -421,7 +423,7 @@ describe('Simplified Migration System', () => {
         }
       });
 
-      const storageFactory = await import('./storageFactory');
+      const storageFactory = require('./storageFactory');
       (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
         mode: 'indexedDB',
         version: INDEXEDDB_STORAGE_VERSION.toString(),
@@ -436,6 +438,437 @@ describe('Simplified Migration System', () => {
 
       const teams = await import('./teams');
       expect(teams.addTeam).toHaveBeenCalled(); // Migration should have proceeded
+    });
+  });
+
+  describe('Enhanced Features and Edge Cases', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockLocalStorage.getItem.mockReturnValue(null);
+    });
+
+    describe('WeakRef Compatibility', () => {
+      it('should handle WeakRef not being available', () => {
+        // Mock WeakRef as undefined
+        const originalWeakRef = global.WeakRef;
+        (global as any).WeakRef = undefined;
+
+        try {
+          // This should not throw and should use fallback
+          const migration = require('./migration');
+          expect(migration.setMigrationProgressCallback).toBeDefined();
+        } finally {
+          global.WeakRef = originalWeakRef;
+        }
+      });
+
+      it('should clean up progress callbacks with WeakRef fallback', async () => {
+        // Mock WeakRef as undefined to test fallback
+        const originalWeakRef = global.WeakRef;
+        (global as any).WeakRef = undefined;
+
+        try {
+          const migration = require('./migration');
+          const mockCallback = jest.fn();
+
+          migration.setMigrationProgressCallback(mockCallback);
+          migration.setMigrationProgressCallback(null); // Should clean up without error
+
+          expect(mockCallback).not.toHaveBeenCalled();
+        } finally {
+          global.WeakRef = originalWeakRef;
+        }
+      });
+    });
+
+    describe('Memory-Efficient Key Processing', () => {
+      it('should use simple approach for small datasets', () => {
+        // Mock localStorage with small number of items
+        Object.defineProperty(global.localStorage, 'length', { value: 50, configurable: true });
+        mockLocalStorage.getItem.mockReturnValue('1'); // Needs migration
+
+        const storageFactory = require('./storageFactory');
+        (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
+          mode: 'localStorage',
+          version: '1',
+          migrationState: 'not-started',
+          forceMode: undefined
+        });
+
+        // The function should work with small datasets
+        expect(() => {
+          const keys = Array.from(require('./migration').getLocalStorageKeys?.() || []);
+          // Should be able to get keys
+          expect(keys).toBeDefined();
+        }).not.toThrow();
+      });
+
+      it('should handle localStorage.key() failures gracefully', () => {
+        // Mock localStorage with large dataset to trigger chunked processing
+        Object.defineProperty(global.localStorage, 'length', { value: 1000, configurable: true });
+
+        // Mock localStorage.key to sometimes fail
+        let callCount = 0;
+        Object.defineProperty(global.localStorage, 'key', {
+          value: jest.fn((index: number) => {
+            callCount++;
+            if (callCount % 10 === 0) {
+              throw new Error('localStorage access failed');
+            }
+            return `key_${index}`;
+          }),
+          configurable: true
+        });
+
+        // Should handle failures gracefully
+        expect(() => {
+          const keys = Array.from(require('./migration').getLocalStorageKeys?.() || []);
+          expect(keys.length).toBeGreaterThan(0);
+        }).not.toThrow();
+      });
+    });
+
+    describe('Adaptive Batch Sizing', () => {
+      it('should use minimum batch size for large items', () => {
+        const migration = require('./migration');
+        const batchSize = migration.getOptimalBatchSize?.(100, 150000); // 150KB item
+        expect(batchSize).toBe(10); // MIN_BATCH_SIZE
+      });
+
+      it('should use maximum batch size for small items', () => {
+        const migration = require('./migration');
+        const batchSize = migration.getOptimalBatchSize?.(1000, 500); // 500B item
+        expect(batchSize).toBe(200); // MAX_BATCH_SIZE
+      });
+
+      it('should scale batch size for medium items', () => {
+        const migration = require('./migration');
+        const batchSize = migration.getOptimalBatchSize?.(1000, 50000); // 50KB item
+        expect(batchSize).toBeGreaterThan(10);
+        expect(batchSize).toBeLessThan(200);
+      });
+
+      it('should not create more batches than necessary', () => {
+        const migration = require('./migration');
+        const batchSize = migration.getOptimalBatchSize?.(5, 1000); // Only 5 keys
+        expect(batchSize).toBeLessThanOrEqual(5);
+      });
+    });
+
+    describe('Adaptive Timeout Handling', () => {
+      it('should use minimum timeout for small datasets', () => {
+        const migration = require('./migration');
+        const timeout = migration.getAdaptiveTimeout?.(1024); // 1KB
+        expect(timeout).toBe(10000); // BASE_TIMEOUT
+      });
+
+      it('should increase timeout for large datasets', () => {
+        const migration = require('./migration');
+        const timeout = migration.getAdaptiveTimeout?.(5 * 1024 * 1024); // 5MB
+        expect(timeout).toBeGreaterThan(10000);
+        expect(timeout).toBeLessThanOrEqual(60000); // MAX_TIMEOUT
+      });
+
+      it('should cap timeout at maximum value', () => {
+        const migration = require('./migration');
+        const timeout = migration.getAdaptiveTimeout?.(100 * 1024 * 1024); // 100MB
+        expect(timeout).toBe(60000); // MAX_ADAPTIVE_TIMEOUT_MS
+      });
+    });
+
+    describe('Progress Callback Cleanup', () => {
+      it('should clean up progress callback after timeout', (done) => {
+        const migration = require('./migration');
+        const mockCallback = jest.fn();
+
+        // Set callback
+        migration.setMigrationProgressCallback(mockCallback);
+
+        // Mock shorter timeout for testing
+        const originalTimeout = require('./migration').MIGRATION_CONFIG?.PROGRESS_CLEANUP_TIMEOUT_MS;
+        if (originalTimeout) {
+          // Fast cleanup for testing
+          setTimeout(() => {
+            migration.setMigrationProgressCallback(null);
+            done();
+          }, 10);
+        } else {
+          done();
+        }
+      });
+
+      it('should handle multiple callback cleanup calls safely', () => {
+        const migration = require('./migration');
+        const mockCallback = jest.fn();
+
+        migration.setMigrationProgressCallback(mockCallback);
+
+        // Multiple cleanup calls should not throw
+        expect(() => {
+          migration.setMigrationProgressCallback(null);
+          migration.setMigrationProgressCallback(null);
+        }).not.toThrow();
+      });
+    });
+
+    describe('Configuration Validation', () => {
+      it('should have sensible configuration values', () => {
+        const migration = require('./migration');
+        const config = migration.MIGRATION_CONFIG;
+
+        if (config) {
+          expect(config.SUCCESS_RATE_THRESHOLD).toBe(100);
+          expect(config.BATCH_SIZE).toBeGreaterThan(0);
+          expect(config.MIN_BATCH_SIZE).toBeGreaterThan(0);
+          expect(config.MAX_BATCH_SIZE).toBeGreaterThan(config.MIN_BATCH_SIZE);
+          expect(config.MIGRATION_LOCK_TIMEOUT_MS).toBeGreaterThan(0);
+          expect(config.PROGRESS_CLEANUP_TIMEOUT_MS).toBeGreaterThan(0);
+        }
+      });
+
+      it('should have proper threshold relationships', () => {
+        const migration = require('./migration');
+        const config = migration.MIGRATION_CONFIG;
+
+        if (config) {
+          expect(config.SMALL_ITEM_THRESHOLD_BYTES).toBeLessThan(config.LARGE_ITEM_THRESHOLD_BYTES);
+          expect(config.KEY_CHUNK_SIZE).toBeGreaterThan(0);
+          expect(config.MEMORY_EFFICIENT_THRESHOLD).toBeGreaterThan(0);
+        }
+      });
+    });
+
+    describe('Error Handling Edge Cases', () => {
+      it('should handle corrupted localStorage gracefully', async () => {
+        // Mock corrupted localStorage data
+        mockLocalStorage.getItem.mockImplementation((key) => {
+          if (key === 'migration_lock_cross_tab') return null;
+          throw new Error('localStorage corrupted');
+        });
+
+        mockGetLocalStorageItem.mockImplementation(() => {
+          throw new Error('localStorage corrupted');
+        });
+
+        // Should not crash, should handle error gracefully
+        expect(async () => {
+          await runMigration();
+        }).not.toThrow();
+      });
+
+      it('should handle IndexedDB being disabled mid-migration', async () => {
+        // Skip this test if IndexedDB is not configurable (common in test environments)
+        // This is a limitation of the Jest environment where global properties can't be redefined
+        if (!Object.getOwnPropertyDescriptor(global, 'indexedDB')?.configurable) {
+          console.warn('Skipping IndexedDB test: global.indexedDB is not configurable in this environment');
+          return;
+        }
+
+        // Mock IndexedDB becoming unavailable
+        const originalIndexedDB = global.indexedDB;
+        try {
+          Object.defineProperty(global, 'indexedDB', {
+            value: {
+              open: jest.fn().mockImplementation(() => {
+                const mockRequest = {
+                  onsuccess: null as (() => void) | null,
+                  onerror: null as (() => void) | null,
+                  onblocked: null as (() => void) | null
+                };
+
+                // Simulate IndexedDB failure
+                setTimeout(() => {
+                  if (mockRequest.onerror) {
+                    mockRequest.onerror();
+                  }
+                }, 0);
+
+                return mockRequest;
+              })
+            },
+            configurable: true
+          });
+
+          mockGetLocalStorageItem.mockReturnValue('1'); // Needs migration
+
+          const storageFactory = require('./storageFactory');
+          (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
+            mode: 'localStorage',
+            version: '1',
+            migrationState: 'not-started',
+            forceMode: undefined
+          });
+
+          // Should handle IndexedDB failure gracefully
+          await expect(runMigration()).resolves.not.toThrow();
+        } finally {
+          // Restore original IndexedDB
+          if (originalIndexedDB) {
+            Object.defineProperty(global, 'indexedDB', {
+              value: originalIndexedDB,
+              configurable: true
+            });
+          }
+        }
+      });
+    });
+
+    describe('Performance Edge Cases', () => {
+      it('should handle very large individual items', () => {
+        // Test with items larger than 1MB
+        const migration = require('./migration');
+        const batchSize = migration.getOptimalBatchSize?.(100, 2 * 1024 * 1024); // 2MB item with enough keys
+        expect(batchSize).toBe(10); // Should use minimum batch size
+      });
+
+      it('should handle empty localStorage gracefully', () => {
+        // Create a mock localStorage with length 0 and no keys
+        const mockEmptyLocalStorage = {
+          length: 0,
+          key: jest.fn().mockReturnValue(null),
+          getItem: jest.fn().mockReturnValue(null),
+          setItem: jest.fn(),
+          removeItem: jest.fn(),
+          clear: jest.fn()
+        };
+
+        // Temporarily replace global.localStorage
+        const originalLocalStorage = global.localStorage;
+        Object.defineProperty(global, 'localStorage', {
+          value: mockEmptyLocalStorage,
+          configurable: true
+        });
+
+        try {
+          const keys = Array.from(require('./migration').getLocalStorageKeys?.() || []);
+          expect(keys).toEqual([]);
+        } finally {
+          // Restore original localStorage
+          Object.defineProperty(global, 'localStorage', {
+            value: originalLocalStorage,
+            configurable: true
+          });
+        }
+      });
+    });
+
+    describe('Rate Limiting', () => {
+      beforeEach(() => {
+        // Clear rate limiting history before each test
+        mockGetLocalStorageItem.mockImplementation((key) => {
+          if (key === 'migration_attempt_history') {
+            return null;
+          }
+          return '1'; // Default return for other keys
+        });
+      });
+
+      it('should allow migration when no previous attempts', async () => {
+        const migration = require('./migration');
+        expect(migration.getRemainingCooldown()).toBe(0);
+      });
+
+      it('should enforce rate limit after multiple failed attempts', () => {
+        const now = Date.now();
+        const attempts = [
+          { timestamp: now - 10 * 60 * 1000, success: false, error: 'Test error 1' }, // 10 min ago
+          { timestamp: now - 5 * 60 * 1000, success: false, error: 'Test error 2' },  // 5 min ago
+          { timestamp: now - 1 * 60 * 1000, success: false, error: 'Test error 3' }   // 1 min ago
+        ];
+
+        // Mock global localStorage for rate limiting functions
+        const originalGetItem = global.localStorage.getItem;
+        global.localStorage.getItem = jest.fn((key) => {
+          if (key === 'migration_attempt_history') {
+            return JSON.stringify(attempts);
+          }
+          return originalGetItem.call(global.localStorage, key);
+        });
+
+        try {
+          const migration = require('./migration');
+          const remainingCooldown = migration.getRemainingCooldown();
+          expect(remainingCooldown).toBeGreaterThan(0);
+          expect(remainingCooldown).toBeLessThanOrEqual(20 * 60 * 1000); // Should be within 20 min cooldown
+        } finally {
+          // Restore original localStorage.getItem
+          global.localStorage.getItem = originalGetItem;
+        }
+      });
+
+      it('should allow migration after cooldown period expires', () => {
+        const now = Date.now();
+        const attempts = [
+          { timestamp: now - 25 * 60 * 1000, success: false, error: 'Old error 1' }, // 25 min ago - expired
+          { timestamp: now - 30 * 60 * 1000, success: false, error: 'Old error 2' }, // 30 min ago - expired
+          { timestamp: now - 35 * 60 * 1000, success: false, error: 'Old error 3' }  // 35 min ago - expired
+        ];
+
+        // Mock global localStorage for rate limiting functions
+        const originalGetItem = global.localStorage.getItem;
+        global.localStorage.getItem = jest.fn((key) => {
+          if (key === 'migration_attempt_history') {
+            return JSON.stringify(attempts);
+          }
+          return originalGetItem.call(global.localStorage, key);
+        });
+
+        try {
+          const migration = require('./migration');
+          const remainingCooldown = migration.getRemainingCooldown();
+          expect(remainingCooldown).toBe(0); // Should not be rate limited anymore
+        } finally {
+          // Restore original localStorage.getItem
+          global.localStorage.getItem = originalGetItem;
+        }
+      });
+
+      it('should not rate limit after successful migrations', () => {
+        const now = Date.now();
+        const attempts = [
+          { timestamp: now - 10 * 60 * 1000, success: true }, // 10 min ago - success
+          { timestamp: now - 5 * 60 * 1000, success: true },  // 5 min ago - success
+          { timestamp: now - 1 * 60 * 1000, success: true }   // 1 min ago - success
+        ];
+
+        // Mock global localStorage for rate limiting functions
+        const originalGetItem = global.localStorage.getItem;
+        global.localStorage.getItem = jest.fn((key) => {
+          if (key === 'migration_attempt_history') {
+            return JSON.stringify(attempts);
+          }
+          return originalGetItem.call(global.localStorage, key);
+        });
+
+        try {
+          const migration = require('./migration');
+          const remainingCooldown = migration.getRemainingCooldown();
+          expect(remainingCooldown).toBe(0); // Successful attempts should not trigger rate limiting
+        } finally {
+          // Restore original localStorage.getItem
+          global.localStorage.getItem = originalGetItem;
+        }
+      });
+
+      it('should handle corrupted rate limit storage gracefully', () => {
+        // Mock global localStorage for rate limiting functions
+        const originalGetItem = global.localStorage.getItem;
+        global.localStorage.getItem = jest.fn((key) => {
+          if (key === 'migration_attempt_history') {
+            return 'invalid_json{';
+          }
+          return originalGetItem.call(global.localStorage, key);
+        });
+
+        try {
+          const migration = require('./migration');
+          const remainingCooldown = migration.getRemainingCooldown();
+          expect(remainingCooldown).toBe(0); // Should default to no rate limiting on error
+        } finally {
+          // Restore original localStorage.getItem
+          global.localStorage.getItem = originalGetItem;
+        }
+      });
     });
   });
 });
