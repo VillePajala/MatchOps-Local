@@ -1017,24 +1017,85 @@ async function performIndexedDbMigrationEnhanced(): Promise<{
       });
 
       try {
-        // Batch cleanup for performance
+        // Batch cleanup for performance with verification
         const cleanupBatches = [];
+        let cleanupErrors = 0;
+
         for (let i = 0; i < migratedKeys.length; i += batchSize) {
           const cleanupBatch = migratedKeys.slice(i, i + batchSize);
           cleanupBatches.push(
             Promise.all(cleanupBatch.map(async (key) => {
               try {
                 await targetAdapter.removeItem?.(key);
-              } catch {
-                // Ignore individual cleanup errors
+                return { key, success: true };
+              } catch (error) {
+                cleanupErrors++;
+                logger.warn(`[Migration] Failed to clean up key "${key}":`, error);
+                return { key, success: false, error };
               }
             }))
           );
         }
-        await Promise.all(cleanupBatches);
-        logger.log('[Migration] Cleaned up partial data from IndexedDB');
-      } catch {
-        // Ignore cleanup errors
+
+        const cleanupResults = await Promise.all(cleanupBatches);
+        const totalCleanupAttempts = migratedKeys.length;
+        const successfulCleanups = cleanupResults.flat().filter(result => result.success).length;
+
+        if (cleanupErrors > 0) {
+          logger.warn(`[Migration] Cleanup completed with ${cleanupErrors} errors (${successfulCleanups}/${totalCleanupAttempts} items cleaned)`);
+
+          // Schedule secondary cleanup verification
+          setTimeout(async () => {
+            try {
+              logger.log('[Migration] Running secondary cleanup verification...');
+              let remainingItems = 0;
+
+              for (const key of migratedKeys) {
+                try {
+                  const item = await targetAdapter.getItem?.(key);
+                  if (item !== null) {
+                    remainingItems++;
+                    // Attempt cleanup again
+                    try {
+                      await targetAdapter.removeItem?.(key);
+                    } catch {
+                      logger.warn(`[Migration] Secondary cleanup failed for key: ${key}`);
+                    }
+                  }
+                } catch {
+                  // Item likely doesn't exist, which is good
+                }
+              }
+
+              if (remainingItems > 0) {
+                logger.warn(`[Migration] Secondary cleanup found ${remainingItems} orphaned items in IndexedDB`);
+              } else {
+                logger.log('[Migration] Secondary cleanup verification: all items successfully removed');
+              }
+            } catch (error) {
+              logger.warn('[Migration] Secondary cleanup verification failed:', error);
+            }
+          }, 5000); // Run secondary cleanup after 5 seconds
+        } else {
+          logger.log('[Migration] Cleaned up all partial data from IndexedDB successfully');
+        }
+      } catch (cleanupError) {
+        logger.error('[Migration] Critical cleanup failure:', cleanupError);
+        // Schedule secondary cleanup verification even on critical failure
+        setTimeout(async () => {
+          try {
+            logger.log('[Migration] Running emergency cleanup verification...');
+            for (const key of migratedKeys) {
+              try {
+                await targetAdapter.removeItem?.(key);
+              } catch {
+                // Silent cleanup attempt
+              }
+            }
+          } catch {
+            // Silent emergency cleanup
+          }
+        }, 10000); // Run emergency cleanup after 10 seconds
       }
 
       const detailedError = `Migration failed: Only ${successRate.toFixed(1)}% of data transferred successfully (${migratedKeys.length}/${totalKeys} items). Failed items: ${failedKeys}. All data remains safely in localStorage.`;
