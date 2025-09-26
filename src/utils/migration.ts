@@ -91,6 +91,13 @@ export const isIndexedDbMigrationNeeded = (): boolean => {
 let migrationInProgress = false;
 
 /**
+ * Migration configuration constants
+ */
+const MIGRATION_CONFIG = {
+  SUCCESS_RATE_THRESHOLD: 75, // Conservative threshold for small datasets
+} as const;
+
+/**
  * Main migration function - simplified for small datasets
  */
 export const runMigration = async (): Promise<void> => {
@@ -205,16 +212,20 @@ async function performIndexedDbMigration(): Promise<void> {
 
     // Transfer data with simple error handling
     const errors: string[] = [];
+    const migratedKeys: string[] = [];
 
     for (const key of allKeys) {
       try {
         const value = await sourceAdapter.getItem(key);
         if (value !== null) {
           await targetAdapter.setItem(key, value);
+          migratedKeys.push(key);
         }
-        updateProgress(`Migrated ${key}`);
-      } catch (error) {
-        const errorMsg = `Failed to migrate ${key}: ${error}`;
+        updateProgress(`Migrated ${migratedKeys.length}/${totalKeys} items`);
+      } catch {
+        // Sanitize key name for logging security
+        const sanitizedKey = key.replace(/[^a-zA-Z0-9_-]/g, '*');
+        const errorMsg = `Failed to migrate key: ${sanitizedKey}`;
         logger.warn(errorMsg);
         errors.push(errorMsg);
         // Continue with other keys even if one fails
@@ -222,14 +233,28 @@ async function performIndexedDbMigration(): Promise<void> {
     }
 
     // Check if migration was successful enough
-    const successRate = ((totalKeys - errors.length) / totalKeys) * 100;
+    const successRate = (migratedKeys.length / totalKeys) * 100;
 
-    if (successRate < 50) {
-      throw new Error(`Migration failed: Only ${successRate.toFixed(1)}% of data transferred`);
+    if (successRate < MIGRATION_CONFIG.SUCCESS_RATE_THRESHOLD) {
+      // Clean up partial IndexedDB data on failure
+      try {
+        for (const key of migratedKeys) {
+          try {
+            await targetAdapter.removeItem?.(key);
+          } catch {
+            // Ignore cleanup errors
+          }
+        }
+        logger.log('[Migration] Cleaned up partial data from IndexedDB');
+      } catch {
+        // Ignore cleanup errors
+      }
+
+      throw new Error(`Migration failed: Only ${successRate.toFixed(1)}% of data transferred successfully`);
     }
 
     if (errors.length > 0) {
-      logger.warn(`[Migration] Completed with ${errors.length} errors (${successRate.toFixed(1)}% success rate)`);
+      logger.warn(`[Migration] Completed with ${errors.length} errors (${successRate.toFixed(1)}% success rate, ${migratedKeys.length}/${totalKeys} items migrated)`);
     }
 
     // Update storage configuration to use IndexedDB
@@ -242,13 +267,14 @@ async function performIndexedDbMigration(): Promise<void> {
     logger.log('[Migration] Storage configuration updated to IndexedDB');
 
   } catch (error) {
-    logger.error('[Migration] IndexedDB migration failed:', error);
+    logger.error('[Migration] IndexedDB migration failed:', error instanceof Error ? error.message : String(error));
 
-    // Update config to indicate failure but don't crash
+    // Update config to indicate failure
     updateStorageConfig({
       migrationState: 'failed'
     });
 
+    // Re-throw to allow caller to handle graceful fallback
     throw error;
   }
 }
