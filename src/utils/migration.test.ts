@@ -129,10 +129,11 @@ describe('Simplified Migration System', () => {
   describe('isIndexedDbMigrationNeeded', () => {
     it('should return true when conditions are met', async () => {
       const storageFactory = await import('./storageFactory');
-      storageFactory.getStorageConfig.mockReturnValue({
+      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
         mode: 'localStorage',
-        version: 1,
-        forceMode: null
+        version: '1',
+        migrationState: 'not-started',
+        forceMode: undefined
       });
 
       expect(isIndexedDbMigrationNeeded()).toBe(true);
@@ -140,10 +141,11 @@ describe('Simplified Migration System', () => {
 
     it('should return false when already using IndexedDB', async () => {
       const storageFactory = await import('./storageFactory');
-      storageFactory.getStorageConfig.mockReturnValue({
+      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
         mode: 'indexedDB',
-        version: INDEXEDDB_STORAGE_VERSION,
-        forceMode: null
+        version: INDEXEDDB_STORAGE_VERSION.toString(),
+        migrationState: 'completed',
+        forceMode: undefined
       });
 
       expect(isIndexedDbMigrationNeeded()).toBe(false);
@@ -155,10 +157,11 @@ describe('Simplified Migration System', () => {
       mockGetLocalStorageItem.mockReturnValue(CURRENT_DATA_VERSION.toString());
 
       const storageFactory = await import('./storageFactory');
-      storageFactory.getStorageConfig.mockReturnValue({
+      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
         mode: 'indexedDB',
-        version: INDEXEDDB_STORAGE_VERSION,
-        forceMode: null
+        version: INDEXEDDB_STORAGE_VERSION.toString(),
+        migrationState: 'completed',
+        forceMode: undefined
       });
 
       await runMigration();
@@ -172,10 +175,11 @@ describe('Simplified Migration System', () => {
       mockGetLocalStorageItem.mockReturnValue('1'); // Old version
 
       const storageFactory = await import('./storageFactory');
-      storageFactory.getStorageConfig.mockReturnValue({
+      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
         mode: 'indexedDB',
-        version: INDEXEDDB_STORAGE_VERSION,
-        forceMode: null
+        version: INDEXEDDB_STORAGE_VERSION.toString(),
+        migrationState: 'completed',
+        forceMode: undefined
       });
 
       await runMigration();
@@ -193,11 +197,11 @@ describe('Simplified Migration System', () => {
 
       // Set up the mock for this specific test
       const storageFactory = await import('./storageFactory');
-      storageFactory.getStorageConfig.mockReturnValue({
+      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
         mode: 'localStorage',
-        version: 1,
-        forceMode: null,
-        migrationState: 'not-started'
+        version: '1',
+        migrationState: 'not-started',
+        forceMode: undefined
       });
 
       const status = getMigrationStatus();
