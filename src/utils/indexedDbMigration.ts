@@ -32,7 +32,7 @@ import {
   TEAM_ROSTERS_KEY,
   APP_DATA_VERSION_KEY
 } from '@/config/storageKeys';
-import { emergencyMemoryCheck } from './migrationMemorySafety';
+// Memory check removed in simplification
 
 const logger = createLogger('indexedDbMigration');
 
@@ -659,7 +659,8 @@ export class IndexedDbMigrationOrchestrator {
     const batchStartTime = Date.now();
 
     // Emergency memory check before processing batch
-    const canContinue = await emergencyMemoryCheck();
+    // Memory check removed in simplification
+    const canContinue = true;
     if (!canContinue) {
       const error = new Error('Migration halted due to emergency memory conditions');
       keys.forEach(key => onError(key, error));

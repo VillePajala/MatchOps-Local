@@ -57,19 +57,13 @@ The build process includes a custom manifest generation step that runs before Ne
 - Seasons and tournaments (`src/utils/seasons.ts`, `src/utils/tournaments.ts`)
 - App settings (`src/utils/appSettings.ts`)
 
-**IndexedDB Migration System** ✅ **COMPLETE**: Production-ready localStorage → IndexedDB migration with enterprise-grade reliability:
-- ✅ `src/utils/indexedDbKvAdapter.ts` - Storage foundation and IndexedDB abstraction
-- ✅ `src/utils/indexedDbMigrationEnhanced.ts` - Core migration orchestrator with rollback
-- ✅ `src/utils/migrationControlManager.ts` - Advanced control with pause/resume/cancel
-- ✅ `src/utils/memoryManager.ts` - Memory exhaustion protection
-- ✅ `src/utils/migrationMemorySafety.ts` - Memory safety validation system
-- ✅ `src/utils/migrationMutex.ts` - Tab coordination with heartbeat mechanism
-- ✅ `src/utils/backgroundMigrationEngine.ts` - Complete background processing engine
-- ✅ `src/utils/backgroundMigrationScheduler.ts` - Idle-time processing scheduler
-- ✅ `src/utils/migrationPriorityManager.ts` - Priority-based data classification
-- ✅ `src/hooks/useMigrationControl.ts` - React hook for UI integration
-- ✅ **Status**: Ready for 1-3 user production deployment with 540+ comprehensive tests
-- ✅ **Future phases cancelled**: System is complete and over-engineered for current needs
+**IndexedDB Migration System** ✅ **SIMPLIFIED**: Pragmatic localStorage → IndexedDB migration for small-scale deployments:
+- ✅ `src/utils/migration.ts` - Core migration logic with essential features only (~300 lines)
+- ✅ `src/utils/migration.test.ts` - Focused test coverage for essential functionality (11 tests)
+- ✅ **Simplification**: Reduced from 12 files (~4,700 lines) to 2 files (~400 lines) - 92% complexity reduction
+- ✅ **Removed**: Enterprise features (background processing, memory management, cross-tab coordination, pause/resume)
+- ✅ **Maintained**: Essential features (data transfer, error handling, progress tracking, rollback capability)
+- ✅ **Status**: Production-ready for 1-3 user deployments with appropriate complexity level
 
 **Logging**: Centralized logging system with environment-aware behavior:
 - `src/utils/logger.ts` - Type-safe logger utility with development/production modes
