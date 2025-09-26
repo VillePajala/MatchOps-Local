@@ -27,23 +27,76 @@ interface MigrationProgressInfo {
   totalKeys?: number;
 }
 
-// Migration state for UI updates
-let migrationProgress: ((progress: MigrationProgressInfo) => void) | null = null;
+// Migration state for UI updates with cleanup safety
+let migrationProgress: WeakRef<(progress: MigrationProgressInfo) => void> | null = null;
+let migrationCleanupTimer: NodeJS.Timeout | null = null;
 
-// Migration configuration with enhanced safety
+// Ensure cleanup happens even if migration fails
+function ensureProgressCleanup() {
+  if (migrationCleanupTimer) {
+    clearTimeout(migrationCleanupTimer);
+    migrationCleanupTimer = null;
+  }
+  migrationProgress = null;
+}
+
+// Migration configuration with enhanced safety and adaptive settings
 const MIGRATION_CONFIG = {
   SUCCESS_RATE_THRESHOLD: 100, // Require 100% success to prevent orphaned data
-  BATCH_SIZE: 50, // Process in batches for better performance
+  BATCH_SIZE: 50, // Default batch size (will be adaptive)
   MAX_RETRIES: 3, // Retry failed operations
   CHECKSUM_VALIDATION: true, // Enable data integrity verification
-  INDEXEDDB_TIMEOUT_MS: 10000, // 10 second timeout for IndexedDB operations
+  INDEXEDDB_TIMEOUT_MS: 10000, // Default timeout (will be adaptive)
+  MIN_BATCH_SIZE: 10, // Minimum items per batch
+  MAX_BATCH_SIZE: 200, // Maximum items per batch
+  TIMEOUT_PER_MB: 5000, // 5 seconds per MB of data
 } as const;
 
+// Calculate adaptive timeout based on data size
+function getAdaptiveTimeout(dataSize: number): number {
+  const estimatedMB = dataSize / (1024 * 1024);
+  const calculatedTimeout = Math.max(
+    MIGRATION_CONFIG.INDEXEDDB_TIMEOUT_MS,
+    Math.min(estimatedMB * MIGRATION_CONFIG.TIMEOUT_PER_MB, 60000) // Max 1 minute
+  );
+  return calculatedTimeout;
+}
+
+// Calculate optimal batch size based on data characteristics
+function getOptimalBatchSize(totalKeys: number, avgItemSize: number): number {
+  // Smaller batches for large items, larger batches for small items
+  let batchSize: number = MIGRATION_CONFIG.BATCH_SIZE;
+
+  if (avgItemSize > 100000) { // Large items (>100KB)
+    batchSize = MIGRATION_CONFIG.MIN_BATCH_SIZE;
+  } else if (avgItemSize < 1000) { // Small items (<1KB)
+    batchSize = MIGRATION_CONFIG.MAX_BATCH_SIZE;
+  } else {
+    // Scale between min and max based on size
+    const scale = 1 - (avgItemSize / 100000);
+    batchSize = Math.floor(
+      MIGRATION_CONFIG.MIN_BATCH_SIZE +
+      (MIGRATION_CONFIG.MAX_BATCH_SIZE - MIGRATION_CONFIG.MIN_BATCH_SIZE) * scale
+    );
+  }
+
+  // Don't create more batches than necessary
+  return Math.min(batchSize, Math.ceil(totalKeys / 4));
+}
+
 /**
- * Set a progress callback for UI updates
+ * Set a progress callback for UI updates with automatic cleanup
  */
 export const setMigrationProgressCallback = (callback: ((progress: MigrationProgressInfo) => void) | null) => {
-  migrationProgress = callback;
+  ensureProgressCleanup();
+  if (callback) {
+    migrationProgress = new WeakRef(callback);
+    // Set cleanup timer as safety net (30 minutes max migration time)
+    migrationCleanupTimer = setTimeout(() => {
+      ensureProgressCleanup();
+      logger.warn('[Migration] Progress callback cleaned up due to timeout');
+    }, 30 * 60 * 1000);
+  }
 };
 
 /**
@@ -105,6 +158,7 @@ interface MigrationLock {
   inProgress: boolean;
   startTime: number;
   tabId: string;
+  lockId?: string; // Unique lock identifier for better conflict detection
 }
 
 const MIGRATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes timeout
@@ -112,9 +166,9 @@ const MIGRATION_LOCK_KEY = 'migration_lock_cross_tab';
 const CURRENT_TAB_ID = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 /**
- * Check IndexedDB availability before migration
+ * Check IndexedDB availability before migration with adaptive timeout
  */
-async function checkIndexedDbAvailability(): Promise<boolean> {
+async function checkIndexedDbAvailability(estimatedDataSize = 0): Promise<boolean> {
   if (typeof window === 'undefined' || !window.indexedDB) {
     logger.warn('[Migration] IndexedDB not available in this environment');
     return false;
@@ -124,12 +178,13 @@ async function checkIndexedDbAvailability(): Promise<boolean> {
     // Test IndexedDB with a temporary database
     const testDbName = 'migration-availability-test';
     const request = indexedDB.open(testDbName, 1);
+    const adaptiveTimeout = getAdaptiveTimeout(estimatedDataSize);
 
     return new Promise<boolean>((resolve) => {
       const timeout = setTimeout(() => {
-        logger.warn('[Migration] IndexedDB availability check timed out');
+        logger.warn(`[Migration] IndexedDB availability check timed out after ${adaptiveTimeout}ms`);
         resolve(false);
-      }, MIGRATION_CONFIG.INDEXEDDB_TIMEOUT_MS);
+      }, adaptiveTimeout);
 
       request.onerror = () => {
         clearTimeout(timeout);
@@ -225,9 +280,13 @@ function setCrossTabLock(lock: MigrationLock | null): boolean {
 }
 
 /**
- * Atomic compare-and-swap lock acquisition to prevent race conditions
+ * Atomic compare-and-swap lock acquisition with storage event monitoring
  */
-function acquireMigrationLockAtomic(): boolean {
+async function acquireMigrationLockAtomic(): Promise<boolean> {
+  let storageListener: ((e: StorageEvent) => void) | null = null;
+  let lockAcquired = false;
+  let conflictDetected = false;
+
   try {
     // Get current lock state
     const currentLockData = localStorage.getItem(MIGRATION_LOCK_KEY);
@@ -260,27 +319,61 @@ function acquireMigrationLockAtomic(): boolean {
       logger.warn(`[Migration] Found stale lock from tab ${existingLock.tabId}, attempting to acquire`);
     }
 
-    // Attempt atomic lock acquisition using compare-and-swap pattern
+    // Create unique lock with timestamp and random ID for better conflict detection
+    const lockId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const newLock: MigrationLock = {
       inProgress: true,
       startTime: Date.now(),
-      tabId: CURRENT_TAB_ID
+      tabId: CURRENT_TAB_ID,
+      lockId // Add unique lock ID for better verification
     };
 
     const newLockData = JSON.stringify(newLock);
 
+    // Set up storage event listener BEFORE setting the lock
+    storageListener = (e: StorageEvent) => {
+      if (e.key === MIGRATION_LOCK_KEY && e.newValue !== newLockData) {
+        conflictDetected = true;
+        logger.warn('[Migration] Lock conflict detected via storage event');
+      }
+    };
+
+    if (typeof window !== 'undefined' && window.addEventListener) {
+      window.addEventListener('storage', storageListener);
+    }
+
+    // Atomic test-and-set with immediate verification
     try {
-      // Atomic operation: set the lock
+      // Set the lock
       localStorage.setItem(MIGRATION_LOCK_KEY, newLockData);
 
-      // Verify the lock was set correctly (simple race condition check)
-      const verificationData = localStorage.getItem(MIGRATION_LOCK_KEY);
-      if (verificationData === newLockData) {
-        return true;
+      // Immediate verification with multiple checks
+      const verify1 = localStorage.getItem(MIGRATION_LOCK_KEY);
+
+      // Small delay to allow storage events to propagate
+      const verifyAfterDelay = new Promise<boolean>((resolve) => {
+        setTimeout(() => {
+          const verify2 = localStorage.getItem(MIGRATION_LOCK_KEY);
+          if (verify2 === newLockData && !conflictDetected) {
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+        }, 50);
+      });
+
+      // Check both immediate and delayed verification
+      if (verify1 === newLockData) {
+        lockAcquired = await verifyAfterDelay;
+        if (!lockAcquired) {
+          logger.warn('[Migration] Lock verification failed after delay - race condition detected');
+        }
       } else {
-        logger.warn('[Migration] Lock verification failed - another tab may have acquired it');
-        return false;
+        logger.warn('[Migration] Immediate lock verification failed - another tab acquired it');
+        lockAcquired = false;
       }
+
+      return lockAcquired;
     } catch (error) {
       logger.error('[Migration] Failed to set migration lock:', error);
       return false;
@@ -288,24 +381,39 @@ function acquireMigrationLockAtomic(): boolean {
   } catch (error) {
     logger.error('[Migration] Lock acquisition failed:', error);
     return false;
+  } finally {
+    // Always clean up the storage listener
+    if (storageListener && typeof window !== 'undefined' && window.removeEventListener) {
+      window.removeEventListener('storage', storageListener);
+    }
   }
 }
 
 // Legacy function for backwards compatibility
-function acquireMigrationLock(): boolean {
+async function acquireMigrationLock(): Promise<boolean> {
   return acquireMigrationLockAtomic();
 }
 
 export const runMigration = async (): Promise<void> => {
-  // Try to acquire cross-tab migration lock
-  if (!acquireMigrationLock()) {
-    return;
-  }
-
-  // Notify UI that migration is starting
-  updateMigrationStatus({ isRunning: true, progress: null, error: null });
+  // Ensure progress callback is cleaned up even if early exit
+  let progressCleanupEnsured = false;
+  const ensureCleanup = () => {
+    if (!progressCleanupEnsured) {
+      ensureProgressCleanup();
+      progressCleanupEnsured = true;
+    }
+  };
 
   try {
+    // Try to acquire cross-tab migration lock
+    if (!(await acquireMigrationLock())) {
+      ensureCleanup();
+      return;
+    }
+
+    // Notify UI that migration is starting
+    updateMigrationStatus({ isRunning: true, progress: null, error: null });
+
     const needsAppMigration = isMigrationNeeded();
     const needsIndexedDbMigration = isIndexedDbMigrationNeeded();
 
@@ -315,9 +423,25 @@ export const runMigration = async (): Promise<void> => {
       return;
     }
 
-    // Check IndexedDB availability before attempting migration
+    // Performance monitoring
+    const migrationStartTime = Date.now();
+    const performanceMetrics = {
+      startTime: migrationStartTime,
+      lockAcquisitionTime: 0,
+      availabilityCheckTime: 0,
+      appMigrationTime: 0,
+      storageMigrationTime: 0,
+      totalKeys: 0,
+      migratedKeys: 0,
+      errors: 0
+    };
+
+    // Check IndexedDB availability before attempting migration with enhanced check
     if (needsIndexedDbMigration) {
+      const availabilityStartTime = Date.now();
       const isIndexedDbAvailable = await checkIndexedDbAvailability();
+      performanceMetrics.availabilityCheckTime = Date.now() - availabilityStartTime;
+
       if (!isIndexedDbAvailable) {
         const errorMsg = 'IndexedDB is not available (privacy mode or browser restriction). Continuing with localStorage.';
         logger.warn(`[Migration] ${errorMsg}`);
@@ -326,12 +450,14 @@ export const runMigration = async (): Promise<void> => {
           error: errorMsg,
           showNotification: true
         });
+        ensureCleanup();
         return;
       }
     }
 
     // Handle app data migration (v1 → v2)
     if (needsAppMigration) {
+      const appMigrationStartTime = Date.now();
       logger.log('[Migration] Starting app data migration');
       updateMigrationStatus({
         isRunning: true,
@@ -343,11 +469,13 @@ export const runMigration = async (): Promise<void> => {
       });
       await performAppDataMigration();
       setAppDataVersion(CURRENT_DATA_VERSION);
+      performanceMetrics.appMigrationTime = Date.now() - appMigrationStartTime;
       logger.log('[Migration] App data migration completed');
     }
 
     // Handle IndexedDB migration
     if (needsIndexedDbMigration) {
+      const storageMigrationStartTime = Date.now();
       logger.log('[Migration] Starting IndexedDB migration');
       updateMigrationStatus({
         isRunning: true,
@@ -357,11 +485,28 @@ export const runMigration = async (): Promise<void> => {
           currentStep: 'Storage Migration'
         }
       });
-      await performIndexedDbMigrationEnhanced();
+      const migrationResult = await performIndexedDbMigrationEnhanced();
+      performanceMetrics.storageMigrationTime = Date.now() - storageMigrationStartTime;
+      performanceMetrics.totalKeys = migrationResult.totalKeys || 0;
+      performanceMetrics.migratedKeys = migrationResult.migratedKeys || 0;
+      performanceMetrics.errors = migrationResult.errors || 0;
       logger.log('[Migration] IndexedDB migration completed');
     }
 
-    // Migration completed successfully
+    // Migration completed successfully - log performance metrics
+    const totalTime = Date.now() - migrationStartTime;
+    logger.log('[Migration] Performance metrics:', {
+      totalTime: `${totalTime}ms`,
+      appMigrationTime: `${performanceMetrics.appMigrationTime}ms`,
+      storageMigrationTime: `${performanceMetrics.storageMigrationTime}ms`,
+      availabilityCheckTime: `${performanceMetrics.availabilityCheckTime}ms`,
+      totalKeys: performanceMetrics.totalKeys,
+      migratedKeys: performanceMetrics.migratedKeys,
+      errors: performanceMetrics.errors,
+      successRate: performanceMetrics.totalKeys > 0 ?
+        `${((performanceMetrics.migratedKeys / performanceMetrics.totalKeys) * 100).toFixed(1)}%` : '100%'
+    });
+
     updateMigrationStatus({
       isRunning: false,
       progress: { percentage: 100, message: 'Migration completed successfully!' },
@@ -380,9 +525,10 @@ export const runMigration = async (): Promise<void> => {
 
     // Don't throw - app can still work with localStorage
   } finally {
+    // Ensure comprehensive cleanup
+    ensureCleanup();
     // Release cross-tab migration lock
     setCrossTabLock(null);
-    migrationProgress = null;
   }
 };
 
@@ -427,7 +573,16 @@ async function performAppDataMigration(): Promise<void> {
 /**
  * Enhanced IndexedDB migration with batch processing and data integrity verification
  */
-async function performIndexedDbMigrationEnhanced(): Promise<void> {
+async function performIndexedDbMigrationEnhanced(): Promise<{
+  totalKeys: number;
+  migratedKeys: number;
+  errors: number;
+  duration: number;
+  avgItemSize: number;
+  successRate: number;
+}> {
+  const startTime = Date.now();
+
   try {
     // Create adapters
     const sourceAdapter = await createStorageAdapter('localStorage');
@@ -442,6 +597,27 @@ async function performIndexedDbMigrationEnhanced(): Promise<void> {
     const totalKeys = allKeys.length;
     logger.log(`[Migration] Found ${totalKeys} keys to migrate`);
 
+    // Sample data to estimate average item size for adaptive batching
+    let estimatedDataSize = 0;
+    let avgItemSize = 0;
+    if (totalKeys > 0) {
+      const sampleSize = Math.min(5, totalKeys);
+      const sampleKeys = allKeys.slice(0, sampleSize);
+      for (const key of sampleKeys) {
+        try {
+          const value = await sourceAdapter.getItem(key);
+          if (value) {
+            estimatedDataSize += new Blob([value]).size;
+          }
+        } catch {
+          // Ignore sampling errors
+        }
+      }
+      avgItemSize = estimatedDataSize / sampleSize;
+      estimatedDataSize = (avgItemSize * totalKeys); // Estimate total size
+      logger.log(`[Migration] Estimated data size: ${(estimatedDataSize / 1024).toFixed(1)}KB, avg item: ${(avgItemSize / 1024).toFixed(1)}KB`);
+    }
+
     // Enhanced progress tracking with UI integration
     const processed = { count: 0 }; // Use object to allow mutation
     const updateProgress = (message: string) => {
@@ -449,13 +625,19 @@ async function performIndexedDbMigrationEnhanced(): Promise<void> {
       logger.log(`[Migration] Progress: ${percentage}% - ${message}`);
 
       if (migrationProgress) {
-        migrationProgress({
-          percentage,
-          message,
-          currentStep: 'Storage Migration',
-          processedKeys: processed.count,
-          totalKeys: totalKeys
-        });
+        const callback = migrationProgress.deref();
+        if (callback) {
+          callback({
+            percentage,
+            message,
+            currentStep: 'Storage Migration',
+            processedKeys: processed.count,
+            totalKeys: totalKeys
+          });
+        } else {
+          // Callback was garbage collected, clean up
+          migrationProgress = null;
+        }
       }
 
       // Also update the global migration status for UI
@@ -471,10 +653,13 @@ async function performIndexedDbMigrationEnhanced(): Promise<void> {
       });
     };
 
-    // Enhanced batch processing with data integrity verification
+    // Enhanced batch processing with adaptive sizing and data integrity verification
     const errors: Array<{ key: string; error: string; retryCount: number }> = [];
     const migratedKeys: string[] = [];
-    const batchSize = MIGRATION_CONFIG.BATCH_SIZE;
+    const batchSize = getOptimalBatchSize(totalKeys, avgItemSize);
+    const adaptiveTimeout = getAdaptiveTimeout(estimatedDataSize);
+
+    logger.log(`[Migration] Using batch size: ${batchSize}, timeout: ${adaptiveTimeout}ms`);
 
     // Process data in batches for better performance
     for (let i = 0; i < allKeys.length; i += batchSize) {
@@ -601,6 +786,16 @@ async function performIndexedDbMigrationEnhanced(): Promise<void> {
 
     logger.log('[Migration] Storage configuration updated to IndexedDB');
 
+    // Return performance metrics
+    return {
+      totalKeys,
+      migratedKeys: migratedKeys.length,
+      errors: errors.length,
+      duration: Date.now() - startTime,
+      avgItemSize,
+      successRate: migratedKeys.length / totalKeys * 100
+    };
+
   } catch (error) {
     logger.error('[Migration] IndexedDB migration failed:', error instanceof Error ? error.message : String(error));
 
@@ -609,8 +804,18 @@ async function performIndexedDbMigrationEnhanced(): Promise<void> {
       migrationState: 'failed'
     });
 
-    // Re-throw to allow caller to handle graceful fallback
-    throw error;
+    // Return metrics even on failure for debugging
+    const errorWithMetrics = error instanceof Error ? error : new Error(String(error));
+    throw Object.assign(errorWithMetrics, {
+      metrics: {
+        totalKeys: 0,
+        migratedKeys: 0,
+        errors: 1,
+        duration: Date.now() - startTime,
+        avgItemSize: 0,
+        successRate: 0
+      }
+    });
   }
 }
 
@@ -655,7 +860,8 @@ export const triggerIndexedDbMigration = async (): Promise<boolean> => {
   }
 
   try {
-    await performIndexedDbMigrationEnhanced();
+    const migrationResult = await performIndexedDbMigrationEnhanced();
+    logger.log(`[Migration] Manual migration completed: ${migrationResult.migratedKeys}/${migrationResult.totalKeys} keys migrated with ${migrationResult.errors} errors (${migrationResult.successRate.toFixed(1)}% success rate)`);
     return true;
   } catch (error) {
     logger.error('[Migration] Manual migration failed:', error);

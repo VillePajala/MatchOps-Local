@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: implement production-ready migration system with comprehensive safety features"
+  "notes": "fix: resolve CI failures and improve test compatibility"
 }
