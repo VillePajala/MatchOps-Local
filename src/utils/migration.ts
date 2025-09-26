@@ -86,9 +86,15 @@ export const isIndexedDbMigrationNeeded = (): boolean => {
 };
 
 /**
- * Simple migration lock to prevent concurrent runs
+ * Migration lock with automatic timeout recovery
  */
-let migrationInProgress = false;
+interface MigrationLock {
+  inProgress: boolean;
+  startTime: number;
+}
+
+let migrationLock: MigrationLock | null = null;
+const MIGRATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes timeout
 
 /**
  * Migration configuration constants
@@ -101,14 +107,22 @@ const MIGRATION_CONFIG = {
  * Main migration function - simplified for small datasets
  */
 export const runMigration = async (): Promise<void> => {
-  // Prevent concurrent migrations
-  if (migrationInProgress) {
-    logger.log('[Migration] Already in progress, skipping');
-    return;
+  // Check for stale migration lock and clear if needed
+  if (migrationLock) {
+    const timeSinceStart = Date.now() - migrationLock.startTime;
+    if (timeSinceStart > MIGRATION_TIMEOUT_MS) {
+      logger.warn('[Migration] Clearing stale migration lock (timeout)');
+      migrationLock = null;
+    } else if (migrationLock.inProgress) {
+      logger.log('[Migration] Already in progress, skipping');
+      return;
+    }
   }
 
+  // Set migration lock with timestamp
+  migrationLock = { inProgress: true, startTime: Date.now() };
+
   try {
-    migrationInProgress = true;
 
     const needsAppMigration = isMigrationNeeded();
     const needsIndexedDbMigration = isIndexedDbMigrationNeeded();
@@ -137,7 +151,7 @@ export const runMigration = async (): Promise<void> => {
     logger.error('[Migration] Migration failed:', error);
     // Don't throw - app can still work with localStorage
   } finally {
-    migrationInProgress = false;
+    migrationLock = null;
     migrationProgress = null;
   }
 };
@@ -325,4 +339,12 @@ export const triggerIndexedDbMigration = async (): Promise<boolean> => {
 export const getMasterRosterCompat = async () => {
   const { getMasterRoster } = await import('./masterRosterManager');
   return getMasterRoster();
+};
+/**
+ * Manual migration lock reset (for debugging/recovery)
+ * Useful if browser crashes during migration leaving lock in place
+ */
+export const resetMigrationLock = (): void => {
+  migrationLock = null;
+  logger.log('[Migration] Manual lock reset performed');
 };
