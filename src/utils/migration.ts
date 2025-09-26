@@ -86,41 +86,96 @@ export const isIndexedDbMigrationNeeded = (): boolean => {
 };
 
 /**
- * Migration lock with automatic timeout recovery
+ * Migration lock with cross-tab coordination
  */
 interface MigrationLock {
   inProgress: boolean;
   startTime: number;
+  tabId: string;
 }
 
-let migrationLock: MigrationLock | null = null;
 const MIGRATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes timeout
+const MIGRATION_LOCK_KEY = 'migration_lock_cross_tab';
+const CURRENT_TAB_ID = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 /**
  * Migration configuration constants
  */
 const MIGRATION_CONFIG = {
-  SUCCESS_RATE_THRESHOLD: 75, // Conservative threshold for small datasets
+  SUCCESS_RATE_THRESHOLD: 100, // Require 100% success to prevent orphaned data
 } as const;
 
 /**
  * Main migration function - simplified for small datasets
  */
-export const runMigration = async (): Promise<void> => {
-  // Check for stale migration lock and clear if needed
-  if (migrationLock) {
-    const timeSinceStart = Date.now() - migrationLock.startTime;
+/**
+ * Get cross-tab migration lock from localStorage
+ */
+function getCrossTabLock(): MigrationLock | null {
+  try {
+    const lockData = localStorage.getItem(MIGRATION_LOCK_KEY);
+    return lockData ? JSON.parse(lockData) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Set cross-tab migration lock in localStorage
+ */
+function setCrossTabLock(lock: MigrationLock | null): boolean {
+  try {
+    if (lock) {
+      localStorage.setItem(MIGRATION_LOCK_KEY, JSON.stringify(lock));
+    } else {
+      localStorage.removeItem(MIGRATION_LOCK_KEY);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Acquire migration lock with cross-tab coordination
+ */
+function acquireMigrationLock(): boolean {
+  const existingLock = getCrossTabLock();
+
+  if (existingLock) {
+    const timeSinceStart = Date.now() - existingLock.startTime;
+
+    // Check if lock is stale (timeout)
     if (timeSinceStart > MIGRATION_TIMEOUT_MS) {
-      logger.warn('[Migration] Clearing stale migration lock (timeout)');
-      migrationLock = null;
-    } else if (migrationLock.inProgress) {
-      logger.log('[Migration] Already in progress, skipping');
-      return;
+      logger.warn(`[Migration] Clearing stale lock from tab ${existingLock.tabId} (timeout)`);
+      setCrossTabLock(null);
+    } else {
+      // Lock is active and owned by another tab
+      if (existingLock.tabId !== CURRENT_TAB_ID) {
+        logger.log('[Migration] Migration in progress in another tab, skipping');
+        return false;
+      }
+      // Lock is owned by current tab - already in progress
+      logger.log('[Migration] Already in progress in current tab, skipping');
+      return false;
     }
   }
 
-  // Set migration lock with timestamp
-  migrationLock = { inProgress: true, startTime: Date.now() };
+  // Try to acquire lock
+  const newLock: MigrationLock = {
+    inProgress: true,
+    startTime: Date.now(),
+    tabId: CURRENT_TAB_ID
+  };
+
+  return setCrossTabLock(newLock);
+}
+
+export const runMigration = async (): Promise<void> => {
+  // Try to acquire cross-tab migration lock
+  if (!acquireMigrationLock()) {
+    return;
+  }
 
   try {
 
@@ -151,7 +206,8 @@ export const runMigration = async (): Promise<void> => {
     logger.error('[Migration] Migration failed:', error);
     // Don't throw - app can still work with localStorage
   } finally {
-    migrationLock = null;
+    // Release cross-tab migration lock
+    setCrossTabLock(null);
     migrationProgress = null;
   }
 };
@@ -246,7 +302,7 @@ async function performIndexedDbMigration(): Promise<void> {
       }
     }
 
-    // Check if migration was successful enough
+    // Check if migration was 100% successful to prevent orphaned data
     const successRate = (migratedKeys.length / totalKeys) * 100;
 
     if (successRate < MIGRATION_CONFIG.SUCCESS_RATE_THRESHOLD) {
@@ -264,7 +320,7 @@ async function performIndexedDbMigration(): Promise<void> {
         // Ignore cleanup errors
       }
 
-      throw new Error(`Migration failed: Only ${successRate.toFixed(1)}% of data transferred successfully`);
+      throw new Error(`Migration failed: Only ${successRate.toFixed(1)}% of data transferred successfully. All data remains safely in localStorage.`);
     }
 
     if (errors.length > 0) {
@@ -345,6 +401,6 @@ export const getMasterRosterCompat = async () => {
  * Useful if browser crashes during migration leaving lock in place
  */
 export const resetMigrationLock = (): void => {
-  migrationLock = null;
-  logger.log('[Migration] Manual lock reset performed');
+  setCrossTabLock(null);
+  logger.log('[Migration] Manual cross-tab lock reset performed');
 };
