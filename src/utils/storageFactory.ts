@@ -139,7 +139,7 @@ export const STORAGE_CONFIG_KEYS = {
  * Default configuration values
  */
 export const DEFAULT_STORAGE_CONFIG: StorageConfig = {
-  mode: 'localStorage',
+  mode: 'indexedDB',
   version: '1.0.0',
   migrationState: 'not-started',
   migrationFailureCount: 0
@@ -371,11 +371,24 @@ export class StorageFactory {
     let adapter: StorageAdapter;
 
     if (targetMode === 'indexedDB') {
-      // Attempt to create IndexedDB adapter with fallback
-      adapter = await this.createIndexedDBAdapter(config);
+      // Create IndexedDB adapter (IndexedDB-only mode)
+      adapter = await this.createIndexedDBAdapter();
     } else {
-      // Create localStorage adapter
-      adapter = await this.createLocalStorageAdapter();
+      // localStorage mode not supported in IndexedDB-only architecture
+      const error = new Error('localStorage mode not supported. This application requires IndexedDB to function.');
+      this.logger.error('localStorage mode requested but not supported in IndexedDB-only architecture');
+
+      this.sendTelemetry({
+        event: 'adapter_failed',
+        mode: 'localStorage',
+        timestamp: Date.now(),
+        details: {
+          failureReason: 'localStorage mode not supported',
+          error: error.message
+        }
+      });
+
+      throw error;
     }
 
     // Cache the successful adapter and config with version
@@ -999,53 +1012,31 @@ export class StorageFactory {
   /**
    * Create IndexedDB adapter with intelligent fallback logic
    */
-  private async createIndexedDBAdapter(config: StorageConfig): Promise<StorageAdapter> {
-    const failureCount = config.migrationFailureCount || 0;
-
-    // Check if too many migration failures occurred
-    if (failureCount >= MAX_MIGRATION_FAILURES) {
-      this.logger.warn('Too many migration failures, falling back to localStorage', {
-        failureCount,
-        maxFailures: MAX_MIGRATION_FAILURES
-      });
-      return this.createLocalStorageAdapter();
-    }
-
-    // Check if enough time has passed since last failure (exponential backoff)
-    if (failureCount > 0 && !this.canRetryAfterBackoff(config.lastMigrationAttempt, failureCount)) {
-      const backoffDelay = this.calculateBackoffDelay(failureCount);
-      const nextRetryTime = config.lastMigrationAttempt ?
-        new Date(new Date(config.lastMigrationAttempt).getTime() + backoffDelay).toISOString() :
-        'unknown';
-
-      this.logger.warn('IndexedDB retry blocked by exponential backoff, falling back to localStorage', {
-        failureCount,
-        nextRetryTime,
-        backoffDelayMs: backoffDelay
-      });
-
-      this.sendTelemetry({
-        event: 'fallback_triggered',
-        mode: 'localStorage',
-        timestamp: Date.now(),
-        details: { fallbackReason: 'exponential_backoff', failureCount, backoffDelayMs: backoffDelay }
-      });
-
-      return this.createLocalStorageAdapter();
-    }
+  private async createIndexedDBAdapter(): Promise<StorageAdapter> {
+    // IndexedDB-only mode: no localStorage fallbacks
+    this.logger.debug('Creating IndexedDB adapter (IndexedDB-only mode)');
 
     // Check IndexedDB support
     const isSupported = await this.isIndexedDBSupported();
     if (!isSupported) {
-      this.logger.warn('IndexedDB not supported, falling back to localStorage');
-      // Update config to reflect fallback
-      await this.updateStorageConfig({ mode: 'localStorage' });
-      return this.createLocalStorageAdapter();
+      const error = new Error('IndexedDB not supported. This application requires IndexedDB to function. Please disable private mode or use a modern browser.');
+      this.logger.error('IndexedDB not supported - no fallback available', { error });
+
+      this.sendTelemetry({
+        event: 'adapter_failed',
+        mode: 'indexedDB',
+        timestamp: Date.now(),
+        details: {
+          failureReason: 'IndexedDB not supported',
+          error: error.message
+        }
+      });
+
+      throw error;
     }
 
     try {
       // Attempt to create IndexedDB adapter
-      this.logger.debug('Creating IndexedDB adapter');
       const adapter = new IndexedDBKvAdapter();
 
       // Test the adapter with a simple operation
@@ -1055,30 +1046,22 @@ export class StorageFactory {
       return adapter;
 
     } catch (error) {
-      this.logger.error('Failed to create IndexedDB adapter, falling back to localStorage', { error });
+      const errorMessage = `IndexedDB adapter creation failed. This application requires IndexedDB to function. ${error instanceof Error ? error.message : 'Unknown error'}`;
+      const indexedDBError = new Error(errorMessage);
 
-      // Increment failure count
-      const newFailureCount = (config.migrationFailureCount || 0) + 1;
-      await this.updateStorageConfig({
-        mode: 'localStorage',
-        migrationState: 'failed',
-        migrationFailureCount: newFailureCount,
-        lastMigrationAttempt: new Date().toISOString()
-      });
+      this.logger.error('Failed to create IndexedDB adapter - no fallback available', { error });
 
-      // Send fallback telemetry
       this.sendTelemetry({
-        event: 'fallback_triggered',
-        mode: 'localStorage',
+        event: 'adapter_failed',
+        mode: 'indexedDB',
         timestamp: Date.now(),
         details: {
-          fallbackReason: 'IndexedDB creation failed',
-          failureCount: newFailureCount,
+          failureReason: 'IndexedDB creation failed',
           error: error instanceof Error ? error.message : 'Unknown error'
         }
       });
 
-      return this.createLocalStorageAdapter();
+      throw indexedDBError;
     }
   }
 
