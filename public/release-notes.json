@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: add secondary cleanup verification for partial migration failures"
+  "notes": "docs: complete IndexedDB-only architecture documentation"
 }
