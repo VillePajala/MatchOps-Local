@@ -15,6 +15,33 @@ import { LocalStorageAdapter } from './localStorageAdapter';
 // Create fresh store for each test
 let testStore: { [key: string]: string } = {};
 
+// Mock IndexedDB for all tests
+(global as { indexedDB?: unknown }).indexedDB = {
+  open: jest.fn(() => {
+    const mockRequest = {
+      onsuccess: null as (() => void) | null,
+      onerror: null as (() => void) | null,
+      onblocked: null as (() => void) | null,
+      result: {
+        close: jest.fn(),
+        transaction: jest.fn(() => ({
+          objectStore: jest.fn(() => ({
+            get: jest.fn(),
+            put: jest.fn(),
+            delete: jest.fn(),
+            clear: jest.fn()
+          }))
+        }))
+      }
+    };
+    // Simulate successful IndexedDB open
+    setTimeout(() => {
+      if (mockRequest.onsuccess) mockRequest.onsuccess();
+    }, 0);
+    return mockRequest;
+  })
+};
+
 // Mock localStorage utilities
 jest.mock('./localStorage', () => ({
   getLocalStorageItem: jest.fn((key: string) => testStore[key] || null),
@@ -77,7 +104,7 @@ describe('StorageFactory Core Functionality', () => {
     test('should return default configuration', () => {
       const config = factory.getStorageConfig();
 
-      expect(config.mode).toBe('localStorage');
+      expect(config.mode).toBe('indexedDB'); // IndexedDB-only architecture
       expect(config.version).toBe('1.0.0');
       expect(config.migrationState).toBe('not-started');
       expect(config.migrationFailureCount).toBe(0);
@@ -96,11 +123,17 @@ describe('StorageFactory Core Functionality', () => {
   });
 
   describe('Adapter Creation', () => {
-    test('should create localStorage adapter by default', async () => {
-      const adapter = await factory.createAdapter('localStorage');
+    test('should create IndexedDB adapter by default', async () => {
+      const adapter = await factory.createAdapter('indexedDB');
 
-      expect(adapter).toBeInstanceOf(LocalStorageAdapter);
-      expect(adapter.getBackendName()).toBe('localStorage');
+      expect(adapter).toBeInstanceOf(IndexedDBKvAdapter);
+      expect(adapter.getBackendName()).toBe('indexedDB');
+    });
+
+    test('should reject localStorage adapter creation', async () => {
+      await expect(factory.createAdapter('localStorage')).rejects.toThrow(
+        'localStorage mode not supported. This application requires IndexedDB to function.'
+      );
     });
 
     test('should detect IndexedDB support', async () => {
@@ -117,14 +150,15 @@ describe('StorageFactory Core Functionality', () => {
   });
 
   describe('Error Handling', () => {
-    test('should handle missing IndexedDB gracefully', async () => {
+    test('should throw error when IndexedDB is not available', async () => {
       const originalIndexedDB = (global as { indexedDB?: unknown }).indexedDB;
       delete (global as { indexedDB?: unknown }).indexedDB;
 
       await factory.updateStorageConfig({ mode: 'indexedDB' });
-      const adapter = await factory.createAdapter();
 
-      expect(adapter).toBeInstanceOf(LocalStorageAdapter);
+      await expect(factory.createAdapter()).rejects.toThrow(
+        'IndexedDB not supported. This application requires IndexedDB to function.'
+      );
 
       // Restore
       (global as { indexedDB?: unknown }).indexedDB = originalIndexedDB;
@@ -133,20 +167,21 @@ describe('StorageFactory Core Functionality', () => {
 
   describe('Reset Functionality', () => {
     test('should reset configuration', async () => {
-      // Ensure we start with default state
+      // Ensure we start with default state (IndexedDB-only)
       await factory.resetToDefaults();
       const initialConfig = factory.getStorageConfig();
-      expect(initialConfig.mode).toBe('localStorage');
+      expect(initialConfig.mode).toBe('indexedDB'); // IndexedDB is now default
 
-      // Update to indexedDB
-      await factory.updateStorageConfig({ mode: 'indexedDB' });
+      // Update some other config value to test reset
+      await factory.updateStorageConfig({ version: '2.0.0' });
       const updatedConfig = factory.getStorageConfig();
-      expect(updatedConfig.mode).toBe('indexedDB');
+      expect(updatedConfig.version).toBe('2.0.0');
 
       // Reset back to defaults
       await factory.resetToDefaults();
       const resetConfig = factory.getStorageConfig();
-      expect(resetConfig.mode).toBe('localStorage');
+      expect(resetConfig.mode).toBe('indexedDB'); // IndexedDB is now default
+      expect(resetConfig.version).toBe('1.0.0'); // Version should reset too
     });
   });
 });
@@ -162,11 +197,11 @@ describe('Convenience Functions', () => {
   });
 
   test('should work with convenience functions', async () => {
-    const adapter = await createStorageAdapter('localStorage');
-    expect(adapter).toBeInstanceOf(LocalStorageAdapter);
+    const adapter = await createStorageAdapter('indexedDB');
+    expect(adapter).toBeInstanceOf(IndexedDBKvAdapter);
 
     const config = getStorageConfig();
-    expect(config.mode).toBe('localStorage');
+    expect(config.mode).toBe('indexedDB'); // IndexedDB-only architecture
 
     await updateStorageConfig({ version: '2.0.0' });
     const updatedConfig = getStorageConfig();

@@ -51,20 +51,31 @@ jest.mock('./teams', () => ({
   setTeamRoster: jest.fn().mockResolvedValue(undefined)
 }));
 
-jest.mock('./storageFactory', () => ({
-  getStorageConfig: jest.fn(() => ({
-    mode: 'localStorage',
-    version: 1,
-    forceMode: null,
-    migrationState: 'not-started'
-  })),
-  createStorageAdapter: jest.fn().mockResolvedValue({
-    getItem: jest.fn().mockResolvedValue(null),
-    setItem: jest.fn().mockResolvedValue(undefined),
+jest.mock('./storageFactory', () => {
+  // Mock storage adapter for IndexedDB lock operations
+  const mockAdapter = {
+    getItem: jest.fn().mockResolvedValue(null), // No existing lock
+    setItem: jest.fn().mockResolvedValue(undefined), // Lock setting succeeds
+    removeItem: jest.fn().mockResolvedValue(undefined), // Lock removal succeeds
     getAllKeys: jest.fn().mockResolvedValue([])
-  }),
-  updateStorageConfig: jest.fn()
-}));
+  };
+
+  return {
+    getStorageConfig: jest.fn(() => ({
+      mode: 'localStorage',
+      version: 1,
+      forceMode: null,
+      migrationState: 'not-started'
+    })),
+    createStorageAdapter: jest.fn().mockResolvedValue(mockAdapter),
+    updateStorageConfig: jest.fn(),
+    mockStorageAdapter: mockAdapter // Export for test access
+  };
+});
+
+// Get the mock adapter for tests
+const storageFactory = require('./storageFactory');
+const mockStorageAdapter = storageFactory.mockStorageAdapter;
 
 jest.mock('./logger', () => ({
   __esModule: true,
@@ -234,24 +245,24 @@ describe('Simplified Migration System', () => {
 
       mockGetLocalStorageItem.mockReturnValue('1'); // Old version
 
-      // Mock localStorage for lock operations - ensure lock acquisition succeeds
-      mockLocalStorage.getItem.mockImplementation((key) => {
+      // Mock IndexedDB adapter for lock operations - ensure lock acquisition succeeds
+      let lockData: string | null = null;
+      mockStorageAdapter.getItem.mockImplementation(async (key: string) => {
         if (key === 'migration_lock_cross_tab') {
-          return null; // No existing lock
+          return lockData; // Return current lock state
         }
         return null;
       });
 
-      // Mock successful lock verification
-      mockLocalStorage.setItem.mockImplementation((key, value) => {
+      mockStorageAdapter.setItem.mockImplementation(async (key: string, value: string) => {
         if (key === 'migration_lock_cross_tab') {
-          // Make getItem return the value we just set
-          mockLocalStorage.getItem.mockImplementation((checkKey) => {
-            if (checkKey === 'migration_lock_cross_tab') {
-              return value;
-            }
-            return null;
-          });
+          lockData = value; // Store lock data
+        }
+      });
+
+      mockStorageAdapter.removeItem.mockImplementation(async (key: string) => {
+        if (key === 'migration_lock_cross_tab') {
+          lockData = null; // Clear lock data
         }
       });
 
@@ -402,24 +413,24 @@ describe('Simplified Migration System', () => {
 
       mockGetLocalStorageItem.mockReturnValue('1'); // Needs app migration
 
-      // Mock localStorage for lock operations - ensure lock acquisition succeeds (same pattern as working test)
-      mockLocalStorage.getItem.mockImplementation((key) => {
+      // Mock IndexedDB adapter for lock operations - ensure lock acquisition succeeds
+      let lockData: string | null = null;
+      mockStorageAdapter.getItem.mockImplementation(async (key: string) => {
         if (key === 'migration_lock_cross_tab') {
-          return null; // No existing lock
+          return lockData; // Return current lock state
         }
         return null;
       });
 
-      // Mock successful lock verification (crucial for atomic lock to work)
-      mockLocalStorage.setItem.mockImplementation((key, value) => {
+      mockStorageAdapter.setItem.mockImplementation(async (key: string, value: string) => {
         if (key === 'migration_lock_cross_tab') {
-          // Make getItem return the value we just set
-          mockLocalStorage.getItem.mockImplementation((checkKey) => {
-            if (checkKey === 'migration_lock_cross_tab') {
-              return value;
-            }
-            return null;
-          });
+          lockData = value; // Store lock data
+        }
+      });
+
+      mockStorageAdapter.removeItem.mockImplementation(async (key: string) => {
+        if (key === 'migration_lock_cross_tab') {
+          lockData = null; // Clear lock data
         }
       });
 
@@ -434,7 +445,7 @@ describe('Simplified Migration System', () => {
       await runMigration();
 
       // Should have attempted to set a new lock
-      expect(mockLocalStorage.setItem).toHaveBeenCalled();
+      expect(mockStorageAdapter.setItem).toHaveBeenCalled();
 
       const teams = await import('./teams');
       expect(teams.addTeam).toHaveBeenCalled(); // Migration should have proceeded
