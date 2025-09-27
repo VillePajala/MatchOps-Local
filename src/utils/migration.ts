@@ -602,6 +602,11 @@ async function acquireMigrationLockAtomic(): Promise<boolean> {
 
     // Create unique lock with timestamp and random ID for better conflict detection
     const lockId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    if (!lockId) {
+      logger.error('[Migration] Failed to generate lockId');
+      return false;
+    }
+
     const newLock: MigrationLock = {
       inProgress: true,
       startTime: Date.now(),
@@ -616,20 +621,35 @@ async function acquireMigrationLockAtomic(): Promise<boolean> {
       return false;
     }
 
-    // Verification with multiple checks using polling
+    // Verification with multiple checks using adaptive polling
     const verifyWithPolling = new Promise<boolean>((resolve) => {
       let checkCount = 0;
       const maxChecks = 3;
-      const checkInterval = 100; // 100ms between checks for IndexedDB polling
+      // Adaptive interval: starts at 50ms, increases under load
+      const baseInterval = parseInt(process.env.NEXT_PUBLIC_MIGRATION_POLL_INTERVAL_MS || '50', 10);
+
+      const getAdaptiveInterval = (attempt: number): number => {
+        // Under high load (detected by failed IndexedDB operations), use exponential backoff
+        // Normal case: 50ms, 75ms, 100ms
+        return Math.min(baseInterval * (1 + attempt * 0.5), 200);
+      };
 
       const performCheck = async () => {
         checkCount++;
         try {
           const currentLock = await getCrossTabLock();
 
-          if (!currentLock || currentLock.lockId !== newLock.lockId) {
-            // Lock was overwritten by another tab
-            logger.warn('[Migration] Lock verification failed - another tab acquired the lock');
+          // Robust lock verification with proper null checks
+          if (!currentLock ||
+              !currentLock.lockId ||
+              !newLock.lockId ||
+              currentLock.lockId !== newLock.lockId) {
+            // Lock was overwritten by another tab or missing lockId
+            logger.warn('[Migration] Lock verification failed - another tab acquired the lock or lockId missing', {
+              currentLockId: currentLock?.lockId,
+              newLockId: newLock.lockId,
+              hasCurrentLock: !!currentLock
+            });
             resolve(false);
             return;
           }
@@ -641,16 +661,23 @@ async function acquireMigrationLockAtomic(): Promise<boolean> {
             return;
           }
 
-          // Schedule next check
-          setTimeout(performCheck, checkInterval);
+          // Schedule next check with adaptive interval
+          const nextInterval = getAdaptiveInterval(checkCount);
+          setTimeout(performCheck, nextInterval);
         } catch (error) {
           logger.error('[Migration] Lock verification check failed:', error);
-          resolve(false);
+          // On error, use longer interval for next attempt
+          const errorInterval = getAdaptiveInterval(checkCount + 2);
+          if (checkCount < maxChecks) {
+            setTimeout(performCheck, errorInterval);
+          } else {
+            resolve(false);
+          }
         }
       };
 
-      // Start first check after initial delay
-      setTimeout(performCheck, checkInterval);
+      // Start first check with base interval
+      setTimeout(performCheck, baseInterval);
     });
 
     return await verifyWithPolling;

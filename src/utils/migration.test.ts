@@ -791,11 +791,14 @@ describe('Simplified Migration System', () => {
       });
 
       it('should allow migration when no previous attempts', async () => {
+        // Mock no existing rate limit data
+        mockStorageAdapter.getItem.mockResolvedValue(null);
+
         const migration = require('./migration');
-        expect(migration.getRemainingCooldown()).toBe(0);
+        expect(await migration.getRemainingCooldown()).toBe(0);
       });
 
-      it('should enforce rate limit after multiple failed attempts', () => {
+      it('should enforce rate limit after multiple failed attempts', async () => {
         const now = Date.now();
         const attempts = [
           { timestamp: now - 10 * 60 * 1000, success: false, error: 'Test error 1' }, // 10 min ago
@@ -803,27 +806,21 @@ describe('Simplified Migration System', () => {
           { timestamp: now - 1 * 60 * 1000, success: false, error: 'Test error 3' }   // 1 min ago
         ];
 
-        // Mock global localStorage for rate limiting functions
-        const originalGetItem = global.localStorage.getItem;
-        global.localStorage.getItem = jest.fn((key) => {
+        // Mock IndexedDB adapter to return rate limit data
+        mockStorageAdapter.getItem.mockImplementation(async (key: string) => {
           if (key === 'migration_attempt_history') {
             return JSON.stringify(attempts);
           }
-          return originalGetItem.call(global.localStorage, key);
+          return null;
         });
 
-        try {
-          const migration = require('./migration');
-          const remainingCooldown = migration.getRemainingCooldown();
-          expect(remainingCooldown).toBeGreaterThan(0);
-          expect(remainingCooldown).toBeLessThanOrEqual(20 * 60 * 1000); // Should be within 20 min cooldown
-        } finally {
-          // Restore original localStorage.getItem
-          global.localStorage.getItem = originalGetItem;
-        }
+        const migration = require('./migration');
+        const remainingCooldown = await migration.getRemainingCooldown();
+        expect(remainingCooldown).toBeGreaterThan(0);
+        expect(remainingCooldown).toBeLessThanOrEqual(20 * 60 * 1000); // Should be within 20 min cooldown
       });
 
-      it('should allow migration after cooldown period expires', () => {
+      it('should allow migration after cooldown period expires', async () => {
         const now = Date.now();
         const attempts = [
           { timestamp: now - 25 * 60 * 1000, success: false, error: 'Old error 1' }, // 25 min ago - expired
@@ -831,26 +828,20 @@ describe('Simplified Migration System', () => {
           { timestamp: now - 35 * 60 * 1000, success: false, error: 'Old error 3' }  // 35 min ago - expired
         ];
 
-        // Mock global localStorage for rate limiting functions
-        const originalGetItem = global.localStorage.getItem;
-        global.localStorage.getItem = jest.fn((key) => {
+        // Mock IndexedDB adapter to return expired rate limit data
+        mockStorageAdapter.getItem.mockImplementation(async (key: string) => {
           if (key === 'migration_attempt_history') {
             return JSON.stringify(attempts);
           }
-          return originalGetItem.call(global.localStorage, key);
+          return null;
         });
 
-        try {
-          const migration = require('./migration');
-          const remainingCooldown = migration.getRemainingCooldown();
-          expect(remainingCooldown).toBe(0); // Should not be rate limited anymore
-        } finally {
-          // Restore original localStorage.getItem
-          global.localStorage.getItem = originalGetItem;
-        }
+        const migration = require('./migration');
+        const remainingCooldown = await migration.getRemainingCooldown();
+        expect(remainingCooldown).toBe(0); // Should not be rate limited anymore
       });
 
-      it('should not rate limit after successful migrations', () => {
+      it('should not rate limit after successful migrations', async () => {
         const now = Date.now();
         const attempts = [
           { timestamp: now - 10 * 60 * 1000, success: true }, // 10 min ago - success
@@ -858,43 +849,31 @@ describe('Simplified Migration System', () => {
           { timestamp: now - 1 * 60 * 1000, success: true }   // 1 min ago - success
         ];
 
-        // Mock global localStorage for rate limiting functions
-        const originalGetItem = global.localStorage.getItem;
-        global.localStorage.getItem = jest.fn((key) => {
+        // Mock IndexedDB adapter to return successful attempts
+        mockStorageAdapter.getItem.mockImplementation(async (key: string) => {
           if (key === 'migration_attempt_history') {
             return JSON.stringify(attempts);
           }
-          return originalGetItem.call(global.localStorage, key);
+          return null;
         });
 
-        try {
-          const migration = require('./migration');
-          const remainingCooldown = migration.getRemainingCooldown();
-          expect(remainingCooldown).toBe(0); // Successful attempts should not trigger rate limiting
-        } finally {
-          // Restore original localStorage.getItem
-          global.localStorage.getItem = originalGetItem;
-        }
+        const migration = require('./migration');
+        const remainingCooldown = await migration.getRemainingCooldown();
+        expect(remainingCooldown).toBe(0); // Successful attempts should not trigger rate limiting
       });
 
-      it('should handle corrupted rate limit storage gracefully', () => {
-        // Mock global localStorage for rate limiting functions
-        const originalGetItem = global.localStorage.getItem;
-        global.localStorage.getItem = jest.fn((key) => {
+      it('should handle corrupted rate limit storage gracefully', async () => {
+        // Mock IndexedDB adapter to return invalid JSON
+        mockStorageAdapter.getItem.mockImplementation(async (key: string) => {
           if (key === 'migration_attempt_history') {
             return 'invalid_json{';
           }
-          return originalGetItem.call(global.localStorage, key);
+          return null;
         });
 
-        try {
-          const migration = require('./migration');
-          const remainingCooldown = migration.getRemainingCooldown();
-          expect(remainingCooldown).toBe(0); // Should default to no rate limiting on error
-        } finally {
-          // Restore original localStorage.getItem
-          global.localStorage.getItem = originalGetItem;
-        }
+        const migration = require('./migration');
+        const remainingCooldown = await migration.getRemainingCooldown();
+        expect(remainingCooldown).toBe(0); // Should default to no rate limiting on error
       });
     });
   });
