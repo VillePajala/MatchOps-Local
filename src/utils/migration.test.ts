@@ -77,6 +77,77 @@ jest.mock('./storageFactory', () => {
 const storageFactory = require('./storageFactory');
 const mockStorageAdapter = storageFactory.mockStorageAdapter;
 
+/**
+ * Test utilities for cleaner mock management
+ */
+const testUtils = {
+  /**
+   * Setup rate limiting mock data
+   */
+  setupRateLimitMock(attempts: Array<{ timestamp: number; success: boolean; error?: string }>) {
+    mockStorageAdapter.getItem.mockImplementation(async (key: string) => {
+      if (key === 'migration_attempt_history') {
+        return JSON.stringify(attempts);
+      }
+      return null;
+    });
+  },
+
+  /**
+   * Setup storage config mock
+   */
+  setupStorageConfigMock(config: {
+    mode: 'localStorage' | 'indexedDB';
+    version: string;
+    migrationState?: string;
+    forceMode?: string;
+  }) {
+    (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>)
+      .mockReturnValue({
+        mode: config.mode,
+        version: config.version,
+        migrationState: config.migrationState || 'not-started',
+        forceMode: config.forceMode
+      });
+  },
+
+  /**
+   * Setup cross-tab lock mock
+   */
+  setupCrossTabLockMock(lockData: any = null) {
+    let currentLock = lockData;
+
+    mockStorageAdapter.getItem.mockImplementation(async (key: string) => {
+      if (key === 'migration_lock_cross_tab') {
+        return currentLock ? JSON.stringify(currentLock) : null;
+      }
+      return null;
+    });
+
+    mockStorageAdapter.setItem.mockImplementation(async (key: string, value: string) => {
+      if (key === 'migration_lock_cross_tab') {
+        currentLock = value;
+      }
+    });
+
+    mockStorageAdapter.removeItem.mockImplementation(async (key: string) => {
+      if (key === 'migration_lock_cross_tab') {
+        currentLock = null;
+      }
+    });
+  },
+
+  /**
+   * Reset all mocks to clean state
+   */
+  resetAllMocks() {
+    jest.clearAllMocks();
+    mockStorageAdapter.getItem.mockResolvedValue(null);
+    mockStorageAdapter.setItem.mockResolvedValue(undefined);
+    mockStorageAdapter.removeItem.mockResolvedValue(undefined);
+  }
+};
+
 jest.mock('./logger', () => ({
   __esModule: true,
   default: {
@@ -791,8 +862,7 @@ describe('Simplified Migration System', () => {
       });
 
       it('should allow migration when no previous attempts', async () => {
-        // Mock no existing rate limit data
-        mockStorageAdapter.getItem.mockResolvedValue(null);
+        testUtils.setupRateLimitMock([]);
 
         const migration = require('./migration');
         expect(await migration.getRemainingCooldown()).toBe(0);
@@ -806,13 +876,7 @@ describe('Simplified Migration System', () => {
           { timestamp: now - 1 * 60 * 1000, success: false, error: 'Test error 3' }   // 1 min ago
         ];
 
-        // Mock IndexedDB adapter to return rate limit data
-        mockStorageAdapter.getItem.mockImplementation(async (key: string) => {
-          if (key === 'migration_attempt_history') {
-            return JSON.stringify(attempts);
-          }
-          return null;
-        });
+        testUtils.setupRateLimitMock(attempts);
 
         const migration = require('./migration');
         const remainingCooldown = await migration.getRemainingCooldown();

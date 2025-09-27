@@ -7,9 +7,15 @@
 
 import {
   APP_DATA_VERSION_KEY,
+  APP_SETTINGS_KEY,
+  LAST_HOME_TEAM_NAME_KEY,
   MASTER_ROSTER_KEY,
+  PLAYER_ADJUSTMENTS_KEY,
   SAVED_GAMES_KEY,
   SEASONS_LIST_KEY,
+  TEAM_ROSTERS_KEY,
+  TEAMS_INDEX_KEY,
+  TIMER_STATE_KEY,
   TOURNAMENTS_LIST_KEY
 } from '@/config/storageKeys';
 import { getLocalStorageItem, setLocalStorageItem } from './localStorage'; // Keep for reading legacy data during migration
@@ -824,15 +830,41 @@ export const runMigration = async (): Promise<void> => {
     // Record successful migration attempt
     await recordMigrationAttempt(true);
 
-    // Clear localStorage completely after successful migration to IndexedDB
+    // Clear app-specific localStorage keys after successful migration to IndexedDB
     // This ensures the app uses only IndexedDB from this point forward
     if (needsIndexedDbMigration) {
       try {
-        logger.log('[Migration] Clearing localStorage after successful IndexedDB migration');
-        localStorage.clear();
-        logger.log('[Migration] localStorage cleared - app now uses IndexedDB exclusively');
+        logger.log('[Migration] Clearing app-specific localStorage keys after successful IndexedDB migration');
+
+        // Clear only app-specific keys to avoid affecting other apps on same domain
+        const appKeys = [
+          SEASONS_LIST_KEY,
+          TOURNAMENTS_LIST_KEY,
+          SAVED_GAMES_KEY,
+          APP_SETTINGS_KEY,
+          MASTER_ROSTER_KEY,
+          LAST_HOME_TEAM_NAME_KEY,
+          TIMER_STATE_KEY,
+          PLAYER_ADJUSTMENTS_KEY,
+          TEAMS_INDEX_KEY,
+          TEAM_ROSTERS_KEY,
+          APP_DATA_VERSION_KEY,
+          'storage-version', // Storage factory config
+          'storage-mode',    // Storage factory config
+          'migration_attempt_history', // Migration rate limiting (though now in IndexedDB)
+        ];
+
+        let clearedCount = 0;
+        for (const key of appKeys) {
+          if (localStorage.getItem(key) !== null) {
+            localStorage.removeItem(key);
+            clearedCount++;
+          }
+        }
+
+        logger.log(`[Migration] Cleared ${clearedCount} app-specific localStorage keys - app now uses IndexedDB exclusively`);
       } catch (clearError) {
-        logger.warn('[Migration] Failed to clear localStorage:', clearError);
+        logger.warn('[Migration] Failed to clear app-specific localStorage keys:', clearError);
         // Not critical - migration was successful, this is just cleanup
       }
     }
