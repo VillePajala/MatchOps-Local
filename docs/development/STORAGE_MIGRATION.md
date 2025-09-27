@@ -14,6 +14,7 @@ For detailed technical specifications and implementation plan, see:
 - **Upgrade Goal**: Replace localStorage with IndexedDB as the storage infrastructure
 - **Approach**: KV adapter pattern maintains API compatibility while swapping underlying storage
 - **Data Handling**: One-time automatic transfer of existing localStorage data to IndexedDB
+- **Post-Migration**: After the one-time migration, the app never reads or writes localStorage; all persistence uses IndexedDB only. localStorage is cleared.
 - **Future Enhancement**: Normalized IndexedDB schema for advanced querying if dataset growth warrants it
 - **Priority**: Infrastructure improvement for better capacity and performance
 - **Complexity**: Moderate (infrastructure swap with safety nets)

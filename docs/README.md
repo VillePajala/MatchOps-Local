@@ -41,6 +41,12 @@ This documentation covers everything about the MatchOps-Local project - what it 
 - **[specs/](./specs/)** - Detailed technical specifications (IndexedDB infrastructure replacement plan, etc.)
 - **[features/](./features/)** - Detailed feature specifications and implementation plans
 
+### 💾 **Storage Integration (Critical Fix)**
+- **[storage-integration/DOCUMENTATION_AUDIT_RESULTS.md](./storage-integration/DOCUMENTATION_AUDIT_RESULTS.md)** ⚡ **START HERE - Corrected 2-4 hour fix**
+- **[storage-integration/STORAGE_INTEGRATION_PLAN.md](./storage-integration/STORAGE_INTEGRATION_PLAN.md)** - Original plan (over-engineered)
+- **[storage-integration/PHASE1_STORAGE_SERVICE.md](./storage-integration/PHASE1_STORAGE_SERVICE.md)** - Original implementation guide
+- **[storage-integration/PHASE2_UTILITY_REFACTOR.md](./storage-integration/PHASE2_UTILITY_REFACTOR.md)** - Original utility refactoring guide
+
 ### 📸 **Assets**
 - **[images/](./images/)** - Documentation images and screenshots
 
@@ -90,8 +96,10 @@ Create a local-first sports software ecosystem and demonstrate the viability of 
 
 ### **Modern Technology Stack**
 - **Next.js 15** with App Router for cutting-edge performance
-- **React 19** with TypeScript for reliability and maintainability  
-- **React Query** + localStorage for optimal local-first data management
+- **React 19** with TypeScript for reliability and maintainability
+- **React Query** + ~~localStorage~~ **IndexedDB** for optimal local-first data management
+  - ⚠️ **Critical Fix Required**: Currently using localStorage directly, bypassing IndexedDB layer
+  - ⚡ **Simple 2-4 hour fix available**: See [DOCUMENTATION_AUDIT_RESULTS.md](./storage-integration/DOCUMENTATION_AUDIT_RESULTS.md)
 - **Tailwind CSS 4** for responsive, professional design
 - **Comprehensive testing** with Jest and Playwright
 

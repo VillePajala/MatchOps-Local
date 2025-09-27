@@ -35,6 +35,7 @@ class CompatibleWeakRef<T extends object> {
   private weakRef: WeakRef<T> | null = null;
   private strongRef: T | null = null;
   private useWeakRef: boolean;
+  private fallbackCleanupTimer: NodeJS.Timeout | null = null;
 
   constructor(target: T) {
     // Feature detection for WeakRef support (ES2021+)
@@ -45,7 +46,14 @@ class CompatibleWeakRef<T extends object> {
       logger.log('[Migration] Using WeakRef for memory-safe callback management');
     } else {
       this.strongRef = target;
-      logger.warn('[Migration] WeakRef not supported, using strong reference with manual cleanup');
+      logger.warn('[Migration] WeakRef not supported, using strong reference with automatic cleanup fallback');
+
+      // Set aggressive cleanup timer for fallback mode to prevent memory leaks
+      this.fallbackCleanupTimer = setTimeout(() => {
+        logger.warn('[Migration] Auto-cleaning strong reference after timeout to prevent memory leak');
+        this.strongRef = null;
+        this.fallbackCleanupTimer = null;
+      }, MIGRATION_CONFIG.PROGRESS_CLEANUP_TIMEOUT_MS);
     }
   }
 
@@ -58,7 +66,13 @@ class CompatibleWeakRef<T extends object> {
 
   clear(): void {
     this.weakRef = null;
+    // Explicitly clear strong reference to prevent memory leaks in older browsers
     this.strongRef = null;
+    // Clear fallback cleanup timer if it exists
+    if (this.fallbackCleanupTimer) {
+      clearTimeout(this.fallbackCleanupTimer);
+      this.fallbackCleanupTimer = null;
+    }
   }
 
   isUsingWeakRef(): boolean {
@@ -575,9 +589,16 @@ async function acquireMigrationLockAtomic(): Promise<boolean> {
 
     // Set up storage event listener BEFORE setting the lock
     storageListener = (e: StorageEvent) => {
-      if (e.key === MIGRATION_LOCK_KEY && e.newValue !== newLockData) {
-        conflictDetected = true;
-        logger.warn('[Migration] Lock conflict detected via storage event');
+      if (e.key === MIGRATION_LOCK_KEY) {
+        // Any change to the lock key during our acquisition attempt is a conflict
+        if (e.newValue !== newLockData) {
+          conflictDetected = true;
+          logger.warn('[Migration] Lock conflict detected via storage event', {
+            expected: newLockData,
+            actual: e.newValue,
+            oldValue: e.oldValue
+          });
+        }
       }
     };
 
@@ -593,26 +614,44 @@ async function acquireMigrationLockAtomic(): Promise<boolean> {
       // Immediate verification with multiple checks
       const verify1 = localStorage.getItem(MIGRATION_LOCK_KEY);
 
-      // Small delay to allow storage events to propagate
-      const verifyAfterDelay = new Promise<boolean>((resolve) => {
-        setTimeout(() => {
-          const verify2 = localStorage.getItem(MIGRATION_LOCK_KEY);
-          if (verify2 === newLockData && !conflictDetected) {
-            resolve(true);
-          } else {
+      // Multiple verification rounds with progressive delays for better race condition detection
+      const verifyWithMultipleChecks = new Promise<boolean>((resolve) => {
+        let checkCount = 0;
+        const maxChecks = 3;
+        const checkInterval = 25; // 25ms between checks
+
+        const performCheck = () => {
+          checkCount++;
+          const currentLockData = localStorage.getItem(MIGRATION_LOCK_KEY);
+
+          if (currentLockData !== newLockData || conflictDetected) {
+            // Lock was overwritten or conflict detected
             resolve(false);
+            return;
           }
-        }, 50);
+
+          if (checkCount >= maxChecks) {
+            // Passed all verification rounds
+            resolve(true);
+            return;
+          }
+
+          // Schedule next check
+          setTimeout(performCheck, checkInterval);
+        };
+
+        // Start first check after initial delay
+        setTimeout(performCheck, checkInterval);
       });
 
-      // Check both immediate and delayed verification
-      if (verify1 === newLockData) {
-        lockAcquired = await verifyAfterDelay;
+      // Check both immediate and progressive verification
+      if (verify1 === newLockData && !conflictDetected) {
+        lockAcquired = await verifyWithMultipleChecks;
         if (!lockAcquired) {
-          logger.warn('[Migration] Lock verification failed after delay - race condition detected');
+          logger.warn('[Migration] Lock verification failed during progressive checks - race condition detected');
         }
       } else {
-        logger.warn('[Migration] Immediate lock verification failed - another tab acquired it');
+        logger.warn('[Migration] Immediate lock verification failed - another tab acquired it or conflict detected');
         lockAcquired = false;
       }
 
@@ -790,10 +829,27 @@ export const runMigration = async (): Promise<void> => {
 
     // Don't throw - app can still work with localStorage
   } finally {
-    // Ensure comprehensive cleanup
-    ensureCleanup();
-    // Release cross-tab migration lock
-    setCrossTabLock(null);
+    // Ensure comprehensive cleanup with error isolation
+    try {
+      ensureCleanup();
+    } catch (cleanupError) {
+      // Log cleanup error but don't let it prevent lock release
+      logger.error('[Migration] Error during cleanup, continuing with lock release:', cleanupError);
+    }
+
+    // Always release cross-tab migration lock, even if cleanup failed
+    try {
+      setCrossTabLock(null);
+    } catch (lockError) {
+      // Log lock release error but don't throw
+      logger.error('[Migration] Failed to release cross-tab lock:', lockError);
+      // Attempt alternative lock release methods
+      try {
+        localStorage.removeItem(MIGRATION_LOCK_KEY);
+      } catch (altError) {
+        logger.error('[Migration] Alternative lock release failed:', altError);
+      }
+    }
   }
 };
 

@@ -319,14 +319,27 @@ export class StorageFactory {
         }
       }
 
-      // Start mutex-protected adapter creation
-      this.adapterCreationMutex = this.createAdapterInternal(forceMode, startTime);
-      const adapter = await this.adapterCreationMutex;
-      this.adapterCreationMutex = null; // Release mutex
-      return adapter;
+      // Start mutex-protected adapter creation with atomic operations
+      const mutexPromise = this.createAdapterInternal(forceMode, startTime);
+      this.adapterCreationMutex = mutexPromise;
+
+      try {
+        const adapter = await mutexPromise;
+        // Only clear mutex if it's still the same promise (atomic check)
+        if (this.adapterCreationMutex === mutexPromise) {
+          this.adapterCreationMutex = null;
+        }
+        return adapter;
+      } catch (mutexError) {
+        // Only clear mutex if it's still the same promise (atomic check)
+        if (this.adapterCreationMutex === mutexPromise) {
+          this.adapterCreationMutex = null;
+        }
+        throw mutexError;
+      }
 
     } catch (error) {
-      this.adapterCreationMutex = null; // Release mutex on error
+      // Mutex cleanup is handled in the inner try-catch
       this.logger.error('Failed to create storage adapter', { error, forceMode });
       throw new StorageError(
         StorageErrorType.ACCESS_DENIED,
@@ -739,12 +752,29 @@ export class StorageFactory {
       // Invalidate cached adapter if mode changed (thread-safe)
       if (updates.mode && updates.mode !== currentConfig.mode) {
         this.logger.debug('Storage mode changed, invalidating cached adapter');
-        // Increment version to invalidate cache safely
+
+        // Atomic cache invalidation: capture current state before any changes
+        const currentAdapter = this.cachedAdapter;
+        const currentVersion = this.cacheVersion;
+
+        // Increment version first to invalidate cache for new requests
         this.cacheVersion++;
-        // Dispose old adapter
-        if (this.cachedAdapter) {
-          await this.disposeAdapter();
+
+        // Clear cached adapter reference atomically
+        this.cachedAdapter = null;
+        this.cachedAdapterVersion = -1;
+
+        // Dispose old adapter after cache is cleared
+        if (currentAdapter) {
+          try {
+            await this.disposeAdapter();
+          } catch (disposeError) {
+            this.logger.warn('Failed to dispose old adapter during mode change', { disposeError });
+            // Continue execution - disposal failure shouldn't block configuration update
+          }
         }
+
+        this.logger.debug(`Cache invalidated: version ${currentVersion} → ${this.cacheVersion}`);
       }
 
       this.logger.debug('Storage configuration updated successfully');

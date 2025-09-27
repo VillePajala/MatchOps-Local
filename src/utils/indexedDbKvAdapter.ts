@@ -51,6 +51,8 @@ export class IndexedDBKvAdapter implements StorageAdapter {
   private readonly storeName: string;
   private db: IDBPDatabase | null = null;
   private initPromise: Promise<void> | null = null;
+  private connectionTerminated = false;
+  private pendingOperations = new Set<Promise<unknown>>();
 
   // Storage usage caching
   private storageUsageCache: { used: number; available: number } | null = null;
@@ -79,6 +81,13 @@ export class IndexedDBKvAdapter implements StorageAdapter {
    * Uses singleton pattern to ensure only one initialization occurs.
    */
   private async ensureInitialized(): Promise<void> {
+    if (this.connectionTerminated) {
+      throw new StorageError(
+        StorageErrorType.ACCESS_DENIED,
+        'IndexedDB connection has been terminated and cannot be reused'
+      );
+    }
+
     if (this.db) {
       return;
     }
@@ -129,8 +138,10 @@ export class IndexedDBKvAdapter implements StorageAdapter {
         },
         terminated: () => {
           this.logger.error('IndexedDB database connection terminated unexpectedly');
-          this.db = null;
-          this.initPromise = null;
+          // Mark connection as terminated to prevent new operations
+          this.connectionTerminated = true;
+          // Wait for pending operations to complete before cleanup
+          this.handleConnectionTermination();
         }
       });
 
@@ -143,6 +154,36 @@ export class IndexedDBKvAdapter implements StorageAdapter {
       // Convert IndexedDB errors to standardized StorageError
       throw this.convertError(error, 'Failed to initialize IndexedDB');
     }
+  }
+
+  /**
+   * Handle connection termination by waiting for pending operations to complete.
+   */
+  private async handleConnectionTermination(): Promise<void> {
+    this.logger.debug('Handling connection termination', {
+      pendingOperations: this.pendingOperations.size
+    });
+
+    // Wait for all pending operations to complete or timeout
+    const allOperations = Array.from(this.pendingOperations);
+    if (allOperations.length > 0) {
+      try {
+        // Wait for operations to complete with a timeout
+        await Promise.race([
+          Promise.allSettled(allOperations),
+          new Promise(resolve => setTimeout(resolve, 5000)) // 5 second timeout
+        ]);
+      } catch (error) {
+        this.logger.warn('Some operations failed during connection termination', { error });
+      }
+    }
+
+    // Clean up connection state
+    this.db = null;
+    this.initPromise = null;
+    this.pendingOperations.clear();
+
+    this.logger.debug('Connection termination cleanup completed');
   }
 
   /**
@@ -212,7 +253,7 @@ export class IndexedDBKvAdapter implements StorageAdapter {
   }
 
   /**
-   * Execute a transaction with proper error handling and retries.
+   * Execute a transaction with proper error handling and operation tracking.
    */
   private async withTransaction<T>(
     mode: IDBTransactionMode,
@@ -220,6 +261,33 @@ export class IndexedDBKvAdapter implements StorageAdapter {
   ): Promise<T> {
     await this.ensureInitialized();
 
+    if (!this.db) {
+      throw new StorageError(
+        StorageErrorType.ACCESS_DENIED,
+        'IndexedDB database not available'
+      );
+    }
+
+    // Create transaction promise and track it
+    const transactionPromise = this.executeTransaction(mode, operation);
+    this.pendingOperations.add(transactionPromise);
+
+    try {
+      const result = await transactionPromise;
+      return result;
+    } finally {
+      // Remove from pending operations when complete
+      this.pendingOperations.delete(transactionPromise);
+    }
+  }
+
+  /**
+   * Execute the actual transaction operation.
+   */
+  private async executeTransaction<T>(
+    mode: IDBTransactionMode,
+    operation: (store: IDBPObjectStore<unknown, [string], string, IDBTransactionMode>) => Promise<T>
+  ): Promise<T> {
     if (!this.db) {
       throw new StorageError(
         StorageErrorType.ACCESS_DENIED,
@@ -424,10 +492,24 @@ export class IndexedDBKvAdapter implements StorageAdapter {
    */
   async close(): Promise<void> {
     if (this.db) {
-      this.logger.debug('Closing IndexedDB connection');
+      this.logger.debug('Closing IndexedDB connection', {
+        pendingOperations: this.pendingOperations.size
+      });
+
+      // Wait for pending operations to complete before closing
+      if (this.pendingOperations.size > 0) {
+        try {
+          await Promise.allSettled(Array.from(this.pendingOperations));
+        } catch (error) {
+          this.logger.warn('Some operations failed during close', { error });
+        }
+      }
+
       this.db.close();
       this.db = null;
       this.initPromise = null;
+      this.pendingOperations.clear();
+      this.connectionTerminated = false; // Reset for potential reuse
     }
   }
 

@@ -86,17 +86,45 @@ Acceptance
 
  Outcome: swap persistence to IndexedDB with minimal churn and rollback safety; defer normalization.
 
-- M1 Checklist
-  - [x] Add IndexedDB KV adapter and `storage-mode` flag (no domain API changes) - **COMPLETED: Step 0A.1 Storage Interface**
-    - ✅ Created `StorageAdapter` interface with error handling (`StorageError`, `StorageErrorType`)
-    - ✅ Added `getKeys()` method for backup/restore functionality
-    - ✅ Comprehensive test suite (11 test cases covering type safety and behavior)
-    - ✅ CI/CD improvements (workflows now run on all PRs regardless of target branch)
-    - 📍 **Next: Step 0A.2 - LocalStorage Adapter Implementation**
-  - [ ] Create comprehensive backup before migration (migrationBackup)
-  - [ ] Copy critical keys to IDB KV; verify round‑trip per key
-  - [ ] Flip `storage-mode` to `indexedDB`; retain rollback path
-  - [ ] Validate with seeded datasets across browsers (React Query flows + core paths)
+### M1A: Storage Infrastructure ✅ COMPLETED
+- [x] Add IndexedDB KV adapter and `storage-mode` flag
+  - ✅ Created `StorageAdapter` interface with error handling
+  - ✅ Implemented `IndexedDBKvAdapter` with full test suite
+  - ✅ Implemented migration system with cross-tab coordination
+  - ✅ Fixed critical race conditions and memory leaks
+
+### M1B: Storage Layer Integration 🚨 CRITICAL FIX REQUIRED ⚡ SIMPLIFIED
+**Issue Discovered**: App bypasses storage factory completely - all utilities write directly to localStorage!
+
+**⚠️ DOCUMENTATION AUDIT COMPLETE**: Original plan was over-engineered (19-25 hours).
+**✅ ACTUAL FIX**: Simple import replacement (2-4 hours total).
+
+See `storage-integration/DOCUMENTATION_AUDIT_RESULTS.md` for detailed analysis.
+
+**Corrected Implementation (2-4 hours total)**:
+- [ ] **Step 1**: Create simple storage helper wrapper (30 min)
+  - [ ] Create `src/utils/storage.ts` with basic getStorageItem/setStorageItem functions
+  - [ ] Wrap existing `createStorageAdapter()` function (already exists!)
+- [ ] **Step 2**: Update utility imports (1-2 hours)
+  - [ ] Replace localStorage imports in 8 utility files
+  - [ ] Add `await` to storage calls (functions already async!)
+  - [ ] Files: savedGames, masterRoster, appSettings, playerAdjustments, seasons, tournaments, teams, fullBackup
+- [ ] **Step 3**: Test and validate (30-60 min)
+  - [ ] Verify `adapter.getBackendName()` returns "indexedDB"
+  - [ ] Test JSON import saves to IndexedDB
+  - [ ] Validate cross-session persistence
+
+**Key Discoveries**:
+- ✅ All utilities already async (no conversion needed)
+- ✅ React Query already works with async functions
+- ✅ Storage factory already exists and works
+- ❌ Original plan was 90% unnecessary complexity
+
+### M1C: Migration Execution (After M1B Complete)
+- [ ] Create comprehensive backup before migration (migrationBackup)
+- [ ] Copy critical keys to IDB KV; verify round‑trip per key
+- [ ] Flip `storage-mode` to `indexedDB`; retain rollback path
+- [ ] Validate with seeded datasets across browsers (React Query flows + core paths)
 
 Acceptance
 - After flip, app runs solely on IDB; backup cleared on success.
@@ -212,6 +240,10 @@ Acceptance
   - ARCHITECTURE.md, TECHNOLOGY_DECISIONS.md, PROJECT_STATUS.md, ROADMAP.md, PROJECT_OVERVIEW.md
 - Testing & quality
   - testing/TESTING_STRATEGY_2025.md, testing/E2E_TESTING_GUIDE.md, testing/MANUAL_TESTING.md, testing/TEST_MAINTENANCE_GUIDE.md
-- Storage migration
+- Storage migration & integration
   - development/STORAGE_MIGRATION.md
   - specs/INDEXEDDB_MIGRATION_PLAN.md
+  - storage-integration/DOCUMENTATION_AUDIT_RESULTS.md ⚡ **START HERE - CORRECTED PLAN**
+  - storage-integration/STORAGE_INTEGRATION_PLAN.md (original plan - over-engineered)
+  - storage-integration/PHASE1_STORAGE_SERVICE.md (original implementation guide)
+  - storage-integration/PHASE2_UTILITY_REFACTOR.md (original utility conversion guide)
