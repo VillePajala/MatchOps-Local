@@ -152,14 +152,14 @@ interface MigrationAttempt {
 
 /**
  * Check if migration attempts are rate limited
- * Uses localStorage for migration-time rate limiting (cleaned up after migration)
- * @returns {boolean} True if rate limited, false otherwise
+ * Uses IndexedDB for migration-time rate limiting (persistent across localStorage.clear())
+ * @returns {Promise<boolean>} True if rate limited, false otherwise
  */
-function isRateLimited(): boolean {
+async function isRateLimited(): Promise<boolean> {
   try {
-    // Note: Uses localStorage for migration infrastructure only
-    // This data is cleared with localStorage.clear() after migration
-    const historyJson = localStorage.getItem(MIGRATION_CONFIG.RATE_LIMIT_STORAGE_KEY);
+    // Use IndexedDB for rate limiting data - survives localStorage.clear()
+    const adapter = await getIndexedDBLockStorage();
+    const historyJson = await adapter.getItem(MIGRATION_CONFIG.RATE_LIMIT_STORAGE_KEY);
     if (!historyJson) return false;
 
     const attempts: MigrationAttempt[] = JSON.parse(historyJson);
@@ -192,15 +192,15 @@ function isRateLimited(): boolean {
 
 /**
  * Record a migration attempt for rate limiting
- * Uses localStorage for migration-time rate limiting (cleaned up after migration)
+ * Uses IndexedDB for migration-time rate limiting (persistent across localStorage.clear())
  * @param {boolean} success - Whether the migration succeeded
  * @param {string} [error] - Error message if migration failed
  */
-function recordMigrationAttempt(success: boolean, error?: string): void {
+async function recordMigrationAttempt(success: boolean, error?: string): Promise<void> {
   try {
-    // Note: Uses localStorage for migration infrastructure only
-    // This data is cleared with localStorage.clear() after migration
-    const historyJson = localStorage.getItem(MIGRATION_CONFIG.RATE_LIMIT_STORAGE_KEY);
+    // Use IndexedDB for rate limiting data - survives localStorage.clear()
+    const adapter = await getIndexedDBLockStorage();
+    const historyJson = await adapter.getItem(MIGRATION_CONFIG.RATE_LIMIT_STORAGE_KEY);
     let attempts: MigrationAttempt[] = historyJson ? JSON.parse(historyJson) : [];
 
     // Add new attempt
@@ -215,7 +215,7 @@ function recordMigrationAttempt(success: boolean, error?: string): void {
     attempts = attempts.filter(attempt => attempt.timestamp > twentyFourHoursAgo);
 
     // Store updated history
-    localStorage.setItem(MIGRATION_CONFIG.RATE_LIMIT_STORAGE_KEY, JSON.stringify(attempts));
+    await adapter.setItem(MIGRATION_CONFIG.RATE_LIMIT_STORAGE_KEY, JSON.stringify(attempts));
 
     logger.log(`[Migration] Recorded attempt: success=${success}${error ? `, error=${error}` : ''}`);
   } catch (storageError) {
@@ -225,13 +225,13 @@ function recordMigrationAttempt(success: boolean, error?: string): void {
 
 /**
  * Get remaining cooldown time in milliseconds
- * @returns {number} Remaining cooldown time, or 0 if not rate limited
+ * @returns {Promise<number>} Remaining cooldown time, or 0 if not rate limited
  */
-export function getRemainingCooldown(): number {
+export async function getRemainingCooldown(): Promise<number> {
   try {
-    // Note: Uses localStorage for migration infrastructure only
-    // This data is cleared with localStorage.clear() after migration
-    const historyJson = localStorage.getItem(MIGRATION_CONFIG.RATE_LIMIT_STORAGE_KEY);
+    // Use IndexedDB for rate limiting data - survives localStorage.clear()
+    const adapter = await getIndexedDBLockStorage();
+    const historyJson = await adapter.getItem(MIGRATION_CONFIG.RATE_LIMIT_STORAGE_KEY);
     if (!historyJson) return 0;
 
     const attempts: MigrationAttempt[] = JSON.parse(historyJson);
@@ -677,8 +677,8 @@ export const runMigration = async (): Promise<void> => {
 
   try {
     // Check rate limiting before attempting migration
-    if (isRateLimited()) {
-      const remainingCooldown = getRemainingCooldown();
+    if (await isRateLimited()) {
+      const remainingCooldown = await getRemainingCooldown();
       const minutes = Math.ceil(remainingCooldown / (60 * 1000));
       const error = `Migration rate limited. Please wait ${minutes} minutes before retrying.`;
       logger.warn(`[Migration] ${error}`);
@@ -795,7 +795,7 @@ export const runMigration = async (): Promise<void> => {
     });
 
     // Record successful migration attempt
-    recordMigrationAttempt(true);
+    await recordMigrationAttempt(true);
 
     // Clear localStorage completely after successful migration to IndexedDB
     // This ensures the app uses only IndexedDB from this point forward
@@ -821,7 +821,7 @@ export const runMigration = async (): Promise<void> => {
     logger.error('[Migration] Migration failed:', errorMessage);
 
     // Record failed migration attempt
-    recordMigrationAttempt(false, errorMessage);
+    await recordMigrationAttempt(false, errorMessage);
 
     updateMigrationStatus({
       isRunning: false,

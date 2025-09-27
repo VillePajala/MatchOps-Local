@@ -12,7 +12,11 @@ let adapterPromise: Promise<StorageAdapter> | null = null;
 export async function getStorageAdapter(): Promise<StorageAdapter> {
   if (!adapterPromise) {
     // Force IndexedDB only - no localStorage fallback
-    adapterPromise = createStorageAdapter('indexedDB');
+    adapterPromise = createStorageAdapter('indexedDB').catch(error => {
+      // Clear failed promise to allow retry
+      adapterPromise = null;
+      throw error;
+    });
   }
   return adapterPromise;
 }

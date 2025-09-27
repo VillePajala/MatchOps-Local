@@ -314,18 +314,26 @@ describe('Simplified Migration System', () => {
     });
 
     it('should prevent concurrent migration attempts', async () => {
-      // First tab acquires lock
+      // First tab acquires lock via IndexedDB
       const lockData = {
         inProgress: true,
         startTime: Date.now(),
         tabId: 'tab_1'
       };
-      mockLocalStorage.getItem.mockReturnValue(JSON.stringify(lockData));
+
+      // Mock IndexedDB adapter to return existing lock
+      mockStorageAdapter.getItem.mockImplementation(async (key: string) => {
+        if (key === 'migration_lock_cross_tab') {
+          return JSON.stringify(lockData); // Return existing lock
+        }
+        return null;
+      });
+
       mockGetLocalStorageItem.mockReturnValue('1'); // Needs migration
 
       const storageFactory = require('./storageFactory');
       (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
-        mode: 'localStorage',
+        mode: 'indexedDB',
         version: '1',
         migrationState: 'not-started',
         forceMode: undefined
@@ -379,18 +387,26 @@ describe('Simplified Migration System', () => {
       // Clear any existing calls first
       jest.clearAllMocks();
 
-      // Set up an existing lock
-      const existingLock = JSON.stringify({
+      // Set up an existing lock via IndexedDB
+      const existingLock = {
         inProgress: true,
         startTime: Date.now(),
         tabId: 'different-tab'
+      };
+
+      // Mock IndexedDB adapter to return existing lock
+      mockStorageAdapter.getItem.mockImplementation(async (key: string) => {
+        if (key === 'migration_lock_cross_tab') {
+          return JSON.stringify(existingLock); // Return existing lock
+        }
+        return null;
       });
-      mockLocalStorage.getItem.mockReturnValue(existingLock);
+
       mockGetLocalStorageItem.mockReturnValue('1'); // Needs migration
 
       const storageFactory = require('./storageFactory');
       (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
-        mode: 'localStorage',
+        mode: 'indexedDB',
         version: '1',
         migrationState: 'not-started',
         forceMode: undefined

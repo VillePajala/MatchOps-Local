@@ -8,7 +8,7 @@
  * - Environment-specific overrides
  *
  * Features:
- * - Intelligent adapter selection with fallback logic
+ * - IndexedDB-only adapter selection (no localStorage fallbacks)
  * - Configuration persistence and management
  * - Browser compatibility detection
  * - Migration state awareness
@@ -59,7 +59,6 @@
  */
 
 import { StorageAdapter, StorageError, StorageErrorType } from './storageAdapter';
-import { LocalStorageAdapter } from './localStorageAdapter';
 import { IndexedDBKvAdapter } from './indexedDbKvAdapter';
 import { createLogger } from './logger';
 import { getLocalStorageItem, setLocalStorageItem, removeLocalStorageItem } from './localStorage';
@@ -153,7 +152,7 @@ export const MAX_MIGRATION_FAILURES = 3;
 /**
  * Storage Factory for creating appropriate storage adapters
  *
- * Handles adapter selection, configuration management, and fallback logic
+ * Handles IndexedDB adapter selection and configuration management (IndexedDB-only)
  * to provide the best available storage solution for the current environment.
  *
  * @example
@@ -1010,7 +1009,7 @@ export class StorageFactory {
   }
 
   /**
-   * Create IndexedDB adapter with intelligent fallback logic
+   * Create IndexedDB adapter (IndexedDB-only, no localStorage fallbacks)
    */
   private async createIndexedDBAdapter(): Promise<StorageAdapter> {
     // IndexedDB-only mode: no localStorage fallbacks
@@ -1066,17 +1065,10 @@ export class StorageFactory {
   }
 
   /**
-   * Create localStorage adapter
+   * Create localStorage adapter (DISABLED - IndexedDB-only architecture)
    */
   private async createLocalStorageAdapter(): Promise<StorageAdapter> {
-    this.logger.debug('Creating localStorage adapter');
-    const adapter = new LocalStorageAdapter();
-
-    // Test the adapter
-    await this.testAdapter(adapter);
-
-    this.logger.debug('LocalStorage adapter created and tested successfully');
-    return adapter;
+    throw new Error('localStorage adapter creation disabled. This application requires IndexedDB to function.');
   }
 
   /**

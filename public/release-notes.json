@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: complete IndexedDB-only architecture documentation"
+  "notes": "fix: update tests for IndexedDB-only architecture"
 }
