@@ -371,44 +371,84 @@ export const setMigrationProgressCallback = (callback: ((progress: MigrationProg
 };
 
 /**
- * Get current app data version
+ * Get current app data version from appropriate storage (localStorage during migration, IndexedDB after)
  */
-export const getAppDataVersion = (): number => {
-  const stored = getLocalStorageItem(APP_DATA_VERSION_KEY);
-  if (stored) {
-    return parseInt(stored, 10);
+export const getAppDataVersion = async (): Promise<number> => {
+  const config = getStorageConfig();
+
+  // During migration or if IndexedDB not yet active, check localStorage
+  if (config.mode !== 'indexedDB' || config.migrationState !== 'completed') {
+    const stored = getLocalStorageItem(APP_DATA_VERSION_KEY);
+    if (stored) {
+      return parseInt(stored, 10);
+    }
+
+    // Check if there's any existing data in localStorage
+    const hasData = !!(
+      getLocalStorageItem(MASTER_ROSTER_KEY) ||
+      getLocalStorageItem(SAVED_GAMES_KEY) ||
+      getLocalStorageItem(SEASONS_LIST_KEY) ||
+      getLocalStorageItem(TOURNAMENTS_LIST_KEY)
+    );
+
+    // If no data exists, this is a fresh install
+    if (!hasData) {
+      await setAppDataVersion(CURRENT_DATA_VERSION);
+      return CURRENT_DATA_VERSION;
+    }
+
+    // Has data but no version = v1 installation
+    return 1;
   }
 
-  // Check if there's any existing data
-  const hasData = !!(
-    getLocalStorageItem(MASTER_ROSTER_KEY) ||
-    getLocalStorageItem(SAVED_GAMES_KEY) ||
-    getLocalStorageItem(SEASONS_LIST_KEY) ||
-    getLocalStorageItem(TOURNAMENTS_LIST_KEY)
-  );
+  // Post-migration: use IndexedDB
+  try {
+    const adapter = await createStorageAdapter('indexedDB');
+    const stored = await adapter.getItem(APP_DATA_VERSION_KEY);
+    if (stored) {
+      return parseInt(stored, 10);
+    }
 
-  // If no data exists, this is a fresh install
-  if (!hasData) {
-    setAppDataVersion(CURRENT_DATA_VERSION);
+    // No version found in IndexedDB, assume post-migration state
+    await setAppDataVersion(CURRENT_DATA_VERSION);
     return CURRENT_DATA_VERSION;
-  }
+  } catch (error) {
+    logger.warn('[Migration] Failed to read app version from IndexedDB, falling back to localStorage:', error);
 
-  // Has data but no version = v1 installation
-  return 1;
+    // Fallback to localStorage for compatibility
+    const stored = getLocalStorageItem(APP_DATA_VERSION_KEY);
+    return stored ? parseInt(stored, 10) : CURRENT_DATA_VERSION;
+  }
 };
 
 /**
- * Set app data version
+ * Set app data version to appropriate storage (localStorage during migration, IndexedDB after)
  */
-export const setAppDataVersion = (version: number): void => {
-  setLocalStorageItem(APP_DATA_VERSION_KEY, version.toString());
+export const setAppDataVersion = async (version: number): Promise<void> => {
+  const config = getStorageConfig();
+
+  // During migration or if IndexedDB not yet active, use localStorage
+  if (config.mode !== 'indexedDB' || config.migrationState !== 'completed') {
+    setLocalStorageItem(APP_DATA_VERSION_KEY, version.toString());
+    return;
+  }
+
+  // Post-migration: use IndexedDB
+  try {
+    const adapter = await createStorageAdapter('indexedDB');
+    await adapter.setItem(APP_DATA_VERSION_KEY, version.toString());
+  } catch (error) {
+    logger.error('[Migration] Failed to write app version to IndexedDB:', error);
+    // Critical error - version tracking is important for migration logic
+    throw new Error(`Failed to update app data version: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 };
 
 /**
  * Check if migration is needed
  */
-export const isMigrationNeeded = (): boolean => {
-  const currentVersion = getAppDataVersion();
+export const isMigrationNeeded = async (): Promise<boolean> => {
+  const currentVersion = await getAppDataVersion();
   return currentVersion < CURRENT_DATA_VERSION;
 };
 
@@ -734,7 +774,7 @@ export const runMigration = async (): Promise<void> => {
     // Notify UI that migration is starting
     updateMigrationStatus({ isRunning: true, progress: null, error: null });
 
-    const needsAppMigration = isMigrationNeeded();
+    const needsAppMigration = await isMigrationNeeded();
     const needsIndexedDbMigration = isIndexedDbMigrationNeeded();
 
     if (!needsAppMigration && !needsIndexedDbMigration) {
@@ -788,7 +828,7 @@ export const runMigration = async (): Promise<void> => {
         }
       });
       await performAppDataMigration();
-      setAppDataVersion(CURRENT_DATA_VERSION);
+      await setAppDataVersion(CURRENT_DATA_VERSION);
       performanceMetrics.appMigrationTime = Date.now() - appMigrationStartTime;
       logger.log('[Migration] App data migration completed');
     }
@@ -1264,13 +1304,13 @@ async function performIndexedDbMigrationEnhanced(): Promise<{
 /**
  * Get migration status for UI
  */
-export const getMigrationStatus = () => {
+export const getMigrationStatus = async () => {
   const config = getStorageConfig();
 
   return {
-    currentVersion: getAppDataVersion(),
+    currentVersion: await getAppDataVersion(),
     targetVersion: CURRENT_DATA_VERSION,
-    migrationNeeded: isMigrationNeeded(),
+    migrationNeeded: await isMigrationNeeded(),
     storageMode: config.mode,
     storageVersion: config.version,
     indexedDbMigrationNeeded: isIndexedDbMigrationNeeded(),

@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: resolve test failures and enhance storage adapter resilience"
+  "notes": "feat: enhance IndexedDB storage with comprehensive error handling and performance optimizations"
 }

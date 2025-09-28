@@ -6,13 +6,18 @@ let adapterPromise: Promise<StorageAdapter> | null = null;
 let adapterCreatedAt: number | null = null;
 let adapterRetryCount: number = 0;
 let lastFailureTime: number | null = null;
+let isCreatingAdapter: boolean = false; // Mutex to prevent race conditions
 
 // Configurable TTL for adapter caching (default: 5 minutes)
-const ADAPTER_TTL = parseInt(process.env.NEXT_PUBLIC_STORAGE_ADAPTER_TTL_MS || '300000', 10);
-// Retry configuration
-const MAX_RETRY_ATTEMPTS = 3;
-const BASE_RETRY_DELAY = 1000; // 1 second
-const MAX_RETRY_DELAY = 10000; // 10 seconds
+const ADAPTER_TTL = parseInt(
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_STORAGE_ADAPTER_TTL_MS) || '300000',
+  10
+);
+// Retry configuration with exponential backoff
+// This prevents overwhelming IndexedDB when it's temporarily unavailable
+const MAX_RETRY_ATTEMPTS = 3;      // Maximum number of retry attempts before giving up
+const BASE_RETRY_DELAY = 1000;     // 1 second - initial retry delay
+const MAX_RETRY_DELAY = 10000;     // 10 seconds - maximum delay to prevent excessive waiting
 
 /**
  * Check if cached adapter has expired based on TTL
@@ -24,6 +29,18 @@ function isAdapterExpired(): boolean {
 
 /**
  * Calculate exponential backoff delay for retry attempts
+ *
+ * Implements exponential backoff pattern: delay = baseDelay * (2 ^ retryCount)
+ * - Attempt 0: 1000ms (1s)
+ * - Attempt 1: 2000ms (2s)
+ * - Attempt 2: 4000ms (4s)
+ * - Attempt 3+: 10000ms (10s max)
+ *
+ * This prevents overwhelming a struggling IndexedDB connection while allowing
+ * reasonable retry intervals for transient failures.
+ *
+ * @param retryCount Current retry attempt number (0-based)
+ * @returns Delay in milliseconds before next retry attempt
  */
 function calculateRetryDelay(retryCount: number): number {
   const exponentialDelay = BASE_RETRY_DELAY * Math.pow(2, retryCount);
@@ -32,6 +49,17 @@ function calculateRetryDelay(retryCount: number): number {
 
 /**
  * Check if enough time has passed since last failure to allow retry
+ *
+ * Implements retry gating to prevent rapid-fire retry attempts that could
+ * worsen the underlying issue. Respects exponential backoff timing.
+ *
+ * Recovery Strategy:
+ * 1. First failure: immediate retry allowed (no previous failures)
+ * 2. Subsequent failures: must wait for exponential backoff delay
+ * 3. After MAX_RETRY_ATTEMPTS: no more retries until TTL reset
+ * 4. TTL expiration: retry state reset, fresh attempts allowed
+ *
+ * @returns true if retry is allowed now, false if still in backoff period
  */
 function canRetryNow(): boolean {
   if (!lastFailureTime) return true;
@@ -43,13 +71,39 @@ function canRetryNow(): boolean {
 
 /**
  * Get IndexedDB storage adapter (IndexedDB-only, no localStorage fallback)
- * Implements TTL-based caching to prevent memory leaks and ensure fresh connections
+ * Implements TTL-based caching to prevent memory leaks and ensure fresh connections.
+ * Uses mutex pattern to prevent race conditions during concurrent adapter creation.
  * @returns Promise resolving to IndexedDB storage adapter
  * @throws Error if IndexedDB is unavailable
  */
 export async function getStorageAdapter(): Promise<StorageAdapter> {
-  // Check if we need to refresh the adapter due to TTL expiration
-  if (!adapterPromise || isAdapterExpired()) {
+  // Return existing valid adapter immediately
+  if (adapterPromise && !isAdapterExpired()) {
+    return adapterPromise;
+  }
+
+  // If another call is already creating an adapter, wait for it
+  if (isCreatingAdapter) {
+    logger.debug('Adapter creation already in progress, waiting...');
+    // Poll until creation is complete or fails
+    while (isCreatingAdapter) {
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    // After waiting, check if we now have a valid adapter
+    if (adapterPromise && !isAdapterExpired()) {
+      return adapterPromise;
+    }
+  }
+
+  // Set mutex to prevent concurrent creation
+  isCreatingAdapter = true;
+
+  try {
+    // Double-check after acquiring mutex
+    if (adapterPromise && !isAdapterExpired()) {
+      return adapterPromise;
+    }
+
     // Clear expired adapter
     if (adapterPromise && isAdapterExpired()) {
       logger.debug('Storage adapter TTL expired, creating fresh adapter');
@@ -93,8 +147,12 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
 
     // Record creation time for TTL tracking
     adapterCreatedAt = Date.now();
+
+    return adapterPromise;
+  } finally {
+    // Always release the mutex
+    isCreatingAdapter = false;
   }
-  return adapterPromise;
 }
 
 /**
@@ -174,35 +232,66 @@ export async function setStorageItem(
 }
 
 /**
- * Remove item from IndexedDB storage
+ * Remove item from IndexedDB storage with retry logic
  * @param key Storage key to remove
+ * @param options Configuration for error handling
  * @returns Promise resolving when removal is complete
- * @throws Error if IndexedDB is unavailable
+ * @throws Error if IndexedDB is unavailable after retries
  */
-export async function removeStorageItem(key: string): Promise<void> {
-  try {
-    const adapter = await getStorageAdapter();
-    return adapter.removeItem(key);
-  } catch (error) {
-    logger.error('IndexedDB storage failed - no fallback available:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    throw new Error(`Storage unavailable: ${errorMessage}. Please use a modern browser with IndexedDB support.`);
+export async function removeStorageItem(
+  key: string,
+  options: { retryCount?: number } = {}
+): Promise<void> {
+  const { retryCount = 2 } = options;
+
+  for (let attempt = 0; attempt <= retryCount; attempt++) {
+    try {
+      const adapter = await getStorageAdapter();
+      return adapter.removeItem(key);
+    } catch (error) {
+      logger.error(`IndexedDB remove failed for key "${key}" (attempt ${attempt + 1}/${retryCount + 1}):`, error);
+
+      // If this is the last attempt, throw the error
+      if (attempt === retryCount) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        throw new Error(`Storage removal failed: ${errorMessage}. Retry ${retryCount + 1}/${retryCount + 1} attempts exhausted.`);
+      }
+
+      // Wait before retry with exponential backoff
+      const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
 }
 
 /**
- * Clear all items from IndexedDB storage
+ * Clear all items from IndexedDB storage with retry logic
+ * @param options Configuration for error handling
  * @returns Promise resolving when clear is complete
- * @throws Error if IndexedDB is unavailable
+ * @throws Error if IndexedDB is unavailable after retries
  */
-export async function clearStorage(): Promise<void> {
-  try {
-    const adapter = await getStorageAdapter();
-    return adapter.clear();
-  } catch (error) {
-    logger.error('IndexedDB storage failed - no fallback available:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    throw new Error(`Storage unavailable: ${errorMessage}. Please use a modern browser with IndexedDB support.`);
+export async function clearStorage(
+  options: { retryCount?: number } = {}
+): Promise<void> {
+  const { retryCount = 2 } = options;
+
+  for (let attempt = 0; attempt <= retryCount; attempt++) {
+    try {
+      const adapter = await getStorageAdapter();
+      return adapter.clear();
+    } catch (error) {
+      logger.error(`IndexedDB clear failed (attempt ${attempt + 1}/${retryCount + 1}):`, error);
+
+      // If this is the last attempt, throw the error
+      if (attempt === retryCount) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        throw new Error(`Storage clear failed: ${errorMessage}. Retry ${retryCount + 1}/${retryCount + 1} attempts exhausted.`);
+      }
+
+      // Wait before retry with exponential backoff
+      const delay = Math.min(1000 * Math.pow(2, attempt), 5000);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
 }
 
@@ -447,4 +536,6 @@ export function clearAdapterCache(): void {
   // Also reset retry state to allow immediate retry
   adapterRetryCount = 0;
   lastFailureTime = null;
+  // Reset mutex state for clean slate
+  isCreatingAdapter = false;
 }
