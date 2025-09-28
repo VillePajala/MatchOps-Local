@@ -61,7 +61,7 @@
 import { StorageAdapter, StorageError, StorageErrorType } from './storageAdapter';
 import { IndexedDBKvAdapter } from './indexedDbKvAdapter';
 import { createLogger } from './logger';
-import { getLocalStorageItem, setLocalStorageItem, removeLocalStorageItem } from './localStorage';
+import { storageConfigManager, type StorageConfig, type StorageMode, DEFAULT_STORAGE_CONFIG } from './storageConfigManager';
 
 /**
  * Extended interface for storage adapters that support connection disposal
@@ -71,20 +71,9 @@ interface DisposableAdapter extends StorageAdapter {
   close?: () => Promise<void>;
 }
 
-/**
- * Available storage modes for the application
- */
-export type StorageMode = 'localStorage' | 'indexedDB';
-
-/**
- * Migration states for storage infrastructure
- */
-export type MigrationState =
-  | 'not-started'
-  | 'in-progress'
-  | 'completed'
-  | 'failed'
-  | 'rolled-back';
+// Types re-exported from storageConfigManager
+export type { StorageMode, StorageConfig } from './storageConfigManager';
+export type { MigrationState } from './storageConfigManager';
 
 /**
  * Telemetry events for monitoring storage adapter selection and usage
@@ -104,50 +93,9 @@ export interface StorageTelemetryEvent {
   };
 }
 
-/**
- * Configuration for storage system behavior
- */
-export interface StorageConfig {
-  /** Current storage mode */
-  mode: StorageMode;
-  /** Storage version for migration tracking */
-  version: string;
-  /** Current migration state */
-  migrationState: MigrationState;
-  /** Whether to force a specific mode (testing/development) */
-  forceMode?: StorageMode;
-  /** Last successful migration timestamp */
-  lastMigrationAttempt?: string;
-  /** Number of migration failures */
-  migrationFailureCount?: number;
-}
-
-/**
- * Configuration keys used in localStorage for storage factory settings
- */
-export const STORAGE_CONFIG_KEYS = {
-  MODE: 'storage-mode',
-  VERSION: 'storage-version',
-  MIGRATION_STATE: 'migration-state',
-  FORCE_MODE: 'storage-force-mode',
-  LAST_MIGRATION: 'last-migration-attempt',
-  FAILURE_COUNT: 'migration-failure-count'
-} as const;
-
-/**
- * Default configuration values
- */
-export const DEFAULT_STORAGE_CONFIG: StorageConfig = {
-  mode: 'indexedDB',
-  version: '1.0.0',
-  migrationState: 'not-started',
-  migrationFailureCount: 0
-};
-
-/**
- * Maximum number of migration failures before permanent fallback
- */
-export const MAX_MIGRATION_FAILURES = 3;
+// Configuration constants re-exported from storageConfigManager
+export { DEFAULT_STORAGE_CONFIG } from './storageConfigManager';
+export { MAX_MIGRATION_FAILURES } from './storageConfigManager';
 
 /**
  * Storage Factory for creating appropriate storage adapters
@@ -279,7 +227,7 @@ export class StorageFactory {
           await this.waitForMutex();
           // After waiting, check if we now have a cached adapter
           if (this.cachedAdapter && !forceMode) {
-            const currentConfig = this.getStorageConfig();
+            const currentConfig = await this.getStorageConfig();
             if (this.cachedConfig && currentConfig.mode === this.cachedConfig.mode) {
               return this.cachedAdapter;
             }
@@ -290,7 +238,7 @@ export class StorageFactory {
           // Send telemetry for mutex timeout
           this.sendTelemetry({
             event: 'adapter_failed',
-            mode: forceMode || this.getStorageConfig().mode,
+            mode: forceMode || this.cachedConfig?.mode || 'localStorage',
             timestamp: Date.now(),
             details: {
               error: 'mutex_timeout',
@@ -305,7 +253,7 @@ export class StorageFactory {
 
       // Return cached adapter if available and mode hasn't changed
       if (this.cachedAdapter && !forceMode) {
-        const currentConfig = this.getStorageConfig();
+        const currentConfig = await this.getStorageConfig();
         if (this.cachedConfig &&
             currentConfig.mode === this.cachedConfig.mode &&
             this.cachedAdapterVersion === this.cacheVersion) {
@@ -352,7 +300,7 @@ export class StorageFactory {
    * Internal adapter creation method (mutex-protected)
    */
   private async createAdapterInternal(forceMode?: StorageMode, startTime: number = Date.now()): Promise<StorageAdapter> {
-    const config = this.getStorageConfig();
+    const config = await this.getStorageConfig();
     const targetMode = forceMode || config.mode;
 
     this.logger.debug('Determining storage adapter', {
@@ -679,36 +627,15 @@ export class StorageFactory {
   }
 
   /**
-   * Get current storage configuration from localStorage
+   * Get current storage configuration from IndexedDB
    *
    * @returns Current storage configuration with defaults applied
    */
-  getStorageConfig(): StorageConfig {
+  async getStorageConfig(): Promise<StorageConfig> {
     try {
-      const mode = (getLocalStorageItem(STORAGE_CONFIG_KEYS.MODE) as StorageMode) || DEFAULT_STORAGE_CONFIG.mode;
-      const rawVersion = getLocalStorageItem(STORAGE_CONFIG_KEYS.VERSION) || DEFAULT_STORAGE_CONFIG.version;
-      // Validate version format
-      const version = this.isValidVersion(rawVersion) ? rawVersion : DEFAULT_STORAGE_CONFIG.version;
-      if (rawVersion !== version) {
-        this.logger.warn('Invalid version format, using default', { rawVersion, version });
-      }
-      const migrationState = (getLocalStorageItem(STORAGE_CONFIG_KEYS.MIGRATION_STATE) as MigrationState) || DEFAULT_STORAGE_CONFIG.migrationState;
-      const forceMode = getLocalStorageItem(STORAGE_CONFIG_KEYS.FORCE_MODE) as StorageMode | undefined;
-      const lastMigrationAttempt = getLocalStorageItem(STORAGE_CONFIG_KEYS.LAST_MIGRATION) || undefined;
-      const migrationFailureCount = parseInt(getLocalStorageItem(STORAGE_CONFIG_KEYS.FAILURE_COUNT) || '0', 10);
-
-      const config: StorageConfig = {
-        mode,
-        version,
-        migrationState,
-        forceMode,
-        lastMigrationAttempt,
-        migrationFailureCount
-      };
-
-      this.logger.debug('Retrieved storage configuration', config);
+      const config = await storageConfigManager.getStorageConfig();
+      this.logger.debug('Retrieved storage configuration from IndexedDB', config);
       return config;
-
     } catch (error) {
       this.logger.warn('Failed to retrieve storage configuration, using defaults', { error });
       return { ...DEFAULT_STORAGE_CONFIG };
@@ -716,50 +643,24 @@ export class StorageFactory {
   }
 
   /**
-   * Update storage configuration in localStorage
+   * Update storage configuration in IndexedDB
    *
    * @param updates - Partial configuration updates to apply
    * @returns Promise resolving when configuration is updated
    */
   async updateStorageConfig(updates: Partial<StorageConfig>): Promise<void> {
     try {
-      const currentConfig = this.getStorageConfig();
+      const currentConfig = await this.getStorageConfig();
       const newConfig = { ...currentConfig, ...updates };
 
-      this.logger.debug('Updating storage configuration', {
+      this.logger.debug('Updating storage configuration in IndexedDB', {
         updates,
         previousConfig: currentConfig,
         newConfig
       });
 
-      // Update individual configuration values
-      if (updates.mode !== undefined) {
-        setLocalStorageItem(STORAGE_CONFIG_KEYS.MODE, updates.mode);
-      }
-      if (updates.version !== undefined) {
-        setLocalStorageItem(STORAGE_CONFIG_KEYS.VERSION, updates.version);
-      }
-      if (updates.migrationState !== undefined) {
-        setLocalStorageItem(STORAGE_CONFIG_KEYS.MIGRATION_STATE, updates.migrationState);
-      }
-      if (updates.forceMode !== undefined) {
-        if (updates.forceMode === null) {
-          // Remove force mode override
-          try {
-            removeLocalStorageItem(STORAGE_CONFIG_KEYS.FORCE_MODE);
-          } catch (error) {
-            this.logger.warn('Could not remove force mode override', { error });
-          }
-        } else {
-          setLocalStorageItem(STORAGE_CONFIG_KEYS.FORCE_MODE, updates.forceMode);
-        }
-      }
-      if (updates.lastMigrationAttempt !== undefined) {
-        setLocalStorageItem(STORAGE_CONFIG_KEYS.LAST_MIGRATION, updates.lastMigrationAttempt);
-      }
-      if (updates.migrationFailureCount !== undefined) {
-        setLocalStorageItem(STORAGE_CONFIG_KEYS.FAILURE_COUNT, updates.migrationFailureCount.toString());
-      }
+      // Update configuration via IndexedDB-based manager
+      await storageConfigManager.updateStorageConfig(updates);
 
       // Invalidate cached adapter if mode changed (thread-safe)
       if (updates.mode && updates.mode !== currentConfig.mode) {
@@ -789,7 +690,7 @@ export class StorageFactory {
         this.logger.debug(`Cache invalidated: version ${currentVersion} → ${this.cacheVersion}`);
       }
 
-      this.logger.debug('Storage configuration updated successfully');
+      this.logger.debug('Storage configuration updated successfully in IndexedDB');
 
     } catch (error) {
       this.logger.error('Failed to update storage configuration', { error, updates });
@@ -980,14 +881,8 @@ export class StorageFactory {
     this.logger.warn('Resetting storage configuration to defaults');
 
     try {
-      // Clear all configuration keys
-      Object.values(STORAGE_CONFIG_KEYS).forEach(key => {
-        try {
-          removeLocalStorageItem(key);
-        } catch (error) {
-          this.logger.debug(`Could not remove config key ${key}`, { error });
-        }
-      });
+      // Reset configuration via IndexedDB-based manager
+      await storageConfigManager.resetToDefaults();
 
       // Dispose and clear cached adapter
       if (this.cachedAdapter) {
@@ -1141,9 +1036,9 @@ export async function createStorageAdapter(forceMode?: StorageMode): Promise<Sto
 /**
  * Get current storage configuration
  *
- * @returns Current storage configuration
+ * @returns Promise resolving to current storage configuration
  */
-export function getStorageConfig(): StorageConfig {
+export async function getStorageConfig(): Promise<StorageConfig> {
   return storageFactory.getStorageConfig();
 }
 

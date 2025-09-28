@@ -1,5 +1,5 @@
 import { PLAYER_ADJUSTMENTS_KEY } from '@/config/storageKeys';
-import { getLocalStorageItem, setLocalStorageItem } from './localStorage';
+import { getStorageItem, setStorageItem } from './storage';
 import type { PlayerStatAdjustment } from '@/types';
 
 export interface PlayerAdjustmentsIndex {
@@ -7,9 +7,9 @@ export interface PlayerAdjustmentsIndex {
 }
 
 export const getAllPlayerAdjustments = async (): Promise<PlayerAdjustmentsIndex> => {
-  const json = getLocalStorageItem(PLAYER_ADJUSTMENTS_KEY);
-  if (!json) return {};
   try {
+    const json = await getStorageItem(PLAYER_ADJUSTMENTS_KEY);
+    if (!json) return {};
     return JSON.parse(json) as PlayerAdjustmentsIndex;
   } catch {
     return {};
@@ -44,7 +44,7 @@ export const addPlayerAdjustment = async (adj: Omit<PlayerStatAdjustment, 'id' |
   };
   const list = all[newAdj.playerId] || [];
   all[newAdj.playerId] = [...list, newAdj];
-  setLocalStorageItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
+  await setStorageItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
   return newAdj;
 };
 
@@ -54,7 +54,7 @@ export const deletePlayerAdjustment = async (playerId: string, adjustmentId: str
   const next = list.filter(a => a.id !== adjustmentId);
   if (next.length === list.length) return false;
   all[playerId] = next;
-  setLocalStorageItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
+  await setStorageItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
   return true;
 };
 
@@ -66,7 +66,7 @@ export const updatePlayerAdjustment = async (playerId: string, adjustmentId: str
   const updated: PlayerStatAdjustment = { ...list[idx], ...patch };
   list[idx] = updated;
   all[playerId] = list;
-  setLocalStorageItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
+  await setStorageItem(PLAYER_ADJUSTMENTS_KEY, JSON.stringify(all));
   return updated;
 };
 

@@ -1,9 +1,9 @@
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { SAVED_GAMES_KEY } from '@/config/storageKeys';
 import {
-  getLocalStorageItem,
-  setLocalStorageItem,
-} from './localStorage';
+  getStorageItem,
+  setStorageItem,
+} from './storage';
 import type { SavedGamesCollection, AppState, GameEvent as PageGameEvent, Point, Opponent, IntervalLog } from '@/types';
 import type { Player } from '@/types';
 import logger from '@/utils/logger';
@@ -49,7 +49,7 @@ export interface GameData {
  */
 export const getSavedGames = async (): Promise<SavedGamesCollection> => {
   try {
-    const gamesJson = getLocalStorageItem(SAVED_GAMES_KEY);
+    const gamesJson = await getStorageItem(SAVED_GAMES_KEY);
     if (!gamesJson) {
       return {};
     }
@@ -67,7 +67,7 @@ export const getSavedGames = async (): Promise<SavedGamesCollection> => {
  */
 export const saveGames = async (games: SavedGamesCollection): Promise<void> => {
   try {
-    setLocalStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+    await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
     return;
   } catch (error) {
     logger.error('Error saving games to localStorage:', error);

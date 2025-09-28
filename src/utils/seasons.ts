@@ -1,7 +1,7 @@
 import { SEASONS_LIST_KEY } from '@/config/storageKeys';
 import type { Season } from '@/types'; // Import Season type from shared types
 import logger from '@/utils/logger';
-import { getLocalStorageItem, setLocalStorageItem } from '@/utils/localStorage';
+import { getStorageItem, setStorageItem } from '@/utils/storage';
 
 // Define the Season type (consider moving to a shared types file if not already there)
 // export interface Season { // Remove local definition
@@ -16,7 +16,7 @@ import { getLocalStorageItem, setLocalStorageItem } from '@/utils/localStorage';
  */
 export const getSeasons = async (): Promise<Season[]> => {
   try {
-    const seasonsJson = getLocalStorageItem(SEASONS_LIST_KEY);
+    const seasonsJson = await getStorageItem(SEASONS_LIST_KEY);
     if (!seasonsJson) {
       return Promise.resolve([]);
     }
@@ -35,7 +35,7 @@ export const getSeasons = async (): Promise<Season[]> => {
  */
 export const saveSeasons = async (seasons: Season[]): Promise<boolean> => {
   try {
-    setLocalStorageItem(SEASONS_LIST_KEY, JSON.stringify(seasons));
+    await setStorageItem(SEASONS_LIST_KEY, JSON.stringify(seasons));
     return Promise.resolve(true);
   } catch (error) {
     logger.error('[saveSeasons] Error saving seasons to localStorage:', error);

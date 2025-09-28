@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import styles from "./InstallPrompt.module.css";
 import logger from "@/utils/logger";
-import { getLocalStorageItem, setLocalStorageItem } from "@/utils/localStorage";
+import { getStorageItem, setStorageItem } from "@/utils/storage";
 
 // Define proper interfaces for better type safety
 interface BeforeInstallPromptEvent extends Event {
@@ -23,7 +23,7 @@ const InstallPrompt: React.FC = () => {
     useState<BeforeInstallPromptEvent | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
-  const checkInstallationStatus = useCallback(() => {
+  const checkInstallationStatus = useCallback(async () => {
     // Only run this in the browser
     if (typeof window === "undefined") return;
 
@@ -38,13 +38,17 @@ const InstallPrompt: React.FC = () => {
       return;
     }
 
-    // Check localStorage to see if the user dismissed the prompt recently
-    const lastPromptTime = getLocalStorageItem("installPromptDismissed");
-    if (
-      lastPromptTime &&
-      Date.now() - Number(lastPromptTime) < 24 * 60 * 60 * 1000
-    ) {
-      return; // Don't show prompt if dismissed in the last 24 hours
+    // Check storage to see if the user dismissed the prompt recently
+    try {
+      const lastPromptTime = await getStorageItem("installPromptDismissed");
+      if (
+        lastPromptTime &&
+        Date.now() - Number(lastPromptTime) < 24 * 60 * 60 * 1000
+      ) {
+        return; // Don't show prompt if dismissed in the last 24 hours
+      }
+    } catch {
+      // Silent fail - proceed to show prompt if storage check fails
     }
 
     // If not installed and not recently dismissed, check if we have a prompt event
@@ -61,18 +65,26 @@ const InstallPrompt: React.FC = () => {
       setIsVisible(true); // Show immediately when event is caught
     };
 
+    const handleFocus = () => {
+      checkInstallationStatus().catch(() => {
+        // Silent fail - focus check is not critical
+      });
+    };
+
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    window.addEventListener("focus", checkInstallationStatus); // Re-check on focus
+    window.addEventListener("focus", handleFocus); // Re-check on focus
 
     // Initial check
-    checkInstallationStatus();
+    checkInstallationStatus().catch(() => {
+      // Silent fail - initial check is not critical
+    });
 
     return () => {
       window.removeEventListener(
         "beforeinstallprompt",
         handleBeforeInstallPrompt,
       );
-      window.removeEventListener("focus", checkInstallationStatus);
+      window.removeEventListener("focus", handleFocus);
     };
   }, [installPrompt, checkInstallationStatus]); // Rerun effect if installPrompt changes
 
@@ -88,7 +100,11 @@ const InstallPrompt: React.FC = () => {
       } else {
         logger.log("User dismissed the install prompt");
         // Store the time when dismissed to avoid showing it again too soon
-        setLocalStorageItem("installPromptDismissed", Date.now().toString());
+        try {
+          await setStorageItem("installPromptDismissed", Date.now().toString());
+        } catch {
+          // Silent fail - dismissal tracking is not critical
+        }
       }
     } catch (error) {
       logger.error("Error showing install prompt:", error);
@@ -98,8 +114,12 @@ const InstallPrompt: React.FC = () => {
     setIsVisible(false);
   };
 
-  const handleDismiss = () => {
-    setLocalStorageItem("installPromptDismissed", Date.now().toString());
+  const handleDismiss = async () => {
+    try {
+      await setStorageItem("installPromptDismissed", Date.now().toString());
+    } catch {
+      // Silent fail - dismissal tracking is not critical
+    }
     setIsVisible(false);
   };
 

@@ -2,11 +2,68 @@ import { createStorageAdapter } from './storageFactory';
 import { StorageAdapter } from './storageAdapter';
 import logger from './logger';
 
+/**
+ * Browser compatibility detection for IndexedDB
+ * Checks for IndexedDB availability including private/incognito mode restrictions
+ */
+export function isIndexedDBAvailable(): boolean {
+  try {
+    // Basic availability check
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      logger.warn('IndexedDB not available: window.indexedDB is undefined');
+      return false;
+    }
+
+    // Check for private mode restrictions (Safari/Firefox)
+    // In private mode, indexedDB might exist but throw errors when used
+
+    // Some browsers restrict IndexedDB in private mode
+    // This will throw or return null in those cases
+    if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.estimate) {
+      // Modern browser - check storage availability
+      navigator.storage.estimate().then(estimate => {
+        if (estimate.quota && estimate.quota < 1024 * 1024) {
+          // Less than 1MB quota suggests severe restrictions
+          logger.warn('IndexedDB may be restricted: very low storage quota detected');
+        }
+      }).catch(err => {
+        logger.warn('Storage estimate failed, IndexedDB may be restricted', err);
+      });
+    }
+
+    return true;
+  } catch (error) {
+    logger.error('IndexedDB availability check failed', error);
+    return false;
+  }
+}
+
+/**
+ * Get browser-specific IndexedDB limitation message
+ */
+export function getIndexedDBErrorMessage(): string {
+  const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+  const isPrivateMode = !isIndexedDBAvailable();
+
+  if (isPrivateMode) {
+    if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) {
+      return 'Storage is not available in Safari Private Mode. Please use regular browsing mode or a different browser.';
+    } else if (userAgent.includes('Firefox')) {
+      return 'Storage may be restricted in Firefox Private Mode. Please use regular browsing mode for full functionality.';
+    } else {
+      return 'Storage is not available in private/incognito mode. Please use regular browsing mode for full functionality.';
+    }
+  }
+
+  return 'Your browser does not support the required storage features. Please use a modern browser like Chrome, Firefox, Safari, or Edge.';
+}
+
 let adapterPromise: Promise<StorageAdapter> | null = null;
 let adapterCreatedAt: number | null = null;
 let adapterRetryCount: number = 0;
 let lastFailureTime: number | null = null;
 let isCreatingAdapter: boolean = false; // Mutex to prevent race conditions
+let adapterCreationQueue: Array<{resolve: (value: StorageAdapter) => void, reject: (err: Error) => void}> = [];
 
 // Configurable TTL for adapter caching (default: 5 minutes)
 const ADAPTER_TTL = parseInt(
@@ -19,12 +76,142 @@ const MAX_RETRY_ATTEMPTS = 3;      // Maximum number of retry attempts before gi
 const BASE_RETRY_DELAY = 1000;     // 1 second - initial retry delay
 const MAX_RETRY_DELAY = 10000;     // 10 seconds - maximum delay to prevent excessive waiting
 
+// Security limits
+const MAX_KEY_LENGTH = 1024;       // 1KB max key size
+const MAX_VALUE_SIZE = 10 * 1024 * 1024; // 10MB max value size
+const SUSPICIOUS_KEY_PATTERNS = [
+  /__proto__/,
+  /constructor/,
+  /prototype/,
+  /<script/i,
+  /javascript:/i,
+  /on\w+=/i
+];
+
 /**
  * Check if cached adapter has expired based on TTL
  */
 function isAdapterExpired(): boolean {
   if (!adapterCreatedAt) return true;
   return Date.now() - adapterCreatedAt > ADAPTER_TTL;
+}
+
+/**
+ * Wait for adapter creation using Promise-based queue (replaces polling)
+ */
+function waitForAdapterCreation(): Promise<StorageAdapter> {
+  return new Promise((resolve, reject) => {
+    adapterCreationQueue.push({ resolve, reject });
+
+    // Set a timeout to prevent indefinite waiting
+    const timeout = setTimeout(() => {
+      const index = adapterCreationQueue.findIndex(item => item.resolve === resolve);
+      if (index !== -1) {
+        adapterCreationQueue.splice(index, 1);
+        reject(new Error('Adapter creation timeout: took longer than 30 seconds'));
+      }
+    }, 30000);
+
+    // Store timeout for cleanup
+    const originalResolve = resolve;
+    const wrappedResolve = (value: StorageAdapter) => {
+      clearTimeout(timeout);
+      originalResolve(value);
+    };
+
+    // Update the queue item with wrapped resolve
+    const queueItem = adapterCreationQueue.find(item => item.resolve === resolve);
+    if (queueItem) {
+      queueItem.resolve = wrappedResolve;
+    }
+  });
+}
+
+/**
+ * Notify all waiting requests when adapter is created
+ */
+function notifyAdapterCreated(adapter: StorageAdapter): void {
+  const queue = [...adapterCreationQueue];
+  adapterCreationQueue = [];
+  queue.forEach(({ resolve }) => resolve(adapter));
+}
+
+/**
+ * Notify all waiting requests when adapter creation fails
+ */
+function notifyAdapterFailed(error: Error): void {
+  const queue = [...adapterCreationQueue];
+  adapterCreationQueue = [];
+  queue.forEach(({ reject }) => reject(error));
+}
+
+/**
+ * Validate storage key for security and size limits
+ */
+function validateStorageKey(key: string): void {
+  if (!key || typeof key !== 'string') {
+    throw new Error('Storage key must be a non-empty string');
+  }
+
+  if (key.length > MAX_KEY_LENGTH) {
+    throw new Error(`Storage key is too long (${key.length} characters). Maximum allowed is ${MAX_KEY_LENGTH} characters.`);
+  }
+
+  // Check for suspicious patterns that might indicate injection attempts
+  for (const pattern of SUSPICIOUS_KEY_PATTERNS) {
+    if (pattern.test(key)) {
+      logger.warn('Suspicious key pattern detected', { key, pattern: pattern.source });
+      throw new Error('Invalid storage key: contains restricted patterns');
+    }
+  }
+}
+
+/**
+ * Validate storage value for security and size limits
+ */
+function validateStorageValue(value: string): void {
+  if (typeof value !== 'string') {
+    throw new Error('Storage value must be a string');
+  }
+
+  const byteSize = new Blob([value]).size;
+  if (byteSize > MAX_VALUE_SIZE) {
+    throw new Error(`Storage value is too large (${(byteSize / 1024 / 1024).toFixed(2)}MB). Maximum allowed is ${MAX_VALUE_SIZE / 1024 / 1024}MB.`);
+  }
+}
+
+/**
+ * Convert technical error messages to user-friendly ones
+ */
+function getUserFriendlyErrorMessage(technicalMessage: string): string {
+  const lowerMessage = technicalMessage.toLowerCase();
+
+  if (lowerMessage.includes('quota') || lowerMessage.includes('storage full')) {
+    return 'Your browser\'s storage is full. Please clear some browser data (Settings → Privacy → Clear browsing data) and try again.';
+  }
+
+  if (lowerMessage.includes('blocked') || lowerMessage.includes('access denied')) {
+    return 'Storage access is blocked. Please check your browser settings or disable private/incognito mode.';
+  }
+
+  if (lowerMessage.includes('not supported') || lowerMessage.includes('indexeddb not available')) {
+    return getIndexedDBErrorMessage();
+  }
+
+  if (lowerMessage.includes('timeout') || lowerMessage.includes('timed out')) {
+    return 'Storage operation took too long. Please refresh the page and try again.';
+  }
+
+  if (lowerMessage.includes('network') || lowerMessage.includes('offline')) {
+    return 'Network connection issue detected. Please check your internet connection and try again.';
+  }
+
+  if (lowerMessage.includes('corruption') || lowerMessage.includes('corrupted')) {
+    return 'Storage data appears corrupted. Please clear browser data and restart the application.';
+  }
+
+  // Default fallback message
+  return 'Storage is temporarily unavailable. Please refresh the page or try using a different browser.';
 }
 
 /**
@@ -85,14 +272,8 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
   // If another call is already creating an adapter, wait for it
   if (isCreatingAdapter) {
     logger.debug('Adapter creation already in progress, waiting...');
-    // Poll until creation is complete or fails
-    while (isCreatingAdapter) {
-      await new Promise(resolve => setTimeout(resolve, 10));
-    }
-    // After waiting, check if we now have a valid adapter
-    if (adapterPromise && !isAdapterExpired()) {
-      return adapterPromise;
-    }
+    // Use Promise-based queue instead of polling
+    return waitForAdapterCreation();
   }
 
   // Set mutex to prevent concurrent creation
@@ -104,14 +285,15 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
       return adapterPromise;
     }
 
-    // Clear expired adapter
+    // Clear expired adapter with proper connection cleanup
     if (adapterPromise && isAdapterExpired()) {
       logger.debug('Storage adapter TTL expired, creating fresh adapter');
-      adapterPromise = null;
-      adapterCreatedAt = null;
-      // Reset retry state on TTL expiration
-      adapterRetryCount = 0;
-      lastFailureTime = null;
+      // Use async cleanup but don't await to avoid blocking the synchronous flow
+      // This ensures adapter connections are properly closed
+      clearAdapterCacheWithCleanup().catch(error => {
+        logger.warn('Failed to cleanup expired adapter', { error });
+      });
+      // Continue immediately with fresh adapter creation
     }
 
     // Check if we can retry now (respects exponential backoff)
@@ -120,7 +302,8 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
       const timeUntilRetry = lastFailureTime ? (lastFailureTime + nextRetryDelay - Date.now()) : 0;
 
       logger.warn(`Storage adapter creation still in backoff period. Next retry in ${Math.max(0, timeUntilRetry)}ms`);
-      throw new Error(`Storage adapter unavailable. Retry in ${Math.ceil(Math.max(0, timeUntilRetry) / 1000)} seconds.`);
+      const waitMessage = `Storage is temporarily unavailable. Please wait ${Math.ceil(Math.max(0, timeUntilRetry) / 1000)} seconds and try again.`;
+      throw new Error(waitMessage);
     }
 
     // Force IndexedDB only - no localStorage fallback with retry logic
@@ -129,6 +312,10 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
       adapterRetryCount = 0;
       lastFailureTime = null;
       logger.debug('Storage adapter created successfully after retries');
+
+      // Notify waiting requests
+      notifyAdapterCreated(adapter);
+
       return adapter;
     }).catch(error => {
       // Failure: update retry state and clear promise
@@ -140,9 +327,15 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
       const nextDelay = calculateRetryDelay(adapterRetryCount);
       logger.error(`Storage adapter creation failed (attempt ${adapterRetryCount}/${MAX_RETRY_ATTEMPTS}). Next retry in ${nextDelay}ms`, error);
 
-      // Include retry information in error message
+      // Include retry information in error message with user-friendly suggestions
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(`Storage unavailable: ${errorMessage}. Retry ${adapterRetryCount}/${MAX_RETRY_ATTEMPTS} in ${Math.ceil(nextDelay / 1000)}s.`);
+      const userFriendlyError = getUserFriendlyErrorMessage(errorMessage);
+      const finalError = new Error(`${userFriendlyError} (Retry ${adapterRetryCount}/${MAX_RETRY_ATTEMPTS} in ${Math.ceil(nextDelay / 1000)}s)`);
+
+      // Notify waiting requests
+      notifyAdapterFailed(finalError);
+
+      throw finalError;
     });
 
     // Record creation time for TTL tracking
@@ -168,6 +361,17 @@ export async function getStorageItem(
 ): Promise<string | null> {
   const { throwOnError = false, retryCount = 2 } = options;
 
+  // Validate key for security
+  try {
+    validateStorageKey(key);
+  } catch (validationError) {
+    logger.error('Invalid storage key', { key, error: validationError });
+    if (throwOnError) {
+      throw validationError;
+    }
+    return null;
+  }
+
   for (let attempt = 0; attempt <= retryCount; attempt++) {
     try {
       const adapter = await getStorageAdapter();
@@ -179,7 +383,8 @@ export async function getStorageItem(
       if (attempt === retryCount) {
         if (throwOnError) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          throw new Error(`Storage unavailable: ${errorMessage}. Please use a modern browser with IndexedDB support.`);
+          const userFriendlyMessage = getUserFriendlyErrorMessage(errorMessage);
+          throw new Error(userFriendlyMessage);
         } else {
           // Graceful degradation: return null for non-critical reads
           logger.warn(`Graceful degradation: returning null for key "${key}" after ${retryCount + 1} attempts`);
@@ -211,6 +416,10 @@ export async function setStorageItem(
 ): Promise<void> {
   const { retryCount = 2 } = options;
 
+  // Validate key and value for security
+  validateStorageKey(key);
+  validateStorageValue(value);
+
   for (let attempt = 0; attempt <= retryCount; attempt++) {
     try {
       const adapter = await getStorageAdapter();
@@ -221,7 +430,8 @@ export async function setStorageItem(
       // If this is the last attempt, throw the error
       if (attempt === retryCount) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        throw new Error(`Storage write failed: ${errorMessage}. Data could not be saved.`);
+        const userFriendlyMessage = getUserFriendlyErrorMessage(errorMessage);
+        throw new Error(`Unable to save data: ${userFriendlyMessage}`);
       }
 
       // Wait before retry with exponential backoff
@@ -244,6 +454,9 @@ export async function removeStorageItem(
 ): Promise<void> {
   const { retryCount = 2 } = options;
 
+  // Validate key for security
+  validateStorageKey(key);
+
   for (let attempt = 0; attempt <= retryCount; attempt++) {
     try {
       const adapter = await getStorageAdapter();
@@ -254,7 +467,8 @@ export async function removeStorageItem(
       // If this is the last attempt, throw the error
       if (attempt === retryCount) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        throw new Error(`Storage removal failed: ${errorMessage}. Retry ${retryCount + 1}/${retryCount + 1} attempts exhausted.`);
+        const userFriendlyMessage = getUserFriendlyErrorMessage(errorMessage);
+        throw new Error(`Unable to remove data: ${userFriendlyMessage}`);
       }
 
       // Wait before retry with exponential backoff
@@ -285,7 +499,8 @@ export async function clearStorage(
       // If this is the last attempt, throw the error
       if (attempt === retryCount) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        throw new Error(`Storage clear failed: ${errorMessage}. Retry ${retryCount + 1}/${retryCount + 1} attempts exhausted.`);
+        const userFriendlyMessage = getUserFriendlyErrorMessage(errorMessage);
+        throw new Error(`Unable to clear storage: ${userFriendlyMessage}`);
       }
 
       // Wait before retry with exponential backoff
@@ -529,8 +744,29 @@ export const typeGuards = {
  * Clear cached adapter to force fresh connection on next access
  * Useful for testing, error recovery, or manual refresh scenarios
  */
-export function clearAdapterCache(): void {
-  logger.debug('Manually clearing storage adapter cache');
+/**
+ * Clear cached adapter with proper connection cleanup
+ * Useful for testing, error recovery, or manual refresh scenarios
+ */
+export async function clearAdapterCacheWithCleanup(): Promise<void> {
+  logger.debug('Clearing storage adapter cache with connection cleanup');
+
+  // Close existing adapter connection if available
+  if (adapterPromise) {
+    try {
+      const adapter = await adapterPromise;
+      // Check if adapter has close method (IndexedDB connections)
+      if (adapter && typeof (adapter as unknown as { close?: () => Promise<void> }).close === 'function') {
+        await (adapter as unknown as { close: () => Promise<void> }).close();
+        logger.debug('Closed adapter connection during cache clear');
+      }
+    } catch (error) {
+      logger.warn('Failed to close adapter connection during cache clear', { error });
+      // Continue with cleanup even if close fails
+    }
+  }
+
+  // Clear cache state
   adapterPromise = null;
   adapterCreatedAt = null;
   // Also reset retry state to allow immediate retry
@@ -538,4 +774,95 @@ export function clearAdapterCache(): void {
   lastFailureTime = null;
   // Reset mutex state for clean slate
   isCreatingAdapter = false;
+  // Clear any pending queue
+  notifyAdapterFailed(new Error('Adapter cache cleared'));
+  adapterCreationQueue = [];
+}
+
+/**
+ * Clear cached adapter to force fresh connection on next access
+ * Synchronous version for backward compatibility
+ * @deprecated Use clearAdapterCacheWithCleanup() for proper connection cleanup
+ */
+export function clearAdapterCache(): void {
+  logger.debug('Manually clearing storage adapter cache (sync)');
+  adapterPromise = null;
+  adapterCreatedAt = null;
+  // Also reset retry state to allow immediate retry
+  adapterRetryCount = 0;
+  lastFailureTime = null;
+  // Reset mutex state for clean slate
+  isCreatingAdapter = false;
+  // Clear any pending queue
+  notifyAdapterFailed(new Error('Adapter cache cleared'));
+  adapterCreationQueue = [];
+}
+
+/**
+ * Get current memory usage statistics for monitoring
+ */
+export async function getStorageMemoryStats(): Promise<{
+  adapterAge: number | null;
+  retryCount: number;
+  queueLength: number;
+  isCreating: boolean;
+  hasAdapter: boolean;
+}> {
+  return {
+    adapterAge: adapterCreatedAt ? Date.now() - adapterCreatedAt : null,
+    retryCount: adapterRetryCount,
+    queueLength: adapterCreationQueue.length,
+    isCreating: isCreatingAdapter,
+    hasAdapter: adapterPromise !== null
+  };
+}
+
+/**
+ * Perform periodic cleanup of module-level state
+ * Call this in long-running sessions to prevent memory accumulation
+ */
+export async function performMemoryCleanup(): Promise<void> {
+  const now = Date.now();
+
+  // Clear expired adapter with proper lifecycle management
+  if (isAdapterExpired()) {
+    logger.debug('Performing memory cleanup: clearing expired adapter');
+    await clearAdapterCacheWithCleanup();
+  }
+
+  // Clear stale queue entries (shouldn't happen but defensive)
+  if (adapterCreationQueue.length > 0 && !isCreatingAdapter) {
+    logger.warn('Found orphaned queue entries during cleanup', { count: adapterCreationQueue.length });
+    notifyAdapterFailed(new Error('Queue cleared during memory cleanup'));
+    adapterCreationQueue = [];
+  }
+
+  // Log memory stats for monitoring
+  logger.debug('Memory cleanup completed', {
+    adapterAge: adapterCreatedAt ? now - adapterCreatedAt : null,
+    queueLength: adapterCreationQueue.length,
+    retryCount: adapterRetryCount
+  });
+}
+
+/**
+ * Set up automatic memory cleanup interval
+ * Returns cleanup function to stop the interval
+ */
+export function setupAutoMemoryCleanup(intervalMs = 5 * 60 * 1000): () => void {
+  const intervalId = setInterval(async () => {
+    try {
+      await performMemoryCleanup();
+    } catch (error) {
+      logger.warn('Error during automatic memory cleanup', { error });
+    }
+  }, intervalMs);
+
+  logger.debug(`Auto memory cleanup scheduled every ${intervalMs / 1000} seconds`);
+
+  // Return cleanup function
+  return () => {
+    clearInterval(intervalId);
+    logger.debug('Auto memory cleanup stopped');
+  };
 }

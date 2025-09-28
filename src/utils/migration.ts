@@ -374,7 +374,7 @@ export const setMigrationProgressCallback = (callback: ((progress: MigrationProg
  * Get current app data version from appropriate storage (localStorage during migration, IndexedDB after)
  */
 export const getAppDataVersion = async (): Promise<number> => {
-  const config = getStorageConfig();
+  const config = await getStorageConfig();
 
   // During migration or if IndexedDB not yet active, check localStorage
   if (config.mode !== 'indexedDB' || config.migrationState !== 'completed') {
@@ -425,7 +425,7 @@ export const getAppDataVersion = async (): Promise<number> => {
  * Set app data version to appropriate storage (localStorage during migration, IndexedDB after)
  */
 export const setAppDataVersion = async (version: number): Promise<void> => {
-  const config = getStorageConfig();
+  const config = await getStorageConfig();
 
   // During migration or if IndexedDB not yet active, use localStorage
   if (config.mode !== 'indexedDB' || config.migrationState !== 'completed') {
@@ -455,8 +455,8 @@ export const isMigrationNeeded = async (): Promise<boolean> => {
 /**
  * Check if IndexedDB migration is needed
  */
-export const isIndexedDbMigrationNeeded = (): boolean => {
-  const config = getStorageConfig();
+export const isIndexedDbMigrationNeeded = async (): Promise<boolean> => {
+  const config = await getStorageConfig();
   return config.mode === 'localStorage' &&
          config.version !== INDEXEDDB_STORAGE_VERSION &&
          config.forceMode !== 'localStorage';
@@ -775,7 +775,7 @@ export const runMigration = async (): Promise<void> => {
     updateMigrationStatus({ isRunning: true, progress: null, error: null });
 
     const needsAppMigration = await isMigrationNeeded();
-    const needsIndexedDbMigration = isIndexedDbMigrationNeeded();
+    const needsIndexedDbMigration = await isIndexedDbMigrationNeeded();
 
     if (!needsAppMigration && !needsIndexedDbMigration) {
       logger.log('[Migration] No migration needed');
@@ -803,15 +803,17 @@ export const runMigration = async (): Promise<void> => {
       performanceMetrics.availabilityCheckTime = Date.now() - availabilityStartTime;
 
       if (!isIndexedDbAvailable) {
-        const errorMsg = 'IndexedDB is not available (privacy mode or browser restriction). Continuing with localStorage.';
-        logger.warn(`[Migration] ${errorMsg}`);
+        const errorMsg = 'IndexedDB is required for this application to function. Please disable private/incognito mode or use a modern browser that supports IndexedDB.';
+        logger.error(`[Migration] ${errorMsg}`);
         updateMigrationStatus({
           isRunning: false,
           error: errorMsg,
           showNotification: true
         });
         ensureCleanup();
-        return;
+
+        // IndexedDB-only policy: throw error instead of continuing
+        throw new Error(errorMsg);
       }
     }
 
@@ -1250,7 +1252,7 @@ async function performIndexedDbMigrationEnhanced(): Promise<{
         }, 10000); // Run emergency cleanup after 10 seconds
       }
 
-      const detailedError = `Migration failed: Only ${successRate.toFixed(1)}% of data transferred successfully (${migratedKeys.length}/${totalKeys} items). Failed items: ${failedKeys}. All data remains safely in localStorage.`;
+      const detailedError = `Migration failed: Only ${successRate.toFixed(1)}% of data transferred successfully (${migratedKeys.length}/${totalKeys} items). Failed items: ${failedKeys}. Application requires IndexedDB to function properly.`;
       throw new Error(detailedError);
     }
 
@@ -1305,7 +1307,7 @@ async function performIndexedDbMigrationEnhanced(): Promise<{
  * Get migration status for UI
  */
 export const getMigrationStatus = async () => {
-  const config = getStorageConfig();
+  const config = await getStorageConfig();
 
   return {
     currentVersion: await getAppDataVersion(),
@@ -1313,7 +1315,7 @@ export const getMigrationStatus = async () => {
     migrationNeeded: await isMigrationNeeded(),
     storageMode: config.mode,
     storageVersion: config.version,
-    indexedDbMigrationNeeded: isIndexedDbMigrationNeeded(),
+    indexedDbMigrationNeeded: await isIndexedDbMigrationNeeded(),
     migrationState: config.migrationState
   };
 };
@@ -1322,7 +1324,7 @@ export const getMigrationStatus = async () => {
  * Manually trigger IndexedDB migration (for settings UI)
  */
 export const triggerIndexedDbMigration = async (): Promise<boolean> => {
-  const config = getStorageConfig();
+  const config = await getStorageConfig();
 
   if (config.mode === 'indexedDB') {
     logger.log('[Migration] Already using IndexedDB');
