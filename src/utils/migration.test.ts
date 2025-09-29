@@ -268,26 +268,26 @@ describe('Simplified Migration System', () => {
   describe('isIndexedDbMigrationNeeded', () => {
     it('should return true when conditions are met', async () => {
       const storageFactory = require('./storageFactory');
-      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
+      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockResolvedValue({
         mode: 'localStorage',
         version: '1',
         migrationState: 'not-started',
         forceMode: undefined
       });
 
-      expect(isIndexedDbMigrationNeeded()).toBe(true);
+      expect(await isIndexedDbMigrationNeeded()).toBe(true);
     });
 
     it('should return false when already using IndexedDB', async () => {
       const storageFactory = require('./storageFactory');
-      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
+      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockResolvedValue({
         mode: 'indexedDB',
         version: INDEXEDDB_STORAGE_VERSION.toString(),
         migrationState: 'completed',
         forceMode: undefined
       });
 
-      expect(isIndexedDbMigrationNeeded()).toBe(false);
+      expect(await isIndexedDbMigrationNeeded()).toBe(false);
     });
   });
 

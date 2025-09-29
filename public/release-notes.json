@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: enhance storage system with comprehensive quality improvements"
+  "notes": "feat: complete IndexedDB-only implementation with comprehensive localStorage migration"
 }

@@ -110,8 +110,8 @@ describe('StorageFactory Core Functionality', () => {
   });
 
   describe('Configuration Management', () => {
-    test('should return default configuration', () => {
-      const config = factory.getStorageConfig();
+    test('should return default configuration', async () => {
+      const config = await factory.getStorageConfig();
 
       expect(config.mode).toBe('indexedDB'); // IndexedDB-only architecture
       expect(config.version).toBe('1.0.0');
@@ -125,7 +125,7 @@ describe('StorageFactory Core Functionality', () => {
         version: '2.0.0'
       });
 
-      const config = factory.getStorageConfig();
+      const config = await factory.getStorageConfig();
       expect(config.mode).toBe('indexedDB');
       expect(config.version).toBe('2.0.0');
     });
@@ -181,17 +181,17 @@ describe('StorageFactory Core Functionality', () => {
     test('should reset configuration', async () => {
       // Ensure we start with default state (IndexedDB-only)
       await factory.resetToDefaults();
-      const initialConfig = factory.getStorageConfig();
+      const initialConfig = await factory.getStorageConfig();
       expect(initialConfig.mode).toBe('indexedDB'); // IndexedDB is now default
 
       // Update some other config value to test reset
       await factory.updateStorageConfig({ version: '2.0.0' });
-      const updatedConfig = factory.getStorageConfig();
+      const updatedConfig = await factory.getStorageConfig();
       expect(updatedConfig.version).toBe('2.0.0');
 
       // Reset back to defaults
       await factory.resetToDefaults();
-      const resetConfig = factory.getStorageConfig();
+      const resetConfig = await factory.getStorageConfig();
       expect(resetConfig.mode).toBe('indexedDB'); // IndexedDB is now default
       expect(resetConfig.version).toBe('1.0.0'); // Version should reset too
     });
@@ -217,11 +217,11 @@ describe('Convenience Functions', () => {
     expect(typeof adapter.setItem).toBe('function');
     expect(adapter.getBackendName()).toBe('indexedDB');
 
-    const config = getStorageConfig();
+    const config = await getStorageConfig();
     expect(config.mode).toBe('indexedDB'); // IndexedDB-only architecture
 
     await updateStorageConfig({ version: '2.0.0' });
-    const updatedConfig = getStorageConfig();
+    const updatedConfig = await getStorageConfig();
     expect(updatedConfig.version).toBe('2.0.0');
   });
 });
@@ -307,13 +307,13 @@ describe('Advanced Features', () => {
     expect(newAdapter).not.toBe(adapter);
   });
 
-  test('should validate version format', () => {
+  test('should validate version format', async () => {
     const factory = new StorageFactory();
 
     // Set invalid version
     testStore['storage-version'] = 'invalid-version';
 
-    const config = factory.getStorageConfig();
+    const config = await factory.getStorageConfig();
     expect(config.version).toBe('1.0.0'); // Should use default
   });
 
@@ -388,7 +388,7 @@ describe('Integration Tests', () => {
     expect(value).toBe('test-value');
 
     // Configuration should remain IndexedDB
-    const config = factory.getStorageConfig();
+    const config = await factory.getStorageConfig();
     expect(config.mode).toBe('indexedDB');
   });
 });
