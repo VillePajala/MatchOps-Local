@@ -1,4 +1,12 @@
 /**
+ * INDEXEDDB BRANCH CONTEXT (Branch 1/4):
+ * - Current: IndexedDB storage foundation implementation
+ * - Migration: Completed separately (not main focus)
+ * - Review Focus: Storage architecture quality, async patterns, type safety
+ * - Next: Branches 2-4 will build advanced features on this foundation
+ */
+
+/**
  * Storage Factory for Adapter Selection and Configuration Management
  *
  * Provides centralized adapter selection between localStorage and IndexedDB based on:

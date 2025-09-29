@@ -1,3 +1,11 @@
+/**
+ * INDEXEDDB BRANCH CONTEXT (Branch 1/4):
+ * - Current: IndexedDB storage foundation implementation
+ * - Migration: Completed separately (not main focus)
+ * - Review Focus: Storage architecture quality, async patterns, type safety
+ * - Next: Branches 2-4 will build advanced features on this foundation
+ */
+
 import { createStorageAdapter } from './storageFactory';
 import { StorageAdapter } from './storageAdapter';
 import logger from './logger';

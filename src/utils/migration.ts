@@ -1,4 +1,12 @@
 /**
+ * INDEXEDDB BRANCH CONTEXT (Branch 1/4):
+ * - Current: IndexedDB storage foundation implementation
+ * - Migration: This is a COMPLETED PREREQUISITE utility (not the branch focus)
+ * - Review Focus: Storage architecture quality, not migration complexity
+ * - Next: Branches 2-4 will build advanced features on this foundation
+ */
+
+/**
  * Simplified IndexedDB Migration
  *
  * A pragmatic migration approach for small datasets (1-3 users)

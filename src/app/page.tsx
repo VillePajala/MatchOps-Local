@@ -29,7 +29,8 @@ export default function Home() {
 
   const checkAppState = useCallback(async () => {
     try {
-      // Run migration first (idempotent - safe to run multiple times)
+      // This runs once to ensure legacy data is converted to IndexedDB.
+      // IndexedDB is the runtime storage; this is not the focus of current work.
       await runMigration();
 
       // Check for resume capability
