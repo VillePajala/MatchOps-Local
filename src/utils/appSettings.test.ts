@@ -10,46 +10,38 @@ import {
   AppSettings
 } from './appSettings';
 import { APP_SETTINGS_KEY, LAST_HOME_TEAM_NAME_KEY } from '@/config/storageKeys';
+import { clearMockStore } from './__mocks__/storage';
+import { getStorageItem, setStorageItem, removeStorageItem } from './storage';
 
+// Auto-mock the storage module
+jest.mock('./storage');
+
+// Type the mocked functions
+const mockGetStorageItem = getStorageItem as jest.MockedFunction<typeof getStorageItem>;
+const mockSetStorageItem = setStorageItem as jest.MockedFunction<typeof setStorageItem>;
+const mockRemoveStorageItem = removeStorageItem as jest.MockedFunction<typeof removeStorageItem>;
 
 describe('App Settings Utilities', () => {
-  // Mock localStorage with proper implementation
-  const localStorageMock = {
-    getItem: jest.fn(),
-    setItem: jest.fn(),
-    clear: jest.fn(),
-    removeItem: jest.fn(),
-    length: 0,
-    key: jest.fn()
-  };
-
-  // Replace global localStorage with mock
-  Object.defineProperty(window, 'localStorage', {
-    value: localStorageMock,
-    writable: true,
-    configurable: true,
-  });
 
   // Reset mocks before each test
   beforeEach(() => {
-    localStorageMock.getItem.mockReset();
-    localStorageMock.setItem.mockReset();
-    localStorageMock.clear.mockReset();
-    localStorageMock.removeItem.mockReset();
-    localStorageMock.key.mockReset();
-    
+    clearMockStore();
+    mockGetStorageItem.mockReset();
+    mockSetStorageItem.mockReset();
+    mockRemoveStorageItem.mockReset();
+
     // Reset to default behavior - successful operations
-    localStorageMock.setItem.mockImplementation(() => {});
-    localStorageMock.getItem.mockReturnValue(null);
+    mockSetStorageItem.mockImplementation(async () => {});
+    mockGetStorageItem.mockResolvedValue(null);
   });
 
   describe('getAppSettings', () => {
     it('should return default settings if nothing is stored', async () => {
-      localStorageMock.getItem.mockReturnValue(null);
+      mockGetStorageItem.mockResolvedValue(null);
       
       const result = await getAppSettings();
       
-      expect(localStorageMock.getItem).toHaveBeenCalledWith(APP_SETTINGS_KEY);
+      expect(mockGetStorageItem).toHaveBeenCalledWith(APP_SETTINGS_KEY);
       expect(result).toEqual({
         currentGameId: null,
         lastHomeTeamName: '',
@@ -61,11 +53,11 @@ describe('App Settings Utilities', () => {
 
     it('should return merged settings if stored settings exist', async () => {
       const storedSettings = { currentGameId: 'game123', lastHomeTeamName: 'Team X' };
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(storedSettings));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(storedSettings));
       
       const result = await getAppSettings();
       
-      expect(localStorageMock.getItem).toHaveBeenCalledWith(APP_SETTINGS_KEY);
+      expect(mockGetStorageItem).toHaveBeenCalledWith(APP_SETTINGS_KEY);
       expect(result).toEqual({
         currentGameId: 'game123',
         lastHomeTeamName: 'Team X',
@@ -77,7 +69,7 @@ describe('App Settings Utilities', () => {
 
     it('should handle invalid JSON and return default settings', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      localStorageMock.getItem.mockReturnValue('invalid json');
+      mockGetStorageItem.mockResolvedValue('invalid json');
       
       const result = await getAppSettings();
       
@@ -96,11 +88,11 @@ describe('App Settings Utilities', () => {
     it('should return default settings if localStorage.getItem throws an error', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const error = new Error('Cannot access localStorage');
-      localStorageMock.getItem.mockImplementation(() => { throw error; });
+      mockGetStorageItem.mockImplementation(async () => { throw error; });
 
       const result = await getAppSettings();
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Error getting item'), error);
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Error getting app settings'), error);
       expect(result).toEqual({
         currentGameId: null,
         lastHomeTeamName: '',
@@ -122,7 +114,7 @@ describe('App Settings Utilities', () => {
       
       const result = await saveAppSettings(settings);
       
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
         APP_SETTINGS_KEY,
         JSON.stringify(settings)
       );
@@ -132,12 +124,12 @@ describe('App Settings Utilities', () => {
     it('should return false if localStorage.setItem throws an error', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const error = new Error('Storage quota exceeded');
-      localStorageMock.setItem.mockImplementation(() => { throw error; });
+      mockSetStorageItem.mockImplementation(() => { throw error; });
 
       const settings: AppSettings = { currentGameId: 'game123' };
       const result = await saveAppSettings(settings);
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Error setting item'), error);
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Error saving app settings'), error);
       expect(result).toBe(false);
       consoleSpy.mockRestore();
     });
@@ -151,7 +143,7 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         hasSeenAppGuide: false,
       };
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(currentSettings));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(currentSettings));
       
       const result = await updateAppSettings({ currentGameId: 'game456' });
       
@@ -163,7 +155,7 @@ describe('App Settings Utilities', () => {
         useDemandCorrection: false
       });
       
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
         APP_SETTINGS_KEY,
         JSON.stringify({
           currentGameId: 'game456',
@@ -182,7 +174,7 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         hasSeenAppGuide: false,
       };
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(currentSettings));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(currentSettings));
 
       const result = await updateAppSettings({ language: 'fi' });
 
@@ -191,7 +183,7 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         useDemandCorrection: false,
       });
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
         APP_SETTINGS_KEY,
         JSON.stringify({
           ...currentSettings,
@@ -208,9 +200,9 @@ describe('App Settings Utilities', () => {
         language: 'en'
       };
       // Simulate getAppSettings returning current settings initially
-      localStorageMock.getItem.mockReturnValueOnce(JSON.stringify(currentSettings));
+      mockGetStorageItem.mockResolvedValueOnce(JSON.stringify(currentSettings));
       // Simulate saveAppSettings failing by making setItem throw an error
-      localStorageMock.setItem.mockImplementationOnce(() => { throw new Error('Save failed'); });
+      mockSetStorageItem.mockImplementationOnce(async () => { throw new Error('Save failed'); });
 
       // Expect updateAppSettings to throw the specific error.
       try {
@@ -222,24 +214,24 @@ describe('App Settings Utilities', () => {
       }
 
       // Ensure localStorage.setItem was called (attempted to save)
-      expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('getCurrentGameIdSetting', () => {
     it('should return the current game ID', async () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify({
+      mockGetStorageItem.mockResolvedValue(JSON.stringify({
         currentGameId: 'game789'
       }));
       
       const result = await getCurrentGameIdSetting();
       
       expect(result).toBe('game789');
-      expect(localStorageMock.getItem).toHaveBeenCalledWith(APP_SETTINGS_KEY);
+      expect(mockGetStorageItem).toHaveBeenCalledWith(APP_SETTINGS_KEY);
     });
 
     it('should return null if no current game ID is set', async () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify({
+      mockGetStorageItem.mockResolvedValue(JSON.stringify({
         currentGameId: null
       }));
       
@@ -257,13 +249,13 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         hasSeenAppGuide: false,
       };
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(currentSettings));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(currentSettings));
       // Mock setItem to simulate successful save by updateAppSettings
-      localStorageMock.setItem.mockImplementation(() => {}); 
+      mockSetStorageItem.mockImplementation(() => {}); 
 
       const result = await saveCurrentGameIdSetting('newGameId');
       
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
         APP_SETTINGS_KEY,
         JSON.stringify({
           currentGameId: 'newGameId',
@@ -277,10 +269,10 @@ describe('App Settings Utilities', () => {
     });
 
     it('should return false if saving fails', async () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify({ currentGameId: 'old' }));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify({ currentGameId: 'old' }));
       // Simulate error during the setItem call within updateAppSettings
-      localStorageMock.setItem.mockImplementationOnce(() => { 
-        throw new Error('Cannot save'); 
+      mockSetStorageItem.mockImplementationOnce(async () => {
+        throw new Error('Cannot save');
       });
 
       const result = await saveCurrentGameIdSetting('newGameId');
@@ -290,7 +282,7 @@ describe('App Settings Utilities', () => {
 
   describe('getLastHomeTeamName', () => {
     it('should return last home team name from app settings', async () => {
-      localStorageMock.getItem.mockImplementation((key) => {
+      mockGetStorageItem.mockImplementation(async (key) => {
         if (key === APP_SETTINGS_KEY) {
           return JSON.stringify({ lastHomeTeamName: 'Dragons' });
         }
@@ -300,16 +292,16 @@ describe('App Settings Utilities', () => {
       const result = await getLastHomeTeamName();
       
       expect(result).toBe('Dragons');
-      expect(localStorageMock.getItem).toHaveBeenCalledWith(APP_SETTINGS_KEY);
+      expect(mockGetStorageItem).toHaveBeenCalledWith(APP_SETTINGS_KEY);
     });
 
     it('should fall back to legacy storage if not in app settings', async () => {
-      localStorageMock.getItem.mockImplementation((key) => {
+      mockGetStorageItem.mockImplementation(async (key) => {
         if (key === APP_SETTINGS_KEY) {
-          return JSON.stringify({ language: 'en' }); 
+          return JSON.stringify({ language: 'en' });
         }
         if (key === LAST_HOME_TEAM_NAME_KEY) {
-          return 'Tigers'; 
+          return 'Tigers';
         }
         return null;
       });
@@ -317,12 +309,12 @@ describe('App Settings Utilities', () => {
       const result = await getLastHomeTeamName();
       
       expect(result).toBe('Tigers');
-      expect(localStorageMock.getItem).toHaveBeenCalledWith(APP_SETTINGS_KEY);
-      expect(localStorageMock.getItem).toHaveBeenCalledWith(LAST_HOME_TEAM_NAME_KEY);
+      expect(mockGetStorageItem).toHaveBeenCalledWith(APP_SETTINGS_KEY);
+      expect(mockGetStorageItem).toHaveBeenCalledWith(LAST_HOME_TEAM_NAME_KEY);
     });
 
     it('should return empty string if no value is found', async () => {
-      localStorageMock.getItem.mockReturnValue(null);
+      mockGetStorageItem.mockResolvedValue(null);
       
       const result = await getLastHomeTeamName();
       
@@ -338,13 +330,13 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         hasSeenAppGuide: false,
       };
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(currentSettings)); // For getAppSettings call in updateAppSettings
-      localStorageMock.setItem.mockImplementation(() => {}); // Default successful save
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(currentSettings)); // For getAppSettings call in updateAppSettings
+      mockSetStorageItem.mockImplementation(() => {}); // Default successful save
 
       const result = await saveLastHomeTeamName('New Team Name');
 
       // Check updateAppSettings call (indirectly via setItem for APP_SETTINGS_KEY)
-      const appSettingsCall = localStorageMock.setItem.mock.calls.find(
+      const appSettingsCall = mockSetStorageItem.mock.calls.find(
         call => call[0] === APP_SETTINGS_KEY
       );
       expect(appSettingsCall).toBeDefined();
@@ -358,16 +350,16 @@ describe('App Settings Utilities', () => {
       }
 
       // Check legacy save
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(LAST_HOME_TEAM_NAME_KEY, 'New Team Name');
+      expect(mockSetStorageItem).toHaveBeenCalledWith(LAST_HOME_TEAM_NAME_KEY, 'New Team Name');
       expect(result).toBe(true);
     });
 
     it('should return false if saving to app settings fails', async () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify({ currentGameId: 'game123' }));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify({ currentGameId: 'game123' }));
       // Simulate updateAppSettings failing (e.g., its internal saveAppSettings fails)
-      localStorageMock.setItem.mockImplementationOnce((key) => { 
+      mockSetStorageItem.mockImplementationOnce(async (key) => {
         if (key === APP_SETTINGS_KEY) throw new Error('Cannot save app settings');
-      }); 
+      });
       // Legacy setItem might still be called if not guarded, but the function should return false.
       
       const result = await saveLastHomeTeamName('New Team Name');
@@ -381,11 +373,11 @@ describe('App Settings Utilities', () => {
   describe('resetAppSettings', () => {
     it('should reset settings to default and return true', async () => {
       // Mock setItem to simulate successful save by saveAppSettings
-      localStorageMock.setItem.mockImplementation(() => {});
+      mockSetStorageItem.mockImplementation(() => {});
 
       const result = await resetAppSettings();
       
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
         APP_SETTINGS_KEY,
         JSON.stringify({
           currentGameId: null,
@@ -399,7 +391,7 @@ describe('App Settings Utilities', () => {
     });
 
     it('should return false if resetting fails', async () => {
-      localStorageMock.setItem.mockImplementation(() => { 
+      mockSetStorageItem.mockImplementation(() => { 
         throw new Error('Cannot save default settings'); 
       });
 

@@ -1,33 +1,21 @@
 import { TOURNAMENTS_LIST_KEY } from '@/config/storageKeys';
-import { 
-  getTournaments, 
-  addTournament, 
-  updateTournament, 
+import {
+  getTournaments,
+  addTournament,
+  updateTournament,
   deleteTournament,
   saveTournaments // We will test this directly, and also its effects when called by others
-} from './tournaments'; 
+} from './tournaments';
 import type { Tournament } from '@/types';
+import { clearMockStore } from './__mocks__/storage';
+import { getStorageItem, setStorageItem } from './storage';
 
-// Mock localStorage
-let store: Record<string, string> = {};
-const localStorageMock = (() => {
-  return {
-    getItem: jest.fn((key: string) => store[key] || null),
-    setItem: jest.fn((key: string, value: string) => {
-      store[key] = String(value);
-    }),
-    removeItem: jest.fn((key: string) => {
-      delete store[key];
-    }),
-    clear: jest.fn(() => {
-      store = {};
-    }),
-    length: 0,
-    key: jest.fn((index: number) => Object.keys(store)[index] || undefined)
-  };
-})();
+// Auto-mock the storage module
+jest.mock('./storage');
 
-Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true, configurable: true });
+// Type the mocked functions
+const mockGetStorageItem = getStorageItem as jest.MockedFunction<typeof getStorageItem>;
+const mockSetStorageItem = setStorageItem as jest.MockedFunction<typeof setStorageItem>;
 
 describe('Tournament Management Utilities (localStorage)', () => {
 let consoleErrorSpy: jest.SpyInstance;

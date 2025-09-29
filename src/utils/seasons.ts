@@ -11,7 +11,7 @@ import { getStorageItem, setStorageItem } from '@/utils/storage';
 // }
 
 /**
- * Retrieves all seasons from localStorage.
+ * Retrieves all seasons from storage.
  * @returns A promise that resolves to an array of Season objects.
  */
 export const getSeasons = async (): Promise<Season[]> => {
@@ -23,13 +23,13 @@ export const getSeasons = async (): Promise<Season[]> => {
     const seasons = JSON.parse(seasonsJson) as Season[];
     return Promise.resolve(seasons.map(s => ({ ...s, ageGroup: s.ageGroup ?? undefined })));
   } catch (error) {
-    logger.error('[getSeasons] Error reading seasons from localStorage:', error);
+    logger.error('[getSeasons] Error reading seasons from storage:', error);
     return Promise.resolve([]); // Resolve with empty array on error
   }
 };
 
 /**
- * Saves an array of seasons to localStorage, overwriting any existing seasons.
+ * Saves an array of seasons to storage, overwriting any existing seasons.
  * @param seasons - The array of Season objects to save.
  * @returns A promise that resolves to true if successful, false otherwise.
  */
@@ -38,13 +38,13 @@ export const saveSeasons = async (seasons: Season[]): Promise<boolean> => {
     await setStorageItem(SEASONS_LIST_KEY, JSON.stringify(seasons));
     return Promise.resolve(true);
   } catch (error) {
-    logger.error('[saveSeasons] Error saving seasons to localStorage:', error);
+    logger.error('[saveSeasons] Error saving seasons to storage:', error);
     return Promise.resolve(false);
   }
 };
 
 /**
- * Adds a new season to the list of seasons in localStorage.
+ * Adds a new season to the list of seasons in storage.
  * @param newSeasonName - The name of the new season.
  * @param extra - Optional additional fields for the season.
  * @returns A promise that resolves to the newly created Season object, or null if validation/save fails.
@@ -81,7 +81,7 @@ export const addSeason = async (newSeasonName: string, extra: Partial<Season> = 
 };
 
 /**
- * Updates an existing season in localStorage.
+ * Updates an existing season in storage.
  * @param updatedSeason - The Season object with updated details.
  * @returns A promise that resolves to the updated Season object, or null if not found or save fails.
  */
@@ -122,7 +122,7 @@ export const updateSeason = async (updatedSeasonData: Season): Promise<Season | 
 };
 
 /**
- * Deletes a season from localStorage by its ID.
+ * Deletes a season from storage by its ID.
  * @param seasonId - The ID of the season to delete.
  * @returns A promise that resolves to true if successful, false if not found or error occurs.
  */
