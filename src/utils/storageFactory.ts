@@ -70,6 +70,9 @@ import { StorageAdapter, StorageError, StorageErrorType } from './storageAdapter
 import { IndexedDBKvAdapter } from './indexedDbKvAdapter';
 import { createLogger } from './logger';
 import { storageConfigManager, type StorageConfig, type StorageMode, DEFAULT_STORAGE_CONFIG } from './storageConfigManager';
+import { MutexManager } from './storageMutex';
+import { storageMetrics, OperationType } from './storageMetrics';
+import { storageRecovery } from './storageRecovery';
 
 /**
  * Extended interface for storage adapters that support connection disposal
@@ -143,7 +146,10 @@ export class StorageFactory {
   private telemetryCallback?: (event: StorageTelemetryEvent) => void;
 
   // Mutex for preventing concurrent adapter creation
-  private adapterCreationMutex: Promise<StorageAdapter> | null = null;
+  private readonly mutex = new MutexManager({
+    defaultTimeout: StorageFactory.DEFAULT_MUTEX_TIMEOUT_MS,
+    enableDebugLogging: false
+  });
 
   // Rate limiting state (persisted across page reloads)
   private operationHistory: number[] = [];
@@ -166,50 +172,6 @@ export class StorageFactory {
     10
   );
 
-  /**
-   * Wait for mutex to be released with timeout protection using Promise race
-   *
-   * @param timeout - Maximum time to wait in milliseconds
-   * @throws {StorageError} If mutex timeout is exceeded
-   */
-  private async waitForMutex(timeout = StorageFactory.DEFAULT_MUTEX_TIMEOUT_MS): Promise<void> {
-    if (!this.adapterCreationMutex) return;
-
-    const mutexPromise = this.adapterCreationMutex.catch(() => {
-      // If the mutex promise rejects, we still want to wait for it to complete
-      // so we can proceed with our own adapter creation
-    });
-
-    let timeoutId: NodeJS.Timeout;
-    let isResolved = false;
-
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutId = setTimeout(() => {
-        if (!isResolved) {
-          isResolved = true;
-          reject(new StorageError(
-            StorageErrorType.ACCESS_DENIED,
-            `Adapter creation mutex timeout after ${timeout}ms`,
-            new Error('Mutex timeout')
-          ));
-        }
-      }, timeout);
-    });
-
-    try {
-      await Promise.race([mutexPromise, timeoutPromise]);
-      isResolved = true; // Mark as resolved to prevent timeout rejection
-    } catch (error) {
-      isResolved = true; // Mark as resolved to prevent timeout rejection
-      if (error instanceof StorageError) {
-        throw error;
-      }
-      // If the mutex promise failed for other reasons, we can proceed
-    } finally {
-      // Always clean up the timer to prevent memory leaks
-      clearTimeout(timeoutId!);
-    }
-  }
 
   /**
    * Create and return the appropriate storage adapter based on configuration
@@ -220,28 +182,24 @@ export class StorageFactory {
    * @throws {StorageError} If no suitable storage adapter can be created
    */
   async createAdapter(forceMode?: StorageMode): Promise<StorageAdapter> {
-    const startTime = Date.now();
+    // Start performance tracking
+    const timer = storageMetrics.startOperation(OperationType.ADAPTER_CREATE);
+
     try {
       // Rate limiting and audit logging for security
       this.checkRateLimit('create_adapter');
-      this.auditLog('adapter_creation_requested', { forceMode, timestamp: startTime });
+      this.auditLog('adapter_creation_requested', { forceMode, timestamp: Date.now() });
 
       this.logger.debug('Creating storage adapter', { forceMode });
 
-      // Check if another creation is in progress (mutex pattern with timeout)
-      if (this.adapterCreationMutex) {
-        this.logger.debug('Adapter creation in progress, waiting for completion');
+      // Use simplified mutex from MutexManager
+      if (this.mutex.isLocked()) {
+        this.logger.debug('Adapter creation in progress, waiting for mutex');
         try {
-          await this.waitForMutex();
-          // After waiting, check if we now have a cached adapter
-          if (this.cachedAdapter && !forceMode) {
-            const currentConfig = await this.getStorageConfig();
-            if (this.cachedConfig && currentConfig.mode === this.cachedConfig.mode) {
-              return this.cachedAdapter;
-            }
-          }
+          await this.mutex.acquire();
         } catch (error) {
-          this.logger.warn('Mutex timeout occurred, proceeding with adapter creation', { error });
+          this.logger.warn('Mutex acquisition failed', { error });
+          timer.failure('Mutex timeout', StorageErrorType.ACCESS_DENIED);
 
           // Send telemetry for mutex timeout
           this.sendTelemetry({
@@ -250,52 +208,69 @@ export class StorageFactory {
             timestamp: Date.now(),
             details: {
               error: 'mutex_timeout',
-              duration: Date.now() - startTime
+              duration: timer.getElapsedTime()
             }
           });
 
-          // Reset mutex and proceed - this handles stuck mutex scenarios
-          this.adapterCreationMutex = null;
+          throw error;
         }
+      } else {
+        await this.mutex.acquire();
       }
-
-      // Return cached adapter if available and mode hasn't changed
-      if (this.cachedAdapter && !forceMode) {
-        const currentConfig = await this.getStorageConfig();
-        if (this.cachedConfig &&
-            currentConfig.mode === this.cachedConfig.mode &&
-            this.cachedAdapterVersion === this.cacheVersion) {
-          this.logger.debug('Returning cached adapter', {
-            mode: currentConfig.mode,
-            cacheVersion: this.cacheVersion,
-            adapterVersion: this.cachedAdapterVersion
-          });
-          return this.cachedAdapter;
-        }
-      }
-
-      // Start mutex-protected adapter creation with atomic operations
-      const mutexPromise = this.createAdapterInternal(forceMode, startTime);
-      this.adapterCreationMutex = mutexPromise;
 
       try {
-        const adapter = await mutexPromise;
-        // Only clear mutex if it's still the same promise (atomic check)
-        if (this.adapterCreationMutex === mutexPromise) {
-          this.adapterCreationMutex = null;
+        // Return cached adapter if available and mode hasn't changed
+        if (this.cachedAdapter && !forceMode) {
+          const currentConfig = await this.getStorageConfig();
+          if (this.cachedConfig &&
+              currentConfig.mode === this.cachedConfig.mode &&
+              this.cachedAdapterVersion === this.cacheVersion) {
+            this.logger.debug('Returning cached adapter', {
+              mode: currentConfig.mode,
+              cacheVersion: this.cacheVersion,
+              adapterVersion: this.cachedAdapterVersion
+            });
+
+            storageMetrics.recordCacheHit();
+            timer.success({ cached: true });
+            return this.cachedAdapter;
+          }
         }
+
+        storageMetrics.recordCacheMiss();
+
+        // Create new adapter
+        const adapter = await this.createAdapterInternal(forceMode);
+        timer.success({ cached: false, mode: adapter.getBackendName() });
         return adapter;
-      } catch (mutexError) {
-        // Only clear mutex if it's still the same promise (atomic check)
-        if (this.adapterCreationMutex === mutexPromise) {
-          this.adapterCreationMutex = null;
-        }
-        throw mutexError;
+
+      } finally {
+        this.mutex.release();
       }
 
     } catch (error) {
-      // Mutex cleanup is handled in the inner try-catch
+      timer.failure(
+        error instanceof Error ? error.message : 'Unknown error',
+        error instanceof StorageError ? error.type : StorageErrorType.ACCESS_DENIED
+      );
+
       this.logger.error('Failed to create storage adapter', { error, forceMode });
+
+      // Attempt recovery for corruption errors
+      if (error instanceof StorageError && error.type === StorageErrorType.CORRUPTED_DATA) {
+        this.logger.info('Attempting automatic recovery from corruption');
+        try {
+          const recoveryResult = await storageRecovery.repairCorruption(error, this.cachedAdapter || new IndexedDBKvAdapter());
+          if (recoveryResult.success) {
+            this.logger.info('Recovery successful', recoveryResult);
+            // Retry adapter creation after recovery
+            return this.createAdapter(forceMode);
+          }
+        } catch (recoveryError) {
+          this.logger.error('Recovery failed', { recoveryError });
+        }
+      }
+
       throw new StorageError(
         StorageErrorType.ACCESS_DENIED,
         `Failed to create storage adapter: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -307,7 +282,8 @@ export class StorageFactory {
   /**
    * Internal adapter creation method (mutex-protected)
    */
-  private async createAdapterInternal(forceMode?: StorageMode, startTime: number = Date.now()): Promise<StorageAdapter> {
+  private async createAdapterInternal(forceMode?: StorageMode): Promise<StorageAdapter> {
+    const timer = storageMetrics.startOperation(OperationType.DB_CONNECT);
     const config = await this.getStorageConfig();
     const targetMode = forceMode || config.mode;
 
@@ -353,11 +329,12 @@ export class StorageFactory {
     this.cacheVersion = newCacheVersion;
     this.cachedAdapterVersion = newCacheVersion; // Store version when adapter was cached
 
-    const duration = Date.now() - startTime;
+    timer.success({ mode: targetMode });
+
     this.logger.debug('Storage adapter created successfully', {
       backend: adapter.getBackendName(),
       mode: targetMode,
-      duration
+      duration: timer.getElapsedTime()
     });
 
     // Send telemetry
@@ -365,7 +342,7 @@ export class StorageFactory {
       event: 'adapter_created',
       mode: targetMode,
       timestamp: Date.now(),
-      details: { duration }
+      details: { duration: timer.getElapsedTime() }
     });
 
     return adapter;
@@ -824,6 +801,31 @@ export class StorageFactory {
   }
 
   /**
+   * Get current performance metrics
+   *
+   * @returns Current metrics snapshot
+   */
+  getPerformanceMetrics() {
+    return storageMetrics.getMetrics();
+  }
+
+  /**
+   * Log performance metrics summary to console
+   */
+  logPerformanceMetrics(): void {
+    storageMetrics.logSummary();
+  }
+
+  /**
+   * Get mutex statistics
+   *
+   * @returns Object containing mutex usage statistics
+   */
+  getMutexStats() {
+    return this.mutex.getStats();
+  }
+
+  /**
    * Send telemetry event if callback is configured
    */
   private sendTelemetry(event: StorageTelemetryEvent): void {
@@ -980,6 +982,7 @@ export class StorageFactory {
   private async testAdapter(adapter: StorageAdapter): Promise<void> {
     const testKey = `storage_test_${Date.now()}`;
     const testValue = 'test_value';
+    const timer = storageMetrics.startOperation(OperationType.DB_TRANSACTION);
 
     try {
       // Test write
@@ -988,6 +991,15 @@ export class StorageFactory {
       // Test read
       const retrieved = await adapter.getItem(testKey);
       if (retrieved !== testValue) {
+        // Check if this is a corruption issue
+        const validation = await storageRecovery.validateData(testKey, retrieved);
+        if (!validation.valid) {
+          throw new StorageError(
+            StorageErrorType.CORRUPTED_DATA,
+            `Test data corrupted: ${validation.errors.join(', ')}`,
+            new Error('Data corruption detected')
+          );
+        }
         throw new Error('Retrieved value does not match stored value');
       }
 
@@ -1000,13 +1012,31 @@ export class StorageFactory {
         throw new Error('Value not properly deleted');
       }
 
+      timer.success({ backend: adapter.getBackendName() });
       this.logger.debug('Adapter test passed', { backend: adapter.getBackendName() });
 
     } catch (error) {
+      timer.failure(
+        error instanceof Error ? error.message : 'Unknown error',
+        error instanceof StorageError ? error.type : StorageErrorType.ACCESS_DENIED
+      );
+
       this.logger.error('Adapter test failed', {
         backend: adapter.getBackendName(),
         error
       });
+
+      // Try recovery if corruption detected
+      if (error instanceof StorageError && error.type === StorageErrorType.CORRUPTED_DATA) {
+        this.logger.info('Attempting recovery during adapter test');
+        const recoveryResult = await storageRecovery.repairCorruption(error, adapter);
+        if (!recoveryResult.success) {
+          throw error;
+        }
+        // Retry test after recovery
+        return this.testAdapter(adapter);
+      }
+
       throw new StorageError(
         StorageErrorType.ACCESS_DENIED,
         `Storage adapter test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
