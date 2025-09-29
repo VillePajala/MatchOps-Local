@@ -11,7 +11,7 @@ import { getStorageItem, setStorageItem } from '@/utils/storage';
 // }
 
 /**
- * Retrieves all tournaments from localStorage.
+ * Retrieves all tournaments from storage.
  * @returns A promise that resolves to an array of Tournament objects.
  */
 export const getTournaments = async (): Promise<Tournament[]> => {
@@ -29,13 +29,13 @@ export const getTournaments = async (): Promise<Tournament[]> => {
       }))
     );
   } catch (error) {
-    logger.error('[getTournaments] Error getting tournaments from localStorage:', error);
+    logger.error('[getTournaments] Error getting tournaments from storage:', error);
     return Promise.resolve([]);
   }
 };
 
 /**
- * Saves an array of tournaments to localStorage, overwriting any existing tournaments.
+ * Saves an array of tournaments to storage, overwriting any existing tournaments.
  * @param tournaments - The array of Tournament objects to save.
  * @returns A promise that resolves to true if successful, false otherwise.
  */
@@ -44,13 +44,13 @@ export const saveTournaments = async (tournaments: Tournament[]): Promise<boolea
     await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(tournaments));
     return Promise.resolve(true);
   } catch (error) {
-    logger.error('[saveTournaments] Error saving tournaments to localStorage:', error);
+    logger.error('[saveTournaments] Error saving tournaments to storage:', error);
     return Promise.resolve(false);
   }
 };
 
 /**
- * Adds a new tournament to the list of tournaments in localStorage.
+ * Adds a new tournament to the list of tournaments in storage.
  * @param newTournamentName - The name of the new tournament.
  * @param extra - Optional additional fields for the tournament.
  * @returns A promise that resolves to the newly created Tournament object, or null if validation/save fails.
@@ -90,7 +90,7 @@ export const addTournament = async (newTournamentName: string, extra: Partial<To
 };
 
 /**
- * Updates an existing tournament in localStorage.
+ * Updates an existing tournament in storage.
  * @param updatedTournamentData - The Tournament object with updated details.
  * @returns A promise that resolves to the updated Tournament object, or null if not found or save fails.
  */
@@ -135,7 +135,7 @@ export const updateTournament = async (updatedTournamentData: Tournament): Promi
 };
 
 /**
- * Deletes a tournament from localStorage by its ID.
+ * Deletes a tournament from storage by its ID.
  * @param tournamentId - The ID of the tournament to delete.
  * @returns A promise that resolves to true if successful, false if not found or error occurs.
  */
