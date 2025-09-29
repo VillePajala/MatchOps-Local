@@ -18,7 +18,7 @@ export const removeStorageItem = jest.fn(async (key: string): Promise<void> => {
   delete mockStore[key];
 });
 
-export const getStorageJSON = jest.fn(async <T>(key: string, options?: any): Promise<T | null> => {
+export const getStorageJSON = jest.fn(async <T>(key: string): Promise<T | null> => {
   const value = mockStore[key];
   if (!value) return null;
   try {
@@ -28,7 +28,7 @@ export const getStorageJSON = jest.fn(async <T>(key: string, options?: any): Pro
   }
 });
 
-export const setStorageJSON = jest.fn(async (key: string, value: any): Promise<void> => {
+export const setStorageJSON = jest.fn(async <T>(key: string, value: T): Promise<void> => {
   mockStore[key] = JSON.stringify(value);
 });
 

@@ -251,7 +251,7 @@ describe('App Settings Utilities', () => {
       };
       mockGetStorageItem.mockResolvedValue(JSON.stringify(currentSettings));
       // Mock setItem to simulate successful save by updateAppSettings
-      mockSetStorageItem.mockImplementation(() => {}); 
+      mockSetStorageItem.mockImplementation(async () => {}); 
 
       const result = await saveCurrentGameIdSetting('newGameId');
       
@@ -331,7 +331,7 @@ describe('App Settings Utilities', () => {
         hasSeenAppGuide: false,
       };
       mockGetStorageItem.mockResolvedValue(JSON.stringify(currentSettings)); // For getAppSettings call in updateAppSettings
-      mockSetStorageItem.mockImplementation(() => {}); // Default successful save
+      mockSetStorageItem.mockImplementation(async () => {}); // Default successful save
 
       const result = await saveLastHomeTeamName('New Team Name');
 
@@ -373,7 +373,7 @@ describe('App Settings Utilities', () => {
   describe('resetAppSettings', () => {
     it('should reset settings to default and return true', async () => {
       // Mock setItem to simulate successful save by saveAppSettings
-      mockSetStorageItem.mockImplementation(() => {});
+      mockSetStorageItem.mockImplementation(async () => {});
 
       const result = await resetAppSettings();
       

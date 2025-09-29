@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: complete IndexedDB-only implementation with comprehensive localStorage migration"
+  "notes": "docs: align documentation with IndexedDB Foundation focus (Branch 1/4)"
 }

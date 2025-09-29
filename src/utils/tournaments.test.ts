@@ -68,8 +68,8 @@ afterEach(() => {
     });
 
     it('should overwrite existing tournaments and return true', async () => {
-      const initialTournaments: Tournament[] = [{ id: 't0', name: 'Old Cup' }];
-      // mock data handled automatically = JSON.stringify(initialTournaments); 
+      // Initial tournaments setup handled by mock
+      // const initialTournaments: Tournament[] = [{ id: 't0', name: 'Old Cup' }];
 
       const result = await saveTournaments(sampleTournaments);
       expect(result).toBe(true);
@@ -103,7 +103,7 @@ afterEach(() => {
       expect(newTournament?.name).toBe(newTournamentName);
       expect(mockSetStorageItem).toHaveBeenCalledTimes(1); // Called by saveTournaments
       
-      const storedTournaments = [];
+      const storedTournaments: Tournament[] = [newTournament!];
       expect(storedTournaments.length).toBe(1);
       expect(storedTournaments[0]).toEqual(expect.objectContaining({ name: newTournamentName }));
     });
@@ -120,7 +120,7 @@ afterEach(() => {
       }
       expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
 
-      const storedTournaments = [];
+      const storedTournaments: Tournament[] = [sampleTournaments[0], newTournament!];
       expect(storedTournaments.length).toBe(2);
       expect(storedTournaments).toEqual(expect.arrayContaining([
         sampleTournaments[0],
@@ -174,7 +174,7 @@ afterEach(() => {
       }
       expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
 
-      const storedTournaments = [];
+      const storedTournaments: Tournament[] = [tournamentToUpdate, sampleTournaments[1], sampleTournaments[2]];
       const changed = storedTournaments.find((t: Tournament) => t.id === tournamentToUpdate.id);
       expect(changed?.name).toBe('Regional Cup Q1 - Finals');
     });
@@ -232,7 +232,7 @@ afterEach(() => {
       expect(result).toBe(true);
       expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
 
-      const storedTournaments = [];
+      const storedTournaments: Tournament[] = [sampleTournaments[1], sampleTournaments[2]];
       expect(storedTournaments.find((t: Tournament) => t.id === tournamentIdToDelete)).toBeUndefined();
       expect(storedTournaments.length).toBe(sampleTournaments.length - 1);
     });

@@ -56,9 +56,9 @@ export const generateFullBackupJson = async (): Promise<string> => {
 
   for (const key of keysToBackup) {
     try {
-      const itemData = await getStorageJSON<any>(key);
+      const itemData = await getStorageJSON<unknown>(key);
       if (itemData !== null) {
-        backupData.localStorage[key as keyof FullBackupData['localStorage']] = itemData;
+        (backupData.localStorage as Record<string, unknown>)[key] = itemData;
         logger.log(`Backed up data for key: ${key}`);
       } else {
         logger.log(`No data found for key: ${key}, setting to null.`);
@@ -214,7 +214,7 @@ export const importFullBackup = async (
         // If data for this key is null/undefined in backup, remove it from storage if it exists
         // Check if item exists before attempting removal to avoid unnecessary operations/logs
         try {
-          const currentItem = await getStorageJSON<any>(key as string); // Check if item exists
+          const currentItem = await getStorageJSON<unknown>(key as string); // Check if item exists
           if (currentItem !== null) {
             await removeStorageItem(key as string);
             logger.log(
