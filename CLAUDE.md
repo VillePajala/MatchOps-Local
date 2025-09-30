@@ -120,8 +120,8 @@ This is a **local-first Progressive Web App**, NOT:
 **No Backend Server**
 - 100% browser-based application
 - No API endpoints or database servers
-- No network requests (except PWA updates)
-- No server-side processing
+- Minimal network requests: PWA updates, license validation, error reporting (opt-in)
+- No server-side processing of user data
 
 **Offline-First Design**
 - Works completely without internet connection
@@ -130,10 +130,17 @@ This is a **local-first Progressive Web App**, NOT:
 - No external dependencies
 
 **Privacy-First Philosophy**
-- Zero telemetry or analytics (except opt-in error reporting via Sentry)
-- No user tracking or behavior monitoring
-- Data never leaves user's device
-- Complete user data ownership
+- **User data stays local**: Game data, scores, statistics never transmitted
+- **No behavioral tracking**: Zero telemetry of feature usage or user patterns
+- **Complete data ownership**: Users control their data, no cloud lock-in
+- **Minimal network communication**: Only for app updates, license validation, and opt-in error reporting
+- **No third-party data sharing**: User data never sold or shared
+
+**Monetization Strategy (Privacy-Compatible)**
+- **Feature gating**: Premium features unlocked via purchase
+- **License validation**: Minimal network call to verify Play Store purchase
+- **Offline-first after purchase**: License cached locally, works offline
+- **No usage analytics**: Premium status checked, but not feature usage tracking
 
 ### Scale & Performance Context
 
@@ -187,12 +194,12 @@ This is a **local-first Progressive Web App**, NOT:
 - ❌ Centralized monitoring or analytics
 - ❌ Server-side validation
 
-**Network Security** (No Network Communication)
-- ❌ Encryption in transit (TLS/HTTPS for data)
-- ❌ API key management
-- ❌ OAuth/JWT tokens
-- ❌ CORS configuration
-- ❌ Request signing or verification
+**Network Security** (Minimal Network Communication)
+- ❌ Complex API authentication schemes (OAuth/JWT)
+- ❌ CORS configuration (no backend APIs)
+- ❌ Request signing or verification for user data
+- ✅ Basic Play Store API integration (for license validation only)
+- ✅ HTTPS/TLS for license checks (handled by Play Store SDK)
 
 **Data Encryption** (Browser Sandboxing Sufficient)
 - ❌ Client-side encryption for stored data

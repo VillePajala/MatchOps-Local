@@ -131,8 +131,14 @@ Acceptance Criteria - ALL MET ✅
 
 Outcome: strengthen web security and offline behavior; finalize analytics stance.
 
+**Context for Local-First PWA**:
+- Focus: XSS prevention, PWA security, offline-first optimization
+- CSP scope: Appropriate for single-user PWA (Play Store API + Sentry only)
+- NOT needed: Heavy API security, encryption at rest, multi-user controls
+- See: `docs/02-technical/security.md` for local-first security model
+
 - P1 Checklist
-  - [ ] Security headers/CSP in `next.config.ts` (FIX_PLAN §1) with validation (no CSP violations)
+  - [ ] Security headers/CSP in `next.config.ts` (FIX_PLAN §1) - local-first appropriate scope
   - [ ] SW: restrict caching to static assets; versioned cleanup; avoid HTML caching; update flow OK (FIX_PLAN §2)
   - [ ] Analytics: disabled by default outside production; gated via env/flag (FIX_PLAN §6)
 
@@ -181,20 +187,34 @@ Acceptance
 
 ---
 
-## Phase P4: Monetization Readiness (Paywall, Analytics, Compliance)
+## Phase P4: Monetization Readiness (Paywall, Feature Gating, Compliance)
 
 - Owner: TBD
 - Target Date: TBD
 
-Outcome: a compliant monetization approach gated behind feature flags.
+Outcome: a privacy-compatible monetization approach with feature gating.
+
+**Privacy-First Monetization Context**:
+- User game data NEVER transmitted (scores, players, stats stay local)
+- License validation: Minimal network call to Play Store API
+- No behavioral tracking or usage analytics
+- Feature gating: Premium features unlocked after purchase
+- Offline-first: License cached locally, works offline after validation
 
 - P4 Checklist
-  - [ ] Strategy finalized in business/MONETIZATION_STRATEGIES.md
-  - [ ] Implementation: feature gating wired behind flags; initially disabled
-  - [ ] Compliance: Play Billing vs paid listing decision documented; policy checks complete
+  - [ ] Strategy finalized in `07-business/monetization-strategies.md`
+  - [ ] Play Store billing integration (in-app purchases)
+  - [ ] Feature gating implementation (free vs premium tiers)
+  - [ ] License caching for offline premium access
+  - [ ] Paywall UI/UX components
+  - [ ] Compliance: Play Billing policy checks complete
 
 Acceptance
-- Monetization paths gated and testable; no policy conflicts for chosen packaging.
+- Feature gating functional; premium features locked for free users
+- Purchase flow works; license validated and cached
+- Offline premium access after purchase
+- No user data transmitted (only license status checks)
+- Play Store policies compliant
 
 ---
 

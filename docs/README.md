@@ -9,8 +9,9 @@ This documentation covers everything about the MatchOps-Local project - what it 
 ## 🚀 Quick Navigation
 
 ### ⭐ **Start Here**
+- **[03-active-plans/PROGRESS_DASHBOARD.md](./03-active-plans/PROGRESS_DASHBOARD.md)** - 📊 **Where we are NOW** - Single-page progress tracker (35% complete)
 - **[03-active-plans/master-execution-guide.md](./03-active-plans/master-execution-guide.md)** - Step-by-step execution plan to Play Store readiness
-- **[03-active-plans/project-status.md](./03-active-plans/project-status.md)** - Current implementation status
+- **[03-active-plans/project-status.md](./03-active-plans/project-status.md)** - Current implementation status (features)
 - **[01-project/overview.md](./01-project/overview.md)** - What MatchOps-Local is and why it exists
 
 ### 📂 **Documentation Categories**

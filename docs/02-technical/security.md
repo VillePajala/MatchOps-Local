@@ -2,6 +2,54 @@
 
 Status: Authoritative (current state + planned changes)
 
+## Local-First Security Model
+
+### Architecture Context
+
+MatchOps-Local is a **local-first Progressive Web App** with a fundamentally different threat model than traditional web applications:
+
+**What This Means for Security:**
+- ✅ **Primary defense**: Browser sandboxing and origin isolation
+- ✅ **Data-at-rest**: Protected by OS disk encryption
+- ✅ **Attack surface**: Limited to XSS, malicious PWA updates
+- ❌ **NOT defending against**: Network attacks, SQL injection, multi-user exploits
+- ❌ **NO sensitive data**: Game scores and player names (not PII, financial, or health data)
+
+**Network Communication:**
+- **PWA updates**: Standard HTTPS (handled by browser)
+- **License validation**: Play Store API (HTTPS, managed by Google)
+- **Error reporting**: Sentry (opt-in, HTTPS)
+- **User game data**: NEVER transmitted
+
+### Security Priorities
+
+1. **XSS Prevention** (High Priority)
+   - CSP headers to block unauthorized scripts
+   - No `eval()` or dangerous dynamic code
+   - Input sanitization for user-entered data (player names, team names)
+
+2. **PWA Security** (High Priority)
+   - Service Worker integrity checks
+   - Secure update mechanism
+   - Manifest validation
+
+3. **License Protection** (Medium Priority)
+   - Play Store purchase verification
+   - Local license caching (tamper detection)
+   - Offline grace period for license checks
+
+4. **Data Integrity** (Medium Priority)
+   - IndexedDB corruption recovery
+   - Backup/restore functionality
+   - Version migration safety
+
+**NOT Security Concerns for This App:**
+- ❌ API authentication/authorization (no backend)
+- ❌ Data encryption at rest (browser sandboxing + OS encryption sufficient)
+- ❌ Network security hardening (minimal network communication)
+- ❌ Multi-user access control (single-user app)
+- ❌ GDPR compliance logging (no user data transmitted)
+
 ## Environment Variable Security
 
 ### Critical Security Rules
@@ -55,26 +103,51 @@ Status: Authoritative (current state + planned changes)
 ### CSP Headers Configuration (Planned)
 Will be implemented via Next.js security headers to prevent XSS and unauthorized resource loading.
 
-### Allowed Sources (Target Policy)
-- **Scripts**: Self-hosted and trusted CDNs only
-- **Styles**: Self-hosted with safe inline styles (hashed)
-- **Images**: Self + data: URIs for PWA icons
-- **Connect**: API endpoints and Sentry only
-- **Fonts**: Self-hosted fonts only
+### Allowed Sources (Target Policy for Local-First PWA)
+
+**Appropriate CSP for our architecture:**
+```
+default-src 'self';
+script-src 'self' 'unsafe-inline' 'unsafe-eval';  # Next.js requirements
+style-src 'self' 'unsafe-inline';                  # Tailwind CSS
+img-src 'self' data: blob:;                        # PWA icons
+font-src 'self' data:;                             # Fonts
+connect-src 'self'
+  https://*.sentry.io                               # Error reporting (opt-in)
+  https://play.google.com                           # License validation
+  https://www.googleapis.com;                       # Play Store API
+manifest-src 'self';                               # PWA manifest
+worker-src 'self';                                 # Service Worker
+frame-ancestors 'none';                            # No embedding
+```
+
+**What we DON'T need** (over-engineering for local-first):
+- ❌ Complex nonce/hash generation (adds complexity for minimal XSS gain)
+- ❌ Strict `script-src` without unsafe-inline (Next.js requires it)
+- ❌ Multiple CDN domains (all assets self-hosted)
+- ❌ API security rules (no backend APIs)
 
 Note: Demo files under `public/demos/` may reference external fonts (Google Fonts) and are not part of the production app. Exclude demo paths from CSP validation or only allow during development.
 
 ## Data Protection
 
 ### Client-Side Data Handling
-- All game data stored in localStorage (offline-first)
-- No sensitive user data collected
-- Optional parent email in error reports only
+- All game data stored in IndexedDB (offline-first)
+- **Data never transmitted**: Game scores, player names, statistics stay on device
+- No sensitive user data collected (no PII, financial, or health data)
+- Optional email in error reports only (explicit consent required)
+
+### Privacy-First Data Policy
+- **What stays local**: Game data, scores, player rosters, team configurations
+- **What's transmitted**: License status checks, error reports (opt-in), PWA updates
+- **No behavioral tracking**: Feature usage, user patterns, or analytics NOT collected
+- **User data ownership**: Complete control, export capability, no cloud lock-in
 
 ### Error Reporting Security
 - Error messages sanitized before sending to Sentry
-- No sensitive localStorage data in error reports
+- No game data (scores, players) in error reports
 - User emails only collected with explicit consent
+- Error reporting can be completely disabled by user
 
 ## Build Security
 

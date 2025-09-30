@@ -51,27 +51,44 @@ Files to change:
 
 Steps:
 1. Add security headers to `next.config.ts`:
-   - `Content-Security-Policy` (CSP) with strict defaults.
-   - `Permissions-Policy` (disable features not used).
-   - `Referrer-Policy: no-referrer`.
-   - `X-Content-Type-Options: nosniff`.
-   - `X-Frame-Options: DENY` (or `frame-ancestors 'none'` in CSP).
-   - `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload` (production over HTTPS only).
-2. Start with this CSP and adapt if necessary:
-   - `default-src 'self';`
-   - `script-src 'self' 'unsafe-inline' 'unsafe-eval';` (tighten if possible; Next may need hashes/nonces)
-   - `style-src 'self' 'unsafe-inline';`
-   - `img-src 'self' data: blob:;`
-   - `font-src 'self' data:;`
-   - `connect-src 'self' https://*.sentry.io https://vitals.vercel-insights.com;` (gate by feature flags if disabled)
-   - `manifest-src 'self';`
-   - `worker-src 'self';`
-   - `frame-ancestors 'none';`
-3. Gate Sentry/Analytics origins with env flags (omit when disabled to keep CSP minimal).
-4. Local verification:
-   - `npm run dev`, open app, check DevTools → Network → Response Headers for the new headers.
-   - Watch console for CSP violations; loosen only as needed.
-5. CI/CD: ensure the same headers apply in production builds.
+   - `Content-Security-Policy` (CSP) - appropriate for local-first PWA (see below)
+   - `Permissions-Policy` (disable features not used)
+   - `Referrer-Policy: no-referrer`
+   - `X-Content-Type-Options: nosniff`
+   - `X-Frame-Options: DENY` (or `frame-ancestors 'none'` in CSP)
+   - `Strict-Transport-Security: max-age=31536000; includeSubDomains` (production HTTPS)
+
+2. **CSP for Local-First PWA** (appropriate scope, not over-engineered):
+   ```
+   default-src 'self';
+   script-src 'self' 'unsafe-inline' 'unsafe-eval';    # Next.js requirements
+   style-src 'self' 'unsafe-inline';                    # Tailwind CSS
+   img-src 'self' data: blob:;                          # PWA icons
+   font-src 'self' data:;                               # Fonts
+   connect-src 'self'
+     https://*.sentry.io                                 # Error reporting (opt-in)
+     https://play.google.com                             # License validation
+     https://www.googleapis.com;                         # Play Store API
+   manifest-src 'self';                                 # PWA manifest
+   worker-src 'self';                                   # Service Worker
+   frame-ancestors 'none';                              # No embedding
+   ```
+
+3. **What NOT to include** (over-engineering for our use case):
+   - ❌ Complex nonce/hash generation (minimal XSS benefit, high complexity)
+   - ❌ Strict `script-src` without unsafe-inline (Next.js incompatible)
+   - ❌ CDN domains (all assets self-hosted)
+   - ❌ Multiple API endpoints (we only have Play Store + Sentry)
+
+4. Gate Sentry/Play Store origins with env flags (omit when disabled for minimal CSP)
+
+5. Local verification:
+   - `npm run dev`, check DevTools → Network → Response Headers
+   - Watch console for CSP violations; only loosen if legitimate need
+
+6. CI/CD: ensure headers apply in production builds
+
+**Context**: As a local-first PWA with no backend, our CSP is simpler than typical web apps. Focus on XSS prevention, not API security.
 
 Acceptance:
 - Security headers visible on all routes.
