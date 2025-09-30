@@ -2,6 +2,14 @@
  * Comprehensive Storage Factory tests with all identified issues fixed
  */
 
+// Polyfill structuredClone for Node.js < 17
+if (typeof structuredClone === 'undefined') {
+  global.structuredClone = (obj: unknown) => JSON.parse(JSON.stringify(obj));
+}
+
+// Import fake-indexeddb BEFORE any other imports to polyfill IndexedDB
+import 'fake-indexeddb/auto';
+
 import {
   StorageFactory,
   createStorageAdapter,
@@ -14,22 +22,8 @@ import {
 // Create fresh store for each test
 let testStore: { [key: string]: string } = {};
 
-// Mock IndexedDB global for isIndexedDBSupported() check
-(global as { indexedDB?: unknown }).indexedDB = {
-  open: jest.fn(() => {
-    const mockRequest = {
-      onsuccess: null as (() => void) | null,
-      onerror: null as (() => void) | null,
-      onblocked: null as (() => void) | null,
-      result: { close: jest.fn() }
-    };
-    // Simulate successful IndexedDB open
-    setTimeout(() => {
-      if (mockRequest.onsuccess) mockRequest.onsuccess();
-    }, 0);
-    return mockRequest;
-  })
-};
+// Note: fake-indexeddb provides full IndexedDB implementation in global scope
+// Tests can now use real IndexedDB operations
 
 // Mock IndexedDBKvAdapter with proper storage behavior
 jest.mock('./indexedDbKvAdapter', () => {
