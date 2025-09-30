@@ -94,13 +94,42 @@ const MAX_RETRY_DELAY = 10000;     // 10 seconds - maximum delay to prevent exce
 // Security limits
 const MAX_KEY_LENGTH = 1024;       // 1KB max key size
 const MAX_VALUE_SIZE = 10 * 1024 * 1024; // 10MB max value size
+
+/**
+ * Comprehensive XSS and prototype pollution prevention patterns
+ * Covers multiple attack vectors including:
+ * - Prototype pollution (__proto__, constructor, prototype)
+ * - Script injection (<script>, </script>, with variations)
+ * - Event handlers (onclick, onload, etc. with spaces/quotes)
+ * - JavaScript URLs (javascript:, with spaces/encoding)
+ * - Data URLs with scripts
+ * - HTML entities for encoding bypass
+ */
 const SUSPICIOUS_KEY_PATTERNS = [
-  /__proto__/,
-  /constructor/,
-  /prototype/,
-  /<script/i,
-  /javascript:/i,
-  /^on[a-z]+\s*=/i  // Match HTML event handlers like "onclick=", "onload=" (more specific to avoid false positives)
+  // Prototype pollution
+  /__proto__/i,
+  /constructor/i,
+  /prototype/i,
+
+  // Script tags (with variations)
+  /<\s*script/i,
+  /<\/\s*script/i,
+
+  // Event handlers (comprehensive)
+  /\bon\w+\s*=/i,  // Matches on[anything]= with optional spaces
+  /\bon\w+\s*\(/i,  // Matches on[anything]( for inline handlers
+
+  // JavaScript URLs
+  /javascript\s*:/i,
+  /vbscript\s*:/i,
+
+  // Data URLs with scripts
+  /data\s*:.*script/i,
+
+  // HTML entities that could be used for encoding bypass
+  /&#/,
+  /&lt;script/i,
+  /&gt;/i
 ];
 
 /**
@@ -114,6 +143,22 @@ function isAdapterExpired(): boolean {
 // Old queue-based functions removed - now using MutexManager for proper synchronization
 
 /**
+ * Sanitize error messages for production to prevent information disclosure
+ * In development, shows detailed errors. In production, shows generic messages.
+ */
+function sanitizeErrorMessage(detailedMessage: string, genericMessage: string): string {
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (isProduction) {
+    // Log detailed error for debugging but return generic message to user
+    logger.debug('Error details (production)', { detailedMessage });
+    return genericMessage;
+  }
+
+  return detailedMessage;
+}
+
+/**
  * Validate storage key for security and size limits
  */
 function validateStorageKey(key: string): void {
@@ -122,13 +167,15 @@ function validateStorageKey(key: string): void {
   }
 
   if (key.length > MAX_KEY_LENGTH) {
-    throw new Error(`Storage key is too long (${key.length} characters). Maximum allowed is ${MAX_KEY_LENGTH} characters.`);
+    const detailed = `Storage key is too long (${key.length} characters). Maximum allowed is ${MAX_KEY_LENGTH} characters.`;
+    const generic = 'Storage key exceeds maximum allowed length';
+    throw new Error(sanitizeErrorMessage(detailed, generic));
   }
 
   // Check for suspicious patterns that might indicate injection attempts
   for (const pattern of SUSPICIOUS_KEY_PATTERNS) {
     if (pattern.test(key)) {
-      logger.warn('Suspicious key pattern detected', { key, pattern: pattern.source });
+      logger.warn('Suspicious key pattern detected', { keyLength: key.length, pattern: pattern.source });
       throw new Error('Invalid storage key: contains restricted patterns');
     }
   }
@@ -144,7 +191,9 @@ function validateStorageValue(value: string): void {
 
   const byteSize = new Blob([value]).size;
   if (byteSize > MAX_VALUE_SIZE) {
-    throw new Error(`Storage value is too large (${(byteSize / 1024 / 1024).toFixed(2)}MB). Maximum allowed is ${MAX_VALUE_SIZE / 1024 / 1024}MB.`);
+    const detailed = `Storage value is too large (${(byteSize / 1024 / 1024).toFixed(2)}MB). Maximum allowed is ${MAX_VALUE_SIZE / 1024 / 1024}MB.`;
+    const generic = 'Storage value exceeds maximum allowed size';
+    throw new Error(sanitizeErrorMessage(detailed, generic));
   }
 }
 
@@ -269,14 +318,18 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
     }
 
     // Force IndexedDB only - no localStorage fallback with retry logic
-    adapterPromise = createStorageAdapter('indexedDB').then(adapter => {
-      // Success: reset retry state
+    // Capture timestamp before async operation to prevent race conditions
+    const creationTimestamp = Date.now();
+
+    // Store promise in temp variable to prevent race condition
+    const tempPromise = createStorageAdapter('indexedDB').then(adapter => {
+      // Success: reset retry state (timestamp already set)
       adapterRetryCount = 0;
       lastFailureTime = null;
       logger.debug('Storage adapter created successfully');
       return adapter;
     }).catch(error => {
-      // Failure: update retry state and clear promise
+      // Failure: update retry state and clear promise atomically
       adapterRetryCount++;
       lastFailureTime = Date.now();
       adapterPromise = null;
@@ -293,8 +346,9 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
       throw finalError;
     });
 
-    // Record creation time for TTL tracking
-    adapterCreatedAt = Date.now();
+    // Set timestamp and promise atomically
+    adapterCreatedAt = creationTimestamp;
+    adapterPromise = tempPromise;
 
     return adapterPromise;
   } finally {
