@@ -1,6 +1,6 @@
 import { importGamesFromJson } from './savedGames';
 import { AppState } from '@/types';
-import { clearMockStore } from './__mocks__/storage';
+import { clearMockStore, getMockStore } from './__mocks__/storage';
 
 // Mock localStorage
 const mockLocalStorage = (() => {
@@ -158,9 +158,9 @@ describe('Game Import with Partial Success', () => {
       expect(result.successful).toBe(2); // Two valid games imported
       expect(result.failed).toHaveLength(2); // Two invalid games failed
       expect(result.skipped).toBe(0);
-      
-      // Check that valid games were actually saved
-      const savedData = mockLocalStorage.getStore();
+
+      // Check that valid games were actually saved to IndexedDB mock store
+      const savedData = getMockStore();
       expect(savedData['savedSoccerGames']).toBeDefined();
       const parsedSaved = JSON.parse(savedData['savedSoccerGames']);
       expect(parsedSaved['valid-game']).toBeDefined();
