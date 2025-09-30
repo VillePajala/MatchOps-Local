@@ -12,7 +12,7 @@
  */
 
 import { createLogger } from './logger';
-import { getStorageJSON, setStorageJSON } from './storage';
+import { bootstrapGetJSON, bootstrapSetJSON } from './storageBootstrap';
 
 const logger = createLogger('StorageConfigManager');
 
@@ -150,17 +150,28 @@ export class StorageConfigManager {
    * Load configuration from IndexedDB
    */
   private async loadFromIndexedDB(isBootstrap: boolean): Promise<StorageConfig> {
-    const config = await getStorageJSON<StorageConfig>(
-      STORAGE_CONFIG_KEY,
-      {
-        throwOnError: !isBootstrap, // During bootstrap, don't throw on errors
-        validator: this.validateConfig,
-        defaultValue: DEFAULT_STORAGE_CONFIG
-      }
-    );
+    try {
+      const config = await bootstrapGetJSON<StorageConfig>(STORAGE_CONFIG_KEY);
 
-    // Validate and sanitize loaded config
-    return this.sanitizeConfig(config || DEFAULT_STORAGE_CONFIG);
+      if (!config) {
+        return DEFAULT_STORAGE_CONFIG;
+      }
+
+      // Validate loaded config
+      if (!this.validateConfig(config)) {
+        logger.warn('Loaded config failed validation, using defaults');
+        return DEFAULT_STORAGE_CONFIG;
+      }
+
+      // Validate and sanitize loaded config
+      return this.sanitizeConfig(config);
+    } catch (error) {
+      if (!isBootstrap) {
+        throw error;
+      }
+      logger.warn('Failed to load config from IndexedDB during bootstrap', { error });
+      return DEFAULT_STORAGE_CONFIG;
+    }
   }
 
   /**
@@ -202,7 +213,7 @@ export class StorageConfigManager {
       const sanitizedConfig = this.sanitizeConfig(newConfig);
 
       // Save to IndexedDB
-      await setStorageJSON(STORAGE_CONFIG_KEY, sanitizedConfig);
+      await bootstrapSetJSON(STORAGE_CONFIG_KEY, sanitizedConfig);
 
       // Update cache
       this.cachedConfig = sanitizedConfig;
@@ -304,7 +315,7 @@ export class StorageConfigManager {
       this.isBootstrapping = true;
 
       // Save defaults to IndexedDB
-      await setStorageJSON(STORAGE_CONFIG_KEY, DEFAULT_STORAGE_CONFIG);
+      await bootstrapSetJSON(STORAGE_CONFIG_KEY, DEFAULT_STORAGE_CONFIG);
 
       // Update cache
       this.cachedConfig = { ...DEFAULT_STORAGE_CONFIG };
