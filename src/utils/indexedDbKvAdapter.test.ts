@@ -13,7 +13,6 @@ if (typeof structuredClone === 'undefined') {
 import 'fake-indexeddb/auto';
 
 import { IndexedDBKvAdapter } from './indexedDbKvAdapter';
-import { StorageError, StorageErrorType } from './storageAdapter';
 
 // Mock logger to prevent console noise
 jest.mock('./logger', () => ({

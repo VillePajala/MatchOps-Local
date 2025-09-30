@@ -12,6 +12,13 @@ import { MutexManager } from './storageMutex';
 import logger from './logger';
 
 /**
+ * Check if running in production environment
+ */
+function isProduction(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
+
+/**
  * Browser compatibility detection for IndexedDB
  * Checks for IndexedDB availability including private/incognito mode restrictions
  */
@@ -147,9 +154,7 @@ function isAdapterExpired(): boolean {
  * In development, shows detailed errors. In production, shows generic messages.
  */
 function sanitizeErrorMessage(detailedMessage: string, genericMessage: string): string {
-  const isProduction = process.env.NODE_ENV === 'production';
-
-  if (isProduction) {
+  if (isProduction()) {
     // Log detailed error for debugging but return generic message to user
     logger.debug('Error details (production)', { detailedMessage });
     return genericMessage;
