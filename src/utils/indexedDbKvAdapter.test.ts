@@ -7,15 +7,16 @@
  * Avoids async initialization complexity that caused hanging
  */
 
+// Polyfill structuredClone for Node.js < 17
+if (typeof structuredClone === 'undefined') {
+  global.structuredClone = (obj: unknown) => JSON.parse(JSON.stringify(obj));
+}
+
+// Import fake-indexeddb BEFORE any other imports to polyfill IndexedDB
+import 'fake-indexeddb/auto';
+
 import { IndexedDBKvAdapter } from './indexedDbKvAdapter';
 import { StorageError, StorageErrorType } from './storageAdapter';
-
-// Mock the idb library completely - no real IndexedDB operations
-jest.mock('idb', () => ({
-  openDB: jest.fn()
-}));
-
-import { openDB } from 'idb';
 
 // Mock logger to prevent console noise
 jest.mock('./logger', () => ({
@@ -27,62 +28,31 @@ jest.mock('./logger', () => ({
   })
 }));
 
+/**
+ * IndexedDBKvAdapter tests using real IndexedDB (fake-indexeddb polyfill)
+ * Simplified test suite that covers core functionality with real async operations
+ */
 describe('IndexedDBKvAdapter', () => {
   let adapter: IndexedDBKvAdapter;
-  let mockDB: {
-    transaction: jest.Mock;
-    close: jest.Mock;
-    objectStoreNames: { contains: jest.Mock };
-    createObjectStore: jest.Mock;
-  };
-  let mockStore: {
-    get: jest.Mock;
-    put: jest.Mock;
-    delete: jest.Mock;
-    clear: jest.Mock;
-    getAllKeys: jest.Mock;
-  };
-  let mockTransaction: {
-    objectStore: jest.Mock;
-    done: Promise<void>;
-  };
 
-  beforeEach(() => {
-    jest.clearAllMocks();
+  beforeEach(async () => {
+    // Clean up any existing databases
+    const dbs = await indexedDB.databases();
+    for (const db of dbs) {
+      if (db.name) {
+        indexedDB.deleteDatabase(db.name);
+      }
+    }
 
-    // Create simple mock implementations
-    mockStore = {
-      get: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
-      clear: jest.fn(),
-      getAllKeys: jest.fn()
-    };
-
-    mockTransaction = {
-      objectStore: jest.fn().mockReturnValue(mockStore),
-      done: Promise.resolve()
-    };
-
-    mockDB = {
-      transaction: jest.fn().mockReturnValue(mockTransaction),
-      close: jest.fn(),
-      objectStoreNames: {
-        contains: jest.fn().mockReturnValue(true)
-      },
-      createObjectStore: jest.fn()
-    };
-
-    // Mock openDB to resolve immediately with our mock
-    (openDB as jest.Mock).mockResolvedValue(mockDB);
-
-    // Create adapter - initialization will be mocked
+    // Create fresh adapter
     adapter = new IndexedDBKvAdapter();
   });
 
   afterEach(async () => {
-    // Simple cleanup - just close the adapter
-    await adapter.close();
+    // Clean up adapter
+    if (adapter) {
+      await adapter.close();
+    }
   });
 
   describe('Basic Interface Compliance', () => {

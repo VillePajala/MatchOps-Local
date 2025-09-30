@@ -7,9 +7,30 @@ import {
   SEASONS_LIST_KEY,
   TOURNAMENTS_LIST_KEY,
   MASTER_ROSTER_KEY,
-} from "@/config/storageKeys"; // Using path alias from jest.config.js
+} from "@/config/storageKeys";
 
-// Mock localStorage globally for all tests in this file
+// Mock the storage module (not localStorage directly!)
+jest.mock("./storage");
+
+import { getStorageJSON, setStorageJSON, removeStorageItem } from "./storage";
+
+// Create mock store for storage module
+const mockStore: Record<string, unknown> = {};
+
+// Setup mock implementations
+(getStorageJSON as jest.Mock).mockImplementation(async (key: string) => {
+  return mockStore[key] || null;
+});
+
+(setStorageJSON as jest.Mock).mockImplementation(async (key: string, value: unknown) => {
+  mockStore[key] = value;
+});
+
+(removeStorageItem as jest.Mock).mockImplementation(async (key: string) => {
+  delete mockStore[key];
+});
+
+// Mock localStorage for legacy compatibility
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
@@ -135,6 +156,10 @@ describe("importFullBackup", () => {
   let consoleLogSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    // Clear mock store
+    Object.keys(mockStore).forEach(key => delete mockStore[key]);
+    jest.clearAllMocks();
+
     // Call the mockClear method we added to reset everything
     localStorageMock.mockClear();
     // Ensure window object uses the fresh mock (might be redundant but safe)
