@@ -993,7 +993,7 @@ export class StorageFactory {
       if (retrieved !== testValue) {
         // Check if this is a corruption issue
         const validation = await storageRecovery.validateData(testKey, retrieved);
-        if (!validation.valid) {
+        if (!validation.isValid) {
           throw new StorageError(
             StorageErrorType.CORRUPTED_DATA,
             `Test data corrupted: ${validation.errors.join(', ')}`,

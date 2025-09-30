@@ -1011,8 +1011,9 @@ async function performIndexedDbMigrationEnhanced(): Promise<{
   const startTime = Date.now();
 
   try {
-    // Create adapters
-    const sourceAdapter = await createStorageAdapter('localStorage');
+    // Create target adapter for IndexedDB
+    // Note: We read directly from localStorage using getLocalStorageItem() to avoid
+    // storageFactory restrictions (which block localStorage adapter creation in IndexedDB-only mode)
     const targetAdapter = await createStorageAdapter('indexedDB');
 
     // Get localStorage keys using memory-efficient processing
@@ -1035,7 +1036,7 @@ async function performIndexedDbMigrationEnhanced(): Promise<{
       const sampleKeys = allKeys.slice(0, sampleSize);
       for (const key of sampleKeys) {
         try {
-          const value = await sourceAdapter.getItem(key);
+          const value = getLocalStorageItem(key);
           if (value) {
             estimatedDataSize += new Blob([value]).size;
           }
@@ -1117,7 +1118,7 @@ async function performIndexedDbMigrationEnhanced(): Promise<{
 
         while (retryCount <= maxRetries) {
           try {
-            const sourceValue = await sourceAdapter.getItem(key);
+            const sourceValue = getLocalStorageItem(key);
             if (sourceValue !== null) {
               await targetAdapter.setItem(key, sourceValue);
 

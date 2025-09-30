@@ -167,15 +167,17 @@ export class StorageRecovery {
       return;
     }
 
-    if (!value.id || typeof value.id !== 'string') {
+    const playerData = value as Record<string, unknown>;
+
+    if (!playerData.id || typeof playerData.id !== 'string') {
       errors.push('Missing required field: id');
     }
 
-    if (!value.name || typeof value.name !== 'string') {
+    if (!playerData.name || typeof playerData.name !== 'string') {
       errors.push('Missing required field: name');
     }
 
-    if (value.jerseyNumber && typeof value.jerseyNumber !== 'string') {
+    if (playerData.jerseyNumber && typeof playerData.jerseyNumber !== 'string') {
       warnings.push('Jersey number should be a string');
     }
   }
@@ -186,15 +188,17 @@ export class StorageRecovery {
       return;
     }
 
-    if (!value.id || typeof value.id !== 'string') {
+    const gameData = value as Record<string, unknown>;
+
+    if (!gameData.id || typeof gameData.id !== 'string') {
       errors.push('Missing required field: id');
     }
 
-    if (!value.teamName || typeof value.teamName !== 'string') {
+    if (!gameData.teamName || typeof gameData.teamName !== 'string') {
       errors.push('Missing required field: teamName');
     }
 
-    if (value.homeScore !== undefined && typeof value.homeScore !== 'number') {
+    if (gameData.homeScore !== undefined && typeof gameData.homeScore !== 'number') {
       warnings.push('Home score should be a number');
     }
   }
@@ -205,11 +209,13 @@ export class StorageRecovery {
       return;
     }
 
-    if (value.version && typeof value.version !== 'string') {
+    const settingsData = value as Record<string, unknown>;
+
+    if (settingsData.version && typeof settingsData.version !== 'string') {
       warnings.push('Version should be a string');
     }
 
-    if (value.language && typeof value.language !== 'string') {
+    if (settingsData.language && typeof settingsData.language !== 'string') {
       warnings.push('Language should be a string');
     }
   }
@@ -310,7 +316,7 @@ export class StorageRecovery {
 
       for (const key of keys) {
         try {
-          const value = await adapter.read(key);
+          const value = await adapter.getItem(key);
           const validation = await this.validateData(key, value);
           if (!validation.isValid) {
             corruptedKeys.push(key);
@@ -336,9 +342,9 @@ export class StorageRecovery {
       for (const key of corruptedKeys) {
         const backupKey = `backup:${key}`;
         try {
-          const backupValue = await adapter.read(backupKey);
+          const backupValue = await adapter.getItem(backupKey);
           if (backupValue) {
-            await adapter.write(key, backupValue);
+            await adapter.setItem(key, backupValue);
             restoredKeys.push(key);
           }
         } catch {
@@ -504,12 +510,12 @@ export class StorageRecovery {
       // Quarantine each key
       for (const key of keys) {
         try {
-          const value = await adapter.read(key);
-          if (value !== undefined) {
+          const value = await adapter.getItem(key);
+          if (value !== null) {
             // Move to quarantine
             const quarantineKey = `quarantine:${key}`;
-            await adapter.write(quarantineKey, value);
-            await adapter.delete(key);
+            await adapter.setItem(quarantineKey, value);
+            await adapter.removeItem(key);
             quarantinedCount++;
           }
         } catch (error) {
@@ -523,7 +529,7 @@ export class StorageRecovery {
         keys: keys.slice(0, quarantinedCount),
         reason: 'Data corruption detected'
       };
-      await adapter.write('quarantine:metadata', JSON.stringify(metadata));
+      await adapter.setItem('quarantine:metadata', JSON.stringify(metadata));
 
       return {
         success: errors.length === 0,
@@ -543,3 +549,8 @@ export class StorageRecovery {
     }
   }
 }
+
+/**
+ * Singleton instance for global storage recovery operations
+ */
+export const storageRecovery = new StorageRecovery();
