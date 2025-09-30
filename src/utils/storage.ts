@@ -30,27 +30,40 @@ export function isIndexedDBAvailable(): boolean {
       return false;
     }
 
-    // Check for private mode restrictions (Safari/Firefox)
-    // In private mode, indexedDB might exist but throw errors when used
-
-    // Some browsers restrict IndexedDB in private mode
-    // This will throw or return null in those cases
-    if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.estimate) {
-      // Modern browser - check storage availability
-      navigator.storage.estimate().then(estimate => {
-        if (estimate.quota && estimate.quota < 1024 * 1024) {
-          // Less than 1MB quota suggests severe restrictions
-          logger.warn('IndexedDB may be restricted: very low storage quota detected');
-        }
-      }).catch(err => {
-        logger.warn('Storage estimate failed, IndexedDB may be restricted', err);
-      });
-    }
-
+    // Note: Advanced quota checking is done asynchronously in checkStorageQuota()
+    // This function only does synchronous checks for immediate availability
     return true;
   } catch (error) {
     logger.error('IndexedDB availability check failed', error);
     return false;
+  }
+}
+
+/**
+ * Check storage quota asynchronously (for detailed diagnostics)
+ * Should be called after initial availability check
+ */
+export async function checkStorageQuota(): Promise<void> {
+  try {
+    if (typeof navigator === 'undefined' || !navigator.storage || !navigator.storage.estimate) {
+      return;
+    }
+
+    const estimate = await navigator.storage.estimate();
+    if (estimate.quota && estimate.quota < 1024 * 1024) {
+      // Less than 1MB quota suggests severe restrictions (private mode)
+      logger.warn('IndexedDB may be restricted: very low storage quota detected', {
+        quota: estimate.quota,
+        usage: estimate.usage
+      });
+    } else {
+      logger.debug('Storage quota check passed', {
+        quota: estimate.quota,
+        usage: estimate.usage
+      });
+    }
+  } catch (error) {
+    logger.warn('Storage estimate check failed, IndexedDB may be restricted', error);
   }
 }
 

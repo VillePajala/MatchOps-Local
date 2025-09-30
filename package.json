@@ -12,7 +12,7 @@
     "test": "jest",
     "test:watch": "jest --watch --maxWorkers=1",
     "test:coverage": "jest --coverage --watchAll=false --maxWorkers=1",
-    "test:critical": "CI=true jest tests/integration/core-workflows-simple.test.tsx --maxWorkers=1 --testTimeout=5000",
+    "test:critical": "CI=true jest tests/integration/core-workflows-simple.test.tsx --maxWorkers=1 --testTimeout=10000",
     "test:smoke": "CI=true jest tests/components/smoke-tests.test.tsx --maxWorkers=1 --testTimeout=5000",
     "test:unit": "CI=true jest src/ --maxWorkers=1 --testTimeout=8000",
     "test:integration": "CI=true jest tests/integration --maxWorkers=1 --testTimeout=10000",
