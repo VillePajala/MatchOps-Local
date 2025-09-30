@@ -23,7 +23,7 @@ import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
 import usePlayerAssessments from '@/hooks/usePlayerAssessments';
 import { exportFullBackup } from '@/utils/fullBackup';
 import { useTranslation } from 'react-i18next';
-import i18n from '../i18n';
+import i18n from '@/i18n';
 import { useGameState, UseGameStateReturn } from '@/hooks/useGameState';
 import GameInfoBar from '@/components/GameInfoBar';
 import { useGameTimer } from '@/hooks/useGameTimer';
@@ -216,11 +216,34 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           : {}),
     };
 
-    const nextState: AppState = { ...currentHistoryState, ...adjustedNewState };
+    // Only compare the fields present in adjustedNewState to avoid
+    // expensive deep comparison of the full state tree.
+    const hasRelevantChanges = Object.keys(adjustedNewState).some((key) => {
+      const k = key as keyof AppState;
+      const prevVal = currentHistoryState[k];
+      // For primitives, strict equality is enough; for objects/arrays,
+      // fall back to a lightweight structural check via JSON serialization.
+      if (
+        prevVal === (adjustedNewState as AppState)[k]
+      ) {
+        return false;
+      }
+      // If both are objects/arrays, do a cheap structural compare per field
+      const isObjectLike = (val: unknown) => typeof val === 'object' && val !== null;
+      if (isObjectLike(prevVal) && isObjectLike((adjustedNewState as AppState)[k])) {
+        try {
+          return JSON.stringify(prevVal) !== JSON.stringify((adjustedNewState as AppState)[k]);
+        } catch {
+          // On serialization failure, assume changed to be safe
+          return true;
+        }
+      }
+      return true;
+    });
 
-    if (JSON.stringify(nextState) === JSON.stringify(currentHistoryState)) {
-      return; // Don't save if nothing changed
-    }
+    if (!hasRelevantChanges) return; // Don't save if nothing changed in provided fields
+
+    const nextState: AppState = { ...currentHistoryState, ...adjustedNewState };
 
     pushHistoryState(nextState);
 
