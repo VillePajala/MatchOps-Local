@@ -161,7 +161,7 @@ export interface MetricsSnapshot {
  */
 export class StorageMetrics {
   private static readonly WINDOW_SIZE_MS = 60000; // 1 minute sliding window
-  private static readonly MAX_HISTORY_SIZE = 10000; // Maximum operations to keep
+  private static readonly MAX_HISTORY_SIZE = 1000; // Optimized for 2-minute sliding window (reduced from 10000 for better memory efficiency)
 
   private readonly logger = createLogger('StorageMetrics');
   private readonly operations: OperationTiming[] = [];
@@ -230,9 +230,18 @@ export class StorageMetrics {
       this.activeTransactions = Math.max(0, this.activeTransactions - 1);
     }
 
-    // Limit history size
+    // Limit history size with warning when approaching capacity
     if (this.operations.length > StorageMetrics.MAX_HISTORY_SIZE) {
       this.operations.shift();
+
+      // Warn periodically if consistently at capacity (indicates high load)
+      if (this.operations.length % 100 === 0) {
+        this.logger.warn('Metrics array at capacity, indicating high operation rate', {
+          capacity: StorageMetrics.MAX_HISTORY_SIZE,
+          currentSize: this.operations.length,
+          windowSize: StorageMetrics.WINDOW_SIZE_MS
+        });
+      }
     }
   }
 
