@@ -1,5 +1,6 @@
 import { importGamesFromJson } from './savedGames';
 import { AppState } from '@/types';
+import { clearMockStore } from './__mocks__/storage';
 
 // Mock localStorage
 const mockLocalStorage = (() => {
@@ -26,14 +27,30 @@ Object.defineProperty(global, 'localStorage', {
 
 // Mock logger
 jest.mock('./logger', () => ({
-  log: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn()
+  __esModule: true,
+  default: {
+    debug: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  },
+  createLogger: jest.fn(() => ({
+    debug: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }))
 }));
+
+// Mock storage module - uses __mocks__/storage.ts for in-memory storage
+jest.mock('./storage');
 
 describe('Game Import with Partial Success', () => {
   beforeEach(() => {
-    mockLocalStorage.clear();
+    clearMockStore(); // Clear IndexedDB mock storage
+    mockLocalStorage.clear(); // Keep for legacy if needed
     jest.clearAllMocks();
   });
 
