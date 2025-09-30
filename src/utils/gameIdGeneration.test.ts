@@ -1,6 +1,6 @@
 import { createGame } from './savedGames';
 import { AppState } from '@/types';
-import { clearMockStore } from './storage';
+import { clearMockStore } from './__mocks__/storage';
 
 // Mock localStorage
 const mockLocalStorage = (() => {

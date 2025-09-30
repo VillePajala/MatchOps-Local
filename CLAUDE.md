@@ -94,6 +94,165 @@ The build process includes a custom manifest generation step that runs before Ne
 
 **Testing**: Jest with React Testing Library, configured for Next.js with custom setup in `jest.config.js`
 
+## For Code Reviewers (AI or Human)
+
+### ⚠️ Critical: This is a Local-First PWA, NOT a Traditional Web App
+
+Before reviewing, understand this architecture is fundamentally different from typical web applications.
+
+### Architecture Classification
+
+This is a **local-first Progressive Web App**, NOT:
+- ❌ A SaaS (Software-as-a-Service) application
+- ❌ A client-server web application
+- ❌ A multi-tenant system
+- ❌ An enterprise application
+- ❌ A cloud-hosted service
+
+### Deployment Context
+
+**Single-User Installation**
+- One soccer coach per installation
+- No user authentication or authorization needed
+- No multi-user access control
+- No role-based permissions
+
+**No Backend Server**
+- 100% browser-based application
+- No API endpoints or database servers
+- No network requests (except PWA updates)
+- No server-side processing
+
+**Offline-First Design**
+- Works completely without internet connection
+- All data stored in browser IndexedDB
+- No cloud synchronization
+- No external dependencies
+
+**Privacy-First Philosophy**
+- Zero telemetry or analytics (except opt-in error reporting via Sentry)
+- No user tracking or behavior monitoring
+- Data never leaves user's device
+- Complete user data ownership
+
+### Scale & Performance Context
+
+**Expected Data Volumes**
+- **Users**: 1 coach per installation
+- **Players**: 50-100 players maximum
+- **Games**: 50-100 games per season
+- **Storage**: <10MB typical, <50MB maximum
+- **Concurrent operations**: Single-threaded user actions only
+
+**Performance Targets**
+- Works smoothly on 5-year-old devices
+- Offline operation with instant response
+- No network latency considerations
+
+### Security & Privacy Context
+
+**Data Type**
+- Soccer game scores and statistics
+- Player names and jersey numbers
+- Game timestamps and events
+- **NOT** sensitive personal information
+- **NOT** financial data
+- **NOT** healthcare data
+- **NOT** regulated under GDPR/HIPAA/PCI-DSS (beyond basic user privacy)
+
+**Threat Model**
+- **Primary risk**: Physical device theft (mitigated by OS disk encryption)
+- **NOT defending against**: Network attacks (no network communication)
+- **NOT defending against**: SQL injection (no database queries)
+- **NOT defending against**: Multi-user attacks (single-user app)
+- **NOT defending against**: Data breaches (data never leaves device)
+
+**Browser Security**
+- IndexedDB isolated per-origin by browser
+- Content Security Policy (CSP) in place
+- No eval() or dangerous dynamic code
+- Service Worker security best practices
+
+### Code Review Guidelines
+
+#### ❌ DO NOT Suggest These Patterns
+
+**Enterprise/SaaS Patterns** (Not Applicable)
+- ❌ Audit logging or activity tracking
+- ❌ Multi-tenant data isolation
+- ❌ Role-based access control (RBAC)
+- ❌ API authentication/authorization
+- ❌ Rate limiting for API endpoints
+- ❌ Data retention policies or GDPR logging
+- ❌ Centralized monitoring or analytics
+- ❌ Server-side validation
+
+**Network Security** (No Network Communication)
+- ❌ Encryption in transit (TLS/HTTPS for data)
+- ❌ API key management
+- ❌ OAuth/JWT tokens
+- ❌ CORS configuration
+- ❌ Request signing or verification
+
+**Data Encryption** (Browser Sandboxing Sufficient)
+- ❌ Client-side encryption for stored data
+- ❌ Key management systems
+- ❌ Encryption at rest (OS handles via disk encryption)
+
+**Over-Engineering for Scale**
+- ❌ Heavy schema validation libraries (Zod, Yup) for self-generated data
+- ❌ Complex caching strategies (simple is fine)
+- ❌ Database query optimization for 100 records
+- ❌ CDN or edge caching
+- ❌ Horizontal scaling patterns
+
+#### ✅ DO Focus On These Areas
+
+**Browser Compatibility**
+- ✅ IndexedDB edge cases (quota exceeded, corruption, private mode)
+- ✅ Service Worker lifecycle and caching strategies
+- ✅ Cross-browser PWA installation behavior
+- ✅ Mobile browser quirks and limitations
+
+**Data Integrity**
+- ✅ Data corruption recovery patterns
+- ✅ Backup and restore functionality
+- ✅ Migration path from localStorage to IndexedDB
+- ✅ Handling malformed data gracefully
+
+**Performance & Memory**
+- ✅ Memory leaks in long-running browser sessions
+- ✅ Efficient IndexedDB transaction patterns
+- ✅ UI responsiveness during data operations
+- ✅ Bundle size and code splitting
+
+**User Experience**
+- ✅ Offline-first patterns and conflict resolution
+- ✅ Error messages that help users recover
+- ✅ Loading states and progress indicators
+- ✅ Accessibility (a11y) for PWAs
+
+**PWA Best Practices**
+- ✅ Service Worker update strategies
+- ✅ App manifest correctness
+- ✅ Install prompts and user onboarding
+- ✅ Offline capability and sync patterns
+
+### Review Context Summary
+
+When reviewing this codebase:
+
+1. **Remember**: One user, one device, no server, no network
+2. **Data scale**: Think hundreds, not millions
+3. **Security**: Browser sandboxing is the security boundary
+4. **Privacy**: Zero telemetry is a feature, not a gap
+5. **Performance**: Optimize for small datasets and single-user UX
+
+For detailed architecture rationale, see:
+- `docs/PROJECT_OVERVIEW.md` - Complete project context
+- `docs/LOCAL_FIRST_PHILOSOPHY.md` - Architecture decisions
+- `README.md` - Quick start and overview
+
 ## Key Files to Understand
 
 - `src/app/page.tsx` - The main component that orchestrates the entire application, integrating hooks, reducers, and data fetching.
