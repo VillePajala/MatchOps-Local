@@ -667,4 +667,192 @@ describe('StorageRecovery', () => {
       }
     });
   });
+
+  describe('Circuit Breaker', () => {
+    /**
+     * Tests circuit breaker opens after repeated failures
+     * @critical
+     */
+    it('should open circuit breaker after 3 failures in 5-minute window', async () => {
+      // Set up adapter to always fail recovery
+      mockAdapter.setFailureMode('getKeys');
+
+      const error = new StorageError(StorageErrorType.DATA_CORRUPTION, 'Test failure');
+
+      // Attempt recovery 3 times - each should fail
+      for (let i = 0; i < 3; i++) {
+        const result = await recovery.repairCorruption(error, mockAdapter);
+        expect(result.success).toBe(false);
+      }
+
+      // Clear failure mode so next attempt would succeed if circuit wasn't open
+      mockAdapter.setFailureMode(null);
+
+      // Fourth attempt should be blocked by circuit breaker
+      const blockedResult = await recovery.repairCorruption(error, mockAdapter);
+      expect(blockedResult.success).toBe(false);
+      expect(blockedResult.circuitBreakerOpen).toBe(true);
+      expect(blockedResult.details).toContain('Circuit breaker open');
+      expect(blockedResult.attempts).toBe(0); // No attempt was made
+    });
+
+    /**
+     * Tests circuit breaker tracks failure window correctly
+     * @integration
+     */
+    it('should track failures within 5-minute sliding window', async () => {
+      mockAdapter.setFailureMode('getKeys');
+      const error = new StorageError(StorageErrorType.DATA_CORRUPTION, 'Test failure');
+
+      // Record 2 failures
+      await recovery.repairCorruption(error, mockAdapter);
+      await recovery.repairCorruption(error, mockAdapter);
+
+      mockAdapter.setFailureMode(null);
+
+      // Third attempt should succeed (circuit still closed with only 2 failures)
+      const result = await recovery.repairCorruption(error, mockAdapter);
+      expect(result.success).toBe(true);
+      expect(result.circuitBreakerOpen).toBeUndefined();
+    });
+
+    /**
+     * Tests circuit breaker reset time calculation
+     * @integration
+     */
+    it('should provide remaining reset time when circuit is open', async () => {
+      mockAdapter.setFailureMode('getKeys');
+      const error = new StorageError(StorageErrorType.DATA_CORRUPTION, 'Test failure');
+
+      // Trigger 3 failures to open circuit
+      for (let i = 0; i < 3; i++) {
+        await recovery.repairCorruption(error, mockAdapter);
+      }
+
+      mockAdapter.setFailureMode(null);
+
+      // Check that circuit breaker provides reset time
+      const blockedResult = await recovery.repairCorruption(error, mockAdapter);
+      expect(blockedResult.circuitBreakerOpen).toBe(true);
+      expect(blockedResult.circuitBreakerResetTimeMs).toBeGreaterThan(0);
+      expect(blockedResult.circuitBreakerResetTimeMs).toBeLessThanOrEqual(5 * 60 * 1000); // Max 5 minutes
+    });
+
+    /**
+     * Tests circuit breaker prevents cascading failures
+     * @critical
+     */
+    it('should prevent cascading failures once circuit is open', async () => {
+      mockAdapter.setFailureMode('getKeys');
+      const error = new StorageError(StorageErrorType.DATA_CORRUPTION, 'Test failure');
+
+      // Open the circuit with 3 failures
+      for (let i = 0; i < 3; i++) {
+        await recovery.repairCorruption(error, mockAdapter);
+      }
+
+      mockAdapter.setFailureMode(null);
+
+      // Attempt 10 more recoveries - all should be blocked immediately
+      const blockedAttempts = [];
+      for (let i = 0; i < 10; i++) {
+        const result = await recovery.repairCorruption(error, mockAdapter);
+        blockedAttempts.push(result);
+      }
+
+      // All should be blocked with attempts=0 (no actual recovery attempted)
+      for (const result of blockedAttempts) {
+        expect(result.success).toBe(false);
+        expect(result.circuitBreakerOpen).toBe(true);
+        expect(result.attempts).toBe(0);
+      }
+    });
+
+    /**
+     * Tests successful recovery is tracked in failure window
+     * @integration
+     */
+    it('should continue tracking failures with successes in sliding window', async () => {
+      const error = new StorageError(StorageErrorType.DATA_CORRUPTION, 'Test failure');
+
+      // Record 2 failures
+      mockAdapter.setFailureMode('getKeys');
+      await recovery.repairCorruption(error, mockAdapter);
+      await recovery.repairCorruption(error, mockAdapter);
+
+      // Have a success (doesn't reset counter, just adds a successful attempt)
+      mockAdapter.setFailureMode(null);
+      mockAdapter.setData('player:1', JSON.stringify({ id: 'player-1', name: 'Valid' }));
+      const successResult = await recovery.repairCorruption(error, mockAdapter);
+      expect(successResult.success).toBe(true);
+
+      // Now record 2 more failures (total: 4 failures + 1 success in window)
+      mockAdapter.setFailureMode('getKeys');
+      await recovery.repairCorruption(error, mockAdapter);
+      await recovery.repairCorruption(error, mockAdapter);
+
+      // At this point we have 4 failures total in the window, circuit should be open
+      mockAdapter.setFailureMode(null);
+      const result = await recovery.repairCorruption(error, mockAdapter);
+
+      // Circuit should be open (4 failures exceeds threshold of 3)
+      expect(result.circuitBreakerOpen).toBe(true);
+    });
+
+    /**
+     * Tests circuit breaker with different error types
+     * @integration
+     */
+    it('should track failures across different error types', async () => {
+      mockAdapter.setFailureMode('getKeys');
+
+      // Mix different error types
+      const errors = [
+        new StorageError(StorageErrorType.DATA_CORRUPTION, 'Corruption'),
+        new StorageError(StorageErrorType.QUOTA_EXCEEDED, 'Quota'),
+        new StorageError(StorageErrorType.ACCESS_DENIED, 'Access')
+      ];
+
+      // Record 3 failures with different error types
+      for (const error of errors) {
+        await recovery.repairCorruption(error, mockAdapter);
+      }
+
+      mockAdapter.setFailureMode(null);
+
+      // Circuit should be open regardless of error type
+      const blockedResult = await recovery.repairCorruption(errors[0], mockAdapter);
+      expect(blockedResult.circuitBreakerOpen).toBe(true);
+    });
+
+    /**
+     * Tests getRemainingCircuitBreakerTime method
+     * @integration
+     */
+    it('should return 0 when circuit is closed', async () => {
+      const remainingTime = recovery.getRemainingCircuitBreakerTime();
+      expect(remainingTime).toBe(0);
+    });
+
+    /**
+     * Tests error messages include circuit breaker details
+     * @integration
+     */
+    it('should include helpful error message when circuit is open', async () => {
+      mockAdapter.setFailureMode('getKeys');
+      const error = new StorageError(StorageErrorType.DATA_CORRUPTION, 'Test');
+
+      // Open circuit
+      for (let i = 0; i < 3; i++) {
+        await recovery.repairCorruption(error, mockAdapter);
+      }
+
+      mockAdapter.setFailureMode(null);
+
+      // Verify error message is informative
+      const result = await recovery.repairCorruption(error, mockAdapter);
+      expect(result.details).toMatch(/Circuit breaker open - recovery disabled for \d+s/);
+      expect(result.errors).toContain('Circuit breaker open due to repeated failures');
+    });
+  });
 });

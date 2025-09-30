@@ -72,9 +72,38 @@ export const performMemoryCleanup = jest.fn(async () => {
   return { itemsRemoved: 0, keysScanned: Object.keys(mockStore).length };
 });
 
-// Helper to clear the mock store (useful for beforeEach)
+// Helper to clear the mock store AND reset all Jest mocks (useful for beforeEach)
 export const clearMockStore = () => {
+  // Clear the in-memory store
   Object.keys(mockStore).forEach(key => delete mockStore[key]);
+
+  // Reset all mock implementations and call history
+  (getStorageItem as jest.MockedFunction<typeof getStorageItem>).mockReset().mockImplementation(async (key: string) => mockStore[key] || null);
+  (setStorageItem as jest.MockedFunction<typeof setStorageItem>).mockReset().mockImplementation(async (key: string, value: string) => { mockStore[key] = value; });
+  (removeStorageItem as jest.MockedFunction<typeof removeStorageItem>).mockReset().mockImplementation(async (key: string) => { delete mockStore[key]; });
+  (getStorageJSON as jest.MockedFunction<typeof getStorageJSON>).mockReset().mockImplementation(async <T>(key: string) => {
+    const value = mockStore[key];
+    if (!value) return null;
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return null;
+    }
+  });
+  (setStorageJSON as jest.MockedFunction<typeof setStorageJSON>).mockReset().mockImplementation(async <T>(key: string, value: T) => { mockStore[key] = JSON.stringify(value); });
+
+  // Also reset other mocks
+  (removeStorageJSON as jest.MockedFunction<typeof removeStorageJSON>).mockReset().mockImplementation(async (key: string) => { delete mockStore[key]; });
+  (getStorageItems as jest.MockedFunction<typeof getStorageItems>).mockReset().mockImplementation(async (keys: string[]) => {
+    const result: Record<string, string | null> = {};
+    for (const key of keys) {
+      result[key] = mockStore[key] || null;
+    }
+    return result;
+  });
+  (setStorageItems as jest.MockedFunction<typeof setStorageItems>).mockReset().mockImplementation(async (items: Record<string, string>) => {
+    Object.assign(mockStore, items);
+  });
 };
 
 // Export the mock store for test inspection if needed

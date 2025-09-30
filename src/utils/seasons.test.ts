@@ -21,10 +21,11 @@ beforeEach(() => {
   consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
-afterEach(() => {
+afterEach(async () => {
   consoleErrorSpy.mockRestore();
   consoleWarnSpy.mockRestore();
-  // No need to call storageMock.clear() as store is reset in beforeEach
+  // Ensure complete cleanup after each test
+  clearMockStore();
 });
 
 describe('Season Management Utilities (storage)', () => {
@@ -40,12 +41,12 @@ describe('Season Management Utilities (storage)', () => {
     });
 
     it('should return seasons from storage if they exist', async () => {
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(sampleSeasons));
+      mockGetStorageItem.mockResolvedValueOnce(JSON.stringify(sampleSeasons));
       expect(await getSeasons()).toEqual(sampleSeasons);
     });
 
     it('should return an empty array and log an error if storage data is malformed', async () => {
-      mockGetStorageItem.mockResolvedValue('invalid-json');
+      mockGetStorageItem.mockResolvedValueOnce('invalid-json');
       expect(await getSeasons()).toEqual([]);
       expect(consoleErrorSpy).toHaveBeenCalled();
     });
@@ -53,25 +54,27 @@ describe('Season Management Utilities (storage)', () => {
 
   describe('saveSeasons', () => {
     it('should save seasons to storage and return true', async () => {
-      const result = await saveSeasons(sampleSeasons);
+      // Use isolated test data to avoid contamination
+      const testData: Season[] = [{ id: 'test_save', name: 'Test Save Season' }];
+      const result = await saveSeasons(testData);
       expect(result).toBe(true);
-      expect(mockSetStorageItem).toHaveBeenCalledWith(SEASONS_LIST_KEY, JSON.stringify(sampleSeasons));
+      expect(mockSetStorageItem).toHaveBeenCalledWith(SEASONS_LIST_KEY, JSON.stringify(testData));
       // Data persistence verified through mock calls
     });
 
-    it('should overwrite existing seasons in storage and return true', async () => {
-      const initialSeasons: Season[] = [{ id: 's0', name: 'Old Season' }];
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(initialSeasons));
-      const result = await saveSeasons(sampleSeasons);
+    it('should save empty array to storage and return true', async () => {
+      const result = await saveSeasons([]);
       expect(result).toBe(true);
+      expect(mockSetStorageItem).toHaveBeenCalledWith(SEASONS_LIST_KEY, JSON.stringify([]));
       // Data persistence verified through mock calls
     });
 
     it('should log an error and return false if saving to storage fails', async () => {
+      const testData: Season[] = [{ id: 'test_fail', name: 'Test Fail Season' }];
       mockSetStorageItem.mockImplementationOnce(async () => {
         throw new Error('Quota exceeded');
       });
-      const result = await saveSeasons(sampleSeasons);
+      const result = await saveSeasons(testData);
       expect(result).toBe(false);
       expect(consoleErrorSpy).toHaveBeenCalled();
     });

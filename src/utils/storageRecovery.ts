@@ -51,6 +51,8 @@ export interface RecoveryResult {
   quarantinedKeys?: string[];
   migratedKeys?: string[];
   preservedKeys?: string[];
+  circuitBreakerOpen?: boolean;
+  circuitBreakerResetTimeMs?: number;
 }
 
 /**
@@ -91,9 +93,16 @@ export class StorageRecovery {
   private static readonly DEFAULT_QUARANTINE_PREFIX = '__quarantine__';
   private static readonly DEFAULT_VALIDATION_TIMEOUT = 5000;
 
+  // Circuit breaker configuration
+  private static readonly CIRCUIT_BREAKER_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+  private static readonly MAX_FAILURES_IN_WINDOW = 3;
+
   private readonly logger = createLogger('StorageRecovery');
   private readonly config: Required<RecoveryConfig>;
   private currentRecoveryOperation: Promise<RecoveryResult> | null = null;
+
+  // Circuit breaker state tracking
+  private recoveryAttempts: Array<{ timestamp: number; success: boolean; errorType?: string }> = [];
 
   constructor(config?: RecoveryConfig) {
     this.config = {
@@ -103,6 +112,81 @@ export class StorageRecovery {
       enableProgressiveRecovery: config?.enableProgressiveRecovery ?? true,
       validationTimeout: config?.validationTimeout ?? StorageRecovery.DEFAULT_VALIDATION_TIMEOUT
     };
+  }
+
+  /**
+   * Check if circuit breaker is open (too many recent failures)
+   * @returns True if circuit is open and recovery should be prevented
+   */
+  private isCircuitOpen(): boolean {
+    const now = Date.now();
+    const windowStart = now - StorageRecovery.CIRCUIT_BREAKER_WINDOW_MS;
+
+    // Clean old attempts outside the window
+    this.recoveryAttempts = this.recoveryAttempts.filter(
+      attempt => attempt.timestamp >= windowStart
+    );
+
+    // Count recent failures
+    const recentFailures = this.recoveryAttempts.filter(
+      attempt => !attempt.success && attempt.timestamp >= windowStart
+    );
+
+    const isOpen = recentFailures.length >= StorageRecovery.MAX_FAILURES_IN_WINDOW;
+
+    if (isOpen) {
+      const oldestFailure = Math.min(...recentFailures.map(f => f.timestamp));
+      const timeUntilReset = (oldestFailure + StorageRecovery.CIRCUIT_BREAKER_WINDOW_MS) - now;
+      this.logger.warn('Circuit breaker open - recovery temporarily disabled', {
+        recentFailures: recentFailures.length,
+        maxAllowed: StorageRecovery.MAX_FAILURES_IN_WINDOW,
+        windowMs: StorageRecovery.CIRCUIT_BREAKER_WINDOW_MS,
+        timeUntilResetMs: timeUntilReset
+      });
+    }
+
+    return isOpen;
+  }
+
+  /**
+   * Record a recovery attempt for circuit breaker tracking
+   */
+  private recordRecoveryAttempt(success: boolean, errorType?: string): void {
+    this.recoveryAttempts.push({
+      timestamp: Date.now(),
+      success,
+      errorType
+    });
+
+    // Keep only recent attempts (last 10 minutes worth)
+    const cutoff = Date.now() - (StorageRecovery.CIRCUIT_BREAKER_WINDOW_MS * 2);
+    this.recoveryAttempts = this.recoveryAttempts.filter(
+      attempt => attempt.timestamp >= cutoff
+    );
+  }
+
+  /**
+   * Get time remaining until circuit breaker resets (in milliseconds)
+   * @returns Time in ms until circuit can be attempted again, or 0 if circuit is closed
+   */
+  getRemainingCircuitBreakerTime(): number {
+    if (!this.isCircuitOpen()) {
+      return 0;
+    }
+
+    const now = Date.now();
+    const windowStart = now - StorageRecovery.CIRCUIT_BREAKER_WINDOW_MS;
+    const recentFailures = this.recoveryAttempts.filter(
+      attempt => !attempt.success && attempt.timestamp >= windowStart
+    );
+
+    if (recentFailures.length === 0) {
+      return 0;
+    }
+
+    // Time until oldest failure expires from the window
+    const oldestFailure = Math.min(...recentFailures.map(f => f.timestamp));
+    return Math.max(0, (oldestFailure + StorageRecovery.CIRCUIT_BREAKER_WINDOW_MS) - now);
   }
 
   /**
@@ -242,6 +326,28 @@ export class StorageRecovery {
     error: StorageError,
     adapter: StorageAdapter
   ): Promise<RecoveryResult> {
+    // Check circuit breaker before attempting recovery
+    if (this.isCircuitOpen()) {
+      const remainingTime = this.getRemainingCircuitBreakerTime();
+      const errorResult: RecoveryResult = {
+        strategy: RecoveryStrategy.VALIDATE_AND_REPAIR,
+        success: false,
+        action: RecoveryAction.QUARANTINED,
+        attempts: 0,
+        details: `Circuit breaker open - recovery disabled for ${Math.ceil(remainingTime / 1000)}s`,
+        errors: ['Circuit breaker open due to repeated failures'],
+        circuitBreakerOpen: true,
+        circuitBreakerResetTimeMs: remainingTime
+      };
+
+      this.logger.warn('Recovery attempt blocked by circuit breaker', {
+        remainingTimeMs: remainingTime,
+        errorType: error.type
+      });
+
+      return errorResult;
+    }
+
     this.logger.info('Starting corruption recovery', {
       errorType: error.type,
       errorMessage: error.message
@@ -277,6 +383,10 @@ export class StorageRecovery {
     }
 
     result.attempts = attempts;
+
+    // Record recovery attempt for circuit breaker
+    this.recordRecoveryAttempt(result.success, error.type);
+
     return result;
   }
 
