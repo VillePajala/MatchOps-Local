@@ -249,10 +249,13 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
     // Clear expired adapter with proper connection cleanup
     if (adapterPromise && isAdapterExpired()) {
       logger.debug('Storage adapter TTL expired, creating fresh adapter');
-      // Use async cleanup but don't await to avoid blocking
-      clearAdapterCacheWithCleanup().catch(error => {
+      // Await cleanup to prevent race conditions with parallel adapter instances
+      try {
+        await clearAdapterCacheWithCleanup();
+      } catch (error) {
         logger.warn('Failed to cleanup expired adapter', { error });
-      });
+        // Continue with new adapter creation even if cleanup fails
+      }
     }
 
     // Check if we can retry now (respects exponential backoff)

@@ -32,6 +32,7 @@ export interface MutexAcquisitionResult {
 export interface MutexConfig {
   defaultTimeout?: number;
   enableDebugLogging?: boolean;
+  maxQueueSize?: number;
 }
 
 /**
@@ -55,10 +56,12 @@ export interface MutexConfig {
  */
 export class MutexManager {
   private static readonly DEFAULT_TIMEOUT_MS = 5000;
+  private static readonly DEFAULT_MAX_QUEUE_SIZE = 100;
 
   private readonly logger = createLogger('MutexManager');
   private readonly defaultTimeout: number;
   private readonly debugLogging: boolean;
+  private readonly maxQueueSize: number;
 
   private currentOperation: Promise<unknown> | null = null;
   private waitQueue: Array<{
@@ -78,6 +81,7 @@ export class MutexManager {
   constructor(config?: MutexConfig) {
     this.defaultTimeout = config?.defaultTimeout ?? MutexManager.DEFAULT_TIMEOUT_MS;
     this.debugLogging = config?.enableDebugLogging ?? false;
+    this.maxQueueSize = config?.maxQueueSize ?? MutexManager.DEFAULT_MAX_QUEUE_SIZE;
   }
 
   /**
@@ -148,6 +152,21 @@ export class MutexManager {
           reject(error);
         }
       };
+
+      // Check queue size limit to prevent unbounded growth
+      if (this.waitQueue.length >= this.maxQueueSize) {
+        const error = new StorageError(
+          StorageErrorType.ACCESS_DENIED,
+          `Mutex wait queue full (${this.maxQueueSize} operations waiting)`,
+          new Error('Queue capacity exceeded')
+        );
+        this.logger.error('Mutex wait queue exceeded maximum size', {
+          queueSize: this.waitQueue.length,
+          maxQueueSize: this.maxQueueSize
+        });
+        reject(error);
+        return;
+      }
 
       // Add to wait queue
       this.waitQueue.push({
