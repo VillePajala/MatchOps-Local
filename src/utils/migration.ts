@@ -1279,6 +1279,13 @@ async function performIndexedDbMigrationEnhanced(): Promise<{
 
     logger.log('[Migration] Storage configuration updated to IndexedDB');
 
+    // Clean up progress callback to prevent memory leaks
+    if (migrationProgress) {
+      migrationProgress.clear();
+      migrationProgress = null;
+      logger.log('[Migration] Progress callback cleaned up after successful migration');
+    }
+
     // Return performance metrics
     return {
       totalKeys,
@@ -1291,6 +1298,13 @@ async function performIndexedDbMigrationEnhanced(): Promise<{
 
   } catch (error) {
     logger.error('[Migration] IndexedDB migration failed:', error instanceof Error ? error.message : String(error));
+
+    // Clean up progress callback on error to prevent memory leaks
+    if (migrationProgress) {
+      migrationProgress.clear();
+      migrationProgress = null;
+      logger.log('[Migration] Progress callback cleaned up after failed migration');
+    }
 
     // Update config to indicate failure
     updateStorageConfig({

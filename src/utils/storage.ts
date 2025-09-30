@@ -8,6 +8,7 @@
 
 import { createStorageAdapter } from './storageFactory';
 import { StorageAdapter } from './storageAdapter';
+import { MutexManager } from './storageMutex';
 import logger from './logger';
 
 /**
@@ -70,12 +71,18 @@ let adapterPromise: Promise<StorageAdapter> | null = null;
 let adapterCreatedAt: number | null = null;
 let adapterRetryCount: number = 0;
 let lastFailureTime: number | null = null;
-let isCreatingAdapter: boolean = false; // Mutex to prevent race conditions
-let adapterCreationQueue: Array<{resolve: (value: StorageAdapter) => void, reject: (err: Error) => void}> = [];
 
-// Configurable TTL for adapter caching (default: 5 minutes)
+// Use proper mutex for thread-safe adapter creation
+const adapterCreationMutex = new MutexManager({
+  defaultTimeout: 30000, // 30 second timeout for adapter creation
+  enableDebugLogging: false
+});
+
+// Configurable TTL for adapter caching (default: 15 minutes)
+// Longer TTL improves performance for active users while still ensuring fresh connections
+// Can be overridden via NEXT_PUBLIC_STORAGE_ADAPTER_TTL_MS environment variable
 const ADAPTER_TTL = parseInt(
-  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_STORAGE_ADAPTER_TTL_MS) || '300000',
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_STORAGE_ADAPTER_TTL_MS) || '900000',
   10
 );
 // Retry configuration with exponential backoff
@@ -93,7 +100,7 @@ const SUSPICIOUS_KEY_PATTERNS = [
   /prototype/,
   /<script/i,
   /javascript:/i,
-  /on\w+=/i
+  /^on[a-z]+\s*=/i  // Match HTML event handlers like "onclick=", "onload=" (more specific to avoid false positives)
 ];
 
 /**
@@ -104,54 +111,7 @@ function isAdapterExpired(): boolean {
   return Date.now() - adapterCreatedAt > ADAPTER_TTL;
 }
 
-/**
- * Wait for adapter creation using Promise-based queue (replaces polling)
- */
-function waitForAdapterCreation(): Promise<StorageAdapter> {
-  return new Promise((resolve, reject) => {
-    adapterCreationQueue.push({ resolve, reject });
-
-    // Set a timeout to prevent indefinite waiting
-    const timeout = setTimeout(() => {
-      const index = adapterCreationQueue.findIndex(item => item.resolve === resolve);
-      if (index !== -1) {
-        adapterCreationQueue.splice(index, 1);
-        reject(new Error('Adapter creation timeout: took longer than 30 seconds'));
-      }
-    }, 30000);
-
-    // Store timeout for cleanup
-    const originalResolve = resolve;
-    const wrappedResolve = (value: StorageAdapter) => {
-      clearTimeout(timeout);
-      originalResolve(value);
-    };
-
-    // Update the queue item with wrapped resolve
-    const queueItem = adapterCreationQueue.find(item => item.resolve === resolve);
-    if (queueItem) {
-      queueItem.resolve = wrappedResolve;
-    }
-  });
-}
-
-/**
- * Notify all waiting requests when adapter is created
- */
-function notifyAdapterCreated(adapter: StorageAdapter): void {
-  const queue = [...adapterCreationQueue];
-  adapterCreationQueue = [];
-  queue.forEach(({ resolve }) => resolve(adapter));
-}
-
-/**
- * Notify all waiting requests when adapter creation fails
- */
-function notifyAdapterFailed(error: Error): void {
-  const queue = [...adapterCreationQueue];
-  adapterCreationQueue = [];
-  queue.forEach(({ reject }) => reject(error));
-}
+// Old queue-based functions removed - now using MutexManager for proper synchronization
 
 /**
  * Validate storage key for security and size limits
@@ -267,28 +227,21 @@ function canRetryNow(): boolean {
 /**
  * Get IndexedDB storage adapter (IndexedDB-only, no localStorage fallback)
  * Implements TTL-based caching to prevent memory leaks and ensure fresh connections.
- * Uses mutex pattern to prevent race conditions during concurrent adapter creation.
+ * Uses MutexManager for proper thread-safe adapter creation.
  * @returns Promise resolving to IndexedDB storage adapter
  * @throws Error if IndexedDB is unavailable
  */
 export async function getStorageAdapter(): Promise<StorageAdapter> {
-  // Return existing valid adapter immediately
+  // Return existing valid adapter immediately (fast path)
   if (adapterPromise && !isAdapterExpired()) {
     return adapterPromise;
   }
 
-  // If another call is already creating an adapter, wait for it
-  if (isCreatingAdapter) {
-    logger.debug('Adapter creation already in progress, waiting...');
-    // Use Promise-based queue instead of polling
-    return waitForAdapterCreation();
-  }
-
-  // Set mutex to prevent concurrent creation
-  isCreatingAdapter = true;
-
+  // Use mutex to ensure only one adapter creation happens at a time
   try {
-    // Double-check after acquiring mutex
+    await adapterCreationMutex.acquire();
+
+    // Double-check after acquiring mutex (another call might have created it)
     if (adapterPromise && !isAdapterExpired()) {
       return adapterPromise;
     }
@@ -296,12 +249,10 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
     // Clear expired adapter with proper connection cleanup
     if (adapterPromise && isAdapterExpired()) {
       logger.debug('Storage adapter TTL expired, creating fresh adapter');
-      // Use async cleanup but don't await to avoid blocking the synchronous flow
-      // This ensures adapter connections are properly closed
+      // Use async cleanup but don't await to avoid blocking
       clearAdapterCacheWithCleanup().catch(error => {
         logger.warn('Failed to cleanup expired adapter', { error });
       });
-      // Continue immediately with fresh adapter creation
     }
 
     // Check if we can retry now (respects exponential backoff)
@@ -319,11 +270,7 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
       // Success: reset retry state
       adapterRetryCount = 0;
       lastFailureTime = null;
-      logger.debug('Storage adapter created successfully after retries');
-
-      // Notify waiting requests
-      notifyAdapterCreated(adapter);
-
+      logger.debug('Storage adapter created successfully');
       return adapter;
     }).catch(error => {
       // Failure: update retry state and clear promise
@@ -340,9 +287,6 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
       const userFriendlyError = getUserFriendlyErrorMessage(errorMessage);
       const finalError = new Error(`${userFriendlyError} (Retry ${adapterRetryCount}/${MAX_RETRY_ATTEMPTS} in ${Math.ceil(nextDelay / 1000)}s)`);
 
-      // Notify waiting requests
-      notifyAdapterFailed(finalError);
-
       throw finalError;
     });
 
@@ -352,7 +296,7 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
     return adapterPromise;
   } finally {
     // Always release the mutex
-    isCreatingAdapter = false;
+    adapterCreationMutex.release();
   }
 }
 
@@ -780,11 +724,7 @@ export async function clearAdapterCacheWithCleanup(): Promise<void> {
   // Also reset retry state to allow immediate retry
   adapterRetryCount = 0;
   lastFailureTime = null;
-  // Reset mutex state for clean slate
-  isCreatingAdapter = false;
-  // Clear any pending queue
-  notifyAdapterFailed(new Error('Adapter cache cleared'));
-  adapterCreationQueue = [];
+  // Mutex is self-managing, no manual reset needed
 }
 
 /**
@@ -799,11 +739,7 @@ export function clearAdapterCache(): void {
   // Also reset retry state to allow immediate retry
   adapterRetryCount = 0;
   lastFailureTime = null;
-  // Reset mutex state for clean slate
-  isCreatingAdapter = false;
-  // Clear any pending queue
-  notifyAdapterFailed(new Error('Adapter cache cleared'));
-  adapterCreationQueue = [];
+  // Mutex is self-managing, no manual reset needed
 }
 
 /**
@@ -812,16 +748,14 @@ export function clearAdapterCache(): void {
 export async function getStorageMemoryStats(): Promise<{
   adapterAge: number | null;
   retryCount: number;
-  queueLength: number;
-  isCreating: boolean;
   hasAdapter: boolean;
+  mutexStatus: string;
 }> {
   return {
     adapterAge: adapterCreatedAt ? Date.now() - adapterCreatedAt : null,
     retryCount: adapterRetryCount,
-    queueLength: adapterCreationQueue.length,
-    isCreating: isCreatingAdapter,
-    hasAdapter: adapterPromise !== null
+    hasAdapter: adapterPromise !== null,
+    mutexStatus: 'managed by MutexManager'
   };
 }
 
@@ -838,17 +772,9 @@ export async function performMemoryCleanup(): Promise<void> {
     await clearAdapterCacheWithCleanup();
   }
 
-  // Clear stale queue entries (shouldn't happen but defensive)
-  if (adapterCreationQueue.length > 0 && !isCreatingAdapter) {
-    logger.warn('Found orphaned queue entries during cleanup', { count: adapterCreationQueue.length });
-    notifyAdapterFailed(new Error('Queue cleared during memory cleanup'));
-    adapterCreationQueue = [];
-  }
-
   // Log memory stats for monitoring
   logger.debug('Memory cleanup completed', {
     adapterAge: adapterCreatedAt ? now - adapterCreatedAt : null,
-    queueLength: adapterCreationQueue.length,
     retryCount: adapterRetryCount
   });
 }
