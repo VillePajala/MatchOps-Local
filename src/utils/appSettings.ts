@@ -112,8 +112,9 @@ export const saveCurrentGameIdSetting = async (gameId: string | null): Promise<b
     // Wait for updateAppSettings to resolve
     await updateAppSettings({ currentGameId: gameId });
     return true;
-  } catch {
+  } catch (error) {
     // updateAppSettings already logs errors. We indicate failure here.
+    logger.warn('Failed to save current game ID setting', { gameId, error });
     return false;
   }
 };
@@ -152,8 +153,9 @@ export const saveLastHomeTeamName = async (teamName: string): Promise<boolean> =
     await updateAppSettings({ lastHomeTeamName: teamName });
     try {
       await setStorageItem(LAST_HOME_TEAM_NAME_KEY, teamName); // Legacy async save
-    } catch {
+    } catch (error) {
       // Silent fail - legacy save is not critical
+      logger.debug('Failed to save legacy lastHomeTeamName key (non-critical)', { teamName, error });
     }
     return true;
   } catch (error) {
@@ -180,7 +182,8 @@ export const saveHasSeenAppGuide = async (value: boolean): Promise<boolean> => {
   try {
     await updateAppSettings({ hasSeenAppGuide: value });
     return true;
-  } catch {
+  } catch (error) {
+    logger.warn('Failed to save hasSeenAppGuide setting', { value, error });
     return false;
   }
 };

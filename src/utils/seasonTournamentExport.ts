@@ -26,7 +26,9 @@ export const importSeasonsJson = (json: string): Season[] | null => {
   try {
     const data = JSON.parse(json);
     return Array.isArray(data) ? (data as Season[]) : null;
-  } catch {
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Failed to parse seasons JSON', { error });
     return null;
   }
 };
@@ -35,7 +37,9 @@ export const importTournamentsJson = (json: string): Tournament[] | null => {
   try {
     const data = JSON.parse(json);
     return Array.isArray(data) ? (data as Tournament[]) : null;
-  } catch {
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Failed to parse tournaments JSON', { error });
     return null;
   }
 };

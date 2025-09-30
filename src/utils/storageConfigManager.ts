@@ -215,9 +215,9 @@ export class StorageConfigManager {
       // Save to IndexedDB (gracefully fail in test environment)
       try {
         await bootstrapSetJSON(STORAGE_CONFIG_KEY, sanitizedConfig);
-      } catch {
+      } catch (error) {
         // In test environment (Node.js), just use in-memory config
-        logger.debug('Could not persist config to IndexedDB (likely test environment), using in-memory only');
+        logger.debug('Could not persist config to IndexedDB (likely test environment), using in-memory only', { error });
       }
 
       // Update cache (always succeeds)
@@ -322,9 +322,9 @@ export class StorageConfigManager {
       // Save defaults to IndexedDB (will gracefully fail in Node.js test environment)
       try {
         await bootstrapSetJSON(STORAGE_CONFIG_KEY, DEFAULT_STORAGE_CONFIG);
-      } catch {
+      } catch (error) {
         // In test environment (Node.js), just use in-memory defaults
-        logger.debug('Could not persist config to IndexedDB (likely test environment), using in-memory defaults');
+        logger.debug('Could not persist config to IndexedDB (likely test environment), using in-memory defaults', { error });
       }
 
       // Update cache

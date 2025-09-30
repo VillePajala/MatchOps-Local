@@ -77,10 +77,12 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const formatDisplayDate = (dateStr: string) => {
     if (!dateStr) return '';
     try {
-      return format(new Date(dateStr), i18n.language === 'fi' ? 'd.M.yyyy' : 'PP', { 
-        locale: i18n.language === 'fi' ? fi : enUS 
+      return format(new Date(dateStr), i18n.language === 'fi' ? 'd.M.yyyy' : 'PP', {
+        locale: i18n.language === 'fi' ? fi : enUS
       });
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Failed to format date in PlayerStatsView', { dateStr, error });
       return dateStr;
     }
   };

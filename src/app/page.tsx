@@ -54,7 +54,9 @@ export default function Home() {
       const seasons = await getSeasons();
       const tournaments = await getTournaments();
       setHasSeasonsTournaments(seasons.length > 0 || tournaments.length > 0);
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Failed to check initial game state', { error });
       setCanResume(false);
       setHasSavedGames(false);
       setHasPlayers(false);

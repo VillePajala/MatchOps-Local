@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: address code review with pragmatic improvements"
+  "notes": "fix: resolve code review issues with proper async patterns"
 }

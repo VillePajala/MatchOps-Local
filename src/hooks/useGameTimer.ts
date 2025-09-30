@@ -46,8 +46,10 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     // Clear timer state from IndexedDB
     try {
       await removeStorageItem(TIMER_STATE_KEY);
-    } catch {
+    } catch (error) {
       // Silent fail - timer state clear is not critical
+      // eslint-disable-next-line no-console
+      console.debug('Failed to clear timer state (non-critical)', { error });
     }
     // Clear any pending debounced save
     if (saveTimerRef.current) {
@@ -95,8 +97,10 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
       saveTimerRef.current = setTimeout(async () => {
         try {
           await setStorageJSON(TIMER_STATE_KEY, timerState);
-        } catch {
+        } catch (error) {
           // Silent fail - timer state save is not critical
+          // eslint-disable-next-line no-console
+          console.debug('Failed to save timer state (non-critical)', { error });
         }
       }, SAVE_DEBOUNCE_MS);
     }
@@ -156,8 +160,10 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
           // Save immediately when tab becomes hidden
           try {
             await setStorageJSON(TIMER_STATE_KEY, timerState);
-          } catch {
+          } catch (error) {
             // Silent fail - timer state save is not critical
+            // eslint-disable-next-line no-console
+            console.debug('Failed to save timer state on tab hidden (non-critical)', { error });
           }
           dispatch({ type: 'PAUSE_TIMER_FOR_HIDDEN' });
         }
@@ -186,8 +192,10 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
               }
             );
           }
-        } catch {
+        } catch (error) {
           // Silent fail - timer state restore is not critical
+          // eslint-disable-next-line no-console
+          console.debug('Failed to restore timer state on tab visible (non-critical)', { error });
         }
       }
     };

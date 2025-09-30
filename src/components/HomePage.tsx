@@ -1607,8 +1607,10 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     // Clear any existing timer state before loading a new game
     try {
       await removeStorageItem(TIMER_STATE_KEY);
-    } catch {
+    } catch (error) {
       // Silent fail - timer cleanup is not critical for game loading
+      // eslint-disable-next-line no-console
+      console.debug('Failed to clear timer state before loading game (non-critical)', { error });
     }
     
     setProcessingGameId(gameId);
@@ -3024,8 +3026,10 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
                       setShowFirstGameGuide(false);
                       try {
                         await setStorageItem('hasSeenFirstGameGuide', 'true');
-                      } catch {
+                      } catch (error) {
                         // Silent fail - guide dismissal tracking is not critical
+                        // eslint-disable-next-line no-console
+                        console.debug('Failed to store first game guide dismissal (non-critical)', { error });
                       }
                     }}
                     className="flex-1 inline-flex items-center justify-center gap-2 px-4 h-10 rounded-lg font-semibold text-white transition-colors text-sm bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 shadow-md shadow-indigo-900/30 ring-1 ring-white/10"

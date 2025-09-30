@@ -42,7 +42,9 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
         setAvailablePlayers(prev);
         setRosterError('Failed to add player');
       }
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Failed to add player to roster', { error });
       setAvailablePlayers(prev);
       setRosterError('Failed to add player');
     } finally {
@@ -70,7 +72,9 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
         setAvailablePlayers(prev);
         setRosterError('Failed to update player');
       }
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Failed to update player in roster', { playerId, error });
       setAvailablePlayers(prev);
       setRosterError('Failed to update player');
     } finally {
@@ -90,7 +94,9 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
       } else {
         setRosterError(null);
       }
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Failed to remove player from roster', { playerId, error });
       setAvailablePlayers(prev);
       setRosterError('Failed to remove player');
     } finally {
@@ -116,7 +122,9 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
       } else {
         setRosterError(null);
       }
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Failed to set goalie status', { playerId, isGoalie, error });
       setAvailablePlayers(prev);
       setRosterError('Failed to set goalie status');
     } finally {

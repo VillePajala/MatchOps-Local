@@ -11,7 +11,9 @@ export const getAllPlayerAdjustments = async (): Promise<PlayerAdjustmentsIndex>
     const json = await getStorageItem(PLAYER_ADJUSTMENTS_KEY);
     if (!json) return {};
     return JSON.parse(json) as PlayerAdjustmentsIndex;
-  } catch {
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Failed to load player adjustments index, returning empty', { error });
     return {};
   }
 };

@@ -57,7 +57,9 @@ export function isWebCryptoSupported(): boolean {
       crypto.subtle !== undefined &&
       typeof crypto.subtle.digest === 'function'
     );
-  } catch {
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Failed to check Web Crypto API support', { error });
     return false;
   }
 }
@@ -107,7 +109,9 @@ export async function verifyChecksum(data: string, expectedChecksum: string): Pr
   try {
     const actualChecksum = await generateChecksum(data);
     return actualChecksum === expectedChecksum;
-  } catch {
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Failed to verify checksum', { error });
     return false;
   }
 }
@@ -149,7 +153,9 @@ export async function verifyResumeDataIntegrity(
   try {
     const actualChecksum = await generateResumeDataChecksum(resumeData);
     return actualChecksum === expectedChecksum;
-  } catch {
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Failed to verify resume data integrity', { error });
     return false;
   }
 }

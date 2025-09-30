@@ -23,7 +23,9 @@ export const getAllTeams = async (): Promise<TeamsIndex> => {
     const json = await getStorageItem(TEAMS_INDEX_KEY);
     if (!json) return {};
     return JSON.parse(json) as TeamsIndex;
-  } catch {
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Failed to load teams index, returning empty', { error });
     return {};
   }
 };
@@ -127,7 +129,9 @@ export const getAllTeamRosters = async (): Promise<TeamRostersIndex> => {
     const json = await getStorageItem(TEAM_ROSTERS_KEY);
     if (!json) return {};
     return JSON.parse(json) as TeamRostersIndex;
-  } catch {
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Failed to load team rosters index, returning empty', { error });
     return {};
   }
 };
@@ -229,7 +233,9 @@ export const countGamesForTeam = async (teamId: string): Promise<number> => {
     }
     
     return count;
-  } catch {
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Failed to count games for team, returning 0', { teamId, error });
     return 0;
   }
 };

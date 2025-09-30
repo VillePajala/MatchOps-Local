@@ -230,7 +230,8 @@ export class StorageRecovery {
       if (typeof value === 'string') {
         try {
           parsedValue = JSON.parse(value);
-        } catch {
+        } catch (error) {
+          this.logger.debug('Failed to parse JSON data during validation', { key, error });
           errors.push('Failed to parse JSON data');
           return { isValid: false, errors, warnings };
         }
@@ -442,7 +443,8 @@ export class StorageRecovery {
           if (!validation.isValid) {
             corruptedKeys.push(key);
           }
-        } catch {
+        } catch (error) {
+          this.logger.warn('Failed to validate key during repair', { key, error });
           corruptedKeys.push(key);
         }
       }
@@ -468,8 +470,9 @@ export class StorageRecovery {
             await adapter.setItem(key, backupValue);
             restoredKeys.push(key);
           }
-        } catch {
+        } catch (error) {
           // Backup restore failed, will quarantine
+          this.logger.debug('Failed to restore from backup', { key, error });
         }
       }
 

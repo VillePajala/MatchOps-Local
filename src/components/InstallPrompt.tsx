@@ -47,8 +47,9 @@ const InstallPrompt: React.FC = () => {
       ) {
         return; // Don't show prompt if dismissed in the last 24 hours
       }
-    } catch {
+    } catch (error) {
       // Silent fail - proceed to show prompt if storage check fails
+      logger.debug('Failed to check install prompt dismissal status (non-critical)', { error });
     }
 
     // If not installed and not recently dismissed, check if we have a prompt event
@@ -102,8 +103,9 @@ const InstallPrompt: React.FC = () => {
         // Store the time when dismissed to avoid showing it again too soon
         try {
           await setStorageItem("installPromptDismissed", Date.now().toString());
-        } catch {
+        } catch (error) {
           // Silent fail - dismissal tracking is not critical
+          logger.debug('Failed to store install prompt dismissal (non-critical)', { error });
         }
       }
     } catch (error) {
@@ -117,8 +119,9 @@ const InstallPrompt: React.FC = () => {
   const handleDismiss = async () => {
     try {
       await setStorageItem("installPromptDismissed", Date.now().toString());
-    } catch {
+    } catch (error) {
       // Silent fail - dismissal tracking is not critical
+      logger.debug('Failed to store install prompt dismissal on dismiss (non-critical)', { error });
     }
     setIsVisible(false);
   };

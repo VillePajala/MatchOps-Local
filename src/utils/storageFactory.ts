@@ -366,8 +366,9 @@ export class StorageFactory {
           this.lastRateLimitReset = lastReset;
         }
       }
-    } catch {
+    } catch (error) {
       // If loading fails, start with empty state
+      this.logger.debug('Failed to load rate limit state, starting with empty state', { error });
       this.operationHistory = [];
       this.lastRateLimitReset = Date.now();
     }
@@ -383,8 +384,9 @@ export class StorageFactory {
         lastReset: this.lastRateLimitReset
       };
       sessionStorage.setItem(this.rateLimitStorageKey, JSON.stringify(state));
-    } catch {
+    } catch (error) {
       // Silently fail if sessionStorage is not available
+      this.logger.debug('Failed to save rate limit state to sessionStorage', { error });
     }
   }
 
@@ -492,8 +494,9 @@ export class StorageFactory {
       sessionId = `sf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       try {
         sessionStorage.setItem(sessionKey, sessionId);
-      } catch {
+      } catch (error) {
         // If sessionStorage fails, use in-memory session
+        this.logger.debug('Failed to persist session ID to sessionStorage', { error });
       }
     }
 
@@ -867,8 +870,8 @@ export class StorageFactory {
       const backoffDelay = this.calculateBackoffDelay(failureCount);
 
       return (now - lastAttemptTime) >= backoffDelay;
-    } catch {
-      this.logger.debug('Could not parse last attempt time, allowing retry', { lastAttempt });
+    } catch (error) {
+      this.logger.debug('Could not parse last attempt time, allowing retry', { lastAttempt, error });
       return true;
     }
   }

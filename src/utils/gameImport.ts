@@ -56,7 +56,8 @@ export const importGamesWithMapping = async (
       } else {
         throw new Error('Invalid JSON format for game import');
       }
-    } catch {
+    } catch (error) {
+      logger.warn('Failed to parse JSON data for import', { error });
       result.warnings.push('Failed to parse JSON data');
       return result;
     }
