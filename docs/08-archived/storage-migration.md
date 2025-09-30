@@ -7,7 +7,7 @@ The application currently uses localStorage for data persistence. This works wel
 
 ## Infrastructure Upgrade Plan
 For detailed technical specifications and implementation plan, see:
-- **[IndexedDB Infrastructure Plan](../specs/INDEXEDDB_MIGRATION_PLAN.md)** — Complete infrastructure replacement plan (KV adapter → infrastructure swap → data transfer → optional normalization)
+- **[IndexedDB Infrastructure Plan](./indexeddb-foundation/migration-plan.md)** — Complete infrastructure replacement plan (KV adapter → infrastructure swap → data transfer → optional normalization)
 
 ## Key Points
 - **Current**: localStorage-based persistence layer

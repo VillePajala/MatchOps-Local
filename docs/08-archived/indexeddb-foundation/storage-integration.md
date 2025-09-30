@@ -4,11 +4,11 @@
 
 **This document contains over-engineered solutions based on incorrect assumptions about the codebase.**
 
-**👉 USE THIS INSTEAD: [DOCUMENTATION_AUDIT_RESULTS.md](./DOCUMENTATION_AUDIT_RESULTS.md) (2-4 hour fix)**
+**👉 USE THIS INSTEAD: [audit-results.md](./audit-results.md) (2-4 hour fix)**
 
 ---
 
-[← Back to Docs](../README.md) | [Master Execution Guide](../MASTER_EXECUTION_GUIDE.md) | [Corrected Plan →](./DOCUMENTATION_AUDIT_RESULTS.md)
+[← Back to Docs](../../README.md) | [Master Execution Guide](../../03-active-plans/master-execution-guide.md) | [Corrected Plan →](./audit-results.md)
 
 ## ~~Executive Summary~~ (ORIGINAL - SUPERSEDED)
 
@@ -275,8 +275,8 @@ The current state where IndexedDB migration happens but is never used is worse t
 
 ## Related Documentation
 
-- **[Phase 1: Storage Service Implementation →](./PHASE1_STORAGE_SERVICE.md)**
-- **[Phase 2: Utility Refactoring Guide →](./PHASE2_UTILITY_REFACTOR.md)**
-- **[Master Execution Guide](../MASTER_EXECUTION_GUIDE.md)** - Overall project roadmap
-- **[IndexedDB Migration Plan](../specs/INDEXEDDB_MIGRATION_PLAN.md)** - Original migration design
-- **[Storage Migration](../development/STORAGE_MIGRATION.md)** - Migration implementation details
+- **[Phase 1: Storage Service Implementation →](./phase1-storage.md)**
+- **[Phase 2: Utility Refactoring Guide →](./phase2-refactor.md)**
+- **[Master Execution Guide](../../03-active-plans/master-execution-guide.md)** - Overall project roadmap
+- **[IndexedDB Migration Plan](./migration-plan.md)** - Original migration design
+- **[Storage Migration](../storage-migration.md)** - Migration implementation details

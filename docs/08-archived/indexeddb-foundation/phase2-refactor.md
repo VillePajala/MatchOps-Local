@@ -4,11 +4,11 @@
 
 **This document describes unnecessary refactoring based on incorrect assumptions.**
 
-**👉 USE THIS INSTEAD: [DOCUMENTATION_AUDIT_RESULTS.md](./DOCUMENTATION_AUDIT_RESULTS.md) (2-4 hour fix)**
+**👉 USE THIS INSTEAD: [audit-results.md](./audit-results.md) (2-4 hour fix)**
 
 ---
 
-[← Corrected Plan](./DOCUMENTATION_AUDIT_RESULTS.md) | [Phase 1 Original](./PHASE1_STORAGE_SERVICE.md) | [Original Storage Plan](./STORAGE_INTEGRATION_PLAN.md)
+[← Corrected Plan](./audit-results.md) | [Phase 1 Original](./phase1-storage.md) | [Original Storage Plan](./storage-integration.md)
 
 ## ~~Overview~~ (ORIGINAL - SUPERSEDED)
 This document provides detailed steps for refactoring each utility file to use the new storage service instead of direct localStorage access.
@@ -536,7 +536,7 @@ If issues arise during migration:
 
 ## Related Documentation
 
-- **[← Phase 1: Storage Service](./PHASE1_STORAGE_SERVICE.md)** - Implementation of storage service layer
-- **[Storage Integration Plan](./STORAGE_INTEGRATION_PLAN.md)** - Master plan overview
-- **[Master Execution Guide](../MASTER_EXECUTION_GUIDE.md)** - Overall project roadmap
-- **[Testing Strategy](../testing/TESTING_STRATEGY_2025.md)** - Testing approach for validation
+- **[← Phase 1: Storage Service](./phase1-storage.md)** - Implementation of storage service layer
+- **[Storage Integration Plan](./storage-integration.md)** - Master plan overview
+- **[Master Execution Guide](../../03-active-plans/master-execution-guide.md)** - Overall project roadmap
+- **[Testing Strategy](../../06-testing/strategy.md)** - Testing approach for validation

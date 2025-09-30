@@ -2,7 +2,7 @@
 
 **✅ THIS IS THE CORRECT PLAN TO FOLLOW ✅**
 
-[← Back to Docs](../README.md) | [Master Execution Guide](../MASTER_EXECUTION_GUIDE.md) | [Original Plan (Superseded)](./STORAGE_INTEGRATION_PLAN.md)
+[← Back to Docs](../../README.md) | [Master Execution Guide](../../03-active-plans/master-execution-guide.md) | [Original Plan (Superseded)](./storage-integration.md)
 
 ## Executive Summary 🚨
 
