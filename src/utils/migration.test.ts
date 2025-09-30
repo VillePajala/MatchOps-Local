@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Simplified Migration Tests
  *
@@ -22,8 +20,12 @@ import {
   APP_DATA_VERSION_KEY,
   MASTER_ROSTER_KEY
 } from '@/config/storageKeys';
+// StorageAdapter type used in comments but not in runtime code
+import * as storageFactoryModule from './storageFactory';
+import * as migrationModule from './migration';
+import type { MigrationState, StorageMode } from './storageFactory';
 
-// Mock localStorage
+// Mock localStorage with proper typing
 const mockLocalStorage = {
   getItem: jest.fn(),
   setItem: jest.fn(),
@@ -52,30 +54,27 @@ jest.mock('./teams', () => ({
 }));
 
 jest.mock('./storageFactory', () => {
-  // Mock storage adapter for IndexedDB lock operations
-  const mockAdapter = {
-    getItem: jest.fn().mockResolvedValue(null), // No existing lock
-    setItem: jest.fn().mockResolvedValue(undefined), // Lock setting succeeds
-    removeItem: jest.fn().mockResolvedValue(undefined), // Lock removal succeeds
-    getAllKeys: jest.fn().mockResolvedValue([])
+  const adapter = {
+    getItem: jest.fn().mockResolvedValue(null),
+    setItem: jest.fn().mockResolvedValue(undefined),
+    removeItem: jest.fn().mockResolvedValue(undefined),
+    clear: jest.fn().mockResolvedValue(undefined),
+    getKeys: jest.fn().mockResolvedValue([]),
+    getBackendName: jest.fn().mockReturnValue('mock')
   };
 
   return {
-    getStorageConfig: jest.fn(() => ({
-      mode: 'localStorage',
-      version: 1,
-      forceMode: null,
-      migrationState: 'not-started'
-    })),
-    createStorageAdapter: jest.fn().mockResolvedValue(mockAdapter),
+    getStorageConfig: jest.fn().mockResolvedValue({
+      mode: 'localStorage' as const,
+      version: '1',
+      forceMode: undefined,
+      migrationState: 'not-started' as const
+    }),
+    createStorageAdapter: jest.fn().mockResolvedValue(adapter),
     updateStorageConfig: jest.fn(),
-    mockStorageAdapter: mockAdapter // Export for test access
+    mockStorageAdapter: adapter // Export for test access
   };
 });
-
-// Get the mock adapter for tests
-const storageFactory = require('./storageFactory');
-const mockStorageAdapter = storageFactory.mockStorageAdapter;
 
 /**
  * Test utilities for cleaner mock management
@@ -102,20 +101,20 @@ const testUtils = {
     migrationState?: string;
     forceMode?: string;
   }) {
-    (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>)
-      .mockReturnValue({
+    (storageFactoryModule.getStorageConfig as jest.MockedFunction<typeof storageFactoryModule.getStorageConfig>)
+      .mockResolvedValue({
         mode: config.mode,
         version: config.version,
-        migrationState: config.migrationState || 'not-started',
-        forceMode: config.forceMode
+        migrationState: (config.migrationState || 'not-started') as MigrationState,
+        forceMode: config.forceMode as StorageMode | undefined
       });
   },
 
   /**
    * Setup cross-tab lock mock
    */
-  setupCrossTabLockMock(lockData: any = null) {
-    let currentLock = lockData;
+  setupCrossTabLockMock(lockData: Record<string, unknown> | null = null) {
+    let currentLock: Record<string, unknown> | null = lockData;
 
     mockStorageAdapter.getItem.mockImplementation(async (key: string) => {
       if (key === 'migration_lock_cross_tab') {
@@ -126,7 +125,7 @@ const testUtils = {
 
     mockStorageAdapter.setItem.mockImplementation(async (key: string, value: string) => {
       if (key === 'migration_lock_cross_tab') {
-        currentLock = value;
+        currentLock = JSON.parse(value);
       }
     });
 
@@ -213,9 +212,18 @@ Object.defineProperty(global, 'window', {
 });
 
 import { getLocalStorageItem, setLocalStorageItem } from './localStorage';
+import * as storageFactoryModuleMocked from './storageFactory';
 
 const mockGetLocalStorageItem = getLocalStorageItem as jest.MockedFunction<typeof getLocalStorageItem>;
 const mockSetLocalStorageItem = setLocalStorageItem as jest.MockedFunction<typeof setLocalStorageItem>;
+const mockStorageAdapter = (storageFactoryModuleMocked as typeof storageFactoryModuleMocked & { mockStorageAdapter: {
+  getItem: jest.MockedFunction<(key: string) => Promise<string | null>>;
+  setItem: jest.MockedFunction<(key: string, value: string) => Promise<void>>;
+  removeItem: jest.MockedFunction<(key: string) => Promise<void>>;
+  clear: jest.MockedFunction<() => Promise<void>>;
+  getKeys: jest.MockedFunction<() => Promise<string[]>>;
+  getBackendName: jest.MockedFunction<() => string>;
+} }).mockStorageAdapter;
 
 describe('Simplified Migration System', () => {
   beforeEach(() => {
@@ -267,8 +275,7 @@ describe('Simplified Migration System', () => {
 
   describe('isIndexedDbMigrationNeeded', () => {
     it('should return true when conditions are met', async () => {
-      const storageFactory = require('./storageFactory');
-      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockResolvedValue({
+      (storageFactoryModule.getStorageConfig as jest.MockedFunction<typeof storageFactoryModule.getStorageConfig>).mockResolvedValue({
         mode: 'localStorage',
         version: '1',
         migrationState: 'not-started',
@@ -279,8 +286,7 @@ describe('Simplified Migration System', () => {
     });
 
     it('should return false when already using IndexedDB', async () => {
-      const storageFactory = require('./storageFactory');
-      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockResolvedValue({
+      (storageFactoryModule.getStorageConfig as jest.MockedFunction<typeof storageFactoryModule.getStorageConfig>).mockResolvedValue({
         mode: 'indexedDB',
         version: INDEXEDDB_STORAGE_VERSION.toString(),
         migrationState: 'completed',
@@ -295,8 +301,8 @@ describe('Simplified Migration System', () => {
     it('should skip migration when not needed', async () => {
       mockGetLocalStorageItem.mockReturnValue(CURRENT_DATA_VERSION.toString());
 
-      const storageFactory = require('./storageFactory');
-      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
+      // Use imported storageFactoryModule instead
+      (storageFactoryModule.getStorageConfig as jest.MockedFunction<typeof storageFactoryModule.getStorageConfig>).mockResolvedValue({
         mode: 'indexedDB',
         version: INDEXEDDB_STORAGE_VERSION.toString(),
         migrationState: 'completed',
@@ -337,8 +343,8 @@ describe('Simplified Migration System', () => {
         }
       });
 
-      const storageFactory = require('./storageFactory');
-      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
+      // Use imported storageFactoryModule instead
+      (storageFactoryModule.getStorageConfig as jest.MockedFunction<typeof storageFactoryModule.getStorageConfig>).mockResolvedValue({
         mode: 'localStorage',
         version: '1',
         migrationState: 'not-started',
@@ -359,8 +365,8 @@ describe('Simplified Migration System', () => {
       mockGetLocalStorageItem.mockReturnValue('1');
 
       // Set up the mock for this specific test
-      const storageFactory = require('./storageFactory');
-      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
+      // Use imported storageFactoryModule instead
+      (storageFactoryModule.getStorageConfig as jest.MockedFunction<typeof storageFactoryModule.getStorageConfig>).mockResolvedValue({
         mode: 'localStorage',
         version: '1',
         migrationState: 'not-started',
@@ -402,8 +408,8 @@ describe('Simplified Migration System', () => {
 
       mockGetLocalStorageItem.mockReturnValue('1'); // Needs migration
 
-      const storageFactory = require('./storageFactory');
-      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
+      // Use imported storageFactoryModule instead
+      (storageFactoryModule.getStorageConfig as jest.MockedFunction<typeof storageFactoryModule.getStorageConfig>).mockResolvedValue({
         mode: 'indexedDB',
         version: '1',
         migrationState: 'not-started',
@@ -428,8 +434,8 @@ describe('Simplified Migration System', () => {
       mockLocalStorage.getItem.mockReturnValueOnce(null); // After clearing stale lock
       mockGetLocalStorageItem.mockReturnValue('1'); // Needs migration
 
-      const storageFactory = require('./storageFactory');
-      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
+      // Use imported storageFactoryModule instead
+      (storageFactoryModule.getStorageConfig as jest.MockedFunction<typeof storageFactoryModule.getStorageConfig>).mockResolvedValue({
         mode: 'indexedDB',
         version: INDEXEDDB_STORAGE_VERSION.toString(),
         migrationState: 'completed',
@@ -446,7 +452,7 @@ describe('Simplified Migration System', () => {
   describe('Migration Configuration Validation', () => {
     it('should require 100% success threshold to prevent orphaned data', async () => {
       // Import the migration module to access its constants
-      const migrationModule = require('./migration');
+      // Use imported migrationModule instead
 
       // Verify that the success threshold is set to 100%
       // This is a critical safety check - we can't test the private constant directly,
@@ -475,8 +481,8 @@ describe('Simplified Migration System', () => {
 
       mockGetLocalStorageItem.mockReturnValue('1'); // Needs migration
 
-      const storageFactory = require('./storageFactory');
-      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
+      // Use imported storageFactoryModule instead
+      (storageFactoryModule.getStorageConfig as jest.MockedFunction<typeof storageFactoryModule.getStorageConfig>).mockResolvedValue({
         mode: 'indexedDB',
         version: '1',
         migrationState: 'not-started',
@@ -521,8 +527,8 @@ describe('Simplified Migration System', () => {
         }
       });
 
-      const storageFactory = require('./storageFactory');
-      (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
+      // Use imported storageFactoryModule instead
+      (storageFactoryModule.getStorageConfig as jest.MockedFunction<typeof storageFactoryModule.getStorageConfig>).mockResolvedValue({
         mode: 'localStorage',
         version: '1',
         migrationState: 'not-started',
@@ -549,12 +555,12 @@ describe('Simplified Migration System', () => {
       it('should handle WeakRef not being available', () => {
         // Mock WeakRef as undefined
         const originalWeakRef = global.WeakRef;
-        (global as any).WeakRef = undefined;
+        (global as unknown as { WeakRef: undefined }).WeakRef = undefined;
 
         try {
           // This should not throw and should use fallback
-          const migration = require('./migration');
-          expect(migration.setMigrationProgressCallback).toBeDefined();
+          // Use imported migrationModule instead
+          expect(migrationModule.setMigrationProgressCallback).toBeDefined();
         } finally {
           global.WeakRef = originalWeakRef;
         }
@@ -563,14 +569,14 @@ describe('Simplified Migration System', () => {
       it('should clean up progress callbacks with WeakRef fallback', async () => {
         // Mock WeakRef as undefined to test fallback
         const originalWeakRef = global.WeakRef;
-        (global as any).WeakRef = undefined;
+        (global as unknown as { WeakRef: undefined }).WeakRef = undefined;
 
         try {
-          const migration = require('./migration');
+          // Use imported migrationModule instead
           const mockCallback = jest.fn();
 
-          migration.setMigrationProgressCallback(mockCallback);
-          migration.setMigrationProgressCallback(null); // Should clean up without error
+          migrationModule.setMigrationProgressCallback(mockCallback);
+          migrationModule.setMigrationProgressCallback(null); // Should clean up without error
 
           expect(mockCallback).not.toHaveBeenCalled();
         } finally {
@@ -585,8 +591,8 @@ describe('Simplified Migration System', () => {
         Object.defineProperty(global.localStorage, 'length', { value: 50, configurable: true });
         mockLocalStorage.getItem.mockReturnValue('1'); // Needs migration
 
-        const storageFactory = require('./storageFactory');
-        (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
+        // Use imported storageFactoryModule instead
+        (storageFactoryModule.getStorageConfig as jest.MockedFunction<typeof storageFactoryModule.getStorageConfig>).mockResolvedValue({
           mode: 'localStorage',
           version: '1',
           migrationState: 'not-started',
@@ -595,7 +601,7 @@ describe('Simplified Migration System', () => {
 
         // The function should work with small datasets
         expect(() => {
-          const keys = Array.from(require('./migration').getLocalStorageKeys?.() || []);
+          const keys = Array.from(migrationModule.getLocalStorageKeys?.() || []);
           // Should be able to get keys
           expect(keys).toBeDefined();
         }).not.toThrow();
@@ -620,7 +626,7 @@ describe('Simplified Migration System', () => {
 
         // Should handle failures gracefully
         expect(() => {
-          const keys = Array.from(require('./migration').getLocalStorageKeys?.() || []);
+          const keys = Array.from(migrationModule.getLocalStorageKeys?.() || []);
           expect(keys.length).toBeGreaterThan(0);
         }).not.toThrow();
       });
@@ -628,66 +634,66 @@ describe('Simplified Migration System', () => {
 
     describe('Adaptive Batch Sizing', () => {
       it('should use minimum batch size for large items', () => {
-        const migration = require('./migration');
-        const batchSize = migration.getOptimalBatchSize?.(100, 150000); // 150KB item
+        // Use imported migrationModule instead
+        const batchSize = migrationModule.getOptimalBatchSize?.(100, 150000); // 150KB item
         expect(batchSize).toBe(10); // MIN_BATCH_SIZE
       });
 
       it('should use maximum batch size for small items', () => {
-        const migration = require('./migration');
-        const batchSize = migration.getOptimalBatchSize?.(1000, 500); // 500B item
+        // Use imported migrationModule instead
+        const batchSize = migrationModule.getOptimalBatchSize?.(1000, 500); // 500B item
         expect(batchSize).toBe(200); // MAX_BATCH_SIZE
       });
 
       it('should scale batch size for medium items', () => {
-        const migration = require('./migration');
-        const batchSize = migration.getOptimalBatchSize?.(1000, 50000); // 50KB item
+        // Use imported migrationModule instead
+        const batchSize = migrationModule.getOptimalBatchSize?.(1000, 50000); // 50KB item
         expect(batchSize).toBeGreaterThan(10);
         expect(batchSize).toBeLessThan(200);
       });
 
       it('should not create more batches than necessary', () => {
-        const migration = require('./migration');
-        const batchSize = migration.getOptimalBatchSize?.(5, 1000); // Only 5 keys
+        // Use imported migrationModule instead
+        const batchSize = migrationModule.getOptimalBatchSize?.(5, 1000); // Only 5 keys
         expect(batchSize).toBeLessThanOrEqual(5);
       });
     });
 
     describe('Adaptive Timeout Handling', () => {
       it('should use minimum timeout for small datasets', () => {
-        const migration = require('./migration');
-        const timeout = migration.getAdaptiveTimeout?.(1024); // 1KB
+        // Use imported migrationModule instead
+        const timeout = migrationModule.getAdaptiveTimeout?.(1024); // 1KB
         expect(timeout).toBe(10000); // BASE_TIMEOUT
       });
 
       it('should increase timeout for large datasets', () => {
-        const migration = require('./migration');
-        const timeout = migration.getAdaptiveTimeout?.(5 * 1024 * 1024); // 5MB
+        // Use imported migrationModule instead
+        const timeout = migrationModule.getAdaptiveTimeout?.(5 * 1024 * 1024); // 5MB
         expect(timeout).toBeGreaterThan(10000);
         expect(timeout).toBeLessThanOrEqual(60000); // MAX_TIMEOUT
       });
 
       it('should cap timeout at maximum value', () => {
-        const migration = require('./migration');
-        const timeout = migration.getAdaptiveTimeout?.(100 * 1024 * 1024); // 100MB
+        // Use imported migrationModule instead
+        const timeout = migrationModule.getAdaptiveTimeout?.(100 * 1024 * 1024); // 100MB
         expect(timeout).toBe(60000); // MAX_ADAPTIVE_TIMEOUT_MS
       });
     });
 
     describe('Progress Callback Cleanup', () => {
       it('should clean up progress callback after timeout', (done) => {
-        const migration = require('./migration');
+        // Use imported migrationModule instead
         const mockCallback = jest.fn();
 
         // Set callback
-        migration.setMigrationProgressCallback(mockCallback);
+        migrationModule.setMigrationProgressCallback(mockCallback);
 
         // Mock shorter timeout for testing
-        const originalTimeout = require('./migration').MIGRATION_CONFIG?.PROGRESS_CLEANUP_TIMEOUT_MS;
+        const originalTimeout = migrationModule.MIGRATION_CONFIG?.PROGRESS_CLEANUP_TIMEOUT_MS;
         if (originalTimeout) {
           // Fast cleanup for testing
           setTimeout(() => {
-            migration.setMigrationProgressCallback(null);
+            migrationModule.setMigrationProgressCallback(null);
             done();
           }, 10);
         } else {
@@ -696,23 +702,23 @@ describe('Simplified Migration System', () => {
       });
 
       it('should handle multiple callback cleanup calls safely', () => {
-        const migration = require('./migration');
+        // Use imported migrationModule instead
         const mockCallback = jest.fn();
 
-        migration.setMigrationProgressCallback(mockCallback);
+        migrationModule.setMigrationProgressCallback(mockCallback);
 
         // Multiple cleanup calls should not throw
         expect(() => {
-          migration.setMigrationProgressCallback(null);
-          migration.setMigrationProgressCallback(null);
+          migrationModule.setMigrationProgressCallback(null);
+          migrationModule.setMigrationProgressCallback(null);
         }).not.toThrow();
       });
     });
 
     describe('Configuration Validation', () => {
       it('should have sensible configuration values', () => {
-        const migration = require('./migration');
-        const config = migration.MIGRATION_CONFIG;
+        // Use imported migrationModule instead
+        const config = migrationModule.MIGRATION_CONFIG;
 
         if (config) {
           expect(config.SUCCESS_RATE_THRESHOLD).toBe(100);
@@ -725,8 +731,8 @@ describe('Simplified Migration System', () => {
       });
 
       it('should have proper threshold relationships', () => {
-        const migration = require('./migration');
-        const config = migration.MIGRATION_CONFIG;
+        // Use imported migrationModule instead
+        const config = migrationModule.MIGRATION_CONFIG;
 
         if (config) {
           expect(config.SMALL_ITEM_THRESHOLD_BYTES).toBeLessThan(config.LARGE_ITEM_THRESHOLD_BYTES);
@@ -789,8 +795,8 @@ describe('Simplified Migration System', () => {
 
           mockGetLocalStorageItem.mockReturnValue('1'); // Needs migration
 
-          const storageFactory = require('./storageFactory');
-          (storageFactory.getStorageConfig as jest.MockedFunction<typeof storageFactory.getStorageConfig>).mockReturnValue({
+          // Use imported storageFactoryModule instead
+          (storageFactoryModule.getStorageConfig as jest.MockedFunction<typeof storageFactoryModule.getStorageConfig>).mockResolvedValue({
             mode: 'localStorage',
             version: '1',
             migrationState: 'not-started',
@@ -814,8 +820,8 @@ describe('Simplified Migration System', () => {
     describe('Performance Edge Cases', () => {
       it('should handle very large individual items', () => {
         // Test with items larger than 1MB
-        const migration = require('./migration');
-        const batchSize = migration.getOptimalBatchSize?.(100, 2 * 1024 * 1024); // 2MB item with enough keys
+        // Use imported migrationModule instead
+        const batchSize = migrationModule.getOptimalBatchSize?.(100, 2 * 1024 * 1024); // 2MB item with enough keys
         expect(batchSize).toBe(10); // Should use minimum batch size
       });
 
@@ -838,7 +844,7 @@ describe('Simplified Migration System', () => {
         });
 
         try {
-          const keys = Array.from(require('./migration').getLocalStorageKeys?.() || []);
+          const keys = Array.from(migrationModule.getLocalStorageKeys?.() || []);
           expect(keys).toEqual([]);
         } finally {
           // Restore original localStorage
@@ -864,8 +870,8 @@ describe('Simplified Migration System', () => {
       it('should allow migration when no previous attempts', async () => {
         testUtils.setupRateLimitMock([]);
 
-        const migration = require('./migration');
-        expect(await migration.getRemainingCooldown()).toBe(0);
+        // Use imported migrationModule instead
+        expect(await migrationModule.getRemainingCooldown()).toBe(0);
       });
 
       it('should enforce rate limit after multiple failed attempts', async () => {
@@ -878,8 +884,8 @@ describe('Simplified Migration System', () => {
 
         testUtils.setupRateLimitMock(attempts);
 
-        const migration = require('./migration');
-        const remainingCooldown = await migration.getRemainingCooldown();
+        // Use imported migrationModule instead
+        const remainingCooldown = await migrationModule.getRemainingCooldown();
         expect(remainingCooldown).toBeGreaterThan(0);
         expect(remainingCooldown).toBeLessThanOrEqual(20 * 60 * 1000); // Should be within 20 min cooldown
       });
@@ -900,8 +906,8 @@ describe('Simplified Migration System', () => {
           return null;
         });
 
-        const migration = require('./migration');
-        const remainingCooldown = await migration.getRemainingCooldown();
+        // Use imported migrationModule instead
+        const remainingCooldown = await migrationModule.getRemainingCooldown();
         expect(remainingCooldown).toBe(0); // Should not be rate limited anymore
       });
 
@@ -921,8 +927,8 @@ describe('Simplified Migration System', () => {
           return null;
         });
 
-        const migration = require('./migration');
-        const remainingCooldown = await migration.getRemainingCooldown();
+        // Use imported migrationModule instead
+        const remainingCooldown = await migrationModule.getRemainingCooldown();
         expect(remainingCooldown).toBe(0); // Successful attempts should not trigger rate limiting
       });
 
@@ -935,8 +941,8 @@ describe('Simplified Migration System', () => {
           return null;
         });
 
-        const migration = require('./migration');
-        const remainingCooldown = await migration.getRemainingCooldown();
+        // Use imported migrationModule instead
+        const remainingCooldown = await migrationModule.getRemainingCooldown();
         expect(remainingCooldown).toBe(0); // Should default to no rate limiting on error
       });
     });

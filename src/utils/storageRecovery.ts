@@ -141,13 +141,24 @@ export class StorageRecovery {
         return { isValid: false, errors, warnings };
       }
 
+      // Parse value if it's a string
+      let parsedValue = value;
+      if (typeof value === 'string') {
+        try {
+          parsedValue = JSON.parse(value);
+        } catch {
+          errors.push('Failed to parse JSON data');
+          return { isValid: false, errors, warnings };
+        }
+      }
+
       // Validate structure based on key patterns
       if (key.startsWith('player:')) {
-        this.validatePlayerData(value, errors, warnings);
+        this.validatePlayerData(parsedValue, errors, warnings);
       } else if (key.startsWith('game:')) {
-        this.validateGameData(value, errors, warnings);
+        this.validateGameData(parsedValue, errors, warnings);
       } else if (key === 'settings') {
-        this.validateSettingsData(value, errors, warnings);
+        this.validateSettingsData(parsedValue, errors, warnings);
       }
 
     } catch (error) {

@@ -8,7 +8,7 @@
  * @author Claude Code
  */
 
-import { StorageMetrics, OperationType, OperationTimer } from './storageMetrics';
+import { StorageMetrics, OperationType, OperationTimer, OperationTiming } from './storageMetrics';
 import { StorageErrorType } from './storageAdapter';
 
 describe('StorageMetrics', () => {
@@ -40,13 +40,13 @@ describe('StorageMetrics', () => {
       timer.success({ testData: 'value' });
 
       expect(capturedTiming).not.toBeNull();
-      expect(capturedTiming.operation).toBe(OperationType.READ);
-      expect(capturedTiming.success).toBe(true);
-      expect(capturedTiming.duration).toBeGreaterThanOrEqual(45);
-      expect(capturedTiming.duration).toBeLessThan(100);
-      expect(capturedTiming.metadata.testData).toBe('value');
-      expect(capturedTiming.startTime).toBeGreaterThanOrEqual(startTime);
-      expect(capturedTiming.endTime).toBeGreaterThan(capturedTiming.startTime);
+      expect(capturedTiming!.operation).toBe(OperationType.READ);
+      expect(capturedTiming!.success).toBe(true);
+      expect(capturedTiming!.duration).toBeGreaterThanOrEqual(45);
+      expect(capturedTiming!.duration).toBeLessThan(100);
+      expect(capturedTiming!.metadata?.testData).toBe('value');
+      expect(capturedTiming!.startTime).toBeGreaterThanOrEqual(startTime);
+      expect(capturedTiming!.endTime).toBeGreaterThan(capturedTiming!.startTime);
     });
 
     /**
@@ -64,10 +64,10 @@ describe('StorageMetrics', () => {
 
       timer.failure('Test error', StorageErrorType.WRITE_ERROR, { errorCode: 500 });
 
-      expect(capturedTiming.success).toBe(false);
-      expect(capturedTiming.error).toBe('Test error');
-      expect(capturedTiming.errorType).toBe(StorageErrorType.WRITE_ERROR);
-      expect(capturedTiming.metadata.errorCode).toBe(500);
+      expect(capturedTiming!.success).toBe(false);
+      expect(capturedTiming!.error).toBe('Test error');
+      expect(capturedTiming!.errorType).toBe(StorageErrorType.WRITE_ERROR);
+      expect(capturedTiming!.metadata?.errorCode).toBe(500);
     });
 
     /**
@@ -120,9 +120,9 @@ describe('StorageMetrics', () => {
 
       timer.success({ final: true });
 
-      expect(capturedTiming.metadata.operation).toBe('test-clear');
-      expect(capturedTiming.metadata.size).toBe(1024);
-      expect(capturedTiming.metadata.final).toBe(true);
+      expect(capturedTiming!.metadata?.operation).toBe('test-clear');
+      expect(capturedTiming!.metadata?.size).toBe(1024);
+      expect(capturedTiming!.metadata?.final).toBe(true);
     });
   });
 
