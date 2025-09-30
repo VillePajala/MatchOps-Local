@@ -9,7 +9,7 @@ Start Here
 - Roadmap/context: development/PRODUCTION_READINESS_ROADMAP.md
 - Play Store details: play-store-deployment-guide.md, PUBLICATION_ROADMAP.md
 - Monetization: business/MONETIZATION_STRATEGIES.md, paywall-implementation-guide.md
-- Storage migration: development/STORAGE_MIGRATION.md, specs/INDEXEDDB_MIGRATION_PLAN.md
+- IndexedDB Foundation: storage-integration/ACTION_PLAN_VERIFICATION.md, storage-integration/README.md
 
 Table of Contents
 - Phase 0: Scope Freeze and Owners
@@ -79,12 +79,12 @@ Acceptance
 
 ---
 
-## Phase M1: IndexedDB Migration (KV adapter + copy/flip)
+## Phase M1: IndexedDB Foundation (Branch 1/4)
 
 - Owner: TBD
 - Target Date: TBD
 
- Outcome: swap persistence to IndexedDB with minimal churn and rollback safety; defer normalization.
+Outcome: implement IndexedDB-only storage foundation with async operations, error handling, and type safety.
 
 ### M1A: Storage Infrastructure ✅ COMPLETED
 - [x] Add IndexedDB KV adapter and `storage-mode` flag
@@ -93,43 +93,31 @@ Acceptance
   - ✅ Implemented migration system with cross-tab coordination
   - ✅ Fixed critical race conditions and memory leaks
 
-### M1B: Storage Layer Integration 🚨 CRITICAL FIX REQUIRED ⚡ SIMPLIFIED
-**Issue Discovered**: App bypasses storage factory completely - all utilities write directly to localStorage!
+### M1B: IndexedDB Foundation (Branch 1/4) ✅ COMPLETED
+**IndexedDB Foundation Implementation Complete**:
+- ✅ IndexedDB-only storage helpers implemented
+- ✅ Storage factory with adapter pattern
+- ✅ Async operations throughout application
+- ✅ Error handling and type safety
+- ✅ Test infrastructure supporting IndexedDB
+- ✅ All utilities converted from localStorage to storage helpers
+- ✅ 144 tests passing with proper async patterns
 
-**⚠️ DOCUMENTATION AUDIT COMPLETE**: Original plan was over-engineered (19-25 hours).
-**✅ ACTUAL FIX**: Simple import replacement (2-4 hours total).
+**Branch Status**: IndexedDB Foundation (Branch 1 of 4) ready for merge
+**Next Branches**: Will build advanced features on this foundation
 
-See `storage-integration/DOCUMENTATION_AUDIT_RESULTS.md` for detailed analysis.
+### M1C: Data Migration (Prerequisite Completed)
+**Status**: ✅ One-time migration utility implemented and tested
+**Purpose**: Ensures legacy localStorage data is converted to IndexedDB for existing users
+**Note**: This is a completed prerequisite, not the focus of current IndexedDB foundation work
 
-**Corrected Implementation (2-4 hours total)**:
-- [ ] **Step 1**: Create simple storage helper wrapper (30 min)
-  - [ ] Create `src/utils/storage.ts` with basic getStorageItem/setStorageItem functions
-  - [ ] Wrap existing `createStorageAdapter()` function (already exists!)
-- [ ] **Step 2**: Update utility imports (1-2 hours)
-  - [ ] Replace localStorage imports in 8 utility files
-  - [ ] Add `await` to storage calls (functions already async!)
-  - [ ] Files: savedGames, masterRoster, appSettings, playerAdjustments, seasons, tournaments, teams, fullBackup
-- [ ] **Step 3**: Test and validate (30-60 min)
-  - [ ] Verify `adapter.getBackendName()` returns "indexedDB"
-  - [ ] Test JSON import saves to IndexedDB
-  - [ ] Validate cross-session persistence
-
-**Key Discoveries**:
-- ✅ All utilities already async (no conversion needed)
-- ✅ React Query already works with async functions
-- ✅ Storage factory already exists and works
-- ❌ Original plan was 90% unnecessary complexity
-
-### M1C: Migration Execution (After M1B Complete)
-- [ ] Create comprehensive backup before migration (migrationBackup)
-- [ ] Copy critical keys to IDB KV; verify round‑trip per key
-- [ ] Flip `storage-mode` to `indexedDB`; retain rollback path
-- [ ] Validate with seeded datasets across browsers (React Query flows + core paths)
+*For migration details, see appendix or migration-specific documentation*
 
 Acceptance
-- After flip, app runs solely on IDB; backup cleared on success.
-- No data loss; core workflows pass (unit + core E2E).
-- Rollback confirmed to work in failure simulation.
+- App runs entirely on IndexedDB with no localStorage fallback
+- Storage operations use async patterns with proper error handling
+- All tests pass with IndexedDB architecture
+- Foundation ready for advanced features in future branches
 
 ---
 

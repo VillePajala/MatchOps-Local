@@ -9,6 +9,15 @@ import {
 } from './masterRoster';
 import { MASTER_ROSTER_KEY } from '@/config/storageKeys';
 import type { Player } from '@/types';
+import { clearMockStore } from './__mocks__/storage';
+import { getStorageItem, setStorageItem } from './storage';
+
+// Auto-mock the storage module
+jest.mock('./storage');
+
+// Type the mocked functions
+const mockGetStorageItem = getStorageItem as jest.MockedFunction<typeof getStorageItem>;
+const mockSetStorageItem = setStorageItem as jest.MockedFunction<typeof setStorageItem>;
 
 describe('Master Roster Utilities', () => {
   const mockPlayers: Player[] = [
@@ -16,53 +25,41 @@ describe('Master Roster Utilities', () => {
     { id: 'player_2', name: 'Jane Smith', jerseyNumber: '7', isGoalie: true, receivedFairPlayCard: false }
   ];
 
-  const localStorageMock = {
-    getItem: jest.fn(),
-    setItem: jest.fn(),
-    clear: jest.fn(),
-    removeItem: jest.fn(),
-    length: 0,
-    key: jest.fn()
-  };
-
-  Object.defineProperty(window, 'localStorage', {
-    value: localStorageMock,
-    configurable: true,
-    writable: true,
+  beforeEach(() => {
+    clearMockStore();
+    jest.clearAllMocks();
   });
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-    localStorageMock.setItem.mockReset();
-    localStorageMock.setItem.mockImplementation(() => {}); 
-    localStorageMock.getItem.mockReset();
+  afterEach(async () => {
+    // Ensure complete cleanup after each test
+    clearMockStore();
   });
 
   describe('getMasterRoster', () => {
     it('should return an empty array if no roster is stored', async () => {
-      localStorageMock.getItem.mockReturnValue(null);
+      mockGetStorageItem.mockResolvedValue(null);
       
       const result = await getMasterRoster();
       
-      expect(localStorageMock.getItem).toHaveBeenCalledWith(MASTER_ROSTER_KEY);
+      expect(mockGetStorageItem).toHaveBeenCalledWith(MASTER_ROSTER_KEY);
       expect(result).toEqual([]);
     });
 
     it('should return the parsed roster if it exists', async () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockPlayers));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockPlayers));
       
       const result = await getMasterRoster();
       
-      expect(localStorageMock.getItem).toHaveBeenCalledWith(MASTER_ROSTER_KEY);
+      expect(mockGetStorageItem).toHaveBeenCalledWith(MASTER_ROSTER_KEY);
       expect(result).toEqual(mockPlayers);
     });
 
     it('should return an empty array and log error if JSON is invalid', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      localStorageMock.getItem.mockReturnValue('invalid json');
-      
+      mockGetStorageItem.mockResolvedValueOnce('invalid json');
+
       const result = await getMasterRoster();
-      
+
       expect(consoleSpy).toHaveBeenCalled();
       expect(result).toEqual([]);
       consoleSpy.mockRestore();
@@ -73,7 +70,7 @@ describe('Master Roster Utilities', () => {
     it('should save the roster to localStorage and return true', async () => {
       const result = await saveMasterRoster(mockPlayers); 
       expect(result).toBe(true);
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
         MASTER_ROSTER_KEY,
         JSON.stringify(mockPlayers)
       );
@@ -82,19 +79,25 @@ describe('Master Roster Utilities', () => {
     it('should return false and log error if localStorage throws', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       const error = new Error('Storage quota exceeded');
-      localStorageMock.setItem.mockImplementation(() => { throw error; });
-      
-      const result = await saveMasterRoster(mockPlayers); 
+
+      // Preserve the original implementation
+      const originalSetImpl = mockSetStorageItem.getMockImplementation();
+      mockSetStorageItem.mockImplementationOnce(() => { throw error; });
+
+      const result = await saveMasterRoster(mockPlayers);
       expect(result).toBe(false);
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[saveMasterRoster]'), error);
+
+      // Restore original implementation
+      if (originalSetImpl) {
+        mockSetStorageItem.mockImplementation(originalSetImpl);
+      }
       consoleSpy.mockRestore();
     });
   });
 
   describe('addPlayerToRoster', () => {
     it('should add a player to the roster and return the player object', async () => {
-      localStorageMock.getItem.mockReturnValueOnce(JSON.stringify([])); 
-
       const playerData = { name: 'New Player', jerseyNumber: '23' };
       const result = await addPlayerToRoster(playerData);
       
@@ -103,19 +106,18 @@ describe('Master Roster Utilities', () => {
       expect(result?.jerseyNumber).toBe(playerData.jerseyNumber);
       expect(result?.id).toContain('player_');
       
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
         MASTER_ROSTER_KEY,
         expect.stringContaining('New Player')
       );
     });
 
     it('should trim whitespace from player name', async () => {
-      localStorageMock.getItem.mockReturnValueOnce(JSON.stringify([]));
       const playerData = { name: '  Trimmed Player  ' };
       const result = await addPlayerToRoster(playerData);
       expect(result).not.toBeNull();
       expect(result?.name).toBe('Trimmed Player');
-      expect(localStorageMock.setItem).toHaveBeenCalled();
+      expect(mockSetStorageItem).toHaveBeenCalled();
     });
 
     it('should return null and log error if player name is empty', async () => {
@@ -125,31 +127,38 @@ describe('Master Roster Utilities', () => {
       
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Player name cannot be empty'));
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
 
     it('should return null if saving fails during add', async () => {
-      localStorageMock.getItem.mockReturnValueOnce(JSON.stringify([]));
-      const saveError = new Error('Save failed!');
-      localStorageMock.setItem.mockImplementation(() => { throw saveError; });
+      // Set up empty initial state
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      
+      const saveError = new Error('Save failed!');
+
+      // Override the setStorageItem for this specific test without breaking the chain
+      const originalSetImpl = mockSetStorageItem.getMockImplementation();
+      mockSetStorageItem.mockImplementationOnce(() => { throw saveError; });
+
       const result = await addPlayerToRoster({ name: 'Valid Player' });
 
       expect(result).toBeNull();
-      expect(localStorageMock.setItem).toHaveBeenCalled();
+      expect(mockSetStorageItem).toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[saveMasterRoster]'), saveError);
+
+      // Restore original implementation
+      if (originalSetImpl) {
+        mockSetStorageItem.mockImplementation(originalSetImpl);
+      }
       consoleSpy.mockRestore();
     });
   });
 
   describe('updatePlayerInRoster', () => {
-    beforeEach(() => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockPlayers));
-    });
-
     it('should update an existing player and return the updated object', async () => {
+      // Set up test data
+      await saveMasterRoster(mockPlayers);
+
       const updateData = { name: 'Updated Name', jerseyNumber: '99' };
       const result = await updatePlayerInRoster('player_1', updateData);
       
@@ -158,18 +167,21 @@ describe('Master Roster Utilities', () => {
       expect(result?.name).toBe(updateData.name);
       expect(result?.jerseyNumber).toBe(updateData.jerseyNumber);
       
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
         MASTER_ROSTER_KEY,
         expect.stringContaining('Updated Name')
       );
     });
 
     it('should trim whitespace from updated player name', async () => {
+      // Set up test data
+      await saveMasterRoster(mockPlayers);
+
       const updateData = { name: '  Trimmed Update   ' };
       const result = await updatePlayerInRoster('player_1', updateData);
       expect(result).not.toBeNull();
       expect(result?.name).toBe('Trimmed Update');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
         MASTER_ROSTER_KEY,
         expect.stringContaining('Trimmed Update')
       );
@@ -182,7 +194,7 @@ describe('Master Roster Utilities', () => {
       
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Player with ID non_existent_id not found'));
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
 
@@ -193,20 +205,31 @@ describe('Master Roster Utilities', () => {
       
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Player name cannot be empty'));
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
 
     it('should return null if saving fails during update', async () => {
+      // Set up test data
+      await saveMasterRoster(mockPlayers);
+
       const saveError = new Error('Save failed!');
-      localStorageMock.setItem.mockImplementation(() => { throw saveError; });
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Override only for the save operation, preserving the get functionality
+      const originalSetImpl = mockSetStorageItem.getMockImplementation();
+      mockSetStorageItem.mockImplementationOnce(() => { throw saveError; });
 
       const result = await updatePlayerInRoster('player_1', { name: 'Valid Update' });
 
       expect(result).toBeNull();
-      expect(localStorageMock.setItem).toHaveBeenCalled();
+      expect(mockSetStorageItem).toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[saveMasterRoster]'), saveError);
+
+      // Restore original implementation
+      if (originalSetImpl) {
+        mockSetStorageItem.mockImplementation(originalSetImpl);
+      }
       consoleSpy.mockRestore();
     });
 
@@ -215,24 +238,23 @@ describe('Master Roster Utilities', () => {
       const result = await updatePlayerInRoster('', { name: 'Test' });
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Player ID cannot be empty'));
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
   });
 
   describe('removePlayerFromRoster', () => {
-    beforeEach(() => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockPlayers));
-    });
-
     it('should remove a player and return true if successful', async () => {
+      // Set up test data
+      await saveMasterRoster(mockPlayers);
+
       const result = await removePlayerFromRoster('player_1');
       expect(result).toBe(true);
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
         MASTER_ROSTER_KEY,
         expect.not.stringContaining('player_1')
       );
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
         MASTER_ROSTER_KEY,
         expect.stringContaining('player_2') 
       );
@@ -243,20 +265,31 @@ describe('Master Roster Utilities', () => {
       const result = await removePlayerFromRoster('non_existent_id');
       expect(result).toBe(false);
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Player with ID non_existent_id not found'));
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
 
     it('should return false if saving fails during remove', async () => {
+      // Set up test data
+      await saveMasterRoster(mockPlayers);
+
       const saveError = new Error('Save failed!');
-      localStorageMock.setItem.mockImplementation(() => { throw saveError; });
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Override only for the save operation
+      const originalSetImpl = mockSetStorageItem.getMockImplementation();
+      mockSetStorageItem.mockImplementationOnce(() => { throw saveError; });
 
       const result = await removePlayerFromRoster('player_1');
 
       expect(result).toBe(false);
-      expect(localStorageMock.setItem).toHaveBeenCalled();
+      expect(mockSetStorageItem).toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[saveMasterRoster]'), saveError);
+
+      // Restore original implementation
+      if (originalSetImpl) {
+        mockSetStorageItem.mockImplementation(originalSetImpl);
+      }
       consoleSpy.mockRestore();
     });
 
@@ -265,26 +298,25 @@ describe('Master Roster Utilities', () => {
       const result = await removePlayerFromRoster('');
       expect(result).toBe(false);
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Player ID cannot be empty'));
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
   });
 
   describe('setPlayerGoalieStatus', () => {
-    beforeEach(() => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockPlayers));
-    });
-
     it('should update player goalie status and return the player object', async () => {
+      // Set up test data
+      await saveMasterRoster(mockPlayers);
+
       const result = await setPlayerGoalieStatus('player_1', true);
       expect(result).not.toBeNull();
       expect(result?.isGoalie).toBe(true);
       expect(result?.id).toBe('player_1');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
         MASTER_ROSTER_KEY,
         expect.stringContaining('"isGoalie":true')
       );
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
         MASTER_ROSTER_KEY,
         expect.stringContaining('player_1')
       );
@@ -295,39 +327,49 @@ describe('Master Roster Utilities', () => {
       const result = await setPlayerGoalieStatus('non_existent_id', true);
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Player with ID non_existent_id not found'));
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
 
     it('should return null if saving fails', async () => {
+      // Set up test data
+      await saveMasterRoster(mockPlayers);
+
       const saveError = new Error('Save failed!');
-      localStorageMock.setItem.mockImplementation(() => { throw saveError; });
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Override only for the save operation
+      const originalSetImpl = mockSetStorageItem.getMockImplementation();
+      mockSetStorageItem.mockImplementationOnce(() => { throw saveError; });
 
       const result = await setPlayerGoalieStatus('player_1', true);
 
       expect(result).toBeNull();
-      expect(localStorageMock.setItem).toHaveBeenCalled();
+      expect(mockSetStorageItem).toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[saveMasterRoster]'), saveError);
+
+      // Restore original implementation
+      if (originalSetImpl) {
+        mockSetStorageItem.mockImplementation(originalSetImpl);
+      }
       consoleSpy.mockRestore();
     });
   });
 
   describe('setPlayerFairPlayCardStatus', () => {
-    beforeEach(() => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockPlayers));
-    });
-
     it('should update player fair play status and return the player object', async () => {
+      // Set up test data
+      await saveMasterRoster(mockPlayers);
+
       const result = await setPlayerFairPlayCardStatus('player_2', true);
       expect(result).not.toBeNull();
       expect(result?.receivedFairPlayCard).toBe(true);
       expect(result?.id).toBe('player_2');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
         MASTER_ROSTER_KEY,
         expect.stringContaining('"receivedFairPlayCard":true')
       );
-       expect(localStorageMock.setItem).toHaveBeenCalledWith(
+       expect(mockSetStorageItem).toHaveBeenCalledWith(
         MASTER_ROSTER_KEY,
         expect.stringContaining('player_2')
       );
@@ -338,20 +380,31 @@ describe('Master Roster Utilities', () => {
       const result = await setPlayerFairPlayCardStatus('non_existent_id', true);
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Player with ID non_existent_id not found'));
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
       consoleSpy.mockRestore();
     });
 
     it('should return null if saving fails', async () => {
+      // Set up test data
+      await saveMasterRoster(mockPlayers);
+
       const saveError = new Error('Save failed!');
-      localStorageMock.setItem.mockImplementation(() => { throw saveError; });
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Override only for the save operation
+      const originalSetImpl = mockSetStorageItem.getMockImplementation();
+      mockSetStorageItem.mockImplementationOnce(() => { throw saveError; });
 
       const result = await setPlayerFairPlayCardStatus('player_1', true);
 
       expect(result).toBeNull();
-      expect(localStorageMock.setItem).toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[saveMasterRoster]'), saveError); 
+      expect(mockSetStorageItem).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[saveMasterRoster]'), saveError);
+
+      // Restore original implementation
+      if (originalSetImpl) {
+        mockSetStorageItem.mockImplementation(originalSetImpl);
+      }
       consoleSpy.mockRestore();
     });
   });

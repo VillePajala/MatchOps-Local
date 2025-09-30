@@ -29,7 +29,8 @@ export default function Home() {
 
   const checkAppState = useCallback(async () => {
     try {
-      // Run migration first (idempotent - safe to run multiple times)
+      // This runs once to ensure legacy data is converted to IndexedDB.
+      // IndexedDB is the runtime storage; this is not the focus of current work.
       await runMigration();
 
       // Check for resume capability
@@ -53,7 +54,9 @@ export default function Home() {
       const seasons = await getSeasons();
       const tournaments = await getTournaments();
       setHasSeasonsTournaments(seasons.length > 0 || tournaments.length > 0);
-    } catch {
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Failed to check initial game state', { error });
       setCanResume(false);
       setHasSavedGames(false);
       setHasPlayers(false);

@@ -4,7 +4,7 @@ import {
   TEAMS_INDEX_KEY,
   TEAM_ROSTERS_KEY 
 } from '@/config/storageKeys';
-import { getLocalStorageItem, setLocalStorageItem } from './localStorage';
+import { getStorageItem, setStorageItem } from './storage';
 import { withRosterLock } from './lockManager';
 
 // Team index storage format: { [teamId: string]: Team }
@@ -19,11 +19,13 @@ export interface TeamRostersIndex {
 
 // Get all teams
 export const getAllTeams = async (): Promise<TeamsIndex> => {
-  const json = getLocalStorageItem(TEAMS_INDEX_KEY);
-  if (!json) return {};
   try {
+    const json = await getStorageItem(TEAMS_INDEX_KEY);
+    if (!json) return {};
     return JSON.parse(json) as TeamsIndex;
-  } catch {
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Failed to load teams index, returning empty', { error });
     return {};
   }
 };
@@ -78,7 +80,7 @@ export const addTeam = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updated
 
   const teamsIndex = await getAllTeams();
   teamsIndex[team.id] = team;
-  setLocalStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+  await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
 
   // Initialize empty roster for new team
   await setTeamRoster(team.id, []);
@@ -105,7 +107,7 @@ export const updateTeam = async (teamId: string, updates: Partial<Omit<Team, 'id
   };
 
   teamsIndex[teamId] = updatedTeam;
-  setLocalStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+  await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
   return updatedTeam;
 };
 
@@ -115,7 +117,7 @@ export const deleteTeam = async (teamId: string): Promise<boolean> => {
   if (!teamsIndex[teamId]) return false;
 
   delete teamsIndex[teamId];
-  setLocalStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+  await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
   return true;
 };
 
@@ -123,11 +125,13 @@ export const deleteTeam = async (teamId: string): Promise<boolean> => {
 
 // Team roster management
 export const getAllTeamRosters = async (): Promise<TeamRostersIndex> => {
-  const json = getLocalStorageItem(TEAM_ROSTERS_KEY);
-  if (!json) return {};
   try {
+    const json = await getStorageItem(TEAM_ROSTERS_KEY);
+    if (!json) return {};
     return JSON.parse(json) as TeamRostersIndex;
-  } catch {
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Failed to load team rosters index, returning empty', { error });
     return {};
   }
 };
@@ -146,7 +150,7 @@ export const setTeamRoster = async (teamId: string, roster: TeamPlayer[]): Promi
   return withRosterLock(async () => {
     const rostersIndex = await getAllTeamRosters();
     rostersIndex[teamId] = roster;
-    setLocalStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+    await setStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
   });
 };
 
@@ -157,7 +161,7 @@ export const addPlayerToRoster = async (teamId: string, player: TeamPlayer): Pro
     const roster = rostersIndex[teamId] || [];
     const updatedRoster = [...roster, player];
     rostersIndex[teamId] = updatedRoster;
-    setLocalStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+    await setStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
   });
 };
 
@@ -171,7 +175,7 @@ export const updatePlayerInRoster = async (teamId: string, playerId: string, upd
 
     roster[playerIndex] = { ...roster[playerIndex], ...updates };
     rostersIndex[teamId] = roster;
-    setLocalStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+    await setStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
     return true;
   });
 };
@@ -185,7 +189,7 @@ export const removePlayerFromRoster = async (teamId: string, playerId: string): 
     if (filteredRoster.length === roster.length) return false; // Player not found
 
     rostersIndex[teamId] = filteredRoster;
-    setLocalStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+    await setStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
     return true;
   });
 };
@@ -216,7 +220,7 @@ export const duplicateTeam = async (teamId: string): Promise<Team | null> => {
 // Count games associated with a team (for deletion impact analysis)
 export const countGamesForTeam = async (teamId: string): Promise<number> => {
   try {
-    const savedGamesJson = getLocalStorageItem('savedSoccerGames');
+    const savedGamesJson = await getStorageItem('savedSoccerGames');
     if (!savedGamesJson) return 0;
     
     const savedGames = JSON.parse(savedGamesJson);
@@ -229,7 +233,9 @@ export const countGamesForTeam = async (teamId: string): Promise<number> => {
     }
     
     return count;
-  } catch {
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.warn('Failed to count games for team, returning 0', { teamId, error });
     return 0;
   }
 };

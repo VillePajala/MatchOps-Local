@@ -23,7 +23,7 @@ import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
 import usePlayerAssessments from '@/hooks/usePlayerAssessments';
 import { exportFullBackup } from '@/utils/fullBackup';
 import { useTranslation } from 'react-i18next';
-import i18n from '../i18n';
+import i18n from '@/i18n';
 import { useGameState, UseGameStateReturn } from '@/hooks/useGameState';
 import GameInfoBar from '@/components/GameInfoBar';
 import { useGameTimer } from '@/hooks/useGameTimer';
@@ -65,12 +65,12 @@ import { useTacticalBoard } from '@/hooks/useTacticalBoard';
 import { useRoster } from '@/hooks/useRoster';
 import { useTeamsQuery } from '@/hooks/useTeamQueries';
 import { useModalContext } from '@/contexts/ModalProvider';
-// Import async localStorage utilities
+// Import async storage utilities
 import {
-  getLocalStorageItem,
-  setLocalStorageItem,
-  removeLocalStorageItem,
-} from '@/utils/localStorage';
+  getStorageItem,
+  setStorageItem,
+  removeStorageItem,
+} from '@/utils/storage';
 // Import query keys
 import { queryKeys } from '@/config/queryKeys';
 // Also import addSeason and addTournament for the new mutations
@@ -216,11 +216,34 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           : {}),
     };
 
-    const nextState: AppState = { ...currentHistoryState, ...adjustedNewState };
+    // Only compare the fields present in adjustedNewState to avoid
+    // expensive deep comparison of the full state tree.
+    const hasRelevantChanges = Object.keys(adjustedNewState).some((key) => {
+      const k = key as keyof AppState;
+      const prevVal = currentHistoryState[k];
+      // For primitives, strict equality is enough; for objects/arrays,
+      // fall back to a lightweight structural check via JSON serialization.
+      if (
+        prevVal === (adjustedNewState as AppState)[k]
+      ) {
+        return false;
+      }
+      // If both are objects/arrays, do a cheap structural compare per field
+      const isObjectLike = (val: unknown) => typeof val === 'object' && val !== null;
+      if (isObjectLike(prevVal) && isObjectLike((adjustedNewState as AppState)[k])) {
+        try {
+          return JSON.stringify(prevVal) !== JSON.stringify((adjustedNewState as AppState)[k]);
+        } catch {
+          // On serialization failure, assume changed to be safe
+          return true;
+        }
+      }
+      return true;
+    });
 
-    if (JSON.stringify(nextState) === JSON.stringify(currentHistoryState)) {
-      return; // Don't save if nothing changed
-    }
+    if (!hasRelevantChanges) return; // Don't save if nothing changed in provided fields
+
+    const nextState: AppState = { ...currentHistoryState, ...adjustedNewState };
 
     pushHistoryState(nextState);
 
@@ -810,17 +833,18 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       // has been fetched by their respective useQuery hooks.
 
       // Simple migration for old data keys (if any) - Run once
+      // NOTE: This is legacy migration code - consider removing after main migration system is stable
       try {
-        const oldRosterJson = getLocalStorageItem('availablePlayers');
+        const oldRosterJson = await getStorageItem('availablePlayers').catch(() => null);
         if (oldRosterJson) {
-          setLocalStorageItem(MASTER_ROSTER_KEY, oldRosterJson);
-          removeLocalStorageItem('availablePlayers');
+          await setStorageItem(MASTER_ROSTER_KEY, oldRosterJson);
+          await removeStorageItem('availablePlayers');
           // Consider invalidating and refetching masterRoster query here if migration happens
           // queryClient.invalidateQueries(queryKeys.masterRoster);
         }
-        const oldSeasonsJson = getLocalStorageItem('soccerSeasonsList'); // Another old key
+        const oldSeasonsJson = await getStorageItem('soccerSeasonsList').catch(() => null); // Another old key
       if (oldSeasonsJson) {
-          setLocalStorageItem(SEASONS_LIST_KEY, oldSeasonsJson); // New key
+          await setStorageItem(SEASONS_LIST_KEY, oldSeasonsJson); // New key
           // queryClient.invalidateQueries(queryKeys.seasons);
       }
     } catch (migrationError) {
@@ -865,24 +889,24 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       if (!isMasterRosterQueryLoading && !areSeasonsQueryLoading && !areTournamentsQueryLoading && !isAllSavedGamesQueryLoading && !isCurrentGameIdSettingQueryLoading) {
         // --- TIMER RESTORATION LOGIC ---
         try {
-          const savedTimerStateJSON = getLocalStorageItem(TIMER_STATE_KEY);
+          const savedTimerStateJSON = await getStorageItem(TIMER_STATE_KEY).catch(() => null);
           const lastGameId = currentGameIdSettingQueryResultData;
-          
+
           if (savedTimerStateJSON) {
             const savedTimerState: TimerState = JSON.parse(savedTimerStateJSON);
             if (savedTimerState && savedTimerState.gameId === lastGameId) {
               const elapsedOfflineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
               const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
-              
+
               dispatchGameSession({ type: 'SET_TIMER_ELAPSED', payload: correctedElapsedSeconds });
               dispatchGameSession({ type: 'SET_TIMER_RUNNING', payload: true });
             } else {
-              removeLocalStorageItem(TIMER_STATE_KEY);
+              await removeStorageItem(TIMER_STATE_KEY).catch(() => {});
             }
           }
         } catch (error) {
           logger.error('[EFFECT init] Error restoring timer state:', error);
-          removeLocalStorageItem(TIMER_STATE_KEY);
+          await removeStorageItem(TIMER_STATE_KEY).catch(() => {});
         }
         // --- END TIMER RESTORATION LOGIC ---
 
@@ -934,24 +958,33 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   // Check if we should show first game interface guide
   useEffect(() => {
     if (!initialLoadComplete) return;
-    
-    const firstGameGuideShown = getLocalStorageItem('hasSeenFirstGameGuide');
-    logger.log('[FirstGameGuide] Checking conditions:', {
-      firstGameGuideShown,
-      currentGameId,
-      isNotDefaultGame: currentGameId !== DEFAULT_GAME_ID,
-      shouldShow: !firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID
-    });
-    
-    if (!firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-      // Add small delay to ensure game state is fully settled
-      const timer = setTimeout(() => {
-        logger.log('[FirstGameGuide] Showing first game guide after delay');
-        setShowFirstGameGuide(true);
-      }, 150);
-      
-      return () => clearTimeout(timer);
-    }
+
+    const checkFirstGameGuide = async () => {
+      try {
+        const firstGameGuideShown = await getStorageItem('hasSeenFirstGameGuide').catch(() => null);
+        logger.log('[FirstGameGuide] Checking conditions:', {
+          firstGameGuideShown,
+          currentGameId,
+          isNotDefaultGame: currentGameId !== DEFAULT_GAME_ID,
+          shouldShow: !firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID
+        });
+
+        if (!firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
+          // Add small delay to ensure game state is fully settled
+          const timer = setTimeout(() => {
+            logger.log('[FirstGameGuide] Showing first game guide after delay');
+            setShowFirstGameGuide(true);
+          }, 150);
+
+          return () => clearTimeout(timer);
+        }
+      } catch (error) {
+        // Silent fail - guide check is not critical
+        logger.error('[FirstGameGuide] Error checking first game guide:', error);
+      }
+    };
+
+    checkFirstGameGuide();
   }, [initialLoadComplete, currentGameId]);
 
   // --- NEW: Robust Visibility Change Handling ---
@@ -1595,7 +1628,13 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     logger.log(`[handleLoadGame] Attempting to load game: ${gameId}`);
     
     // Clear any existing timer state before loading a new game
-    removeLocalStorageItem(TIMER_STATE_KEY);
+    try {
+      await removeStorageItem(TIMER_STATE_KEY);
+    } catch (error) {
+      // Silent fail - timer cleanup is not critical for game loading
+      // eslint-disable-next-line no-console
+      console.debug('Failed to clear timer state before loading game (non-critical)', { error });
+    }
     
     setProcessingGameId(gameId);
     setIsGameLoading(true);
@@ -3006,9 +3045,15 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
                   </button>
                 ) : (
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       setShowFirstGameGuide(false);
-                      setLocalStorageItem('hasSeenFirstGameGuide', 'true');
+                      try {
+                        await setStorageItem('hasSeenFirstGameGuide', 'true');
+                      } catch (error) {
+                        // Silent fail - guide dismissal tracking is not critical
+                        // eslint-disable-next-line no-console
+                        console.debug('Failed to store first game guide dismissal (non-critical)', { error });
+                      }
                     }}
                     className="flex-1 inline-flex items-center justify-center gap-2 px-4 h-10 rounded-lg font-semibold text-white transition-colors text-sm bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 shadow-md shadow-indigo-900/30 ring-1 ring-white/10"
                   >

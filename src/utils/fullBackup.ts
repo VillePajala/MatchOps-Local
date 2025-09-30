@@ -11,12 +11,12 @@ import {
 } from "@/config/storageKeys";
 import logger from "@/utils/logger";
 import i18n from "i18next";
-// Import the new async localStorage utility functions
+// Import the new async storage helper functions
 import {
-  getLocalStorageItem,
-  setLocalStorageItem,
-  removeLocalStorageItem,
-} from "./localStorage";
+  getStorageJSON,
+  setStorageJSON,
+  removeStorageItem,
+} from "./storage";
 import type { PlayerAdjustmentsIndex } from './playerAdjustments';
 import { processImportedGames } from './gameImportHelper';
 
@@ -26,7 +26,7 @@ interface FullBackupData {
     schema: number;
     exportedAt: string;
   };
-  localStorage: {
+  localStorage: { // Note: field name kept for backward compatibility with existing backups
     [SAVED_GAMES_KEY]?: SavedGamesCollection | null;
     [APP_SETTINGS_KEY]?: { currentGameId: string | null } | null;
     [SEASONS_LIST_KEY]?: Season[] | null;
@@ -55,17 +55,17 @@ export const generateFullBackupJson = async (): Promise<string> => {
   ];
 
   for (const key of keysToBackup) {
-    const itemJson = getLocalStorageItem(key);
-    if (itemJson) {
-      try {
-        backupData.localStorage[key as keyof FullBackupData['localStorage']] = JSON.parse(itemJson);
+    try {
+      const itemData = await getStorageJSON<unknown>(key);
+      if (itemData !== null) {
+        (backupData.localStorage as Record<string, unknown>)[key] = itemData;
         logger.log(`Backed up data for key: ${key}`);
-      } catch (error) {
-        logger.error(`Error parsing localStorage item for key ${key}:`, error);
+      } else {
+        logger.log(`No data found for key: ${key}, setting to null.`);
         backupData.localStorage[key as keyof FullBackupData['localStorage']] = null;
       }
-    } else {
-      logger.log(`No data found for key: ${key}, setting to null.`);
+    } catch (error) {
+      logger.error(`Error getting storage item for key ${key}:`, error);
       backupData.localStorage[key as keyof FullBackupData['localStorage']] = null;
     }
   }
@@ -73,7 +73,7 @@ export const generateFullBackupJson = async (): Promise<string> => {
   return JSON.stringify(backupData, null, 2);
 };
 
-// Function to export all relevant localStorage data
+// Function to export all relevant application data
 export const exportFullBackup = async (): Promise<string> => {
   logger.log("Starting full backup export...");
   try {
@@ -147,15 +147,15 @@ export const importFullBackup = async (
     if (processedSavedGames && typeof processedSavedGames === 'object') {
       try {
         // Get current roster for player mapping
-        const currentRosterJson = getLocalStorageItem(MASTER_ROSTER_KEY);
         let currentRoster: Player[] = [];
-        
-        if (currentRosterJson) {
-          try {
-            currentRoster = JSON.parse(currentRosterJson) as Player[];
-          } catch (error) {
-            logger.warn('Could not parse current roster for player mapping:', error);
+
+        try {
+          const currentRosterData = await getStorageJSON<Player[]>(MASTER_ROSTER_KEY);
+          if (currentRosterData) {
+            currentRoster = currentRosterData;
           }
+        } catch (error) {
+          logger.warn('Could not get current roster for player mapping:', error);
         }
         
         // Process imported games to ensure proper player integration
@@ -182,26 +182,26 @@ export const importFullBackup = async (
       }
     }
 
-    // --- Overwrite localStorage ---
+    // --- Overwrite storage data ---
     const keysToRestore = Object.keys(backupData.localStorage) as Array<
       keyof FullBackupData["localStorage"]
     >;
 
     for (const key of keysToRestore) {
       let dataToRestore = backupData.localStorage[key];
-      
+
       // Use processed games if we processed them
       if (key === SAVED_GAMES_KEY && processedSavedGames) {
         dataToRestore = processedSavedGames;
       }
-      
+
       if (dataToRestore !== undefined && dataToRestore !== null) {
         try {
-          setLocalStorageItem(key, JSON.stringify(dataToRestore));
+          await setStorageJSON(key as string, dataToRestore);
           logger.log(`Restored data for key: ${key}`);
         } catch (innerError) {
           logger.error(
-            `Error stringifying or setting localStorage item for key ${key}:`,
+            `Error setting storage item for key ${key}:`,
             innerError,
           );
           // It's important to alert the user and rethrow or handle appropriately
@@ -211,14 +211,18 @@ export const importFullBackup = async (
           );
         }
       } else {
-        // If data for this key is null/undefined in backup, remove it from localStorage if it exists
+        // If data for this key is null/undefined in backup, remove it from storage if it exists
         // Check if item exists before attempting removal to avoid unnecessary operations/logs
-        const currentItem = getLocalStorageItem(key); // Check if item exists
-        if (currentItem !== null) {
-          removeLocalStorageItem(key);
-          logger.log(
-            `Removed existing data for key: ${key} as it was explicitly null or not present in the backup.`,
-          );
+        try {
+          const currentItem = await getStorageJSON<unknown>(key as string); // Check if item exists
+          if (currentItem !== null) {
+            await removeStorageItem(key as string);
+            logger.log(
+              `Removed existing data for key: ${key} as it was explicitly null or not present in the backup.`,
+            );
+          }
+        } catch (error) {
+          logger.warn(`Could not check/remove storage item for key ${key}:`, error);
         }
       }
     }

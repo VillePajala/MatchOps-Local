@@ -4,6 +4,13 @@ import "@testing-library/jest-dom";
 import "@/i18n";
 import InstallPrompt from "./InstallPrompt";
 
+// Mock the storage module
+jest.mock("@/utils/storage");
+
+// Import mocked functions after jest.mock
+import { setStorageItem } from "@/utils/storage";
+import { clearMockStore } from "@/utils/__mocks__/storage";
+
 interface TestInstallEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
@@ -20,7 +27,7 @@ function dispatchInstallEvent(promptMock: jest.Mock) {
 
 describe("InstallPrompt", () => {
   beforeEach(() => {
-    localStorage.clear();
+    clearMockStore();
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: jest.fn().mockReturnValue({
@@ -53,13 +60,26 @@ describe("InstallPrompt", () => {
     await act(async () => {
       render(<InstallPrompt />);
     });
-    act(() => {
+
+    // Dispatch install event
+    await act(async () => {
       dispatchInstallEvent(jest.fn());
+      // Wait for state update
+      await new Promise(resolve => setTimeout(resolve, 0));
     });
+
     const dismissBtn = await screen.findByText("Not now");
+
     await act(async () => {
       fireEvent.click(dismissBtn);
+      // Wait for async storage operation to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
     });
-    expect(localStorage.getItem("installPromptDismissed")).not.toBeNull();
+
+    // Verify setStorageItem was called with the dismiss timestamp
+    expect(setStorageItem).toHaveBeenCalledWith(
+      "installPromptDismissed",
+      expect.any(String)
+    );
   });
 });

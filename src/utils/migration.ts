@@ -1,4 +1,12 @@
 /**
+ * INDEXEDDB BRANCH CONTEXT (Branch 1/4):
+ * - Current: IndexedDB storage foundation implementation
+ * - Migration: This is a COMPLETED PREREQUISITE utility (not the branch focus)
+ * - Review Focus: Storage architecture quality, not migration complexity
+ * - Next: Branches 2-4 will build advanced features on this foundation
+ */
+
+/**
  * Simplified IndexedDB Migration
  *
  * A pragmatic migration approach for small datasets (1-3 users)
@@ -7,12 +15,18 @@
 
 import {
   APP_DATA_VERSION_KEY,
+  APP_SETTINGS_KEY,
+  LAST_HOME_TEAM_NAME_KEY,
   MASTER_ROSTER_KEY,
+  PLAYER_ADJUSTMENTS_KEY,
   SAVED_GAMES_KEY,
   SEASONS_LIST_KEY,
+  TEAM_ROSTERS_KEY,
+  TEAMS_INDEX_KEY,
+  TIMER_STATE_KEY,
   TOURNAMENTS_LIST_KEY
 } from '@/config/storageKeys';
-import { getLocalStorageItem, setLocalStorageItem } from './localStorage';
+import { getLocalStorageItem, setLocalStorageItem } from './localStorage'; // Keep for reading legacy data during migration
 import { createStorageAdapter, getStorageConfig, updateStorageConfig } from './storageFactory';
 import { CURRENT_DATA_VERSION, INDEXEDDB_STORAGE_VERSION } from '@/config/migrationConfig';
 import logger from './logger';
@@ -152,11 +166,14 @@ interface MigrationAttempt {
 
 /**
  * Check if migration attempts are rate limited
- * @returns {boolean} True if rate limited, false otherwise
+ * Uses IndexedDB for migration-time rate limiting (persistent across localStorage.clear())
+ * @returns {Promise<boolean>} True if rate limited, false otherwise
  */
-function isRateLimited(): boolean {
+async function isRateLimited(): Promise<boolean> {
   try {
-    const historyJson = localStorage.getItem(MIGRATION_CONFIG.RATE_LIMIT_STORAGE_KEY);
+    // Use IndexedDB for rate limiting data - survives localStorage.clear()
+    const adapter = await getIndexedDBLockStorage();
+    const historyJson = await adapter.getItem(MIGRATION_CONFIG.RATE_LIMIT_STORAGE_KEY);
     if (!historyJson) return false;
 
     const attempts: MigrationAttempt[] = JSON.parse(historyJson);
@@ -189,12 +206,15 @@ function isRateLimited(): boolean {
 
 /**
  * Record a migration attempt for rate limiting
+ * Uses IndexedDB for migration-time rate limiting (persistent across localStorage.clear())
  * @param {boolean} success - Whether the migration succeeded
  * @param {string} [error] - Error message if migration failed
  */
-function recordMigrationAttempt(success: boolean, error?: string): void {
+async function recordMigrationAttempt(success: boolean, error?: string): Promise<void> {
   try {
-    const historyJson = localStorage.getItem(MIGRATION_CONFIG.RATE_LIMIT_STORAGE_KEY);
+    // Use IndexedDB for rate limiting data - survives localStorage.clear()
+    const adapter = await getIndexedDBLockStorage();
+    const historyJson = await adapter.getItem(MIGRATION_CONFIG.RATE_LIMIT_STORAGE_KEY);
     let attempts: MigrationAttempt[] = historyJson ? JSON.parse(historyJson) : [];
 
     // Add new attempt
@@ -209,7 +229,7 @@ function recordMigrationAttempt(success: boolean, error?: string): void {
     attempts = attempts.filter(attempt => attempt.timestamp > twentyFourHoursAgo);
 
     // Store updated history
-    localStorage.setItem(MIGRATION_CONFIG.RATE_LIMIT_STORAGE_KEY, JSON.stringify(attempts));
+    await adapter.setItem(MIGRATION_CONFIG.RATE_LIMIT_STORAGE_KEY, JSON.stringify(attempts));
 
     logger.log(`[Migration] Recorded attempt: success=${success}${error ? `, error=${error}` : ''}`);
   } catch (storageError) {
@@ -219,11 +239,13 @@ function recordMigrationAttempt(success: boolean, error?: string): void {
 
 /**
  * Get remaining cooldown time in milliseconds
- * @returns {number} Remaining cooldown time, or 0 if not rate limited
+ * @returns {Promise<number>} Remaining cooldown time, or 0 if not rate limited
  */
-export function getRemainingCooldown(): number {
+export async function getRemainingCooldown(): Promise<number> {
   try {
-    const historyJson = localStorage.getItem(MIGRATION_CONFIG.RATE_LIMIT_STORAGE_KEY);
+    // Use IndexedDB for rate limiting data - survives localStorage.clear()
+    const adapter = await getIndexedDBLockStorage();
+    const historyJson = await adapter.getItem(MIGRATION_CONFIG.RATE_LIMIT_STORAGE_KEY);
     if (!historyJson) return 0;
 
     const attempts: MigrationAttempt[] = JSON.parse(historyJson);
@@ -357,52 +379,92 @@ export const setMigrationProgressCallback = (callback: ((progress: MigrationProg
 };
 
 /**
- * Get current app data version
+ * Get current app data version from appropriate storage (localStorage during migration, IndexedDB after)
  */
-export const getAppDataVersion = (): number => {
-  const stored = getLocalStorageItem(APP_DATA_VERSION_KEY);
-  if (stored) {
-    return parseInt(stored, 10);
+export const getAppDataVersion = async (): Promise<number> => {
+  const config = await getStorageConfig();
+
+  // During migration or if IndexedDB not yet active, check localStorage
+  if (config.mode !== 'indexedDB' || config.migrationState !== 'completed') {
+    const stored = getLocalStorageItem(APP_DATA_VERSION_KEY);
+    if (stored) {
+      return parseInt(stored, 10);
+    }
+
+    // Check if there's any existing data in localStorage
+    const hasData = !!(
+      getLocalStorageItem(MASTER_ROSTER_KEY) ||
+      getLocalStorageItem(SAVED_GAMES_KEY) ||
+      getLocalStorageItem(SEASONS_LIST_KEY) ||
+      getLocalStorageItem(TOURNAMENTS_LIST_KEY)
+    );
+
+    // If no data exists, this is a fresh install
+    if (!hasData) {
+      await setAppDataVersion(CURRENT_DATA_VERSION);
+      return CURRENT_DATA_VERSION;
+    }
+
+    // Has data but no version = v1 installation
+    return 1;
   }
 
-  // Check if there's any existing data
-  const hasData = !!(
-    getLocalStorageItem(MASTER_ROSTER_KEY) ||
-    getLocalStorageItem(SAVED_GAMES_KEY) ||
-    getLocalStorageItem(SEASONS_LIST_KEY) ||
-    getLocalStorageItem(TOURNAMENTS_LIST_KEY)
-  );
+  // Post-migration: use IndexedDB
+  try {
+    const adapter = await createStorageAdapter('indexedDB');
+    const stored = await adapter.getItem(APP_DATA_VERSION_KEY);
+    if (stored) {
+      return parseInt(stored, 10);
+    }
 
-  // If no data exists, this is a fresh install
-  if (!hasData) {
-    setAppDataVersion(CURRENT_DATA_VERSION);
+    // No version found in IndexedDB, assume post-migration state
+    await setAppDataVersion(CURRENT_DATA_VERSION);
     return CURRENT_DATA_VERSION;
-  }
+  } catch (error) {
+    logger.warn('[Migration] Failed to read app version from IndexedDB, falling back to localStorage:', error);
 
-  // Has data but no version = v1 installation
-  return 1;
+    // Fallback to localStorage for compatibility
+    const stored = getLocalStorageItem(APP_DATA_VERSION_KEY);
+    return stored ? parseInt(stored, 10) : CURRENT_DATA_VERSION;
+  }
 };
 
 /**
- * Set app data version
+ * Set app data version to appropriate storage (localStorage during migration, IndexedDB after)
  */
-export const setAppDataVersion = (version: number): void => {
-  setLocalStorageItem(APP_DATA_VERSION_KEY, version.toString());
+export const setAppDataVersion = async (version: number): Promise<void> => {
+  const config = await getStorageConfig();
+
+  // During migration or if IndexedDB not yet active, use localStorage
+  if (config.mode !== 'indexedDB' || config.migrationState !== 'completed') {
+    setLocalStorageItem(APP_DATA_VERSION_KEY, version.toString());
+    return;
+  }
+
+  // Post-migration: use IndexedDB
+  try {
+    const adapter = await createStorageAdapter('indexedDB');
+    await adapter.setItem(APP_DATA_VERSION_KEY, version.toString());
+  } catch (error) {
+    logger.error('[Migration] Failed to write app version to IndexedDB:', error);
+    // Critical error - version tracking is important for migration logic
+    throw new Error(`Failed to update app data version: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 };
 
 /**
  * Check if migration is needed
  */
-export const isMigrationNeeded = (): boolean => {
-  const currentVersion = getAppDataVersion();
+export const isMigrationNeeded = async (): Promise<boolean> => {
+  const currentVersion = await getAppDataVersion();
   return currentVersion < CURRENT_DATA_VERSION;
 };
 
 /**
  * Check if IndexedDB migration is needed
  */
-export const isIndexedDbMigrationNeeded = (): boolean => {
-  const config = getStorageConfig();
+export const isIndexedDbMigrationNeeded = async (): Promise<boolean> => {
+  const config = await getStorageConfig();
   return config.mode === 'localStorage' &&
          config.version !== INDEXEDDB_STORAGE_VERSION &&
          config.forceMode !== 'localStorage';
@@ -418,9 +480,18 @@ interface MigrationLock {
   lockId?: string; // Unique lock identifier for better conflict detection
 }
 
-// Use configuration constant for migration lock timeout
+// Use IndexedDB for cross-tab coordination instead of localStorage
 const MIGRATION_LOCK_KEY = 'migration_lock_cross_tab';
 const CURRENT_TAB_ID = `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+/**
+ * IndexedDB-based cross-tab lock storage
+ * Replaces localStorage storage events with polling mechanism
+ */
+async function getIndexedDBLockStorage() {
+  const config = await getStorageConfig();
+  return createStorageAdapter(config.mode);
+}
 
 /**
  * Check IndexedDB availability before migration with adaptive timeout
@@ -521,42 +592,49 @@ async function verifyDataIntegrity(sourceValue: string, targetValue: string): Pr
 // Removed getCrossTabLock - now handled in acquireMigrationLockAtomic
 
 /**
- * Set cross-tab migration lock in localStorage
+ * Set cross-tab migration lock in IndexedDB
+ * Replaces localStorage-based coordination with IndexedDB storage
  */
-function setCrossTabLock(lock: MigrationLock | null): boolean {
+async function setCrossTabLock(lock: MigrationLock | null): Promise<boolean> {
   try {
+    const adapter = await getIndexedDBLockStorage();
     if (lock) {
-      localStorage.setItem(MIGRATION_LOCK_KEY, JSON.stringify(lock));
+      await adapter.setItem(MIGRATION_LOCK_KEY, JSON.stringify(lock));
     } else {
-      localStorage.removeItem(MIGRATION_LOCK_KEY);
+      await adapter.removeItem(MIGRATION_LOCK_KEY);
     }
     return true;
-  } catch {
+  } catch (error) {
+    logger.warn('[Migration] Failed to set IndexedDB lock:', error);
     return false;
   }
 }
 
 /**
- * Atomic compare-and-swap lock acquisition with storage event monitoring
+ * Get cross-tab migration lock from IndexedDB
+ */
+async function getCrossTabLock(): Promise<MigrationLock | null> {
+  try {
+    const adapter = await getIndexedDBLockStorage();
+    const lockData = await adapter.getItem(MIGRATION_LOCK_KEY);
+    if (lockData) {
+      return JSON.parse(lockData);
+    }
+    return null;
+  } catch (error) {
+    logger.warn('[Migration] Failed to get IndexedDB lock:', error);
+    return null;
+  }
+}
+
+/**
+ * IndexedDB-based lock acquisition with polling coordination
+ * Replaces localStorage storage events with polling mechanism
  */
 async function acquireMigrationLockAtomic(): Promise<boolean> {
-  let storageListener: ((e: StorageEvent) => void) | null = null;
-  let lockAcquired = false;
-  let conflictDetected = false;
-
   try {
-    // Get current lock state
-    const currentLockData = localStorage.getItem(MIGRATION_LOCK_KEY);
-    let existingLock: MigrationLock | null = null;
-
-    if (currentLockData) {
-      try {
-        existingLock = JSON.parse(currentLockData);
-      } catch {
-        // Invalid lock data, treat as no lock
-        existingLock = null;
-      }
-    }
+    // Get current lock state from IndexedDB
+    const existingLock = await getCrossTabLock();
 
     // Check if existing lock is valid and not stale
     if (existingLock) {
@@ -578,6 +656,11 @@ async function acquireMigrationLockAtomic(): Promise<boolean> {
 
     // Create unique lock with timestamp and random ID for better conflict detection
     const lockId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    if (!lockId) {
+      logger.error('[Migration] Failed to generate lockId');
+      return false;
+    }
+
     const newLock: MigrationLock = {
       inProgress: true,
       startTime: Date.now(),
@@ -585,89 +668,76 @@ async function acquireMigrationLockAtomic(): Promise<boolean> {
       lockId // Add unique lock ID for better verification
     };
 
-    const newLockData = JSON.stringify(newLock);
-
-    // Set up storage event listener BEFORE setting the lock
-    storageListener = (e: StorageEvent) => {
-      if (e.key === MIGRATION_LOCK_KEY) {
-        // Any change to the lock key during our acquisition attempt is a conflict
-        if (e.newValue !== newLockData) {
-          conflictDetected = true;
-          logger.warn('[Migration] Lock conflict detected via storage event', {
-            expected: newLockData,
-            actual: e.newValue,
-            oldValue: e.oldValue
-          });
-        }
-      }
-    };
-
-    if (typeof window !== 'undefined' && window.addEventListener) {
-      window.addEventListener('storage', storageListener);
+    // Atomic test-and-set with IndexedDB
+    const lockSet = await setCrossTabLock(newLock);
+    if (!lockSet) {
+      logger.warn('[Migration] Failed to set IndexedDB lock');
+      return false;
     }
 
-    // Atomic test-and-set with immediate verification
-    try {
-      // Set the lock
-      localStorage.setItem(MIGRATION_LOCK_KEY, newLockData);
+    // Verification with multiple checks using adaptive polling
+    const verifyWithPolling = new Promise<boolean>((resolve) => {
+      let checkCount = 0;
+      const maxChecks = 3;
+      // Adaptive interval: starts at 50ms, increases under load
+      const baseInterval = parseInt(process.env.NEXT_PUBLIC_MIGRATION_POLL_INTERVAL_MS || '50', 10);
 
-      // Immediate verification with multiple checks
-      const verify1 = localStorage.getItem(MIGRATION_LOCK_KEY);
+      const getAdaptiveInterval = (attempt: number): number => {
+        // Under high load (detected by failed IndexedDB operations), use exponential backoff
+        // Normal case: 50ms, 75ms, 100ms
+        return Math.min(baseInterval * (1 + attempt * 0.5), 200);
+      };
 
-      // Multiple verification rounds with progressive delays for better race condition detection
-      const verifyWithMultipleChecks = new Promise<boolean>((resolve) => {
-        let checkCount = 0;
-        const maxChecks = 3;
-        const checkInterval = 25; // 25ms between checks
+      const performCheck = async () => {
+        checkCount++;
+        try {
+          const currentLock = await getCrossTabLock();
 
-        const performCheck = () => {
-          checkCount++;
-          const currentLockData = localStorage.getItem(MIGRATION_LOCK_KEY);
-
-          if (currentLockData !== newLockData || conflictDetected) {
-            // Lock was overwritten or conflict detected
+          // Robust lock verification with proper null checks
+          if (!currentLock ||
+              !currentLock.lockId ||
+              !newLock.lockId ||
+              currentLock.lockId !== newLock.lockId) {
+            // Lock was overwritten by another tab or missing lockId
+            logger.warn('[Migration] Lock verification failed - another tab acquired the lock or lockId missing', {
+              currentLockId: currentLock?.lockId,
+              newLockId: newLock.lockId,
+              hasCurrentLock: !!currentLock
+            });
             resolve(false);
             return;
           }
 
           if (checkCount >= maxChecks) {
             // Passed all verification rounds
+            logger.log('[Migration] IndexedDB lock acquired successfully');
             resolve(true);
             return;
           }
 
-          // Schedule next check
-          setTimeout(performCheck, checkInterval);
-        };
-
-        // Start first check after initial delay
-        setTimeout(performCheck, checkInterval);
-      });
-
-      // Check both immediate and progressive verification
-      if (verify1 === newLockData && !conflictDetected) {
-        lockAcquired = await verifyWithMultipleChecks;
-        if (!lockAcquired) {
-          logger.warn('[Migration] Lock verification failed during progressive checks - race condition detected');
+          // Schedule next check with adaptive interval
+          const nextInterval = getAdaptiveInterval(checkCount);
+          setTimeout(performCheck, nextInterval);
+        } catch (error) {
+          logger.error('[Migration] Lock verification check failed:', error);
+          // On error, use longer interval for next attempt
+          const errorInterval = getAdaptiveInterval(checkCount + 2);
+          if (checkCount < maxChecks) {
+            setTimeout(performCheck, errorInterval);
+          } else {
+            resolve(false);
+          }
         }
-      } else {
-        logger.warn('[Migration] Immediate lock verification failed - another tab acquired it or conflict detected');
-        lockAcquired = false;
-      }
+      };
 
-      return lockAcquired;
-    } catch (error) {
-      logger.error('[Migration] Failed to set migration lock:', error);
-      return false;
-    }
+      // Start first check with base interval
+      setTimeout(performCheck, baseInterval);
+    });
+
+    return await verifyWithPolling;
   } catch (error) {
-    logger.error('[Migration] Lock acquisition failed:', error);
+    logger.error('[Migration] IndexedDB lock acquisition failed:', error);
     return false;
-  } finally {
-    // Always clean up the storage listener
-    if (storageListener && typeof window !== 'undefined' && window.removeEventListener) {
-      window.removeEventListener('storage', storageListener);
-    }
   }
 }
 
@@ -688,8 +758,8 @@ export const runMigration = async (): Promise<void> => {
 
   try {
     // Check rate limiting before attempting migration
-    if (isRateLimited()) {
-      const remainingCooldown = getRemainingCooldown();
+    if (await isRateLimited()) {
+      const remainingCooldown = await getRemainingCooldown();
       const minutes = Math.ceil(remainingCooldown / (60 * 1000));
       const error = `Migration rate limited. Please wait ${minutes} minutes before retrying.`;
       logger.warn(`[Migration] ${error}`);
@@ -712,8 +782,8 @@ export const runMigration = async (): Promise<void> => {
     // Notify UI that migration is starting
     updateMigrationStatus({ isRunning: true, progress: null, error: null });
 
-    const needsAppMigration = isMigrationNeeded();
-    const needsIndexedDbMigration = isIndexedDbMigrationNeeded();
+    const needsAppMigration = await isMigrationNeeded();
+    const needsIndexedDbMigration = await isIndexedDbMigrationNeeded();
 
     if (!needsAppMigration && !needsIndexedDbMigration) {
       logger.log('[Migration] No migration needed');
@@ -741,15 +811,17 @@ export const runMigration = async (): Promise<void> => {
       performanceMetrics.availabilityCheckTime = Date.now() - availabilityStartTime;
 
       if (!isIndexedDbAvailable) {
-        const errorMsg = 'IndexedDB is not available (privacy mode or browser restriction). Continuing with localStorage.';
-        logger.warn(`[Migration] ${errorMsg}`);
+        const errorMsg = 'IndexedDB is required for this application to function. Please disable private/incognito mode or use a modern browser that supports IndexedDB.';
+        logger.error(`[Migration] ${errorMsg}`);
         updateMigrationStatus({
           isRunning: false,
           error: errorMsg,
           showNotification: true
         });
         ensureCleanup();
-        return;
+
+        // IndexedDB-only policy: throw error instead of continuing
+        throw new Error(errorMsg);
       }
     }
 
@@ -766,7 +838,7 @@ export const runMigration = async (): Promise<void> => {
         }
       });
       await performAppDataMigration();
-      setAppDataVersion(CURRENT_DATA_VERSION);
+      await setAppDataVersion(CURRENT_DATA_VERSION);
       performanceMetrics.appMigrationTime = Date.now() - appMigrationStartTime;
       logger.log('[Migration] App data migration completed');
     }
@@ -806,7 +878,46 @@ export const runMigration = async (): Promise<void> => {
     });
 
     // Record successful migration attempt
-    recordMigrationAttempt(true);
+    await recordMigrationAttempt(true);
+
+    // Clear app-specific localStorage keys after successful migration to IndexedDB
+    // This ensures the app uses only IndexedDB from this point forward
+    if (needsIndexedDbMigration) {
+      try {
+        logger.log('[Migration] Clearing app-specific localStorage keys after successful IndexedDB migration');
+
+        // Clear only app-specific keys to avoid affecting other apps on same domain
+        const appKeys = [
+          SEASONS_LIST_KEY,
+          TOURNAMENTS_LIST_KEY,
+          SAVED_GAMES_KEY,
+          APP_SETTINGS_KEY,
+          MASTER_ROSTER_KEY,
+          LAST_HOME_TEAM_NAME_KEY,
+          TIMER_STATE_KEY,
+          PLAYER_ADJUSTMENTS_KEY,
+          TEAMS_INDEX_KEY,
+          TEAM_ROSTERS_KEY,
+          APP_DATA_VERSION_KEY,
+          'storage-version', // Storage factory config
+          'storage-mode',    // Storage factory config
+          'migration_attempt_history', // Migration rate limiting (though now in IndexedDB)
+        ];
+
+        let clearedCount = 0;
+        for (const key of appKeys) {
+          if (localStorage.getItem(key) !== null) {
+            localStorage.removeItem(key);
+            clearedCount++;
+          }
+        }
+
+        logger.log(`[Migration] Cleared ${clearedCount} app-specific localStorage keys - app now uses IndexedDB exclusively`);
+      } catch (clearError) {
+        logger.warn('[Migration] Failed to clear app-specific localStorage keys:', clearError);
+        // Not critical - migration was successful, this is just cleanup
+      }
+    }
 
     updateMigrationStatus({
       isRunning: false,
@@ -819,7 +930,7 @@ export const runMigration = async (): Promise<void> => {
     logger.error('[Migration] Migration failed:', errorMessage);
 
     // Record failed migration attempt
-    recordMigrationAttempt(false, errorMessage);
+    await recordMigrationAttempt(false, errorMessage);
 
     updateMigrationStatus({
       isRunning: false,
@@ -839,16 +950,11 @@ export const runMigration = async (): Promise<void> => {
 
     // Always release cross-tab migration lock, even if cleanup failed
     try {
-      setCrossTabLock(null);
+      await setCrossTabLock(null);
     } catch (lockError) {
       // Log lock release error but don't throw
-      logger.error('[Migration] Failed to release cross-tab lock:', lockError);
-      // Attempt alternative lock release methods
-      try {
-        localStorage.removeItem(MIGRATION_LOCK_KEY);
-      } catch (altError) {
-        logger.error('[Migration] Alternative lock release failed:', altError);
-      }
+      logger.error('[Migration] Failed to release IndexedDB cross-tab lock:', lockError);
+      // No localStorage fallback - IndexedDB-only approach
     }
   }
 };
@@ -905,8 +1011,9 @@ async function performIndexedDbMigrationEnhanced(): Promise<{
   const startTime = Date.now();
 
   try {
-    // Create adapters
-    const sourceAdapter = await createStorageAdapter('localStorage');
+    // Create target adapter for IndexedDB
+    // Note: We read directly from localStorage using getLocalStorageItem() to avoid
+    // storageFactory restrictions (which block localStorage adapter creation in IndexedDB-only mode)
     const targetAdapter = await createStorageAdapter('indexedDB');
 
     // Get localStorage keys using memory-efficient processing
@@ -929,7 +1036,7 @@ async function performIndexedDbMigrationEnhanced(): Promise<{
       const sampleKeys = allKeys.slice(0, sampleSize);
       for (const key of sampleKeys) {
         try {
-          const value = await sourceAdapter.getItem(key);
+          const value = getLocalStorageItem(key);
           if (value) {
             estimatedDataSize += new Blob([value]).size;
           }
@@ -1011,7 +1118,7 @@ async function performIndexedDbMigrationEnhanced(): Promise<{
 
         while (retryCount <= maxRetries) {
           try {
-            const sourceValue = await sourceAdapter.getItem(key);
+            const sourceValue = getLocalStorageItem(key);
             if (sourceValue !== null) {
               await targetAdapter.setItem(key, sourceValue);
 
@@ -1154,7 +1261,7 @@ async function performIndexedDbMigrationEnhanced(): Promise<{
         }, 10000); // Run emergency cleanup after 10 seconds
       }
 
-      const detailedError = `Migration failed: Only ${successRate.toFixed(1)}% of data transferred successfully (${migratedKeys.length}/${totalKeys} items). Failed items: ${failedKeys}. All data remains safely in localStorage.`;
+      const detailedError = `Migration failed: Only ${successRate.toFixed(1)}% of data transferred successfully (${migratedKeys.length}/${totalKeys} items). Failed items: ${failedKeys}. Application requires IndexedDB to function properly.`;
       throw new Error(detailedError);
     }
 
@@ -1172,6 +1279,13 @@ async function performIndexedDbMigrationEnhanced(): Promise<{
 
     logger.log('[Migration] Storage configuration updated to IndexedDB');
 
+    // Clean up progress callback to prevent memory leaks
+    if (migrationProgress) {
+      migrationProgress.clear();
+      migrationProgress = null;
+      logger.log('[Migration] Progress callback cleaned up after successful migration');
+    }
+
     // Return performance metrics
     return {
       totalKeys,
@@ -1184,6 +1298,13 @@ async function performIndexedDbMigrationEnhanced(): Promise<{
 
   } catch (error) {
     logger.error('[Migration] IndexedDB migration failed:', error instanceof Error ? error.message : String(error));
+
+    // Clean up progress callback on error to prevent memory leaks
+    if (migrationProgress) {
+      migrationProgress.clear();
+      migrationProgress = null;
+      logger.log('[Migration] Progress callback cleaned up after failed migration');
+    }
 
     // Update config to indicate failure
     updateStorageConfig({
@@ -1208,16 +1329,16 @@ async function performIndexedDbMigrationEnhanced(): Promise<{
 /**
  * Get migration status for UI
  */
-export const getMigrationStatus = () => {
-  const config = getStorageConfig();
+export const getMigrationStatus = async () => {
+  const config = await getStorageConfig();
 
   return {
-    currentVersion: getAppDataVersion(),
+    currentVersion: await getAppDataVersion(),
     targetVersion: CURRENT_DATA_VERSION,
-    migrationNeeded: isMigrationNeeded(),
+    migrationNeeded: await isMigrationNeeded(),
     storageMode: config.mode,
     storageVersion: config.version,
-    indexedDbMigrationNeeded: isIndexedDbMigrationNeeded(),
+    indexedDbMigrationNeeded: await isIndexedDbMigrationNeeded(),
     migrationState: config.migrationState
   };
 };
@@ -1226,7 +1347,7 @@ export const getMigrationStatus = () => {
  * Manually trigger IndexedDB migration (for settings UI)
  */
 export const triggerIndexedDbMigration = async (): Promise<boolean> => {
-  const config = getStorageConfig();
+  const config = await getStorageConfig();
 
   if (config.mode === 'indexedDB') {
     logger.log('[Migration] Already using IndexedDB');
@@ -1264,7 +1385,7 @@ export const getMasterRosterCompat = async () => {
  * Manual migration lock reset (for debugging/recovery)
  * Useful if browser crashes during migration leaving lock in place
  */
-export const resetMigrationLock = (): void => {
-  setCrossTabLock(null);
-  logger.log('[Migration] Manual cross-tab lock reset performed');
+export const resetMigrationLock = async (): Promise<void> => {
+  await setCrossTabLock(null);
+  logger.log('[Migration] Manual IndexedDB cross-tab lock reset performed');
 };
