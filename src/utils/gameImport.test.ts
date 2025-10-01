@@ -64,7 +64,7 @@ describe('Game Import with Partial Success', () => {
   });
 
   // Use EXACT structure from savedGames.test.ts mockBaseAppState that we know works
-  const createValidGameData = (gameId: string, teamName: string = 'Test Team') => {
+  const createValidGameData = (gameId: string, teamName: string = 'Test Team'): AppState => {
     return {
       playersOnField: [],
       opponents: [],
@@ -78,11 +78,11 @@ describe('Game Import with Partial Success', () => {
       homeScore: 0,
       awayScore: 0,
       gameNotes: '',
-      homeOrAway: 'home' as const,
-      numberOfPeriods: 2 as const,
+      homeOrAway: 'home',
+      numberOfPeriods: 2,
       periodDurationMinutes: 10,
       currentPeriod: 1,
-      gameStatus: 'notStarted' as const,
+      gameStatus: 'notStarted',
       selectedPlayerIds: [],
       assessments: {},
       seasonId: '',
