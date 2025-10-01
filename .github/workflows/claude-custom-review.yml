@@ -14,6 +14,7 @@ on:
           - performance
           - architecture
           - testing
+          - test-suite-health
           - documentation
           - accessibility
           - custom
@@ -35,6 +36,7 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'review:performance') ||
       contains(github.event.pull_request.labels.*.name, 'review:architecture') ||
       contains(github.event.pull_request.labels.*.name, 'review:testing') ||
+      contains(github.event.pull_request.labels.*.name, 'review:test-suite-health') ||
       contains(github.event.pull_request.labels.*.name, 'review:documentation') ||
       contains(github.event.pull_request.labels.*.name, 'review:accessibility')
 
@@ -69,6 +71,8 @@ jobs:
               echo "review_type=architecture" >> $GITHUB_OUTPUT
             elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'review:testing') }}" == "true" ]]; then
               echo "review_type=testing" >> $GITHUB_OUTPUT
+            elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'review:test-suite-health') }}" == "true" ]]; then
+              echo "review_type=test-suite-health" >> $GITHUB_OUTPUT
             elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'review:documentation') }}" == "true" ]]; then
               echo "review_type=documentation" >> $GITHUB_OUTPUT
             elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'review:accessibility') }}" == "true" ]]; then
@@ -276,6 +280,129 @@ jobs:
 
           Reference CLAUDE.md Testing Rules section.
           Use `gh pr comment` to post your findings.
+          EOF
+              )
+              ;;
+
+            test-suite-health)
+              PROMPT=$(cat <<'EOF'
+          Please perform a comprehensive health assessment of the entire test suite:
+
+          **Test Suite Health Assessment:**
+
+          1. **Overall Metrics & Statistics**
+             - Total test count and distribution (unit/integration/e2e)
+             - Pass rate and failure patterns
+             - Test execution time (total and per-suite averages)
+             - Slowest test suites (>5s)
+             - Coverage metrics (if available)
+
+          2. **Test Organization & Structure**
+             - Test file organization and naming conventions
+             - Test suite grouping and categorization
+             - Consistency across test files
+             - Adherence to CLAUDE.md testing standards
+             - Proper use of describe/it blocks
+
+          3. **Test Quality Indicators**
+             - Tests with missing assertions
+             - Tests that only check for "no errors"
+             - Duplicate test cases
+             - Overly complex tests (>50 lines)
+             - Under-tested critical paths
+             - Tests without JSDoc documentation
+
+          4. **Flaky Test Detection**
+             - Tests with timing dependencies
+             - Tests using fixed timeouts instead of waitFor
+             - Tests with race conditions
+             - Tests missing proper async/await handling
+             - Tests with unreliable mocks
+             - Review test-results/flaky-tests-report.json if available
+
+          5. **Test Isolation & Cleanup**
+             - Proper beforeEach/afterEach usage
+             - Memory leak risks (unclosed resources, event listeners)
+             - Shared state between tests
+             - Mock cleanup patterns
+             - Global state pollution
+
+          6. **Mock Quality & Patterns**
+             - Mock module instance duplication issues
+             - Over-mocking vs under-mocking
+             - Mock data realism and maintenance
+             - Mock implementation consistency
+             - Proper mock reset/clear patterns
+
+          7. **Test Performance Issues**
+             - Tests creating large datasets unnecessarily
+             - Inefficient test setup/teardown
+             - Redundant test operations
+             - Memory-intensive test patterns
+             - Opportunities for parallel execution
+
+          8. **Coverage Gaps**
+             - Critical code paths without tests
+             - Error handling not tested
+             - Edge cases missing
+             - Integration points untested
+             - Browser API mocks needed
+
+          9. **Test Maintenance Concerns**
+             - Skipped/disabled tests (it.skip, xit)
+             - TODO/FIXME comments in tests
+             - Commented-out test code
+             - Outdated test data or fixtures
+             - Hard-coded test values needing constants
+
+          10. **Best Practices Compliance**
+              - CLAUDE.md testing guidelines adherence
+              - Memory leak prevention (detectLeaks, detectOpenHandles)
+              - Proper test categorization (@critical, @integration tags)
+              - Test data management (centralized fixtures)
+              - Error scenario coverage
+
+          **Analysis Approach:**
+          1. Run `npm test -- --listTests` to get all test files
+          2. Examine test file structure and organization
+          3. Look for anti-patterns in test code
+          4. Check for flaky test indicators
+          5. Analyze test performance data if available
+          6. Review jest.config.js for test configuration
+          7. Check setupTests files for global test setup issues
+
+          **Output Format:**
+          Provide a structured health report with:
+
+          ### Executive Summary
+          - Overall test suite grade (A-F)
+          - Key strengths
+          - Top 3-5 critical issues
+          - Quick wins for improvement
+
+          ### Detailed Findings
+          For each category above:
+          - Status: ✅ Good / ⚠️  Needs Attention / ❌ Critical
+          - Specific issues found with file locations
+          - Impact assessment (High/Medium/Low)
+
+          ### Prioritized Recommendations
+          1. **Critical** (fix immediately)
+          2. **High Priority** (fix soon)
+          3. **Medium Priority** (plan for next sprint)
+          4. **Low Priority** (technical debt backlog)
+
+          ### Metrics Dashboard
+          - Total tests: X
+          - Pass rate: X%
+          - Average execution time: Xs
+          - Slowest suite: X (Xs)
+          - Coverage: X% (if available)
+          - Flaky tests detected: X
+          - Tests needing cleanup: X
+
+          Reference CLAUDE.md Testing Rules and Professional Testing Standards.
+          Use `gh pr comment` to post your comprehensive health report.
           EOF
               )
               ;;

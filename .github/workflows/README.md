@@ -86,6 +86,37 @@ Focuses on:
 gh pr edit <PR_NUMBER> --add-label "review:testing"
 ```
 
+#### 🏥 Test Suite Health Assessment (`review:test-suite-health`) ⭐ NEW
+**Comprehensive analysis of the entire test suite**, not just changes in the PR.
+
+Provides a detailed health report covering:
+- **Overall Metrics**: Test count, pass rate, execution time, coverage
+- **Test Organization**: File structure, naming conventions, consistency
+- **Quality Indicators**: Missing assertions, overly complex tests, duplicates
+- **Flaky Test Detection**: Timing issues, race conditions, unreliable mocks
+- **Test Isolation**: Cleanup patterns, memory leaks, shared state
+- **Mock Quality**: Mock patterns, duplication issues, reset/clear usage
+- **Performance**: Slow tests, inefficient setup, optimization opportunities
+- **Coverage Gaps**: Critical paths, error handling, edge cases
+- **Maintenance**: Skipped tests, TODOs, outdated fixtures
+- **Best Practices**: CLAUDE.md compliance, professional standards
+
+**Output includes:**
+- Executive summary with overall grade (A-F)
+- Detailed findings with status indicators (✅/⚠️/❌)
+- Prioritized recommendations (Critical/High/Medium/Low)
+- Metrics dashboard with key statistics
+
+```bash
+# Get a comprehensive health check of your entire test suite
+gh pr edit <PR_NUMBER> --add-label "review:test-suite-health"
+
+# Or run manually on any PR
+gh workflow run claude-custom-review.yml \
+  -f review_type=test-suite-health \
+  -f pr_number=35
+```
+
 #### 📚 Documentation Review (`review:documentation`)
 Focuses on:
 - JSDoc Completeness
