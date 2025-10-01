@@ -1,6 +1,7 @@
 import { importGamesFromJson } from './savedGames';
 import { AppState } from '@/types';
 import { clearMockStore, getMockStore } from './__mocks__/storage';
+import type { ZodError, ZodIssue } from 'zod';
 
 // Mock localStorage with proper cleanup to prevent memory leaks
 let mockLocalStorageStore: Record<string, string> = {};
@@ -68,7 +69,7 @@ describe('Game Import with Partial Success', () => {
     const { appStateSchema } = require('./appStateSchema');
     const validation = appStateSchema.safeParse(data);
     if (!validation.success) {
-      const errors = validation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+      const errors = validation.error.errors.map((e: ZodIssue) => `${e.path.join('.')}: ${e.message}`).join(', ');
       throw new Error(`${label} failed validation: ${errors}`);
     }
   };
