@@ -75,10 +75,16 @@ describe('Game Import with Partial Success', () => {
     expect(result.successful).toBe(1);
   });
 
+  // Use EXACT structure from savedGames.test.ts mockBaseAppState that we know works
   const createValidGameData = (gameId: string, teamName: string = 'Test Team') => {
-    // Return complete AppState structure matching savedGames.test.ts format
     return {
+      playersOnField: [],
+      opponents: [],
+      drawings: [],
+      availablePlayers: [],
+      showPlayerNames: true,
       teamName,
+      gameEvents: [],
       opponentName: 'Opponent',
       gameDate: '2023-01-01',
       homeScore: 0,
@@ -90,25 +96,17 @@ describe('Game Import with Partial Success', () => {
       currentPeriod: 1,
       gameStatus: 'notStarted' as const,
       selectedPlayerIds: [],
+      assessments: {},
       seasonId: '',
       tournamentId: '',
-      gameEvents: [],
-      playersOnField: [],
-      opponents: [],
-      drawings: [],
-      availablePlayers: [],
-      showPlayerNames: true,
-      tacticalDiscs: [],
-      tacticalDrawings: [],
-      tacticalBallPosition: { relX: 0.5, relY: 0.5 },
-      // Add optional fields to match complete AppState schema (exactly like mockBaseAppState)
-      assessments: {},
       gameLocation: 'Test Stadium',
       gameTime: '15:00',
       subIntervalMinutes: 5,
       completedIntervalDurations: [],
       lastSubConfirmationTimeSeconds: 0,
-      demandFactor: 1
+      tacticalDiscs: [],
+      tacticalDrawings: [],
+      tacticalBallPosition: { relX: 0, relY: 0 }
     };
   };
 
