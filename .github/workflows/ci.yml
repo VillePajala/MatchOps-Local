@@ -57,7 +57,7 @@ jobs:
         run: npm ci
       
       - name: Run all tests
-        run: CI=true npx jest --ci --maxWorkers=1 --forceExit --testTimeout=10000 --bail=1
+        run: CI=true npx jest --ci --maxWorkers=1 --testTimeout=10000
       
       - name: Upload coverage
         uses: codecov/codecov-action@v3

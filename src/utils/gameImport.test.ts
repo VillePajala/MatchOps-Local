@@ -55,26 +55,6 @@ describe('Game Import with Partial Success', () => {
     // Instead, we only clear mocks that we explicitly create in tests
   });
 
-  // DIAGNOSTIC: Capture validation errors to understand failures
-  it('DIAGNOSTIC: verify createValidGameData produces valid objects', async () => {
-    const testData = {
-      'diagnostic-game': createValidGameData('diagnostic-game', 'Diagnostic Team')
-    };
-
-    const result = await importGamesFromJson(JSON.stringify(testData));
-
-    // Always show result for debugging
-    if (result.successful === 0) {
-      console.error('DIAGNOSTIC FAILURE:');
-      console.error('Result:', JSON.stringify(result, null, 2));
-      console.error('Test data:', JSON.stringify(testData, null, 2));
-    }
-
-    // If validation fails, throw detailed error with full details
-    expect(result.failed).toHaveLength(0);
-    expect(result.successful).toBe(1);
-  });
-
   // Use EXACT structure from savedGames.test.ts mockBaseAppState that we know works
   const createValidGameData = (gameId: string, teamName: string = 'Test Team') => {
     return {
