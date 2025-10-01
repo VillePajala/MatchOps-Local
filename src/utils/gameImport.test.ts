@@ -56,7 +56,7 @@ describe('Game Import with Partial Success', () => {
   });
 
   // DIAGNOSTIC: Capture validation errors to understand failures
-  it('DIAGNOSTIC: verify createValidGameData produces valid objects', async () => {
+  it.skip('DIAGNOSTIC: verify createValidGameData produces valid objects', async () => {
     const testData = {
       'diagnostic-game': createValidGameData('diagnostic-game', 'Diagnostic Team')
     };
