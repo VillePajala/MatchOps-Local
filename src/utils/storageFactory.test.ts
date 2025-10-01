@@ -94,12 +94,12 @@ jest.mock('./logger', () => ({
 describe('StorageFactory Core Functionality', () => {
   let factory: StorageFactory;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Clear test store and reset to defaults
     testStore = {};
     factory = new StorageFactory();
     // Reset to default configuration
-    factory.resetToDefaults();
+    await factory.resetToDefaults();
     jest.clearAllMocks();
   });
 
@@ -193,12 +193,12 @@ describe('StorageFactory Core Functionality', () => {
 });
 
 describe('Convenience Functions', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     // Clear test store and reset global factory instance
     testStore = {};
     // Reset the singleton factory to defaults
     const factory = new StorageFactory();
-    factory.resetToDefaults();
+    await factory.resetToDefaults();
     jest.clearAllMocks();
   });
 
@@ -221,9 +221,11 @@ describe('Convenience Functions', () => {
 });
 
 describe('Advanced Features', () => {
-  beforeEach(() => {
-    // Clear test store
+  beforeEach(async () => {
+    // Clear test store and reset to defaults
     testStore = {};
+    const factory = new StorageFactory();
+    await factory.resetToDefaults();
     jest.clearAllMocks();
   });
 
@@ -348,9 +350,11 @@ describe('Advanced Features', () => {
 });
 
 describe('Integration Tests', () => {
-  beforeEach(() => {
-    // Clear test store
+  beforeEach(async () => {
+    // Clear test store and reset to defaults
     testStore = {};
+    const factory = new StorageFactory();
+    await factory.resetToDefaults();
     jest.clearAllMocks();
   });
 
