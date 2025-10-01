@@ -56,7 +56,7 @@ describe('Game Import with Partial Success', () => {
   });
 
   // DIAGNOSTIC: Capture validation errors to understand failures
-  it.skip('DIAGNOSTIC: verify createValidGameData produces valid objects', async () => {
+  it('DIAGNOSTIC: verify createValidGameData produces valid objects', async () => {
     const testData = {
       'diagnostic-game': createValidGameData('diagnostic-game', 'Diagnostic Team')
     };
@@ -99,18 +99,10 @@ describe('Game Import with Partial Success', () => {
       tacticalDiscs: [],
       tacticalDrawings: [],
       tacticalBallPosition: { relX: 0.5, relY: 0.5 },
-      // Add optional fields to match complete AppState schema
+      // Add optional fields to match complete AppState schema (use actual values, not undefined)
       assessments: {},
-      gameLocation: undefined,
-      gameTime: undefined,
-      subIntervalMinutes: undefined,
       completedIntervalDurations: [],
-      lastSubConfirmationTimeSeconds: undefined,
-      demandFactor: 1,
-      tournamentLevel: undefined,
-      ageGroup: undefined,
-      isPlayed: false,
-      teamId: undefined
+      demandFactor: 1
     };
   };
 
