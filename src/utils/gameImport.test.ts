@@ -63,14 +63,16 @@ describe('Game Import with Partial Success', () => {
 
     const result = await importGamesFromJson(JSON.stringify(testData));
 
-    // If validation fails, throw detailed error
-    if (result.successful === 0 && result.failed.length > 0) {
-      const errorDetails = result.failed.map(f => `${f.gameId}: ${f.error}`).join('\n');
-      throw new Error(`createValidGameData produces invalid data:\n${errorDetails}`);
+    // Always show result for debugging
+    if (result.successful === 0) {
+      console.error('DIAGNOSTIC FAILURE:');
+      console.error('Result:', JSON.stringify(result, null, 2));
+      console.error('Test data:', JSON.stringify(testData, null, 2));
     }
 
-    expect(result.successful).toBe(1);
+    // If validation fails, throw detailed error with full details
     expect(result.failed).toHaveLength(0);
+    expect(result.successful).toBe(1);
   });
 
   const createValidGameData = (gameId: string, teamName: string = 'Test Team') => {
