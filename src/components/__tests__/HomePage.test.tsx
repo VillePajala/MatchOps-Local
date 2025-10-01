@@ -4,6 +4,29 @@
 
 import { render, screen, waitFor } from '../../../tests/utils/test-utils';
 import HomePage from '../HomePage';
+import { clearMockStore } from '@/utils/__mocks__/storage';
+
+// Mock storage module - uses __mocks__/storage.ts for in-memory storage
+jest.mock('@/utils/storage');
+
+// Mock logger with createLogger
+jest.mock('@/utils/logger', () => ({
+  __esModule: true,
+  default: {
+    debug: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  },
+  createLogger: jest.fn(() => ({
+    debug: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }))
+}));
 
 // Create basic test utilities locally
 const mockLocalStorage = () => {
@@ -31,13 +54,14 @@ jest.mock('@/utils/localStorage', () => ({
 
 describe('HomePage Component - Deep Testing', () => {
   beforeEach(() => {
+    clearMockStore(); // Clear IndexedDB mock storage
     // Mock localStorage
     Object.defineProperty(window, 'localStorage', {
       value: mockLocalStorage(),
       writable: true,
       configurable: true,
     });
-    jest.clearAllMocks();
+    // Note: Removed jest.clearAllMocks() as it breaks storage mock implementations
   });
 
   describe('Component Initialization', () => {
