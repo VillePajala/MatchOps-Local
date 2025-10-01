@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen, waitFor, fireEvent, act } from '../utils/test-utils';
 import HomePage from '@/components/HomePage';
-import { 
-  createMockPlayers, 
+import {
+  createMockPlayers,
   createMockGameState,
   dragAndDrop,
   clickButton,
@@ -12,6 +12,7 @@ import {
   setupGameWithPlayers,
   simulateGameSession
 } from '../utils/test-utils';
+import { clearMockStore } from '@/utils/__mocks__/storage';
 
 interface MemoryInfo {
   usedJSHeapSize: number;
@@ -22,6 +23,28 @@ interface MemoryInfo {
 interface PerformanceWithMemory extends Performance {
   memory?: MemoryInfo;
 }
+
+// Mock storage module - uses __mocks__/storage.ts for in-memory storage
+jest.mock('@/utils/storage');
+
+// Mock logger with createLogger
+jest.mock('@/utils/logger', () => ({
+  __esModule: true,
+  default: {
+    debug: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  },
+  createLogger: jest.fn(() => ({
+    debug: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }))
+}));
 
 // Mock next/router
 jest.mock('next/router', () => ({
@@ -42,8 +65,9 @@ const mockStorage = mockLocalStorage();
 
 describe('Core User Workflows Integration Tests', () => {
   beforeEach(() => {
+    clearMockStore(); // Clear IndexedDB mock storage
     mockStorage.clear();
-    jest.clearAllMocks();
+    // Note: Removed jest.clearAllMocks() as it breaks storage mock implementations
   });
 
   describe('Game Creation Flow', () => {
