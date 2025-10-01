@@ -40,11 +40,11 @@ MatchOps-Local is a comprehensive Progressive Web App (PWA) designed specificall
 - **Player Assessment**: Performance rating system with weighted difficulty tracking
 
 ### 🛡️ **Data & Privacy**
-- **IndexedDB Storage**: High-performance browser storage with automatic migration from localStorage
+- **IndexedDB Storage**: High-performance browser storage with automatic migration
 - **Complete Backup & Restore**: One-click export and import with data integrity verification
 - **Privacy by Design**: Zero external data transmission (except opt-in error reporting)
 - **GDPR Compliant**: No personal data collection or processing
-- **Data Ownership**: Full control over your data with export capabilities
+- **Data Ownership**: Full control over your data with comprehensive export capabilities
 
 ## 🏗️ Technology Stack
 
