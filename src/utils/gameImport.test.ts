@@ -96,31 +96,34 @@ describe('Game Import with Partial Success', () => {
     expect(result.successful).toBe(1);
   });
 
-  const createValidGameData = (gameId: string, teamName: string = 'Test Team'): AppState => ({
-    teamName,
-    opponentName: 'Opponent',
-    gameDate: '2023-01-01',
-    homeScore: 0,
-    awayScore: 0,
-    gameNotes: '',
-    homeOrAway: 'home' as const,
-    numberOfPeriods: 2 as const,
-    periodDurationMinutes: 10,
-    currentPeriod: 1,
-    gameStatus: 'notStarted' as const,
-    selectedPlayerIds: [],
-    seasonId: '',
-    tournamentId: '',
-    gameEvents: [],
-    playersOnField: [],
-    opponents: [],
-    drawings: [],
-    availablePlayers: [],
-    showPlayerNames: true,
-    tacticalDiscs: [],
-    tacticalDrawings: [],
-    tacticalBallPosition: { relX: 0.5, relY: 0.5 }
-  });
+  const createValidGameData = (gameId: string, teamName: string = 'Test Team') => {
+    // Return exact same structure as passing DEBUG test
+    return {
+      teamName,
+      opponentName: 'Opponent',
+      gameDate: '2023-01-01',
+      homeScore: 0,
+      awayScore: 0,
+      gameNotes: '',
+      homeOrAway: 'home' as const,
+      numberOfPeriods: 2 as const,
+      periodDurationMinutes: 10,
+      currentPeriod: 1,
+      gameStatus: 'notStarted' as const,
+      selectedPlayerIds: [],
+      seasonId: '',
+      tournamentId: '',
+      gameEvents: [],
+      playersOnField: [],
+      opponents: [],
+      drawings: [],
+      availablePlayers: [],
+      showPlayerNames: true,
+      tacticalDiscs: [],
+      tacticalDrawings: [],
+      tacticalBallPosition: { relX: 0.5, relY: 0.5 }
+    };
+  };
 
   describe('successful imports', () => {
     it('should import all valid games successfully', async () => {
