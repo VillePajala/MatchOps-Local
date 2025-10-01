@@ -11,7 +11,7 @@ import {
 } from './appSettings';
 import { APP_SETTINGS_KEY, LAST_HOME_TEAM_NAME_KEY } from '@/config/storageKeys';
 import { clearMockStore } from './__mocks__/storage';
-import { getStorageItem, setStorageItem, removeStorageItem } from './storage';
+import { getStorageItem, setStorageItem, removeStorageItem, clearStorage } from './storage';
 
 // Auto-mock the storage module
 jest.mock('./storage');
@@ -20,6 +20,7 @@ jest.mock('./storage');
 const mockGetStorageItem = getStorageItem as jest.MockedFunction<typeof getStorageItem>;
 const mockSetStorageItem = setStorageItem as jest.MockedFunction<typeof setStorageItem>;
 const mockRemoveStorageItem = removeStorageItem as jest.MockedFunction<typeof removeStorageItem>;
+const mockClearStorage = clearStorage as jest.MockedFunction<typeof clearStorage>;
 
 describe('App Settings Utilities', () => {
 
@@ -29,10 +30,12 @@ describe('App Settings Utilities', () => {
     mockGetStorageItem.mockReset();
     mockSetStorageItem.mockReset();
     mockRemoveStorageItem.mockReset();
+    mockClearStorage.mockReset();
 
     // Reset to default behavior - successful operations
     mockSetStorageItem.mockImplementation(async () => {});
     mockGetStorageItem.mockResolvedValue(null);
+    mockClearStorage.mockImplementation(async () => {});
   });
 
   describe('getAppSettings', () => {
@@ -371,28 +374,24 @@ describe('App Settings Utilities', () => {
   });
 
   describe('resetAppSettings', () => {
-    it('should reset settings to default and return true', async () => {
-      // Mock setItem to simulate successful save by saveAppSettings
-      mockSetStorageItem.mockImplementation(async () => {});
+    it('should clear all storage and return true', async () => {
+      // Mock clearStorage to simulate successful clear
+      mockClearStorage.mockImplementation(async () => {});
 
       const result = await resetAppSettings();
-      
-      expect(mockSetStorageItem).toHaveBeenCalledWith(
-        APP_SETTINGS_KEY,
-        JSON.stringify({
-          currentGameId: null,
-          lastHomeTeamName: '',
-          language: 'fi',
-          hasSeenAppGuide: false,
-          useDemandCorrection: false
-        })
-      );
+
+      // Should call removeStorageItem for all known keys
+      expect(mockRemoveStorageItem).toHaveBeenCalled();
+
+      // Should call clearStorage to ensure everything is cleared
+      expect(mockClearStorage).toHaveBeenCalled();
+
       expect(result).toBe(true);
     });
 
-    it('should return false if resetting fails', async () => {
-      mockSetStorageItem.mockImplementation(() => { 
-        throw new Error('Cannot save default settings'); 
+    it('should return false if clearing storage fails', async () => {
+      mockClearStorage.mockImplementation(() => {
+        throw new Error('Cannot clear storage');
       });
 
       const result = await resetAppSettings();

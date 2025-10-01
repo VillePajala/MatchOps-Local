@@ -72,6 +72,11 @@ export const performMemoryCleanup = jest.fn(async () => {
   return { itemsRemoved: 0, keysScanned: Object.keys(mockStore).length };
 });
 
+export const clearStorage = jest.fn(async (): Promise<void> => {
+  // Clear all data from mock store
+  Object.keys(mockStore).forEach(key => delete mockStore[key]);
+});
+
 // Helper to clear the mock store AND reset all Jest mocks (useful for beforeEach)
 export const clearMockStore = () => {
   // Clear the in-memory store
