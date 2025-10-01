@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import "@/i18n";
 import InstallPrompt from "./InstallPrompt";
@@ -64,22 +64,21 @@ describe("InstallPrompt", () => {
     // Dispatch install event
     await act(async () => {
       dispatchInstallEvent(jest.fn());
-      // Wait for state update
-      await new Promise(resolve => setTimeout(resolve, 0));
     });
 
+    // Wait for the install prompt to appear
     const dismissBtn = await screen.findByText("Not now");
 
     await act(async () => {
       fireEvent.click(dismissBtn);
-      // Wait for async storage operation to complete
-      await new Promise(resolve => setTimeout(resolve, 100));
     });
 
-    // Verify setStorageItem was called with the dismiss timestamp
-    expect(setStorageItem).toHaveBeenCalledWith(
-      "installPromptDismissed",
-      expect.any(String)
-    );
+    // Wait for async storage operation to complete
+    await waitFor(() => {
+      expect(setStorageItem).toHaveBeenCalledWith(
+        "installPromptDismissed",
+        expect.any(String)
+      );
+    });
   });
 });

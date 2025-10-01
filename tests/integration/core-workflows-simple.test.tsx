@@ -108,13 +108,8 @@ describe('Core User Workflows Integration Tests (Simplified)', () => {
     // 3. Clear all mocks to remove references
     jest.clearAllMocks();
 
-    // 4. Wait for any pending React updates to complete
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 0));
-    });
-
-    // 5. Final cleanup of any remaining promises
-    await new Promise(resolve => setTimeout(resolve, 0));
+    // Note: Removed setTimeout-based flushes as they are unreliable.
+    // React Testing Library's cleanup() handles pending updates properly.
   });
 
   describe('Game Creation Flow', () => {

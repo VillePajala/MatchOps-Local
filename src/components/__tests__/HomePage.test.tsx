@@ -176,13 +176,15 @@ describe('HomePage Component - Deep Testing', () => {
 
       // Click multiple buttons rapidly
       const buttons = screen.getAllByRole('button').filter(btn => !(btn as HTMLButtonElement).disabled);
-      
+
       for (let i = 0; i < Math.min(buttons.length, 3); i++) {
         buttons[i].click();
-        // Small delay to prevent overwhelming
-        await new Promise(resolve => setTimeout(resolve, 10));
+        // Wait for DOM to stabilize after each interaction
+        await waitFor(() => {
+          expect(document.body).toContainHTML('div');
+        });
       }
-      
+
       // Should still be responsive
       expect(document.body).toContainHTML('div');
       expect(screen.queryByText(/error/i)).not.toBeInTheDocument();
@@ -218,10 +220,13 @@ describe('HomePage Component - Deep Testing', () => {
       if (buttons.length > 0) {
         for (let i = 0; i < Math.min(buttons.length, 2); i++) {
           buttons[i].click();
-          await new Promise(resolve => setTimeout(resolve, 10));
+          // Wait for DOM to stabilize after each interaction
+          await waitFor(() => {
+            expect(document.body).toContainHTML('div');
+          });
         }
       }
-      
+
       // Clean unmount should not throw
       expect(() => unmount()).not.toThrow();
     });
