@@ -2,15 +2,16 @@ name: Claude Code Review
 
 on:
   pull_request:
-    types: [opened, labeled]
-  workflow_dispatch: # Allow manual trigger
+    types: [opened, synchronize]
+    # Optional: Only run on specific file changes
+    # paths:
+    #   - "src/**/*.ts"
+    #   - "src/**/*.tsx"
+    #   - "src/**/*.js"
+    #   - "src/**/*.jsx"
 
 jobs:
   claude-review:
-    # Only run if PR has 'code-review' label or was manually triggered
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      contains(github.event.pull_request.labels.*.name, 'code-review')
     # Optional: Filter by PR author
     # if: |
     #   github.event.pull_request.user.login == 'external-contributor' ||
@@ -20,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write  # Required for posting review comments
+      pull-requests: read
       issues: read
       id-token: write
     
