@@ -156,35 +156,34 @@ if (typeof process !== 'undefined') {
 const originalConsoleWarn = console.warn;
 const originalConsoleError = console.error;
 
-// List of allowed console warnings/errors (test environment noise and expected test outputs)
-const allowedConsolePatterns = [
-  'ResizeObserver loop',
-  'Not implemented: HTMLCanvasElement',
-  'Not implemented: navigation',
-  'Warning: ReactDOM.render',
-  'Warning: useLayoutEffect',
-  'Warning: An update to',
-  'act(...) is not supported',
-  // React 19 warnings that are expected
-  'Warning: React does not recognize',
-  'Warning: Invalid DOM property',
-  // Test-specific expected console output (from error handling tests)
-  'Error saving game:',
-  'Error loading game:',
-  'Error deleting game:',
-  'Skipping IndexedDB test',
-  'Failed to',
-  'Migration failed',
-  'Storage operation failed',
-];
-
-const shouldFailOnConsoleMessage = (message) => {
-  const messageStr = typeof message === 'string' ? message : String(message);
-  return !allowedConsolePatterns.some(pattern => messageStr.includes(pattern));
-};
-
 // Console monitoring temporarily disabled - too many false positives from error handling tests
 // TODO: Re-enable with better pattern matching or opt-in per-test basis
+// List of allowed console warnings/errors (test environment noise and expected test outputs)
+// const allowedConsolePatterns = [
+//   'ResizeObserver loop',
+//   'Not implemented: HTMLCanvasElement',
+//   'Not implemented: navigation',
+//   'Warning: ReactDOM.render',
+//   'Warning: useLayoutEffect',
+//   'Warning: An update to',
+//   'act(...) is not supported',
+//   // React 19 warnings that are expected
+//   'Warning: React does not recognize',
+//   'Warning: Invalid DOM property',
+//   // Test-specific expected console output (from error handling tests)
+//   'Error saving game:',
+//   'Error loading game:',
+//   'Error deleting game:',
+//   'Skipping IndexedDB test',
+//   'Failed to',
+//   'Migration failed',
+//   'Storage operation failed',
+// ];
+//
+// const shouldFailOnConsoleMessage = (message) => {
+//   const messageStr = typeof message === 'string' ? message : String(message);
+//   return !allowedConsolePatterns.some(pattern => messageStr.includes(pattern));
+// };
 // console.warn = (...args) => {
 //   originalConsoleWarn.apply(console, args);
 //   const message = args[0];

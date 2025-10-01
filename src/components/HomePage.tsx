@@ -1592,8 +1592,16 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     if (window.confirm(t('controlBar.hardResetConfirmation', 'Are you sure you want to completely reset the application? All saved data (players, stats, positions) will be permanently lost.'))) {
       try {
         logger.log("Performing hard reset using utility...");
-        await utilResetAppSettings(); // Use utility function
-        window.location.reload();
+
+        // Clear storage completely
+        await utilResetAppSettings();
+
+        logger.log("Hard reset complete, reloading app...");
+
+        // Add timestamp to force complete reload and bypass Next.js cache
+        // Use replace to avoid adding to browser history
+        const timestamp = Date.now();
+        window.location.replace(`${window.location.origin}${window.location.pathname}?reset=${timestamp}`);
       } catch (error) {
         logger.error("Error during hard reset:", error);
         alert("Failed to reset application data.");

@@ -5,11 +5,15 @@ import {
   SAVED_GAMES_KEY,
   SEASONS_LIST_KEY,
   TOURNAMENTS_LIST_KEY,
+  PLAYER_ADJUSTMENTS_KEY,
+  TIMER_STATE_KEY,
+  TEAMS_INDEX_KEY,
+  TEAM_ROSTERS_KEY,
+  APP_DATA_VERSION_KEY,
 } from '@/config/storageKeys';
 import {
   getStorageItem,
   setStorageItem,
-  removeStorageItem,
 } from './storage';
 import logger from '@/utils/logger';
 /**
@@ -190,25 +194,41 @@ export const saveHasSeenAppGuide = async (value: boolean): Promise<boolean> => {
 
 /**
  * Clears all application settings, resetting to defaults
+ * Uses clearStorage() to completely wipe IndexedDB for a clean reset
  * @returns A promise that resolves to true if successful, false otherwise
  */
 export const resetAppSettings = async (): Promise<boolean> => {
   try {
-    // Clear all known keys from storage
+    // Import storage utilities
+    const { clearStorage, removeStorageItem } = await import('./storage');
+
+    // First, explicitly clear all known app data keys (for safety)
+    logger.log('[resetAppSettings] Clearing all known data keys...');
     await Promise.allSettled([
       removeStorageItem(APP_SETTINGS_KEY),
       removeStorageItem(SAVED_GAMES_KEY),
       removeStorageItem(MASTER_ROSTER_KEY),
       removeStorageItem(SEASONS_LIST_KEY),
       removeStorageItem(TOURNAMENTS_LIST_KEY),
-      removeStorageItem(LAST_HOME_TEAM_NAME_KEY), // Legacy compatibility
+      removeStorageItem(PLAYER_ADJUSTMENTS_KEY),
+      removeStorageItem(TIMER_STATE_KEY),
+      removeStorageItem(TEAMS_INDEX_KEY),
+      removeStorageItem(TEAM_ROSTERS_KEY),
+      removeStorageItem(APP_DATA_VERSION_KEY),
+      removeStorageItem(LAST_HOME_TEAM_NAME_KEY),
+      removeStorageItem('hasSeenFirstGameGuide'),
+      removeStorageItem('storage-mode'),
+      removeStorageItem('storage-version'),
     ]);
 
-    // After clearing, save the default settings back
-    const success = await saveAppSettings(DEFAULT_APP_SETTINGS);
-    return success;
+    // Then use clearStorage to ensure everything is gone
+    logger.log('[resetAppSettings] Performing full storage clear...');
+    await clearStorage();
+
+    logger.log('[resetAppSettings] All storage cleared successfully');
+    return true;
   } catch (error) {
-    logger.error('Error resetting app settings:', error);
+    logger.error('[resetAppSettings] Error resetting app:', error);
     return false;
   }
 };
