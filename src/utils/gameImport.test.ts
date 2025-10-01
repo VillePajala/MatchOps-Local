@@ -124,10 +124,83 @@ describe('Game Import with Partial Success', () => {
 
   describe('successful imports', () => {
     it('should import all valid games successfully', async () => {
+      // Use exact same format as passing DEBUG test
       const validGames = {
-        'game1': createValidGameData('game1', 'Team A'),
-        'game2': createValidGameData('game2', 'Team B'),
-        'game3': createValidGameData('game3', 'Team C')
+        'game1': {
+          teamName: 'Team A',
+          opponentName: 'Opponent',
+          gameDate: '2023-01-01',
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          selectedPlayerIds: [],
+          seasonId: '',
+          tournamentId: '',
+          gameEvents: [],
+          playersOnField: [],
+          opponents: [],
+          drawings: [],
+          availablePlayers: [],
+          showPlayerNames: true,
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: { relX: 0.5, relY: 0.5 }
+        },
+        'game2': {
+          teamName: 'Team B',
+          opponentName: 'Opponent',
+          gameDate: '2023-01-01',
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          selectedPlayerIds: [],
+          seasonId: '',
+          tournamentId: '',
+          gameEvents: [],
+          playersOnField: [],
+          opponents: [],
+          drawings: [],
+          availablePlayers: [],
+          showPlayerNames: true,
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: { relX: 0.5, relY: 0.5 }
+        },
+        'game3': {
+          teamName: 'Team C',
+          opponentName: 'Opponent',
+          gameDate: '2023-01-01',
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          homeOrAway: 'home' as const,
+          numberOfPeriods: 2 as const,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted' as const,
+          selectedPlayerIds: [],
+          seasonId: '',
+          tournamentId: '',
+          gameEvents: [],
+          playersOnField: [],
+          opponents: [],
+          drawings: [],
+          availablePlayers: [],
+          showPlayerNames: true,
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: { relX: 0.5, relY: 0.5 }
+        }
       };
 
       const result = await importGamesFromJson(JSON.stringify(validGames));
