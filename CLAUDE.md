@@ -449,6 +449,190 @@ expect(() => parseData(invalidData)).toThrow(
 );
 ```
 
+### Professional Testing Standards (Infrastructure Requirements)
+
+**CRITICAL: These standards are mandatory for all test code and must never be compromised.**
+
+#### Anti-Patterns That Must Never Appear in Tests
+
+**1. Fixed Timeouts (FORBIDDEN)**
+```typescript
+// ❌ FORBIDDEN - Flaky and unreliable
+await new Promise(resolve => setTimeout(resolve, 100));
+setTimeout(() => expect(something).toBe(true), 50);
+
+// ✅ REQUIRED - Wait for actual conditions
+await waitFor(() => {
+  expect(screen.getByText('Success')).toBeInTheDocument();
+});
+```
+
+**Why forbidden:** Fixed timeouts assume operations complete within arbitrary time limits. They fail randomly in CI, on slow machines, or under load. They mask real timing issues and make tests unreliable.
+
+**2. Missing act() Wrappers (FORBIDDEN)**
+```typescript
+// ❌ FORBIDDEN - State updates not wrapped
+fireEvent.click(button);
+expect(result).toBe(true);
+
+// ✅ REQUIRED - Proper React state handling
+await act(async () => {
+  fireEvent.click(button);
+});
+await waitFor(() => {
+  expect(result).toBe(true);
+});
+```
+
+**Why forbidden:** React state updates must be wrapped in `act()` to ensure all updates and effects complete before assertions. Missing wrappers cause "not wrapped in act()" warnings and flaky tests.
+
+**3. Issue-Masking Mechanisms (FORBIDDEN)**
+```typescript
+// ❌ FORBIDDEN in jest.config.js
+detectLeaks: false        // Masks memory leaks
+forceExit: true           // Masks resource leaks
+--bail                    // Hides multiple failures
+
+// ❌ FORBIDDEN in test files
+jest.setTimeout(999999)   // Masks slow tests
+jest.retryTimes(10)       // Masks flaky tests
+
+// ✅ REQUIRED - Expose and fix real issues
+detectLeaks: true         // Find memory leaks
+detectOpenHandles: true   // Find resource leaks
+forceExit: false          // Ensure clean exit
+```
+
+**Why forbidden:** These mechanisms hide real problems instead of fixing them. They create technical debt and allow issues to accumulate until they become critical failures.
+
+**4. Console Noise Tolerance (FORBIDDEN)**
+```typescript
+// ❌ FORBIDDEN - Ignoring console warnings
+console.warn('Something went wrong'); // Test still passes
+
+// ✅ REQUIRED - Console monitoring enabled
+// Tests automatically fail on unexpected console.warn/console.error
+// See src/setupTests.mjs for monitoring implementation
+```
+
+**Why forbidden:** Console warnings indicate real problems. Tolerating them leads to warning fatigue and masks critical issues. Our test infrastructure automatically fails tests that produce unexpected console output.
+
+#### Required Testing Infrastructure
+
+**Configuration Requirements (jest.config.js):**
+```javascript
+{
+  detectOpenHandles: true,  // ✅ REQUIRED
+  detectLeaks: true,        // ✅ REQUIRED
+  forceExit: false,         // ✅ REQUIRED
+  testTimeout: 30000,       // ✅ REQUIRED - Reasonable but not infinite
+  maxWorkers: process.env.CI ? 2 : '50%', // ✅ REQUIRED
+}
+```
+
+**Setup Requirements (src/setupTests.mjs):**
+- ✅ Console.warn/console.error monitoring (fails tests on unexpected output)
+- ✅ Unhandled promise rejection detection
+- ✅ Proper cleanup in afterEach (cleanup(), clear mocks, clear timers)
+- ✅ Resource cleanup in afterAll (restore console, remove listeners)
+
+**CI Requirements (.github/workflows/ci.yml):**
+```yaml
+# ✅ REQUIRED - No issue-masking flags
+- run: CI=true npx jest --ci --maxWorkers=1 --testTimeout=10000
+
+# ❌ FORBIDDEN - Never use these
+- run: CI=true npx jest --forceExit --bail=1 --retries=3
+```
+
+#### Async Testing Standards
+
+**Always follow this pattern for React interactions:**
+```typescript
+// ✅ COMPLETE PATTERN - Use this consistently
+test('user interaction test', async () => {
+  render(<Component />);
+
+  // Wait for initial render
+  await waitFor(() => {
+    expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+  });
+
+  // Wrap interactions in act()
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+  });
+
+  // Wait for state updates
+  await waitFor(() => {
+    expect(screen.getByText('Success')).toBeInTheDocument();
+  });
+});
+```
+
+**Test Isolation Requirements:**
+```typescript
+// ✅ REQUIRED in every describe block
+beforeEach(async () => {
+  // Clear mocks and state
+  jest.clearAllMocks();
+  jest.clearAllTimers();
+
+  // Clear storage (if applicable)
+  clearMockStore();
+  localStorage.clear();
+
+  // Reset to defaults (if applicable)
+  if (factory) {
+    await factory.resetToDefaults(); // Note: await async methods!
+  }
+});
+
+afterEach(async () => {
+  // Clean up React
+  cleanup();
+
+  // Flush any pending updates (if needed)
+  await act(async () => {
+    // Allow pending updates to complete
+  });
+});
+```
+
+#### Quality Metrics and Enforcement
+
+**Test Suite Quality Requirements:**
+- ✅ **Pass rate**: 100% (no failing tests in main/master)
+- ✅ **Flakiness**: 0% (tests pass consistently, no random failures)
+- ✅ **Resource leaks**: 0 (detectOpenHandles catches all)
+- ✅ **Memory leaks**: 0 (detectLeaks catches all)
+- ✅ **Console warnings**: 0 (monitoring fails tests automatically)
+- ✅ **Coverage thresholds**: 85% lines, 85% functions, 80% branches
+
+**Monitoring and Enforcement:**
+- CI fails on any test failure (no --bail to hide multiple failures)
+- CI fails on resource leaks (no --forceExit to mask them)
+- Tests fail on console warnings (automatic monitoring in setupTests.mjs)
+- Flaky test reports generated automatically
+- Test timeouts set to catch slow/hanging tests (30s default)
+
+#### Anti-Pattern Detection Checklist
+
+**Before committing test code, verify:**
+- [ ] No `setTimeout` or fixed delays (use `waitFor()` instead)
+- [ ] All `fireEvent`/`userEvent` calls wrapped in `act()` or followed by `waitFor()`
+- [ ] All async operations properly awaited
+- [ ] No `--forceExit`, `--bail`, or `--retries` flags in CI
+- [ ] `detectLeaks: true` and `detectOpenHandles: true` in jest.config
+- [ ] Proper cleanup in `beforeEach`/`afterEach`
+- [ ] No suppressed console warnings
+- [ ] Tests pass locally without retries
+
+**When you find anti-patterns:**
+1. Fix immediately - don't defer or document as "known issue"
+2. Add test to prevent regression
+3. Update this document if pattern is common
+
 ### Flaky Test Management
 
 **Jest Retry Configuration:**

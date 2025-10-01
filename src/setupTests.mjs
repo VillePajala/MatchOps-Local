@@ -152,6 +152,64 @@ if (typeof process !== 'undefined') {
   });
 }
 
+// Console monitoring to catch warnings and errors in tests
+const originalConsoleWarn = console.warn;
+const originalConsoleError = console.error;
+
+// List of allowed console warnings/errors (test environment noise)
+const allowedConsolePatterns = [
+  'ResizeObserver loop',
+  'Not implemented: HTMLCanvasElement',
+  'Not implemented: navigation',
+  'Warning: ReactDOM.render',
+  'Warning: useLayoutEffect',
+  'Warning: An update to',
+  'act(...) is not supported',
+  // React 19 warnings that are expected
+  'Warning: React does not recognize',
+  'Warning: Invalid DOM property',
+];
+
+const shouldFailOnConsoleMessage = (message) => {
+  const messageStr = typeof message === 'string' ? message : String(message);
+  return !allowedConsolePatterns.some(pattern => messageStr.includes(pattern));
+};
+
+console.warn = (...args) => {
+  originalConsoleWarn.apply(console, args);
+
+  const message = args[0];
+  if (shouldFailOnConsoleMessage(message)) {
+    const testState = expect.getState();
+    const testName = testState?.currentTestName || 'unknown test';
+    const error = new Error(`Unexpected console.warn in test "${testName}": ${message}`);
+    error.consoleArgs = args;
+
+    // Fail the test
+    throw error;
+  }
+};
+
+console.error = (...args) => {
+  originalConsoleError.apply(console, args);
+
+  const message = args[0];
+  // Allow our own error reporting from setupTests
+  if (typeof message === 'string' && message.startsWith('🚨')) {
+    return;
+  }
+
+  if (shouldFailOnConsoleMessage(message)) {
+    const testState = expect.getState();
+    const testName = testState?.currentTestName || 'unknown test';
+    const error = new Error(`Unexpected console.error in test "${testName}": ${message}`);
+    error.consoleArgs = args;
+
+    // Fail the test
+    throw error;
+  }
+};
+
 // Mock window.location if needed by tests
 const originalLocation = typeof window !== 'undefined' ? window.location : undefined;
 
@@ -242,6 +300,10 @@ afterAll(() => {
   if (typeof process !== 'undefined') {
     process.removeListener('unhandledRejection', handleUnhandledRejection);
   }
+
+  // Restore original console methods
+  console.warn = originalConsoleWarn;
+  console.error = originalConsoleError;
 
   // Final cleanup of the Set
   unhandledRejections.clear();

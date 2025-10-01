@@ -62,7 +62,7 @@ const customJestConfig = {
 
   // Test stability and leak detection
   detectOpenHandles: true,  // Find resources that prevent Node from exiting
-  detectLeaks: false,       // Disable leak detection until root cause is fixed
+  detectLeaks: true,        // Enable memory leak detection for test isolation
   forceExit: false,         // Never force exit - fix issues properly
 
   // Flaky test management handled via jest.retryTimes() in setupTests.mjs
