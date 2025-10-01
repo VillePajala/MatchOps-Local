@@ -155,6 +155,11 @@ describe('Game Import with Partial Success', () => {
 
       const result = await importGamesFromJson(JSON.stringify(mixedGames));
 
+      // Debug output
+      console.log('Import result:', JSON.stringify(result, null, 2));
+      console.log('Mock store keys:', Object.keys(getMockStore()));
+      console.log('Mock store savedSoccerGames:', getMockStore()['savedSoccerGames']);
+
       expect(result.successful).toBe(2); // Two valid games imported
       expect(result.failed).toHaveLength(2); // Two invalid games failed
       expect(result.skipped).toBe(0);
