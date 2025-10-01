@@ -8,8 +8,12 @@ import { appStateSchema } from './appStateSchema';
 
 // Import mock utilities from the mocked module (not from __mocks__ directly)
 // This ensures we get the same instance that jest.mock() creates
-const storageModule = require('./storage');
-const { clearMockStore, getMockStore, setStorageItem: mockSetStorageItem } = storageModule;
+// Using jest.requireMock to get the mocked module instance
+const storageModule = jest.requireMock('./storage') as {
+  clearMockStore: () => void;
+  getMockStore: () => Record<string, string>;
+};
+const { clearMockStore, getMockStore } = storageModule;
 
 // Mock localStorage with proper cleanup to prevent memory leaks
 let mockLocalStorageStore: Record<string, string> = {};
