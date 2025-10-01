@@ -2,27 +2,26 @@ import { importGamesFromJson } from './savedGames';
 import { AppState } from '@/types';
 import { clearMockStore, getMockStore } from './__mocks__/storage';
 
-// Mock localStorage
-const mockLocalStorage = (() => {
-  let store: Record<string, string> = {};
-  
-  return {
-    getItem: jest.fn((key: string) => store[key] || null),
-    setItem: jest.fn((key: string, value: string) => {
-      store[key] = value;
-    }),
-    removeItem: jest.fn((key: string) => {
-      delete store[key];
-    }),
-    clear: jest.fn(() => {
-      store = {};
-    }),
-    getStore: () => ({ ...store })
-  };
-})();
+// Mock localStorage with proper cleanup to prevent memory leaks
+let mockLocalStorageStore: Record<string, string> = {};
+
+const mockLocalStorage = {
+  getItem: jest.fn((key: string) => mockLocalStorageStore[key] || null),
+  setItem: jest.fn((key: string, value: string) => {
+    mockLocalStorageStore[key] = value;
+  }),
+  removeItem: jest.fn((key: string) => {
+    delete mockLocalStorageStore[key];
+  }),
+  clear: jest.fn(() => {
+    mockLocalStorageStore = {};
+  }),
+  getStore: () => ({ ...mockLocalStorageStore })
+};
 
 Object.defineProperty(global, 'localStorage', {
-  value: mockLocalStorage
+  value: mockLocalStorage,
+  configurable: true
 });
 
 // Mock logger
@@ -51,8 +50,17 @@ describe('Game Import with Partial Success', () => {
   beforeEach(() => {
     clearMockStore(); // Clear IndexedDB mock storage
     mockLocalStorage.clear(); // Keep for legacy if needed
+    jest.clearAllTimers(); // Clear any pending timers
     // Note: jest.clearAllMocks() would reset our storage mock implementations
     // Instead, we only clear mocks that we explicitly create in tests
+  });
+
+  afterEach(() => {
+    // Clean up to prevent memory leaks
+    clearMockStore();
+    mockLocalStorage.clear();
+    mockLocalStorageStore = {}; // Explicitly clear the store to break references
+    jest.clearAllTimers();
   });
 
   // Use EXACT structure from savedGames.test.ts mockBaseAppState that we know works
