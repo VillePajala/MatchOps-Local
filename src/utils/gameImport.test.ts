@@ -51,7 +51,8 @@ describe('Game Import with Partial Success', () => {
   beforeEach(() => {
     clearMockStore(); // Clear IndexedDB mock storage
     mockLocalStorage.clear(); // Keep for legacy if needed
-    jest.clearAllMocks();
+    // Note: jest.clearAllMocks() would reset our storage mock implementations
+    // Instead, we only clear mocks that we explicitly create in tests
   });
 
   // DEBUG: Super simple test to understand what's happening
