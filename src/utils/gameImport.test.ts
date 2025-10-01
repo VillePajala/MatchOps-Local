@@ -63,6 +63,16 @@ describe('Game Import with Partial Success', () => {
     jest.clearAllTimers();
   });
 
+  // Helper to validate test data against schema
+  const validateTestData = (data: unknown, label: string) => {
+    const { appStateSchema } = require('./appStateSchema');
+    const validation = appStateSchema.safeParse(data);
+    if (!validation.success) {
+      const errors = validation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+      throw new Error(`${label} failed validation: ${errors}`);
+    }
+  };
+
   // Use EXACT structure from savedGames.test.ts mockBaseAppState that we know works
   const createValidGameData = (gameId: string, teamName: string = 'Test Team'): AppState => {
     return {
@@ -98,6 +108,18 @@ describe('Game Import with Partial Success', () => {
     };
   };
 
+  describe('test data validation', () => {
+    it('should validate that createValidGameData produces valid AppState', () => {
+      const testData = createValidGameData('test-id', 'Test Team');
+
+      // This will throw with descriptive error if validation fails
+      validateTestData(testData, 'createValidGameData output');
+
+      // If we get here, validation passed
+      expect(testData.teamName).toBe('Test Team');
+    });
+  });
+
   describe('successful imports', () => {
     it('should import all valid games successfully', async () => {
       const validGames = {
@@ -108,10 +130,10 @@ describe('Game Import with Partial Success', () => {
 
       const result = await importGamesFromJson(JSON.stringify(validGames));
 
-      // DEBUG: Show what actually happened
+      // Provide detailed error message if validation failed
       if (result.successful !== 3) {
-        console.error('VALIDATION ERRORS:', JSON.stringify(result.failed, null, 2));
-        throw new Error(`Expected 3 successful imports but got ${result.successful}. Errors: ${JSON.stringify(result.failed)}`);
+        const errorDetails = result.failed.map(f => `  ${f.gameId}: ${f.error}`).join('\n');
+        fail(`Expected 3 successful imports but got ${result.successful}.\nValidation errors:\n${errorDetails}`);
       }
 
       expect(result.successful).toBe(3);
@@ -175,15 +197,10 @@ describe('Game Import with Partial Success', () => {
 
       const result = await importGamesFromJson(JSON.stringify(mixedGames));
 
-      // Debug output
-      console.log('Import result:', JSON.stringify(result, null, 2));
-      console.log('Mock store keys:', Object.keys(getMockStore()));
-      console.log('Mock store savedSoccerGames:', getMockStore()['savedSoccerGames']);
-
-      // If validation failed, log the errors for debugging
+      // Provide detailed error message if validation failed for valid games
       if (result.successful !== 2) {
-        console.error('VALIDATION ERRORS:', JSON.stringify(result.failed, null, 2));
-        throw new Error(`Expected 2 successful imports but got ${result.successful}. Errors: ${JSON.stringify(result.failed)}`);
+        const allErrors = result.failed.map(f => `  ${f.gameId}: ${f.error}`).join('\n');
+        fail(`Expected 2 successful imports but got ${result.successful}.\nAll validation errors:\n${allErrors}`);
       }
 
       expect(result.successful).toBe(2); // Two valid games imported
@@ -293,6 +310,12 @@ describe('Game Import with Partial Success', () => {
       };
 
       const result = await importGamesFromJson(JSON.stringify(gamesWithNull));
+
+      // Provide detailed error message if validation failed for valid game
+      if (result.successful !== 1) {
+        const errorDetails = result.failed.map(f => `  ${f.gameId}: ${f.error}`).join('\n');
+        fail(`Expected 1 successful import but got ${result.successful}.\nValidation errors:\n${errorDetails}`);
+      }
 
       expect(result.successful).toBe(1); // Valid game imported
       expect(result.failed).toHaveLength(1); // Null game failed
