@@ -55,46 +55,22 @@ describe('Game Import with Partial Success', () => {
     // Instead, we only clear mocks that we explicitly create in tests
   });
 
-  // DEBUG: Super simple test to understand what's happening
-  it('DEBUG: should import a single minimal game', async () => {
-    const minimalGame = {
-      'test-game': {
-        teamName: 'Test Team',
-        opponentName: 'Opponent',
-        gameDate: '2023-01-01',
-        homeScore: 0,
-        awayScore: 0,
-        gameNotes: '',
-        homeOrAway: 'home' as const,
-        numberOfPeriods: 2 as const,
-        periodDurationMinutes: 10,
-        currentPeriod: 1,
-        gameStatus: 'notStarted' as const,
-        selectedPlayerIds: [],
-        seasonId: '',
-        tournamentId: '',
-        gameEvents: [],
-        playersOnField: [],
-        opponents: [],
-        drawings: [],
-        availablePlayers: [],
-        showPlayerNames: true,
-        tacticalDiscs: [],
-        tacticalDrawings: [],
-        tacticalBallPosition: { relX: 0.5, relY: 0.5 }
-      }
+  // DIAGNOSTIC: Capture validation errors to understand failures
+  it('DIAGNOSTIC: verify createValidGameData produces valid objects', async () => {
+    const testData = {
+      'diagnostic-game': createValidGameData('diagnostic-game', 'Diagnostic Team')
     };
 
-    console.log('=== DEBUG TEST ===');
-    console.log('Input:', JSON.stringify(minimalGame, null, 2));
+    const result = await importGamesFromJson(JSON.stringify(testData));
 
-    const result = await importGamesFromJson(JSON.stringify(minimalGame));
-
-    console.log('Result:', JSON.stringify(result, null, 2));
-    console.log('Mock store:', JSON.stringify(getMockStore(), null, 2));
-    console.log('=== END DEBUG ===');
+    // If validation fails, throw detailed error
+    if (result.successful === 0 && result.failed.length > 0) {
+      const errorDetails = result.failed.map(f => `${f.gameId}: ${f.error}`).join('\n');
+      throw new Error(`createValidGameData produces invalid data:\n${errorDetails}`);
+    }
 
     expect(result.successful).toBe(1);
+    expect(result.failed).toHaveLength(0);
   });
 
   const createValidGameData = (gameId: string, teamName: string = 'Test Team') => {
