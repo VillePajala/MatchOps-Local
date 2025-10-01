@@ -180,6 +180,12 @@ describe('Game Import with Partial Success', () => {
       console.log('Mock store keys:', Object.keys(getMockStore()));
       console.log('Mock store savedSoccerGames:', getMockStore()['savedSoccerGames']);
 
+      // If validation failed, log the errors for debugging
+      if (result.successful !== 2) {
+        console.error('VALIDATION ERRORS:', JSON.stringify(result.failed, null, 2));
+        throw new Error(`Expected 2 successful imports but got ${result.successful}. Errors: ${JSON.stringify(result.failed)}`);
+      }
+
       expect(result.successful).toBe(2); // Two valid games imported
       expect(result.failed).toHaveLength(2); // Two invalid games failed
       expect(result.skipped).toBe(0);
