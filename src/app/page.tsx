@@ -22,12 +22,14 @@ export default function Home() {
   const [hasSavedGames, setHasSavedGames] = useState(false);
   const [hasSeasonsTournaments, setHasSeasonsTournaments] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isCheckingState, setIsCheckingState] = useState(true);
 
   // A user is considered "first time" if they haven't created a roster OR a game yet.
   // This ensures they are guided through the full setup process.
   const isFirstTimeUser = !hasPlayers || !hasSavedGames;
 
   const checkAppState = useCallback(async () => {
+    setIsCheckingState(true);
     try {
       // This runs once to ensure legacy data is converted to IndexedDB.
       // IndexedDB is the runtime storage; this is not the focus of current work.
@@ -61,6 +63,8 @@ export default function Home() {
       setHasSavedGames(false);
       setHasPlayers(false);
       setHasSeasonsTournaments(false);
+    } finally {
+      setIsCheckingState(false);
     }
   }, []);
 
@@ -93,7 +97,18 @@ export default function Home() {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider>
-        {screen === 'start' ? (
+        {isCheckingState ? (
+          // Loading state while checking for data
+          <div className="flex flex-col items-center justify-center h-screen bg-slate-900">
+            <div className="flex flex-col items-center gap-6">
+              {/* Spinner */}
+              <div className="w-16 h-16 border-4 border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
+
+              {/* Optional loading text */}
+              <p className="text-slate-400 text-sm">Loading...</p>
+            </div>
+          </div>
+        ) : screen === 'start' ? (
           <ErrorBoundary>
             <StartScreen
               onStartNewGame={() => handleAction('newGame')}

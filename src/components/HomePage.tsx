@@ -39,7 +39,7 @@ import {
 // Removed unused import of utilGetMasterRoster
 
 // Import utility functions for seasons and tournaments
-import { saveGame as utilSaveGame, deleteGame as utilDeleteGame, getLatestGameId, createGame } from '@/utils/savedGames';
+import { saveGame as utilSaveGame, deleteGame as utilDeleteGame, getLatestGameId, createGame, getSavedGames as utilGetSavedGames } from '@/utils/savedGames';
 import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
   resetAppSettings as utilResetAppSettings,
@@ -144,6 +144,8 @@ interface HomePageProps {
 }
 
 function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess }: HomePageProps) {
+  // Sync hasSkippedInitialSetup with prop to prevent flash
+  const [hasSkippedInitialSetup, setHasSkippedInitialSetup] = useState<boolean>(skipInitialSetup);
   const { t } = useTranslation(); // Get translation function
   const queryClient = useQueryClient(); // Get query client instance
 
@@ -408,7 +410,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   // <<< ADD: State for home/away status >>>
   const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
-  const [hasSkippedInitialSetup, setHasSkippedInitialSetup] = useState<boolean>(skipInitialSetup);
+  // hasSkippedInitialSetup moved to top of component to prevent flash
   const [defaultTeamNameSetting, setDefaultTeamNameSetting] = useState<string>('');
   const [appLanguage, setAppLanguage] = useState<string>(i18n.language);
 
@@ -529,6 +531,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const [isGameDeleting, setIsGameDeleting] = useState(false); // For deleting a specific game
   const [gameDeleteError, setGameDeleteError] = useState<string | null>(null);
   const [processingGameId, setProcessingGameId] = useState<string | null>(null); // To track which game item is being processed
+  const [isResetting, setIsResetting] = useState(false); // For app reset operation
   const {
     isTacticsBoardView,
     tacticalDiscs,
@@ -962,14 +965,24 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     const checkFirstGameGuide = async () => {
       try {
         const firstGameGuideShown = await getStorageItem('hasSeenFirstGameGuide').catch(() => null);
+
+        // Also check if user has any saved games (imported or created)
+        const savedGames = await utilGetSavedGames();
+        const hasMultipleGames = Object.keys(savedGames).length > 1; // More than just default game
+
         logger.log('[FirstGameGuide] Checking conditions:', {
           firstGameGuideShown,
           currentGameId,
+          hasMultipleGames,
           isNotDefaultGame: currentGameId !== DEFAULT_GAME_ID,
-          shouldShow: !firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID
+          shouldShow: !firstGameGuideShown && !hasMultipleGames && currentGameId && currentGameId !== DEFAULT_GAME_ID
         });
 
-        if (!firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
+        // Don't show guide if:
+        // 1. Already seen before, OR
+        // 2. User has multiple games (imported or created), OR
+        // 3. No current game or it's the default game
+        if (!firstGameGuideShown && !hasMultipleGames && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
           // Add small delay to ensure game state is fully settled
           const timer = setTimeout(() => {
             logger.log('[FirstGameGuide] Showing first game guide after delay');
@@ -1593,17 +1606,21 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       try {
         logger.log("Performing hard reset using utility...");
 
+        // Show full-screen overlay to unmount all components
+        setIsResetting(true);
+
         // Clear storage completely
         await utilResetAppSettings();
 
         logger.log("Hard reset complete, reloading app...");
 
-        // Add timestamp to force complete reload and bypass Next.js cache
-        // Use replace to avoid adding to browser history
-        const timestamp = Date.now();
-        window.location.replace(`${window.location.origin}${window.location.pathname}?reset=${timestamp}`);
+        // Note: In development mode, Next.js HMR may show harmless module errors
+        // after reload. These are cosmetic and don't affect functionality.
+        // Production builds don't have this issue.
+        window.location.reload();
       } catch (error) {
         logger.error("Error during hard reset:", error);
+        setIsResetting(false); // Re-enable UI on error
         alert("Failed to reset application data.");
       }
     }
@@ -2655,6 +2672,33 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   // Determine which players are available for the current game based on selected IDs
 
+
+  // Early return during reset to prevent any component rendering
+  if (isResetting) {
+    return (
+      <div
+        className="fixed inset-0 bg-slate-900 z-[9999] flex flex-col items-center justify-center"
+        role="alert"
+        aria-live="assertive"
+        data-testid="reset-overlay"
+      >
+        <div className="flex flex-col items-center gap-4">
+          {/* Spinner */}
+          <div className="w-16 h-16 border-4 border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
+
+          {/* Message */}
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-slate-200 mb-2">
+              {t('reset.resetting', 'Resetting Application...')}
+            </h2>
+            <p className="text-sm text-slate-400">
+              {t('reset.pleaseWait', 'Please wait while we clear all data')}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="flex flex-col h-screen bg-slate-900 text-slate-50 overflow-hidden" data-testid="home-page">

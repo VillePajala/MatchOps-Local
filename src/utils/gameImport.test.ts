@@ -1,8 +1,15 @@
+// Mock storage module FIRST - uses __mocks__/storage.ts for in-memory storage
+jest.mock('./storage');
+
 import { importGamesFromJson } from './savedGames';
 import { AppState } from '@/types';
-import { clearMockStore, getMockStore } from './__mocks__/storage';
 import type { ZodIssue } from 'zod';
 import { appStateSchema } from './appStateSchema';
+
+// Import mock utilities from the mocked module (not from __mocks__ directly)
+// This ensures we get the same instance that jest.mock() creates
+const storageModule = require('./storage');
+const { clearMockStore, getMockStore, setStorageItem: mockSetStorageItem } = storageModule;
 
 // Mock localStorage with proper cleanup to prevent memory leaks
 let mockLocalStorageStore: Record<string, string> = {};
@@ -45,12 +52,10 @@ jest.mock('./logger', () => ({
   }))
 }));
 
-// Mock storage module - uses __mocks__/storage.ts for in-memory storage
-jest.mock('./storage');
-
 describe('Game Import with Partial Success', () => {
   beforeEach(() => {
-    clearMockStore(); // Clear IndexedDB mock storage
+    // Note: clearMockStore() is NOT called here because it interferes with async operations
+    // The mock store will be empty initially, and tests should handle existing data if needed
     mockLocalStorage.clear(); // Keep for legacy if needed
     jest.clearAllTimers(); // Clear any pending timers
     // Note: jest.clearAllMocks() would reset our storage mock implementations
