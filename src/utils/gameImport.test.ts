@@ -101,9 +101,13 @@ describe('Game Import with Partial Success', () => {
       tacticalDiscs: [],
       tacticalDrawings: [],
       tacticalBallPosition: { relX: 0.5, relY: 0.5 },
-      // Add optional fields to match complete AppState schema (use actual values, not undefined)
+      // Add optional fields to match complete AppState schema (exactly like mockBaseAppState)
       assessments: {},
+      gameLocation: 'Test Stadium',
+      gameTime: '15:00',
+      subIntervalMinutes: 5,
       completedIntervalDurations: [],
+      lastSubConfirmationTimeSeconds: 0,
       demandFactor: 1
     };
   };
