@@ -132,6 +132,12 @@ describe('Game Import with Partial Success', () => {
 
       const result = await importGamesFromJson(JSON.stringify(validGames));
 
+      // DEBUG: Show what actually happened
+      if (result.successful !== 3) {
+        console.error('VALIDATION ERRORS:', JSON.stringify(result.failed, null, 2));
+        throw new Error(`Expected 3 successful imports but got ${result.successful}. Errors: ${JSON.stringify(result.failed)}`);
+      }
+
       expect(result.successful).toBe(3);
       expect(result.skipped).toBe(0);
       expect(result.failed).toHaveLength(0);
