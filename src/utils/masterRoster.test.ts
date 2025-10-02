@@ -144,7 +144,7 @@ describe('Master Roster Utilities', () => {
 
       expect(result).toBeNull();
       expect(mockSetStorageItem).toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[saveMasterRoster]'), saveError);
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[addPlayerToRoster] Unexpected error adding player:'), saveError);
 
       // Restore original implementation
       if (originalSetImpl) {
@@ -224,7 +224,7 @@ describe('Master Roster Utilities', () => {
 
       expect(result).toBeNull();
       expect(mockSetStorageItem).toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[saveMasterRoster]'), saveError);
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[updatePlayerInRoster] Unexpected error updating player:'), saveError);
 
       // Restore original implementation
       if (originalSetImpl) {
@@ -284,7 +284,7 @@ describe('Master Roster Utilities', () => {
 
       expect(result).toBe(false);
       expect(mockSetStorageItem).toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[saveMasterRoster]'), saveError);
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[removePlayerFromRoster] Unexpected error removing player:'), saveError);
 
       // Restore original implementation
       if (originalSetImpl) {
@@ -346,7 +346,7 @@ describe('Master Roster Utilities', () => {
 
       expect(result).toBeNull();
       expect(mockSetStorageItem).toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[saveMasterRoster]'), saveError);
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[setPlayerGoalieStatus] Unexpected error:'), saveError);
 
       // Restore original implementation
       if (originalSetImpl) {
@@ -399,7 +399,7 @@ describe('Master Roster Utilities', () => {
 
       expect(result).toBeNull();
       expect(mockSetStorageItem).toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[saveMasterRoster]'), saveError);
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[updatePlayerInRoster] Unexpected error updating player:'), saveError);
 
       // Restore original implementation
       if (originalSetImpl) {

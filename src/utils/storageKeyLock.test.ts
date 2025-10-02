@@ -66,13 +66,11 @@ describe('Storage Key Lock', () => {
     // Valid sequences: [1,4,2,5,3,6] or [1,4,3,6,2,5] etc.
     expect(executionOrder.length).toBe(6);
 
-    // Find where each operation started and ended
-    const op1Start = executionOrder.indexOf(1);
+    // Find where each operation started and ended (we only need boundaries between operations)
     const op1End = executionOrder.indexOf(4);
     const op2Start = executionOrder.indexOf(2);
     const op2End = executionOrder.indexOf(5);
     const op3Start = executionOrder.indexOf(3);
-    const op3End = executionOrder.indexOf(6);
 
     // Each operation should complete (end) before next operation starts
     expect(op1End).toBeLessThan(op2Start);

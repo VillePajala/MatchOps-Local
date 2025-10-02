@@ -136,11 +136,11 @@ afterEach(async () => {
       });
       const newTournamentName = 'Ephemeral Tourney';
       const result = await addTournament(newTournamentName);
-      
+
       expect(result).toBeNull();
       expect(mockSetStorageItem).toHaveBeenCalledTimes(1); // Attempted to save
-      // Check for the error logged by saveTournaments
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveTournaments] Error saving tournaments to storage:'), expect.any(Error));
+      // Check for the error logged by addTournament
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[addTournament] Unexpected error adding tournament:'), expect.any(Error));
     });
 
     it('should return null and log error if name is empty, without attempting to save', async () => {
@@ -191,7 +191,7 @@ afterEach(async () => {
       const result = await updateTournament(tournamentToUpdate);
 
       expect(result).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveTournaments] Error saving tournaments to storage:'), expect.any(Error));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[updateTournament] Unexpected error updating tournament:'), expect.any(Error));
     });
 
     it('should return null and log error if tournament to update is not found, without attempting to save', async () => {
@@ -252,7 +252,7 @@ afterEach(async () => {
       const result = await deleteTournament(tournamentIdToDelete);
 
       expect(result).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveTournaments] Error saving tournaments to storage:'), expect.any(Error));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[deleteTournament] Unexpected error deleting tournament:'), expect.any(Error));
     });
 
     it('should return false and log error if tournament to delete is not found, without attempting to save', async () => {

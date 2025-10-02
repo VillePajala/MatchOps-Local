@@ -207,13 +207,13 @@ describe('App Settings Utilities', () => {
       // Simulate saveAppSettings failing by making setItem throw an error
       mockSetStorageItem.mockImplementationOnce(async () => { throw new Error('Save failed'); });
 
-      // Expect updateAppSettings to throw the specific error.
+      // Expect updateAppSettings to throw the error from setStorageItem
       try {
         await updateAppSettings({ currentGameId: 'updatedGame' });
         fail('Expected updateAppSettings to throw an error');
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toBe('Failed to save updated settings via saveAppSettings within updateAppSettings.');
+        expect((error as Error).message).toBe('Save failed');
       }
 
       // Ensure localStorage.setItem was called (attempted to save)

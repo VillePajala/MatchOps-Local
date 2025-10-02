@@ -125,8 +125,8 @@ describe('Season Management Utilities (storage)', () => {
     it('should return null if saving fails during add', async () => {
       mockSetStorageItem.mockImplementationOnce(async () => { throw new Error('Save failed'); });
       expect(await addSeason('Ephemeral Season')).toBeNull();
-      // saveSeasons (which is called by addSeason) will log the error.
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveSeasons] Error saving seasons to storage:'), expect.any(Error));
+      // addSeason catches and logs the error at the high-level function
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[addSeason] Unexpected error adding season:'), expect.any(Error));
     });
   });
 
@@ -171,7 +171,7 @@ describe('Season Management Utilities (storage)', () => {
       });
       const seasonToUpdateData: Season = { ...sampleSeasons[0], name: 'Update Fail Season' };
       expect(await updateSeason(seasonToUpdateData)).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveSeasons] Error saving seasons to storage:'), expect.any(Error));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[updateSeason] Unexpected error updating season:'), expect.any(Error));
     });
 
     it('should return null and log error for invalid update data (empty name)', async () => {
@@ -220,7 +220,7 @@ describe('Season Management Utilities (storage)', () => {
       mockSetStorageItem.mockImplementationOnce(async () => { throw new Error('Save failed'); });
       const seasonIdToDelete = sampleSeasons[1].id;
       expect(await deleteSeason(seasonIdToDelete)).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveSeasons] Error saving seasons to storage:'), expect.any(Error));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[deleteSeason] Unexpected error deleting season:'), expect.any(Error));
       const currentSeasons = await getSeasons();
       expect(currentSeasons.find(s => s.id === seasonIdToDelete)).toBeDefined(); // Should still be there if save failed
     });
