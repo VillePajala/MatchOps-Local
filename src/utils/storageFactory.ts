@@ -86,24 +86,6 @@ interface DisposableAdapter extends StorageAdapter {
 export type { StorageMode, StorageConfig } from './storageConfigManager';
 export type { MigrationState } from './storageConfigManager';
 
-/**
- * Telemetry events for monitoring storage adapter selection and usage
- */
-export interface StorageTelemetryEvent {
-  event: 'adapter_created' | 'adapter_failed' | 'fallback_triggered' | 'config_updated' | 'adapter_disposed';
-  mode: StorageMode;
-  timestamp: number;
-  details?: {
-    fallbackReason?: string;
-    failureCount?: number;
-    duration?: number;
-    error?: string;
-    backoffDelayMs?: number;
-    auditAction?: string;
-    [key: string]: unknown; // Allow additional audit properties
-  };
-}
-
 // Configuration constants re-exported from storageConfigManager
 export { DEFAULT_STORAGE_CONFIG } from './storageConfigManager';
 export { MAX_MIGRATION_FAILURES } from './storageConfigManager';
@@ -143,8 +125,6 @@ export class StorageFactory {
   private cachedConfig: StorageConfig | null = null;
   private cacheVersion: number = 0;
   private cachedAdapterVersion: number = -1; // Version when adapter was cached
-  private telemetryCallback?: (event: StorageTelemetryEvent) => void;
-
   // Mutex for preventing concurrent adapter creation
   private readonly mutex = new MutexManager({
     defaultTimeout: StorageFactory.DEFAULT_MUTEX_TIMEOUT_MS,
@@ -200,17 +180,6 @@ export class StorageFactory {
         } catch (error) {
           this.logger.warn('Mutex acquisition failed', { error });
           timer.failure('Mutex timeout', StorageErrorType.ACCESS_DENIED);
-
-          // Send telemetry for mutex timeout
-          this.sendTelemetry({
-            event: 'adapter_failed',
-            mode: forceMode || this.cachedConfig?.mode || 'localStorage',
-            timestamp: Date.now(),
-            details: {
-              error: 'mutex_timeout',
-              duration: timer.getElapsedTime()
-            }
-          });
 
           throw error;
         }
@@ -309,16 +278,6 @@ export class StorageFactory {
       const error = new Error('localStorage mode not supported. This application requires IndexedDB to function.');
       this.logger.error('localStorage mode requested but not supported in IndexedDB-only architecture');
 
-      this.sendTelemetry({
-        event: 'adapter_failed',
-        mode: 'localStorage',
-        timestamp: Date.now(),
-        details: {
-          failureReason: 'localStorage mode not supported',
-          error: error.message
-        }
-      });
-
       throw error;
     }
 
@@ -335,14 +294,6 @@ export class StorageFactory {
       backend: adapter.getBackendName(),
       mode: targetMode,
       duration: timer.getElapsedTime()
-    });
-
-    // Send telemetry
-    this.sendTelemetry({
-      event: 'adapter_created',
-      mode: targetMode,
-      timestamp: Date.now(),
-      details: { duration: timer.getElapsedTime() }
     });
 
     return adapter;
@@ -470,17 +421,6 @@ export class StorageFactory {
 
     // Log to console in development, would integrate with security logging in production
     this.logger.info('Security audit log', auditEntry);
-
-    // Send to telemetry system for monitoring
-    this.sendTelemetry({
-      event: 'adapter_failed', // Reusing existing event type, could extend for audit events
-      mode: (this.cachedConfig?.mode || 'localStorage') as StorageMode,
-      timestamp: Date.now(),
-      details: {
-        auditAction: action,
-        ...details
-      }
-    });
   }
 
   /**
@@ -787,35 +727,11 @@ export class StorageFactory {
         await disposableAdapter.close();
       }
 
-      // Send telemetry
-      this.sendTelemetry({
-        event: 'adapter_disposed',
-        mode: this.cachedConfig?.mode || 'localStorage',
-        timestamp: Date.now()
-      });
-
       this.cachedAdapter = null;
       this.cachedConfig = null;
     } catch (error) {
       this.logger.error('Error disposing adapter', { error });
     }
-  }
-
-  /**
-   * Set telemetry callback for monitoring adapter events
-   *
-   * @param callback - Function to receive telemetry events
-   *
-   * @example
-   * ```typescript
-   * factory.setTelemetryCallback((event) => {
-   *   console.log('Storage event:', event);
-   *   analytics.track('storage_event', event);
-   * });
-   * ```
-   */
-  setTelemetryCallback(callback: (event: StorageTelemetryEvent) => void): void {
-    this.telemetryCallback = callback;
   }
 
   /**
@@ -841,19 +757,6 @@ export class StorageFactory {
    */
   getMutexStats() {
     return this.mutex.getStats();
-  }
-
-  /**
-   * Send telemetry event if callback is configured
-   */
-  private sendTelemetry(event: StorageTelemetryEvent): void {
-    if (this.telemetryCallback) {
-      try {
-        this.telemetryCallback(event);
-      } catch (error) {
-        this.logger.debug('Telemetry callback error', { error });
-      }
-    }
   }
 
   /**
@@ -944,16 +847,6 @@ export class StorageFactory {
       const error = new Error('IndexedDB not supported. This application requires IndexedDB to function. Please disable private mode or use a modern browser.');
       this.logger.error('IndexedDB not supported - no fallback available', { error });
 
-      this.sendTelemetry({
-        event: 'adapter_failed',
-        mode: 'indexedDB',
-        timestamp: Date.now(),
-        details: {
-          failureReason: 'IndexedDB not supported',
-          error: error.message
-        }
-      });
-
       throw error;
     }
 
@@ -972,16 +865,6 @@ export class StorageFactory {
       const indexedDBError = new Error(errorMessage);
 
       this.logger.error('Failed to create IndexedDB adapter - no fallback available', { error });
-
-      this.sendTelemetry({
-        event: 'adapter_failed',
-        mode: 'indexedDB',
-        timestamp: Date.now(),
-        details: {
-          failureReason: 'IndexedDB creation failed',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        }
-      });
 
       throw indexedDBError;
     }

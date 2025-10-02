@@ -15,8 +15,7 @@ import {
   createStorageAdapter,
   getStorageConfig,
   updateStorageConfig,
-  MAX_MIGRATION_FAILURES,
-  StorageTelemetryEvent
+  MAX_MIGRATION_FAILURES
 } from './storageFactory';
 
 // Create fresh store for each test
@@ -267,29 +266,6 @@ describe('Advanced Features', () => {
     // Cache should be invalidated after disposal
     const adapter2 = await factory.createAdapter();
     expect(adapter1).not.toBe(adapter2);
-  });
-
-  test('should track telemetry events', async () => {
-    const factory = new StorageFactory();
-    const telemetryEvents: StorageTelemetryEvent[] = [];
-
-    factory.setTelemetryCallback((event) => {
-      telemetryEvents.push(event);
-    });
-
-    await factory.createAdapter('indexedDB');
-
-    // Should include audit events and adapter creation event
-    expect(telemetryEvents.length).toBeGreaterThanOrEqual(1);
-
-    // Find the adapter_created event
-    const adapterCreatedEvent = telemetryEvents.find(e => e.event === 'adapter_created');
-    expect(adapterCreatedEvent).toBeDefined();
-    expect(adapterCreatedEvent!.mode).toBe('indexedDB');
-
-    // Should include audit logging events
-    const auditEvents = telemetryEvents.filter(e => e.details?.auditAction);
-    expect(auditEvents.length).toBeGreaterThan(0);
   });
 
   test('should dispose adapter properly', async () => {

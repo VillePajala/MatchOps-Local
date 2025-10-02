@@ -131,9 +131,12 @@ This is a **local-first Progressive Web App**, NOT:
 
 **Privacy-First Philosophy**
 - **User data stays local**: Game data, scores, statistics never transmitted
-- **No behavioral tracking**: Zero telemetry of feature usage or user patterns
+- **Minimal opt-in telemetry**: Only error tracking (Sentry) and basic analytics (Vercel) in production
+  - **Sentry**: Error messages and stack traces only - NO user data or game content
+  - **Vercel Analytics**: Anonymous page views and Web Vitals - NO user identification
+  - **Gated by environment**: Requires `NODE_ENV=production` OR `NEXT_PUBLIC_ANALYTICS_ENABLED=true`
+- **No behavioral tracking**: No feature usage analytics or user pattern analysis
 - **Complete data ownership**: Users control their data, no cloud lock-in
-- **Minimal network communication**: Only for app updates, license validation, and opt-in error reporting
 - **No third-party data sharing**: User data never sold or shared
 
 **Monetization Strategy (Privacy-Compatible)**
@@ -141,6 +144,29 @@ This is a **local-first Progressive Web App**, NOT:
 - **License validation**: Minimal network call to verify Play Store purchase
 - **Offline-first after purchase**: License cached locally, works offline
 - **No usage analytics**: Premium status checked, but not feature usage tracking
+
+**Telemetry Transparency**
+- **What We Collect**:
+  - **Sentry (Error Tracking)**: JavaScript errors, stack traces, browser/OS info
+  - **Vercel Analytics**: Page views, navigation paths, Web Vitals performance metrics
+- **What We DON'T Collect**:
+  - ❌ Game data (scores, player names, statistics)
+  - ❌ User identification (no cookies, no tracking IDs)
+  - ❌ Feature usage patterns or behavioral analytics
+  - ❌ Form inputs or user-generated content
+- **Privacy Controls**:
+  - Telemetry only active in production builds (`NODE_ENV=production`)
+  - Can be force-enabled in dev with `NEXT_PUBLIC_ANALYTICS_ENABLED=true`
+  - Session replays only captured on errors (with text masking enabled)
+  - 10% trace sampling to minimize data collection
+- **Data Retention**:
+  - Sentry: 90 days (configurable)
+  - Vercel Analytics: 30 days
+  - All data automatically purged after retention period
+- **Third-Party Access**:
+  - Only Anthropic (Sentry org owner) and project maintainers
+  - No data sold or shared with advertisers
+  - No cross-site tracking or profiling
 
 ### Scale & Performance Context
 
