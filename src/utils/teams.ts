@@ -2,7 +2,8 @@ import { Team, TeamPlayer } from '@/types';
 import type { AppState } from '@/types/game';
 import {
   TEAMS_INDEX_KEY,
-  TEAM_ROSTERS_KEY
+  TEAM_ROSTERS_KEY,
+  SAVED_GAMES_KEY
 } from '@/config/storageKeys';
 import { getStorageItem, setStorageItem } from './storage';
 import { withRosterLock } from './lockManager';
@@ -219,7 +220,7 @@ export const duplicateTeam = async (teamId: string): Promise<Team | null> => {
 // Count games associated with a team (for deletion impact analysis)
 export const countGamesForTeam = async (teamId: string): Promise<number> => {
   try {
-    const savedGamesJson = await getStorageItem('savedSoccerGames');
+    const savedGamesJson = await getStorageItem(SAVED_GAMES_KEY);
     if (!savedGamesJson) return 0;
     
     const savedGames = JSON.parse(savedGamesJson);
