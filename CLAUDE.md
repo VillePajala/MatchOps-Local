@@ -206,6 +206,33 @@ This is a **local-first Progressive Web App**, NOT:
 - No eval() or dangerous dynamic code
 - Service Worker security best practices
 
+**PWA and Private/Incognito Mode Behavior**
+- **PWA Installation**: IMPOSSIBLE in private/incognito mode across all browsers
+  - Chrome/Edge: `beforeinstallprompt` event never fires in incognito (by design)
+  - Firefox: Service workers completely disabled in private browsing
+  - Safari: PWA installation blocked in Private Browsing mode
+  - **Rationale**: Installation creates persistent artifacts that contradict incognito's purpose
+
+- **IndexedDB in Private Mode** (if user accesses URL directly):
+  - **Chrome/Edge (2024)**: Works with limits (32MB per DB, 500MB total quota)
+  - **Firefox 115+**: Works with encrypted in-memory storage (cleared on session end)
+  - **Safari**: In-memory only, cleared when session ends
+  - **Old Firefox (<115)**: Throws `InvalidStateError` on first write
+
+- **Current Detection & Error Handling** ✅:
+  - Write test catches Firefox's write-fails scenario (`storageFactory.ts:821-885`)
+  - Null checks for Safari (`!window.indexedDB`)
+  - Quota warnings for restricted environments (`< 1MB quota`)
+  - Browser-specific error messages (`storage.ts:73-87`)
+  - Graceful failure: "IndexedDB not supported. Please disable private mode or use a modern browser"
+
+- **Code Review Guidance**:
+  - ❌ DO NOT flag "missing private mode detection" as critical
+  - ✅ PWAs are NOT designed to work in private/incognito mode
+  - ✅ Current error handling is comprehensive and user-friendly
+  - ✅ "Silent failures" do not exist - clear error messages are shown
+  - 💡 Private mode users should NOT use PWAs (data persistence is the core feature)
+
 ### Code Review Guidelines
 
 #### ❌ DO NOT Suggest These Patterns
