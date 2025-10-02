@@ -172,7 +172,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
             gameId: string;
             timeElapsedInSeconds: number;
             timestamp: number;
-          }>(TIMER_STATE_KEY, { throwOnError: false });
+          }>(TIMER_STATE_KEY);
 
           if (savedTimerState && state.isTimerRunning && savedTimerState.gameId === currentGameId) {
             // Use the precision restore utility

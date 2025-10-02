@@ -20,7 +20,6 @@ const loadLanguagePreference = async (): Promise<void> => {
   try {
     // Use storage helper instead of direct localStorage access
     const settings = await getStorageJSON<{ language?: string }>(APP_SETTINGS_KEY, {
-      throwOnError: false,
       defaultValue: { language: 'fi' }
     });
 
