@@ -371,27 +371,24 @@ export async function getStorageAdapter(): Promise<StorageAdapter> {
 }
 
 /**
- * Get item from IndexedDB storage with graceful error handling
+ * Get item from IndexedDB storage with retry logic
  * @param key Storage key
  * @param options Configuration for error handling
  * @returns Promise resolving to stored value or null
- * @throws Error only for critical failures when throwOnError is true
+ * @throws Error if IndexedDB is unavailable after retries (IndexedDB-only, no fallback)
  */
 export async function getStorageItem(
   key: string,
-  options: { throwOnError?: boolean; retryCount?: number } = {}
+  options: { retryCount?: number } = {}
 ): Promise<string | null> {
-  const { throwOnError = false, retryCount = 2 } = options;
+  const { retryCount = 2 } = options;
 
   // Validate key for security
   try {
     validateStorageKey(key);
   } catch (validationError) {
     logger.error('Invalid storage key', { key, error: validationError });
-    if (throwOnError) {
-      throw validationError;
-    }
-    return null;
+    throw validationError;
   }
 
   for (let attempt = 0; attempt <= retryCount; attempt++) {
@@ -401,17 +398,11 @@ export async function getStorageItem(
     } catch (error) {
       logger.error(`IndexedDB read failed for key "${key}" (attempt ${attempt + 1}/${retryCount + 1}):`, error);
 
-      // If this is the last attempt or throwOnError is enabled
+      // If this is the last attempt, throw error (IndexedDB-only, no fallback)
       if (attempt === retryCount) {
-        if (throwOnError) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          const userFriendlyMessage = getUserFriendlyErrorMessage(errorMessage);
-          throw new Error(userFriendlyMessage);
-        } else {
-          // Graceful degradation: return null for non-critical reads
-          logger.warn(`Graceful degradation: returning null for key "${key}" after ${retryCount + 1} attempts`);
-          return null;
-        }
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const userFriendlyMessage = getUserFriendlyErrorMessage(errorMessage);
+        throw new Error(userFriendlyMessage);
       }
 
       // Wait before retry with exponential backoff
@@ -535,14 +526,14 @@ export async function clearStorage(
 /**
  * Batch read multiple keys in parallel for improved performance
  * @param keys Array of storage keys to read
- * @param options Configuration for error handling and parallelism
- * @returns Promise resolving to map of key-value pairs
+ * @param options Configuration for parallelism
+ * @returns Promise resolving to map of key-value pairs (null for failed reads)
  */
 export async function getStorageItems(
   keys: string[],
-  options: { batchSize?: number; throwOnError?: boolean } = {}
+  options: { batchSize?: number } = {}
 ): Promise<Record<string, string | null>> {
-  const { batchSize = 10, throwOnError = false } = options;
+  const { batchSize = 10 } = options;
   const results: Record<string, string | null> = {};
 
   // Process keys in batches to avoid overwhelming IndexedDB
@@ -552,7 +543,7 @@ export async function getStorageItems(
     // Read batch in parallel
     const batchPromises = batch.map(async (key) => {
       try {
-        const value = await getStorageItem(key, { throwOnError });
+        const value = await getStorageItem(key);
         return { key, value };
       } catch (error) {
         logger.error(`Failed to read key "${key}" in batch:`, error);
@@ -655,57 +646,46 @@ export async function getAllStorageData(
 /**
  * Get and parse JSON data with type safety
  * @param key Storage key
- * @param options Configuration for error handling and validation
- * @returns Promise resolving to parsed JSON data or null
+ * @param options Configuration for validation and default values
+ * @returns Promise resolving to parsed JSON data, defaultValue on parse errors, or null
+ * @throws Error if IndexedDB read fails (storage errors always throw in IndexedDB-only mode)
  */
 export async function getStorageJSON<T = unknown>(
   key: string,
   options: {
-    throwOnError?: boolean;
     validator?: (data: unknown) => data is T;
     defaultValue?: T;
   } = {}
 ): Promise<T | null> {
-  const { throwOnError = false, validator, defaultValue } = options;
+  const { validator, defaultValue } = options;
 
-  try {
-    const value = await getStorageItem(key, { throwOnError });
-    if (value === null) {
-      return defaultValue ?? null;
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(value);
-    } catch (parseError) {
-      logger.warn(`Failed to parse JSON for key "${key}":`, parseError);
-      if (throwOnError) {
-        throw new Error(`Invalid JSON data for key "${key}"`);
-      }
-      return defaultValue ?? null;
-    }
-
-    // Type validation if validator provided
-    if (validator) {
-      if (validator(parsed)) {
-        return parsed;
-      } else {
-        logger.warn(`Type validation failed for key "${key}"`);
-        if (throwOnError) {
-          throw new Error(`Type validation failed for key "${key}"`);
-        }
-        return defaultValue ?? null;
-      }
-    }
-
-    return parsed as T;
-  } catch (error) {
-    logger.error(`Failed to get JSON for key "${key}":`, error);
-    if (throwOnError) {
-      throw error;
-    }
+  // getStorageItem now always throws on storage errors (IndexedDB-only mode)
+  const value = await getStorageItem(key);
+  if (value === null) {
     return defaultValue ?? null;
   }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch (parseError) {
+    // Return default on parse errors (corrupted data is recoverable)
+    logger.warn(`Failed to parse JSON for key "${key}":`, parseError);
+    return defaultValue ?? null;
+  }
+
+  // Type validation if validator provided
+  if (validator) {
+    if (validator(parsed)) {
+      return parsed;
+    } else {
+      // Return default on validation errors (schema mismatch is recoverable)
+      logger.warn(`Type validation failed for key "${key}"`);
+      return defaultValue ?? null;
+    }
+  }
+
+  return parsed as T;
 }
 
 /**

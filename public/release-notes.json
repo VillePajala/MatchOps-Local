@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: address critical code review findings"
+  "notes": "refactor: use SAVED_GAMES_KEY constant in teams.ts"
 }

@@ -25,13 +25,13 @@ The build process includes a custom manifest generation step that runs before Ne
 - **React 19** with TypeScript
 - **Tailwind CSS 4** for styling
 - **PWA** with custom service worker
-- **Browser localStorage** for data persistence
+- **Browser IndexedDB** for data persistence
 - **React Query** for state management
 - **i18next** for internationalization (English/Finnish)
 
 ### Core Architecture
 
-**Data Flow**: The app's data layer relies on **React Query** to fetch, cache, and manage server-side state (persisted in localStorage). Asynchronous wrappers in `src/utils/localStorage.ts` are used for direct localStorage access. This approach centralizes data fetching and reduces manual state management.
+**Data Flow**: The app's data layer relies on **React Query** to fetch, cache, and manage server-side state (persisted in IndexedDB). Asynchronous storage operations in `src/utils/storage.ts` provide IndexedDB access through a unified adapter layer. This approach centralizes data fetching and reduces manual state management.
 
 **PWA Structure**: The app is a full PWA with:
 - Custom service worker (`public/sw.js`)
@@ -51,7 +51,7 @@ The build process includes a custom manifest generation step that runs before Ne
 - `ControlBar` - Main app controls
 - Various modals for game settings, stats, and management
 
-**Data Persistence**: All data is stored in browser localStorage with async wrappers in `src/utils/localStorage.ts`. Key data includes:
+**Data Persistence**: All data is stored in browser IndexedDB via storage adapter in `src/utils/storage.ts`. Key data includes:
 - Player roster (`src/utils/masterRosterManager.ts`)
 - Game saves (`src/utils/savedGames.ts`)
 - Seasons and tournaments (`src/utils/seasons.ts`, `src/utils/tournaments.ts`)
@@ -64,6 +64,13 @@ The build process includes a custom manifest generation step that runs before Ne
 - ✅ **Removed**: Enterprise features (rate limiting, cross-tab locks, adaptive batching, SHA-256 checksums, memory management)
 - ✅ **Maintained**: Essential features (data transfer, basic error handling, progress tracking, simple rollback)
 - ✅ **Status**: Production-ready for 1-3 user deployments with appropriate complexity level
+
+**Storage Requirements**
+- **IndexedDB required** (typically 50MB+ quota available, browser-dependent)
+- **No localStorage fallback** (5-10MB quota insufficient for growing datasets with 100+ games)
+- **Private/incognito mode not supported** (IndexedDB typically disabled or severely restricted)
+- **Users must use regular browsing mode** for data persistence
+- **Automatic migration** moves localStorage data to IndexedDB on first load after upgrade
 
 **Logging**: Centralized logging system with environment-aware behavior:
 - `src/utils/logger.ts` - Type-safe logger utility with development/production modes

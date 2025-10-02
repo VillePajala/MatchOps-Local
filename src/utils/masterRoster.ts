@@ -4,7 +4,7 @@ import logger from '@/utils/logger';
 import { getStorageItem, setStorageItem } from '@/utils/storage';
 
 /**
- * Retrieves the master roster of players from localStorage.
+ * Retrieves the master roster of players from IndexedDB.
  * @returns An array of Player objects.
  */
 export const getMasterRoster = async (): Promise<Player[]> => {
@@ -15,13 +15,13 @@ export const getMasterRoster = async (): Promise<Player[]> => {
     }
     return Promise.resolve(JSON.parse(rosterJson) as Player[]);
   } catch (error) {
-    logger.error('[getMasterRoster] Error getting master roster from localStorage:', error);
+    logger.error('[getMasterRoster] Error getting master roster from IndexedDB:', error);
     return Promise.resolve([]); // Return empty array on error
   }
 };
 
 /**
- * Saves the master roster to localStorage, overwriting any existing roster.
+ * Saves the master roster to IndexedDB, overwriting any existing roster.
  * @param players - The array of Player objects to save.
  * @returns {boolean} True if successful, false otherwise.
  */
@@ -30,14 +30,14 @@ export const saveMasterRoster = async (players: Player[]): Promise<boolean> => {
     await setStorageItem(MASTER_ROSTER_KEY, JSON.stringify(players));
     return Promise.resolve(true);
   } catch (error) {
-    logger.error('[saveMasterRoster] Error saving master roster to localStorage:', error);
-    // Handle potential errors, e.g., localStorage quota exceeded
+    logger.error('[saveMasterRoster] Error saving master roster to IndexedDB:', error);
+    // Handle potential errors, e.g., IndexedDB quota exceeded
     return Promise.resolve(false);
   }
 };
 
 /**
- * Adds a new player to the master roster in localStorage.
+ * Adds a new player to the master roster in IndexedDB.
  * @param playerData - The player data to add. Must contain at least a name.
  * @returns The new Player object with generated ID, or null if operation failed.
  */
