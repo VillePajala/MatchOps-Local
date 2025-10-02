@@ -111,45 +111,40 @@ const MAX_RETRY_ATTEMPTS = 3;      // Maximum number of retry attempts before gi
 const BASE_RETRY_DELAY = 1000;     // 1 second - initial retry delay
 const MAX_RETRY_DELAY = 10000;     // 10 seconds - maximum delay to prevent excessive waiting
 
-// Security limits
+/**
+ * Security limits for storage keys and values
+ *
+ * MAX_KEY_LENGTH: Our keys are constants (MASTER_ROSTER_KEY, SAVED_GAMES_KEY, etc.)
+ *   so 1KB is more than sufficient. Prevents accidental corruption from malformed keys.
+ *
+ * MAX_VALUE_SIZE: Typical usage is 50-100 games × ~5KB = ~500KB total.
+ *   10MB limit allows for reasonable growth (200+ games) while preventing quota exhaustion
+ *   from corrupted data or runaway storage.
+ */
 const MAX_KEY_LENGTH = 1024;       // 1KB max key size
 const MAX_VALUE_SIZE = 10 * 1024 * 1024; // 10MB max value size
 
 /**
- * Comprehensive XSS and prototype pollution prevention patterns
- * Covers multiple attack vectors including:
- * - Prototype pollution (__proto__, constructor, prototype)
- * - Script injection (<script>, </script>, with variations)
- * - Event handlers (onclick, onload, etc. with spaces/quotes)
- * - JavaScript URLs (javascript:, with spaces/encoding)
- * - Data URLs with scripts
- * - HTML entities for encoding bypass
+ * Prototype pollution prevention patterns
+ *
+ * IMPORTANT: XSS validation removed - not needed for local-first app
+ *
+ * Rationale:
+ * - Keys are application constants (MASTER_ROSTER_KEY, SAVED_GAMES_KEY, etc.)
+ * - Values are application-generated JSON (game stats, player data)
+ * - Browser origin isolation is the security boundary
+ * - No HTML rendering = no XSS risk
+ * - Local-first PWA with single user = no injection attack vector
+ * - See CLAUDE.md "Security & Privacy Context" for architecture details
+ *
+ * We keep prototype pollution checks as a reasonable baseline since they're
+ * cheap and protect against accidental corruption from malformed data.
  */
 const SUSPICIOUS_KEY_PATTERNS = [
-  // Prototype pollution
+  // Prototype pollution (reasonable baseline protection)
   /__proto__/i,
   /constructor/i,
-  /prototype/i,
-
-  // Script tags (with variations)
-  /<\s*script/i,
-  /<\/\s*script/i,
-
-  // Event handlers (comprehensive)
-  /\bon\w+\s*=/i,  // Matches on[anything]= with optional spaces
-  /\bon\w+\s*\(/i,  // Matches on[anything]( for inline handlers
-
-  // JavaScript URLs
-  /javascript\s*:/i,
-  /vbscript\s*:/i,
-
-  // Data URLs with scripts
-  /data\s*:.*script/i,
-
-  // HTML entities that could be used for encoding bypass
-  /&#/,
-  /&lt;script/i,
-  /&gt;/i
+  /prototype/i
 ];
 
 /**
