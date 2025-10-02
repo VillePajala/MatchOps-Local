@@ -7,6 +7,7 @@ import {
 } from '@/config/storageKeys';
 import { getStorageItem, setStorageItem } from './storage';
 import { withRosterLock } from './lockManager';
+import { withKeyLock } from './storageKeyLock';
 import logger from '@/utils/logger';
 
 // Team index storage format: { [teamId: string]: Team }
@@ -69,57 +70,63 @@ const validateTeamName = async (name: string, excludeTeamId?: string): Promise<v
 // Create new team
 export const addTeam = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>): Promise<Team> => {
   await validateTeamName(teamData.name);
-  
-  const now = new Date().toISOString();
-  const team: Team = {
-    id: `team_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    ...teamData,
-    name: teamData.name.trim(), // Ensure trimmed
-    createdAt: now,
-    updatedAt: now,
-  };
 
-  const teamsIndex = await getAllTeams();
-  teamsIndex[team.id] = team;
-  await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+  return withKeyLock(TEAMS_INDEX_KEY, async () => {
+    const now = new Date().toISOString();
+    const team: Team = {
+      id: `team_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      ...teamData,
+      name: teamData.name.trim(), // Ensure trimmed
+      createdAt: now,
+      updatedAt: now,
+    };
 
-  // Initialize empty roster for new team
-  await setTeamRoster(team.id, []);
+    const teamsIndex = await getAllTeams();
+    teamsIndex[team.id] = team;
+    await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
 
-  return team;
+    // Initialize empty roster for new team
+    await setTeamRoster(team.id, []);
+
+    return team;
+  });
 };
 
 // Update existing team
 export const updateTeam = async (teamId: string, updates: Partial<Omit<Team, 'id' | 'createdAt'>>): Promise<Team | null> => {
-  const teamsIndex = await getAllTeams();
-  const existing = teamsIndex[teamId];
-  if (!existing) return null;
+  return withKeyLock(TEAMS_INDEX_KEY, async () => {
+    const teamsIndex = await getAllTeams();
+    const existing = teamsIndex[teamId];
+    if (!existing) return null;
 
-  // Validate name if being updated
-  if (updates.name !== undefined) {
-    await validateTeamName(updates.name, teamId);
-    updates.name = updates.name.trim();
-  }
+    // Validate name if being updated
+    if (updates.name !== undefined) {
+      await validateTeamName(updates.name, teamId);
+      updates.name = updates.name.trim();
+    }
 
-  const updatedTeam: Team = {
-    ...existing,
-    ...updates,
-    updatedAt: new Date().toISOString(),
-  };
+    const updatedTeam: Team = {
+      ...existing,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
 
-  teamsIndex[teamId] = updatedTeam;
-  await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
-  return updatedTeam;
+    teamsIndex[teamId] = updatedTeam;
+    await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+    return updatedTeam;
+  });
 };
 
 // Delete team (remove from index but keep roster data for potential recovery)
 export const deleteTeam = async (teamId: string): Promise<boolean> => {
-  const teamsIndex = await getAllTeams();
-  if (!teamsIndex[teamId]) return false;
+  return withKeyLock(TEAMS_INDEX_KEY, async () => {
+    const teamsIndex = await getAllTeams();
+    if (!teamsIndex[teamId]) return false;
 
-  delete teamsIndex[teamId];
-  await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
-  return true;
+    delete teamsIndex[teamId];
+    await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+    return true;
+  });
 };
 
 // Note: Active team management removed - teams are contextually selected

@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: use SAVED_GAMES_KEY constant in teams.ts"
+  "notes": "fix: migration reads from localStorage directly in IndexedDB-only mode"
 }

@@ -16,6 +16,7 @@ import {
   setStorageItem,
 } from './storage';
 import logger from '@/utils/logger';
+import { withKeyLock } from './storageKeyLock';
 /**
  * Interface for application settings
  */
@@ -64,13 +65,15 @@ export const getAppSettings = async (): Promise<AppSettings> => {
  * @returns A promise that resolves to true if successful, false otherwise
  */
 export const saveAppSettings = async (settings: AppSettings): Promise<boolean> => {
-  try {
-    await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(settings));
-    return true;
-  } catch (error) {
-    logger.error('Error saving app settings to storage:', error);
-    return false;
-  }
+  return withKeyLock(APP_SETTINGS_KEY, async () => {
+    try {
+      await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(settings));
+      return true;
+    } catch (error) {
+      logger.error('Error saving app settings to storage:', error);
+      return false;
+    }
+  });
 };
 
 /**
@@ -79,21 +82,17 @@ export const saveAppSettings = async (settings: AppSettings): Promise<boolean> =
  * @returns A promise that resolves to the updated settings
  */
 export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>): Promise<AppSettings> => {
-  // Get current settings. If this fails, the error will propagate.
-  const currentSettings = await getAppSettings();
-  const updatedSettings = { ...currentSettings, ...settingsUpdate };
+  return withKeyLock(APP_SETTINGS_KEY, async () => {
+    // Get current settings. If this fails, the error will propagate.
+    const currentSettings = await getAppSettings();
+    const updatedSettings = { ...currentSettings, ...settingsUpdate };
 
-  // Try to save the updated settings.
-  const saveSuccess = await saveAppSettings(updatedSettings);
+    // Save the updated settings directly within the lock
+    await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(updatedSettings));
 
-  if (!saveSuccess) {
-    // saveAppSettings already logs the specific localStorage error.
-    // We throw a new error here to indicate that the update operation itself failed.
-    // This error will be caught by the calling functions (e.g., saveCurrentGameIdSetting).
-    throw new Error('Failed to save updated settings via saveAppSettings within updateAppSettings.');
-  }
-  // If save was successful, return the updated settings.
-  return updatedSettings;
+    // Return the updated settings.
+    return updatedSettings;
+  });
 };
 
 /**

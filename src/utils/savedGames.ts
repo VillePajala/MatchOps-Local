@@ -8,6 +8,7 @@ import type { SavedGamesCollection, AppState, GameEvent as PageGameEvent, Point,
 import type { Player } from '@/types';
 import logger from '@/utils/logger';
 import { appStateSchema } from './appStateSchema';
+import { withKeyLock } from './storageKeyLock';
 
 // Note: AppState (imported from @/types) is the primary type used for live game state
 // and for storing games in localStorage via SavedGamesCollection.
@@ -66,13 +67,15 @@ export const getSavedGames = async (): Promise<SavedGamesCollection> => {
  * @returns Promise resolving when complete
  */
 export const saveGames = async (games: SavedGamesCollection): Promise<void> => {
-  try {
-    await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
-    return;
-  } catch (error) {
-    logger.error('Error saving games to localStorage:', error);
-    throw error;
-  }
+  return withKeyLock(SAVED_GAMES_KEY, async () => {
+    try {
+      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+      return;
+    } catch (error) {
+      logger.error('Error saving games to localStorage:', error);
+      throw error;
+    }
+  });
 };
 
 /**
@@ -82,19 +85,21 @@ export const saveGames = async (games: SavedGamesCollection): Promise<void> => {
  * @returns Promise resolving to the saved game data
  */
 export const saveGame = async (gameId: string, gameData: unknown): Promise<AppState> => {
-  try {
-    if (!gameId) {
-      throw new Error('Game ID is required');
+  return withKeyLock(SAVED_GAMES_KEY, async () => {
+    try {
+      if (!gameId) {
+        throw new Error('Game ID is required');
+      }
+
+      const allGames = await getSavedGames();
+      allGames[gameId] = gameData as AppState;
+      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(allGames));
+      return gameData as AppState;
+    } catch (error) {
+      logger.error('Error saving game:', error);
+      throw error;
     }
-    
-    const allGames = await getSavedGames();
-    allGames[gameId] = gameData as AppState;
-    await saveGames(allGames);
-    return gameData as AppState;
-  } catch (error) {
-    logger.error('Error saving game:', error);
-    throw error;
-  }
+  });
 };
 
 /**
@@ -123,26 +128,28 @@ export const getGame = async (gameId: string): Promise<AppState | null> => {
  * @returns Promise resolving to the gameId if the game was deleted, null otherwise
  */
 export const deleteGame = async (gameId: string): Promise<string | null> => {
-  try {
-    if (!gameId) {
-      logger.warn('deleteGame: gameId is null or empty.');
-      return null;
+  return withKeyLock(SAVED_GAMES_KEY, async () => {
+    try {
+      if (!gameId) {
+        logger.warn('deleteGame: gameId is null or empty.');
+        return null;
+      }
+
+      const allGames = await getSavedGames();
+      if (!allGames[gameId]) {
+        logger.warn(`deleteGame: Game with ID ${gameId} not found.`);
+        return null; // Game not found
+      }
+
+      delete allGames[gameId];
+      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(allGames));
+      logger.log(`deleteGame: Game with ID ${gameId} successfully deleted.`);
+      return gameId; // Successfully deleted, return the gameId
+    } catch (error) {
+      logger.error('Error deleting game:', error);
+      throw error; // Re-throw other errors
     }
-    
-    const allGames = await getSavedGames();
-    if (!allGames[gameId]) {
-      logger.warn(`deleteGame: Game with ID ${gameId} not found.`);
-      return null; // Game not found
-    }
-    
-    delete allGames[gameId];
-    await saveGames(allGames);
-    logger.log(`deleteGame: Game with ID ${gameId} successfully deleted.`);
-    return gameId; // Successfully deleted, return the gameId
-  } catch (error) {
-    logger.error('Error deleting game:', error);
-    throw error; // Re-throw other errors
-  }
+  });
 };
 
 /**
@@ -295,24 +302,28 @@ export const updateGameDetails = async (
   gameId: string,
   updateData: Partial<Omit<AppState, 'id' | 'events'>>
 ): Promise<AppState | null> => {
-  try {
-    const game = await getGame(gameId);
-    if (!game) {
-      logger.warn(`Game with ID ${gameId} not found for update.`);
-      return null;
+  return withKeyLock(SAVED_GAMES_KEY, async () => {
+    try {
+      const game = await getGame(gameId);
+      if (!game) {
+        logger.warn(`Game with ID ${gameId} not found for update.`);
+        return null;
+      }
+
+      const updatedGame = {
+        ...game,
+        ...updateData,
+      };
+
+      const allGames = await getSavedGames();
+      allGames[gameId] = updatedGame;
+      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(allGames));
+      return updatedGame;
+    } catch (error) {
+      logger.error('Error updating game details:', error);
+      throw error; // Propagate error
     }
-    
-    const updatedGame = {
-      ...game,
-      ...updateData,
-    };
-    
-    // saveGame now returns a Promise<AppState>
-    return saveGame(gameId, updatedGame);
-  } catch (error) {
-    logger.error('Error updating game details:', error);
-    throw error; // Propagate error
-  }
+  });
 };
 
 /**
@@ -322,23 +333,28 @@ export const updateGameDetails = async (
  * @returns Promise resolving to the updated game data, or null on error
  */
 export const addGameEvent = async (gameId: string, event: PageGameEvent): Promise<AppState | null> => {
-  try {
-    const game = await getGame(gameId);
-    if (!game) {
-      logger.warn(`Game with ID ${gameId} not found for adding event.`);
-      return null;
+  return withKeyLock(SAVED_GAMES_KEY, async () => {
+    try {
+      const game = await getGame(gameId);
+      if (!game) {
+        logger.warn(`Game with ID ${gameId} not found for adding event.`);
+        return null;
+      }
+
+      const updatedGame = {
+        ...game,
+        gameEvents: [...(game.gameEvents || []), event], // Ensure events is an array and cast event
+      };
+
+      const allGames = await getSavedGames();
+      allGames[gameId] = updatedGame;
+      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(allGames));
+      return updatedGame;
+    } catch (error) {
+      logger.error('Error adding game event:', error);
+      throw error;
     }
-    
-    const updatedGame = {
-      ...game,
-      gameEvents: [...(game.gameEvents || []), event], // Ensure events is an array and cast event
-    };
-    
-    return saveGame(gameId, updatedGame);
-  } catch (error) {
-    logger.error('Error adding game event:', error);
-    throw error;
-  }
+  });
 };
 
 /**
@@ -349,31 +365,36 @@ export const addGameEvent = async (gameId: string, event: PageGameEvent): Promis
  * @returns Promise resolving to the updated game data, or null on error
  */
 export const updateGameEvent = async (gameId: string, eventIndex: number, eventData: PageGameEvent): Promise<AppState | null> => {
-  try {
-    const game = await getGame(gameId);
-    if (!game) {
-      logger.warn(`Game with ID ${gameId} not found for updating event.`);
-      return null;
+  return withKeyLock(SAVED_GAMES_KEY, async () => {
+    try {
+      const game = await getGame(gameId);
+      if (!game) {
+        logger.warn(`Game with ID ${gameId} not found for updating event.`);
+        return null;
+      }
+
+      const events = [...(game.gameEvents || [])];
+      if (eventIndex < 0 || eventIndex >= events.length) {
+        logger.warn(`Event index ${eventIndex} out of bounds for game ${gameId}.`);
+        return null;
+      }
+
+      events[eventIndex] = eventData; // Cast eventData
+
+      const updatedGame = {
+        ...game,
+        gameEvents: events,
+      };
+
+      const allGames = await getSavedGames();
+      allGames[gameId] = updatedGame;
+      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(allGames));
+      return updatedGame;
+    } catch (error) {
+      logger.error('Error updating game event:', error);
+      throw error;
     }
-    
-    const events = [...(game.gameEvents || [])];
-    if (eventIndex < 0 || eventIndex >= events.length) {
-      logger.warn(`Event index ${eventIndex} out of bounds for game ${gameId}.`);
-      return null;
-    }
-    
-    events[eventIndex] = eventData; // Cast eventData
-    
-    const updatedGame = {
-      ...game,
-      gameEvents: events,
-    };
-    
-    return saveGame(gameId, updatedGame);
-  } catch (error) {
-    logger.error('Error updating game event:', error);
-    throw error;
-  }
+  });
 };
 
 /**
@@ -383,31 +404,36 @@ export const updateGameEvent = async (gameId: string, eventIndex: number, eventD
  * @returns Promise resolving to the updated game data, or null on error
  */
 export const removeGameEvent = async (gameId: string, eventIndex: number): Promise<AppState | null> => {
-  try {
-    const game = await getGame(gameId);
-    if (!game) {
-      logger.warn(`Game with ID ${gameId} not found for removing event.`);
-      return null;
+  return withKeyLock(SAVED_GAMES_KEY, async () => {
+    try {
+      const game = await getGame(gameId);
+      if (!game) {
+        logger.warn(`Game with ID ${gameId} not found for removing event.`);
+        return null;
+      }
+
+      const events = [...(game.gameEvents || [])];
+      if (eventIndex < 0 || eventIndex >= events.length) {
+        logger.warn(`Event index ${eventIndex} out of bounds for game ${gameId}.`);
+        return null;
+      }
+
+      events.splice(eventIndex, 1);
+
+      const updatedGame = {
+        ...game,
+        gameEvents: events,
+      };
+
+      const allGames = await getSavedGames();
+      allGames[gameId] = updatedGame;
+      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(allGames));
+      return updatedGame;
+    } catch (error) {
+      logger.error('Error removing game event:', error);
+      throw error;
     }
-    
-    const events = [...(game.gameEvents || [])];
-    if (eventIndex < 0 || eventIndex >= events.length) {
-      logger.warn(`Event index ${eventIndex} out of bounds for game ${gameId}.`);
-      return null;
-    }
-    
-    events.splice(eventIndex, 1);
-    
-    const updatedGame = {
-      ...game,
-      gameEvents: events,
-    };
-    
-    return saveGame(gameId, updatedGame);
-  } catch (error) {
-    logger.error('Error removing game event:', error);
-    throw error;
-  }
+  });
 };
 
 /**

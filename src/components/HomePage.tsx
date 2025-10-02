@@ -1851,7 +1851,18 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     }
   }, [handleUpdatePlayer, setRosterError]);
 
-      // ... (rest of the code remains unchanged)
+  // Unified update handler for RosterSettingsModal (prevents race conditions)
+  const handleUpdatePlayerForModal = useCallback(async (playerId: string, updates: Partial<Omit<Player, 'id'>>) => {
+    logger.log(`[Page.tsx] handleUpdatePlayerForModal attempting mutation for ID: ${playerId}, updates:`, updates);
+    setRosterError(null);
+
+    try {
+      await handleUpdatePlayer(playerId, updates);
+      logger.log(`[Page.tsx] player update successful for ${playerId}.`);
+    } catch (error) {
+      logger.error(`[Page.tsx] Exception during update of ${playerId}:`, error);
+    }
+  }, [handleUpdatePlayer, setRosterError]);
 
     const handleRemovePlayerForModal = useCallback(async (playerId: string) => {
       logger.log(`[Page.tsx] handleRemovePlayerForModal attempting mutation for ID: ${playerId}`);
@@ -3285,6 +3296,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         isOpen={isRosterModalOpen}
         onClose={closeRosterModal}
         availablePlayers={availablePlayers} // Use availablePlayers from useGameState
+        onUpdatePlayer={handleUpdatePlayerForModal}
         onRenamePlayer={handleRenamePlayerForModal}
         onSetJerseyNumber={handleSetJerseyNumberForModal}
         onSetPlayerNotes={handleSetPlayerNotesForModal}
