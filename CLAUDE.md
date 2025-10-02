@@ -958,6 +958,17 @@ const migrationData = TestFixtures.utils.createMigrationTestData(1000);
    (window as unknown as { location: { href: string } }).location = { href: '/' };
    ```
 
+   **Important Note on `any` Type Usage:**
+   - **Production code**: ZERO `any` usage allowed (enforced by TypeScript strict mode)
+   - **Test files**: Limited `any` usage is acceptable for test mocks and utilities
+     - Current status: 8 instances in 3 test files (all in mock functions)
+     - These do NOT cause Vercel build failures (test files have relaxed rules)
+   - **Code review guidance**: Before flagging `any` as a critical issue, verify:
+     1. Is it in production code or test files? (Test files are acceptable)
+     2. Does `npm run build` actually fail? (If not, it's likely a false positive)
+     3. Check actual ESLint output: `npm run lint`
+   - **Migration to stricter types**: Use `unknown` with type guards instead of `any` when possible
+
 3. **@typescript-eslint/no-unused-vars**
    ```typescript
    // ❌ Will fail build:
