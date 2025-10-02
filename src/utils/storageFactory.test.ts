@@ -273,7 +273,7 @@ describe('Advanced Features', () => {
     const adapter = await factory.createAdapter('indexedDB');
 
     // Spy on the close method to verify it's called
-    const closeSpy = jest.spyOn(adapter as { close?: () => Promise<void> }, 'close' as keyof typeof adapter);
+    const closeSpy = jest.spyOn(adapter as { close?: () => Promise<void> }, 'close');
 
     await factory.disposeAdapter();
 
@@ -337,7 +337,7 @@ describe('Advanced Features', () => {
     const adapter1 = await factory.createAdapter('indexedDB');
 
     // Spy on close method
-    const closeSpy = jest.spyOn(adapter1 as { close?: () => Promise<void> }, 'close' as keyof typeof adapter1);
+    const closeSpy = jest.spyOn(adapter1 as { close?: () => Promise<void> }, 'close');
 
     // Change mode (in real scenario this would switch between localStorage and indexedDB,
     // but in IndexedDB-only mode we simulate by changing the config)
