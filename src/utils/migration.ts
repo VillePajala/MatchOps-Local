@@ -178,8 +178,7 @@ async function performAppDataMigration(): Promise<void> {
  */
 async function performIndexedDbMigration(): Promise<void> {
   try {
-    // Create adapters
-    const sourceAdapter = await createStorageAdapter('localStorage');
+    // Create IndexedDB adapter only (read from localStorage directly)
     const targetAdapter = await createStorageAdapter('indexedDB');
 
     // Get all localStorage keys
@@ -208,7 +207,8 @@ async function performIndexedDbMigration(): Promise<void> {
 
     for (const key of allKeys) {
       try {
-        const value = await sourceAdapter.getItem(key);
+        // Read directly from localStorage (no adapter needed)
+        const value = localStorage.getItem(key);
         if (value !== null) {
           await targetAdapter.setItem(key, value);
         }
