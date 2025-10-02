@@ -1,11 +1,12 @@
 import { Team, TeamPlayer } from '@/types';
 import type { AppState } from '@/types/game';
-import { 
+import {
   TEAMS_INDEX_KEY,
-  TEAM_ROSTERS_KEY 
+  TEAM_ROSTERS_KEY
 } from '@/config/storageKeys';
 import { getStorageItem, setStorageItem } from './storage';
 import { withRosterLock } from './lockManager';
+import logger from '@/utils/logger';
 
 // Team index storage format: { [teamId: string]: Team }
 export interface TeamsIndex {
@@ -24,8 +25,7 @@ export const getAllTeams = async (): Promise<TeamsIndex> => {
     if (!json) return {};
     return JSON.parse(json) as TeamsIndex;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('Failed to load teams index, returning empty', { error });
+    logger.warn('Failed to load teams index, returning empty', { error });
     return {};
   }
 };
@@ -130,8 +130,7 @@ export const getAllTeamRosters = async (): Promise<TeamRostersIndex> => {
     if (!json) return {};
     return JSON.parse(json) as TeamRostersIndex;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('Failed to load team rosters index, returning empty', { error });
+    logger.warn('Failed to load team rosters index, returning empty', { error });
     return {};
   }
 };
@@ -231,11 +230,10 @@ export const countGamesForTeam = async (teamId: string): Promise<number> => {
         count++;
       }
     }
-    
+
     return count;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('Failed to count games for team, returning 0', { teamId, error });
+    logger.warn('Failed to count games for team, returning 0', { teamId, error });
     return 0;
   }
 };

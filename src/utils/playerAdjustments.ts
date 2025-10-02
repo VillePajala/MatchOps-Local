@@ -1,6 +1,7 @@
 import { PLAYER_ADJUSTMENTS_KEY } from '@/config/storageKeys';
 import { getStorageItem, setStorageItem } from './storage';
 import type { PlayerStatAdjustment } from '@/types';
+import logger from '@/utils/logger';
 
 export interface PlayerAdjustmentsIndex {
   [playerId: string]: PlayerStatAdjustment[];
@@ -12,8 +13,7 @@ export const getAllPlayerAdjustments = async (): Promise<PlayerAdjustmentsIndex>
     if (!json) return {};
     return JSON.parse(json) as PlayerAdjustmentsIndex;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('Failed to load player adjustments index, returning empty', { error });
+    logger.warn('Failed to load player adjustments index, returning empty', { error });
     return {};
   }
 };

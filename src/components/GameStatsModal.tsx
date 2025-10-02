@@ -168,8 +168,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         });
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.warn('Error formatting date in GameStatsModal', { error });
+      logger.warn('Error formatting date in GameStatsModal', { error });
       return 'Date Error';
     }
   }, [i18n.language, t]); // Dependencies: language and t function

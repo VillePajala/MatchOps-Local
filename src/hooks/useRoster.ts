@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import type { Player } from '@/types';
 import { addPlayer, updatePlayer, removePlayer, setGoalieStatus } from '@/utils/masterRosterManager';
+import logger from '@/utils/logger';
 
 interface UseRosterArgs {
   initialPlayers: Player[];
@@ -43,8 +44,7 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
         setRosterError('Failed to add player');
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.warn('Failed to add player to roster', { error });
+      logger.warn('Failed to add player to roster', { error });
       setAvailablePlayers(prev);
       setRosterError('Failed to add player');
     } finally {
@@ -73,8 +73,7 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
         setRosterError('Failed to update player');
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.warn('Failed to update player in roster', { playerId, error });
+      logger.warn('Failed to update player in roster', { playerId, error });
       setAvailablePlayers(prev);
       setRosterError('Failed to update player');
     } finally {
@@ -95,8 +94,7 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
         setRosterError(null);
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.warn('Failed to remove player from roster', { playerId, error });
+      logger.warn('Failed to remove player from roster', { playerId, error });
       setAvailablePlayers(prev);
       setRosterError('Failed to remove player');
     } finally {
@@ -123,8 +121,7 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
         setRosterError(null);
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.warn('Failed to set goalie status', { playerId, isGoalie, error });
+      logger.warn('Failed to set goalie status', { playerId, isGoalie, error });
       setAvailablePlayers(prev);
       setRosterError('Failed to set goalie status');
     } finally {

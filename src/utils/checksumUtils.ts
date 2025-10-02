@@ -5,6 +5,8 @@
  * particularly for migration resume data validation.
  */
 
+import logger from '@/utils/logger';
+
 /**
  * Generate SHA-256 hash of data for integrity verification
  * Uses Web Crypto API with comprehensive browser compatibility warnings
@@ -14,22 +16,16 @@ export async function generateChecksum(data: string): Promise<string> {
   if (!isWebCryptoSupported()) {
     const compatInfo = getWebCryptoCompatibilityInfo();
 
-    // eslint-disable-next-line no-console
-    console.warn('⚠️ Web Crypto API Compatibility Warning:');
-    // eslint-disable-next-line no-console
-    console.warn('Your browser does not fully support the Web Crypto API.');
-    // eslint-disable-next-line no-console
-    console.warn('This may affect data integrity verification during migration.');
-    // eslint-disable-next-line no-console
-    console.warn('Browser Support: Chrome 37+, Firefox 34+, Safari 7+, Edge 12+');
+    logger.warn('⚠️ Web Crypto API Compatibility Warning:');
+    logger.warn('Your browser does not fully support the Web Crypto API.');
+    logger.warn('This may affect data integrity verification during migration.');
+    logger.warn('Browser Support: Chrome 37+, Firefox 34+, Safari 7+, Edge 12+');
 
     if (compatInfo.recommendation) {
-      // eslint-disable-next-line no-console
-      console.warn('Recommendation:', compatInfo.recommendation);
+      logger.warn('Recommendation:', compatInfo.recommendation);
     }
 
-    // eslint-disable-next-line no-console
-    console.warn('Falling back to a simpler checksum algorithm.');
+    logger.warn('Falling back to a simpler checksum algorithm.');
     return simpleHash(data);
   }
 
@@ -41,8 +37,7 @@ export async function generateChecksum(data: string): Promise<string> {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('Web Crypto API operation failed, falling back to simple hash:', error);
+    logger.warn('Web Crypto API operation failed, falling back to simple hash:', error);
     return simpleHash(data);
   }
 }
@@ -58,8 +53,7 @@ export function isWebCryptoSupported(): boolean {
       typeof crypto.subtle.digest === 'function'
     );
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('Failed to check Web Crypto API support', { error });
+    logger.warn('Failed to check Web Crypto API support', { error });
     return false;
   }
 }
@@ -110,8 +104,7 @@ export async function verifyChecksum(data: string, expectedChecksum: string): Pr
     const actualChecksum = await generateChecksum(data);
     return actualChecksum === expectedChecksum;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('Failed to verify checksum', { error });
+    logger.warn('Failed to verify checksum', { error });
     return false;
   }
 }
@@ -154,8 +147,7 @@ export async function verifyResumeDataIntegrity(
     const actualChecksum = await generateResumeDataChecksum(resumeData);
     return actualChecksum === expectedChecksum;
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('Failed to verify resume data integrity', { error });
+    logger.warn('Failed to verify resume data integrity', { error });
     return false;
   }
 }

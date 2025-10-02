@@ -16,6 +16,7 @@ import SparklineChart from './SparklineChart';
 import RatingBar from './RatingBar';
 import MetricTrendChart from './MetricTrendChart';
 import MetricAreaChart from './MetricAreaChart';
+import logger from '@/utils/logger';
 
 interface PlayerStatsViewProps {
   player: Player | null;
@@ -81,8 +82,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         locale: i18n.language === 'fi' ? fi : enUS
       });
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.warn('Failed to format date in PlayerStatsView', { dateStr, error });
+      logger.warn('Failed to format date in PlayerStatsView', { dateStr, error });
       return dateStr;
     }
   };

@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: remove unused telemetry infrastructure from StorageFactory"
+  "notes": "fix: address critical code review findings"
 }
