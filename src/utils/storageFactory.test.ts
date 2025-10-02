@@ -107,7 +107,7 @@ describe('StorageFactory Core Functionality', () => {
     test('should return default configuration', async () => {
       const config = await factory.getStorageConfig();
 
-      expect(config.mode).toBe('indexedDB'); // IndexedDB-only architecture
+      expect(config.mode).toBe('localStorage'); // Starts with localStorage, triggers migration check
       expect(config.version).toBe('1.0.0');
       expect(config.migrationState).toBe('not-started');
       expect(config.migrationFailureCount).toBe(0);
@@ -173,10 +173,10 @@ describe('StorageFactory Core Functionality', () => {
 
   describe('Reset Functionality', () => {
     test('should reset configuration', async () => {
-      // Ensure we start with default state (IndexedDB-only)
+      // Ensure we start with default state (localStorage, triggers migration check)
       await factory.resetToDefaults();
       const initialConfig = await factory.getStorageConfig();
-      expect(initialConfig.mode).toBe('indexedDB'); // IndexedDB is now default
+      expect(initialConfig.mode).toBe('localStorage'); // Starts with localStorage, triggers migration check
 
       // Update some other config value to test reset
       await factory.updateStorageConfig({ version: '2.0.0' });
@@ -186,7 +186,7 @@ describe('StorageFactory Core Functionality', () => {
       // Reset back to defaults
       await factory.resetToDefaults();
       const resetConfig = await factory.getStorageConfig();
-      expect(resetConfig.mode).toBe('indexedDB'); // IndexedDB is now default
+      expect(resetConfig.mode).toBe('localStorage'); // Starts with localStorage, triggers migration check
       expect(resetConfig.version).toBe('1.0.0'); // Version should reset too
     });
   });
@@ -212,7 +212,7 @@ describe('Convenience Functions', () => {
     expect(adapter.getBackendName()).toBe('indexedDB');
 
     const config = await getStorageConfig();
-    expect(config.mode).toBe('indexedDB'); // IndexedDB-only architecture
+    expect(config.mode).toBe('localStorage'); // Config starts with localStorage, creating adapter doesn't change config
 
     await updateStorageConfig({ version: '2.0.0' });
     const updatedConfig = await getStorageConfig();

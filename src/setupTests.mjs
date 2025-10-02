@@ -156,60 +156,99 @@ if (typeof process !== 'undefined') {
 const originalConsoleWarn = console.warn;
 const originalConsoleError = console.error;
 
-// Console monitoring temporarily disabled - too many false positives from error handling tests
-// TODO: Re-enable with better pattern matching or opt-in per-test basis
+// Console monitoring - fails tests on unexpected warnings/errors
 // List of allowed console warnings/errors (test environment noise and expected test outputs)
-// const allowedConsolePatterns = [
-//   'ResizeObserver loop',
-//   'Not implemented: HTMLCanvasElement',
-//   'Not implemented: navigation',
-//   'Warning: ReactDOM.render',
-//   'Warning: useLayoutEffect',
-//   'Warning: An update to',
-//   'act(...) is not supported',
-//   // React 19 warnings that are expected
-//   'Warning: React does not recognize',
-//   'Warning: Invalid DOM property',
-//   // Test-specific expected console output (from error handling tests)
-//   'Error saving game:',
-//   'Error loading game:',
-//   'Error deleting game:',
-//   'Skipping IndexedDB test',
-//   'Failed to',
-//   'Migration failed',
-//   'Storage operation failed',
-// ];
-//
-// const shouldFailOnConsoleMessage = (message) => {
-//   const messageStr = typeof message === 'string' ? message : String(message);
-//   return !allowedConsolePatterns.some(pattern => messageStr.includes(pattern));
-// };
-// console.warn = (...args) => {
-//   originalConsoleWarn.apply(console, args);
-//   const message = args[0];
-//   if (shouldFailOnConsoleMessage(message)) {
-//     const testState = expect.getState();
-//     const testName = testState?.currentTestName || 'unknown test';
-//     const error = new Error(`Unexpected console.warn in test "${testName}": ${message}`);
-//     error.consoleArgs = args;
-//     throw error;
-//   }
-// };
+const allowedConsolePatterns = [
+  'ResizeObserver loop',
+  'Not implemented: HTMLCanvasElement',
+  'Not implemented: navigation',
+  'Warning: ReactDOM.render',
+  'Warning: useLayoutEffect',
+  'Warning: An update to',
+  'act(...) is not supported',
+  'was not wrapped in act(...)',  // React state update warnings - will fix with act() wrappers
+  // React 19 warnings that are expected
+  'Warning: React does not recognize',
+  'Warning: Invalid DOM property',
+  // Test-specific expected console output (from error handling tests)
+  // Game-related errors
+  'Error saving game',
+  'Error loading game',
+  'Error getting game',
+  'Error deleting game',
+  'Error creating new game',
+  'Error adding game event',
+  'Error removing game event',
+  'Error updating game',
+  'Error getting saved games',
+  'Error filtering games',
+  'Import games error',
+  // Settings-related errors
+  'Error saving app settings',
+  'Error getting app settings',
+  'Error saving last home team name',
+  'Error getting last home team name',
+  '[resetAppSettings] Error',
+  // Player assessment errors
+  'Error saving player assessment',
+  'Error getting player assessment',
+  'Error deleting player assessment',
+  'Game with ID',  // Warning: Game not found
+  'Assessment for player',  // Warning: Assessment not found
+  // Validation warnings (expected in error-handling tests)
+  'gameId is null or empty',
+  'out of bounds',
+  'Import completed with',
+  'Failed to parse import',
+  'Skipping IndexedDB test',
+  'Failed to',
+  'Migration failed',
+  'Storage operation failed',
+  // Storage bootstrap errors in test environment (IndexedDB not available in jsdom)
+  '[StorageBootstrap]',
+  '[StorageFactory]',
+  '[StorageConfigManager]',
+  '[MutexManager]',
+  '[StorageRecovery]',
+  'IndexedDB read failed',
+  'IndexedDB write failed',
+  'IDBRequest is not defined',
+  // Canvas/DOM warnings in test environment
+  'Canvas has invalid dimensions',
+  'Wake Lock request failed',
+];
 
-// console.error = (...args) => {
-//   originalConsoleError.apply(console, args);
-//   const message = args[0];
-//   if (typeof message === 'string' && message.startsWith('🚨')) {
-//     return;
-//   }
-//   if (shouldFailOnConsoleMessage(message)) {
-//     const testState = expect.getState();
-//     const testName = testState?.currentTestName || 'unknown test';
-//     const error = new Error(`Unexpected console.error in test "${testName}": ${message}`);
-//     error.consoleArgs = args;
-//     throw error;
-//   }
-// };
+const shouldFailOnConsoleMessage = (message) => {
+  const messageStr = typeof message === 'string' ? message : String(message);
+  return !allowedConsolePatterns.some(pattern => messageStr.includes(pattern));
+};
+
+console.warn = (...args) => {
+  originalConsoleWarn.apply(console, args);
+  const message = args[0];
+  if (shouldFailOnConsoleMessage(message)) {
+    const testState = expect.getState();
+    const testName = testState?.currentTestName || 'unknown test';
+    const error = new Error(`Unexpected console.warn in test "${testName}": ${message}`);
+    error.consoleArgs = args;
+    throw error;
+  }
+};
+
+console.error = (...args) => {
+  originalConsoleError.apply(console, args);
+  const message = args[0];
+  if (typeof message === 'string' && message.startsWith('🚨')) {
+    return;
+  }
+  if (shouldFailOnConsoleMessage(message)) {
+    const testState = expect.getState();
+    const testName = testState?.currentTestName || 'unknown test';
+    const error = new Error(`Unexpected console.error in test "${testName}": ${message}`);
+    error.consoleArgs = args;
+    throw error;
+  }
+};
 
 // Mock window.location if needed by tests
 const originalLocation = typeof window !== 'undefined' ? window.location : undefined;

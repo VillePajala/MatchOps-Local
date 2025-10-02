@@ -3,11 +3,13 @@
  * This file is run after each test to clean up state
  */
 
+// Import React Testing Library cleanup
+const { cleanup } = require('@testing-library/react');
+
 // Clean up DOM state (but not during active tests)
 function cleanupDOM() {
-  // Let React Testing Library handle DOM cleanup completely
-  // Manual DOM manipulation can cause memory leaks
-  // React Testing Library's cleanup() is sufficient
+  // Use React Testing Library's cleanup to unmount components
+  cleanup();
 }
 
 // Clean up timers and intervals
@@ -70,8 +72,10 @@ function cleanupPerformance() {
 // Main cleanup function
 function cleanupAfterTest() {
   try {
+    // Clean up React components first (unmount)
+    cleanupDOM();
+    // Then clean up other resources
     cleanupTimers();
-    // Skip DOM cleanup - let React Testing Library handle it
     cleanupGlobals();
     cleanupReact();
     cleanupPerformance();
