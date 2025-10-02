@@ -558,10 +558,18 @@ export class StorageFactory {
         this.cachedAdapter = null;
         this.cachedAdapterVersion = -1;
 
-        // Dispose old adapter after cache is cleared
+        // Dispose old adapter after cache is cleared (use captured reference)
         if (currentAdapter) {
           try {
-            await this.disposeAdapter();
+            this.logger.debug('Disposing old adapter during mode change', {
+              backend: currentAdapter.getBackendName()
+            });
+
+            // Close the captured adapter directly (not this.cachedAdapter which is now null)
+            const disposableAdapter = currentAdapter as DisposableAdapter;
+            if (disposableAdapter.close) {
+              await disposableAdapter.close();
+            }
           } catch (disposeError) {
             this.logger.warn('Failed to dispose old adapter during mode change', { disposeError });
             // Continue execution - disposal failure shouldn't block configuration update

@@ -272,7 +272,13 @@ describe('Advanced Features', () => {
     const factory = new StorageFactory();
     const adapter = await factory.createAdapter('indexedDB');
 
+    // Spy on the close method to verify it's called
+    const closeSpy = jest.spyOn(adapter as { close?: () => Promise<void> }, 'close' as keyof typeof adapter);
+
     await factory.disposeAdapter();
+
+    // Verify close() was called on the adapter
+    expect(closeSpy).toHaveBeenCalled();
 
     // After dispose, should create new adapter
     const newAdapter = await factory.createAdapter('indexedDB');
@@ -322,6 +328,28 @@ describe('Advanced Features', () => {
     ]);
 
     expect(values).toEqual(['value1', 'value2', 'value3']);
+  });
+
+  test('should close adapter when mode changes (resource leak fix)', async () => {
+    const factory = new StorageFactory();
+
+    // Create initial adapter
+    const adapter1 = await factory.createAdapter('indexedDB');
+
+    // Spy on close method
+    const closeSpy = jest.spyOn(adapter1 as { close?: () => Promise<void> }, 'close' as keyof typeof adapter1);
+
+    // Change mode (in real scenario this would switch between localStorage and indexedDB,
+    // but in IndexedDB-only mode we simulate by changing the config)
+    await factory.updateStorageConfig({ mode: 'indexedDB', version: '2.0.0' });
+
+    // Verify that close() was called on the OLD adapter
+    // This was the bug: adapter was nulled before disposal, so close() was never called
+    expect(closeSpy).toHaveBeenCalled();
+
+    // New adapter should be created
+    const adapter2 = await factory.createAdapter();
+    expect(adapter2).not.toBe(adapter1);
   });
 });
 
