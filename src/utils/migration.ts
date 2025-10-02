@@ -58,6 +58,12 @@ class CompatibleWeakRef<T extends object> {
 
       // Set aggressive cleanup timer for fallback mode to prevent memory leaks
       this.fallbackCleanupTimer = setTimeout(() => {
+        // Safety check: only clean up if not already cleared (prevents double-cleanup race)
+        if (this.strongRef === null) {
+          this.fallbackCleanupTimer = null;
+          return;
+        }
+
         logger.warn('[Migration] Auto-cleaning strong reference after timeout to prevent memory leak');
         this.strongRef = null;
         this.fallbackCleanupTimer = null;
@@ -76,10 +82,15 @@ class CompatibleWeakRef<T extends object> {
     this.weakRef = null;
     // Explicitly clear strong reference to prevent memory leaks in older browsers
     this.strongRef = null;
-    // Clear fallback cleanup timer if it exists
-    if (this.fallbackCleanupTimer) {
-      clearTimeout(this.fallbackCleanupTimer);
-      this.fallbackCleanupTimer = null;
+
+    // Atomically clear and cancel timer to prevent race condition
+    // CRITICAL: Capture timer reference before nulling property
+    // This prevents the race where timer fires between the check and clearTimeout()
+    const timer = this.fallbackCleanupTimer;
+    this.fallbackCleanupTimer = null; // Clear reference FIRST
+
+    if (timer) {
+      clearTimeout(timer); // Then cancel using captured reference
     }
   }
 

@@ -444,85 +444,23 @@ export class StorageFactory {
   }
 
   /**
-   * Validate content for XSS prevention
+   * Validate storage key and value sizes (XSS validation removed)
    *
-   * IMPORTANT: Only validates actual user input, NOT JSON-serialized data
-   * This app stores 100% JSON data, so we skip XSS validation for valid JSON
+   * IMPORTANT: XSS validation removed - not needed for local-first app
    *
-   * @param content - Content to validate
-   * @param contentType - Type of content (key, value, etc.)
-   * @throws {StorageError} If content contains suspicious patterns
-   */
-  private validateContentSecurity(content: string, contentType: string): void {
-    // Skip XSS validation for JSON-serialized data (our app stores 100% JSON)
-    // This prevents false positives from legitimate game data containing HTML-like patterns
-    if (contentType === 'value') {
-      try {
-        JSON.parse(content);
-        // Valid JSON - no XSS risk from JSON-serialized data
-        return;
-      } catch {
-        // Not JSON - fall through to XSS validation
-      }
-    }
-
-    // Common XSS patterns to detect (only for non-JSON data)
-    const xssPatterns = [
-      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-      /javascript:/gi,
-      /on\w+\s*=/gi, // Event handlers like onclick=, onload=
-      /<iframe\b[^>]*>/gi,
-      /<object\b[^>]*>/gi,
-      /<embed\b[^>]*>/gi,
-      /<form\b[^>]*>/gi,
-      /data:text\/html/gi,
-      /vbscript:/gi,
-      /expression\s*\(/gi // CSS expressions
-    ];
-
-    for (const pattern of xssPatterns) {
-      if (pattern.test(content)) {
-        this.auditLog('xss_content_blocked', {
-          contentType,
-          pattern: pattern.source,
-          contentLength: content.length
-        });
-
-        throw new StorageError(
-          StorageErrorType.ACCESS_DENIED,
-          `Potentially malicious content blocked in ${contentType}`,
-          new Error('XSS content validation failed')
-        );
-      }
-    }
-
-    // Check for suspicious URL schemes (only for non-JSON data)
-    const suspiciousSchemes = /(?:javascript|data|vbscript|file|ftp):/gi;
-    if (suspiciousSchemes.test(content)) {
-      this.auditLog('suspicious_url_blocked', {
-        contentType,
-        contentLength: content.length
-      });
-
-      throw new StorageError(
-        StorageErrorType.ACCESS_DENIED,
-        `Suspicious URL scheme detected in ${contentType}`,
-        new Error('URL scheme validation failed')
-      );
-    }
-  }
-
-  /**
-   * Validate storage key and value sizes and content for security
+   * Rationale:
+   * - All data is application-generated JSON (game stats, player data)
+   * - Browser origin isolation is the security boundary
+   * - No HTML rendering = no XSS risk
+   * - Local-first PWA with single user = no injection attack vector
+   * - See CLAUDE.md "Security & Privacy Context" for architecture details
    *
    * @param key - Storage key to validate
    * @param value - Storage value to validate
-   * @throws {StorageError} If key or value exceeds size limits or contains malicious content
+   * @throws {StorageError} If key or value exceeds size limits
    */
   validateStorageSize(key: string, value: string): void {
-    // Validate content for XSS
-    this.validateContentSecurity(key, 'key');
-    this.validateContentSecurity(value, 'value');
+    // Size validation only (no XSS validation needed for local-first app)
     if (key.length > this.maxKeySize) {
       throw new StorageError(
         StorageErrorType.QUOTA_EXCEEDED,
