@@ -15,15 +15,9 @@
 
 import {
   APP_DATA_VERSION_KEY,
-  APP_SETTINGS_KEY,
-  LAST_HOME_TEAM_NAME_KEY,
   MASTER_ROSTER_KEY,
-  PLAYER_ADJUSTMENTS_KEY,
   SAVED_GAMES_KEY,
   SEASONS_LIST_KEY,
-  TEAM_ROSTERS_KEY,
-  TEAMS_INDEX_KEY,
-  TIMER_STATE_KEY,
   TOURNAMENTS_LIST_KEY
 } from '@/config/storageKeys';
 import { getLocalStorageItem, setLocalStorageItem } from './localStorage'; // Keep for reading legacy data during migration
@@ -136,7 +130,7 @@ const MIGRATION_CONFIG = {
 
   // Cross-tab coordination timeouts
   MIGRATION_LOCK_TIMEOUT_MS: 5 * 60 * 1000, // Cross-tab migration lock timeout (5 minutes)
-  PROGRESS_CLEANUP_TIMEOUT_MS: 30 * 60 * 1000, // Progress callback cleanup timeout (30 minutes)
+  PROGRESS_CLEANUP_TIMEOUT_MS: 5 * 60 * 1000, // Progress callback cleanup timeout (5 minutes - prevents memory leaks)
 
   // Memory and performance thresholds
   LARGE_ITEM_THRESHOLD_BYTES: 100000, // Items >100KB are considered large (use smaller batches)
@@ -880,41 +874,33 @@ export const runMigration = async (): Promise<void> => {
     // Record successful migration attempt
     await recordMigrationAttempt(true);
 
-    // Clear app-specific localStorage keys after successful migration to IndexedDB
+    // Clear ONLY migrated localStorage keys after successful migration to IndexedDB
     // This ensures the app uses only IndexedDB from this point forward
-    if (needsIndexedDbMigration) {
+    // CRITICAL: Only clear keys that were actually migrated to avoid affecting other apps
+    if (needsIndexedDbMigration && performanceMetrics.migratedKeys > 0) {
       try {
-        logger.log('[Migration] Clearing app-specific localStorage keys after successful IndexedDB migration');
+        logger.log('[Migration] Clearing migrated localStorage keys after successful IndexedDB migration');
 
-        // Clear only app-specific keys to avoid affecting other apps on same domain
-        const appKeys = [
-          SEASONS_LIST_KEY,
-          TOURNAMENTS_LIST_KEY,
-          SAVED_GAMES_KEY,
-          APP_SETTINGS_KEY,
-          MASTER_ROSTER_KEY,
-          LAST_HOME_TEAM_NAME_KEY,
-          TIMER_STATE_KEY,
-          PLAYER_ADJUSTMENTS_KEY,
-          TEAMS_INDEX_KEY,
-          TEAM_ROSTERS_KEY,
-          APP_DATA_VERSION_KEY,
-          'storage-version', // Storage factory config
-          'storage-mode',    // Storage factory config
-          'migration_attempt_history', // Migration rate limiting (though now in IndexedDB)
-        ];
-
+        // Only clear the keys that were successfully migrated
+        // This prevents affecting other apps or browser extensions on the same domain
+        const keysToMigrate = Array.from(getLocalStorageKeys());
         let clearedCount = 0;
-        for (const key of appKeys) {
-          if (localStorage.getItem(key) !== null) {
-            localStorage.removeItem(key);
-            clearedCount++;
+
+        for (const key of keysToMigrate) {
+          try {
+            if (localStorage.getItem(key) !== null) {
+              localStorage.removeItem(key);
+              clearedCount++;
+            }
+          } catch (removeError) {
+            logger.warn(`[Migration] Failed to remove localStorage key "${key}":`, removeError);
+            // Continue with other keys even if one fails
           }
         }
 
-        logger.log(`[Migration] Cleared ${clearedCount} app-specific localStorage keys - app now uses IndexedDB exclusively`);
+        logger.log(`[Migration] Cleared ${clearedCount} migrated localStorage keys - app now uses IndexedDB exclusively`);
       } catch (clearError) {
-        logger.warn('[Migration] Failed to clear app-specific localStorage keys:', clearError);
+        logger.warn('[Migration] Failed to clear migrated localStorage keys:', clearError);
         // Not critical - migration was successful, this is just cleanup
       }
     }

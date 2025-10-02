@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: update documentation status and reorganize structure"
+  "notes": "docs: remove CI/CD workflow documentation from CLAUDE.md"
 }

@@ -51,9 +51,14 @@ export interface StorageConfig {
 
 /**
  * Default configuration values
+ *
+ * IMPORTANT: mode is set to 'localStorage' by default to trigger migration check
+ * for existing users upgrading from localStorage-only builds. This does NOT mean
+ * the app uses localStorage - it's just a flag to detect if migration is needed.
+ * After migration completes, this is updated to 'indexedDB' permanently.
  */
 export const DEFAULT_STORAGE_CONFIG: StorageConfig = {
-  mode: 'indexedDB',
+  mode: 'localStorage', // Triggers migration check on first load
   version: '1.0.0',
   migrationState: 'not-started',
   migrationFailureCount: 0
