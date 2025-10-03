@@ -2077,9 +2077,9 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   };
 
   // --- NEW: Quick Save Handler ---
-  const handleQuickSaveGame = useCallback(async () => {
+  const handleQuickSaveGame = useCallback(async (silent = false) => {
     if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-      logger.log(`Quick saving game with ID: ${currentGameId}`);
+      logger.log(`Quick saving game with ID: ${currentGameId}${silent ? ' (silent)' : ''}`);
       try {
         // 1. Create the current game state snapshot
         const currentSnapshot: AppState = {
@@ -2137,7 +2137,9 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         resetHistory(currentSnapshot);
 
         logger.log(`Game quick saved successfully with ID: ${currentGameId}`);
-        showToast('Game saved!');
+        if (!silent) {
+          showToast('Game saved!');
+        }
 
       } catch (error) {
         logger.error("Failed to quick save game state:", error);
@@ -2183,7 +2185,9 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         setCurrentGameId(gameId);
         await utilSaveCurrentGameIdSetting(gameId);
         resetHistory(gameData);
-        showToast('Game saved!');
+        if (!silent) {
+          showToast('Game saved!');
+        }
       } catch (error) {
         logger.error('Failed to save new game:', error);
         alert('Error quick saving game.');
@@ -2246,7 +2250,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       },
       delay: 2000,
     },
-    saveFunction: handleQuickSaveGame,
+    saveFunction: () => handleQuickSaveGame(true), // Silent auto-save
     enabled: currentGameId !== DEFAULT_GAME_ID,
     currentGameId,
   });
