@@ -593,12 +593,15 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
       // Save updated game
       await utilSaveGame(currentGameId, updatedGame);
-      
+
       // Update local state
       setSavedGames(prev => ({
         ...prev,
         [currentGameId]: updatedGame
       }));
+
+      // Invalidate React Query cache to update LoadGameModal
+      queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
 
       // Clear orphaned state if team was assigned
       if (newTeamId) {
@@ -1208,9 +1211,12 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
         // 2. Save the game snapshot using utility
           await utilSaveGame(currentGameId, currentSnapshot as AppState); // Cast to AppState for the util
-        
+
         // 3. Save App Settings (only the current game ID) using utility
           await utilSaveCurrentGameIdSetting(currentGameId);
+
+        // Invalidate React Query cache to update LoadGameModal
+        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
 
       } catch (error) {
         logger.error("Failed to auto-save state to localStorage:", error);
@@ -1233,6 +1239,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       tacticalDrawings,
       tacticalBallPosition,
       isPlayed,
+      queryClient,
     ]);
 
   // **** ADDED: Effect to prompt for setup if default game ID is loaded ****
@@ -1967,6 +1974,9 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           availablePlayers: updatedAvailablePlayers,
           playersOnField: updatedFieldPlayers,
         });
+
+        // Invalidate React Query cache to update LoadGameModal
+        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
       }
 
       logger.log(`[Page.tsx] per-game goalie toggle success for ${playerId}.`);
@@ -1977,7 +1987,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     // Data dependencies (values that change the function's behavior)
     availablePlayers, playersOnField, currentGameId, gameSessionState, t,
     // Setter dependencies (React guarantees these are stable but ESLint requires them)
-    setAvailablePlayers, setPlayersOnField, setRosterError
+    setAvailablePlayers, setPlayersOnField, setRosterError, queryClient
   ]);
 
   // --- END Roster Management Handlers ---
@@ -2119,6 +2129,9 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         await utilSaveGame(currentGameId, currentSnapshot); // Use utility function
         await utilSaveCurrentGameIdSetting(currentGameId); // Save current game ID setting
 
+        // Invalidate React Query cache to update LoadGameModal
+        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+
         // 3. Update history to reflect the saved state
         // This makes the quick save behave like loading a game, resetting undo/redo
         resetHistory(currentSnapshot);
@@ -2191,7 +2204,8 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     showToast,
     gameSessionState, // This now covers all migrated game session fields
     playerAssessments,
-    isPlayed
+    isPlayed,
+    queryClient
   ]);
   // --- END Quick Save Handler ---
 
@@ -2430,6 +2444,10 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
         await utilSaveGame(newGameId, newGameState);
         await utilSaveCurrentGameIdSetting(newGameId);
+
+        // Invalidate React Query cache to update LoadGameModal
+        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+
         logger.log(`Saved new game ${newGameId} and settings via utility functions.`);
 
       } catch (error) {
@@ -2462,6 +2480,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     setCurrentGameId,
     setIsNewGameSetupModalOpen,
     setHighlightRosterButton,
+    queryClient,
   ]);
 
   // ** REVERT handleCancelNewGameSetup TO ORIGINAL **

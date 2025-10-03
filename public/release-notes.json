@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "test: update error expectations after storage key locking implementation"
+  "notes": "fix: remove invalid isActive property and add missing type annotation"
 }
