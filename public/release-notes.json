@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: eliminate storage race conditions with per-key locking"
+  "notes": "test: update error expectations after storage key locking implementation"
 }

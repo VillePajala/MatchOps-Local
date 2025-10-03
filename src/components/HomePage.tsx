@@ -27,6 +27,7 @@ import i18n from '@/i18n';
 import { useGameState, UseGameStateReturn } from '@/hooks/useGameState';
 import GameInfoBar from '@/components/GameInfoBar';
 import { useGameTimer } from '@/hooks/useGameTimer';
+import { useAutoSave } from '@/hooks/useAutoSave';
 // Import the new game session reducer and related types
 import {
   gameSessionReducer,
@@ -2103,6 +2104,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds, // Use gameSessionState for lastSubConfirmationTimeSeconds
           homeOrAway: gameSessionState.homeOrAway,
           teamId: savedGames[currentGameId]?.teamId, // Preserve the teamId from the current game
+          isPlayed,
           // VOLATILE TIMER STATES ARE EXCLUDED:
           // timeElapsedInSeconds: gameSessionState.timeElapsedInSeconds, // REMOVE from AppState snapshot
           // isTimerRunning: gameSessionState.isTimerRunning, // REMOVE from AppState snapshot
@@ -2192,6 +2194,49 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     isPlayed
   ]);
   // --- END Quick Save Handler ---
+
+  // --- Auto-Save with Smart Debouncing ---
+  // Different delays based on user impact:
+  // - Immediate (0ms): Goals, assists, scores → Statistics update instantly
+  // - Short (500ms): Game metadata → Near-instant feel
+  // - Long (2000ms): Tactical data → Battery-friendly
+  useAutoSave({
+    immediate: {
+      // Critical for statistics - save instantly
+      states: {
+        gameEvents: gameSessionState.gameEvents,
+        homeScore: gameSessionState.homeScore,
+        awayScore: gameSessionState.awayScore,
+      },
+      delay: 0,
+    },
+    short: {
+      // User-visible metadata - feels instant
+      states: {
+        teamName: gameSessionState.teamName,
+        opponentName: gameSessionState.opponentName,
+        gameNotes: gameSessionState.gameNotes,
+        assessments: playerAssessments,
+      },
+      delay: 500,
+    },
+    long: {
+      // Tactical/position data - battery-friendly
+      states: {
+        playersOnField,
+        opponents,
+        drawings,
+        tacticalDiscs,
+        tacticalDrawings,
+        tacticalBallPosition,
+      },
+      delay: 2000,
+    },
+    saveFunction: handleQuickSaveGame,
+    enabled: currentGameId !== DEFAULT_GAME_ID,
+    currentGameId,
+  });
+  // --- END Auto-Save ---
 
   // --- NEW: Handlers for Game Settings Modal --- 
   const handleOpenGameSettingsModal = () => {
