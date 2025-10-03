@@ -9,6 +9,8 @@
 import { renderHook } from '@testing-library/react';
 import { useAutoSave } from './useAutoSave';
 import { act } from 'react';
+import type { GameEvent } from '@/types/game';
+import type { Player } from '@/types';
 
 // Mock logger to avoid console noise
 jest.mock('@/utils/logger', () => ({
@@ -18,6 +20,23 @@ jest.mock('@/utils/logger', () => ({
 
 describe('useAutoSave', () => {
   let mockSaveFunction: jest.Mock;
+
+  // Helper function to create test GameEvent
+  const createGameEvent = (id: string, time: number): GameEvent => ({
+    id,
+    type: 'goal',
+    time,
+  });
+
+  // Helper function to create test Player
+  const createPlayer = (id: string, name: string, relX: number, relY: number): Player => ({
+    id,
+    name,
+    relX,
+    relY,
+    jerseyNumber: '1',
+    isActive: true,
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -53,7 +72,7 @@ describe('useAutoSave', () => {
             currentGameId: 'test-game-1',
           }),
         {
-          initialProps: { gameEvents: [] },
+          initialProps: { gameEvents: [] as GameEvent[] },
         }
       );
 
@@ -62,7 +81,7 @@ describe('useAutoSave', () => {
 
       // Change state - should save immediately
       act(() => {
-        rerender({ gameEvents: [{ id: '1', type: 'goal' as const, timestamp: 100 }] });
+        rerender({ gameEvents: [createGameEvent('1', 100)] });
       });
 
       expect(mockSaveFunction).toHaveBeenCalledTimes(1);
@@ -71,8 +90,8 @@ describe('useAutoSave', () => {
       act(() => {
         rerender({
           gameEvents: [
-            { id: '1', type: 'goal' as const, timestamp: 100 },
-            { id: '2', type: 'goal' as const, timestamp: 200 },
+            createGameEvent('1', 100),
+            createGameEvent('2', 200),
           ],
         });
       });
@@ -96,7 +115,7 @@ describe('useAutoSave', () => {
             currentGameId: 'test-game-1',
           }),
         {
-          initialProps: { gameEvents: [], homeScore: 0, awayScore: 0 },
+          initialProps: { gameEvents: [] as GameEvent[], homeScore: 0, awayScore: 0 },
         }
       );
 
@@ -114,7 +133,7 @@ describe('useAutoSave', () => {
 
       // Change gameEvents
       act(() => {
-        rerender({ gameEvents: [{ id: '1', type: 'goal' as const, timestamp: 100 }], homeScore: 1, awayScore: 1 });
+        rerender({ gameEvents: [createGameEvent('1', 100)], homeScore: 1, awayScore: 1 });
       });
       expect(mockSaveFunction).toHaveBeenCalledTimes(3);
     });
@@ -251,13 +270,13 @@ describe('useAutoSave', () => {
             currentGameId: 'test-game-1',
           }),
         {
-          initialProps: { playersOnField: [] },
+          initialProps: { playersOnField: [] as Player[] },
         }
       );
 
       // Change state
       act(() => {
-        rerender({ playersOnField: [{ id: '1', name: 'Player 1', relX: 0.5, relY: 0.5 }] });
+        rerender({ playersOnField: [createPlayer('1', 'Player 1', 0.5, 0.5)] });
       });
 
       // Should not save immediately
@@ -293,7 +312,7 @@ describe('useAutoSave', () => {
             currentGameId: 'test-game-1',
           }),
         {
-          initialProps: { playersOnField: [] },
+          initialProps: { playersOnField: [] as Player[] },
         }
       );
 
@@ -301,7 +320,7 @@ describe('useAutoSave', () => {
       for (let i = 0; i < 10; i++) {
         act(() => {
           rerender({
-            playersOnField: [{ id: '1', name: 'Player 1', relX: i * 0.1, relY: i * 0.1 }],
+            playersOnField: [createPlayer('1', 'Player 1', i * 0.1, i * 0.1)],
           });
         });
         act(() => {
@@ -348,19 +367,19 @@ describe('useAutoSave', () => {
             currentGameId: 'test-game-1',
           }),
         {
-          initialProps: { gameEvents: [], teamName: 'Team A' },
+          initialProps: { gameEvents: [] as GameEvent[], teamName: 'Team A' },
         }
       );
 
       // Change immediate state - should save immediately
       act(() => {
-        rerender({ gameEvents: [{ id: '1', type: 'goal' as const, timestamp: 100 }], teamName: 'Team A' });
+        rerender({ gameEvents: [createGameEvent('1', 100)], teamName: 'Team A' });
       });
       expect(mockSaveFunction).toHaveBeenCalledTimes(1);
 
       // Change short state - should debounce
       act(() => {
-        rerender({ gameEvents: [{ id: '1', type: 'goal' as const, timestamp: 100 }], teamName: 'Team B' });
+        rerender({ gameEvents: [createGameEvent('1', 100)], teamName: 'Team B' });
       });
       expect(mockSaveFunction).toHaveBeenCalledTimes(1); // Still 1, not saved yet
 
@@ -395,16 +414,16 @@ describe('useAutoSave', () => {
             currentGameId: 'test-game-1',
           }),
         {
-          initialProps: { gameEvents: [], teamName: 'Team A', playersOnField: [] },
+          initialProps: { gameEvents: [] as GameEvent[], teamName: 'Team A', playersOnField: [] as Player[] },
         }
       );
 
       // Change all three at once
       act(() => {
         rerender({
-          gameEvents: [{ id: '1', type: 'goal' as const, timestamp: 100 }],
+          gameEvents: [createGameEvent('1', 100)],
           teamName: 'Team B',
-          playersOnField: [{ id: '1', name: 'Player 1', relX: 0.5, relY: 0.5 }],
+          playersOnField: [createPlayer('1', 'Player 1', 0.5, 0.5)],
         });
       });
 
@@ -452,7 +471,7 @@ describe('useAutoSave', () => {
 
       // Change state while disabled
       act(() => {
-        rerender({ gameEvents: [{ id: '1', type: 'goal' as const, timestamp: 100 }], enabled: false });
+        rerender({ gameEvents: [createGameEvent('1', 100)], enabled: false });
       });
 
       expect(mockSaveFunction).not.toHaveBeenCalled();
@@ -460,7 +479,7 @@ describe('useAutoSave', () => {
       // Enable hook (this sets the initial reference)
       act(() => {
         rerender({
-          gameEvents: [{ id: '1', type: 'goal' as const, timestamp: 100 }],
+          gameEvents: [createGameEvent('1', 100)],
           enabled: true,
         });
       });
@@ -472,8 +491,8 @@ describe('useAutoSave', () => {
       act(() => {
         rerender({
           gameEvents: [
-            { id: '1', type: 'goal' as const, timestamp: 100 },
-            { id: '2', type: 'goal' as const, timestamp: 200 },
+            createGameEvent('1', 100),
+            createGameEvent('2', 200),
           ],
           enabled: true,
         });
@@ -503,13 +522,13 @@ describe('useAutoSave', () => {
             currentGameId: 'test-game-1',
           }),
         {
-          initialProps: { teamName: 'Team A', playersOnField: [] },
+          initialProps: { teamName: 'Team A', playersOnField: [] as Player[] },
         }
       );
 
       // Change states to start timers
       act(() => {
-        rerender({ teamName: 'Team B', playersOnField: [{ id: '1', name: 'Player 1', relX: 0.5, relY: 0.5 }] });
+        rerender({ teamName: 'Team B', playersOnField: [createPlayer('1', 'Player 1', 0.5, 0.5)] });
       });
 
       // Unmount before timers fire
@@ -540,12 +559,12 @@ describe('useAutoSave', () => {
             currentGameId: 'test-game-1',
           }),
         {
-          initialProps: { gameEvents: [] },
+          initialProps: { gameEvents: [] as GameEvent[] },
         }
       );
 
       act(() => {
-        rerender({ gameEvents: [{ id: '1', type: 'goal' as const, timestamp: 100 }] });
+        rerender({ gameEvents: [createGameEvent('1', 100)] });
       });
 
       // Should only save for immediate tier
