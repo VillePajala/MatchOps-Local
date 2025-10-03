@@ -35,7 +35,6 @@ describe('useAutoSave', () => {
     relX,
     relY,
     jerseyNumber: '1',
-    isActive: true,
   });
 
   beforeEach(() => {
@@ -465,7 +464,7 @@ describe('useAutoSave', () => {
             currentGameId: 'test-game-1',
           }),
         {
-          initialProps: { gameEvents: [], enabled: false },
+          initialProps: { gameEvents: [] as GameEvent[], enabled: false },
         }
       );
 
