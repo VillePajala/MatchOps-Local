@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { SavedGamesCollection } from '@/types'; // Keep this if SavedGamesCollection is from here
 import { Season, Tournament, Team } from '@/types'; // Corrected import path
 import logger from '@/utils/logger';
+import { createEntityMaps, getDisplayNames } from '@/utils/entityLookup';
 import {
   HiOutlineDocumentArrowDown,
   HiOutlineTrash,
@@ -74,20 +75,30 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   const [showUnplayedOnly, setShowUnplayedOnly] = useState<boolean>(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
+  // Create entity maps for O(1) lookups (live entity names)
+  const entityMaps = useMemo(
+    () => createEntityMaps(teams, seasons, tournaments),
+    [teams, seasons, tournaments]
+  );
+
   // Filter logic updated to only use searchText
   const filteredGameIds = useMemo(() => {
     const initialIds = Object.keys(savedGames).filter(id => id !== DEFAULT_GAME_ID);
     
-    const filteredBySearch = initialIds.filter(id => { 
+    const filteredBySearch = initialIds.filter(id => {
       const gameData = savedGames[id];
       if (!gameData) return false;
       if (!searchText) return true;
       const lowerSearchText = searchText.toLowerCase();
-      const teamName = (gameData.teamName || '').toLowerCase();
+
+      // Use live entity names for search (fallback to empty string if entity not found)
+      const displayNames = getDisplayNames(gameData, entityMaps);
+      const teamName = (displayNames.teamName || '').toLowerCase();
       const opponentName = (gameData.opponentName || '').toLowerCase();
       const gameDate = (gameData.gameDate || '').toLowerCase();
-      const seasonName = seasons.find(s => s.id === gameData.seasonId)?.name.toLowerCase() || '';
-      const tournamentName = tournaments.find(tourn => tourn.id === gameData.tournamentId)?.name.toLowerCase() || '';
+      const seasonName = (displayNames.seasonName || '').toLowerCase();
+      const tournamentName = (displayNames.tournamentName || '').toLowerCase();
+
       return (
         teamName.includes(lowerSearchText) ||
         opponentName.includes(lowerSearchText) ||
@@ -157,10 +168,10 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       }
       
       // Fallback if dates are equal and timestamps can't be parsed
-      return 0; 
+      return 0;
     });
     return sortedIds;
-  }, [savedGames, searchText, seasons, tournaments, filterType, filterId, showUnplayedOnly]);
+  }, [savedGames, searchText, filterType, filterId, showUnplayedOnly, entityMaps]);
 
   const handleDeleteClick = (gameId: string, gameName: string) => {
     // Use a confirmation dialog
@@ -256,18 +267,21 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
           if (!game) return null;
           const isCurrent = gameId === currentGameId;
 
-          // Find Season/Tournament/Team Name
-          const season = seasons.find(s => s.id === game.seasonId);
-          const tournament = tournaments.find(tourn => tourn.id === game.tournamentId);
-          const team = teams.find(t => t.id === game.teamId);
+          // Look up entities using maps for O(1) performance
+          const season = game.seasonId ? entityMaps.seasons.get(game.seasonId) : null;
+          const tournament = game.tournamentId ? entityMaps.tournaments.get(game.tournamentId) : null;
+          const team = game.teamId ? entityMaps.teams.get(game.teamId) : null;
           const isOrphaned = game.teamId && !team; // Game has teamId but team doesn't exist
           const contextName = season?.name || tournament?.name;
           const contextType = season ? 'Season' : (tournament ? 'Tournament' : null);
           const contextId = season?.id || tournament?.id;
-          
+
+          // Get live entity names (or fallback to snapshots)
+          const { teamName: liveTeamName } = getDisplayNames(game, entityMaps);
+
           // Determine display names based on the specific game's homeOrAway setting
-          const displayHomeTeamName = game.homeOrAway === 'home' ? (game.teamName || 'Team') : (game.opponentName || 'Opponent');
-          const displayAwayTeamName = game.homeOrAway === 'home' ? (game.opponentName || 'Opponent') : (game.teamName || 'Team');
+          const displayHomeTeamName = game.homeOrAway === 'home' ? (liveTeamName || 'Team') : (game.opponentName || 'Opponent');
+          const displayAwayTeamName = game.homeOrAway === 'home' ? (game.opponentName || 'Opponent') : (liveTeamName || 'Team');
 
           const isProcessingThisGame = processingGameId === gameId;
           const isLoadActionActive = isGameLoading && isProcessingThisGame;
@@ -538,7 +552,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                           <HiOutlineTableCells className="h-5 w-5" />
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteClick(gameId, `${game.teamName || 'Team'} vs ${game.opponentName || 'Opponent'}`); }}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteClick(gameId, `${liveTeamName || 'Team'} vs ${game.opponentName || 'Opponent'}`); }}
                           className={`p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-lg transition-colors ${
                             isLoadActionActive ? 'opacity-50 cursor-not-allowed' : ''
                           }`}

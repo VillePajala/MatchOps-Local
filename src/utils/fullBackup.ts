@@ -8,6 +8,8 @@ import {
   TOURNAMENTS_LIST_KEY,
   MASTER_ROSTER_KEY,
   PLAYER_ADJUSTMENTS_KEY,
+  TEAMS_INDEX_KEY,
+  TEAM_ROSTERS_KEY,
 } from "@/config/storageKeys";
 import logger from "@/utils/logger";
 import i18n from "i18next";
@@ -18,6 +20,7 @@ import {
   removeStorageItem,
 } from "./storage";
 import type { PlayerAdjustmentsIndex } from './playerAdjustments';
+import type { TeamsIndex, TeamRostersIndex } from './teams';
 import { processImportedGames } from './gameImportHelper';
 
 // Define the structure of the backup file
@@ -33,6 +36,8 @@ interface FullBackupData {
     [TOURNAMENTS_LIST_KEY]?: Tournament[] | null;
     [MASTER_ROSTER_KEY]?: Player[] | null;
     [PLAYER_ADJUSTMENTS_KEY]?: PlayerAdjustmentsIndex | null;
+    [TEAMS_INDEX_KEY]?: TeamsIndex | null;
+    [TEAM_ROSTERS_KEY]?: TeamRostersIndex | null;
   };
 }
 
@@ -52,6 +57,8 @@ export const generateFullBackupJson = async (): Promise<string> => {
     TOURNAMENTS_LIST_KEY,
     MASTER_ROSTER_KEY,
     PLAYER_ADJUSTMENTS_KEY,
+    TEAMS_INDEX_KEY,
+    TEAM_ROSTERS_KEY,
   ];
 
   for (const key of keysToBackup) {

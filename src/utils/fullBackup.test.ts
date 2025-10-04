@@ -7,6 +7,8 @@ import {
   SEASONS_LIST_KEY,
   TOURNAMENTS_LIST_KEY,
   MASTER_ROSTER_KEY,
+  TEAMS_INDEX_KEY,
+  TEAM_ROSTERS_KEY,
 } from "@/config/storageKeys";
 
 // Mock the storage module (not localStorage directly!)
@@ -369,6 +371,70 @@ describe("importFullBackup", () => {
       // REMOVE: alertMock.mockRestore(); // Handled in afterEach
       jest.useRealTimers(); // Restore real timers
     });
+
+    /**
+     * Tests cross-device team backup and restore scenario
+     * Ensures teams and team rosters are included in backups for device transfers
+     * @integration @critical
+     */
+    it("should successfully backup and restore teams and team rosters (cross-device scenario)", async () => {
+      // Arrange: Simulate Device A with teams and games linked to teams
+      const teamsData = {
+        team_1: { id: "team_1", name: "FC United", color: "#FF0000", createdAt: "2024-01-01", updatedAt: "2024-01-02" },
+        team_2: { id: "team_2", name: "FC Barcelona", color: "#0000FF", createdAt: "2024-01-03", updatedAt: "2024-01-03" }
+      };
+      const teamRostersData = {
+        team_1: [{ id: "p1", name: "Player One", jerseyNumber: "10", isGoalkeeper: false }],
+        team_2: [{ id: "p2", name: "Player Two", jerseyNumber: "7", isGoalkeeper: false }]
+      };
+      const gamesData = {
+        game1: {
+          id: "game1",
+          teamId: "team_1",  // Linked to team
+          teamName: "FC United",  // Snapshot at creation
+          opponentName: "Opponent A"
+        },
+        game2: {
+          id: "game2",
+          teamId: "team_2",  // Linked to team
+          teamName: "FC Barcelona",  // Snapshot at creation
+          opponentName: "Opponent B"
+        }
+      };
+
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: gamesData,
+          [TEAMS_INDEX_KEY]: teamsData,
+          [TEAM_ROSTERS_KEY]: teamRostersData,
+          [SEASONS_LIST_KEY]: [],
+          [TOURNAMENTS_LIST_KEY]: [],
+          [MASTER_ROSTER_KEY]: []
+        }
+      };
+      const backupJson = JSON.stringify(backupData);
+
+      // Mock window.confirm to return true (user confirms)
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      // Act: Import on Device B (clean mockStore simulates new device)
+      const result = await importFullBackup(backupJson);
+
+      // Assert: Verify teams were restored
+      expect(result).toBe(true);
+      expect(mockStore[TEAMS_INDEX_KEY]).toEqual(teamsData);
+      expect(mockStore[TEAM_ROSTERS_KEY]).toEqual(teamRostersData);
+      expect(mockStore[SAVED_GAMES_KEY]).toEqual(gamesData);
+
+      // Verify game references to teams are intact
+      const restoredGames = mockStore[SAVED_GAMES_KEY] as typeof gamesData;
+      expect(restoredGames.game1.teamId).toBe("team_1");
+      expect(restoredGames.game2.teamId).toBe("team_2");
+
+      // Verify restore success message
+      expect(window.alert).toHaveBeenCalledWith("Backup restored. Reloading app...");
+    });
   });
 
   describe("User Cancellation", () => {
@@ -690,6 +756,8 @@ describe("exportFullBackup", () => {
     const tournamentsDataDb: TournamentObject[] = [
       { id: "t1", name: "Tournament One" },
     ];
+    const teamsData = { team_1: { id: "team_1", name: "FC United", color: "#FF0000", createdAt: "2024-01-01", updatedAt: "2024-01-01" } };
+    const teamRostersData = { team_1: [{ id: "p1", name: "Player One", jerseyNumber: "10", isGoalkeeper: false }] };
 
     // Store data in mockStore (exportFullBackup reads from storage module which uses mockStore)
     mockStore[SAVED_GAMES_KEY] = gamesData;
@@ -697,6 +765,8 @@ describe("exportFullBackup", () => {
     mockStore[MASTER_ROSTER_KEY] = rosterDataDb;
     mockStore[SEASONS_LIST_KEY] = seasonsDataDb;
     mockStore[TOURNAMENTS_LIST_KEY] = tournamentsDataDb;
+    mockStore[TEAMS_INDEX_KEY] = teamsData;
+    mockStore[TEAM_ROSTERS_KEY] = teamRostersData;
     // mockStore['someOtherCustomKey'] = { custom: 'value' }; // This key is not in APP_DATA_KEYS, so it won't be backed up.
 
     await exportFullBackup();
@@ -721,6 +791,8 @@ describe("exportFullBackup", () => {
     expect(backupData.localStorage[TOURNAMENTS_LIST_KEY]).toEqual(
       tournamentsDataDb,
     );
+    expect(backupData.localStorage[TEAMS_INDEX_KEY]).toEqual(teamsData);
+    expect(backupData.localStorage[TEAM_ROSTERS_KEY]).toEqual(teamRostersData);
     // expect(backupData.localStorage['someOtherCustomKey']).toEqual({ custom: 'value' }); // This key is not expected now.
     expect(backupData.localStorage["someOtherCustomKey"]).toBeUndefined(); // Explicitly check it's not there
   });
