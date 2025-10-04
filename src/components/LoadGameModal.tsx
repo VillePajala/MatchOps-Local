@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SavedGamesCollection } from '@/types'; // Keep this if SavedGamesCollection is from here
 import { Season, Tournament, Team } from '@/types'; // Corrected import path
@@ -16,10 +16,6 @@ import {
   HiOutlineChevronDown,
   HiOutlineChevronUp
 } from 'react-icons/hi2';
-// Import new utility functions
-import { getSeasons as utilGetSeasons } from '@/utils/seasons';
-import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
-import { getTeams } from '@/utils/teams';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 
 export interface LoadGameModalProps {
@@ -40,6 +36,11 @@ export interface LoadGameModalProps {
   gameDeleteError?: string | null;
   isGamesImporting?: boolean;
   processingGameId?: string | null;
+
+  // Fresh data from React Query
+  seasons: Season[];
+  tournaments: Tournament[];
+  teams: Team[];
 }
 
 // DEFAULT_GAME_ID now imported from constants 
@@ -61,6 +62,9 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   gameDeleteError = null,
   isGamesImporting = false,
   processingGameId = null,
+  seasons,
+  tournaments,
+  teams,
 }) => {
   const { t, i18n } = useTranslation();
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -69,42 +73,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   const [filterId, setFilterId] = useState<string | null>(null);
   const [showUnplayedOnly, setShowUnplayedOnly] = useState<boolean>(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-
-  // State for seasons, tournaments, and teams
-  const [seasons, setSeasons] = useState<Season[]>([]);
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-
-  // Load seasons and tournaments on mount or when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      const fetchModalData = async () => {
-      try {
-          const loadedSeasonsData = await utilGetSeasons();
-          setSeasons(Array.isArray(loadedSeasonsData) ? loadedSeasonsData : []);
-        } catch (error) {
-        logger.error("Error loading seasons via utility:", error);
-        setSeasons([]); 
-      }
-      try {
-          const loadedTournamentsData = await utilGetTournaments();
-          setTournaments(Array.isArray(loadedTournamentsData) ? loadedTournamentsData : []);
-        } catch (error) {
-        logger.error("Error loading tournaments via utility:", error);
-        setTournaments([]);
-      }
-
-      try {
-          const loadedTeamsData = await getTeams();
-          setTeams(Array.isArray(loadedTeamsData) ? loadedTeamsData : []);
-        } catch (error) {
-        logger.error("Error loading teams via utility:", error);
-        setTeams([]);
-      }
-      };
-      fetchModalData();
-    }
-  }, [isOpen]);
 
   // Filter logic updated to only use searchText
   const filteredGameIds = useMemo(() => {

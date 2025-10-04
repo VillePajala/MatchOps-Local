@@ -106,6 +106,10 @@ describe('NewGameSetupModal', () => {
     isAddingSeason: false, isAddingTournament: false,
     demandFactor: 1,
     onDemandFactorChange: jest.fn(),
+    masterRoster: [],
+    seasons: [],
+    tournaments: [],
+    teams: [],
   };
 
   const mockSeasonsData = [{ id: 'season1', name: 'Spring 2024' }, { id: 'season2', name: 'Summer 2024' }];

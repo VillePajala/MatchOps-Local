@@ -5,10 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Player, Season, Tournament, Team } from '@/types';
 import { HiPlusCircle } from 'react-icons/hi2';
 import logger from '@/utils/logger';
-import { getTeams, getTeamRoster } from '@/utils/teams';
-import { getSeasons as utilGetSeasons } from '@/utils/seasons';
-import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
-import { getMasterRoster } from '@/utils/masterRosterManager';
+import { getTeamRoster } from '@/utils/teams';
 import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
 import { UseMutationResult } from '@tanstack/react-query';
 import AssessmentSlider from './AssessmentSlider';
@@ -26,9 +23,9 @@ interface NewGameSetupModalProps {
   onStart: (
     initialSelectedPlayerIds: string[],
     homeTeamName: string,
-    opponentName: string, 
-    gameDate: string, 
-    gameLocation: string, 
+    opponentName: string,
+    gameDate: string,
+    gameLocation: string,
     gameTime: string,
     seasonId: string | null,
     tournamentId: string | null,
@@ -47,6 +44,11 @@ interface NewGameSetupModalProps {
   addTournamentMutation: UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>;
   isAddingSeason: boolean;
   isAddingTournament: boolean;
+  // Fresh data from React Query
+  masterRoster: Player[];
+  seasons: Season[];
+  tournaments: Tournament[];
+  teams: Team[];
 }
 
 const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
@@ -61,6 +63,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   addTournamentMutation,
   isAddingSeason,
   isAddingTournament,
+  masterRoster,
+  seasons,
+  tournaments,
+  teams,
 }) => {
   const { t } = useTranslation();
   const [homeTeamName, setHomeTeamName] = useState('');
@@ -75,9 +81,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const opponentInputRef = useRef<HTMLInputElement>(null);
   const teamSelectionRequestRef = useRef<number>(0); // Track current team selection request
 
-  // State for seasons and tournaments
-  const [seasons, setSeasons] = useState<Season[]>([]);
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  // State for season/tournament selection
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
 
@@ -97,22 +101,17 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [localHomeOrAway, setLocalHomeOrAway] = useState<'home' | 'away'>('home');
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
 
-  // MOVED state declarations for availablePlayersForSetup and selectedPlayerIds here
+  // Player selection state
   const [availablePlayersForSetup, setAvailablePlayersForSetup] = useState<Player[]>([]);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>(initialPlayerSelection || []);
 
   // Team selection state
-  const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [isTeamNameAutoFilled, setIsTeamNameAutoFilled] = useState<boolean>(false);
-  
-  // NEW: Loading and error states for initial data fetch
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      // Reinstate form reset logic
+      // Reset form
       setOpponentName('');
       setGameDate(new Date().toISOString().split('T')[0]);
       setGameLocation('');
@@ -128,56 +127,31 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       setLocalNumPeriods(2);
       setLocalPeriodDurationString('10');
       setLocalHomeOrAway('home');
-      // End of reinstated form reset logic
 
-      setError(null); 
-      setIsLoading(true);
+      // Use master roster from props
+      setAvailablePlayersForSetup(masterRoster);
+      if (initialPlayerSelection && initialPlayerSelection.length > 0) {
+        setSelectedPlayerIds(initialPlayerSelection);
+      } else if (masterRoster.length > 0) {
+        setSelectedPlayerIds(masterRoster.map(p => p.id));
+      }
 
-      // Focus on the first input field (home team name)
-      // This should ideally happen after initial data load or if not loading
-      // For now, keeping original simple focus logic, can be refined if race conditions occur.
-      setTimeout(() => homeTeamInputRef.current?.focus(), 100); 
-
-      const fetchData = async () => {
-      try {
-          const roster: Player[] = await getMasterRoster();
-          setAvailablePlayersForSetup(roster || []);
-          if (initialPlayerSelection && initialPlayerSelection.length > 0) {
-            setSelectedPlayerIds(initialPlayerSelection);
-          } else if (roster && roster.length > 0) {
-            setSelectedPlayerIds(roster.map(p => p.id));
-          }
-
+      // Load last home team name
+      const loadLastTeamName = async () => {
+        try {
           const lastHomeTeam = await utilGetLastHomeTeamName();
           setHomeTeamName(lastHomeTeam || t('newGameSetupModal.defaultTeamName', 'My Team'));
-
-          const seasonsData = await utilGetSeasons();
-          setSeasons(Array.isArray(seasonsData) ? seasonsData : []);
-
-          const tournamentsData = await utilGetTournaments();
-          setTournaments(Array.isArray(tournamentsData) ? tournamentsData : []);
-
-          const teamsData = await getTeams();
-          setTeams(Array.isArray(teamsData) ? teamsData : []);
-
-          // MOVED Focus to run earlier, but can be adjusted if data loading causes issues with it.
-          // setTimeout(() => nameInputRef.current?.focus(), 100); 
         } catch (err) {
-          logger.error("[NewGameSetupModal] Error fetching initial data:", err);
-          setError(t('newGameSetupModal.errors.dataLoadFailed', 'Failed to load initial setup data. Please try again.'));
+          logger.error("[NewGameSetupModal] Error loading last home team name:", err);
           setHomeTeamName(t('newGameSetupModal.defaultTeamName', 'My Team'));
-          setSeasons([]);
-          setTournaments([]);
-          setTeams([]);
-          setAvailablePlayersForSetup([]); // Reset on error too
-          setSelectedPlayerIds(initialPlayerSelection || []); // Reset selection on error
-        } finally {
-          setIsLoading(false);
         }
       };
-      fetchData();
+      loadLastTeamName();
+
+      // Focus on home team input
+      setTimeout(() => homeTeamInputRef.current?.focus(), 100);
     }
-  }, [isOpen, initialPlayerSelection, t]);
+  }, [isOpen, initialPlayerSelection, masterRoster, t]);
 
 
   const handleSeasonChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -201,55 +175,52 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     
     if (teamId) {
       try {
-        // Load both team roster and master roster
-        const [teamRoster, masterRoster] = await Promise.all([
-          getTeamRoster(teamId),
-          getMasterRoster()
-        ]);
-        
+        // Load team roster
+        const teamRoster = await getTeamRoster(teamId);
+
         // Check if this is still the current request
         if (requestId !== teamSelectionRequestRef.current) {
           return; // A newer request has been made, abandon this one
         }
-        
-        // Always show master roster, but pre-select only team players
-        setAvailablePlayersForSetup(masterRoster || []);
-        
+
+        // Always show master roster from props, but pre-select only team players
+        setAvailablePlayersForSetup(masterRoster);
+
         if (teamRoster && teamRoster.length > 0) {
           // Create a set of team player names for comparison (since IDs differ)
           const teamPlayerNames = new Set(
-            teamRoster.map(p => p.name.toLowerCase().trim())
+            teamRoster.map((p: Player) => p.name.toLowerCase().trim())
           );
-          
+
           // Select master roster players that match team roster names
-          const selectedIds = (masterRoster || [])
-            .filter(p => teamPlayerNames.has(p.name.toLowerCase().trim()))
-            .map(p => p.id);
-          
+          const selectedIds = masterRoster
+            .filter((p: Player) => teamPlayerNames.has(p.name.toLowerCase().trim()))
+            .map((p: Player) => p.id);
+
           setSelectedPlayerIds(selectedIds);
         } else {
           // Team roster is empty - no players pre-selected
           setSelectedPlayerIds([]);
-          
+
           // Optionally prompt user to manage roster
           const shouldManageRoster = window.confirm(
-            t('newGameSetupModal.emptyTeamRosterPrompt', 
+            t('newGameSetupModal.emptyTeamRosterPrompt',
               'The selected team has no players. Would you like to manage the team roster now?'
             )
           );
-          
+
           if (shouldManageRoster && onManageTeamRoster) {
             // Close this modal and open team roster management
             onManageTeamRoster(teamId);
             return;
           }
         }
-        
+
         // Check if this is still the current request before updating team name
         if (requestId !== teamSelectionRequestRef.current) {
           return;
         }
-        
+
         // Auto-fill team name (but keep it editable)
         const team = teams.find(t => t.id === teamId);
         if (team) {
@@ -258,45 +229,25 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         }
       } catch (error) {
         logger.error('[NewGameSetupModal] Error loading team roster:', error);
-        
+
         // Check if this is still the current request
         if (requestId !== teamSelectionRequestRef.current) {
           return;
         }
-        
+
         // Fallback to master roster on error
-        const masterRoster = await getMasterRoster();
-        
-        // Check again after async operation
-        if (requestId !== teamSelectionRequestRef.current) {
-          return;
-        }
-        
-        setAvailablePlayersForSetup(masterRoster || []);
+        setAvailablePlayersForSetup(masterRoster);
         setSelectedPlayerIds([]); // No players selected on error
       }
     } else {
       // No team selected - use master roster
-      try {
-        const masterRoster = await getMasterRoster();
-        
-        // Check if this is still the current request
-        if (requestId !== teamSelectionRequestRef.current) {
-          return;
-        }
-        
-        setAvailablePlayersForSetup(masterRoster || []);
-        setSelectedPlayerIds(masterRoster?.map(p => p.id) || []);
-        
-        // Clear team name only if it was auto-filled (preserve manual input)
-        if (isTeamNameAutoFilled) {
-          setHomeTeamName('');
-          setIsTeamNameAutoFilled(false);
-        }
-      } catch (error) {
-        logger.error('[NewGameSetupModal] Error loading master roster:', error);
-        setAvailablePlayersForSetup([]);
-        setSelectedPlayerIds([]);
+      setAvailablePlayersForSetup(masterRoster);
+      setSelectedPlayerIds(masterRoster.map((p: Player) => p.id));
+
+      // Clear team name only if it was auto-filled (preserve manual input)
+      if (isTeamNameAutoFilled) {
+        setHomeTeamName('');
+        setIsTeamNameAutoFilled(false);
       }
     }
   };
@@ -373,17 +324,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       const newSeason = await addSeasonMutation.mutateAsync({ name: trimmedName });
       
       if (newSeason) {
-        // onSuccess in page.tsx will invalidate and refetch seasons.
-        // The local 'seasons' state in this modal will be updated by the useEffect 
-        // that fetches seasons when the modal opens, or if we explicitly refetch here.
-        // For now, we'll update the selection and UI, relying on eventual consistency.
-        setSeasons(prevSeasons => [...prevSeasons, newSeason].sort((a, b) => a.name.localeCompare(b.name)));
+        // React Query invalidation will update the parent's seasons prop
         setSelectedSeasonId(newSeason.id);
         setSelectedTournamentId(null);
-        setNewSeasonName(''); 
-        setShowNewSeasonInput(false); 
+        setNewSeasonName('');
+        setShowNewSeasonInput(false);
         logger.log("Add season mutation initiated for:", newSeason.name);
-        // No need to manually update 'seasons' state here if page.tsx invalidates
       } else {
         // This block might be reached if mutateAsync resolves but utilAddSeason returned null (e.g., duplicate)
         // The mutation's onSuccess/onError in page.tsx would have more context.
@@ -413,14 +359,13 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       const newTournament = await addTournamentMutation.mutateAsync({ name: trimmedName });
 
       if (newTournament) {
-        setTournaments(prevTournaments => [...prevTournaments, newTournament].sort((a,b) => a.name.localeCompare(b.name)));
-        setSelectedTournamentId(newTournament.id); 
-        setSelectedSeasonId(null); 
-        setNewTournamentName(''); 
-        setShowNewTournamentInput(false); 
+        // React Query invalidation will update the parent's tournaments prop
+        setSelectedTournamentId(newTournament.id);
+        setSelectedSeasonId(null);
+        setNewTournamentName('');
+        setShowNewTournamentInput(false);
         logger.log("Add tournament mutation initiated for:", newTournament.name);
-        // No need to manually update 'tournaments' state here
-      } else {
+      } else{
         logger.warn("addTournamentMutation.mutateAsync completed, but newTournament is null.");
       }
     } catch (error) {
@@ -571,33 +516,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Main content: Loading, Error, or Form
-  let modalContent;
-  if (isLoading) {
-    modalContent = (
-      <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-        <svg className="animate-spin h-8 w-8 text-indigo-400 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <p>{t('newGameSetupModal.loadingData', 'Loading setup data...')}</p>
-      </div>
-    );
-  } else if (error) {
-    modalContent = (
-      <div className="bg-red-700/20 border border-red-600 text-red-300 px-4 py-3 rounded-md text-sm my-4 mx-2" role="alert">
-        <p className="font-semibold mb-1">{t('common.error', 'Error')}:</p>
-        <p>{error}</p>
-        <button 
-          onClick={() => { onCancel(); }}
-          className="mt-3 px-3 py-1.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded"
-        >
-          {t('common.close', 'Close')}
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
       <div className="bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden h-full w-full bg-noise-texture relative">
@@ -627,7 +545,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 value={selectedTeamId || ''}
                 onChange={(e) => handleTeamSelection(e.target.value || null)}
                 className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                disabled={isLoading}
               >
                 <option value="">
                   {t('newGameSetupModal.noTeamMasterRoster', 'No Team (Use Master Roster)')}
@@ -653,13 +570,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
-            {isLoading ? modalContent : (
-              <>
-                  {error ? (
-                    modalContent
-                  ) : (
-                    <>
-                    {/* Team & Opponent Names Section */}
+            {/* Team & Opponent Names Section */}
                     <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
                       <h3 className="text-lg font-semibold text-slate-200 mb-3">
                         {t('newGameSetupModal.gameTeamsLabel', 'Game Teams')}
@@ -676,7 +587,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                         teamInputRef={homeTeamInputRef}
                         opponentInputRef={opponentInputRef}
                         onKeyDown={handleKeyDown}
-                        disabled={isLoading}
                       />
                     </div>
 
@@ -789,7 +699,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                               onChange={(e) => setTournamentLevel(e.target.value)}
                               onKeyDown={handleKeyDown}
                               className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                              disabled={isLoading}
+                              
                             >
                               <option value="">{t('common.none', 'None')}</option>
                               {LEVELS.map((lvl) => (
@@ -846,7 +756,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                         onChange={(e) => setAgeGroup(e.target.value)}
                         onKeyDown={handleKeyDown}
                         className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                        disabled={isLoading}
+                        
                       >
                         <option value="">{t('common.none', 'None')}</option>
                         {AGE_GROUPS.map((group) => (
@@ -872,7 +782,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                         onKeyDown={handleKeyDown}
                         className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                         autoComplete="off"
-                        disabled={isLoading}
+                        
                       />
                     </div>
 
@@ -889,7 +799,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                         onKeyDown={handleKeyDown}
                         placeholder={t('newGameSetupModal.locationPlaceholder', 'e.g., Central Park Field 2')}
                         className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                        disabled={isLoading}
+                        
                       />
                     </div>
 
@@ -913,7 +823,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           autoCorrect="off"
                           autoCapitalize="off"
                           spellCheck="false"
-                          disabled={isLoading}
+                          
                           onFocus={(e) => e.target.select()}
                         />
                         <span className="text-slate-400 font-mono">:</span>
@@ -931,7 +841,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           autoCorrect="off"
                           autoCapitalize="off"
                           spellCheck="false"
-                          disabled={isLoading}
+                          
                           onFocus={(e) => e.target.select()}
                         />
                       </div>
@@ -947,7 +857,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                       playersSelectedText={t('newGameSetupModal.playersSelected', 'selected')}
                       selectAllText={t('newGameSetupModal.selectAll', 'Select All')}
                       noPlayersText={t('newGameSetupModal.noPlayersInRoster', 'No players in roster. Add players in Roster Settings.')}
-                      disabled={isLoading}
+                      
                     />
 
                     {/* Game Settings Section */}
@@ -1053,10 +963,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     </label>
                   </div>
                 </div>
-              </>
-            )}
-          </>
-        )}
           </div>
 
           {/* Footer */}
@@ -1070,7 +976,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               </button>
               <button
                 onClick={handleStartClick}
-                disabled={isLoading || isAddingSeason || isAddingTournament}
+                disabled={isAddingSeason || isAddingTournament}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow-sm disabled:opacity-50"
               >
                 {t('newGameSetupModal.confirmAndStart', 'Confirm & Start Game')}

@@ -132,7 +132,7 @@ const defaultProps: GameSettingsModalProps = {
   gameLocation: 'Central Park',
   gameTime: '14:30',
   gameNotes: 'Regular season match',
-  gameEvents: [...mockGameEvents], 
+  gameEvents: [...mockGameEvents],
   availablePlayers: mockPlayers,
   selectedPlayerIds: ['p1', 'p2'],
   onSelectedPlayersChange: jest.fn(),
@@ -172,6 +172,8 @@ const defaultProps: GameSettingsModalProps = {
   updateGameDetailsMutation: {
     mutate: jest.fn(),
   } as unknown as UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>,
+  seasons: [],
+  tournaments: [],
 };
 
 describe('<GameSettingsModal />', () => {

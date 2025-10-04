@@ -7,8 +7,6 @@ import { FaEdit, FaTrashAlt } from 'react-icons/fa';
 import { HiPlusCircle } from 'react-icons/hi2';
 import { Season, Tournament, Player } from '@/types';
 import { AppState } from '@/types';
-import { getSeasons } from '@/utils/seasons';
-import { getTournaments } from '@/utils/tournaments';
 import { getTeamRoster } from '@/utils/teams';
 import { updateGameDetails, updateGameEvent, removeGameEvent } from '@/utils/savedGames';
 import { UseMutationResult } from '@tanstack/react-query';
@@ -83,6 +81,9 @@ export interface GameSettingsModalProps {
   // Add current time for fair play card
   timeElapsedInSeconds?: number;
   updateGameDetailsMutation: UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>;
+  // Fresh data from React Query
+  seasons: Season[];
+  tournaments: Tournament[];
 }
 
 // Helper to format time from seconds to MM:SS
@@ -165,6 +166,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   isAddingTournament,
   timeElapsedInSeconds,
   updateGameDetailsMutation,
+  seasons,
+  tournaments,
 }) => {
   // logger.log('[GameSettingsModal Render] Props received:', { seasonId, tournamentId, currentGameId });
   const { t } = useTranslation();
@@ -204,9 +207,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const durationInputRef = useRef<HTMLInputElement>(null);
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // State for seasons and tournaments
-  const [seasons, setSeasons] = useState<Season[]>([]);
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  // State for creating new season/tournament
   const [showNewSeasonInput, setShowNewSeasonInput] = useState(false);
   const [newSeasonName, setNewSeasonName] = useState('');
   const [showNewTournamentInput, setShowNewTournamentInput] = useState(false);
@@ -338,33 +339,6 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       }
     }
   }, [isOpen, seasonId, tournamentId]);
-
-  // Load seasons/tournaments using utility functions
-  useEffect(() => {
-    if (isOpen) {
-      const fetchModalData = async () => {
-      try {
-          const loadedSeasonsData = await getSeasons();
-          setSeasons(Array.isArray(loadedSeasonsData) ? loadedSeasonsData : []);
-      } catch (error) {
-        logger.error('[GameSettingsModal] Error loading seasons:', error);
-        setSeasons([]);
-        // Set error state for user feedback
-        setError(t('gameSettingsModal.errors.loadingSeasonsFailed', 'Failed to load seasons'));
-      }
-      try {
-          const loadedTournamentsData = await getTournaments();
-          setTournaments(Array.isArray(loadedTournamentsData) ? loadedTournamentsData : []);
-      } catch (error) {
-        logger.error('[GameSettingsModal] Error loading tournaments:', error);
-        setTournaments([]);
-        // Set error state for user feedback
-        setError(t('gameSettingsModal.errors.loadingTournamentsFailed', 'Failed to load tournaments'));
-      }
-      };
-      fetchModalData();
-    }
-  }, [isOpen, t]);
 
   // Effect to update localGameEvents if the prop changes from parent (e.g., undo/redo)
   useEffect(() => {
@@ -835,9 +809,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
     try {
       const newSeason = await addSeasonMutation.mutateAsync({ name: trimmedName });
-      
+
       if (newSeason) {
-        setSeasons(prevSeasons => [...prevSeasons, newSeason].sort((a, b) => a.name.localeCompare(b.name)));
+        // React Query invalidation will update the parent's seasons prop
         onSeasonIdChange(newSeason.id);
         onTournamentIdChange(undefined);
         setNewSeasonName('');
@@ -861,7 +835,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       const newTournament = await addTournamentMutation.mutateAsync({ name: trimmedName });
 
       if (newTournament) {
-        setTournaments(prevTournaments => [...prevTournaments, newTournament].sort((a,b) => a.name.localeCompare(b.name)));
+        // React Query invalidation will update the parent's tournaments prop
         onTournamentIdChange(newTournament.id);
         onSeasonIdChange(undefined);
         setNewTournamentName('');

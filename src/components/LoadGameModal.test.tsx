@@ -80,6 +80,9 @@ describe('LoadGameModal', () => {
       isOpen: true,
       savedGames: createSampleGames(),
       ...mockHandlers,
+      seasons: [],
+      tournaments: [],
+      teams: [],
       ...props,
     };
     let result;

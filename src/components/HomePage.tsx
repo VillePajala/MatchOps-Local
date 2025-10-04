@@ -3262,6 +3262,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           onBack={handleBackToTeamManager}
           teamId={selectedTeamForRoster}
           team={teams.find(t => t.id === selectedTeamForRoster) || null}
+          masterRoster={masterRosterQueryResultData || []}
         />
       </ErrorBoundary>
 
@@ -3316,10 +3317,10 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           onGameClick={handleGameLogClick}
         />
       )}
-      <LoadGameModal 
+      <LoadGameModal
         isOpen={isLoadGameModalOpen}
         onClose={handleCloseLoadGameModal}
-        savedGames={savedGames} 
+        savedGames={savedGames}
         onLoad={handleLoadGame}
         onDelete={handleDeleteGame}
         onExportOneJson={handleExportOneJson}
@@ -3333,6 +3334,10 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         isGameDeleting={isGameDeleting}
         gameDeleteError={gameDeleteError}
         processingGameId={processingGameId}
+        // Pass fresh data from React Query
+        seasons={seasons}
+        tournaments={tournaments}
+        teams={availableTeams}
       />
 
       {/* Conditionally render the New Game Setup Modal */}
@@ -3349,13 +3354,18 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
             setIsTeamRosterModalOpen(true);
           }}
           onStart={handleStartNewGameWithSetup} // CORRECTED Handler
-          onCancel={handleCancelNewGameSetup} 
+          onCancel={handleCancelNewGameSetup}
           // Pass the new mutation functions
           addSeasonMutation={addSeasonMutation}
           addTournamentMutation={addTournamentMutation}
           // Pass loading states from mutations
           isAddingSeason={addSeasonMutation.isPending}
           isAddingTournament={addTournamentMutation.isPending}
+          // Pass fresh data from React Query
+          masterRoster={masterRosterQueryResultData || []}
+          seasons={seasons}
+          tournaments={tournaments}
+          teams={availableTeams}
         />
       )}
 
@@ -3445,6 +3455,9 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         isAddingTournament={addTournamentMutation.isPending}
         timeElapsedInSeconds={timeElapsedInSeconds}
         updateGameDetailsMutation={updateGameDetailsMutation}
+        // Pass fresh data from React Query
+        seasons={seasons}
+        tournaments={tournaments}
       />
 
       <SettingsModal
