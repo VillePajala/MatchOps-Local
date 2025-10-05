@@ -231,6 +231,15 @@ const tournaments = useQuery<Tournament[], Error>({
   queryKey: queryKeys.tournaments,
   queryFn: getTournaments,
 });
+
+### Prop-Driven Modals
+
+- Modal components do not fetch on open. Instead, Season/Tournament lists from React Query are passed down via props.
+- Example:
+  - `LoadGameModal(seasons, tournaments, teams, savedGames)`
+  - `NewGameSetupModal(masterRoster, seasons, tournaments, teams)`
+  - `GameSettingsModal(seasons, tournaments, ...)`
+- After mutations (add/update/delete), invalidate `queryKeys.seasons` / `queryKeys.tournaments`; modals update automatically via new props.
 ```
 
 ## Management UI Component

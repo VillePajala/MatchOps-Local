@@ -4,9 +4,6 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom';
 import NewGameSetupModal from './NewGameSetupModal';
 import { getLastHomeTeamName, saveLastHomeTeamName } from '@/utils/appSettings';
-import { getSeasons, addSeason } from '@/utils/seasons';
-import { getTournaments, addTournament } from '@/utils/tournaments';
-import { getMasterRoster } from '@/utils/masterRosterManager';
 import type { UseMutationResult } from '@tanstack/react-query';
 import type { Season, Tournament } from '@/types';
 
@@ -16,19 +13,6 @@ jest.mock('@/utils/appSettings', () => ({
   saveLastHomeTeamName: jest.fn(),
 }));
 
-jest.mock('@/utils/seasons', () => ({
-  getSeasons: jest.fn(),
-  addSeason: jest.fn(),
-}));
-
-jest.mock('@/utils/tournaments', () => ({
-  getTournaments: jest.fn(),
-  addTournament: jest.fn(),
-}));
-
-jest.mock('@/utils/masterRosterManager', () => ({
-  getMasterRoster: jest.fn(),
-}));
 
 // More robust i18n mock
 const translations: { [key: string]: string } = {
@@ -98,7 +82,15 @@ describe('NewGameSetupModal', () => {
     mutateAsync: jest.fn(),
     isPending: false, isError: false, isIdle: true, isSuccess: false, error: null, data: undefined, reset: jest.fn(), variables: undefined, status: 'idle' as const, failureCount: 0, failureReason: null, context: undefined, isPaused: false, submittedAt: 0,
   } as any;
-  
+
+  const mockSeasonsData = [{ id: 'season1', name: 'Spring 2024' }, { id: 'season2', name: 'Summer 2024' }];
+  const mockTournamentsData = [{ id: 'tournament1', name: 'City Cup' }, { id: 'tournament2', name: 'Regional Tournament' }];
+  const mockPlayersData = [{ id: 'player1', name: 'John Doe', jerseyNumber: '10' },{ id: 'player2', name: 'Jane Smith', jerseyNumber: '7' }];
+  const mockTeamsData = [
+    { id: 'team1', name: 'Team Alpha', createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' },
+    { id: 'team2', name: 'Team Beta', createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' }
+  ];
+
   const defaultProps = {
     isOpen: true, initialPlayerSelection: ['player1', 'player2'], onStart: mockOnStart, onCancel: mockOnCancel,
     addSeasonMutation: mockAddSeasonMutation as UseMutationResult<Season | null, Error, { name: string }, unknown>,
@@ -106,66 +98,54 @@ describe('NewGameSetupModal', () => {
     isAddingSeason: false, isAddingTournament: false,
     demandFactor: 1,
     onDemandFactorChange: jest.fn(),
-    masterRoster: [],
-    seasons: [],
-    tournaments: [],
-    teams: [],
+    masterRoster: mockPlayersData,
+    seasons: mockSeasonsData,
+    tournaments: mockTournamentsData,
+    teams: mockTeamsData,
   };
-
-  const mockSeasonsData = [{ id: 'season1', name: 'Spring 2024' }, { id: 'season2', name: 'Summer 2024' }];
-  const mockTournamentsData = [{ id: 'tournament1', name: 'City Cup' }, { id: 'tournament2', name: 'Regional Tournament' }];
-  const mockPlayersData = [{ id: 'player1', name: 'John Doe', jerseyNumber: 10 },{ id: 'player2', name: 'Jane Smith', jerseyNumber: 7 }];
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockT.mockClear();
-    
+
     (getLastHomeTeamName as jest.Mock).mockResolvedValue('Last Team');
     (saveLastHomeTeamName as jest.Mock).mockResolvedValue(true);
-    (getMasterRoster as jest.Mock).mockResolvedValue(mockPlayersData);
-    (getSeasons as jest.Mock).mockResolvedValue(mockSeasonsData);
-    (getTournaments as jest.Mock).mockResolvedValue(mockTournamentsData);
-    
-    (addSeason as jest.Mock).mockImplementation(async (name) => ({ id: `new-${name}`, name }));
-    (addTournament as jest.Mock).mockImplementation(async (name) => ({ id: `new-${name}`, name }));
+
     (mockAddSeasonMutation.mutateAsync as jest.Mock).mockImplementation(async ({ name }) => ({ id: `new-${name}`, name }));
     (mockAddTournamentMutation.mutateAsync as jest.Mock).mockImplementation(async ({ name }) => ({ id: `new-${name}`, name }));
   });
 
-  const renderAndWaitForLoad = async () => {
+  const renderModal = () => {
     render(<NewGameSetupModal {...defaultProps} />);
-    // Use the translation key for the loading message
-    await waitFor(() => 
-      expect(screen.queryByText(translations['newGameSetupModal.loading'])).not.toBeInTheDocument(),
-      { timeout: 10000 } 
-    );
-    await waitFor(() => {
-        // Use getByRole for a more robust selector
-        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toBeInTheDocument();
-    });
   };
 
   test('loads the last home team name from appSettings utility and populates input', async () => {
-    await renderAndWaitForLoad();
+    renderModal();
     expect(getLastHomeTeamName).toHaveBeenCalled();
-    // Use getByRole
+    // Use getByRole and wait for async load
     const homeTeamInput = screen.getByRole('textbox', { name: /Your Team Name/i });
-    expect(homeTeamInput).toHaveValue('Last Team');
+    await waitFor(() => {
+      expect(homeTeamInput).toHaveValue('Last Team');
+    });
   });
 
-  test('loads seasons and tournaments using utility functions when opened', async () => {
-    await renderAndWaitForLoad();
-    expect(getSeasons).toHaveBeenCalled();
-    expect(getTournaments).toHaveBeenCalled();
+  test('renders seasons and tournaments from props', async () => {
+    renderModal();
     expect(screen.getByText('Spring 2024')).toBeInTheDocument();
     expect(screen.getByText('City Cup')).toBeInTheDocument();
   });
 
   test('saves last home team name using utility function on start', async () => {
-    await renderAndWaitForLoad();
+    renderModal();
+
+    // Wait for initial home team name to load
     const homeTeamInput = screen.getByRole('textbox', { name: /Your Team Name/i });
+    await waitFor(() => {
+      expect(homeTeamInput).toHaveValue('Last Team');
+    });
+
     fireEvent.change(homeTeamInput, { target: { value: 'New Team Name' } });
-    const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i }); 
+    const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
     fireEvent.change(opponentInput, { target: { value: 'Opponent Team' } });
     const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
     
@@ -187,7 +167,7 @@ describe('NewGameSetupModal', () => {
   });
 
   test('adds a new season using utility function', async () => {
-    await renderAndWaitForLoad();
+    renderModal();
     
     await act(async () => {
         fireEvent.click(screen.getByTitle('Create new season'));
@@ -204,7 +184,7 @@ describe('NewGameSetupModal', () => {
   });
 
   test('adds a new tournament using utility function', async () => {
-    await renderAndWaitForLoad();
+    renderModal();
 
     await act(async () => {
         fireEvent.click(screen.getByTitle('Create new tournament'));
@@ -221,7 +201,14 @@ describe('NewGameSetupModal', () => {
   });
 
   test('passes isPlayed false when not played toggle checked', async () => {
-    await renderAndWaitForLoad();
+    renderModal();
+
+    // Wait for home team name to load
+    const homeTeamInput = screen.getByRole('textbox', { name: /Your Team Name/i });
+    await waitFor(() => {
+      expect(homeTeamInput).toHaveValue('Last Team');
+    });
+
     const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
     fireEvent.change(opponentInput, { target: { value: 'Opponent Team' } });
     const toggle = screen.getByLabelText(translations['newGameSetupModal.unplayedToggle']);
@@ -243,8 +230,14 @@ describe('NewGameSetupModal', () => {
   });
 
   test('does not call onStart if home team name is empty, and saveLastHomeTeamName is not called', async () => {
-    await renderAndWaitForLoad();
+    renderModal();
+
+    // Wait for initial home team name to load
     const homeTeamInput = screen.getByRole('textbox', { name: /Your Team Name/i });
+    await waitFor(() => {
+      expect(homeTeamInput).toHaveValue('Last Team');
+    });
+
     fireEvent.change(homeTeamInput, { target: { value: '' } });
     const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
     fireEvent.change(opponentInput, { target: { value: 'Opponent Team' } });
@@ -264,26 +257,12 @@ describe('NewGameSetupModal', () => {
   });
 
   test('calls onCancel when cancel button is clicked', async () => {
-    await renderAndWaitForLoad();
+    renderModal();
     // Use translation key for button text
     const cancelButton = screen.getByText(translations['common.cancel']);
     await act(async () => {
         fireEvent.click(cancelButton);
     });
     expect(mockOnCancel).toHaveBeenCalledTimes(1);
-  });
-
-  test('should render loading state initially and then form after data loads', async () => {
-    render(<NewGameSetupModal {...defaultProps} />); 
-    // Use translation key for loading text
-    expect(screen.getByText(translations['newGameSetupModal.loading'])).toBeInTheDocument();
-    
-    await waitFor(() => 
-      // Use translation key for loading text
-      expect(screen.queryByText(translations['newGameSetupModal.loading'])).not.toBeInTheDocument(),
-      { timeout: 10000 }
-    );
-    // Use getByRole
-    expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toBeInTheDocument();
   });
 });

@@ -50,7 +50,7 @@ Local-first architecture provides significant cost advantages for soccer organiz
 #### **No Subscription Fees**
 - **One-Time Setup**: Install once, use indefinitely without ongoing payments
 - **No Per-User Charges**: Add unlimited coaches and teams without additional fees  
-- **No Data Storage Costs**: localStorage has no capacity limits or charges
+- **No Data Storage Fees**: No ongoing cloud storage charges; browser storage has practical capacity limits but is sufficient for this use case
 - **No Bandwidth Costs**: Eliminates data transfer and API usage fees
 
 #### **Organizational Benefits**
@@ -89,7 +89,7 @@ Local-First Response Time: <50ms (consistent)
 
 #### **Enhanced Security**
 - **No External Attack Surface**: Data never transmitted to external servers
-- **Browser Sandbox**: localStorage protected by browser security model
+- **Browser Sandbox**: Browser storage protected by origin isolation and OS-level encryption
 - **No Data Breaches**: Impossible to breach data that doesn't exist on servers
 - **GDPR Compliance**: No personal data processing or transmission
 

@@ -21,6 +21,7 @@ This documentation covers everything about the MatchOps-Local project - what it 
 
 2. **[02-technical/](./02-technical/)** - Technical Architecture
    - System architecture, technology decisions, security
+   - Data freshness & modal data flow: see [02-technical/data-freshness-and-modal-data-flow.md](./02-technical/data-freshness-and-modal-data-flow.md)
 
 3. **[03-active-plans/](./03-active-plans/)** - Active Plans & Current Status ⭐
    - Master execution guide, production readiness, roadmaps, release checklists
@@ -98,10 +99,11 @@ Create a local-first sports software ecosystem and demonstrate the viability of 
 ### **Modern Technology Stack**
 - **Next.js 15** with App Router for cutting-edge performance
 - **React 19** with TypeScript for reliability and maintainability
-- **React Query** + **IndexedDB** for optimal local-first data management
-  - ✅ **IndexedDB Foundation Complete**: App runs entirely on IndexedDB with async storage operations
-  - 🚧 **Branch 1 of 4**: Foundation implemented, advanced features in future branches
-  - 📋 **Status**: See [08-archived/indexeddb-foundation/](./08-archived/indexeddb-foundation/) (COMPLETED ✅)
+- **React Query** + **Storage Abstraction** for local-first data management
+  - ✅ Current backend: localStorage via async wrappers (sufficient for data size)
+  - 🚧 IndexedDB support: Implemented in foundation work; available/planned depending on configuration
+  - 📋 See [08-archived/indexeddb-foundation/](./08-archived/indexeddb-foundation/) for historical context
+  - 🔄 Fresh data pattern: See [Data Freshness and Modal Data Flow](./02-technical/data-freshness-and-modal-data-flow.md)
 - **Tailwind CSS 4** for responsive, professional design
 - **Comprehensive testing** with Jest and Playwright
 

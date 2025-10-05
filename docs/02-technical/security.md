@@ -132,7 +132,7 @@ Note: Demo files under `public/demos/` may reference external fonts (Google Font
 ## Data Protection
 
 ### Client-Side Data Handling
-- All game data stored in IndexedDB (offline-first)
+- All game data stored locally via the storage abstraction (localStorage backend today; IndexedDB support planned/available depending on configuration)
 - **Data never transmitted**: Game scores, player names, statistics stay on device
 - No sensitive user data collected (no PII, financial, or health data)
 - Optional email in error reports only (explicit consent required)

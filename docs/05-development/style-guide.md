@@ -216,3 +216,15 @@ This section tracks which components have been updated to match the style guide 
 ## 13. Modal Updates Complete
 
 All planned modal updates have been completed successfully. The application now has a consistent design system across all major modals, with proper internationalization support and adherence to the established style guide patterns. 
+
+## 14. Data Freshness Pattern (Modals)
+
+- Do not fetch data inside modal components.
+- Source data via React Query in container/root components (e.g., HomePage), sync to local state if needed, and pass into modals as props.
+- Mutations must invalidate the appropriate React Query keys so that modal props receive updated data without remounts.
+- Modal examples following this pattern:
+  - `LoadGameModal`: receives `savedGames`, `seasons`, `tournaments`, `teams`
+  - `NewGameSetupModal`: receives `masterRoster`, `seasons`, `tournaments`, `teams`
+  - `GameSettingsModal`: receives `seasons`, `tournaments` (and current game fields)
+
+See also: `docs/02-technical/data-freshness-and-modal-data-flow.md`.

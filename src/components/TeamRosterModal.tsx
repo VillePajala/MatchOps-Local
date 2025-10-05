@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { HiOutlineUserPlus } from 'react-icons/hi2';
 import { Team, Player } from '@/types';
 import { useTeamRosterQuery, useAddPlayerToRosterMutation, useSetTeamRosterMutation } from '@/hooks/useTeamQueries';
-import { getMasterRoster } from '@/utils/masterRosterManager';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import logger from '@/utils/logger';
 
@@ -15,6 +14,7 @@ interface TeamRosterModalProps {
   onBack?: () => void; // Optional back navigation
   teamId: string | null;
   team: Team | null;
+  masterRoster: Player[]; // Master roster from React Query
 }
 
 const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
@@ -23,12 +23,12 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
   onBack,
   teamId,
   team,
+  masterRoster, // Use prop instead of fetching manually
 }) => {
   const { t } = useTranslation();
-  
+
   // State
   const [isSelectingFromMaster, setIsSelectingFromMaster] = useState(false);
-  const [masterRosterPlayers, setMasterRosterPlayers] = useState<Player[]>([]);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
 
   // Queries and mutations
@@ -44,53 +44,8 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
     }
   }, [isOpen]);
 
-  // Load master roster when selecting from master
-  useEffect(() => {
-    if (isSelectingFromMaster && masterRosterPlayers.length === 0) {
-      getMasterRoster()
-        .then((players) => {
-          setMasterRosterPlayers(players || []);
-          
-          // Pre-select current team players after master roster is loaded
-          if (teamRoster.length > 0 && players && players.length > 0) {
-            logger.log('[TeamRoster] Pre-selecting current team players');
-            logger.log('[TeamRoster] Current team roster:', teamRoster.map(p => p.name));
-            logger.log('[TeamRoster] Master roster players:', players.map(p => p.name));
-            
-            // Create a set of current team player names for comparison
-            const teamPlayerNames = new Set(
-              teamRoster.map(p => p.name.toLowerCase().trim())
-            );
-            
-            logger.log('[TeamRoster] Team player names set:', Array.from(teamPlayerNames));
-            
-            // Find master roster players that match current team players
-            const preSelectedIds = players
-              .filter(p => {
-                const matches = teamPlayerNames.has(p.name.toLowerCase().trim());
-                if (matches) {
-                  logger.log('[TeamRoster] Found match:', p.name, 'ID:', p.id);
-                }
-                return matches;
-              })
-              .map(p => p.id);
-            
-            logger.log('[TeamRoster] Pre-selected IDs:', preSelectedIds);
-            setSelectedPlayerIds(preSelectedIds);
-          }
-        })
-        .catch((error) => {
-          logger.error('Failed to load master roster:', error);
-          setMasterRosterPlayers([]);
-        });
-    }
-  }, [isSelectingFromMaster, masterRosterPlayers.length, teamRoster]);
-
-
-
   const handleSelectFromMaster = () => {
     setIsSelectingFromMaster(true);
-    // Pre-selection logic now handled in useEffect after master roster loads
   };
 
   const handleAddSelectedPlayers = async () => {
@@ -98,7 +53,7 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
 
     try {
       // Map the selected master players to team-local players (new IDs)
-      const selectedMasterPlayers = masterRosterPlayers.filter(p => selectedPlayerIds.includes(p.id));
+      const selectedMasterPlayers = masterRoster.filter(p => selectedPlayerIds.includes(p.id));
       const newRoster: Player[] = selectedMasterPlayers.map((player, index) => ({
         ...player,
         id: `player_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`,
@@ -122,15 +77,15 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
   // When opening selection from master, pre-select players that are already in the team
   useEffect(() => {
     if (!isSelectingFromMaster) return;
-    if (masterRosterPlayers.length === 0) return;
+    if (masterRoster.length === 0) return;
 
     const teamNames = new Set(teamRoster.map(p => normalizeName(p.name)));
-    const preselectedIds = masterRosterPlayers
+    const preselectedIds = masterRoster
       .filter(p => teamNames.has(normalizeName(p.name)))
       .map(p => p.id);
 
     setSelectedPlayerIds(preselectedIds);
-  }, [isSelectingFromMaster, masterRosterPlayers, teamRoster]);
+  }, [isSelectingFromMaster, masterRoster, teamRoster]);
 
   if (!isOpen) return null;
 
@@ -175,7 +130,7 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
           {isSelectingFromMaster && (
             <div className="space-y-4">
               <PlayerSelectionSection
-                availablePlayers={masterRosterPlayers}
+                availablePlayers={masterRoster}
                 selectedPlayerIds={selectedPlayerIds}
                 onSelectedPlayersChange={setSelectedPlayerIds}
                 title={t('teamRosterModal.selectFromMaster', 'Select from Master Roster')}

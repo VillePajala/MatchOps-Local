@@ -3337,7 +3337,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         // Pass fresh data from React Query
         seasons={seasons}
         tournaments={tournaments}
-        teams={availableTeams}
+        teams={teams}
       />
 
       {/* Conditionally render the New Game Setup Modal */}
@@ -3365,7 +3365,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           masterRoster={masterRosterQueryResultData || []}
           seasons={seasons}
           tournaments={tournaments}
-          teams={availableTeams}
+          teams={teams}
         />
       )}
 

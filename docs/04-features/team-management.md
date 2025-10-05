@@ -510,6 +510,11 @@ const handleAddSelectedPlayers = async () => {
 };
 ```
 
+## Prop-Driven Modals and Teams
+
+- Modals that need the list of Teams (e.g., Load/Setup modals) receive `teams` via props sourced from React Query; they do not fetch teams on open.
+- When team mutations occur, invalidate `queryKeys.teams` so modal props reflect the current list immediately.
+
 ## Deletion Impact Analysis
 
 ### Game Impact Counting (lines 217-235)

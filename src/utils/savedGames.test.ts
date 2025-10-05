@@ -518,10 +518,15 @@ describe('Saved Games Utilities', () => {
     });
 
     it('should reject if internal getSavedGames fails', async () => {
-      mockGetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage failure'); 
+      // Suppress console.error for this test since we expect an error to be logged
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      mockGetStorageItem.mockImplementation(() => {
+        throw new Error('LocalStorage failure');
       });
       await expect(exportGamesAsJson()).rejects.toThrow('LocalStorage failure');
+
+      consoleErrorSpy.mockRestore();
     });
   });
 
@@ -645,10 +650,15 @@ describe('Saved Games Utilities', () => {
     });
 
     it('should reject if internal getSavedGames fails', async () => {
-      mockGetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage failure'); 
+      // Suppress console.error for this test since we expect an error to be logged
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      mockGetStorageItem.mockImplementation(() => {
+        throw new Error('LocalStorage failure');
       });
       await expect(getAllGameIds()).rejects.toThrow('LocalStorage failure');
+
+      consoleErrorSpy.mockRestore();
     });
   });
 
