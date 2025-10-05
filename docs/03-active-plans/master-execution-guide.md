@@ -84,7 +84,7 @@ Acceptance
 - Owner: Completed
 - Completion Date: September 30, 2025
 
-Outcome: Complete IndexedDB-only storage architecture implemented with async operations, error handling, type safety, and comprehensive application integration.
+Outcome: Storage abstraction implemented with async operations, error handling, type safety, and comprehensive application integration. IndexedDB foundation exists; current production backend uses localStorage via the same abstraction.
 
 ### M1A: Storage Infrastructure ✅ COMPLETED
 - [x] IndexedDB KV adapter and storage foundation
@@ -94,33 +94,70 @@ Outcome: Complete IndexedDB-only storage architecture implemented with async ope
   - ✅ Fixed critical race conditions and memory leaks
   - ✅ Added comprehensive storage infrastructure (storageMetrics, storageMutex, storageRecovery, storageBootstrap, storageConfigManager)
 
-### M1B: IndexedDB-Only Storage Implementation ✅ COMPLETED
+### M1B: Storage Abstraction Integration ✅ COMPLETED
 **All Work Completed in Single Comprehensive Implementation**:
-- ✅ **Storage Helper**: Created `src/utils/storage.ts` (877 lines) - IndexedDB-only async operations
-- ✅ **localStorage Elimination**: Removed all localStorage fallbacks from storageFactory
-- ✅ **Utility Integration**: All 8 utility files converted (savedGames, masterRoster, appSettings, seasons, tournaments, teams, playerAdjustments, fullBackup)
+- ✅ **Storage Helper**: `src/utils/storage.ts` — async operations behind a unified interface
+- ✅ **Abstraction Ready**: StorageFactory supports IndexedDB and localStorage
+- ✅ **Utility Integration**: Core utilities use the abstraction (savedGames, masterRoster, appSettings, seasons, tournaments, teams, playerAdjustments, fullBackup)
 - ✅ **Component Integration**: Updated i18n.ts, useGameTimer.ts, HomePage.tsx
 - ✅ **Error Logging**: Added error logging to all empty catch blocks
-- ✅ **Test Coverage**: 144+ tests passing with proper async patterns
+- ✅ **Test Coverage**: 140+ tests passing with proper async patterns
 - ✅ **Type Safety**: Full TypeScript compliance across application
-- ✅ **Code Verification**: No localStorage usage outside tests/adapters
+- ℹ️ **Current Backend**: localStorage (IndexedDB can be enabled in future rollout)
 
-**Implementation Note**: Originally planned as 4 separate sub-branches, all work was completed more efficiently in a single consolidated implementation (PR #34, merged to `feat/indexeddb-complete-implementation`).
+**Implementation Note**: The IndexedDB foundation branch is available; current builds default to localStorage for maximum compatibility.
 
-### M1C: Data Migration ✅ COMPLETED
-**Status**: ✅ One-time migration utility implemented and tested
-**Purpose**: Ensures legacy localStorage data is converted to IndexedDB for existing users
-**Implementation**: Migration runs automatically on first app load, then localStorage is cleared
+### M1C: Data Migration (Planned)
+**Status**: Planned — one-time migration utility available in foundation work; not enabled by default
+**Purpose**: Convert existing localStorage data to IndexedDB when/if the IndexedDB backend is enabled
+**Implementation**: Migration runs automatically on first app load (when enabled), then localStorage is cleared
 
-Acceptance Criteria - ALL MET ✅
-- [x] App runs entirely on IndexedDB with no localStorage fallback
-- [x] Storage operations use async patterns with proper error handling
-- [x] All tests pass with IndexedDB architecture (144+ tests)
-- [x] Code audit passes: localStorage only in tests/adapters
-- [x] Build successful with no TypeScript or ESLint errors
-- [x] Components and utilities fully integrated
+Acceptance Criteria (for IndexedDB rollout)
+- [ ] App runs entirely on IndexedDB with no localStorage backend
+- [ ] Storage operations use async patterns with proper error handling
+- [ ] All tests pass with IndexedDB backend
+- [ ] Code audit passes: no direct localStorage outside adapters
+- [ ] Build successful with no TypeScript or ESLint errors
+- [ ] Components and utilities fully integrated
 
-**Next Step**: Merge `feat/indexeddb-complete-implementation` → `master` after final verification and testing
+**Next Step**: Evaluate enabling IndexedDB behind a feature flag, complete migration rollout plan, and run staged rollout
+
+### M1D: Data Integrity - Linked Entities ✅ COMPLETED
+
+- Completion Date: October 5, 2025
+- Design Document: `docs/09-design/linked-entities-and-game-sync.md`
+
+**Outcome**: Fixed name inconsistency bug where renamed teams/seasons/tournaments showed different names across UI. Implemented live entity name resolution with graceful fallbacks.
+
+**What We Implemented** (Phase 1):
+- [x] Fixed backup system to include teams (`TEAMS_INDEX_KEY`, `TEAM_ROSTERS_KEY`)
+- [x] Created `entityLookup` utility for O(1) entity name resolution
+- [x] Updated LoadGameModal to use live entity names via memoized maps
+- [x] Graceful fallback to snapshot names for deleted entities
+- [x] Cross-device import/export now preserves entity names correctly
+- [x] Comprehensive test coverage (entityLookup.test.ts, fullBackup.test.ts)
+
+**Deferred Features** (may be future work):
+- Per-game team name overrides - Solving a problem that doesn't exist at current scale
+- Settings sync (periods, duration, etc.) - No evidence users change mid-season
+- Sync timestamps and "New settings available" prompts - Over-engineering for single-user PWA
+- Bulk-apply tools - Manual updates acceptable for ~50-100 games
+
+**Why Deferred**: Local-first PWA design principles favor simplicity over premature optimization. These features add complexity without validated user need. If future feedback indicates they're necessary, implementation path is documented in design doc.
+
+**Implementation Files**:
+- `src/utils/entityLookup.ts` - Name resolution utility (~63 lines)
+- `src/utils/entityLookup.test.ts` - Comprehensive tests (~199 lines)
+- `src/components/LoadGameModal.tsx` - Updated to use entity lookups
+- `src/utils/fullBackup.ts` - Fixed to include teams in backups
+
+**Acceptance**:
+- ✅ All tests pass (18/18 new tests)
+- ✅ TypeScript compilation clean
+- ✅ ESLint passes with no warnings
+- ✅ Backup/restore includes teams and rosters
+- ✅ Renamed entities reflect immediately in UI
+- ✅ Deleted entities show last known name (no crashes)
 
 ---
 
@@ -258,3 +295,5 @@ Acceptance
   - storage-integration/STORAGE_INTEGRATION_PLAN.md (original plan - over-engineered)
   - storage-integration/PHASE1_STORAGE_SERVICE.md (original implementation guide)
   - storage-integration/PHASE2_UTILITY_REFACTOR.md (original utility conversion guide)
+- Data integrity
+  - 09-design/linked-entities-and-game-sync.md (live entity name resolution; deferred features documented)
