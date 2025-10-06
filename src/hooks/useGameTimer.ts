@@ -182,6 +182,9 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
               savedTimerState.timestamp,
               savedTimerState.timeElapsedInSeconds,
               (restoredTime) => {
+                // Update the stable ref BEFORE dispatching to prevent precision timer from using old value
+                stableStartTimeRef.current = restoredTime;
+
                 dispatch({
                   type: 'RESTORE_TIMER_STATE',
                   payload: {
