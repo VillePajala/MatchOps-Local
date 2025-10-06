@@ -2784,7 +2784,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   return (
     <main className="flex flex-col h-screen bg-slate-900 text-slate-50 overflow-hidden" data-testid="home-page">
       {/* Top Section: Player Bar, Game Info */}
-      <div className={barStyle}>
+      <div className={`${barStyle} safe-area-top safe-area-left safe-area-right`}>
         <ErrorBoundary fallback={
           <div className="p-4 bg-red-900/20 border border-red-700 text-red-300">
             Player bar crashed. Please refresh the page.
@@ -3204,7 +3204,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       </div>
 
       {/* Bottom Section: Control Bar */}
-      <div className={barStyle}>
+      <div className={`${barStyle} safe-area-bottom safe-area-left safe-area-right`}>
         <ControlBar
           onUndo={handleUndo}
           onRedo={handleRedo}
