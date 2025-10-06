@@ -3,23 +3,13 @@
  * This file is run after each test to clean up state
  */
 
+// Import React Testing Library cleanup
+const { cleanup } = require('@testing-library/react');
+
 // Clean up DOM state (but not during active tests)
 function cleanupDOM() {
-  // Only clean up if we're not in the middle of a test
-  if (typeof document !== 'undefined' && typeof jest !== 'undefined') {
-    // Let React Testing Library handle DOM cleanup naturally
-    // We'll just clean up any leaked elements outside the test container
-    const testContainers = document.querySelectorAll('[data-testid]');
-    if (testContainers.length === 0) {
-      // No active test elements, safe to clean
-      const extraElements = document.body.querySelectorAll(':not(div[data-react-portal])');
-      extraElements.forEach(el => {
-        if (!el.closest('[data-testid]')) {
-          el.remove();
-        }
-      });
-    }
-  }
+  // Use React Testing Library's cleanup to unmount components
+  cleanup();
 }
 
 // Clean up timers and intervals
@@ -29,13 +19,9 @@ function cleanupTimers() {
     jest.clearAllTimers();
     jest.clearAllMocks();
   }
-  
-  // Clear real timers if any leaked through
-  let id = setTimeout(() => {}, 0);
-  while (id--) {
-    clearTimeout(id);
-    clearInterval(id);
-  }
+
+  // Don't attempt to clear real timers - this creates memory leaks
+  // Jest fake timers should handle all test timers properly
 }
 
 // Clean up global state
@@ -86,8 +72,10 @@ function cleanupPerformance() {
 // Main cleanup function
 function cleanupAfterTest() {
   try {
+    // Clean up React components first (unmount)
+    cleanupDOM();
+    // Then clean up other resources
     cleanupTimers();
-    // Skip DOM cleanup - let React Testing Library handle it
     cleanupGlobals();
     cleanupReact();
     cleanupPerformance();

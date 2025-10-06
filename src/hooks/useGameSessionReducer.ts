@@ -261,12 +261,12 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return state;
     case 'RESTORE_TIMER_STATE': {
       if (state.gameStatus === 'inProgress') {
-        const { savedTime, timestamp } = action.payload;
-        const elapsedOfflineSeconds = (Date.now() - timestamp) / 1000;
-        const correctedElapsedSeconds = Math.round(savedTime + elapsedOfflineSeconds);
+        const { savedTime } = action.payload;
+        // savedTime is already corrected by handleVisibilityChange (savedTime + offline duration)
+        // Don't calculate offline time again to avoid double-counting
         return {
           ...state,
-          timeElapsedInSeconds: correctedElapsedSeconds,
+          timeElapsedInSeconds: Math.round(savedTime),
           isTimerRunning: true,
         };
       }

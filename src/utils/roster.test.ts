@@ -363,10 +363,19 @@ describe('Roster Persistence', () => {
   it('should handle invalid JSON in localStorage', () => {
     // Set invalid JSON for the roster
     localStorage.setItem(MASTER_ROSTER_KEY, '{ invalid json');
-    
+
+    // Spy on console.error to expect the error log
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
     // Should return empty array instead of throwing
     const roster = getRoster();
     expect(roster).toEqual([]);
+
+    // Verify error was logged
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Error parsing roster:', expect.any(Error));
+
+    // Restore console.error
+    consoleErrorSpy.mockRestore();
   });
 
   it('should maintain roster data after multiple operations', () => {

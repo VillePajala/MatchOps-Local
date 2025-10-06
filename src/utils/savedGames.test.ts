@@ -27,23 +27,20 @@ import {
   // GameData, // No longer importing GameData for test mocks, using AppState
 } from './savedGames';
 import { SAVED_GAMES_KEY } from '@/config/storageKeys';
+import { clearMockStore } from './__mocks__/storage';
+import { getStorageItem, setStorageItem } from './storage';
 
-// TestGameEvent is no longer needed, use PageGameEvent directly
+// Auto-mock the storage module
+jest.mock('./storage');
+
+// Type the mocked functions
+const mockGetStorageItem = getStorageItem as jest.MockedFunction<typeof getStorageItem>;
+const mockSetStorageItem = setStorageItem as jest.MockedFunction<typeof setStorageItem>;
 
 describe('Saved Games Utilities', () => {
-  const localStorageMock = {
-    getItem: jest.fn(),
-    setItem: jest.fn(),
-    clear: jest.fn(),
-    removeItem: jest.fn(),
-    length: 0,
-    key: jest.fn()
-  };
-
-  Object.defineProperty(window, 'localStorage', {
-    value: localStorageMock,
-    writable: true,
-    configurable: true,
+  beforeEach(() => {
+    // Clear the mock store
+    clearMockStore();
   });
 
   const mockPlayer1: Player = { id: 'player_1', name: 'John', jerseyNumber: '10', isGoalie: false, receivedFairPlayCard: false, notes: '' };
@@ -107,30 +104,23 @@ describe('Saved Games Utilities', () => {
     'game_456': mockGame2_AppState,
   };
 
-  beforeEach(() => {
-    localStorageMock.getItem.mockReset();
-    localStorageMock.setItem.mockReset();
-    localStorageMock.clear.mockReset();
-    localStorageMock.removeItem.mockReset();
-    localStorageMock.key.mockReset();
-  });
 
   describe('getSavedGames', () => {
     it('should return an empty object if no games are stored', async () => {
-      localStorageMock.getItem.mockReturnValue(null);
+      mockGetStorageItem.mockResolvedValue(null);
       // getSavedGames now returns a Promise
       await expect(getSavedGames()).resolves.toEqual({});
     });
 
     it('should return the games (as AppState collection) if they exist', async () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockSavedGamesCollection));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
       // getSavedGames now returns a Promise<SavedGamesCollection>
       // The mockSavedGamesCollection is already Record<string, AppState>
       await expect(getSavedGames()).resolves.toEqual(mockSavedGamesCollection);
     });
 
     it('should handle invalid JSON and reject with an error', async () => {
-      localStorageMock.getItem.mockReturnValue('invalid json');
+      mockGetStorageItem.mockResolvedValue('invalid json');
       // Expect the promise to reject
       await expect(getSavedGames()).rejects.toThrow(); 
     });
@@ -139,7 +129,7 @@ describe('Saved Games Utilities', () => {
   describe('getGame', () => {
     beforeEach(() => {
       // This mock setup is for getSavedGames which getGame calls internally
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockSavedGamesCollection));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
     });
     it('should return the requested game as AppState if it exists', async () => {
       // getGame now returns a Promise<AppState | null>
@@ -151,9 +141,9 @@ describe('Saved Games Utilities', () => {
     it('should return null if gameId is empty', async () => {
       await expect(getGame('')).resolves.toBeNull();
     });
-    // Test for localStorage error propagation if getSavedGames within getGame fails
+    // Test for storage error propagation if getSavedGames within getGame fails
     it('should reject if internal getSavedGames fails', async () => {
-      localStorageMock.getItem.mockImplementation(() => { 
+      mockGetStorageItem.mockImplementation(() => { 
         throw new Error('LocalStorage failure'); 
       });
       await expect(getGame('game_123')).rejects.toThrow('LocalStorage failure');
@@ -161,15 +151,15 @@ describe('Saved Games Utilities', () => {
   });
 
   describe('saveGames', () => {
-    it('should save a AppState collection to localStorage', async () => {
+    it('should save a AppState collection to storage', async () => {
       // saveGames expects SavedGamesCollection (Record<string, AppState>) and returns Promise<void>
       await expect(saveGames(mockSavedGamesCollection)).resolves.toBeUndefined(); // Promise<void> resolves to undefined
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(SAVED_GAMES_KEY, JSON.stringify(mockSavedGamesCollection));
+      expect(mockSetStorageItem).toHaveBeenCalledWith(SAVED_GAMES_KEY, JSON.stringify(mockSavedGamesCollection));
     });
 
-    it('should handle localStorage errors during saveGames and reject', async () => {
+    it('should handle storage errors during saveGames and reject', async () => {
       const error = new Error('Storage quota exceeded');
-      localStorageMock.setItem.mockImplementation(() => { 
+      mockSetStorageItem.mockImplementation(() => { 
         throw error; 
       });
       // saveGames now rejects on error
@@ -180,11 +170,11 @@ describe('Saved Games Utilities', () => {
   describe('saveGame', () => {
     beforeEach(() => {
       // Mock for the internal getSavedGames call
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockSavedGamesCollection));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
       // Clear setItem mock for each test to check its specific call
-      localStorageMock.setItem.mockReset(); 
+      mockSetStorageItem.mockReset(); 
     });
-    it('should add a new game (as AppState) to localStorage and resolve with the game', async () => {
+    it('should add a new game (as AppState) to storage and resolve with the game', async () => {
       const newGameId = 'game_789';
       // Ensure newGame is a complete AppState
       const newGame: AppState = { 
@@ -198,9 +188,9 @@ describe('Saved Games Utilities', () => {
       // saveGame now returns Promise<AppState>
       await expect(saveGame(newGameId, newGame)).resolves.toEqual(newGame);
       
-      // Verify localStorage.setItem was called correctly
-      expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-      const savedCollection = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+      // Verify storage.setItem was called correctly
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+      const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
       expect(savedCollection[newGameId]).toEqual(newGame);
       // Ensure other games are preserved using their known IDs
       expect(savedCollection['game_123']).toEqual(mockGame1_AppState); // Use known ID 'game_123' for mockGame1_AppState
@@ -213,8 +203,8 @@ describe('Saved Games Utilities', () => {
       
       await expect(saveGame(gameIdToUpdate, updatedGame)).resolves.toEqual(updatedGame);
       
-      expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-      const savedCollection = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+      const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
       expect(savedCollection[gameIdToUpdate]).toEqual(updatedGame);
     });
 
@@ -223,14 +213,14 @@ describe('Saved Games Utilities', () => {
     });
 
     it('should reject if internal getSavedGames fails', async () => {
-      localStorageMock.getItem.mockImplementation(() => { 
+      mockGetStorageItem.mockImplementation(() => { 
         throw new Error('LocalStorage failure'); 
       });
       await expect(saveGame('game_123', mockGame1_AppState)).rejects.toThrow('LocalStorage failure');
     });
 
     it('should reject if internal saveGames fails', async () => {
-      localStorageMock.setItem.mockImplementation(() => { 
+      mockSetStorageItem.mockImplementation(() => { 
         throw new Error('LocalStorage set failure'); 
       });
       await expect(saveGame('game_123', mockGame1_AppState)).rejects.toThrow('LocalStorage set failure');
@@ -240,15 +230,15 @@ describe('Saved Games Utilities', () => {
   describe('deleteGame', () => {
     beforeEach(() => {
       // Mock for the internal getSavedGames and saveGames calls
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockSavedGamesCollection));
-      localStorageMock.setItem.mockReset(); // Reset setItem to check its call for delete
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
+      mockSetStorageItem.mockReset(); // Reset setItem to check its call for delete
     });
     it('should delete the game and return the gameId', async () => {
       // deleteGame now returns Promise<string | null>
       await expect(deleteGame('game_123')).resolves.toBe('game_123');
       
-      expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-      const savedCollection = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+      const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
       expect(savedCollection['game_123']).toBeUndefined();
       expect(savedCollection['game_456']).toEqual(mockGame2_AppState);
     });
@@ -256,23 +246,23 @@ describe('Saved Games Utilities', () => {
      it('should return null if game to delete is not found', async () => {
       await expect(deleteGame('nonexistent_id')).resolves.toBe(null);
       // setItem should not have been called if the game wasn't found for deletion
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
     it('should return null if gameId is empty', async () => {
       await expect(deleteGame('')).resolves.toBe(null);
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
     it('should reject if internal getSavedGames fails', async () => {
-      localStorageMock.getItem.mockImplementation(() => { 
+      mockGetStorageItem.mockImplementation(() => { 
         throw new Error('LocalStorage failure'); 
       });
       await expect(deleteGame('game_123')).rejects.toThrow('LocalStorage failure');
     });
 
     it('should reject if internal saveGames (after delete) fails', async () => {
-      localStorageMock.setItem.mockImplementation(() => { 
+      mockSetStorageItem.mockImplementation(() => { 
         throw new Error('LocalStorage set failure after delete'); 
       });
       await expect(deleteGame('game_123')).rejects.toThrow('LocalStorage set failure after delete');
@@ -285,8 +275,8 @@ describe('Saved Games Utilities', () => {
     beforeEach(() => {
       jest.spyOn(Date, 'now').mockReturnValue(mockDateNow);
       // Mock for internal getSavedGames and saveGames calls
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockSavedGamesCollection)); 
-      localStorageMock.setItem.mockReset();
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection)); 
+      mockSetStorageItem.mockReset();
     });
     afterEach(() => {
       jest.restoreAllMocks();
@@ -310,9 +300,9 @@ describe('Saved Games Utilities', () => {
       expect(result.gameData.gameStatus).toBe('notStarted');
       expect(result.gameData.isPlayed).toBe(true);
 
-      // Verify it was saved to localStorage
-      expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-      const savedCollection = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+      // Verify it was saved to storage
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+      const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
       expect(savedCollection[result.gameId]).toEqual(result.gameData);
     });
 
@@ -334,7 +324,7 @@ describe('Saved Games Utilities', () => {
     });
 
     it('should reject if internal saveGame fails', async () => {
-      localStorageMock.setItem.mockImplementation(() => { 
+      mockSetStorageItem.mockImplementation(() => { 
         throw new Error('LocalStorage set failure during create'); 
       });
       const initialGamePartial: Partial<AppState> = { teamName: 'Fail Team' };
@@ -346,8 +336,8 @@ describe('Saved Games Utilities', () => {
   describe('addGameEvent', () => {
     beforeEach(() => {
       // Mock for getGame and saveGame internals
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockSavedGamesCollection));
-      localStorageMock.setItem.mockReset();
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
+      mockSetStorageItem.mockReset();
     });
 
     it('should add an event to a game and resolve with the updated AppState', async () => {
@@ -362,27 +352,27 @@ describe('Saved Games Utilities', () => {
       expect(result.gameEvents.length).toBe(mockGame1_AppState.gameEvents.length + 1);
       expect(result.gameEvents.find((e: PageGameEvent) => e.id === 'event_add')).toEqual(expect.objectContaining(newEvent));
       
-      // Verify localStorage.setItem was called correctly by the internal saveGame
-      expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-      const savedCollection = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+      // Verify storage.setItem was called correctly by the internal saveGame
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+      const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
       expect(savedCollection['game_123'].gameEvents.length).toBe(mockGame1_AppState.gameEvents.length + 1);
     });
 
     it('should resolve with null if game is not found', async () => {
       await expect(addGameEvent('nonexistent_game', mockEvent1)).resolves.toBeNull();
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
     it('should reject if internal getGame fails', async () => {
-      localStorageMock.getItem.mockImplementation(() => { 
+      mockGetStorageItem.mockImplementation(() => { 
         throw new Error('LocalStorage get failure'); 
       });
       await expect(addGameEvent('game_123', mockEvent1)).rejects.toThrow('LocalStorage get failure');
     });
 
     it('should reject if internal saveGame fails', async () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockSavedGamesCollection));
-      localStorageMock.setItem.mockImplementation(() => { 
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
+      mockSetStorageItem.mockImplementation(() => { 
         throw new Error('LocalStorage set failure'); 
       });
 
@@ -397,8 +387,8 @@ describe('Saved Games Utilities', () => {
 
   describe('updateGameEvent', () => {
     beforeEach(() => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockSavedGamesCollection));
-      localStorageMock.setItem.mockReset();
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
+      mockSetStorageItem.mockReset();
     });
 
     it('should update an event in a game and resolve with the updated AppState', async () => {
@@ -413,33 +403,33 @@ describe('Saved Games Utilities', () => {
       if (!result) return; // Type guard
 
       expect(result.gameEvents[0]).toEqual(expect.objectContaining(updatedEventData));
-      expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-      const savedCollection = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+      const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
       expect(savedCollection['game_123'].gameEvents[0]).toEqual(updatedEventData);
     });
 
     it('should resolve with null if game is not found', async () => {
       const eventData: PageGameEvent = { ...mockEvent1, time: 123 };
       await expect(updateGameEvent('nonexistent_game', 0, eventData)).resolves.toBeNull();
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
     it('should resolve with null if event index is out of bounds', async () => {
       const eventData: PageGameEvent = { ...mockEvent1, time: 456 };
       await expect(updateGameEvent('game_123', 99, eventData)).resolves.toBeNull(); // Index 99 is out of bounds
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
     it('should reject if internal getGame fails', async () => {
-      localStorageMock.getItem.mockImplementation(() => { 
+      mockGetStorageItem.mockImplementation(() => { 
         throw new Error('LocalStorage get failure'); 
       });
       await expect(updateGameEvent('game_123', 0, mockEvent1)).rejects.toThrow('LocalStorage get failure');
     });
 
     it('should reject if internal saveGame fails', async () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockSavedGamesCollection));
-      localStorageMock.setItem.mockImplementation(() => { 
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
+      mockSetStorageItem.mockImplementation(() => { 
         throw new Error('LocalStorage set failure'); 
       });
       const eventData: PageGameEvent = { ...mockEvent1, time: 101112 };
@@ -455,8 +445,8 @@ describe('Saved Games Utilities', () => {
 
   describe('removeGameEvent', () => {
     beforeEach(() => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockSavedGamesCollection));
-      localStorageMock.setItem.mockReset();
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
+      mockSetStorageItem.mockReset();
     });
 
     it('should remove an event from a game and resolve with the updated AppState', async () => {
@@ -472,31 +462,31 @@ describe('Saved Games Utilities', () => {
       expect(result.gameEvents.length).toBe(initialEventCount - 1);
       expect(result.gameEvents.find((e: PageGameEvent) => e.id === eventIdToRemove)).toBeUndefined();
 
-      expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-      const savedCollection = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+      const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
       expect(savedCollection['game_123'].gameEvents.length).toBe(initialEventCount - 1);
     });
 
     it('should resolve with null if game is not found', async () => {
       await expect(removeGameEvent('nonexistent_game', 0)).resolves.toBeNull();
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
     it('should resolve with null if event index is out of bounds', async () => {
       await expect(removeGameEvent('game_123', 99)).resolves.toBeNull(); // Index 99 is out of bounds
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
     it('should reject if internal getGame fails', async () => {
-      localStorageMock.getItem.mockImplementation(() => { 
+      mockGetStorageItem.mockImplementation(() => { 
         throw new Error('LocalStorage get failure'); 
       });
       await expect(removeGameEvent('game_123', 0)).rejects.toThrow('LocalStorage get failure');
     });
 
     it('should reject if internal saveGame fails', async () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockSavedGamesCollection)); 
-      localStorageMock.setItem.mockImplementation(() => { 
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection)); 
+      mockSetStorageItem.mockImplementation(() => { 
         throw new Error('LocalStorage set failure'); 
       });
       
@@ -511,35 +501,40 @@ describe('Saved Games Utilities', () => {
 
   describe('exportGamesAsJson', () => {
     it('should export AppState collection as formatted JSON string', async () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockSavedGamesCollection));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
       // exportGamesAsJson now returns Promise<string | null>
       const result = await exportGamesAsJson();
       expect(result).toEqual(JSON.stringify(mockSavedGamesCollection, null, 2));
     });
 
     it('should resolve to null if no games are stored', async () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify({}));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
       await expect(exportGamesAsJson()).resolves.toBeNull();
     });
 
-    it('should resolve to null if localStorage returns null', async () => {
-      localStorageMock.getItem.mockReturnValue(null);
+    it('should resolve to null if storage returns null', async () => {
+      mockGetStorageItem.mockResolvedValue(null);
       await expect(exportGamesAsJson()).resolves.toBeNull();
     });
 
     it('should reject if internal getSavedGames fails', async () => {
-      localStorageMock.getItem.mockImplementation(() => { 
-        throw new Error('LocalStorage failure'); 
+      // Suppress console.error for this test since we expect an error to be logged
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      mockGetStorageItem.mockImplementation(() => {
+        throw new Error('LocalStorage failure');
       });
       await expect(exportGamesAsJson()).rejects.toThrow('LocalStorage failure');
+
+      consoleErrorSpy.mockRestore();
     });
   });
 
   describe('importGamesFromJson', () => {
     beforeEach(() => {
-      // Mock initial localStorage state for import tests
-      localStorageMock.getItem.mockReturnValue(JSON.stringify({ 'existing_game_id': mockGame1_AppState }));
-      localStorageMock.setItem.mockReset();
+      // Mock initial storage state for import tests
+      mockGetStorageItem.mockResolvedValue(JSON.stringify({ 'existing_game_id': mockGame1_AppState }));
+      mockSetStorageItem.mockReset();
     });
 
     it('should import games (as AppState) and merge with existing if overwrite is false, then resolve with count', async () => {
@@ -553,8 +548,8 @@ describe('Saved Games Utilities', () => {
       expect(result.successful).toBe(1);
       expect(result.failed).toHaveLength(0);
       
-      expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-      const saved = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+      const saved = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
       expect(saved['existing_game_id']).toEqual(mockGame1_AppState);
       expect(saved['imported_1']).toMatchObject(gamesToImport['imported_1']);
       expect(saved['imported_1'].demandFactor).toBe(1); // Schema adds default value
@@ -571,8 +566,8 @@ describe('Saved Games Utilities', () => {
       expect(result.successful).toBe(2);
       expect(result.failed).toHaveLength(0);
       
-      expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-      const saved = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+      const saved = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
       // Check each game matches but allow for schema defaults
       expect(saved['imported_1']).toMatchObject(gamesToImport['imported_1']);
       expect(saved['imported_1'].demandFactor).toBe(1);
@@ -588,7 +583,7 @@ describe('Saved Games Utilities', () => {
       const result = await importGamesFromJson(jsonData, false);
       expect(result.successful).toBe(0);
       expect(result.skipped).toBe(1);
-      expect(localStorageMock.setItem).not.toHaveBeenCalled(); // setItem shouldn't be called if no new games are added
+      expect(mockSetStorageItem).not.toHaveBeenCalled(); // setItem shouldn't be called if no new games are added
     });
 
     it('should reject if JSON data is invalid', async () => {
@@ -609,11 +604,11 @@ describe('Saved Games Utilities', () => {
       expect(result.failed).toHaveLength(1);
       expect(result.failed[0].gameId).toBe('invalid');
       expect(result.failed[0].error).toContain('teamName');
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
     it('should reject if internal getSavedGames fails', async () => {
-      localStorageMock.getItem.mockImplementation(() => { 
+      mockGetStorageItem.mockImplementation(() => { 
         throw new Error('LocalStorage get failure'); 
       });
       const gamesToImport: SavedGamesCollection = { 'new_game': mockGame2_AppState };
@@ -623,9 +618,9 @@ describe('Saved Games Utilities', () => {
 
     it('should reject if internal saveGames fails during import', async () => {
       // getSavedGames works initially
-      localStorageMock.getItem.mockReturnValue(JSON.stringify({ 'existing_game_id': mockGame1_AppState }));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify({ 'existing_game_id': mockGame1_AppState }));
       // But setItem (for saveGames) fails
-      localStorageMock.setItem.mockImplementation(() => { 
+      mockSetStorageItem.mockImplementation(() => { 
         throw new Error('LocalStorage set failure during import'); 
       });
       const gamesToImport: SavedGamesCollection = { 'new_game': mockGame2_AppState };
@@ -637,7 +632,7 @@ describe('Saved Games Utilities', () => {
 
   describe('getAllGameIds', () => {
     it('should return an array of all game IDs', async () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockSavedGamesCollection));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
       // getAllGameIds now returns Promise<string[]>
       const ids = await getAllGameIds();
       expect(ids).toEqual(expect.arrayContaining(['game_123', 'game_456']));
@@ -645,26 +640,31 @@ describe('Saved Games Utilities', () => {
     });
 
     it('should return an empty array if no games are stored', async () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify({}));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
       await expect(getAllGameIds()).resolves.toEqual([]);
     });
 
-    it('should return an empty array if localStorage returns null', async () => {
-      localStorageMock.getItem.mockReturnValue(null);
+    it('should return an empty array if storage returns null', async () => {
+      mockGetStorageItem.mockResolvedValue(null);
       await expect(getAllGameIds()).resolves.toEqual([]);
     });
 
     it('should reject if internal getSavedGames fails', async () => {
-      localStorageMock.getItem.mockImplementation(() => { 
-        throw new Error('LocalStorage failure'); 
+      // Suppress console.error for this test since we expect an error to be logged
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      mockGetStorageItem.mockImplementation(() => {
+        throw new Error('LocalStorage failure');
       });
       await expect(getAllGameIds()).rejects.toThrow('LocalStorage failure');
+
+      consoleErrorSpy.mockRestore();
     });
   });
 
   describe('getFilteredGames', () => {
     beforeEach(() => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockSavedGamesCollection));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
     });
 
     it('should return all games if no filters are provided', async () => {
@@ -704,13 +704,13 @@ describe('Saved Games Utilities', () => {
     });
 
     it('should return an empty array if games collection is empty', async () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify({}));
+      mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
       const result = await getFilteredGames({ seasonId: 'season_1' });
       expect(result.length).toBe(0);
     });
 
     it('should reject if internal getSavedGames fails', async () => {
-      localStorageMock.getItem.mockImplementation(() => {
+      mockGetStorageItem.mockImplementation(() => {
         throw new Error('LocalStorage get failure for filter');
       });
       await expect(getFilteredGames({ seasonId: 'season_1' })).rejects.toThrow('LocalStorage get failure for filter');
@@ -730,8 +730,8 @@ describe('Saved Games Utilities', () => {
 
   describe('updateGameDetails', () => {
     beforeEach(() => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockSavedGamesCollection));
-      localStorageMock.setItem.mockReset();
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
+      mockSetStorageItem.mockReset();
     });
 
     it('should update game details and resolve with the updated AppState', async () => {
@@ -758,19 +758,19 @@ describe('Saved Games Utilities', () => {
       // Ensure events were not touched
       expect(result.gameEvents).toEqual(mockGame1_AppState.gameEvents);
 
-      expect(localStorageMock.setItem).toHaveBeenCalledTimes(1);
-      const savedCollection = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+      const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
       expect(savedCollection[gameIdToUpdate].teamName).toBe('Super Dragons');
     });
 
     it('should resolve with null if game to update is not found', async () => {
       const updates: Partial<AppState> = { teamName: 'Does Not Matter' };
       await expect(updateGameDetails('nonexistent_id', updates)).resolves.toBeNull();
-      expect(localStorageMock.setItem).not.toHaveBeenCalled();
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
     it('should reject if internal getGame fails', async () => {
-      localStorageMock.getItem.mockImplementation(() => { 
+      mockGetStorageItem.mockImplementation(() => { 
         throw new Error('LocalStorage get failure for update'); 
       });
       const updates: Partial<AppState> = { teamName: 'Still Matters Not' };
@@ -778,8 +778,8 @@ describe('Saved Games Utilities', () => {
     });
 
     it('should reject if internal saveGame (after update) fails', async () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockSavedGamesCollection)); // For getGame
-      localStorageMock.setItem.mockImplementation(() => { // For saveGame (which calls saveGames)
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection)); // For getGame
+      mockSetStorageItem.mockImplementation(() => { // For saveGame (which calls saveGames)
         throw new Error('LocalStorage set failure for update');
       });
       const updates: Partial<AppState> = { teamName: 'Yet Another Update' };

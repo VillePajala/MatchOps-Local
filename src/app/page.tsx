@@ -4,7 +4,8 @@ import ModalProvider from '@/contexts/ModalProvider';
 import HomePage from '@/components/HomePage';
 import StartScreen from '@/components/StartScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { useState, useEffect } from 'react';
+import { MigrationStatus } from '@/components/MigrationStatus';
+import { useState, useEffect, useCallback } from 'react';
 import { getCurrentGameIdSetting } from '@/utils/appSettings';
 import { getSavedGames } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
@@ -20,45 +21,62 @@ export default function Home() {
   const [hasPlayers, setHasPlayers] = useState(false);
   const [hasSavedGames, setHasSavedGames] = useState(false);
   const [hasSeasonsTournaments, setHasSeasonsTournaments] = useState(false);
-  
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isCheckingState, setIsCheckingState] = useState(true);
+
   // A user is considered "first time" if they haven't created a roster OR a game yet.
   // This ensures they are guided through the full setup process.
   const isFirstTimeUser = !hasPlayers || !hasSavedGames;
 
-  useEffect(() => {
-    const checkAppState = async () => {
-      try {
-        // Run migration first (idempotent - safe to run multiple times)
-        await runMigration();
-        
-        // Check for resume capability
-        const lastId = await getCurrentGameIdSetting();
-        const games = await getSavedGames();
-        
-        if (lastId && games[lastId]) {
-          setCanResume(true);
-        }
-        
-        // Check if user has any saved games
-        setHasSavedGames(Object.keys(games).length > 0);
-        
-        // Check if user has any players in roster
-        const roster = await getMasterRoster();
-        setHasPlayers(roster.length > 0);
-        
-        // Check if user has any seasons or tournaments
-        const seasons = await getSeasons();
-        const tournaments = await getTournaments();
-        setHasSeasonsTournaments(seasons.length > 0 || tournaments.length > 0);
-      } catch {
+  const checkAppState = useCallback(async () => {
+    setIsCheckingState(true);
+    try {
+      // This runs once to ensure legacy data is converted to IndexedDB.
+      // IndexedDB is the runtime storage; this is not the focus of current work.
+      await runMigration();
+
+      // Check for resume capability
+      const lastId = await getCurrentGameIdSetting();
+      const games = await getSavedGames();
+
+      if (lastId && games[lastId]) {
+        setCanResume(true);
+      } else {
         setCanResume(false);
-        setHasSavedGames(false);
-        setHasPlayers(false);
-        setHasSeasonsTournaments(false);
       }
-    };
-    checkAppState();
+
+      // Check if user has any saved games
+      setHasSavedGames(Object.keys(games).length > 0);
+
+      // Check if user has any players in roster
+      const roster = await getMasterRoster();
+      setHasPlayers(roster.length > 0);
+
+      // Check if user has any seasons or tournaments
+      const seasons = await getSeasons();
+      const tournaments = await getTournaments();
+      setHasSeasonsTournaments(seasons.length > 0 || tournaments.length > 0);
+    } catch (error) {
+      logger.warn('Failed to check initial game state', { error });
+      setCanResume(false);
+      setHasSavedGames(false);
+      setHasPlayers(false);
+      setHasSeasonsTournaments(false);
+    } finally {
+      setIsCheckingState(false);
+    }
   }, []);
+
+  const handleDataImportSuccess = useCallback(() => {
+    // Trigger app state refresh after data import
+    setRefreshTrigger(prev => prev + 1);
+    // Reset to start screen to let user see the updated state
+    setScreen('start');
+  }, []);
+
+  useEffect(() => {
+    checkAppState();
+  }, [checkAppState, refreshTrigger]);
 
   const handleAction = (
     action: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'getStarted' | 'season' | 'stats' | 'roster' | 'teams'
@@ -78,7 +96,18 @@ export default function Home() {
       logger.error('App-level error caught:', error, errorInfo);
     }}>
       <ModalProvider>
-        {screen === 'start' ? (
+        {isCheckingState ? (
+          // Loading state while checking for data
+          <div className="flex flex-col items-center justify-center h-screen bg-slate-900">
+            <div className="flex flex-col items-center gap-6">
+              {/* Spinner */}
+              <div className="w-16 h-16 border-4 border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
+
+              {/* Optional loading text */}
+              <p className="text-slate-400 text-sm">Loading...</p>
+            </div>
+          </div>
+        ) : screen === 'start' ? (
           <ErrorBoundary>
             <StartScreen
               onStartNewGame={() => handleAction('newGame')}
@@ -98,9 +127,16 @@ export default function Home() {
           </ErrorBoundary>
         ) : (
           <ErrorBoundary>
-            <HomePage initialAction={initialAction ?? undefined} skipInitialSetup />
+            <HomePage
+              initialAction={initialAction ?? undefined}
+              skipInitialSetup
+              onDataImportSuccess={handleDataImportSuccess}
+            />
           </ErrorBoundary>
         )}
+
+        {/* Migration status overlay */}
+        <MigrationStatus />
       </ModalProvider>
     </ErrorBoundary>
   );

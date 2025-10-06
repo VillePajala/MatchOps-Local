@@ -17,7 +17,20 @@ const mockRoster: Player[] = [
 
 jest.mock('./logger', () => ({
   __esModule: true,
-  default: { log: jest.fn(), warn: jest.fn(), error: jest.fn() }
+  default: {
+    debug: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  },
+  createLogger: jest.fn(() => ({
+    debug: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }))
 }));
 
 const mockedUtilGet = utilGetMasterRoster as jest.MockedFunction<typeof utilGetMasterRoster>;

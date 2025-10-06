@@ -1,5 +1,6 @@
 import { createGame } from './savedGames';
 import { AppState } from '@/types';
+import { clearMockStore } from './__mocks__/storage';
 
 // Mock localStorage
 const mockLocalStorage = (() => {
@@ -37,16 +38,32 @@ Object.defineProperty(global, 'crypto', {
   writable: true
 });
 
-// Mock logger
+// Mock logger - must include both default export and createLogger function
 jest.mock('./logger', () => ({
-  log: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn()
+  __esModule: true,
+  default: {
+    debug: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  },
+  createLogger: jest.fn(() => ({
+    debug: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }))
 }));
+
+// Mock storage module - uses __mocks__/storage.ts for in-memory storage
+jest.mock('./storage');
 
 describe('Game ID Generation', () => {
   beforeEach(() => {
-    mockLocalStorage.clear();
+    clearMockStore(); // Clear IndexedDB mock storage
+    mockLocalStorage.clear(); // Keep for legacy if needed
     jest.clearAllMocks();
     // Restore crypto mock after clearAllMocks
     mockRandomUUID.mockReturnValue('abcd1234-5678-9abc-def0-123456789abc');

@@ -6,8 +6,6 @@ import GameSettingsModal from './GameSettingsModal';
 import { type GameSettingsModalProps } from './GameSettingsModal';
 import { Player, Season, Tournament, AppState } from '@/types';
 import { GameEvent, GameEventType } from './GameSettingsModal';
-import { getSeasons } from '@/utils/seasons';
-import { getTournaments } from '@/utils/tournaments';
 import { updateGameDetails, updateGameEvent, removeGameEvent } from '@/utils/savedGames';
 import * as rosterUtils from '@/utils/masterRoster';
 import { useTranslation } from 'react-i18next';
@@ -95,8 +93,6 @@ const mockOnTournamentIdChange = jest.fn();
 const mockOnSetHomeOrAway = jest.fn();
 const mockOnTeamNameChange = jest.fn();
 
-jest.mock('@/utils/seasons', () => ({ getSeasons: jest.fn() }));
-jest.mock('@/utils/tournaments', () => ({ getTournaments: jest.fn() }));
 jest.mock('@/utils/savedGames', () => ({
   updateGameDetails: jest.fn(),
   updateGameEvent: jest.fn(),
@@ -132,7 +128,7 @@ const defaultProps: GameSettingsModalProps = {
   gameLocation: 'Central Park',
   gameTime: '14:30',
   gameNotes: 'Regular season match',
-  gameEvents: [...mockGameEvents], 
+  gameEvents: [...mockGameEvents],
   availablePlayers: mockPlayers,
   selectedPlayerIds: ['p1', 'p2'],
   onSelectedPlayersChange: jest.fn(),
@@ -172,6 +168,8 @@ const defaultProps: GameSettingsModalProps = {
   updateGameDetailsMutation: {
     mutate: jest.fn(),
   } as unknown as UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>,
+  seasons: mockSeasons,
+  tournaments: mockTournaments,
 };
 
 describe('<GameSettingsModal />', () => {
@@ -179,28 +177,21 @@ describe('<GameSettingsModal />', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (getSeasons as jest.Mock).mockResolvedValue(mockSeasons);
-    (getTournaments as jest.Mock).mockResolvedValue(mockTournaments);
     (rosterUtils.getMasterRoster as jest.Mock).mockReturnValue(mockPlayers);
-    (updateGameDetails as jest.Mock).mockResolvedValue({ id: 'game123' }); 
+    (updateGameDetails as jest.Mock).mockResolvedValue({ id: 'game123' });
     (updateGameEvent as jest.Mock).mockResolvedValue({ id: 'event1' });
     (removeGameEvent as jest.Mock).mockResolvedValue(true);
-    window.confirm = jest.fn(() => true); 
+    window.confirm = jest.fn(() => true);
     mockOnSetHomeOrAway.mockClear();
     mockOnPeriodDurationChange.mockClear();
   });
 
-  const renderAndWaitForLoad = async (props: GameSettingsModalProps = defaultProps) => {
-    const result = render(<GameSettingsModal {...props} />);
-    await waitFor(() => {
-        expect(getSeasons).toHaveBeenCalled();
-        expect(getTournaments).toHaveBeenCalled();
-    });
-    return result;
+  const renderModal = (props: GameSettingsModalProps = defaultProps) => {
+    return render(<GameSettingsModal {...props} />);
   };
 
   test('renders the modal when isOpen is true', async () => {
-    await renderAndWaitForLoad();
+    renderModal();
     expect(screen.getByRole('heading', { name: t('gameSettingsModal.title') })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: t('gameSettingsModal.gameInfo') })).toBeInTheDocument();
   });
@@ -212,7 +203,7 @@ describe('<GameSettingsModal />', () => {
 
   test('calls onClose when the close button is clicked', async () => {
     const user = userEvent.setup();
-    await renderAndWaitForLoad();
+    renderModal();
     const closeButton = screen.getByRole('button', { name: t('common.close') });
     await user.click(closeButton);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
@@ -275,7 +266,7 @@ describe('<GameSettingsModal />', () => {
 
     test('cancels game notes edit with Escape key', async () => {
         const user = userEvent.setup();
-        await renderAndWaitForLoad();
+        renderModal();
         
         // Find the notes section and click on it to edit
         const notesSection = screen.getByRole('heading', { name: t('gameSettingsModal.notesTitle') }).closest('div');
@@ -305,7 +296,7 @@ describe('<GameSettingsModal />', () => {
   describe('Periods & Duration Section', () => {
     test('calls onNumPeriodsChange when period selection changes', async () => {
       const user = userEvent.setup();
-      await renderAndWaitForLoad();
+      renderModal();
       
       const numPeriodsSelect = screen.getByLabelText(t('gameSettingsModal.numPeriodsLabel'));
       await user.selectOptions(numPeriodsSelect, '1');
@@ -315,7 +306,7 @@ describe('<GameSettingsModal />', () => {
 
     test('calls onPeriodDurationChange when duration input is blurred', async () => {
       const user = userEvent.setup();
-      await renderAndWaitForLoad();
+      renderModal();
       
       // Find the periods section
       const periodsSection = screen.getByRole('heading', { name: t('gameSettingsModal.periodsLabel') }).closest('div');
@@ -339,7 +330,7 @@ describe('<GameSettingsModal />', () => {
   describe('Home/Away Toggle', () => {
     test('calls onSetHomeOrAway when toggle is changed', async () => {
       const user = userEvent.setup();
-      await renderAndWaitForLoad({ ...defaultProps, homeOrAway: "home" });
+      renderModal({ ...defaultProps, homeOrAway: "home" });
 
       const awayButton = screen.getByRole('button', { name: t('gameSettingsModal.away') });
       await user.click(awayButton);
@@ -356,7 +347,7 @@ describe('<GameSettingsModal />', () => {
     };
 
     test('initially shows "None" selected and no combobox if no IDs provided', async () => {
-      await renderAndWaitForLoad();
+      renderModal();
       const section = getAssociationSection();
       const noneButton = within(section).getByText(t('gameSettingsModal.eiMitaan'));
       expect(noneButton).toHaveClass('bg-indigo-600');
@@ -366,10 +357,6 @@ describe('<GameSettingsModal />', () => {
     test('selecting a season prefills game data', async () => {
       const user = userEvent.setup();
       const { rerender } = render(<GameSettingsModal {...defaultProps} />);
-      await waitFor(() => {
-        expect(getSeasons).toHaveBeenCalled();
-        expect(getTournaments).toHaveBeenCalled();
-      });
       const section = getAssociationSection();
       const seasonTab = within(section).getByText(t('gameSettingsModal.kausi'));
       await user.click(seasonTab);
@@ -384,10 +371,6 @@ describe('<GameSettingsModal />', () => {
     test('selecting a tournament prefills game data', async () => {
       const user = userEvent.setup();
       const { rerender } = render(<GameSettingsModal {...defaultProps} />);
-      await waitFor(() => {
-        expect(getSeasons).toHaveBeenCalled();
-        expect(getTournaments).toHaveBeenCalled();
-      });
       const section = getAssociationSection();
       const tournamentTab = within(section).getByText(t('gameSettingsModal.turnaus'));
       await user.click(tournamentTab);
@@ -410,7 +393,7 @@ describe('<GameSettingsModal />', () => {
 
     test('edits a goal event successfully (time, scorer, assister)', async () => {
       const user = userEvent.setup();
-      await renderAndWaitForLoad();
+      renderModal();
 
       const eventDiv = await findEventByTime('02:00');
       const editButton = within(eventDiv).getByTitle(t('common.edit'));
@@ -431,7 +414,7 @@ describe('<GameSettingsModal />', () => {
 
     test('deletes a game event successfully after confirmation', async () => {
         const user = userEvent.setup();
-        await renderAndWaitForLoad();
+        renderModal();
         
         const eventDiv = await findEventByTime('02:00');
         const deleteButton = within(eventDiv).getByTitle(t('common.delete'));
@@ -446,7 +429,7 @@ describe('<GameSettingsModal />', () => {
   describe('Error Handling & Edge Cases', () => {
     test('handles errors gracefully when updateGameDetails utility throws', async () => {
       (updateGameDetails as jest.Mock).mockRejectedValue(new Error('Update failed'));
-      await renderAndWaitForLoad();
+      renderModal();
       
       // Just verify the component renders without errors
       expect(screen.getByRole('heading', { name: t('gameSettingsModal.title') })).toBeInTheDocument();
@@ -454,7 +437,7 @@ describe('<GameSettingsModal />', () => {
 
     test('handles errors gracefully when updateGameEvent utility throws', async () => {
       (updateGameEvent as jest.Mock).mockRejectedValueOnce(new Error('Simulated update error'));
-      await renderAndWaitForLoad();
+      renderModal();
       
       // Just verify the component renders without errors
       expect(screen.getByRole('heading', { name: t('gameSettingsModal.title') })).toBeInTheDocument();
@@ -462,7 +445,7 @@ describe('<GameSettingsModal />', () => {
 
     test('handles errors gracefully when removeGameEvent utility throws', async () => {
       (removeGameEvent as jest.Mock).mockRejectedValueOnce(new Error('Simulated delete error'));
-      await renderAndWaitForLoad();
+      renderModal();
       
       // Just verify the component renders without errors
       expect(screen.getByRole('heading', { name: t('gameSettingsModal.title') })).toBeInTheDocument();

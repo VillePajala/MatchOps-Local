@@ -19,6 +19,7 @@ interface RosterSettingsModalProps {
   onRenamePlayer: (playerId: string, playerData: { name: string; nickname: string }) => void;
   onSetJerseyNumber: (playerId: string, number: string) => void;
   onSetPlayerNotes: (playerId: string, notes: string) => void;
+  onUpdatePlayer?: (playerId: string, updates: Partial<Omit<Player, 'id'>>) => Promise<void>;
   onRemovePlayer: (playerId: string) => void;
   onAddPlayer: (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => void;
   isRosterUpdating?: boolean;
@@ -29,6 +30,7 @@ interface RosterSettingsModalProps {
 const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   isOpen,
   onClose,
+  onUpdatePlayer,
   availablePlayers,
   onRenamePlayer,
   onSetJerseyNumber,
@@ -124,8 +126,8 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
     setEditPlayerData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Save changes
-  const handleSaveEdit = (playerId: string) => {
+  // Save changes - use unified update to prevent race conditions
+  const handleSaveEdit = async (playerId: string) => {
     const originalPlayer = availablePlayers.find(p => p.id === playerId);
     if (!originalPlayer) return; // Should not happen
 
@@ -142,17 +144,29 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
     const jerseyChanged = editPlayerData.jerseyNumber !== (originalPlayer.jerseyNumber || '');
     const notesChanged = editPlayerData.notes !== (originalPlayer.notes || '');
 
-    // Call unified rename handler if name or nickname changed
-    if (nameChanged || nicknameChanged) {
-        onRenamePlayer(playerId, { name: trimmedName, nickname: trimmedNickname });
-    }
-    
-    // Call other handlers if their data changed
-    if (jerseyChanged) {
-        onSetJerseyNumber(playerId, editPlayerData.jerseyNumber);
-    }
-    if (notesChanged) {
-        onSetPlayerNotes(playerId, editPlayerData.notes);
+    // If unified update handler exists, use it (prevents race conditions)
+    if (onUpdatePlayer) {
+        const updates: Partial<Omit<Player, 'id'>> = {};
+
+        if (nameChanged) updates.name = trimmedName;
+        if (nicknameChanged) updates.nickname = trimmedNickname;
+        if (jerseyChanged) updates.jerseyNumber = editPlayerData.jerseyNumber;
+        if (notesChanged) updates.notes = editPlayerData.notes;
+
+        if (Object.keys(updates).length > 0) {
+            await onUpdatePlayer(playerId, updates);
+        }
+    } else {
+        // Fallback: Execute updates SEQUENTIALLY
+        if (nameChanged || nicknameChanged) {
+            await onRenamePlayer(playerId, { name: trimmedName, nickname: trimmedNickname });
+        }
+        if (jerseyChanged) {
+            await onSetJerseyNumber(playerId, editPlayerData.jerseyNumber);
+        }
+        if (notesChanged) {
+            await onSetPlayerNotes(playerId, editPlayerData.notes);
+        }
     }
 
     setEditingPlayerId(null); // Exit editing mode

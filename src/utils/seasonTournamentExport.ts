@@ -1,4 +1,5 @@
 import type { Season, Tournament } from '@/types';
+import logger from '@/utils/logger';
 
 const triggerDownload = (data: string, filename: string, type: string): void => {
   const blob = new Blob([data], { type });
@@ -26,7 +27,8 @@ export const importSeasonsJson = (json: string): Season[] | null => {
   try {
     const data = JSON.parse(json);
     return Array.isArray(data) ? (data as Season[]) : null;
-  } catch {
+  } catch (error) {
+    logger.warn('Failed to parse seasons JSON', { error });
     return null;
   }
 };
@@ -35,7 +37,8 @@ export const importTournamentsJson = (json: string): Tournament[] | null => {
   try {
     const data = JSON.parse(json);
     return Array.isArray(data) ? (data as Tournament[]) : null;
-  } catch {
+  } catch (error) {
+    logger.warn('Failed to parse tournaments JSON', { error });
     return null;
   }
 };

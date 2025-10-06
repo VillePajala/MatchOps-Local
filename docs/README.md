@@ -4,45 +4,53 @@
 
 This documentation covers everything about the MatchOps-Local project - what it is, why it exists, how it's built, and where it's going.
 
-## 📋 Project Documentation
+---
 
-### 🎯 **Understanding the Project**
-- **[PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md)** - What MatchOps-Local is and why it exists
-- **[LOCAL_FIRST_PHILOSOPHY.md](./LOCAL_FIRST_PHILOSOPHY.md)** - The principles and benefits of local-first architecture
-- **[COMPETITIVE_ANALYSIS.md](./COMPETITIVE_ANALYSIS.md)** - How we compare to other coaching software
+## 🚀 Quick Navigation
 
-### 🏗️ **Technical Foundation**  
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - System design and technical decisions
-- **[TECHNOLOGY_DECISIONS.md](./TECHNOLOGY_DECISIONS.md)** - Why we chose specific technologies
+### ⭐ **Start Here**
+- **[03-active-plans/PROGRESS_DASHBOARD.md](./03-active-plans/PROGRESS_DASHBOARD.md)** - 📊 **Where we are NOW** - Single-page progress tracker (35% complete)
+- **[03-active-plans/master-execution-guide.md](./03-active-plans/master-execution-guide.md)** - Step-by-step execution plan to Play Store readiness
+- **[03-active-plans/project-status.md](./03-active-plans/project-status.md)** - Current implementation status (features)
+- **[01-project/overview.md](./01-project/overview.md)** - What MatchOps-Local is and why it exists
 
-### 📊 **Project Status & Direction**
-- **[MASTER_EXECUTION_GUIDE.md](./MASTER_EXECUTION_GUIDE.md)** — Start here: step-by-step to Play Store readiness
-- **[PROJECT_STATUS.md](./PROJECT_STATUS.md)** - Current implementation status and maturity
-- **[ROADMAP.md](./ROADMAP.md)** - Strategic vision and future development plans
-- **[PUBLICATION_ROADMAP.md](./PUBLICATION_ROADMAP.md)** - Complete path to professional app store publication
- - **[RELEASE_READINESS_CHECKLIST.md](./RELEASE_READINESS_CHECKLIST.md)** — One-page final go/no-go checklist
+### 📂 **Documentation Categories**
 
-### 🛡️ **Production Readiness**
-- **[PRODUCTION_READINESS_FIX_PLAN.md](./PRODUCTION_READINESS_FIX_PLAN.md)** — Authoritative, step-by-step checklist to reach production readiness (start here)
-- **[development/PRODUCTION_READINESS_ROADMAP.md](./development/PRODUCTION_READINESS_ROADMAP.md)** — Background and strategy (context and rationale)
+1. **[01-project/](./01-project/)** - Project Overview & Vision
+   - Project overview, local-first philosophy, competitive analysis, business strategy
 
-## 📂 Specialized Documentation
+2. **[02-technical/](./02-technical/)** - Technical Architecture
+   - System architecture, technology decisions, security
+   - Data freshness & modal data flow: see [02-technical/data-freshness-and-modal-data-flow.md](./02-technical/data-freshness-and-modal-data-flow.md)
 
-### 👨‍💻 **For Developers**
-- **[development/](./development/)** - Development guides, code reviews, and contribution guidelines
-- **[testing/](./testing/)** - Testing strategies, guides, and quality assurance documentation
+3. **[03-active-plans/](./03-active-plans/)** - Active Plans & Current Status ⭐
+   - Master execution guide, production readiness, roadmaps, release checklists
 
-### 💼 **Business & Strategy**
-- **[BUSINESS_STRATEGY.md](./BUSINESS_STRATEGY.md)** - High-level business approach and principles
-- **[business/](./business/)** - Detailed business planning and monetization strategy
+4. **[04-features/](./04-features/)** - Feature Specifications
+   - Detailed feature specs and implementation plans
 
-### 🔧 **Technical Specifications**
-- **[specifications/](./specifications/)** - Formal technical specifications and system requirements
-- **[specs/](./specs/)** - Detailed technical specifications (IndexedDB migration plan, etc.)
-- **[features/](./features/)** - Detailed feature specifications and implementation plans
+5. **[05-development/](./05-development/)** - Development Documentation
+   - Contributing guide, style guide, TODO, agent usage
 
-### 📸 **Assets**
-- **[images/](./images/)** - Documentation images and screenshots
+6. **[06-testing/](./06-testing/)** - Testing Documentation
+   - Testing strategy, E2E guide, manual testing, maintenance
+
+7. **[07-business/](./07-business/)** - Business & Monetization
+   - Monetization strategies, paywall implementation
+
+8. **[08-archived/](./08-archived/)** - Archived Documentation ⚠️
+   - Completed work, superseded plans, historical reference (IndexedDB foundation, bug fixes, code reviews)
+
+9. **[09-specifications/](./09-specifications/)** - Formal Specifications
+   - Software requirements, UI design documents
+
+10. **[10-analysis/](./10-analysis/)** - Technical Analysis
+    - localStorage analysis and other technical research
+
+11. **[assets/](./assets/)** - Documentation Assets
+    - Screenshots and images
+
+---
 
 ## 🎯 Project Mission
 
@@ -53,7 +61,7 @@ This documentation covers everything about the MatchOps-Local project - what it 
 ### **1. Local-First Architecture**
 All data stays on the coach's device, ensuring complete privacy, instant performance, and offline reliability - revolutionary for youth sports applications.
 
-### **2. Soccer-Specific Design**  
+### **2. Soccer-Specific Design**
 Purpose-built for soccer coaching workflows with interactive field, tactics board, comprehensive statistics, and season management.
 
 ### **3. Zero Ongoing Costs**
@@ -71,7 +79,7 @@ MatchOps-Local is in **active beta** with core functionality complete and stable
 
 - ✅ **Core Features**: Stable and thoroughly tested
 - ✅ **Data Integrity**: Robust with backup/recovery systems
-- ✅ **Performance**: Optimized for real-world coaching scenarios  
+- ✅ **Performance**: Optimized for real-world coaching scenarios
 - ✅ **Browser Compatibility**: Works across all modern browsers
 - ✅ **PWA Functionality**: Full offline capability and installation support
 
@@ -80,7 +88,7 @@ MatchOps-Local is in **active beta** with core functionality complete and stable
 ### **Short-Term (2025)**
 Establish as the privacy-first choice for soccer coaching with feature parity to major competitors and superior local-first performance.
 
-### **Medium-Term (2026-2027)**  
+### **Medium-Term (2026-2027)**
 Expand internationally with multi-language support and become the recognized leader in local-first sports applications.
 
 ### **Long-Term (2027+)**
@@ -90,15 +98,19 @@ Create a local-first sports software ecosystem and demonstrate the viability of 
 
 ### **Modern Technology Stack**
 - **Next.js 15** with App Router for cutting-edge performance
-- **React 19** with TypeScript for reliability and maintainability  
-- **React Query** + localStorage for optimal local-first data management
+- **React 19** with TypeScript for reliability and maintainability
+- **React Query** + **Storage Abstraction** for local-first data management
+  - ✅ Current backend: localStorage via async wrappers (sufficient for data size)
+  - 🚧 IndexedDB support: Implemented in foundation work; available/planned depending on configuration
+  - 📋 See [08-archived/indexeddb-foundation/](./08-archived/indexeddb-foundation/) for historical context
+  - 🔄 Fresh data pattern: See [Data Freshness and Modal Data Flow](./02-technical/data-freshness-and-modal-data-flow.md)
 - **Tailwind CSS 4** for responsive, professional design
 - **Comprehensive testing** with Jest and Playwright
 
 ### **Local-First Benefits**
 - **Instant Performance**: <50ms response times vs 200-2000ms for cloud apps
 - **Complete Privacy**: Zero external data transmission or tracking
-- **Offline Reliability**: Full functionality without internet connection  
+- **Offline Reliability**: Full functionality without internet connection
 - **Cost Efficiency**: No ongoing subscription or infrastructure costs
 
 ## 🌟 Why This Project Matters
@@ -106,7 +118,7 @@ Create a local-first sports software ecosystem and demonstrate the viability of 
 MatchOps-Local represents more than just coaching software—it's a demonstration that:
 
 - **Privacy and performance can coexist** with modern web applications
-- **Local-first architecture is viable** for complex, feature-rich applications  
+- **Local-first architecture is viable** for complex, feature-rich applications
 - **User data ownership is possible** without sacrificing functionality
 - **Sustainable software models exist** without subscription dependencies
 
@@ -114,23 +126,25 @@ In youth sports, where we handle sensitive information about minors, the local-f
 
 ## 📖 How to Use This Documentation
 
-### **For Project Understanding**
-1. Start with [PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md) for comprehensive project introduction
-2. Read [LOCAL_FIRST_PHILOSOPHY.md](./LOCAL_FIRST_PHILOSOPHY.md) to understand our core principles
-3. Review [COMPETITIVE_ANALYSIS.md](./COMPETITIVE_ANALYSIS.md) to see how we compare
+### **New to the Project?**
+1. Read [01-project/overview.md](./01-project/overview.md) - Project introduction
+2. Review [01-project/local-first-philosophy.md](./01-project/local-first-philosophy.md) - Core principles
+3. Check [01-project/competitive-analysis.md](./01-project/competitive-analysis.md) - How we compare
 
-### **For Technical Insight**
-1. Review [ARCHITECTURE.md](./ARCHITECTURE.md) for system design overview
-2. Study [TECHNOLOGY_DECISIONS.md](./TECHNOLOGY_DECISIONS.md) for technical rationale
+### **Ready to Contribute?**
+1. Start with [05-development/contributing.md](./05-development/contributing.md) - Contribution guidelines
+2. Follow [05-development/style-guide.md](./05-development/style-guide.md) - Code standards
+3. Review [03-active-plans/project-status.md](./03-active-plans/project-status.md) - Current status
 
-### **For Strategic Context**  
-1. Check [PROJECT_STATUS.md](./PROJECT_STATUS.md) for current implementation status
-2. Explore [ROADMAP.md](./ROADMAP.md) for future direction and vision
+### **Want Technical Details?**
+1. Review [02-technical/architecture.md](./02-technical/architecture.md) - System design
+2. Study [02-technical/technology-decisions.md](./02-technical/technology-decisions.md) - Tech choices
+3. Explore [04-features/](./04-features/) - Feature specifications
 
-### **For Contributors**
-- All project documentation provides context for development decisions
-- Technical documents explain architecture rationale for new contributors
-- Status and roadmap docs help prioritize contribution areas
+### **Planning Work?**
+1. Check [03-active-plans/master-execution-guide.md](./03-active-plans/master-execution-guide.md) ⭐ - Execution plan
+2. Review [03-active-plans/roadmap.md](./03-active-plans/roadmap.md) - Future direction
+3. See [05-development/todo.md](./05-development/todo.md) - Current tasks
 
 ## 🔄 Documentation Maintenance
 
@@ -139,6 +153,7 @@ This project documentation is:
 - **Accurate**: Maintained in sync with actual implementation
 - **Comprehensive**: Covers all aspects of project vision and execution
 - **Accessible**: Written for both technical and non-technical audiences
+- **Organized**: Numbered directories (01-10) for logical navigation
 
 ## 🤝 Community & Contribution
 
@@ -149,12 +164,12 @@ MatchOps-Local is an open-source project that welcomes community involvement:
 - **Documentation**: Improve project understanding and accessibility
 - **Advocacy**: Promote local-first principles in sports technology
 
-For technical contribution guidelines, see [../development/CONTRIBUTING.md](../development/CONTRIBUTING.md).
+For technical contribution guidelines, see [05-development/contributing.md](./05-development/contributing.md).
 
 ## 📞 Contact & Community
 
 - **Issues & Feature Requests**: GitHub Issues
-- **Discussions**: GitHub Discussions  
+- **Discussions**: GitHub Discussions
 - **Documentation Feedback**: GitHub Issues with documentation label
 
 ---

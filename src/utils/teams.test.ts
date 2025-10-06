@@ -1,30 +1,14 @@
 import { setTeamRoster, getTeamRoster, addPlayerToRoster } from './teams';
 import { TeamPlayer } from '@/types';
+import { clearMockStore } from './__mocks__/storage';
 
-// Mock localStorage
-const mockLocalStorage = (() => {
-  let store: Record<string, string> = {};
-  
-  return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => {
-      store[key] = value;
-    },
-    clear: () => {
-      store = {};
-    }
-  };
-})();
-
-Object.defineProperty(global, 'localStorage', {
-  value: mockLocalStorage,
-  configurable: true,
-  writable: true,
-});
+// Auto-mock the storage module
+jest.mock('./storage');
 
 describe('Teams Lock Integration', () => {
   beforeEach(() => {
-    mockLocalStorage.clear();
+    // Clear the mock store
+    clearMockStore();
   });
 
   const createTestPlayer = (id: string, name: string): TeamPlayer => ({

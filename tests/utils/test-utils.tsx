@@ -5,15 +5,30 @@ import { AppState, Player, Season, Tournament, GameEvent } from '@/types';
 import ModalProvider from '@/contexts/ModalProvider';
 import ToastProvider from '@/contexts/ToastProvider';
 
-// Create a fresh QueryClient for each test
+/**
+ * Creates a fresh QueryClient instance optimized for testing
+ *
+ * @description Configures React Query with test-specific settings:
+ * - Disables retries to make tests predictable
+ * - Sets garbage collection time to 0 to prevent memory leaks
+ * - Ensures deterministic behavior in test environments
+ *
+ * @returns {QueryClient} A new QueryClient instance for testing
+ *
+ * @example
+ * ```tsx
+ * const queryClient = createTestQueryClient();
+ * // Use in test wrapper or individual test setup
+ * ```
+ */
 const createTestQueryClient = () => new QueryClient({
   defaultOptions: {
     queries: {
-      retry: false,
-      gcTime: 0,
+      retry: false,        // No retries for predictable test behavior
+      gcTime: 0,          // Immediate cleanup to prevent memory leaks
     },
     mutations: {
-      retry: false,
+      retry: false,        // No retries for mutations either
     },
   },
 });
@@ -21,7 +36,23 @@ const createTestQueryClient = () => new QueryClient({
 // Store query client reference for cleanup
 let currentQueryClient: QueryClient | null = null;
 
-// All providers wrapper for testing
+/**
+ * Wrapper component that provides all necessary contexts for testing
+ *
+ * @description Wraps components with essential providers:
+ * - QueryClientProvider for React Query
+ * - ToastProvider for notifications
+ * - ModalProvider for modal management
+ *
+ * @param props - Component props
+ * @param props.children - React components to wrap with providers
+ * @returns {JSX.Element} Wrapped components with all providers
+ *
+ * @example
+ * ```tsx
+ * render(<MyComponent />, { wrapper: AllTheProviders });
+ * ```
+ */
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   const queryClient = createTestQueryClient();
   currentQueryClient = queryClient;
@@ -37,7 +68,24 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// Custom render function with all providers
+/**
+ * Enhanced render function with all providers pre-configured
+ *
+ * @description Extends React Testing Library's render with:
+ * - Automatic provider wrapping (QueryClient, Toast, Modal)
+ * - Memory leak prevention through proper cleanup
+ * - Consistent test environment setup
+ *
+ * @param ui - React element to render
+ * @param options - Render options (wrapper is automatically provided)
+ * @returns {RenderResult} Enhanced render result with all providers
+ *
+ * @example
+ * ```tsx
+ * const { getByTestId } = render(<GameComponent />);
+ * // Component is automatically wrapped with all providers
+ * ```
+ */
 const customRender = (
   ui: ReactElement,
   options?: Omit<RenderOptions, 'wrapper'>,
@@ -51,6 +99,24 @@ export { customRender as render };
 // Mock Data Factories
 // =============================================================================
 
+/**
+ * Creates a mock player with realistic test data
+ *
+ * @description Generates a player object with:
+ * - Unique ID for test isolation
+ * - Random but realistic name and jersey number
+ * - Default field position (center)
+ * - Configurable overrides for specific test scenarios
+ *
+ * @param overrides - Optional properties to override defaults
+ * @returns {Player} A complete mock player object
+ *
+ * @example
+ * ```tsx
+ * const goalie = createMockPlayer({ isGoalie: true, name: 'Test Goalie' });
+ * const fieldPlayer = createMockPlayer({ relX: 0.8, relY: 0.3 });
+ * ```
+ */
 export const createMockPlayer = (overrides: Partial<Player> = {}): Player => ({
   id: `player-${Math.random().toString(36).substr(2, 9)}`,
   name: `Test Player ${Math.random().toString(36).substr(2, 4)}`,
@@ -61,7 +127,24 @@ export const createMockPlayer = (overrides: Partial<Player> = {}): Player => ({
   ...overrides,
 });
 
-export const createMockPlayers = (count: number): Player[] => 
+/**
+ * Creates an array of mock players for team testing
+ *
+ * @description Generates a realistic team roster:
+ * - First player is always the goalie
+ * - Sequential names and jersey numbers for easy identification
+ * - Consistent data structure for reliable test assertions
+ *
+ * @param count - Number of players to create
+ * @returns {Player[]} Array of mock players with the first as goalie
+ *
+ * @example
+ * ```tsx
+ * const fullTeam = createMockPlayers(11); // 1 goalie + 10 field players
+ * const smallSquad = createMockPlayers(6); // For testing with fewer players
+ * ```
+ */
+export const createMockPlayers = (count: number): Player[] =>
   Array.from({ length: count }, (_, i) => createMockPlayer({
     name: `Player ${i + 1}`,
     jerseyNumber: `${i + 1}`,

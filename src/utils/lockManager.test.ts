@@ -1,4 +1,5 @@
 import { LockManager, withRosterLock } from './lockManager';
+import { waitForValue } from '@/test-utils/waitFor';
 
 describe('LockManager', () => {
   let lockManager: LockManager;
@@ -35,6 +36,8 @@ describe('LockManager', () => {
       const operation = async (value: number) => {
         return lockManager.withLock(resource, async () => {
           results.push(value);
+          // NOTE: setTimeout here is INTENTIONAL - simulating async work to test lock sequencing
+          // This is NOT the anti-pattern (waiting for condition), see CLAUDE.md lines 355-372
           await new Promise(resolve => setTimeout(resolve, delay));
           return value;
         });
@@ -110,9 +113,9 @@ describe('LockManager', () => {
         operation(4)
       ];
 
-      // Give first operation time to start
-      await new Promise(resolve => setTimeout(resolve, 10));
-      
+      // Wait for queue to build up (condition-based, not fixed timeout)
+      await waitForValue(() => lockManager.getQueueSize(resource), 3, { timeout: 1000 });
+
       // Should have queue of 3 waiting operations
       expect(lockManager.getQueueSize(resource)).toBe(3);
       expect(operationsStarted).toBe(1);

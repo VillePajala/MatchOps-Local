@@ -20,6 +20,7 @@ interface SettingsModalProps {
   onResetGuide: () => void;
   onHardResetApp: () => void;
   onCreateBackup: () => void;
+  onDataImportSuccess?: () => void;
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -32,6 +33,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onResetGuide,
   onHardResetApp,
   onCreateBackup,
+  onDataImportSuccess,
 }) => {
   const { t } = useTranslation();
   const [teamName, setTeamName] = useState(defaultTeamName);
@@ -41,7 +43,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const gameImportFileInputRef = useRef<HTMLInputElement>(null);
   const [showImportResults, setShowImportResults] = useState(false);
   const { importFromFile, isImporting, lastResult } = useGameImport();
-  const MAX_LOCAL_STORAGE = 5 * 1024 * 1024; // 5 MB assumption for localStorage
 
   useEffect(() => {
     setTeamName(defaultTeamName);
@@ -52,15 +53,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       if (navigator.storage?.estimate) {
         navigator.storage
           .estimate()
-          .then(res =>
-            setStorageEstimate({ usage: res.usage || 0, quota: MAX_LOCAL_STORAGE })
-          )
+          .then(res => {
+            // Use the actual quota from the browser, fallback to a reasonable default if not available
+            const actualQuota = res.quota || 50 * 1024 * 1024; // 50 MB fallback if quota unavailable
+            setStorageEstimate({
+              usage: res.usage || 0,
+              quota: actualQuota
+            });
+          })
           .catch(() => setStorageEstimate(null));
       } else {
         setStorageEstimate(null);
       }
     }
-  }, [isOpen, MAX_LOCAL_STORAGE]);
+  }, [isOpen]);
 
   const handleRestore = () => {
     restoreFileInputRef.current?.click();
@@ -74,7 +80,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     reader.onload = (e) => {
       const jsonContent = e.target?.result as string;
       if (jsonContent) {
-        importFullBackup(jsonContent);
+        importFullBackup(jsonContent, onDataImportSuccess);
       } else {
         alert(t('settingsModal.importReadError', 'Error reading file content.'));
       }
@@ -220,7 +226,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     {storageEstimate
                       ? t('settingsModal.storageUsageDetails', {
                           used: formatBytes(storageEstimate.usage),
-                          quota: formatBytes(MAX_LOCAL_STORAGE),
+                          quota: formatBytes(storageEstimate.quota),
                         })
                       : t(
                           'settingsModal.storageUsageUnavailable',
@@ -231,7 +237,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div className="w-full bg-slate-700 rounded-md h-2 overflow-hidden">
                     <div
                       className="bg-indigo-500 h-2"
-                      style={{ width: `${Math.min(100, (storageEstimate.usage / MAX_LOCAL_STORAGE) * 100)}%` }}
+                      style={{ width: `${Math.min(100, (storageEstimate.usage / storageEstimate.quota) * 100)}%` }}
                     />
                   </div>
                 )}

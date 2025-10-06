@@ -57,10 +57,10 @@ export const updatePlayer = async (
     playerId: string,
     updates: Partial<Omit<Player, 'id'>>
 ): Promise<Player | null> => {
-    // logger.log('[masterRosterManager] updatePlayer called for ID:', playerId, 'with updates:', updates);
+    logger.log('[masterRosterManager] updatePlayer called for ID:', playerId, 'with updates:', updates);
     try {
         const updatedPlayer = await utilUpdatePlayerInRoster(playerId, updates);
-        // logger.log('[masterRosterManager] Player updated by util:', updatedPlayer);
+        logger.log('[masterRosterManager] Player updated by util:', updatedPlayer);
         return updatedPlayer;
     } catch (error) {
         logger.error(`[masterRosterManager] Error in updatePlayer for ID ${playerId}:`, error);

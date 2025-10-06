@@ -1,6 +1,9 @@
 import { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Player } from '@/types';
 import { addPlayer, updatePlayer, removePlayer, setGoalieStatus } from '@/utils/masterRosterManager';
+import { queryKeys } from '@/config/queryKeys';
+import logger from '@/utils/logger';
 
 interface UseRosterArgs {
   initialPlayers: Player[];
@@ -8,6 +11,7 @@ interface UseRosterArgs {
 }
 
 export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) => {
+  const queryClient = useQueryClient();
   const [availablePlayers, setAvailablePlayers] = useState<Player[]>(initialPlayers);
   const [highlightRosterButton, setHighlightRosterButton] = useState(false);
   const [showRosterPrompt, setShowRosterPrompt] = useState(false);
@@ -38,11 +42,14 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
           players.map((p) => (p.id === temp.id ? saved : p)),
         );
         setRosterError(null);
+        // Invalidate React Query cache so TeamRosterModal gets fresh data
+        await queryClient.invalidateQueries({ queryKey: queryKeys.masterRoster });
       } else {
         setAvailablePlayers(prev);
         setRosterError('Failed to add player');
       }
-    } catch {
+    } catch (error) {
+      logger.warn('Failed to add player to roster', { error });
       setAvailablePlayers(prev);
       setRosterError('Failed to add player');
     } finally {
@@ -66,11 +73,14 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
           ps.map((p) => (p.id === updated.id ? updated : p)),
         );
         setRosterError(null);
+        // Invalidate React Query cache so TeamRosterModal gets fresh data
+        await queryClient.invalidateQueries({ queryKey: queryKeys.masterRoster });
       } else {
         setAvailablePlayers(prev);
         setRosterError('Failed to update player');
       }
-    } catch {
+    } catch (error) {
+      logger.warn('Failed to update player in roster', { playerId, error });
       setAvailablePlayers(prev);
       setRosterError('Failed to update player');
     } finally {
@@ -89,8 +99,11 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
         setRosterError('Failed to remove player');
       } else {
         setRosterError(null);
+        // Invalidate React Query cache so TeamRosterModal gets fresh data
+        await queryClient.invalidateQueries({ queryKey: queryKeys.masterRoster });
       }
-    } catch {
+    } catch (error) {
+      logger.warn('Failed to remove player from roster', { playerId, error });
       setAvailablePlayers(prev);
       setRosterError('Failed to remove player');
     } finally {
@@ -115,8 +128,11 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
         setRosterError('Failed to set goalie status');
       } else {
         setRosterError(null);
+        // Invalidate React Query cache so TeamRosterModal gets fresh data
+        await queryClient.invalidateQueries({ queryKey: queryKeys.masterRoster });
       }
-    } catch {
+    } catch (error) {
+      logger.warn('Failed to set goalie status', { playerId, isGoalie, error });
       setAvailablePlayers(prev);
       setRosterError('Failed to set goalie status');
     } finally {

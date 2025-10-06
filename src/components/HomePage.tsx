@@ -23,10 +23,11 @@ import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
 import usePlayerAssessments from '@/hooks/usePlayerAssessments';
 import { exportFullBackup } from '@/utils/fullBackup';
 import { useTranslation } from 'react-i18next';
-import i18n from '../i18n';
+import i18n from '@/i18n';
 import { useGameState, UseGameStateReturn } from '@/hooks/useGameState';
 import GameInfoBar from '@/components/GameInfoBar';
 import { useGameTimer } from '@/hooks/useGameTimer';
+import { useAutoSave } from '@/hooks/useAutoSave';
 // Import the new game session reducer and related types
 import {
   gameSessionReducer,
@@ -39,7 +40,7 @@ import {
 // Removed unused import of utilGetMasterRoster
 
 // Import utility functions for seasons and tournaments
-import { saveGame as utilSaveGame, deleteGame as utilDeleteGame, getLatestGameId, createGame } from '@/utils/savedGames';
+import { saveGame as utilSaveGame, deleteGame as utilDeleteGame, getLatestGameId, createGame, getSavedGames as utilGetSavedGames } from '@/utils/savedGames';
 import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
   resetAppSettings as utilResetAppSettings,
@@ -65,12 +66,12 @@ import { useTacticalBoard } from '@/hooks/useTacticalBoard';
 import { useRoster } from '@/hooks/useRoster';
 import { useTeamsQuery } from '@/hooks/useTeamQueries';
 import { useModalContext } from '@/contexts/ModalProvider';
-// Import async localStorage utilities
+// Import async storage utilities
 import {
-  getLocalStorageItem,
-  setLocalStorageItem,
-  removeLocalStorageItem,
-} from '@/utils/localStorage';
+  getStorageItem,
+  setStorageItem,
+  removeStorageItem,
+} from '@/utils/storage';
 // Import query keys
 import { queryKeys } from '@/config/queryKeys';
 // Also import addSeason and addTournament for the new mutations
@@ -140,9 +141,12 @@ const initialState: AppState = {
 interface HomePageProps {
   initialAction?: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | 'teams';
   skipInitialSetup?: boolean;
+  onDataImportSuccess?: () => void;
 }
 
-function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
+function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess }: HomePageProps) {
+  // Sync hasSkippedInitialSetup with prop to prevent flash
+  const [hasSkippedInitialSetup, setHasSkippedInitialSetup] = useState<boolean>(skipInitialSetup);
   const { t } = useTranslation(); // Get translation function
   const queryClient = useQueryClient(); // Get query client instance
 
@@ -215,11 +219,34 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           : {}),
     };
 
-    const nextState: AppState = { ...currentHistoryState, ...adjustedNewState };
+    // Only compare the fields present in adjustedNewState to avoid
+    // expensive deep comparison of the full state tree.
+    const hasRelevantChanges = Object.keys(adjustedNewState).some((key) => {
+      const k = key as keyof AppState;
+      const prevVal = currentHistoryState[k];
+      // For primitives, strict equality is enough; for objects/arrays,
+      // fall back to a lightweight structural check via JSON serialization.
+      if (
+        prevVal === (adjustedNewState as AppState)[k]
+      ) {
+        return false;
+      }
+      // If both are objects/arrays, do a cheap structural compare per field
+      const isObjectLike = (val: unknown) => typeof val === 'object' && val !== null;
+      if (isObjectLike(prevVal) && isObjectLike((adjustedNewState as AppState)[k])) {
+        try {
+          return JSON.stringify(prevVal) !== JSON.stringify((adjustedNewState as AppState)[k]);
+        } catch {
+          // On serialization failure, assume changed to be safe
+          return true;
+        }
+      }
+      return true;
+    });
 
-    if (JSON.stringify(nextState) === JSON.stringify(currentHistoryState)) {
-      return; // Don't save if nothing changed
-    }
+    if (!hasRelevantChanges) return; // Don't save if nothing changed in provided fields
+
+    const nextState: AppState = { ...currentHistoryState, ...adjustedNewState };
 
     pushHistoryState(nextState);
 
@@ -384,7 +411,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   // <<< ADD: State for home/away status >>>
   const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
-  const [hasSkippedInitialSetup, setHasSkippedInitialSetup] = useState<boolean>(skipInitialSetup);
+  // hasSkippedInitialSetup moved to top of component to prevent flash
   const [defaultTeamNameSetting, setDefaultTeamNameSetting] = useState<string>('');
   const [appLanguage, setAppLanguage] = useState<string>(i18n.language);
 
@@ -505,6 +532,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   const [isGameDeleting, setIsGameDeleting] = useState(false); // For deleting a specific game
   const [gameDeleteError, setGameDeleteError] = useState<string | null>(null);
   const [processingGameId, setProcessingGameId] = useState<string | null>(null); // To track which game item is being processed
+  const [isResetting, setIsResetting] = useState(false); // For app reset operation
   const {
     isTacticsBoardView,
     tacticalDiscs,
@@ -565,12 +593,15 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
 
       // Save updated game
       await utilSaveGame(currentGameId, updatedGame);
-      
+
       // Update local state
       setSavedGames(prev => ({
         ...prev,
         [currentGameId]: updatedGame
       }));
+
+      // Invalidate React Query cache to update LoadGameModal
+      queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
 
       // Clear orphaned state if team was assigned
       if (newTeamId) {
@@ -809,17 +840,18 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       // has been fetched by their respective useQuery hooks.
 
       // Simple migration for old data keys (if any) - Run once
+      // NOTE: This is legacy migration code - consider removing after main migration system is stable
       try {
-        const oldRosterJson = getLocalStorageItem('availablePlayers');
+        const oldRosterJson = await getStorageItem('availablePlayers').catch(() => null);
         if (oldRosterJson) {
-          setLocalStorageItem(MASTER_ROSTER_KEY, oldRosterJson);
-          removeLocalStorageItem('availablePlayers');
+          await setStorageItem(MASTER_ROSTER_KEY, oldRosterJson);
+          await removeStorageItem('availablePlayers');
           // Consider invalidating and refetching masterRoster query here if migration happens
           // queryClient.invalidateQueries(queryKeys.masterRoster);
         }
-        const oldSeasonsJson = getLocalStorageItem('soccerSeasonsList'); // Another old key
+        const oldSeasonsJson = await getStorageItem('soccerSeasonsList').catch(() => null); // Another old key
       if (oldSeasonsJson) {
-          setLocalStorageItem(SEASONS_LIST_KEY, oldSeasonsJson); // New key
+          await setStorageItem(SEASONS_LIST_KEY, oldSeasonsJson); // New key
           // queryClient.invalidateQueries(queryKeys.seasons);
       }
     } catch (migrationError) {
@@ -864,24 +896,24 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       if (!isMasterRosterQueryLoading && !areSeasonsQueryLoading && !areTournamentsQueryLoading && !isAllSavedGamesQueryLoading && !isCurrentGameIdSettingQueryLoading) {
         // --- TIMER RESTORATION LOGIC ---
         try {
-          const savedTimerStateJSON = getLocalStorageItem(TIMER_STATE_KEY);
+          const savedTimerStateJSON = await getStorageItem(TIMER_STATE_KEY).catch(() => null);
           const lastGameId = currentGameIdSettingQueryResultData;
-          
+
           if (savedTimerStateJSON) {
             const savedTimerState: TimerState = JSON.parse(savedTimerStateJSON);
             if (savedTimerState && savedTimerState.gameId === lastGameId) {
               const elapsedOfflineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
               const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
-              
+
               dispatchGameSession({ type: 'SET_TIMER_ELAPSED', payload: correctedElapsedSeconds });
               dispatchGameSession({ type: 'SET_TIMER_RUNNING', payload: true });
             } else {
-              removeLocalStorageItem(TIMER_STATE_KEY);
+              await removeStorageItem(TIMER_STATE_KEY).catch(() => {});
             }
           }
         } catch (error) {
           logger.error('[EFFECT init] Error restoring timer state:', error);
-          removeLocalStorageItem(TIMER_STATE_KEY);
+          await removeStorageItem(TIMER_STATE_KEY).catch(() => {});
         }
         // --- END TIMER RESTORATION LOGIC ---
 
@@ -933,24 +965,43 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   // Check if we should show first game interface guide
   useEffect(() => {
     if (!initialLoadComplete) return;
-    
-    const firstGameGuideShown = getLocalStorageItem('hasSeenFirstGameGuide');
-    logger.log('[FirstGameGuide] Checking conditions:', {
-      firstGameGuideShown,
-      currentGameId,
-      isNotDefaultGame: currentGameId !== DEFAULT_GAME_ID,
-      shouldShow: !firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID
-    });
-    
-    if (!firstGameGuideShown && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-      // Add small delay to ensure game state is fully settled
-      const timer = setTimeout(() => {
-        logger.log('[FirstGameGuide] Showing first game guide after delay');
-        setShowFirstGameGuide(true);
-      }, 150);
-      
-      return () => clearTimeout(timer);
-    }
+
+    const checkFirstGameGuide = async () => {
+      try {
+        const firstGameGuideShown = await getStorageItem('hasSeenFirstGameGuide').catch(() => null);
+
+        // Also check if user has any saved games (imported or created)
+        const savedGames = await utilGetSavedGames();
+        const hasMultipleGames = Object.keys(savedGames).length > 1; // More than just default game
+
+        logger.log('[FirstGameGuide] Checking conditions:', {
+          firstGameGuideShown,
+          currentGameId,
+          hasMultipleGames,
+          isNotDefaultGame: currentGameId !== DEFAULT_GAME_ID,
+          shouldShow: !firstGameGuideShown && !hasMultipleGames && currentGameId && currentGameId !== DEFAULT_GAME_ID
+        });
+
+        // Don't show guide if:
+        // 1. Already seen before, OR
+        // 2. User has multiple games (imported or created), OR
+        // 3. No current game or it's the default game
+        if (!firstGameGuideShown && !hasMultipleGames && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
+          // Add small delay to ensure game state is fully settled
+          const timer = setTimeout(() => {
+            logger.log('[FirstGameGuide] Showing first game guide after delay');
+            setShowFirstGameGuide(true);
+          }, 150);
+
+          return () => clearTimeout(timer);
+        }
+      } catch (error) {
+        // Silent fail - guide check is not critical
+        logger.error('[FirstGameGuide] Error checking first game guide:', error);
+      }
+    };
+
+    checkFirstGameGuide();
   }, [initialLoadComplete, currentGameId]);
 
   // --- NEW: Robust Visibility Change Handling ---
@@ -1160,9 +1211,12 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
 
         // 2. Save the game snapshot using utility
           await utilSaveGame(currentGameId, currentSnapshot as AppState); // Cast to AppState for the util
-        
+
         // 3. Save App Settings (only the current game ID) using utility
           await utilSaveCurrentGameIdSetting(currentGameId);
+
+        // Invalidate React Query cache to update LoadGameModal
+        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
 
       } catch (error) {
         logger.error("Failed to auto-save state to localStorage:", error);
@@ -1185,6 +1239,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
       tacticalDrawings,
       tacticalBallPosition,
       isPlayed,
+      queryClient,
     ]);
 
   // **** ADDED: Effect to prompt for setup if default game ID is loaded ****
@@ -1558,10 +1613,22 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     if (window.confirm(t('controlBar.hardResetConfirmation', 'Are you sure you want to completely reset the application? All saved data (players, stats, positions) will be permanently lost.'))) {
       try {
         logger.log("Performing hard reset using utility...");
-        await utilResetAppSettings(); // Use utility function
+
+        // Show full-screen overlay to unmount all components
+        setIsResetting(true);
+
+        // Clear storage completely
+        await utilResetAppSettings();
+
+        logger.log("Hard reset complete, reloading app...");
+
+        // Note: In development mode, Next.js HMR may show harmless module errors
+        // after reload. These are cosmetic and don't affect functionality.
+        // Production builds don't have this issue.
         window.location.reload();
       } catch (error) {
         logger.error("Error during hard reset:", error);
+        setIsResetting(false); // Re-enable UI on error
         alert("Failed to reset application data.");
       }
     }
@@ -1594,7 +1661,12 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     logger.log(`[handleLoadGame] Attempting to load game: ${gameId}`);
     
     // Clear any existing timer state before loading a new game
-    removeLocalStorageItem(TIMER_STATE_KEY);
+    try {
+      await removeStorageItem(TIMER_STATE_KEY);
+    } catch (error) {
+      // Silent fail - timer cleanup is not critical for game loading
+      logger.debug('Failed to clear timer state before loading game (non-critical)', { error });
+    }
     
     setProcessingGameId(gameId);
     setIsGameLoading(true);
@@ -1650,6 +1722,9 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         delete updatedSavedGames[gameId];
       setSavedGames(updatedSavedGames);
         logger.log(`Game ${gameId} deleted from state and persistence.`);
+
+        // Invalidate React Query cache to update LoadGameModal
+        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
 
         if (currentGameId === gameId) {
           const latestId = getLatestGameId(updatedSavedGames);
@@ -1787,7 +1862,18 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     }
   }, [handleUpdatePlayer, setRosterError]);
 
-      // ... (rest of the code remains unchanged)
+  // Unified update handler for RosterSettingsModal (prevents race conditions)
+  const handleUpdatePlayerForModal = useCallback(async (playerId: string, updates: Partial<Omit<Player, 'id'>>) => {
+    logger.log(`[Page.tsx] handleUpdatePlayerForModal attempting mutation for ID: ${playerId}, updates:`, updates);
+    setRosterError(null);
+
+    try {
+      await handleUpdatePlayer(playerId, updates);
+      logger.log(`[Page.tsx] player update successful for ${playerId}.`);
+    } catch (error) {
+      logger.error(`[Page.tsx] Exception during update of ${playerId}:`, error);
+    }
+  }, [handleUpdatePlayer, setRosterError]);
 
     const handleRemovePlayerForModal = useCallback(async (playerId: string) => {
       logger.log(`[Page.tsx] handleRemovePlayerForModal attempting mutation for ID: ${playerId}`);
@@ -1891,6 +1977,9 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           availablePlayers: updatedAvailablePlayers,
           playersOnField: updatedFieldPlayers,
         });
+
+        // Invalidate React Query cache to update LoadGameModal
+        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
       }
 
       logger.log(`[Page.tsx] per-game goalie toggle success for ${playerId}.`);
@@ -1901,7 +1990,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     // Data dependencies (values that change the function's behavior)
     availablePlayers, playersOnField, currentGameId, gameSessionState, t,
     // Setter dependencies (React guarantees these are stable but ESLint requires them)
-    setAvailablePlayers, setPlayersOnField, setRosterError
+    setAvailablePlayers, setPlayersOnField, setRosterError, queryClient
   ]);
 
   // --- END Roster Management Handlers ---
@@ -1991,9 +2080,9 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
   };
 
   // --- NEW: Quick Save Handler ---
-  const handleQuickSaveGame = useCallback(async () => {
+  const handleQuickSaveGame = useCallback(async (silent = false) => {
     if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-      logger.log(`Quick saving game with ID: ${currentGameId}`);
+      logger.log(`Quick saving game with ID: ${currentGameId}${silent ? ' (silent)' : ''}`);
       try {
         // 1. Create the current game state snapshot
         const currentSnapshot: AppState = {
@@ -2028,6 +2117,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds, // Use gameSessionState for lastSubConfirmationTimeSeconds
           homeOrAway: gameSessionState.homeOrAway,
           teamId: savedGames[currentGameId]?.teamId, // Preserve the teamId from the current game
+          isPlayed,
           // VOLATILE TIMER STATES ARE EXCLUDED:
           // timeElapsedInSeconds: gameSessionState.timeElapsedInSeconds, // REMOVE from AppState snapshot
           // isTimerRunning: gameSessionState.isTimerRunning, // REMOVE from AppState snapshot
@@ -2042,12 +2132,17 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         await utilSaveGame(currentGameId, currentSnapshot); // Use utility function
         await utilSaveCurrentGameIdSetting(currentGameId); // Save current game ID setting
 
+        // Invalidate React Query cache to update LoadGameModal
+        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+
         // 3. Update history to reflect the saved state
         // This makes the quick save behave like loading a game, resetting undo/redo
         resetHistory(currentSnapshot);
 
         logger.log(`Game quick saved successfully with ID: ${currentGameId}`);
-        showToast('Game saved!');
+        if (!silent) {
+          showToast('Game saved!');
+        }
 
       } catch (error) {
         logger.error("Failed to quick save game state:", error);
@@ -2093,7 +2188,9 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         setCurrentGameId(gameId);
         await utilSaveCurrentGameIdSetting(gameId);
         resetHistory(gameData);
-        showToast('Game saved!');
+        if (!silent) {
+          showToast('Game saved!');
+        }
       } catch (error) {
         logger.error('Failed to save new game:', error);
         alert('Error quick saving game.');
@@ -2114,9 +2211,53 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     showToast,
     gameSessionState, // This now covers all migrated game session fields
     playerAssessments,
-    isPlayed
+    isPlayed,
+    queryClient
   ]);
   // --- END Quick Save Handler ---
+
+  // --- Auto-Save with Smart Debouncing ---
+  // Different delays based on user impact:
+  // - Immediate (0ms): Goals, assists, scores → Statistics update instantly
+  // - Short (500ms): Game metadata → Near-instant feel
+  // - Long (2000ms): Tactical data → Battery-friendly
+  useAutoSave({
+    immediate: {
+      // Critical for statistics - save instantly
+      states: {
+        gameEvents: gameSessionState.gameEvents,
+        homeScore: gameSessionState.homeScore,
+        awayScore: gameSessionState.awayScore,
+      },
+      delay: 0,
+    },
+    short: {
+      // User-visible metadata - feels instant
+      states: {
+        teamName: gameSessionState.teamName,
+        opponentName: gameSessionState.opponentName,
+        gameNotes: gameSessionState.gameNotes,
+        assessments: playerAssessments,
+      },
+      delay: 500,
+    },
+    long: {
+      // Tactical/position data - battery-friendly
+      states: {
+        playersOnField,
+        opponents,
+        drawings,
+        tacticalDiscs,
+        tacticalDrawings,
+        tacticalBallPosition,
+      },
+      delay: 2000,
+    },
+    saveFunction: () => handleQuickSaveGame(true), // Silent auto-save
+    enabled: currentGameId !== DEFAULT_GAME_ID,
+    currentGameId,
+  });
+  // --- END Auto-Save ---
 
   // --- NEW: Handlers for Game Settings Modal --- 
   const handleOpenGameSettingsModal = () => {
@@ -2310,6 +2451,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
 
         await utilSaveGame(newGameId, newGameState);
         await utilSaveCurrentGameIdSetting(newGameId);
+
+        // Invalidate React Query cache to update LoadGameModal
+        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+
         logger.log(`Saved new game ${newGameId} and settings via utility functions.`);
 
       } catch (error) {
@@ -2342,6 +2487,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
     setCurrentGameId,
     setIsNewGameSetupModalOpen,
     setHighlightRosterButton,
+    queryClient,
   ]);
 
   // ** REVERT handleCancelNewGameSetup TO ORIGINAL **
@@ -2607,6 +2753,33 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
 
   // Determine which players are available for the current game based on selected IDs
 
+
+  // Early return during reset to prevent any component rendering
+  if (isResetting) {
+    return (
+      <div
+        className="fixed inset-0 bg-slate-900 z-[9999] flex flex-col items-center justify-center"
+        role="alert"
+        aria-live="assertive"
+        data-testid="reset-overlay"
+      >
+        <div className="flex flex-col items-center gap-4">
+          {/* Spinner */}
+          <div className="w-16 h-16 border-4 border-slate-700 border-t-indigo-500 rounded-full animate-spin" />
+
+          {/* Message */}
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-slate-200 mb-2">
+              {t('reset.resetting', 'Resetting Application...')}
+            </h2>
+            <p className="text-sm text-slate-400">
+              {t('reset.pleaseWait', 'Please wait while we clear all data')}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="flex flex-col h-screen bg-slate-900 text-slate-50 overflow-hidden" data-testid="home-page">
@@ -3005,9 +3178,14 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
                   </button>
                 ) : (
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       setShowFirstGameGuide(false);
-                      setLocalStorageItem('hasSeenFirstGameGuide', 'true');
+                      try {
+                        await setStorageItem('hasSeenFirstGameGuide', 'true');
+                      } catch (error) {
+                        // Silent fail - guide dismissal tracking is not critical
+                        logger.debug('Failed to store first game guide dismissal (non-critical)', { error });
+                      }
                     }}
                     className="flex-1 inline-flex items-center justify-center gap-2 px-4 h-10 rounded-lg font-semibold text-white transition-colors text-sm bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 shadow-md shadow-indigo-900/30 ring-1 ring-white/10"
                   >
@@ -3087,6 +3265,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           onBack={handleBackToTeamManager}
           teamId={selectedTeamForRoster}
           team={teams.find(t => t.id === selectedTeamForRoster) || null}
+          masterRoster={masterRosterQueryResultData || []}
         />
       </ErrorBoundary>
 
@@ -3141,10 +3320,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
           onGameClick={handleGameLogClick}
         />
       )}
-      <LoadGameModal 
+      <LoadGameModal
         isOpen={isLoadGameModalOpen}
         onClose={handleCloseLoadGameModal}
-        savedGames={savedGames} 
+        savedGames={savedGames}
         onLoad={handleLoadGame}
         onDelete={handleDeleteGame}
         onExportOneJson={handleExportOneJson}
@@ -3158,6 +3337,10 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         isGameDeleting={isGameDeleting}
         gameDeleteError={gameDeleteError}
         processingGameId={processingGameId}
+        // Pass fresh data from React Query
+        seasons={seasons}
+        tournaments={tournaments}
+        teams={teams}
       />
 
       {/* Conditionally render the New Game Setup Modal */}
@@ -3174,13 +3357,18 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
             setIsTeamRosterModalOpen(true);
           }}
           onStart={handleStartNewGameWithSetup} // CORRECTED Handler
-          onCancel={handleCancelNewGameSetup} 
+          onCancel={handleCancelNewGameSetup}
           // Pass the new mutation functions
           addSeasonMutation={addSeasonMutation}
           addTournamentMutation={addTournamentMutation}
           // Pass loading states from mutations
           isAddingSeason={addSeasonMutation.isPending}
           isAddingTournament={addTournamentMutation.isPending}
+          // Pass fresh data from React Query
+          masterRoster={masterRosterQueryResultData || []}
+          seasons={seasons}
+          tournaments={tournaments}
+          teams={teams}
         />
       )}
 
@@ -3189,6 +3377,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         isOpen={isRosterModalOpen}
         onClose={closeRosterModal}
         availablePlayers={availablePlayers} // Use availablePlayers from useGameState
+        onUpdatePlayer={handleUpdatePlayerForModal}
         onRenamePlayer={handleRenamePlayerForModal}
         onSetJerseyNumber={handleSetJerseyNumberForModal}
         onSetPlayerNotes={handleSetPlayerNotesForModal}
@@ -3269,6 +3458,9 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         isAddingTournament={addTournamentMutation.isPending}
         timeElapsedInSeconds={timeElapsedInSeconds}
         updateGameDetailsMutation={updateGameDetailsMutation}
+        // Pass fresh data from React Query
+        seasons={seasons}
+        tournaments={tournaments}
       />
 
       <SettingsModal
@@ -3284,6 +3476,7 @@ function HomePage({ initialAction, skipInitialSetup = false }: HomePageProps) {
         onResetGuide={handleShowAppGuide}
         onHardResetApp={handleHardResetApp}
         onCreateBackup={exportFullBackup}
+        onDataImportSuccess={onDataImportSuccess}
       />
 
       <PlayerAssessmentModal

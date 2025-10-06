@@ -48,13 +48,11 @@ describe('PlayerBar', () => {
 
   it('calls onBarBackgroundClick when clicking background', () => {
     render(<PlayerBar {...defaultProps} />);
-    
+
     // Find and click on the background (the main container)
-    const background = screen.getByRole('img', { name: /MatchOps Local Logo/i }).closest('div');
-    if (background) {
-      fireEvent.click(background);
-      expect(defaultProps.onBarBackgroundClick).toHaveBeenCalled();
-    }
+    const background = screen.getByTestId('player-bar');
+    fireEvent.click(background);
+    expect(defaultProps.onBarBackgroundClick).toHaveBeenCalled();
   });
 
   it('handles player selection in the bar', () => {
