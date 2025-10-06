@@ -26,6 +26,10 @@ export interface AppSettings {
   language?: string;
   hasSeenAppGuide?: boolean;
   useDemandCorrection?: boolean;
+  /** Club season start month (1-12, default: 10 = October) */
+  clubSeasonStartMonth?: number;
+  /** Club season end month (1-12, default: 5 = May) */
+  clubSeasonEndMonth?: number;
   // Add other settings as needed
 }
 
@@ -38,6 +42,8 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   language: 'fi',
   hasSeenAppGuide: false,
   useDemandCorrection: false,
+  clubSeasonStartMonth: 10, // October
+  clubSeasonEndMonth: 5,    // May
 };
 
 /**

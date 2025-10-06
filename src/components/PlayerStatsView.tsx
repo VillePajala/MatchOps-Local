@@ -17,6 +17,7 @@ import RatingBar from './RatingBar';
 import MetricTrendChart from './MetricTrendChart';
 import MetricAreaChart from './MetricAreaChart';
 import logger from '@/utils/logger';
+import { extractClubSeasonsFromGames, getClubSeasonForDate } from '@/utils/clubSeason';
 
 interface PlayerStatsViewProps {
   player: Player | null;
@@ -33,6 +34,9 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [showRatings, setShowRatings] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState('goalsAssists');
   const [useDemandCorrection, setUseDemandCorrection] = useState(false);
+  const [selectedClubSeason, setSelectedClubSeason] = useState<string>('all');
+  const [clubSeasonStartMonth, setClubSeasonStartMonth] = useState<number>(10);
+  const [clubSeasonEndMonth, setClubSeasonEndMonth] = useState<number>(5);
   const [adjustments, setAdjustments] = useState<PlayerStatAdjustment[]>([]);
   const [showAdjForm, setShowAdjForm] = useState(false);
   const [adjSeasonId, setAdjSeasonId] = useState('');
@@ -67,6 +71,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   useEffect(() => {
     getAppSettings().then(s => {
       setUseDemandCorrection(s.useDemandCorrection ?? false);
+      setClubSeasonStartMonth(s.clubSeasonStartMonth ?? 10);
+      setClubSeasonEndMonth(s.clubSeasonEndMonth ?? 5);
     });
     // Set default date to today
     if (!adjGameDate) {
@@ -131,10 +137,37 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     return getPlayerAssessmentNotes(player.id, savedGames);
   }, [player, savedGames]);
 
+  // Extract available club seasons from games
+  const availableClubSeasons = useMemo(() => {
+    const gamesArray = Object.values(savedGames);
+    return extractClubSeasonsFromGames(gamesArray, clubSeasonStartMonth, clubSeasonEndMonth);
+  }, [savedGames, clubSeasonStartMonth, clubSeasonEndMonth]);
+
+  // Filter games by selected club season
+  const filteredGamesByClubSeason = useMemo(() => {
+    if (selectedClubSeason === 'all') {
+      return savedGames;
+    }
+
+    // Inline filtering to avoid redundant object transformations
+    return Object.fromEntries(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      Object.entries(savedGames).filter(([_id, game]) => {
+        if (!game.gameDate) return false;
+        const gameSeason = getClubSeasonForDate(
+          game.gameDate,
+          clubSeasonStartMonth,
+          clubSeasonEndMonth
+        );
+        return gameSeason === selectedClubSeason;
+      })
+    );
+  }, [savedGames, selectedClubSeason, clubSeasonStartMonth, clubSeasonEndMonth]);
+
   const playerStats: PlayerStatsData | null = useMemo(() => {
     if (!player) return null;
-    return calculatePlayerStats(player, savedGames, seasons, tournaments, adjustments, teamId);
-  }, [player, savedGames, seasons, tournaments, adjustments, teamId]);
+    return calculatePlayerStats(player, filteredGamesByClubSeason, seasons, tournaments, adjustments, teamId);
+  }, [player, filteredGamesByClubSeason, seasons, tournaments, adjustments, teamId]);
 
   if (!player || !playerStats) {
     return (
@@ -182,6 +215,31 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             <p className="text-md text-slate-400">#{player.jerseyNumber}</p>
           </div>
         </div>
+
+        {/* Club Season Filter */}
+        {availableClubSeasons.length > 0 && (
+          <div className="mb-4">
+            <label htmlFor="club-season-filter" className="block text-sm font-medium text-slate-300 mb-2">
+              {t('playerStats.clubSeasonFilter', 'Filter by Club Season')}
+            </label>
+            <select
+              id="club-season-filter"
+              value={selectedClubSeason}
+              onChange={(e) => setSelectedClubSeason(e.target.value)}
+              className="w-full sm:w-auto px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="all">{t('playerStats.allSeasons', 'All Seasons')}</option>
+              {availableClubSeasons.map(season => (
+                <option key={season} value={season}>
+                  {season === 'off-season'
+                    ? t('playerStats.offSeason', 'Off-Season')
+                    : `${t('playerStats.season', 'Season')} ${season}`
+                  }
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Summary Stats */}
         <div className="grid grid-cols-4 gap-4 text-center mb-3 p-4 bg-slate-800/60 rounded-lg">
