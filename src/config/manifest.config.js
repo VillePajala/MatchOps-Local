@@ -15,7 +15,7 @@ export const manifestConfig = {
     appName: "MatchOps Local",
     shortName: "MatchOps Local",
     iconPath: "/icons/icon-512x512.png",
-    themeColor: "#1e293b", // The standard slate color
+    themeColor: "#1e293b", // Slate-800 to match top bar
   },
   // A fallback for any other branch (e.g., feature branches)
   default: {

@@ -262,11 +262,14 @@ h1.start-title .start-logo-gradient-animate:nth-child(3) {
   }
 
   /* Safe area insets for PWA on devices with notches */
+  /* Use negative margins to pull bars into safe areas, then pad content */
   .safe-area-top {
+    margin-top: calc(-1 * env(safe-area-inset-top));
     padding-top: env(safe-area-inset-top);
   }
 
   .safe-area-bottom {
+    margin-bottom: calc(-1 * env(safe-area-inset-bottom));
     padding-bottom: env(safe-area-inset-bottom);
   }
 
