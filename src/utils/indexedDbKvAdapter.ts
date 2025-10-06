@@ -141,7 +141,10 @@ export class IndexedDBKvAdapter implements StorageAdapter {
           // Mark connection as terminated to prevent new operations
           this.connectionTerminated = true;
           // Wait for pending operations to complete before cleanup
-          this.handleConnectionTermination();
+          // Note: Cannot await in synchronous callback, so handle errors explicitly
+          this.handleConnectionTermination().catch(error => {
+            this.logger.error('Failed to complete connection termination cleanup', { error });
+          });
         }
       });
 

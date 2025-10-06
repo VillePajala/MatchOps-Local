@@ -21,7 +21,6 @@
  * - Browser compatibility detection
  * - Migration state awareness
  * - Development/testing overrides
- * - Enterprise-grade security and performance optimizations
  *
  * FUTURE ENHANCEMENTS (Phase 1):
  *
@@ -30,24 +29,6 @@
  * - Add connection health checks and automatic reconnection
  * - Reduce browser connection overhead for frequent operations
  * - Monitor connection state and implement graceful degradation
- *
- * 🔒 Advanced Security Features:
- * - ✅ Rate limiting for storage operations (100 ops/min, 10 burst/5sec)
- * - ✅ Audit logging for critical storage operations with session tracking
- * - Content validation and XSS prevention for stored data
- * - Optional encryption for sensitive data at rest (AES-256-GCM recommended)
- * - Access control and permission validation
- *
- * 🛡️ Production Security Requirements:
- * - Content Security Policy (CSP) headers for IndexedDB operations:
- *   * Add 'unsafe-eval' only if required for IndexedDB in specific browsers
- *   * Consider 'strict-dynamic' for script loading
- *   * Monitor CSP violation reports for unauthorized access attempts
- * - Data encryption strategy:
- *   * Implement client-side encryption using Web Crypto API
- *   * Use AES-256-GCM with per-session keys derived from user credentials
- *   * Consider key derivation using PBKDF2 or Argon2id for password-based encryption
- *   * Implement secure key rotation and secure deletion of sensitive data
  *
  * ⚡ Performance Optimizations:
  * - Batch operations for multiple key-value pairs
@@ -115,11 +96,6 @@ export class StorageFactory {
   private static readonly DEFAULT_BACKOFF_MAX_DELAY_MS = 30000; // 30 seconds
   private static readonly DEFAULT_MUTEX_TIMEOUT_MS = 5000; // 5 seconds
 
-  // Security and rate limiting constants
-  private static readonly DEFAULT_RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
-  private static readonly DEFAULT_RATE_LIMIT_MAX_OPERATIONS = 100; // Max operations per window
-  private static readonly DEFAULT_RATE_LIMIT_BURST_SIZE = 10; // Burst allowance
-
   private readonly logger = createLogger('StorageFactory');
   private cachedAdapter: StorageAdapter | null = null;
   private cachedConfig: StorageConfig | null = null;
@@ -130,11 +106,6 @@ export class StorageFactory {
     defaultTimeout: StorageFactory.DEFAULT_MUTEX_TIMEOUT_MS,
     enableDebugLogging: false
   });
-
-  // Rate limiting state (persisted across page reloads)
-  private operationHistory: number[] = [];
-  private lastRateLimitReset = Date.now();
-  private readonly rateLimitStorageKey = '__storage_factory_rate_limits';
 
   // Configuration for IndexedDB timeout (configurable via environment)
   private readonly indexedDBTimeout = parseInt(
@@ -166,10 +137,6 @@ export class StorageFactory {
     const timer = storageMetrics.startOperation(OperationType.ADAPTER_CREATE);
 
     try {
-      // Rate limiting and audit logging for security
-      this.checkRateLimit('create_adapter');
-      this.auditLog('adapter_creation_requested', { forceMode, timestamp: Date.now() });
-
       this.logger.debug('Creating storage adapter', { forceMode });
 
       // Use simplified mutex from MutexManager
@@ -297,150 +264,6 @@ export class StorageFactory {
     });
 
     return adapter;
-  }
-
-  /**
-   * Load rate limit state from persistent storage
-   */
-  private loadRateLimitState(): void {
-    try {
-      const stored = sessionStorage.getItem(this.rateLimitStorageKey);
-      if (stored) {
-        const { operationHistory, lastReset } = JSON.parse(stored);
-        const now = Date.now();
-
-        // Only restore if the data is recent (within the window)
-        if (now - lastReset < StorageFactory.DEFAULT_RATE_LIMIT_WINDOW_MS) {
-          this.operationHistory = operationHistory.filter((timestamp: number) =>
-            now - timestamp < StorageFactory.DEFAULT_RATE_LIMIT_WINDOW_MS
-          );
-          this.lastRateLimitReset = lastReset;
-        }
-      }
-    } catch (error) {
-      // If loading fails, start with empty state
-      this.logger.debug('Failed to load rate limit state, starting with empty state', { error });
-      this.operationHistory = [];
-      this.lastRateLimitReset = Date.now();
-    }
-  }
-
-  /**
-   * Save rate limit state to persistent storage
-   */
-  private saveRateLimitState(): void {
-    try {
-      const state = {
-        operationHistory: this.operationHistory,
-        lastReset: this.lastRateLimitReset
-      };
-      sessionStorage.setItem(this.rateLimitStorageKey, JSON.stringify(state));
-    } catch (error) {
-      // Silently fail if sessionStorage is not available
-      this.logger.debug('Failed to save rate limit state to sessionStorage', { error });
-    }
-  }
-
-  /**
-   * Check if operation is within rate limits
-   *
-   * @param operationType - Type of operation for audit logging
-   * @throws {StorageError} If rate limit is exceeded
-   */
-  private checkRateLimit(operationType: string): void {
-    // Load persisted state on first check
-    if (this.operationHistory.length === 0 && this.lastRateLimitReset === Date.now()) {
-      this.loadRateLimitState();
-    }
-    const now = Date.now();
-
-    // Clean old entries (outside the time window)
-    if (now - this.lastRateLimitReset > StorageFactory.DEFAULT_RATE_LIMIT_WINDOW_MS) {
-      this.operationHistory = [];
-      this.lastRateLimitReset = now;
-    }
-
-    // Remove operations outside the current window
-    this.operationHistory = this.operationHistory.filter(
-      timestamp => now - timestamp < StorageFactory.DEFAULT_RATE_LIMIT_WINDOW_MS
-    );
-
-    // Check burst limit (rapid operations)
-    const recentOperations = this.operationHistory.filter(
-      timestamp => now - timestamp < 5000 // Last 5 seconds
-    );
-
-    if (recentOperations.length >= StorageFactory.DEFAULT_RATE_LIMIT_BURST_SIZE) {
-      this.auditLog('rate_limit_exceeded', {
-        operationType,
-        burstOperations: recentOperations.length,
-        reason: 'burst_limit'
-      });
-
-      throw new StorageError(
-        StorageErrorType.QUOTA_EXCEEDED,
-        `Rate limit exceeded: Too many rapid operations (${recentOperations.length}/${StorageFactory.DEFAULT_RATE_LIMIT_BURST_SIZE})`,
-        new Error('Burst rate limit exceeded')
-      );
-    }
-
-    // Check overall rate limit
-    if (this.operationHistory.length >= StorageFactory.DEFAULT_RATE_LIMIT_MAX_OPERATIONS) {
-      this.auditLog('rate_limit_exceeded', {
-        operationType,
-        totalOperations: this.operationHistory.length,
-        reason: 'rate_limit'
-      });
-
-      throw new StorageError(
-        StorageErrorType.QUOTA_EXCEEDED,
-        `Rate limit exceeded: Too many operations (${this.operationHistory.length}/${StorageFactory.DEFAULT_RATE_LIMIT_MAX_OPERATIONS} per minute)`,
-        new Error('Rate limit exceeded')
-      );
-    }
-
-    // Record this operation
-    this.operationHistory.push(now);
-    this.saveRateLimitState(); // Persist rate limit state
-    this.auditLog('operation_allowed', { operationType, operationCount: this.operationHistory.length });
-  }
-
-  /**
-   * Audit log for security-critical operations
-   *
-   * @param action - The action being performed
-   * @param details - Additional details for the audit log
-   */
-  private auditLog(action: string, details: Record<string, unknown>): void {
-    const auditEntry = {
-      timestamp: new Date().toISOString(),
-      action,
-      details,
-      sessionId: this.getSessionId()
-    };
-
-    // Log to console in development, would integrate with security logging in production
-    this.logger.info('Security audit log', auditEntry);
-  }
-
-  /**
-   * Get or generate session ID for audit tracking
-   */
-  private getSessionId(): string {
-    const sessionKey = '__storage_factory_session_id';
-    let sessionId = sessionStorage.getItem(sessionKey);
-
-    if (!sessionId) {
-      sessionId = `sf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      try {
-        sessionStorage.setItem(sessionKey, sessionId);
-      } catch (error) {
-        // If sessionStorage fails, use in-memory session
-        this.logger.debug('Failed to persist session ID to sessionStorage', { error });
-      }
-    }
-
-    return sessionId;
   }
 
   /**

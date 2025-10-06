@@ -13,11 +13,15 @@
  * - Database connection timing
  * - Sliding window for real-time metrics
  *
+ * NOTE: Only enabled in development for debugging. Production uses no-op stub.
+ *
  * @author Claude Code
  */
 
 import { createLogger } from './logger';
 import { StorageErrorType } from './storageAdapter';
+
+const IS_DEV = process.env.NODE_ENV === 'development';
 
 /**
  * Types of storage operations to track
@@ -176,8 +180,10 @@ export class StorageMetrics {
   private activeTransactions = 0;
 
   constructor() {
-    // Periodically clean old operations
-    setInterval(() => this.cleanOldOperations(), StorageMetrics.WINDOW_SIZE_MS);
+    // Periodically clean old operations (dev-only)
+    if (IS_DEV) {
+      setInterval(() => this.cleanOldOperations(), StorageMetrics.WINDOW_SIZE_MS);
+    }
   }
 
   /**
@@ -470,6 +476,72 @@ export class StorageMetrics {
 }
 
 /**
- * Global metrics instance
+ * No-op stub for production (tree-shakeable)
  */
-export const storageMetrics = new StorageMetrics();
+class StorageMetricsStub {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  startOperation(_operation: OperationType, _id?: string): OperationTimer {
+    return {
+      success: () => {},
+      failure: () => {},
+      addMetadata: () => {},
+      getElapsedTime: () => 0
+    } as unknown as OperationTimer;
+  }
+
+  recordLatency(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _operation: OperationType,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _duration: number,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _success: boolean = true,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _metadata?: Record<string, unknown>
+  ): void {
+    // No-op
+  }
+
+  recordCacheHit(): void {
+    // No-op
+  }
+
+  recordCacheMiss(): void {
+    // No-op
+  }
+
+  getMetrics(): MetricsSnapshot {
+    return {
+      timestamp: 0,
+      windowDuration: 0,
+      operations: { total: 0, successful: 0, failed: 0, byType: {} as Record<OperationType, number> },
+      latency: { mean: 0, median: 0, p95: 0, p99: 0, min: 0, max: 0 },
+      throughput: { opsPerSecond: 0 },
+      errors: { total: 0, rate: 0, byType: {} },
+      cache: { hits: 0, misses: 0, hitRate: 0 },
+      database: { connections: 0, avgConnectionTime: 0, activeTransactions: 0 }
+    };
+  }
+
+  reset(): void {
+    // No-op
+  }
+
+  exportMetrics() {
+    return {
+      snapshot: this.getMetrics(),
+      history: []
+    };
+  }
+
+  logSummary(): void {
+    // No-op
+  }
+}
+
+/**
+ * Global metrics instance - dev-only implementation
+ */
+export const storageMetrics: StorageMetrics | StorageMetricsStub = IS_DEV
+  ? new StorageMetrics()
+  : new StorageMetricsStub();

@@ -3,6 +3,10 @@
  *
  * A pragmatic migration approach for small datasets (1-3 users)
  * Removes enterprise complexity while maintaining data integrity
+ *
+ * IMPORTANT: localStorage is preserved after migration as automatic backup
+ * This is intentional - provides rollback capability and corruption recovery
+ * See inline comments in performIndexedDbMigration() for detailed rationale
  */
 
 import {
@@ -240,6 +244,15 @@ async function performIndexedDbMigration(): Promise<void> {
     });
 
     logger.log('[Migration] Storage configuration updated to IndexedDB');
+
+    // IMPORTANT: localStorage data is intentionally NOT deleted after migration
+    // Rationale:
+    // - Automatic backup: If IndexedDB corrupts, localStorage provides recovery source
+    // - Rollback capability: Users can manually switch back to localStorage if needed
+    // - Negligible cost: <50MB duplication for single-user local-first app (50-100 games)
+    // - Data safety priority: Aligns with CLAUDE.md focus on data integrity over disk optimization
+    // - No privacy risk: Origin-isolated storage, single-user PWA context
+    // See CLAUDE.md "Data Integrity" guidelines for local-first architecture
 
   } catch (error) {
     logger.error('[Migration] IndexedDB migration failed:', error);

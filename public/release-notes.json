@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: eliminate stale data in modals by using React Query props"
+  "notes": "fix: timer showing doubled time briefly after restoration"
 }
