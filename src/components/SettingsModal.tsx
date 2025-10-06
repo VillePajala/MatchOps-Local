@@ -10,6 +10,7 @@ import { useGameImport } from '@/hooks/useGameImport';
 import ImportResultsModal from './ImportResultsModal';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
+import { validateSeasonMonths } from '@/utils/clubSeason';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -125,6 +126,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleClubSeasonStartMonthChange = async (month: number) => {
+    // Validate month before saving
+    if (!validateSeasonMonths(month, clubSeasonEndMonth)) {
+      logger.error('Invalid season start month:', month);
+      return;
+    }
+
     setClubSeasonStartMonth(month);
     try {
       await updateAppSettings({ clubSeasonStartMonth: month });
@@ -134,6 +141,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleClubSeasonEndMonthChange = async (month: number) => {
+    // Validate month before saving
+    if (!validateSeasonMonths(clubSeasonStartMonth, month)) {
+      logger.error('Invalid season end month:', month);
+      return;
+    }
+
     setClubSeasonEndMonth(month);
     try {
       await updateAppSettings({ clubSeasonEndMonth: month });
