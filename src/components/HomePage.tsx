@@ -1723,6 +1723,9 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       setSavedGames(updatedSavedGames);
         logger.log(`Game ${gameId} deleted from state and persistence.`);
 
+        // Invalidate React Query cache to update LoadGameModal
+        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+
         if (currentGameId === gameId) {
           const latestId = getLatestGameId(updatedSavedGames);
           if (latestId) {
