@@ -824,7 +824,11 @@
     "importReadError": "Error reading backup file content.",
     "importGamesButton": "Import Games",
     "importing": "Importing...",
-    "gameImportError": "Error importing games: "
+    "gameImportError": "Error importing games: ",
+    "clubSeasonTitle": "Club Season Period",
+    "clubSeasonDescription": "Define your club's season period for filtering player statistics (e.g., October to May).",
+    "seasonStartMonthLabel": "Season Start Month",
+    "seasonEndMonthLabel": "Season End Month"
   },
   "playerAssessmentModal": {
     "title": "Assess Players",
@@ -904,7 +908,24 @@
     "deleteConfirmMessage": "Are you sure you want to delete this external game entry? This action cannot be undone.",
     "deleteError": "Failed to delete the external game entry.",
     "includeInSeasonTournament": "Include in season/tournament statistics",
-    "includeInSeasonTournamentHelp": "Check this if the external game was played for the same team"
+    "includeInSeasonTournamentHelp": "Check this if the external game was played for the same team",
+    "clubSeasonFilter": "Filter by Club Season",
+    "allSeasons": "All Seasons",
+    "offSeason": "Off-Season"
+  },
+  "months": {
+    "january": "January",
+    "february": "February",
+    "march": "March",
+    "april": "April",
+    "may": "May",
+    "june": "June",
+    "july": "July",
+    "august": "August",
+    "september": "September",
+    "october": "October",
+    "november": "November",
+    "december": "December"
   },
   "updateBanner": {
     "message": "A new version of the app is available.",

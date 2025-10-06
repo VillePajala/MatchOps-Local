@@ -50,41 +50,47 @@ describe('App Settings Utilities', () => {
         lastHomeTeamName: '',
         language: 'fi',
         hasSeenAppGuide: false,
-        useDemandCorrection: false
+        useDemandCorrection: false,
+        clubSeasonStartMonth: 10,
+        clubSeasonEndMonth: 5
       });
     });
 
     it('should return merged settings if stored settings exist', async () => {
       const storedSettings = { currentGameId: 'game123', lastHomeTeamName: 'Team X' };
       mockGetStorageItem.mockResolvedValue(JSON.stringify(storedSettings));
-      
+
       const result = await getAppSettings();
-      
+
       expect(mockGetStorageItem).toHaveBeenCalledWith(APP_SETTINGS_KEY);
       expect(result).toEqual({
         currentGameId: 'game123',
         lastHomeTeamName: 'Team X',
         language: 'fi', // From default settings
         hasSeenAppGuide: false,
-        useDemandCorrection: false
+        useDemandCorrection: false,
+        clubSeasonStartMonth: 10,
+        clubSeasonEndMonth: 5
       });
     });
 
     it('should handle invalid JSON and return default settings', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockGetStorageItem.mockResolvedValue('invalid json');
-      
+
       const result = await getAppSettings();
-      
+
       expect(consoleSpy).toHaveBeenCalled();
       expect(result).toEqual({
         currentGameId: null,
         lastHomeTeamName: '',
         language: 'fi',
         hasSeenAppGuide: false,
-        useDemandCorrection: false
+        useDemandCorrection: false,
+        clubSeasonStartMonth: 10,
+        clubSeasonEndMonth: 5
       });
-      
+
       consoleSpy.mockRestore();
     });
 
@@ -101,7 +107,9 @@ describe('App Settings Utilities', () => {
         lastHomeTeamName: '',
         language: 'fi',
         hasSeenAppGuide: false,
-        useDemandCorrection: false
+        useDemandCorrection: false,
+        clubSeasonStartMonth: 10,
+        clubSeasonEndMonth: 5
       });
       consoleSpy.mockRestore();
     });
@@ -149,15 +157,17 @@ describe('App Settings Utilities', () => {
       mockGetStorageItem.mockResolvedValue(JSON.stringify(currentSettings));
       
       const result = await updateAppSettings({ currentGameId: 'game456' });
-      
+
       expect(result).toEqual({
         currentGameId: 'game456', // Updated
         lastHomeTeamName: 'Team A', // Preserved
         language: 'fi', // Preserved
         hasSeenAppGuide: false,
-        useDemandCorrection: false
+        useDemandCorrection: false,
+        clubSeasonStartMonth: 10,
+        clubSeasonEndMonth: 5
       });
-      
+
       expect(mockSetStorageItem).toHaveBeenCalledWith(
         APP_SETTINGS_KEY,
         JSON.stringify({
@@ -165,7 +175,9 @@ describe('App Settings Utilities', () => {
           lastHomeTeamName: 'Team A',
           language: 'fi',
           hasSeenAppGuide: false,
-          useDemandCorrection: false
+          useDemandCorrection: false,
+          clubSeasonStartMonth: 10,
+          clubSeasonEndMonth: 5
         })
       );
     });
@@ -185,6 +197,8 @@ describe('App Settings Utilities', () => {
         ...currentSettings,
         language: 'fi',
         useDemandCorrection: false,
+        clubSeasonStartMonth: 10,
+        clubSeasonEndMonth: 5
       });
       expect(mockSetStorageItem).toHaveBeenCalledWith(
         APP_SETTINGS_KEY,
@@ -192,6 +206,8 @@ describe('App Settings Utilities', () => {
           ...currentSettings,
           language: 'fi',
           useDemandCorrection: false,
+          clubSeasonStartMonth: 10,
+          clubSeasonEndMonth: 5
         })
       );
     });
@@ -265,7 +281,9 @@ describe('App Settings Utilities', () => {
           lastHomeTeamName: 'Team B',
           language: 'fi',
           hasSeenAppGuide: false,
-          useDemandCorrection: false
+          useDemandCorrection: false,
+          clubSeasonStartMonth: 10,
+          clubSeasonEndMonth: 5
         })
       );
       expect(result).toBe(true);
@@ -348,7 +366,9 @@ describe('App Settings Utilities', () => {
         expect(savedSettings).toEqual({
           ...currentSettings, // Ensure other settings are preserved
           lastHomeTeamName: 'New Team Name', // The updated value
-          useDemandCorrection: false
+          useDemandCorrection: false,
+          clubSeasonStartMonth: 10,
+          clubSeasonEndMonth: 5
         });
       }
 

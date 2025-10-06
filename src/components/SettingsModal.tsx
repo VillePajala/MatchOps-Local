@@ -9,6 +9,7 @@ import { importFullBackup } from '@/utils/fullBackup';
 import { useGameImport } from '@/hooks/useGameImport';
 import ImportResultsModal from './ImportResultsModal';
 import logger from '@/utils/logger';
+import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -43,6 +44,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const gameImportFileInputRef = useRef<HTMLInputElement>(null);
   const [showImportResults, setShowImportResults] = useState(false);
   const { importFromFile, isImporting, lastResult } = useGameImport();
+  const [clubSeasonStartMonth, setClubSeasonStartMonth] = useState<number>(10);
+  const [clubSeasonEndMonth, setClubSeasonEndMonth] = useState<number>(5);
 
   useEffect(() => {
     setTeamName(defaultTeamName);
@@ -50,6 +53,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      // Load club season settings
+      getAppSettings().then(settings => {
+        setClubSeasonStartMonth(settings.clubSeasonStartMonth ?? 10);
+        setClubSeasonEndMonth(settings.clubSeasonEndMonth ?? 5);
+      }).catch(() => {
+        // Use defaults if loading fails
+        setClubSeasonStartMonth(10);
+        setClubSeasonEndMonth(5);
+      });
+
       if (navigator.storage?.estimate) {
         navigator.storage
           .estimate()
@@ -97,7 +110,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     try {
       const result = await importFromFile(file, false); // Don't overwrite by default
       setShowImportResults(true);
-      
+
       if (result.success && result.successful > 0) {
         // Success message is handled by the ImportResultsModal
       } else if (result.warnings.length > 0 || result.failed.length > 0) {
@@ -106,8 +119,26 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     } catch (error) {
       alert(t('settingsModal.gameImportError', 'Error importing games: ') + (error instanceof Error ? error.message : 'Unknown error'));
     }
-    
+
     event.target.value = '';
+  };
+
+  const handleClubSeasonStartMonthChange = async (month: number) => {
+    setClubSeasonStartMonth(month);
+    try {
+      await updateAppSettings({ clubSeasonStartMonth: month });
+    } catch (error) {
+      logger.error('Failed to save club season start month:', error);
+    }
+  };
+
+  const handleClubSeasonEndMonthChange = async (month: number) => {
+    setClubSeasonEndMonth(month);
+    try {
+      await updateAppSettings({ clubSeasonEndMonth: month });
+    } catch (error) {
+      logger.error('Failed to save club season end month:', error);
+    }
   };
 
   if (!isOpen) return null;
@@ -161,6 +192,64 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 onBlur={() => onDefaultTeamNameChange(teamName)}
                 className={inputStyle}
               />
+            </div>
+            <div className="pt-2 border-t border-slate-700/40 space-y-3">
+              <h3 className="text-lg font-semibold text-slate-200">
+                {t('settingsModal.clubSeasonTitle', 'Club Season Period')}
+              </h3>
+              <p className="text-sm text-slate-300">
+                {t('settingsModal.clubSeasonDescription', 'Define your club\'s season period for filtering player statistics (e.g., October to May).')}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="season-start-month" className={labelStyle}>
+                    {t('settingsModal.seasonStartMonthLabel', 'Season Start Month')}
+                  </label>
+                  <select
+                    id="season-start-month"
+                    value={clubSeasonStartMonth}
+                    onChange={(e) => handleClubSeasonStartMonthChange(parseInt(e.target.value, 10))}
+                    className={inputStyle}
+                  >
+                    <option value={1}>{t('months.january', 'January')}</option>
+                    <option value={2}>{t('months.february', 'February')}</option>
+                    <option value={3}>{t('months.march', 'March')}</option>
+                    <option value={4}>{t('months.april', 'April')}</option>
+                    <option value={5}>{t('months.may', 'May')}</option>
+                    <option value={6}>{t('months.june', 'June')}</option>
+                    <option value={7}>{t('months.july', 'July')}</option>
+                    <option value={8}>{t('months.august', 'August')}</option>
+                    <option value={9}>{t('months.september', 'September')}</option>
+                    <option value={10}>{t('months.october', 'October')}</option>
+                    <option value={11}>{t('months.november', 'November')}</option>
+                    <option value={12}>{t('months.december', 'December')}</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="season-end-month" className={labelStyle}>
+                    {t('settingsModal.seasonEndMonthLabel', 'Season End Month')}
+                  </label>
+                  <select
+                    id="season-end-month"
+                    value={clubSeasonEndMonth}
+                    onChange={(e) => handleClubSeasonEndMonthChange(parseInt(e.target.value, 10))}
+                    className={inputStyle}
+                  >
+                    <option value={1}>{t('months.january', 'January')}</option>
+                    <option value={2}>{t('months.february', 'February')}</option>
+                    <option value={3}>{t('months.march', 'March')}</option>
+                    <option value={4}>{t('months.april', 'April')}</option>
+                    <option value={5}>{t('months.may', 'May')}</option>
+                    <option value={6}>{t('months.june', 'June')}</option>
+                    <option value={7}>{t('months.july', 'July')}</option>
+                    <option value={8}>{t('months.august', 'August')}</option>
+                    <option value={9}>{t('months.september', 'September')}</option>
+                    <option value={10}>{t('months.october', 'October')}</option>
+                    <option value={11}>{t('months.november', 'November')}</option>
+                    <option value={12}>{t('months.december', 'December')}</option>
+                  </select>
+                </div>
+              </div>
             </div>
             <div className="pt-2 border-t border-slate-700/40 space-y-3">
               <h3 className="text-lg font-semibold text-slate-200">
