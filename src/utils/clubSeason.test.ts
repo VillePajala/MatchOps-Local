@@ -4,6 +4,7 @@ import {
   extractClubSeasonsFromGames,
   filterGamesByClubSeason,
   getClubSeasonDateRange,
+  validateSeasonMonths,
 } from './clubSeason';
 
 describe('clubSeason utilities', () => {
@@ -255,6 +256,44 @@ describe('clubSeason utilities', () => {
       // Should treat as cross-year season
       const result = getClubSeasonForDate('2024-03-15', 10, 5);
       expect(result).toBe('23/24'); // March is in second half of Oct-May season
+    });
+  });
+
+  describe('validateSeasonMonths', () => {
+    it('should return true for valid months', () => {
+      expect(validateSeasonMonths(1, 12)).toBe(true);
+      expect(validateSeasonMonths(10, 5)).toBe(true);
+      expect(validateSeasonMonths(6, 6)).toBe(true);
+      expect(validateSeasonMonths(1, 1)).toBe(true);
+      expect(validateSeasonMonths(12, 12)).toBe(true);
+    });
+
+    it('should return false for invalid start month (< 1)', () => {
+      expect(validateSeasonMonths(0, 5)).toBe(false);
+      expect(validateSeasonMonths(-1, 5)).toBe(false);
+      expect(validateSeasonMonths(-10, 5)).toBe(false);
+    });
+
+    it('should return false for invalid start month (> 12)', () => {
+      expect(validateSeasonMonths(13, 5)).toBe(false);
+      expect(validateSeasonMonths(20, 5)).toBe(false);
+    });
+
+    it('should return false for invalid end month (< 1)', () => {
+      expect(validateSeasonMonths(10, 0)).toBe(false);
+      expect(validateSeasonMonths(10, -1)).toBe(false);
+      expect(validateSeasonMonths(10, -5)).toBe(false);
+    });
+
+    it('should return false for invalid end month (> 12)', () => {
+      expect(validateSeasonMonths(10, 13)).toBe(false);
+      expect(validateSeasonMonths(10, 20)).toBe(false);
+    });
+
+    it('should return false for both months invalid', () => {
+      expect(validateSeasonMonths(0, 0)).toBe(false);
+      expect(validateSeasonMonths(13, 13)).toBe(false);
+      expect(validateSeasonMonths(-1, 20)).toBe(false);
     });
   });
 });
