@@ -17,7 +17,7 @@ import RatingBar from './RatingBar';
 import MetricTrendChart from './MetricTrendChart';
 import MetricAreaChart from './MetricAreaChart';
 import logger from '@/utils/logger';
-import { extractClubSeasonsFromGames, filterGamesByClubSeason } from '@/utils/clubSeason';
+import { extractClubSeasonsFromGames, getClubSeasonForDate } from '@/utils/clubSeason';
 
 interface PlayerStatsViewProps {
   player: Player | null;
@@ -149,19 +149,17 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
       return savedGames;
     }
 
-    const gamesArray = Object.entries(savedGames);
-    const filteredArray = filterGamesByClubSeason(
-      gamesArray.map(([id, game]) => ({ ...game, gameId: id })),
-      selectedClubSeason,
-      clubSeasonStartMonth,
-      clubSeasonEndMonth
-    );
-
-    // Convert back to object format
+    // Inline filtering to avoid redundant object transformations
     return Object.fromEntries(
-      filteredArray.map(game => {
-        const { gameId, ...gameData } = game;
-        return [gameId, gameData];
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      Object.entries(savedGames).filter(([_id, game]) => {
+        if (!game.gameDate) return false;
+        const gameSeason = getClubSeasonForDate(
+          game.gameDate,
+          clubSeasonStartMonth,
+          clubSeasonEndMonth
+        );
+        return gameSeason === selectedClubSeason;
       })
     );
   }, [savedGames, selectedClubSeason, clubSeasonStartMonth, clubSeasonEndMonth]);
