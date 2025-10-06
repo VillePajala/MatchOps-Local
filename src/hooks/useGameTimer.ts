@@ -155,6 +155,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
             gameId: currentGameId || '',
             timeElapsedInSeconds: precisionTimer.getCurrentTime(),
             timestamp: Date.now(),
+            wasRunning: true, // Track that timer should resume on return
           };
           // Save immediately when tab becomes hidden
           try {
@@ -172,9 +173,10 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
             gameId: string;
             timeElapsedInSeconds: number;
             timestamp: number;
+            wasRunning?: boolean;
           }>(TIMER_STATE_KEY);
 
-          if (savedTimerState && state.isTimerRunning && savedTimerState.gameId === currentGameId) {
+          if (savedTimerState && savedTimerState.wasRunning && savedTimerState.gameId === currentGameId) {
             // Use the precision restore utility
             handleVisibilityChange(
               savedTimerState.timestamp,
