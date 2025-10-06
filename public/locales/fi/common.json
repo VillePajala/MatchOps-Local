@@ -845,7 +845,11 @@
     "importReadError": "Virhe varmuuskopiotiedoston lukemisessa.",
     "importGamesButton": "Tuo pelejä",
     "importing": "Tuodaan...",
-    "gameImportError": "Virhe pelien tuonnissa: "
+    "gameImportError": "Virhe pelien tuonnissa: ",
+    "clubSeasonTitle": "Seuran kausijakso",
+    "clubSeasonDescription": "Määritä seurasi kausijakso pelaajatilastojen suodatusta varten (esim. lokakuu - toukokuu).",
+    "seasonStartMonthLabel": "Kauden alkukuukausi",
+    "seasonEndMonthLabel": "Kauden loppukuukausi"
   },
   "playerAssessmentModal": {
     "title": "Arvioi Pelaajat",
@@ -925,7 +929,24 @@
     "deleteConfirmMessage": "Haluatko varmasti poistaa tämän ulkoisen pelin merkinnän? Tätä toimintoa ei voi perua.",
     "deleteError": "Ulkoisen pelin merkinnän poisto epäonnistui.",
     "includeInSeasonTournament": "Sisällytä kausi/turnaus-tilastoihin",
-    "includeInSeasonTournamentHelp": "Valitse tämä, jos ulkoinen peli pelattiin samassa joukkueessa"
+    "includeInSeasonTournamentHelp": "Valitse tämä, jos ulkoinen peli pelattiin samassa joukkueessa",
+    "clubSeasonFilter": "Suodata seuran kauden mukaan",
+    "allSeasons": "Kaikki kaudet",
+    "offSeason": "Kesätauko"
+  },
+  "months": {
+    "january": "Tammikuu",
+    "february": "Helmikuu",
+    "march": "Maaliskuu",
+    "april": "Huhtikuu",
+    "may": "Toukokuu",
+    "june": "Kesäkuu",
+    "july": "Heinäkuu",
+    "august": "Elokuu",
+    "september": "Syyskuu",
+    "october": "Lokakuu",
+    "november": "Marraskuu",
+    "december": "Joulukuu"
   },
   "updateBanner": {
     "message": "Sovelluksesta on saatavilla uusi versio.",
