@@ -57,8 +57,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       getAppSettings().then(settings => {
         setClubSeasonStartMonth(settings.clubSeasonStartMonth ?? 10);
         setClubSeasonEndMonth(settings.clubSeasonEndMonth ?? 5);
-      }).catch(() => {
+      }).catch((error) => {
         // Use defaults if loading fails
+        logger.error('Failed to load club season settings:', error);
         setClubSeasonStartMonth(10);
         setClubSeasonEndMonth(5);
       });

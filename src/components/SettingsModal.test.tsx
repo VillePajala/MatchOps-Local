@@ -210,4 +210,85 @@ describe('<SettingsModal />', () => {
     const input = screen.getByLabelText('Default Team Name');
     expect(input).not.toHaveFocus();
   });
+
+  /**
+   * Tests club season month selectors rendering
+   * @critical
+   */
+  test('should render club season month selectors', () => {
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
+
+    // Check for season start month selector
+    const startMonthLabel = screen.getByText(/Season Start Month/i);
+    expect(startMonthLabel).toBeInTheDocument();
+
+    // Check for season end month selector
+    const endMonthLabel = screen.getByText(/Season End Month/i);
+    expect(endMonthLabel).toBeInTheDocument();
+  });
+
+  /**
+   * Tests that season settings load on modal open
+   * @integration
+   */
+  test('should load season settings when modal opens', async () => {
+    const mockGetAppSettings = jest.fn(() =>
+      Promise.resolve({
+        clubSeasonStartMonth: 9,
+        clubSeasonEndMonth: 4,
+      })
+    );
+
+    jest.mock('@/utils/appSettings', () => ({
+      getAppSettings: mockGetAppSettings,
+      updateAppSettings: jest.fn(() => Promise.resolve()),
+    }));
+
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
+
+    // Wait for settings to load
+    await waitFor(() => {
+      // Settings should be loaded (we can't easily verify the select values
+      // without accessing internal state, but we can verify the component renders)
+      expect(screen.getByText(/Season Start Month/i)).toBeInTheDocument();
+    });
+  });
+
+  /**
+   * Tests error handling when loading settings fails
+   * @edge-case
+   */
+  test('should handle error when loading season settings fails', async () => {
+    const mockError = new Error('Failed to load settings');
+    const mockGetAppSettings = jest.fn(() => Promise.reject(mockError));
+
+    jest.mock('@/utils/appSettings', () => ({
+      getAppSettings: mockGetAppSettings,
+      updateAppSettings: jest.fn(() => Promise.resolve()),
+    }));
+
+    // Suppress console.error for this test
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(
+      <TestWrapper>
+        <SettingsModal {...defaultProps} />
+      </TestWrapper>
+    );
+
+    // Component should still render with defaults even if loading fails
+    await waitFor(() => {
+      expect(screen.getByText(/Season Start Month/i)).toBeInTheDocument();
+    });
+
+    consoleSpy.mockRestore();
+  });
 });

@@ -23,9 +23,10 @@ export function getClubSeasonForDate(
   startMonth: number = 10,
   endMonth: number = 5
 ): string {
-  const date = new Date(dateStr);
-  const year = date.getFullYear();
-  const month = date.getMonth() + 1; // Convert 0-based to 1-based
+  // Force UTC interpretation to avoid timezone issues
+  const date = new Date(dateStr + 'T00:00:00Z');
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth() + 1; // Convert 0-based to 1-based
 
   if (startMonth <= endMonth) {
     // Season within same calendar year (e.g., Jan-Dec)
@@ -79,6 +80,7 @@ export function getClubSeasonDisplayLabel(
 
   if (seasonLabel.includes('/')) {
     // Cross-year season (e.g., "24/25")
+    // Note: Assumes years 2000-2099. Update prefix for later centuries.
     const [startYear, endYear] = seasonLabel.split('/');
     return `${startMonthName} 20${startYear} - ${endMonthName} 20${endYear}`;
   } else {
@@ -162,6 +164,7 @@ export function getClubSeasonDateRange(
 
   if (seasonLabel.includes('/')) {
     // Cross-year season (e.g., "24/25")
+    // Note: Assumes years 2000-2099. Update prefix for later centuries.
     const [startYear, endYear] = seasonLabel.split('/');
     const fullStartYear = parseInt(`20${startYear}`, 10);
     const fullEndYear = parseInt(`20${endYear}`, 10);
