@@ -161,14 +161,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         return `${day}.${month}.${year}`;
       } else {
         // Default/English format: MMM d, yyyy (e.g., Apr 22, 2025)
-        return date.toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: 'numeric', 
-          year: 'numeric' 
+        return date.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
         });
       }
-    } catch {
-      // logger.error("Error formatting date:", e);
+    } catch (error) {
+      logger.warn('Error formatting date in GameStatsModal', { error });
       return 'Date Error';
     }
   }, [i18n.language, t]); // Dependencies: language and t function

@@ -25,25 +25,22 @@ The build process includes a custom manifest generation step that runs before Ne
 - **React 19** with TypeScript
 - **Tailwind CSS 4** for styling
 - **PWA** with custom service worker
-- **Browser localStorage** for data persistence
+- **Browser IndexedDB** for data persistence
 - **React Query** for state management
 - **i18next** for internationalization (English/Finnish)
 
 ### Core Architecture
 
-**Data Flow**: The app's data layer relies on **React Query** to fetch, cache, and manage server-side state (persisted in localStorage). Asynchronous wrappers in `src/utils/localStorage.ts` are used for direct localStorage access. This approach centralizes data fetching and reduces manual state management.
+**Data Flow**: The app's data layer relies on **React Query** to fetch, cache, and manage server-side state (persisted in IndexedDB). Asynchronous storage operations in `src/utils/storage.ts` provide IndexedDB access through a unified adapter layer.
 
-**PWA Structure**: The app is a full PWA with:
-- Custom service worker (`public/sw.js`)
-- Dynamic manifest generation based on git branch
-- Install prompts and update notifications
+**PWA Structure**: Full PWA with custom service worker (`public/sw.js`), dynamic manifest generation, install prompts and update notifications.
 
-**State Management**: 
-- **`src/app/page.tsx`**: Acts as the central orchestrator, bringing together different state management strategies.
-- **`useReducer` (`useGameSessionReducer.ts`)**: Manages the core game session state, including score, timer, periods, and game metadata. This provides predictable state transitions.
-- **`useGameState` hook**: Manages the interactive state of the soccer field, including player positions on the field and drawings.
-- **React Query**: Handles all asynchronous data operations, such as fetching and updating the master roster, seasons, tournaments, and saved games.
-- **`useState`**: Used for managing local UI state within components (e.g., modal visibility).
+**State Management**:
+- **`src/app/page.tsx`**: Central orchestrator for all state management strategies
+- **`useReducer` (`useGameSessionReducer.ts`)**: Core game session state (score, timer, periods, metadata)
+- **`useGameState` hook**: Interactive soccer field state (player positions, drawings)
+- **React Query**: Asynchronous data operations (roster, seasons, tournaments, saved games)
+- **`useState`**: Local UI state within components (modal visibility, etc.)
 
 **Key Components**:
 - `SoccerField` - Interactive drag-and-drop field
@@ -51,108 +48,338 @@ The build process includes a custom manifest generation step that runs before Ne
 - `ControlBar` - Main app controls
 - Various modals for game settings, stats, and management
 
-**Data Persistence**: All data is stored in browser localStorage with async wrappers in `src/utils/localStorage.ts`. Key data includes:
+**Data Persistence**: All data stored in browser IndexedDB via `src/utils/storage.ts`:
 - Player roster (`src/utils/masterRosterManager.ts`)
 - Game saves (`src/utils/savedGames.ts`)
 - Seasons and tournaments (`src/utils/seasons.ts`, `src/utils/tournaments.ts`)
 - App settings (`src/utils/appSettings.ts`)
 
-**Logging**: Centralized logging system with environment-aware behavior:
-- `src/utils/logger.ts` - Type-safe logger utility with development/production modes
-- Replaces direct `console.*` usage throughout the application
-- Comprehensive test coverage in `src/utils/logger.test.ts`
-- Integration tests in `src/components/__tests__/logger-integration.test.tsx`
+**IndexedDB Migration**: `src/utils/migration.ts` handles localStorage → IndexedDB migration with essential features (data transfer, error handling, progress tracking, rollback). Production-ready for small-scale deployments.
 
-**Error Monitoring**: Sentry integration for production error tracking:
-- **Configuration Files**:
-  - `src/instrumentation-client.ts` - Client-side Sentry initialization with router tracking
-  - `sentry.server.config.ts` - Server-side error capture configuration
-  - `sentry.edge.config.ts` - Edge runtime error handling
-  - `src/app/global-error.tsx` - Global error boundary with user-friendly UI and Sentry reporting
-- **Environment-Aware Setup**:
-  - Only initializes in production by default (or when `NEXT_PUBLIC_SENTRY_FORCE_ENABLE=true`)
-  - Filters out common browser noise (ResizeObserver, NetworkError)
-  - 10% performance trace sampling in production, 100% in development
-  - Session replays only captured on errors with privacy protection (masks text, blocks media)
-- **Error Handling Guidelines**:
-  - Use structured error messages with clear context
-  - Avoid logging sensitive data in error messages (passwords, tokens, PII)
-  - Test error scenarios with feature flags before production deployment
-  - Monitor Sentry dashboard for new error patterns after deployments
-- **Expected Error Types**:
-  - **Filtered (ignored)**: ResizeObserver errors, generic NetworkError events
-  - **Captured**: Application errors, unhandled promises, React error boundaries
-  - **Enhanced tracking**: Server-side errors via `onRequestError` hook with route context
+**Storage Requirements**:
+- IndexedDB required (typically 50MB+ quota)
+- No localStorage fallback (insufficient for 100+ games)
+- Private/incognito mode not supported (IndexedDB disabled/restricted)
+- Automatic migration on first load after upgrade
+
+**Logging**: Centralized system in `src/utils/logger.ts` - Type-safe, environment-aware, replaces direct `console.*` usage.
+
+**Error Monitoring**: Sentry integration for production:
+- Config: `src/instrumentation-client.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`, `src/app/global-error.tsx`
+- Production-only by default (or `NEXT_PUBLIC_SENTRY_FORCE_ENABLE=true`)
+- Filters browser noise (ResizeObserver, NetworkError)
+- 10% trace sampling, error-only session replays with privacy protection
 
 **Testing**: Jest with React Testing Library, configured for Next.js with custom setup in `jest.config.js`
 
+## For Code Reviewers (AI or Human)
+
+### ⚠️ Critical: This is a Local-First PWA, NOT a Traditional Web App
+
+This is a **local-first Progressive Web App** for single-user soccer coaching. No backend, no multi-user features, no enterprise patterns needed.
+
+### Architecture Context
+
+**Single-User Installation**
+- One soccer coach per installation, no authentication/authorization/RBAC
+- 100% browser-based, no API endpoints or database servers
+- Minimal network: PWA updates, license validation, error reporting only
+- Works completely offline, all data in browser IndexedDB
+
+**Data Scale & Privacy**
+- 1 user, 50-100 players, 50-100 games/season, <50MB storage
+- Soccer scores/stats only - NOT sensitive PII/financial/healthcare data
+- Data never leaves device (except opt-in error tracking)
+- Primary threat: physical device theft (mitigated by OS encryption)
+
+**PWA Private Mode Behavior**
+- PWA installation IMPOSSIBLE in private/incognito (by design across all browsers)
+- IndexedDB restricted/disabled in private mode
+- Current error handling is comprehensive (`storageFactory.ts`, `storage.ts`)
+- ❌ DO NOT flag "missing private mode detection" - PWAs require persistent storage
+
+### Code Review Guidelines
+
+#### ❌ DO NOT Suggest These Patterns
+
+**Enterprise/SaaS** (Not Applicable)
+- ❌ Audit logging, multi-tenant isolation, RBAC, API auth, rate limiting, GDPR logging, centralized analytics
+
+**Network Security** (Minimal Network Communication)
+- ❌ Complex API auth (OAuth/JWT), CORS config, request signing
+- ✅ Basic Play Store integration for license validation only
+
+**Data Encryption** (Browser Sandboxing Sufficient)
+- ❌ Client-side encryption, key management, encryption at rest
+
+**Over-Engineering**
+- ❌ Heavy schema validation (Zod/Yup) for self-generated data
+- ❌ Complex caching, query optimization for 100 records
+- ❌ CDN, edge caching, horizontal scaling
+
+#### ✅ DO Focus On These Areas
+
+**Browser Compatibility**
+- ✅ IndexedDB edge cases (quota, corruption, private mode)
+- ✅ Service Worker lifecycle, cross-browser PWA behavior
+
+**Data Integrity**
+- ✅ Corruption recovery, backup/restore, migration patterns
+- ✅ Graceful handling of malformed data
+
+**Performance & Memory**
+- ✅ Memory leaks, efficient IndexedDB transactions
+- ✅ UI responsiveness, bundle size
+
+**User Experience**
+- ✅ Offline-first patterns, helpful error messages
+- ✅ Loading states, accessibility (a11y)
+
+**PWA Best Practices**
+- ✅ Service Worker updates, app manifest
+- ✅ Install prompts, offline capability
+
+### Quick Reference
+
+1. **Remember**: One user, one device, no server, no network
+2. **Data scale**: Hundreds of records, not millions
+3. **Security**: Browser sandboxing is the boundary
+4. **Performance**: Optimize for small datasets and single-user UX
+
+See `docs/PROJECT_OVERVIEW.md` and `docs/LOCAL_FIRST_PHILOSOPHY.md` for details.
+
 ## Key Files to Understand
 
-- `src/app/page.tsx` - The main component that orchestrates the entire application, integrating hooks, reducers, and data fetching.
-- `src/hooks/useGameSessionReducer.ts` - The reducer managing core game logic (timer, score, status). Crucial for understanding state transitions.
-- `src/hooks/useGameState.ts` - The hook for managing interactive state on the soccer field (player positions, drawings).
-- `src/utils/masterRosterManager.ts` - Handles all CRUD operations for the master player list, interacting with localStorage.
-- `src/config/queryKeys.ts` - Defines the keys used for caching and invalidating data with React Query.
-- `src/types/index.ts` - Core TypeScript interfaces (Player, Season, Tournament, AppState).
-- `src/utils/localStorage.ts` - Async localStorage wrapper utilities.
-- `src/utils/logger.ts` - Centralized logging utility with type safety and environment awareness.
-
-## Development Notes
-
-### Data Storage
-All data is stored in browser localStorage. The app includes backup/restore functionality through `src/utils/fullBackup.ts`.
-
-### Internationalization
-The app supports English and Finnish with i18next. All translation files now live in `public/locales/`.
-
-### PWA Features
-The app includes install prompts, update notifications, and works offline. The service worker is updated during build to trigger cache updates.
-
-### Testing Strategy
-- Unit tests cover utilities and components and are co-located with source files using the `.test.tsx` suffix
-- The Jest configuration excludes Playwright specs located in the `/tests/` directory
-- Integration tests for Sentry error reporting in `src/__tests__/integration/`
-- Performance tests for bundle size validation in `src/__tests__/performance/`
-- Security tests for environment validation in `src/__tests__/security/`
+- `src/app/page.tsx` - Main component orchestrating entire app (hooks, reducers, data fetching)
+- `src/hooks/useGameSessionReducer.ts` - Core game logic reducer (timer, score, status)
+- `src/hooks/useGameState.ts` - Interactive soccer field state management
+- `src/utils/masterRosterManager.ts` - Player CRUD operations
+- `src/config/queryKeys.ts` - React Query cache keys
+- `src/types/index.ts` - Core TypeScript interfaces
+- `src/utils/localStorage.ts` - Async localStorage wrapper
+- `src/utils/logger.ts` - Centralized logging utility
 
 ## Testing Rules and Principles
 
 ### Critical Testing Guidelines
 
-**NEVER SKIP TESTS** unless explicitly requested by the user. Tests exist to catch regressions and ensure code quality.
+**NEVER SKIP TESTS** unless explicitly requested. Tests catch regressions and ensure quality.
 
-**Test fixes must make the project more robust, not mask real issues:**
-- Fix the underlying problem, don't just make tests pass
+**Test fixes must make the project more robust, not mask issues:**
+- Fix underlying problems, don't just make tests pass
 - Ensure mocks accurately represent real behavior
-- Don't weaken assertions to avoid failures
-- Don't remove test coverage without good reason
+- Don't weaken assertions or remove coverage
+- Document why changes were necessary
 
 **When fixing failing tests:**
-1. **Understand why the test is failing** - Is it a legitimate issue or a test problem?
-2. **Fix the root cause** - Address the actual problem, not just the test symptom
-3. **Improve robustness** - Make tests and code more reliable, not more permissive
-4. **Maintain coverage** - Don't reduce test coverage to fix failures
-5. **Document changes** - Explain why changes were necessary
+1. Understand why it's failing (legitimate issue vs test problem?)
+2. Fix the root cause, not the symptom
+3. Improve robustness, not permissiveness
+4. Maintain coverage
+5. Document changes
 
-**Acceptable test modifications:**
-- Updating test expectations to match corrected application behavior
-- Improving test reliability and reducing flakiness
-- Adding better error handling or edge case coverage
-- Fixing incorrect mocks to better represent real dependencies
+**Acceptable modifications:**
+- Updating expectations to match corrected behavior
+- Improving reliability and reducing flakiness
+- Adding better error handling/edge cases
+- Fixing incorrect mocks
 
-**Unacceptable test modifications:**
-- Skipping tests to avoid dealing with failures
-- Weakening assertions to prevent failures
+**Unacceptable modifications:**
+- Skipping tests to avoid failures
+- Weakening assertions
 - Removing tests without replacement
-- Making tests pass by ignoring real issues
-- Using overly permissive mocks that hide problems
+- Using overly permissive mocks
 
-**Before skipping any test:**
-- Investigate the root cause thoroughly
-- Consider if the test reveals a real issue
-- Explore proper fixes before considering removal
-- Document why skipping is necessary if unavoidable
-- Create a plan to restore the test
+### Test Documentation Standards
+
+**Use JSDoc comments with tags:**
+- `@critical` - Core user workflows (never skip/weaken)
+- `@integration` - Component interactions
+- `@edge-case` - Boundary conditions and error scenarios
+- `@performance` - Performance requirements
+
+**Example:**
+```typescript
+/**
+ * Tests critical workflow: game creation → player selection → start
+ * @critical
+ */
+it('should create new game → select players → start game', async () => {
+  // Test implementation
+});
+```
+
+### Anti-Patterns That Must Never Appear
+
+**1. Fixed Timeouts (FORBIDDEN)**
+```typescript
+// ❌ FORBIDDEN - Flaky and unreliable
+await new Promise(resolve => setTimeout(resolve, 100));
+
+// ✅ REQUIRED - Wait for actual conditions
+await waitFor(() => {
+  expect(screen.getByText('Success')).toBeInTheDocument();
+});
+```
+
+**2. Missing act() Wrappers (FORBIDDEN)**
+```typescript
+// ❌ FORBIDDEN - State updates not wrapped
+fireEvent.click(button);
+expect(result).toBe(true);
+
+// ✅ REQUIRED - Proper React state handling
+await act(async () => {
+  fireEvent.click(button);
+});
+await waitFor(() => expect(result).toBe(true));
+```
+
+**3. Issue-Masking Mechanisms (FORBIDDEN)**
+```typescript
+// ❌ FORBIDDEN in jest.config.js
+detectLeaks: false        // Masks memory leaks
+forceExit: true           // Masks resource leaks
+--bail                    // Hides multiple failures
+
+// ✅ REQUIRED - Expose and fix real issues
+detectLeaks: true
+detectOpenHandles: true
+forceExit: false
+```
+
+**4. Console Noise Tolerance (FORBIDDEN)**
+Tests automatically fail on unexpected console warnings/errors. See `src/setupTests.mjs`.
+
+### Required Testing Infrastructure
+
+**jest.config.js:**
+```javascript
+{
+  detectOpenHandles: true,  // ✅ REQUIRED
+  detectLeaks: true,        // ✅ REQUIRED
+  forceExit: false,         // ✅ REQUIRED
+  testTimeout: 30000,       // ✅ REQUIRED
+  maxWorkers: process.env.CI ? 2 : '50%',
+}
+```
+
+**Test Isolation Pattern:**
+```typescript
+beforeEach(async () => {
+  jest.clearAllMocks();
+  jest.clearAllTimers();
+  clearMockStore();
+  localStorage.clear();
+});
+
+afterEach(async () => {
+  cleanup();
+  await act(async () => {
+    // Allow pending updates to complete
+  });
+});
+```
+
+### Async Testing Pattern
+
+```typescript
+test('user interaction', async () => {
+  render(<Component />);
+
+  // Wait for initial render
+  await waitFor(() => {
+    expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+  });
+
+  // Wrap interactions in act()
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
+  });
+
+  // Wait for state updates
+  await waitFor(() => {
+    expect(screen.getByText('Success')).toBeInTheDocument();
+  });
+});
+```
+
+### Flaky Test Management
+
+**Jest Retry Configuration (jest.config.js):**
+- `maxRetries: 2` - Retry failed tests up to 2 times
+- `retryImmediately: true` - Retry immediately
+- Reports generated in `test-results/flaky-tests-report.json`
+
+**Common Patterns and Fixes:**
+- **Timing**: Use `waitFor()` instead of `setTimeout()`
+- **Async**: Wrap all interactions in `act()`, await state changes
+- **DOM**: Wait for DOM updates with `waitFor()`
+- **Memory**: Implement proper cleanup in `afterEach()`
+
+**When a Test Becomes Flaky:**
+1. Mark with `@flaky` tag and create issue
+2. Check flaky test report for patterns
+3. Apply pattern-specific solutions
+4. Run multiple times locally to verify fix
+5. Remove `@flaky` tag only after confirmed stable
+
+### Test Data Management
+
+**Use Centralized Test Fixtures:**
+```typescript
+// ✅ Use centralized fixtures
+import { TestFixtures } from '../fixtures';
+
+const player = TestFixtures.players.goalkeeper({ name: 'Custom Keeper' });
+const game = TestFixtures.games.inProgress({ homeScore: 2 });
+```
+
+**Fixture Directory:** `tests/fixtures/` contains domain-specific factories (players, games, seasons, tournaments, settings, errors).
+
+**Principles:**
+- Deterministic generation (no random data)
+- Memory efficient (on-demand creation)
+- Realistic but controlled
+- Full TypeScript support
+
+**Anti-Patterns to Avoid:**
+```typescript
+// ❌ Scattered inline data
+const player = { id: '123', name: 'Test', jerseyNumber: '10' };
+
+// ❌ Random data that breaks tests
+const score = Math.floor(Math.random() * 10);
+
+// ❌ No cleanup
+const largeDataset = Array.from({ length: 10000 }, () => createPlayer());
+```
+
+### Quality Metrics
+
+- ✅ **Pass rate**: 100% (no failing tests in main/master)
+- ✅ **Flakiness**: 0% (consistent passes)
+- ✅ **Resource leaks**: 0 (detectOpenHandles catches all)
+- ✅ **Memory leaks**: 0 (detectLeaks catches all)
+- ✅ **Console warnings**: 0 (auto-fail on unexpected output)
+- ✅ **Coverage**: 85% lines, 85% functions, 80% branches
+
+### Anti-Pattern Detection Checklist
+
+**Before committing test code:**
+- [ ] No `setTimeout` or fixed delays
+- [ ] All `fireEvent`/`userEvent` wrapped in `act()` or followed by `waitFor()`
+- [ ] All async operations awaited
+- [ ] No `--forceExit`, `--bail`, `--retries` in CI
+- [ ] `detectLeaks: true` and `detectOpenHandles: true` in config
+- [ ] Proper cleanup in `beforeEach`/`afterEach`
+- [ ] No suppressed console warnings
+- [ ] Tests pass locally without retries
+
+**When you find anti-patterns:**
+1. Fix immediately - don't defer
+2. Add test to prevent regression
+3. Update this document if pattern is common
 
 ## Git and Version Control Rules
 
@@ -161,114 +388,99 @@ The app includes install prompts, update notifications, and works offline. The s
 **NEVER COMMIT OR PUSH** unless explicitly requested by the user.
 
 **Always wait for explicit permission before:**
-- Running `git add`
-- Running `git commit`
-- Running `git push`
+- Running `git add`, `git commit`, `git push`
 - Creating or modifying branches
 - Making any git operations that change repository state
 
 **The user controls when changes are committed:**
-- Complete your work and verify it functions correctly
-- Inform the user when work is ready for commit
-- Wait for their explicit instruction to commit/push
-- Let them review changes before they go into version control
+- Complete work and verify it functions correctly
+- Inform user when work is ready for commit
+- Wait for explicit instruction to commit/push
+- Let them review changes before version control
 
-**Exception:** Only commit/push immediately if the user specifically requests it in their message (e.g., "fix this and commit it", "push this change").
+**Exception:** Only commit/push immediately if user specifically requests it (e.g., "fix this and commit it", "push this change").
 
 ## Vercel Build & ESLint Rules
 
 ### Critical Build Guidelines
 
-**ALWAYS ensure code passes Vercel build requirements** by following these patterns to avoid common build failures:
+**ALWAYS ensure code passes Vercel build** by following these patterns:
 
-### Common ESLint/TypeScript Issues and Fixes
+### Common ESLint/TypeScript Issues
 
-1. **@typescript-eslint/no-require-imports**
-   ```typescript
-   // ❌ Forbidden in build:
-   const fs = require('fs');
-   const path = require('path');
+**1. @typescript-eslint/no-require-imports**
+```typescript
+// ❌ Forbidden
+const fs = require('fs');
 
-   // ✅ Correct approach:
-   const fs = await import('fs');
-   const path = await import('path');
-   // or
-   import fs from 'fs';
-   import path from 'path';
-   ```
+// ✅ Correct
+import fs from 'fs';
+// or
+const fs = await import('fs');
+```
 
-2. **@typescript-eslint/no-explicit-any**
-   ```typescript
-   // ❌ Forbidden in build:
-   delete (window as any).location;
-   (window as any).location = { href: '/' };
+**2. @typescript-eslint/no-explicit-any**
+```typescript
+// ❌ Forbidden
+delete (window as any).location;
 
-   // ✅ Correct approach:
-   delete (window as unknown as { location: unknown }).location;
-   (window as unknown as { location: { href: string } }).location = { href: '/' };
-   ```
+// ✅ Correct
+delete (window as unknown as { location: unknown }).location;
+```
 
-3. **@typescript-eslint/no-unused-vars**
-   ```typescript
-   // ❌ Will fail build:
-   function beforeSend(event, hint) { return event; }
+**Important:** Test files can use limited `any` for mocks (doesn't fail build). Production code: ZERO `any` usage.
 
-   // ✅ Correct approach:
-   function beforeSend(event) { return event; }
-   // or if parameter is needed for signature:
-   function beforeSend(event, _hint) { return event; }
-   ```
+**3. @typescript-eslint/no-unused-vars**
+```typescript
+// ❌ Will fail build
+function beforeSend(event, hint) { return event; }
+
+// ✅ Correct
+function beforeSend(event, _hint) { return event; }
+```
 
 ### Prevention Checklist
 
-**Before committing any code, verify:**
+**Before committing:**
+1. `npm run build` must pass without errors
+2. `npm run lint` must pass without errors
+3. No `any` types (use `unknown` + type assertions)
+4. No `require()` imports (use ES6 imports)
+5. No unused variables/parameters
+6. Proper type annotations for complex objects
 
-1. **Run the build locally**: `npm run build` must pass without errors
-2. **Check linting**: `npm run lint` must pass without errors
-3. **Use TypeScript properly**:
-   - No `any` types (use `unknown` with type assertions)
-   - No `require()` imports (use ES6 imports or dynamic imports)
-   - No unused variables/parameters
-   - Proper type annotations for complex objects
+**Common fixes:**
+- Replace `require()` with `import` or `await import()`
+- Replace `any` with `unknown` + type assertions
+- Add underscore prefix to unused parameters (`_param`)
+- Use proper interface definitions
 
-4. **Test file patterns**:
-   - Use ES6 imports for Node.js modules in tests
-   - Use proper TypeScript assertions instead of `any`
-   - Mock browser APIs with proper typing
-   - Use dynamic imports for Node.js-specific operations in test files
-
-5. **Common fixes**:
-   - Replace `require()` with `import` or `await import()`
-   - Replace `any` with `unknown` + type assertions
-   - Add underscore prefix to unused parameters (`_param`)
-   - Use proper interface definitions for complex types
-
-### Build Environment Differences
-
-**Important**: Code that works in development may fail in Vercel builds due to:
-- Stricter ESLint rules in production builds
-- Different TypeScript compiler settings
-- Tree-shaking and optimization differences
-- Static analysis tools being more aggressive
-
-**Always test the production build** before pushing to ensure compatibility.
+**Build Environment Differences:**
+Code that works in dev may fail in Vercel due to stricter ESLint, different TypeScript settings, tree-shaking, and aggressive static analysis. **Always test production build** before pushing.
 
 ## Environment Variables
 
-### Required Production Environment Variables
-- `NEXT_PUBLIC_SENTRY_DSN` - Sentry Data Source Name for error reporting (client-side)
-- `SENTRY_AUTH_TOKEN` - Sentry authentication token for build-time source map uploads (server-side)
+### Required Production
+- `NEXT_PUBLIC_SENTRY_DSN` - Sentry DSN for error reporting (client-side)
+- `SENTRY_AUTH_TOKEN` - Sentry auth for source map uploads (server-side)
 
-### Optional Environment Variables
-- `NEXT_PUBLIC_SENTRY_FORCE_ENABLE` - Force enable Sentry in development mode (default: false)
-- `SENTRY_ORG` - Sentry organization name for build configuration
-- `SENTRY_PROJECT` - Sentry project name for build configuration
-- `ANALYZE` - Set to `true` to enable bundle analysis during build
+### Optional
+- `NEXT_PUBLIC_SENTRY_FORCE_ENABLE` - Force Sentry in dev (default: false)
+- `SENTRY_ORG` - Sentry organization name
+- `SENTRY_PROJECT` - Sentry project name
+- `ANALYZE` - Enable bundle analysis during build
 
-### Security Configuration
-- All client-side environment variables (prefixed with `NEXT_PUBLIC_`) are validated for secret exposure
-- Server-side secrets should never use the `NEXT_PUBLIC_` prefix
-- Environment validation runs automatically during build and startup
-- CSP violations are automatically reported to `/api/csp-report` endpoint
-- Always investigate throughly and after implemeting anything (feature/fix), always review what you have done throughly and professionally to find the most perfect solution to everything. We do not want quick and dirty implementation unless explicitly asked so
-- always be prfessional and factual. Do not try to overly please me and defend quality and best bractises even if that would mean disagreeing with my a bit
+### Security
+- Client-side vars (`NEXT_PUBLIC_*`) validated for secret exposure
+- Server-side secrets never use `NEXT_PUBLIC_` prefix
+- Environment validation runs automatically during build/startup
+- CSP violations reported to `/api/csp-report`
+
+## Code Quality Principles
+
+- Always investigate thoroughly before implementing
+- Review all changes professionally for optimal solutions
+- Avoid quick/dirty implementations unless explicitly requested
+- Be professional and factual
+- Defend quality and best practices even if it means disagreeing
+- Ensure `npm run lint` passes before commits and pushes

@@ -18,6 +18,7 @@ const mockOnRenamePlayer = jest.fn();
 const mockOnSetJerseyNumber = jest.fn();
 const mockOnSetPlayerNotes = jest.fn();
 const mockOnOpenPlayerStats = jest.fn();
+const mockOnUpdatePlayer = jest.fn();
 
 const mockPlayers: Player[] = [
   { id: 'p1', name: 'Player One', nickname: 'P1', jerseyNumber: '10', notes: 'Note 1' },
@@ -28,6 +29,7 @@ const defaultProps = {
   isOpen: true,
   onClose: mockOnClose,
   availablePlayers: mockPlayers,
+  onUpdatePlayer: mockOnUpdatePlayer,
   onRenamePlayer: mockOnRenamePlayer,
   onSetJerseyNumber: mockOnSetJerseyNumber,
   onSetPlayerNotes: mockOnSetPlayerNotes,
@@ -103,11 +105,11 @@ describe('<RosterSettingsModal />', () => {
 
   test('edits player when edit form is submitted', () => {
     render(<RosterSettingsModal {...defaultProps} />);
-    
+
     // Find and click edit button for P1
     const editButtons = screen.getAllByTitle('Edit');
     fireEvent.click(editButtons[0]); // First edit button should be for P1
-    
+
     // Fill edit form
     const updatedData = {
       name: 'Updated Name',
@@ -115,18 +117,22 @@ describe('<RosterSettingsModal />', () => {
       jerseyNumber: '11',
       notes: 'Updated notes'
     };
-    
+
     fireEvent.change(screen.getByDisplayValue('Player One'), { target: { value: updatedData.name }});
     fireEvent.change(screen.getByDisplayValue('P1'), { target: { value: updatedData.nickname }});
     fireEvent.change(screen.getByDisplayValue('10'), { target: { value: updatedData.jerseyNumber }});
     fireEvent.change(screen.getByDisplayValue('Note 1'), { target: { value: updatedData.notes }});
-    
+
     // Save
     fireEvent.click(screen.getByTitle('Save'));
-    
-    expect(mockOnRenamePlayer).toHaveBeenCalledWith('p1', { name: updatedData.name, nickname: updatedData.nickname });
-    expect(mockOnSetJerseyNumber).toHaveBeenCalledWith('p1', updatedData.jerseyNumber);
-    expect(mockOnSetPlayerNotes).toHaveBeenCalledWith('p1', updatedData.notes);
+
+    // Should call unified update with all changed fields
+    expect(mockOnUpdatePlayer).toHaveBeenCalledWith('p1', {
+      name: updatedData.name,
+      nickname: updatedData.nickname,
+      jerseyNumber: updatedData.jerseyNumber,
+      notes: updatedData.notes
+    });
   });
 
   test('removes player when remove button is clicked', () => {

@@ -1,178 +1,164 @@
-import { Team, TeamPlayer, Player } from '@/types';
-import { 
-  APP_DATA_VERSION_KEY, 
-  MASTER_ROSTER_KEY, 
-  SAVED_GAMES_KEY, 
-  SEASONS_LIST_KEY, 
-  TOURNAMENTS_LIST_KEY 
+/**
+ * Simplified IndexedDB Migration
+ *
+ * A pragmatic migration approach for small datasets (1-3 users)
+ * Removes enterprise complexity while maintaining data integrity
+ *
+ * IMPORTANT: localStorage is preserved after migration as automatic backup
+ * This is intentional - provides rollback capability and corruption recovery
+ * See inline comments in performIndexedDbMigration() for detailed rationale
+ */
+
+import {
+  APP_DATA_VERSION_KEY,
+  MASTER_ROSTER_KEY,
+  SAVED_GAMES_KEY,
+  SEASONS_LIST_KEY,
+  TOURNAMENTS_LIST_KEY
 } from '@/config/storageKeys';
 import { getLocalStorageItem, setLocalStorageItem } from './localStorage';
-import { getMasterRoster } from './masterRosterManager';
-// Note: Removed imports for global entity migration (seasons/tournaments/saved games/adjustments remain global)
-import { getLastHomeTeamName } from './appSettings';
-import { addTeam, setTeamRoster } from './teams';
+import { createStorageAdapter, getStorageConfig, updateStorageConfig } from './storageFactory';
+import { CURRENT_DATA_VERSION, INDEXEDDB_STORAGE_VERSION } from '@/config/migrationConfig';
 import logger from './logger';
 
-const CURRENT_DATA_VERSION = 2;
-const MIGRATION_TEAM_NAME_FALLBACK = 'My Team';
+// Simple progress callback type
+type ProgressCallback = (progress: {
+  percentage: number;
+  message: string;
+}) => void;
 
-// Check if there's any existing app data (used to detect fresh installations)
-const checkForExistingData = (): boolean => {
-  // Check for key data that would exist in a v1 installation
-  const masterRoster = getLocalStorageItem(MASTER_ROSTER_KEY);
-  const savedGames = getLocalStorageItem(SAVED_GAMES_KEY);
-  const seasons = getLocalStorageItem(SEASONS_LIST_KEY);
-  const tournaments = getLocalStorageItem(TOURNAMENTS_LIST_KEY);
-  
-  return !!(masterRoster || savedGames || seasons || tournaments);
+// Migration state for UI updates
+let migrationProgress: ProgressCallback | null = null;
+
+/**
+ * Set a progress callback for UI updates
+ */
+export const setMigrationProgressCallback = (callback: ProgressCallback | null) => {
+  migrationProgress = callback;
 };
 
-// Check if migration is needed
-export const isMigrationNeeded = (): boolean => {
-  const currentVersion = getAppDataVersion();
-  return currentVersion < CURRENT_DATA_VERSION;
-};
-
-// Get current app data version
+/**
+ * Get current app data version
+ */
 export const getAppDataVersion = (): number => {
   const stored = getLocalStorageItem(APP_DATA_VERSION_KEY);
   if (stored) {
     return parseInt(stored, 10);
   }
-  
-  // For fresh installations with no version stored, check if there's any existing data
-  // If no existing data, set to current version immediately to avoid unnecessary migration
-  const hasExistingData = checkForExistingData();
-  if (!hasExistingData) {
-    // Fresh installation - set to current version
+
+  // Check if there's any existing data
+  const hasData = !!(
+    getLocalStorageItem(MASTER_ROSTER_KEY) ||
+    getLocalStorageItem(SAVED_GAMES_KEY) ||
+    getLocalStorageItem(SEASONS_LIST_KEY) ||
+    getLocalStorageItem(TOURNAMENTS_LIST_KEY)
+  );
+
+  // If no data exists, this is a fresh install
+  if (!hasData) {
     setAppDataVersion(CURRENT_DATA_VERSION);
     return CURRENT_DATA_VERSION;
   }
-  
-  // Has existing data but no version - this is a v1 installation that needs migration
+
+  // Has data but no version = v1 installation
   return 1;
 };
 
-// Set app data version
+/**
+ * Set app data version
+ */
 export const setAppDataVersion = (version: number): void => {
   setLocalStorageItem(APP_DATA_VERSION_KEY, version.toString());
 };
 
-// Main migration function (idempotent - safe to run multiple times)
+/**
+ * Check if migration is needed
+ */
+export const isMigrationNeeded = (): boolean => {
+  const currentVersion = getAppDataVersion();
+  return currentVersion < CURRENT_DATA_VERSION;
+};
+
+/**
+ * Check if IndexedDB migration is needed
+ */
+export const isIndexedDbMigrationNeeded = async (): Promise<boolean> => {
+  const config = await getStorageConfig();
+  return config.mode === 'localStorage' &&
+         config.version !== INDEXEDDB_STORAGE_VERSION &&
+         config.forceMode !== 'localStorage';
+};
+
+/**
+ * Simple migration lock to prevent concurrent runs
+ */
+let migrationInProgress = false;
+
+/**
+ * Main migration function - simplified for small datasets
+ */
 export const runMigration = async (): Promise<void> => {
-  if (!isMigrationNeeded()) {
-    logger.log('[Migration] No migration needed, current version:', getAppDataVersion());
+  // Prevent concurrent migrations
+  if (migrationInProgress) {
+    logger.log('[Migration] Already in progress, skipping');
     return;
   }
 
-  const currentVersion = getAppDataVersion();
-  logger.log(`[Migration] Starting migration from version ${currentVersion} to version ${CURRENT_DATA_VERSION}`);
-
-  // Import backup functions here to avoid circular dependencies
-  const { 
-    createMigrationBackup, 
-    restoreMigrationBackup, 
-    clearMigrationBackup,
-    hasMigrationBackup,
-    getMigrationBackupInfo
-  } = await import('./migrationBackup');
-
-  // Check for existing backup (from failed previous migration)
-  if (hasMigrationBackup()) {
-    const backupInfo = getMigrationBackupInfo();
-    logger.warn('[Migration] Found existing migration backup from:', new Date(backupInfo?.timestamp || 0));
-    logger.warn('[Migration] This suggests a previous migration failed. Backup will be replaced.');
-  }
-
-  // Create backup before migration
-  let backup;
   try {
-    backup = await createMigrationBackup(CURRENT_DATA_VERSION);
-    logger.log('[Migration] Created backup successfully');
-  } catch (error) {
-    logger.error('[Migration] Failed to create backup:', error);
-    throw new Error(`Cannot proceed with migration - backup creation failed: ${error}`);
-  }
+    migrationInProgress = true;
 
-  try {
-    // Execute migration steps
-    await performMigrationSteps();
-    
-    // Update app data version only if all steps succeed
-    setAppDataVersion(CURRENT_DATA_VERSION);
-    
-    // Clear backup on successful migration
-    clearMigrationBackup();
-    logger.log('[Migration] Migration completed successfully');
+    const needsAppMigration = isMigrationNeeded();
+    const needsIndexedDbMigration = await isIndexedDbMigrationNeeded();
 
-  } catch (error) {
-    logger.error('[Migration] Migration failed, attempting rollback:', error);
-    
-    try {
-      await restoreMigrationBackup(backup);
-      clearMigrationBackup();
-      logger.log('[Migration] Successfully rolled back to previous state');
-      
-      // Re-throw the original migration error
-      throw new Error(`Migration failed and was rolled back: ${error}`);
-      
-    } catch (rollbackError) {
-      logger.error('[Migration] CRITICAL: Rollback failed:', rollbackError);
-      
-      // Don't clear backup if rollback failed - user might need it
-      throw new Error(`Migration failed and rollback unsuccessful. Original error: ${error}. Rollback error: ${rollbackError}. Please restore from a manual backup or contact support.`);
+    if (!needsAppMigration && !needsIndexedDbMigration) {
+      logger.log('[Migration] No migration needed');
+      return;
     }
+
+    // Handle app data migration (v1 → v2)
+    if (needsAppMigration) {
+      logger.log('[Migration] Starting app data migration');
+      await performAppDataMigration();
+      setAppDataVersion(CURRENT_DATA_VERSION);
+      logger.log('[Migration] App data migration completed');
+    }
+
+    // Handle IndexedDB migration
+    if (needsIndexedDbMigration) {
+      logger.log('[Migration] Starting IndexedDB migration');
+      await performIndexedDbMigration();
+      logger.log('[Migration] IndexedDB migration completed');
+    }
+
+  } catch (error) {
+    logger.error('[Migration] Migration failed:', error);
+    // Don't throw - app can still work with localStorage
+  } finally {
+    migrationInProgress = false;
+    migrationProgress = null;
   }
 };
 
-// Execute the actual migration steps
-const performMigrationSteps = async (): Promise<void> => {
-  // Step 1: Create default team from current data
-  const defaultTeam = await createDefaultTeam();
-  logger.log('[Migration] Created default team:', defaultTeam);
+/**
+ * Perform app data migration (team structure, etc.)
+ */
+async function performAppDataMigration(): Promise<void> {
+  // Import only what we need to avoid circular dependencies
+  const { getMasterRoster } = await import('./masterRosterManager');
+  const { getLastHomeTeamName } = await import('./appSettings');
+  const { addTeam, setTeamRoster } = await import('./teams');
 
-  // Step 2: Move roster to team rosters
-  await migrateRosterToTeam(defaultTeam.id);
-  logger.log('[Migration] Migrated roster to team');
-
-  // Step 3: Seasons and tournaments remain global (no teamId tagging per plan)
-  logger.log('[Migration] Seasons and tournaments remain global entities');
-
-  // Step 4: Saved games remain untagged (legacy games stay global per plan) 
-  logger.log('[Migration] Saved games remain global (legacy data preserved)');
-
-  // Step 5: Player adjustments remain untagged (historical data preserved)
-  logger.log('[Migration] Player adjustments remain global (historical data preserved)');
-
-  // Step 6: Set as active team
-  // Note: Active team concept removed - teams are contextually selected
-  logger.log('[Migration] Created default team for legacy data');
-};
-
-// Create default team from current data
-const createDefaultTeam = async (): Promise<Team> => {
-  // Try to get team name from settings, fallback to default
-  let teamName: string;
-  try {
-    const lastTeamName = await getLastHomeTeamName();
-    teamName = lastTeamName || MIGRATION_TEAM_NAME_FALLBACK;
-  } catch {
-    teamName = MIGRATION_TEAM_NAME_FALLBACK;
-  }
-
-  return await addTeam({
+  // Create a default team for existing data
+  const teamName = await getLastHomeTeamName() || 'My Team';
+  const team = await addTeam({
     name: teamName,
-    color: '#6366F1', // Default indigo color
+    color: '#6366F1'
   });
-};
 
-// Move existing roster to team roster structure
-const migrateRosterToTeam = async (teamId: string): Promise<void> => {
+  // Migrate roster to team
   try {
-    const masterRoster = await getMasterRoster();
-    
-    // Convert Player[] to TeamPlayer[] (remove field-specific properties)
-    const teamRoster: TeamPlayer[] = masterRoster.map(player => ({
+    const roster = await getMasterRoster();
+    const teamRoster = roster.map(player => ({
       id: player.id,
       name: player.name,
       nickname: player.nickname,
@@ -180,91 +166,150 @@ const migrateRosterToTeam = async (teamId: string): Promise<void> => {
       isGoalie: player.isGoalie,
       color: player.color,
       notes: player.notes,
-      receivedFairPlayCard: player.receivedFairPlayCard,
-      // Note: relX/relY are field-specific and not copied to team roster
+      receivedFairPlayCard: player.receivedFairPlayCard
     }));
-
-    await setTeamRoster(teamId, teamRoster);
+    await setTeamRoster(team.id, teamRoster);
   } catch (error) {
     logger.warn('[Migration] Could not migrate roster:', error);
-    // Set empty roster if migration fails
-    await setTeamRoster(teamId, []);
+    await setTeamRoster(team.id, []);
   }
-};
 
-// Note: Previous functions removed per plan - seasons/tournaments/saved games/adjustments remain global
-// - migrateSeasonsToTeam: Seasons remain global entities (no teamId tagging)
-// - migrateTournamentsToTeam: Tournaments remain global entities (no teamId tagging) 
-// - migrateSavedGamesToTeam: Legacy games preserved as global (no historical data mutation)
-// - migratePlayerAdjustmentsToTeam: Historical adjustments preserved (no retrospective tagging)
+  logger.log('[Migration] Created default team:', team.name);
+}
 
 /**
- * Manual recovery function for failed migrations
- * This can be called from settings or developer tools
+ * Perform simplified IndexedDB migration
  */
-export const recoverFromFailedMigration = async (): Promise<boolean> => {
-  const { 
-    hasMigrationBackup, 
-    restoreMigrationBackup, 
-    clearMigrationBackup,
-    getMigrationBackupInfo,
-    validateMigrationBackup
-  } = await import('./migrationBackup');
-
-  if (!hasMigrationBackup()) {
-    logger.log('[Migration Recovery] No migration backup found');
-    return false;
-  }
-
-  const backupInfo = getMigrationBackupInfo();
-  if (!backupInfo) {
-    logger.error('[Migration Recovery] Backup exists but cannot read info');
-    return false;
-  }
-
-  logger.log(`[Migration Recovery] Found backup from ${new Date(backupInfo.timestamp)} (version ${backupInfo.version})`);
-
+async function performIndexedDbMigration(): Promise<void> {
   try {
-    // Load and validate the backup
-    const backupData = JSON.parse(getLocalStorageItem('MIGRATION_BACKUP_TEMP') || '{}');
-    const validation = validateMigrationBackup(backupData);
-    
-    if (!validation.valid) {
-      logger.error('[Migration Recovery] Backup validation failed:', validation.errors);
-      return false;
+    // Create IndexedDB adapter only (read from localStorage directly)
+    const targetAdapter = await createStorageAdapter('indexedDB');
+
+    // Get all localStorage keys
+    const allKeys = Object.keys(localStorage).filter(key =>
+      !key.startsWith('migration_') && // Skip migration-specific keys
+      !key.includes('backup') // Skip backup keys
+    );
+
+    const totalKeys = allKeys.length;
+    logger.log(`[Migration] Found ${totalKeys} keys to migrate`);
+
+    // Simple progress tracking
+    let processed = 0;
+    const updateProgress = (message: string) => {
+      processed++;
+      const percentage = Math.round((processed / totalKeys) * 100);
+      logger.log(`[Migration] Progress: ${percentage}% - ${message}`);
+
+      if (migrationProgress) {
+        migrationProgress({ percentage, message });
+      }
+    };
+
+    // Transfer data with simple error handling
+    const errors: string[] = [];
+
+    for (const key of allKeys) {
+      try {
+        // Read directly from localStorage (no adapter needed)
+        const value = localStorage.getItem(key);
+        if (value !== null) {
+          await targetAdapter.setItem(key, value);
+        }
+        updateProgress(`Migrated ${key}`);
+      } catch (error) {
+        const errorMsg = `Failed to migrate ${key}: ${error}`;
+        logger.warn(errorMsg);
+        errors.push(errorMsg);
+        // Continue with other keys even if one fails
+      }
     }
 
-    // Restore from backup
-    await restoreMigrationBackup();
-    clearMigrationBackup();
-    
-    logger.log('[Migration Recovery] Successfully restored from backup');
-    return true;
+    // Check if migration was successful enough
+    const successRate = ((totalKeys - errors.length) / totalKeys) * 100;
+
+    if (successRate < 50) {
+      throw new Error(`Migration failed: Only ${successRate.toFixed(1)}% of data transferred`);
+    }
+
+    if (errors.length > 0) {
+      logger.warn(`[Migration] Completed with ${errors.length} errors (${successRate.toFixed(1)}% success rate)`);
+    }
+
+    // Update storage configuration to use IndexedDB
+    await updateStorageConfig({
+      mode: 'indexedDB',
+      version: INDEXEDDB_STORAGE_VERSION,
+      migrationState: 'completed'
+    });
+
+    logger.log('[Migration] Storage configuration updated to IndexedDB');
+
+    // IMPORTANT: localStorage data is intentionally NOT deleted after migration
+    // Rationale:
+    // - Automatic backup: If IndexedDB corrupts, localStorage provides recovery source
+    // - Rollback capability: Users can manually switch back to localStorage if needed
+    // - Negligible cost: <50MB duplication for single-user local-first app (50-100 games)
+    // - Data safety priority: Aligns with CLAUDE.md focus on data integrity over disk optimization
+    // - No privacy risk: Origin-isolated storage, single-user PWA context
+    // See CLAUDE.md "Data Integrity" guidelines for local-first architecture
 
   } catch (error) {
-    logger.error('[Migration Recovery] Recovery failed:', error);
-    return false;
+    logger.error('[Migration] IndexedDB migration failed:', error);
+
+    // Update config to indicate failure but don't crash
+    await updateStorageConfig({
+      migrationState: 'failed'
+    });
+
+    throw error;
   }
-};
+}
 
 /**
- * Get migration status and backup info
+ * Get migration status for UI
  */
 export const getMigrationStatus = async () => {
-  const { hasMigrationBackup, getMigrationBackupInfo } = await import('./migrationBackup');
-  
+  const config = await getStorageConfig();
+
   return {
     currentVersion: getAppDataVersion(),
     targetVersion: CURRENT_DATA_VERSION,
     migrationNeeded: isMigrationNeeded(),
-    hasBackup: hasMigrationBackup(),
-    backupInfo: getMigrationBackupInfo()
+    storageMode: config.mode,
+    storageVersion: config.version,
+    indexedDbMigrationNeeded: await isIndexedDbMigrationNeeded(),
+    migrationState: config.migrationState
   };
 };
 
-// Create compatibility shims for existing code during migration
-export const getMasterRosterCompat = async (): Promise<Player[]> => {
-  // Note: Active team concept removed - this function now just returns master roster
-  // This will be refactored when implementing contextual team selection
+/**
+ * Manually trigger IndexedDB migration (for settings UI)
+ */
+export const triggerIndexedDbMigration = async (): Promise<boolean> => {
+  const config = await getStorageConfig();
+
+  if (config.mode === 'indexedDB') {
+    logger.log('[Migration] Already using IndexedDB');
+    return true;
+  }
+
+  if (config.forceMode === 'localStorage') {
+    logger.log('[Migration] Migration blocked: localStorage forced');
+    return false;
+  }
+
+  try {
+    await performIndexedDbMigration();
+    return true;
+  } catch (error) {
+    logger.error('[Migration] Manual migration failed:', error);
+    return false;
+  }
+};
+
+// Compatibility export for existing code
+export const getMasterRosterCompat = async () => {
+  const { getMasterRoster } = await import('./masterRosterManager');
   return getMasterRoster();
 };

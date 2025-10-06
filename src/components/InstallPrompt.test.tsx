@@ -1,8 +1,15 @@
 import React from "react";
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import "@/i18n";
 import InstallPrompt from "./InstallPrompt";
+
+// Mock the storage module
+jest.mock("@/utils/storage");
+
+// Import mocked functions after jest.mock
+import { setStorageItem } from "@/utils/storage";
+import { clearMockStore } from "@/utils/__mocks__/storage";
 
 interface TestInstallEvent extends Event {
   prompt: () => Promise<void>;
@@ -20,7 +27,7 @@ function dispatchInstallEvent(promptMock: jest.Mock) {
 
 describe("InstallPrompt", () => {
   beforeEach(() => {
-    localStorage.clear();
+    clearMockStore();
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: jest.fn().mockReturnValue({
@@ -53,13 +60,25 @@ describe("InstallPrompt", () => {
     await act(async () => {
       render(<InstallPrompt />);
     });
-    act(() => {
+
+    // Dispatch install event
+    await act(async () => {
       dispatchInstallEvent(jest.fn());
     });
+
+    // Wait for the install prompt to appear
     const dismissBtn = await screen.findByText("Not now");
+
     await act(async () => {
       fireEvent.click(dismissBtn);
     });
-    expect(localStorage.getItem("installPromptDismissed")).not.toBeNull();
+
+    // Wait for async storage operation to complete
+    await waitFor(() => {
+      expect(setStorageItem).toHaveBeenCalledWith(
+        "installPromptDismissed",
+        expect.any(String)
+      );
+    });
   });
 });

@@ -1,70 +1,133 @@
+// Mock storage module FIRST - uses __mocks__/storage.ts for in-memory storage
+jest.mock('./storage');
+
 import { importGamesFromJson } from './savedGames';
 import { AppState } from '@/types';
+import type { ZodIssue } from 'zod';
+import { appStateSchema } from './appStateSchema';
 
-// Mock localStorage
-const mockLocalStorage = (() => {
-  let store: Record<string, string> = {};
-  
-  return {
-    getItem: jest.fn((key: string) => store[key] || null),
-    setItem: jest.fn((key: string, value: string) => {
-      store[key] = value;
-    }),
-    removeItem: jest.fn((key: string) => {
-      delete store[key];
-    }),
-    clear: jest.fn(() => {
-      store = {};
-    }),
-    getStore: () => ({ ...store })
-  };
-})();
+// Import mock utilities from the mocked module (not from __mocks__ directly)
+// This ensures we get the same instance that jest.mock() creates
+// Using jest.requireMock to get the mocked module instance
+const storageModule = jest.requireMock('./storage') as {
+  clearMockStore: () => void;
+  getMockStore: () => Record<string, string>;
+};
+const { clearMockStore, getMockStore } = storageModule;
+
+// Mock localStorage with proper cleanup to prevent memory leaks
+let mockLocalStorageStore: Record<string, string> = {};
+
+const mockLocalStorage = {
+  getItem: jest.fn((key: string) => mockLocalStorageStore[key] || null),
+  setItem: jest.fn((key: string, value: string) => {
+    mockLocalStorageStore[key] = value;
+  }),
+  removeItem: jest.fn((key: string) => {
+    delete mockLocalStorageStore[key];
+  }),
+  clear: jest.fn(() => {
+    mockLocalStorageStore = {};
+  }),
+  getStore: () => ({ ...mockLocalStorageStore })
+};
 
 Object.defineProperty(global, 'localStorage', {
-  value: mockLocalStorage
+  value: mockLocalStorage,
+  configurable: true
 });
 
 // Mock logger
 jest.mock('./logger', () => ({
-  log: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn()
+  __esModule: true,
+  default: {
+    debug: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  },
+  createLogger: jest.fn(() => ({
+    debug: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn()
+  }))
 }));
 
 describe('Game Import with Partial Success', () => {
   beforeEach(() => {
-    mockLocalStorage.clear();
-    jest.clearAllMocks();
+    // Note: clearMockStore() is NOT called here because it interferes with async operations
+    // The mock store will be empty initially, and tests should handle existing data if needed
+    mockLocalStorage.clear(); // Keep for legacy if needed
+    jest.clearAllTimers(); // Clear any pending timers
+    // Note: jest.clearAllMocks() would reset our storage mock implementations
+    // Instead, we only clear mocks that we explicitly create in tests
   });
 
-  const createValidGameData = (gameId: string, teamName: string = 'Test Team'): AppState => ({
-    teamName,
-    opponentName: 'Opponent',
-    gameDate: '2023-01-01',
-    homeScore: 0,
-    awayScore: 0,
-    gameNotes: '',
-    homeOrAway: 'home',
-    numberOfPeriods: 2,
-    periodDurationMinutes: 10,
-    currentPeriod: 1,
-    gameStatus: 'notStarted',
-    selectedPlayerIds: [],
-    seasonId: '',
-    tournamentId: '',
-    demandFactor: 1,
-    gameEvents: [],
-    subIntervalMinutes: 5,
-    completedIntervalDurations: [],
-    lastSubConfirmationTimeSeconds: 0,
-    playersOnField: [],
-    opponents: [],
-    drawings: [],
-    availablePlayers: [],
-    showPlayerNames: true,
-    tacticalDiscs: [],
-    tacticalDrawings: [],
-    tacticalBallPosition: { relX: 0.5, relY: 0.5 }
+  afterEach(() => {
+    // Clean up to prevent memory leaks
+    clearMockStore();
+    mockLocalStorage.clear();
+    mockLocalStorageStore = {}; // Explicitly clear the store to break references
+    jest.clearAllTimers();
+  });
+
+  // Helper to validate test data against schema
+  const validateTestData = (data: unknown, label: string) => {
+    const validation = appStateSchema.safeParse(data);
+    if (!validation.success) {
+      const errors = validation.error.errors.map((e: ZodIssue) => `${e.path.join('.')}: ${e.message}`).join(', ');
+      throw new Error(`${label} failed validation: ${errors}`);
+    }
+  };
+
+  // Use EXACT structure from savedGames.test.ts mockBaseAppState that we know works
+  const createValidGameData = (gameId: string, teamName: string = 'Test Team'): AppState => {
+    return {
+      playersOnField: [],
+      opponents: [],
+      drawings: [],
+      availablePlayers: [],
+      showPlayerNames: true,
+      teamName,
+      gameEvents: [],
+      opponentName: 'Opponent',
+      gameDate: '2023-01-01',
+      homeScore: 0,
+      awayScore: 0,
+      gameNotes: '',
+      homeOrAway: 'home',
+      numberOfPeriods: 2,
+      periodDurationMinutes: 10,
+      currentPeriod: 1,
+      gameStatus: 'notStarted',
+      selectedPlayerIds: [],
+      assessments: {},
+      seasonId: '',
+      tournamentId: '',
+      gameLocation: 'Test Stadium',
+      gameTime: '15:00',
+      subIntervalMinutes: 5,
+      completedIntervalDurations: [],
+      lastSubConfirmationTimeSeconds: 0,
+      tacticalDiscs: [],
+      tacticalDrawings: [],
+      tacticalBallPosition: { relX: 0, relY: 0 }
+    };
+  };
+
+  describe('test data validation', () => {
+    it('should validate that createValidGameData produces valid AppState', () => {
+      const testData = createValidGameData('test-id', 'Test Team');
+
+      // This will throw with descriptive error if validation fails
+      validateTestData(testData, 'createValidGameData output');
+
+      // If we get here, validation passed
+      expect(testData.teamName).toBe('Test Team');
+    });
   });
 
   describe('successful imports', () => {
@@ -76,6 +139,12 @@ describe('Game Import with Partial Success', () => {
       };
 
       const result = await importGamesFromJson(JSON.stringify(validGames));
+
+      // Provide detailed error message if validation failed
+      if (result.successful !== 3) {
+        const errorDetails = result.failed.map(f => `  ${f.gameId}: ${f.error}`).join('\n');
+        fail(`Expected 3 successful imports but got ${result.successful}.\nValidation errors:\n${errorDetails}`);
+      }
 
       expect(result.successful).toBe(3);
       expect(result.skipped).toBe(0);
@@ -138,12 +207,18 @@ describe('Game Import with Partial Success', () => {
 
       const result = await importGamesFromJson(JSON.stringify(mixedGames));
 
+      // Provide detailed error message if validation failed for valid games
+      if (result.successful !== 2) {
+        const allErrors = result.failed.map(f => `  ${f.gameId}: ${f.error}`).join('\n');
+        fail(`Expected 2 successful imports but got ${result.successful}.\nAll validation errors:\n${allErrors}`);
+      }
+
       expect(result.successful).toBe(2); // Two valid games imported
       expect(result.failed).toHaveLength(2); // Two invalid games failed
       expect(result.skipped).toBe(0);
-      
-      // Check that valid games were actually saved
-      const savedData = mockLocalStorage.getStore();
+
+      // Check that valid games were actually saved to IndexedDB mock store
+      const savedData = getMockStore();
       expect(savedData['savedSoccerGames']).toBeDefined();
       const parsedSaved = JSON.parse(savedData['savedSoccerGames']);
       expect(parsedSaved['valid-game']).toBeDefined();
@@ -245,6 +320,12 @@ describe('Game Import with Partial Success', () => {
       };
 
       const result = await importGamesFromJson(JSON.stringify(gamesWithNull));
+
+      // Provide detailed error message if validation failed for valid game
+      if (result.successful !== 1) {
+        const errorDetails = result.failed.map(f => `  ${f.gameId}: ${f.error}`).join('\n');
+        fail(`Expected 1 successful import but got ${result.successful}.\nValidation errors:\n${errorDetails}`);
+      }
 
       expect(result.successful).toBe(1); // Valid game imported
       expect(result.failed).toHaveLength(1); // Null game failed
