@@ -29,7 +29,7 @@ async function generateManifest() {
     "scope": "/",
     "display": "standalone",
     "orientation": "portrait-primary",
-    "background_color": "#111827",
+    "background_color": "#1e293b",
     "theme_color": config.themeColor,
     "categories": ["sports", "productivity"],
     "lang": "en-US",
