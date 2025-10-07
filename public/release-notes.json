@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "Merge branch 'feat/update-app-icon'"
+  "notes": "fix: resolve PWA installation failures on mobile devices"
 }
