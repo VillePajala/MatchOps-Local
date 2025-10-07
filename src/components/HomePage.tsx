@@ -734,22 +734,31 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     },
   });
   // Fixed: Sync master roster from React Query to local state
+  // Guard: Only update availablePlayers from master roster when NOT in an active game
+  // This prevents overwriting per-game goalie selections
   useEffect(() => {
     if (isMasterRosterQueryLoading) {
       logger.log('[TanStack Query] Master Roster is loading...');
       return;
     }
-    
+
     if (isMasterRosterQueryError) {
       logger.error('[TanStack Query] Error loading master roster:', masterRosterQueryErrorData);
       setAvailablePlayers([]);
       return;
     }
-    
+
     if (masterRosterQueryResultData && Array.isArray(masterRosterQueryResultData)) {
-      setAvailablePlayers(masterRosterQueryResultData);
+      // Only update if we're on the default game (not a saved/loaded game)
+      // This prevents overwriting per-game goalie status when master roster updates
+      if (!currentGameId || currentGameId === DEFAULT_GAME_ID) {
+        logger.log('[TanStack Query] Syncing master roster to availablePlayers (default game)');
+        setAvailablePlayers(masterRosterQueryResultData);
+      } else {
+        logger.log('[TanStack Query] Skipping master roster sync (active game with per-game state)');
+      }
     }
-  }, [masterRosterQueryResultData, isMasterRosterQueryLoading, isMasterRosterQueryError, masterRosterQueryErrorData, setAvailablePlayers]);
+  }, [masterRosterQueryResultData, isMasterRosterQueryLoading, isMasterRosterQueryError, masterRosterQueryErrorData, setAvailablePlayers, currentGameId]);
 
   // Fixed: Sync seasons from React Query to local state
   useEffect(() => {
@@ -1081,6 +1090,10 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     setTacticalDrawings(gameData?.tacticalDrawings || (isInitialDefaultLoad ? initialState.tacticalDrawings : []));
     setTacticalBallPosition(gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 });
     setIsPlayed(gameData?.isPlayed === false ? false : true);
+
+    // Load per-game availablePlayers (with per-game goalie status)
+    // Prioritize saved game data, fall back to master roster for new games
+    setAvailablePlayers(gameData?.availablePlayers || masterRosterQueryResultData || availablePlayers);
     
     // Update gameEvents from gameData if present, otherwise from initial state if it's an initial default load
     // setGameEvents(gameData?.events || (isInitialDefaultLoad ? initialState.gameEvents : [])); // REMOVE - Handled by LOAD_PERSISTED_GAME_DATA in reducer
@@ -1112,8 +1125,8 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       homeOrAway: gameData?.homeOrAway ?? initialGameSessionData.homeOrAway,
       numberOfPeriods: gameData?.numberOfPeriods ?? initialGameSessionData.numberOfPeriods,
       periodDurationMinutes: gameData?.periodDurationMinutes ?? initialGameSessionData.periodDurationMinutes,
-      currentPeriod: gameData?.currentPeriod ?? initialGameSessionData.currentPeriod, 
-      gameStatus: gameData?.gameStatus ?? initialGameSessionData.gameStatus, 
+      currentPeriod: gameData?.currentPeriod ?? initialGameSessionData.currentPeriod,
+      gameStatus: gameData?.gameStatus ?? initialGameSessionData.gameStatus,
       seasonId: gameData?.seasonId ?? initialGameSessionData.seasonId,
       tournamentId: gameData?.tournamentId ?? initialGameSessionData.tournamentId,
       gameLocation: gameData?.gameLocation ?? initialGameSessionData.gameLocation,
@@ -1131,7 +1144,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       tacticalDiscs: gameData?.tacticalDiscs || [],
       tacticalDrawings: gameData?.tacticalDrawings || [],
       tacticalBallPosition: gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 },
-      availablePlayers: masterRosterQueryResultData || availablePlayers,
+      availablePlayers: gameData?.availablePlayers || masterRosterQueryResultData || availablePlayers,
     };
     resetHistory(newHistoryState);
     logger.log('[LOAD GAME STATE] Finished dispatching. Reducer will update gameSessionState.');
@@ -1203,7 +1216,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           tacticalDiscs,
           tacticalDrawings,
           tacticalBallPosition,
-          availablePlayers: masterRosterQueryResultData || availablePlayers, // Master roster snapshot
+          availablePlayers, // Per-game roster with per-game goalie status
           
           // Volatile timer states are intentionally EXCLUDED from the snapshot to be saved.
           // They are not part of GameData and should be re-initialized on load by the reducer.
