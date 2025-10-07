@@ -59,11 +59,24 @@ async function updateServiceWorker() {
   const swPath = path.join(process.cwd(), 'public', 'sw.js');
   try {
     const swContent = fs.readFileSync(swPath, 'utf8');
+    const buildTimestamp = new Date().toISOString();
+    const cacheVersion = buildTimestamp.replace(/[:.]/g, '-').substring(0, 19); // e.g., "2025-10-07T12-38-47"
+
+    // Update CACHE_NAME with build-specific version
+    // Match both old format (matchops-v3) and new format (matchops-2025-10-07T12-38-47)
+    let newContent = swContent.replace(
+      /const CACHE_NAME = ['"]matchops-[^'"]+['"];/,
+      `const CACHE_NAME = 'matchops-${cacheVersion}';`
+    );
+
     // Remove old timestamp if it exists to prevent the file from growing indefinitely
-    const contentWithoutTimestamp = swContent.replace(/\/\/ Build Timestamp: .*/, '').trim();
-    const newContent = `${contentWithoutTimestamp}\n// Build Timestamp: ${new Date().toISOString()}`;
+    newContent = newContent.replace(/\/\/ Build Timestamp: .*/, '').trim();
+    newContent = `${newContent}\n// Build Timestamp: ${buildTimestamp}`;
+
     fs.writeFileSync(swPath, newContent);
-    console.log('Service worker timestamp updated successfully!');
+    console.log('Service worker updated successfully!');
+    console.log(`  - Cache version: matchops-${cacheVersion}`);
+    console.log(`  - Build timestamp: ${buildTimestamp}`);
   } catch (error) {
     console.error('Failed to update service worker:', error);
     // We don't want to fail the build if the SW doesn't exist,
