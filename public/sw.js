@@ -1,11 +1,11 @@
 // Caching strategy for PWA offline support
-const CACHE_NAME = 'matchops-v1';
+const CACHE_NAME = 'matchops-v2';
 const STATIC_RESOURCES = [
   '/',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
-  '/logos/match_ops_local_logo_transparent.png'
+  '/logos/app-logo.png'
 ];
 
 // Listen for the install event - cache static resources
@@ -14,7 +14,21 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('[SW] Caching static resources');
-      return cache.addAll(STATIC_RESOURCES);
+      // Cache resources individually to better handle errors
+      return Promise.all(
+        STATIC_RESOURCES.map(url =>
+          cache.add(url).catch(err => {
+            console.error(`[SW] Failed to cache ${url}:`, err);
+            // Don't fail the entire installation if one resource fails
+            return Promise.resolve();
+          })
+        )
+      );
+    }).then(() => {
+      console.log('[SW] Service worker installed successfully');
+    }).catch(err => {
+      console.error('[SW] Service worker installation failed:', err);
+      throw err;
     })
   );
   // Do NOT call self.skipWaiting() here.
@@ -24,8 +38,23 @@ self.addEventListener('install', (event) => {
 // Listen for the activate event
 self.addEventListener('activate', (event) => {
   console.log('[SW] Service worker activating...');
-  // Take control of all open clients immediately
-  event.waitUntil(clients.claim());
+  event.waitUntil(
+    // Clean up old caches
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('[SW] Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => {
+      console.log('[SW] Service worker activated');
+      // Take control of all open clients immediately
+      return clients.claim();
+    })
+  );
 });
 
 // Listen for messages from the client
