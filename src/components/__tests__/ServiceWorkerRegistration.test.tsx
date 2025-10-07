@@ -1,5 +1,6 @@
 import { render, waitFor, act } from '@testing-library/react';
 import ServiceWorkerRegistration from '../ServiceWorkerRegistration';
+import { PWA_CACHE_VERSION } from '@/config/pwaVersion';
 
 // Mock logger
 jest.mock('@/utils/logger', () => ({
@@ -62,7 +63,7 @@ describe('ServiceWorkerRegistration', () => {
     render(<ServiceWorkerRegistration />);
 
     await waitFor(() => {
-      expect(navigator.serviceWorker.register).toHaveBeenCalledWith('/sw.js');
+      expect(navigator.serviceWorker.register).toHaveBeenCalledWith(`/sw.js?v=${PWA_CACHE_VERSION}`);
     });
   });
 

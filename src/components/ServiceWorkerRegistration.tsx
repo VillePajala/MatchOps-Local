@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import UpdateBanner from './UpdateBanner';
 import logger from '@/utils/logger';
+import { PWA_CACHE_VERSION } from '@/config/pwaVersion';
 
 export default function ServiceWorkerRegistration() {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
@@ -27,7 +28,7 @@ export default function ServiceWorkerRegistration() {
       }
     };
 
-    const swUrl = '/sw.js';
+    const swUrl = `/sw.js?v=${PWA_CACHE_VERSION}`;
     let updateInterval: NodeJS.Timeout | null = null;
 
     navigator.serviceWorker.register(swUrl).then(registration => {

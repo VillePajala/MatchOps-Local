@@ -1,34 +1,71 @@
 // Caching strategy for PWA offline support
-const CACHE_NAME = 'matchops-v1';
-const STATIC_RESOURCES = [
+const CACHE_VERSION = 'dev-build';
+const RAW_STATIC_RESOURCES = [
   '/',
   '/manifest.json',
+  `/manifest.json?v=${CACHE_VERSION}`,
   '/icons/icon-192x192.png',
+  `/icons/icon-192x192.png?v=${CACHE_VERSION}`,
   '/icons/icon-512x512.png',
+  `/icons/icon-512x512.png?v=${CACHE_VERSION}`,
   '/logos/match_ops_local_logo_transparent.png'
 ];
+const STATIC_RESOURCES = Array.from(new Set(RAW_STATIC_RESOURCES));
+const CACHE_NAME = `matchops-${CACHE_VERSION}`;
 
-// Listen for the install event - cache static resources
-self.addEventListener('install', (event) => {
-  console.log('[SW] Service worker installing...');
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Caching static resources');
-      return cache.addAll(STATIC_RESOURCES);
+async function cacheStaticResources() {
+  const cache = await caches.open(CACHE_NAME);
+
+  await Promise.all(
+    STATIC_RESOURCES.map(async (resource) => {
+      try {
+        const request = new Request(resource, { cache: 'reload' });
+        const response = await fetch(request);
+
+        if (!response || !response.ok) {
+          throw new Error(`Request for ${resource} failed with status ${response?.status}`);
+        }
+
+        await cache.put(request, response.clone());
+
+        const url = new URL(request.url);
+        if (url.search) {
+          const fallbackRequest = new Request(url.pathname, { cache: 'reload' });
+          await cache.put(fallbackRequest, response.clone());
+        }
+      } catch (error) {
+        console.warn(`[SW] Failed to cache ${resource}:`, error);
+      }
     })
   );
+}
+
+self.addEventListener('install', (event) => {
+  console.log('[SW] Service worker installing...');
+  event.waitUntil(cacheStaticResources());
   // Do NOT call self.skipWaiting() here.
   // We want to wait for the user to click the update button.
 });
 
-// Listen for the activate event
 self.addEventListener('activate', (event) => {
   console.log('[SW] Service worker activating...');
-  // Take control of all open clients immediately
-  event.waitUntil(clients.claim());
+  event.waitUntil(
+    (async () => {
+      const cacheKeys = await caches.keys();
+      await Promise.all(
+        cacheKeys
+          .filter((key) => key.startsWith('matchops-') && key !== CACHE_NAME)
+          .map((key) => {
+            console.log('[SW] Removing old cache:', key);
+            return caches.delete(key);
+          })
+      );
+
+      await clients.claim();
+    })()
+  );
 });
 
-// Listen for messages from the client
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     console.log('[SW] Received SKIP_WAITING message. Activating new service worker.');
@@ -36,41 +73,68 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Enhanced fetch handler with offline support
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+
+  if (request.method !== 'GET') {
+    return;
+  }
+
   const url = new URL(request.url);
 
-  // Handle same-origin requests
-  if (url.origin === location.origin) {
-    event.respondWith(
-      caches.match(request).then((response) => {
-        if (response) {
-          console.log('[SW] Serving from cache:', request.url);
-          return response;
-        }
-        
-        // Fetch from network and cache for next time
-        return fetch(request).then((fetchResponse) => {
-          // Only cache successful responses
-          if (fetchResponse.status === 200) {
-            const responseClone = fetchResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
-            });
-          }
-          return fetchResponse;
-        }).catch(() => {
-          // Offline fallback for HTML requests
-          if (request.destination === 'document') {
-            return caches.match('/');
-          }
-        });
-      })
-    );
-  } else {
-    // Pass through external requests
+  if (url.origin !== self.location.origin) {
     event.respondWith(fetch(request));
+    return;
   }
+
+  event.respondWith(
+    (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cachedResponse = await cache.match(request);
+
+      if (cachedResponse) {
+        console.log('[SW] Serving from cache:', request.url);
+        return cachedResponse;
+      }
+
+      if (url.search) {
+        const fallbackResponse = await cache.match(url.pathname);
+        if (fallbackResponse) {
+          console.log('[SW] Serving fallback cache for:', request.url);
+          return fallbackResponse;
+        }
+      }
+
+      try {
+        const networkResponse = await fetch(request);
+
+        if (networkResponse && networkResponse.ok) {
+          await cache.put(request, networkResponse.clone());
+
+          if (url.search) {
+            const fallbackRequest = new Request(url.pathname, { cache: 'reload' });
+            await cache.put(fallbackRequest, networkResponse.clone());
+          }
+        }
+
+        return networkResponse;
+      } catch (error) {
+        console.error('[SW] Network request failed:', error);
+
+        if (request.destination === 'document') {
+          const offlineResponse = await cache.match('/');
+          if (offlineResponse) {
+            return offlineResponse;
+          }
+        }
+
+        return new Response('Service unavailable', {
+          status: 503,
+          statusText: 'Service Unavailable',
+        });
+      }
+    })()
+  );
 });
-// Build Timestamp: 2025-10-07T11:45:39.098Z
+
+// Build Timestamp: 2025-01-01T00:00:00.000Z

@@ -8,6 +8,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 import I18nInitializer from "@/components/I18nInitializer";
 import { Analytics } from "@vercel/analytics/react";
 import { manifestConfig } from "@/config/manifest.config.js";
+import { PWA_CACHE_VERSION } from "@/config/pwaVersion";
 
 // Configure Rajdhani font
 const rajdhani = Rajdhani({
@@ -36,7 +37,7 @@ export const metadata: Metadata = {
     ],
     apple: '/icons/apple-touch-icon.png',
   },
-  manifest: '/manifest.json',
+  manifest: `/manifest.json?v=${PWA_CACHE_VERSION}`,
 };
 
 export const viewport: Viewport = {

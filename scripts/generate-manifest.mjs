@@ -1,75 +1,78 @@
 import fs from 'fs';
 import path from 'path';
 
-// This is a workaround to import from a TypeScript file in a Node script.
-// We are assuming the compiled output will be in a 'dist' or similar folder,
-// but for this script, we'll point directly to the source TS file
-// and rely on Node's module handling capabilities.
 async function importManifestConfig() {
   const configPath = path.join(process.cwd(), 'src', 'config', 'manifest.config.js');
-  // Use a dynamic import() which can handle modules
   const { manifestConfig } = await import(configPath);
   return manifestConfig;
 }
 
-async function generateManifest() {
-  const manifestConfig = await importManifestConfig();
-  const branch = process.env.VERCEL_GIT_COMMIT_REF || 'development'; // Vercel's env var, fallback for local
+function formatCacheVersion(timestamp) {
+  return timestamp.replace(/[-:.TZ]/g, '').slice(0, 14);
+}
 
+function writePwaVersionFile(cacheVersion, timestamp) {
+  const versionFilePath = path.join(process.cwd(), 'src', 'config', 'pwaVersion.ts');
+  const fileContents = `export const PWA_CACHE_VERSION = '${cacheVersion}';\nexport const PWA_BUILD_TIMESTAMP = '${timestamp}';\n`;
+  fs.writeFileSync(versionFilePath, fileContents);
+  console.log('PWA version metadata written to src/config/pwaVersion.ts');
+}
+
+async function generateManifest(manifestConfig, branch, cacheVersion) {
   console.log(`Generating manifest for branch: ${branch}`);
 
-  // Determine which configuration to use
   const config = manifestConfig[branch] || manifestConfig.default;
 
   const manifest = {
-    "name": config.appName,
-    "short_name": config.shortName,
-    "description": "Soccer Tactics and Timer App for Coaches",
-    "start_url": "/",
-    "scope": "/",
-    "display": "standalone",
-    "orientation": "portrait-primary",
-    "background_color": "#1e293b",
-    "theme_color": config.themeColor,
-    "categories": ["sports", "productivity"],
-    "lang": "en-US",
-    "dir": "ltr",
-    "prefer_related_applications": false,
-    "icons": [
+    name: config.appName,
+    short_name: config.shortName,
+    description: 'Soccer Tactics and Timer App for Coaches',
+    start_url: '/',
+    scope: '/',
+    display: 'standalone',
+    orientation: 'portrait-primary',
+    background_color: '#1e293b',
+    theme_color: config.themeColor,
+    categories: ['sports', 'productivity'],
+    lang: 'en-US',
+    dir: 'ltr',
+    prefer_related_applications: false,
+    icons: [
       {
-        "src": "/icons/icon-192x192.png",
-        "sizes": "192x192",
-        "type": "image/png",
-        "purpose": "maskable any"
+        src: `/icons/icon-192x192.png?v=${cacheVersion}`,
+        sizes: '192x192',
+        type: 'image/png',
+        purpose: 'maskable any',
       },
       {
-        "src": "/icons/icon-512x512.png",
-        "sizes": "512x512",
-        "type": "image/png",
-        "purpose": "maskable any"
-      }
-    ]
+        src: `/icons/icon-512x512.png?v=${cacheVersion}`,
+        sizes: '512x512',
+        type: 'image/png',
+        purpose: 'maskable any',
+      },
+    ],
   };
 
   fs.writeFileSync('public/manifest.json', JSON.stringify(manifest, null, 2));
   console.log('Manifest generated successfully!');
 }
 
-async function updateServiceWorker() {
+function updateServiceWorker(cacheVersion, timestamp) {
   const swPath = path.join(process.cwd(), 'public', 'sw.js');
   try {
     const swContent = fs.readFileSync(swPath, 'utf8');
-    // Remove old timestamp if it exists to prevent the file from growing indefinitely
-    const contentWithoutTimestamp = swContent.replace(/\/\/ Build Timestamp: .*/, '').trim();
-    const newContent = `${contentWithoutTimestamp}\n// Build Timestamp: ${new Date().toISOString()}`;
+    const withoutTimestamp = swContent.replace(/\/\/ Build Timestamp: .*/, '').trimEnd();
+    const withVersion = withoutTimestamp.replace(
+      /const CACHE_VERSION = '.*?';/,
+      `const CACHE_VERSION = '${cacheVersion}';`
+    );
+    const newContent = `${withVersion}\n// Build Timestamp: ${timestamp}\n`;
     fs.writeFileSync(swPath, newContent);
-    console.log('Service worker timestamp updated successfully!');
+    console.log('Service worker updated successfully!');
   } catch (error) {
     console.error('Failed to update service worker:', error);
-    // We don't want to fail the build if the SW doesn't exist,
-    // as it might not be present in all development environments.
     if (error.code !== 'ENOENT') {
-      throw error; // Rethrow if it's not a "file not found" error
+      throw error;
     } else {
       console.warn('public/sw.js not found, skipping update.');
     }
@@ -77,11 +80,17 @@ async function updateServiceWorker() {
 }
 
 async function main() {
-  await generateManifest();
-  await updateServiceWorker();
+  const manifestConfig = await importManifestConfig();
+  const branch = process.env.VERCEL_GIT_COMMIT_REF || 'development';
+  const timestamp = new Date().toISOString();
+  const cacheVersion = formatCacheVersion(timestamp);
+
+  await generateManifest(manifestConfig, branch, cacheVersion);
+  updateServiceWorker(cacheVersion, timestamp);
+  writePwaVersionFile(cacheVersion, timestamp);
 }
 
 main().catch(error => {
-  console.error("Build script failed:", error);
+  console.error('Build script failed:', error);
   process.exit(1);
-}); 
+});
