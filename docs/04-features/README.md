@@ -6,7 +6,8 @@ This directory contains detailed specifications for individual features and plan
 
 - **[team-management.md](./team-management.md)** - Multi-team support and team organization
 - **[master-roster-management.md](./master-roster-management.md)** - Central player roster system
-- **[seasons-tournaments.md](./seasons-tournaments.md)** - Season and tournament organization
+- **[seasons-tournaments.md](./seasons-tournaments.md)** - Season and tournament organization (includes club season filtering)
+- **[pwa-updates.md](./pwa-updates.md)** - Progressive Web App update detection and management
 - **[smart-roster-detection.md](./smart-roster-detection.md)** - Intelligent roster suggestions
 - **[adaptive-start-screen.md](./adaptive-start-screen.md)** - Context-aware user experience
 - **[first-game-onboarding.md](./first-game-onboarding.md)** - New user guidance
