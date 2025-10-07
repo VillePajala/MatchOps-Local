@@ -37,47 +37,44 @@ import StartScreen from './StartScreen';
 describe('StartScreen', () => {
   it('renders experienced user interface with all action buttons', () => {
     const handlers = {
-      onStartNewGame: jest.fn(),
       onLoadGame: jest.fn(),
       onResumeGame: jest.fn(),
-      onCreateSeason: jest.fn(),
-      onViewStats: jest.fn(),
       onGetStarted: jest.fn(),
-      onSetupRoster: jest.fn(),
-      onManageTeams: jest.fn(),
+      onViewStats: jest.fn(),
+      onOpenSettings: jest.fn(),
     };
 
     render(
       <StartScreen
-        onStartNewGame={handlers.onStartNewGame}
         onLoadGame={handlers.onLoadGame}
         onResumeGame={handlers.onResumeGame}
         onGetStarted={handlers.onGetStarted}
-        onCreateSeason={handlers.onCreateSeason}
         onViewStats={handlers.onViewStats}
-        onSetupRoster={handlers.onSetupRoster}
-        onManageTeams={handlers.onManageTeams}
+        onOpenSettings={handlers.onOpenSettings}
         canResume={true}
-        hasPlayers={true}
         hasSavedGames={true}
-        hasSeasonsTournaments={true}
         isFirstTimeUser={false} // Experienced user interface
       />
     );
 
-    expect(screen.getByRole('button', { name: 'Resume Last Game' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Load Game' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Seasons & Tournaments' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Manage Teams' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'View Stats' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'App Settings' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'English' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Finnish' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Manage Teams' }));
-    expect(handlers.onManageTeams).toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Resume Last Game' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(handlers.onResumeGame).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load Game' }));
+    expect(handlers.onLoadGame).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'View Stats' }));
+    expect(handlers.onViewStats).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'App Settings' }));
+    expect(handlers.onOpenSettings).toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole('button', { name: 'Finnish' }));
     expect(i18n.changeLanguage).toHaveBeenCalledWith('fi');
@@ -85,30 +82,22 @@ describe('StartScreen', () => {
 
   it('renders first-time user interface with simplified buttons', () => {
     const handlers = {
-      onStartNewGame: jest.fn(),
       onLoadGame: jest.fn(),
       onResumeGame: jest.fn(),
-      onCreateSeason: jest.fn(),
-      onViewStats: jest.fn(),
       onGetStarted: jest.fn(),
-      onSetupRoster: jest.fn(),
-      onManageTeams: jest.fn(),
+      onViewStats: jest.fn(),
+      onOpenSettings: jest.fn(),
     };
 
     render(
       <StartScreen
-        onStartNewGame={handlers.onStartNewGame}
         onLoadGame={handlers.onLoadGame}
         onResumeGame={handlers.onResumeGame}
         onGetStarted={handlers.onGetStarted}
-        onCreateSeason={handlers.onCreateSeason}
         onViewStats={handlers.onViewStats}
-        onSetupRoster={handlers.onSetupRoster}
-        onManageTeams={handlers.onManageTeams}
+        onOpenSettings={handlers.onOpenSettings}
         canResume={false}
-        hasPlayers={false}
         hasSavedGames={false}
-        hasSeasonsTournaments={false}
         isFirstTimeUser={true} // First-time user interface
       />
     );
@@ -120,9 +109,10 @@ describe('StartScreen', () => {
     expect(screen.getByRole('button', { name: 'Finnish' })).toBeInTheDocument();
 
     // Should not show full interface buttons
-    expect(screen.queryByRole('button', { name: 'Resume Last Game' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Manage Teams' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Load Game' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'View Stats' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'App Settings' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Get Started' }));
     expect(handlers.onGetStarted).toHaveBeenCalled();

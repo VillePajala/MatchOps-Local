@@ -14,7 +14,7 @@ import logger from '@/utils/logger';
 
 export default function Home() {
   const [screen, setScreen] = useState<'start' | 'home'>('start');
-  const [initialAction, setInitialAction] = useState<'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | 'teams' | null>(null);
+  const [initialAction, setInitialAction] = useState<'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | 'teams' | 'settings' | null>(null);
   const [canResume, setCanResume] = useState(false);
   const [hasPlayers, setHasPlayers] = useState(false);
   const [hasSavedGames, setHasSavedGames] = useState(false);
