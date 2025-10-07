@@ -138,7 +138,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
       <div className="absolute inset-0 pointer-events-none animate-rotate-slow opacity-10 [background:conic-gradient(from_150deg_at_65%_38%,theme(colors.cyan.400)/0.35_0deg,transparent_60deg,transparent_300deg,theme(colors.indigo.500)/0.35_360deg)]" />
 
       {/* Safe container with proper bounds */}
-      <div className="relative z-10 grid grid-rows-[auto_1fr_auto] items-start w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-6 sm:py-8 h-[calc(100dvh-8rem)] sm:h-[calc(100dvh-6rem)] min-h-0">
+      <div className="relative z-10 grid grid-rows-[auto_1fr] gap-y-2 sm:gap-y-3 items-start w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-6 sm:py-8 h-[calc(100dvh-2rem)] sm:h-[calc(100dvh-1rem)] min-h-0">
         
         {/* Title section (nudged higher) */}
         <div className="row-start-1 relative flex flex-col items-center mt-[clamp(8px,3vh,24px)]">
@@ -211,7 +211,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
         {/* Conditional interface based on user type */}
         {isFirstTimeUser ? (
           /* FIRST-TIME USER: Simplified Interface */
-          <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+72px)] overflow-y-auto min-h-0">
+          <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+80px)] overflow-y-auto min-h-0">
             <div className="w-full flex flex-col items-center px-4 gap-4 sm:gap-5 mt-[clamp(16px,6vh,40px)]">
               {/* Large Get Started button */}
               <button 
@@ -232,7 +232,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
           </div>
         ) : (
           /* EXPERIENCED USER: Full-Featured Interface */
-          <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+72px)] overflow-y-auto min-h-0">
+          <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+80px)] overflow-y-auto min-h-0">
             <div className="w-full flex flex-col items-center px-4 gap-3 mt-[clamp(16px,6vh,40px)]">
               {/* Show Setup Roster as primary action for users without players */}
               {!hasPlayers && (
@@ -290,9 +290,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
         )}
       </div>
 
-      {/* Bottom-centered language switcher in its own row to avoid overlap */}
-      <div className="row-start-3 z-20 flex justify-center items-end pt-3 sm:pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
-        <div className="flex rounded-lg bg-slate-800/70 border border-slate-600 backdrop-blur-sm overflow-hidden">
+      {/* Bottom-centered language switcher - absolutely positioned to prevent overlap */}
+      <div className="absolute bottom-0 left-0 right-0 z-30 flex justify-center items-center min-h-[64px] pt-2 sm:pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+12px)] pointer-events-none">
+        <div className="flex rounded-lg bg-slate-800/70 border border-slate-600 backdrop-blur-sm overflow-hidden pointer-events-auto shadow-xl">
           <button
             aria-label={t('startScreen.languageEnglish', 'English')}
             onClick={() => setLanguage('en')}
