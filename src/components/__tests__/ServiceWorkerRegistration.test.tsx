@@ -98,7 +98,11 @@ describe('ServiceWorkerRegistration', () => {
       postMessage: jest.fn(),
     } as Partial<ServiceWorker>;
 
-    mockRegistration.waiting = waitingWorker as ServiceWorker;
+    Object.defineProperty(mockRegistration, 'waiting', {
+      value: waitingWorker as ServiceWorker,
+      writable: true,
+      configurable: true,
+    });
 
     const { getByTestId } = render(<ServiceWorkerRegistration />);
 
