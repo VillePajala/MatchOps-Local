@@ -99,6 +99,52 @@ body > div {
   animation: gradient-flow-fast 3s ease infinite;
 }
 
+/* Stadium lights + halo animations (StartScreen) */
+@keyframes stadium-sweep {
+  0% { transform: translateX(-60%) rotate(var(--beam-rotate,18deg)); }
+  50% { transform: translateX(0%) rotate(var(--beam-rotate,18deg)); }
+  100% { transform: translateX(60%) rotate(var(--beam-rotate,18deg)); }
+}
+
+.stadium-beam {
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.2) 50%, transparent 75%);
+  mix-blend-mode: screen;
+  opacity: 0.25;
+  animation: stadium-sweep 18s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.stadium-beam.alt {
+  --beam-rotate: -18deg;
+  animation-duration: 22s;
+  animation-direction: alternate;
+  animation-delay: -5s;
+}
+
+.logo-halo {
+  position: absolute;
+  inset: -6%;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(99,102,241,0.6) 0%, rgba(139,92,246,0.35) 55%, transparent 70%);
+  filter: blur(20px);
+  mix-blend-mode: screen;
+  animation: halo-pulse 6s ease-in-out infinite;
+}
+
+@keyframes halo-pulse {
+  0%, 100% { transform: scale(0.98); opacity: 0.6; }
+  50% { transform: scale(1.04); opacity: 0.35; }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .stadium-beam, .stadium-beam.alt, .logo-halo {
+    animation: none !important;
+  }
+}
+
 /* Start screen logo shine */
 @keyframes start-logo-shine {
   0% { transform: translateX(-120%); }
@@ -254,6 +300,82 @@ h1.start-title .start-logo-gradient-animate:nth-child(3) {
 
 .animate-fade-in-out {
   animation: fade-in-out 3s ease-in-out forwards;
+}
+
+/* StartScreen button animations */
+@keyframes button-float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.01);
+  }
+}
+
+@keyframes button-glow-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 20px rgba(99, 102, 241, 0.3),
+      0 0 40px rgba(99, 102, 241, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 30px rgba(99, 102, 241, 0.5),
+      0 0 60px rgba(99, 102, 241, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(200%) rotate(45deg);
+  }
+}
+
+@keyframes slide-up-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Logo animations */
+@keyframes logo-float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes logo-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 35px rgba(99, 102, 241, 0.6));
+  }
+}
+
+@keyframes gentle-rotate {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-4px) rotate(-1deg);
+  }
+  75% {
+    transform: translateY(-4px) rotate(1deg);
+  }
 }
 
 @layer utilities {

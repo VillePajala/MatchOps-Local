@@ -632,11 +632,13 @@
     "noNotes": "No notes yet. Click to add."
   },
   "startScreen": {
-    "tagline": "Plan · Record · Assess",
+    "tagline": "Plan | Track | Assess",
+    "premiumTagline": "Professional Soccer Coaching",
     "createNewGame": "Create New Game",
     "createFirstGame": "Create First Game",
     "loadGame": "Load Game",
     "resumeGame": "Resume Last Game",
+    "continue": "Continue",
     "exploreApp": "Explore App",
     "languageLabel": "Language",
     "languageEnglish": "English",
@@ -648,7 +650,8 @@
     "setupRoster": "Setup Team Roster",
     "howItWorks": "How It Works",
     "getStarted": "Get Started",
-    "manageTeams": "Manage Teams"
+    "manageTeams": "Manage Teams",
+    "appSettings": "App Settings"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",

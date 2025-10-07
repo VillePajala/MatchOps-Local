@@ -10,21 +10,15 @@ import {
   getAppSettings,
 } from '@/utils/appSettings';
 import InstructionsModal from '@/components/InstructionsModal';
- 
 
 interface StartScreenProps {
-  onStartNewGame: () => void;
   onLoadGame: () => void;
   onResumeGame?: () => void;
   onGetStarted: () => void;
-  onCreateSeason: () => void;
   onViewStats: () => void;
-  onSetupRoster: () => void;
-  onManageTeams: () => void;
+  onOpenSettings: () => void;
   canResume?: boolean;
-  hasPlayers?: boolean;
   hasSavedGames?: boolean;
-  hasSeasonsTournaments?: boolean;
   isFirstTimeUser?: boolean;
 }
 
@@ -35,14 +29,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
   onLoadGame,
   onResumeGame,
   onGetStarted,
-  onCreateSeason,
   onViewStats,
-  onSetupRoster,
-  onManageTeams,
+  onOpenSettings,
   canResume = false,
-  hasPlayers = false,
   hasSavedGames = false,
-  hasSeasonsTournaments = false,
   isFirstTimeUser = false,
 }) => {
   const { t } = useTranslation();
@@ -62,11 +52,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
     updateAppSettings({ language }).catch(() => {});
   }, [language]);
 
+  // (Reverted) No last game meta fetching here.
+
   const primaryButtonStyle =
-    'w-full px-4 py-3 rounded-lg text-base font-semibold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-lg text-center leading-tight ring-1 ring-inset ring-white/10 border border-white/10';
+    'w-full px-6 py-3 rounded-lg text-base font-semibold tracking-wide text-white bg-gradient-to-b from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 shadow-[0_8px_24px_rgba(13,31,57,.35)] hover:shadow-[0_14px_36px_rgba(13,31,57,.45)] text-center leading-tight ring-1 ring-inset ring-white/10 border border-white/10 hover:-translate-y-0.5 active:translate-y-0';
 
   const disabledButtonStyle =
-    'w-full px-4 py-3 rounded-lg text-base font-semibold text-slate-400 bg-gradient-to-r from-slate-700 to-slate-600 cursor-not-allowed shadow-lg opacity-50 text-center leading-tight';
+    'w-full px-6 py-3 rounded-lg text-base font-semibold text-slate-400 bg-slate-700/60 cursor-not-allowed opacity-60 text-center leading-tight border border-slate-600/40 ring-1 ring-inset ring-slate-500/10';
 
   const containerStyle =
     'relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-950 text-slate-100 font-display overflow-hidden';
@@ -112,49 +104,53 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
   return (
     <div className={containerStyle}>
-      {/* 1) Noise */}
-      <div className="absolute inset-0 bg-noise-texture" />
-      {/* 2) Radial base gradient */}
-      <div className="absolute inset-0 bg-gradient-radial from-slate-950 via-slate-900/80 to-slate-900" />
-      {/* 3) Animated aurora sweep */}
-      <div className="absolute inset-0 pointer-events-none animate-gradient [background:linear-gradient(120deg,theme(colors.indigo.950),theme(colors.blue.950),theme(colors.cyan.900),theme(colors.indigo.950))] opacity-23" />
-      {/* 4) Subtle grid */}
-      <div className="absolute inset-0 pointer-events-none sm:opacity-[0.06] opacity-[0.05] [background-image:linear-gradient(to_right,rgba(255,255,255,.25)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,.25)_1px,transparent_1px)] [background-size:40px_40px]" />
-      {/* 5) Diagonal color wash */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/35 via-sky-800/20 to-cyan-700/30 mix-blend-overlay" />
-      {/* 6) Top/bottom blue tint */}
-      <div className="absolute inset-0 bg-gradient-to-b from-sky-500/8 via-transparent to-transparent" />
-      {/* 7) Title spotlight (nudged higher) */}
-      <div className="absolute top-[22%] left-1/2 -translate-x-1/2 w-[60vw] h-[32vh] pointer-events-none opacity-50 [background:radial-gradient(closest-side,rgba(56,189,248,0.10),transparent_70%)] blur-[28px]" />
-      {/* 8) Large blurred corner glows */}
-      <div className="absolute -inset-[50px] bg-sky-500/8 blur-3xl top-0 opacity-45" />
-      <div className="absolute -inset-[50px] bg-indigo-700/8 blur-3xl bottom-0 opacity-45" />
-      {/* 9) Radial color accents */}
-      <div className="pointer-events-none absolute inset-0 opacity-55 [background:radial-gradient(60%_50%_at_12%_12%,theme(colors.indigo.800)/0.25_0%,transparent_70%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-55 [background:radial-gradient(50%_40%_at_88%_78%,theme(colors.sky.600)/0.25_0%,transparent_70%)]" />
-      {/* 10) Vignette */}
-      <div className="absolute inset-0 pointer-events-none [background:radial-gradient(120%_90%_at_50%_50%,transparent_60%,rgba(0,0,0,0.25)_100%)]" />
-      {/* 11) Conic rotating highlight */}
-      <div className="absolute inset-0 pointer-events-none animate-rotate-slow opacity-10 [background:conic-gradient(from_150deg_at_65%_38%,theme(colors.cyan.400)/0.35_0deg,transparent_60deg,transparent_300deg,theme(colors.indigo.500)/0.35_360deg)]" />
+      {/* 1) Base slate gradient (PlayerBar colors) */}
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-800 to-slate-900" />
+      {/* 2) Noise texture */}
+      <div className="absolute inset-0 bg-noise-texture opacity-35" />
+      {/* 3) Animated blue aurora sweep (subtler) */}
+      <div className="absolute inset-0 pointer-events-none animate-gradient [background:linear-gradient(120deg,theme(colors.indigo.900/40),theme(colors.sky.800/35),theme(colors.cyan.800/40),theme(colors.indigo.900/40))] opacity-25" />
+      {/* 4) Subtle grid for texture (dimmed) */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03] [background-image:linear-gradient(to_right,rgba(255,255,255,.22)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,.22)_1px,transparent_1px)] [background-size:40px_40px]" />
+      {/* 5) Corner lighting - top */}
+      <div className="absolute -inset-[50px] bg-sky-500/5 blur-3xl top-0 left-0 opacity-40" />
+      {/* 6) Corner lighting - bottom */}
+      <div className="absolute -inset-[50px] bg-cyan-600/6 blur-3xl bottom-0 right-0 opacity-35" />
+      {/* 7) Radial accent lights */}
+      <div className="pointer-events-none absolute inset-0 opacity-30 [background:radial-gradient(50%_40%_at_20%_20%,theme(colors.sky.700/20)_0%,transparent_70%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-26 [background:radial-gradient(45%_35%_at_80%_70%,theme(colors.cyan.700/18)_0%,transparent_70%)]" />
+      {/* 8) Vignette for depth */}
+      <div className="absolute inset-0 pointer-events-none [background:radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.3)_100%)]" />
+
+      {/* 9) Stadium light beams */}
+      <div className="stadium-beam" />
+      <div className="stadium-beam alt" />
 
       {/* Safe container with proper bounds */}
-      <div className="relative z-10 grid grid-rows-[auto_1fr] gap-y-2 sm:gap-y-3 items-start w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 sm:px-6 py-6 sm:py-8 h-[calc(100dvh-2rem)] sm:h-[calc(100dvh-1rem)] min-h-0">
-        
+      <div className="relative z-10 grid grid-rows-[auto_1fr] gap-y-2 sm:gap-y-3 items-center justify-items-center w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 py-6 sm:py-8 h-[calc(100dvh-2rem)] sm:h-[calc(100dvh-1rem)] min-h-0">
+
         {/* Title section (nudged higher) */}
-        <div className="row-start-1 relative flex flex-col items-center mt-[clamp(8px,3vh,24px)]">
-          {/* New Logo */}
-          <div className="relative flex items-center justify-center w-full px-4">
+        <div className="row-start-1 relative flex flex-col items-center justify-center w-full mt-[clamp(8px,3vh,24px)]">
+          {/* New Logo with spotlight */}
+          <div className="relative flex items-center justify-center">
+            {/* Spotlight behind logo */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-[120%] h-[140%] bg-gradient-radial from-cyan-400/20 via-sky-400/10 to-transparent blur-2xl" />
+            </div>
+            {/* Logo */}
             <Image
               src="/logos/app-logo.png"
               alt="MatchOps Local Logo"
               width={600}
               height={200}
               priority={true}
-              className="w-full max-w-[280px] sm:max-w-[360px] md:max-w-[420px] lg:max-w-[480px] h-auto drop-shadow-2xl"
+              className="relative h-auto w-auto max-w-[72vw] xs:max-w-[360px] sm:max-w-[420px] md:max-w-[520px] lg:max-w-[560px] max-h-[32vh] drop-shadow-2xl"
             />
           </div>
+        </div>
 
-          {/* OLD ANIMATED TEXT - Commented out for easy restoration
+        {/* OLD ANIMATED TEXT - Commented out for easy restoration
+        <div className="row-start-1 relative flex flex-col items-center mt-[clamp(8px,3vh,24px)]">
           <div className="relative">
             <h1
               className={`${titleFont.className} ${titleStyle} start-title`}
@@ -206,23 +202,22 @@ const StartScreen: React.FC<StartScreenProps> = ({
             </h1>
           </div>
           */}
-        </div>
 
         {/* Conditional interface based on user type */}
         {isFirstTimeUser ? (
           /* FIRST-TIME USER: Simplified Interface */
-          <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+80px)] overflow-y-auto min-h-0">
-            <div className="w-full flex flex-col items-center px-4 gap-4 sm:gap-5 mt-[clamp(16px,6vh,40px)]">
+          <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+110px)] overflow-y-auto min-h-0">
+            <div className="w-full flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(8px,4vh,28px)]">
               {/* Large Get Started button */}
-              <button 
-                className="w-full px-6 py-4 rounded-lg text-lg font-bold text-white bg-indigo-600 hover:bg-indigo-500 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-xl text-center ring-1 ring-inset ring-white/10 border border-white/10"
+              <button
+                className={primaryButtonStyle}
                 onClick={onGetStarted}
               >
                 {t('startScreen.getStarted', 'Get Started')}
               </button>
-              
+
               {/* Secondary help button */}
-              <button 
+              <button
                 className="w-full px-4 py-2.5 rounded-md text-sm font-medium text-slate-300 bg-slate-800/50 hover:bg-slate-700/50 transition-colors border border-slate-600"
                 onClick={() => setIsInstructionsModalOpen(true)}
               >
@@ -232,58 +227,40 @@ const StartScreen: React.FC<StartScreenProps> = ({
           </div>
         ) : (
           /* EXPERIENCED USER: Full-Featured Interface */
-          <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+80px)] overflow-y-auto min-h-0">
-            <div className="w-full flex flex-col items-center px-4 gap-3 mt-[clamp(16px,6vh,40px)]">
-              {/* Show Setup Roster as primary action for users without players */}
-              {!hasPlayers && (
-                <button className={primaryButtonStyle} onClick={onSetupRoster}>
-                  {t('startScreen.setupRoster', 'Setup Team Roster')}
-                </button>
-              )}
-              
-              {/* Resume Last Game button - always shown, dimmed when unavailable */}
-              <button 
+          <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+110px)] overflow-y-auto min-h-0">
+            <div className="w-full flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(8px,4vh,28px)]">
+              {/* Continue / Jatka button */}
+              <button
                 className={canResume ? primaryButtonStyle : disabledButtonStyle}
                 onClick={canResume && onResumeGame ? onResumeGame : undefined}
                 disabled={!canResume}
               >
-                {t('startScreen.resumeGame', 'Resume Last Game')}
+                {t('startScreen.continue', 'Continue')}
               </button>
-              
+
               {/* Load Game button */}
-              <button 
-                className={hasSavedGames ? primaryButtonStyle : disabledButtonStyle} 
-                onClick={hasSavedGames ? onLoadGame : undefined}
-                disabled={!hasSavedGames}
+              <button
+                className={primaryButtonStyle}
+                onClick={onLoadGame}
               >
                 {t('startScreen.loadGame', 'Load Game')}
               </button>
-              
-              {/* Create Season/Tournament button - grayed out if no players */}
-              <button 
-                className={hasPlayers ? primaryButtonStyle : disabledButtonStyle}
-                onClick={hasPlayers ? onCreateSeason : undefined}
-                disabled={!hasPlayers}
-              >
-                {hasSeasonsTournaments ? t('startScreen.createSeasonTournament', 'Seasons & Tournaments') : t('startScreen.createFirstSeasonTournament', 'First Season/Tournament')}
-              </button>
-              
-              {/* Manage Teams button - grayed out if no players */}
-              <button 
-                className={hasPlayers ? primaryButtonStyle : disabledButtonStyle}
-                onClick={hasPlayers ? onManageTeams : undefined}
-                disabled={!hasPlayers}
-              >
-                {t('startScreen.manageTeams', 'Manage Teams')}
-              </button>
-              
+
               {/* View Stats button */}
-              <button 
-                className={hasSavedGames ? primaryButtonStyle : disabledButtonStyle} 
+              <button
+                className={hasSavedGames ? primaryButtonStyle : disabledButtonStyle}
                 onClick={hasSavedGames ? onViewStats : undefined}
                 disabled={!hasSavedGames}
               >
                 {t('startScreen.viewStats', 'View Stats')}
+              </button>
+
+              {/* App Settings button */}
+              <button
+                className={primaryButtonStyle}
+                onClick={onOpenSettings}
+              >
+                {t('startScreen.appSettings', 'App Settings')}
               </button>
             </div>
           </div>
@@ -291,19 +268,19 @@ const StartScreen: React.FC<StartScreenProps> = ({
       </div>
 
       {/* Bottom-centered language switcher - absolutely positioned to prevent overlap */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 flex justify-center items-center min-h-[64px] pt-2 sm:pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+12px)] pointer-events-none">
-        <div className="flex rounded-lg bg-slate-800/70 border border-slate-600 backdrop-blur-sm overflow-hidden pointer-events-auto shadow-xl">
+      <div className="absolute bottom-0 left-0 right-0 z-30 flex flex-col justify-center items-center min-h-[56px] pt-1 sm:pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+12px)] pointer-events-none">
+        <div className="flex rounded-lg bg-slate-800/90 border border-slate-700 backdrop-blur-sm overflow-hidden pointer-events-auto shadow-lg">
           <button
             aria-label={t('startScreen.languageEnglish', 'English')}
             onClick={() => setLanguage('en')}
-            className={`px-3 h-8 text-xs font-bold transition-colors ${language === 'en' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700/60'}`}
+            className={`px-4 h-9 text-xs font-bold transition-all duration-200 ${language === 'en' ? 'bg-gradient-to-b from-indigo-600 to-indigo-700 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
           >
             EN
           </button>
           <button
             aria-label={t('startScreen.languageFinnish', 'Finnish')}
             onClick={() => setLanguage('fi')}
-            className={`px-3 h-8 text-xs font-bold transition-colors border-l border-slate-600/60 ${language === 'fi' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700/60'}`}
+            className={`px-4 h-9 text-xs font-bold transition-all duration-200 border-l border-slate-700 ${language === 'fi' ? 'bg-gradient-to-b from-indigo-600 to-indigo-700 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
           >
             FI
           </button>
