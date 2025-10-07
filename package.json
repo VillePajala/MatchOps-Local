@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/generate-manifest.mjs",
     "dev": "next dev",
     "build": "node scripts/generate-release-notes.mjs && node scripts/generate-manifest.mjs && next build",
     "build:analyze": "npm run build && node scripts/bundle-analysis.mjs",

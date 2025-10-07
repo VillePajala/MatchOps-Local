@@ -1,16 +1,12 @@
 // Caching strategy for PWA offline support
 const CACHE_VERSION = 'dev-build';
-const RAW_STATIC_RESOURCES = [
+const STATIC_RESOURCES = [
   '/',
-  '/manifest.json',
   `/manifest.json?v=${CACHE_VERSION}`,
-  '/icons/icon-192x192.png',
   `/icons/icon-192x192.png?v=${CACHE_VERSION}`,
-  '/icons/icon-512x512.png',
   `/icons/icon-512x512.png?v=${CACHE_VERSION}`,
-  '/logos/match_ops_local_logo_transparent.png'
+  `/logos/match_ops_local_logo_transparent.png?v=${CACHE_VERSION}`,
 ];
-const STATIC_RESOURCES = Array.from(new Set(RAW_STATIC_RESOURCES));
 const CACHE_NAME = `matchops-${CACHE_VERSION}`;
 
 async function cacheStaticResources() {
@@ -30,7 +26,7 @@ async function cacheStaticResources() {
 
         const url = new URL(request.url);
         if (url.search) {
-          const fallbackRequest = new Request(url.pathname, { cache: 'reload' });
+          const fallbackRequest = new Request(url.pathname);
           await cache.put(fallbackRequest, response.clone());
         }
       } catch (error) {
@@ -109,12 +105,8 @@ self.addEventListener('fetch', (event) => {
         const networkResponse = await fetch(request);
 
         if (networkResponse && networkResponse.ok) {
-          await cache.put(request, networkResponse.clone());
-
-          if (url.search) {
-            const fallbackRequest = new Request(url.pathname, { cache: 'reload' });
-            await cache.put(fallbackRequest, networkResponse.clone());
-          }
+          const responseForCache = networkResponse.clone();
+          event.waitUntil(updateCacheEntries(cache, request, responseForCache, url));
         }
 
         return networkResponse;
@@ -136,5 +128,18 @@ self.addEventListener('fetch', (event) => {
     })()
   );
 });
+
+async function updateCacheEntries(cache, request, response, url) {
+  try {
+    await cache.put(request, response.clone());
+
+    if (url.search) {
+      const fallbackRequest = new Request(url.pathname);
+      await cache.put(fallbackRequest, response.clone());
+    }
+  } catch (error) {
+    console.warn('[SW] Failed to update cache entries for', request.url, error);
+  }
+}
 
 // Build Timestamp: 2025-01-01T00:00:00.000Z
