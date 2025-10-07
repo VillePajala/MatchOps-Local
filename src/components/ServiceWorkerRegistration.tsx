@@ -28,6 +28,7 @@ export default function ServiceWorkerRegistration() {
     };
 
     const swUrl = '/sw.js';
+    let updateInterval: NodeJS.Timeout | null = null;
 
     navigator.serviceWorker.register(swUrl).then(registration => {
       logger.log('[PWA] Service Worker registered: ', registration);
@@ -56,6 +57,14 @@ export default function ServiceWorkerRegistration() {
           };
         }
       };
+
+      // Check for updates every 60 seconds (helpful for development and quick deployments)
+      updateInterval = setInterval(() => {
+        logger.log('[PWA] Checking for service worker updates...');
+        registration.update().catch(error => {
+          logger.error('[PWA] Update check failed:', error);
+        });
+      }, 60000); // 60 seconds
     }).catch(error => {
       logger.error('[PWA] Service Worker registration failed: ', error);
     });
@@ -68,6 +77,12 @@ export default function ServiceWorkerRegistration() {
       window.location.reload();
     });
 
+    // Cleanup interval on unmount
+    return () => {
+      if (updateInterval) {
+        clearInterval(updateInterval);
+      }
+    };
   }, []);
 
   const handleUpdate = () => {
