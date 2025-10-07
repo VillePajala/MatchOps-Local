@@ -29,6 +29,20 @@
   }
 }
 
+.logoContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.logo {
+  width: 160px;
+  height: auto;
+  max-width: 100%;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
 .installPromptText {
   margin-bottom: 1.25rem;
   font-size: 1rem;

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { useTranslation } from "react-i18next";
 import styles from "./InstallPrompt.module.css";
 import logger from "@/utils/logger";
@@ -132,6 +133,16 @@ const InstallPrompt: React.FC = () => {
 
   return (
     <div className={styles.installPrompt}>
+      <div className={styles.logoContainer}>
+        <Image
+          src="/logos/app-logo.png"
+          alt="MatchOps Local"
+          width={200}
+          height={67}
+          priority
+          className={styles.logo}
+        />
+      </div>
       <p className={styles.installPromptText}>{t("installPrompt.message")}</p>
       <div className={styles.installPromptButtons}>
         <button className={styles.installButton} onClick={handleInstall}>
