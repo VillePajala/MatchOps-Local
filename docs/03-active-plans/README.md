@@ -27,6 +27,11 @@ This directory contains all active execution plans, current status, and roadmaps
 - **[publication-roadmap.md](./publication-roadmap.md)** - Complete path to app store publication
 - **[play-store-deployment.md](./play-store-deployment.md)** - Play Store deployment guide
 
+## 📋 Technical Assessments & Feature Plans
+
+- **[personnel-feature-plan.md](./personnel-feature-plan.md)** - Complete implementation plan for personnel (coaches/staff) management
+- **[storage-concurrency-assessment.md](./storage-concurrency-assessment.md)** - Storage layer concurrency analysis
+
 ## Quick Start
 
 1. **New to execution?** → Start with [master-execution-guide.md](./master-execution-guide.md)

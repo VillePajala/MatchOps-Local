@@ -50,7 +50,7 @@ To establish MatchOps-Local as the premier local-first solution for soccer coach
 #### Planned Features
 - ✅ **Enhanced Testing Suite**
   - Comprehensive E2E testing with Playwright
-  - Visual regression testing for UI consistency  
+  - Visual regression testing for UI consistency
   - Performance testing with large datasets
   - Accessibility testing automation
 
@@ -60,7 +60,17 @@ To establish MatchOps-Local as the premier local-first solution for soccer coach
   - Enhanced in-app help system with contextual tips
   - Improved error messages and user feedback
 
-- 📋 **Technical Improvements**  
+- 👥 **Personnel Management** *(Planned: Q4 2025)*
+  - Coach and staff roster management system
+  - Multiple roles: head coach, assistants, trainers, physios, managers
+  - Personnel assignment to games (coaching staff present)
+  - Contact information and certifications tracking
+  - Mirror architecture of player roster for consistency
+  - **Complexity**: Low (2/10) - 8-10 hours estimated
+  - **Status**: Implementation plan complete
+  - **Reference**: [personnel-feature-plan.md](./personnel-feature-plan.md)
+
+- 📋 **Technical Improvements**
   - Bundle size optimization with advanced code splitting
   - Enhanced PWA capabilities with background sync
   - Improved offline functionality and data sync
