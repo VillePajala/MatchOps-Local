@@ -1,5 +1,5 @@
 // Caching strategy for PWA offline support
-const CACHE_NAME = 'matchops-v3';
+const CACHE_NAME = 'matchops-2025-10-07T18-12-11';
 const STATIC_RESOURCES = [
   '/',
   '/manifest.json',
@@ -72,34 +72,53 @@ self.addEventListener('fetch', (event) => {
 
   // Handle same-origin requests
   if (url.origin === location.origin) {
-    event.respondWith(
-      caches.match(request).then((response) => {
-        if (response) {
-          console.log('[SW] Serving from cache:', request.url);
-          return response;
-        }
-        
-        // Fetch from network and cache for next time
-        return fetch(request).then((fetchResponse) => {
-          // Only cache successful responses
-          if (fetchResponse.status === 200) {
-            const responseClone = fetchResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
+    // Use network-first strategy for HTML documents to ensure app updates
+    if (request.destination === 'document') {
+      event.respondWith(
+        fetch(request)
+          .then((fetchResponse) => {
+            // Cache the new version
+            if (fetchResponse.status === 200) {
+              const responseClone = fetchResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, responseClone);
+              });
+            }
+            return fetchResponse;
+          })
+          .catch(() => {
+            // Offline fallback - serve from cache
+            return caches.match(request).then((cachedResponse) => {
+              return cachedResponse || caches.match('/');
             });
+          })
+      );
+    } else {
+      // Use cache-first for all other resources (CSS, JS, images, etc.)
+      event.respondWith(
+        caches.match(request).then((response) => {
+          if (response) {
+            console.log('[SW] Serving from cache:', request.url);
+            return response;
           }
-          return fetchResponse;
-        }).catch(() => {
-          // Offline fallback for HTML requests
-          if (request.destination === 'document') {
-            return caches.match('/');
-          }
-        });
-      })
-    );
+
+          // Fetch from network and cache for next time
+          return fetch(request).then((fetchResponse) => {
+            // Only cache successful responses
+            if (fetchResponse.status === 200) {
+              const responseClone = fetchResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, responseClone);
+              });
+            }
+            return fetchResponse;
+          });
+        })
+      );
+    }
   } else {
     // Pass through external requests
     event.respondWith(fetch(request));
   }
 });
-// Build Timestamp: 2025-10-07T12:38:47.025Z
+// Build Timestamp: 2025-10-07T18:12:11.868Z
