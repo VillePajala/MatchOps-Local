@@ -139,7 +139,7 @@ const InstallPrompt: React.FC = () => {
           alt="MatchOps Local"
           width={200}
           height={67}
-          priority
+          priority={true}
           className={styles.logo}
         />
       </div>

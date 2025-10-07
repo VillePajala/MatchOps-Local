@@ -149,7 +149,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
               alt="MatchOps Local Logo"
               width={600}
               height={200}
-              priority
+              priority={true}
               className="w-full max-w-[280px] sm:max-w-[360px] md:max-w-[420px] lg:max-w-[480px] h-auto drop-shadow-2xl"
             />
           </div>

@@ -170,6 +170,8 @@ const allowedConsolePatterns = [
   // React 19 warnings that are expected
   'Warning: React does not recognize',
   'Warning: Invalid DOM property',
+  // Next.js Image component prop warnings (priority is valid for next/image but triggers warning in test mocks)
+  'Received `%s` for a non-boolean attribute',
   // Test-specific expected console output (from error handling tests)
   // Game-related errors
   'Error saving game',

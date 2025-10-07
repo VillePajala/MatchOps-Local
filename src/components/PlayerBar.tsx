@@ -90,7 +90,7 @@ const PlayerBar: React.FC<PlayerBarProps> = ({ players, onPlayerDragStartFromBar
           alt="MatchOps Local"
           width={80}
           height={27}
-          priority
+          priority={true}
           className="h-auto w-[70px] sm:w-[84px] drop-shadow-lg"
         />
 

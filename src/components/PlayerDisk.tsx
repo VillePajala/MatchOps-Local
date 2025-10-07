@@ -107,7 +107,7 @@ const PlayerDisk: React.FC<PlayerDiskProps> = ({
     <div
       className={`relative ${diskSizeClasses} rounded-full flex flex-col items-center justify-center cursor-pointer shadow-lg m-2 transition-all duration-150 ease-in-out ${selectionRingClass}`}
       style={{ backgroundColor: finalFillColor }}
-      draggable={isInBar}
+      draggable={isInBar ? "true" : "false"}
       onDragStart={handleDragStart}
       // Use simplified selection handlers
       onMouseDown={isInBar ? handleMouseDown : undefined}
