@@ -416,6 +416,240 @@ This loose coupling allows:
 4. **Scalability**: Global entities scale better than team-coupled data
 5. **Reporting**: Statistics can be aggregated across teams within seasons/tournaments
 
+## Club Season Filtering
+
+### Overview
+
+The club season filtering feature enables automatic game filtering based on configurable season boundaries (e.g., October to May for European club soccer). This allows statistics to be calculated across multiple tournaments/seasons within a single club season.
+
+**Implemented in**: PR #36 (October 2025)
+
+### Configuration
+
+#### Settings Storage
+**File**: `/src/utils/appSettings.ts` (lines 29-32)
+
+```typescript
+export interface AppSettings {
+  // ...other settings
+  /** Club season start month (1-12, default: 10 = October) */
+  clubSeasonStartMonth?: number;
+  /** Club season end month (1-12, default: 5 = May) */
+  clubSeasonEndMonth?: number;
+}
+
+const DEFAULT_APP_SETTINGS: AppSettings = {
+  // ...other defaults
+  clubSeasonStartMonth: 10, // October
+  clubSeasonEndMonth: 5,    // May
+};
+```
+
+#### UI Controls
+**File**: `/src/components/SettingsModal.tsx`
+
+Settings modal provides month dropdowns for configuring club season boundaries with validation:
+- Start month: 1-12 (January-December)
+- End month: 1-12 (January-December)
+- Validation ensures months are within valid range before saving
+
+### Core Functions
+
+#### Club Season Date Range Calculation
+**File**: `/src/utils/clubSeason.ts` (lines 13-101)
+
+```typescript
+/**
+ * Returns the start and end dates for the club season containing the given date.
+ *
+ * Examples (October-May season):
+ * - 2023-11-15 → 2023-10-01 to 2024-05-31
+ * - 2024-03-20 → 2023-10-01 to 2024-05-31
+ * - 2024-07-10 → 2024-06-01 to 2025-09-30 (off-season)
+ */
+export function getClubSeasonDateRange(
+  date: Date,
+  startMonth: number,
+  endMonth: number
+): { start: Date; end: Date }
+```
+
+Key implementation details:
+- Uses UTC dates for timezone consistency
+- Handles year boundaries correctly (Oct 2023 → May 2024)
+- Supports both "normal" seasons (Oct→May) and "wraparound" seasons (May→Oct)
+- Returns season boundaries covering the input date
+
+#### Game Filtering
+**File**: `/src/utils/clubSeason.ts` (lines 158-182)
+
+```typescript
+/**
+ * Filters games to only include those within the club season
+ * containing the given date.
+ */
+export function filterGamesByClubSeason(
+  games: [string, SavedGame][],
+  referenceDate: Date,
+  clubSeasonStartMonth: number,
+  clubSeasonEndMonth: number
+): [string, SavedGame][]
+```
+
+Filters games based on:
+1. Game's `gameDate` field (ISO string)
+2. Club season boundaries for the reference date
+3. UTC date comparison for consistency
+
+#### Display Label Generation
+**File**: `/src/utils/clubSeason.ts` (lines 193-217)
+
+```typescript
+/**
+ * Generates a human-readable label for the club season.
+ *
+ * Examples:
+ * - "2023-24 Season (Oct-May)"
+ * - "2024-25 Season (Jun-Sep)" (off-season)
+ */
+export function getClubSeasonDisplayLabel(
+  referenceDate: Date,
+  clubSeasonStartMonth: number,
+  clubSeasonEndMonth: number
+): string
+```
+
+### Helper Functions
+
+#### Year Parsing (Y2K Bug Fix)
+**File**: `/src/utils/clubSeason.ts` (lines 104-120)
+
+```typescript
+/**
+ * Parses 2-digit or 4-digit year strings correctly.
+ * Handles Y2K-style years: 00-99 → 2000-2099
+ *
+ * @internal Used by getClubSeasonDisplayLabel
+ */
+function parseSeasonYear(shortYear: string): number
+```
+
+Addresses historical Y2K bug pattern where hardcoded "20" prefix was used.
+
+#### Month Validation
+**File**: `/src/utils/clubSeason.ts` (lines 226-237)
+
+```typescript
+/**
+ * Validates that month values are within valid range (1-12).
+ * Used by SettingsModal to ensure data integrity.
+ */
+export function validateSeasonMonths(
+  startMonth: number,
+  endMonth: number
+): boolean
+```
+
+#### Date Arithmetic Helper
+**File**: `/src/utils/clubSeason.ts` (lines 123-139)
+
+```typescript
+/**
+ * Returns the last day of the month with time set to 23:59:59.999 UTC.
+ *
+ * @internal Used by getClubSeasonDateRange
+ */
+function getLastDayOfMonth(year: number, month: number): Date
+```
+
+### Integration with Player Statistics
+
+**File**: `/src/components/PlayerStatsView.tsx` (lines 89-115)
+
+```typescript
+// Fetch app settings for club season configuration
+const { data: appSettings } = useQuery<AppSettings>({
+  queryKey: ['appSettings'],
+  queryFn: getAppSettings,
+});
+
+// Filter games by club season if configured
+const clubSeasonGames = React.useMemo(() => {
+  if (!appSettings?.clubSeasonStartMonth || !appSettings?.clubSeasonEndMonth) {
+    return allGames;
+  }
+  return filterGamesByClubSeason(
+    allGames,
+    new Date(),
+    appSettings.clubSeasonStartMonth,
+    appSettings.clubSeasonEndMonth
+  );
+}, [allGames, appSettings]);
+
+// Display club season label
+const seasonLabel = React.useMemo(() => {
+  if (!appSettings?.clubSeasonStartMonth || !appSettings?.clubSeasonEndMonth) {
+    return null;
+  }
+  return getClubSeasonDisplayLabel(
+    new Date(),
+    appSettings.clubSeasonStartMonth,
+    appSettings.clubSeasonEndMonth
+  );
+}, [appSettings]);
+```
+
+### Test Coverage
+
+**File**: `/src/utils/clubSeason.test.ts`
+
+Comprehensive test suite (41 tests) covering:
+- Normal seasons (Oct→May): 6 tests
+- Wraparound seasons (May→Oct): 6 tests
+- Same-month seasons: 2 tests
+- Year transitions: 12 tests
+- Edge cases (leap years, month boundaries): 5 tests
+- Helper functions: 10 tests
+
+### Known Limitations
+
+1. **English-Only Labels**: Display labels are currently English-only
+   - i18n integration requires complex month name handling
+   - Consider adding i18n support in future iterations
+
+2. **Year 2100+ Handling**: `parseSeasonYear()` assumes 2000-2099 range
+   - TODO comment added for future enhancement
+   - Not urgent given application lifecycle
+
+3. **No Historical Season Selection**: Currently filters based on current date
+   - Future: Allow users to select specific club seasons
+   - Would require UI for season selection
+
+### Configuration Examples
+
+#### European Club Soccer (Default)
+- Start: October (10)
+- End: May (5)
+- Coverage: October 2023 → May 2024
+
+#### U.S. Spring/Summer Season
+- Start: March (3)
+- End: August (8)
+- Coverage: March 2024 → August 2024
+
+#### Calendar Year Season
+- Start: January (1)
+- End: December (12)
+- Coverage: January 2024 → December 2024
+
+### Future Enhancements
+
+- Historical club season selection in UI
+- i18n support for season labels
+- Season-to-season comparison views
+- Export statistics by club season
+- Configurable "off-season" handling
+
 ## Future Considerations
 
 - Tournament bracket/playoff support
