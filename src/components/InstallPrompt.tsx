@@ -67,6 +67,12 @@ const InstallPrompt: React.FC = () => {
       setIsVisible(true); // Show immediately when event is caught
     };
 
+    const handleAppInstalled = () => {
+      logger.log("PWA was successfully installed");
+      setInstallPrompt(null);
+      setIsVisible(false);
+    };
+
     const handleFocus = () => {
       checkInstallationStatus().catch(() => {
         // Silent fail - focus check is not critical
@@ -74,6 +80,7 @@ const InstallPrompt: React.FC = () => {
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
     window.addEventListener("focus", handleFocus); // Re-check on focus
 
     // Initial check
@@ -86,6 +93,7 @@ const InstallPrompt: React.FC = () => {
         "beforeinstallprompt",
         handleBeforeInstallPrompt,
       );
+      window.removeEventListener("appinstalled", handleAppInstalled);
       window.removeEventListener("focus", handleFocus);
     };
   }, [installPrompt, checkInstallationStatus]); // Rerun effect if installPrompt changes
@@ -99,6 +107,8 @@ const InstallPrompt: React.FC = () => {
 
       if (choiceResult.outcome === "accepted") {
         logger.log("User accepted the install prompt");
+        // Don't hide immediately - wait for appinstalled event or timeout
+        // The prompt will auto-hide when the app is actually installed
       } else {
         logger.log("User dismissed the install prompt");
         // Store the time when dismissed to avoid showing it again too soon
@@ -108,13 +118,16 @@ const InstallPrompt: React.FC = () => {
           // Silent fail - dismissal tracking is not critical
           logger.debug('Failed to store install prompt dismissal (non-critical)', { error });
         }
+        // Only hide if user dismissed
+        setInstallPrompt(null);
+        setIsVisible(false);
       }
     } catch (error) {
       logger.error("Error showing install prompt:", error);
+      // Hide on error
+      setInstallPrompt(null);
+      setIsVisible(false);
     }
-
-    setInstallPrompt(null);
-    setIsVisible(false);
   };
 
   const handleDismiss = async () => {
