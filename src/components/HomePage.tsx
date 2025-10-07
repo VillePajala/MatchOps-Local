@@ -139,7 +139,7 @@ const initialState: AppState = {
 };
 
 interface HomePageProps {
-  initialAction?: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | 'teams';
+  initialAction?: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | 'teams' | 'settings';
   skipInitialSetup?: boolean;
   onDataImportSuccess?: () => void;
 }
