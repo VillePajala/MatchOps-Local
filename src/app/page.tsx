@@ -9,8 +9,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { getCurrentGameIdSetting } from '@/utils/appSettings';
 import { getSavedGames } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
-import { getSeasons } from '@/utils/seasons';
-import { getTournaments } from '@/utils/tournaments';
 import { runMigration } from '@/utils/migration';
 import logger from '@/utils/logger';
 
@@ -20,7 +18,6 @@ export default function Home() {
   const [canResume, setCanResume] = useState(false);
   const [hasPlayers, setHasPlayers] = useState(false);
   const [hasSavedGames, setHasSavedGames] = useState(false);
-  const [hasSeasonsTournaments, setHasSeasonsTournaments] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCheckingState, setIsCheckingState] = useState(true);
 
@@ -51,17 +48,11 @@ export default function Home() {
       // Check if user has any players in roster
       const roster = await getMasterRoster();
       setHasPlayers(roster.length > 0);
-
-      // Check if user has any seasons or tournaments
-      const seasons = await getSeasons();
-      const tournaments = await getTournaments();
-      setHasSeasonsTournaments(seasons.length > 0 || tournaments.length > 0);
     } catch (error) {
       logger.warn('Failed to check initial game state', { error });
       setCanResume(false);
       setHasSavedGames(false);
       setHasPlayers(false);
-      setHasSeasonsTournaments(false);
     } finally {
       setIsCheckingState(false);
     }
@@ -79,7 +70,7 @@ export default function Home() {
   }, [checkAppState, refreshTrigger]);
 
   const handleAction = (
-    action: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'getStarted' | 'season' | 'stats' | 'roster' | 'teams'
+    action: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'getStarted' | 'season' | 'stats' | 'roster' | 'teams' | 'settings'
   ) => {
     // For getStarted, we want to go to the main app with no specific action
     // This will trigger the soccer field center overlay for first-time users
@@ -110,18 +101,13 @@ export default function Home() {
         ) : screen === 'start' ? (
           <ErrorBoundary>
             <StartScreen
-              onStartNewGame={() => handleAction('newGame')}
               onLoadGame={() => handleAction('loadGame')}
               onResumeGame={() => handleAction('resumeGame')}
               onGetStarted={() => handleAction('getStarted')}
-              canResume={canResume}
-              onCreateSeason={() => handleAction('season')}
               onViewStats={() => handleAction('stats')}
-              onSetupRoster={() => handleAction('roster')}
-              onManageTeams={() => handleAction('teams')}
-              hasPlayers={hasPlayers}
+              onOpenSettings={() => handleAction('settings')}
+              canResume={canResume}
               hasSavedGames={hasSavedGames}
-              hasSeasonsTournaments={hasSeasonsTournaments}
               isFirstTimeUser={isFirstTimeUser}
             />
           </ErrorBoundary>

@@ -574,10 +574,12 @@
   },
   "startScreen": {
     "tagline": "Suunnittele · Kirjaa · Arvioi",
+    "premiumTagline": "Ammattimainen jalkapallovalmennus",
     "createNewGame": "Luo uusi ottelu",
     "createFirstGame": "Luo ensimmäinen ottelu",
     "loadGame": "Lataa ottelu",
     "resumeGame": "Jatka edellistä ottelua",
+    "continue": "Jatka",
     "exploreApp": "Tutustu sovellukseen",
     "languageLabel": "Kieli",
     "languageEnglish": "Englanti",
@@ -589,7 +591,8 @@
     "setupRoster": "Luo kokoonpano",
     "howItWorks": "Näin äppi toimii",
     "getStarted": "Aloita tästä",
-    "manageTeams": "Joukkueet"
+    "manageTeams": "Joukkueet",
+    "appSettings": "Asetukset"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
