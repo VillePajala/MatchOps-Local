@@ -192,23 +192,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const handleForceReload = () => {
-    logger.log('[PWA] Force reload triggered from Settings');
-    if (confirm(t('settingsModal.forceReloadConfirm', 'This will reload the app and bypass all caches. Continue?'))) {
-      // Unregister all service workers and hard reload
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(registrations => {
-          Promise.all(registrations.map(reg => reg.unregister())).then(() => {
-            logger.log('[PWA] All service workers unregistered');
-            window.location.reload();
-          });
-        });
-      } else {
-        window.location.reload();
-      }
-    }
-  };
-
   const handleClubSeasonStartMonthChange = async (month: number) => {
     // Validate month before saving
     if (!validateSeasonMonths(month, clubSeasonEndMonth)) {
@@ -399,13 +382,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 >
                   <HiOutlineArrowPath className={`h-5 w-5 ${checkingForUpdates ? 'animate-spin' : ''}`} />
                   {checkingForUpdates ? t('settingsModal.checkingUpdates', 'Checking...') : t('settingsModal.checkForUpdates', 'Check for Updates')}
-                </button>
-                <button
-                  onClick={handleForceReload}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 hover:bg-orange-500 text-white rounded-md text-sm font-medium shadow-sm transition-colors"
-                >
-                  <HiOutlineArrowPath className="h-5 w-5" />
-                  {t('settingsModal.forceReload', 'Force Reload')}
                 </button>
               </div>
               <p className="text-sm text-slate-300">

@@ -831,8 +831,6 @@
     "upToDate": "App is up to date!",
     "noServiceWorker": "Service worker not registered",
     "updateCheckFailed": "Failed to check for updates",
-    "forceReload": "Force Reload",
-    "forceReloadConfirm": "This will reload the app and bypass all caches. Continue?",
     "backupDescription": "Export your data to a backup file or restore from a previous backup. All data will be replaced when restoring.",
     "importReadError": "Error reading backup file content.",
     "importGamesButton": "Import Games",
