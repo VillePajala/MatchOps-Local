@@ -1,4 +1,4 @@
 {
-  "version": "0.1.1",
-  "notes": "fix: PWA manifest name causing update detection issues on mobile devices"
+  "version": "0.1.2",
+  "notes": "build: trigger redeploy to validate PWA update detection"
 }
