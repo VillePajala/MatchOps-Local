@@ -8,6 +8,8 @@
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://reactjs.org/)
 [![PWA](https://img.shields.io/badge/PWA-Enabled-5a0fc8.svg)](https://web.dev/progressive-web-apps/)
 
+<!-- Testing PWA update detection - 2025-10-08 -->
+
 ## What is MatchOps-Local?
 
 MatchOps-Local is a comprehensive Progressive Web App (PWA) designed specifically for soccer coaches who want **complete control over their team data** while maintaining the convenience of modern web applications. Unlike cloud-based alternatives, MatchOps-Local stores all data locally on your device, ensuring **privacy, reliability, and instant performance**.
