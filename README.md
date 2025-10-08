@@ -8,7 +8,7 @@
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://reactjs.org/)
 [![PWA](https://img.shields.io/badge/PWA-Enabled-5a0fc8.svg)](https://web.dev/progressive-web-apps/)
 
-<!-- Testing PWA update detection - Test after fresh reinstall -->
+<!-- PWA update detection - Final verification test -->
 
 ## What is MatchOps-Local?
 
