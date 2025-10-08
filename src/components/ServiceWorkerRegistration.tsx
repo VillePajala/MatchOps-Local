@@ -32,6 +32,7 @@ export default function ServiceWorkerRegistration() {
 
     navigator.serviceWorker.register(swUrl).then(registration => {
       logger.log('[PWA] Service Worker registered: ', registration);
+      logger.log('[PWA] Registration state - active:', registration.active?.state, 'waiting:', registration.waiting?.state, 'installing:', registration.installing?.state);
 
       // Look for a waiting service worker
       if (registration.waiting) {
@@ -65,10 +66,19 @@ export default function ServiceWorkerRegistration() {
         logger.log('[PWA] Periodic update check started (every 60s)');
         registration.update().then(() => {
           logger.log('[PWA] Update check completed successfully');
+          logger.log('[PWA] Post-check state - active:', registration.active?.state, 'waiting:', registration.waiting?.state, 'installing:', registration.installing?.state);
         }).catch(error => {
           logger.error('[PWA] Update check failed:', error);
         });
       }, 60000); // 60 seconds
+
+      // Also do an immediate check on mount
+      logger.log('[PWA] Running immediate update check on mount');
+      registration.update().then(() => {
+        logger.log('[PWA] Initial update check completed');
+      }).catch(error => {
+        logger.error('[PWA] Initial update check failed:', error);
+      });
     }).catch(error => {
       logger.error('[PWA] Service Worker registration failed: ', error);
     });

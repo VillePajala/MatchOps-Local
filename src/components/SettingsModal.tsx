@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '@/utils/bytes';
 import packageJson from '../../package.json';
-import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineChartBar } from 'react-icons/hi2';
+import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineChartBar, HiOutlineArrowPath } from 'react-icons/hi2';
 import { importFullBackup } from '@/utils/fullBackup';
 import { useGameImport } from '@/hooks/useGameImport';
 import ImportResultsModal from './ImportResultsModal';
@@ -47,6 +47,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const { importFromFile, isImporting, lastResult } = useGameImport();
   const [clubSeasonStartMonth, setClubSeasonStartMonth] = useState<number>(10);
   const [clubSeasonEndMonth, setClubSeasonEndMonth] = useState<number>(5);
+  const [checkingForUpdates, setCheckingForUpdates] = useState(false);
 
   useEffect(() => {
     setTeamName(defaultTeamName);
@@ -123,6 +124,41 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     }
 
     event.target.value = '';
+  };
+
+  const handleCheckForUpdates = async () => {
+    setCheckingForUpdates(true);
+    logger.log('[PWA] Manual update check triggered from Settings');
+
+    try {
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          logger.log('[PWA] Manual check - forcing update');
+          await registration.update();
+          logger.log('[PWA] Manual update check completed - checking for waiting worker');
+
+          if (registration.waiting) {
+            logger.log('[PWA] Update found! Waiting worker detected');
+            alert(t('settingsModal.updateAvailable', 'Update available! Please reload the app to apply.'));
+          } else if (registration.installing) {
+            logger.log('[PWA] Update installing... please wait');
+            alert(t('settingsModal.updateInstalling', 'Update is installing... Please wait a moment and check again.'));
+          } else {
+            logger.log('[PWA] No update available - app is up to date');
+            alert(t('settingsModal.upToDate', 'App is up to date!'));
+          }
+        } else {
+          logger.error('[PWA] No service worker registration found');
+          alert(t('settingsModal.noServiceWorker', 'Service worker not registered'));
+        }
+      }
+    } catch (error) {
+      logger.error('[PWA] Manual update check failed:', error);
+      alert(t('settingsModal.updateCheckFailed', 'Failed to check for updates'));
+    } finally {
+      setCheckingForUpdates(false);
+    }
   };
 
   const handleClubSeasonStartMonthChange = async (month: number) => {
@@ -307,6 +343,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 >
                   <HiOutlineChartBar className="h-5 w-5" />
                   {isImporting ? t('settingsModal.importing', 'Importing...') : t('settingsModal.importGamesButton', 'Import Games')}
+                </button>
+                <button
+                  onClick={handleCheckForUpdates}
+                  disabled={checkingForUpdates}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium shadow-sm transition-colors"
+                >
+                  <HiOutlineArrowPath className={`h-5 w-5 ${checkingForUpdates ? 'animate-spin' : ''}`} />
+                  {checkingForUpdates ? t('settingsModal.checkingUpdates', 'Checking...') : t('settingsModal.checkForUpdates', 'Check for Updates')}
                 </button>
               </div>
               <p className="text-sm text-slate-300">
