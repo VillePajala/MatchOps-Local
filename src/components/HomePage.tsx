@@ -2753,7 +2753,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   if (isLoading && !initialLoadComplete) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-900 text-white">
+      <div className="flex items-center justify-center h-[100dvh] bg-slate-900 text-white">
         {/* You can replace this with a more sophisticated loading spinner component */}
         <p>Loading Game Data...</p>
       </div>
@@ -2795,7 +2795,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   }
 
   return (
-    <main className="flex flex-col h-screen bg-slate-900 text-slate-50" data-testid="home-page">
+    <main className="flex flex-col h-[100dvh] bg-slate-900 text-slate-50" data-testid="home-page">
       {/* Top Section: Player Bar, Game Info */}
       <div className={barStyle}>
         <ErrorBoundary fallback={
