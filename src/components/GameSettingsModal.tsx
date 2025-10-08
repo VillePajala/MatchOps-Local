@@ -280,6 +280,27 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     }
   }, [gameTime]);
 
+  // Helper to keep parent time string consistent (either full HH:MM or cleared)
+  const syncGameTime = (hourValue: string, minuteValue: string) => {
+    const hasHour = hourValue !== '';
+    const hasMinute = minuteValue !== '';
+
+    if (!hasHour && !hasMinute) {
+      onGameTimeChange('');
+      return;
+    }
+
+    if (hasHour && hasMinute) {
+      const formattedHour = hourValue.padStart(2, '0');
+      const formattedMinute = minuteValue.padStart(2, '0');
+      onGameTimeChange(`${formattedHour}:${formattedMinute}`);
+      return;
+    }
+
+    // If only one side has been provided, avoid sending a partial value like "12:" or ":30"
+    onGameTimeChange('');
+  };
+
   // Handle time changes
   const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -290,15 +311,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       // Validate hour range (0-23) if number is complete
       if (numericValue === '' || (hourNum >= 0 && hourNum <= 23)) {
         setGameHour(numericValue);
-        
-        if (numericValue === '') {
-          // If hour is empty, update the time string accordingly
-          onGameTimeChange(gameMinute ? `:${gameMinute.padStart(2, '0')}` : '');
-        } else {
-          const formattedHour = numericValue.padStart(2, '0');
-          const formattedMinute = gameMinute.padStart(2, '0');
-          onGameTimeChange(`${formattedHour}:${formattedMinute}`);
-        }
+        syncGameTime(numericValue, gameMinute);
       }
     }
   };
@@ -312,15 +325,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       // Validate minute range (0-59) if number is complete
       if (numericValue === '' || (minuteNum >= 0 && minuteNum <= 59)) {
         setGameMinute(numericValue);
-        
-        if (numericValue === '') {
-          // If minute is empty, update the time string accordingly
-          onGameTimeChange(gameHour ? `${gameHour.padStart(2, '0')}:` : '');
-        } else {
-          const formattedHour = gameHour.padStart(2, '0');
-          const formattedMinute = numericValue.padStart(2, '0');
-          onGameTimeChange(`${formattedHour}:${formattedMinute}`);
-        }
+        syncGameTime(gameHour, numericValue);
       }
     }
   };
