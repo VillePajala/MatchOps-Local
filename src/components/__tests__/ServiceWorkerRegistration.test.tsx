@@ -73,22 +73,27 @@ describe('ServiceWorkerRegistration', () => {
       expect(navigator.serviceWorker.register).toHaveBeenCalled();
     });
 
-    // Fast-forward 60 seconds
-    act(() => {
-      jest.advanceTimersByTime(60000);
-    });
-
+    // Should have called update immediately on mount
     await waitFor(() => {
       expect(mockRegistration.update).toHaveBeenCalledTimes(1);
     });
 
-    // Fast-forward another 60 seconds
+    // Fast-forward 60 seconds - should call update from interval
     act(() => {
       jest.advanceTimersByTime(60000);
     });
 
     await waitFor(() => {
       expect(mockRegistration.update).toHaveBeenCalledTimes(2);
+    });
+
+    // Fast-forward another 60 seconds - should call update again
+    act(() => {
+      jest.advanceTimersByTime(60000);
+    });
+
+    await waitFor(() => {
+      expect(mockRegistration.update).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -118,13 +123,18 @@ describe('ServiceWorkerRegistration', () => {
       expect(navigator.serviceWorker.register).toHaveBeenCalled();
     });
 
-    // Verify update is called after 60 seconds
+    // Should have called update immediately on mount
+    await waitFor(() => {
+      expect(mockRegistration.update).toHaveBeenCalledTimes(1);
+    });
+
+    // Verify update is called after 60 seconds from interval
     act(() => {
       jest.advanceTimersByTime(60000);
     });
 
     await waitFor(() => {
-      expect(mockRegistration.update).toHaveBeenCalledTimes(1);
+      expect(mockRegistration.update).toHaveBeenCalledTimes(2);
     });
 
     // Unmount component
@@ -135,7 +145,7 @@ describe('ServiceWorkerRegistration', () => {
       jest.advanceTimersByTime(60000);
     });
 
-    // Still should be 1 (not 2) because interval was cleared
-    expect(mockRegistration.update).toHaveBeenCalledTimes(1);
+    // Still should be 2 (not 3) because interval was cleared
+    expect(mockRegistration.update).toHaveBeenCalledTimes(2);
   });
 });
