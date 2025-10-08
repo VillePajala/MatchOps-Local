@@ -852,8 +852,6 @@
     "upToDate": "Sovellus on ajan tasalla!",
     "noServiceWorker": "Service workeria ei ole rekisteröity",
     "updateCheckFailed": "Päivitysten tarkistus epäonnistui",
-    "forceReload": "Pakota uudelleenlataus",
-    "forceReloadConfirm": "Tämä lataa sovelluksen uudelleen ja ohittaa kaikki välimuistit. Jatka?",
     "backupDescription": "Vie tietosi varmuuskopiotiedostoon tai palauta aiemmasta varmuuskopiosta. Kaikki tiedot korvataan palautettaessa.",
     "importReadError": "Virhe varmuuskopiotiedoston lukemisessa.",
     "importGamesButton": "Tuo pelejä",
