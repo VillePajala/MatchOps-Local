@@ -27,11 +27,7 @@ export default function ServiceWorkerRegistration() {
       }
     };
 
-    // Attach buildId as a query param to ensure the SW script URL changes per deploy
-    // This avoids CDN/device caches serving an old sw.js and guarantees byte changes are detected.
-    const buildId = (window as unknown as { __NEXT_DATA__?: { buildId?: string } })?.__NEXT_DATA__?.buildId;
-    const swUrl = buildId ? `/sw.js?v=${encodeURIComponent(buildId)}` : '/sw.js';
-    logger.log('[PWA] Registering Service Worker at URL:', swUrl);
+    const swUrl = '/sw.js';
     let updateInterval: NodeJS.Timeout | null = null;
 
     navigator.serviceWorker.register(swUrl, { updateViaCache: 'none' }).then(registration => {
