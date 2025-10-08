@@ -496,6 +496,9 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         case 'teams':
           setIsTeamManagerOpen(true);
           break;
+        case 'settings':
+          setIsSettingsModalOpen(true);
+          break;
         case 'explore':
           // Explore mode - just let user access the temporary workspace
           // The first-game overlay will appear automatically for DEFAULT_GAME_ID
