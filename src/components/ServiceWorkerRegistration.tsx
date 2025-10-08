@@ -30,7 +30,7 @@ export default function ServiceWorkerRegistration() {
     const swUrl = '/sw.js';
     let updateInterval: NodeJS.Timeout | null = null;
 
-    navigator.serviceWorker.register(swUrl).then(registration => {
+    navigator.serviceWorker.register(swUrl, { updateViaCache: 'none' }).then(registration => {
       logger.log('[PWA] Service Worker registered: ', registration);
       logger.log('[PWA] Registration state - active:', registration.active?.state, 'waiting:', registration.waiting?.state, 'installing:', registration.installing?.state);
 
