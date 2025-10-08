@@ -1,4 +1,4 @@
 {
-  "version": "0.1.0",
-  "notes": "feat: redesign StartScreen with premium stadium lighting effects"
+  "version": "0.1.1",
+  "notes": "fix: PWA manifest name causing update detection issues on mobile devices"
 }

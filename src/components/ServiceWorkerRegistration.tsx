@@ -35,6 +35,7 @@ export default function ServiceWorkerRegistration() {
 
       // Look for a waiting service worker
       if (registration.waiting) {
+        logger.log('[PWA] Update available on registration - showing update banner');
         setWaitingWorker(registration.waiting);
         fetchReleaseNotes();
         setShowUpdateBanner(true);
@@ -50,6 +51,7 @@ export default function ServiceWorkerRegistration() {
             logger.log('[PWA] New service worker state changed:', newWorker.state);
             // When the new worker is installed and waiting
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                logger.log('[PWA] New service worker installed - showing update banner');
                 setWaitingWorker(newWorker);
                 fetchReleaseNotes();
                 setShowUpdateBanner(true);
@@ -60,8 +62,10 @@ export default function ServiceWorkerRegistration() {
 
       // Check for updates every 60 seconds (helpful for development and quick deployments)
       updateInterval = setInterval(() => {
-        logger.log('[PWA] Checking for service worker updates...');
-        registration.update().catch(error => {
+        logger.log('[PWA] Periodic update check started (every 60s)');
+        registration.update().then(() => {
+          logger.log('[PWA] Update check completed successfully');
+        }).catch(error => {
           logger.error('[PWA] Update check failed:', error);
         });
       }, 60000); // 60 seconds
