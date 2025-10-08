@@ -134,13 +134,44 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.getRegistration();
         if (registration) {
-          logger.log('[PWA] Manual check - forcing update');
+          // Log current service worker state
+          logger.log('[PWA] Current SW state before update:', {
+            active: registration.active?.scriptURL,
+            waiting: registration.waiting?.scriptURL,
+            installing: registration.installing?.scriptURL,
+          });
+
+          // Try to fetch sw.js directly to check if it's different
+          try {
+            const swResponse = await fetch('/sw.js', { cache: 'no-store' });
+            const swText = await swResponse.text();
+            const timestampMatch = swText.match(/Build Timestamp: (.*)/);
+            const deployedTimestamp = timestampMatch ? timestampMatch[1] : 'unknown';
+            logger.log('[PWA] Deployed sw.js timestamp:', deployedTimestamp);
+          } catch (e) {
+            logger.error('[PWA] Failed to fetch sw.js directly:', e);
+          }
+
+          logger.log('[PWA] Manual check - forcing registration.update()');
           await registration.update();
+
+          // Wait a bit for the update to process
+          await new Promise(resolve => setTimeout(resolve, 1000));
+
           logger.log('[PWA] Manual update check completed - checking for waiting worker');
+          logger.log('[PWA] SW state after update:', {
+            active: registration.active?.scriptURL,
+            waiting: registration.waiting?.scriptURL,
+            installing: registration.installing?.scriptURL,
+          });
 
           if (registration.waiting) {
             logger.log('[PWA] Update found! Waiting worker detected');
-            alert(t('settingsModal.updateAvailable', 'Update available! Please reload the app to apply.'));
+            const result = confirm(t('settingsModal.updateAvailableConfirm', 'Update available! Click OK to reload now, or Cancel to update later.'));
+            if (result) {
+              registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+              window.location.reload();
+            }
           } else if (registration.installing) {
             logger.log('[PWA] Update installing... please wait');
             alert(t('settingsModal.updateInstalling', 'Update is installing... Please wait a moment and check again.'));
@@ -158,6 +189,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       alert(t('settingsModal.updateCheckFailed', 'Failed to check for updates'));
     } finally {
       setCheckingForUpdates(false);
+    }
+  };
+
+  const handleForceReload = () => {
+    logger.log('[PWA] Force reload triggered from Settings');
+    if (confirm(t('settingsModal.forceReloadConfirm', 'This will reload the app and bypass all caches. Continue?'))) {
+      // Unregister all service workers and hard reload
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          Promise.all(registrations.map(reg => reg.unregister())).then(() => {
+            logger.log('[PWA] All service workers unregistered');
+            window.location.reload();
+          });
+        });
+      } else {
+        window.location.reload();
+      }
     }
   };
 
@@ -351,6 +399,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 >
                   <HiOutlineArrowPath className={`h-5 w-5 ${checkingForUpdates ? 'animate-spin' : ''}`} />
                   {checkingForUpdates ? t('settingsModal.checkingUpdates', 'Checking...') : t('settingsModal.checkForUpdates', 'Check for Updates')}
+                </button>
+                <button
+                  onClick={handleForceReload}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 hover:bg-orange-500 text-white rounded-md text-sm font-medium shadow-sm transition-colors"
+                >
+                  <HiOutlineArrowPath className="h-5 w-5" />
+                  {t('settingsModal.forceReload', 'Force Reload')}
                 </button>
               </div>
               <p className="text-sm text-slate-300">
