@@ -495,7 +495,7 @@ class StorageMetricsStub {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _duration: number,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _success: boolean = true,
+    _success?: boolean,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _metadata?: Record<string, unknown>
   ): void {
