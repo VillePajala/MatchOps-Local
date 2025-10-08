@@ -62,7 +62,7 @@ describe('ServiceWorkerRegistration', () => {
     render(<ServiceWorkerRegistration />);
 
     await waitFor(() => {
-      expect(navigator.serviceWorker.register).toHaveBeenCalledWith('/sw.js');
+      expect(navigator.serviceWorker.register).toHaveBeenCalledWith('/sw.js', { updateViaCache: 'none' });
     });
   });
 
