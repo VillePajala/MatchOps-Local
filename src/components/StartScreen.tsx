@@ -54,11 +54,16 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
   // (Reverted) No last game meta fetching here.
 
+  // Option 1 — Brighter Indigo Buttons for stronger contrast
   const primaryButtonStyle =
-    'w-full px-6 py-3 rounded-lg text-base font-semibold tracking-wide text-white bg-gradient-to-b from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 shadow-[0_8px_24px_rgba(13,31,57,.35)] hover:shadow-[0_14px_36px_rgba(13,31,57,.45)] text-center leading-tight ring-1 ring-inset ring-white/10 border border-white/10 hover:-translate-y-0.5 active:translate-y-0';
+    'w-full h-12 px-6 rounded-lg text-base font-semibold tracking-[0.02em] text-[#F8FBFF] bg-indigo-600 hover:bg-indigo-500 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ring-1 ring-inset ring-white/10 border border-white/8 shadow-[0_10px_24px_rgba(7,18,38,.45)] hover:shadow-[0_16px_36px_rgba(7,18,38,.55)] hover:-translate-y-0.5 active:translate-y-0 text-center relative before:content-[\'\'] before:absolute before:inset-0 before:rounded-lg before:pointer-events-none before:shadow-[inset_0_1px_0_rgba(255,255,255,.14)] drop-shadow-[0_1px_0_rgba(0,0,0,.35)]';
+
+  // Emphasized variant for primary (Continue) — slightly brighter
+  const primaryEmphasisStyle =
+    'w-full h-12 px-6 rounded-lg text-base font-semibold tracking-[0.02em] text-[#F8FBFF] bg-indigo-500 hover:bg-indigo-400 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ring-1 ring-inset ring-white/10 border border-white/8 shadow-[0_12px_26px_rgba(7,18,38,.5)] hover:shadow-[0_18px_38px_rgba(7,18,38,.6)] hover:-translate-y-0.5 active:translate-y-0 text-center relative before:content-[\'\'] before:absolute before:inset-0 before:rounded-lg before:pointer-events-none before:shadow-[inset_0_1px_0_rgba(255,255,255,.16)] drop-shadow-[0_1px_0_rgba(0,0,0,.35)]';
 
   const disabledButtonStyle =
-    'w-full px-6 py-3 rounded-lg text-base font-semibold text-slate-400 bg-slate-700/60 cursor-not-allowed opacity-60 text-center leading-tight border border-slate-600/40 ring-1 ring-inset ring-slate-500/10';
+    'w-full h-12 px-6 rounded-lg text-base font-semibold text-slate-500 bg-[#0E1A2C] cursor-not-allowed opacity-60 text-center leading-tight border border-slate-600/40 ring-1 ring-inset ring-white/10';
 
   const containerStyle =
     'relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-950 text-slate-100 font-display overflow-hidden';
@@ -231,7 +236,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
             <div className="w-full flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(8px,4vh,28px)]">
               {/* Continue / Jatka button */}
               <button
-                className={canResume ? primaryButtonStyle : disabledButtonStyle}
+                className={canResume ? primaryEmphasisStyle : disabledButtonStyle}
                 onClick={canResume && onResumeGame ? onResumeGame : undefined}
                 disabled={!canResume}
               >
