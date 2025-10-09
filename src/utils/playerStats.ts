@@ -8,7 +8,7 @@ export interface PlayerStats {
   totalAssists: number;
   avgGoalsPerGame: number;
   avgAssistsPerGame: number;
-  totalFairPlayCards: number;  // NEW - aggregated from game events
+  totalFairPlayCards: number;  // Aggregated from Player.receivedFairPlayCard
   gameByGameStats: GameStats[];
   performanceBySeason: { [seasonId: string]: { name: string; gamesPlayed: number; goals: number; assists: number; points: number; fairPlayCards: number } };
   performanceByTournament: { [tournamentId: string]: { name: string; gamesPlayed: number; goals: number; assists: number; points: number; fairPlayCards: number; isTournamentWinner?: boolean } };
@@ -84,8 +84,10 @@ export const calculatePlayerStats = (
 
       // Aggregate stats by tournament
       if (game.tournamentId) {
+        const tournament = tournaments.find(t => t.id === game.tournamentId);
+        const isTournamentWinner = tournament?.awardedPlayerId === player.id;
+
         if (!performanceByTournament[game.tournamentId]) {
-          const tournament = tournaments.find(t => t.id === game.tournamentId);
           performanceByTournament[game.tournamentId] = {
             name: tournament?.name || 'Unknown Tournament',
             gamesPlayed: 0,
@@ -93,7 +95,7 @@ export const calculatePlayerStats = (
             assists: 0,
             points: 0,
             fairPlayCards: 0,
-            isTournamentWinner: tournament?.awardedPlayerId === player.id
+            isTournamentWinner
           };
         }
         performanceByTournament[game.tournamentId].gamesPlayed += 1;
@@ -102,8 +104,7 @@ export const calculatePlayerStats = (
         performanceByTournament[game.tournamentId].points += points;
         performanceByTournament[game.tournamentId].fairPlayCards += fairPlayCards;
         // Ensure tournament winner flag is current (in case award was given after first game processed)
-        const tournament = tournaments.find(t => t.id === game.tournamentId);
-        performanceByTournament[game.tournamentId].isTournamentWinner = tournament?.awardedPlayerId === player.id;
+        performanceByTournament[game.tournamentId].isTournamentWinner = isTournamentWinner;
       }
 
       let result: 'W' | 'L' | 'D' | 'N/A' = 'N/A';
@@ -158,8 +159,10 @@ export const calculatePlayerStats = (
 
       // Add to tournament performance if tournamentId exists
       if (adj.tournamentId) {
+        const tournament = tournaments.find(t => t.id === adj.tournamentId);
+        const isTournamentWinner = tournament?.awardedPlayerId === player.id;
+
         if (!performanceByTournament[adj.tournamentId]) {
-          const tournament = tournaments.find(t => t.id === adj.tournamentId);
           performanceByTournament[adj.tournamentId] = {
             name: tournament?.name || 'Unknown Tournament',
             gamesPlayed: 0,
@@ -167,7 +170,7 @@ export const calculatePlayerStats = (
             assists: 0,
             points: 0,
             fairPlayCards: 0,
-            isTournamentWinner: tournament?.awardedPlayerId === player.id
+            isTournamentWinner
           };
         }
         performanceByTournament[adj.tournamentId].gamesPlayed += (adj.gamesPlayedDelta || 0);
@@ -176,8 +179,7 @@ export const calculatePlayerStats = (
         performanceByTournament[adj.tournamentId].points += (adj.goalsDelta || 0) + (adj.assistsDelta || 0);
         performanceByTournament[adj.tournamentId].fairPlayCards += (adj.fairPlayCardsDelta || 0);
         // Ensure tournament winner flag is current (in case award was given after adjustment processed)
-        const tournament = tournaments.find(t => t.id === adj.tournamentId);
-        performanceByTournament[adj.tournamentId].isTournamentWinner = tournament?.awardedPlayerId === player.id;
+        performanceByTournament[adj.tournamentId].isTournamentWinner = isTournamentWinner;
       }
     }
     // Note: Stats always count toward overall totals regardless of includeInSeasonTournament flag
