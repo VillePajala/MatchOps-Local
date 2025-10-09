@@ -232,7 +232,7 @@ describe('SeasonTournamentManagementModal', () => {
             { id: 't1', name: 'Spring Cup', awardedPlayerId: 'p1' } as Tournament,
             { id: 't2', name: 'Summer League' } as Tournament, // No award
           ],
-          masterRoster: [{ id: 'p1', name: 'Alice', jerseyNumber: '10', isGoalie: false, receivedFairPlayCard: false }],
+          masterRoster: [{ id: 'p1', name: 'Alice', jerseyNumber: '10' }],
         });
       });
       await act(async () => {});
