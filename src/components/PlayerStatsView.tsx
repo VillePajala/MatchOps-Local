@@ -242,7 +242,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         )}
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-5 gap-4 text-center mb-3 p-4 bg-slate-800/60 rounded-lg">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-center mb-3 p-4 bg-slate-800/60 rounded-lg">
           <div>
             <p className="text-2xl font-bold text-yellow-400">{playerStats.totalGames}</p>
             <p className="text-sm text-slate-400">{t('playerStats.gamesPlayed', 'Games Played')}</p>
@@ -263,7 +263,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             <p className="text-sm text-slate-400">{t('playerStats.points', 'Points')}</p>
             <p className="text-xs text-slate-500">({(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame).toFixed(1)} {t('playerStats.perGame', '/ game')})</p>
           </div>
-          <div>
+          <div aria-label="Fair play cards received">
             <p className="text-2xl font-bold text-green-400">{playerStats.totalFairPlayCards}</p>
             <p className="text-sm text-slate-400">{t('playerStats.fairPlayCards', 'Fair Play Cards')}</p>
             <p className="text-xs text-slate-500">⚽ {t('playerStats.sportsmanship', 'Sportsmanship')}</p>
@@ -911,7 +911,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 {Object.entries(playerStats.performanceBySeason).map(([id, stats]) => (
                   <div key={id} className="p-2 bg-slate-700/50 rounded-md">
                     <p className="font-semibold text-slate-100 mb-1">{stats.name}</p>
-                    <div className="grid grid-cols-5 gap-2 text-center text-sm">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-center text-sm">
                       <div><p className="font-bold text-yellow-400">{stats.gamesPlayed}</p><p className="text-xs text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.goals}</p><p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.assists}</p><p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
@@ -937,7 +937,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         </span>
                       )}
                     </p>
-                    <div className="grid grid-cols-5 gap-2 text-center text-sm">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-center text-sm">
                       <div><p className="font-bold text-yellow-400">{stats.gamesPlayed}</p><p className="text-xs text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.goals}</p><p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.assists}</p><p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
