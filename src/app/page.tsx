@@ -117,6 +117,7 @@ export default function Home() {
               initialAction={initialAction ?? undefined}
               skipInitialSetup
               onDataImportSuccess={handleDataImportSuccess}
+              isFirstTimeUser={isFirstTimeUser}
             />
           </ErrorBoundary>
         )}
