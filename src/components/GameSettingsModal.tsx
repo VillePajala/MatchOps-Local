@@ -1145,6 +1145,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   {/* Display tournament player award if exists */}
                   {tournamentId && (() => {
                     const tournament = tournaments.find(t => t.id === tournamentId);
+                    // Edge case: if awarded player was deleted from roster, find() returns undefined
+                    // This gracefully hides the trophy badge (no broken UI)
                     const awardedPlayer = tournament?.awardedPlayerId
                       ? masterRoster.find(p => p.id === tournament.awardedPlayerId)
                       : null;

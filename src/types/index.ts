@@ -75,7 +75,15 @@ export interface Tournament {
   badge?: string;
   level?: string;
   ageGroup?: string;
-  awardedPlayerId?: string; // Player who won "Player of Tournament" award
+  /**
+   * Optional player ID for "Player of Tournament" award.
+   *
+   * @remarks
+   * - If player is deleted from roster, trophy UI is gracefully hidden (no broken references)
+   * - Backward compatible: tournaments without awards work seamlessly
+   * - Displayed with trophy emoji 🏆 in UI (stats tables, tournament list, settings)
+   */
+  awardedPlayerId?: string;
   // Note: teamId removed - tournaments are global entities per plan
   // Note: roster management removed - teams handle rosters now
 }

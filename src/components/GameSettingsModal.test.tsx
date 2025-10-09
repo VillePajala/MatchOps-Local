@@ -483,7 +483,9 @@ describe('<GameSettingsModal />', () => {
       // Wait for award display
       await waitFor(() => {
         expect(screen.getByText('🏆')).toBeInTheDocument();
-        expect(screen.getByText('Player One')).toBeInTheDocument();
+        // Use getAllByText since "Player One" appears in multiple places (dropdown + award)
+        const playerOneElements = screen.getAllByText('Player One');
+        expect(playerOneElements.length).toBeGreaterThan(0);
       });
     });
 

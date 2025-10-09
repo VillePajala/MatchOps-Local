@@ -182,6 +182,16 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   };
 
+  /**
+   * Performance optimization: Pre-compute player lookup map
+   * Reduces complexity from O(n*m) to O(n+m) when rendering tournament awards
+   * Critical for large rosters (50-100 players) × multiple tournaments (50-100)
+   */
+  const playerLookup = useMemo(
+    () => new Map(masterRoster.map(p => [p.id, p])),
+    [masterRoster]
+  );
+
   // --- State ---
   const [editGameNotes, setEditGameNotes] = useState(gameNotes);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -1257,8 +1267,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                               tournamentSeasonStats.map(stats => {
                                 // Look up tournament to check for awarded player (only for tournament tab)
                                 const tournament = activeTab === 'tournament' ? tournaments.find(t => t.id === stats.id) : null;
+                                // Edge case: if awarded player was deleted from roster, playerLookup returns undefined
+                                // This gracefully hides the trophy badge (no broken UI)
                                 const awardedPlayer = tournament?.awardedPlayerId
-                                  ? masterRoster.find(p => p.id === tournament.awardedPlayerId)
+                                  ? playerLookup.get(tournament.awardedPlayerId)
                                   : null;
 
                                 return (
@@ -1293,8 +1305,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                               (activeTab === 'season' ? tournamentSeasonStats.seasons : tournamentSeasonStats.tournaments).map(stats => {
                                 // Look up tournament to check for awarded player (only for tournament tab)
                                 const tournament = activeTab === 'tournament' ? tournaments.find(t => t.id === stats.id) : null;
+                                // Edge case: if awarded player was deleted from roster, playerLookup returns undefined
+                                // This gracefully hides the trophy badge (no broken UI)
                                 const awardedPlayer = tournament?.awardedPlayerId
-                                  ? masterRoster.find(p => p.id === tournament.awardedPlayerId)
+                                  ? playerLookup.get(tournament.awardedPlayerId)
                                   : null;
 
                                 return (

@@ -47,6 +47,17 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         }
         return sanitized;
     };
+
+    /**
+     * Performance optimization: Pre-compute player lookup map
+     * Reduces complexity from O(n*m) to O(n+m) when rendering tournament awards
+     * Critical for large rosters (50-100 players) × multiple tournaments (50-100)
+     */
+    const playerLookup = React.useMemo(
+        () => new Map(masterRoster.map(p => [p.id, p])),
+        [masterRoster]
+    );
+
     const [newSeasonName, setNewSeasonName] = useState('');
     const [showNewSeasonInput, setShowNewSeasonInput] = useState(false);
 
@@ -268,6 +279,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                             value={editingFields.awardedPlayerId || ''}
                                             onChange={e=>setEditingFields(f=>({...f,awardedPlayerId:e.target.value || undefined}))}
                                             className="w-full px-2 py-1 bg-slate-700 border border-slate-600 rounded-md text-white"
+                                            aria-label={t('tournaments.selectAwardWinner', 'Select Player of Tournament')}
                                         >
                                             <option value="">{t('tournaments.selectAwardWinner', '-- Select Player of Tournament --')}</option>
                                             {masterRoster.map(player => (
@@ -287,7 +299,10 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                         <div className="flex items-center gap-2">
                                             <p className="text-sm text-slate-200 font-semibold">{item.name}</p>
                                             {type==='tournament' && (item as Tournament).awardedPlayerId && (() => {
-                                                const awardedPlayer = masterRoster.find(p => p.id === (item as Tournament).awardedPlayerId);
+                                                // Edge case: if awarded player was deleted from roster, playerLookup returns undefined
+                                                // This gracefully hides the trophy badge (no broken UI)
+                                                const playerId = (item as Tournament).awardedPlayerId!; // Safe due to && check above
+                                                const awardedPlayer = playerLookup.get(playerId);
                                                 return awardedPlayer ? (
                                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded">
                                                         🏆 {awardedPlayer.name}
