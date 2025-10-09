@@ -2932,7 +2932,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         </ErrorBoundary>
 
         {/* First Game Setup Overlay */}
-        {currentGameId === DEFAULT_GAME_ID && playersOnField.length === 0 && drawings.length === 0 && (
+        {initialLoadComplete && currentGameId === DEFAULT_GAME_ID && playersOnField.length === 0 && drawings.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
             <div className="bg-slate-800/95 border border-indigo-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
               <div className="text-center">
@@ -3009,7 +3009,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         )}
 
         {/* Temporary Workspace Warning (shows at top when using workspace) */}
-        {currentGameId === DEFAULT_GAME_ID && (playersOnField.length > 0 || drawings.length > 0) && (
+        {initialLoadComplete && currentGameId === DEFAULT_GAME_ID && (playersOnField.length > 0 || drawings.length > 0) && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-40">
             <div className="bg-amber-600/95 border border-amber-500/50 rounded-lg px-6 py-3 shadow-xl backdrop-blur-sm max-w-md">
               <div className="flex items-center gap-3 text-sm">
