@@ -685,6 +685,10 @@
     "editDetails": "Muokkaa tietoja",
     "searchPlaceholder": "Etsi..."
   },
+  "tournaments": {
+    "selectAwardWinner": "-- Valitse turnauksen pelaaja --",
+    "playerOfTournament": "Turnauksen pelaaja"
+  },
   "teamManager": {
     "title": "Joukkueet",
     "createNewTeam": "Luo uusi joukkue",

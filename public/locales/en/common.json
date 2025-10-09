@@ -744,6 +744,10 @@
     "editDetails": "Edit Details",
     "searchPlaceholder": "Search..."
   },
+  "tournaments": {
+    "selectAwardWinner": "-- Select Player of Tournament --",
+    "playerOfTournament": "Player of Tournament"
+  },
   "teamManager": {
     "title": "Teams",
     "createNewTeam": "Create new team",

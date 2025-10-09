@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Season, Tournament } from '@/types';
+import { Season, Tournament, Player } from '@/types';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
 import { HiPlusCircle, HiOutlinePencil, HiOutlineTrash, HiOutlineCheck, HiOutlineXMark } from 'react-icons/hi2';
@@ -13,6 +13,7 @@ interface SeasonTournamentManagementModalProps {
     onClose: () => void;
     seasons: Season[];
     tournaments: Tournament[];
+    masterRoster: Player[];
     addSeasonMutation: UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
     addTournamentMutation: UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>;
     updateSeasonMutation: UseMutationResult<Season | null, Error, Season, unknown>;
@@ -22,7 +23,7 @@ interface SeasonTournamentManagementModalProps {
 }
 
 const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalProps> = ({
-    isOpen, onClose, seasons, tournaments,
+    isOpen, onClose, seasons, tournaments, masterRoster,
     addSeasonMutation, addTournamentMutation,
     updateSeasonMutation, deleteSeasonMutation,
     updateTournamentMutation, deleteTournamentMutation
@@ -46,6 +47,17 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         }
         return sanitized;
     };
+
+    /**
+     * Performance optimization: Pre-compute player lookup map
+     * Reduces complexity from O(n*m) to O(n+m) when rendering tournament awards
+     * Critical for large rosters (50-100 players) × multiple tournaments (50-100)
+     */
+    const playerLookup = React.useMemo(
+        () => new Map(masterRoster.map(p => [p.id, p])),
+        [masterRoster]
+    );
+
     const [newSeasonName, setNewSeasonName] = useState('');
     const [showNewSeasonInput, setShowNewSeasonInput] = useState(false);
 
@@ -262,6 +274,19 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                         </>
                                     )}
                                     <textarea value={editingFields.notes || ''} onChange={e=>setEditingFields(f=>({...f,notes:e.target.value}))} placeholder={t('seasonTournamentModal.notesLabel')} className="w-full px-2 py-1 bg-slate-700 border border-slate-600 rounded-md text-white" />
+                                    {type==='tournament' && (
+                                        <select
+                                            value={editingFields.awardedPlayerId || ''}
+                                            onChange={e=>setEditingFields(f=>({...f,awardedPlayerId:e.target.value || undefined}))}
+                                            className="w-full px-2 py-1 bg-slate-700 border border-slate-600 rounded-md text-white"
+                                            aria-label={t('tournaments.selectAwardWinner', 'Select Player of Tournament')}
+                                        >
+                                            <option value="">{t('tournaments.selectAwardWinner', '-- Select Player of Tournament --')}</option>
+                                            {masterRoster.map(player => (
+                                                <option key={player.id} value={player.id}>{player.name}</option>
+                                            ))}
+                                        </select>
+                                    )}
                                     <label className="text-slate-200 text-sm flex items-center gap-1"><input type="checkbox" checked={editingFields.archived || false} onChange={e=>setEditingFields(f=>({...f,archived:e.target.checked}))} className="form-checkbox h-4 w-4" />{t('seasonTournamentModal.archiveLabel')}</label>
                                     <div className="flex justify-end gap-2">
                                         <button onClick={() => handleSaveEdit(item.id, type)} className="p-1 text-green-400 hover:text-green-300" aria-label={`Save ${item.name}`}><HiOutlineCheck className="w-5 h-5" /></button>
@@ -271,7 +296,20 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                             ) : (
                                 <div className="flex justify-between items-center">
                                     <div>
-                                        <p className="text-sm text-slate-200 font-semibold">{item.name}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm text-slate-200 font-semibold">{item.name}</p>
+                                            {type==='tournament' && (item as Tournament).awardedPlayerId && (() => {
+                                                // Edge case: if awarded player was deleted from roster, playerLookup returns undefined
+                                                // This gracefully hides the trophy badge (no broken UI)
+                                                const playerId = (item as Tournament).awardedPlayerId!; // Safe due to && check above
+                                                const awardedPlayer = playerLookup.get(playerId);
+                                                return awardedPlayer ? (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded">
+                                                        🏆 {awardedPlayer.name}
+                                                    </span>
+                                                ) : null;
+                                            })()}
+                                        </div>
                                         {type==='tournament' && ((item as Tournament).startDate || (item as Tournament).endDate) && (
                                             <p className="text-xs text-slate-400">{(item as Tournament).startDate || ''}{(item as Tournament).startDate && (item as Tournament).endDate ? ' - ' : ''}{(item as Tournament).endDate || ''}</p>
                                         )}

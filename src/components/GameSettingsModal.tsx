@@ -84,6 +84,7 @@ export interface GameSettingsModalProps {
   // Fresh data from React Query
   seasons: Season[];
   tournaments: Tournament[];
+  masterRoster?: Player[]; // Full roster for tournament player award display
 }
 
 // Helper to format time from seconds to MM:SS
@@ -168,6 +169,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   updateGameDetailsMutation,
   seasons,
   tournaments,
+  masterRoster = [],
 }) => {
   // logger.log('[GameSettingsModal Render] Props received:', { seasonId, tournamentId, currentGameId });
   const { t } = useTranslation();
@@ -1139,6 +1141,28 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       </div>
                     </div>
                   )}
+
+                  {/* Display tournament player award if exists */}
+                  {tournamentId && (() => {
+                    const tournament = tournaments.find(t => t.id === tournamentId);
+                    // Edge case: if awarded player was deleted from roster, find() returns undefined
+                    // This gracefully hides the trophy badge (no broken UI)
+                    const awardedPlayer = tournament?.awardedPlayerId
+                      ? masterRoster.find(p => p.id === tournament.awardedPlayerId)
+                      : null;
+
+                    return awardedPlayer ? (
+                      <div className="mt-3 p-2 bg-amber-500/10 border border-amber-500/30 rounded-md">
+                        <div className="text-xs text-amber-400 flex items-center gap-2">
+                          <span className="text-base">🏆</span>
+                          <div>
+                            <div className="font-medium">{t('tournaments.playerOfTournament', 'Player of Tournament')}</div>
+                            <div className="text-amber-300">{awardedPlayer.name}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
               )}
             </div>

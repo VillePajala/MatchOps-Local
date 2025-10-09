@@ -60,3 +60,17 @@ export function archived(overrides: Partial<Tournament> = {}): Tournament {
     ...overrides,
   });
 }
+
+/**
+ * Creates a tournament with a player award
+ * @param awardedPlayerId - ID of the player who won the award
+ */
+export function withPlayerAward(awardedPlayerId: string, overrides: Partial<Tournament> = {}): Tournament {
+  return fixture.create({
+    name: 'Championship Cup',
+    level: 'competitive',
+    location: 'Finals Arena',
+    awardedPlayerId,
+    ...overrides,
+  });
+}

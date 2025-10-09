@@ -41,6 +41,13 @@ afterEach(async () => {
     { id: 't3', name: 'Local Charity Shield' },
   ];
 
+  const tournamentWithAward: Tournament = {
+    id: 't4',
+    name: 'Championship Finals',
+    awardedPlayerId: 'player_123',
+    level: 'competitive',
+  };
+
   describe('getTournaments', () => {
     it('should return an empty array if no tournaments are in storage', async () => {
       // mockGetStorageItem will return null by default if store is empty
@@ -158,6 +165,60 @@ afterEach(async () => {
 
       expect(result).toBeNull();
       expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining(`[addTournament] Validation failed: A tournament with name "${duplicateName}" already exists.`));
+    });
+  });
+
+  describe('Tournament Player Awards', () => {
+    it('should save and retrieve tournaments with awardedPlayerId field', async () => {
+      const tournamentsWithAward = [tournamentWithAward, sampleTournaments[0]];
+      const result = await saveTournaments(tournamentsWithAward);
+
+      expect(result).toBe(true);
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
+        TOURNAMENTS_LIST_KEY,
+        JSON.stringify(tournamentsWithAward)
+      );
+    });
+
+    it('should update tournament to add awardedPlayerId', async () => {
+      await saveTournaments([sampleTournaments[0]]);
+
+      const updatedWithAward: Tournament = {
+        ...sampleTournaments[0],
+        awardedPlayerId: 'player_456',
+      };
+      const result = await updateTournament(updatedWithAward);
+
+      expect(result).not.toBeNull();
+      expect(result?.awardedPlayerId).toBe('player_456');
+    });
+
+    it('should update tournament to remove awardedPlayerId', async () => {
+      await saveTournaments([tournamentWithAward]);
+
+      const updatedWithoutAward: Tournament = {
+        ...tournamentWithAward,
+        awardedPlayerId: undefined,
+      };
+      const result = await updateTournament(updatedWithoutAward);
+
+      expect(result).not.toBeNull();
+      expect(result?.awardedPlayerId).toBeUndefined();
+    });
+
+    it('should handle tournaments with and without awardedPlayerId in same list', async () => {
+      const mixedTournaments = [...sampleTournaments, tournamentWithAward];
+      const saveResult = await saveTournaments(mixedTournaments);
+
+      expect(saveResult).toBe(true);
+
+      // Verify the data structure is preserved
+      const savedData = mockSetStorageItem.mock.calls[mockSetStorageItem.mock.calls.length - 1][1];
+      const parsed = JSON.parse(savedData as string);
+
+      expect(parsed).toHaveLength(4);
+      expect(parsed[3].awardedPlayerId).toBe('player_123');
+      expect(parsed[0].awardedPlayerId).toBeUndefined();
     });
   });
 

@@ -100,6 +100,7 @@ interface GameStatsModalProps {
   onExportAggregateCsv?: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
   initialSelectedPlayerId?: string | null;
   onGameClick?: (gameId: string) => void;
+  masterRoster?: Player[]; // Full roster for tournament player award display
 }
 
 const GameStatsModal: React.FC<GameStatsModalProps> = ({
@@ -130,6 +131,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   onExportAggregateCsv,
   initialSelectedPlayerId = null,
   onGameClick = () => {},
+  masterRoster = [],
 }) => {
   const { t, i18n } = useTranslation();
 
@@ -179,6 +181,49 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     const seconds = timeInSeconds % 60;
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   };
+
+  /**
+   * Performance optimization: Pre-compute player lookup map
+   * Reduces complexity from O(n*m) to O(n+m) when rendering tournament awards
+   * Critical for large rosters (50-100 players) × multiple tournaments (50-100)
+   */
+  const playerLookup = useMemo(
+    () => new Map(masterRoster.map(p => [p.id, p])),
+    [masterRoster]
+  );
+
+  /**
+   * Helper function to render tournament player award trophy badge
+   * DRY principle: Eliminates duplication in tournament/season stats table rendering
+   *
+   * @param statsId - Tournament or season ID to check for awarded player
+   * @param currentActiveTab - Current active tab ('tournament' or 'season')
+   * @param tournamentsList - List of all tournaments
+   * @param lookup - Player lookup map for O(1) player retrieval
+   * @returns React element with trophy badge or null
+   */
+  const renderTrophyBadge = useCallback((
+    statsId: string,
+    currentActiveTab: StatsTab,
+    tournamentsList: Tournament[],
+    lookup: Map<string, Player>
+  ): React.ReactNode => {
+    // Trophy badges only shown in tournament tab
+    if (currentActiveTab !== 'tournament') return null;
+
+    const tournament = tournamentsList.find(t => t.id === statsId);
+    // Edge case: if awarded player was deleted from roster, playerLookup returns undefined
+    // This gracefully hides the trophy badge (no broken UI)
+    const awardedPlayer = tournament?.awardedPlayerId
+      ? lookup.get(tournament.awardedPlayerId)
+      : null;
+
+    return awardedPlayer ? (
+      <div className="text-xs text-amber-400 mt-0.5 flex items-center gap-1">
+        🏆 {awardedPlayer.name}
+      </div>
+    ) : null;
+  }, []);
 
   // --- State ---
   const [editGameNotes, setEditGameNotes] = useState(gameNotes);
@@ -1254,7 +1299,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                             tournamentSeasonStats.length > 0 ? (
                               tournamentSeasonStats.map(stats => (
                                 <tr key={stats.id} className="border-b border-slate-800 hover:bg-slate-800/40">
-                                  <td className="px-2 py-2 font-medium">{stats.name}</td>
+                                  <td className="px-2 py-2">
+                                    <div className="font-medium">{stats.name}</div>
+                                    {renderTrophyBadge(stats.id, activeTab, tournaments, playerLookup)}
+                                  </td>
                                   <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.gamesPlayed}</td>
                                   <td className="px-1 py-2 text-center text-green-400 font-semibold">{stats.wins}</td>
                                   <td className="px-1 py-2 text-center text-red-400 font-semibold">{stats.losses}</td>
@@ -1275,7 +1323,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                             tournamentSeasonStats.totalGames > 0 ? (
                               (activeTab === 'season' ? tournamentSeasonStats.seasons : tournamentSeasonStats.tournaments).map(stats => (
                                 <tr key={stats.id} className="border-b border-slate-800 hover:bg-slate-800/40">
-                                  <td className="px-2 py-2 font-medium">{stats.name}</td>
+                                  <td className="px-2 py-2">
+                                    <div className="font-medium">{stats.name}</div>
+                                    {renderTrophyBadge(stats.id, activeTab, tournaments, playerLookup)}
+                                  </td>
                                   <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.gamesPlayed}</td>
                                   <td className="px-1 py-2 text-center text-green-400 font-semibold">{stats.wins}</td>
                                   <td className="px-1 py-2 text-center text-red-400 font-semibold">{stats.losses}</td>
