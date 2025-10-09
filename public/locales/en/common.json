@@ -931,7 +931,12 @@
     "includeInSeasonTournamentHelp": "Check this if the external game was played for the same team",
     "clubSeasonFilter": "Filter by Club Season",
     "allSeasons": "All Seasons",
-    "offSeason": "Off-Season"
+    "offSeason": "Off-Season",
+    "fairPlayCards": "Fair Play Cards",
+    "fairPlayCardsShort": "FP",
+    "sportsmanship": "Sportsmanship",
+    "fairPlayTrophy": "Fair Play Trophy",
+    "playerOfTournament": "Player of Tournament"
   },
   "months": {
     "january": "January",
