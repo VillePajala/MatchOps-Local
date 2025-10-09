@@ -179,4 +179,129 @@ describe('SeasonTournamentManagementModal', () => {
     expect(screen.queryByText('Summer Season')).toBeNull();
     expect(screen.queryByText('Autumn Cup')).toBeNull();
   });
+
+  /**
+   * Tournament Player Award Tests
+   * @critical - Tests player award dropdown selection and display
+   */
+  describe('Tournament Player Award Selection', () => {
+    it('should allow selecting a player award when editing tournament', async () => {
+      const user = userEvent.setup();
+      await act(async () => {
+        renderWithProviders({
+          tournaments: [{ id: 't1', name: 'Championship Cup' }],
+          masterRoster: [
+            { id: 'p1', name: 'Alice', jerseyNumber: '10' },
+            { id: 'p2', name: 'Bob', jerseyNumber: '7' },
+          ],
+        });
+      });
+      await act(async () => {});
+
+      // Click edit button for tournament
+      const editButton = screen.getByRole('button', { name: 'Edit Championship Cup' });
+      await user.click(editButton);
+
+      // Find the player award dropdown (should be visible when editing tournament)
+      const awardDropdown = screen.getByRole('combobox', { name: /select player of tournament/i });
+      expect(awardDropdown).toBeInTheDocument();
+
+      // Select a player
+      await user.selectOptions(awardDropdown, 'p1');
+
+      // Save the tournament
+      const saveButton = screen.getByRole('button', { name: 'Save Championship Cup' });
+      await user.click(saveButton);
+
+      // Verify the mutation was called with the award ID
+      expect(defaultProps.updateTournamentMutation.mutate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 't1',
+          awardedPlayerId: 'p1',
+        })
+      );
+    });
+
+    it('should display trophy badge for tournaments with player awards', async () => {
+      const user = userEvent.setup();
+      await act(async () => {
+        renderWithProviders({
+          tournaments: [
+            { id: 't1', name: 'Spring Cup', awardedPlayerId: 'p1' },
+            { id: 't2', name: 'Summer League' }, // No award
+          ],
+          masterRoster: [{ id: 'p1', name: 'Alice', jerseyNumber: '10' }],
+        });
+      });
+      await act(async () => {});
+
+      // Check for trophy emoji
+      expect(screen.getByText('🏆')).toBeInTheDocument();
+      expect(screen.getByText('Alice')).toBeInTheDocument();
+    });
+
+    it('should allow removing player award by selecting empty option', async () => {
+      const user = userEvent.setup();
+      await act(async () => {
+        renderWithProviders({
+          tournaments: [{ id: 't1', name: 'Championship Cup', awardedPlayerId: 'p1' }],
+          masterRoster: [{ id: 'p1', name: 'Alice', jerseyNumber: '10' }],
+        });
+      });
+      await act(async () => {});
+
+      // Click edit button
+      const editButton = screen.getByRole('button', { name: 'Edit Championship Cup' });
+      await user.click(editButton);
+
+      // Find the dropdown
+      const awardDropdown = screen.getByRole('combobox', { name: /select player of tournament/i });
+
+      // Select empty option (value="")
+      await user.selectOptions(awardDropdown, '');
+
+      // Save
+      const saveButton = screen.getByRole('button', { name: 'Save Championship Cup' });
+      await user.click(saveButton);
+
+      // Verify the mutation was called with undefined awardedPlayerId
+      expect(defaultProps.updateTournamentMutation.mutate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 't1',
+          awardedPlayerId: undefined,
+        })
+      );
+    });
+
+    it('should handle deleted player gracefully (no trophy displayed)', async () => {
+      await act(async () => {
+        renderWithProviders({
+          tournaments: [{ id: 't1', name: 'Championship Cup', awardedPlayerId: 'deleted-player' }],
+          masterRoster: [{ id: 'p1', name: 'Alice', jerseyNumber: '10' }], // deleted-player not in roster
+        });
+      });
+      await act(async () => {});
+
+      // Trophy should not be displayed
+      expect(screen.queryByText('🏆')).not.toBeInTheDocument();
+    });
+
+    it('should not show player award dropdown when editing season', async () => {
+      const user = userEvent.setup();
+      await act(async () => {
+        renderWithProviders({
+          seasons: [{ id: 's1', name: 'Spring Season' }],
+        });
+      });
+      await act(async () => {});
+
+      // Click edit button for season
+      const editButton = screen.getByRole('button', { name: 'Edit Spring Season' });
+      await user.click(editButton);
+
+      // Player award dropdown should NOT be present for seasons
+      const awardDropdown = screen.queryByRole('combobox', { name: /select player of tournament/i });
+      expect(awardDropdown).not.toBeInTheDocument();
+    });
+  });
 });

@@ -430,7 +430,7 @@ describe('<GameSettingsModal />', () => {
     test('handles errors gracefully when updateGameDetails utility throws', async () => {
       (updateGameDetails as jest.Mock).mockRejectedValue(new Error('Update failed'));
       renderModal();
-      
+
       // Just verify the component renders without errors
       expect(screen.getByRole('heading', { name: t('gameSettingsModal.title') })).toBeInTheDocument();
     });
@@ -438,7 +438,7 @@ describe('<GameSettingsModal />', () => {
     test('handles errors gracefully when updateGameEvent utility throws', async () => {
       (updateGameEvent as jest.Mock).mockRejectedValueOnce(new Error('Simulated update error'));
       renderModal();
-      
+
       // Just verify the component renders without errors
       expect(screen.getByRole('heading', { name: t('gameSettingsModal.title') })).toBeInTheDocument();
     });
@@ -446,9 +446,115 @@ describe('<GameSettingsModal />', () => {
     test('handles errors gracefully when removeGameEvent utility throws', async () => {
       (removeGameEvent as jest.Mock).mockRejectedValueOnce(new Error('Simulated delete error'));
       renderModal();
-      
+
       // Just verify the component renders without errors
       expect(screen.getByRole('heading', { name: t('gameSettingsModal.title') })).toBeInTheDocument();
+    });
+  });
+
+  /**
+   * Tournament Player Award Display Tests
+   * @critical - Tests read-only tournament award display in game settings
+   */
+  describe('Tournament Player Award Display', () => {
+    test('should display tournament player award when tournament is selected', async () => {
+      const tournamentWithAward: Tournament = {
+        id: 't1',
+        name: 'Summer Cup',
+        awardedPlayerId: 'p1', // Player One
+        location: 'Cup Arena',
+      };
+
+      const propsWithAward: GameSettingsModalProps = {
+        ...defaultProps,
+        tournamentId: 't1',
+        tournaments: [tournamentWithAward],
+        masterRoster: mockPlayers,
+      };
+
+      renderModal(propsWithAward);
+
+      // Switch to tournament tab
+      const section = screen.getByRole('heading', { name: t('gameSettingsModal.linkita') }).closest('div') as HTMLElement;
+      const tournamentTab = within(section).getByText(t('gameSettingsModal.turnaus'));
+      const user = userEvent.setup();
+      await user.click(tournamentTab);
+
+      // Wait for award display
+      await waitFor(() => {
+        expect(screen.getByText('🏆')).toBeInTheDocument();
+        expect(screen.getByText('Player One')).toBeInTheDocument();
+      });
+    });
+
+    test('should not display award when tournament has no awardedPlayerId', async () => {
+      const tournamentWithoutAward: Tournament = {
+        id: 't1',
+        name: 'Summer Cup',
+        location: 'Cup Arena',
+      };
+
+      const propsWithoutAward: GameSettingsModalProps = {
+        ...defaultProps,
+        tournamentId: 't1',
+        tournaments: [tournamentWithoutAward],
+        masterRoster: mockPlayers,
+      };
+
+      renderModal(propsWithoutAward);
+
+      // Switch to tournament tab
+      const section = screen.getByRole('heading', { name: t('gameSettingsModal.linkita') }).closest('div') as HTMLElement;
+      const tournamentTab = within(section).getByText(t('gameSettingsModal.turnaus'));
+      const user = userEvent.setup();
+      await user.click(tournamentTab);
+
+      // Trophy should not be displayed
+      await waitFor(() => {
+        expect(screen.queryByText('🏆')).not.toBeInTheDocument();
+      });
+    });
+
+    test('should handle deleted awarded player gracefully (no display)', async () => {
+      const tournamentWithDeletedPlayer: Tournament = {
+        id: 't1',
+        name: 'Summer Cup',
+        awardedPlayerId: 'deleted-player-id',
+        location: 'Cup Arena',
+      };
+
+      const propsWithDeletedPlayer: GameSettingsModalProps = {
+        ...defaultProps,
+        tournamentId: 't1',
+        tournaments: [tournamentWithDeletedPlayer],
+        masterRoster: mockPlayers, // doesn't include deleted-player-id
+      };
+
+      renderModal(propsWithDeletedPlayer);
+
+      // Switch to tournament tab
+      const section = screen.getByRole('heading', { name: t('gameSettingsModal.linkita') }).closest('div') as HTMLElement;
+      const tournamentTab = within(section).getByText(t('gameSettingsModal.turnaus'));
+      const user = userEvent.setup();
+      await user.click(tournamentTab);
+
+      // Trophy should not be displayed for deleted player
+      await waitFor(() => {
+        expect(screen.queryByText('🏆')).not.toBeInTheDocument();
+      });
+    });
+
+    test('should not display award when no tournament is selected', async () => {
+      const propsNoTournament: GameSettingsModalProps = {
+        ...defaultProps,
+        tournamentId: null,
+        masterRoster: mockPlayers,
+      };
+
+      renderModal(propsNoTournament);
+
+      // Trophy should not be displayed
+      expect(screen.queryByText('🏆')).not.toBeInTheDocument();
     });
   });
 });

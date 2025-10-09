@@ -437,6 +437,140 @@ describe('GameStatsModal', () => {
     expect(screen.getByRole('heading', { name: 'Charlie' })).toBeInTheDocument();
   });
 
+  /**
+   * Tournament Player Award Tests
+   * @critical - Tests tournament MVP award display functionality
+   */
+  describe('Tournament Player Award Display', () => {
+    test('should display tournament player award with trophy icon in stats table', async () => {
+      const tournamentWithAward: Tournament = {
+        id: 't1',
+        name: 'Championship Cup',
+        awardedPlayerId: 'p1', // Alice wins the award
+      };
+
+      mockGetTournaments.mockResolvedValue([tournamentWithAward]);
+
+      const props = {
+        ...getDefaultProps(),
+        tournamentId: 't1',
+        masterRoster: samplePlayers, // Add master roster
+      };
+
+      await act(async () => {
+        renderComponent(props);
+      });
+
+      // Switch to tournament tab
+      fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.tournament') }));
+
+      await waitFor(() => {
+        // Check for trophy emoji and player name
+        expect(screen.getByText('🏆')).toBeInTheDocument();
+        expect(screen.getByText('Alice')).toBeInTheDocument();
+      });
+    });
+
+    test('should handle deleted awarded player gracefully (no trophy displayed)', async () => {
+      const tournamentWithDeletedPlayer: Tournament = {
+        id: 't1',
+        name: 'Championship Cup',
+        awardedPlayerId: 'deleted-player-id', // Non-existent player
+      };
+
+      mockGetTournaments.mockResolvedValue([tournamentWithDeletedPlayer]);
+
+      const props = {
+        ...getDefaultProps(),
+        tournamentId: 't1',
+        masterRoster: samplePlayers,
+      };
+
+      await act(async () => {
+        renderComponent(props);
+      });
+
+      // Switch to tournament tab
+      fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.tournament') }));
+
+      await waitFor(() => {
+        // Tournament name should be visible
+        expect(screen.getByText('Championship Cup')).toBeInTheDocument();
+      });
+
+      // Trophy should NOT be displayed for deleted player
+      expect(screen.queryByText('🏆')).not.toBeInTheDocument();
+    });
+
+    test('should display multiple tournaments with some having awards', async () => {
+      const tournamentsData: Tournament[] = [
+        { id: 't1', name: 'Spring Cup', awardedPlayerId: 'p1' }, // Alice
+        { id: 't2', name: 'Summer League' }, // No award
+        { id: 't3', name: 'Fall Championship', awardedPlayerId: 'p2' }, // Bob
+      ];
+
+      mockGetTournaments.mockResolvedValue(tournamentsData);
+
+      const props = {
+        ...getDefaultProps(),
+        tournamentId: null, // View all tournaments
+        masterRoster: samplePlayers,
+      };
+
+      await act(async () => {
+        renderComponent(props);
+      });
+
+      // Switch to tournament tab
+      fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.tournament') }));
+
+      await waitFor(() => {
+        // Check that tournament names are visible
+        expect(screen.getByText('Spring Cup')).toBeInTheDocument();
+        expect(screen.getByText('Summer League')).toBeInTheDocument();
+        expect(screen.getByText('Fall Championship')).toBeInTheDocument();
+      });
+
+      // Check for trophy icons (should be 2)
+      const trophies = screen.getAllByText('🏆');
+      expect(trophies).toHaveLength(2);
+
+      // Check for awarded player names
+      const aliceMentions = screen.getAllByText(/Alice/);
+      const bobMentions = screen.getAllByText(/Bob/);
+
+      // Both should appear (in stats table and award display)
+      expect(aliceMentions.length).toBeGreaterThan(0);
+      expect(bobMentions.length).toBeGreaterThan(0);
+    });
+
+    test('should not display trophy when tournament tab is not active', async () => {
+      const tournamentWithAward: Tournament = {
+        id: 't1',
+        name: 'Championship Cup',
+        awardedPlayerId: 'p1',
+      };
+
+      mockGetTournaments.mockResolvedValue([tournamentWithAward]);
+
+      const props = {
+        ...getDefaultProps(),
+        tournamentId: 't1',
+        masterRoster: samplePlayers,
+      };
+
+      await act(async () => {
+        renderComponent(props);
+      });
+
+      // Stay on Current Game tab (default)
+      expect(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
+
+      // Trophy should not be visible on current game tab
+      expect(screen.queryByText('🏆')).not.toBeInTheDocument();
+    });
+  });
+
   // Add more tests for:
   // - Filtering stats table
   // - Sorting stats table
