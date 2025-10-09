@@ -11,7 +11,7 @@ import { appStateSchema } from './appStateSchema';
 import { withKeyLock } from './storageKeyLock';
 
 // Note: AppState (imported from @/types) is the primary type used for live game state
-// and for storing games in localStorage via SavedGamesCollection.
+// and for storing games in IndexedDB via SavedGamesCollection.
 // This GameData interface may represent a legacy structure or a specific format for other operations (e.g., import/export).
 // Define GameData interface more precisely
 export interface GameData {
@@ -45,7 +45,7 @@ export interface GameData {
 }
 
 /**
- * Gets all saved games from localStorage
+ * Gets all saved games from storage (IndexedDB)
  * @returns Promise resolving to an Object containing saved games mapped by ID
  */
 export const getSavedGames = async (): Promise<SavedGamesCollection> => {
@@ -56,13 +56,13 @@ export const getSavedGames = async (): Promise<SavedGamesCollection> => {
     }
     return JSON.parse(gamesJson) as SavedGamesCollection;
   } catch (error) {
-    logger.error('Error getting saved games from localStorage:', error);
+    logger.error('Error getting saved games from storage:', error);
     throw error;
   }
 };
 
 /**
- * Saves all games to localStorage
+ * Saves all games to storage (IndexedDB)
  * @param games - Collection of games to save
  * @returns Promise resolving when complete
  */
@@ -72,14 +72,14 @@ export const saveGames = async (games: SavedGamesCollection): Promise<void> => {
       await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
       return;
     } catch (error) {
-      logger.error('Error saving games to localStorage:', error);
+      logger.error('Error saving games to storage:', error);
       throw error;
     }
   });
 };
 
 /**
- * Saves a single game to localStorage
+ * Saves a single game to storage (IndexedDB)
  * @param gameId - ID of the game to save
  * @param gameData - Game data to save
  * @returns Promise resolving to the saved game data
@@ -123,7 +123,7 @@ export const getGame = async (gameId: string): Promise<AppState | null> => {
 };
 
 /**
- * Deletes a game from localStorage
+ * Deletes a game from storage (IndexedDB)
  * @param gameId - ID of the game to delete
  * @returns Promise resolving to the gameId if the game was deleted, null otherwise
  */
