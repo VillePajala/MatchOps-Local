@@ -242,7 +242,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         )}
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-4 gap-4 text-center mb-3 p-4 bg-slate-800/60 rounded-lg">
+        <div className="grid grid-cols-5 gap-4 text-center mb-3 p-4 bg-slate-800/60 rounded-lg">
           <div>
             <p className="text-2xl font-bold text-yellow-400">{playerStats.totalGames}</p>
             <p className="text-sm text-slate-400">{t('playerStats.gamesPlayed', 'Games Played')}</p>
@@ -262,6 +262,11 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             <p className="text-2xl font-bold text-yellow-400">{playerStats.totalGoals + playerStats.totalAssists}</p>
             <p className="text-sm text-slate-400">{t('playerStats.points', 'Points')}</p>
             <p className="text-xs text-slate-500">({(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame).toFixed(1)} {t('playerStats.perGame', '/ game')})</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-green-400">{playerStats.totalFairPlayCards}</p>
+            <p className="text-sm text-slate-400">{t('playerStats.fairPlayCards', 'Fair Play Cards')}</p>
+            <p className="text-xs text-slate-500">⚽ {t('playerStats.sportsmanship', 'Sportsmanship')}</p>
           </div>
         </div>
 
@@ -906,11 +911,12 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 {Object.entries(playerStats.performanceBySeason).map(([id, stats]) => (
                   <div key={id} className="p-2 bg-slate-700/50 rounded-md">
                     <p className="font-semibold text-slate-100 mb-1">{stats.name}</p>
-                    <div className="grid grid-cols-4 gap-2 text-center text-sm">
+                    <div className="grid grid-cols-5 gap-2 text-center text-sm">
                       <div><p className="font-bold text-yellow-400">{stats.gamesPlayed}</p><p className="text-xs text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.goals}</p><p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.assists}</p><p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.points}</p><p className="text-xs text-slate-400">{t('playerStats.points', 'Points')}</p></div>
+                      <div><p className="font-bold text-green-400">{stats.fairPlayCards || 0}</p><p className="text-xs text-slate-400">⚽ {t('playerStats.fairPlayCardsShort', 'FP')}</p></div>
                     </div>
                   </div>
                 ))}
@@ -923,12 +929,20 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               <div className="space-y-2">
                 {Object.entries(playerStats.performanceByTournament).map(([id, stats]) => (
                   <div key={id} className="p-2 bg-slate-700/50 rounded-md">
-                    <p className="font-semibold text-slate-100 mb-1">{stats.name}</p>
-                    <div className="grid grid-cols-4 gap-2 text-center text-sm">
+                    <p className="font-semibold text-slate-100 mb-1 flex items-center gap-2">
+                      {stats.name}
+                      {stats.isTournamentWinner && (
+                        <span className="text-amber-400 flex items-center gap-1 text-sm">
+                          🏆 {t('playerStats.tournamentWinner', 'Tournament Winner')}
+                        </span>
+                      )}
+                    </p>
+                    <div className="grid grid-cols-5 gap-2 text-center text-sm">
                       <div><p className="font-bold text-yellow-400">{stats.gamesPlayed}</p><p className="text-xs text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.goals}</p><p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.assists}</p><p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.points}</p><p className="text-xs text-slate-400">{t('playerStats.points', 'Points')}</p></div>
+                      <div><p className="font-bold text-green-400">{stats.fairPlayCards || 0}</p><p className="text-xs text-slate-400">⚽ {t('playerStats.fairPlayCardsShort', 'FP')}</p></div>
                     </div>
                   </div>
                 ))}
