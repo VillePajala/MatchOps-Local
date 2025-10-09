@@ -933,7 +933,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       {stats.name}
                       {stats.isTournamentWinner && (
                         <span className="text-amber-400 flex items-center gap-1 text-sm">
-                          🏆 {t('playerStats.tournamentWinner', 'Tournament Winner')}
+                          🏆 {t('playerStats.fairPlayTrophy', 'Fair Play Trophy')}
                         </span>
                       )}
                     </p>
