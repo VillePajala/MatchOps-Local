@@ -460,6 +460,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState<boolean>(false);
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
   const [firstGameGuideStep, setFirstGameGuideStep] = useState<number>(0);
+  const [hasCheckedFirstGameGuide, setHasCheckedFirstGameGuide] = useState<boolean>(false);
 
   useEffect(() => {
     if (!initialAction) return;
@@ -999,17 +1000,18 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         // 2. User has multiple games (imported or created), OR
         // 3. No current game or it's the default game
         if (!firstGameGuideShown && !hasMultipleGames && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-          // Add small delay to ensure game state is fully settled
-          const timer = setTimeout(() => {
-            logger.log('[FirstGameGuide] Showing first game guide after delay');
-            setShowFirstGameGuide(true);
-          }, 150);
-
-          return () => clearTimeout(timer);
+          // Show immediately without delay to prevent flash
+          logger.log('[FirstGameGuide] Showing first game guide');
+          setShowFirstGameGuide(true);
         }
+
+        // Mark that we've completed the check
+        setHasCheckedFirstGameGuide(true);
       } catch (error) {
         // Silent fail - guide check is not critical
         logger.error('[FirstGameGuide] Error checking first game guide:', error);
+        // Still mark as checked even on error to prevent blocking
+        setHasCheckedFirstGameGuide(true);
       }
     };
 
@@ -3016,7 +3018,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         )}
 
         {/* First Game Interface Guide - compact carousel */}
-        {showFirstGameGuide && currentGameId !== DEFAULT_GAME_ID && (
+        {hasCheckedFirstGameGuide && showFirstGameGuide && currentGameId !== DEFAULT_GAME_ID && (
           <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none px-6 py-12">
             <div className="relative bg-slate-800/95 rounded-2xl p-7 sm:p-8 max-w-md sm:max-w-lg w-full pointer-events-auto shadow-2xl backdrop-blur-sm max-h-[85vh] flex flex-col ring-1 ring-indigo-400/30">
               {/* Header */}
