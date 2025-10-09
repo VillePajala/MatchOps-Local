@@ -172,6 +172,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // logger.log('[GameSettingsModal Render] Props received:', { seasonId, tournamentId, currentGameId });
   const { t } = useTranslation();
 
+  // Track if we've already applied season/tournament updates to prevent infinite loops
+  const appliedSeasonRef = useRef<string | null>(null);
+  const appliedTournamentRef = useRef<string | null>(null);
+
   // Add defensive logging for debugging Vercel preview issues
   useEffect(() => {
     if (isOpen) {
@@ -375,21 +379,33 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
   // Prefill game settings when selecting a season
   useEffect(() => {
-    if (!isOpen || !seasonId) return;
-    
+    if (!isOpen || !seasonId) {
+      // Reset the ref when modal closes or season is cleared
+      if (!isOpen || !seasonId) {
+        appliedSeasonRef.current = null;
+      }
+      return;
+    }
+
     // Guard against missing currentGameId which might happen on Vercel preview
     if (!currentGameId) {
       logger.warn('[GameSettingsModal] Skipping season prefill - no currentGameId');
       return;
     }
-    
+
+    // Skip if we've already applied updates for this season to prevent infinite loop
+    if (appliedSeasonRef.current === seasonId) {
+      logger.log('[GameSettingsModal] Skipping season prefill - already applied for', seasonId);
+      return;
+    }
+
     const season = seasons.find(se => se.id === seasonId);
     if (!season) return;
-    
+
     // Batch all season updates into a single mutation to avoid localStorage conflicts on mobile
     const batchedUpdates: Partial<AppState> = {};
     let hasUpdates = false;
-    
+
     if (season.location !== undefined) {
       // Don't call onGameLocationChange here to avoid infinite loop
       batchedUpdates.gameLocation = season.location || '';
@@ -413,9 +429,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       batchedUpdates.periodDurationMinutes = parsedDuration;
       hasUpdates = true;
     }
-    
+
     // Apply all updates in a single mutation call to prevent mobile localStorage conflicts
     if (currentGameId && hasUpdates) {
+      // Mark this season as applied before mutation to prevent re-triggering
+      appliedSeasonRef.current = seasonId;
+
       // Add a small delay to ensure game is fully created on Vercel preview
       setTimeout(() => {
         try {
@@ -426,31 +445,45 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         } catch (error) {
           logger.error('[GameSettingsModal] Error updating game with season data:', error);
           setError(t('gameSettingsModal.errors.seasonUpdateFailed', 'Failed to apply season settings'));
+          // Reset ref on error so it can be retried
+          appliedSeasonRef.current = null;
         }
       }, 100);
     }
-    
+
     // Don't update roster selection here to avoid dependency loop
     // The mutation will handle updating the game state
   }, [seasonId, seasons, isOpen, currentGameId, updateGameDetailsMutation, t]);
 
   // Prefill game settings when selecting a tournament
   useEffect(() => {
-    if (!isOpen || !tournamentId) return;
-    
+    if (!isOpen || !tournamentId) {
+      // Reset the ref when modal closes or tournament is cleared
+      if (!isOpen || !tournamentId) {
+        appliedTournamentRef.current = null;
+      }
+      return;
+    }
+
     // Guard against missing currentGameId which might happen on Vercel preview
     if (!currentGameId) {
       logger.warn('[GameSettingsModal] Skipping tournament prefill - no currentGameId');
       return;
     }
-    
+
+    // Skip if we've already applied updates for this tournament to prevent infinite loop
+    if (appliedTournamentRef.current === tournamentId) {
+      logger.log('[GameSettingsModal] Skipping tournament prefill - already applied for', tournamentId);
+      return;
+    }
+
     const tournament = tournaments.find(tt => tt.id === tournamentId);
     if (!tournament) return;
-    
+
     // Batch all tournament updates into a single mutation to avoid localStorage conflicts on mobile
     const batchedUpdates: Partial<AppState> = {};
     let hasUpdates = false;
-    
+
     if (tournament.location !== undefined) {
       // Don't call onGameLocationChange here to avoid infinite loop
       batchedUpdates.gameLocation = tournament.location || '';
@@ -479,9 +512,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       batchedUpdates.periodDurationMinutes = parsedDuration;
       hasUpdates = true;
     }
-    
+
     // Apply all updates in a single mutation call to prevent mobile localStorage conflicts
     if (currentGameId && hasUpdates) {
+      // Mark this tournament as applied before mutation to prevent re-triggering
+      appliedTournamentRef.current = tournamentId;
+
       // Add a small delay to ensure game is fully created on Vercel preview
       setTimeout(() => {
         try {
@@ -490,12 +526,14 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             updates: batchedUpdates,
           });
         } catch (error) {
-          logger.error('[GameSettingsModal] Error updating game with season data:', error);
-          setError(t('gameSettingsModal.errors.seasonUpdateFailed', 'Failed to apply season settings'));
+          logger.error('[GameSettingsModal] Error updating game with tournament data:', error);
+          setError(t('gameSettingsModal.errors.tournamentUpdateFailed', 'Failed to apply tournament settings'));
+          // Reset ref on error so it can be retried
+          appliedTournamentRef.current = null;
         }
       }, 100);
     }
-    
+
     // Don't update roster selection here to avoid dependency loop
     // The mutation will handle updating the game state
   }, [tournamentId, tournaments, isOpen, currentGameId, updateGameDetailsMutation, t]);

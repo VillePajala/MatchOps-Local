@@ -1235,7 +1235,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
 
       } catch (error) {
-        logger.error("Failed to auto-save state to localStorage:", error);
+        logger.error("Failed to auto-save game state:", error);
         alert("Error saving game."); // Notify user
       }
     } else if (initialLoadComplete && currentGameId === DEFAULT_GAME_ID) {
