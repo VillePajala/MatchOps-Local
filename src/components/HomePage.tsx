@@ -3421,6 +3421,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         onClose={handleCloseSeasonTournamentModal}
         seasons={seasons}
         tournaments={tournaments}
+        masterRoster={masterRosterQueryResultData || []}
         addSeasonMutation={addSeasonMutation}
         addTournamentMutation={addTournamentMutation}
         updateSeasonMutation={updateSeasonMutation}
