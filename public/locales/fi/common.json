@@ -34,7 +34,12 @@
     "hardReset": "Nollaa Sovellus",
     "resetCurrentStats": "Nollaa Pelin Tilastot",
     "menu": {
-      "title": "Valikko"
+      "title": "Valikko",
+      "gameManagement": "Pelin hallinta",
+      "setupConfig": "Asetukset & määritykset",
+      "analysisTools": "Analyysi & työkalut",
+      "resources": "Resurssit",
+      "settings": "Asetukset"
     },
     "saveGame": "Pikatallennus",
     "newGameButton": "Aloita uusi ottelu",
