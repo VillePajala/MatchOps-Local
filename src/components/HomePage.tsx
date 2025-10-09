@@ -461,7 +461,8 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState<boolean>(false);
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
   const [firstGameGuideStep, setFirstGameGuideStep] = useState<number>(0);
-  const [hasCheckedFirstGameGuide, setHasCheckedFirstGameGuide] = useState<boolean>(false);
+  // Initialize as true for experienced users to prevent any flash
+  const [hasCheckedFirstGameGuide, setHasCheckedFirstGameGuide] = useState<boolean>(!isFirstTimeUser);
 
   useEffect(() => {
     if (!initialAction) return;
