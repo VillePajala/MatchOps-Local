@@ -142,9 +142,10 @@ interface HomePageProps {
   initialAction?: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | 'teams' | 'settings';
   skipInitialSetup?: boolean;
   onDataImportSuccess?: () => void;
+  isFirstTimeUser?: boolean;
 }
 
-function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess }: HomePageProps) {
+function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess, isFirstTimeUser = false }: HomePageProps) {
   // Sync hasSkippedInitialSetup with prop to prevent flash
   const [hasSkippedInitialSetup, setHasSkippedInitialSetup] = useState<boolean>(skipInitialSetup);
   const { t } = useTranslation(); // Get translation function
@@ -977,6 +978,12 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   // Check if we should show first game interface guide
   useEffect(() => {
+    // If not a first-time user (experienced user), mark as checked and don't show guide
+    if (!isFirstTimeUser) {
+      setHasCheckedFirstGameGuide(true);
+      return;
+    }
+
     if (!initialLoadComplete) return;
 
     const checkFirstGameGuide = async () => {
@@ -988,17 +995,18 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         const hasMultipleGames = Object.keys(savedGames).length > 1; // More than just default game
 
         logger.log('[FirstGameGuide] Checking conditions:', {
+          isFirstTimeUser,
           firstGameGuideShown,
           currentGameId,
           hasMultipleGames,
           isNotDefaultGame: currentGameId !== DEFAULT_GAME_ID,
-          shouldShow: !firstGameGuideShown && !hasMultipleGames && currentGameId && currentGameId !== DEFAULT_GAME_ID
+          shouldShow: isFirstTimeUser && !firstGameGuideShown && !hasMultipleGames && currentGameId && currentGameId !== DEFAULT_GAME_ID
         });
 
-        // Don't show guide if:
-        // 1. Already seen before, OR
-        // 2. User has multiple games (imported or created), OR
-        // 3. No current game or it's the default game
+        // Only show guide for first-time users who:
+        // 1. Haven't seen it before, AND
+        // 2. Don't have multiple games (imported or created), AND
+        // 3. Have a current game that's not the default game
         if (!firstGameGuideShown && !hasMultipleGames && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
           // Show immediately without delay to prevent flash
           logger.log('[FirstGameGuide] Showing first game guide');
@@ -1016,7 +1024,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     };
 
     checkFirstGameGuide();
-  }, [initialLoadComplete, currentGameId]);
+  }, [initialLoadComplete, currentGameId, isFirstTimeUser]);
 
   // --- NEW: Robust Visibility Change Handling ---
   // --- Wake Lock Effect ---
