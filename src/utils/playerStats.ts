@@ -8,9 +8,10 @@ export interface PlayerStats {
   totalAssists: number;
   avgGoalsPerGame: number;
   avgAssistsPerGame: number;
+  totalFairPlayCards: number;  // NEW - aggregated from game events
   gameByGameStats: GameStats[];
-  performanceBySeason: { [seasonId: string]: { name: string, gamesPlayed: number, goals: number, assists: number, points: number } };
-  performanceByTournament: { [tournamentId: string]: { name: string, gamesPlayed: number, goals: number, assists: number, points: number } };
+  performanceBySeason: { [seasonId: string]: { name: string; gamesPlayed: number; goals: number; assists: number; points: number; fairPlayCards: number } };
+  performanceByTournament: { [tournamentId: string]: { name: string; gamesPlayed: number; goals: number; assists: number; points: number; fairPlayCards: number; isTournamentWinner?: boolean } };
 }
 
 export interface GameStats {
@@ -40,8 +41,9 @@ export const calculatePlayerStats = (
   teamId?: string  // Optional team filtering
 ): PlayerStats => {
   const gameByGameStats: GameStats[] = [];
-  const performanceBySeason: { [seasonId: string]: { name: string, gamesPlayed: number, goals: number, assists: number, points: number } } = {};
-  const performanceByTournament: { [tournamentId: string]: { name: string, gamesPlayed: number, goals: number, assists: number, points: number } } = {};
+  const performanceBySeason: { [seasonId: string]: { name: string; gamesPlayed: number; goals: number; assists: number; points: number; fairPlayCards: number } } = {};
+  const performanceByTournament: { [tournamentId: string]: { name: string; gamesPlayed: number; goals: number; assists: number; points: number; fairPlayCards: number; isTournamentWinner?: boolean } } = {};
+  let totalFairPlayCards = 0;
 
   Object.entries(savedGames).forEach(([gameId, game]) => {
     if (game.isPlayed === false) {
@@ -58,29 +60,44 @@ export const calculatePlayerStats = (
       const goals = game.gameEvents?.filter(e => e.type === 'goal' && e.scorerId === player.id).length || 0;
       const assists = game.gameEvents?.filter(e => e.type === 'goal' && e.assisterId === player.id).length || 0;
       const points = goals + assists;
+      const fairPlayCards = game.gameEvents?.filter(e => e.type === 'fairPlayCard' && e.entityId === player.id).length || 0;
+
+      // Add to total fair play cards
+      totalFairPlayCards += fairPlayCards;
 
       // Aggregate stats by season
       if (game.seasonId) {
         if (!performanceBySeason[game.seasonId]) {
           const seasonInfo = seasons.find(s => s.id === game.seasonId);
-          performanceBySeason[game.seasonId] = { name: seasonInfo?.name || 'Unknown Season', gamesPlayed: 0, goals: 0, assists: 0, points: 0 };
+          performanceBySeason[game.seasonId] = { name: seasonInfo?.name || 'Unknown Season', gamesPlayed: 0, goals: 0, assists: 0, points: 0, fairPlayCards: 0 };
         }
         performanceBySeason[game.seasonId].gamesPlayed += 1;
         performanceBySeason[game.seasonId].goals += goals;
         performanceBySeason[game.seasonId].assists += assists;
         performanceBySeason[game.seasonId].points += points;
+        performanceBySeason[game.seasonId].fairPlayCards += fairPlayCards;
       }
 
       // Aggregate stats by tournament
       if (game.tournamentId) {
         if (!performanceByTournament[game.tournamentId]) {
           const tournamentInfo = tournaments.find(t => t.id === game.tournamentId);
-          performanceByTournament[game.tournamentId] = { name: tournamentInfo?.name || 'Unknown Tournament', gamesPlayed: 0, goals: 0, assists: 0, points: 0 };
+          const tournament = tournaments.find(t => t.id === game.tournamentId);
+          performanceByTournament[game.tournamentId] = {
+            name: tournamentInfo?.name || 'Unknown Tournament',
+            gamesPlayed: 0,
+            goals: 0,
+            assists: 0,
+            points: 0,
+            fairPlayCards: 0,
+            isTournamentWinner: tournament?.awardedPlayerId === player.id
+          };
         }
         performanceByTournament[game.tournamentId].gamesPlayed += 1;
         performanceByTournament[game.tournamentId].goals += goals;
         performanceByTournament[game.tournamentId].assists += assists;
         performanceByTournament[game.tournamentId].points += points;
+        performanceByTournament[game.tournamentId].fairPlayCards += fairPlayCards;
       }
 
       let result: 'W' | 'L' | 'D' | 'N/A' = 'N/A';
@@ -124,7 +141,7 @@ export const calculatePlayerStats = (
       if (adj.seasonId) {
         if (!performanceBySeason[adj.seasonId]) {
           const seasonInfo = seasons.find(s => s.id === adj.seasonId);
-          performanceBySeason[adj.seasonId] = { name: seasonInfo?.name || 'Unknown Season', gamesPlayed: 0, goals: 0, assists: 0, points: 0 };
+          performanceBySeason[adj.seasonId] = { name: seasonInfo?.name || 'Unknown Season', gamesPlayed: 0, goals: 0, assists: 0, points: 0, fairPlayCards: 0 };
         }
         performanceBySeason[adj.seasonId].gamesPlayed += (adj.gamesPlayedDelta || 0);
         performanceBySeason[adj.seasonId].goals += (adj.goalsDelta || 0);
@@ -136,7 +153,16 @@ export const calculatePlayerStats = (
       if (adj.tournamentId) {
         if (!performanceByTournament[adj.tournamentId]) {
           const tournamentInfo = tournaments.find(t => t.id === adj.tournamentId);
-          performanceByTournament[adj.tournamentId] = { name: tournamentInfo?.name || 'Unknown Tournament', gamesPlayed: 0, goals: 0, assists: 0, points: 0 };
+          const tournament = tournaments.find(t => t.id === adj.tournamentId);
+          performanceByTournament[adj.tournamentId] = {
+            name: tournamentInfo?.name || 'Unknown Tournament',
+            gamesPlayed: 0,
+            goals: 0,
+            assists: 0,
+            points: 0,
+            fairPlayCards: 0,
+            isTournamentWinner: tournament?.awardedPlayerId === player.id
+          };
         }
         performanceByTournament[adj.tournamentId].gamesPlayed += (adj.gamesPlayedDelta || 0);
         performanceByTournament[adj.tournamentId].goals += (adj.goalsDelta || 0);
@@ -162,6 +188,7 @@ export const calculatePlayerStats = (
     totalAssists,
     avgGoalsPerGame,
     avgAssistsPerGame,
+    totalFairPlayCards,
     gameByGameStats,
     performanceBySeason,
     performanceByTournament,
