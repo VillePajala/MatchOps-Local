@@ -221,4 +221,122 @@ describe('calculatePlayerStats', () => {
       expect(stats.performanceByTournament['t1'].goals).toBe(1);
     });
   });
+
+  /**
+   * Tests fair play cards in manual adjustments (external games)
+   * @critical
+   */
+  describe('Fair Play Cards in Manual Adjustments', () => {
+    it('should include fairPlayCardsDelta in total fair play cards', () => {
+      const adjustments: PlayerStatAdjustment[] = [
+        {
+          id: 'adj1',
+          playerId: 'p1',
+          seasonId: 's1',
+          gamesPlayedDelta: 2,
+          goalsDelta: 1,
+          assistsDelta: 0,
+          fairPlayCardsDelta: 3,
+          appliedAt: '2024-03-01',
+          includeInSeasonTournament: true,
+        } as PlayerStatAdjustment,
+      ];
+
+      const stats = calculatePlayerStats(player, savedGames, seasons, tournaments, adjustments);
+
+      expect(stats.totalFairPlayCards).toBe(3); // 0 from games + 3 from adjustments
+    });
+
+    it('should aggregate fairPlayCardsDelta in season performance', () => {
+      const adjustments: PlayerStatAdjustment[] = [
+        {
+          id: 'adj1',
+          playerId: 'p1',
+          seasonId: 's1',
+          gamesPlayedDelta: 1,
+          goalsDelta: 0,
+          assistsDelta: 0,
+          fairPlayCardsDelta: 2,
+          appliedAt: '2024-03-01',
+          includeInSeasonTournament: true,
+        } as PlayerStatAdjustment,
+      ];
+
+      const stats = calculatePlayerStats(player, savedGames, seasons, tournaments, adjustments);
+
+      expect(stats.performanceBySeason['s1'].fairPlayCards).toBe(2);
+    });
+
+    it('should aggregate fairPlayCardsDelta in tournament performance', () => {
+      const adjustments: PlayerStatAdjustment[] = [
+        {
+          id: 'adj1',
+          playerId: 'p1',
+          tournamentId: 't1',
+          gamesPlayedDelta: 1,
+          goalsDelta: 0,
+          assistsDelta: 0,
+          fairPlayCardsDelta: 1,
+          appliedAt: '2024-03-01',
+          includeInSeasonTournament: true,
+        } as PlayerStatAdjustment,
+      ];
+
+      const stats = calculatePlayerStats(player, savedGames, seasons, tournaments, adjustments);
+
+      expect(stats.performanceByTournament['t1'].fairPlayCards).toBe(1);
+    });
+
+    it('should handle undefined fairPlayCardsDelta gracefully', () => {
+      const adjustments: PlayerStatAdjustment[] = [
+        {
+          id: 'adj1',
+          playerId: 'p1',
+          seasonId: 's1',
+          gamesPlayedDelta: 1,
+          goalsDelta: 1,
+          assistsDelta: 1,
+          // fairPlayCardsDelta is undefined
+          appliedAt: '2024-03-01',
+          includeInSeasonTournament: true,
+        } as PlayerStatAdjustment,
+      ];
+
+      const stats = calculatePlayerStats(player, savedGames, seasons, tournaments, adjustments);
+
+      expect(stats.totalFairPlayCards).toBe(0);
+      expect(stats.performanceBySeason['s1'].fairPlayCards).toBe(0);
+    });
+
+    it('should combine game events and manual adjustments for fair play cards', () => {
+      const gameWithFairPlay = {
+        ...game1,
+        seasonId: 's1',
+        gameEvents: [
+          { id: 'g1', type: 'goal', time: 10, scorerId: 'p1' } as GameEvent,
+          { id: 'fp1', type: 'fairPlayCard', time: 15, entityId: 'p1' } as GameEvent,
+        ],
+      } as AppState;
+
+      const adjustments: PlayerStatAdjustment[] = [
+        {
+          id: 'adj1',
+          playerId: 'p1',
+          seasonId: 's1',
+          gamesPlayedDelta: 2,
+          goalsDelta: 0,
+          assistsDelta: 0,
+          fairPlayCardsDelta: 2,
+          appliedAt: '2024-03-01',
+          includeInSeasonTournament: true,
+        } as PlayerStatAdjustment,
+      ];
+
+      const games = { g1: gameWithFairPlay };
+      const stats = calculatePlayerStats(player, games, seasons, tournaments, adjustments);
+
+      expect(stats.totalFairPlayCards).toBe(3); // 1 from game + 2 from adjustments
+      expect(stats.performanceBySeason['s1'].fairPlayCards).toBe(3); // Combined
+    });
+  });
 });

@@ -147,6 +147,7 @@ export const calculatePlayerStats = (
         performanceBySeason[adj.seasonId].goals += (adj.goalsDelta || 0);
         performanceBySeason[adj.seasonId].assists += (adj.assistsDelta || 0);
         performanceBySeason[adj.seasonId].points += (adj.goalsDelta || 0) + (adj.assistsDelta || 0);
+        performanceBySeason[adj.seasonId].fairPlayCards += (adj.fairPlayCardsDelta || 0);
       }
 
       // Add to tournament performance if tournamentId exists
@@ -168,6 +169,7 @@ export const calculatePlayerStats = (
         performanceByTournament[adj.tournamentId].goals += (adj.goalsDelta || 0);
         performanceByTournament[adj.tournamentId].assists += (adj.assistsDelta || 0);
         performanceByTournament[adj.tournamentId].points += (adj.goalsDelta || 0) + (adj.assistsDelta || 0);
+        performanceByTournament[adj.tournamentId].fairPlayCards += (adj.fairPlayCardsDelta || 0);
       }
     }
     // Note: Stats always count toward overall totals regardless of includeInSeasonTournament flag
@@ -176,6 +178,9 @@ export const calculatePlayerStats = (
   const totalGoals = gameByGameStats.reduce((sum, game) => sum + game.goals, 0) + adjustmentsForPlayer.reduce((s, a) => s + (a.goalsDelta || 0), 0);
   const totalAssists = gameByGameStats.reduce((sum, game) => sum + game.assists, 0) + adjustmentsForPlayer.reduce((s, a) => s + (a.assistsDelta || 0), 0);
   const totalGames = gameByGameStats.length + adjustmentsForPlayer.reduce((s, a) => s + (a.gamesPlayedDelta || 0), 0);
+
+  // Add fair play cards from manual adjustments to total
+  totalFairPlayCards += adjustmentsForPlayer.reduce((s, a) => s + (a.fairPlayCardsDelta || 0), 0);
   const avgGoalsPerGame = totalGames > 0 ? totalGoals / totalGames : 0;
   const avgAssistsPerGame = totalGames > 0 ? totalAssists / totalGames : 0;
 
