@@ -75,6 +75,7 @@ export interface Tournament {
   badge?: string;
   level?: string;
   ageGroup?: string;
+  awardedPlayerId?: string; // Player who won "Player of Tournament" award
   // Note: teamId removed - tournaments are global entities per plan
   // Note: roster management removed - teams handle rosters now
 }
