@@ -192,6 +192,39 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     [masterRoster]
   );
 
+  /**
+   * Helper function to render tournament player award trophy badge
+   * DRY principle: Eliminates duplication in tournament/season stats table rendering
+   *
+   * @param statsId - Tournament or season ID to check for awarded player
+   * @param currentActiveTab - Current active tab ('tournament' or 'season')
+   * @param tournamentsList - List of all tournaments
+   * @param lookup - Player lookup map for O(1) player retrieval
+   * @returns React element with trophy badge or null
+   */
+  const renderTrophyBadge = useCallback((
+    statsId: string,
+    currentActiveTab: StatsTab,
+    tournamentsList: Tournament[],
+    lookup: Map<string, Player>
+  ): React.ReactNode => {
+    // Trophy badges only shown in tournament tab
+    if (currentActiveTab !== 'tournament') return null;
+
+    const tournament = tournamentsList.find(t => t.id === statsId);
+    // Edge case: if awarded player was deleted from roster, playerLookup returns undefined
+    // This gracefully hides the trophy badge (no broken UI)
+    const awardedPlayer = tournament?.awardedPlayerId
+      ? lookup.get(tournament.awardedPlayerId)
+      : null;
+
+    return awardedPlayer ? (
+      <div className="text-xs text-amber-400 mt-0.5 flex items-center gap-1">
+        🏆 {awardedPlayer.name}
+      </div>
+    ) : null;
+  }, []);
+
   // --- State ---
   const [editGameNotes, setEditGameNotes] = useState(gameNotes);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -1264,76 +1297,48 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                         <tbody className="text-slate-100">
                           {Array.isArray(tournamentSeasonStats) ? (
                             tournamentSeasonStats.length > 0 ? (
-                              tournamentSeasonStats.map(stats => {
-                                // Look up tournament to check for awarded player (only for tournament tab)
-                                const tournament = activeTab === 'tournament' ? tournaments.find(t => t.id === stats.id) : null;
-                                // Edge case: if awarded player was deleted from roster, playerLookup returns undefined
-                                // This gracefully hides the trophy badge (no broken UI)
-                                const awardedPlayer = tournament?.awardedPlayerId
-                                  ? playerLookup.get(tournament.awardedPlayerId)
-                                  : null;
-
-                                return (
-                                  <tr key={stats.id} className="border-b border-slate-800 hover:bg-slate-800/40">
-                                    <td className="px-2 py-2">
-                                      <div className="font-medium">{stats.name}</div>
-                                      {awardedPlayer && (
-                                        <div className="text-xs text-amber-400 mt-0.5 flex items-center gap-1">
-                                          🏆 {awardedPlayer.name}
-                                        </div>
-                                      )}
-                                    </td>
-                                    <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.gamesPlayed}</td>
-                                    <td className="px-1 py-2 text-center text-green-400 font-semibold">{stats.wins}</td>
-                                    <td className="px-1 py-2 text-center text-red-400 font-semibold">{stats.losses}</td>
-                                    <td className="px-1 py-2 text-center text-blue-400 font-semibold">{stats.ties}</td>
-                                    <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.winPercentage.toFixed(1)}%</td>
-                                    <td className={`px-1 py-2 text-center font-semibold ${stats.goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                      {stats.goalDifference >= 0 ? '+' : ''}{stats.goalDifference}
-                                    </td>
-                                    <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsFor}</td>
-                                    <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsAgainst}</td>
-                                  </tr>
-                                );
-                              })
+                              tournamentSeasonStats.map(stats => (
+                                <tr key={stats.id} className="border-b border-slate-800 hover:bg-slate-800/40">
+                                  <td className="px-2 py-2">
+                                    <div className="font-medium">{stats.name}</div>
+                                    {renderTrophyBadge(stats.id, activeTab, tournaments, playerLookup)}
+                                  </td>
+                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.gamesPlayed}</td>
+                                  <td className="px-1 py-2 text-center text-green-400 font-semibold">{stats.wins}</td>
+                                  <td className="px-1 py-2 text-center text-red-400 font-semibold">{stats.losses}</td>
+                                  <td className="px-1 py-2 text-center text-blue-400 font-semibold">{stats.ties}</td>
+                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.winPercentage.toFixed(1)}%</td>
+                                  <td className={`px-1 py-2 text-center font-semibold ${stats.goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                    {stats.goalDifference >= 0 ? '+' : ''}{stats.goalDifference}
+                                  </td>
+                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsFor}</td>
+                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsAgainst}</td>
+                                </tr>
+                              ))
                             ) : (
                               <tr><td colSpan={9} className="py-4 text-center text-slate-400">{t('gameStatsModal.noStatsAvailable', 'No statistics available')}</td></tr>
                             )
                           ) : (
                             // Show individual stats for specific tournament/season
                             tournamentSeasonStats.totalGames > 0 ? (
-                              (activeTab === 'season' ? tournamentSeasonStats.seasons : tournamentSeasonStats.tournaments).map(stats => {
-                                // Look up tournament to check for awarded player (only for tournament tab)
-                                const tournament = activeTab === 'tournament' ? tournaments.find(t => t.id === stats.id) : null;
-                                // Edge case: if awarded player was deleted from roster, playerLookup returns undefined
-                                // This gracefully hides the trophy badge (no broken UI)
-                                const awardedPlayer = tournament?.awardedPlayerId
-                                  ? playerLookup.get(tournament.awardedPlayerId)
-                                  : null;
-
-                                return (
-                                  <tr key={stats.id} className="border-b border-slate-800 hover:bg-slate-800/40">
-                                    <td className="px-2 py-2">
-                                      <div className="font-medium">{stats.name}</div>
-                                      {awardedPlayer && (
-                                        <div className="text-xs text-amber-400 mt-0.5 flex items-center gap-1">
-                                          🏆 {awardedPlayer.name}
-                                        </div>
-                                      )}
-                                    </td>
-                                    <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.gamesPlayed}</td>
-                                    <td className="px-1 py-2 text-center text-green-400 font-semibold">{stats.wins}</td>
-                                    <td className="px-1 py-2 text-center text-red-400 font-semibold">{stats.losses}</td>
-                                    <td className="px-1 py-2 text-center text-blue-400 font-semibold">{stats.ties}</td>
-                                    <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.winPercentage.toFixed(1)}%</td>
-                                    <td className={`px-1 py-2 text-center font-semibold ${stats.goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                      {stats.goalDifference >= 0 ? '+' : ''}{stats.goalDifference}
-                                    </td>
-                                    <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsFor}</td>
-                                    <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsAgainst}</td>
-                                  </tr>
-                                );
-                              })
+                              (activeTab === 'season' ? tournamentSeasonStats.seasons : tournamentSeasonStats.tournaments).map(stats => (
+                                <tr key={stats.id} className="border-b border-slate-800 hover:bg-slate-800/40">
+                                  <td className="px-2 py-2">
+                                    <div className="font-medium">{stats.name}</div>
+                                    {renderTrophyBadge(stats.id, activeTab, tournaments, playerLookup)}
+                                  </td>
+                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.gamesPlayed}</td>
+                                  <td className="px-1 py-2 text-center text-green-400 font-semibold">{stats.wins}</td>
+                                  <td className="px-1 py-2 text-center text-red-400 font-semibold">{stats.losses}</td>
+                                  <td className="px-1 py-2 text-center text-blue-400 font-semibold">{stats.ties}</td>
+                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.winPercentage.toFixed(1)}%</td>
+                                  <td className={`px-1 py-2 text-center font-semibold ${stats.goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                    {stats.goalDifference >= 0 ? '+' : ''}{stats.goalDifference}
+                                  </td>
+                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsFor}</td>
+                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsAgainst}</td>
+                                </tr>
+                              ))
                             ) : (
                               <tr><td colSpan={9} className="py-4 text-center text-slate-400">{t('gameStatsModal.noStatsAvailable', 'No statistics available')}</td></tr>
                             )
