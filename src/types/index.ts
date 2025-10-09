@@ -108,6 +108,7 @@ export interface PlayerStatAdjustment {
   gamesPlayedDelta: number; // may be 0
   goalsDelta: number; // may be 0
   assistsDelta: number; // may be 0
+  fairPlayCardsDelta?: number; // Optional: fair play cards from external games (defaults to 0 if undefined)
   note?: string; // optional note shown in UI
   createdBy?: string; // optional user identifier
   appliedAt: string; // ISO timestamp
