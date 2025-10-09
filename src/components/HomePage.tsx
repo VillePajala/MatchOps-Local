@@ -3345,6 +3345,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           onExportAggregateCsv={handleExportAggregateCsv}
           initialSelectedPlayerId={selectedPlayerForStats?.id}
           onGameClick={handleGameLogClick}
+          masterRoster={masterRosterQueryResultData || []}
         />
       )}
       <LoadGameModal
@@ -3489,6 +3490,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         // Pass fresh data from React Query
         seasons={seasons}
         tournaments={tournaments}
+        masterRoster={masterRosterQueryResultData || []}
       />
 
       <SettingsModal

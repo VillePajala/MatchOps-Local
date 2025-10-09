@@ -100,6 +100,7 @@ interface GameStatsModalProps {
   onExportAggregateCsv?: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
   initialSelectedPlayerId?: string | null;
   onGameClick?: (gameId: string) => void;
+  masterRoster?: Player[]; // Full roster for tournament player award display
 }
 
 const GameStatsModal: React.FC<GameStatsModalProps> = ({
@@ -130,6 +131,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   onExportAggregateCsv,
   initialSelectedPlayerId = null,
   onGameClick = () => {},
+  masterRoster = [],
 }) => {
   const { t, i18n } = useTranslation();
 
@@ -1252,42 +1254,72 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                         <tbody className="text-slate-100">
                           {Array.isArray(tournamentSeasonStats) ? (
                             tournamentSeasonStats.length > 0 ? (
-                              tournamentSeasonStats.map(stats => (
-                                <tr key={stats.id} className="border-b border-slate-800 hover:bg-slate-800/40">
-                                  <td className="px-2 py-2 font-medium">{stats.name}</td>
-                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.gamesPlayed}</td>
-                                  <td className="px-1 py-2 text-center text-green-400 font-semibold">{stats.wins}</td>
-                                  <td className="px-1 py-2 text-center text-red-400 font-semibold">{stats.losses}</td>
-                                  <td className="px-1 py-2 text-center text-blue-400 font-semibold">{stats.ties}</td>
-                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.winPercentage.toFixed(1)}%</td>
-                                  <td className={`px-1 py-2 text-center font-semibold ${stats.goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                    {stats.goalDifference >= 0 ? '+' : ''}{stats.goalDifference}
-                                  </td>
-                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsFor}</td>
-                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsAgainst}</td>
-                                </tr>
-                              ))
+                              tournamentSeasonStats.map(stats => {
+                                // Look up tournament to check for awarded player (only for tournament tab)
+                                const tournament = activeTab === 'tournament' ? tournaments.find(t => t.id === stats.id) : null;
+                                const awardedPlayer = tournament?.awardedPlayerId
+                                  ? masterRoster.find(p => p.id === tournament.awardedPlayerId)
+                                  : null;
+
+                                return (
+                                  <tr key={stats.id} className="border-b border-slate-800 hover:bg-slate-800/40">
+                                    <td className="px-2 py-2">
+                                      <div className="font-medium">{stats.name}</div>
+                                      {awardedPlayer && (
+                                        <div className="text-xs text-amber-400 mt-0.5 flex items-center gap-1">
+                                          🏆 {awardedPlayer.name}
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.gamesPlayed}</td>
+                                    <td className="px-1 py-2 text-center text-green-400 font-semibold">{stats.wins}</td>
+                                    <td className="px-1 py-2 text-center text-red-400 font-semibold">{stats.losses}</td>
+                                    <td className="px-1 py-2 text-center text-blue-400 font-semibold">{stats.ties}</td>
+                                    <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.winPercentage.toFixed(1)}%</td>
+                                    <td className={`px-1 py-2 text-center font-semibold ${stats.goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                      {stats.goalDifference >= 0 ? '+' : ''}{stats.goalDifference}
+                                    </td>
+                                    <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsFor}</td>
+                                    <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsAgainst}</td>
+                                  </tr>
+                                );
+                              })
                             ) : (
                               <tr><td colSpan={9} className="py-4 text-center text-slate-400">{t('gameStatsModal.noStatsAvailable', 'No statistics available')}</td></tr>
                             )
                           ) : (
                             // Show individual stats for specific tournament/season
                             tournamentSeasonStats.totalGames > 0 ? (
-                              (activeTab === 'season' ? tournamentSeasonStats.seasons : tournamentSeasonStats.tournaments).map(stats => (
-                                <tr key={stats.id} className="border-b border-slate-800 hover:bg-slate-800/40">
-                                  <td className="px-2 py-2 font-medium">{stats.name}</td>
-                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.gamesPlayed}</td>
-                                  <td className="px-1 py-2 text-center text-green-400 font-semibold">{stats.wins}</td>
-                                  <td className="px-1 py-2 text-center text-red-400 font-semibold">{stats.losses}</td>
-                                  <td className="px-1 py-2 text-center text-blue-400 font-semibold">{stats.ties}</td>
-                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.winPercentage.toFixed(1)}%</td>
-                                  <td className={`px-1 py-2 text-center font-semibold ${stats.goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                    {stats.goalDifference >= 0 ? '+' : ''}{stats.goalDifference}
-                                  </td>
-                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsFor}</td>
-                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsAgainst}</td>
-                                </tr>
-                              ))
+                              (activeTab === 'season' ? tournamentSeasonStats.seasons : tournamentSeasonStats.tournaments).map(stats => {
+                                // Look up tournament to check for awarded player (only for tournament tab)
+                                const tournament = activeTab === 'tournament' ? tournaments.find(t => t.id === stats.id) : null;
+                                const awardedPlayer = tournament?.awardedPlayerId
+                                  ? masterRoster.find(p => p.id === tournament.awardedPlayerId)
+                                  : null;
+
+                                return (
+                                  <tr key={stats.id} className="border-b border-slate-800 hover:bg-slate-800/40">
+                                    <td className="px-2 py-2">
+                                      <div className="font-medium">{stats.name}</div>
+                                      {awardedPlayer && (
+                                        <div className="text-xs text-amber-400 mt-0.5 flex items-center gap-1">
+                                          🏆 {awardedPlayer.name}
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.gamesPlayed}</td>
+                                    <td className="px-1 py-2 text-center text-green-400 font-semibold">{stats.wins}</td>
+                                    <td className="px-1 py-2 text-center text-red-400 font-semibold">{stats.losses}</td>
+                                    <td className="px-1 py-2 text-center text-blue-400 font-semibold">{stats.ties}</td>
+                                    <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.winPercentage.toFixed(1)}%</td>
+                                    <td className={`px-1 py-2 text-center font-semibold ${stats.goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                      {stats.goalDifference >= 0 ? '+' : ''}{stats.goalDifference}
+                                    </td>
+                                    <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsFor}</td>
+                                    <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsAgainst}</td>
+                                  </tr>
+                                );
+                              })
                             ) : (
                               <tr><td colSpan={9} className="py-4 text-center text-slate-400">{t('gameStatsModal.noStatsAvailable', 'No statistics available')}</td></tr>
                             )
