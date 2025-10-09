@@ -35,7 +35,12 @@
     "hardResetConfirmation": "Are you sure you want to completely reset the application? All saved data (players, stats, positions) will be permanently lost.",
     "resetCurrentStats": "Reset Current Stats",
     "menu": {
-      "title": "Menu"
+      "title": "Menu",
+      "gameManagement": "Game Management",
+      "setupConfig": "Setup & Configuration",
+      "analysisTools": "Analysis & Tools",
+      "resources": "Resources",
+      "settings": "Settings"
     },
     "saveGame": "Quick Save",
     "newGameButton": "Start New Game",
