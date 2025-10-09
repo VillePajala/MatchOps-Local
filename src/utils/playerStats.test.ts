@@ -1,5 +1,5 @@
 import { calculatePlayerStats } from './playerStats';
-import { Player, Season, Tournament, AppState, GameEvent } from '@/types';
+import { Player, Season, Tournament, AppState, GameEvent, PlayerStatAdjustment } from '@/types';
 
 describe('calculatePlayerStats', () => {
   const player: Player = { id: 'p1', name: 'John', nickname: 'John', color: '#fff', isGoalie: false };
