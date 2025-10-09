@@ -911,7 +911,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 {Object.entries(playerStats.performanceBySeason).map(([id, stats]) => (
                   <div key={id} className="p-2 bg-slate-700/50 rounded-md">
                     <p className="font-semibold text-slate-100 mb-1">{stats.name}</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-center text-sm">
+                    <div className="grid grid-cols-5 gap-2 text-center text-sm">
                       <div><p className="font-bold text-yellow-400">{stats.gamesPlayed}</p><p className="text-xs text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.goals}</p><p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.assists}</p><p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
@@ -937,7 +937,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         </span>
                       )}
                     </p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 text-center text-sm">
+                    <div className="grid grid-cols-5 gap-2 text-center text-sm">
                       <div><p className="font-bold text-yellow-400">{stats.gamesPlayed}</p><p className="text-xs text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.goals}</p><p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.assists}</p><p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
