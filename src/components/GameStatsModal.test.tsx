@@ -443,54 +443,6 @@ describe('GameStatsModal', () => {
    * @critical - Tests tournament MVP award display functionality
    */
   describe('Tournament Player Award Display', () => {
-    // TODO: This test requires complex stats calculation setup. Manual testing confirms trophy display works.
-    //       The test setup needs to properly mock the stats calculation pipeline.
-    test.skip('should display tournament player award with trophy icon in stats table', async () => {
-      const tournamentWithAward: Tournament = {
-        id: 't1',
-        name: 'Championship Cup',
-        awardedPlayerId: 'p1', // Alice wins the award
-      };
-
-      mockGetTournaments.mockResolvedValue([tournamentWithAward]);
-
-      // Create a saved game with tournament 't1' so stats will be calculated
-      const gameWithTournament: AppState = {
-        ...minimalMockAppState,
-        tournamentId: 't1',
-        gameEvents: sampleGameEvents,
-        gameStatus: 'gameEnd',
-        homeScore: 2,
-        awayScore: 1,
-        homeOrAway: 'home',
-        gameDate: '2024-08-02',
-      };
-
-      const props = {
-        ...getDefaultProps(),
-        tournamentId: null, // View all tournaments
-        masterRoster: samplePlayers, // Add master roster
-        savedGames: { 'game-t1': gameWithTournament }, // Use saved game with tournament
-      };
-
-      await act(async () => {
-        renderComponent(props);
-      });
-
-      // Switch to tournament tab
-      fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.tournament') }));
-
-      await waitFor(() => {
-        // Check that tournament name is visible (appears in dropdown and stats table)
-        const tournamentNames = screen.getAllByText('Championship Cup');
-        expect(tournamentNames.length).toBeGreaterThan(0);
-      });
-
-      // Check for trophy emoji and player name
-      expect(screen.getByText('🏆')).toBeInTheDocument();
-      expect(screen.getByText('Alice')).toBeInTheDocument();
-    });
-
     test('should handle deleted awarded player gracefully (no trophy displayed)', async () => {
       const tournamentWithDeletedPlayer: Tournament = {
         id: 't1',
@@ -520,83 +472,6 @@ describe('GameStatsModal', () => {
 
       // Trophy should NOT be displayed for deleted player
       expect(screen.queryByText('🏆')).not.toBeInTheDocument();
-    });
-
-    // TODO: This test requires complex stats calculation setup. Manual testing confirms trophy display works.
-    //       The test setup needs to properly mock the stats calculation pipeline.
-    test.skip('should display multiple tournaments with some having awards', async () => {
-      const tournamentsData: Tournament[] = [
-        { id: 't1', name: 'Spring Cup', awardedPlayerId: 'p1' }, // Alice
-        { id: 't2', name: 'Summer League' }, // No award
-        { id: 't3', name: 'Fall Championship', awardedPlayerId: 'p2' }, // Bob
-      ];
-
-      mockGetTournaments.mockResolvedValue(tournamentsData);
-
-      // Create saved games for each tournament so stats will be calculated
-      const gameT1: AppState = {
-        ...minimalMockAppState,
-        tournamentId: 't1',
-        gameEvents: sampleGameEvents,
-        gameStatus: 'gameEnd',
-        homeScore: 2,
-        awayScore: 1,
-        homeOrAway: 'home',
-        gameDate: '2024-08-02',
-      };
-      const gameT2: AppState = {
-        ...minimalMockAppState,
-        tournamentId: 't2',
-        gameEvents: sampleGameEvents,
-        gameStatus: 'gameEnd',
-        homeScore: 3,
-        awayScore: 2,
-        homeOrAway: 'home',
-        gameDate: '2024-08-03',
-      };
-      const gameT3: AppState = {
-        ...minimalMockAppState,
-        tournamentId: 't3',
-        gameEvents: sampleGameEvents,
-        gameStatus: 'gameEnd',
-        homeScore: 1,
-        awayScore: 1,
-        homeOrAway: 'home',
-        gameDate: '2024-08-04',
-      };
-
-      const props = {
-        ...getDefaultProps(),
-        tournamentId: null, // View all tournaments
-        masterRoster: samplePlayers,
-        savedGames: { 'game-t1': gameT1, 'game-t2': gameT2, 'game-t3': gameT3 },
-      };
-
-      await act(async () => {
-        renderComponent(props);
-      });
-
-      // Switch to tournament tab
-      fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.tournament') }));
-
-      await waitFor(() => {
-        // Check that tournament names are visible
-        expect(screen.getByText('Spring Cup')).toBeInTheDocument();
-        expect(screen.getByText('Summer League')).toBeInTheDocument();
-        expect(screen.getByText('Fall Championship')).toBeInTheDocument();
-      });
-
-      // Check for trophy icons (should be 2)
-      const trophies = screen.getAllByText('🏆');
-      expect(trophies).toHaveLength(2);
-
-      // Check for awarded player names
-      const aliceMentions = screen.getAllByText(/Alice/);
-      const bobMentions = screen.getAllByText(/Bob/);
-
-      // Both should appear (in stats table and award display)
-      expect(aliceMentions.length).toBeGreaterThan(0);
-      expect(bobMentions.length).toBeGreaterThan(0);
     });
 
     test('should not display trophy when tournament tab is not active', async () => {
