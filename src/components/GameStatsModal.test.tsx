@@ -140,6 +140,7 @@ interface TestProps {
   gameLocation?: string;
   gameTime?: string;
   gameNotes?: string;
+  masterRoster?: Player[]; // Full roster for tournament player award display
 }
 
 // Default Props function returning the specific type
@@ -435,6 +436,69 @@ describe('GameStatsModal', () => {
     fireEvent.keyDown(input, { key: 'Enter' });
 
     expect(screen.getByRole('heading', { name: 'Charlie' })).toBeInTheDocument();
+  });
+
+  /**
+   * Tournament Player Award Tests
+   * @critical - Tests tournament MVP award display functionality
+   */
+  describe('Tournament Player Award Display', () => {
+    test('should handle deleted awarded player gracefully (no trophy displayed)', async () => {
+      const tournamentWithDeletedPlayer: Tournament = {
+        id: 't1',
+        name: 'Championship Cup',
+        awardedPlayerId: 'deleted-player-id', // Non-existent player
+      };
+
+      mockGetTournaments.mockResolvedValue([tournamentWithDeletedPlayer]);
+
+      const props = {
+        ...getDefaultProps(),
+        tournamentId: 't1',
+        masterRoster: samplePlayers,
+      };
+
+      await act(async () => {
+        renderComponent(props);
+      });
+
+      // Switch to tournament tab
+      fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.tournament') }));
+
+      await waitFor(() => {
+        // Tournament name should be visible
+        expect(screen.getByText('Championship Cup')).toBeInTheDocument();
+      });
+
+      // Trophy should NOT be displayed for deleted player
+      expect(screen.queryByText('🏆')).not.toBeInTheDocument();
+    });
+
+    test('should not display trophy when tournament tab is not active', async () => {
+      const tournamentWithAward: Tournament = {
+        id: 't1',
+        name: 'Championship Cup',
+        awardedPlayerId: 'p1',
+      };
+
+      mockGetTournaments.mockResolvedValue([tournamentWithAward]);
+
+      const props = {
+        ...getDefaultProps(),
+        tournamentId: 't1',
+        masterRoster: samplePlayers,
+      };
+
+      await act(async () => {
+        renderComponent(props);
+      });
+
+      // Stay on Current Game tab (default)
+      expect(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
+
+      // Trophy should not be visible on current game tab
+      expect(screen.queryByText('🏆')).not.toBeInTheDocument();
+    });
   });
 
   // Add more tests for:

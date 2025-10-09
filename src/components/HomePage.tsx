@@ -3345,6 +3345,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           onExportAggregateCsv={handleExportAggregateCsv}
           initialSelectedPlayerId={selectedPlayerForStats?.id}
           onGameClick={handleGameLogClick}
+          masterRoster={masterRosterQueryResultData || []}
         />
       )}
       <LoadGameModal
@@ -3421,6 +3422,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         onClose={handleCloseSeasonTournamentModal}
         seasons={seasons}
         tournaments={tournaments}
+        masterRoster={masterRosterQueryResultData || []}
         addSeasonMutation={addSeasonMutation}
         addTournamentMutation={addTournamentMutation}
         updateSeasonMutation={updateSeasonMutation}
@@ -3488,6 +3490,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         // Pass fresh data from React Query
         seasons={seasons}
         tournaments={tournaments}
+        masterRoster={masterRosterQueryResultData || []}
       />
 
       <SettingsModal
