@@ -47,3 +47,6 @@ next-env.d.ts
 
 # build artifacts
 public/manifest.json
+
+# example/test data
+public/example_data/
