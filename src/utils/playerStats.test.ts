@@ -65,27 +65,36 @@ describe('calculatePlayerStats', () => {
    */
   describe('Fair Play Card Aggregation', () => {
     it('should count fair play cards for a player across games', () => {
+      const playerWithFairPlay = { ...player, receivedFairPlayCard: true };
       const gameWithFairPlay = {
         ...game1,
+        playersOnField: [playerWithFairPlay],
+        availablePlayers: [],
         gameEvents: [
           { id: 'g1', type: 'goal', time: 10, scorerId: 'p1' } as GameEvent,
-          { id: 'fp1', type: 'fairPlayCard', time: 15, entityId: 'p1' } as GameEvent,
-          { id: 'fp2', type: 'fairPlayCard', time: 25, entityId: 'p1' } as GameEvent,
         ],
       } as AppState;
 
-      const gamesWithFairPlay = { g1: gameWithFairPlay, g2: game2 };
+      const game2WithFairPlay = {
+        ...game2,
+        playersOnField: [],
+        availablePlayers: [playerWithFairPlay],
+      } as AppState;
+
+      const gamesWithFairPlay = { g1: gameWithFairPlay, g2: game2WithFairPlay };
       const stats = calculatePlayerStats(player, gamesWithFairPlay, seasons, tournaments);
 
       expect(stats.totalFairPlayCards).toBe(2);
     });
 
     it('should not count fair play cards for other players', () => {
+      const otherPlayer = { id: 'other', name: 'Other', nickname: 'Other', color: '#fff', isGoalie: false, receivedFairPlayCard: true };
       const gameWithOtherPlayerFairPlay = {
         ...game1,
+        playersOnField: [player, otherPlayer],
+        availablePlayers: [],
         gameEvents: [
           { id: 'g1', type: 'goal', time: 10, scorerId: 'p1' } as GameEvent,
-          { id: 'fp1', type: 'fairPlayCard', time: 15, entityId: 'other' } as GameEvent,
         ],
       } as AppState;
 
@@ -96,12 +105,14 @@ describe('calculatePlayerStats', () => {
     });
 
     it('should aggregate fair play cards in season performance', () => {
+      const playerWithFairPlay = { ...player, receivedFairPlayCard: true };
       const gameWithFairPlay = {
         ...game1,
         seasonId: 's1',
+        playersOnField: [playerWithFairPlay],
+        availablePlayers: [],
         gameEvents: [
           { id: 'g1', type: 'goal', time: 10, scorerId: 'p1' } as GameEvent,
-          { id: 'fp1', type: 'fairPlayCard', time: 15, entityId: 'p1' } as GameEvent,
         ],
       } as AppState;
 
@@ -112,20 +123,21 @@ describe('calculatePlayerStats', () => {
     });
 
     it('should aggregate fair play cards in tournament performance', () => {
+      const playerWithFairPlay = { ...player, receivedFairPlayCard: true };
       const gameWithFairPlay = {
         ...game2,
         tournamentId: 't1',
+        playersOnField: [],
+        availablePlayers: [playerWithFairPlay],
         gameEvents: [
           { id: 'a1', type: 'goal', time: 20, scorerId: 'other', assisterId: 'p1' } as GameEvent,
-          { id: 'fp1', type: 'fairPlayCard', time: 25, entityId: 'p1' } as GameEvent,
-          { id: 'fp2', type: 'fairPlayCard', time: 30, entityId: 'p1' } as GameEvent,
         ],
       } as AppState;
 
       const games = { g2: gameWithFairPlay };
       const stats = calculatePlayerStats(player, games, seasons, tournaments);
 
-      expect(stats.performanceByTournament['t1'].fairPlayCards).toBe(2);
+      expect(stats.performanceByTournament['t1'].fairPlayCards).toBe(1);
     });
 
     it('should handle games with no fair play cards', () => {
@@ -198,6 +210,7 @@ describe('calculatePlayerStats', () => {
    */
   describe('Combined Fair Play and Tournament Awards', () => {
     it('should correctly aggregate both fair play cards and tournament winner status', () => {
+      const playerWithFairPlay = { ...player, receivedFairPlayCard: true };
       const tournamentWithAward: Tournament[] = [
         { id: 't1', name: 'Championship', awardedPlayerId: 'p1' } as Tournament,
       ];
@@ -205,18 +218,18 @@ describe('calculatePlayerStats', () => {
       const gameWithAll = {
         ...game2,
         tournamentId: 't1',
+        playersOnField: [playerWithFairPlay],
+        availablePlayers: [],
         gameEvents: [
           { id: 'g1', type: 'goal', time: 10, scorerId: 'p1' } as GameEvent,
-          { id: 'fp1', type: 'fairPlayCard', time: 15, entityId: 'p1' } as GameEvent,
-          { id: 'fp2', type: 'fairPlayCard', time: 20, entityId: 'p1' } as GameEvent,
         ],
       } as AppState;
 
       const games = { g1: gameWithAll };
       const stats = calculatePlayerStats(player, games, seasons, tournamentWithAward);
 
-      expect(stats.totalFairPlayCards).toBe(2);
-      expect(stats.performanceByTournament['t1'].fairPlayCards).toBe(2);
+      expect(stats.totalFairPlayCards).toBe(1);
+      expect(stats.performanceByTournament['t1'].fairPlayCards).toBe(1);
       expect(stats.performanceByTournament['t1'].isTournamentWinner).toBe(true);
       expect(stats.performanceByTournament['t1'].goals).toBe(1);
     });
@@ -309,12 +322,14 @@ describe('calculatePlayerStats', () => {
     });
 
     it('should combine game events and manual adjustments for fair play cards', () => {
+      const playerWithFairPlay = { ...player, receivedFairPlayCard: true };
       const gameWithFairPlay = {
         ...game1,
         seasonId: 's1',
+        playersOnField: [playerWithFairPlay],
+        availablePlayers: [],
         gameEvents: [
           { id: 'g1', type: 'goal', time: 10, scorerId: 'p1' } as GameEvent,
-          { id: 'fp1', type: 'fairPlayCard', time: 15, entityId: 'p1' } as GameEvent,
         ],
       } as AppState;
 

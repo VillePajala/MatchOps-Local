@@ -60,7 +60,11 @@ export const calculatePlayerStats = (
       const goals = game.gameEvents?.filter(e => e.type === 'goal' && e.scorerId === player.id).length || 0;
       const assists = game.gameEvents?.filter(e => e.type === 'goal' && e.assisterId === player.id).length || 0;
       const points = goals + assists;
-      const fairPlayCards = game.gameEvents?.filter(e => e.type === 'fairPlayCard' && e.entityId === player.id).length || 0;
+
+      // Fair play cards are stored in Player.receivedFairPlayCard, not in gameEvents
+      // Check both playersOnField and availablePlayers arrays
+      const playerInGame = [...(game.playersOnField || []), ...(game.availablePlayers || [])].find(p => p.id === player.id);
+      const fairPlayCards = playerInGame?.receivedFairPlayCard ? 1 : 0;
 
       // Add to total fair play cards
       totalFairPlayCards += fairPlayCards;
