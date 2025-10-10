@@ -790,7 +790,11 @@
     "noPlayers": "No players in this team yet.",
     "addFirstPlayer": "Add your first player or import from the master roster.",
     "invalidPlayerData": "Invalid player data: {{errors}}",
-    "backToTeamManager": "Back to Team Manager"
+    "backToTeamManager": "Back to Team Manager",
+    "playerSingular": "Player",
+    "playerPlural": "Players",
+    "editButton": "Edit",
+    "roster": "Roster"
   },
   "matchPreparation": {
     "duringGame": {
