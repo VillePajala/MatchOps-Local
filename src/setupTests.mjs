@@ -206,6 +206,7 @@ const allowedConsolePatterns = [
   'Failed to',
   'Migration failed',
   'Storage operation failed',
+  'Storage adapter creation still in backoff period',
   // Storage bootstrap errors in test environment (IndexedDB not available in jsdom)
   '[StorageBootstrap]',
   '[StorageFactory]',

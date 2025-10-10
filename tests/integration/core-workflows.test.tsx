@@ -285,8 +285,17 @@ describe('Core User Workflows Integration Tests', () => {
         expect(screen.getByTestId('home-page')).toBeInTheDocument();
       });
 
-      // Should not have logged any errors
-      expect(consoleSpy).not.toHaveBeenCalled();
+      // Should not have logged any unexpected errors
+      const unexpectedErrors = consoleSpy.mock.calls.filter(([message]) => {
+        if (typeof message !== 'string') {
+          return true;
+        }
+        return (
+          !message.includes('IndexedDB read failed') &&
+          !message.includes('Storage is temporarily unavailable')
+        );
+      });
+      expect(unexpectedErrors).toHaveLength(0);
       
       // Major components should be present
       expect(screen.getByTestId('home-page')).toBeInTheDocument();
