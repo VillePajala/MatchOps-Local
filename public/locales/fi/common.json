@@ -731,7 +731,11 @@
     "noPlayers": "Tässä joukkueessa ei ole vielä pelaajia.",
     "addFirstPlayer": "Lisää ensimmäinen pelaaja tai tuo pääkokoonpanosta.",
     "invalidPlayerData": "Virheelliset pelaajatiedot: {{errors}}",
-    "backToTeamManager": "Takaisin joukkuelistaan"
+    "backToTeamManager": "Takaisin joukkuelistaan",
+    "playerSingular": "Pelaaja",
+    "playerPlural": "Pelaajaa",
+    "editButton": "Muokkaa",
+    "roster": "Kokoonpano"
   },
   "gameSettingsModal": {
     "unknownPlayer": "Tuntematon pelaaja",
