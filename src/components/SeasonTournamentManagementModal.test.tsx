@@ -6,11 +6,18 @@ import { UseMutationResult } from '@tanstack/react-query';
 import { Season, Tournament } from '@/types';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n'; // Your i18n instance
+import { getFilteredGames } from '@/utils/savedGames';
+
+jest.mock('@/utils/savedGames', () => ({
+  getFilteredGames: jest.fn().mockResolvedValue([]),
+}));
 
 const mockMutation = () => ({
   mutate: jest.fn(),
   isPending: false,
 });
+
+const mockGetFilteredGames = getFilteredGames as jest.MockedFunction<typeof getFilteredGames>;
 
 const defaultProps = {
   isOpen: true,
@@ -38,6 +45,7 @@ describe('SeasonTournamentManagementModal', () => {
   beforeEach(() => {
     // Reset mocks before each test
     jest.clearAllMocks();
+    mockGetFilteredGames.mockResolvedValue([]);
   });
 
   it('renders seasons and tournaments lists', async () => {
@@ -56,7 +64,9 @@ describe('SeasonTournamentManagementModal', () => {
     });
     await act(async () => {});
 
-    const createSeasonButton = screen.getByTestId('create-season-button');
+    const createSeasonButton = screen.getByRole('button', {
+      name: i18n.t('seasonTournamentModal.addSeason', 'Add Season'),
+    });
     await user.click(createSeasonButton);
 
     const input = screen.getByPlaceholderText(i18n.t('seasonTournamentModal.newSeasonPlaceholder'));
@@ -75,7 +85,9 @@ describe('SeasonTournamentManagementModal', () => {
     });
     await act(async () => {});
 
-    const createTournamentButton = screen.getByTestId('create-tournament-button');
+    const createTournamentButton = screen.getByRole('button', {
+      name: i18n.t('seasonTournamentModal.addTournament', 'Add Tournament'),
+    });
     await user.click(createTournamentButton);
 
     const input = screen.getByPlaceholderText(i18n.t('seasonTournamentModal.newTournamentPlaceholder'));
@@ -94,8 +106,11 @@ describe('SeasonTournamentManagementModal', () => {
     });
     await act(async () => {});
     
-    const editButton = screen.getByRole('button', { name: 'Edit Season 1' });
-    await user.click(editButton);
+    const actionsButton = screen.getByLabelText('season actions');
+    await user.click(actionsButton);
+
+    const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
+    await user.click(editOption);
 
     const input = screen.getByDisplayValue('Season 1');
     await user.clear(input);
@@ -114,8 +129,11 @@ describe('SeasonTournamentManagementModal', () => {
     });
     await act(async () => {});
     
-    const editButton = screen.getByRole('button', { name: 'Edit Tournament 1' });
-    await user.click(editButton);
+    const actionsButton = screen.getByLabelText('tournament actions');
+    await user.click(actionsButton);
+
+    const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
+    await user.click(editOption);
 
     const input = screen.getByDisplayValue('Tournament 1');
     await user.clear(input);
@@ -135,8 +153,11 @@ describe('SeasonTournamentManagementModal', () => {
     });
     await act(async () => {});
 
-    const deleteButton = screen.getByRole('button', { name: 'Delete Season 1' });
-    await user.click(deleteButton);
+    const seasonActionsButton = screen.getByLabelText('season actions');
+    await user.click(seasonActionsButton);
+
+    const deleteOption = await screen.findByRole('button', { name: i18n.t('common.delete', 'Delete') });
+    await user.click(deleteOption);
 
     expect(window.confirm).toHaveBeenCalled();
     expect(defaultProps.deleteSeasonMutation.mutate).toHaveBeenCalledWith('s1');
@@ -150,8 +171,11 @@ describe('SeasonTournamentManagementModal', () => {
     });
     await act(async () => {});
 
-    const deleteButton = screen.getByRole('button', { name: 'Delete Tournament 1' });
-    await user.click(deleteButton);
+    const tournamentActionsButton = screen.getByLabelText('tournament actions');
+    await user.click(tournamentActionsButton);
+
+    const deleteOption = await screen.findByRole('button', { name: i18n.t('common.delete', 'Delete') });
+    await user.click(deleteOption);
 
     expect(window.confirm).toHaveBeenCalled();
     expect(defaultProps.deleteTournamentMutation.mutate).toHaveBeenCalledWith('t1');
@@ -198,9 +222,12 @@ describe('SeasonTournamentManagementModal', () => {
       });
       await act(async () => {});
 
-      // Click edit button for tournament
-      const editButton = screen.getByRole('button', { name: 'Edit Championship Cup' });
-      await user.click(editButton);
+      // Open actions menu and choose edit for tournament
+      const actionsButton = screen.getByLabelText('tournament actions');
+      await user.click(actionsButton);
+
+      const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
+      await user.click(editOption);
 
       // Find the player award dropdown (should be visible when editing tournament)
       const awardDropdown = screen.getByRole('combobox', { name: /select player of tournament/i });
@@ -232,9 +259,12 @@ describe('SeasonTournamentManagementModal', () => {
       });
       await act(async () => {});
 
-      // Click edit button
-      const editButton = screen.getByRole('button', { name: 'Edit Championship Cup' });
-      await user.click(editButton);
+      // Open actions menu and choose edit
+      const actionsButton = screen.getByLabelText('tournament actions');
+      await user.click(actionsButton);
+
+      const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
+      await user.click(editOption);
 
       // Find the dropdown
       const awardDropdown = screen.getByRole('combobox', { name: /select player of tournament/i });
@@ -277,9 +307,12 @@ describe('SeasonTournamentManagementModal', () => {
       });
       await act(async () => {});
 
-      // Click edit button for season
-      const editButton = screen.getByRole('button', { name: 'Edit Spring Season' });
-      await user.click(editButton);
+      // Open actions menu and choose edit for season
+      const actionsButton = screen.getByLabelText('season actions');
+      await user.click(actionsButton);
+
+      const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
+      await user.click(editOption);
 
       // Player award dropdown should NOT be present for seasons
       const awardDropdown = screen.queryByRole('combobox', { name: /select player of tournament/i });
