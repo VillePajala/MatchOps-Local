@@ -16,7 +16,6 @@ import SettingsModal from '@/components/SettingsModal';
 import SeasonTournamentManagementModal from '@/components/SeasonTournamentManagementModal';
 import TeamManagerModal from '@/components/TeamManagerModal';
 import TeamRosterModal from '@/components/TeamRosterModal';
-import OrphanedGameHandler from '@/components/OrphanedGameHandler';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import InstructionsModal from '@/components/InstructionsModal';
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
@@ -454,7 +453,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState<boolean>(false);
   const [isTeamRosterModalOpen, setIsTeamRosterModalOpen] = useState<boolean>(false);
   const [selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
-  const [isOrphanedGamesOpen, setIsOrphanedGamesOpen] = useState<boolean>(false);
 
   // --- Timer State (Still needed here) ---
   const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
@@ -2318,6 +2316,13 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     dispatchGameSession({ type: 'SET_TOURNAMENT_LEVEL', payload: level });
   };
 
+  const handleTeamIdChange = useCallback((newTeamId: string | null) => {
+    logger.log('[HomePage] handleTeamIdChange called with:', newTeamId);
+    // TeamId is stored in AppState (saved game), not GameSessionState
+    // GameSettingsModal already handles calling updateGameDetailsMutation
+    // This handler is just for any additional HomePage-level logic if needed in the future
+  }, []);
+
   const handleSetDemandFactor = (factor: number) => {
     dispatchGameSession({ type: 'SET_DEMAND_FACTOR', payload: factor });
   };
@@ -2775,7 +2780,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   }
 
   // Define a consistent, premium style for the top and bottom bars
-  const barStyle = "bg-gradient-to-b from-app-700 to-app-800 shadow-lg";
+  const barStyle = "bg-gradient-to-b from-slate-800 to-slate-900 shadow-lg";
   // We can add a noise texture via pseudo-elements or a background image later if desired
 
   // Determine which players are available for the current game based on selected IDs
@@ -3230,9 +3235,14 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         {/* Other components that might overlay or interact with the field */}
       </div>
 
-      {/* Bottom Section: Control Bar */}
+      {/* Bottom Section: Control Bar (always visible) */}
       <div className={barStyle}>
         <ControlBar
+          // Timer props
+          timeElapsedInSeconds={timeElapsedInSeconds}
+          isTimerRunning={isTimerRunning}
+          onToggleLargeTimerOverlay={handleToggleLargeTimerOverlay}
+          // Field tools props
           onUndo={handleUndo}
           onRedo={handleRedo}
           canUndo={canUndo}
@@ -3240,10 +3250,15 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           onResetField={handleResetField}
           onClearDrawings={handleClearDrawingsForView}
           onAddOpponent={handleAddOpponent}
-          showLargeTimerOverlay={showLargeTimerOverlay}
-          onToggleLargeTimerOverlay={handleToggleLargeTimerOverlay}
-          onToggleTrainingResources={handleToggleTrainingResources}
+          onPlaceAllPlayers={handlePlaceAllPlayers}
+          isTacticsBoardView={isTacticsBoardView}
+          onToggleTacticsBoard={handleToggleTacticsBoard}
+          onAddHomeDisc={() => handleAddTacticalDisc('home')}
+          onAddOpponentDisc={() => handleAddTacticalDisc('opponent')}
+          // Goal props
           onToggleGoalLogModal={handleToggleGoalLogModal}
+          // Menu props
+          onToggleTrainingResources={handleToggleTrainingResources}
           onToggleGameStatsModal={handleToggleGameStatsModal}
           onOpenLoadGameModal={handleOpenLoadGameModal}
           onStartNewGame={handleStartNewGame}
@@ -3251,13 +3266,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           onQuickSave={handleQuickSaveGame}
           onOpenGameSettingsModal={handleOpenGameSettingsModal}
           isGameLoaded={!!currentGameId && currentGameId !== DEFAULT_GAME_ID}
-          onPlaceAllPlayers={handlePlaceAllPlayers}
-          highlightRosterButton={highlightRosterButton}
           onOpenSeasonTournamentModal={handleOpenSeasonTournamentModal}
-          isTacticsBoardView={isTacticsBoardView}
-          onToggleTacticsBoard={handleToggleTacticsBoard}
-          onAddHomeDisc={() => handleAddTacticalDisc('home')}
-          onAddOpponentDisc={() => handleAddTacticalDisc('opponent')}
           onToggleInstructionsModal={handleToggleInstructionsModal}
           onOpenSettingsModal={handleOpenSettingsModal}
           onOpenPlayerAssessmentModal={openPlayerAssessmentModal}
@@ -3281,7 +3290,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           onClose={handleCloseTeamManagerModal}
           teams={teams}
           onManageRoster={handleManageTeamRoster}
-          onManageOrphanedGames={() => setIsOrphanedGamesOpen(true)}
         />
       </ErrorBoundary>
       
@@ -3296,25 +3304,18 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         />
       </ErrorBoundary>
 
-      <ErrorBoundary>
-        <OrphanedGameHandler
-          isOpen={isOrphanedGamesOpen}
-          onClose={() => setIsOrphanedGamesOpen(false)}
-          onRefresh={() => {
-            // Refresh saved games and teams data
-            queryClient.invalidateQueries({ queryKey: ['savedGames'] });
-            queryClient.invalidateQueries({ queryKey: ['teams'] });
-          }}
-        />
-      </ErrorBoundary>
       {/* Goal Log Modal */}
-      <GoalLogModal 
+      <GoalLogModal
         isOpen={isGoalLogModalOpen}
         onClose={handleToggleGoalLogModal}
         onLogGoal={handleAddGoalEvent}
-        onLogOpponentGoal={handleLogOpponentGoal} // ADDED: Pass the handler
-        availablePlayers={playersForCurrentGame} // MODIFIED: Pass players selected for the current game
+        onLogOpponentGoal={handleLogOpponentGoal}
+        availablePlayers={playersForCurrentGame}
         currentTime={gameSessionState.timeElapsedInSeconds}
+        currentGameId={currentGameId}
+        gameEvents={gameSessionState.gameEvents}
+        onUpdateGameEvent={handleUpdateGameEvent}
+        onDeleteGameEvent={handleDeleteGameEvent}
       />
       {/* Game Stats Modal - Restore props for now */}
       {isGameStatsModalOpen && (
@@ -3491,6 +3492,8 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         seasons={seasons}
         tournaments={tournaments}
         masterRoster={masterRosterQueryResultData || []}
+        teams={teams}
+        onTeamIdChange={handleTeamIdChange}
       />
 
       <SettingsModal

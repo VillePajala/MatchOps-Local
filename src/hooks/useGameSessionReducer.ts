@@ -300,7 +300,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
             duration: duration,
             timestamp: state.timeElapsedInSeconds,
         };
-        const newNextSubDueTime = state.nextSubDueTimeSeconds + (state.subIntervalMinutes * 60);
+        // Add interval to CURRENT time, not the old target time
+        const newNextSubDueTime = state.timeElapsedInSeconds + (state.subIntervalMinutes * 60);
         let alertLevelAfterSub: GameSessionState['subAlertLevel'] = 'none';
         const warningTimeForNext = newNextSubDueTime - 60;
         if (state.timeElapsedInSeconds >= newNextSubDueTime) alertLevelAfterSub = 'due';

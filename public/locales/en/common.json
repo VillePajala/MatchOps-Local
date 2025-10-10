@@ -752,6 +752,9 @@
     "title": "Teams",
     "createNewTeam": "Create new team",
     "newTeam": "New Team",
+    "addTeam": "Add Team",
+    "totalTeamsSingular": "Team",
+    "totalTeamsPlural": "Teams",
     "teamName": "Team Name",
     "namePlaceholder": "Enter team name",
     "teamColor": "Team Color",
@@ -765,7 +768,8 @@
     "orphanedGames": "Orphaned Games",
     "confirmDelete": "Delete team \"{{name}}\"?",
     "deleteImpactWarning": "This will orphan {{count}} game(s). Games will remain but won't be associated with this team.",
-    "noGamesImpact": "No games are associated with this team."
+    "noGamesImpact": "No games are associated with this team.",
+    "duplicateNameWarning": "A team named \"{{name}}\" already exists. Continue anyway?"
   },
   "teamRosterModal": {
     "title": "Team Roster",

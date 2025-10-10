@@ -108,11 +108,16 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   // Add action button styles for consistency
   const actionButtonBase = "text-slate-100 font-bold py-2.5 px-4 rounded-lg shadow-lg pointer-events-auto text-base transition-all duration-150 hover:shadow-md";
   const primaryActionStyle = `${actionButtonBase} bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 active:scale-[0.98] focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900`;
-  const secondaryActionStyle = `${actionButtonBase} bg-teal-700 hover:bg-teal-600 active:bg-teal-800 active:scale-[0.98] focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-slate-900`;
+  const secondaryActionStyle = `${actionButtonBase} bg-gradient-to-b from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 active:from-indigo-700 active:to-indigo-800 active:scale-[0.98] focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900`;
   const dangerActionStyle = `${actionButtonBase} bg-red-700 hover:bg-red-600 active:bg-red-800 active:scale-[0.98] focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-slate-900`;
   
   const handleConfirmSubClick = () => {
     onSubstitutionMade();
+  };
+
+  const handleConfirmReset = () => {
+    const ok = window.confirm(t('timerOverlay.confirmReset', 'Reset the match clock?'));
+    if (ok) onResetTimer();
   };
 
   // Calculate time since last substitution
@@ -173,13 +178,35 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   const homeScoreDisplayColor = homeOrAway === 'home' ? userTeamColor : opponentTeamColor;
   const awayScoreDisplayColor = homeOrAway === 'away' ? userTeamColor : opponentTeamColor;
 
+  // Compact period label for pill UI
+  let periodPillLabel: string | null = null;
+  if (gameStatus === 'gameEnd') {
+    periodPillLabel = t('timerOverlay.fullTime', 'FT');
+  } else {
+    if (numberOfPeriods === 2) {
+      periodPillLabel = `${currentPeriod}/2`;
+    } else {
+      periodPillLabel = `${t('timerOverlay.periodShort', 'P')}${currentPeriod}`;
+    }
+  }
+
+  const handleOpponentGoalClick = () => {
+    const ok = window.confirm(t('timerOverlay.confirmOpponentGoal', 'Add opponent goal?'));
+    if (ok) onRecordOpponentGoal();
+  };
+
+  // Game specs string, e.g., "2 x 20 min"
+  const gameSpecs = numberOfPeriods === 1
+    ? `${periodDurationMinutes} min`
+    : `${numberOfPeriods} x ${periodDurationMinutes} min`;
+
   return (
-    <div className={`fixed inset-0 z-40 flex flex-col items-center p-4 pt-12 ${bgColor} backdrop-blur-lg`}>
-      <div className="w-full max-w-lg flex flex-col items-center">
+    <div className={`fixed inset-x-0 top-0 bottom-14 z-30 flex flex-col items-center p-4 pt-12 ${bgColor} backdrop-blur-lg`}>
+      <div className="w-full max-w-lg flex flex-col items-center mt-6 sm:mt-8 md:mt-12">
         {/* Game Score Display - MOVED TO TOP ABOVE TIMER */}
-        <div className="bg-slate-800/70 px-5 py-2 rounded-lg mb-4">
+        <div className="mb-4">
           <div className="flex items-center justify-center gap-3 text-xl font-semibold">
-            <span className="text-slate-100">{displayHomeTeamName}</span>
+            <span className="text-slate-400">{displayHomeTeamName}</span>
             <span className={`text-2xl font-bold ${homeScoreDisplayColor}`}>{homeScore}</span>
             <span className="text-slate-500">-</span>
             <span className={`text-2xl font-bold ${awayScoreDisplayColor}`}>{awayScore}</span>
@@ -196,8 +223,8 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                     onClick={(e) => e.stopPropagation()} // Prevent triggering underlying handlers
                 />
             ) : (
-                <span 
-                    className="text-slate-100 cursor-pointer hover:text-slate-300" 
+                <span
+                    className="text-slate-400 cursor-pointer hover:text-slate-300"
                     onClick={handleStartEditingOpponent} // Click to edit
                     title={t('timerOverlay.editOpponentNameTitle', 'Click to edit opponent name') ?? undefined}
                 >
@@ -210,74 +237,47 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
       
         {/* Timer Display */}
         <div className="mb-3">
-          <span className={`text-7xl sm:text-8xl font-bold tabular-nums ${textColor}`}>
+          <span className={`text-9xl sm:text-[10rem] font-bold tabular-nums ${textColor}`}>
             {formatTime(timeElapsedInSeconds)}
           </span>
         </div>
         
-        {/* Time Since Last Substitution - SIMPLIFIED */}
-        {(gameStatus !== 'notStarted') && (
-          <div className="mb-4 text-center">
+        {/* Time Since Last Substitution + Period pill + Game specs */}
+        <div className="mb-4 text-center flex items-center justify-center gap-3">
+          {gameStatus !== 'notStarted' && (
             <span className="text-sm font-medium text-slate-400">
-              {t('timerOverlay.timeSinceLastSubCombined', 'Viim. vaihto:')} <span className="tabular-nums text-slate-300 font-semibold">{formatTime(timeSinceLastSub)}</span>
+              {t('timerOverlay.timeSinceLastSubCombined', 'Viim. vaihto:')}{' '}
+              <span className="tabular-nums text-slate-300 font-semibold">{formatTime(timeSinceLastSub)}</span>
             </span>
-          </div>
-        )}
-
-        {/* Game Status / Period Info */}
-        <div className="mb-4 text-center">
-            {gameStatus === 'notStarted' && (
-                <span className="text-base text-yellow-400 font-medium">
-                    {t('timerOverlay.gameNotStarted', 'Game not started')} 
-                    {numberOfPeriods === 1 ? 
-                        ` (${periodDurationMinutes} min)` : 
-                        ` (2 x ${periodDurationMinutes} min)`}
-                </span>
-            )}
-            {gameStatus === 'inProgress' && (
-                <span className="text-base text-green-400 font-medium">
-                    {numberOfPeriods === 1 ? (
-                        // For single period games, no text needed
-                        ''
-                    ) : (
-                        // Use t() interpolation directly
-                        t('timerOverlay.halfTimeInProgress', 'Half Time {{currentPeriod}}/2', { currentPeriod: currentPeriod })
-                    )}
-                </span>
-            )}
-            {gameStatus === 'periodEnd' && currentPeriod < numberOfPeriods && (
-                <span className="text-base text-orange-400 font-medium">
-                    {numberOfPeriods === 1 ? 
-                        t('timerOverlay.gameEnded', 'Game Ended') :
-                        // Use t() interpolation directly
-                        t('timerOverlay.halfTimeEnded', 'End of Half Time {{currentPeriod}}', { currentPeriod: currentPeriod })
-                    }
-                </span>
-            )}
-            {gameStatus === 'gameEnd' && (
-                <span className="text-base text-red-500 font-medium">
-                    {t('timerOverlay.gameEnded', 'Game Ended')}
-                </span>
-            )}
+          )}
+          {periodPillLabel && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-700 text-slate-200 border border-slate-600">
+              {periodPillLabel}
+            </span>
+          )}
+          <span className="text-xs font-medium text-slate-400">{gameSpecs}</span>
         </div>
 
         {/* Timer Controls */}
-        <div className="flex items-center space-x-3 mb-5"> 
+        <div className="flex items-center gap-3 mb-5"> 
           <button 
             onClick={onStartPauseTimer} 
             disabled={gameStatus === 'gameEnd' || !isLoaded} // Disable when game ended OR NOT LOADED
             className={`${timerButtonStyle} ${isTimerRunning ? 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-400' : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'} ${gameStatus === 'gameEnd' || !isLoaded ? 'opacity-50 cursor-not-allowed' : ''}`}
+            aria-label={isTimerRunning ? t('timerOverlay.pauseButton', 'Pause') : t('timerOverlay.startButton', 'Start')}
           >
             {isTimerRunning ? <FaPause size={16}/> : <FaPlay size={16}/>} 
             <span>{startPauseButtonText}</span>
           </button>
+          {/* Compact reset: icon-only + confirm */}
           <button 
-            onClick={onResetTimer}
-            className={`${timerButtonStyle} bg-slate-600 hover:bg-slate-700 focus:ring-slate-500 disabled:opacity-50 disabled:cursor-not-allowed`}
+            onClick={handleConfirmReset}
+            className={`${timerButtonStyle} bg-slate-700 hover:bg-slate-600 focus:ring-slate-500 px-3`}
+            title={t('timerOverlay.resetButton', 'Reset') ?? undefined}
+            aria-label={t('timerOverlay.resetButton', 'Reset')}
             disabled={timeElapsedInSeconds === 0 && gameStatus === 'notStarted'} // Only disable if truly at start
           >
             <FaUndo size={14}/>
-            <span>{t('timerOverlay.resetButton', 'Reset')}</span>
           </button>
         </div>
         
@@ -309,8 +309,11 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
             {/* Primary Action Button - Remove pulsingClass */}
             <div className="flex justify-center">
               <button 
-                onClick={handleConfirmSubClick} 
-                className={`${primaryActionStyle} w-full`}
+                onClick={handleConfirmSubClick}
+                disabled={!(gameStatus === 'inProgress' && isTimerRunning)}
+                aria-disabled={!(gameStatus === 'inProgress' && isTimerRunning)}
+                title={!(gameStatus === 'inProgress' && isTimerRunning) ? t('timerOverlay.disabledWhenPaused', 'Disabled while paused') ?? undefined : undefined}
+                className={`${primaryActionStyle} w-full ${!(gameStatus === 'inProgress' && isTimerRunning) ? 'opacity-60 cursor-not-allowed' : ''}`}
               >
                 {t('timerOverlay.confirmSubButton', 'Vaihto tehty')}
               </button>
@@ -326,7 +329,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
                 {t('timerOverlay.teamGoalButton', 'Kirjaa maali')}
               </button>
               <button 
-                onClick={onRecordOpponentGoal} 
+                onClick={handleOpponentGoalClick} 
                 className={`${dangerActionStyle} flex-1`}
                 title={`${displayAwayTeamName} ${t('timerOverlay.goalSuffix', 'goal')}`}
               >
@@ -336,19 +339,33 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           </div>
         </div>
 
-        {/* Play Time History - only show if there are entries */}
+        {/* Play Time History - show recent items only to reduce clutter */}
         {completedIntervalDurations.length > 0 && (
-          <div className="bg-slate-800/60 backdrop-blur-sm p-3 rounded-lg w-full max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-700/50">
+          <div className="bg-slate-800/60 backdrop-blur-sm p-3 rounded-lg max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-700/50">
             <h3 className="text-sm font-semibold mb-1 text-center text-slate-300">{t('timerOverlay.historyTitle', 'Play Time History')}</h3>
-            <ul className="list-none text-slate-400 text-sm text-center space-y-1">
-              {completedIntervalDurations.map((log, index) => (
-                <li key={`${log.timestamp}-${index}`}>
-                  {t('timerOverlay.intervalLogFormat', 'P{{period}}: {{duration}}', {
-                    period: log.period,
-                    duration: formatTime(log.duration)
-                  })}
-                </li>
-              ))}
+            <ul className="list-none text-lg space-y-1 text-center">
+              {completedIntervalDurations.slice(0, 5).map((log, displayIndex) => {
+                const minutes = Math.floor(log.duration / 60);
+                const seconds = log.duration % 60;
+                const isLatest = displayIndex === 0;
+
+                // Simple color - latest bright, others dimmed
+                const colorClass = isLatest ? 'text-slate-200' : 'text-slate-500';
+
+                // Format time: show minutes only if > 0
+                const timeDisplay = minutes > 0
+                  ? `${minutes} m ${seconds} s`
+                  : `${seconds} s`;
+
+                return (
+                  <li
+                    key={`${log.timestamp}-${displayIndex}`}
+                    className={`font-medium ${colorClass}`}
+                  >
+                    {timeDisplay}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

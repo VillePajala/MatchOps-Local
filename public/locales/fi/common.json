@@ -143,7 +143,7 @@
   "timerOverlay": {
     "intervalLabel": "Vaihtoväli (min):",
     "confirmSubButton": "Vaihto tehty",
-    "historyTitle": "Peliaikahistoria",
+    "historyTitle": "Vaihtojen kestot",
     "logGoalButton": "Kirjaa maali",
     "timeSinceLastSub": "Aika viimeisestä vaihdosta",
     "startButton": "Käynnistä",
@@ -693,6 +693,9 @@
     "title": "Joukkueet",
     "createNewTeam": "Luo uusi joukkue",
     "newTeam": "Uusi joukkue",
+    "addTeam": "Lisää joukkue",
+    "totalTeamsSingular": "joukkue",
+    "totalTeamsPlural": "joukkuetta",
     "teamName": "Joukkueen nimi",
     "namePlaceholder": "Syötä joukkueen nimi",
     "teamColor": "Joukkueen väri",
@@ -706,7 +709,8 @@
     "orphanedGames": "Orpoperit",
     "confirmDelete": "Poistetaanko joukkue \"{{name}}\"?",
     "deleteImpactWarning": "Tämä tekee {{count}} pelistä orpoja. Pelit säilyvät, mutta ne eivät liity tähän joukkueeseen.",
-    "noGamesImpact": "Tähän joukkueeseen ei ole liitetty otteluita."
+    "noGamesImpact": "Tähän joukkueeseen ei ole liitetty otteluita.",
+    "duplicateNameWarning": "Joukkue nimellä \"{{name}}\" on jo olemassa. Jatketaanko silti?"
   },
   "teamRosterModal": {
     "title": "Joukkueen kokoonpano",

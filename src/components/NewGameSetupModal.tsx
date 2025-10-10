@@ -549,7 +549,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 <option value="">
                   {t('newGameSetupModal.noTeamMasterRoster', 'No Team (Use Master Roster)')}
                 </option>
-                {teams.map((team) => (
+                {teams.filter(team => !team.archived).map((team) => (
                   <option key={team.id} value={team.id}>
                     {team.name}
                   </option>
@@ -609,7 +609,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                             className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                           >
                             <option value="">{t('newGameSetupModal.selectSeason', '-- Select Season --')}</option>
-                            {seasons.map((season) => (
+                            {seasons.filter(season => !season.archived).map((season) => (
                               <option key={season.id} value={season.id}>
                                 {season.name}
                               </option>
@@ -672,7 +672,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                             className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                           >
                             <option value="">{t('newGameSetupModal.selectTournament', '-- Select Tournament --')}</option>
-                            {tournaments.map((tournament) => (
+                            {tournaments.filter(tournament => !tournament.archived).map((tournament) => (
                               <option key={tournament.id} value={tournament.id}>
                                 {tournament.name}
                               </option>

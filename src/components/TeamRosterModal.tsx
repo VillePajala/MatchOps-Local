@@ -189,14 +189,12 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
                   </p>
                 </div>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-0">
                   {teamRoster.map((player, index) => (
                     <div
                       key={player.id}
-                      className={`flex items-center p-3 rounded-lg border transition-all ${
-                        index % 2 === 0 
-                          ? 'bg-slate-800/40 border-slate-700/50 hover:bg-slate-800/60'
-                          : 'bg-slate-800/20 border-slate-700/30 hover:bg-slate-800/40'
+                      className={`flex items-center py-1.5 px-1 rounded hover:bg-slate-800/40 transition-colors ${
+                        index < teamRoster.length - 1 ? 'border-b border-slate-700/50' : ''
                       }`}
                     >
                       <p className="text-slate-100 font-medium">{player.name}</p>
