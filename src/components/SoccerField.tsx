@@ -79,12 +79,7 @@ const createNoisePattern = (
   return pattern;
 };
 
-// Helper function to format time (defined locally for now)
-const formatTime = (totalSeconds: number): string => {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-};
+// Removed: formatTime helper - unused function (time display not implemented in SoccerField component)
 
 // Helper function to create and cache the field background
 const createFieldBackground = (
@@ -280,7 +275,7 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
   draggingPlayerFromBarInfo, 
   onPlayerDropViaTouch,
   onPlayerDragCancelViaTouch,
-  timeElapsedInSeconds,
+  // Removed: timeElapsedInSeconds - unused prop (time display not implemented in SoccerField component)
   isTacticsBoardView,
   tacticalDiscs,
   onTacticalDiscMove,

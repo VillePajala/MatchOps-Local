@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "Merge feat/player-stats-awards-fairplay into master"
+  "notes": "refactor: update TeamRosterModal header with player counter and improved layout"
 }

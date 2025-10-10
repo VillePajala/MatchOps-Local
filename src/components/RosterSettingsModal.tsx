@@ -273,25 +273,23 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
           </div>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="px-4 pt-4">
-              <input
-                type="text"
-                placeholder={t('rosterSettingsModal.searchPlaceholder', 'Search players...')}
-                value={searchText}
-                onChange={handleSearchChange}
-                onFocus={(e) => {
-                  // Prevent focus stealing when user is adding a player
-                  if (isAddingPlayer) {
-                    e.target.blur();
-                  }
-                }}
-                className={inputBaseStyle}
-              />
-            </div>
+          <div className="flex-1 overflow-y-auto min-h-0 p-6">
+            <input
+              type="text"
+              placeholder={t('rosterSettingsModal.searchPlaceholder', 'Search players...')}
+              value={searchText}
+              onChange={handleSearchChange}
+              onFocus={(e) => {
+                // Prevent focus stealing when user is adding a player
+                if (isAddingPlayer) {
+                  e.target.blur();
+                }
+              }}
+              className={inputBaseStyle}
+            />
             {/* Form to Add New Player (appears here when isAddingPlayer is true) */}
             {isAddingPlayer && (
-              <div className={`${cardStyle} mx-4 space-y-3`}>
+              <div className={`${cardStyle} mt-4 space-y-3`}>
                 <h3 className="text-lg font-semibold text-slate-200">{t('rosterSettingsModal.addPlayerButton', 'Add Player')}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <input type="text" name="name" placeholder={t('rosterSettingsModal.playerNamePlaceholder', 'Player Name')} value={newPlayerData.name} onChange={handleNewPlayerInputChange} className={inputBaseStyle} />
@@ -319,22 +317,17 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
             )}
 
             {/* Player List */}
-            <div className={`${cardStyle} mx-4`}>
-              {/* Player List Header */}
-              <div className="grid grid-cols-[60%_40%] pb-2 border-b border-slate-700 mb-2">
-                <div className="text-center -translate-x-8 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  {t('common.player', 'PELAAJA')}
-                </div>
-                <div className="text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  {t('common.actions', 'TOIMINNOT')}
-                </div>
-              </div>
-              <div className="space-y-1.5">
+            <div className={`${cardStyle} mt-4`}>
+              <div className="space-y-0">
                 {filteredPlayers.map((player, index) => (
                   <div
                     key={player.id}
                     ref={(el) => { playerRefs.current[index] = el; }}
-                    className={`p-2 rounded-md border ${editingPlayerId === player.id ? 'bg-slate-700/75 border-indigo-500' : 'bg-slate-800/40 border-slate-700/50 hover:bg-slate-800/60 transition-colors'}`}
+                    className={`py-1.5 px-2 rounded transition-colors ${
+                      editingPlayerId === player.id ? 'bg-slate-700/75' : 'hover:bg-slate-800/40'
+                    } ${
+                      index < filteredPlayers.length - 1 ? 'border-b border-slate-700/50' : ''
+                    }`}
                   >
                     {editingPlayerId === player.id ? (
                       <div className="space-y-2">

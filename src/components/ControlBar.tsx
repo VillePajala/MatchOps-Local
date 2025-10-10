@@ -202,7 +202,10 @@ const ControlBar: React.FC<ControlBarProps> = ({
   return (
     <>
       {/* Bottom Bar - Reduced padding from p-4 to p-2 */}
-      <div className="bg-gradient-to-b from-slate-800 to-slate-900 p-2 shadow-xl border-t border-slate-700 backdrop-blur-md flex justify-center items-center gap-2 relative z-40 overflow-x-auto">
+      <div className="relative bg-gradient-to-b from-slate-800 to-slate-900 p-2 shadow-xl border-t border-slate-700 backdrop-blur-md flex justify-center items-center gap-2 z-40 overflow-x-auto">
+        {/* Modal background effects for unified feel */}
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
         {!isFieldToolsOpen ? (
           /* Collapsed State - Normal View */
           <>
@@ -347,7 +350,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
       {/* Settings Side Panel */}
       <div
         ref={settingsMenuRef}
-        className={`fixed top-0 left-0 h-full w-80 z-50 flex flex-col bg-slate-800/98 backdrop-blur-sm shadow-xl border-r border-slate-600/50 ${
+        className={`fixed top-0 left-0 h-full w-80 z-50 flex flex-col bg-slate-800/98 backdrop-blur-sm shadow-xl border-r border-slate-600/50 overflow-hidden ${
           isDragging ? '' : 'transition-transform duration-300 ease-in-out'
         } ${isSettingsMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
         style={isDragging ? { transform: `translateX(${dragOffset}px)` } : {}}
@@ -356,8 +359,11 @@ const ControlBar: React.FC<ControlBarProps> = ({
         onTouchEnd={handleTouchEnd}
         onMouseDown={handleMouseDown}
       >
+        {/* Modal background effects for unified feel */}
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
         {/* Header */}
-        <div className="px-4 py-3 border-b border-slate-700/80 flex justify-between items-center">
+        <div className="relative px-4 py-3 border-b border-slate-700/80 flex justify-between items-center z-10">
           <h3 className="text-lg font-semibold text-yellow-300">{t('controlBar.menu.title', 'Menu')}</h3>
           <button
             onClick={() => { setIsSettingsMenuOpen(false); setDragOffset(0); }}
@@ -369,7 +375,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
         </div>
 
         {/* Navigation content */}
-        <nav className="flex flex-col p-4 space-y-1 overflow-y-auto flex-1">
+        <nav className="relative flex flex-col p-4 space-y-1 overflow-y-auto flex-1 z-10">
           {/* Section: Game Management */}
           <div className="mb-4">
             <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">

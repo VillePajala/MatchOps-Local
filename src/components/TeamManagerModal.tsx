@@ -7,7 +7,7 @@ import {
   HiOutlinePencil,
   HiOutlineTrash,
   HiOutlineUsers,
-  HiOutlinePlus,
+  // Removed: HiOutlinePlus - unused import (no plus icon in current UI)
   HiOutlineDocumentDuplicate,
   HiOutlineEllipsisVertical
 } from 'react-icons/hi2';

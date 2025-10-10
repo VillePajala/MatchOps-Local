@@ -72,11 +72,10 @@ export interface GameSettingsModalProps {
   onSetHomeOrAway: (status: 'home' | 'away') => void;
   isPlayed: boolean;
   onIsPlayedChange: (played: boolean) => void;
-  // Add mutation props for creating seasons and tournaments
-  addSeasonMutation: UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
-  addTournamentMutation: UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>;
-  isAddingSeason: boolean;
-  isAddingTournament: boolean;
+  // Removed: addSeasonMutation - unused prop (season creation moved to dedicated modal)
+  // Removed: addTournamentMutation - unused prop (tournament creation moved to dedicated modal)
+  // Removed: isAddingSeason - unused prop, mutations handle loading state internally
+  // Removed: isAddingTournament - unused prop, mutations handle loading state internally
   // Add current time for fair play card
   timeElapsedInSeconds?: number;
   updateGameDetailsMutation: UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>;
@@ -162,10 +161,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   onSetHomeOrAway,
   isPlayed,
   onIsPlayedChange,
-  addSeasonMutation,
-  addTournamentMutation,
-  isAddingSeason,
-  isAddingTournament,
+  // Removed: addSeasonMutation - unused prop (season creation moved to dedicated modal)
+  // Removed: addTournamentMutation - unused prop (tournament creation moved to dedicated modal)
+  // Removed: isAddingSeason - unused prop, mutations handle loading state internally
+  // Removed: isAddingTournament - unused prop, mutations handle loading state internally
   timeElapsedInSeconds,
   updateGameDetailsMutation,
   seasons,
@@ -216,13 +215,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const durationInputRef = useRef<HTMLInputElement>(null);
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // State for creating new season/tournament
-  const [showNewSeasonInput, setShowNewSeasonInput] = useState(false);
-  const [newSeasonName, setNewSeasonName] = useState('');
-  const [showNewTournamentInput, setShowNewTournamentInput] = useState(false);
-  const [newTournamentName, setNewTournamentName] = useState('');
-  const newSeasonInputRef = useRef<HTMLInputElement>(null);
-  const newTournamentInputRef = useRef<HTMLInputElement>(null);
+  // Removed: showNewSeasonInput, setShowNewSeasonInput - unused state (season creation moved to dedicated modal)
+  // Removed: newSeasonName, setNewSeasonName - unused state (season creation moved to dedicated modal)
+  // Removed: showNewTournamentInput, setShowNewTournamentInput - unused state (tournament creation moved to dedicated modal)
+  // Removed: newTournamentName, setNewTournamentName - unused state (tournament creation moved to dedicated modal)
+  // Removed: newSeasonInputRef - unused ref (season creation moved to dedicated modal)
+  // Removed: newTournamentInputRef - unused ref (tournament creation moved to dedicated modal)
 
   // State for active tab
   const [activeTab, setActiveTab] = useState<'none' | 'season' | 'tournament'>('none');
@@ -559,8 +557,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     if (currentGameId) {
       updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { seasonId: newSeasonId, tournamentId: undefined } });
     }
-    setShowNewSeasonInput(false);
-    setNewSeasonName('');
+    // Removed: setShowNewSeasonInput(false) - state no longer exists (season creation moved to dedicated modal)
+    // Removed: setNewSeasonName('') - state no longer exists (season creation moved to dedicated modal)
   };
 
   const handleTournamentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -571,8 +569,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     if (currentGameId) {
       updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { tournamentId: newTournamentId, seasonId: undefined } });
     }
-    setShowNewTournamentInput(false);
-    setNewTournamentName('');
+    // Removed: setShowNewTournamentInput(false) - state no longer exists (tournament creation moved to dedicated modal)
+    // Removed: setNewTournamentName('') - state no longer exists (tournament creation moved to dedicated modal)
   };
 
   // Team selection handler with roster auto-load
@@ -896,66 +894,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     return [...localGameEvents].sort((a, b) => a.time - b.time);
   }, [localGameEvents]);
 
-  // Handlers for creating new seasons/tournaments
-  const handleShowCreateSeason = () => {
-    setShowNewSeasonInput(true);
-    onSeasonIdChange(undefined);
-    onTournamentIdChange(undefined);
-  };
-
-  const handleShowCreateTournament = () => {
-    setShowNewTournamentInput(true);
-    onTournamentIdChange(undefined);
-    onSeasonIdChange(undefined);
-  };
-
-  const handleAddNewSeason = async () => {
-    const trimmedName = newSeasonName.trim();
-    if (!trimmedName) {
-      alert(t('gameSettingsModal.newSeasonNameRequired', 'Please enter a name for the new season.'));
-      newSeasonInputRef.current?.focus();
-      return;
-    }
-
-    try {
-      const newSeason = await addSeasonMutation.mutateAsync({ name: trimmedName });
-
-      if (newSeason) {
-        // React Query invalidation will update the parent's seasons prop
-        onSeasonIdChange(newSeason.id);
-        onTournamentIdChange(undefined);
-        setNewSeasonName('');
-        setShowNewSeasonInput(false);
-      }
-    } catch (error) {
-      logger.error("Error calling addSeasonMutation.mutateAsync:", error);
-      newSeasonInputRef.current?.focus();
-    }
-  };
-
-  const handleAddNewTournament = async () => {
-    const trimmedName = newTournamentName.trim();
-    if (!trimmedName) {
-      alert(t('gameSettingsModal.newTournamentNameRequired', 'Please enter a name for the new tournament.'));
-      newTournamentInputRef.current?.focus();
-      return;
-    }
-
-    try {
-      const newTournament = await addTournamentMutation.mutateAsync({ name: trimmedName });
-
-      if (newTournament) {
-        // React Query invalidation will update the parent's tournaments prop
-        onTournamentIdChange(newTournament.id);
-        onSeasonIdChange(undefined);
-        setNewTournamentName('');
-        setShowNewTournamentInput(false);
-      }
-    } catch (error) {
-      logger.error("Error calling addTournamentMutation.mutateAsync:", error);
-      newTournamentInputRef.current?.focus();
-    }
-  };
+  // Removed: handleShowCreateSeason - unused handler (season creation moved to dedicated modal)
+  // Removed: handleShowCreateTournament - unused handler (tournament creation moved to dedicated modal)
+  // Removed: handleAddNewSeason - unused handler (season creation moved to dedicated modal)
+  // Removed: handleAddNewTournament - unused handler (tournament creation moved to dedicated modal)
 
   // Handle tab changes
   const handleTabChange = (tab: 'none' | 'season' | 'tournament') => {
@@ -964,28 +906,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       onSeasonIdChange(undefined);
       onTournamentIdChange(undefined);
     }
-    setShowNewSeasonInput(false);
-    setShowNewTournamentInput(false);
+    // Removed: setShowNewSeasonInput(false) - state no longer exists (season creation moved to dedicated modal)
+    // Removed: setShowNewTournamentInput(false) - state no longer exists (tournament creation moved to dedicated modal)
   };
 
-  // Key handlers for new season/tournament inputs
-  const handleNewSeasonKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      handleAddNewSeason();
-    } else if (event.key === 'Escape') {
-      setShowNewSeasonInput(false);
-      setNewSeasonName('');
-    }
-  };
-
-  const handleNewTournamentKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      handleAddNewTournament();
-    } else if (event.key === 'Escape') {
-      setShowNewTournamentInput(false);
-      setNewTournamentName('');
-    }
-  };
+  // Removed: handleNewSeasonKeyDown - unused handler (season creation moved to dedicated modal)
+  // Removed: handleNewTournamentKeyDown - unused handler (tournament creation moved to dedicated modal)
 
   // Add this section to handle fair play cards
   const handleFairPlayCardClick = (playerId: string | null) => {
