@@ -3482,10 +3482,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         onSetHomeOrAway={handleSetHomeOrAway}
         isPlayed={isPlayed}
         onIsPlayedChange={handleSetIsPlayed}
-        addSeasonMutation={addSeasonMutation}
-        addTournamentMutation={addTournamentMutation}
-        isAddingSeason={addSeasonMutation.isPending}
-        isAddingTournament={addTournamentMutation.isPending}
         timeElapsedInSeconds={timeElapsedInSeconds}
         updateGameDetailsMutation={updateGameDetailsMutation}
         // Pass fresh data from React Query

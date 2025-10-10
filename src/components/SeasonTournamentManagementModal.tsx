@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Season, Tournament, Player } from '@/types';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
-import { HiPlusCircle, HiOutlinePencil, HiOutlineTrash, HiOutlineCheck, HiOutlineXMark } from 'react-icons/hi2';
+import { HiOutlinePencil, HiOutlineTrash, HiOutlineCheck, HiOutlineXMark, HiOutlineEllipsisVertical } from 'react-icons/hi2';
 import { UseMutationResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
@@ -74,6 +74,11 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     const [stats, setStats] = useState<Record<string, { games: number; goals: number }>>({});
 
     const [searchText, setSearchText] = useState('');
+    // Removed: deleteConfirmId, deleteConfirmType - unused state (delete confirmation uses window.confirm)
+    // Removed: deleteGamesCount - unused state (game count was set but never displayed in UI)
+
+    const [actionsMenuId, setActionsMenuId] = useState<string | null>(null);
+    const actionsMenuRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
         const loadStats = async () => {
@@ -95,6 +100,23 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
             loadStats();
         }
     }, [isOpen, seasons, tournaments]);
+
+    // Close actions menu when clicking outside
+    React.useEffect(() => {
+        if (!actionsMenuId) return;
+
+        const handleClickOutside = (event: MouseEvent) => {
+            if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
+                setActionsMenuId(null);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [actionsMenuId]);
 
     if (!isOpen) {
         return null;
@@ -130,6 +152,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
             ageGroup: (item as Tournament).ageGroup ?? (item as Season).ageGroup,
             level: (item as Tournament).level,
         });
+        setActionsMenuId(null);
     };
 
     const handleCancelEdit = () => {
@@ -151,16 +174,8 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         }
     };
 
-    const handleDelete = (id: string, type: 'season' | 'tournament') => {
-        const name = type === 'season' ? seasons.find(s => s.id === id)?.name : tournaments.find(t => t.id === id)?.name;
-        if (window.confirm(t('seasonTournamentModal.confirmDelete', { name }))) {
-            if (type === 'season') {
-                deleteSeasonMutation.mutate(id);
-            } else {
-                deleteTournamentMutation.mutate(id);
-            }
-        }
-    };
+    // Removed: handleDelete - unused handler (delete happens inline with window.confirm)
+    // Removed: handleConfirmDelete - unused handler (delete confirmation modal not present in UI)
 
     const renderList = (type: 'season' | 'tournament') => {
         const data = type === 'season' ? seasons : tournaments;
@@ -173,19 +188,11 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
 
         return (
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                <div className="flex justify-between items-center pb-2 mb-3">
-                    <h3 className="text-xl font-semibold text-slate-100">{t(`seasonTournamentModal.${type}s`)}</h3>
-                    <button 
-                        onClick={() => setShowInput(true)} 
-                        className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
-                        data-testid={`create-${type}-button`}
-                    >
-                        <HiPlusCircle className="w-5 h-5" />
-                        {t('seasonTournamentModal.createNew')}
-                    </button>
+                <div className="bg-slate-900/70 -mx-4 -mt-4 px-4 py-2 mb-4 border-b border-slate-600 rounded-t-lg">
+                    <h3 className="text-lg font-semibold text-yellow-400 text-center">{t(`seasonTournamentModal.${type}s`)}</h3>
                 </div>
                 {showInput && (
-                    <div className="p-2 bg-slate-800 rounded-md mb-2 flex flex-col gap-2">
+                    <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600 mb-3 flex flex-col gap-2">
                         <input
                             type="text"
                             value={name}
@@ -242,9 +249,13 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                         </div>
                     </div>
                 )}
-                <div className="space-y-2">
-                    {filtered.map(item => (
-                        <div key={item.id} className="bg-slate-800/60 p-2 rounded-md">
+                <div className="space-y-0">
+                    {filtered.map((item, index) => (
+                        <div key={item.id} className={`py-1.5 px-2 rounded transition-colors ${
+                            editingId === item.id ? 'bg-slate-700/75' : 'hover:bg-slate-800/40'
+                        } ${
+                            index < filtered.length - 1 ? 'border-b border-slate-700/50' : ''
+                        }`}>
                             {editingId === item.id ? (
                                 <div className="space-y-2">
                                     <input type="text" value={editingName} onChange={(e)=>setEditingName(e.target.value)} className="w-full px-2 py-1 bg-slate-700 border border-indigo-500 rounded-md text-white" />
@@ -297,7 +308,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                 <div className="flex justify-between items-center">
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <p className="text-sm text-slate-200 font-semibold">{item.name}</p>
+                                            <p className="text-slate-100 font-medium">{item.name}</p>
                                             {type==='tournament' && (item as Tournament).awardedPlayerId && (() => {
                                                 // Edge case: if awarded player was deleted from roster, playerLookup returns undefined
                                                 // This gracefully hides the trophy badge (no broken UI)
@@ -315,9 +326,43 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                         )}
                                         <p className="text-xs text-slate-400">{t('seasonTournamentModal.statsGames')}: {stats[item.id]?.games || 0} | {t('seasonTournamentModal.statsGoals')}: {stats[item.id]?.goals || 0}</p>
                                     </div>
-                                    <div className="flex items-center gap-2 ml-2">
-                                        <button onClick={() => handleEditClick(item)} className="p-1 text-slate-400 hover:text-indigo-400" aria-label={`Edit ${item.name}`}><HiOutlinePencil className="w-5 h-5" /></button>
-                                        <button onClick={() => handleDelete(item.id, type)} className="p-1 text-slate-400 hover:text-red-500" aria-label={`Delete ${item.name}`}><HiOutlineTrash className="w-5 h-5" /></button>
+                                    <div className="relative" ref={actionsMenuId === item.id ? actionsMenuRef : null}>
+                                        <button
+                                            onClick={() => setActionsMenuId(actionsMenuId === item.id ? null : item.id)}
+                                            className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
+                                            aria-label={`${type} actions`}
+                                        >
+                                            <HiOutlineEllipsisVertical className="w-4 h-4" />
+                                        </button>
+
+                                        {actionsMenuId === item.id && (
+                                            <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
+                                                <button
+                                                    onClick={() => handleEditClick(item)}
+                                                    className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
+                                                >
+                                                    <HiOutlinePencil className="w-4 h-4" />
+                                                    {t('common.edit', 'Edit')}
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        // Direct delete with window.confirm - no separate confirmation modal
+                                                        if (window.confirm(t('common.confirmDelete', 'Are you sure you want to delete this item?'))) {
+                                                            if (type === 'season') {
+                                                                deleteSeasonMutation.mutate(item.id);
+                                                            } else {
+                                                                deleteTournamentMutation.mutate(item.id);
+                                                            }
+                                                        }
+                                                        setActionsMenuId(null);
+                                                    }}
+                                                    className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2"
+                                                >
+                                                    <HiOutlineTrash className="w-4 h-4" />
+                                                    {t('common.delete', 'Delete')}
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -331,22 +376,70 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+
         {/* Header */}
-        <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
-            {t('seasonTournamentModal.title')}
-          </h2>
-        </div>
-        
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6">
-            <input
+        <div className="flex flex-col flex-shrink-0">
+          {/* Title Section */}
+          <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20">
+            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
+              {t('seasonTournamentModal.title')}
+            </h2>
+          </div>
+
+          {/* Fixed Section (Counters and Add Buttons) */}
+          <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20">
+            {/* Counters Section */}
+            <div className="mb-4 text-center text-sm">
+              <div className="flex justify-center items-center gap-6 text-slate-300">
+                <span>
+                  <span className="text-yellow-400 font-semibold">{seasons.length}</span>
+                  {" "}{seasons.length === 1
+                    ? t('seasonTournamentModal.seasonSingular', 'Season')
+                    : t('seasonTournamentModal.seasons', 'Seasons')}
+                </span>
+                <span>
+                  <span className="text-yellow-400 font-semibold">{tournaments.length}</span>
+                  {" "}{tournaments.length === 1
+                    ? t('seasonTournamentModal.tournamentSingular', 'Tournament')
+                    : t('seasonTournamentModal.tournaments', 'Tournaments')}
+                </span>
+              </div>
+            </div>
+
+            {/* Search Field */}
+            <div className="mb-4">
+              <input
                 type="text"
                 placeholder={t('seasonTournamentModal.searchPlaceholder')}
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
-                className="w-full mb-4 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
-            />
+                className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            {/* Add Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowNewSeasonInput(true)}
+                className="px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg"
+              >
+                {t('seasonTournamentModal.addSeason', 'Add Season')}
+              </button>
+              <button
+                onClick={() => setShowNewTournamentInput(true)}
+                className="px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg"
+              >
+                {t('seasonTournamentModal.addTournament', 'Add Tournament')}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto min-h-0 p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {renderList('season')}
                 {renderList('tournament')}

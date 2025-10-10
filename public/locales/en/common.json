@@ -123,7 +123,9 @@
     "winPercentage": "Win Percentage",
     "winPercentageShort": "Win Percentage Short",
     "wins": "Wins",
-    "processing": "Processing..."
+    "processing": "Processing...",
+    "gameSingular": "Game",
+    "gamePlural": "Games"
   },
   "importResults": {
     "title": "Import Results",
@@ -727,9 +729,13 @@
     "newSeasonPlaceholder": "Enter new season name...",
     "newTournamentPlaceholder": "Enter new tournament name...",
     "createNew": "Create New",
-    "title": "Manage Seasons & Tournaments",
+    "title": "Seasons & Tournaments",
     "seasons": "Seasons",
     "tournaments": "Tournaments",
+    "seasonSingular": "Season",
+    "tournamentSingular": "Tournament",
+    "addSeason": "Add Season",
+    "addTournament": "Add Tournament",
     "locationLabel": "Default Location",
     "periodCountLabel": "Periods",
     "periodDurationLabel": "Period Duration",

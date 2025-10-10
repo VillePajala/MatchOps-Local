@@ -124,7 +124,9 @@
     "wins": "Voitot",
     "processing": "Käsitellään...",
     "next": "Seuraava",
-    "backButton": "Takaisin"
+    "backButton": "Takaisin",
+    "gameSingular": "Ottelu",
+    "gamePlural": "Ottelua"
   },
   "importResults": {
     "title": "Tuontitulokset",
@@ -668,9 +670,13 @@
     "newSeasonPlaceholder": "Anna uuden kauden nimi...",
     "newTournamentPlaceholder": "Anna uuden turnauksen nimi...",
     "createNew": "Luo Uusi",
-    "title": "Hallinnoi Kausia ja Turnauksia",
-    "seasons": "Kaudet",
+    "title": "Kaudet ja Turnaukset",
+    "seasons": "Kautta",
     "tournaments": "Turnaukset",
+    "seasonSingular": "Kausi",
+    "tournamentSingular": "Turnaus",
+    "addSeason": "Lisää kausi",
+    "addTournament": "Lisää Turnaus",
     "locationLabel": "Oletussijainti",
     "periodCountLabel": "Erät",
     "periodDurationLabel": "Erän kesto",

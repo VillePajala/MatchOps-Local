@@ -21,6 +21,8 @@ import { FaSort, FaSortUp, FaSortDown, FaEdit, FaSave, FaTimes, FaTrashAlt } fro
 import PlayerStatsView from './PlayerStatsView';
 import { calculateTeamAssessmentAverages } from '@/utils/assessmentStats';
 import RatingBar from './RatingBar';
+import { extractClubSeasonsFromGames } from '@/utils/clubSeason';
+import { getAppSettings } from '@/utils/appSettings';
 
 // Define the type for sortable columns
 type SortableColumn = 'name' | 'goals' | 'assists' | 'totalScore' | 'fpAwards' | 'gamesPlayed' | 'avgPoints';
@@ -182,49 +184,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   };
 
-  /**
-   * Performance optimization: Pre-compute player lookup map
-   * Reduces complexity from O(n*m) to O(n+m) when rendering tournament awards
-   * Critical for large rosters (50-100 players) × multiple tournaments (50-100)
-   */
-  const playerLookup = useMemo(
-    () => new Map(masterRoster.map(p => [p.id, p])),
-    [masterRoster]
-  );
-
-  /**
-   * Helper function to render tournament player award trophy badge
-   * DRY principle: Eliminates duplication in tournament/season stats table rendering
-   *
-   * @param statsId - Tournament or season ID to check for awarded player
-   * @param currentActiveTab - Current active tab ('tournament' or 'season')
-   * @param tournamentsList - List of all tournaments
-   * @param lookup - Player lookup map for O(1) player retrieval
-   * @returns React element with trophy badge or null
-   */
-  const renderTrophyBadge = useCallback((
-    statsId: string,
-    currentActiveTab: StatsTab,
-    tournamentsList: Tournament[],
-    lookup: Map<string, Player>
-  ): React.ReactNode => {
-    // Trophy badges only shown in tournament tab
-    if (currentActiveTab !== 'tournament') return null;
-
-    const tournament = tournamentsList.find(t => t.id === statsId);
-    // Edge case: if awarded player was deleted from roster, playerLookup returns undefined
-    // This gracefully hides the trophy badge (no broken UI)
-    const awardedPlayer = tournament?.awardedPlayerId
-      ? lookup.get(tournament.awardedPlayerId)
-      : null;
-
-    return awardedPlayer ? (
-      <div className="text-xs text-amber-400 mt-0.5 flex items-center gap-1">
-        🏆 {awardedPlayer.name}
-      </div>
-    ) : null;
-  }, []);
-
   // --- State ---
   const [editGameNotes, setEditGameNotes] = useState(gameNotes);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -253,6 +212,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [localFairPlayPlayerId, setLocalFairPlayPlayerId] = useState<string | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [playerQuery, setPlayerQuery] = useState('');
+  const [selectedClubSeason, setSelectedClubSeason] = useState<string>('all');
+  const [clubSeasonStartMonth, setClubSeasonStartMonth] = useState<number>(10);
+  const [clubSeasonEndMonth, setClubSeasonEndMonth] = useState<number>(5);
 
   const filteredPlayers = useMemo(() => {
     const search = playerQuery.toLowerCase();
@@ -264,6 +226,12 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       );
     });
   }, [availablePlayers, playerQuery]);
+
+  // Extract available club seasons from games
+  const availableClubSeasons = useMemo(() => {
+    const gamesArray = Object.values(savedGames || {});
+    return extractClubSeasonsFromGames(gamesArray, clubSeasonStartMonth, clubSeasonEndMonth);
+  }, [savedGames, clubSeasonStartMonth, clubSeasonEndMonth]);
 
   // ** Calculate initial winner ID using useMemo **
   const initialFairPlayWinnerId = useMemo(() => {
@@ -300,8 +268,16 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     }
       }
     };
-    loadData(); 
+    loadData();
   }, [isOpen]);
+
+  // Load club season settings
+  useEffect(() => {
+    getAppSettings().then(s => {
+      setClubSeasonStartMonth(s.clubSeasonStartMonth ?? 10);
+      setClubSeasonEndMonth(s.clubSeasonEndMonth ?? 5);
+    });
+  }, []);
 
   // Reset edit state
   useEffect(() => {
@@ -978,7 +954,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       case 'season': return t('gameStatsModal.titleSeason', 'Kausitilastot');
       case 'tournament': return t('gameStatsModal.titleTournament', 'Turnaustilastot');
       case 'overall': return t('gameStatsModal.titleOverall', 'Kokonaisstilastot');
-      case 'player': return selectedPlayer?.name ? `${selectedPlayer.name} - ${t('playerStats.title', 'Player Stats')}` : t('playerStats.title', 'Player Stats');
+      case 'player': return selectedPlayer?.name || t('playerStats.title', 'Player Stats');
       case 'currentGame':
       default: return t('gameStatsModal.titleCurrentGame', 'Ottelutilastot');
     }
@@ -1007,10 +983,83 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-indigo-600/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
 
         {/* Header Section */}
-        <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
+        <div className="flex flex-col items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
           <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
             {modalTitle}
           </h2>
+          {/* Counter */}
+          <div className="mt-3 text-center text-sm">
+            <div className="flex justify-center items-center text-slate-300">
+              {activeTab === 'currentGame' && (
+                <span>
+                  <span className="text-yellow-400 font-semibold">{availablePlayers.length}</span>
+                  {" "}{availablePlayers.length === 1
+                    ? t('teamRosterModal.playerSingular', 'Player')
+                    : t('teamRosterModal.playerPlural', 'Players')}
+                </span>
+              )}
+              {activeTab === 'season' && (
+                <span>
+                  <span className="text-yellow-400 font-semibold">{seasons.length}</span>
+                  {" "}{seasons.length === 1
+                    ? t('seasonTournamentModal.seasonSingular', 'Season')
+                    : t('seasonTournamentModal.seasons', 'Seasons')}
+                </span>
+              )}
+              {activeTab === 'tournament' && (
+                <span>
+                  <span className="text-yellow-400 font-semibold">{tournaments.length}</span>
+                  {" "}{tournaments.length === 1
+                    ? t('seasonTournamentModal.tournamentSingular', 'Tournament')
+                    : t('seasonTournamentModal.tournaments', 'Tournaments')}
+                </span>
+              )}
+              {activeTab === 'overall' && (() => {
+                const playedGamesCount = Object.keys(savedGames || {}).filter(
+                  id => savedGames?.[id]?.isPlayed !== false
+                ).length;
+                return (
+                  <span>
+                    <span className="text-yellow-400 font-semibold">{playedGamesCount}</span>
+                    {" "}{playedGamesCount === 1
+                      ? t('gameStatsModal.game', 'Game')
+                      : t('gameStatsModal.games', 'Games')}
+                  </span>
+                );
+              })()}
+              {activeTab === 'player' && (() => {
+                if (selectedPlayer) {
+                  // Count unique seasons the player has played in
+                  const playerGames = Object.values(savedGames || {}).filter(
+                    game => game.selectedPlayerIds?.includes(selectedPlayer.id)
+                  );
+                  const uniqueSeasonIds = new Set(
+                    playerGames
+                      .map(game => game.seasonId)
+                      .filter((id): id is string => id != null)
+                  );
+                  const seasonsCount = uniqueSeasonIds.size;
+                  return (
+                    <span>
+                      <span className="text-yellow-400 font-semibold">{seasonsCount}</span>
+                      {" "}{seasonsCount === 1
+                        ? t('seasonTournamentModal.seasonSingular', 'Season')
+                        : t('seasonTournamentModal.seasons', 'Seasons')}
+                    </span>
+                  );
+                } else {
+                  return (
+                    <span>
+                      <span className="text-yellow-400 font-semibold">{masterRoster.length}</span>
+                      {" "}{masterRoster.length === 1
+                        ? t('teamRosterModal.playerSingular', 'Player')
+                        : t('teamRosterModal.playerPlural', 'Players')}
+                    </span>
+                  );
+                }
+              })()}
+            </div>
+          </div>
         </div>
 
         {/* Controls Section */}
@@ -1027,67 +1076,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   {t('gameStatsModal.tabs.player', 'Player')}
                 </button>
               </div>
-
-              {activeTab === 'season' && (
-                <select value={selectedSeasonIdFilter} onChange={(e) => setSelectedSeasonIdFilter(e.target.value)} className="w-full mt-2 bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                  <option value="all">{t('gameStatsModal.filterAllSeasons')}</option>
-                  {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              )}
-              {activeTab === 'tournament' && (
-                <select value={selectedTournamentIdFilter} onChange={(e) => setSelectedTournamentIdFilter(e.target.value)} className="w-full mt-2 bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                  <option value="all">{t('gameStatsModal.filterAllTournaments')}</option>
-                  {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
-              )}
-
-              {/* Team Filter (available for all tabs except player) */}
-              {activeTab !== 'player' && teams.length > 0 && (
-                <div className="w-full mt-2">
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    {t('loadGameModal.filterByTeam', 'Filter by Team')}
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setSelectedTeamIdFilter('all')}
-                      className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium transition-colors ${
-                        selectedTeamIdFilter === 'all'
-                          ? 'bg-green-500/30 text-green-300 ring-2 ring-green-500/50'
-                          : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                      }`}
-                    >
-                      {t('loadGameModal.allTeamsFilter', 'All Teams')}
-                    </button>
-                    <button
-                      onClick={() => setSelectedTeamIdFilter('legacy')}
-                      className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium transition-colors ${
-                        selectedTeamIdFilter === 'legacy'
-                          ? 'bg-slate-500/30 text-slate-300 ring-2 ring-slate-500/50'
-                          : 'bg-slate-500/20 text-slate-400 hover:bg-slate-500/30'
-                      }`}
-                    >
-                      {t('loadGameModal.legacyGamesFilter', 'Legacy Games')}
-                    </button>
-                    {teams.map((team) => (
-                      <button
-                        key={team.id}
-                        onClick={() => setSelectedTeamIdFilter(team.id)}
-                        className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium transition-colors ${
-                          selectedTeamIdFilter === team.id
-                            ? 'bg-green-500/30 text-green-300 ring-2 ring-green-500/50'
-                            : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                        }`}
-                        style={team.color ? {
-                          backgroundColor: `${team.color}20`,
-                          color: team.color
-                        } : undefined}
-                      >
-                        {team.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -1096,105 +1084,167 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         <div className="flex-1 overflow-y-auto min-h-0">
           {activeTab === 'player' ? (
             <div className="p-4 sm:p-6">
-              <div className="grid grid-cols-1 md:grid-cols-[40%_60%] gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    {t('playerStats.selectPlayerLabel', 'Select Player')}
-                  </label>
-                  <Combobox
-                    value={selectedPlayer}
-                    onChange={(player) => {
-                      setSelectedPlayer(player);
-                      setPlayerQuery('');
-                    }}
-                    nullable
+              {/* Player and Season Filters */}
+              <div className="mb-4 grid grid-cols-2 gap-2">
+                <Combobox
+                  value={selectedPlayer}
+                  onChange={(player) => {
+                    setSelectedPlayer(player);
+                    setPlayerQuery('');
+                  }}
+                  nullable
+                >
+                  <div className="relative">
+                    <Combobox.Input
+                      className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      onChange={(e) => setPlayerQuery(e.target.value)}
+                      displayValue={(p: Player) => (p ? p.name : '')}
+                      placeholder={t('playerStats.selectPlayerLabel', 'Select Player')}
+                    />
+                    <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
+                      <HiOutlineChevronUpDown className="w-5 h-5 text-slate-300" />
+                    </Combobox.Button>
+                    {filteredPlayers.length > 0 && (
+                      <Combobox.Options className="absolute z-20 mt-1 w-full max-h-80 overflow-auto rounded-md border border-slate-700/50 bg-slate-800/90 backdrop-blur-sm py-1 text-sm shadow-xl focus:outline-none">
+                        {filteredPlayers.map((p) => (
+                          <Combobox.Option
+                            key={p.id}
+                            value={p}
+                            className={({ active }) =>
+                              `p-2 rounded-md border border-slate-700/50 ${
+                                active
+                                  ? 'bg-slate-800/60'
+                                  : 'bg-slate-800/40 hover:bg-slate-800/60'
+                              }`
+                            }
+                          >
+                            {p.name}
+                          </Combobox.Option>
+                        ))}
+                      </Combobox.Options>
+                    )}
+                  </div>
+                </Combobox>
+                {availableClubSeasons.length > 0 && (
+                  <select
+                    value={selectedClubSeason}
+                    onChange={(e) => setSelectedClubSeason(e.target.value)}
+                    className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   >
-                    <div className="relative">
-                      <Combobox.Input
-                        className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        onChange={(e) => setPlayerQuery(e.target.value)}
-                        displayValue={(p: Player) => (p ? p.name : '')}
-                        placeholder={t('playerStats.searchPlaceholder', 'Search players...')}
-                      />
-                      <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-2">
-                        <HiOutlineChevronUpDown className="w-5 h-5 text-slate-300" />
-                      </Combobox.Button>
-                      {filteredPlayers.length > 0 && (
-                        <Combobox.Options className="absolute z-20 mt-1 w-full max-h-80 overflow-auto rounded-md border border-slate-700/50 bg-slate-800/90 backdrop-blur-sm py-1 text-sm shadow-xl focus:outline-none">
-                          {filteredPlayers.map((p) => (
-                            <Combobox.Option
-                              key={p.id}
-                              value={p}
-                              className={({ active }) =>
-                                `p-2 rounded-md border border-slate-700/50 ${
-                                  active
-                                    ? 'bg-slate-800/60'
-                                    : 'bg-slate-800/40 hover:bg-slate-800/60'
-                                }`
-                              }
-                            >
-                              {p.name}
-                            </Combobox.Option>
-                          ))}
-                        </Combobox.Options>
-                      )}
-                    </div>
-                  </Combobox>
-                </div>
-                <PlayerStatsView
-                  player={selectedPlayer}
-                  savedGames={savedGames}
-                  onGameClick={onGameClick}
-                  seasons={seasons}
-                  tournaments={tournaments}
-                  teamId={selectedTeamIdFilter !== 'all' && selectedTeamIdFilter !== 'legacy' ? selectedTeamIdFilter : undefined}
-                />
+                    <option value="all">{t('playerStats.allSeasons', 'All Seasons')}</option>
+                    {availableClubSeasons.map(season => (
+                      <option key={season} value={season}>
+                        {season === 'off-season'
+                          ? t('playerStats.offSeason', 'Off-Season')
+                          : `${t('playerStats.season', 'Season')} ${season}`
+                        }
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
+              {/* Player Stats View */}
+              <PlayerStatsView
+                player={selectedPlayer}
+                savedGames={savedGames}
+                onGameClick={onGameClick}
+                seasons={seasons}
+                tournaments={tournaments}
+                teamId={selectedTeamIdFilter !== 'all' && selectedTeamIdFilter !== 'legacy' ? selectedTeamIdFilter : undefined}
+                selectedClubSeason={selectedClubSeason}
+                clubSeasonStartMonth={clubSeasonStartMonth}
+                clubSeasonEndMonth={clubSeasonEndMonth}
+              />
             </div>
           ) : (
-            <div className="p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column */}
-              <div className="space-y-6">
+            <div className="p-4 sm:p-6">
+              {/* Compact Filters */}
+              <div className="mb-4 mx-1 grid grid-cols-2 gap-2">
+                  {activeTab === 'season' && (
+                    <select
+                      value={selectedSeasonIdFilter}
+                      onChange={(e) => setSelectedSeasonIdFilter(e.target.value)}
+                      className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="all">{t('gameStatsModal.filterAllSeasons')}</option>
+                      {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  )}
+                  {activeTab === 'tournament' && (
+                    <select
+                      value={selectedTournamentIdFilter}
+                      onChange={(e) => setSelectedTournamentIdFilter(e.target.value)}
+                      className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="all">{t('gameStatsModal.filterAllTournaments')}</option>
+                      {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                  )}
+                  {teams.length > 0 && (
+                    <select
+                      value={selectedTeamIdFilter}
+                      onChange={(e) => setSelectedTeamIdFilter(e.target.value)}
+                      className={`px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 ${activeTab === 'overall' || activeTab === 'currentGame' ? 'col-span-2' : ''}`}
+                    >
+                      <option value="all">{t('loadGameModal.allTeamsFilter', 'All Teams')}</option>
+                      <option value="legacy">{t('loadGameModal.legacyGamesFilter', 'Legacy Games')}</option>
+                      {teams.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Column */}
+                <div className="space-y-6">
                 {/* Overall Statistics Section */}
                 {activeTab === 'overall' && overallTeamStats && (
                   <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
                     <h3 className="text-xl font-semibold text-slate-200 mb-4">
-                      {t('gameStatsModal.overallSummary', 'Overall Summary')}
+                      {selectedTeamIdFilter === 'all'
+                        ? t('loadGameModal.allTeamsFilter', 'All Teams')
+                        : selectedTeamIdFilter === 'legacy'
+                        ? t('loadGameModal.legacyGamesFilter', 'Legacy Games')
+                        : teams.find(team => team.id === selectedTeamIdFilter)?.name || t('gameStatsModal.overallSummary', 'Overall Summary')
+                      }
                     </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                        <div className="bg-slate-800/60 p-2 rounded">
-                          <div className="text-xs text-slate-400">{t('common.gamesPlayed', 'Games Played')}</div>
-                          <div className="text-yellow-400 font-bold text-lg">{overallTeamStats.gamesPlayed}</div>
+                    <div className="space-y-0 text-sm">
+                        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                          <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
+                          <span className="text-yellow-400 font-bold">{overallTeamStats.gamesPlayed}</span>
                         </div>
-                        <div className="bg-slate-800/60 p-2 rounded">
-                          <div className="text-xs text-slate-400">{t('common.record', 'Record')}</div>
-                          <div className="text-yellow-400 font-bold text-sm">{overallTeamStats.wins}-{overallTeamStats.losses}-{overallTeamStats.ties}</div>
+                        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                          <span className="text-slate-300">{t('common.record', 'Record')}</span>
+                          <span className="text-yellow-400 font-bold">{overallTeamStats.wins}-{overallTeamStats.losses}-{overallTeamStats.ties}</span>
                         </div>
-                        <div className="bg-slate-800/60 p-2 rounded">
-                          <div className="text-xs text-slate-400">{t('common.winPercentage', 'Win %')}</div>
-                          <div className="text-yellow-400 font-bold">{overallTeamStats.winPercentage.toFixed(1)}%</div>
+                        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                          <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
+                          <span className="text-yellow-400 font-bold">{overallTeamStats.winPercentage.toFixed(1)}%</span>
                         </div>
-                        <div className="bg-slate-800/60 p-2 rounded">
-                          <div className="text-xs text-slate-400">{t('common.goalDifference', 'Goal Diff')}</div>
-                          <div className={`font-bold ${overallTeamStats.goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                          <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
+                          <span className={`font-bold ${overallTeamStats.goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             {overallTeamStats.goalDifference >= 0 ? '+' : ''}{overallTeamStats.goalDifference}
-                          </div>
+                          </span>
                         </div>
-                        <div className="bg-slate-800/60 p-2 rounded">
-                          <div className="text-xs text-slate-400">{t('common.goalsFor', 'Goals For')}</div>
-                          <div className="text-yellow-400 font-bold">{overallTeamStats.goalsFor}</div>
+                        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                          <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
+                          <span className="text-yellow-400 font-bold">{overallTeamStats.goalsFor}</span>
                         </div>
-                        <div className="bg-slate-800/60 p-2 rounded">
-                          <div className="text-xs text-slate-400">{t('common.goalsAgainst', 'Goals Against')}</div>
-                          <div className="text-yellow-400 font-bold">{overallTeamStats.goalsAgainst}</div>
+                        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                          <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
+                          <span className="text-yellow-400 font-bold">{overallTeamStats.goalsAgainst}</span>
                         </div>
-                        <div className="bg-slate-800/60 p-2 rounded">
-                          <div className="text-xs text-slate-400">{t('common.avgGoalsFor', 'Avg Goals For')}</div>
-                          <div className="text-yellow-400 font-bold">{overallTeamStats.averageGoalsFor.toFixed(1)}</div>
+                        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                          <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
+                          <span className="text-yellow-400 font-bold">{overallTeamStats.averageGoalsFor.toFixed(1)}</span>
                         </div>
-                        <div className="bg-slate-800/60 p-2 rounded">
-                          <div className="text-xs text-slate-400">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</div>
-                          <div className="text-yellow-400 font-bold">{overallTeamStats.averageGoalsAgainst.toFixed(1)}</div>
+                        <div className="flex justify-between items-center py-1.5 px-2">
+                          <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
+                          <span className="text-yellow-400 font-bold">{overallTeamStats.averageGoalsAgainst.toFixed(1)}</span>
                         </div>
                       </div>
                       {teamAssessmentAverages && (
@@ -1228,124 +1278,106 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 {(activeTab === 'season' || activeTab === 'tournament') && tournamentSeasonStats && (
                   <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
                     <h3 className="text-xl font-semibold text-slate-200 mb-4">
-                      {activeTab === 'season' 
-                        ? (selectedSeasonIdFilter === 'all' ? t('gameStatsModal.allSeasonsStats', 'All Seasons Statistics') : t('gameStatsModal.seasonStats', 'Season Statistics'))
-                        : (selectedTournamentIdFilter === 'all' ? t('gameStatsModal.allTournamentsStats', 'All Tournaments Statistics') : t('gameStatsModal.tournamentStats', 'Tournament Statistics'))
+                      {activeTab === 'season'
+                        ? (selectedSeasonIdFilter === 'all'
+                            ? t('gameStatsModal.filterAllSeasons', 'All Seasons')
+                            : seasons.find(s => s.id === selectedSeasonIdFilter)?.name || t('gameStatsModal.seasonStats', 'Season Statistics'))
+                        : (selectedTournamentIdFilter === 'all'
+                            ? t('gameStatsModal.filterAllTournaments', 'All Tournaments')
+                            : tournaments.find(t => t.id === selectedTournamentIdFilter)?.name || t('gameStatsModal.tournamentStats', 'Tournament Statistics'))
                       }
                     </h3>
-                    
-                    {/* Overall Statistics for "All" view */}
-                    {((selectedSeasonIdFilter === 'all' && activeTab === 'season') || (selectedTournamentIdFilter === 'all' && activeTab === 'tournament')) && 
-                     !Array.isArray(tournamentSeasonStats) && (
-                      <div className="mb-6 bg-slate-800/40 p-4 rounded-md border border-slate-700/50">
-                        <h4 className="text-lg font-semibold text-yellow-400 mb-3">{t('gameStatsModal.overallSummary', 'Overall Summary')}</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                          <div className="bg-slate-800/60 p-2 rounded">
-                            <div className="text-xs text-slate-400">{t('common.gamesPlayed', 'Games Played')}</div>
-                            <div className="text-yellow-400 font-bold text-lg">{tournamentSeasonStats.totalGames}</div>
-                          </div>
-                          <div className="bg-slate-800/60 p-2 rounded">
-                            <div className="text-xs text-slate-400">{t('common.record', 'Record')}</div>
-                            <div className="text-yellow-400 font-bold text-sm">{tournamentSeasonStats.totalWins}-{tournamentSeasonStats.totalLosses}-{tournamentSeasonStats.totalTies}</div>
-                          </div>
-                          <div className="bg-slate-800/60 p-2 rounded">
-                            <div className="text-xs text-slate-400">{t('common.winPercentage', 'Win %')}</div>
-                            <div className="text-yellow-400 font-bold">{tournamentSeasonStats.overallWinPercentage.toFixed(1)}%</div>
-                          </div>
-                          <div className="bg-slate-800/60 p-2 rounded">
-                            <div className="text-xs text-slate-400">{t('common.goalDifference', 'Goal Diff')}</div>
-                            <div className={`font-bold ${tournamentSeasonStats.totalGoalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              {tournamentSeasonStats.totalGoalDifference >= 0 ? '+' : ''}{tournamentSeasonStats.totalGoalDifference}
+
+                    {/* Statistics in clean vertical format */}
+                    {tournamentSeasonStats && (
+                      <div className="space-y-0 text-sm">
+                        {Array.isArray(tournamentSeasonStats) ? (
+                          tournamentSeasonStats.length > 0 ? (
+                            // Show list of individual seasons/tournaments
+                            tournamentSeasonStats.map(stats => (
+                              <div key={stats.id} className="mb-6 last:mb-0">
+                                <div className="space-y-0">
+                                  <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                    <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
+                                    <span className="text-yellow-400 font-bold">{stats.gamesPlayed}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                    <span className="text-slate-300">{t('common.record', 'Record')}</span>
+                                    <span className="text-yellow-400 font-bold">{stats.wins}-{stats.losses}-{stats.ties}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                    <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
+                                    <span className="text-yellow-400 font-bold">{stats.winPercentage.toFixed(1)}%</span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                    <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
+                                    <span className={`font-bold ${stats.goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                      {stats.goalDifference >= 0 ? '+' : ''}{stats.goalDifference}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                    <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
+                                    <span className="text-yellow-400 font-bold">{stats.goalsFor}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                    <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
+                                    <span className="text-yellow-400 font-bold">{stats.goalsAgainst}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                                    <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
+                                    <span className="text-yellow-400 font-bold">{stats.averageGoalsFor.toFixed(1)}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center py-1.5 px-2">
+                                    <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
+                                    <span className="text-yellow-400 font-bold">{stats.averageGoalsAgainst.toFixed(1)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="py-4 text-center text-slate-400">{t('gameStatsModal.noStatsAvailable', 'No statistics available')}</div>
+                          )
+                        ) : (
+                          // Show overall stats for "all" view
+                          <div className="space-y-0">
+                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
+                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGames}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <span className="text-slate-300">{t('common.record', 'Record')}</span>
+                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalWins}-{tournamentSeasonStats.totalLosses}-{tournamentSeasonStats.totalTies}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
+                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.overallWinPercentage.toFixed(1)}%</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
+                              <span className={`font-bold ${tournamentSeasonStats.totalGoalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                {tournamentSeasonStats.totalGoalDifference >= 0 ? '+' : ''}{tournamentSeasonStats.totalGoalDifference}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
+                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsFor}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
+                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsAgainst}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
+                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsFor.toFixed(1)}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 px-2">
+                              <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
+                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsAgainst.toFixed(1)}</span>
                             </div>
                           </div>
-                          <div className="bg-slate-800/60 p-2 rounded">
-                            <div className="text-xs text-slate-400">{t('common.goalsFor', 'Goals For')}</div>
-                            <div className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsFor}</div>
-                          </div>
-                          <div className="bg-slate-800/60 p-2 rounded">
-                            <div className="text-xs text-slate-400">{t('common.goalsAgainst', 'Goals Against')}</div>
-                            <div className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsAgainst}</div>
-                          </div>
-                          <div className="bg-slate-800/60 p-2 rounded">
-                            <div className="text-xs text-slate-400">{t('common.avgGoalsFor', 'Avg Goals For')}</div>
-                            <div className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsFor.toFixed(1)}</div>
-                          </div>
-                          <div className="bg-slate-800/60 p-2 rounded">
-                            <div className="text-xs text-slate-400">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</div>
-                            <div className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsAgainst.toFixed(1)}</div>
-                          </div>
-                        </div>
+                        )}
                       </div>
                     )}
-
-                    {/* Individual Tournament/Season Statistics Table */}
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="text-slate-300">
-                          <tr className="border-b border-slate-700">
-                            <th className="px-2 py-2 text-left">{activeTab === 'season' ? t('common.season', 'Season') : t('common.tournament', 'Tournament')}</th>
-                            <th className="px-1 py-2 text-center">{t('common.gamesPlayedShort', 'GP')}</th>
-                            <th className="px-1 py-2 text-center">{t('common.wins', 'W')}</th>
-                            <th className="px-1 py-2 text-center">{t('common.losses', 'L')}</th>
-                            <th className="px-1 py-2 text-center">{t('common.ties', 'T')}</th>
-                            <th className="px-1 py-2 text-center">{t('common.winPercentageShort', 'Win%')}</th>
-                            <th className="px-1 py-2 text-center">{t('common.goalDifferenceShort', 'GD')}</th>
-                            <th className="px-1 py-2 text-center">{t('common.goalsForShort', 'GF')}</th>
-                            <th className="px-1 py-2 text-center">{t('common.goalsAgainstShort', 'GA')}</th>
-                          </tr>
-                        </thead>
-                        <tbody className="text-slate-100">
-                          {Array.isArray(tournamentSeasonStats) ? (
-                            tournamentSeasonStats.length > 0 ? (
-                              tournamentSeasonStats.map(stats => (
-                                <tr key={stats.id} className="border-b border-slate-800 hover:bg-slate-800/40">
-                                  <td className="px-2 py-2">
-                                    <div className="font-medium">{stats.name}</div>
-                                    {renderTrophyBadge(stats.id, activeTab, tournaments, playerLookup)}
-                                  </td>
-                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.gamesPlayed}</td>
-                                  <td className="px-1 py-2 text-center text-green-400 font-semibold">{stats.wins}</td>
-                                  <td className="px-1 py-2 text-center text-red-400 font-semibold">{stats.losses}</td>
-                                  <td className="px-1 py-2 text-center text-blue-400 font-semibold">{stats.ties}</td>
-                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.winPercentage.toFixed(1)}%</td>
-                                  <td className={`px-1 py-2 text-center font-semibold ${stats.goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                    {stats.goalDifference >= 0 ? '+' : ''}{stats.goalDifference}
-                                  </td>
-                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsFor}</td>
-                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsAgainst}</td>
-                                </tr>
-                              ))
-                            ) : (
-                              <tr><td colSpan={9} className="py-4 text-center text-slate-400">{t('gameStatsModal.noStatsAvailable', 'No statistics available')}</td></tr>
-                            )
-                          ) : (
-                            // Show individual stats for specific tournament/season
-                            tournamentSeasonStats.totalGames > 0 ? (
-                              (activeTab === 'season' ? tournamentSeasonStats.seasons : tournamentSeasonStats.tournaments).map(stats => (
-                                <tr key={stats.id} className="border-b border-slate-800 hover:bg-slate-800/40">
-                                  <td className="px-2 py-2">
-                                    <div className="font-medium">{stats.name}</div>
-                                    {renderTrophyBadge(stats.id, activeTab, tournaments, playerLookup)}
-                                  </td>
-                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.gamesPlayed}</td>
-                                  <td className="px-1 py-2 text-center text-green-400 font-semibold">{stats.wins}</td>
-                                  <td className="px-1 py-2 text-center text-red-400 font-semibold">{stats.losses}</td>
-                                  <td className="px-1 py-2 text-center text-blue-400 font-semibold">{stats.ties}</td>
-                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.winPercentage.toFixed(1)}%</td>
-                                  <td className={`px-1 py-2 text-center font-semibold ${stats.goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                    {stats.goalDifference >= 0 ? '+' : ''}{stats.goalDifference}
-                                  </td>
-                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsFor}</td>
-                                  <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{stats.goalsAgainst}</td>
-                                </tr>
-                              ))
-                            ) : (
-                              <tr><td colSpan={9} className="py-4 text-center text-slate-400">{t('gameStatsModal.noStatsAvailable', 'No statistics available')}</td></tr>
-                            )
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
                   </div>
                 )}
 
@@ -1397,27 +1429,27 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                  <div>
+                    <table className="w-full text-sm table-fixed">
                       <thead className="text-slate-300">
                         <tr className="border-b border-slate-700">
-                          <th className="px-2 py-2 text-left cursor-pointer hover:bg-slate-800/60" onClick={() => handleSort('name')}>
-                            <div className="flex items-center">{t('common.player', 'Pelaaja')} {sortColumn === 'name' ? (sortDirection === 'asc' ? <FaSortUp className="ml-1 w-4 h-4"/> : <FaSortDown className="ml-1 w-4 h-4"/>) : <FaSort className="ml-1 w-4 h-4 opacity-30"/>}</div>
+                          <th className="px-2 py-2 text-left cursor-pointer hover:bg-slate-800/60" style={{width: '40%'}} onClick={() => handleSort('name')}>
+                            <div className="flex items-center">{t('common.player', 'Pelaaja')} {sortColumn === 'name' ? (sortDirection === 'asc' ? <FaSortUp className="ml-1 w-3 h-3"/> : <FaSortDown className="ml-1 w-3 h-3"/>) : <FaSort className="ml-1 w-3 h-3 opacity-30"/>}</div>
                           </th>
-                          <th className="px-1 py-2 text-center cursor-pointer hover:bg-slate-800/60" onClick={() => handleSort('gamesPlayed')}>
-                             <div className="flex items-center justify-center">{t('common.gamesPlayedShort', 'GP')} {sortColumn === 'gamesPlayed' ? (sortDirection === 'asc' ? <FaSortUp className="ml-1 w-4 h-4"/> : <FaSortDown className="ml-1 w-4 h-4"/>) : <FaSort className="ml-1 w-4 h-4 opacity-30"/>}</div>
+                          <th className="px-0.5 py-2 text-center cursor-pointer hover:bg-slate-800/60" style={{width: '10%'}} onClick={() => handleSort('gamesPlayed')}>
+                             <div className="flex items-center justify-center text-xs">{t('common.gamesPlayedShort', 'GP')} {sortColumn === 'gamesPlayed' ? (sortDirection === 'asc' ? <FaSortUp className="ml-0.5 w-3 h-3"/> : <FaSortDown className="ml-0.5 w-3 h-3"/>) : <FaSort className="ml-0.5 w-3 h-3 opacity-30"/>}</div>
                           </th>
-                          <th className="px-1 py-2 text-center cursor-pointer hover:bg-slate-800/60" onClick={() => handleSort('goals')}>
-                             <div className="flex items-center justify-center">{t('common.goalsShort', 'M')} {sortColumn === 'goals' ? (sortDirection === 'asc' ? <FaSortUp className="ml-1 w-4 h-4"/> : <FaSortDown className="ml-1 w-4 h-4"/>) : <FaSort className="ml-1 w-4 h-4 opacity-30"/>}</div>
+                          <th className="px-0.5 py-2 text-center cursor-pointer hover:bg-slate-800/60" style={{width: '10%'}} onClick={() => handleSort('goals')}>
+                             <div className="flex items-center justify-center text-xs">{t('common.goalsShort', 'M')} {sortColumn === 'goals' ? (sortDirection === 'asc' ? <FaSortUp className="ml-0.5 w-3 h-3"/> : <FaSortDown className="ml-0.5 w-3 h-3"/>) : <FaSort className="ml-0.5 w-3 h-3 opacity-30"/>}</div>
                           </th>
-                          <th className="px-1 py-2 text-center cursor-pointer hover:bg-slate-800/60" onClick={() => handleSort('assists')}>
-                             <div className="flex items-center justify-center">{t('common.assistsShort', 'S')} {sortColumn === 'assists' ? (sortDirection === 'asc' ? <FaSortUp className="ml-1 w-4 h-4"/> : <FaSortDown className="ml-1 w-4 h-4"/>) : <FaSort className="ml-1 w-4 h-4 opacity-30"/>}</div>
+                          <th className="px-0.5 py-2 text-center cursor-pointer hover:bg-slate-800/60" style={{width: '10%'}} onClick={() => handleSort('assists')}>
+                             <div className="flex items-center justify-center text-xs">{t('common.assistsShort', 'S')} {sortColumn === 'assists' ? (sortDirection === 'asc' ? <FaSortUp className="ml-0.5 w-3 h-3"/> : <FaSortDown className="ml-0.5 w-3 h-3"/>) : <FaSort className="ml-0.5 w-3 h-3 opacity-30"/>}</div>
                           </th>
-                          <th className="px-1 py-2 text-center cursor-pointer hover:bg-slate-800/60" onClick={() => handleSort('totalScore')}>
-                             <div className="flex items-center justify-center">{t('common.totalScoreShort', 'Pts')} {sortColumn === 'totalScore' ? (sortDirection === 'asc' ? <FaSortUp className="ml-1 w-4 h-4"/> : <FaSortDown className="ml-1 w-4 h-4"/>) : <FaSort className="ml-1 w-4 h-4 opacity-30"/>}</div>
+                          <th className="px-0.5 py-2 text-center cursor-pointer hover:bg-slate-800/60" style={{width: '15%'}} onClick={() => handleSort('totalScore')}>
+                             <div className="flex items-center justify-center text-xs">{t('common.totalScoreShort', 'Pts')} {sortColumn === 'totalScore' ? (sortDirection === 'asc' ? <FaSortUp className="ml-0.5 w-3 h-3"/> : <FaSortDown className="ml-0.5 w-3 h-3"/>) : <FaSort className="ml-0.5 w-3 h-3 opacity-30"/>}</div>
                           </th>
-                          <th className="px-1 py-2 text-center cursor-pointer hover:bg-slate-800/60" onClick={() => handleSort('avgPoints')}>
-                             <div className="flex items-center justify-center">{t('common.avgPointsShort', 'KA')} {sortColumn === 'avgPoints' ? (sortDirection === 'asc' ? <FaSortUp className="ml-1 w-4 h-4"/> : <FaSortDown className="ml-1 w-4 h-4"/>) : <FaSort className="ml-1 w-4 h-4 opacity-30"/>}</div>
+                          <th className="px-0.5 py-2 text-center cursor-pointer hover:bg-slate-800/60" style={{width: '15%'}} onClick={() => handleSort('avgPoints')}>
+                             <div className="flex items-center justify-center text-xs">{t('common.avgPointsShort', 'KA')} {sortColumn === 'avgPoints' ? (sortDirection === 'asc' ? <FaSortUp className="ml-0.5 w-3 h-3"/> : <FaSortDown className="ml-0.5 w-3 h-3"/>) : <FaSort className="ml-0.5 w-3 h-3 opacity-30"/>}</div>
                           </th>
                         </tr>
                       </thead>
@@ -1425,12 +1457,12 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                          {playerStats.length > 0 ? (
                           playerStats.map(player => (
                           <tr key={player.id} className="border-b border-slate-800 hover:bg-slate-800/40 cursor-pointer" onClick={() => handlePlayerRowClick(player)}>
-                            <td className="px-2 py-2 font-medium whitespace-nowrap">{player.name}</td>
-                            <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{player.gamesPlayed}</td>
-                            <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{player.goals}</td>
-                            <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{player.assists}</td>
-                            <td className="px-1 py-2 text-center text-yellow-400 font-bold">{player.totalScore}</td>
-                            <td className="px-1 py-2 text-center text-yellow-400 font-semibold">{player.avgPoints.toFixed(1)}</td>
+                            <td className="px-2 py-2 font-medium truncate">{player.name}</td>
+                            <td className="px-0.5 py-2 text-center text-yellow-400 font-semibold">{player.gamesPlayed}</td>
+                            <td className="px-0.5 py-2 text-center text-yellow-400 font-semibold">{player.goals}</td>
+                            <td className="px-0.5 py-2 text-center text-yellow-400 font-semibold">{player.assists}</td>
+                            <td className="px-0.5 py-2 text-center text-yellow-400 font-bold">{player.totalScore}</td>
+                            <td className="px-0.5 py-2 text-center text-yellow-400 font-semibold">{player.avgPoints.toFixed(1)}</td>
                           </tr>
                         ))
                         ) : (
@@ -1439,11 +1471,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                         {playerStats.length > 0 && (
                           <tr className="border-t border-slate-700 bg-slate-800/60 font-semibold">
                             <td className="px-2 py-2">{t('playerStats.totalsRow', 'Totals')}</td>
-                            <td className="px-1 py-2 text-center text-yellow-400">{totals.gamesPlayed}</td>
-                            <td className="px-1 py-2 text-center text-yellow-400">{totals.goals}</td>
-                            <td className="px-1 py-2 text-center text-yellow-400">{totals.assists}</td>
-                            <td className="px-1 py-2 text-center text-yellow-400 font-bold">{totals.totalScore}</td>
-                            <td className="px-1 py-2 text-center text-yellow-400">{(totals.gamesPlayed > 0 ? (totals.totalScore / totals.gamesPlayed).toFixed(1) : '0.0')}</td>
+                            <td className="px-0.5 py-2 text-center text-yellow-400">{totals.gamesPlayed}</td>
+                            <td className="px-0.5 py-2 text-center text-yellow-400">{totals.goals}</td>
+                            <td className="px-0.5 py-2 text-center text-yellow-400">{totals.assists}</td>
+                            <td className="px-0.5 py-2 text-center text-yellow-400 font-bold">{totals.totalScore}</td>
+                            <td className="px-0.5 py-2 text-center text-yellow-400">{(totals.gamesPlayed > 0 ? (totals.totalScore / totals.gamesPlayed).toFixed(1) : '0.0')}</td>
                           </tr>
                         )}
                       </tbody>
@@ -1550,6 +1582,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   </>
                 )}
               </div>
+            </div>
             </div>
           )}
         </div>
