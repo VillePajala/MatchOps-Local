@@ -16,6 +16,7 @@ Table of Contents
 - Execution Workflow (Branches, PRs, Checklists)
 - Phase M0: Pre‑Migration Essentials (Tests, Logging, Sentry, PWA dedup)
 - Phase M1: IndexedDB Migration (KV adapter + copy/flip)
+- Ongoing Feature Development
 - Phase P1: Post‑Migration Hardening (Security headers, SW, Analytics gating)
 - Phase P2: PWA + Store Packaging (Branding, Metadata, TWA)
 - Phase P3: Quality Gates (A11y, Performance, Test expansion)
@@ -161,6 +162,100 @@ Acceptance Criteria (for IndexedDB rollout)
 
 ---
 
+## Ongoing Feature Development
+
+### Team Final Position Tracking (Planned)
+
+- Owner: TBD
+- Target Date: TBD
+- Plan Document: `team-final-positions-plan.md`
+- Estimated Time: 6-8 hours
+
+**Overview**: Add ability to manually record team final positions in seasons and tournaments (e.g., 1st place, 2nd place) with trophy icons for top 3 finishers.
+
+**Key Features**:
+- Manual entry only (user's team position, not opponents)
+- Backward compatible (optional `teamResults` field)
+- Real-time updates via React Query invalidation
+- Import/export support
+- Trophy icons (🥇🥈🥉) for top 3 positions
+- Validation (no duplicate teams/positions)
+
+**Status**: Plan approved, awaiting implementation
+
+**Checklist**:
+- [ ] Data model (`CompetitionResult` interface)
+- [ ] Validation logic
+- [ ] Storage verification (backward compatibility)
+- [ ] Management UI (SeasonTournamentManagementModal)
+- [ ] Display integration (PlayerStatsView, GameStatsModal, GameSettingsModal)
+- [ ] Translations (EN/FI)
+- [ ] Testing (16 tests: unit + component)
+- [ ] Manual testing
+- [ ] Documentation
+- [ ] PR & CI
+
+**See**: `team-final-positions-plan.md` for complete implementation details
+
+---
+
+### Personnel Management (Planned)
+
+- Owner: TBD
+- Target Date: TBD
+- Plan Document: `personnel-implementation-plan.md`
+- Estimated Time: 8-10 hours
+- Complexity: 2/10
+
+**Overview**: Add personnel management system for coaches, trainers, managers, physiotherapists, and team managers with full CRUD operations and real-time updates.
+
+**Key Features**:
+- Personnel roster (CRUD operations with role-based system)
+- Personnel selection during game setup
+- Display personnel in game details
+- Full i18n support (EN/FI)
+- Real-time updates via React Query cache invalidation (mirrors useRoster pattern)
+- Backward compatible (optional `gamePersonnel` field)
+- Automatic import/export support (added to fullBackup system)
+- 7 role types: Head Coach, Assistant Coach, Goalkeeper Coach, Fitness Coach, Physiotherapist, Team Manager, Other
+
+**Technical Highlights**:
+- React Query hooks with cache invalidation for real-time sync
+- Mirrors existing `useRoster` pattern for consistency
+- Storage layer with `withKeyLock` for race condition protection
+- Graceful handling of missing personnel (deleted staff)
+- No migration needed - fully additive feature
+
+**Status**: Plan approved, awaiting implementation
+
+**Checklist**:
+- [ ] Phase 0: Git branch setup
+- [ ] Phase 1: Type definitions & storage layer (`personnelManager.ts`)
+- [ ] Phase 2: Backwards compatibility & import/export integration
+- [ ] Phase 3: React Query hooks with real-time updates
+- [ ] Phase 4: UI components (`PersonnelSelectionSection`, `PersonnelManagerModal`)
+- [ ] Phase 5: Integration (HomePage, NewGameSetupModal, ControlBar, GameStatsModal)
+- [ ] Phase 6: Internationalization (40+ translation keys EN/FI)
+- [ ] Phase 7: Testing (unit, component, backwards compat, cache tests)
+- [ ] Phase 8: CI validation & manual testing
+- [ ] Phase 9: PR creation & merge
+
+**Acceptance Criteria**:
+- ✅ User can add/edit/delete personnel with real-time updates
+- ✅ Changes reflect immediately across all components
+- ✅ Personnel selection works in new game setup
+- ✅ Old games without `gamePersonnel` field work correctly
+- ✅ Old backups without `PERSONNEL_KEY` import successfully
+- ✅ Export/import includes personnel data
+- ✅ All tests pass (no memory leaks, no force exit)
+- ✅ Production build succeeds
+- ✅ i18n works for EN/FI
+- ✅ Responsive on mobile/desktop
+
+**See**: `personnel-implementation-plan.md` for complete implementation details
+
+---
+
 ## Phase P1: Post‑Migration Hardening (Security headers, SW, Analytics gating)
 
 - Owner: TBD
@@ -297,3 +392,7 @@ Acceptance
   - storage-integration/PHASE2_UTILITY_REFACTOR.md (original utility conversion guide)
 - Data integrity
   - 09-design/linked-entities-and-game-sync.md (live entity name resolution; deferred features documented)
+- Feature development (ready for implementation)
+  - team-final-positions-plan.md (team final position tracking for seasons/tournaments - 6-8 hours)
+  - personnel-implementation-plan.md (personnel management with real-time React Query updates - 8-10 hours)
+  - personnel-feature-plan.md (older format, superseded by personnel-implementation-plan.md)

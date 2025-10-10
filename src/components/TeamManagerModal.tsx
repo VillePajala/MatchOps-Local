@@ -153,9 +153,25 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   // Handlers
   const handleCreateTeam = () => {
     if (!newTeamName.trim()) return;
-    
+
+    // Check for duplicate team name
+    const trimmedName = newTeamName.trim();
+    const existingTeam = teams.find(
+      team => team.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    if (existingTeam) {
+      alert(
+        t('teamManager.duplicateNameError',
+          'A team named "{{name}}" already exists. Please choose a different name.',
+          { name: existingTeam.name }
+        )
+      );
+      return;
+    }
+
     createTeamMutation.mutate({
-      name: newTeamName.trim(),
+      name: trimmedName,
       color: newTeamColor,
     });
   };
@@ -170,10 +186,26 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   const handleSaveEdit = () => {
     if (!editingTeamId || !editTeamName.trim()) return;
 
+    // Check for duplicate team name (excluding current team)
+    const trimmedName = editTeamName.trim();
+    const existingTeam = teams.find(
+      team => team.id !== editingTeamId && team.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+
+    if (existingTeam) {
+      alert(
+        t('teamManager.duplicateNameError',
+          'A team named "{{name}}" already exists. Please choose a different name.',
+          { name: existingTeam.name }
+        )
+      );
+      return;
+    }
+
     updateTeamMutation.mutate({
       teamId: editingTeamId,
       updates: {
-        name: editTeamName.trim(),
+        name: trimmedName,
         color: editTeamColor,
       },
     });
@@ -233,86 +265,103 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
 
         {/* Header */}
-        <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
+        <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">
           <h1 id="team-manager-title" className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
             {t('teamManager.title', 'Teams')}
           </h1>
         </div>
 
+        {/* Fixed Section (Button and Team Counter) */}
+        <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
+          {/* Team Counter */}
+          <div className="mb-5 text-center text-sm">
+            <div className="flex justify-center items-center text-slate-300">
+              <span>
+                <span className="text-yellow-400 font-semibold">{teams.length}</span>
+                {" "}{teams.length === 1
+                  ? t('teamManager.totalTeamsSingular', 'Team')
+                  : t('teamManager.totalTeamsPlural', 'Teams')
+                }
+              </span>
+            </div>
+          </div>
+
+          {/* Add Team Button */}
+          {!isCreatingTeam ? (
+            <button
+              onClick={() => setIsCreatingTeam(true)}
+              className="w-full px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg bg-indigo-600 hover:bg-indigo-700"
+              aria-label={t('teamManager.createNewTeam', 'Create new team')}
+              disabled={!!editingTeamId}
+            >
+              {t('teamManager.addTeam', 'Add Team')}
+            </button>
+          ) : null}
+        </div>
+
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto min-h-0 p-6">
-          {/* Create New Team */}
-          <div className="mb-6">
-            {!isCreatingTeam ? (
-              <button
-                onClick={() => setIsCreatingTeam(true)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                aria-label={t('teamManager.createNewTeam', 'Create new team')}
-              >
-                <HiOutlinePlus className="w-5 h-5" />
-                {t('teamManager.newTeam', 'New Team')}
-              </button>
-            ) : (
-              <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                      {t('teamManager.teamName', 'Team Name')}
-                    </label>
-                    <input
-                      ref={newTeamInputRef}
-                      type="text"
-                      value={newTeamName}
-                      onChange={(e) => setNewTeamName(e.target.value)}
-                      placeholder={t('teamManager.namePlaceholder', 'Enter team name')}
-                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleCreateTeam();
-                        if (e.key === 'Escape') setIsCreatingTeam(false);
-                      }}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                      {t('teamManager.teamColor', 'Team Color')}
-                    </label>
-                    <div className="flex gap-2">
-                      {predefinedColors.map((color) => (
-                        <button
-                          key={color}
-                          onClick={() => setNewTeamColor(color)}
-                          className={`w-8 h-8 rounded-full border-2 transition-all ${
-                            newTeamColor === color
-                              ? 'border-white scale-110'
-                              : 'border-slate-500 hover:border-slate-300'
-                          }`}
-                          style={{ backgroundColor: color }}
-                          aria-label={`Select color ${color}`}
-                        />
-                      ))}
-                    </div>
-                  </div>
+          {/* Create New Team Form */}
+          {isCreatingTeam && (
+            <div className="mb-6 bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    {t('teamManager.teamName', 'Team Name')}
+                  </label>
+                  <input
+                    ref={newTeamInputRef}
+                    type="text"
+                    value={newTeamName}
+                    onChange={(e) => setNewTeamName(e.target.value)}
+                    placeholder={t('teamManager.namePlaceholder', 'Enter team name')}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleCreateTeam();
+                      if (e.key === 'Escape') setIsCreatingTeam(false);
+                    }}
+                  />
+                </div>
 
-                  <div className="flex gap-2 pt-2">
-                    <button
-                      onClick={handleCreateTeam}
-                      disabled={!newTeamName.trim() || createTeamMutation.isPending}
-                      className="flex-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
-                    >
-                      {createTeamMutation.isPending ? t('common.creating', 'Creating...') : t('common.create', 'Create')}
-                    </button>
-                    <button
-                      onClick={() => setIsCreatingTeam(false)}
-                      className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-slate-300 rounded-md font-medium transition-colors"
-                    >
-                      {t('common.cancel', 'Cancel')}
-                    </button>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    {t('teamManager.teamColor', 'Team Color')}
+                  </label>
+                  <div className="flex gap-2">
+                    {predefinedColors.map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => setNewTeamColor(color)}
+                        className={`w-8 h-8 rounded-full border-2 transition-all ${
+                          newTeamColor === color
+                            ? 'border-white scale-110'
+                            : 'border-slate-500 hover:border-slate-300'
+                        }`}
+                        style={{ backgroundColor: color }}
+                        aria-label={`Select color ${color}`}
+                      />
+                    ))}
                   </div>
                 </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={handleCreateTeam}
+                    disabled={!newTeamName.trim() || createTeamMutation.isPending}
+                    className="flex-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
+                  >
+                    {createTeamMutation.isPending ? t('common.creating', 'Creating...') : t('common.create', 'Create')}
+                  </button>
+                  <button
+                    onClick={() => setIsCreatingTeam(false)}
+                    className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-slate-300 rounded-md font-medium transition-colors"
+                  >
+                    {t('common.cancel', 'Cancel')}
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Teams List */}
           {teams.length === 0 ? (
@@ -323,9 +372,17 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {teams.map((team) => (
-                <div key={team.id} className="bg-slate-700/50 rounded-lg border border-slate-600 p-4">
+            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+              <div className="space-y-0">
+                {teams.map((team, index) => (
+                  <div
+                    key={team.id}
+                    className={`py-1.5 px-1 rounded transition-colors ${
+                      editingTeamId === team.id ? 'bg-slate-700/75' : 'hover:bg-slate-800/40'
+                    } ${
+                      index < teams.length - 1 ? 'border-b border-slate-700/50' : ''
+                    }`}
+                  >
                   {editingTeamId === team.id ? (
                     // Edit mode
                     <div className="space-y-3">
@@ -377,41 +434,31 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                   ) : (
                     // Display mode
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 flex-1">
                         <div
-                          className="w-4 h-4 rounded-full border border-slate-400"
+                          className="w-4 h-4 rounded-full border border-slate-400 flex-shrink-0"
                           style={{ backgroundColor: team.color || '#6366F1' }}
                         />
-                        <div>
-                          <h3 className="font-medium text-slate-100 flex items-center gap-2">
-                            {team.name}
-                            {/* Note: Active team indicator removed - teams are contextually selected */}
-                          </h3>
-                          <p className="text-sm text-slate-400">
-                            {t('teamManager.createdAt', 'Created {{date}}', {
-                              date: new Date(team.createdAt).toLocaleDateString()
-                            })}
-                          </p>
-                        </div>
+                        <span className="text-slate-200">
+                          {team.name}
+                        </span>
                       </div>
 
                       <div className="flex items-center gap-2">
-{/* Note: Team switching UI removed - teams are contextually selected */}
-                        
                         {onManageRoster && (
                           <button
                             onClick={() => onManageRoster(team.id)}
-                            className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-300 rounded-md text-sm font-medium transition-colors flex items-center gap-1"
+                            className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
+                            title={t('teamManager.roster', 'Roster')}
                           >
                             <HiOutlineUsers className="w-4 h-4" />
-                            {t('teamManager.roster', 'Roster')}
                           </button>
                         )}
 
                         <div className="relative" ref={actionsMenuTeamId === team.id ? actionsMenuRef : null}>
                           <button
                             onClick={() => setActionsMenuTeamId(actionsMenuTeamId === team.id ? null : team.id)}
-                            className="p-2 text-slate-400 hover:text-slate-300 hover:bg-slate-600 rounded-md transition-colors"
+                            className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
                             aria-label="Team actions"
                           >
                             <HiOutlineEllipsisVertical className="w-4 h-4" />
@@ -447,8 +494,9 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                       </div>
                     </div>
                   )}
-                </div>
-              ))}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

@@ -1,4 +1,4 @@
 {
-  "version": "0.1.2",
-  "notes": "build: trigger redeploy to validate PWA update detection"
+  "version": "0.1.0",
+  "notes": "Merge feat/player-stats-awards-fairplay into master"
 }

@@ -170,6 +170,8 @@ const defaultProps: GameSettingsModalProps = {
   } as unknown as UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>,
   seasons: mockSeasons,
   tournaments: mockTournaments,
+  teams: [],
+  onTeamIdChange: jest.fn(),
 };
 
 describe('<GameSettingsModal />', () => {

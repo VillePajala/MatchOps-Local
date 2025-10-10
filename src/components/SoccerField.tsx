@@ -1175,11 +1175,6 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
         onDrop={handleDrop}
       />
       {/* Optional: Render player names/numbers as separate HTML elements over the canvas? */}
-      
-      {/* <<< Change Timer Position to Bottom-Right >>> */}
-      <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs font-mono px-2 py-1 rounded pointer-events-none select-none z-10">
-        {formatTime(timeElapsedInSeconds)}
-      </div>
     </div>
   );
 };
