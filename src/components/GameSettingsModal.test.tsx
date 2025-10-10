@@ -157,14 +157,6 @@ const defaultProps: GameSettingsModalProps = {
   onAwardFairPlayCard: jest.fn(),
   isPlayed: true,
   onIsPlayedChange: jest.fn(),
-  addSeasonMutation: {
-    mutate: jest.fn(),
-  } as unknown as UseMutationResult<Season | null, Error, { name: string }, unknown>,
-  addTournamentMutation: {
-    mutate: jest.fn(),
-  } as unknown as UseMutationResult<Tournament | null, Error, { name: string }, unknown>,
-  isAddingSeason: false,
-  isAddingTournament: false,
   updateGameDetailsMutation: {
     mutate: jest.fn(),
   } as unknown as UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>,
@@ -172,6 +164,7 @@ const defaultProps: GameSettingsModalProps = {
   tournaments: mockTournaments,
   teams: [],
   onTeamIdChange: jest.fn(),
+  masterRoster: mockPlayers,
 };
 
 describe('<GameSettingsModal />', () => {

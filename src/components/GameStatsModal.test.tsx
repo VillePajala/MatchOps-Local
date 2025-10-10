@@ -415,12 +415,15 @@ describe('GameStatsModal', () => {
     fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.player', 'Player') }));
 
     const user = userEvent.setup();
-    const input = await screen.findByPlaceholderText('Search players...');
+    const input = await screen.findByPlaceholderText(
+      i18n.t('playerStats.selectPlayerLabel', 'Select Player')
+    );
     await user.type(input, 'Bob');
     const bobOption = await screen.findByRole('option', { name: 'Bob' });
     await user.click(bobOption);
 
-    await screen.findByRole('heading', { name: 'Bob' });
+    const bobHeadings = await screen.findAllByRole('heading', { name: 'Bob' });
+    expect(bobHeadings.length).toBeGreaterThan(0);
   });
 
   test('allows selecting player with keyboard', async () => {
@@ -431,11 +434,14 @@ describe('GameStatsModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.player', 'Player') }));
 
-    const input = await screen.findByPlaceholderText('Search players...');
+    const input = await screen.findByPlaceholderText(
+      i18n.t('playerStats.selectPlayerLabel', 'Select Player')
+    );
     fireEvent.change(input, { target: { value: 'Cha' } });
     fireEvent.keyDown(input, { key: 'Enter' });
 
-    expect(screen.getByRole('heading', { name: 'Charlie' })).toBeInTheDocument();
+    const charlieHeadings = await screen.findAllByRole('heading', { name: 'Charlie' });
+    expect(charlieHeadings.length).toBeGreaterThan(0);
   });
 
   /**
