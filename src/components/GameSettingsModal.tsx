@@ -254,12 +254,16 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             const teamPlayerNames = new Set(
               roster.map(p => p.name.toLowerCase().trim())
             );
-            
+
             // Select master roster players that match team roster names
-            const selectedIds = availablePlayers
+            const rosterSource = (masterRoster && masterRoster.length > 0)
+              ? masterRoster
+              : roster;
+
+            const selectedIds = rosterSource
               .filter(p => teamPlayerNames.has(p.name.toLowerCase().trim()))
               .map(p => p.id);
-            
+
             setAdjustedSelectedPlayerIds(selectedIds);
           } else {
             // No team roster - clear selections
@@ -277,7 +281,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     };
     
     loadTeamRoster();
-  }, [isOpen, teamId, availablePlayers, selectedPlayerIds]);
+  }, [isOpen, teamId, availablePlayers, selectedPlayerIds, masterRoster]);
 
   // Initialize game time state from prop
   useEffect(() => {
