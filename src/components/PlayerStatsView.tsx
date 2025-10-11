@@ -921,7 +921,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
         {/* Individual Game Log List */}
         <div className="flex-grow mt-4">
-          <div className="space-y-2 max-h-48 overflow-y-auto">
+          <div className="space-y-2">
             {playerStats.gameByGameStats.length > 0 ? (
               playerStats.gameByGameStats.map(game => (
                 <button
