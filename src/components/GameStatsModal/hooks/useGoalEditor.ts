@@ -15,6 +15,7 @@ interface UseGoalEditorParams {
   setIsEditingNotes: (editing: boolean) => void;
   setInlineEditingField: (field: 'opponent' | 'date' | 'home' | 'away' | null) => void;
   t: TFunction;
+  showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 interface UseGoalEditorResult {
@@ -48,6 +49,7 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
     setIsEditingNotes,
     setInlineEditingField,
     t,
+    showToast,
   } = params;
 
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
@@ -88,12 +90,12 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
       if (!isNaN(m) && !isNaN(s) && m >= 0 && s >= 0 && s < 60) {
         timeInSeconds = m * 60 + s;
       } else {
-        alert(t('gameStatsModal.invalidTimeFormat', 'Invalid time format. MM:SS'));
+        showToast(t('gameStatsModal.invalidTimeFormat', 'Invalid time format. MM:SS'), 'error');
         goalTimeInputRef.current?.focus();
         return;
       }
     } else {
-      alert(t('gameStatsModal.invalidTimeFormat', 'Invalid time format. MM:SS'));
+      showToast(t('gameStatsModal.invalidTimeFormat', 'Invalid time format. MM:SS'), 'error');
       goalTimeInputRef.current?.focus();
       return;
     }
@@ -102,7 +104,7 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
     const updatedAssisterId = editGoalAssisterId || undefined;
 
     if (!updatedScorerId) {
-      alert(t('gameStatsModal.scorerRequired', 'Scorer must be selected.'));
+      showToast(t('gameStatsModal.scorerRequired', 'Scorer must be selected.'), 'error');
       return;
     }
 
