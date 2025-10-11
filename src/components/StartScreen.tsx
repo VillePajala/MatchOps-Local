@@ -54,16 +54,16 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
   // (Reverted) No last game meta fetching here.
 
-  // Option 1 — Brighter Indigo Buttons for stronger contrast
+  // Modal-style button classes for unified UI
   const primaryButtonStyle =
-    'w-full h-12 px-6 rounded-lg text-base font-semibold tracking-[0.02em] text-[#F8FBFF] bg-indigo-600 hover:bg-indigo-500 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ring-1 ring-inset ring-white/10 border border-white/8 shadow-[0_10px_24px_rgba(7,18,38,.45)] hover:shadow-[0_16px_36px_rgba(7,18,38,.55)] hover:-translate-y-0.5 active:translate-y-0 text-center relative before:content-[\'\'] before:absolute before:inset-0 before:rounded-lg before:pointer-events-none before:shadow-[inset_0_1px_0_rgba(255,255,255,.14)] drop-shadow-[0_1px_0_rgba(0,0,0,.35)]';
+    'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg';
 
-  // Emphasized variant for primary (Continue) — slightly brighter
+  // Emphasized variant for primary (Continue) — same style, just semantically different
   const primaryEmphasisStyle =
-    'w-full h-12 px-6 rounded-lg text-base font-semibold tracking-[0.02em] text-[#F8FBFF] bg-indigo-500 hover:bg-indigo-400 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ring-1 ring-inset ring-white/10 border border-white/8 shadow-[0_12px_26px_rgba(7,18,38,.5)] hover:shadow-[0_18px_38px_rgba(7,18,38,.6)] hover:-translate-y-0.5 active:translate-y-0 text-center relative before:content-[\'\'] before:absolute before:inset-0 before:rounded-lg before:pointer-events-none before:shadow-[inset_0_1px_0_rgba(255,255,255,.16)] drop-shadow-[0_1px_0_rgba(0,0,0,.35)]';
+    'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg';
 
   const disabledButtonStyle =
-    'w-full h-12 px-6 rounded-lg text-base font-semibold text-slate-500 bg-[#0E1A2C] cursor-not-allowed opacity-60 text-center leading-tight border border-slate-600/40 ring-1 ring-inset ring-white/10';
+    'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed text-slate-500 bg-slate-800 border border-slate-600/40';
 
   const containerStyle =
     'relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-950 text-slate-100 font-display overflow-hidden';
@@ -113,18 +113,21 @@ const StartScreen: React.FC<StartScreenProps> = ({
       <div className="absolute inset-0 bg-gradient-to-b from-slate-800 to-slate-900" />
       {/* 2) Noise texture */}
       <div className="absolute inset-0 bg-noise-texture opacity-35" />
-      {/* 3) Animated blue aurora sweep (subtler) */}
+      {/* 3) Modal background effects for unified feel */}
+      <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+      {/* 4) Animated blue aurora sweep (subtler) */}
       <div className="absolute inset-0 pointer-events-none animate-gradient [background:linear-gradient(120deg,theme(colors.indigo.900/40),theme(colors.sky.800/35),theme(colors.cyan.800/40),theme(colors.indigo.900/40))] opacity-25" />
-      {/* 4) Subtle grid for texture (dimmed) */}
+      {/* 5) Subtle grid for texture (dimmed) */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.03] [background-image:linear-gradient(to_right,rgba(255,255,255,.22)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,.22)_1px,transparent_1px)] [background-size:40px_40px]" />
-      {/* 5) Corner lighting - top */}
+      {/* 6) Corner lighting - top */}
       <div className="absolute -inset-[50px] bg-sky-500/5 blur-3xl top-0 left-0 opacity-40" />
-      {/* 6) Corner lighting - bottom */}
+      {/* 7) Corner lighting - bottom */}
       <div className="absolute -inset-[50px] bg-cyan-600/6 blur-3xl bottom-0 right-0 opacity-35" />
-      {/* 7) Radial accent lights */}
+      {/* 8) Radial accent lights */}
       <div className="pointer-events-none absolute inset-0 opacity-30 [background:radial-gradient(50%_40%_at_20%_20%,theme(colors.sky.700/20)_0%,transparent_70%)]" />
       <div className="pointer-events-none absolute inset-0 opacity-26 [background:radial-gradient(45%_35%_at_80%_70%,theme(colors.cyan.700/18)_0%,transparent_70%)]" />
-      {/* 8) Vignette for depth */}
+      {/* 9) Vignette for depth */}
       <div className="absolute inset-0 pointer-events-none [background:radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.3)_100%)]" />
 
       {/* 9) Stadium light beams */}

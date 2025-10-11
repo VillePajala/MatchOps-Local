@@ -1,5 +1,6 @@
-import { TOURNAMENTS_LIST_KEY } from '@/config/storageKeys';
+import { TOURNAMENTS_LIST_KEY, SAVED_GAMES_KEY } from '@/config/storageKeys';
 import type { Tournament } from '@/types'; // Import Tournament type from shared types
+import type { AppState } from '@/types/game';
 import logger from '@/utils/logger';
 import { getStorageItem, setStorageItem } from '@/utils/storage';
 import { withKeyLock } from './storageKeyLock';
@@ -161,4 +162,30 @@ export const deleteTournament = async (tournamentId: string): Promise<boolean> =
       return Promise.resolve(false);
     }
   });
+};
+
+/**
+ * Count games associated with a tournament (for deletion impact analysis).
+ * @param tournamentId - The ID of the tournament to count games for.
+ * @returns A promise that resolves to the number of games associated with this tournament.
+ */
+export const countGamesForTournament = async (tournamentId: string): Promise<number> => {
+  try {
+    const savedGamesJson = await getStorageItem(SAVED_GAMES_KEY);
+    if (!savedGamesJson) return 0;
+
+    const savedGames = JSON.parse(savedGamesJson);
+    let count = 0;
+
+    for (const gameState of Object.values(savedGames)) {
+      if ((gameState as AppState).tournamentId === tournamentId) {
+        count++;
+      }
+    }
+
+    return count;
+  } catch (error) {
+    logger.warn('Failed to count games for tournament, returning 0', { tournamentId, error });
+    return 0;
+  }
 }; 

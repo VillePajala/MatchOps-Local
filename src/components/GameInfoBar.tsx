@@ -100,12 +100,15 @@ const GameInfoBar: React.FC<GameInfoBarProps> = ({
   const rightScore = awayScore;
 
   return (
-    <div 
-      className="bg-gradient-to-b from-slate-800 to-slate-900 px-4 py-1 text-slate-200 flex justify-center items-center text-sm shadow-md min-h-[2.5rem]"
+    <div
+      className="relative bg-gradient-to-b from-slate-800 to-slate-800/85 px-4 py-1 text-slate-200 flex justify-center items-center text-sm shadow-md min-h-[2.5rem]"
       style={{ fontFamily: 'Rajdhani, sans-serif' }}
     >
+      {/* Modal background effects for unified feel */}
+      <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
       {/* Center Content: Teams and Score */}
-      <div className="flex items-center space-x-3 font-semibold">
+      <div className="relative flex items-center space-x-3 font-semibold z-10">
         {/* Left Team Name */}
         <div className="text-right" title={editingField !== 'left' ? "Double-click to edit" : undefined}>
           {editingField === 'left' ? (

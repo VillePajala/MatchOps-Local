@@ -72,10 +72,10 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
   };
 
   return (
-    <div className="p-2 rounded-md border bg-slate-800/40 border-slate-700/50 hover:bg-slate-800/60 transition-colors text-slate-100">
+    <div className="text-slate-100">
       <button
         type="button"
-        className="flex items-center justify-between w-full"
+        className="flex items-center justify-between w-full py-2 px-1 hover:bg-slate-800/40 rounded transition-colors"
         onClick={() => setExpanded(v => !v)}
         aria-expanded={expanded}
         title={expanded ? t('playerAssessmentModal.collapse', { name: player.name }) : t('playerAssessmentModal.expand', { name: player.name })}
@@ -88,7 +88,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
         )}
       </button>
       {expanded && (
-        <div className="mt-3 p-4 space-y-4 bg-slate-900/70 rounded-lg border border-slate-700 shadow-inner">
+        <div className="mt-3 pt-3 space-y-4">
           <div className="flex items-center space-x-2">
             <label className="text-sm text-slate-300 w-24 shrink-0">
               {t('playerAssessmentModal.overallLabel', 'Overall')}
@@ -117,24 +117,26 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
             />
             <div className="text-xs text-slate-400 text-right">{notes.length}/280</div>
           </div>
-          <button
-            type="button"
-            className="px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
-            onClick={handleSave}
-            disabled={!isValid}
-            aria-label={t('playerAssessmentModal.saveButton', 'Save')}
-          >
-            {t('playerAssessmentModal.saveButton', 'Save')}
-          </button>
-          {assessment && onDelete && (
+          <div className="flex gap-2">
             <button
               type="button"
-              className="ml-2 px-3 py-2 rounded-md text-sm font-medium transition-colors bg-red-600 hover:bg-red-700"
-              onClick={() => onDelete()}
+              className="px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+              onClick={handleSave}
+              disabled={!isValid}
+              aria-label={t('playerAssessmentModal.saveButton', 'Save')}
             >
-              {t('playerAssessmentModal.resetButton', 'Reset')}
+              {t('playerAssessmentModal.saveButton', 'Save')}
             </button>
-          )}
+            {assessment && onDelete && (
+              <button
+                type="button"
+                className="px-3 py-2 rounded-md text-sm font-medium transition-colors bg-red-600 hover:bg-red-700"
+                onClick={() => onDelete()}
+              >
+                {t('playerAssessmentModal.resetButton', 'Reset')}
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -27,6 +27,7 @@ export interface Team {
   color?: string;             // brand/accent (optional)
   createdAt: string;          // ISO timestamp
   updatedAt: string;          // ISO timestamp
+  archived?: boolean;         // Optional: soft delete flag
 }
 
 // Team player (reuses existing Player shape where possible)

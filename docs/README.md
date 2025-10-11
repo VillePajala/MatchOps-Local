@@ -22,9 +22,12 @@ This documentation covers everything about the MatchOps-Local project - what it 
 2. **[02-technical/](./02-technical/)** - Technical Architecture
    - System architecture, technology decisions, security
    - Data freshness & modal data flow: see [02-technical/data-freshness-and-modal-data-flow.md](./02-technical/data-freshness-and-modal-data-flow.md)
+   - **Database schemas**: [Current IndexedDB Schema](./02-technical/database/current-storage-schema.md) | [Supabase Schema](./02-technical/database/supabase-schema.md)
+   - **Dual-backend architecture**: [Architecture Overview](./02-technical/architecture/dual-backend-architecture.md) | [DataStore Interface](./02-technical/architecture/datastore-interface.md) | [AuthService Interface](./02-technical/architecture/auth-service-interface.md)
 
 3. **[03-active-plans/](./03-active-plans/)** - Active Plans & Current Status ⭐
    - Master execution guide, production readiness, roadmaps, release checklists
+   - **Backend evolution**: [Phased Implementation Roadmap](./03-active-plans/backend-evolution/phased-implementation-roadmap.md) | [Migration Strategy](./03-active-plans/backend-evolution/migration-strategy.md)
 
 4. **[04-features/](./04-features/)** - Feature Specifications
    - Detailed feature specs and implementation plans

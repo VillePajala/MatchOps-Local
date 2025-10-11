@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { FaEdit, FaTrashAlt } from 'react-icons/fa';
-import { HiPlusCircle } from 'react-icons/hi2';
-import { Season, Tournament, Player } from '@/types';
+import { Season, Tournament, Player, Team } from '@/types';
 import { AppState } from '@/types';
 import { getTeamRoster } from '@/utils/teams';
 import { updateGameDetails, updateGameEvent, removeGameEvent } from '@/utils/savedGames';
@@ -16,6 +16,7 @@ import PlayerSelectionSection from './PlayerSelectionSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
+import ConfirmationModal from './ConfirmationModal';
 
 export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard';
 
@@ -73,11 +74,10 @@ export interface GameSettingsModalProps {
   onSetHomeOrAway: (status: 'home' | 'away') => void;
   isPlayed: boolean;
   onIsPlayedChange: (played: boolean) => void;
-  // Add mutation props for creating seasons and tournaments
-  addSeasonMutation: UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
-  addTournamentMutation: UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>;
-  isAddingSeason: boolean;
-  isAddingTournament: boolean;
+  // Removed: addSeasonMutation - unused prop (season creation moved to dedicated modal)
+  // Removed: addTournamentMutation - unused prop (tournament creation moved to dedicated modal)
+  // Removed: isAddingSeason - unused prop, mutations handle loading state internally
+  // Removed: isAddingTournament - unused prop, mutations handle loading state internally
   // Add current time for fair play card
   timeElapsedInSeconds?: number;
   updateGameDetailsMutation: UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>;
@@ -85,6 +85,8 @@ export interface GameSettingsModalProps {
   seasons: Season[];
   tournaments: Tournament[];
   masterRoster?: Player[]; // Full roster for tournament player award display
+  teams: Team[]; // Available teams for selection
+  onTeamIdChange: (teamId: string | null) => void; // Handler to update game's teamId
 }
 
 // Helper to format time from seconds to MM:SS
@@ -161,18 +163,21 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   onSetHomeOrAway,
   isPlayed,
   onIsPlayedChange,
-  addSeasonMutation,
-  addTournamentMutation,
-  isAddingSeason,
-  isAddingTournament,
+  // Removed: addSeasonMutation - unused prop (season creation moved to dedicated modal)
+  // Removed: addTournamentMutation - unused prop (tournament creation moved to dedicated modal)
+  // Removed: isAddingSeason - unused prop, mutations handle loading state internally
+  // Removed: isAddingTournament - unused prop, mutations handle loading state internally
   timeElapsedInSeconds,
   updateGameDetailsMutation,
   seasons,
   tournaments,
   masterRoster = [],
+  teams,
+  onTeamIdChange,
 }) => {
   // logger.log('[GameSettingsModal Render] Props received:', { seasonId, tournamentId, currentGameId });
   const { t } = useTranslation();
+  const { showToast } = useToast();
 
   // Track if we've already applied season/tournament updates to prevent infinite loops
   const appliedSeasonRef = useRef<string | null>(null);
@@ -213,13 +218,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const durationInputRef = useRef<HTMLInputElement>(null);
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // State for creating new season/tournament
-  const [showNewSeasonInput, setShowNewSeasonInput] = useState(false);
-  const [newSeasonName, setNewSeasonName] = useState('');
-  const [showNewTournamentInput, setShowNewTournamentInput] = useState(false);
-  const [newTournamentName, setNewTournamentName] = useState('');
-  const newSeasonInputRef = useRef<HTMLInputElement>(null);
-  const newTournamentInputRef = useRef<HTMLInputElement>(null);
+  // Removed: showNewSeasonInput, setShowNewSeasonInput - unused state (season creation moved to dedicated modal)
+  // Removed: newSeasonName, setNewSeasonName - unused state (season creation moved to dedicated modal)
+  // Removed: showNewTournamentInput, setShowNewTournamentInput - unused state (tournament creation moved to dedicated modal)
+  // Removed: newTournamentName, setNewTournamentName - unused state (tournament creation moved to dedicated modal)
+  // Removed: newSeasonInputRef - unused ref (season creation moved to dedicated modal)
+  // Removed: newTournamentInputRef - unused ref (tournament creation moved to dedicated modal)
 
   // State for active tab
   const [activeTab, setActiveTab] = useState<'none' | 'season' | 'tournament'>('none');
@@ -228,6 +232,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Confirmation modal state
+  const [showDeleteEventConfirm, setShowDeleteEventConfirm] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
+
   // State for game time
   const [gameHour, setGameHour] = useState<string>('');
   const [gameMinute, setGameMinute] = useState<string>('');
@@ -235,6 +243,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // State for team roster integration
   const [, setTeamRoster] = useState<Player[]>([]);
   const [adjustedSelectedPlayerIds, setAdjustedSelectedPlayerIds] = useState<string[]>(selectedPlayerIds);
+
+  // State for team selection
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(teamId || null);
+  const teamSelectionRequestRef = useRef<number>(0); // Track current team selection request for race condition protection
 
   // Load team roster when modal opens with teamId
   useEffect(() => {
@@ -249,12 +261,16 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             const teamPlayerNames = new Set(
               roster.map(p => p.name.toLowerCase().trim())
             );
-            
+
             // Select master roster players that match team roster names
-            const selectedIds = availablePlayers
+            const rosterSource = (masterRoster && masterRoster.length > 0)
+              ? masterRoster
+              : roster;
+
+            const selectedIds = rosterSource
               .filter(p => teamPlayerNames.has(p.name.toLowerCase().trim()))
               .map(p => p.id);
-            
+
             setAdjustedSelectedPlayerIds(selectedIds);
           } else {
             // No team roster - clear selections
@@ -272,7 +288,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     };
     
     loadTeamRoster();
-  }, [isOpen, teamId, availablePlayers, selectedPlayerIds]);
+  }, [isOpen, teamId, availablePlayers, selectedPlayerIds, masterRoster]);
 
   // Initialize game time state from prop
   useEffect(() => {
@@ -291,20 +307,22 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     const hasHour = hourValue !== '';
     const hasMinute = minuteValue !== '';
 
+    let timeValue = '';
     if (!hasHour && !hasMinute) {
-      onGameTimeChange('');
-      return;
-    }
-
-    if (hasHour && hasMinute) {
+      timeValue = '';
+    } else if (hasHour && hasMinute) {
       const formattedHour = hourValue.padStart(2, '0');
       const formattedMinute = minuteValue.padStart(2, '0');
-      onGameTimeChange(`${formattedHour}:${formattedMinute}`);
-      return;
+      timeValue = `${formattedHour}:${formattedMinute}`;
+    } else {
+      // If only one side has been provided, avoid sending a partial value like "12:" or ":30"
+      timeValue = '';
     }
 
-    // If only one side has been provided, avoid sending a partial value like "12:" or ":30"
-    onGameTimeChange('');
+    onGameTimeChange(timeValue);
+    if (currentGameId) {
+      updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { gameTime: timeValue } });
+    }
   };
 
   // Handle time changes
@@ -550,8 +568,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     if (currentGameId) {
       updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { seasonId: newSeasonId, tournamentId: undefined } });
     }
-    setShowNewSeasonInput(false);
-    setNewSeasonName('');
+    // Removed: setShowNewSeasonInput(false) - state no longer exists (season creation moved to dedicated modal)
+    // Removed: setNewSeasonName('') - state no longer exists (season creation moved to dedicated modal)
   };
 
   const handleTournamentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -562,8 +580,64 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     if (currentGameId) {
       updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { tournamentId: newTournamentId, seasonId: undefined } });
     }
-    setShowNewTournamentInput(false);
-    setNewTournamentName('');
+    // Removed: setShowNewTournamentInput(false) - state no longer exists (tournament creation moved to dedicated modal)
+    // Removed: setNewTournamentName('') - state no longer exists (tournament creation moved to dedicated modal)
+  };
+
+  // Team selection handler with roster auto-load
+  const handleTeamSelection = async (teamId: string | null) => {
+    // Increment request counter to track this request
+    const requestId = ++teamSelectionRequestRef.current;
+
+    setSelectedTeamId(teamId);
+    onTeamIdChange(teamId);
+
+    if (currentGameId) {
+      updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { teamId: teamId || undefined } });
+    }
+
+    if (teamId) {
+      try {
+        // Load team roster
+        const teamRoster = await getTeamRoster(teamId);
+
+        // Check if this is still the current request
+        if (requestId !== teamSelectionRequestRef.current) {
+          return; // A newer request has been made, abandon this one
+        }
+
+        if (teamRoster && teamRoster.length > 0) {
+          // Create a set of team player names for comparison (since IDs differ)
+          const teamPlayerNames = new Set(
+            teamRoster.map((p: Player) => p.name.toLowerCase().trim())
+          );
+
+          // Select master roster players that match team roster names
+          const selectedIds = availablePlayers
+            .filter((p: Player) => teamPlayerNames.has(p.name.toLowerCase().trim()))
+            .map((p: Player) => p.id);
+
+          setAdjustedSelectedPlayerIds(selectedIds);
+          onSelectedPlayersChange(selectedIds);
+        } else {
+          // Team roster is empty - no players pre-selected
+          setAdjustedSelectedPlayerIds([]);
+          onSelectedPlayersChange([]);
+        }
+      } catch (error) {
+        logger.error('[GameSettingsModal] Error loading team roster:', error);
+
+        // Check if this is still the current request
+        if (requestId !== teamSelectionRequestRef.current) {
+          return;
+        }
+
+        // Don't change player selection on error
+      }
+    } else {
+      // No team selected - keep current selection (don't auto-select all)
+      // User can manually select players if needed
+    }
   };
 
   // Handle Goal Event Editing
@@ -600,11 +674,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       if (!isNaN(minutes) && !isNaN(seconds)) {
         timeInSeconds = minutes * 60 + seconds;
       } else {
-        alert(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"));
+        showToast(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"), 'error');
         return;
       }
     } else if (editGoalTime) {
-        alert(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"));
+        showToast(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"), 'error');
       return;
     }
 
@@ -657,45 +731,57 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   };
 
   // Handle deleting a goal
-  const handleDeleteGoal = async (goalId: string) => {
+  const handleDeleteGoal = (goalId: string) => {
     if (!onDeleteGameEvent || !currentGameId) {
       logger.error("[GameSettingsModal] Missing onDeleteGameEvent handler or currentGameId for delete.");
       setError(t('gameSettingsModal.errors.missingDeleteHandler', 'Cannot delete event: Critical configuration missing.'));
       return;
     }
 
-      if (window.confirm(t('gameSettingsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.'))) {
-      setError(null);
-      setIsProcessing(true);
-      try {
-        const eventIndex = gameEvents.findIndex(e => e.id === goalId); 
-        if (eventIndex === -1) {
-          logger.error(`[GameSettingsModal] Event ${goalId} not found in original gameEvents for deletion.`);
-          setError(t('gameSettingsModal.errors.eventNotFoundDelete', 'Event to delete not found.'));
-          setIsProcessing(false); // Stop processing early
-          return;
-        }
-        
-        // Update local state immediately for UI responsiveness - Parent state updated via prop
-        const originalLocalEvents = localGameEvents;
-        setLocalGameEvents(prevEvents => prevEvents.filter(event => event.id !== goalId));
-        onDeleteGameEvent(goalId);
-        
-        const success = await removeGameEvent(currentGameId, eventIndex);
-        if (success) {
-          logger.log(`[GameSettingsModal] Event ${goalId} removed from game ${currentGameId}.`);
-        } else {
-          logger.error(`[GameSettingsModal] Failed to remove event ${goalId} from game ${currentGameId} via utility.`);
-          setError(t('gameSettingsModal.errors.deleteFailed', 'Failed to delete event. Please try again.'));
-          setLocalGameEvents(originalLocalEvents); // Revert local UI on failure
-        }
-      } catch (err) {
-        logger.error(`[GameSettingsModal] Error removing event ${goalId} from game ${currentGameId}:`, err);
-        setError(t('gameSettingsModal.errors.genericDeleteError', 'An unexpected error occurred while deleting the event.'));
-        // Consider reverting localGameEvents here as well if an error occurs
-      } finally {
-        setIsProcessing(false);
+    setEventToDelete(goalId);
+    setShowDeleteEventConfirm(true);
+  };
+
+  const handleDeleteEventConfirmed = async () => {
+    const goalId = eventToDelete;
+    if (!goalId || !onDeleteGameEvent || !currentGameId) {
+      setShowDeleteEventConfirm(false);
+      setEventToDelete(null);
+      return;
+    }
+
+    setError(null);
+    setIsProcessing(true);
+    try {
+      const eventIndex = gameEvents.findIndex(e => e.id === goalId);
+      if (eventIndex === -1) {
+        logger.error(`[GameSettingsModal] Event ${goalId} not found in original gameEvents for deletion.`);
+        setError(t('gameSettingsModal.errors.eventNotFoundDelete', 'Event to delete not found.'));
+        setIsProcessing(false); // Stop processing early
+        return;
       }
+
+      // Update local state immediately for UI responsiveness - Parent state updated via prop
+      const originalLocalEvents = localGameEvents;
+      setLocalGameEvents(prevEvents => prevEvents.filter(event => event.id !== goalId));
+      onDeleteGameEvent(goalId);
+
+      const success = await removeGameEvent(currentGameId, eventIndex);
+      if (success) {
+        logger.log(`[GameSettingsModal] Event ${goalId} removed from game ${currentGameId}.`);
+      } else {
+        logger.error(`[GameSettingsModal] Failed to remove event ${goalId} from game ${currentGameId} via utility.`);
+        setError(t('gameSettingsModal.errors.deleteFailed', 'Failed to delete event. Please try again.'));
+        setLocalGameEvents(originalLocalEvents); // Revert local UI on failure
+      }
+    } catch (err) {
+      logger.error(`[GameSettingsModal] Error removing event ${goalId} from game ${currentGameId}:`, err);
+      setError(t('gameSettingsModal.errors.genericDeleteError', 'An unexpected error occurred while deleting the event.'));
+      // Consider reverting localGameEvents here as well if an error occurs
+    } finally {
+      setIsProcessing(false);
+      setShowDeleteEventConfirm(false);
+      setEventToDelete(null);
     }
   };
 
@@ -739,7 +825,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             await updateGameDetails(currentGameId, { teamName: trimmedValue });
             success = true;
           } else {
-            alert(t('gameSettingsModal.teamNameRequired', "Team name cannot be empty."));
+            showToast(t('gameSettingsModal.teamNameRequired', "Team name cannot be empty."), 'error');
           }
           break;
         case 'opponent':
@@ -748,7 +834,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             await updateGameDetails(currentGameId, { opponentName: trimmedValue });
             success = true;
           } else {
-            alert(t('gameSettingsModal.opponentNameRequired', "Opponent name cannot be empty."));
+            showToast(t('gameSettingsModal.opponentNameRequired', "Opponent name cannot be empty."), 'error');
           }
           break;
         case 'date':
@@ -757,7 +843,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             await updateGameDetails(currentGameId, { gameDate: trimmedValue });
             success = true;
           } else {
-            alert(t('gameSettingsModal.invalidDateFormat', "Invalid date format. Use YYYY-MM-DD."));
+            showToast(t('gameSettingsModal.invalidDateFormat', "Invalid date format. Use YYYY-MM-DD."), 'error');
           }
           break;
         case 'location':
@@ -771,7 +857,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             await updateGameDetails(currentGameId, { gameTime: trimmedValue });
             success = true;
           } else {
-            alert(t('gameSettingsModal.invalidTimeFormatInline', "Invalid time format. Use HH:MM (24-hour)."));
+            showToast(t('gameSettingsModal.invalidTimeFormatInline', "Invalid time format. Use HH:MM (24-hour)."), 'error');
           }
           break;
         case 'duration':
@@ -781,7 +867,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             await updateGameDetails(currentGameId, { periodDurationMinutes: duration });
             success = true;
           } else {
-            alert(t('gameSettingsModal.invalidDurationFormat', "Period duration must be a positive number."));
+            showToast(t('gameSettingsModal.invalidDurationFormat', "Period duration must be a positive number."), 'error');
           }
           break;
         case 'notes':
@@ -831,66 +917,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     return [...localGameEvents].sort((a, b) => a.time - b.time);
   }, [localGameEvents]);
 
-  // Handlers for creating new seasons/tournaments
-  const handleShowCreateSeason = () => {
-    setShowNewSeasonInput(true);
-    onSeasonIdChange(undefined);
-    onTournamentIdChange(undefined);
-  };
-
-  const handleShowCreateTournament = () => {
-    setShowNewTournamentInput(true);
-    onTournamentIdChange(undefined);
-    onSeasonIdChange(undefined);
-  };
-
-  const handleAddNewSeason = async () => {
-    const trimmedName = newSeasonName.trim();
-    if (!trimmedName) {
-      alert(t('gameSettingsModal.newSeasonNameRequired', 'Please enter a name for the new season.'));
-      newSeasonInputRef.current?.focus();
-      return;
-    }
-
-    try {
-      const newSeason = await addSeasonMutation.mutateAsync({ name: trimmedName });
-
-      if (newSeason) {
-        // React Query invalidation will update the parent's seasons prop
-        onSeasonIdChange(newSeason.id);
-        onTournamentIdChange(undefined);
-        setNewSeasonName('');
-        setShowNewSeasonInput(false);
-      }
-    } catch (error) {
-      logger.error("Error calling addSeasonMutation.mutateAsync:", error);
-      newSeasonInputRef.current?.focus();
-    }
-  };
-
-  const handleAddNewTournament = async () => {
-    const trimmedName = newTournamentName.trim();
-    if (!trimmedName) {
-      alert(t('gameSettingsModal.newTournamentNameRequired', 'Please enter a name for the new tournament.'));
-      newTournamentInputRef.current?.focus();
-      return;
-    }
-
-    try {
-      const newTournament = await addTournamentMutation.mutateAsync({ name: trimmedName });
-
-      if (newTournament) {
-        // React Query invalidation will update the parent's tournaments prop
-        onTournamentIdChange(newTournament.id);
-        onSeasonIdChange(undefined);
-        setNewTournamentName('');
-        setShowNewTournamentInput(false);
-      }
-    } catch (error) {
-      logger.error("Error calling addTournamentMutation.mutateAsync:", error);
-      newTournamentInputRef.current?.focus();
-    }
-  };
+  // Removed: handleShowCreateSeason - unused handler (season creation moved to dedicated modal)
+  // Removed: handleShowCreateTournament - unused handler (tournament creation moved to dedicated modal)
+  // Removed: handleAddNewSeason - unused handler (season creation moved to dedicated modal)
+  // Removed: handleAddNewTournament - unused handler (tournament creation moved to dedicated modal)
 
   // Handle tab changes
   const handleTabChange = (tab: 'none' | 'season' | 'tournament') => {
@@ -899,28 +929,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       onSeasonIdChange(undefined);
       onTournamentIdChange(undefined);
     }
-    setShowNewSeasonInput(false);
-    setShowNewTournamentInput(false);
+    // Removed: setShowNewSeasonInput(false) - state no longer exists (season creation moved to dedicated modal)
+    // Removed: setShowNewTournamentInput(false) - state no longer exists (tournament creation moved to dedicated modal)
   };
 
-  // Key handlers for new season/tournament inputs
-  const handleNewSeasonKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      handleAddNewSeason();
-    } else if (event.key === 'Escape') {
-      setShowNewSeasonInput(false);
-      setNewSeasonName('');
-    }
-  };
-
-  const handleNewTournamentKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      handleAddNewTournament();
-    } else if (event.key === 'Escape') {
-      setShowNewTournamentInput(false);
-      setNewTournamentName('');
-    }
-  };
+  // Removed: handleNewSeasonKeyDown - unused handler (season creation moved to dedicated modal)
+  // Removed: handleNewTournamentKeyDown - unused handler (tournament creation moved to dedicated modal)
 
   // Add this section to handle fair play cards
   const handleFairPlayCardClick = (playerId: string | null) => {
@@ -964,22 +978,63 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             </h2>
           </div>
 
-          {/* Fixed Controls Section */}
-          <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20">
-            <TeamOpponentInputs
-              teamName={teamName}
-              opponentName={opponentName}
-              onTeamNameChange={onTeamNameChange}
-              onOpponentNameChange={onOpponentNameChange}
-              teamLabel={t('gameSettingsModal.teamName', 'Your Team Name') + ' *'}
-              teamPlaceholder={t('gameSettingsModal.teamNamePlaceholder', 'Enter team name')}
-              opponentLabel={t('gameSettingsModal.opponentName', 'Opponent Name') + ' *'}
-              opponentPlaceholder={t('gameSettingsModal.opponentNamePlaceholder', 'Enter opponent name')}
-            />
-          </div>
-
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
+            {/* Team Selection */}
+            <div className="mb-4">
+              <label htmlFor="teamSelectGameSettings" className="block text-sm font-medium text-slate-300 mb-1">
+                {t('gameSettingsModal.selectTeamLabel', 'Select Team')}
+              </label>
+              <select
+                id="teamSelectGameSettings"
+                value={selectedTeamId || ''}
+                onChange={(e) => handleTeamSelection(e.target.value || null)}
+                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+              >
+                <option value="">
+                  {t('gameSettingsModal.noTeamMasterRoster', 'No Team (Use Master Roster)')}
+                </option>
+                {teams.filter(team => !team.archived).map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+              {selectedTeamId && (
+                <p className="mt-1 text-xs text-slate-400">
+                  {t('gameSettingsModal.teamSelectedNote', 'Player roster loaded from selected team.')}
+                </p>
+              )}
+              {!selectedTeamId && (
+                <p className="mt-1 text-xs text-slate-400">
+                  {t('gameSettingsModal.masterRosterNote', 'Using master roster - all players available.')}
+                </p>
+              )}
+            </div>
+
+            {/* Team and Opponent Names */}
+            <div className="mb-4">
+              <TeamOpponentInputs
+                teamName={teamName}
+                opponentName={opponentName}
+                onTeamNameChange={(value) => {
+                  onTeamNameChange(value);
+                  if (currentGameId) {
+                    updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { teamName: value } });
+                  }
+                }}
+                onOpponentNameChange={(value) => {
+                  onOpponentNameChange(value);
+                  if (currentGameId) {
+                    updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { opponentName: value } });
+                  }
+                }}
+                teamLabel={t('gameSettingsModal.teamName', 'Your Team Name') + ' *'}
+                teamPlaceholder={t('gameSettingsModal.teamNamePlaceholder', 'Enter team name')}
+                opponentLabel={t('gameSettingsModal.opponentName', 'Opponent Name') + ' *'}
+                opponentPlaceholder={t('gameSettingsModal.opponentNamePlaceholder', 'Enter opponent name')}
+              />
+            </div>
             {/* Linkitä Section */}
             <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
@@ -990,7 +1045,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               <div className="flex gap-2 mb-4">
                 <button
                   onClick={() => handleTabChange('none')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     activeTab === 'none'
                       ? 'bg-indigo-600 text-white'
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
@@ -1000,7 +1055,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 </button>
                 <button
                   onClick={() => handleTabChange('season')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     activeTab === 'season'
                       ? 'bg-indigo-600 text-white'
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
@@ -1010,7 +1065,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 </button>
                 <button
                   onClick={() => handleTabChange('tournament')}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     activeTab === 'tournament'
                       ? 'bg-indigo-600 text-white'
                       : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
@@ -1023,124 +1078,38 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               {/* Season Selection */}
               {activeTab === 'season' && (
                 <div className="mb-4">
-                  <div className="flex items-center gap-2">
-                    <select
-                      id="seasonSelect"
-                      value={seasonId || ''}
-                      onChange={handleSeasonChange}
-                      className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                    >
-                      <option value="">{t('gameSettingsModal.selectSeason', '-- Select Season --')}</option>
-                      {seasons.map((season) => (
-                        <option key={season.id} value={season.id}>
-                          {season.name}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={handleShowCreateSeason}
-                      className="p-2 text-indigo-400 hover:text-indigo-300 disabled:opacity-50"
-                      title={showNewSeasonInput ? t('gameSettingsModal.cancelCreate', 'Cancel creation') : t('gameSettingsModal.createSeason', 'Create new season')}
-                      disabled={isAddingSeason || isAddingTournament}
-                    >
-                      <HiPlusCircle className={`w-6 h-6 transition-transform ${showNewSeasonInput ? 'rotate-45' : ''}`} />
-                    </button>
-                  </div>
-                  {showNewSeasonInput && (
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <input
-                        ref={newSeasonInputRef}
-                        type="text"
-                        value={newSeasonName}
-                        onChange={(e) => setNewSeasonName(e.target.value)}
-                        onKeyDown={handleNewSeasonKeyDown}
-                        placeholder={t('gameSettingsModal.newSeasonPlaceholder', 'Enter new season name...')}
-                        className="flex-1 min-w-[200px] px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                        disabled={isAddingSeason}
-                      />
-                      <div className="flex gap-2 shrink-0">
-                        <button
-                          onClick={handleAddNewSeason}
-                          disabled={isAddingSeason || !newSeasonName.trim()}
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow-sm disabled:opacity-50 whitespace-nowrap"
-                        >
-                          {isAddingSeason ? t('gameSettingsModal.creating', 'Creating...') : t('gameSettingsModal.addButton', 'Add')}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowNewSeasonInput(false);
-                            setNewSeasonName('');
-                          }}
-                          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md shadow-sm whitespace-nowrap"
-                        >
-                          {t('common.cancelButton', 'Cancel')}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <select
+                    id="seasonSelect"
+                    value={seasonId || ''}
+                    onChange={handleSeasonChange}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                  >
+                    <option value="">{t('gameSettingsModal.selectSeason', '-- Select Season --')}</option>
+                    {seasons.filter(season => !season.archived).map((season) => (
+                      <option key={season.id} value={season.id}>
+                        {season.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
 
               {/* Tournament Selection */}
               {activeTab === 'tournament' && (
                 <div className="mb-4">
-                  <div className="flex items-center gap-2">
-                    <select
-                      id="tournamentSelect"
-                      value={tournamentId || ''}
-                      onChange={handleTournamentChange}
-                      className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                    >
-                      <option value="">{t('gameSettingsModal.selectTournament', '-- Select Tournament --')}</option>
-                      {tournaments.map((tournament) => (
-                        <option key={tournament.id} value={tournament.id}>
-                          {tournament.name}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={handleShowCreateTournament}
-                      className="p-2 text-indigo-400 hover:text-indigo-300 disabled:opacity-50"
-                      title={showNewTournamentInput ? t('gameSettingsModal.cancelCreate', 'Cancel creation') : t('gameSettingsModal.createTournament', 'Create new tournament')}
-                      disabled={isAddingSeason || isAddingTournament}
-                    >
-                      <HiPlusCircle className={`w-6 h-6 transition-transform ${showNewTournamentInput ? 'rotate-45' : ''}`} />
-                    </button>
-                  </div>
-                  {showNewTournamentInput && (
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <input
-                        ref={newTournamentInputRef}
-                        type="text"
-                        value={newTournamentName}
-                        onChange={(e) => setNewTournamentName(e.target.value)}
-                        onKeyDown={handleNewTournamentKeyDown}
-                        placeholder={t('gameSettingsModal.newTournamentPlaceholder', 'Enter new tournament name...')}
-                        className="flex-1 min-w-[200px] px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                        disabled={isAddingTournament}
-                      />
-                      <div className="flex gap-2 shrink-0">
-                        <button
-                          onClick={handleAddNewTournament}
-                          disabled={isAddingTournament || !newTournamentName.trim()}
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow-sm disabled:opacity-50 whitespace-nowrap"
-                        >
-                          {isAddingTournament ? t('gameSettingsModal.creating', 'Creating...') : t('gameSettingsModal.addButton', 'Add')}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowNewTournamentInput(false);
-                            setNewTournamentName('');
-                          }}
-                          className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md shadow-sm whitespace-nowrap"
-                        >
-                          {t('common.cancelButton', 'Cancel')}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <select
+                    id="tournamentSelect"
+                    value={tournamentId || ''}
+                    onChange={handleTournamentChange}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                  >
+                    <option value="">{t('gameSettingsModal.selectTournament', '-- Select Tournament --')}</option>
+                    {tournaments.filter(tournament => !tournament.archived).map((tournament) => (
+                      <option key={tournament.id} value={tournament.id}>
+                        {tournament.name}
+                      </option>
+                    ))}
+                  </select>
 
                   {/* Display tournament player award if exists */}
                   {tournamentId && (() => {
@@ -1208,7 +1177,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     id="gameDateInput"
                     name="gameDate"
                     value={gameDate}
-                    onChange={(e) => onGameDateChange(e.target.value)}
+                    onChange={(e) => {
+                      onGameDateChange(e.target.value);
+                      if (currentGameId) {
+                        updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { gameDate: e.target.value } });
+                      }
+                    }}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                     autoComplete="off"
                   />
@@ -1264,7 +1238,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     id="gameLocationInput"
                     name="gameLocation"
                     value={gameLocation}
-                    onChange={(e) => onGameLocationChange(e.target.value)}
+                    onChange={(e) => {
+                      onGameLocationChange(e.target.value);
+                      if (currentGameId) {
+                        updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { gameLocation: e.target.value } });
+                      }
+                    }}
                     placeholder={t('gameSettingsModal.locationPlaceholder', 'e.g., Central Park Field 2')}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                     autoComplete="off"
@@ -1308,7 +1287,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => onSetHomeOrAway('home')}
+                      onClick={() => {
+                        onSetHomeOrAway('home');
+                        if (currentGameId) {
+                          updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { homeOrAway: 'home' } });
+                        }
+                      }}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors w-full ${
                         homeOrAway === 'home'
                           ? 'bg-indigo-600 text-white'
@@ -1319,7 +1303,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     </button>
                     <button
                       type="button"
-                      onClick={() => onSetHomeOrAway('away')}
+                      onClick={() => {
+                        onSetHomeOrAway('away');
+                        if (currentGameId) {
+                          updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { homeOrAway: 'away' } });
+                        }
+                      }}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors w-full ${
                         homeOrAway === 'away'
                           ? 'bg-indigo-600 text-white'
@@ -1345,7 +1334,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     <select
                       id="numPeriodsSelect"
                       value={numPeriods}
-                      onChange={(e) => onNumPeriodsChange(parseInt(e.target.value) as 1 | 2)}
+                      onChange={(e) => {
+                        const periods = parseInt(e.target.value) as 1 | 2;
+                        onNumPeriodsChange(periods);
+                        if (currentGameId) {
+                          updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { numberOfPeriods: periods } });
+                        }
+                      }}
                       className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                     >
                       <option value={1}>1</option>
@@ -1370,7 +1365,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         // Allow reasonable period durations (1-999 minutes)
                         const duration = parseInt(numericValue, 10);
                         if (numericValue === '' || (duration >= 1 && duration <= 999)) {
-                          onPeriodDurationChange(numericValue === '' ? 1 : duration);
+                          const finalDuration = numericValue === '' ? 1 : duration;
+                          onPeriodDurationChange(finalDuration);
+                          if (currentGameId) {
+                            updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { periodDurationMinutes: finalDuration } });
+                          }
                         }
                       }}
                       className="w-full max-w-xs px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
@@ -1467,6 +1466,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   onSelectedPlayersChange={(playerIds: string[]) => {
                     setAdjustedSelectedPlayerIds(playerIds);
                     onSelectedPlayersChange(playerIds);
+                    if (currentGameId) {
+                      updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { selectedPlayerIds: playerIds } });
+                    }
                   }}
                   title={t('gameSettingsModal.selectPlayers', 'Select Players')}
                   playersSelectedText={t('gameSettingsModal.playersSelected', 'selected')}
@@ -1656,6 +1658,21 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteEventConfirm}
+        title={t('gameSettingsModal.confirmDeleteEventTitle', 'Delete Event')}
+        message={t('gameSettingsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.')}
+        warningMessage={t('gameSettingsModal.deleteWarning', 'This action is permanent.')}
+        onConfirm={handleDeleteEventConfirmed}
+        onCancel={() => {
+          setShowDeleteEventConfirm(false);
+          setEventToDelete(null);
+        }}
+        confirmLabel={t('common.delete', 'Delete')}
+        variant="danger"
+      />
     </div>
   );
 };

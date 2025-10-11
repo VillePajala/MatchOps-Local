@@ -28,6 +28,13 @@ playwright/.cache/
 .DS_Store
 *.pem
 
+# editor/backup files
+*.backup
+*.bak
+*~
+*.swp
+*.swo
+
 # debug
 npm-debug.log*
 yarn-debug.log*

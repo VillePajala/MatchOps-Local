@@ -1,14 +1,13 @@
 {
-  "name": "MatchOps Local",
-  "short_name": "MatchOps Local",
+  "name": "MatchOps Local (Dev)",
+  "short_name": "MatchOps Dev",
   "description": "Soccer Tactics and Timer App for Coaches",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["fullscreen", "standalone"],
   "orientation": "portrait-primary",
   "background_color": "#1e293b",
-  "theme_color": "#1e293b",
+  "theme_color": "#4f46e5",
   "categories": [
     "sports",
     "productivity"
