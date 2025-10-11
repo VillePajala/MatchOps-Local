@@ -11,7 +11,9 @@ import {
     HiOutlineEllipsisVertical
 } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
+import ConfirmationModal from './ConfirmationModal';
 
 interface RosterSettingsModalProps {
   isOpen: boolean;
@@ -43,6 +45,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   onOpenPlayerStats,
 }) => {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [editPlayerData, setEditPlayerData] = useState<{ name: string; jerseyNumber: string; notes: string; nickname: string }>({ name: '', jerseyNumber: '', notes: '', nickname: '' });
 
@@ -57,6 +60,10 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   const [actionsMenuPlayerId, setActionsMenuPlayerId] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null); // Ref for click outside
   const playerRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Confirmation modal state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [playerToDelete, setPlayerToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Close editing mode when modal closes or players change
   useEffect(() => {
@@ -136,7 +143,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
     const trimmedName = editPlayerData.name.trim();
     const trimmedNickname = editPlayerData.nickname.trim();
     if (!trimmedName) {
-        alert(t('rosterSettingsModal.nameRequired', 'Player name cannot be empty.') || 'Player name cannot be empty.');
+        showToast(t('rosterSettingsModal.nameRequired', 'Player name cannot be empty.'), 'error');
         return;
     }
 
@@ -183,7 +190,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
     const trimmedName = newPlayerData.name.trim();
     const trimmedNickname = newPlayerData.nickname.trim();
     if (!trimmedName) {
-      alert(t('rosterSettingsModal.nameRequired', 'Player name cannot be empty.') || 'Player name cannot be empty.');
+      showToast(t('rosterSettingsModal.nameRequired', 'Player name cannot be empty.'), 'error');
       return;
     }
     // Call the prop function passed from parent
@@ -206,6 +213,14 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
     setSearchText(e.target.value);
   };
   // --- End New Player Handlers ---
+
+  const handleDeleteConfirmed = () => {
+    if (playerToDelete) {
+      onRemovePlayer(playerToDelete.id);
+    }
+    setShowDeleteConfirm(false);
+    setPlayerToDelete(null);
+  };
 
 
   if (!isOpen) return null;
@@ -395,9 +410,8 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                               </button>
                               <button
                                 onClick={() => {
-                                  if (window.confirm(t('rosterSettingsModal.confirmDeletePlayer', 'Are you sure you want to remove this player?'))) {
-                                    onRemovePlayer(player.id);
-                                  }
+                                  setPlayerToDelete({ id: player.id, name: player.name });
+                                  setShowDeleteConfirm(true);
                                   setActionsMenuPlayerId(null);
                                 }}
                                 className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 last:rounded-b-lg transition-colors"
@@ -427,6 +441,25 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        title={t('rosterSettingsModal.confirmDeletePlayerTitle', 'Remove Player')}
+        message={t('rosterSettingsModal.confirmDeletePlayer', 'Are you sure you want to remove this player?')}
+        warningMessage={
+          <>
+            <strong>{playerToDelete?.name || ''}</strong> will be removed from your roster.
+          </>
+        }
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setPlayerToDelete(null);
+        }}
+        confirmLabel={t('common.remove', 'Remove')}
+        variant="danger"
+      />
     </div>
   );
 };

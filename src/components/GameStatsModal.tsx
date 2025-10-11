@@ -14,6 +14,8 @@ import PlayerStatsView from './PlayerStatsView';
 import { calculateTeamAssessmentAverages } from '@/utils/assessmentStats';
 import { extractClubSeasonsFromGames } from '@/utils/clubSeason';
 import { getAppSettings } from '@/utils/appSettings';
+import { useToast } from '@/contexts/ToastProvider';
+import ConfirmationModal from './ConfirmationModal';
 
 // Import extracted hooks
 import { useGameStats } from './GameStatsModal/hooks/useGameStats';
@@ -95,6 +97,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   masterRoster = [],
 }) => {
   const { t, i18n } = useTranslation();
+  const { showToast } = useToast();
 
   // Date formatting helper
   const formatDisplayDate = useCallback((isoDate: string): string => {
@@ -258,6 +261,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     setLocalGameEvents,
     setIsEditingNotes,
     setInlineEditingField,
+    showToast,
     t,
   });
 
@@ -897,6 +901,18 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             {t('common.doneButton', 'Done')}
           </button>
         </div>
+
+        {/* Confirmation Modal for Delete Event */}
+        <ConfirmationModal
+          isOpen={goalEditorHook.showDeleteConfirm}
+          title={t('gameStatsModal.confirmDeleteEventTitle', 'Delete Event')}
+          message={t('gameStatsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.')}
+          warningMessage={t('gameStatsModal.deleteWarning', 'This action is permanent and cannot be reversed.')}
+          onConfirm={goalEditorHook.confirmDeleteEvent}
+          onCancel={() => goalEditorHook.setShowDeleteConfirm(false)}
+          confirmLabel={t('common.delete', 'Delete')}
+          variant="danger"
+        />
       </div>
     </div>
   );

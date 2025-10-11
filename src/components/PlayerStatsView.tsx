@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '@/contexts/ToastProvider';
 import type { TranslationKey } from '@/i18n-types';
 import { Player, Season, Tournament } from '@/types';
 import { AppState } from '@/types';
@@ -33,6 +34,7 @@ interface PlayerStatsViewProps {
 
 const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartMonth, clubSeasonEndMonth }) => {
   const { t, i18n } = useTranslation();
+  const { showToast } = useToast();
 
   const [showRatings, setShowRatings] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState('goalsAssists');
@@ -254,31 +256,31 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 
                 // Comprehensive Validation
                 if (!adjSeasonId && seasons.length === 0) {
-                  alert(t('playerStats.seasonRequired', 'Please create a season first.'));
+                  showToast(t('playerStats.seasonRequired', 'Please create a season first.'), 'error');
                   return;
                 }
                 if (!adjExternalTeam.trim()) {
-                  alert(t('playerStats.teamRequired', 'Team name is required.'));
+                  showToast(t('playerStats.teamRequired', 'Team name is required.'), 'error');
                   return;
                 }
                 if (!adjOpponentName.trim()) {
-                  alert(t('playerStats.opponentRequired', 'Opponent name is required.'));
+                  showToast(t('playerStats.opponentRequired', 'Opponent name is required.'), 'error');
                   return;
                 }
                 if (adjGames < 0 || adjGoals < 0 || adjAssists < 0) {
-                  alert(t('playerStats.negativeStatsError', 'Stats cannot be negative.'));
+                  showToast(t('playerStats.negativeStatsError', 'Stats cannot be negative.'), 'error');
                   return;
                 }
                 if (adjGames === 0 && adjGoals === 0 && adjAssists === 0) {
-                  alert(t('playerStats.emptyStatsError', 'Please enter at least one statistic (games, goals, or assists).'));
+                  showToast(t('playerStats.emptyStatsError', 'Please enter at least one statistic (games, goals, or assists).'), 'error');
                   return;
                 }
                 if (adjGames > 0 && adjGoals > adjGames * 20) {
-                  alert(t('playerStats.unrealisticGoalsError', 'Goals per game seems unrealistic. Please check your input.'));
+                  showToast(t('playerStats.unrealisticGoalsError', 'Goals per game seems unrealistic. Please check your input.'), 'error');
                   return;
                 }
                 if (adjGames > 0 && adjAssists > adjGames * 20) {
-                  alert(t('playerStats.unrealisticAssistsError', 'Assists per game seems unrealistic. Please check your input.'));
+                  showToast(t('playerStats.unrealisticAssistsError', 'Assists per game seems unrealistic. Please check your input.'), 'error');
                   return;
                 }
                 
@@ -584,23 +586,23 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               
               // Comprehensive Validation
               if (!editExternalTeam.trim() || !editOpponentName.trim()) {
-                alert(t('playerStats.requiredFields', 'Team and opponent names are required.'));
+                showToast(t('playerStats.requiredFields', 'Team and opponent names are required.'), 'error');
                 return;
               }
               if (editGames < 0 || editGoals < 0 || editAssists < 0) {
-                alert(t('playerStats.negativeStatsError', 'Stats cannot be negative.'));
+                showToast(t('playerStats.negativeStatsError', 'Stats cannot be negative.'), 'error');
                 return;
               }
               if (editGames === 0 && editGoals === 0 && editAssists === 0) {
-                alert(t('playerStats.emptyStatsError', 'Please enter at least one statistic (games, goals, or assists).'));
+                showToast(t('playerStats.emptyStatsError', 'Please enter at least one statistic (games, goals, or assists).'), 'error');
                 return;
               }
               if (editGames > 0 && editGoals > editGames * 20) {
-                alert(t('playerStats.unrealisticGoalsError', 'Goals per game seems unrealistic. Please check your input.'));
+                showToast(t('playerStats.unrealisticGoalsError', 'Goals per game seems unrealistic. Please check your input.'), 'error');
                 return;
               }
               if (editGames > 0 && editAssists > editGames * 20) {
-                alert(t('playerStats.unrealisticAssistsError', 'Assists per game seems unrealistic. Please check your input.'));
+                showToast(t('playerStats.unrealisticAssistsError', 'Assists per game seems unrealistic. Please check your input.'), 'error');
                 return;
               }
               
@@ -747,7 +749,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       setAdjustments(prev => prev.filter(a => a.id !== showDeleteConfirm));
                       setShowDeleteConfirm(null);
                     } else {
-                      alert(t('playerStats.deleteError', 'Failed to delete the external game entry.'));
+                      showToast(t('playerStats.deleteError', 'Failed to delete the external game entry.'), 'error');
                     }
                   }}
                   className="px-4 py-2 bg-red-600 rounded hover:bg-red-500 text-sm font-medium transition-colors text-white"

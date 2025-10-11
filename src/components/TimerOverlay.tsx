@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'; // Import translation hook
 import { IntervalLog } from '@/types'; // Import the IntervalLog interface
 import { formatTime } from '@/utils/time';
 import logger from '@/utils/logger';
+import ConfirmationModal from './ConfirmationModal';
 
 
 interface TimerOverlayProps {
@@ -71,6 +72,11 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   const opponentInputRef = useRef<HTMLInputElement>(null);
   // --- End State ---
 
+  // --- State for Confirmation Modals ---
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showOpponentGoalConfirm, setShowOpponentGoalConfirm] = useState(false);
+  // --- End State ---
+
   // --- Effects for Opponent Name Editing ---
   useEffect(() => {
     setEditedOpponentName(opponentName);
@@ -116,8 +122,12 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   };
 
   const handleConfirmReset = () => {
-    const ok = window.confirm(t('timerOverlay.confirmReset', 'Reset the match clock?'));
-    if (ok) onResetTimer();
+    setShowResetConfirm(true);
+  };
+
+  const handleResetConfirmed = () => {
+    onResetTimer();
+    setShowResetConfirm(false);
   };
 
   // Calculate time since last substitution
@@ -191,8 +201,12 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   }
 
   const handleOpponentGoalClick = () => {
-    const ok = window.confirm(t('timerOverlay.confirmOpponentGoal', 'Add opponent goal?'));
-    if (ok) onRecordOpponentGoal();
+    setShowOpponentGoalConfirm(true);
+  };
+
+  const handleOpponentGoalConfirmed = () => {
+    onRecordOpponentGoal();
+    setShowOpponentGoalConfirm(false);
   };
 
   // Game specs string, e.g., "2 x 20 min"
@@ -383,6 +397,27 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
           </svg>
         </button>
       )}
+
+      {/* Confirmation Modals */}
+      <ConfirmationModal
+        isOpen={showResetConfirm}
+        title={t('timerOverlay.confirmResetTitle', 'Reset Timer')}
+        message={t('timerOverlay.confirmReset', 'Reset the match clock?')}
+        onConfirm={handleResetConfirmed}
+        onCancel={() => setShowResetConfirm(false)}
+        confirmLabel={t('common.reset', 'Reset')}
+        variant="danger"
+      />
+
+      <ConfirmationModal
+        isOpen={showOpponentGoalConfirm}
+        title={t('timerOverlay.confirmOpponentGoalTitle', 'Record Opponent Goal')}
+        message={t('timerOverlay.confirmOpponentGoal', 'Add opponent goal?')}
+        onConfirm={handleOpponentGoalConfirmed}
+        onCancel={() => setShowOpponentGoalConfirm(false)}
+        confirmLabel={t('common.confirm', 'Confirm')}
+        variant="primary"
+      />
     </div>
   );
 };
