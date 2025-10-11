@@ -351,7 +351,7 @@ describe('TournamentDetailsModal', () => {
   });
 
   it('does not render when tournament is null', () => {
-    renderWithProviders({ tournament: null });
+    renderWithProviders({ tournament: undefined });
 
     expect(screen.queryByDisplayValue('Championship Cup 2024')).not.toBeInTheDocument();
   });
