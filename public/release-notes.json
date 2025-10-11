@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: restore original visual styling to GameStatsModal while keeping refactored code"
+  "notes": "chore: remove backup file and add gitignore patterns"
 }
