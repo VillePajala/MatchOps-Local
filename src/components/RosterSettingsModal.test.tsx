@@ -106,9 +106,13 @@ describe('<RosterSettingsModal />', () => {
   test('edits player when edit form is submitted', () => {
     render(<RosterSettingsModal {...defaultProps} />);
 
-    // Find and click edit button for P1
-    const editButtons = screen.getAllByTitle('Edit');
-    fireEvent.click(editButtons[0]); // First edit button should be for P1
+    // Open the actions menu for first player (P1)
+    const actionsButtons = screen.getAllByTitle('Actions');
+    fireEvent.click(actionsButtons[0]);
+
+    // Click Edit in the dropdown
+    const editButton = screen.getByRole('button', { name: /Edit/i });
+    fireEvent.click(editButton);
 
     // Fill edit form
     const updatedData = {
@@ -138,10 +142,15 @@ describe('<RosterSettingsModal />', () => {
   test('removes player when remove button is clicked', () => {
     window.confirm = jest.fn(() => true);
     render(<RosterSettingsModal {...defaultProps} />);
-    
-    const removeButtons = screen.getAllByTitle('Remove');
-    fireEvent.click(removeButtons[0]); // Remove first player
-    
+
+    // Open the actions menu for first player (P1)
+    const actionsButtons = screen.getAllByTitle('Actions');
+    fireEvent.click(actionsButtons[0]);
+
+    // Click Delete in the dropdown
+    const deleteButton = screen.getByRole('button', { name: /Delete/i });
+    fireEvent.click(deleteButton);
+
     expect(mockOnRemovePlayer).toHaveBeenCalledWith('p1');
   });
 
@@ -150,8 +159,13 @@ describe('<RosterSettingsModal />', () => {
   test('opens player stats', () => {
     render(<RosterSettingsModal {...defaultProps} />);
 
-    const statsButtons = screen.getAllByTitle('Stats');
-    fireEvent.click(statsButtons[0]); // Open stats for first player
+    // Open the actions menu for first player (P1)
+    const actionsButtons = screen.getAllByTitle('Actions');
+    fireEvent.click(actionsButtons[0]);
+
+    // Click Stats in the dropdown
+    const statsButton = screen.getByRole('button', { name: /Stats/i });
+    fireEvent.click(statsButton);
 
     expect(mockOnOpenPlayerStats).toHaveBeenCalledWith('p1');
   });
