@@ -919,7 +919,8 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
               const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
 
               dispatchGameSession({ type: 'SET_TIMER_ELAPSED', payload: correctedElapsedSeconds });
-              dispatchGameSession({ type: 'SET_TIMER_RUNNING', payload: true });
+              // Use START_TIMER instead of SET_TIMER_RUNNING to properly set startTimestamp
+              dispatchGameSession({ type: 'START_TIMER' });
             } else {
               await removeStorageItem(TIMER_STATE_KEY).catch(() => {});
             }
