@@ -9,6 +9,7 @@ import * as seasonsUtils from '@/utils/seasons';
 import * as tournamentsUtils from '@/utils/tournaments';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '../i18n.test';
+import { ToastProvider } from '@/contexts/ToastProvider';
 
 // Mock ResizeObserver for headlessui components
 global.ResizeObserver = class ResizeObserver {
@@ -178,7 +179,9 @@ const renderComponent = (props: TestProps) => {
   return render(
     <div style={{ width: 800, height: 600 }}>
       <I18nextProvider i18n={i18n}>
-        <GameStatsModal {...props} />
+        <ToastProvider>
+          <GameStatsModal {...props} />
+        </ToastProvider>
       </I18nextProvider>
     </div>
   );
@@ -299,29 +302,39 @@ describe('GameStatsModal', () => {
 
   test('calls onDeleteGameEvent when delete button on an event is clicked and confirmed', async () => {
     const mockProps = getDefaultProps();
-    window.confirm = jest.fn(() => true);
     await act(async () => {
       renderComponent(mockProps);
     });
 
     const goalLogSection = await screen.findByRole('heading', { name: i18n.t('gameStatsModal.goalLogTitle', 'Goal Log') });
     const goalLogContainer = goalLogSection.parentElement as HTMLElement;
-    
+
     const firstGoalCard = within(goalLogContainer).getByText('02:00').closest('div.p-3');
     expect(firstGoalCard).not.toBeNull();
 
     if (firstGoalCard) {
       const deleteButton = within(firstGoalCard as HTMLElement).getByRole('button', { name: i18n.t('common.delete', 'Delete') });
-      fireEvent.click(deleteButton);
+      await act(async () => {
+        fireEvent.click(deleteButton);
+      });
     }
 
-    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining(i18n.t('gameStatsModal.confirmDeleteEvent')));
+    // Wait for confirmation modal to appear
+    await waitFor(() => {
+      expect(screen.getByText(i18n.t('gameStatsModal.confirmDeleteEvent'))).toBeInTheDocument();
+    });
+
+    // Click confirm button in modal
+    const confirmButton = screen.getByRole('button', { name: i18n.t('common.delete', 'Delete') });
+    await act(async () => {
+      fireEvent.click(confirmButton);
+    });
+
     expect(mockProps.onDeleteGameEvent).toHaveBeenCalledWith('g1');
   });
 
   test('does not call onDeleteGameEvent if delete is cancelled', async () => {
     const mockProps = getDefaultProps();
-    window.confirm = jest.fn(() => false);
     await act(async () => {
       renderComponent(mockProps);
     });
@@ -334,10 +347,22 @@ describe('GameStatsModal', () => {
 
     if (firstGoalCard) {
       const deleteButton = within(firstGoalCard as HTMLElement).getByRole('button', { name: i18n.t('common.delete', 'Delete') });
-      fireEvent.click(deleteButton);
+      await act(async () => {
+        fireEvent.click(deleteButton);
+      });
     }
-    
-    expect(window.confirm).toHaveBeenCalledWith(i18n.t('gameStatsModal.confirmDeleteEvent'));
+
+    // Wait for confirmation modal to appear
+    await waitFor(() => {
+      expect(screen.getByText(i18n.t('gameStatsModal.confirmDeleteEvent'))).toBeInTheDocument();
+    });
+
+    // Click cancel button in modal
+    const cancelButton = screen.getByRole('button', { name: i18n.t('common.cancel', 'Cancel') });
+    await act(async () => {
+      fireEvent.click(cancelButton);
+    });
+
     expect(mockProps.onDeleteGameEvent).not.toHaveBeenCalled();
   });
 
@@ -398,7 +423,6 @@ describe('GameStatsModal', () => {
 
   test('deletes a goal when delete is confirmed', async () => {
     const mockProps = getDefaultProps();
-    window.confirm = jest.fn(() => true); // Mock window.confirm to return true
 
     await act(async () => {
       renderComponent(mockProps);
@@ -406,7 +430,21 @@ describe('GameStatsModal', () => {
 
     // Find the delete button for the first goal
     const deleteButtons = await screen.findAllByRole('button', { name: i18n.t('common.delete', 'Delete') });
-    fireEvent.click(deleteButtons[0]);
+    await act(async () => {
+      fireEvent.click(deleteButtons[0]);
+    });
+
+    // Wait for confirmation modal to appear
+    await waitFor(() => {
+      expect(screen.getByText(i18n.t('gameStatsModal.confirmDeleteEvent'))).toBeInTheDocument();
+    });
+
+    // Click confirm button in modal (find by role to get the specific delete button in modal)
+    const confirmButtons = screen.getAllByRole('button', { name: i18n.t('common.delete', 'Delete') });
+    const modalConfirmButton = confirmButtons.find(btn => btn.closest('[role="dialog"]'));
+    await act(async () => {
+      fireEvent.click(modalConfirmButton!);
+    });
 
     // Check that onDeleteGameEvent was called with the correct goal ID
     expect(mockProps.onDeleteGameEvent).toHaveBeenCalledWith('g1');

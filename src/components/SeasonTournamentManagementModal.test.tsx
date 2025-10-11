@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SeasonTournamentManagementModal from './SeasonTournamentManagementModal';
 import { UseMutationResult } from '@tanstack/react-query';
@@ -7,6 +7,7 @@ import { Season, Tournament } from '@/types';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n'; // Your i18n instance
 import { getFilteredGames } from '@/utils/savedGames';
+import { ToastProvider } from '@/contexts/ToastProvider';
 
 jest.mock('@/utils/savedGames', () => ({
   getFilteredGames: jest.fn().mockResolvedValue([]),
@@ -36,7 +37,9 @@ const defaultProps = {
 const renderWithProviders = (props: Partial<typeof defaultProps> = {}) => {
   return render(
     <I18nextProvider i18n={i18n}>
-      <SeasonTournamentManagementModal {...defaultProps} {...props} />
+      <ToastProvider>
+        <SeasonTournamentManagementModal {...defaultProps} {...props} />
+      </ToastProvider>
     </I18nextProvider>
   );
 };
@@ -162,7 +165,6 @@ describe('SeasonTournamentManagementModal', () => {
   });
 
   it('allows deleting a season', async () => {
-    window.confirm = jest.fn(() => true); // Mock window.confirm
     const user = userEvent.setup();
     await act(async () => {
       renderWithProviders();
@@ -175,12 +177,20 @@ describe('SeasonTournamentManagementModal', () => {
     const deleteOption = await screen.findByRole('button', { name: i18n.t('common.delete', 'Delete') });
     await user.click(deleteOption);
 
-    expect(window.confirm).toHaveBeenCalled();
+    // Wait for confirmation modal to appear
+    await waitFor(() => {
+      expect(screen.getByText(i18n.t('common.confirmDelete'))).toBeInTheDocument();
+    });
+
+    // Click confirm button in modal
+    const confirmButtons = screen.getAllByRole('button', { name: i18n.t('common.delete', 'Delete') });
+    const modalConfirmButton = confirmButtons.find(btn => btn.closest('[role="dialog"]'));
+    await user.click(modalConfirmButton!);
+
     expect(defaultProps.deleteSeasonMutation.mutate).toHaveBeenCalledWith('s1');
   });
 
   it('allows deleting a tournament', async () => {
-    window.confirm = jest.fn(() => true); // Mock window.confirm
     const user = userEvent.setup();
     await act(async () => {
       renderWithProviders();
@@ -193,7 +203,16 @@ describe('SeasonTournamentManagementModal', () => {
     const deleteOption = await screen.findByRole('button', { name: i18n.t('common.delete', 'Delete') });
     await user.click(deleteOption);
 
-    expect(window.confirm).toHaveBeenCalled();
+    // Wait for confirmation modal to appear
+    await waitFor(() => {
+      expect(screen.getByText(i18n.t('common.confirmDelete'))).toBeInTheDocument();
+    });
+
+    // Click confirm button in modal
+    const confirmButtons = screen.getAllByRole('button', { name: i18n.t('common.delete', 'Delete') });
+    const modalConfirmButton = confirmButtons.find(btn => btn.closest('[role="dialog"]'));
+    await user.click(modalConfirmButton!);
+
     expect(defaultProps.deleteTournamentMutation.mutate).toHaveBeenCalledWith('t1');
   });
 

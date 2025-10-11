@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import TeamManagerModal from './TeamManagerModal';
 import type { Team } from '@/types';
 import * as teamsUtils from '@/utils/teams';
+import { ToastProvider } from '@/contexts/ToastProvider';
 
 // Mock utilities
 jest.mock('@/utils/teams');
@@ -51,7 +52,9 @@ const renderWithQueryClient = (ui: React.ReactElement) => {
   const queryClient = createQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      {ui}
+      <ToastProvider>
+        {ui}
+      </ToastProvider>
     </QueryClientProvider>
   );
 };
@@ -727,14 +730,18 @@ describe('TeamManagerModal', () => {
       // Close modal
       rerender(
         <QueryClientProvider client={createQueryClient()}>
-          <TeamManagerModal {...defaultProps} isOpen={false} />
+          <ToastProvider>
+            <TeamManagerModal {...defaultProps} isOpen={false} />
+          </ToastProvider>
         </QueryClientProvider>
       );
 
       // Reopen modal
       rerender(
         <QueryClientProvider client={createQueryClient()}>
-          <TeamManagerModal {...defaultProps} isOpen={true} />
+          <ToastProvider>
+            <TeamManagerModal {...defaultProps} isOpen={true} />
+          </ToastProvider>
         </QueryClientProvider>
       );
 

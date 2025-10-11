@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 import LoadGameModal from './LoadGameModal';
 import { SavedGamesCollection, AppState, PlayerAssessment } from '@/types';
 import { Season, Tournament } from '@/types';
+import { ToastProvider } from '@/contexts/ToastProvider';
 
 // Mock react-i18next
 jest.mock('react-i18next', () => ({
@@ -87,7 +88,11 @@ describe('LoadGameModal', () => {
     };
     let result;
     await act(async () => {
-      result = render(<LoadGameModal {...defaultProps} />);
+      result = render(
+        <ToastProvider>
+          <LoadGameModal {...defaultProps} />
+        </ToastProvider>
+      );
     });
     return result!;
   };
