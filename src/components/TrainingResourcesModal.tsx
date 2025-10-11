@@ -60,12 +60,30 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
-        {/* Header */}
-        <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">
-            {t('trainingResourcesModal.title', 'Training Resources')}
-          </h2>
-        </div>
+        {/* Background effects */}
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
+        <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
+        <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
+
+        <div className="relative z-10 flex flex-col min-h-0">
+          {/* Header */}
+          <div className="flex flex-col">
+            {/* Title Section */}
+            <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20">
+              <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">
+                {t('trainingResourcesModal.title', 'Training Resources')}
+              </h2>
+            </div>
+
+            {/* Counter Section */}
+            <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20">
+              <div className="text-center text-sm">
+                <span className="text-yellow-400 font-semibold">{sections.length}</span>
+                {" "}{sections.length === 1 ? t('common.section', 'Section') : t('common.sections', 'Sections')}
+              </div>
+            </div>
+          </div>
         
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 space-y-2">
@@ -124,11 +142,12 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
           })} 
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-3 bg-slate-800/50 border-t border-slate-700/20 backdrop-blur-sm flex justify-end items-center gap-4 flex-shrink-0">
-          <button onClick={onClose} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors">
-            {t('common.doneButton', 'Done')}
-          </button>
+          {/* Footer */}
+          <div className="px-6 py-3 bg-slate-800/50 border-t border-slate-700/20 backdrop-blur-sm flex justify-end items-center gap-4 flex-shrink-0">
+            <button onClick={onClose} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors">
+              {t('common.doneButton', 'Done')}
+            </button>
+          </div>
         </div>
       </div>
     </div>
