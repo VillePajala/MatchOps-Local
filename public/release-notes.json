@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: comprehensive UI polish with improved modal layouts and statistics display"
+  "notes": "refactor: extract GameStatsModal into modular hooks and components"
 }

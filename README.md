@@ -3,9 +3,10 @@
 **A local-first soccer coaching PWA that puts coaches in control of their data**
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-15-black.svg)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.3+-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://reactjs.org/)
+[![Tests](https://img.shields.io/badge/tests-7900+-green.svg)](#)
 [![PWA](https://img.shields.io/badge/PWA-Enabled-5a0fc8.svg)](https://web.dev/progressive-web-apps/)
 
 <!-- PWA update detection - Final verification test -->
@@ -30,35 +31,39 @@ MatchOps-Local is a comprehensive Progressive Web App (PWA) designed specificall
 - **Real-Time Event Logging**: Goals, assists, cards, and substitutions with timestamp tracking
 - **Tactics Board**: Dedicated drawing interface for play design and team instruction
 
-### 📊 **Statistics & Analytics**  
+### 📊 **Statistics & Analytics**
 - **Comprehensive Player Stats**: Goals, assists, playtime, and performance tracking
+- **Club Season Filtering**: Smart filtering by club season period (e.g., Oct-May)
 - **Historical Analysis**: Game-by-game performance with trend visualization
-- **Aggregate Reporting**: Season, tournament, and all-time statistics
+- **Aggregate Reporting**: Season, tournament, club season, and all-time statistics
+- **Fair Play Trophy System**: Tournament player awards and recognition
 - **Data Export**: Professional reports in JSON and CSV formats
 
 ### 👥 **Team Management**
 - **Master Roster System**: Central player database with complete player profiles
 - **Multi-Team Support**: Manage unlimited teams with independent rosters and settings
 - **Season & Tournament Organization**: Create and track competitions across all teams
-- **Player Assessment**: Performance rating system with weighted difficulty tracking
+- **Player Performance Assessment**: Multi-dimensional rating system (technical, tactical, physical, mental) with weighted difficulty tracking and game context
 
 ### 🛡️ **Data & Privacy**
 - **IndexedDB Storage**: High-performance browser storage with automatic migration
-- **Complete Backup & Restore**: One-click export and import with data integrity verification
+- **Complete Backup & Restore**: One-click full backup export and import with data integrity verification
+- **Game Import/Export**: Flexible JSON-based game import for data portability
 - **Privacy by Design**: Zero external data transmission (except opt-in error reporting)
 - **GDPR Compliant**: No personal data collection or processing
 - **Data Ownership**: Full control over your data with comprehensive export capabilities
 
 ## 🏗️ Technology Stack
 
-- **Frontend**: Next.js 15 with React 19 and TypeScript
-- **Data Storage**: Dual-layer storage system with localStorage → IndexedDB migration
+- **Frontend**: Next.js 15.3+ with React 19 and TypeScript 5
+- **Data Storage**: IndexedDB-first architecture with automatic legacy localStorage migration
 - **State Management**: React Query for server state, useReducer for game logic
 - **Styling**: Tailwind CSS 4 for responsive, professional design
-- **PWA**: Full Progressive Web App with offline capability and installation
+- **PWA**: Full Progressive Web App with offline capability, wake lock, and auto-updates
 - **Error Monitoring**: Sentry integration for production error tracking
-- **Testing**: 500+ tests with Jest and Playwright (unit, integration, accessibility)
+- **Testing**: 7,900+ tests across 258 suites with Jest and Playwright (unit, integration, accessibility, performance)
 - **Internationalization**: i18next with English and Finnish support
+- **Analytics**: Vercel Analytics integration for usage insights
 
 ## 📊 Project Status: Production Ready
 
@@ -90,10 +95,11 @@ MatchOps-Local has reached **production maturity** with enterprise-grade feature
 
 ### **Production Monitoring & Quality Assurance**
 - **Comprehensive Error Tracking**: Sentry integration with privacy-focused configuration
-- **500+ Test Suite**: Unit, integration, accessibility, and performance tests
+- **7,900+ Test Suite**: Unit, integration, accessibility, and performance tests across 258 suites
 - **CI/CD Pipeline**: Automated linting, type-checking, testing, and security scanning
 - **Memory Leak Detection**: Advanced memory management with pressure monitoring
 - **Build Optimization**: Production-ready builds with source map generation
+- **Wake Lock Integration**: Screen stays on during active games for sideline coaching
 
 ## 🚀 Quick Start
 
@@ -111,25 +117,32 @@ For detailed setup instructions, see [docs/deployment/](docs/deployment/).
 ## 📖 Documentation
 
 ### **New to MatchOps-Local?**
-- **[Project Overview](docs/PROJECT_OVERVIEW.md)** - What MatchOps-Local is and why it exists
-- **[Local-First Philosophy](docs/LOCAL_FIRST_PHILOSOPHY.md)** - Why local-first matters for coaching software
+- **[Project Overview](docs/01-project/overview.md)** - What MatchOps-Local is and why it exists
+- **[Local-First Philosophy](docs/01-project/local-first-philosophy.md)** - Why local-first matters for coaching software
+- **[Competitive Analysis](docs/01-project/competitive-analysis.md)** - How we compare to other coaching software
 
 ### **Understanding the Project**
-- **[Architecture Overview](docs/ARCHITECTURE.md)** - Technical design and system architecture
-- **[Competitive Analysis](docs/COMPETITIVE_ANALYSIS.md)** - How we compare to other coaching software
-- **[Current Status](docs/PROJECT_STATUS.md)** - Implementation status and maturity level
+- **[Architecture Overview](docs/02-technical/architecture.md)** - Technical design and system architecture
+- **[Database Schema](docs/02-technical/database/)** - Current storage structure and data models
+- **[Security & Privacy](docs/02-technical/security.md)** - Privacy-first design and security measures
 
 ### **For Developers**
-- **[Contributing Guide](docs/development/CONTRIBUTING.md)** - How to contribute to the project
-- **[Development Guides](docs/development/)** - Code reviews, bug reports, and development processes
-- **[Testing Strategy](docs/testing/)** - Comprehensive testing approach
+- **[Contributing Guide](docs/05-development/)** - How to contribute to the project
+- **[Development Guides](docs/05-development/)** - Code reviews, bug reports, and development processes
+- **[Testing Strategy](docs/06-testing/)** - Comprehensive testing approach
+
+### **Feature Documentation**
+- **[Features Overview](docs/04-features/)** - Detailed feature specifications and implementation
+- **[Team Management](docs/04-features/team-management.md)** - Multi-team architecture
+- **[Seasons & Tournaments](docs/04-features/seasons-tournaments.md)** - Competition tracking
 
 ### **Complete Documentation**
-Browse all documentation in the [docs/](docs/) directory with primary project documentation at the root level:
-- **[Core Documentation](docs/)** - Project vision, philosophy, and strategic direction
-- **[Development](docs/development/)** - Contribution guides and development processes
-- **[Features](docs/features/)** - Detailed feature specifications and implementation plans
-- **[Testing](docs/testing/)** - Testing strategies and quality assurance
+Browse all documentation in the [docs/](docs/) directory:
+- **[01-Project](docs/01-project/)** - Vision, philosophy, and strategic direction
+- **[02-Technical](docs/02-technical/)** - Architecture and technical decisions
+- **[04-Features](docs/04-features/)** - Feature specifications and plans
+- **[05-Development](docs/05-development/)** - Contribution and development guides
+- **[06-Testing](docs/06-testing/)** - Testing strategies and quality assurance
 
 ## 🤝 Contributing
 
