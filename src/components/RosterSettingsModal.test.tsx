@@ -47,8 +47,8 @@ describe('<RosterSettingsModal />', () => {
   test('renders the modal when isOpen is true', () => {
     render(<RosterSettingsModal {...defaultProps} />);
     expect(screen.getByText('Manage Roster')).toBeInTheDocument();
-    expect(screen.getByText('P1')).toBeInTheDocument();
-    expect(screen.getByText('P2')).toBeInTheDocument();
+    expect(screen.getByText('Player One')).toBeInTheDocument();
+    expect(screen.getByText('Player Two')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Add Player/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Done/i })).toBeInTheDocument();
   });
@@ -174,8 +174,8 @@ describe('<RosterSettingsModal />', () => {
     render(<RosterSettingsModal {...defaultProps} />);
     const searchInput = screen.getByPlaceholderText('Search players...');
     fireEvent.change(searchInput, { target: { value: 'Two' } });
-    expect(screen.queryByText('P1')).not.toBeInTheDocument();
-    expect(screen.getByText('P2')).toBeInTheDocument();
+    expect(screen.queryByText('Player One')).not.toBeInTheDocument();
+    expect(screen.getByText('Player Two')).toBeInTheDocument();
   });
 
 });

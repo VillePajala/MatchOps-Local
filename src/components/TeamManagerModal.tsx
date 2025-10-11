@@ -6,9 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   HiOutlinePencil,
   HiOutlineTrash,
-  HiOutlineUsers,
-  // Removed: HiOutlinePlus - unused import (no plus icon in current UI)
-  HiOutlineDocumentDuplicate,
+  HiOutlineUsers, // Used in empty state
   HiOutlineEllipsisVertical
 } from 'react-icons/hi2';
 import { Team } from '@/types';
@@ -17,7 +15,6 @@ import {
   addTeam,
   updateTeam,
   deleteTeam,
-  duplicateTeam,
   countGamesForTeam,
 } from '@/utils/teams';
 import logger from '@/utils/logger';
@@ -93,17 +90,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     },
     onError: (error) => {
       logger.error('[TeamManager] Error deleting team:', error);
-    }
-  });
-
-  const duplicateTeamMutation = useMutation({
-    mutationFn: (teamId: string) => duplicateTeam(teamId),
-    onSuccess: (newTeam) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams });
-      logger.log('[TeamManager] Duplicated team:', newTeam);
-    },
-    onError: (error) => {
-      logger.error('[TeamManager] Error duplicating team:', error);
     }
   });
 
@@ -227,14 +213,9 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
   const handleConfirmDelete = () => {
     if (!deleteConfirmTeamId) return;
-    
+
     // Note: Active team concept removed - teams are contextually selected
     deleteTeamMutation.mutate(deleteConfirmTeamId);
-  };
-
-  const handleDuplicateTeam = (team: Team) => {
-    duplicateTeamMutation.mutate(team.id);
-    setActionsMenuTeamId(null);
   };
 
   // Note: Team switching removed - teams are now contextually selected
@@ -434,7 +415,11 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                   ) : (
                     // Display mode
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 flex-1">
+                      <div
+                        className="flex items-center gap-2 flex-1 cursor-pointer hover:opacity-80 transition-opacity py-1"
+                        onClick={() => onManageRoster && onManageRoster(team.id)}
+                        title={t('teamManager.roster', 'Roster')}
+                      >
                         <div
                           className="w-4 h-4 rounded-full border border-slate-400 flex-shrink-0"
                           style={{ backgroundColor: team.color || '#6366F1' }}
@@ -445,16 +430,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {onManageRoster && (
-                          <button
-                            onClick={() => onManageRoster(team.id)}
-                            className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
-                            title={t('teamManager.roster', 'Roster')}
-                          >
-                            <HiOutlineUsers className="w-4 h-4" />
-                          </button>
-                        )}
-
                         <div className="relative" ref={actionsMenuTeamId === team.id ? actionsMenuRef : null}>
                           <button
                             onClick={() => setActionsMenuTeamId(actionsMenuTeamId === team.id ? null : team.id)}
@@ -468,22 +443,14 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                             <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
                               <button
                                 onClick={() => handleStartEdit(team)}
-                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
+                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"
                               >
                                 <HiOutlinePencil className="w-4 h-4" />
                                 {t('teamManager.rename', 'Rename')}
                               </button>
                               <button
-                                onClick={() => handleDuplicateTeam(team)}
-                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
-                                disabled={duplicateTeamMutation.isPending}
-                              >
-                                <HiOutlineDocumentDuplicate className="w-4 h-4" />
-                                {t('teamManager.duplicate', 'Duplicate')}
-                              </button>
-                              <button
                                 onClick={() => handleDeleteTeam(team.id)}
-                                className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2"
+                                className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 last:rounded-b-md transition-colors"
                               >
                                 <HiOutlineTrash className="w-4 h-4" />
                                 {t('teamManager.delete', 'Delete')}

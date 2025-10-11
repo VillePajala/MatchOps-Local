@@ -96,7 +96,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
       const year = date.getFullYear();
 
       return `${day}.${month}.${year}`;
-    } catch (error) {
+    } catch {
       return 'Date Error';
     }
   };
