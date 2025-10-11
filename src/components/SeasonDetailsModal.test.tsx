@@ -241,7 +241,7 @@ describe('SeasonDetailsModal', () => {
   });
 
   it('does not render when season is null', () => {
-    renderWithProviders({ season: null });
+    renderWithProviders({ season: undefined });
 
     expect(screen.queryByDisplayValue('Spring Season 2024')).not.toBeInTheDocument();
   });
