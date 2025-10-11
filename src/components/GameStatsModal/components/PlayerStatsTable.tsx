@@ -44,63 +44,88 @@ export function PlayerStatsTable({
     return <FaSort className="ml-1 w-3 h-3 opacity-30" />;
   };
 
+  const getAriaSort = (column: SortableColumn): 'ascending' | 'descending' | 'none' => {
+    if (sortColumn === column) {
+      return sortDirection === 'asc' ? 'ascending' : 'descending';
+    }
+    return 'none';
+  };
+
   return (
     <table className="w-full text-sm table-fixed">
       <thead className="text-slate-300">
         <tr className="border-b border-slate-700">
           <th
-            className="px-2 py-2 text-left cursor-pointer hover:bg-slate-800/60"
+            className="px-2 py-2 text-left"
             style={{ width: '40%' }}
-            onClick={() => onSort('name')}
+            aria-sort={getAriaSort('name')}
           >
-            <div className="flex items-center">
+            <button
+              onClick={() => onSort('name')}
+              className="w-full flex items-center hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
               {t('common.player', 'Pelaaja')} {getSortIcon('name')}
-            </div>
+            </button>
           </th>
           <th
-            className="px-0.5 py-2 text-center cursor-pointer hover:bg-slate-800/60"
+            className="px-0.5 py-2 text-center"
             style={{ width: '10%' }}
-            onClick={() => onSort('gamesPlayed')}
+            aria-sort={getAriaSort('gamesPlayed')}
           >
-            <div className="flex items-center justify-center text-xs">
+            <button
+              onClick={() => onSort('gamesPlayed')}
+              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
               {t('common.gamesPlayedShort', 'GP')} {getSortIcon('gamesPlayed')}
-            </div>
+            </button>
           </th>
           <th
-            className="px-0.5 py-2 text-center cursor-pointer hover:bg-slate-800/60"
+            className="px-0.5 py-2 text-center"
             style={{ width: '10%' }}
-            onClick={() => onSort('goals')}
+            aria-sort={getAriaSort('goals')}
           >
-            <div className="flex items-center justify-center text-xs">
+            <button
+              onClick={() => onSort('goals')}
+              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
               {t('common.goalsShort', 'M')} {getSortIcon('goals')}
-            </div>
+            </button>
           </th>
           <th
-            className="px-0.5 py-2 text-center cursor-pointer hover:bg-slate-800/60"
+            className="px-0.5 py-2 text-center"
             style={{ width: '10%' }}
-            onClick={() => onSort('assists')}
+            aria-sort={getAriaSort('assists')}
           >
-            <div className="flex items-center justify-center text-xs">
+            <button
+              onClick={() => onSort('assists')}
+              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
               {t('common.assistsShort', 'S')} {getSortIcon('assists')}
-            </div>
+            </button>
           </th>
           <th
-            className="px-0.5 py-2 text-center cursor-pointer hover:bg-slate-800/60"
+            className="px-0.5 py-2 text-center"
             style={{ width: '15%' }}
-            onClick={() => onSort('totalScore')}
+            aria-sort={getAriaSort('totalScore')}
           >
-            <div className="flex items-center justify-center text-xs">
+            <button
+              onClick={() => onSort('totalScore')}
+              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
               {t('common.totalScoreShort', 'Pts')} {getSortIcon('totalScore')}
-            </div>
+            </button>
           </th>
           <th
-            className="px-0.5 py-2 text-center cursor-pointer hover:bg-slate-800/60"
+            className="px-0.5 py-2 text-center"
             style={{ width: '15%' }}
-            onClick={() => onSort('avgPoints')}
+            aria-sort={getAriaSort('avgPoints')}
           >
-            <div className="flex items-center justify-center text-xs">
+            <button
+              onClick={() => onSort('avgPoints')}
+              className="w-full flex items-center justify-center text-xs hover:bg-slate-800/60 rounded px-1 py-1 transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            >
               {t('common.avgPointsShort', 'KA')} {getSortIcon('avgPoints')}
-            </div>
+            </button>
           </th>
         </tr>
       </thead>

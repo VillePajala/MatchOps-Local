@@ -374,19 +374,25 @@ describe('GameStatsModal', () => {
 
     // Initial check (Current Game)
     expect(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.currentGame') })).toBeInTheDocument();
-    
+
     // Switch to Season tab and check for season-specific elements
     fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.season') }));
     await waitFor(() => {
       expect(screen.getByRole('combobox')).toBeInTheDocument();
-      expect(screen.getByText(i18n.t('gameStatsModal.filterAllSeasons'))).toBeInTheDocument();
+      // Check for the fallback text since translations might not be loaded in tests
+      // Use getAllByText since it appears in both the dropdown and heading
+      const allSeasons = screen.getAllByText('All Seasons');
+      expect(allSeasons.length).toBeGreaterThan(0);
     });
 
     // Switch to Tournament tab and check for tournament-specific elements
     fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.tournament') }));
     await waitFor(() => {
       expect(screen.getByRole('combobox')).toBeInTheDocument();
-      expect(screen.getByText(i18n.t('gameStatsModal.filterAllTournaments'))).toBeInTheDocument();
+      // Check for the fallback text since translations might not be loaded in tests
+      // Use getAllByText since it appears in both the dropdown and heading
+      const allTournaments = screen.getAllByText('All Tournaments');
+      expect(allTournaments.length).toBeGreaterThan(0);
     });
   });
 
@@ -458,23 +464,79 @@ describe('GameStatsModal', () => {
 
       mockGetTournaments.mockResolvedValue([tournamentWithDeletedPlayer]);
 
+      // Create a mock game with the tournament to ensure it appears in stats
+      const tournamentGame: AppState = {
+        playersOnField: [],
+        opponents: [],
+        drawings: [],
+        availablePlayers: samplePlayers,
+        showPlayerNames: true,
+        teamName: "Test Team",
+        gameEvents: [
+          { id: 'tg1', type: 'goal', time: 100, scorerId: 'p1' },
+          { id: 'tg2', type: 'goal', time: 200, scorerId: 'p2' },
+          { id: 'tg3', type: 'goal', time: 300, scorerId: 'p1' },
+        ],
+        opponentName: "Tournament Opponent",
+        gameDate: '2024-08-01',
+        homeScore: 3,
+        awayScore: 2,
+        gameNotes: '',
+        homeOrAway: 'home',
+        numberOfPeriods: 2,
+        periodDurationMinutes: 10,
+        currentPeriod: 1,
+        gameStatus: 'completed',
+        selectedPlayerIds: ['p1', 'p2'],
+        assessments: {},
+        seasonId: '',        // No season (empty string, not null)
+        tournamentId: 't1',  // Tournament game
+        gameLocation: '',
+        gameTime: '',
+        subIntervalMinutes: 5,
+        completedIntervalDurations: [],
+        lastSubConfirmationTimeSeconds: 0,
+        tacticalDiscs: [],
+        tacticalDrawings: [],
+        tacticalBallPosition: null,
+        isPlayed: true,      // Mark as played
+      };
+
+      const mockSavedGamesWithTournament: SavedGamesCollection = {
+        ...mockSavedGames,
+        'tournament-game-1': tournamentGame,
+      };
+
       const props = {
         ...getDefaultProps(),
         tournamentId: 't1',
         masterRoster: samplePlayers,
+        savedGames: mockSavedGamesWithTournament,
       };
 
       await act(async () => {
         renderComponent(props);
       });
 
-      // Switch to tournament tab
-      fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.tournament') }));
-
+      // Wait for tournaments to load
       await waitFor(() => {
-        // Tournament name should be visible
-        expect(screen.getByText('Championship Cup')).toBeInTheDocument();
+        expect(mockGetTournaments).toHaveBeenCalled();
       });
+
+      // Switch to tournament tab and wait for stats to update
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.tournament') }));
+      });
+
+      // Wait for tournament stats to render
+      await waitFor(
+        () => {
+          // The tournament should appear in the list (appears in dropdown and as heading)
+          const tournamentElements = screen.getAllByText('Championship Cup');
+          expect(tournamentElements.length).toBeGreaterThan(0);
+        },
+        { timeout: 3000 }
+      );
 
       // Trophy should NOT be displayed for deleted player
       expect(screen.queryByText('🏆')).not.toBeInTheDocument();

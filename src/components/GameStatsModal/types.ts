@@ -2,7 +2,7 @@
  * Shared types for GameStatsModal and its sub-components
  */
 
-import { Player, GameEvent, SavedGamesCollection } from '@/types';
+import { Player, GameEvent, SavedGamesCollection, PlayerStatRow } from '@/types';
 
 // Define the type for sortable columns
 export type SortableColumn = 'name' | 'goals' | 'assists' | 'totalScore' | 'fpAwards' | 'gamesPlayed' | 'avgPoints';
@@ -60,7 +60,6 @@ export interface GameStatsParams {
   savedGames: SavedGamesCollection | null;
   availablePlayers: Player[];
   selectedPlayerIds: string[];
-  gameEvents: GameEvent[];
   localGameEvents: GameEvent[];
   currentGameId: string | null;
   selectedSeasonIdFilter: string | 'all';
@@ -73,7 +72,7 @@ export interface GameStatsParams {
 
 // Game stats calculation result
 export interface GameStatsResult {
-  stats: Player[];
+  stats: PlayerStatRow[];
   gameIds: string[];
   totals: {
     gamesPlayed: number;
