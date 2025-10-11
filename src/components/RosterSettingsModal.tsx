@@ -7,7 +7,8 @@ import {
     HiOutlineCheck,
     HiOutlinePencil,
     HiOutlineTrash,
-    HiOutlineChartBar
+    HiOutlineChartBar,
+    HiOutlineEllipsisVertical
 } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
@@ -359,10 +360,51 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                         <div className="flex-grow flex items-center gap-2 truncate">
                           <span className="text-base text-slate-100 truncate" title={player.name}>{player.nickname || player.name}</span>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button onClick={() => handleStartEdit(player.id)} className={`${iconButtonBaseStyle} text-slate-400 hover:text-indigo-400`} title={t('common.edit', 'Edit')} disabled={isRosterUpdating || isAddingPlayer}><HiOutlinePencil className="w-5 h-5" /></button>
-                          <button onClick={() => onOpenPlayerStats(player.id)} className={`${iconButtonBaseStyle} text-slate-400 hover:text-indigo-400`} title={t('common.stats', 'Stats')} disabled={isRosterUpdating || isAddingPlayer}><HiOutlineChartBar className="w-5 h-5" /></button>
-                          <button onClick={() => { if (window.confirm(t('rosterSettingsModal.confirmDeletePlayer', 'Are you sure you want to remove this player?'))) { onRemovePlayer(player.id); } }} className={`${iconButtonBaseStyle} text-slate-400 hover:text-red-500`} title={t('common.remove', 'Remove')} disabled={isRosterUpdating || isAddingPlayer}><HiOutlineTrash className="w-5 h-5" /></button>
+                        <div className="relative" ref={actionsMenuPlayerId === player.id ? actionsMenuRef : null}>
+                          <button
+                            onClick={() => setActionsMenuPlayerId(actionsMenuPlayerId === player.id ? null : player.id)}
+                            className={`${iconButtonBaseStyle} text-slate-400 hover:text-slate-200`}
+                            title={t('common.actions', 'Actions')}
+                            disabled={isRosterUpdating || isAddingPlayer}
+                          >
+                            <HiOutlineEllipsisVertical className="w-5 h-5" />
+                          </button>
+                          {actionsMenuPlayerId === player.id && (
+                            <div className="absolute right-0 top-8 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[140px]">
+                              <button
+                                onClick={() => {
+                                  handleStartEdit(player.id);
+                                  setActionsMenuPlayerId(null);
+                                }}
+                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-lg transition-colors"
+                              >
+                                <HiOutlinePencil className="w-4 h-4" />
+                                {t('common.edit', 'Edit')}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  onOpenPlayerStats(player.id);
+                                  setActionsMenuPlayerId(null);
+                                }}
+                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"
+                              >
+                                <HiOutlineChartBar className="w-4 h-4" />
+                                {t('common.stats', 'Stats')}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (window.confirm(t('rosterSettingsModal.confirmDeletePlayer', 'Are you sure you want to remove this player?'))) {
+                                    onRemovePlayer(player.id);
+                                  }
+                                  setActionsMenuPlayerId(null);
+                                }}
+                                className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 last:rounded-b-lg transition-colors"
+                              >
+                                <HiOutlineTrash className="w-4 h-4" />
+                                {t('common.delete', 'Delete')}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
