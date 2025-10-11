@@ -486,7 +486,7 @@ describe('GameStatsModal', () => {
         numberOfPeriods: 2,
         periodDurationMinutes: 10,
         currentPeriod: 1,
-        gameStatus: 'completed',
+        gameStatus: 'gameEnd',
         selectedPlayerIds: ['p1', 'p2'],
         assessments: {},
         seasonId: '',        // No season (empty string, not null)
