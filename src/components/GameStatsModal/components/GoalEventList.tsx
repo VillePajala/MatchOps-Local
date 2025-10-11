@@ -156,13 +156,15 @@ export function GoalEventList({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => onStartEditGoal(goal)}
-                    className="p-1.5 text-slate-400 hover:text-indigo-400 rounded-md transition-colors"
-                    aria-label={t('common.edit', 'Edit')}
-                  >
-                    <FaEdit />
-                  </button>
+                  {goal.type === 'goal' && (
+                    <button
+                      onClick={() => onStartEditGoal(goal)}
+                      className="p-1.5 text-slate-400 hover:text-indigo-400 rounded-md transition-colors"
+                      aria-label={t('common.edit', 'Edit')}
+                    >
+                      <FaEdit />
+                    </button>
+                  )}
                   <button
                     onClick={() => onDeleteGoal(goal.id)}
                     className="p-1.5 text-slate-400 hover:text-red-500 rounded-md transition-colors"

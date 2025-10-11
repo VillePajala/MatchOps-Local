@@ -16,7 +16,7 @@ jest.mock('react-i18next', () => ({
       if (params) {
         let text = fallback || key;
         Object.keys(params).forEach(param => {
-          text = text.replace(`{{${param}}}`, params[param]);
+          text = text.replace(`{{${param}}}`, String(params[param]));
         });
         return text;
       }
@@ -26,9 +26,9 @@ jest.mock('react-i18next', () => ({
 }));
 
 const mockTeams: Team[] = [
-  { id: 't1', name: 'Team Alpha', color: '#6366F1', createdAt: Date.now() },
-  { id: 't2', name: 'Team Beta', color: '#8B5CF6', createdAt: Date.now() },
-  { id: 't3', name: 'Team Gamma', color: '#10B981', createdAt: Date.now() },
+  { id: 't1', name: 'Team Alpha', color: '#6366F1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 't2', name: 'Team Beta', color: '#8B5CF6', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 't3', name: 'Team Gamma', color: '#10B981', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
 ];
 
 const createQueryClient = () =>
@@ -144,7 +144,7 @@ describe('TeamManagerModal', () => {
     });
 
     it('creates team with valid name', async () => {
-      (teamsUtils.addTeam as jest.Mock).mockResolvedValue({ id: 't4', name: 'New Team', color: '#6366F1', createdAt: Date.now() });
+      (teamsUtils.addTeam as jest.Mock).mockResolvedValue({ id: 't4', name: 'New Team', color: '#6366F1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
 
       renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
 
@@ -176,7 +176,7 @@ describe('TeamManagerModal', () => {
     });
 
     it('trims whitespace from team name', async () => {
-      (teamsUtils.addTeam as jest.Mock).mockResolvedValue({ id: 't4', name: 'Trimmed Team', color: '#6366F1', createdAt: Date.now() });
+      (teamsUtils.addTeam as jest.Mock).mockResolvedValue({ id: 't4', name: 'Trimmed Team', color: '#6366F1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
 
       renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
 
@@ -253,7 +253,7 @@ describe('TeamManagerModal', () => {
     });
 
     it('creates team on Enter key press', async () => {
-      (teamsUtils.addTeam as jest.Mock).mockResolvedValue({ id: 't4', name: 'Quick Team', color: '#6366F1' });
+      (teamsUtils.addTeam as jest.Mock).mockResolvedValue({ id: 't4', name: 'Quick Team', color: '#6366F1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
 
       renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
 
@@ -342,7 +342,7 @@ describe('TeamManagerModal', () => {
     });
 
     it('allows creating team with unique name', async () => {
-      (teamsUtils.addTeam as jest.Mock).mockResolvedValue({ id: 't4', name: 'Unique Team', color: '#6366F1' });
+      (teamsUtils.addTeam as jest.Mock).mockResolvedValue({ id: 't4', name: 'Unique Team', color: '#6366F1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
 
       renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
 
