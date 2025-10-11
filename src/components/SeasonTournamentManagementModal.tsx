@@ -4,9 +4,11 @@ import React, { useState } from 'react';
 import { Season, Tournament, Player } from '@/types';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
-import { HiOutlinePencil, HiOutlineTrash, HiOutlineCheck, HiOutlineXMark, HiOutlineEllipsisVertical } from 'react-icons/hi2';
+import { HiOutlinePencil, HiOutlineTrash, HiOutlineEllipsisVertical } from 'react-icons/hi2';
 import { UseMutationResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import SeasonDetailsModal from './SeasonDetailsModal';
+import TournamentDetailsModal from './TournamentDetailsModal';
 
 interface SeasonTournamentManagementModalProps {
     isOpen: boolean;
@@ -64,9 +66,8 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     const [newTournamentName, setNewTournamentName] = useState('');
     const [showNewTournamentInput, setShowNewTournamentInput] = useState(false);
 
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [editingName, setEditingName] = useState('');
-    const [editingFields, setEditingFields] = useState<Partial<Season & Tournament>>({});
+    const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
+    const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
 
     const [newSeasonFields, setNewSeasonFields] = useState<Partial<Season>>({});
     const [newTournamentFields, setNewTournamentFields] = useState<Partial<Tournament>>({});
@@ -138,40 +139,21 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         }
     };
 
-    const handleEditClick = (item: Season | Tournament) => {
-        setEditingId(item.id);
-        setEditingName(item.name);
-        setEditingFields({
-            location: item.location,
-            periodCount: item.periodCount,
-            periodDuration: item.periodDuration,
-            startDate: (item as Tournament).startDate,
-            endDate: (item as Tournament).endDate,
-            archived: item.archived,
-            notes: item.notes,
-            ageGroup: (item as Tournament).ageGroup ?? (item as Season).ageGroup,
-            level: (item as Tournament).level,
-        });
-        setActionsMenuId(null);
+    const handleSeasonClick = (seasonId: string) => {
+        setSelectedSeasonId(seasonId);
     };
 
-    const handleCancelEdit = () => {
-        setEditingId(null);
-        setEditingName('');
-        setEditingFields({});
+    const handleTournamentClick = (tournamentId: string) => {
+        setSelectedTournamentId(tournamentId);
     };
 
-    const handleSaveEdit = (id: string, type: 'season' | 'tournament') => {
-        if (editingName.trim()) {
-            const sanitized = sanitizeFields(editingFields);
-            const base = { id, name: editingName.trim(), ...sanitized } as Season;
-            if (type === 'season') {
-                updateSeasonMutation.mutate(base);
-            } else {
-                updateTournamentMutation.mutate(base as Tournament);
-            }
-            handleCancelEdit();
+    const handleEditClick = (item: Season | Tournament, type: 'season' | 'tournament') => {
+        if (type === 'season') {
+            setSelectedSeasonId(item.id);
+        } else {
+            setSelectedTournamentId(item.id);
         }
+        setActionsMenuId(null);
     };
 
     // Removed: handleDelete - unused handler (delete happens inline with window.confirm)
@@ -188,9 +170,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
 
         return (
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                <div className="bg-slate-900/70 -mx-4 -mt-4 px-4 py-2 mb-4 border-b border-slate-600 rounded-t-lg">
-                    <h3 className="text-lg font-semibold text-yellow-400 text-center">{t(`seasonTournamentModal.${type}s`)}</h3>
-                </div>
+                <h3 className="text-lg font-semibold text-slate-200 mb-4">{t(`seasonTournamentModal.${type}s`)}</h3>
                 {showInput && (
                     <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600 mb-3 flex flex-col gap-2">
                         <input
@@ -251,121 +231,73 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                 )}
                 <div className="space-y-0">
                     {filtered.map((item, index) => (
-                        <div key={item.id} className={`py-1.5 px-2 rounded transition-colors ${
-                            editingId === item.id ? 'bg-slate-700/75' : 'hover:bg-slate-800/40'
-                        } ${
-                            index < filtered.length - 1 ? 'border-b border-slate-700/50' : ''
-                        }`}>
-                            {editingId === item.id ? (
-                                <div className="space-y-2">
-                                    <input type="text" value={editingName} onChange={(e)=>setEditingName(e.target.value)} className="w-full px-2 py-1 bg-slate-700 border border-indigo-500 rounded-md text-white" />
-                                    <input type="text" value={editingFields.location || ''} onChange={(e)=>setEditingFields(f=>({...f,location:e.target.value}))} placeholder={t('seasonTournamentModal.locationLabel')} className="w-full px-2 py-1 bg-slate-700 border border-slate-600 rounded-md text-white" />
-                                    <select value={editingFields.ageGroup || ''} onChange={e=>setEditingFields(f=>({...f,ageGroup:e.target.value}))} className="w-full px-2 py-1 bg-slate-700 border border-slate-600 rounded-md text-white">
-                                        <option value="">{t('common.selectAgeGroup', '-- Select Age Group --')}</option>
-                                        {AGE_GROUPS.map(group => (
-                                            <option key={group} value={group}>{group}</option>
-                                        ))}
-                                    </select>
-                                    {type==='tournament' && (
-                                        <select value={editingFields.level || ''} onChange={e=>setEditingFields(f=>({...f,level:e.target.value}))} className="w-full px-2 py-1 bg-slate-700 border border-slate-600 rounded-md text-white">
-                                            <option value="">{t('common.selectLevel', '-- Select Level --')}</option>
-                                            {LEVELS.map(lvl => (
-                                                <option key={lvl} value={lvl}>{t(`common.level${lvl}` as TranslationKey, lvl)}</option>
-                                            ))}
-                                        </select>
-                                    )}
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <input type="number" value={editingFields.periodCount || ''} onChange={(e)=>setEditingFields(f=>({...f,periodCount:parseIntOrUndefined(e.target.value)}))} placeholder={t('seasonTournamentModal.periodCountLabel')} className="w-full px-2 py-1 bg-slate-700 border border-slate-600 rounded-md text-white" />
-                                        <input type="number" value={editingFields.periodDuration || ''} onChange={(e)=>setEditingFields(f=>({...f,periodDuration:parseIntOrUndefined(e.target.value)}))} placeholder={t('seasonTournamentModal.periodDurationLabel')} className="w-full px-2 py-1 bg-slate-700 border border-slate-600 rounded-md text-white" />
+                        <div
+                            key={item.id}
+                            className={`py-1.5 px-2 rounded transition-colors hover:bg-slate-800/40 cursor-pointer ${
+                                index < filtered.length - 1 ? 'border-b border-slate-700/50' : ''
+                            }`}
+                            onClick={() => type === 'season' ? handleSeasonClick(item.id) : handleTournamentClick(item.id)}
+                        >
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-slate-100 font-medium">{item.name}</p>
+                                        {type==='tournament' && (item as Tournament).awardedPlayerId && (() => {
+                                            // Edge case: if awarded player was deleted from roster, playerLookup returns undefined
+                                            // This gracefully hides the trophy badge (no broken UI)
+                                            const playerId = (item as Tournament).awardedPlayerId!; // Safe due to && check above
+                                            const awardedPlayer = playerLookup.get(playerId);
+                                            return awardedPlayer ? (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded">
+                                                    🏆 {awardedPlayer.name}
+                                                </span>
+                                            ) : null;
+                                        })()}
                                     </div>
-                                    {type==='tournament' && (
-                                        <>
-                                            <input type="date" value={editingFields.startDate as string || ''} onChange={e=>setEditingFields(f=>({...f,startDate:e.target.value}))} className="w-full px-2 py-1 bg-slate-700 border border-slate-600 rounded-md text-white" placeholder={t('seasonTournamentModal.startDateLabel')} />
-                                            <input type="date" value={editingFields.endDate as string || ''} onChange={e=>setEditingFields(f=>({...f,endDate:e.target.value}))} className="w-full px-2 py-1 bg-slate-700 border border-slate-600 rounded-md text-white" placeholder={t('seasonTournamentModal.endDateLabel')} />
-                                        </>
+                                    {type==='tournament' && ((item as Tournament).startDate || (item as Tournament).endDate) && (
+                                        <p className="text-xs text-slate-400">{(item as Tournament).startDate || ''}{(item as Tournament).startDate && (item as Tournament).endDate ? ' - ' : ''}{(item as Tournament).endDate || ''}</p>
                                     )}
-                                    <textarea value={editingFields.notes || ''} onChange={e=>setEditingFields(f=>({...f,notes:e.target.value}))} placeholder={t('seasonTournamentModal.notesLabel')} className="w-full px-2 py-1 bg-slate-700 border border-slate-600 rounded-md text-white" />
-                                    {type==='tournament' && (
-                                        <select
-                                            value={editingFields.awardedPlayerId || ''}
-                                            onChange={e=>setEditingFields(f=>({...f,awardedPlayerId:e.target.value || undefined}))}
-                                            className="w-full px-2 py-1 bg-slate-700 border border-slate-600 rounded-md text-white"
-                                            aria-label={t('tournaments.selectAwardWinner', 'Select Player of Tournament')}
-                                        >
-                                            <option value="">{t('tournaments.selectAwardWinner', '-- Select Player of Tournament --')}</option>
-                                            {masterRoster.map(player => (
-                                                <option key={player.id} value={player.id}>{player.name}</option>
-                                            ))}
-                                        </select>
-                                    )}
-                                    <label className="text-slate-200 text-sm flex items-center gap-1"><input type="checkbox" checked={editingFields.archived || false} onChange={e=>setEditingFields(f=>({...f,archived:e.target.checked}))} className="form-checkbox h-4 w-4" />{t('seasonTournamentModal.archiveLabel')}</label>
-                                    <div className="flex justify-end gap-2">
-                                        <button onClick={() => handleSaveEdit(item.id, type)} className="p-1 text-green-400 hover:text-green-300" aria-label={`Save ${item.name}`}><HiOutlineCheck className="w-5 h-5" /></button>
-                                        <button onClick={handleCancelEdit} className="p-1 text-slate-400 hover:text-slate-200" aria-label="Cancel edit"><HiOutlineXMark className="w-5 h-5" /></button>
-                                    </div>
+                                    <p className="text-xs text-slate-400">{t('seasonTournamentModal.statsGames')}: {stats[item.id]?.games || 0} | {t('seasonTournamentModal.statsGoals')}: {stats[item.id]?.goals || 0}</p>
                                 </div>
-                            ) : (
-                                <div className="flex justify-between items-center">
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <p className="text-slate-100 font-medium">{item.name}</p>
-                                            {type==='tournament' && (item as Tournament).awardedPlayerId && (() => {
-                                                // Edge case: if awarded player was deleted from roster, playerLookup returns undefined
-                                                // This gracefully hides the trophy badge (no broken UI)
-                                                const playerId = (item as Tournament).awardedPlayerId!; // Safe due to && check above
-                                                const awardedPlayer = playerLookup.get(playerId);
-                                                return awardedPlayer ? (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded">
-                                                        🏆 {awardedPlayer.name}
-                                                    </span>
-                                                ) : null;
-                                            })()}
-                                        </div>
-                                        {type==='tournament' && ((item as Tournament).startDate || (item as Tournament).endDate) && (
-                                            <p className="text-xs text-slate-400">{(item as Tournament).startDate || ''}{(item as Tournament).startDate && (item as Tournament).endDate ? ' - ' : ''}{(item as Tournament).endDate || ''}</p>
-                                        )}
-                                        <p className="text-xs text-slate-400">{t('seasonTournamentModal.statsGames')}: {stats[item.id]?.games || 0} | {t('seasonTournamentModal.statsGoals')}: {stats[item.id]?.goals || 0}</p>
-                                    </div>
-                                    <div className="relative" ref={actionsMenuId === item.id ? actionsMenuRef : null}>
-                                        <button
-                                            onClick={() => setActionsMenuId(actionsMenuId === item.id ? null : item.id)}
-                                            className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
-                                            aria-label={`${type} actions`}
-                                        >
-                                            <HiOutlineEllipsisVertical className="w-4 h-4" />
-                                        </button>
+                                <div className="relative" ref={actionsMenuId === item.id ? actionsMenuRef : null} onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                        onClick={() => setActionsMenuId(actionsMenuId === item.id ? null : item.id)}
+                                        className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
+                                        aria-label={`${type} actions`}
+                                    >
+                                        <HiOutlineEllipsisVertical className="w-4 h-4" />
+                                    </button>
 
-                                        {actionsMenuId === item.id && (
-                                            <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
-                                                <button
-                                                    onClick={() => handleEditClick(item)}
-                                                    className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
-                                                >
-                                                    <HiOutlinePencil className="w-4 h-4" />
-                                                    {t('common.edit', 'Edit')}
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        // Direct delete with window.confirm - no separate confirmation modal
-                                                        if (window.confirm(t('common.confirmDelete', 'Are you sure you want to delete this item?'))) {
-                                                            if (type === 'season') {
-                                                                deleteSeasonMutation.mutate(item.id);
-                                                            } else {
-                                                                deleteTournamentMutation.mutate(item.id);
-                                                            }
+                                    {actionsMenuId === item.id && (
+                                        <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
+                                            <button
+                                                onClick={() => handleEditClick(item, type)}
+                                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
+                                            >
+                                                <HiOutlinePencil className="w-4 h-4" />
+                                                {t('common.edit', 'Edit')}
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    // Direct delete with window.confirm - no separate confirmation modal
+                                                    if (window.confirm(t('common.confirmDelete', 'Are you sure you want to delete this item?'))) {
+                                                        if (type === 'season') {
+                                                            deleteSeasonMutation.mutate(item.id);
+                                                        } else {
+                                                            deleteTournamentMutation.mutate(item.id);
                                                         }
-                                                        setActionsMenuId(null);
-                                                    }}
-                                                    className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2"
-                                                >
-                                                    <HiOutlineTrash className="w-4 h-4" />
-                                                    {t('common.delete', 'Delete')}
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
+                                                    }
+                                                    setActionsMenuId(null);
+                                                }}
+                                                className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2"
+                                            >
+                                                <HiOutlineTrash className="w-4 h-4" />
+                                                {t('common.delete', 'Delete')}
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -453,6 +385,25 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
           </button>
         </div>
       </div>
+
+      {/* Season Details Modal */}
+      <SeasonDetailsModal
+        isOpen={selectedSeasonId !== null}
+        onClose={() => setSelectedSeasonId(null)}
+        season={seasons.find(s => s.id === selectedSeasonId) || null}
+        updateSeasonMutation={updateSeasonMutation}
+        stats={selectedSeasonId ? stats[selectedSeasonId] : undefined}
+      />
+
+      {/* Tournament Details Modal */}
+      <TournamentDetailsModal
+        isOpen={selectedTournamentId !== null}
+        onClose={() => setSelectedTournamentId(null)}
+        tournament={tournaments.find(t => t.id === selectedTournamentId) || null}
+        masterRoster={masterRoster}
+        updateTournamentMutation={updateTournamentMutation}
+        stats={selectedTournamentId ? stats[selectedTournamentId] : undefined}
+      />
     </div>
   );
 };

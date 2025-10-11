@@ -99,50 +99,66 @@ describe('SeasonTournamentManagementModal', () => {
     expect(defaultProps.addTournamentMutation.mutate).toHaveBeenCalledWith({ name: 'New Awesome Tournament' });
   });
 
-  it('allows editing a season', async () => {
+  it('opens season details modal when clicking season item', async () => {
     const user = userEvent.setup();
     await act(async () => {
       renderWithProviders();
     });
     await act(async () => {});
-    
+
+    const seasonItem = screen.getByText('Season 1');
+    await user.click(seasonItem);
+
+    // SeasonDetailsModal should open (title should be visible)
+    expect(await screen.findByText(i18n.t('seasonDetailsModal.title', 'Season Details'))).toBeInTheDocument();
+  });
+
+  it('opens season details modal when clicking edit in actions menu', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      renderWithProviders();
+    });
+    await act(async () => {});
+
     const actionsButton = screen.getByLabelText('season actions');
     await user.click(actionsButton);
 
     const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
     await user.click(editOption);
 
-    const input = screen.getByDisplayValue('Season 1');
-    await user.clear(input);
-    await user.type(input, 'Updated Season Name');
-
-    const saveButton = screen.getByRole('button', { name: 'Save Season 1' });
-    await user.click(saveButton);
-
-    expect(defaultProps.updateSeasonMutation.mutate).toHaveBeenCalledWith({ id: 's1', name: 'Updated Season Name' });
+    // SeasonDetailsModal should open
+    expect(await screen.findByText(i18n.t('seasonDetailsModal.title', 'Season Details'))).toBeInTheDocument();
   });
 
-  it('allows editing a tournament', async () => {
+  it('opens tournament details modal when clicking tournament item', async () => {
     const user = userEvent.setup();
     await act(async () => {
       renderWithProviders();
     });
     await act(async () => {});
-    
+
+    const tournamentItem = screen.getByText('Tournament 1');
+    await user.click(tournamentItem);
+
+    // TournamentDetailsModal should open (title should be visible)
+    expect(await screen.findByText(i18n.t('tournamentDetailsModal.title', 'Tournament Details'))).toBeInTheDocument();
+  });
+
+  it('opens tournament details modal when clicking edit in actions menu', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      renderWithProviders();
+    });
+    await act(async () => {});
+
     const actionsButton = screen.getByLabelText('tournament actions');
     await user.click(actionsButton);
 
     const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
     await user.click(editOption);
 
-    const input = screen.getByDisplayValue('Tournament 1');
-    await user.clear(input);
-    await user.type(input, 'Updated Tournament Name');
-
-    const saveButton = screen.getByRole('button', { name: 'Save Tournament 1' });
-    await user.click(saveButton);
-
-    expect(defaultProps.updateTournamentMutation.mutate).toHaveBeenCalledWith({ id: 't1', name: 'Updated Tournament Name' });
+    // TournamentDetailsModal should open
+    expect(await screen.findByText(i18n.t('tournamentDetailsModal.title', 'Tournament Details'))).toBeInTheDocument();
   });
 
   it('allows deleting a season', async () => {
@@ -206,10 +222,10 @@ describe('SeasonTournamentManagementModal', () => {
 
   /**
    * Tournament Player Award Tests
-   * @critical - Tests player award dropdown selection and display
+   * @critical - Tests player award dropdown selection and display via dedicated modal
    */
   describe('Tournament Player Award Selection', () => {
-    it('should allow selecting a player award when editing tournament', async () => {
+    it('should open tournament details modal with player award dropdown', async () => {
       const user = userEvent.setup();
       await act(async () => {
         renderWithProviders({
@@ -222,34 +238,18 @@ describe('SeasonTournamentManagementModal', () => {
       });
       await act(async () => {});
 
-      // Open actions menu and choose edit for tournament
-      const actionsButton = screen.getByLabelText('tournament actions');
-      await user.click(actionsButton);
+      // Click tournament to open details modal
+      const tournamentItem = screen.getByText('Championship Cup');
+      await user.click(tournamentItem);
 
-      const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
-      await user.click(editOption);
+      // TournamentDetailsModal should open with player award dropdown
+      expect(await screen.findByText(i18n.t('tournamentDetailsModal.title', 'Tournament Details'))).toBeInTheDocument();
 
-      // Find the player award dropdown (should be visible when editing tournament)
       const awardDropdown = screen.getByRole('combobox', { name: /select player of tournament/i });
       expect(awardDropdown).toBeInTheDocument();
-
-      // Select a player
-      await user.selectOptions(awardDropdown, 'p1');
-
-      // Save the tournament
-      const saveButton = screen.getByRole('button', { name: 'Save Championship Cup' });
-      await user.click(saveButton);
-
-      // Verify the mutation was called with the award ID
-      expect(defaultProps.updateTournamentMutation.mutate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: 't1',
-          awardedPlayerId: 'p1',
-        })
-      );
     });
 
-    it('should allow removing player award by selecting empty option', async () => {
+    it('should open tournament details modal via edit button', async () => {
       const user = userEvent.setup();
       await act(async () => {
         renderWithProviders({
@@ -266,23 +266,12 @@ describe('SeasonTournamentManagementModal', () => {
       const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
       await user.click(editOption);
 
-      // Find the dropdown
+      // TournamentDetailsModal should open
+      expect(await screen.findByText(i18n.t('tournamentDetailsModal.title', 'Tournament Details'))).toBeInTheDocument();
+
+      // Award dropdown should show the current award
       const awardDropdown = screen.getByRole('combobox', { name: /select player of tournament/i });
-
-      // Select empty option (value="")
-      await user.selectOptions(awardDropdown, '');
-
-      // Save
-      const saveButton = screen.getByRole('button', { name: 'Save Championship Cup' });
-      await user.click(saveButton);
-
-      // Verify the mutation was called with undefined awardedPlayerId
-      expect(defaultProps.updateTournamentMutation.mutate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: 't1',
-          awardedPlayerId: undefined,
-        })
-      );
+      expect(awardDropdown).toHaveValue('p1');
     });
 
     it('should handle deleted player gracefully (no trophy displayed)', async () => {
@@ -296,27 +285,6 @@ describe('SeasonTournamentManagementModal', () => {
 
       // Trophy should not be displayed
       expect(screen.queryByText('🏆')).not.toBeInTheDocument();
-    });
-
-    it('should not show player award dropdown when editing season', async () => {
-      const user = userEvent.setup();
-      await act(async () => {
-        renderWithProviders({
-          seasons: [{ id: 's1', name: 'Spring Season' }],
-        });
-      });
-      await act(async () => {});
-
-      // Open actions menu and choose edit for season
-      const actionsButton = screen.getByLabelText('season actions');
-      await user.click(actionsButton);
-
-      const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
-      await user.click(editOption);
-
-      // Player award dropdown should NOT be present for seasons
-      const awardDropdown = screen.queryByRole('combobox', { name: /select player of tournament/i });
-      expect(awardDropdown).not.toBeInTheDocument();
     });
   });
 });
