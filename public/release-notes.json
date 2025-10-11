@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: add review document for GameStatsModal refactor"
+  "notes": "fix: restore original visual styling to GameStatsModal while keeping refactored code"
 }
