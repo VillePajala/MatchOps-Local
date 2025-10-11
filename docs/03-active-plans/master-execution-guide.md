@@ -17,6 +17,7 @@ Table of Contents
 - Phase M0: Pre‑Migration Essentials (Tests, Logging, Sentry, PWA dedup)
 - Phase M1: IndexedDB Migration (KV adapter + copy/flip)
 - Ongoing Feature Development
+- Phase F1: Backend Architecture Evolution (Dual-Backend: Local + Cloud)
 - Phase P1: Post‑Migration Hardening (Security headers, SW, Analytics gating)
 - Phase P2: PWA + Store Packaging (Branding, Metadata, TWA)
 - Phase P3: Quality Gates (A11y, Performance, Test expansion)
@@ -256,6 +257,89 @@ Acceptance Criteria (for IndexedDB rollout)
 
 ---
 
+## Phase F1: Backend Architecture Evolution (Planned)
+
+- Owner: TBD
+- Target Date: TBD
+- Estimated Duration: 16-24 weeks (4-6 months)
+- Complexity: High
+- Documentation: `backend-evolution/` folder
+
+**Overview**: Evolve from IndexedDB-only to dual-backend architecture supporting both local (free) and cloud (premium) modes.
+
+**Business Context**:
+- **Free Tier**: Local mode (IndexedDB), full features, single device
+- **Premium Tier**: Cloud mode (Supabase PostgreSQL), multi-device sync, cloud backup, in-app purchase
+
+**Technical Approach**:
+- Introduce `DataStore` and `AuthService` interfaces
+- Wrap existing IndexedDB code in `LocalDataStore` (no rewrites)
+- Implement `SupabaseDataStore` for cloud backend
+- User-initiated migration from local to cloud
+
+**Key Documentation**:
+- **Architecture**: [Dual-Backend Architecture](../02-technical/architecture/dual-backend-architecture.md)
+- **Interfaces**: [DataStore Interface](../02-technical/architecture/datastore-interface.md) | [AuthService Interface](../02-technical/architecture/auth-service-interface.md)
+- **Database**: [Current Storage Schema](../02-technical/database/current-storage-schema.md) | [Supabase Schema](../02-technical/database/supabase-schema.md)
+- **Migration**: [Migration Strategy](./backend-evolution/migration-strategy.md)
+- **Roadmap**: [Phased Implementation Roadmap](./backend-evolution/phased-implementation-roadmap.md) ⚡ **START HERE**
+
+**Implementation Phases**:
+
+### Phase F1.1: Interfaces & Local Wrapper (4-6 weeks)
+- [ ] Define DataStore and AuthService interfaces
+- [ ] Implement LocalDataStore (wraps existing storage code)
+- [ ] Implement LocalAuthService (no-op)
+- [ ] Update React Query hooks to use DataStore
+- [ ] All tests pass, zero functionality changes
+
+**Acceptance**: Same functionality, new abstraction layer
+
+### Phase F1.2: Supabase Implementation (6-8 weeks)
+- [ ] Set up Supabase project and database schema
+- [ ] Implement SupabaseDataStore (PostgreSQL queries)
+- [ ] Implement SupabaseAuthService (email/OAuth)
+- [ ] Test cloud backend in isolation
+- [ ] Performance benchmarks (<500ms queries)
+
+**Acceptance**: Both backends work independently
+
+### Phase F1.3: Backend Selection & Migration (4-6 weeks)
+- [ ] Add backend selection UI (local vs cloud)
+- [ ] Implement migration tool (export → transform → import)
+- [ ] Add authentication UI (sign up, sign in, password reset)
+- [ ] End-to-end migration testing
+- [ ] Deploy to production
+
+**Acceptance**: Users can migrate local data to cloud
+
+### Phase F1.4: Play Store Integration (2-4 weeks)
+- [ ] Integrate Play Store billing API
+- [ ] Implement feature gating (free vs premium)
+- [ ] Add paywall UI
+- [ ] Test purchase flow
+- [ ] Update app in Play Store
+
+**Acceptance**: Premium tier available for purchase
+
+**Risks & Mitigations**:
+- **Data Loss**: Comprehensive validation + keep local backup
+- **Network Failures**: Retry logic with exponential backoff
+- **Poor Performance**: React Query caching + batch operations
+- **Low Conversion**: Clear value proposition, free trial
+
+**Success Metrics**:
+- 90%+ migration success rate (zero data loss)
+- Query performance <500ms (95th percentile)
+- 5-15% premium conversion rate
+- 4.0+ Play Store rating
+
+**Status**: Planned - awaiting stakeholder approval and resource allocation
+
+**See**: [Phased Implementation Roadmap](./backend-evolution/phased-implementation-roadmap.md) for detailed timeline and tasks
+
+---
+
 ## Phase P1: Post‑Migration Hardening (Security headers, SW, Analytics gating)
 
 - Owner: TBD
@@ -396,3 +480,11 @@ Acceptance
   - team-final-positions-plan.md (team final position tracking for seasons/tournaments - 6-8 hours)
   - personnel-implementation-plan.md (personnel management with real-time React Query updates - 8-10 hours)
   - personnel-feature-plan.md (older format, superseded by personnel-implementation-plan.md)
+- Backend Architecture Evolution (planned)
+  - backend-evolution/phased-implementation-roadmap.md ⚡ **START HERE - EXECUTION PLAN**
+  - backend-evolution/migration-strategy.md (data transformation: IndexedDB → Supabase)
+  - 02-technical/architecture/dual-backend-architecture.md (comprehensive architecture design)
+  - 02-technical/architecture/datastore-interface.md (unified data access API)
+  - 02-technical/architecture/auth-service-interface.md (authentication abstraction)
+  - 02-technical/database/current-storage-schema.md (IndexedDB structure documentation)
+  - 02-technical/database/supabase-schema.md (PostgreSQL target schema)
