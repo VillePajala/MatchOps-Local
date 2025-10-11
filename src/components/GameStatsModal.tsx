@@ -92,7 +92,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   onExportAggregateCsv,
   initialSelectedPlayerId = null,
   onGameClick = () => {},
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   masterRoster = [],
 }) => {
   const { t, i18n } = useTranslation();
