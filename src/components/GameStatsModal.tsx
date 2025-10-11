@@ -373,7 +373,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
   // Tab styling helpers
   const getTabStyle = (tab: StatsTab) => {
-    const baseStyle = 'px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 whitespace-nowrap';
+    const baseStyle = 'px-2 py-1.5 text-sm font-medium rounded-md transition-colors';
     if (activeTab === tab) {
       return `${baseStyle} bg-indigo-600 text-white`;
     }
@@ -381,7 +381,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   };
 
   const getPlayerTabStyle = () => {
-    const baseStyle = 'px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 flex items-center gap-1';
+    const baseStyle = 'px-2 py-1.5 text-sm font-medium rounded-md transition-colors flex-1';
     return `${baseStyle} ${activeTab === 'player' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
   };
 
@@ -404,23 +404,109 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[60] p-2 sm:p-4">
-      <div className="bg-slate-900/95 rounded-lg shadow-2xl w-full max-w-7xl max-h-[95vh] flex flex-col border border-slate-700/50 backdrop-blur-md">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
+      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
+        <div className="absolute top-0 -left-1/4 w-1/2 h-1/2 bg-sky-400/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
+        <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-indigo-600/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-700/20 backdrop-blur-sm flex-shrink-0">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-slate-100">{getTabTitle()}</h2>
-            <button
-              onClick={onClose}
-              className="text-slate-400 hover:text-slate-200 text-2xl font-bold transition-colors"
-              aria-label={t('common.close', 'Close')}
-            >
-              ×
-            </button>
+        <div className="flex flex-col items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
+          <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
+            {getTabTitle()}
+          </h2>
+          {/* Counter */}
+          <div className="mt-3 text-center text-sm">
+            <div className="flex justify-center items-center text-slate-300">
+              {activeTab === 'currentGame' && (
+                <span>
+                  <span className="text-yellow-400 font-semibold">{availablePlayers.length}</span>
+                  {" "}{availablePlayers.length === 1
+                    ? t('teamRosterModal.playerSingular', 'Player')
+                    : t('teamRosterModal.playerPlural', 'Players')}
+                </span>
+              )}
+              {activeTab === 'season' && (
+                <span>
+                  <span className="text-yellow-400 font-semibold">{seasons.length}</span>
+                  {" "}{seasons.length === 1
+                    ? t('seasonTournamentModal.seasonSingular', 'Season')
+                    : t('seasonTournamentModal.seasons', 'Seasons')}
+                </span>
+              )}
+              {activeTab === 'tournament' && (
+                <span>
+                  <span className="text-yellow-400 font-semibold">{tournaments.length}</span>
+                  {" "}{tournaments.length === 1
+                    ? t('seasonTournamentModal.tournamentSingular', 'Tournament')
+                    : t('seasonTournamentModal.tournaments', 'Tournaments')}
+                </span>
+              )}
+              {activeTab === 'overall' && (() => {
+                const playedGamesCount = Object.keys(savedGames || {}).filter(
+                  id => savedGames?.[id]?.isPlayed !== false
+                ).filter(gameId => {
+                  const game = savedGames?.[gameId];
+                  if (!game) return false;
+                  if (selectedTeamIdFilter !== 'all') {
+                    if (selectedTeamIdFilter === 'legacy') {
+                      if (game.teamId != null && game.teamId !== '') return false;
+                    } else {
+                      if (game.teamId !== selectedTeamIdFilter) return false;
+                    }
+                  }
+                  return true;
+                }).length;
+                return (
+                  <span>
+                    <span className="text-yellow-400 font-semibold">{playedGamesCount}</span>
+                    {" "}{playedGamesCount === 1
+                      ? t('gameStatsModal.game', 'Game')
+                      : t('gameStatsModal.games', 'Games')}
+                  </span>
+                );
+              })()}
+              {activeTab === 'player' && (() => {
+                if (selectedPlayer) {
+                  const playerGames = Object.values(savedGames || {}).filter(
+                    game => game.selectedPlayerIds?.includes(selectedPlayer.id)
+                  );
+                  const uniqueSeasonIds = new Set(
+                    playerGames
+                      .map(game => game.seasonId)
+                      .filter((id): id is string => id != null)
+                  );
+                  const seasonsCount = uniqueSeasonIds.size;
+                  return (
+                    <span>
+                      <span className="text-yellow-400 font-semibold">{seasonsCount}</span>
+                      {" "}{seasonsCount === 1
+                        ? t('seasonTournamentModal.seasonSingular', 'Season')
+                        : t('seasonTournamentModal.seasons', 'Seasons')}
+                    </span>
+                  );
+                } else {
+                  return (
+                    <span>
+                      <span className="text-yellow-400 font-semibold">{masterRoster.length}</span>
+                      {" "}{masterRoster.length === 1
+                        ? t('teamRosterModal.playerSingular', 'Player')
+                        : t('teamRosterModal.playerPlural', 'Players')}
+                    </span>
+                  );
+                }
+              })()}
+            </div>
           </div>
+        </div>
 
-          {/* Tabs */}
-          <div className="mt-4 flex flex-wrap gap-2">
+        {/* Controls Section */}
+        <div className="px-6 py-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            {/* Tabs */}
+            <div className="flex items-center gap-2 flex-wrap flex-1">
+              <div className="flex w-full gap-2">
             <button onClick={() => setActiveTab('currentGame')} className={`${getTabStyle('currentGame')} flex-1`} aria-pressed={activeTab === 'currentGame'}>
               {t('gameStatsModal.tabs.currentGame')}
             </button>
@@ -436,6 +522,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             <button onClick={() => setActiveTab('player')} className={getPlayerTabStyle()} aria-pressed={activeTab === 'player'}>
               {t('gameStatsModal.tabs.player', 'Player')}
             </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -772,12 +860,12 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               className={`px-4 py-2 rounded-md font-medium transition-colors ${
                 isExportDisabled
                   ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
               }`}
             >
               {activeTab === 'currentGame'
-                ? t('gameStatsModal.exportJson', 'Export JSON')
-                : t('gameStatsModal.exportAggregateJson', 'Export Aggregate JSON')}
+                ? t('common.exportJson', 'Vie JSON')
+                : t('common.exportJson', 'Vie JSON')}
             </button>
           )}
 
@@ -794,20 +882,20 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               className={`px-4 py-2 rounded-md font-medium transition-colors ${
                 isExportDisabled
                   ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                  : 'bg-green-600 hover:bg-green-700 text-white'
+                  : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
               }`}
             >
               {activeTab === 'currentGame'
-                ? t('gameStatsModal.exportCsv', 'Export CSV')
-                : t('gameStatsModal.exportAggregateCsv', 'Export Aggregate CSV')}
+                ? t('common.exportCsv', 'Vie CSV')
+                : t('common.exportCsv', 'Vie CSV')}
             </button>
           )}
 
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md font-medium transition-colors"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors"
           >
-            {t('common.close', 'Close')}
+            {t('common.doneButton', 'Done')}
           </button>
         </div>
       </div>

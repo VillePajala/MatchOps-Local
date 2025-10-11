@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: extract GameStatsModal into modular hooks and components"
+  "notes": "docs: add review document for GameStatsModal refactor"
 }
