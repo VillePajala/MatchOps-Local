@@ -296,9 +296,7 @@ describe('TeamManagerModal', () => {
       fireEvent.click(createButton);
 
       await waitFor(() => {
-        expect(window.alert).toHaveBeenCalledWith(
-          'A team named "Team Alpha" already exists. Please choose a different name.'
-        );
+        expect(screen.getByText('A team named "Team Alpha" already exists. Please choose a different name.')).toBeInTheDocument();
       });
 
       expect(teamsUtils.addTeam).not.toHaveBeenCalled();
@@ -316,9 +314,7 @@ describe('TeamManagerModal', () => {
       fireEvent.click(createButton);
 
       await waitFor(() => {
-        expect(window.alert).toHaveBeenCalledWith(
-          'A team named "Team Alpha" already exists. Please choose a different name.'
-        );
+        expect(screen.getByText('A team named "Team Alpha" already exists. Please choose a different name.')).toBeInTheDocument();
       });
 
       expect(teamsUtils.addTeam).not.toHaveBeenCalled();
@@ -336,9 +332,7 @@ describe('TeamManagerModal', () => {
       fireEvent.click(createButton);
 
       await waitFor(() => {
-        expect(window.alert).toHaveBeenCalledWith(
-          'A team named "Team Alpha" already exists. Please choose a different name.'
-        );
+        expect(screen.getByText('A team named "Team Alpha" already exists. Please choose a different name.')).toBeInTheDocument();
       });
 
       expect(teamsUtils.addTeam).not.toHaveBeenCalled();
@@ -361,7 +355,7 @@ describe('TeamManagerModal', () => {
         expect(teamsUtils.addTeam).toHaveBeenCalled();
       });
 
-      expect(window.alert).not.toHaveBeenCalled();
+      expect(screen.queryByText(/already exists/i)).not.toBeInTheDocument();
     });
   });
 
@@ -502,9 +496,7 @@ describe('TeamManagerModal', () => {
       fireEvent.click(saveButton);
 
       await waitFor(() => {
-        expect(window.alert).toHaveBeenCalledWith(
-          'A team named "Team Beta" already exists. Please choose a different name.'
-        );
+        expect(screen.getByText('A team named "Team Beta" already exists. Please choose a different name.')).toBeInTheDocument();
       });
 
       expect(teamsUtils.updateTeam).not.toHaveBeenCalled();
@@ -527,7 +519,7 @@ describe('TeamManagerModal', () => {
       fireEvent.click(saveButton);
 
       await waitFor(() => {
-        expect(window.alert).toHaveBeenCalled();
+        expect(screen.getByText(/already exists/i)).toBeInTheDocument();
       });
 
       expect(teamsUtils.updateTeam).not.toHaveBeenCalled();
@@ -555,7 +547,7 @@ describe('TeamManagerModal', () => {
         expect(teamsUtils.updateTeam).toHaveBeenCalled();
       });
 
-      expect(window.alert).not.toHaveBeenCalled();
+      expect(screen.queryByText(/already exists/i)).not.toBeInTheDocument();
     });
 
     it('allows renaming to same name with different case', async () => {
@@ -580,7 +572,7 @@ describe('TeamManagerModal', () => {
         expect(teamsUtils.updateTeam).toHaveBeenCalled();
       });
 
-      expect(window.alert).not.toHaveBeenCalled();
+      expect(screen.queryByText(/already exists/i)).not.toBeInTheDocument();
     });
   });
 

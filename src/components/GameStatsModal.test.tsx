@@ -324,10 +324,11 @@ describe('GameStatsModal', () => {
       expect(screen.getByText(i18n.t('gameStatsModal.confirmDeleteEvent'))).toBeInTheDocument();
     });
 
-    // Click confirm button in modal
-    const confirmButton = screen.getByRole('button', { name: i18n.t('common.delete', 'Delete') });
+    // Click confirm button in modal (find the Delete button inside the dialog)
+    const allDeleteButtons = screen.getAllByRole('button', { name: i18n.t('common.delete', 'Delete') });
+    const modalConfirmButton = allDeleteButtons.find(btn => btn.closest('[role="dialog"]'));
     await act(async () => {
-      fireEvent.click(confirmButton);
+      fireEvent.click(modalConfirmButton!);
     });
 
     expect(mockProps.onDeleteGameEvent).toHaveBeenCalledWith('g1');

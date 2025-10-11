@@ -119,7 +119,29 @@ export const exportFullBackup = async (
   }
 };
 
-// Function to import data from a backup file
+/**
+ * Imports application data from a backup file, restoring all saved games, roster, and settings.
+ *
+ * @param jsonContent - The JSON string containing the backup data
+ * @param onImportSuccess - Optional callback to execute after successful import (e.g., refresh app state)
+ * @param showToast - Optional toast notification function for user feedback
+ * @param confirmed - When true, bypasses the confirmation prompt for React component usage.
+ *                    React components should show ConfirmationModal first, then pass confirmed=true.
+ *                    The window.confirm fallback (lines 156-161) is intentional for CLI/utility-only usage
+ *                    and maintains backward compatibility with direct function calls outside React context.
+ *
+ * @returns Promise<boolean> - true if import succeeded, false if user cancelled or import failed
+ *
+ * @example
+ * // From React component (preferred)
+ * const handleConfirm = async () => {
+ *   await importFullBackup(jsonContent, onSuccess, showToast, true); // confirmed=true
+ * };
+ *
+ * @example
+ * // Direct usage (CLI/utility scripts) - uses window.confirm fallback
+ * await importFullBackup(jsonContent); // confirmed=undefined, triggers window.confirm
+ */
 export const importFullBackup = async (
   jsonContent: string,
   onImportSuccess?: () => void,

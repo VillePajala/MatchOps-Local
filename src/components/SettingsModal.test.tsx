@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 
 import SettingsModal from './SettingsModal';
+import { ToastProvider } from '@/contexts/ToastProvider';
 
 // Create test query client
 const createTestQueryClient = () => new QueryClient({
@@ -19,7 +20,9 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
   const queryClient = createTestQueryClient();
   return (
     <QueryClientProvider client={queryClient}>
-      {children}
+      <ToastProvider>
+        {children}
+      </ToastProvider>
     </QueryClientProvider>
   );
 };

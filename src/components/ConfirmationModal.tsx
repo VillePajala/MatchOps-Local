@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 
@@ -30,6 +30,7 @@ export interface ConfirmationModalProps {
  * - Loading states
  * - Disabled states
  * - Danger/primary variants
+ * - Full WCAG 2.1 AA accessibility (ARIA, focus management, keyboard navigation)
  */
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isOpen,
@@ -45,17 +46,54 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   variant = 'primary',
 }) => {
   const { t } = useTranslation();
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
+
+  // Focus management and keyboard handler
+  useEffect(() => {
+    if (isOpen) {
+      // Store the element that had focus before modal opened
+      previousActiveElementRef.current = document.activeElement as HTMLElement;
+
+      // Auto-focus the confirm button when modal opens
+      confirmButtonRef.current?.focus();
+
+      // ESC key handler to close modal
+      const handleEscape = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          onCancel();
+        }
+      };
+
+      document.addEventListener('keydown', handleEscape);
+
+      return () => {
+        document.removeEventListener('keydown', handleEscape);
+
+        // Return focus to the element that triggered the modal
+        if (previousActiveElementRef.current) {
+          previousActiveElementRef.current.focus();
+        }
+      };
+    }
+  }, [isOpen, onCancel]);
 
   if (!isOpen) return null;
 
   const finalConfirmLabel = confirmLabel || t('common.confirm', 'Confirm');
   const finalCancelLabel = cancelLabel || t('common.cancel', 'Cancel');
+  const titleId = 'confirmation-modal-title';
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] font-display">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70] font-display"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+    >
       <div className="bg-slate-800 p-6 rounded-lg border border-slate-600 max-w-md w-full mx-4 shadow-2xl">
         {/* Title */}
-        <h3 className="text-lg font-semibold text-slate-100 mb-4">
+        <h3 id={titleId} className="text-lg font-semibold text-slate-100 mb-4">
           {title}
         </h3>
 
@@ -89,6 +127,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             {finalCancelLabel}
           </button>
           <button
+            ref={confirmButtonRef}
             onClick={onConfirm}
             disabled={isConfirming || confirmDisabled}
             className={variant === 'danger' ? dangerButtonStyle : primaryButtonStyle}
