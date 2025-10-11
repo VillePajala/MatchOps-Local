@@ -43,7 +43,7 @@ export function FilterControls({
           onChange={(e) => onSeasonFilterChange(e.target.value)}
           className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
         >
-          <option value="all">{t('gameStatsModal.filterAllSeasons')}</option>
+          <option value="all">{t('gameStatsModal.filterAllSeasons', 'All Seasons')}</option>
           {seasons.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
@@ -57,7 +57,7 @@ export function FilterControls({
           onChange={(e) => onTournamentFilterChange(e.target.value)}
           className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
         >
-          <option value="all">{t('gameStatsModal.filterAllTournaments')}</option>
+          <option value="all">{t('gameStatsModal.filterAllTournaments', 'All Tournaments')}</option>
           {tournaments.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}

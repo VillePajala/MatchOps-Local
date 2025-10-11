@@ -4,75 +4,34 @@ import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { Combobox } from '@headlessui/react';
 import { HiOutlineChevronUpDown } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
-import type { TranslationKey } from '@/i18n-types';
 import logger from '@/utils/logger';
-// Import types from the types directory
 import { Player, PlayerStatRow, Season, Tournament, Team } from '@/types';
 import { GameEvent, SavedGamesCollection } from '@/types';
-// ADD new import for keys
-// import { SEASONS_LIST_KEY, TOURNAMENTS_LIST_KEY } from '@/config/constants';
-// <<< REMOVE unused key imports
-// import { SEASONS_LIST_KEY, TOURNAMENTS_LIST_KEY } from '@/config/constants';
-// <<< ADD imports for utility functions >>>
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';
 import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
 import { getTeams as utilGetTeams } from '@/utils/teams';
-import { FaSort, FaSortUp, FaSortDown, FaEdit, FaSave, FaTimes, FaTrashAlt } from 'react-icons/fa';
 import PlayerStatsView from './PlayerStatsView';
 import { calculateTeamAssessmentAverages } from '@/utils/assessmentStats';
-import RatingBar from './RatingBar';
 import { extractClubSeasonsFromGames } from '@/utils/clubSeason';
 import { getAppSettings } from '@/utils/appSettings';
 
-// Define the type for sortable columns
-type SortableColumn = 'name' | 'goals' | 'assists' | 'totalScore' | 'fpAwards' | 'gamesPlayed' | 'avgPoints';
-type SortDirection = 'asc' | 'desc';
+// Import extracted hooks
+import { useGameStats } from './GameStatsModal/hooks/useGameStats';
+import { useTournamentSeasonStats } from './GameStatsModal/hooks/useTournamentSeasonStats';
+import { useGoalEditor } from './GameStatsModal/hooks/useGoalEditor';
 
-// Define tab types
-type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'player';
+// Import extracted components
+import {
+  PlayerStatsTable,
+  GameInfoCard,
+  GoalEventList,
+  GameNotesEditor,
+  FilterControls,
+  TeamPerformanceCard,
+} from './GameStatsModal/components';
 
-// ADD Minimal interface for saved game structure used in this component
-interface SavedGame {
-  availablePlayers?: Player[];
-  selectedPlayerIds?: string[];
-  seasonId?: string | null;
-  tournamentId?: string | null;
-  teamId?: string | null;
-  gameEvents?: GameEvent[];
-  // Note: Add other properties from AppState if they are accessed via 'game' variable below
-}
-
-// ADD new interfaces for tournament and season statistics
-interface TournamentSeasonStats {
-  id: string;
-  name: string;
-  gamesPlayed: number;
-  wins: number;
-  losses: number;
-  ties: number;
-  goalsFor: number;
-  goalsAgainst: number;
-  goalDifference: number;
-  winPercentage: number;
-  averageGoalsFor: number;
-  averageGoalsAgainst: number;
-  lastGameDate?: string;
-}
-
-interface OverallTournamentSeasonStats {
-  totalGames: number;
-  totalWins: number;
-  totalLosses: number;
-  totalTies: number;
-  totalGoalsFor: number;
-  totalGoalsAgainst: number;
-  totalGoalDifference: number;
-  overallWinPercentage: number;
-  averageGoalsFor: number;
-  averageGoalsAgainst: number;
-  tournaments: TournamentSeasonStats[];
-  seasons: TournamentSeasonStats[];
-}
+// Import types
+import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
 
 interface GameStatsModalProps {
   isOpen: boolean;
@@ -93,7 +52,7 @@ interface GameStatsModalProps {
   onGameNotesChange?: (notes: string) => void;
   onUpdateGameEvent?: (updatedEvent: GameEvent) => void;
   selectedPlayerIds: string[];
-  savedGames: SavedGamesCollection; // Kept for potential future use, not currently used
+  savedGames: SavedGamesCollection;
   currentGameId: string | null;
   onExportOneJson?: (gameId: string) => void;
   onExportOneCsv?: (gameId: string) => void;
@@ -102,7 +61,7 @@ interface GameStatsModalProps {
   onExportAggregateCsv?: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
   initialSelectedPlayerId?: string | null;
   onGameClick?: (gameId: string) => void;
-  masterRoster?: Player[]; // Full roster for tournament player award display
+  masterRoster?: Player[];
 }
 
 const GameStatsModal: React.FC<GameStatsModalProps> = ({
@@ -122,9 +81,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   gameEvents,
   gameNotes = '',
   onGameNotesChange = () => {},
-  onUpdateGameEvent = () => { /* logger.warn('onUpdateGameEvent handler not provided'); */ },
+  onUpdateGameEvent = () => {},
   selectedPlayerIds,
-  savedGames, // Not actively used after removing aggregation
+  savedGames,
   currentGameId,
   onExportOneJson,
   onExportOneCsv,
@@ -133,38 +92,27 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   onExportAggregateCsv,
   initialSelectedPlayerId = null,
   onGameClick = () => {},
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   masterRoster = [],
 }) => {
   const { t, i18n } = useTranslation();
 
-  // <<< ADD DIAGNOSTIC LOG >>>
-  // logger.log('[GameStatsModal Render] gameEvents prop:', JSON.stringify(gameEvents));
-  // logger.log('[GameStatsModal Render] availablePlayers prop ref check:', availablePlayers); // Log reference too
-
-  // REVISED formatDisplayDate definition without date-fns
+  // Date formatting helper
   const formatDisplayDate = useCallback((isoDate: string): string => {
     if (!isoDate) return t('common.notSet', 'Ei asetettu');
     try {
-      if (isoDate.length !== 10) { // Basic check for YYYY-MM-DD format
-        // logger.warn(`Invalid date format received: ${isoDate}`);
-        return isoDate;
-      }
-      const date = new Date(isoDate); 
-      if (isNaN(date.getTime())) {
-        // logger.warn(`Invalid date value received: ${isoDate}`);
-          return isoDate; 
-      }
+      if (isoDate.length !== 10) return isoDate;
+      const date = new Date(isoDate);
+      if (isNaN(date.getTime())) return isoDate;
 
       const currentLanguage = i18n.language;
 
       if (currentLanguage.startsWith('fi')) {
-        // Finnish format: D.M.YYYY
-        const day = date.getDate(); // getDate() is timezone-aware based on browser
-        const month = date.getMonth() + 1; // getMonth() is 0-indexed
+        const day = date.getDate();
+        const month = date.getMonth() + 1;
         const year = date.getFullYear();
         return `${day}.${month}.${year}`;
       } else {
-        // Default/English format: MMM d, yyyy (e.g., Apr 22, 2025)
         return date.toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric',
@@ -175,32 +123,17 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       logger.warn('Error formatting date in GameStatsModal', { error });
       return 'Date Error';
     }
-  }, [i18n.language, t]); // Dependencies: language and t function
-
-  // ADD BACK formatTime helper
-  const formatTime = (timeInSeconds: number): string => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = timeInSeconds % 60;
-    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  };
+  }, [i18n.language, t]);
 
   // --- State ---
   const [editGameNotes, setEditGameNotes] = useState(gameNotes);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [inlineEditingField, setInlineEditingField] = useState<'opponent' | 'date' | 'home' | 'away' | null>(null);
-  const opponentInputRef = useRef<HTMLInputElement>(null);
-  const dateInputRef = useRef<HTMLInputElement>(null);
-  const homeScoreInputRef = useRef<HTMLInputElement>(null);
-  const awayScoreInputRef = useRef<HTMLInputElement>(null);
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [sortColumn, setSortColumn] = useState<SortableColumn>('totalScore');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [filterText, setFilterText] = useState<string>('');
-  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
-  const [editGoalTime, setEditGoalTime] = useState<string>(''); // Use string MM:SS for input
-  const [editGoalScorerId, setEditGoalScorerId] = useState<string>('');
-  const [editGoalAssisterId, setEditGoalAssisterId] = useState<string | undefined>(undefined);
-  const goalTimeInputRef = useRef<HTMLInputElement>(null);
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
@@ -208,14 +141,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [selectedSeasonIdFilter, setSelectedSeasonIdFilter] = useState<string | 'all'>('all');
   const [selectedTournamentIdFilter, setSelectedTournamentIdFilter] = useState<string | 'all'>('all');
   const [selectedTeamIdFilter, setSelectedTeamIdFilter] = useState<string | 'all' | 'legacy'>('all');
-  const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents); // Ensure local copy for editing/deleting
-  const [localFairPlayPlayerId, setLocalFairPlayPlayerId] = useState<string | null>(null);
+  const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [playerQuery, setPlayerQuery] = useState('');
   const [selectedClubSeason, setSelectedClubSeason] = useState<string>('all');
   const [clubSeasonStartMonth, setClubSeasonStartMonth] = useState<number>(10);
   const [clubSeasonEndMonth, setClubSeasonEndMonth] = useState<number>(5);
 
+  // Filtered players for Player tab combobox
   const filteredPlayers = useMemo(() => {
     const search = playerQuery.toLowerCase();
     return availablePlayers.filter(p => {
@@ -233,666 +166,176 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     return extractClubSeasonsFromGames(gamesArray, clubSeasonStartMonth, clubSeasonEndMonth);
   }, [savedGames, clubSeasonStartMonth, clubSeasonEndMonth]);
 
-  // ** Calculate initial winner ID using useMemo **
-  const initialFairPlayWinnerId = useMemo(() => {
-      // logger.log("[GameStatsModal:useMemo] Calculating initialFairPlayWinnerId. availablePlayers prop:", JSON.stringify(availablePlayers.map(p => ({id: p.id, name: p.name, fp: p.receivedFairPlayCard}))));
-      const winner = availablePlayers.find(p => p.receivedFairPlayCard);
-      // logger.log("[GameStatsModal:useMemo] Found winner object:", winner);
-      const winnerId = winner?.id || null;
-      // logger.log("[GameStatsModal:useMemo] Determined initialFairPlayWinnerId:", winnerId);
-      return winnerId;
-  }, [availablePlayers]);
-
   // --- Effects ---
   // Load seasons/tournaments/teams
   useEffect(() => {
-    const loadData = async () => { 
-    if (isOpen) {
-      try {
-          const loadedSeasons = await utilGetSeasons(); 
+    const loadData = async () => {
+      if (isOpen) {
+        const [loadedSeasons, loadedTournaments, loadedTeams] = await Promise.all([
+          utilGetSeasons(),
+          utilGetTournaments(),
+          utilGetTeams(),
+        ]);
         setSeasons(loadedSeasons);
-        } catch (error) { 
-          logger.error("Failed to load seasons:", error); setSeasons([]); 
-        }
-      try {
-          const loadedTournaments = await utilGetTournaments(); // Await the async call
         setTournaments(loadedTournaments);
-        } catch (error) { 
-          logger.error("Failed to load tournaments:", error); setTournaments([]); 
-    }
-      try {
-          const loadedTeams = await utilGetTeams();
         setTeams(loadedTeams);
-        } catch (error) { 
-          logger.error("Failed to load teams:", error); setTeams([]); 
-    }
+
+        const settings = await getAppSettings();
+        if (settings) {
+          setClubSeasonStartMonth(settings.clubSeasonStartMonth ?? 10);
+          setClubSeasonEndMonth(settings.clubSeasonEndMonth ?? 5);
+        }
       }
     };
     loadData();
   }, [isOpen]);
 
-  // Load club season settings
+  // Sync local game events with props
   useEffect(() => {
-    getAppSettings().then(s => {
-      setClubSeasonStartMonth(s.clubSeasonStartMonth ?? 10);
-      setClubSeasonEndMonth(s.clubSeasonEndMonth ?? 5);
-    });
-  }, []);
-
-  // Reset edit state
-  useEffect(() => {
-      if (isOpen) {
-          setEditGameNotes(gameNotes);
-          setIsEditingNotes(false);
-          setInlineEditingField(null);
-      } else {
-          setIsEditingNotes(false);
-          setInlineEditingField(null);
-      }
-  }, [isOpen, gameNotes]);
-
-  // Focus elements
-  useEffect(() => {
-    if (inlineEditingField === 'opponent') { opponentInputRef.current?.focus(); opponentInputRef.current?.select(); }
-    else if (inlineEditingField === 'date') { dateInputRef.current?.focus(); }
-    else if (inlineEditingField === 'home') { homeScoreInputRef.current?.focus(); homeScoreInputRef.current?.select(); }
-    else if (inlineEditingField === 'away') { awayScoreInputRef.current?.focus(); awayScoreInputRef.current?.select(); }
-    if (isEditingNotes) { notesTextareaRef.current?.focus(); }
-  }, [inlineEditingField, isEditingNotes]);
-
-  // Focus goal time input
-  useEffect(() => {
-      if (editingGoalId) { goalTimeInputRef.current?.focus(); goalTimeInputRef.current?.select(); }
-  }, [editingGoalId]);
-
-  // ADD Effect to reset filters when tab changes
-  useEffect(() => {
-      setSelectedSeasonIdFilter('all');
-      setSelectedTournamentIdFilter('all');
-      setSelectedTeamIdFilter('all');
-  }, [activeTab]);
-
-  // Update localGameEvents when main gameEvents change
-  useEffect(() => {
-      setLocalGameEvents(gameEvents); 
+    setLocalGameEvents(gameEvents);
   }, [gameEvents]);
 
-  // ** ADD Separate Effect to Sync local state with calculated initial ID **
+  // Sync notes with props
   useEffect(() => {
-      // logger.log("[GameStatsModal:useEffectSync] Syncing localFairPlayPlayerId. Current local:", localFairPlayPlayerId, "New initial:", initialFairPlayWinnerId);
-      setLocalFairPlayPlayerId(initialFairPlayWinnerId);
-  }, [initialFairPlayWinnerId, localFairPlayPlayerId]);
+    if (isOpen) {
+      setEditGameNotes(gameNotes);
+      setIsEditingNotes(false);
+      setInlineEditingField(null);
+    }
+  }, [isOpen, gameNotes]);
 
-  // Effect to handle initial player selection
+  // Focus notes textarea when editing
+  useEffect(() => {
+    if (isEditingNotes) notesTextareaRef.current?.focus();
+  }, [isEditingNotes]);
+
+  // Set initial selected player
   useEffect(() => {
     if (isOpen && initialSelectedPlayerId) {
-      const playerToSelect = availablePlayers.find(p => p.id === initialSelectedPlayerId);
-      if (playerToSelect) {
-        // First, set the player
-        setSelectedPlayer(playerToSelect);
-        // Then, switch to the player tab
+      const player = availablePlayers.find(p => p.id === initialSelectedPlayerId);
+      if (player) {
+        setSelectedPlayer(player);
         setActiveTab('player');
       }
-    } else if (isOpen) {
-      // If modal opens without a specific player, ensure we are on the default tab
-      // and no player is selected from a previous session.
-      setActiveTab('currentGame');
-      setSelectedPlayer(null);
     }
   }, [isOpen, initialSelectedPlayerId, availablePlayers]);
 
-  // --- Calculations ---
-  // This is no longer used in the new UI, can be removed.
-  // const currentContextName = useMemo(() => {
-  //     if (seasonId) return seasons.find(s => s.id === seasonId)?.name;
-  //     if (tournamentId) return tournaments.find(t => t.id === tournamentId)?.name;
-  //     return null;
-  // }, [seasonId, tournamentId, seasons, tournaments]);
+  // Reset filters when tab changes
+  useEffect(() => {
+    if (activeTab !== 'season') setSelectedSeasonIdFilter('all');
+    if (activeTab !== 'tournament') setSelectedTournamentIdFilter('all');
+    if (activeTab === 'currentGame' || activeTab === 'player') setSelectedTeamIdFilter('all');
+  }, [activeTab]);
 
+  // --- Use extracted hooks ---
+  const { stats: playerStats, gameIds: processedGameIds, totals } = useGameStats({
+    activeTab,
+    savedGames,
+    availablePlayers,
+    selectedPlayerIds,
+    localGameEvents,
+    currentGameId,
+    selectedSeasonIdFilter,
+    selectedTournamentIdFilter,
+    selectedTeamIdFilter,
+    sortColumn,
+    sortDirection,
+    filterText,
+  });
+
+  const tournamentSeasonStats = useTournamentSeasonStats({
+    activeTab,
+    savedGames,
+    seasons,
+    tournaments,
+    selectedSeasonIdFilter,
+    selectedTournamentIdFilter,
+  });
+
+  const goalEditorHook = useGoalEditor({
+    gameEvents,
+    onUpdateGameEvent,
+    onDeleteGameEvent,
+    setLocalGameEvents,
+    setIsEditingNotes,
+    setInlineEditingField,
+    t,
+  });
+
+  // Calculate overall team stats (for overall tab)
   const overallTeamStats = useMemo(() => {
     if (activeTab !== 'overall') return null;
 
     const playedGameIds = Object.keys(savedGames || {}).filter(
       id => savedGames?.[id]?.isPlayed !== false
-    );
-    let wins = 0;
-    let losses = 0;
-    let ties = 0;
-    let goalsFor = 0;
-    let goalsAgainst = 0;
+    ).filter(gameId => {
+      const game = savedGames?.[gameId];
+      if (!game) return false;
 
-    playedGameIds.forEach(gameId => {
-        const game = savedGames?.[gameId];
-        if (!game || typeof game.homeScore !== 'number' || typeof game.awayScore !== 'number') return;
-        
-        const ourScore = game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
-        const theirScore = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
-
-        goalsFor += ourScore;
-        goalsAgainst += theirScore;
-
-        if (ourScore > theirScore) wins++;
-        else if (ourScore < theirScore) losses++;
-        else ties++;
+      if (selectedTeamIdFilter !== 'all') {
+        if (selectedTeamIdFilter === 'legacy') {
+          if (game.teamId != null && game.teamId !== '') return false;
+        } else {
+          if (game.teamId !== selectedTeamIdFilter) return false;
+        }
+      }
+      return true;
     });
 
-    const gamesPlayed = playedGameIds.length;
-    if (gamesPlayed === 0) return null;
+    let gamesPlayed = 0, wins = 0, losses = 0, ties = 0, goalsFor = 0, goalsAgainst = 0;
+
+    playedGameIds.forEach(gameId => {
+      const game = savedGames?.[gameId];
+      if (!game) return;
+      gamesPlayed++;
+      const ourScore = game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
+      const theirScore = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
+
+      goalsFor += ourScore;
+      goalsAgainst += theirScore;
+
+      if (ourScore > theirScore) wins++;
+      else if (ourScore < theirScore) losses++;
+      else ties++;
+    });
 
     return {
-        gamesPlayed, wins, losses, ties, goalsFor, goalsAgainst,
-        goalDifference: goalsFor - goalsAgainst,
-        winPercentage: (wins / gamesPlayed) * 100,
-        averageGoalsFor: goalsFor / gamesPlayed,
-        averageGoalsAgainst: goalsAgainst / gamesPlayed,
+      gamesPlayed,
+      wins,
+      losses,
+      ties,
+      goalsFor,
+      goalsAgainst,
+      goalDifference: goalsFor - goalsAgainst,
+      winPercentage: gamesPlayed > 0 ? (wins / gamesPlayed) * 100 : 0,
+      averageGoalsFor: gamesPlayed > 0 ? goalsFor / gamesPlayed : 0,
+      averageGoalsAgainst: gamesPlayed > 0 ? goalsAgainst / gamesPlayed : 0,
     };
-  }, [activeTab, savedGames]);
+  }, [activeTab, savedGames, selectedTeamIdFilter]);
 
+  // Calculate team assessment averages
   const teamAssessmentAverages = useMemo(() => {
     if (activeTab !== 'overall') return null;
     return calculateTeamAssessmentAverages(savedGames);
   }, [activeTab, savedGames]);
 
-  // ADD calculation for tournament/season statistics
-  const tournamentSeasonStats = useMemo(() => {
-    if (activeTab !== 'season' && activeTab !== 'tournament') return null;
-
-    const calculateStats = (gameIds: string[]): TournamentSeasonStats[] | OverallTournamentSeasonStats => {
-      if (activeTab === 'season') {
-        if (selectedSeasonIdFilter === 'all') {
-          // Calculate stats for all seasons
-          const seasonStatsMap = new Map<string, TournamentSeasonStats>();
-          
-          gameIds.forEach(gameId => {
-            const game = savedGames?.[gameId];
-            if (!game?.seasonId || game.tournamentId) return; // Skip if no season or has tournament
-            
-            const season = seasons.find(s => s.id === game.seasonId);
-            if (!season) return;
-
-            if (!seasonStatsMap.has(season.id)) {
-              seasonStatsMap.set(season.id, {
-                id: season.id,
-                name: season.name,
-                gamesPlayed: 0,
-                wins: 0,
-                losses: 0,
-                ties: 0,
-                goalsFor: 0,
-                goalsAgainst: 0,
-                goalDifference: 0,
-                winPercentage: 0,
-                averageGoalsFor: 0,
-                averageGoalsAgainst: 0,
-                lastGameDate: game.gameDate
-              });
-            }
-
-            const stats = seasonStatsMap.get(season.id)!;
-            stats.gamesPlayed++;
-            stats.goalsFor += game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
-            stats.goalsAgainst += game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
-            
-            // Determine win/loss/tie
-            const ourScore = game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
-            const theirScore = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
-            
-            if (ourScore > theirScore) stats.wins++;
-            else if (ourScore < theirScore) stats.losses++;
-            else stats.ties++;
-
-            // Update last game date
-            if (!stats.lastGameDate || game.gameDate > stats.lastGameDate) {
-              stats.lastGameDate = game.gameDate;
-            }
-          });
-
-          // Calculate derived stats
-          const allSeasonStats = Array.from(seasonStatsMap.values()).map(stats => ({
-            ...stats,
-            goalDifference: stats.goalsFor - stats.goalsAgainst,
-            winPercentage: stats.gamesPlayed > 0 ? (stats.wins / stats.gamesPlayed) * 100 : 0,
-            averageGoalsFor: stats.gamesPlayed > 0 ? stats.goalsFor / stats.gamesPlayed : 0,
-            averageGoalsAgainst: stats.gamesPlayed > 0 ? stats.goalsAgainst / stats.gamesPlayed : 0
-          }));
-
-          // Calculate overall stats
-          const totalGames = allSeasonStats.reduce((sum, s) => sum + s.gamesPlayed, 0);
-          const totalWins = allSeasonStats.reduce((sum, s) => sum + s.wins, 0);
-          const totalLosses = allSeasonStats.reduce((sum, s) => sum + s.losses, 0);
-          const totalTies = allSeasonStats.reduce((sum, s) => sum + s.ties, 0);
-          const totalGoalsFor = allSeasonStats.reduce((sum, s) => sum + s.goalsFor, 0);
-          const totalGoalsAgainst = allSeasonStats.reduce((sum, s) => sum + s.goalsAgainst, 0);
-
-          return {
-            totalGames,
-            totalWins,
-            totalLosses,
-            totalTies,
-            totalGoalsFor,
-            totalGoalsAgainst,
-            totalGoalDifference: totalGoalsFor - totalGoalsAgainst,
-            overallWinPercentage: totalGames > 0 ? (totalWins / totalGames) * 100 : 0,
-            averageGoalsFor: totalGames > 0 ? totalGoalsFor / totalGames : 0,
-            averageGoalsAgainst: totalGames > 0 ? totalGoalsAgainst / totalGames : 0,
-            tournaments: [],
-            seasons: allSeasonStats
-          } as OverallTournamentSeasonStats;
-        } else {
-          // Calculate stats for specific season
-          const season = seasons.find(s => s.id === selectedSeasonIdFilter);
-          if (!season) return [];
-
-          const stats: TournamentSeasonStats = {
-            id: season.id,
-            name: season.name,
-            gamesPlayed: 0,
-            wins: 0,
-            losses: 0,
-            ties: 0,
-            goalsFor: 0,
-            goalsAgainst: 0,
-            goalDifference: 0,
-            winPercentage: 0,
-            averageGoalsFor: 0,
-            averageGoalsAgainst: 0
-          };
-
-          gameIds.forEach(gameId => {
-            const game = savedGames?.[gameId];
-            if (!game || game.seasonId !== selectedSeasonIdFilter) return;
-
-            stats.gamesPlayed++;
-            stats.goalsFor += game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
-            stats.goalsAgainst += game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
-            
-            const ourScore = game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
-            const theirScore = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
-            
-            if (ourScore > theirScore) stats.wins++;
-            else if (ourScore < theirScore) stats.losses++;
-            else stats.ties++;
-
-            if (!stats.lastGameDate || game.gameDate > stats.lastGameDate) {
-              stats.lastGameDate = game.gameDate;
-            }
-          });
-
-          // Calculate derived stats
-          stats.goalDifference = stats.goalsFor - stats.goalsAgainst;
-          stats.winPercentage = stats.gamesPlayed > 0 ? (stats.wins / stats.gamesPlayed) * 100 : 0;
-          stats.averageGoalsFor = stats.gamesPlayed > 0 ? stats.goalsFor / stats.gamesPlayed : 0;
-          stats.averageGoalsAgainst = stats.gamesPlayed > 0 ? stats.goalsAgainst / stats.gamesPlayed : 0;
-
-          return [stats];
-        }
-      } else if (activeTab === 'tournament') {
-        if (selectedTournamentIdFilter === 'all') {
-          // Calculate stats for all tournaments
-          const tournamentStatsMap = new Map<string, TournamentSeasonStats>();
-          
-          gameIds.forEach(gameId => {
-            const game = savedGames?.[gameId];
-            if (!game?.tournamentId || game.seasonId) return; // Skip if no tournament or has season
-            
-            const tournament = tournaments.find(t => t.id === game.tournamentId);
-            if (!tournament) return;
-
-            if (!tournamentStatsMap.has(tournament.id)) {
-              tournamentStatsMap.set(tournament.id, {
-                id: tournament.id,
-                name: tournament.name,
-                gamesPlayed: 0,
-                wins: 0,
-                losses: 0,
-                ties: 0,
-                goalsFor: 0,
-                goalsAgainst: 0,
-                goalDifference: 0,
-                winPercentage: 0,
-                averageGoalsFor: 0,
-                averageGoalsAgainst: 0,
-                lastGameDate: game.gameDate
-              });
-            }
-
-            const stats = tournamentStatsMap.get(tournament.id)!;
-            stats.gamesPlayed++;
-            stats.goalsFor += game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
-            stats.goalsAgainst += game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
-            
-            const ourScore = game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
-            const theirScore = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
-            
-            if (ourScore > theirScore) stats.wins++;
-            else if (ourScore < theirScore) stats.losses++;
-            else stats.ties++;
-
-            if (!stats.lastGameDate || game.gameDate > stats.lastGameDate) {
-              stats.lastGameDate = game.gameDate;
-            }
-          });
-
-          const allTournamentStats = Array.from(tournamentStatsMap.values()).map(stats => ({
-            ...stats,
-            goalDifference: stats.goalsFor - stats.goalsAgainst,
-            winPercentage: stats.gamesPlayed > 0 ? (stats.wins / stats.gamesPlayed) * 100 : 0,
-            averageGoalsFor: stats.gamesPlayed > 0 ? stats.goalsFor / stats.gamesPlayed : 0,
-            averageGoalsAgainst: stats.gamesPlayed > 0 ? stats.goalsAgainst / stats.gamesPlayed : 0
-          }));
-
-          const totalGames = allTournamentStats.reduce((sum, s) => sum + s.gamesPlayed, 0);
-          const totalWins = allTournamentStats.reduce((sum, s) => sum + s.wins, 0);
-          const totalLosses = allTournamentStats.reduce((sum, s) => sum + s.losses, 0);
-          const totalTies = allTournamentStats.reduce((sum, s) => sum + s.ties, 0);
-          const totalGoalsFor = allTournamentStats.reduce((sum, s) => sum + s.goalsFor, 0);
-          const totalGoalsAgainst = allTournamentStats.reduce((sum, s) => sum + s.goalsAgainst, 0);
-
-          return {
-            totalGames,
-            totalWins,
-            totalLosses,
-            totalTies,
-            totalGoalsFor,
-            totalGoalsAgainst,
-            totalGoalDifference: totalGoalsFor - totalGoalsAgainst,
-            overallWinPercentage: totalGames > 0 ? (totalWins / totalGames) * 100 : 0,
-            averageGoalsFor: totalGames > 0 ? totalGoalsFor / totalGames : 0,
-            averageGoalsAgainst: totalGames > 0 ? totalGoalsAgainst / totalGames : 0,
-            tournaments: allTournamentStats,
-            seasons: []
-          } as OverallTournamentSeasonStats;
-        } else {
-          // Calculate stats for specific tournament
-          const tournament = tournaments.find(t => t.id === selectedTournamentIdFilter);
-          if (!tournament) return [];
-
-          const stats: TournamentSeasonStats = {
-            id: tournament.id,
-            name: tournament.name,
-            gamesPlayed: 0,
-            wins: 0,
-            losses: 0,
-            ties: 0,
-            goalsFor: 0,
-            goalsAgainst: 0,
-            goalDifference: 0,
-            winPercentage: 0,
-            averageGoalsFor: 0,
-            averageGoalsAgainst: 0
-          };
-
-          gameIds.forEach(gameId => {
-            const game = savedGames?.[gameId];
-            if (!game || game.tournamentId !== selectedTournamentIdFilter) return;
-
-            stats.gamesPlayed++;
-            stats.goalsFor += game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
-            stats.goalsAgainst += game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
-            
-            const ourScore = game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
-            const theirScore = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
-            
-            if (ourScore > theirScore) stats.wins++;
-            else if (ourScore < theirScore) stats.losses++;
-            else stats.ties++;
-
-            if (!stats.lastGameDate || game.gameDate > stats.lastGameDate) {
-              stats.lastGameDate = game.gameDate;
-            }
-          });
-
-          stats.goalDifference = stats.goalsFor - stats.goalsAgainst;
-          stats.winPercentage = stats.gamesPlayed > 0 ? (stats.wins / stats.gamesPlayed) * 100 : 0;
-          stats.averageGoalsFor = stats.gamesPlayed > 0 ? stats.goalsFor / stats.gamesPlayed : 0;
-          stats.averageGoalsAgainst = stats.gamesPlayed > 0 ? stats.goalsAgainst / stats.gamesPlayed : 0;
-
-          return [stats];
-        }
-      }
-
-      return [];
-    };
-
-    const playedGameIds = Object.keys(savedGames || {}).filter(
-      id => savedGames?.[id]?.isPlayed !== false
-    );
-    return calculateStats(playedGameIds);
-  }, [activeTab, savedGames, seasons, tournaments, selectedSeasonIdFilter, selectedTournamentIdFilter]);
-
-  // Modify filteredAndSortedPlayerStats useMemo to also return the list of game IDs processed
-  const { stats: playerStats, gameIds: processedGameIds } = useMemo(() => {
-    // logger.log("Recalculating player stats...", { activeTab, filterText, selectedSeasonIdFilter, selectedTournamentIdFilter, gameEvents: activeTab === 'currentGame' ? gameEvents : null, savedGames: activeTab !== 'currentGame' ? savedGames : null });
-
-    // Initialize stats map - MODIFIED: Initialize differently based on tab
-    const statsMap: { [key: string]: PlayerStatRow } = {};
-    let relevantGameEvents: GameEvent[] = [];
-    let processedGameIds: string[] = []; // Keep track of games considered for GP calc
-
-    if (activeTab === 'currentGame') {
-      // Current game: Only include players that were selected
-      const playersInGame = availablePlayers.filter(p => selectedPlayerIds?.includes(p.id));
-      playersInGame.forEach(player => {
-          statsMap[player.id] = {
-              ...player,
-              goals: 0,
-              assists: 0,
-              totalScore: 0,
-              gamesPlayed: 1,
-              avgPoints: 0,
-          };
-      });
-
-      relevantGameEvents = localGameEvents || []; // MODIFIED: Use localGameEvents
-      if (currentGameId) {
-        processedGameIds = [currentGameId];
-      }
-    } else {
-      // Handle 'season', 'tournament', 'overall' tabs
-      const allGameIds = Object.keys(savedGames || {}).filter(
-        id => savedGames?.[id]?.isPlayed !== false
-      );
-      
-      // Filter game IDs based on tab and selected filter
-      processedGameIds = allGameIds.filter(gameId => {
-        const game: SavedGame | undefined = savedGames?.[gameId];
-        if (!game) return false;
-
-        // Apply team filter first (affects all tabs)
-        if (selectedTeamIdFilter !== 'all') {
-          if (selectedTeamIdFilter === 'legacy') {
-            // Only include games without teamId (legacy games)
-            if (game.teamId != null && game.teamId !== '') return false;
-          } else {
-            // Only include games with specific teamId
-            if (game.teamId !== selectedTeamIdFilter) return false;
-          }
-        }
-
-        if (activeTab === 'season') {
-          // Stricter Check: If 'all', include only if it has a seasonId AND NOT a tournamentId.
-          return selectedSeasonIdFilter === 'all'
-            ? game.seasonId != null && (game.tournamentId == null || game.tournamentId === '')
-            : game.seasonId === selectedSeasonIdFilter;
-        } else if (activeTab === 'tournament') {
-          // Stricter Check: If 'all', include only if it has a tournamentId AND NOT a seasonId.
-          return selectedTournamentIdFilter === 'all'
-            ? game.tournamentId != null && (game.seasonId == null || game.seasonId === '')
-            : game.tournamentId === selectedTournamentIdFilter;
-        } else if (activeTab === 'overall') {
-          // Overall still includes everything
-          return true;
-        }
-        return false; // Default case, should not happen
-      });
-
-      // Aggregate views: Build statsMap from players that actually played
-      processedGameIds.forEach(gameId => {
-          const game: SavedGame | undefined = savedGames?.[gameId];
-          game?.selectedPlayerIds?.forEach(playerId => {
-              const playerInGame = game.availablePlayers?.find(p => p.id === playerId);
-              if (playerInGame && !statsMap[playerId]) {
-                  statsMap[playerId] = {
-                      ...playerInGame,
-                      goals: 0,
-                      assists: 0,
-                      totalScore: 0,
-                      gamesPlayed: 0,
-                      avgPoints: 0,
-                  };
-              }
-          });
-      });
-
-      // Collect events from the filtered games
-      relevantGameEvents = processedGameIds.flatMap(id => (savedGames?.[id] as SavedGame)?.gameEvents || []); // USE TYPE ASSERTION
-
-      // Calculate Games Played and FP Awards for aggregate views
-      processedGameIds.forEach(gameId => {
-        const game: SavedGame | undefined = savedGames?.[gameId];
-        if (game) {
-            // Existing GP calculation
-            game.selectedPlayerIds?.forEach(playerId => {
-              if (statsMap[playerId]) {
-                // Increment gamesPlayed only if the player exists in the main availablePlayers list
-                statsMap[playerId].gamesPlayed = (statsMap[playerId].gamesPlayed || 0) + 1;
-              }
-            });
-        }
-      });
-    }
-
-    // Process relevant events
-    relevantGameEvents.forEach(event => {
-      if (event.type === 'goal') {
-        if (event.scorerId && statsMap[event.scorerId]) {
-          statsMap[event.scorerId].goals = (statsMap[event.scorerId].goals || 0) + 1;
-          statsMap[event.scorerId].totalScore = (statsMap[event.scorerId].totalScore || 0) + 1;
-        } else if (event.scorerId) {
-        }
-        if (event.assisterId && statsMap[event.assisterId]) {
-          statsMap[event.assisterId].assists = (statsMap[event.assisterId].assists || 0) + 1;
-          statsMap[event.assisterId].totalScore = (statsMap[event.assisterId].totalScore || 0) + 1;
-        } else if (event.assisterId) {
-        }
-      }
-      // Add calculations for other stats if needed
-    });
-
-    // Calculate average points for all players before filtering and sorting
-    Object.values(statsMap).forEach(player => {
-      player.avgPoints = player.gamesPlayed > 0 ? player.totalScore / player.gamesPlayed : 0;
-    });
-
-    // Filter and sort
-    const filteredAndSortedStats = Object.values(statsMap)
-      .filter(player => player.gamesPlayed > 0 && player.name.toLowerCase().includes(filterText.toLowerCase()));
-
-    // Apply sorting
-    if (sortColumn) {
-      filteredAndSortedStats.sort((a, b) => {
-        // Primary sort: by gamesPlayed (players with GP > 0 come before players with GP === 0)
-        if (a.gamesPlayed > 0 && b.gamesPlayed === 0) {
-          return -1; // a comes first
-        }
-        if (a.gamesPlayed === 0 && b.gamesPlayed > 0) {
-          return 1;  // b comes first
-        }
-
-        // Secondary sort: by the selected sortColumn if GP is the same (e.g., both > 0 or both === 0)
-        let aValue: string | number = '';
-        let bValue: string | number = '';
-
-        switch (sortColumn) {
-            case 'name':
-                aValue = a.name.toLowerCase();
-                bValue = b.name.toLowerCase();
-                break;
-            case 'goals':
-                aValue = a.goals;
-                bValue = b.goals;
-                break;
-            case 'assists':
-                aValue = a.assists;
-                bValue = b.assists;
-                break;
-            case 'totalScore':
-                aValue = a.totalScore;
-                bValue = b.totalScore;
-                break;
-            case 'fpAwards':
-                aValue = a.fpAwards ?? 0;
-                bValue = b.fpAwards ?? 0;
-                break;
-             case 'gamesPlayed': // If primary sort is by GP itself (e.g., user clicks GP header)
-                 // The primary GP sort above already handled the main separation.
-                 // This will sort within the GP > 0 group and GP === 0 group respectively.
-                 aValue = a.gamesPlayed;
-                 bValue = b.gamesPlayed;
-                 break;
-            case 'avgPoints':
-                aValue = a.avgPoints;
-                bValue = b.avgPoints;
-                break;
-        }
-
-        // Apply direction for secondary sort key
-        if (typeof aValue === 'string' && typeof bValue === 'string') {
-          return sortDirection === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
-        } else if (typeof aValue === 'number' && typeof bValue === 'number') {
-          return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-        }
-        return 0;
-      });
-    }
-
-    // Return both stats and the processed game IDs
-    return { stats: filteredAndSortedStats, gameIds: processedGameIds };
-
-  }, [
-    activeTab,
-    localGameEvents,
-    savedGames,
-    availablePlayers,
-    sortColumn,
-    sortDirection,
-    filterText,
-    selectedSeasonIdFilter,
-    selectedTournamentIdFilter,
-    selectedTeamIdFilter,
-    currentGameId,
-    selectedPlayerIds
-  ]);
-
-  const totals = useMemo(() => {
-    return playerStats.reduce(
-      (acc, p) => {
-        acc.gamesPlayed += p.gamesPlayed;
-        acc.goals += p.goals;
-        acc.assists += p.assists;
-        acc.totalScore += p.totalScore;
-        return acc;
-      },
-      { gamesPlayed: 0, goals: 0, assists: 0, totalScore: 0 }
-    );
-  }, [playerStats]);
-
-  // Use localGameEvents for display
+  // Sorted goals for current game
   const sortedGoals = useMemo(() => {
     if (activeTab === 'currentGame') {
-        return localGameEvents.filter(e => e.type === 'goal' || e.type === 'opponentGoal').sort((a, b) => a.time - b.time);
-    } 
+      return localGameEvents
+        .filter(e => e.type === 'goal' || e.type === 'opponentGoal')
+        .sort((a, b) => a.time - b.time);
+    }
     return [];
-  }, [activeTab, localGameEvents]); // Depend on localGameEvents
+  }, [activeTab, localGameEvents]);
 
   // Determine if export should be disabled
   const isExportDisabled = useMemo(() => {
-      if (activeTab === 'currentGame') {
-          return !currentGameId; // Disabled if no current game ID
-      } else {
-          // Disabled on aggregate tabs if no games were processed OR no aggregate export handler exists
-          return processedGameIds.length === 0 || (!onExportAggregateJson && !onExportAggregateCsv);
-      }
+    if (activeTab === 'currentGame') {
+      return !currentGameId;
+    } else {
+      return processedGameIds.length === 0 || (!onExportAggregateJson && !onExportAggregateCsv);
+    }
   }, [activeTab, currentGameId, processedGameIds, onExportAggregateJson, onExportAggregateCsv]);
 
   // Determine display names based on home/away
@@ -900,183 +343,99 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const displayAwayTeamName = homeOrAway === 'home' ? opponentName : teamName;
 
   // --- Handlers ---
-  const handleSaveNotes = () => { if (gameNotes !== editGameNotes) onGameNotesChange(editGameNotes); setIsEditingNotes(false); };
-  const handleCancelEditNotes = () => { setEditGameNotes(gameNotes); setIsEditingNotes(false); };
-  
-  const handleSort = (column: SortableColumn) => { if (sortColumn === column) setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc')); else { setSortColumn(column); setSortDirection(column === 'name' ? 'asc' : 'desc'); } };
-  const handleFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => { setFilterText(event.target.value); };
+  const handleSaveNotes = () => {
+    if (gameNotes !== editGameNotes) onGameNotesChange(editGameNotes);
+    setIsEditingNotes(false);
+  };
+
+  const handleCancelEditNotes = () => {
+    setEditGameNotes(gameNotes);
+    setIsEditingNotes(false);
+  };
+
+  const handleSort = (column: SortableColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection(column === 'name' ? 'asc' : 'desc');
+    }
+  };
+
+  const handleFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setFilterText(event.target.value);
+  };
+
   const handlePlayerRowClick = (player: Player) => {
     setSelectedPlayer(player);
     setActiveTab('player');
   };
-  const handleStartEditGoal = (goal: GameEvent) => {
-    setEditingGoalId(goal.id);
-    setEditGoalTime(formatTime(goal.time));
-    setEditGoalScorerId(goal.scorerId ?? '');
-    setEditGoalAssisterId(goal.assisterId ?? '');
-    setIsEditingNotes(false);
-    setInlineEditingField(null);
-  };
-  const handleCancelEditGoal = () => { setEditingGoalId(null); };
-  const handleSaveEditGoal = () => {
-    if (!editingGoalId) return;
-    const originalGoal = gameEvents.find(e => e.id === editingGoalId); if (!originalGoal) { handleCancelEditGoal(); return; }
-    const timeParts = editGoalTime.match(/^(\d{1,2}):(\d{1,2})$/); let timeInSeconds = 0;
-    if (timeParts) { const m = parseInt(timeParts[1], 10), s = parseInt(timeParts[2], 10); if (!isNaN(m) && !isNaN(s) && m >= 0 && s >= 0 && s < 60) timeInSeconds = m * 60 + s; else { alert(t('gameStatsModal.invalidTimeFormat', 'Invalid time format. MM:SS')); goalTimeInputRef.current?.focus(); return; } } else { alert(t('gameStatsModal.invalidTimeFormat', 'Invalid time format. MM:SS')); goalTimeInputRef.current?.focus(); return; }
-    const updatedScorerId = editGoalScorerId; const updatedAssisterId = editGoalAssisterId || undefined;
-    if (!updatedScorerId) { alert(t('gameStatsModal.scorerRequired', 'Scorer must be selected.')); return; }
-    const updatedEvent: GameEvent = { ...originalGoal, time: timeInSeconds, scorerId: updatedScorerId, assisterId: updatedAssisterId };
-    if (typeof onUpdateGameEvent === 'function') {
-        onUpdateGameEvent(updatedEvent);
-    }
-          handleCancelEditGoal();
-  };
-  const handleGoalEditKeyDown = (event: React.KeyboardEvent) => { if (event.key === 'Enter') handleSaveEditGoal(); else if (event.key === 'Escape') handleCancelEditGoal(); }
 
-  // Wrap call in check
-  const triggerDeleteEvent = (goalId: string) => {
-    // Add confirmation dialog before deleting
-    if (window.confirm(t('gameStatsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.'))) {
-      // Combine checks for clarity and add non-null assertion
-      if (onDeleteGameEvent && typeof onDeleteGameEvent === 'function') { 
-        onDeleteGameEvent!(goalId); // ADD non-null assertion (!)
-        setLocalGameEvents(prevEvents => prevEvents.filter(event => event.id !== goalId));
-        // logger.log(`Locally deleted event ${goalId} and called parent handler.`);
-        } else {
-        // logger.warn("Delete handler (onDeleteGameEvent) not available or not a function.");
-      }
+  // Tab styling helpers
+  const getTabStyle = (tab: StatsTab) => {
+    const baseStyle = 'px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 whitespace-nowrap';
+    if (activeTab === tab) {
+      return `${baseStyle} bg-indigo-600 text-white`;
     }
+    return `${baseStyle} bg-slate-700 text-slate-300 hover:bg-slate-600`;
   };
 
-  // --- Dynamic Title based on Tab ---
-  const modalTitle = useMemo(() => {
-    switch(activeTab) {
+  const getPlayerTabStyle = () => {
+    const baseStyle = 'px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 flex items-center gap-1';
+    return `${baseStyle} ${activeTab === 'player' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
+  };
+
+  // Tab title helper
+  const getTabTitle = () => {
+    switch (activeTab) {
       case 'season': return t('gameStatsModal.titleSeason', 'Kausitilastot');
       case 'tournament': return t('gameStatsModal.titleTournament', 'Turnaustilastot');
       case 'overall': return t('gameStatsModal.titleOverall', 'Kokonaisstilastot');
-      case 'player': return selectedPlayer?.name || t('playerStats.title', 'Player Stats');
-      case 'currentGame':
+      case 'player': {
+        const selectedTeamName = selectedTeamIdFilter !== 'all' && selectedTeamIdFilter !== 'legacy'
+          ? teams.find(team => team.id === selectedTeamIdFilter)?.name
+          : null;
+        return `${selectedPlayer?.name || t('playerStats.selectPlayerLabel', 'Select Player')}${selectedTeamName ? ` - ${selectedTeamName}` : ''}`;
+      }
       default: return t('gameStatsModal.titleCurrentGame', 'Ottelutilastot');
     }
-  }, [activeTab, t, selectedPlayer]);
+  };
 
   if (!isOpen) return null;
 
-  // Helper for tab button styling - Reduce horizontal padding
-  const getTabStyle = (tabName: StatsTab) => {
-    return `px-2 py-1.5 text-sm font-medium rounded-md transition-colors ${activeTab === tabName ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
-    };
-
-    const getPlayerTabStyle = () => {
-        const baseStyle = 'px-2 py-1.5 text-sm font-medium rounded-md transition-colors flex-1';
-        // Player tab is always enabled now
-        return `${baseStyle} ${activeTab === 'player' ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`;
-    };
-
-    return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
-      <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
-        <div className="absolute top-0 -left-1/4 w-1/2 h-1/2 bg-sky-400/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
-        <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-indigo-600/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
-
-        {/* Header Section */}
-        <div className="flex flex-col items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
-            {modalTitle}
-          </h2>
-          {/* Counter */}
-          <div className="mt-3 text-center text-sm">
-            <div className="flex justify-center items-center text-slate-300">
-              {activeTab === 'currentGame' && (
-                <span>
-                  <span className="text-yellow-400 font-semibold">{availablePlayers.length}</span>
-                  {" "}{availablePlayers.length === 1
-                    ? t('teamRosterModal.playerSingular', 'Player')
-                    : t('teamRosterModal.playerPlural', 'Players')}
-                </span>
-              )}
-              {activeTab === 'season' && (
-                <span>
-                  <span className="text-yellow-400 font-semibold">{seasons.length}</span>
-                  {" "}{seasons.length === 1
-                    ? t('seasonTournamentModal.seasonSingular', 'Season')
-                    : t('seasonTournamentModal.seasons', 'Seasons')}
-                </span>
-              )}
-              {activeTab === 'tournament' && (
-                <span>
-                  <span className="text-yellow-400 font-semibold">{tournaments.length}</span>
-                  {" "}{tournaments.length === 1
-                    ? t('seasonTournamentModal.tournamentSingular', 'Tournament')
-                    : t('seasonTournamentModal.tournaments', 'Tournaments')}
-                </span>
-              )}
-              {activeTab === 'overall' && (() => {
-                const playedGamesCount = Object.keys(savedGames || {}).filter(
-                  id => savedGames?.[id]?.isPlayed !== false
-                ).length;
-                return (
-                  <span>
-                    <span className="text-yellow-400 font-semibold">{playedGamesCount}</span>
-                    {" "}{playedGamesCount === 1
-                      ? t('gameStatsModal.game', 'Game')
-                      : t('gameStatsModal.games', 'Games')}
-                  </span>
-                );
-              })()}
-              {activeTab === 'player' && (() => {
-                if (selectedPlayer) {
-                  // Count unique seasons the player has played in
-                  const playerGames = Object.values(savedGames || {}).filter(
-                    game => game.selectedPlayerIds?.includes(selectedPlayer.id)
-                  );
-                  const uniqueSeasonIds = new Set(
-                    playerGames
-                      .map(game => game.seasonId)
-                      .filter((id): id is string => id != null)
-                  );
-                  const seasonsCount = uniqueSeasonIds.size;
-                  return (
-                    <span>
-                      <span className="text-yellow-400 font-semibold">{seasonsCount}</span>
-                      {" "}{seasonsCount === 1
-                        ? t('seasonTournamentModal.seasonSingular', 'Season')
-                        : t('seasonTournamentModal.seasons', 'Seasons')}
-                    </span>
-                  );
-                } else {
-                  return (
-                    <span>
-                      <span className="text-yellow-400 font-semibold">{masterRoster.length}</span>
-                      {" "}{masterRoster.length === 1
-                        ? t('teamRosterModal.playerSingular', 'Player')
-                        : t('teamRosterModal.playerPlural', 'Players')}
-                    </span>
-                  );
-                }
-              })()}
-            </div>
+  return (
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[60] p-2 sm:p-4">
+      <div className="bg-slate-900/95 rounded-lg shadow-2xl w-full max-w-7xl max-h-[95vh] flex flex-col border border-slate-700/50 backdrop-blur-md">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-slate-700/20 backdrop-blur-sm flex-shrink-0">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-slate-100">{getTabTitle()}</h2>
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-200 text-2xl font-bold transition-colors"
+              aria-label={t('common.close', 'Close')}
+            >
+              ×
+            </button>
           </div>
-        </div>
 
-        {/* Controls Section */}
-        <div className="px-6 py-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            {/* Tabs & Filters */}
-            <div className="flex items-center gap-2 flex-wrap flex-1">
-              <div className="flex w-full gap-2">
-                <button onClick={() => setActiveTab('currentGame')} className={`${getTabStyle('currentGame')} flex-1`} aria-pressed={activeTab === 'currentGame'}>{t('gameStatsModal.tabs.currentGame')}</button>
-                <button onClick={() => setActiveTab('season')} className={`${getTabStyle('season')} flex-1`} aria-pressed={activeTab === 'season'}>{t('gameStatsModal.tabs.season')}</button>
-                <button onClick={() => setActiveTab('tournament')} className={`${getTabStyle('tournament')} flex-1`} aria-pressed={activeTab === 'tournament'}>{t('gameStatsModal.tabs.tournament')}</button>
-                <button onClick={() => setActiveTab('overall')} className={`${getTabStyle('overall')} flex-1`} aria-pressed={activeTab === 'overall'}>{t('gameStatsModal.tabs.overall')}</button>
-                <button onClick={() => setActiveTab('player')} className={getPlayerTabStyle()} aria-pressed={activeTab === 'player'}>
-                  {t('gameStatsModal.tabs.player', 'Player')}
-                </button>
-              </div>
-            </div>
+          {/* Tabs */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button onClick={() => setActiveTab('currentGame')} className={`${getTabStyle('currentGame')} flex-1`} aria-pressed={activeTab === 'currentGame'}>
+              {t('gameStatsModal.tabs.currentGame')}
+            </button>
+            <button onClick={() => setActiveTab('season')} className={`${getTabStyle('season')} flex-1`} aria-pressed={activeTab === 'season'}>
+              {t('gameStatsModal.tabs.season')}
+            </button>
+            <button onClick={() => setActiveTab('tournament')} className={`${getTabStyle('tournament')} flex-1`} aria-pressed={activeTab === 'tournament'}>
+              {t('gameStatsModal.tabs.tournament')}
+            </button>
+            <button onClick={() => setActiveTab('overall')} className={`${getTabStyle('overall')} flex-1`} aria-pressed={activeTab === 'overall'}>
+              {t('gameStatsModal.tabs.overall')}
+            </button>
+            <button onClick={() => setActiveTab('player')} className={getPlayerTabStyle()} aria-pressed={activeTab === 'player'}>
+              {t('gameStatsModal.tabs.player', 'Player')}
+            </button>
           </div>
         </div>
 
@@ -1112,9 +471,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                             value={p}
                             className={({ active }) =>
                               `p-2 rounded-md border border-slate-700/50 ${
-                                active
-                                  ? 'bg-slate-800/60'
-                                  : 'bg-slate-800/40 hover:bg-slate-800/60'
+                                active ? 'bg-slate-800/60' : 'bg-slate-800/40 hover:bg-slate-800/60'
                               }`
                             }
                           >
@@ -1158,463 +515,299 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             </div>
           ) : (
             <div className="p-4 sm:p-6">
-              {/* Compact Filters */}
-              <div className="mb-4 mx-1 grid grid-cols-2 gap-2">
-                  {activeTab === 'season' && (
-                    <select
-                      value={selectedSeasonIdFilter}
-                      onChange={(e) => setSelectedSeasonIdFilter(e.target.value)}
-                      className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    >
-                      <option value="all">{t('gameStatsModal.filterAllSeasons')}</option>
-                      {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                  )}
-                  {activeTab === 'tournament' && (
-                    <select
-                      value={selectedTournamentIdFilter}
-                      onChange={(e) => setSelectedTournamentIdFilter(e.target.value)}
-                      className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    >
-                      <option value="all">{t('gameStatsModal.filterAllTournaments')}</option>
-                      {tournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
-                  )}
-                  {teams.length > 0 && (
-                    <select
-                      value={selectedTeamIdFilter}
-                      onChange={(e) => setSelectedTeamIdFilter(e.target.value)}
-                      className={`px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 ${activeTab === 'overall' || activeTab === 'currentGame' ? 'col-span-2' : ''}`}
-                    >
-                      <option value="all">{t('loadGameModal.allTeamsFilter', 'All Teams')}</option>
-                      <option value="legacy">{t('loadGameModal.legacyGamesFilter', 'Legacy Games')}</option>
-                      {teams.map((team) => (
-                        <option key={team.id} value={team.id}>
-                          {team.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
+              {/* Filters */}
+              <FilterControls
+                activeTab={activeTab}
+                seasons={seasons}
+                tournaments={tournaments}
+                teams={teams}
+                selectedSeasonIdFilter={selectedSeasonIdFilter}
+                selectedTournamentIdFilter={selectedTournamentIdFilter}
+                selectedTeamIdFilter={selectedTeamIdFilter}
+                onSeasonFilterChange={setSelectedSeasonIdFilter}
+                onTournamentFilterChange={setSelectedTournamentIdFilter}
+                onTeamFilterChange={setSelectedTeamIdFilter}
+              />
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left Column */}
                 <div className="space-y-6">
-                {/* Overall Statistics Section */}
-                {activeTab === 'overall' && overallTeamStats && (
-                  <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                    <h3 className="text-xl font-semibold text-slate-200 mb-4">
-                      {selectedTeamIdFilter === 'all'
-                        ? t('loadGameModal.allTeamsFilter', 'All Teams')
-                        : selectedTeamIdFilter === 'legacy'
-                        ? t('loadGameModal.legacyGamesFilter', 'Legacy Games')
-                        : teams.find(team => team.id === selectedTeamIdFilter)?.name || t('gameStatsModal.overallSummary', 'Overall Summary')
+                  {/* Overall Statistics Section */}
+                  {activeTab === 'overall' && overallTeamStats && (
+                    <TeamPerformanceCard
+                      title={
+                        selectedTeamIdFilter === 'all'
+                          ? t('loadGameModal.allTeamsFilter', 'All Teams')
+                          : selectedTeamIdFilter === 'legacy'
+                          ? t('loadGameModal.legacyGamesFilter', 'Legacy Games')
+                          : teams.find(team => team.id === selectedTeamIdFilter)?.name || t('gameStatsModal.overallSummary', 'Overall Summary')
                       }
-                    </h3>
-                    <div className="space-y-0 text-sm">
-                        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                          <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
-                          <span className="text-yellow-400 font-bold">{overallTeamStats.gamesPlayed}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                          <span className="text-slate-300">{t('common.record', 'Record')}</span>
-                          <span className="text-yellow-400 font-bold">{overallTeamStats.wins}-{overallTeamStats.losses}-{overallTeamStats.ties}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                          <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
-                          <span className="text-yellow-400 font-bold">{overallTeamStats.winPercentage.toFixed(1)}%</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                          <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
-                          <span className={`font-bold ${overallTeamStats.goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {overallTeamStats.goalDifference >= 0 ? '+' : ''}{overallTeamStats.goalDifference}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                          <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
-                          <span className="text-yellow-400 font-bold">{overallTeamStats.goalsFor}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                          <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
-                          <span className="text-yellow-400 font-bold">{overallTeamStats.goalsAgainst}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                          <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
-                          <span className="text-yellow-400 font-bold">{overallTeamStats.averageGoalsFor.toFixed(1)}</span>
-                        </div>
-                        <div className="flex justify-between items-center py-1.5 px-2">
-                          <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
-                          <span className="text-yellow-400 font-bold">{overallTeamStats.averageGoalsAgainst.toFixed(1)}</span>
-                        </div>
-                      </div>
-                      {teamAssessmentAverages && (
-                        <div className="mt-4">
-                          <h4 className="text-md font-semibold mb-2">{t('playerStats.performanceRatings', 'Performance Ratings')}</h4>
-                          <div className="space-y-2 text-sm">
-                            {Object.entries(teamAssessmentAverages.averages).map(([metric, avg]) => (
-                              <div key={metric} className="flex items-center space-x-2 px-2">
-                                <span className="w-28 shrink-0">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</span>
-                                <RatingBar value={avg} />
-                              </div>
-                            ))}
-                            <div className="flex items-center space-x-2 px-2 mt-2">
-                              <span className="w-28 shrink-0">{t('playerAssessmentModal.overallLabel', 'Overall')}</span>
-                              <RatingBar value={teamAssessmentAverages.overall} />
-                            </div>
-                            <div className="flex items-center space-x-2 px-2">
-                              <span className="w-28 shrink-0">{t('playerStats.avgRating', 'Avg Rating')}</span>
-                              <RatingBar value={teamAssessmentAverages.finalScore} />
-                            </div>
-                            <div className="text-xs text-slate-400 text-right">
-                              {teamAssessmentAverages.count} {t('playerStats.ratedGames', 'rated')}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                  </div>
-                )}
-
-                {/* Tournament/Season Statistics Section */}
-                {(activeTab === 'season' || activeTab === 'tournament') && tournamentSeasonStats && (
-                  <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                    <h3 className="text-xl font-semibold text-slate-200 mb-4">
-                      {activeTab === 'season'
-                        ? (selectedSeasonIdFilter === 'all'
-                            ? t('gameStatsModal.filterAllSeasons', 'All Seasons')
-                            : seasons.find(s => s.id === selectedSeasonIdFilter)?.name || t('gameStatsModal.seasonStats', 'Season Statistics'))
-                        : (selectedTournamentIdFilter === 'all'
-                            ? t('gameStatsModal.filterAllTournaments', 'All Tournaments')
-                            : tournaments.find(t => t.id === selectedTournamentIdFilter)?.name || t('gameStatsModal.tournamentStats', 'Tournament Statistics'))
-                      }
-                    </h3>
-
-                    {/* Statistics in clean vertical format */}
-                    {tournamentSeasonStats && (
-                      <div className="space-y-0 text-sm">
-                        {Array.isArray(tournamentSeasonStats) ? (
-                          tournamentSeasonStats.length > 0 ? (
-                            // Show list of individual seasons/tournaments
-                            tournamentSeasonStats.map(stats => (
-                              <div key={stats.id} className="mb-6 last:mb-0">
-                                <div className="space-y-0">
-                                  <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                                    <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
-                                    <span className="text-yellow-400 font-bold">{stats.gamesPlayed}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                                    <span className="text-slate-300">{t('common.record', 'Record')}</span>
-                                    <span className="text-yellow-400 font-bold">{stats.wins}-{stats.losses}-{stats.ties}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                                    <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
-                                    <span className="text-yellow-400 font-bold">{stats.winPercentage.toFixed(1)}%</span>
-                                  </div>
-                                  <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                                    <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
-                                    <span className={`font-bold ${stats.goalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                      {stats.goalDifference >= 0 ? '+' : ''}{stats.goalDifference}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                                    <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
-                                    <span className="text-yellow-400 font-bold">{stats.goalsFor}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                                    <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
-                                    <span className="text-yellow-400 font-bold">{stats.goalsAgainst}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                                    <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
-                                    <span className="text-yellow-400 font-bold">{stats.averageGoalsFor.toFixed(1)}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center py-1.5 px-2">
-                                    <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
-                                    <span className="text-yellow-400 font-bold">{stats.averageGoalsAgainst.toFixed(1)}</span>
-                                  </div>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="py-4 text-center text-slate-400">{t('gameStatsModal.noStatsAvailable', 'No statistics available')}</div>
-                          )
-                        ) : (
-                          // Show overall stats for "all" view
-                          <div className="space-y-0">
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGames}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.record', 'Record')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalWins}-{tournamentSeasonStats.totalLosses}-{tournamentSeasonStats.totalTies}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.overallWinPercentage.toFixed(1)}%</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
-                              <span className={`font-bold ${tournamentSeasonStats.totalGoalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                {tournamentSeasonStats.totalGoalDifference >= 0 ? '+' : ''}{tournamentSeasonStats.totalGoalDifference}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsFor}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsAgainst}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                              <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsFor.toFixed(1)}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-1.5 px-2">
-                              <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
-                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsAgainst.toFixed(1)}</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {activeTab === 'currentGame' && (
-                  <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                    <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.gameInfoTitle', 'Game Information')}</h3>
-                    <div className="space-y-3">
-                      <div className="bg-slate-800/40 p-3 rounded-md border border-slate-700/50">
-                        <div className="flex justify-center items-center text-center">
-                          <span className="font-semibold text-slate-100 flex-1 text-right">{displayHomeTeamName}</span>
-                          <span className="text-2xl text-yellow-400 font-bold mx-4">{homeScore} - {awayScore}</span>
-                          <span className="font-semibold text-slate-100 flex-1 text-left">{displayAwayTeamName}</span>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-2 gap-3 text-sm">
-                        <div className="bg-slate-800/40 p-2 rounded-md">
-                          <label className="block text-xs text-slate-400">{t('common.date')}</label>
-                          <span className="font-medium text-slate-200">{formatDisplayDate(gameDate)}</span>
-                        </div>
-                        <div className="bg-slate-800/40 p-2 rounded-md">
-                          <label className="block text-xs text-slate-400">{t('common.time')}</label>
-                          <span className="font-medium text-slate-200">{gameTime || t('common.notSet')}</span>
-                        </div>
-                        <div className="bg-slate-800/40 p-2 rounded-md">
-                          <label className="block text-xs text-slate-400">{t('common.location')}</label>
-                          <span className="font-medium text-slate-200">{gameLocation || t('common.notSet')}</span>
-                        </div>
-                        <div className="bg-slate-800/40 p-2 rounded-md">
-                          <label className="block text-xs text-slate-400">{t('newGameSetupModal.periodsLabel')}</label>
-                          <span className="font-medium text-slate-200">{numPeriods} x {periodDurationMinutes} min</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                  <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.playerStatsTitle', 'Player Statistics')}</h3>
-                  {/* Search Input */}
-                  <div className="relative mb-4">
-                    <input
-                      type="text"
-                      value={filterText}
-                      onChange={handleFilterChange}
-                      placeholder={t('common.filterByName', 'Filter by name...')}
-                      className="bg-slate-800 border border-slate-700 rounded-md text-white pl-8 pr-3 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      gamesPlayed={overallTeamStats.gamesPlayed}
+                      wins={overallTeamStats.wins}
+                      losses={overallTeamStats.losses}
+                      ties={overallTeamStats.ties}
+                      winPercentage={overallTeamStats.winPercentage}
+                      goalDifference={overallTeamStats.goalDifference}
+                      goalsFor={overallTeamStats.goalsFor}
+                      goalsAgainst={overallTeamStats.goalsAgainst}
+                      averageGoalsFor={overallTeamStats.averageGoalsFor}
+                      averageGoalsAgainst={overallTeamStats.averageGoalsAgainst}
+                      teamAssessmentAverages={teamAssessmentAverages}
                     />
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <table className="w-full text-sm table-fixed">
-                      <thead className="text-slate-300">
-                        <tr className="border-b border-slate-700">
-                          <th className="px-2 py-2 text-left cursor-pointer hover:bg-slate-800/60" style={{width: '40%'}} onClick={() => handleSort('name')}>
-                            <div className="flex items-center">{t('common.player', 'Pelaaja')} {sortColumn === 'name' ? (sortDirection === 'asc' ? <FaSortUp className="ml-1 w-3 h-3"/> : <FaSortDown className="ml-1 w-3 h-3"/>) : <FaSort className="ml-1 w-3 h-3 opacity-30"/>}</div>
-                          </th>
-                          <th className="px-0.5 py-2 text-center cursor-pointer hover:bg-slate-800/60" style={{width: '10%'}} onClick={() => handleSort('gamesPlayed')}>
-                             <div className="flex items-center justify-center text-xs">{t('common.gamesPlayedShort', 'GP')} {sortColumn === 'gamesPlayed' ? (sortDirection === 'asc' ? <FaSortUp className="ml-0.5 w-3 h-3"/> : <FaSortDown className="ml-0.5 w-3 h-3"/>) : <FaSort className="ml-0.5 w-3 h-3 opacity-30"/>}</div>
-                          </th>
-                          <th className="px-0.5 py-2 text-center cursor-pointer hover:bg-slate-800/60" style={{width: '10%'}} onClick={() => handleSort('goals')}>
-                             <div className="flex items-center justify-center text-xs">{t('common.goalsShort', 'M')} {sortColumn === 'goals' ? (sortDirection === 'asc' ? <FaSortUp className="ml-0.5 w-3 h-3"/> : <FaSortDown className="ml-0.5 w-3 h-3"/>) : <FaSort className="ml-0.5 w-3 h-3 opacity-30"/>}</div>
-                          </th>
-                          <th className="px-0.5 py-2 text-center cursor-pointer hover:bg-slate-800/60" style={{width: '10%'}} onClick={() => handleSort('assists')}>
-                             <div className="flex items-center justify-center text-xs">{t('common.assistsShort', 'S')} {sortColumn === 'assists' ? (sortDirection === 'asc' ? <FaSortUp className="ml-0.5 w-3 h-3"/> : <FaSortDown className="ml-0.5 w-3 h-3"/>) : <FaSort className="ml-0.5 w-3 h-3 opacity-30"/>}</div>
-                          </th>
-                          <th className="px-0.5 py-2 text-center cursor-pointer hover:bg-slate-800/60" style={{width: '15%'}} onClick={() => handleSort('totalScore')}>
-                             <div className="flex items-center justify-center text-xs">{t('common.totalScoreShort', 'Pts')} {sortColumn === 'totalScore' ? (sortDirection === 'asc' ? <FaSortUp className="ml-0.5 w-3 h-3"/> : <FaSortDown className="ml-0.5 w-3 h-3"/>) : <FaSort className="ml-0.5 w-3 h-3 opacity-30"/>}</div>
-                          </th>
-                          <th className="px-0.5 py-2 text-center cursor-pointer hover:bg-slate-800/60" style={{width: '15%'}} onClick={() => handleSort('avgPoints')}>
-                             <div className="flex items-center justify-center text-xs">{t('common.avgPointsShort', 'KA')} {sortColumn === 'avgPoints' ? (sortDirection === 'asc' ? <FaSortUp className="ml-0.5 w-3 h-3"/> : <FaSortDown className="ml-0.5 w-3 h-3"/>) : <FaSort className="ml-0.5 w-3 h-3 opacity-30"/>}</div>
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-slate-100">
-                         {playerStats.length > 0 ? (
-                          playerStats.map(player => (
-                          <tr key={player.id} className="border-b border-slate-800 hover:bg-slate-800/40 cursor-pointer" onClick={() => handlePlayerRowClick(player)}>
-                            <td className="px-2 py-2 font-medium truncate">{player.name}</td>
-                            <td className="px-0.5 py-2 text-center text-yellow-400 font-semibold">{player.gamesPlayed}</td>
-                            <td className="px-0.5 py-2 text-center text-yellow-400 font-semibold">{player.goals}</td>
-                            <td className="px-0.5 py-2 text-center text-yellow-400 font-semibold">{player.assists}</td>
-                            <td className="px-0.5 py-2 text-center text-yellow-400 font-bold">{player.totalScore}</td>
-                            <td className="px-0.5 py-2 text-center text-yellow-400 font-semibold">{player.avgPoints.toFixed(1)}</td>
-                          </tr>
-                        ))
-                        ) : (
-                          <tr><td colSpan={6} className="py-4 text-center text-slate-400">{t('common.noPlayersMatchFilter', 'Ei pelaajia hakusuodattimella')}</td></tr>
-                        )}
-                        {playerStats.length > 0 && (
-                          <tr className="border-t border-slate-700 bg-slate-800/60 font-semibold">
-                            <td className="px-2 py-2">{t('playerStats.totalsRow', 'Totals')}</td>
-                            <td className="px-0.5 py-2 text-center text-yellow-400">{totals.gamesPlayed}</td>
-                            <td className="px-0.5 py-2 text-center text-yellow-400">{totals.goals}</td>
-                            <td className="px-0.5 py-2 text-center text-yellow-400">{totals.assists}</td>
-                            <td className="px-0.5 py-2 text-center text-yellow-400 font-bold">{totals.totalScore}</td>
-                            <td className="px-0.5 py-2 text-center text-yellow-400">{(totals.gamesPlayed > 0 ? (totals.totalScore / totals.gamesPlayed).toFixed(1) : '0.0')}</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
+                  )}
 
-              {/* Right Column */}
-              <div className="space-y-6">
-                {activeTab === 'currentGame' && (
-                  <>
+                  {/* Tournament/Season Statistics Section */}
+                  {(activeTab === 'season' || activeTab === 'tournament') && tournamentSeasonStats && (
                     <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                      <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.goalLogTitle', 'Goal Log')}</h3>
-                      <div className="space-y-2">
-                        {sortedGoals.filter(g => g.type === 'goal' || g.type === 'opponentGoal').map(goal => (
-                          <div key={goal.id} className={`p-3 rounded-md border transition-all ${editingGoalId === goal.id ? 'bg-slate-700/75 border-indigo-500' : 'bg-slate-800/40 border-slate-700/50'}`}>
-                            {editingGoalId === goal.id ? (
-                              <div className="space-y-3">
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                  <div>
-                                    <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.time', 'Time')}</label>
-                                    <input 
-                                      type="text" 
-                                      value={editGoalTime} 
-                                      onChange={e => setEditGoalTime(e.target.value)} 
-                                      onKeyDown={handleGoalEditKeyDown}
-                                      placeholder="MM:SS"
-                                      className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1.5 text-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.scorer', 'Scorer')}</label>
-                                    <select 
-                                      value={editGoalScorerId} 
-                                      onChange={e => setEditGoalScorerId(e.target.value)}
-                                      className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1.5 text-sm"
-                                    >
-                                      <option value="">{t('common.select', 'Select...')}</option>
-                                      {availablePlayers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                    </select>
-                                  </div>
-                                  <div>
-                                    <label className="block text-xs font-medium text-slate-400 mb-1">{t('common.assist', 'Assist')}</label>
-                                    <select 
-                                      value={editGoalAssisterId} 
-                                      onChange={e => setEditGoalAssisterId(e.target.value || '')}
-                                      className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1.5 text-sm"
-                                    >
-                                      <option value="">{t('common.none', 'None')}</option>
-                                      {availablePlayers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                    </select>
-                                  </div>
+                      <h3 className="text-xl font-semibold text-slate-200 mb-4">
+                        {activeTab === 'season'
+                          ? (selectedSeasonIdFilter === 'all'
+                              ? t('gameStatsModal.filterAllSeasons', 'All Seasons')
+                              : seasons.find(s => s.id === selectedSeasonIdFilter)?.name || t('gameStatsModal.seasonStats', 'Season Statistics'))
+                          : (selectedTournamentIdFilter === 'all'
+                              ? t('gameStatsModal.filterAllTournaments', 'All Tournaments')
+                              : tournaments.find(t => t.id === selectedTournamentIdFilter)?.name || t('gameStatsModal.tournamentStats', 'Tournament Statistics'))
+                        }
+                      </h3>
+
+                      {/* Statistics in clean vertical format */}
+                      {tournamentSeasonStats && (
+                        <div className="space-y-0 text-sm">
+                          {Array.isArray(tournamentSeasonStats) ? (
+                            tournamentSeasonStats.length > 0 ? (
+                              // Show list of individual seasons/tournaments
+                              tournamentSeasonStats.map(stats => (
+                                <div key={stats.id} className="mb-6 last:mb-0">
+                                  <TeamPerformanceCard
+                                    title={stats.name}
+                                    gamesPlayed={stats.gamesPlayed}
+                                    wins={stats.wins}
+                                    losses={stats.losses}
+                                    ties={stats.ties}
+                                    winPercentage={stats.winPercentage}
+                                    goalDifference={stats.goalDifference}
+                                    goalsFor={stats.goalsFor}
+                                    goalsAgainst={stats.goalsAgainst}
+                                    averageGoalsFor={stats.averageGoalsFor}
+                                    averageGoalsAgainst={stats.averageGoalsAgainst}
+                                    lastGameDate={stats.lastGameDate ? formatDisplayDate(stats.lastGameDate) : undefined}
+                                  />
                                 </div>
-                                <div className="flex justify-end gap-2 pt-2">
-                                  <button onClick={handleCancelEditGoal} className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-md text-sm font-medium transition-colors">{t('common.cancel', 'Cancel')}</button>
-                                  <button onClick={handleSaveEditGoal} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors">{t('common.save', 'Save Changes')}</button>
-                                </div>
-                              </div>
+                              ))
                             ) : (
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                  <span className="font-mono text-slate-300 text-lg w-16">{formatTime(goal.time)}</span>
-                                  <div className="flex flex-col">
-                                    <span className="font-semibold text-slate-100">{goal.type === 'goal' ? (availablePlayers.find(p => p.id === goal.scorerId)?.name || 'N/A') : opponentName}</span>
-                                    {goal.type === 'goal' && goal.assisterId && (
-                                      <span className="text-sm text-slate-400">{t('common.assist', 'Assist')}: {availablePlayers.find(p => p.id === goal.assisterId)?.name || ''}</span>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <button onClick={() => handleStartEditGoal(goal)} className="p-1.5 text-slate-400 hover:text-indigo-400 rounded-md transition-colors" aria-label={t('common.edit', 'Edit')}><FaEdit /></button>
-                                  <button onClick={() => triggerDeleteEvent(goal.id)} className="p-1.5 text-slate-400 hover:text-red-500 rounded-md transition-colors" aria-label={t('common.delete', 'Delete')}><FaTrashAlt /></button>
-                                </div>
+                              <div className="text-center text-slate-400 py-8">
+                                {activeTab === 'season'
+                                  ? t('gameStatsModal.noSeasonGames', 'No games found for this season.')
+                                  : t('gameStatsModal.noTournamentGames', 'No games found for this tournament.')
+                                }
                               </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                      <div className="flex justify-between items-center mb-4">
-                         <h3 className="text-xl font-semibold text-slate-200">{t('gameStatsModal.notesTitle', 'Game Notes')}</h3>
-                         <div className="flex items-center gap-2">
-                          {isEditingNotes ? (
-                            <>
-                              <button onClick={handleSaveNotes} className="p-1.5 text-green-400 hover:text-green-300 rounded bg-slate-700 hover:bg-slate-600" title={t('common.saveChanges', 'Save Changes')}><FaSave /></button>
-                              <button onClick={handleCancelEditNotes} className="p-1.5 text-red-400 hover:text-red-300 rounded bg-slate-700 hover:bg-slate-600" title={t('common.cancel', 'Cancel')}><FaTimes /></button>
-                            </>
+                            )
                           ) : (
-                            <button onClick={() => setIsEditingNotes(true)} className="p-1.5 text-slate-400 hover:text-indigo-400 rounded bg-slate-700 hover:bg-slate-600" title={t('common.edit', 'Edit')}><FaEdit /></button>
+                            // Show overall aggregate
+                            <div className="space-y-6">
+                              <TeamPerformanceCard
+                                title={t('gameStatsModal.overallSummary', 'Overall Summary')}
+                                gamesPlayed={tournamentSeasonStats.totalGames}
+                                wins={tournamentSeasonStats.totalWins}
+                                losses={tournamentSeasonStats.totalLosses}
+                                ties={tournamentSeasonStats.totalTies}
+                                winPercentage={tournamentSeasonStats.overallWinPercentage}
+                                goalDifference={tournamentSeasonStats.totalGoalDifference}
+                                goalsFor={tournamentSeasonStats.totalGoalsFor}
+                                goalsAgainst={tournamentSeasonStats.totalGoalsAgainst}
+                                averageGoalsFor={tournamentSeasonStats.averageGoalsFor}
+                                averageGoalsAgainst={tournamentSeasonStats.averageGoalsAgainst}
+                              />
+
+                              {/* Individual season/tournament cards */}
+                              {activeTab === 'season' && tournamentSeasonStats.seasons.length > 0 && (
+                                <div className="space-y-4">
+                                  <h4 className="text-lg font-semibold text-slate-200">{t('gameStatsModal.individualSeasons', 'Individual Seasons')}</h4>
+                                  {tournamentSeasonStats.seasons.map(stats => (
+                                    <TeamPerformanceCard
+                                      key={stats.id}
+                                      title={stats.name}
+                                      gamesPlayed={stats.gamesPlayed}
+                                      wins={stats.wins}
+                                      losses={stats.losses}
+                                      ties={stats.ties}
+                                      winPercentage={stats.winPercentage}
+                                      goalDifference={stats.goalDifference}
+                                      goalsFor={stats.goalsFor}
+                                      goalsAgainst={stats.goalsAgainst}
+                                      averageGoalsFor={stats.averageGoalsFor}
+                                      averageGoalsAgainst={stats.averageGoalsAgainst}
+                                      lastGameDate={stats.lastGameDate ? formatDisplayDate(stats.lastGameDate) : undefined}
+                                    />
+                                  ))}
+                                </div>
+                              )}
+
+                              {activeTab === 'tournament' && tournamentSeasonStats.tournaments.length > 0 && (
+                                <div className="space-y-4">
+                                  <h4 className="text-lg font-semibold text-slate-200">{t('gameStatsModal.individualTournaments', 'Individual Tournaments')}</h4>
+                                  {tournamentSeasonStats.tournaments.map(stats => (
+                                    <TeamPerformanceCard
+                                      key={stats.id}
+                                      title={stats.name}
+                                      gamesPlayed={stats.gamesPlayed}
+                                      wins={stats.wins}
+                                      losses={stats.losses}
+                                      ties={stats.ties}
+                                      winPercentage={stats.winPercentage}
+                                      goalDifference={stats.goalDifference}
+                                      goalsFor={stats.goalsFor}
+                                      goalsAgainst={stats.goalsAgainst}
+                                      averageGoalsFor={stats.averageGoalsFor}
+                                      averageGoalsAgainst={stats.averageGoalsAgainst}
+                                      lastGameDate={stats.lastGameDate ? formatDisplayDate(stats.lastGameDate) : undefined}
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
-                      </div>
-                       {isEditingNotes ? (
-                          <textarea ref={notesTextareaRef} value={editGameNotes} onChange={(e) => setEditGameNotes(e.target.value)} className="w-full h-24 p-2 bg-slate-700 border border-slate-500 rounded-md shadow-sm text-sm text-slate-100 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" placeholder={t('gameStatsModal.notesPlaceholder', 'Notes...') ?? undefined} />
-                      ) : (
-                          <div className="min-h-[6rem] p-2 text-sm text-slate-300 whitespace-pre-wrap">
-                              {gameNotes || <span className="italic text-slate-400">{t('gameStatsModal.noNotes', 'No notes.')}</span>}
-                          </div>
                       )}
                     </div>
-                  </>
-                )}
+                  )}
+
+                  {/* Game Info Card (Current Game only) */}
+                  {activeTab === 'currentGame' && (
+                    <GameInfoCard
+                      homeTeamName={displayHomeTeamName}
+                      awayTeamName={displayAwayTeamName}
+                      homeScore={homeScore}
+                      awayScore={awayScore}
+                      formattedDate={formatDisplayDate(gameDate)}
+                      gameTime={gameTime}
+                      gameLocation={gameLocation}
+                      numPeriods={numPeriods}
+                      periodDurationMinutes={periodDurationMinutes}
+                    />
+                  )}
+
+                  {/* Player Stats Table */}
+                  <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+                    <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.playerStatsTitle', 'Player Statistics')}</h3>
+                    {/* Search Input */}
+                    <div className="relative mb-4">
+                      <input
+                        type="text"
+                        value={filterText}
+                        onChange={handleFilterChange}
+                        placeholder={t('common.filterByName', 'Filter by name...')}
+                        className="bg-slate-800 border border-slate-700 rounded-md text-white pl-8 pr-3 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <PlayerStatsTable
+                        playerStats={playerStats}
+                        sortColumn={sortColumn}
+                        sortDirection={sortDirection}
+                        totals={totals}
+                        onSort={handleSort}
+                        onPlayerRowClick={handlePlayerRowClick}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                  {activeTab === 'currentGame' && (
+                    <>
+                      <GoalEventList
+                        goals={sortedGoals}
+                        availablePlayers={availablePlayers}
+                        opponentName={opponentName}
+                        editingGoalId={goalEditorHook.editingGoalId}
+                        editGoalTime={goalEditorHook.editGoalTime}
+                        editGoalScorerId={goalEditorHook.editGoalScorerId}
+                        editGoalAssisterId={goalEditorHook.editGoalAssisterId}
+                        goalTimeInputRef={goalEditorHook.goalTimeInputRef}
+                        onStartEditGoal={goalEditorHook.handleStartEditGoal}
+                        onCancelEditGoal={goalEditorHook.handleCancelEditGoal}
+                        onSaveEditGoal={goalEditorHook.handleSaveEditGoal}
+                        onGoalEditKeyDown={goalEditorHook.handleGoalEditKeyDown}
+                        onDeleteGoal={goalEditorHook.triggerDeleteEvent}
+                        onEditGoalTimeChange={goalEditorHook.setEditGoalTime}
+                        onEditGoalScorerChange={goalEditorHook.setEditGoalScorerId}
+                        onEditGoalAssisterChange={goalEditorHook.setEditGoalAssisterId}
+                      />
+
+                      <GameNotesEditor
+                        gameNotes={gameNotes}
+                        isEditingNotes={isEditingNotes}
+                        editGameNotes={editGameNotes}
+                        notesTextareaRef={notesTextareaRef}
+                        onStartEdit={() => setIsEditingNotes(true)}
+                        onSaveNotes={handleSaveNotes}
+                        onCancelEdit={handleCancelEditNotes}
+                        onEditNotesChange={setEditGameNotes}
+                      />
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
             </div>
           )}
         </div>
 
         {/* Footer Section */}
         <div className="px-6 py-3 bg-slate-800/50 border-t border-slate-700/20 backdrop-blur-sm flex justify-end items-center gap-4 flex-shrink-0">
-           {(onExportOneJson || onExportAggregateJson) && (
-              <button
-                onClick={() => {
-                  if (activeTab === 'currentGame' && currentGameId && onExportOneJson) onExportOneJson(currentGameId);
-                  else if (activeTab !== 'currentGame' && onExportAggregateJson) onExportAggregateJson(processedGameIds, playerStats);
-                }}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md text-sm font-medium transition-colors"
-                disabled={isExportDisabled}
-              >
-                 {t('common.exportJson', 'Vie JSON')}
-              </button>
-           )}
-           {(onExportOneCsv || onExportAggregateCsv) && (
-              <button
-                 onClick={() => {
-                  if (activeTab === 'currentGame' && currentGameId && onExportOneCsv) onExportOneCsv(currentGameId);
-                  else if (activeTab !== 'currentGame' && onExportAggregateCsv) onExportAggregateCsv(processedGameIds, playerStats);
-                }}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md text-sm font-medium transition-colors"
-                disabled={isExportDisabled}
-              >
-                 {t('common.exportCsv', 'Vie CSV')}
-              </button>
-           )}
-          <button onClick={onClose} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors">
-            {t('common.doneButton', 'Done')}
+          {(onExportOneJson || onExportAggregateJson) && (
+            <button
+              onClick={() => {
+                if (activeTab === 'currentGame' && currentGameId && onExportOneJson) {
+                  onExportOneJson(currentGameId);
+                } else if (activeTab !== 'currentGame' && onExportAggregateJson) {
+                  onExportAggregateJson(processedGameIds, playerStats);
+                }
+              }}
+              disabled={isExportDisabled}
+              className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                isExportDisabled
+                  ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              }`}
+            >
+              {activeTab === 'currentGame'
+                ? t('gameStatsModal.exportJson', 'Export JSON')
+                : t('gameStatsModal.exportAggregateJson', 'Export Aggregate JSON')}
+            </button>
+          )}
+
+          {(onExportOneCsv || onExportAggregateCsv) && (
+            <button
+              onClick={() => {
+                if (activeTab === 'currentGame' && currentGameId && onExportOneCsv) {
+                  onExportOneCsv(currentGameId);
+                } else if (activeTab !== 'currentGame' && onExportAggregateCsv) {
+                  onExportAggregateCsv(processedGameIds, playerStats);
+                }
+              }}
+              disabled={isExportDisabled}
+              className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                isExportDisabled
+                  ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700 text-white'
+              }`}
+            >
+              {activeTab === 'currentGame'
+                ? t('gameStatsModal.exportCsv', 'Export CSV')
+                : t('gameStatsModal.exportAggregateCsv', 'Export Aggregate CSV')}
+            </button>
+          )}
+
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md font-medium transition-colors"
+          >
+            {t('common.close', 'Close')}
           </button>
         </div>
       </div>
