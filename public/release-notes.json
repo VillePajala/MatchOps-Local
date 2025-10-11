@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: use proper timer actions for startTimestamp management"
+  "notes": "feat: add Season and Tournament details modals with comprehensive functionality"
 }

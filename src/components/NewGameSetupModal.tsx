@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '@/contexts/ToastProvider';
 import { Player, Season, Tournament, Team } from '@/types';
 import { HiPlusCircle } from 'react-icons/hi2';
 import logger from '@/utils/logger';
@@ -13,6 +14,7 @@ import PlayerSelectionSection from './PlayerSelectionSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
+import ConfirmationModal from './ConfirmationModal';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -69,6 +71,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   teams,
 }) => {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const [homeTeamName, setHomeTeamName] = useState('');
   const [opponentName, setOpponentName] = useState('');
   const [gameDate, setGameDate] = useState(new Date().toISOString().split('T')[0]);
@@ -108,6 +111,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // Team selection state
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [isTeamNameAutoFilled, setIsTeamNameAutoFilled] = useState<boolean>(false);
+
+  // Confirmation modal state
+  const [showManageRosterConfirm, setShowManageRosterConfirm] = useState(false);
+  const [emptyRosterTeamId, setEmptyRosterTeamId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -203,17 +210,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
           setSelectedPlayerIds([]);
 
           // Optionally prompt user to manage roster
-          const shouldManageRoster = window.confirm(
-            t('newGameSetupModal.emptyTeamRosterPrompt',
-              'The selected team has no players. Would you like to manage the team roster now?'
-            )
-          );
-
-          if (shouldManageRoster && onManageTeamRoster) {
-            // Close this modal and open team roster management
-            onManageTeamRoster(teamId);
-            return;
-          }
+          setEmptyRosterTeamId(teamId);
+          setShowManageRosterConfirm(true);
         }
 
         // Check if this is still the current request before updating team name
@@ -314,7 +312,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const handleAddNewSeason = async () => {
     const trimmedName = newSeasonName.trim();
     if (!trimmedName) {
-      alert(t('newGameSetupModal.newSeasonNameRequired', 'Please enter a name for the new season.'));
+      showToast(t('newGameSetupModal.newSeasonNameRequired', 'Please enter a name for the new season.'), 'error');
       newSeasonInputRef.current?.focus();
       return;
     }
@@ -349,7 +347,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const handleAddNewTournament = async () => {
     const trimmedName = newTournamentName.trim();
     if (!trimmedName) {
-      alert(t('newGameSetupModal.newTournamentNameRequired', 'Please enter a name for the new tournament.'));
+      showToast(t('newGameSetupModal.newTournamentNameRequired', 'Please enter a name for the new tournament.'), 'error');
       newTournamentInputRef.current?.focus();
       return;
     }
@@ -382,31 +380,31 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     const trimmedOpponentName = opponentName.trim();
 
     if (!trimmedHomeTeamName) {
-      alert(t('newGameSetupModal.homeTeamNameRequired', 'Home Team Name is required.') || 'Home Team Name is required.');
+      showToast(t('newGameSetupModal.homeTeamNameRequired', 'Home Team Name is required.'), 'error');
       homeTeamInputRef.current?.focus();
       return;
     }
 
     if (!trimmedOpponentName) {
-      alert(t('newGameSetupModal.opponentNameRequired', 'Opponent Name is required.') || 'Opponent Name is required.');
+      showToast(t('newGameSetupModal.opponentNameRequired', 'Opponent Name is required.'), 'error');
       opponentInputRef.current?.focus();
       return;
     }
-    
+
     // Handle case where user is trying to submit while create input is open but empty
     if (showNewSeasonInput && !newSeasonName.trim()) {
-        alert(t('newGameSetupModal.newSeasonNameRequired', 'Please enter a name for the new season or select an existing one.'));
+        showToast(t('newGameSetupModal.newSeasonNameRequired', 'Please enter a name for the new season or select an existing one.'), 'error');
         newSeasonInputRef.current?.focus();
         return;
     }
     if (showNewTournamentInput && !newTournamentName.trim()) {
-        alert(t('newGameSetupModal.newTournamentNameRequired', 'Please enter a name for the new tournament or select an existing one.'));
+        showToast(t('newGameSetupModal.newTournamentNameRequired', 'Please enter a name for the new tournament or select an existing one.'), 'error');
         newTournamentInputRef.current?.focus();
         return;
     }
 
     if (selectedPlayerIds.length === 0) {
-        alert(t('newGameSetupModal.noPlayersSelected', 'Please select at least one player.') || 'Please select at least one player.');
+        showToast(t('newGameSetupModal.noPlayersSelected', 'Please select at least one player.'), 'error');
         return;
     }
 
@@ -418,7 +416,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     // Validate period duration
     const duration = parseInt(localPeriodDurationString, 10);
     if (isNaN(duration) || duration <= 0) {
-        alert(t('newGameSetupModal.invalidPeriodDuration', 'Period duration must be a positive number.') || 'Period duration must be a positive number.');
+        showToast(t('newGameSetupModal.invalidPeriodDuration', 'Period duration must be a positive number.'), 'error');
         return;
     }
     
@@ -985,6 +983,27 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showManageRosterConfirm}
+        title={t('newGameSetupModal.emptyTeamRosterTitle', 'Empty Team Roster')}
+        message={t('newGameSetupModal.emptyTeamRosterPrompt', 'The selected team has no players. Would you like to manage the team roster now?')}
+        onConfirm={() => {
+          if (emptyRosterTeamId && onManageTeamRoster) {
+            onManageTeamRoster(emptyRosterTeamId);
+          }
+          setShowManageRosterConfirm(false);
+          setEmptyRosterTeamId(null);
+        }}
+        onCancel={() => {
+          setShowManageRosterConfirm(false);
+          setEmptyRosterTeamId(null);
+        }}
+        confirmLabel={t('newGameSetupModal.manageRoster', 'Manage Roster')}
+        cancelLabel={t('newGameSetupModal.continueWithoutPlayers', 'Continue Without Players')}
+        variant="primary"
+      />
     </div>
   );
 }

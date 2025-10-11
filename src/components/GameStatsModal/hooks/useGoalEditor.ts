@@ -29,6 +29,10 @@ interface UseGoalEditorResult {
   handleSaveEditGoal: () => void;
   handleGoalEditKeyDown: (event: React.KeyboardEvent) => void;
   triggerDeleteEvent: (goalId: string) => void;
+  confirmDeleteEvent: () => void;
+  showDeleteConfirm: boolean;
+  setShowDeleteConfirm: (show: boolean) => void;
+  goalIdToDelete: string | null;
   setEditGoalTime: (time: string) => void;
   setEditGoalScorerId: (scorerId: string) => void;
   setEditGoalAssisterId: (assisterId: string | undefined) => void;
@@ -56,6 +60,8 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
   const [editGoalTime, setEditGoalTime] = useState<string>('');
   const [editGoalScorerId, setEditGoalScorerId] = useState<string>('');
   const [editGoalAssisterId, setEditGoalAssisterId] = useState<string | undefined>(undefined);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [goalIdToDelete, setGoalIdToDelete] = useState<string | null>(null);
   const goalTimeInputRef = useRef<HTMLInputElement>(null);
 
   const handleStartEditGoal = (goal: GameEvent) => {
@@ -131,12 +137,17 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
   };
 
   const triggerDeleteEvent = (goalId: string) => {
-    if (window.confirm(t('gameStatsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.'))) {
-      if (onDeleteGameEvent && typeof onDeleteGameEvent === 'function') {
-        onDeleteGameEvent(goalId);
-        setLocalGameEvents(prevEvents => prevEvents.filter(event => event.id !== goalId));
-      }
+    setGoalIdToDelete(goalId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteEvent = () => {
+    if (goalIdToDelete && onDeleteGameEvent && typeof onDeleteGameEvent === 'function') {
+      onDeleteGameEvent(goalIdToDelete);
+      setLocalGameEvents(prevEvents => prevEvents.filter(event => event.id !== goalIdToDelete));
     }
+    setShowDeleteConfirm(false);
+    setGoalIdToDelete(null);
   };
 
   return {
@@ -150,6 +161,10 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
     handleSaveEditGoal,
     handleGoalEditKeyDown,
     triggerDeleteEvent,
+    confirmDeleteEvent,
+    showDeleteConfirm,
+    setShowDeleteConfirm,
+    goalIdToDelete,
     setEditGoalTime,
     setEditGoalScorerId,
     setEditGoalAssisterId,

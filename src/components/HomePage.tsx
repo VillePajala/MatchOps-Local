@@ -19,6 +19,7 @@ import TeamRosterModal from '@/components/TeamRosterModal';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import InstructionsModal from '@/components/InstructionsModal';
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import usePlayerAssessments from '@/hooks/usePlayerAssessments';
 import { exportFullBackup } from '@/utils/fullBackup';
 import { useTranslation } from 'react-i18next';
@@ -471,13 +472,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         case 'newGame':
           // Check if roster is empty before opening new game modal
           if (availablePlayers.length === 0) {
-            const shouldOpenRoster = window.confirm(
-              t('controlBar.noPlayersForNewGame', 'You need at least one player in your roster to create a game. Would you like to add players now?')
-            );
-            
-            if (shouldOpenRoster) {
-              setIsRosterModalOpen(true);
-            }
+            setShowNoPlayersConfirm(true);
           } else {
             setIsNewGameSetupModalOpen(true);
           }
@@ -527,6 +522,13 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   // NEW: States for LoadGameModal operations
   const [isLoadingGamesList, setIsLoadingGamesList] = useState(false);
+
+  // Confirmation modal states
+  const [showNoPlayersConfirm, setShowNoPlayersConfirm] = useState(false);
+  const [showHardResetConfirm, setShowHardResetConfirm] = useState(false);
+  const [showSaveBeforeNewConfirm, setShowSaveBeforeNewConfirm] = useState(false);
+  const [gameIdentifierForSave, setGameIdentifierForSave] = useState<string>('');
+  const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
   const [loadGamesListError, setLoadGamesListError] = useState<string | null>(null);
   const [isGameLoading, setIsGameLoading] = useState(false); // For loading a specific game
   const [gameLoadError, setGameLoadError] = useState<string | null>(null);
@@ -1246,7 +1248,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
       } catch (error) {
         logger.error("Failed to auto-save game state:", error);
-        alert("Error saving game."); // Notify user
+        showToast("Error saving game.", 'error');
       }
     } else if (initialLoadComplete && currentGameId === DEFAULT_GAME_ID) {
       logger.log("Not auto-saving as this is an unsaved game (no ID assigned yet)");
@@ -1266,6 +1268,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       tacticalBallPosition,
       isPlayed,
       queryClient,
+      showToast,
     ]);
 
   // **** ADDED: Effect to prompt for setup if default game ID is loaded ****
@@ -1636,29 +1639,33 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   // NEW: Handler for Hard Reset
   const handleHardResetApp = useCallback(async () => {
-    if (window.confirm(t('controlBar.hardResetConfirmation', 'Are you sure you want to completely reset the application? All saved data (players, stats, positions) will be permanently lost.'))) {
-      try {
-        logger.log("Performing hard reset using utility...");
+    setShowHardResetConfirm(true);
+  }, []);
 
-        // Show full-screen overlay to unmount all components
-        setIsResetting(true);
+  const handleHardResetConfirmed = useCallback(async () => {
+    try {
+      logger.log("Performing hard reset using utility...");
 
-        // Clear storage completely
-        await utilResetAppSettings();
+      // Show full-screen overlay to unmount all components
+      setIsResetting(true);
 
-        logger.log("Hard reset complete, reloading app...");
+      // Clear storage completely
+      await utilResetAppSettings();
 
-        // Note: In development mode, Next.js HMR may show harmless module errors
-        // after reload. These are cosmetic and don't affect functionality.
-        // Production builds don't have this issue.
-        window.location.reload();
-      } catch (error) {
-        logger.error("Error during hard reset:", error);
-        setIsResetting(false); // Re-enable UI on error
-        alert("Failed to reset application data.");
-      }
+      logger.log("Hard reset complete, reloading app...");
+
+      // Note: In development mode, Next.js HMR may show harmless module errors
+      // after reload. These are cosmetic and don't affect functionality.
+      // Production builds don't have this issue.
+      window.location.reload();
+    } catch (error) {
+      logger.error("Error during hard reset:", error);
+      setIsResetting(false); // Re-enable UI on error
+      showToast("Failed to reset application data.", 'error');
+    } finally {
+      setShowHardResetConfirm(false);
     }
-  }, [t]);
+  }, [showToast]);
 
 
   
@@ -1795,7 +1802,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const handleExportOneJson = (gameId: string) => {
     const gameData = savedGames[gameId];
     if (!gameData) {
-      alert(`Error: Could not find game data for ${gameId}`);
+      showToast(`Error: Could not find game data for ${gameId}`, 'error');
       return;
     }
     exportJson(gameId, gameData, seasons, tournaments);
@@ -1804,7 +1811,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const handleExportOneCsv = (gameId: string) => {
     const gameData = savedGames[gameId];
     if (!gameData) {
-      alert(`Error: Could not find game data for ${gameId}`);
+      showToast(`Error: Could not find game data for ${gameId}`, 'error');
       return;
     }
     exportCsv(gameId, gameData, availablePlayers, seasons, tournaments);
@@ -2172,7 +2179,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
       } catch (error) {
         logger.error("Failed to quick save game state:", error);
-        alert("Error quick saving game.");
+        showToast("Error quick saving game.", 'error');
       }
     } else {
       // If no current game ID, create a new saved game entry
@@ -2219,7 +2226,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         }
       } catch (error) {
         logger.error('Failed to save new game:', error);
-        alert('Error quick saving game.');
+        showToast('Error quick saving game.', 'error');
       }
     }
   },    [
@@ -2368,7 +2375,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   
   const handleExportAggregateJson = useCallback((gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) => {
     if (gameIds.length === 0) {
-      alert(t('export.noGamesInSelection', 'No games match the current filter.'));
+      showToast(t('export.noGamesInSelection', 'No games match the current filter.'), 'error');
       return;
     }
     const gamesData = gameIds.reduce((acc, id) => {
@@ -2379,11 +2386,11 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       return acc;
     }, {} as SavedGamesCollection);
     exportAggregateJson(gamesData, aggregateStats);
-  }, [savedGames, t]);
+  }, [savedGames, t, showToast]);
 
   const handleExportAggregateCsv = useCallback((gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) => {
     if (gameIds.length === 0) {
-      alert(t('export.noGamesInSelection', 'No games match the current filter.'));
+      showToast(t('export.noGamesInSelection', 'No games match the current filter.'), 'error');
       return;
     }
     const gamesData = gameIds.reduce((acc, id) => {
@@ -2394,7 +2401,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       return acc;
     }, {} as SavedGamesCollection);
     exportAggregateCsv(gamesData, aggregateStats);
-  }, [savedGames, t]);
+  }, [savedGames, t, showToast]);
 
   // --- END AGGREGATE EXPORT HANDLERS ---
 
@@ -2546,72 +2553,56 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const handleStartNewGame = useCallback(() => {
     // Check if roster is empty first
     if (availablePlayers.length === 0) {
-      const shouldOpenRoster = window.confirm(
-        t('controlBar.noPlayersForNewGame', 'No players in roster. Would you like to add players now?')
-      );
-      
-      if (shouldOpenRoster) {
-        setIsRosterModalOpen(true);
-      }
-      return; // Exit early regardless of user choice
+      setShowNoPlayersConfirm(true);
+      return; // Exit early
     }
-    
+
     // Check if the current game is potentially unsaved (not the default ID and not null)
     if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
       // Prompt to save first
       const gameData = savedGames[currentGameId]; // Safe to access due to check above
-      const gameIdentifier = gameData?.teamName 
-                             ? `${gameData.teamName} vs ${gameData.opponentName}` 
+      const gameIdentifier = gameData?.teamName
+                             ? `${gameData.teamName} vs ${gameData.opponentName}`
                              : `ID: ${currentGameId}`;
-                             
-      const saveConfirmation = window.confirm(
-        t('controlBar.saveBeforeNewPrompt', 
-          `Save changes to the current game "${gameIdentifier}" before starting a new one?`, 
-          { gameName: gameIdentifier }
-        ) + "\n\n[OK = Save & Continue] [Cancel = Discard & Continue]"
-      );
 
-      if (saveConfirmation) {
-        // User chose OK (Save) -> Call Quick Save, then open setup modal.
-        logger.log("User chose to Quick Save before starting new game.");
-        handleQuickSaveGame(); // Call quick save directly
-        setIsNewGameSetupModalOpen(true); // Open setup modal immediately after
-        // No need to return here; flow continues after quick save
-      } else {
-        // User chose Cancel (Discard) -> Proceed to next confirmation
-        logger.log("Discarding current game changes to start new game.");
-        // Confirmation for actually starting new game (ONLY shown if user DISCARDED previous game)
-        if (window.confirm(t('controlBar.startNewMatchConfirmation', 'Are you sure you want to start a new match? Any unsaved progress will be lost.') ?? 'Are you sure?')) {
-          logger.log("Start new game confirmed after discarding, opening setup modal...");
-          // <<< SET default player selection (all players) >>>
-          setPlayerIdsForNewGame(availablePlayers.map(p => p.id));
-          setIsNewGameSetupModalOpen(true); // Open the setup modal
-        } 
-        // If user cancels this second confirmation, do nothing.
-        // Exit the function after handling the discard path.
-        return;
-      }
+      setGameIdentifierForSave(gameIdentifier);
+      setShowSaveBeforeNewConfirm(true);
     } else {
       // If no real game is loaded, proceed directly to the main confirmation
-       if (window.confirm(t('controlBar.startNewMatchConfirmation', 'Are you sure you want to start a new match? Any unsaved progress will be lost.') ?? 'Are you sure?')) {
-         logger.log("Start new game confirmed (no prior game to save), opening setup modal...");
-         // <<< SET default player selection (all players) >>>
-         setPlayerIdsForNewGame(availablePlayers.map(p => p.id));
-         setIsNewGameSetupModalOpen(true); // Open the setup modal
-       }
-       // If user cancels this confirmation, do nothing.
-       // Exit the function after handling the no-game-loaded path.
-       return; 
+      setShowStartNewConfirm(true);
     }
-    // Note: This part of the code is now only reachable if the user chose 'OK (Save & Continue)'
-    // because the other paths explicitly return earlier.
-    // <<< SET player selection based on current game BEFORE opening modal >>>
-       setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds);  // Use the current selection
-    setIsNewGameSetupModalOpen(true); // Open setup modal (moved here for save & continue path)
+  }, [currentGameId, savedGames, availablePlayers]);
 
-  }, [t, currentGameId, savedGames, handleQuickSaveGame,
-      availablePlayers, gameSessionState.selectedPlayerIds, setIsNewGameSetupModalOpen, setIsRosterModalOpen
-     ]); 
+  // Handler for "No Players" confirmation
+  const handleNoPlayersConfirmed = useCallback(() => {
+    setShowNoPlayersConfirm(false);
+    setIsRosterModalOpen(true);
+  }, [setIsRosterModalOpen]);
+
+  // Handler for "Save Before New" confirmation - user chooses to save
+  const handleSaveBeforeNewConfirmed = useCallback(() => {
+    logger.log("User chose to Quick Save before starting new game.");
+    handleQuickSaveGame(); // Call quick save directly
+    setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds); // Use the current selection
+    setShowSaveBeforeNewConfirm(false);
+    setIsNewGameSetupModalOpen(true); // Open setup modal immediately after
+  }, [handleQuickSaveGame, gameSessionState.selectedPlayerIds, setIsNewGameSetupModalOpen]);
+
+  // Handler for "Save Before New" cancellation - user chooses to discard
+  const handleSaveBeforeNewCancelled = useCallback(() => {
+    logger.log("Discarding current game changes to start new game.");
+    setShowSaveBeforeNewConfirm(false);
+    // Show the "start new" confirmation after discarding
+    setShowStartNewConfirm(true);
+  }, []);
+
+  // Handler for "Start New" confirmation
+  const handleStartNewConfirmed = useCallback(() => {
+    logger.log("Start new game confirmed, opening setup modal...");
+    setPlayerIdsForNewGame(availablePlayers.map(p => p.id)); // SET default player selection (all players)
+    setShowStartNewConfirm(false);
+    setIsNewGameSetupModalOpen(true); // Open the setup modal
+  }, [availablePlayers, setIsNewGameSetupModalOpen]);
   // --- END Start New Game Handler ---
 
   // New handler to place all selected players on the field at once
@@ -3505,7 +3496,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         }}
         onResetGuide={handleShowAppGuide}
         onHardResetApp={handleHardResetApp}
-        onCreateBackup={exportFullBackup}
+        onCreateBackup={() => exportFullBackup(showToast)}
         onDataImportSuccess={onDataImportSuccess}
       />
 
@@ -3577,6 +3568,56 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       )}
 
       {/* Removed debug reset button for first game guide */}
+
+      {/* Confirmation Modals */}
+
+      {/* No Players Confirmation */}
+      <ConfirmationModal
+        isOpen={showNoPlayersConfirm}
+        title={t('controlBar.noPlayersTitle', 'No Players in Roster')}
+        message={t('controlBar.noPlayersForNewGame', 'You need at least one player in your roster to create a game. Would you like to add players now?')}
+        onConfirm={handleNoPlayersConfirmed}
+        onCancel={() => setShowNoPlayersConfirm(false)}
+        confirmLabel={t('common.addPlayers', 'Add Players')}
+        variant="primary"
+      />
+
+      {/* Hard Reset Confirmation */}
+      <ConfirmationModal
+        isOpen={showHardResetConfirm}
+        title={t('controlBar.hardResetTitle', 'Reset Application')}
+        message={t('controlBar.hardResetConfirmation', 'Are you sure you want to completely reset the application? All saved data (players, stats, positions) will be permanently lost.')}
+        warningMessage={t('controlBar.hardResetWarning', 'This action cannot be undone. All your data will be permanently deleted.')}
+        onConfirm={handleHardResetConfirmed}
+        onCancel={() => setShowHardResetConfirm(false)}
+        confirmLabel={t('common.reset', 'Reset')}
+        variant="danger"
+      />
+
+      {/* Save Before New Game Confirmation */}
+      <ConfirmationModal
+        isOpen={showSaveBeforeNewConfirm}
+        title={t('controlBar.saveBeforeNewTitle', 'Save Current Game?')}
+        message={t('controlBar.saveBeforeNewPrompt', `Save changes to the current game "${gameIdentifierForSave}" before starting a new one?`, { gameName: gameIdentifierForSave })}
+        warningMessage={t('controlBar.saveBeforeNewInfo', 'Click "Save & Continue" to save your progress, or "Discard" to start fresh without saving.')}
+        onConfirm={handleSaveBeforeNewConfirmed}
+        onCancel={handleSaveBeforeNewCancelled}
+        confirmLabel={t('controlBar.saveAndContinue', 'Save & Continue')}
+        cancelLabel={t('controlBar.discard', 'Discard')}
+        variant="primary"
+      />
+
+      {/* Start New Game Confirmation */}
+      <ConfirmationModal
+        isOpen={showStartNewConfirm}
+        title={t('controlBar.startNewMatchTitle', 'Start New Match?')}
+        message={t('controlBar.startNewMatchConfirmation', 'Are you sure you want to start a new match? Any unsaved progress will be lost.')}
+        warningMessage={t('controlBar.startNewMatchWarning', 'Make sure you have saved your current game if you want to keep it.')}
+        onConfirm={handleStartNewConfirmed}
+        onCancel={() => setShowStartNewConfirm(false)}
+        confirmLabel={t('common.startNew', 'Start New')}
+        variant="danger"
+      />
 
     </main>
   );

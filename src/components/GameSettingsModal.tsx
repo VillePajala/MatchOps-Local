@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { FaEdit, FaTrashAlt } from 'react-icons/fa';
 import { Season, Tournament, Player, Team } from '@/types';
@@ -15,6 +16,7 @@ import PlayerSelectionSection from './PlayerSelectionSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
+import ConfirmationModal from './ConfirmationModal';
 
 export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard';
 
@@ -175,6 +177,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 }) => {
   // logger.log('[GameSettingsModal Render] Props received:', { seasonId, tournamentId, currentGameId });
   const { t } = useTranslation();
+  const { showToast } = useToast();
 
   // Track if we've already applied season/tournament updates to prevent infinite loops
   const appliedSeasonRef = useRef<string | null>(null);
@@ -228,6 +231,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // NEW: Loading and Error states for modal operations
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Confirmation modal state
+  const [showDeleteEventConfirm, setShowDeleteEventConfirm] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
 
   // State for game time
   const [gameHour, setGameHour] = useState<string>('');
@@ -667,11 +674,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       if (!isNaN(minutes) && !isNaN(seconds)) {
         timeInSeconds = minutes * 60 + seconds;
       } else {
-        alert(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"));
+        showToast(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"), 'error');
         return;
       }
     } else if (editGoalTime) {
-        alert(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"));
+        showToast(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"), 'error');
       return;
     }
 
@@ -724,45 +731,57 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   };
 
   // Handle deleting a goal
-  const handleDeleteGoal = async (goalId: string) => {
+  const handleDeleteGoal = (goalId: string) => {
     if (!onDeleteGameEvent || !currentGameId) {
       logger.error("[GameSettingsModal] Missing onDeleteGameEvent handler or currentGameId for delete.");
       setError(t('gameSettingsModal.errors.missingDeleteHandler', 'Cannot delete event: Critical configuration missing.'));
       return;
     }
 
-      if (window.confirm(t('gameSettingsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.'))) {
-      setError(null);
-      setIsProcessing(true);
-      try {
-        const eventIndex = gameEvents.findIndex(e => e.id === goalId); 
-        if (eventIndex === -1) {
-          logger.error(`[GameSettingsModal] Event ${goalId} not found in original gameEvents for deletion.`);
-          setError(t('gameSettingsModal.errors.eventNotFoundDelete', 'Event to delete not found.'));
-          setIsProcessing(false); // Stop processing early
-          return;
-        }
-        
-        // Update local state immediately for UI responsiveness - Parent state updated via prop
-        const originalLocalEvents = localGameEvents;
-        setLocalGameEvents(prevEvents => prevEvents.filter(event => event.id !== goalId));
-        onDeleteGameEvent(goalId);
-        
-        const success = await removeGameEvent(currentGameId, eventIndex);
-        if (success) {
-          logger.log(`[GameSettingsModal] Event ${goalId} removed from game ${currentGameId}.`);
-        } else {
-          logger.error(`[GameSettingsModal] Failed to remove event ${goalId} from game ${currentGameId} via utility.`);
-          setError(t('gameSettingsModal.errors.deleteFailed', 'Failed to delete event. Please try again.'));
-          setLocalGameEvents(originalLocalEvents); // Revert local UI on failure
-        }
-      } catch (err) {
-        logger.error(`[GameSettingsModal] Error removing event ${goalId} from game ${currentGameId}:`, err);
-        setError(t('gameSettingsModal.errors.genericDeleteError', 'An unexpected error occurred while deleting the event.'));
-        // Consider reverting localGameEvents here as well if an error occurs
-      } finally {
-        setIsProcessing(false);
+    setEventToDelete(goalId);
+    setShowDeleteEventConfirm(true);
+  };
+
+  const handleDeleteEventConfirmed = async () => {
+    const goalId = eventToDelete;
+    if (!goalId || !onDeleteGameEvent || !currentGameId) {
+      setShowDeleteEventConfirm(false);
+      setEventToDelete(null);
+      return;
+    }
+
+    setError(null);
+    setIsProcessing(true);
+    try {
+      const eventIndex = gameEvents.findIndex(e => e.id === goalId);
+      if (eventIndex === -1) {
+        logger.error(`[GameSettingsModal] Event ${goalId} not found in original gameEvents for deletion.`);
+        setError(t('gameSettingsModal.errors.eventNotFoundDelete', 'Event to delete not found.'));
+        setIsProcessing(false); // Stop processing early
+        return;
       }
+
+      // Update local state immediately for UI responsiveness - Parent state updated via prop
+      const originalLocalEvents = localGameEvents;
+      setLocalGameEvents(prevEvents => prevEvents.filter(event => event.id !== goalId));
+      onDeleteGameEvent(goalId);
+
+      const success = await removeGameEvent(currentGameId, eventIndex);
+      if (success) {
+        logger.log(`[GameSettingsModal] Event ${goalId} removed from game ${currentGameId}.`);
+      } else {
+        logger.error(`[GameSettingsModal] Failed to remove event ${goalId} from game ${currentGameId} via utility.`);
+        setError(t('gameSettingsModal.errors.deleteFailed', 'Failed to delete event. Please try again.'));
+        setLocalGameEvents(originalLocalEvents); // Revert local UI on failure
+      }
+    } catch (err) {
+      logger.error(`[GameSettingsModal] Error removing event ${goalId} from game ${currentGameId}:`, err);
+      setError(t('gameSettingsModal.errors.genericDeleteError', 'An unexpected error occurred while deleting the event.'));
+      // Consider reverting localGameEvents here as well if an error occurs
+    } finally {
+      setIsProcessing(false);
+      setShowDeleteEventConfirm(false);
+      setEventToDelete(null);
     }
   };
 
@@ -806,7 +825,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             await updateGameDetails(currentGameId, { teamName: trimmedValue });
             success = true;
           } else {
-            alert(t('gameSettingsModal.teamNameRequired', "Team name cannot be empty."));
+            showToast(t('gameSettingsModal.teamNameRequired', "Team name cannot be empty."), 'error');
           }
           break;
         case 'opponent':
@@ -815,7 +834,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             await updateGameDetails(currentGameId, { opponentName: trimmedValue });
             success = true;
           } else {
-            alert(t('gameSettingsModal.opponentNameRequired', "Opponent name cannot be empty."));
+            showToast(t('gameSettingsModal.opponentNameRequired', "Opponent name cannot be empty."), 'error');
           }
           break;
         case 'date':
@@ -824,7 +843,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             await updateGameDetails(currentGameId, { gameDate: trimmedValue });
             success = true;
           } else {
-            alert(t('gameSettingsModal.invalidDateFormat', "Invalid date format. Use YYYY-MM-DD."));
+            showToast(t('gameSettingsModal.invalidDateFormat', "Invalid date format. Use YYYY-MM-DD."), 'error');
           }
           break;
         case 'location':
@@ -838,7 +857,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             await updateGameDetails(currentGameId, { gameTime: trimmedValue });
             success = true;
           } else {
-            alert(t('gameSettingsModal.invalidTimeFormatInline', "Invalid time format. Use HH:MM (24-hour)."));
+            showToast(t('gameSettingsModal.invalidTimeFormatInline', "Invalid time format. Use HH:MM (24-hour)."), 'error');
           }
           break;
         case 'duration':
@@ -848,7 +867,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             await updateGameDetails(currentGameId, { periodDurationMinutes: duration });
             success = true;
           } else {
-            alert(t('gameSettingsModal.invalidDurationFormat', "Period duration must be a positive number."));
+            showToast(t('gameSettingsModal.invalidDurationFormat', "Period duration must be a positive number."), 'error');
           }
           break;
         case 'notes':
@@ -1639,6 +1658,21 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteEventConfirm}
+        title={t('gameSettingsModal.confirmDeleteEventTitle', 'Delete Event')}
+        message={t('gameSettingsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.')}
+        warningMessage={t('gameSettingsModal.deleteWarning', 'This action is permanent.')}
+        onConfirm={handleDeleteEventConfirmed}
+        onCancel={() => {
+          setShowDeleteEventConfirm(false);
+          setEventToDelete(null);
+        }}
+        confirmLabel={t('common.delete', 'Delete')}
+        variant="danger"
+      />
     </div>
   );
 };

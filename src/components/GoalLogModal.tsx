@@ -7,6 +7,8 @@ import { FaEdit, FaTrashAlt } from 'react-icons/fa';
 import { updateGameEvent, removeGameEvent } from '@/utils/savedGames';
 import logger from '@/utils/logger';
 import { TFunction } from 'i18next';
+import { useToast } from '@/contexts/ToastProvider';
+import ConfirmationModal from './ConfirmationModal';
 
 // Game Event Types (matching GameSettingsModal)
 export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard';
@@ -73,6 +75,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   onDeleteGameEvent,
 }) => {
   const { t } = useTranslation();
+  const { showToast } = useToast();
 
   // Form state
   const [scorerId, setScorerId] = useState<string>('');
@@ -87,6 +90,10 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const goalTimeInputRef = useRef<HTMLInputElement>(null);
+
+  // Confirmation modal state
+  const [showDeleteEventConfirm, setShowDeleteEventConfirm] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
 
   // Format time MM:SS
   const formatTime = (timeInSeconds: number): string => {
@@ -154,12 +161,12 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
       if (!isNaN(minutes) && !isNaN(seconds)) {
         timeInSeconds = minutes * 60 + seconds;
       } else {
-        alert(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"));
+        showToast(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"), 'error');
         setIsProcessing(false);
         return;
       }
     } else if (editGoalTime) {
-      alert(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"));
+      showToast(t('gameSettingsModal.invalidTimeFormat', "Invalid time format. Use MM:SS"), 'error');
       setIsProcessing(false);
       return;
     }
@@ -208,43 +215,55 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   };
 
   // Handle deleting a goal
-  const handleDeleteGoal = async (goalId: string) => {
+  const handleDeleteGoal = (goalId: string) => {
     if (!onDeleteGameEvent || !currentGameId) {
       logger.error("[GoalLogModal] Missing onDeleteGameEvent handler or currentGameId");
       setError(t('gameSettingsModal.errors.missingDeleteHandler', 'Cannot delete event: Critical configuration missing.'));
       return;
     }
 
-    if (window.confirm(t('gameSettingsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.'))) {
-      setError(null);
-      setIsProcessing(true);
-      try {
-        const eventIndex = gameEvents.findIndex(e => e.id === goalId);
-        if (eventIndex === -1) {
-          logger.error(`[GoalLogModal] Event ${goalId} not found for deletion.`);
-          setError(t('gameSettingsModal.errors.eventNotFoundDelete', 'Event to delete not found.'));
-          setIsProcessing(false);
-          return;
-        }
+    setEventToDelete(goalId);
+    setShowDeleteEventConfirm(true);
+  };
 
-        const originalLocalEvents = localGameEvents;
-        setLocalGameEvents(prevEvents => prevEvents.filter(event => event.id !== goalId));
-        onDeleteGameEvent(goalId);
+  const handleDeleteEventConfirmed = async () => {
+    const goalId = eventToDelete;
+    if (!goalId || !onDeleteGameEvent || !currentGameId) {
+      setShowDeleteEventConfirm(false);
+      setEventToDelete(null);
+      return;
+    }
 
-        const success = await removeGameEvent(currentGameId, eventIndex);
-        if (success) {
-          logger.log(`[GoalLogModal] Event ${goalId} removed from game ${currentGameId}.`);
-        } else {
-          logger.error(`[GoalLogModal] Failed to remove event ${goalId}`);
-          setError(t('gameSettingsModal.errors.deleteFailed', 'Failed to delete event. Please try again.'));
-          setLocalGameEvents(originalLocalEvents);
-        }
-      } catch (err) {
-        logger.error(`[GoalLogModal] Error removing event ${goalId}:`, err);
-        setError(t('gameSettingsModal.errors.genericDeleteError', 'An unexpected error occurred while deleting the event.'));
-      } finally {
+    setError(null);
+    setIsProcessing(true);
+    try {
+      const eventIndex = gameEvents.findIndex(e => e.id === goalId);
+      if (eventIndex === -1) {
+        logger.error(`[GoalLogModal] Event ${goalId} not found for deletion.`);
+        setError(t('gameSettingsModal.errors.eventNotFoundDelete', 'Event to delete not found.'));
         setIsProcessing(false);
+        return;
       }
+
+      const originalLocalEvents = localGameEvents;
+      setLocalGameEvents(prevEvents => prevEvents.filter(event => event.id !== goalId));
+      onDeleteGameEvent(goalId);
+
+      const success = await removeGameEvent(currentGameId, eventIndex);
+      if (success) {
+        logger.log(`[GoalLogModal] Event ${goalId} removed from game ${currentGameId}.`);
+      } else {
+        logger.error(`[GoalLogModal] Failed to remove event ${goalId}`);
+        setError(t('gameSettingsModal.errors.deleteFailed', 'Failed to delete event. Please try again.'));
+        setLocalGameEvents(originalLocalEvents);
+      }
+    } catch (err) {
+      logger.error(`[GoalLogModal] Error removing event ${goalId}:`, err);
+      setError(t('gameSettingsModal.errors.genericDeleteError', 'An unexpected error occurred while deleting the event.'));
+    } finally {
+      setIsProcessing(false);
+      setShowDeleteEventConfirm(false);
+      setEventToDelete(null);
     }
   };
 
@@ -512,6 +531,21 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteEventConfirm}
+        title={t('gameSettingsModal.confirmDeleteEventTitle', 'Delete Event')}
+        message={t('gameSettingsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.')}
+        warningMessage={t('gameSettingsModal.deleteWarning', 'This action is permanent.')}
+        onConfirm={handleDeleteEventConfirmed}
+        onCancel={() => {
+          setShowDeleteEventConfirm(false);
+          setEventToDelete(null);
+        }}
+        confirmLabel={t('common.delete', 'Delete')}
+        variant="danger"
+      />
     </div>
   );
 };

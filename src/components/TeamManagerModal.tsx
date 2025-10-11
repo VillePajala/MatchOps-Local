@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '@/contexts/ToastProvider';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   HiOutlinePencil,
@@ -35,8 +36,9 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   onManageOrphanedGames,
 }) => {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // State management
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
@@ -147,11 +149,12 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     );
 
     if (existingTeam) {
-      alert(
+      showToast(
         t('teamManager.duplicateNameError',
           'A team named "{{name}}" already exists. Please choose a different name.',
           { name: existingTeam.name }
-        )
+        ),
+        'error'
       );
       return;
     }
@@ -179,11 +182,12 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     );
 
     if (existingTeam) {
-      alert(
+      showToast(
         t('teamManager.duplicateNameError',
           'A team named "{{name}}" already exists. Please choose a different name.',
           { name: existingTeam.name }
-        )
+        ),
+        'error'
       );
       return;
     }

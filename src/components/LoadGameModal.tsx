@@ -18,6 +18,7 @@ import {
   HiOutlineChevronUp
 } from 'react-icons/hi2';
 import { DEFAULT_GAME_ID } from '@/config/constants';
+import ConfirmationModal from './ConfirmationModal';
 
 export interface LoadGameModalProps {
   isOpen: boolean;
@@ -74,6 +75,10 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   const [filterId, setFilterId] = useState<string | null>(null);
   const [showUnplayedOnly, setShowUnplayedOnly] = useState<boolean>(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  // Confirmation modal state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [gameToDelete, setGameToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Create entity maps for O(1) lookups (live entity names)
   const entityMaps = useMemo(
@@ -174,11 +179,17 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   }, [savedGames, searchText, filterType, filterId, showUnplayedOnly, entityMaps]);
 
   const handleDeleteClick = (gameId: string, gameName: string) => {
-    // Use a confirmation dialog
-    if (window.confirm(t('loadGameModal.deleteConfirm', `Are you sure you want to delete the saved game "{gameName}"? This action cannot be undone.`)?.replace('{gameName}', gameName))) {
-      onDelete(gameId);
+    setGameToDelete({ id: gameId, name: gameName });
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirmed = () => {
+    if (gameToDelete) {
+      onDelete(gameToDelete.id);
       setOpenMenuId(null); // Close menu after delete
     }
+    setShowDeleteConfirm(false);
+    setGameToDelete(null);
   };
 
   // --- Event Handlers ---
@@ -672,6 +683,21 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        title={t('loadGameModal.deleteConfirmTitle', 'Delete Game')}
+        message={t('loadGameModal.deleteConfirm', `Are you sure you want to delete the saved game "{gameName}"? This action cannot be undone.`).replace('{gameName}', gameToDelete?.name || '')}
+        warningMessage={t('loadGameModal.deleteWarning', 'This action is permanent and cannot be undone.')}
+        onConfirm={handleDeleteConfirmed}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setGameToDelete(null);
+        }}
+        confirmLabel={t('common.delete', 'Delete')}
+        variant="danger"
+      />
     </div>
   );
 };
