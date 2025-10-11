@@ -6,6 +6,7 @@ import NewGameSetupModal from './NewGameSetupModal';
 import { getLastHomeTeamName, saveLastHomeTeamName } from '@/utils/appSettings';
 import type { UseMutationResult } from '@tanstack/react-query';
 import type { Season, Tournament } from '@/types';
+import { ToastProvider } from '@/contexts/ToastProvider';
 
 // Mock the utility functions
 jest.mock('@/utils/appSettings', () => ({
@@ -116,7 +117,11 @@ describe('NewGameSetupModal', () => {
   });
 
   const renderModal = () => {
-    render(<NewGameSetupModal {...defaultProps} />);
+    render(
+      <ToastProvider>
+        <NewGameSetupModal {...defaultProps} />
+      </ToastProvider>
+    );
   };
 
   test('loads the last home team name from appSettings utility and populates input', async () => {
@@ -241,16 +246,15 @@ describe('NewGameSetupModal', () => {
     fireEvent.change(homeTeamInput, { target: { value: '' } });
     const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
     fireEvent.change(opponentInput, { target: { value: 'Opponent Team' } });
-    window.alert = jest.fn();
     const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
-    
+
     await act(async () => {
         fireEvent.click(startButton);
     });
 
     await waitFor(() => {
-      // Use translation key for alert message
-      expect(window.alert).toHaveBeenCalledWith(translations['newGameSetupModal.errorHomeTeamRequired']);
+      // Check for toast message
+      expect(screen.getByText('Home Team Name is required.')).toBeInTheDocument();
     });
     expect(saveLastHomeTeamName).not.toHaveBeenCalled();
     expect(mockOnStart).not.toHaveBeenCalled();

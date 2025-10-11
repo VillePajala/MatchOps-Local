@@ -10,6 +10,7 @@ import { updateGameDetails, updateGameEvent, removeGameEvent } from '@/utils/sav
 import * as rosterUtils from '@/utils/masterRoster';
 import { useTranslation } from 'react-i18next';
 import { UseMutationResult } from '@tanstack/react-query';
+import { ToastProvider } from '@/contexts/ToastProvider';
 
 // Mock i18n
 jest.mock('react-i18next', () => ({
@@ -182,7 +183,11 @@ describe('<GameSettingsModal />', () => {
   });
 
   const renderModal = (props: GameSettingsModalProps = defaultProps) => {
-    return render(<GameSettingsModal {...props} />);
+    return render(
+      <ToastProvider>
+        <GameSettingsModal {...props} />
+      </ToastProvider>
+    );
   };
 
   test('renders the modal when isOpen is true', async () => {
@@ -192,7 +197,11 @@ describe('<GameSettingsModal />', () => {
   });
 
   test('does not render the modal when isOpen is false', () => {
-    render(<GameSettingsModal {...defaultProps} isOpen={false} />);
+    render(
+      <ToastProvider>
+        <GameSettingsModal {...defaultProps} isOpen={false} />
+      </ToastProvider>
+    );
     expect(screen.queryByRole('heading', { name: t('gameSettingsModal.title') })).not.toBeInTheDocument();
   });
 
@@ -215,11 +224,19 @@ describe('<GameSettingsModal />', () => {
       mockOnGameNotesChange.mockImplementation((newNotes: string) => {
         currentNotes = newNotes;
         // Re-render with updated notes
-        rerender(<GameSettingsModal {...defaultProps} gameNotes={currentNotes} />);
+        rerender(
+          <ToastProvider>
+            <GameSettingsModal {...defaultProps} gameNotes={currentNotes} />
+          </ToastProvider>
+        );
       });
-      
+
       const user = userEvent.setup();
-      const { rerender } = render(<GameSettingsModal {...defaultProps} />);
+      const { rerender } = render(
+        <ToastProvider>
+          <GameSettingsModal {...defaultProps} />
+        </ToastProvider>
+      );
       
       // Wait for async loading to complete
       await waitFor(() => {
@@ -351,13 +368,21 @@ describe('<GameSettingsModal />', () => {
 
     test('selecting a season prefills game data', async () => {
       const user = userEvent.setup();
-      const { rerender } = render(<GameSettingsModal {...defaultProps} />);
+      const { rerender } = render(
+        <ToastProvider>
+          <GameSettingsModal {...defaultProps} />
+        </ToastProvider>
+      );
       const section = getAssociationSection();
       const seasonTab = within(section).getByText(t('gameSettingsModal.kausi'));
       await user.click(seasonTab);
       const select = within(section).getByRole('combobox');
       await user.selectOptions(select, 's1');
-      rerender(<GameSettingsModal {...defaultProps} seasonId="s1" isOpen={true} />);
+      rerender(
+        <ToastProvider>
+          <GameSettingsModal {...defaultProps} seasonId="s1" isOpen={true} />
+        </ToastProvider>
+      );
       await waitFor(() => {
         expect(mockOnSeasonIdChange).toHaveBeenCalledWith('s1');
       });
@@ -365,13 +390,21 @@ describe('<GameSettingsModal />', () => {
 
     test('selecting a tournament prefills game data', async () => {
       const user = userEvent.setup();
-      const { rerender } = render(<GameSettingsModal {...defaultProps} />);
+      const { rerender } = render(
+        <ToastProvider>
+          <GameSettingsModal {...defaultProps} />
+        </ToastProvider>
+      );
       const section = getAssociationSection();
       const tournamentTab = within(section).getByText(t('gameSettingsModal.turnaus'));
       await user.click(tournamentTab);
       const select = within(section).getByRole('combobox');
       await user.selectOptions(select, 't1');
-      rerender(<GameSettingsModal {...defaultProps} tournamentId="t1" isOpen={true} />);
+      rerender(
+        <ToastProvider>
+          <GameSettingsModal {...defaultProps} tournamentId="t1" isOpen={true} />
+        </ToastProvider>
+      );
       await waitFor(() => {
         expect(mockOnTournamentIdChange).toHaveBeenCalledWith('t1');
       });
