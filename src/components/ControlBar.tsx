@@ -10,6 +10,7 @@ import {
   HiOutlineArrowPath,
   HiOutlineAdjustmentsHorizontal,
   HiOutlineUsers,
+  HiOutlineUserGroup,
   HiOutlineTrophy,
   HiOutlineClipboardDocumentList,
   HiOutlineClipboard,
@@ -410,7 +411,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
               <HiOutlineUsers className="w-5 h-5 mr-2" /> {t('controlBar.manageRoster', 'Manage Roster')}
             </button>
             <button onClick={wrapHandler(onOpenTeamManagerModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
-              <HiOutlineUsers className="w-5 h-5 mr-2" /> {t('controlBar.manageTeams', 'Manage Teams')}
+              <HiOutlineUserGroup className="w-5 h-5 mr-2" /> {t('controlBar.manageTeams', 'Manage Teams')}
             </button>
             <button onClick={wrapHandler(onOpenSeasonTournamentModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineTrophy className="w-5 h-5 mr-2" /> {t('controlBar.manageSeasonsAndTournaments', 'Manage Seasons & Tournaments')}

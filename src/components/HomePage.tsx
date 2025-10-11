@@ -3516,6 +3516,16 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         assessments={playerAssessments}
         onSave={handleSavePlayerAssessment}
         onDelete={handleDeletePlayerAssessment}
+        teamName={gameSessionState.teamName}
+        opponentName={gameSessionState.opponentName}
+        gameDate={gameSessionState.gameDate}
+        homeScore={gameSessionState.homeScore}
+        awayScore={gameSessionState.awayScore}
+        homeOrAway={gameSessionState.homeOrAway}
+        gameLocation={gameSessionState.gameLocation}
+        gameTime={gameSessionState.gameTime}
+        numberOfPeriods={gameSessionState.numberOfPeriods}
+        periodDurationMinutes={gameSessionState.periodDurationMinutes}
       />
 
       {/* Team Reassignment Modal for Orphaned Games */}

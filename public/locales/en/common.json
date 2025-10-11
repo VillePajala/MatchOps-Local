@@ -45,9 +45,9 @@
     "saveGame": "Quick Save",
     "newGameButton": "Start New Game",
     "gameSettingsButton": "Game Settings",
-    "manageRoster": "Manage Roster",
-    "manageSeasonsAndTournaments": "Manage Seasons & Tournaments",
-    "manageTeams": "Manage Teams",
+    "manageRoster": "All Players",
+    "manageSeasonsAndTournaments": "Seasons & Tournaments",
+    "manageTeams": "Teams",
     "assessPlayers": "Assess Players",
     "appSettings": "App Settings",
     "coachingMaterials": "Coaching Materials",
@@ -370,7 +370,7 @@
     }
   },
   "rosterSettingsModal": {
-    "title": "Master Roster",
+    "title": "All Players",
     "unsetGoalie": "Unset Goalie",
     "setGoalie": "Set Goalie",
     "playerNotes": "Player Notes",
@@ -865,14 +865,17 @@
     "seasonEndMonthLabel": "Season End Month"
   },
   "playerAssessmentModal": {
-    "title": "Assess Players",
+    "title": "Assess Game Performance",
     "saveButton": "Save",
     "noPlayers": "No players selected",
     "notesPlaceholder": "Add notes...",
     "overallLabel": "Overall",
     "expand": "Expand assessment for {{name}}",
     "collapse": "Collapse assessment for {{name}}",
-    "resetButton": "Reset"
+    "resetButton": "Reset",
+    "assessed": "assessed",
+    "playerSingular": "Player",
+    "playersPlural": "Players"
   },
   "assessmentMetrics": {
     "intensity": "Intensity",

@@ -44,10 +44,10 @@
     "saveGame": "Pikatallennus",
     "newGameButton": "Aloita uusi ottelu",
     "gameSettingsButton": "Otteluasetukset",
-    "manageRoster": "Kokoonpanoasetukset",
-    "manageSeasonsAndTournaments": "Hallinnoi kausia ja turnauksia",
-    "manageTeams": "Hallinnoi joukkueita",
-    "assessPlayers": "Arvioi pelaajat",
+    "manageRoster": "Kaikki pelaajat",
+    "manageSeasonsAndTournaments": "Kaudet ja turnaukset",
+    "manageTeams": "Joukkueet",
+    "assessPlayers": "Arvioi ottelusuoritukset",
     "appSettings": "Asetukset",
     "coachingMaterials": "Valmennusmateriaalit",
     "backupRestore": "Varmuuskopiointi & Palautus",
@@ -391,7 +391,7 @@
     }
   },
   "rosterSettingsModal": {
-    "title": "Pääkokoonpano",
+    "title": "Kaikki pelaajat",
     "unsetGoalie": "Poista maalivahdin merkintä",
     "setGoalie": "Aseta maalivahdiksi",
     "playerNotes": "Pelaajan Muistiinpanot",
@@ -886,14 +886,17 @@
     "seasonEndMonthLabel": "Kauden loppukuukausi"
   },
   "playerAssessmentModal": {
-    "title": "Arvioi Pelaajat",
+    "title": "Arvioi ottelusuoritukset",
     "saveButton": "Tallenna",
     "noPlayers": "Ei valittuja pelaajia",
     "notesPlaceholder": "Kirjoita muistiinpanoja...",
     "overallLabel": "Kokonaisarvio",
     "expand": "Avaa arviointi pelaajalle {{name}}",
     "collapse": "Sulje arviointi pelaajalle {{name}}",
-    "resetButton": "Nollaa"
+    "resetButton": "Nollaa",
+    "assessed": "arvioitu",
+    "playerSingular": "Pelaaja",
+    "playersPlural": "Pelaajaa"
   },
   "assessmentMetrics": {
     "intensity": "Intensiteetti",
