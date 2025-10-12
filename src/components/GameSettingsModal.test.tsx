@@ -65,6 +65,7 @@ jest.mock('react-i18next', () => ({
         'gameSettingsModal.home': 'Koti',
         'gameSettingsModal.away': 'Vieras',
         'gameSettingsModal.unplayedToggle': 'Ei vielä pelattu',
+        'gameSettingsModal.confirmDeleteEvent': 'Are you sure you want to delete this event? This cannot be undone.',
       };
       
       let translation = translations[key] || key;
@@ -177,7 +178,6 @@ describe('<GameSettingsModal />', () => {
     (updateGameDetails as jest.Mock).mockResolvedValue({ id: 'game123' });
     (updateGameEvent as jest.Mock).mockResolvedValue({ id: 'event1' });
     (removeGameEvent as jest.Mock).mockResolvedValue(true);
-    window.confirm = jest.fn(() => true);
     mockOnSetHomeOrAway.mockClear();
     mockOnPeriodDurationChange.mockClear();
   });
@@ -443,14 +443,23 @@ describe('<GameSettingsModal />', () => {
     test('deletes a game event successfully after confirmation', async () => {
         const user = userEvent.setup();
         renderModal();
-        
+
         const eventDiv = await findEventByTime('02:00');
         const deleteButton = within(eventDiv).getByTitle(t('common.delete'));
         await user.click(deleteButton);
-  
-        expect(window.confirm).toHaveBeenCalled();
-        expect(mockOnDeleteGameEvent).toHaveBeenCalledWith('goal1');
-        expect(removeGameEvent).toHaveBeenCalled();
+
+        // Wait for confirmation modal to appear
+        const confirmationModal = await screen.findByText(t('gameSettingsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.'));
+        const modalContainer = confirmationModal.closest('div[class*="fixed"]');
+
+        // Find and click the confirm button within the modal
+        const confirmButton = within(modalContainer as HTMLElement).getByRole('button', { name: t('common.delete') });
+        await user.click(confirmButton);
+
+        await waitFor(() => {
+          expect(mockOnDeleteGameEvent).toHaveBeenCalledWith('goal1');
+          expect(removeGameEvent).toHaveBeenCalled();
+        });
       });
   });
 
