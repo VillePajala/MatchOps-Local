@@ -7,6 +7,7 @@ import { useMemo } from 'react';
 import { Season, Tournament } from '@/types';
 import { StatsTab, TournamentSeasonStats, OverallTournamentSeasonStats } from '../types';
 import { SavedGamesCollection } from '@/types';
+import { filterGameIds } from '../utils/gameFilters';
 
 interface UseTournamentSeasonStatsParams {
   activeTab: StatsTab;
@@ -286,9 +287,8 @@ export function useTournamentSeasonStats(
       return [];
     };
 
-    const playedGameIds = Object.keys(savedGames || {}).filter(
-      id => savedGames?.[id]?.isPlayed !== false
-    );
+    // Use shared filtering utility
+    const playedGameIds = filterGameIds(savedGames, { playedOnly: true });
     return calculateStats(playedGameIds);
   }, [activeTab, savedGames, seasons, tournaments, selectedSeasonIdFilter, selectedTournamentIdFilter]);
 }

@@ -6,6 +6,7 @@ import { Team, Player } from '@/types';
 import { useTeamRosterQuery, useAddPlayerToRosterMutation, useSetTeamRosterMutation } from '@/hooks/useTeamQueries';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import logger from '@/utils/logger';
+import { generatePlayerId } from '@/utils/idGenerator';
 
 interface TeamRosterModalProps {
   isOpen: boolean;
@@ -55,7 +56,7 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
       const selectedMasterPlayers = masterRoster.filter(p => selectedPlayerIds.includes(p.id));
       const newRoster: Player[] = selectedMasterPlayers.map((player, index) => ({
         ...player,
-        id: `player_${Date.now()}_${Math.random().toString(36).substring(2, 11)}_${index}`,
+        id: generatePlayerId(index),
       }));
 
       // Replace the team roster with the exact selection
@@ -191,11 +192,14 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
                   </p>
                 </div>
               ) : (
-                <div className="space-y-0">
+                <div role="list" className="space-y-0" aria-label={t('teamRosterModal.playerList', 'Team player list')}>
                   {teamRoster.map((player, index) => (
                     <div
                       key={player.id}
-                      className={`flex items-center py-1.5 px-2 rounded hover:bg-slate-800/40 transition-colors ${
+                      role="listitem"
+                      tabIndex={0}
+                      aria-label={`${t('teamRosterModal.player', 'Player')}: ${player.name}`}
+                      className={`flex items-center py-1.5 px-2 rounded hover:bg-slate-800/40 focus:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
                         index < teamRoster.length - 1 ? 'border-b border-slate-700/50' : ''
                       }`}
                     >

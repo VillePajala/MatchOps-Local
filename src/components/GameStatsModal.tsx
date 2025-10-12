@@ -22,6 +22,9 @@ import { useGameStats } from './GameStatsModal/hooks/useGameStats';
 import { useTournamentSeasonStats } from './GameStatsModal/hooks/useTournamentSeasonStats';
 import { useGoalEditor } from './GameStatsModal/hooks/useGoalEditor';
 
+// Import shared utilities
+import { getPlayedGamesByTeam } from './GameStatsModal/utils/gameFilters';
+
 // Import extracted components
 import {
   PlayerStatsTable,
@@ -103,26 +106,27 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const formatDisplayDate = useCallback((isoDate: string): string => {
     if (!isoDate) return t('common.notSet', 'Ei asetettu');
     try {
-      if (isoDate.length !== 10) return isoDate;
       const date = new Date(isoDate);
-      if (isNaN(date.getTime())) return isoDate;
+      if (isNaN(date.getTime())) {
+        logger.warn('Invalid date value in formatDisplayDate', { isoDate });
+        return isoDate;
+      }
 
       const currentLanguage = i18n.language;
 
-      if (currentLanguage.startsWith('fi')) {
-        const day = date.getDate();
-        const month = date.getMonth() + 1;
-        const year = date.getFullYear();
-        return `${day}.${month}.${year}`;
-      } else {
-        return date.toLocaleDateString('en-US', {
-          month: 'short',
+      // Use consistent Intl.DateTimeFormat for both locales
+      const formatter = new Intl.DateTimeFormat(
+        currentLanguage.startsWith('fi') ? 'fi-FI' : 'en-US',
+        {
           day: 'numeric',
+          month: currentLanguage.startsWith('fi') ? 'numeric' : 'short',
           year: 'numeric'
-        });
-      }
+        }
+      );
+
+      return formatter.format(date);
     } catch (error) {
-      logger.warn('Error formatting date in GameStatsModal', { error });
+      logger.warn('Error formatting date in GameStatsModal', { error, isoDate });
       return 'Date Error';
     }
   }, [i18n.language, t]);
@@ -130,6 +134,24 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // --- State ---
   const [editGameNotes, setEditGameNotes] = useState(gameNotes);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+
+  /**
+   * Inline editing field state for game metadata (opponent, date, scores)
+   *
+   * @remarks
+   * This state is currently only used by setInlineEditingField to ensure
+   * mutual exclusivity between different editing modes (notes, goals, metadata).
+   * The getter (inlineEditingField) is not yet consumed because the inline
+   * editing UI for game metadata has not been implemented.
+   *
+   * @future
+   * When implementing inline editing for GameInfoCard fields:
+   * 1. Check this state to conditionally render inline editors
+   * 2. Update state when clicking edit buttons for opponent/date/scores
+   * 3. Clear state (set to null) when saving or canceling edits
+   *
+   * @see GameStatsModal/hooks/useGoalEditor.ts:73 - Clears this state when editing goals
+   */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [inlineEditingField, setInlineEditingField] = useState<'opponent' | 'date' | 'home' | 'away' | null>(null);
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -269,21 +291,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const overallTeamStats = useMemo(() => {
     if (activeTab !== 'overall') return null;
 
-    const playedGameIds = Object.keys(savedGames || {}).filter(
-      id => savedGames?.[id]?.isPlayed !== false
-    ).filter(gameId => {
-      const game = savedGames?.[gameId];
-      if (!game) return false;
-
-      if (selectedTeamIdFilter !== 'all') {
-        if (selectedTeamIdFilter === 'legacy') {
-          if (game.teamId != null && game.teamId !== '') return false;
-        } else {
-          if (game.teamId !== selectedTeamIdFilter) return false;
-        }
-      }
-      return true;
-    });
+    const playedGameIds = getPlayedGamesByTeam(savedGames, selectedTeamIdFilter);
 
     let gamesPlayed = 0, wins = 0, losses = 0, ties = 0, goalsFor = 0, goalsAgainst = 0;
 
@@ -315,6 +323,87 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       averageGoalsAgainst: gamesPlayed > 0 ? goalsAgainst / gamesPlayed : 0,
     };
   }, [activeTab, savedGames, selectedTeamIdFilter]);
+
+  // Tab counter memoized for performance
+  const tabCounterContent = useMemo(() => {
+    if (activeTab === 'currentGame') {
+      return (
+        <span>
+          <span className="text-yellow-400 font-semibold">{availablePlayers.length}</span>
+          {" "}{availablePlayers.length === 1
+            ? t('teamRosterModal.playerSingular', 'Player')
+            : t('teamRosterModal.playerPlural', 'Players')}
+        </span>
+      );
+    }
+
+    if (activeTab === 'season') {
+      return (
+        <span>
+          <span className="text-yellow-400 font-semibold">{seasons.length}</span>
+          {" "}{seasons.length === 1
+            ? t('seasonTournamentModal.seasonSingular', 'Season')
+            : t('seasonTournamentModal.seasons', 'Seasons')}
+        </span>
+      );
+    }
+
+    if (activeTab === 'tournament') {
+      return (
+        <span>
+          <span className="text-yellow-400 font-semibold">{tournaments.length}</span>
+          {" "}{tournaments.length === 1
+            ? t('seasonTournamentModal.tournamentSingular', 'Tournament')
+            : t('seasonTournamentModal.tournaments', 'Tournaments')}
+        </span>
+      );
+    }
+
+    if (activeTab === 'overall') {
+      const playedGamesCount = getPlayedGamesByTeam(savedGames, selectedTeamIdFilter).length;
+      return (
+        <span>
+          <span className="text-yellow-400 font-semibold">{playedGamesCount}</span>
+          {" "}{playedGamesCount === 1
+            ? t('gameStatsModal.game', 'Game')
+            : t('gameStatsModal.games', 'Games')}
+        </span>
+      );
+    }
+
+    if (activeTab === 'player') {
+      if (selectedPlayer) {
+        const playerGames = Object.values(savedGames || {}).filter(
+          game => game.selectedPlayerIds?.includes(selectedPlayer.id)
+        );
+        const uniqueSeasonIds = new Set(
+          playerGames
+            .map(game => game.seasonId)
+            .filter((id): id is string => id != null)
+        );
+        const seasonsCount = uniqueSeasonIds.size;
+        return (
+          <span>
+            <span className="text-yellow-400 font-semibold">{seasonsCount}</span>
+            {" "}{seasonsCount === 1
+              ? t('seasonTournamentModal.seasonSingular', 'Season')
+              : t('seasonTournamentModal.seasons', 'Seasons')}
+          </span>
+        );
+      } else {
+        return (
+          <span>
+            <span className="text-yellow-400 font-semibold">{masterRoster.length}</span>
+            {" "}{masterRoster.length === 1
+              ? t('teamRosterModal.playerSingular', 'Player')
+              : t('teamRosterModal.playerPlural', 'Players')}
+          </span>
+        );
+      }
+    }
+
+    return null;
+  }, [activeTab, availablePlayers, seasons, tournaments, savedGames, selectedTeamIdFilter, selectedPlayer, masterRoster, t]);
 
   // Calculate team assessment averages
   const teamAssessmentAverages = useMemo(() => {
@@ -422,84 +511,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           {/* Counter */}
           <div className="mt-3 text-center text-sm">
             <div className="flex justify-center items-center text-slate-300">
-              {activeTab === 'currentGame' && (
-                <span>
-                  <span className="text-yellow-400 font-semibold">{availablePlayers.length}</span>
-                  {" "}{availablePlayers.length === 1
-                    ? t('teamRosterModal.playerSingular', 'Player')
-                    : t('teamRosterModal.playerPlural', 'Players')}
-                </span>
-              )}
-              {activeTab === 'season' && (
-                <span>
-                  <span className="text-yellow-400 font-semibold">{seasons.length}</span>
-                  {" "}{seasons.length === 1
-                    ? t('seasonTournamentModal.seasonSingular', 'Season')
-                    : t('seasonTournamentModal.seasons', 'Seasons')}
-                </span>
-              )}
-              {activeTab === 'tournament' && (
-                <span>
-                  <span className="text-yellow-400 font-semibold">{tournaments.length}</span>
-                  {" "}{tournaments.length === 1
-                    ? t('seasonTournamentModal.tournamentSingular', 'Tournament')
-                    : t('seasonTournamentModal.tournaments', 'Tournaments')}
-                </span>
-              )}
-              {activeTab === 'overall' && (() => {
-                const playedGamesCount = Object.keys(savedGames || {}).filter(
-                  id => savedGames?.[id]?.isPlayed !== false
-                ).filter(gameId => {
-                  const game = savedGames?.[gameId];
-                  if (!game) return false;
-                  if (selectedTeamIdFilter !== 'all') {
-                    if (selectedTeamIdFilter === 'legacy') {
-                      if (game.teamId != null && game.teamId !== '') return false;
-                    } else {
-                      if (game.teamId !== selectedTeamIdFilter) return false;
-                    }
-                  }
-                  return true;
-                }).length;
-                return (
-                  <span>
-                    <span className="text-yellow-400 font-semibold">{playedGamesCount}</span>
-                    {" "}{playedGamesCount === 1
-                      ? t('gameStatsModal.game', 'Game')
-                      : t('gameStatsModal.games', 'Games')}
-                  </span>
-                );
-              })()}
-              {activeTab === 'player' && (() => {
-                if (selectedPlayer) {
-                  const playerGames = Object.values(savedGames || {}).filter(
-                    game => game.selectedPlayerIds?.includes(selectedPlayer.id)
-                  );
-                  const uniqueSeasonIds = new Set(
-                    playerGames
-                      .map(game => game.seasonId)
-                      .filter((id): id is string => id != null)
-                  );
-                  const seasonsCount = uniqueSeasonIds.size;
-                  return (
-                    <span>
-                      <span className="text-yellow-400 font-semibold">{seasonsCount}</span>
-                      {" "}{seasonsCount === 1
-                        ? t('seasonTournamentModal.seasonSingular', 'Season')
-                        : t('seasonTournamentModal.seasons', 'Seasons')}
-                    </span>
-                  );
-                } else {
-                  return (
-                    <span>
-                      <span className="text-yellow-400 font-semibold">{masterRoster.length}</span>
-                      {" "}{masterRoster.length === 1
-                        ? t('teamRosterModal.playerSingular', 'Player')
-                        : t('teamRosterModal.playerPlural', 'Players')}
-                    </span>
-                  );
-                }
-              })()}
+              {tabCounterContent}
             </div>
           </div>
         </div>
