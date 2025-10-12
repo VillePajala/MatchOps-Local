@@ -30,6 +30,29 @@ import {
 import { FaFutbol } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 
+// Design tokens for consistent sizing and spacing
+const DESIGN_TOKENS = {
+  // Button dimensions
+  BUTTON_SIZE: 'w-10 h-10',
+  BUTTON_HEIGHT: 'h-10',
+
+  // Icon dimensions
+  ICON_SIZE: 'w-5 h-5',
+  ICON_SIZE_PX: 20,
+
+  // Timer display
+  TIMER_FONT_SIZE: 'text-2xl',
+
+  // Drag behavior (pixels)
+  DRAG_MAX_DISTANCE: -320,
+  DRAG_CLOSE_THRESHOLD: -96,
+  DRAG_MIN_DISTANCE: 10,
+
+  // Menu dimensions
+  MENU_WIDTH: 'w-80',
+  MENU_WIDTH_PX: 320,
+} as const;
+
 // Helper to format time
 const formatTime = (totalSeconds: number): string => {
   const minutes = Math.floor(totalSeconds / 60);
@@ -113,8 +136,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
   const dragStartX = useRef<number>(0);
 
   // Button styles - square buttons, compact height, professional polish
-  const buttonStyle = "w-10 h-10 flex items-center justify-center rounded-md shadow-sm transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border border-slate-600/30";
-  const iconSize = "w-5 h-5";
+  const buttonStyle = `${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 border border-slate-600/30`;
+  const iconSize = DESIGN_TOKENS.ICON_SIZE;
 
   // Settings menu handlers
   const handleSettingsButtonClick = () => {
@@ -133,15 +156,15 @@ const ControlBar: React.FC<ControlBarProps> = ({
     if (isDragging && e.touches.length === 1) {
       const diff = e.touches[0].clientX - dragStartX.current;
       if (diff <= 0) {
-        setDragOffset(Math.max(-320, diff));
-        if (Math.abs(diff) > 10) e.preventDefault();
+        setDragOffset(Math.max(DESIGN_TOKENS.DRAG_MAX_DISTANCE, diff));
+        if (Math.abs(diff) > DESIGN_TOKENS.DRAG_MIN_DISTANCE) e.preventDefault();
       }
     }
   };
 
   const handleTouchEnd = () => {
     if (isDragging) {
-      if (dragOffset < -96) setIsSettingsMenuOpen(false);
+      if (dragOffset < DESIGN_TOKENS.DRAG_CLOSE_THRESHOLD) setIsSettingsMenuOpen(false);
       setDragOffset(0);
       setIsDragging(false);
     }
@@ -153,11 +176,11 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
     const handleMouseMove = (e: MouseEvent) => {
       const diff = e.clientX - dragStartX.current;
-      if (diff <= 0) setDragOffset(Math.max(-320, diff));
+      if (diff <= 0) setDragOffset(Math.max(DESIGN_TOKENS.DRAG_MAX_DISTANCE, diff));
     };
 
     const handleMouseUp = () => {
-      if (dragOffset < -96) setIsSettingsMenuOpen(false);
+      if (dragOffset < DESIGN_TOKENS.DRAG_CLOSE_THRESHOLD) setIsSettingsMenuOpen(false);
       setDragOffset(0);
       setIsDragging(false);
       document.removeEventListener('mousemove', handleMouseMove);
@@ -213,7 +236,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
             {/* Field Tools Button - Square shape */}
             <button
               onClick={() => setIsFieldToolsOpen(true)}
-              className="w-10 h-10 flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500"
+              className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
               title={t('controlBar.fieldTools', 'Field Tools')}
               aria-label={t('controlBar.fieldTools', 'Field Tools')}
             >
@@ -223,11 +246,11 @@ const ControlBar: React.FC<ControlBarProps> = ({
             {/* Clickable Timer Display - Fixed height */}
             <button
               onClick={onToggleLargeTimerOverlay}
-              className="h-10 bg-slate-700/80 hover:bg-slate-600/80 px-6 rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+              className={`${DESIGN_TOKENS.BUTTON_HEIGHT} bg-slate-700/80 hover:bg-slate-600/80 px-6 rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-slate-900`}
               title={t('controlBar.openTimer', 'Open Timer')}
               aria-label={t('controlBar.openTimer', 'Open Timer')}
             >
-              <span className={`text-2xl font-bold tabular-nums leading-none transition-colors ${isTimerRunning ? 'text-green-400' : 'text-slate-300'}`}>
+              <span className={`${DESIGN_TOKENS.TIMER_FONT_SIZE} font-bold tabular-nums leading-none transition-colors ${isTimerRunning ? 'text-green-400' : 'text-slate-300'}`}>
                 {formatTime(timeElapsedInSeconds)}
               </span>
             </button>
@@ -235,17 +258,17 @@ const ControlBar: React.FC<ControlBarProps> = ({
             {/* Goal Button - Square shape */}
             <button
               onClick={onToggleGoalLogModal}
-              className="w-10 h-10 flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500"
+              className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
               title={t('controlBar.logGoal', 'Log Goal')}
               aria-label={t('controlBar.logGoal', 'Log Goal')}
             >
-              <FaFutbol size={20} />
+              <FaFutbol size={DESIGN_TOKENS.ICON_SIZE_PX} />
             </button>
 
             {/* Menu Button - Square shape */}
             <button
               onClick={handleSettingsButtonClick}
-              className="w-10 h-10 flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500"
+              className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
               title={t('controlBar.settings', 'Menu')}
               aria-label={t('controlBar.settings', 'Menu')}
             >
@@ -351,7 +374,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
       {/* Settings Side Panel */}
       <div
         ref={settingsMenuRef}
-        className={`fixed top-0 left-0 h-full w-80 z-50 flex flex-col bg-slate-800/98 backdrop-blur-sm shadow-xl border-r border-slate-600/50 overflow-hidden ${
+        className={`fixed top-0 left-0 h-full ${DESIGN_TOKENS.MENU_WIDTH} z-50 flex flex-col bg-slate-800/98 backdrop-blur-sm shadow-xl border-r border-slate-600/50 overflow-hidden ${
           isDragging ? '' : 'transition-transform duration-300 ease-in-out'
         } ${isSettingsMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
         style={isDragging ? { transform: `translateX(${dragOffset}px)` } : {}}

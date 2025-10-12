@@ -6,6 +6,7 @@
 import { useMemo } from 'react';
 import { GameEvent, PlayerStatRow } from '@/types';
 import { GameStatsParams, SavedGame } from '../types';
+import { filterGameIds } from '../utils/gameFilters';
 
 interface UseGameStatsResult {
   stats: PlayerStatRow[];
@@ -61,37 +62,19 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
       }
     } else {
       // Handle 'season', 'tournament', 'overall' tabs
-      const allGameIds = Object.keys(savedGames || {}).filter(
-        id => savedGames?.[id]?.isPlayed !== false
-      );
-
-      // Filter game IDs based on tab and selected filter
-      processedGameIds = allGameIds.filter(gameId => {
-        const game: SavedGame | undefined = savedGames?.[gameId];
-        if (!game) return false;
-
-        // Apply team filter first (affects all tabs)
-        if (selectedTeamIdFilter !== 'all') {
-          if (selectedTeamIdFilter === 'legacy') {
-            if (game.teamId != null && game.teamId !== '') return false;
-          } else {
-            if (game.teamId !== selectedTeamIdFilter) return false;
-          }
-        }
-
-        if (activeTab === 'season') {
-          return selectedSeasonIdFilter === 'all'
-            ? game.seasonId != null && (game.tournamentId == null || game.tournamentId === '')
-            : game.seasonId === selectedSeasonIdFilter;
-        } else if (activeTab === 'tournament') {
-          return selectedTournamentIdFilter === 'all'
-            ? game.tournamentId != null && (game.seasonId == null || game.seasonId === '')
-            : game.tournamentId === selectedTournamentIdFilter;
-        } else if (activeTab === 'overall') {
-          return true;
-        }
-        return false;
+      // Use shared filtering utility
+      processedGameIds = filterGameIds(savedGames, {
+        playedOnly: true,
+        teamFilter: selectedTeamIdFilter,
+        seasonFilter: activeTab === 'season' ? selectedSeasonIdFilter : undefined,
+        tournamentFilter: activeTab === 'tournament' ? selectedTournamentIdFilter : undefined,
+        activeTab
       });
+
+      // Early return if no games to process - avoids expensive operations
+      if (processedGameIds.length === 0) {
+        return { stats: [], gameIds: [] };
+      }
 
       // Aggregate views: Build statsMap from players that actually played
       processedGameIds.forEach(gameId => {
