@@ -1007,6 +1007,7 @@
     "useDemandCorrection": "Weight by Difficulty",
     "useDemandCorrectionTooltip": "When enabled, ratings from harder games count more",
     "includesAdjustments": "Includes external games",
+    "externalGames": "External Games",
     "addExternalStats": "Add external stats",
     "seasonRequired": "Please create a season first.",
     "teamRequired": "Team name is required.",
