@@ -661,144 +661,89 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
                   {/* Tournament/Season Statistics Section */}
                   {(activeTab === 'season' || activeTab === 'tournament') && tournamentSeasonStats && (
-                    <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                      <h3 className="text-xl font-semibold text-slate-200 mb-4">
-                        {activeTab === 'season'
-                          ? (selectedSeasonIdFilter === 'all'
-                              ? t('gameStatsModal.filterAllSeasons', 'All Seasons')
-                              : seasons.find(s => s.id === selectedSeasonIdFilter)?.name || t('gameStatsModal.seasonStats', 'Season Statistics'))
-                          : (selectedTournamentIdFilter === 'all'
-                              ? t('gameStatsModal.filterAllTournaments', 'All Tournaments')
-                              : tournaments.find(t => t.id === selectedTournamentIdFilter)?.name || t('gameStatsModal.tournamentStats', 'Tournament Statistics'))
-                        }
-                      </h3>
-
-                      {/* Statistics in clean vertical format */}
-                      {tournamentSeasonStats && (
-                        <div className="space-y-0 text-sm">
-                          {Array.isArray(tournamentSeasonStats) ? (
-                            tournamentSeasonStats.length > 0 ? (
-                              // Show list of individual seasons/tournaments
-                              tournamentSeasonStats.map(stats => (
-                                <div key={stats.id} className="mb-6 last:mb-0">
-                                  <TeamPerformanceCard
-                                    title={stats.name}
-                                    gamesPlayed={stats.gamesPlayed}
-                                    wins={stats.wins}
-                                    losses={stats.losses}
-                                    ties={stats.ties}
-                                    winPercentage={stats.winPercentage}
-                                    goalDifference={stats.goalDifference}
-                                    goalsFor={stats.goalsFor}
-                                    goalsAgainst={stats.goalsAgainst}
-                                    averageGoalsFor={stats.averageGoalsFor}
-                                    averageGoalsAgainst={stats.averageGoalsAgainst}
-                                    lastGameDate={stats.lastGameDate ? formatDisplayDate(stats.lastGameDate) : undefined}
-                                  />
-                                </div>
-                              ))
-                            ) : (
-                              <div className="text-center text-slate-400 py-8">
-                                {activeTab === 'season'
-                                  ? t('gameStatsModal.noSeasonGames', 'No games found for this season.')
-                                  : t('gameStatsModal.noTournamentGames', 'No games found for this tournament.')
-                                }
-                              </div>
-                            )
-                          ) : (
-                            // Show overall aggregate - stats directly without nested card
-                            <div className="space-y-0 text-sm">
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                                <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGames}</span>
-                              </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                                <span className="text-slate-300">{t('common.record', 'Record')}</span>
-                                <span className="text-yellow-400 font-bold">
-                                  {tournamentSeasonStats.totalWins}-{tournamentSeasonStats.totalLosses}-{tournamentSeasonStats.totalTies}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                                <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.overallWinPercentage.toFixed(1)}%</span>
-                              </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                                <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
-                                <span
-                                  className={`font-bold ${tournamentSeasonStats.totalGoalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}
-                                >
-                                  {tournamentSeasonStats.totalGoalDifference >= 0 ? '+' : ''}
-                                  {tournamentSeasonStats.totalGoalDifference}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                                <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsFor}</span>
-                              </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                                <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsAgainst}</span>
-                              </div>
-                              <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
-                                <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsFor.toFixed(1)}</span>
-                              </div>
-                              <div className="flex justify-between items-center py-1.5 px-2">
-                                <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
-                                <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsAgainst.toFixed(1)}</span>
-                              </div>
-
-                              {/* Individual season/tournament cards */}
-                              {activeTab === 'season' && selectedSeasonIdFilter !== 'all' && tournamentSeasonStats.seasons.length > 0 && (
-                                <div className="space-y-4">
-                                  <h4 className="text-lg font-semibold text-slate-200">{t('gameStatsModal.individualSeasons', 'Individual Seasons')}</h4>
-                                  {tournamentSeasonStats.seasons.map(stats => (
-                                    <TeamPerformanceCard
-                                      key={stats.id}
-                                      title={stats.name}
-                                      gamesPlayed={stats.gamesPlayed}
-                                      wins={stats.wins}
-                                      losses={stats.losses}
-                                      ties={stats.ties}
-                                      winPercentage={stats.winPercentage}
-                                      goalDifference={stats.goalDifference}
-                                      goalsFor={stats.goalsFor}
-                                      goalsAgainst={stats.goalsAgainst}
-                                      averageGoalsFor={stats.averageGoalsFor}
-                                      averageGoalsAgainst={stats.averageGoalsAgainst}
-                                      lastGameDate={stats.lastGameDate ? formatDisplayDate(stats.lastGameDate) : undefined}
-                                    />
-                                  ))}
-                                </div>
-                              )}
-
-                              {activeTab === 'tournament' && selectedTournamentIdFilter !== 'all' && tournamentSeasonStats.tournaments.length > 0 && (
-                                <div className="space-y-4">
-                                  <h4 className="text-lg font-semibold text-slate-200">{t('gameStatsModal.individualTournaments', 'Individual Tournaments')}</h4>
-                                  {tournamentSeasonStats.tournaments.map(stats => (
-                                    <TeamPerformanceCard
-                                      key={stats.id}
-                                      title={stats.name}
-                                      gamesPlayed={stats.gamesPlayed}
-                                      wins={stats.wins}
-                                      losses={stats.losses}
-                                      ties={stats.ties}
-                                      winPercentage={stats.winPercentage}
-                                      goalDifference={stats.goalDifference}
-                                      goalsFor={stats.goalsFor}
-                                      goalsAgainst={stats.goalsAgainst}
-                                      averageGoalsFor={stats.averageGoalsFor}
-                                      averageGoalsAgainst={stats.averageGoalsAgainst}
-                                      lastGameDate={stats.lastGameDate ? formatDisplayDate(stats.lastGameDate) : undefined}
-                                    />
-                                  ))}
-                                </div>
-                              )}
+                    <>
+                      {Array.isArray(tournamentSeasonStats) ? (
+                        // Specific season/tournament selected - show TeamPerformanceCard directly (no outer wrapper)
+                        tournamentSeasonStats.length > 0 ? (
+                          tournamentSeasonStats.map(stats => (
+                            <div key={stats.id} className="mb-6 last:mb-0">
+                              <TeamPerformanceCard
+                                title={stats.name}
+                                gamesPlayed={stats.gamesPlayed}
+                                wins={stats.wins}
+                                losses={stats.losses}
+                                ties={stats.ties}
+                                winPercentage={stats.winPercentage}
+                                goalDifference={stats.goalDifference}
+                                goalsFor={stats.goalsFor}
+                                goalsAgainst={stats.goalsAgainst}
+                                averageGoalsFor={stats.averageGoalsFor}
+                                averageGoalsAgainst={stats.averageGoalsAgainst}
+                                lastGameDate={stats.lastGameDate ? formatDisplayDate(stats.lastGameDate) : undefined}
+                              />
                             </div>
-                          )}
+                          ))
+                        ) : (
+                          <div className="bg-slate-900/70 p-8 rounded-lg border border-slate-700 shadow-inner text-center text-slate-400">
+                            {activeTab === 'season'
+                              ? t('gameStatsModal.noSeasonGames', 'No games found for this season.')
+                              : t('gameStatsModal.noTournamentGames', 'No games found for this tournament.')
+                            }
+                          </div>
+                        )
+                      ) : (
+                        // "All Seasons/Tournaments" selected - show aggregate stats in a card
+                        <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+                          <h3 className="text-xl font-semibold text-slate-200 mb-4">
+                            {activeTab === 'season'
+                              ? t('gameStatsModal.filterAllSeasons', 'All Seasons')
+                              : t('gameStatsModal.filterAllTournaments', 'All Tournaments')
+                            }
+                          </h3>
+                          <div className="space-y-0 text-sm">
+                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <span className="text-slate-300">{t('common.gamesPlayed', 'Games Played')}</span>
+                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGames}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <span className="text-slate-300">{t('common.record', 'Record')}</span>
+                              <span className="text-yellow-400 font-bold">
+                                {tournamentSeasonStats.totalWins}-{tournamentSeasonStats.totalLosses}-{tournamentSeasonStats.totalTies}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <span className="text-slate-300">{t('common.winPercentage', 'Win %')}</span>
+                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.overallWinPercentage.toFixed(1)}%</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <span className="text-slate-300">{t('common.goalDifference', 'Goal Diff')}</span>
+                              <span
+                                className={`font-bold ${tournamentSeasonStats.totalGoalDifference >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                              >
+                                {tournamentSeasonStats.totalGoalDifference >= 0 ? '+' : ''}
+                                {tournamentSeasonStats.totalGoalDifference}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <span className="text-slate-300">{t('common.goalsFor', 'Goals For')}</span>
+                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsFor}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <span className="text-slate-300">{t('common.goalsAgainst', 'Goals Against')}</span>
+                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.totalGoalsAgainst}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">
+                              <span className="text-slate-300">{t('common.avgGoalsFor', 'Avg Goals For')}</span>
+                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsFor.toFixed(1)}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 px-2">
+                              <span className="text-slate-300">{t('common.avgGoalsAgainst', 'Avg Goals Against')}</span>
+                              <span className="text-yellow-400 font-bold">{tournamentSeasonStats.averageGoalsAgainst.toFixed(1)}</span>
+                            </div>
+                          </div>
                         </div>
                       )}
-                    </div>
+                    </>
                   )}
 
                   {/* Game Info Card (Current Game only) */}
@@ -826,7 +771,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                         value={filterText}
                         onChange={handleFilterChange}
                         placeholder={t('common.filterByName', 'Filter by name...')}
-                        className="bg-slate-800 border border-slate-700 rounded-md text-white pl-8 pr-3 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        className="bg-slate-800 border border-slate-700 rounded-md text-white pl-8 pr-3 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-indigo-500 [&:-webkit-autofill]:bg-slate-800 [&:-webkit-autofill]:text-white [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_#1e293b_inset]"
                       />
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
