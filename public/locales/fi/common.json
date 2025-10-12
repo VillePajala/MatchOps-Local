@@ -87,6 +87,7 @@
     "cancelButton": "Peruuta",
     "clear": "Tyhjennä",
     "close": "Sulje",
+    "confirm": "Vahvista",
     "date": "Päivä",
     "delete": "Poista",
     "doneButton": "Valmis",
@@ -109,6 +110,7 @@
     "losses": "Tappiot",
     "noPlayersMatchFilter": "Ei pelaajia suodattimella",
     "none": "Ei mikään",
+    "ok": "OK",
     "levelElite": "Elite",
     "levelKilpa": "Kilpa",
     "levelHaaste": "Haaste",
@@ -119,6 +121,7 @@
     "record": "Rekordi",
     "remove": "Poista",
     "refresh": "Päivitä",
+    "restore": "Palauta",
     "save": "Tallenna",
     "saveButton": "Tallenna",
     "saveChanges": "Tallenna muutokset",
@@ -172,6 +175,10 @@
     "startPeriodButton": "Aloita erä {{period}}",
     "gameOverButton": "Peli ohi",
     "resetButton": "Nollaa",
+    "confirmResetTitle": "Nollaa ajastin",
+    "confirmReset": "Nollataan ottelu kello?",
+    "confirmOpponentGoalTitle": "Kirjaa vastustajan maali",
+    "confirmOpponentGoal": "Lisätäänkö vastustajan maali?",
     "goalSuffix": "maali",
     "teamGoalButton": "Kirjaa maali",
     "opponentGoalButton": "Vastustaja +1",
@@ -186,7 +193,10 @@
     "periodEnded": "Erä {currentPeriod} päättyi",
     "gameEnded": "Peli päättyi",
     "editOpponentNameTitle": "Klikkaa muokataksesi vastustajan nimeä",
-    "subIntervalLabel": "Vaihdon Aikaväli:"
+    "subIntervalLabel": "Vaihdon Aikaväli:",
+    "disabledWhenPaused": "Pois käytöstä tauon aikana",
+    "periodShort": "E",
+    "fullTime": "LP"
   },
   "instructionsModal": {
     "title": "Näin se toimii",
@@ -428,6 +438,7 @@
     "jerseyHeader": "Numero",
     "confirmAddPlayer": "Lisää Pelaaja",
     "confirmDeletePlayer": "Haluatko varmasti poistaa tämän pelaajan?",
+    "confirmDeletePlayerTitle": "Poista pelaaja",
     "searchPlaceholder": "Etsi pelaajaa..."
   },
   "gameStatsModal": {
@@ -489,6 +500,8 @@
     "loadButtonTooltip": "Lataa tämä peli",
     "deleteButtonTooltip": "Poista tallennettu peli",
     "deleteConfirm": "Haluatko varmasti poistaa tallennetun pelin \"{gameName}\"? Toimintoa ei voi peruuttaa.",
+    "deleteConfirmTitle": "Poista peli",
+    "deleteWarning": "Tämä toiminto on pysyvä eikä sitä voi perua.",
     "noSavedGames": "Tallennettuja pelejä ei löytynyt.",
     "closeButton": "Sulje",
     "exportAllJsonButton": "JSON",
@@ -545,6 +558,9 @@
     "startButton": "Aloita ottelu",
     "opponentRequiredAlert": "Syötä vastustajan nimi.",
     "defaultTeamName": "Oma joukkue",
+    "emptyTeamRosterTitle": "Tyhjä joukkueen kokoonpano",
+    "manageRoster": "Hallitse kokoonpanoa",
+    "continueWithoutPlayers": "Jatka ilman pelaajia",
     "errors": {
       "dataLoadFailed": "Aloitustietojen lataus epäonnistui. Yritä uudelleen."
     },
@@ -821,6 +837,8 @@
     "logTypePeriodEnd": "Erän loppu",
     "logTypeGameEnd": "Ottelun päättyminen",
     "logTypeUnknown": "Tuntematon tapahtuma",
+    "confirmDeleteEventTitle": "Poista tapahtuma",
+    "deleteWarning": "Tämä toiminto on pysyvä.",
     "errors": {
       "missingGoalId": "Maalin tai pelin ID puuttuu. Tallennus ei onnistu.",
       "updateFailed": "Tapahtuman päivitys epäonnistui. Yritä uudelleen.",

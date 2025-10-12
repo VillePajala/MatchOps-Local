@@ -88,6 +88,7 @@
     "cancelButton": "Cancel",
     "clear": "Clear",
     "close": "Close",
+    "confirm": "Confirm",
     "date": "Date",
     "delete": "Delete",
     "doneButton": "Done",
@@ -110,6 +111,7 @@
     "losses": "Losses",
     "noPlayersMatchFilter": "No Players Match Filter",
     "none": "None",
+    "ok": "OK",
     "levelElite": "Elite",
     "levelKilpa": "Competition",
     "levelHaaste": "Challenger",
@@ -120,6 +122,7 @@
     "record": "Record",
     "remove": "Remove",
     "refresh": "Refresh",
+    "restore": "Restore",
     "save": "Save",
     "saveButton": "Save",
     "saveChanges": "Save Changes",
@@ -171,6 +174,10 @@
     "startPeriodButton": "Start Period {{period}}",
     "gameOverButton": "Game Over",
     "resetButton": "Reset",
+    "confirmResetTitle": "Reset Timer",
+    "confirmReset": "Reset the match clock?",
+    "confirmOpponentGoalTitle": "Record Opponent Goal",
+    "confirmOpponentGoal": "Add opponent goal?",
     "goalSuffix": "goal",
     "teamGoalButton": "Log Goal",
     "opponentGoalButton": "Opponent +1",
@@ -184,7 +191,10 @@
     "periodInProgress": "Period {currentPeriod}/{numberOfPeriods}",
     "periodEnded": "End of Period {currentPeriod}",
     "gameEnded": "Game Ended",
-    "subIntervalLabel": "Sub Interval:"
+    "subIntervalLabel": "Sub Interval:",
+    "disabledWhenPaused": "Disabled while paused",
+    "periodShort": "P",
+    "fullTime": "FT"
   },
   "instructionsModal": {
     "title": "How It Works",
@@ -407,6 +417,7 @@
     "jerseyHeader": "Jersey #",
     "confirmAddPlayer": "Add Player",
     "confirmDeletePlayer": "Are you sure you want to remove this player?",
+    "confirmDeletePlayerTitle": "Remove Player",
     "searchPlaceholder": "Search players..."
   },
   "gameStatsModal": {
@@ -453,7 +464,7 @@
     "scorerRequired": "Scorer must be selected.",
     "confirmDeleteEvent": "Are you sure you want to delete this event? This cannot be undone.",
     "confirmDeleteEventTitle": "Delete Event",
-    "deleteWarning": "This action is permanent and cannot be reversed.",
+    "deleteWarning": "This action is permanent.",
     "overallSummary": "Overall Summary",
     "allSeasonsStats": "All Seasons Stats",
     "allTournamentsStats": "All Tournaments Stats",
@@ -468,6 +479,8 @@
     "loadButtonTooltip": "Load this game",
     "deleteButtonTooltip": "Delete this saved game",
     "deleteConfirm": "Are you sure you want to delete the saved game \"{gameName}\"? This action cannot be undone.",
+    "deleteConfirmTitle": "Delete Game",
+    "deleteWarning": "This action is permanent and cannot be undone.",
     "noSavedGames": "No saved games found.",
     "closeButton": "Close",
     "exportAllJsonButton": "JSON",
@@ -576,6 +589,9 @@
     "teamSelectedNote": "Player roster will be loaded from selected team.",
     "masterRosterNote": "Using master roster - all players available.",
     "emptyTeamRosterPrompt": "The selected team has no players. Would you like to manage the team roster now?",
+    "emptyTeamRosterTitle": "Empty Team Roster",
+    "manageRoster": "Manage Roster",
+    "continueWithoutPlayers": "Continue Without Players",
     "gameTeamsLabel": "Game Teams"
   },
   "gameSettingsModal": {
@@ -597,6 +613,8 @@
       "missingGameIdInline": "Cannot save: Game ID missing."
     },
     "confirmDeleteEvent": "Are you sure you want to delete this event? This cannot be undone.",
+    "confirmDeleteEventTitle": "Delete Event",
+    "deleteWarning": "This action is permanent.",
     "invalidDateFormat": "Invalid date format. Use YYYY-MM-DD.",
     "invalidTimeFormat": "Invalid time format. Use MM:SS",
     "invalidTimeFormatInline": "Invalid time format. Use HH:MM (24-hour).",
