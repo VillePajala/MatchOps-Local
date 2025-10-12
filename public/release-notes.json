@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: add comprehensive code review for MatchOps Local PWA"
+  "notes": "feat(ui): enhance player stats averages with localized display format"
 }
