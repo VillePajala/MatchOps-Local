@@ -211,31 +211,28 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-center mb-3 p-4 bg-slate-800/60 rounded-lg">
-          <div>
-            <p className="text-2xl font-bold text-yellow-400">{playerStats.totalGames}</p>
-            <p className="text-sm text-slate-400">{t('playerStats.gamesPlayed', 'Games Played')}</p>
-            <p className="text-xs text-slate-500">{hasAdjustments ? t('playerStats.includesAdjustments', 'Includes external games') : '\u00A0'}</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-yellow-400">{playerStats.totalGoals}</p>
-            <p className="text-sm text-slate-400">{t('playerStats.goals', 'Goals')}</p>
-            <p className="text-xs text-slate-500">({playerStats.avgGoalsPerGame.toFixed(1)} {t('playerStats.perGame', '/ game')})</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-yellow-400">{playerStats.totalAssists}</p>
-            <p className="text-sm text-slate-400">{t('playerStats.assists', 'Assists')}</p>
-            <p className="text-xs text-slate-500">({playerStats.avgAssistsPerGame.toFixed(1)} {t('playerStats.perGame', '/ game')})</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-yellow-400">{playerStats.totalGoals + playerStats.totalAssists}</p>
-            <p className="text-sm text-slate-400">{t('playerStats.points', 'Points')}</p>
-            <p className="text-xs text-slate-500">({(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame).toFixed(1)} {t('playerStats.perGame', '/ game')})</p>
-          </div>
-          <div aria-label="Fair play cards received">
-            <p className="text-2xl font-bold text-green-400">{playerStats.totalFairPlayCards}</p>
-            <p className="text-sm text-slate-400">{t('playerStats.fairPlayCards', 'Fair Play Cards')}</p>
-            <p className="text-xs text-slate-500">⚽ {t('playerStats.sportsmanship', 'Sportsmanship')}</p>
+        <div className="bg-slate-800/60 rounded-lg p-4 mb-3">
+          {/* Primary Stats Row with Averages */}
+          <div className="grid grid-cols-4 gap-3 sm:gap-4 text-center">
+            <div>
+              <p className="text-3xl font-bold text-yellow-400">{playerStats.totalGames}</p>
+              <p className="text-sm text-slate-300 font-medium">{t('playerStats.gamesPlayed', 'Games Played')}</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-yellow-400">{playerStats.totalGoals}</p>
+              <p className="text-sm text-slate-300 font-medium">{t('playerStats.goals', 'Goals')}</p>
+              <p className="text-xs text-slate-400 mt-1">({playerStats.avgGoalsPerGame.toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-yellow-400">{playerStats.totalAssists}</p>
+              <p className="text-sm text-slate-300 font-medium">{t('playerStats.assists', 'Assists')}</p>
+              <p className="text-xs text-slate-400 mt-1">({playerStats.avgAssistsPerGame.toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-yellow-400">{playerStats.totalGoals + playerStats.totalAssists}</p>
+              <p className="text-sm text-slate-300 font-medium">{t('playerStats.points', 'Points')}</p>
+              <p className="text-xs text-slate-400 mt-1">({(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame).toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
+            </div>
           </div>
         </div>
 
