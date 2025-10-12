@@ -69,6 +69,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [editIncludeInSeasonTournament, setEditIncludeInSeasonTournament] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null);
+  const [showExternalGames, setShowExternalGames] = useState(false);
 
   useEffect(() => {
     getAppSettings().then(s => {
@@ -238,15 +239,26 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           </div>
         </div>
 
-        {/* Add Adjustment UI */}
-        <div className="mt-2 mb-4">
+        {/* External Games Section - Collapsible */}
+        <div className="mt-6 mb-4">
           <button
             type="button"
-            className="text-sm px-3 py-1.5 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600"
-            onClick={() => setShowAdjForm(v => !v)}
+            onClick={() => setShowExternalGames(v => !v)}
+            className="text-left w-full bg-slate-800/60 p-3 rounded-lg flex justify-between items-center hover:bg-slate-800/80 transition-colors"
+            aria-expanded={showExternalGames}
           >
-            {t('playerStats.addExternalStats', 'Add external stats')}
+            <span className="font-semibold">{t('playerStats.externalGames', 'External Games')}</span>
+            <span className="text-sm text-slate-400">{showExternalGames ? '-' : '+'}</span>
           </button>
+          {showExternalGames && (
+            <div className="mt-2">
+              <button
+                type="button"
+                className="text-sm px-3 py-1.5 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600"
+                onClick={() => setShowAdjForm(v => !v)}
+              >
+                {t('playerStats.addExternalStats', 'Add external stats')}
+              </button>
           {showAdjForm && (
             <form
               className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-800/60 p-4 rounded-lg border border-slate-600"
@@ -418,9 +430,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               </div>
             </form>
           )}
-        </div>
 
-        {/* External stats list and editor (moved below the button for layout clarity) */}
+        {/* External stats list - inside collapsible section */}
         {hasAdjustments && (
           <div className="mb-4 text-xs text-slate-400">
             {t('playerStats.adjustmentsInfo', 'External stats are transparently added to totals.')}
@@ -434,13 +445,13 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   const extName = a.externalTeamName || 'Unknown Team';
                   const oppName = a.opponentName || 'Unknown Opponent';
                   const dateText = a.gameDate ? formatDisplayDate(a.gameDate) : formatDisplayDate(a.appliedAt);
-                  
+
                   // Determine match result display based on home/away
                   const getScoreDisplay = () => {
                     if (typeof a.scoreFor !== 'number' || typeof a.scoreAgainst !== 'number') {
                       return null;
                     }
-                    
+
                     if (a.homeOrAway === 'home') {
                       return `${extName} ${a.scoreFor} - ${a.scoreAgainst} ${oppName}`;
                     } else if (a.homeOrAway === 'away') {
@@ -451,7 +462,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   };
 
                   const scoreDisplay = getScoreDisplay();
-                  
+
                   return (
                     <div key={a.id} className="bg-slate-700/40 p-3 rounded-lg border border-slate-600/50">
                       {/* Header with date and association */}
@@ -577,7 +588,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           </div>
         )}
 
-        {editingAdjId && (
+        {editingAdjId && showExternalGames && (
           <form
             className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-800/60 p-4 rounded-lg border border-slate-600"
             onSubmit={async (e) => {
@@ -723,6 +734,9 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             </div>
           </form>
         )}
+            </div>
+          )}
+        </div>
 
         {/* Delete Confirmation Dialog */}
         {showDeleteConfirm && (

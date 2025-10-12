@@ -1033,6 +1033,7 @@
     "useDemandCorrection": "Painota vaikeuden mukaan",
     "useDemandCorrectionTooltip": "Kun käytössä, vaikeiden pelien arviot vaikuttavat enemmän",
     "includesAdjustments": "Sisältää ulkoiset pelit",
+    "externalGames": "Ulkoiset pelit",
     "addExternalStats": "Lisää ulkoisia tilastoja",
     "seasonRequired": "Luo ensin kausi.",
     "teamRequired": "Joukkueen nimi on pakollinen.",
