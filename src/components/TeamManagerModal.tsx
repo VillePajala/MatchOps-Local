@@ -42,10 +42,8 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   // State management
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
-  const [newTeamColor, setNewTeamColor] = useState('#6366F1');
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [editTeamName, setEditTeamName] = useState('');
-  const [editTeamColor, setEditTeamColor] = useState('#6366F1');
   const [actionsMenuTeamId, setActionsMenuTeamId] = useState<string | null>(null);
   const [deleteConfirmTeamId, setDeleteConfirmTeamId] = useState<string | null>(null);
   const [deleteTeamGamesCount, setDeleteTeamGamesCount] = useState<number>(0);
@@ -62,7 +60,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       queryClient.invalidateQueries({ queryKey: queryKeys.teams });
       setIsCreatingTeam(false);
       setNewTeamName('');
-      setNewTeamColor('#6366F1');
       logger.log('[TeamManager] Created team:', newTeam);
     },
     onError: (error) => {
@@ -120,7 +117,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       setActionsMenuTeamId(null);
       setDeleteConfirmTeamId(null);
       setNewTeamName('');
-      setNewTeamColor('#6366F1');
     }
   }, [isOpen]);
 
@@ -161,14 +157,12 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
     createTeamMutation.mutate({
       name: trimmedName,
-      color: newTeamColor,
     });
   };
 
   const handleStartEdit = (team: Team) => {
     setEditingTeamId(team.id);
     setEditTeamName(team.name);
-    setEditTeamColor(team.color || '#6366F1');
     setActionsMenuTeamId(null);
   };
 
@@ -196,7 +190,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       teamId: editingTeamId,
       updates: {
         name: trimmedName,
-        color: editTeamColor,
       },
     });
   };
@@ -204,7 +197,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   const handleCancelEdit = () => {
     setEditingTeamId(null);
     setEditTeamName('');
-    setEditTeamColor('#6366F1');
   };
 
   const handleDeleteTeam = async (teamId: string) => {
@@ -223,17 +215,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   };
 
   // Note: Team switching removed - teams are now contextually selected
-
-  const predefinedColors = [
-    '#6366F1', // Indigo
-    '#8B5CF6', // Violet
-    '#06B6D4', // Cyan
-    '#10B981', // Emerald
-    '#F59E0B', // Amber
-    '#EF4444', // Red
-    '#EC4899', // Pink
-    '#84CC16', // Lime
-  ];
 
   if (!isOpen) return null;
 
@@ -308,27 +289,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    {t('teamManager.teamColor', 'Team Color')}
-                  </label>
-                  <div className="flex gap-2">
-                    {predefinedColors.map((color) => (
-                      <button
-                        key={color}
-                        onClick={() => setNewTeamColor(color)}
-                        className={`w-8 h-8 rounded-full border-2 transition-all ${
-                          newTeamColor === color
-                            ? 'border-white scale-110'
-                            : 'border-slate-500 hover:border-slate-300'
-                        }`}
-                        style={{ backgroundColor: color }}
-                        aria-label={`Select color ${color}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-
                 <div className="flex gap-2 pt-2">
                   <button
                     onClick={handleCreateTeam}
@@ -384,21 +344,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                           }}
                         />
                       </div>
-                      
-                      <div className="flex gap-2">
-                        {predefinedColors.map((color) => (
-                          <button
-                            key={color}
-                            onClick={() => setEditTeamColor(color)}
-                            className={`w-6 h-6 rounded-full border transition-all ${
-                              editTeamColor === color
-                                ? 'border-white scale-110'
-                                : 'border-slate-500 hover:border-slate-300'
-                            }`}
-                            style={{ backgroundColor: color }}
-                          />
-                        ))}
-                      </div>
 
                       <div className="flex gap-2">
                         <button
@@ -424,10 +369,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                         onClick={() => onManageRoster && onManageRoster(team.id)}
                         title={t('teamManager.roster', 'Roster')}
                       >
-                        <div
-                          className="w-4 h-4 rounded-full border border-slate-400 flex-shrink-0"
-                          style={{ backgroundColor: team.color || '#6366F1' }}
-                        />
                         <span className="text-slate-200">
                           {team.name}
                         </span>
