@@ -58,9 +58,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
   const primaryButtonStyle =
     'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg';
 
-  // Emphasized variant for primary (Continue) — same style, just semantically different
+  // Emphasized variant for primary (Continue/Get Started) — adds signature yellow accent for hero action
   const primaryEmphasisStyle =
-    'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg';
+    'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg border-2 border-yellow-400/40 shadow-yellow-400/30';
 
   const disabledButtonStyle =
     'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed text-slate-500 bg-slate-800 border border-slate-600/40';
@@ -118,20 +118,27 @@ const StartScreen: React.FC<StartScreenProps> = ({
         {/* Title section (nudged higher) */}
         <div className="row-start-1 relative flex flex-col items-center justify-center w-full mt-[clamp(8px,3vh,24px)]">
           {/* New Logo with spotlight */}
-          <div className="relative flex items-center justify-center">
+          <div className="relative flex flex-col items-center justify-center">
             {/* Spotlight behind logo */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-[120%] h-[140%] bg-gradient-radial from-cyan-400/20 via-sky-400/10 to-transparent blur-2xl" />
             </div>
-            {/* Logo */}
-            <Image
-              src="/logos/app-logo.png"
-              alt="MatchOps Local Logo"
-              width={600}
-              height={200}
-              priority={true}
-              className="relative h-auto w-auto max-w-[72vw] xs:max-w-[360px] sm:max-w-[420px] md:max-w-[520px] lg:max-w-[560px] max-h-[32vh] drop-shadow-2xl"
-            />
+            {/* Logo with gradient overlay for depth */}
+            <div className="relative">
+              {/* Logo - Yellow variant matches signature color */}
+              <Image
+                src="/logos/app-logo-yellow.png"
+                alt="MatchOps Local Logo"
+                width={600}
+                height={200}
+                priority={true}
+                className="relative h-auto w-auto max-w-[72vw] xs:max-w-[360px] sm:max-w-[420px] md:max-w-[520px] lg:max-w-[560px] max-h-[32vh] drop-shadow-2xl"
+              />
+              {/* Gradient overlay for light-to-dark effect on yellow band */}
+              <div className="absolute inset-0 pointer-events-none [background:radial-gradient(circle_at_30%_30%,transparent_30%,rgba(0,0,0,0.2)_100%)] mix-blend-multiply rounded-full" />
+            </div>
+            {/* Decorative yellow divider - adds signature color subtly */}
+            <div className="mt-4 w-24 h-0.5 bg-gradient-to-r from-transparent via-yellow-400/60 to-transparent rounded-full" />
           </div>
         </div>
 
@@ -255,18 +262,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
       {/* Bottom-centered language switcher - absolutely positioned to prevent overlap */}
       <div className="absolute bottom-0 left-0 right-0 z-30 flex flex-col justify-center items-center min-h-[56px] pt-1 sm:pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+12px)] pointer-events-none">
-        <div className="flex rounded-lg bg-slate-800/90 border border-slate-700 backdrop-blur-sm overflow-hidden pointer-events-auto shadow-lg">
+        <div className="flex rounded-lg bg-slate-800/90 border border-yellow-400/50 backdrop-blur-sm overflow-hidden pointer-events-auto shadow-lg">
           <button
             aria-label={t('startScreen.languageEnglish', 'English')}
             onClick={() => setLanguage('en')}
-            className={`px-4 h-9 text-xs font-bold transition-all duration-200 ${language === 'en' ? 'bg-gradient-to-b from-indigo-600 to-indigo-700 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
+            className={`px-4 h-9 text-xs font-bold transition-all duration-200 ${language === 'en' ? 'bg-yellow-400 text-slate-900' : 'text-slate-300 hover:bg-slate-700'}`}
           >
             EN
           </button>
           <button
             aria-label={t('startScreen.languageFinnish', 'Finnish')}
             onClick={() => setLanguage('fi')}
-            className={`px-4 h-9 text-xs font-bold transition-all duration-200 border-l border-slate-700 ${language === 'fi' ? 'bg-gradient-to-b from-indigo-600 to-indigo-700 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
+            className={`px-4 h-9 text-xs font-bold transition-all duration-200 border-l border-slate-700 ${language === 'fi' ? 'bg-yellow-400 text-slate-900' : 'text-slate-300 hover:bg-slate-700'}`}
           >
             FI
           </button>

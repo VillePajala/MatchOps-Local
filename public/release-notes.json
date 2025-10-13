@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix(ui): prevent white background on player search autofill"
+  "notes": "chore: update release notes and cache name for new build"
 }
