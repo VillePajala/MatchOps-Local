@@ -7,15 +7,11 @@ import { Season, Tournament, Team } from '@/types'; // Corrected import path
 import logger from '@/utils/logger';
 import { createEntityMaps, getDisplayNames } from '@/utils/entityLookup';
 import {
-  HiOutlineDocumentArrowDown,
   HiOutlineTrash,
   HiOutlineDocumentText,
   HiOutlineTableCells,
-  HiOutlineClock,
-  HiOutlineMapPin,
   HiOutlineMagnifyingGlass,
-  HiOutlineChevronDown,
-  HiOutlineChevronUp
+  HiOutlineEllipsisVertical
 } from 'react-icons/hi2';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import ConfirmationModal from './ConfirmationModal';
@@ -69,22 +65,41 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   teams,
 }) => {
   const { t, i18n } = useTranslation();
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState<string>('');
   const [filterType, setFilterType] = useState<'season' | 'tournament' | 'team' | null>(null);
   const [filterId, setFilterId] = useState<string | null>(null);
   const [showUnplayedOnly, setShowUnplayedOnly] = useState<boolean>(false);
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   // Confirmation modal state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [gameToDelete, setGameToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  // Actions menu state
+  const [actionsMenuId, setActionsMenuId] = useState<string | null>(null);
+  const actionsMenuRef = React.useRef<HTMLDivElement>(null);
 
   // Create entity maps for O(1) lookups (live entity names)
   const entityMaps = useMemo(
     () => createEntityMaps(teams, seasons, tournaments),
     [teams, seasons, tournaments]
   );
+
+  // Close actions menu when clicking outside
+  React.useEffect(() => {
+    if (!actionsMenuId) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
+        setActionsMenuId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [actionsMenuId]);
 
   // Filter logic updated to only use searchText
   const filteredGameIds = useMemo(() => {
@@ -181,30 +196,17 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   const handleDeleteClick = (gameId: string, gameName: string) => {
     setGameToDelete({ id: gameId, name: gameName });
     setShowDeleteConfirm(true);
+    setActionsMenuId(null); // Close actions menu
   };
 
   const handleDeleteConfirmed = () => {
     if (gameToDelete) {
       onDelete(gameToDelete.id);
-      setOpenMenuId(null); // Close menu after delete
     }
     setShowDeleteConfirm(false);
     setGameToDelete(null);
   };
 
-  // --- Event Handlers ---
-  const handleBadgeClick = (type: 'season' | 'tournament' | 'team', id: string) => {
-    if (filterType === type && filterId === id) {
-      // Clicked the currently active filter badge, so clear it
-      setFilterType(null);
-      setFilterId(null);
-    } else {
-      // Set new filter
-      setFilterType(type);
-      setFilterId(id);
-    }
-  };
-  
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newSearchText = e.target.value;
     setSearchText(newSearchText);
@@ -213,18 +215,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       setFilterType(null);
       setFilterId(null);
     }
-  };
-
-  const toggleExpanded = (id: string) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
   };
 
   if (!isOpen) return null;
@@ -261,332 +251,182 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
     );
   } else {
     mainContent = (
-      <ul className="scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800 pr-1 px-1 overflow-x-hidden">
-        {/* Display general game load/delete errors here, above the list but inside scroll area if many games */}
-        {gameLoadError && processingGameId === null && ( // Show if error is general, not for a specific item in loop
-          <li className="px-3 py-2 bg-red-700/20 border-b border-red-600 text-red-300 text-xs" role="alert">
+      <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+        {/* Display general game load/delete errors here */}
+        {gameLoadError && processingGameId === null && (
+          <div className="px-3 py-2 mb-3 bg-red-700/20 border border-red-600 text-red-300 text-xs rounded" role="alert">
             {gameLoadError}
-          </li>
+          </div>
         )}
         {gameDeleteError && processingGameId === null && (
-          <li className="px-3 py-2 bg-red-700/20 border-b border-red-600 text-red-300 text-xs" role="alert">
+          <div className="px-3 py-2 mb-3 bg-red-700/20 border border-red-600 text-red-300 text-xs rounded" role="alert">
             {gameDeleteError}
-          </li>
+          </div>
         )}
-        {filteredGameIds.map((gameId) => {
-          const game = savedGames[gameId];
-          if (!game) return null;
-          const isCurrent = gameId === currentGameId;
+        <div className="space-y-3">
+          {filteredGameIds.map((gameId) => {
+            const game = savedGames[gameId];
+            if (!game) return null;
+            const isCurrent = gameId === currentGameId;
 
-          // Look up entities using maps for O(1) performance
-          const season = game.seasonId ? entityMaps.seasons.get(game.seasonId) : null;
-          const tournament = game.tournamentId ? entityMaps.tournaments.get(game.tournamentId) : null;
-          const team = game.teamId ? entityMaps.teams.get(game.teamId) : null;
-          const isOrphaned = game.teamId && !team; // Game has teamId but team doesn't exist
-          const contextName = season?.name || tournament?.name;
-          const contextType = season ? 'Season' : (tournament ? 'Tournament' : null);
-          const contextId = season?.id || tournament?.id;
+            // Look up entities using maps for O(1) performance
+            const season = game.seasonId ? entityMaps.seasons.get(game.seasonId) : null;
+            const tournament = game.tournamentId ? entityMaps.tournaments.get(game.tournamentId) : null;
+            const contextName = season?.name || tournament?.name;
 
-          // Get live entity names (or fallback to snapshots)
-          const { teamName: liveTeamName } = getDisplayNames(game, entityMaps);
+            // Get live entity names (or fallback to snapshots)
+            const { teamName: liveTeamName } = getDisplayNames(game, entityMaps);
 
-          // Determine display names based on the specific game's homeOrAway setting
-          const displayHomeTeamName = game.homeOrAway === 'home' ? (liveTeamName || 'Team') : (game.opponentName || 'Opponent');
-          const displayAwayTeamName = game.homeOrAway === 'home' ? (game.opponentName || 'Opponent') : (liveTeamName || 'Team');
+            // Determine display names based on the specific game's homeOrAway setting
+            const displayHomeTeamName = game.homeOrAway === 'home' ? (liveTeamName || 'Team') : (game.opponentName || 'Opponent');
+            const displayAwayTeamName = game.homeOrAway === 'home' ? (game.opponentName || 'Opponent') : (liveTeamName || 'Team');
 
-          const isProcessingThisGame = processingGameId === gameId;
-          const isLoadActionActive = isGameLoading && isProcessingThisGame;
-          const disableActions = isGameLoading || isGameDeleting || isGamesImporting;
+            const isProcessingThisGame = processingGameId === gameId;
+            const isLoadActionActive = isGameLoading && isProcessingThisGame;
+            const disableActions = isGameLoading || isGameDeleting || isGamesImporting;
 
-          // Get game status (removed unused variable)
-          const totalPlayers = game.selectedPlayerIds?.length || 0;
-          const assessmentsDone = Object.keys(game.assessments || {}).length;
-          const assessmentsComplete = totalPlayers > 0 && assessmentsDone >= totalPlayers;
-          const isExpanded = expandedIds.has(gameId);
+            // Calculate score display color
+            const scoreColor = (() => {
+              if (game.homeScore === game.awayScore) return 'text-slate-300';
+              const isWin = (game.homeOrAway === 'home' && game.homeScore > game.awayScore) ||
+                           (game.homeOrAway === 'away' && game.awayScore > game.homeScore);
+              return isWin ? 'text-green-400' : 'text-red-400';
+            })();
 
-          // Get the index for alternating card styles
-          const index = filteredGameIds.indexOf(gameId);
-          const cardBaseStyles = index % 2 === 0 
-            ? 'bg-slate-700/60 border-slate-600/60 hover:bg-slate-700/80 hover:border-slate-500/80'
-            : 'bg-slate-700/40 border-slate-600/40 hover:bg-slate-700/60 hover:border-slate-500/60';
-
-          return (
-            <li
-              key={gameId}
-              className={`relative mb-5 last:mb-0 ${cardBaseStyles} rounded-lg border shadow-lg transition-all duration-200 hover:shadow-xl overflow-hidden ${
-                isCurrent ? 'ring-2 ring-indigo-500 border-indigo-500' : ''
-              } ${openMenuId === gameId ? 'z-10' : ''}`}
-              data-testid={`game-item-${gameId}`}
-            >
-              <button
-                type="button"
-                onClick={() => toggleExpanded(gameId)}
-                aria-expanded={isExpanded}
-                aria-label={isExpanded ? t('loadGameModal.collapseCard', 'Collapse details') : t('loadGameModal.expandCard', 'Expand details')}
-                className="w-full p-5 text-left hover:bg-slate-700/20 transition-colors rounded-lg flex justify-between items-start"
+            return (
+              <div
+                key={gameId}
+                className={`p-4 rounded-lg cursor-pointer transition-all ${
+                  isCurrent
+                    ? 'bg-indigo-900/30 hover:bg-indigo-900/40'
+                    : 'bg-slate-800/30 hover:bg-slate-800/50'
+                }`}
+                data-testid={`game-item-${gameId}`}
+                onClick={() => {
+                  if (!disableActions && !isLoadActionActive) {
+                    onLoad(gameId);
+                    onClose();
+                  }
+                }}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2 min-w-0 flex-wrap sm:flex-nowrap">
-                    <h3 className={`text-lg truncate min-w-0 ${
-                      // "Your team" based on homeOrAway setting
-                      game.homeOrAway === 'home' 
-                        ? `font-semibold ${isCurrent ? 'text-indigo-400' : 'text-slate-100'}` 
-                        : `font-normal ${isCurrent ? 'text-indigo-300' : 'text-slate-300'}`
-                    }`}>
-                      {displayHomeTeamName}
-                    </h3>
-                    <span className="text-slate-400 font-medium shrink-0">vs</span>
-                    <h3 className={`text-lg truncate min-w-0 ${
-                      // "Your team" based on homeOrAway setting  
-                      game.homeOrAway === 'away' 
-                        ? `font-semibold ${isCurrent ? 'text-indigo-400' : 'text-slate-100'}` 
-                        : `font-normal ${isCurrent ? 'text-indigo-300' : 'text-slate-300'}`
-                    }`}>
-                      {displayAwayTeamName}
-                    </h3>
-                  </div>
-                  {/* Context badges */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    {contextName && contextType && contextId && (
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleBadgeClick(contextType.toLowerCase() as ('season' | 'tournament'), contextId);
-                          }
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleBadgeClick(contextType.toLowerCase() as ('season' | 'tournament'), contextId);
-                        }}
-                        className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
-                          contextType.toLowerCase() === 'tournament' 
-                            ? 'bg-purple-500/20 text-purple-300 hover:bg-purple-500/30' 
-                            : 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
-                        } ${filterType === contextType.toLowerCase() && filterId === contextId ? 'ring-2 ring-indigo-500' : ''}`}
-                        title={t('loadGameModal.filterByTooltip', 'Filter by {{name}}', { replace: { name: contextName } }) ?? `Filter by ${contextName}`}
-                      >
-                        {contextName}
+                {/* Card layout with score in top right */}
+                <div className="flex items-start justify-between gap-4">
+                  {/* Left: Game info */}
+                  <div className="flex-1 min-w-0">
+                    {/* Team names */}
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <span className={`font-semibold text-base ${isCurrent ? 'text-indigo-300' : 'text-slate-100'}`}>
+                        {displayHomeTeamName}
                       </span>
-                    )}
-
-                    {/* Team badge or orphaned indicator */}
-                    {isOrphaned ? (
-                      <span
-                        className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                        title={t('loadGameModal.orphanedGameTooltip', 'Original team no longer exists')}
-                      >
-                        ⚠️ {t('loadGameModal.orphanedTeam', 'Team Deleted')}
+                      <span className="text-slate-400 text-sm">vs</span>
+                      <span className={`font-medium text-base ${isCurrent ? 'text-indigo-300' : 'text-slate-200'}`}>
+                        {displayAwayTeamName}
                       </span>
-                    ) : team ? (
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleBadgeClick('team', team.id);
-                          }
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleBadgeClick('team', team.id);
-                        }}
-                        className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
-                          filterType === 'team' && filterId === team.id ? 'ring-2 ring-green-500' : ''
-                        }`}
-                        style={{ 
-                          backgroundColor: team.color ? `${team.color}20` : '#10B98120',
-                          color: team.color || '#10B981'
-                        }}
-                        title={t('loadGameModal.filterByTeam', 'Filter by team {{name}}', { replace: { name: team.name } }) ?? `Filter by team ${team.name}`}
-                      >
-                        {team.name}
-                      </span>
-                    ) : (
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            handleBadgeClick('team', 'legacy');
-                          }
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleBadgeClick('team', 'legacy');
-                        }}
-                        className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium transition-colors cursor-pointer bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 ${
-                          filterType === 'team' && filterId === 'legacy' ? 'ring-2 ring-amber-500' : ''
-                        }`}
-                        title={t('loadGameModal.legacyGameTooltip', 'Legacy game (no team assigned)')}
-                      >
-                        {t('loadGameModal.legacy', 'Legacy')}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Meta row */}
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400 mb-3">
-                    {game.gameDate && (
-                      <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span>{new Date(game.gameDate).toLocaleDateString(i18n.language)}</span>
-                      </div>
-                    )}
-                    {game.gameTime && (
-                      <div className="flex items-center gap-1">
-                        <HiOutlineClock className="w-4 h-4" />
-                        <span>{game.gameTime}</span>
-                      </div>
-                    )}
-                    {game.gameLocation && (
-                      <div className="flex items-center gap-1">
-                        <HiOutlineMapPin className="w-4 h-4" />
-                        <span>{game.gameLocation}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Status badges */}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {game.isPlayed === false && (
-                      <span className="bg-red-500/20 text-red-300 px-2 py-1 rounded text-xs font-medium">
-                        {t('loadGameModal.unplayedBadge', 'NOT PLAYED')}
-                      </span>
-                    )}
-                    {isCurrent && (
-                      <span className="bg-green-500/20 text-green-300 px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
-                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                        {t('loadGameModal.currentlyLoaded', 'Loaded')}
-                      </span>
-                    )}
-                    {totalPlayers > 0 && !assessmentsComplete && (
-                      <span className="bg-amber-500/20 text-amber-300 px-2 py-1 rounded text-xs font-medium">
-                        Assessments Pending
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="ml-6 flex items-center gap-4 shrink-0">
-                  <div className="text-right">
-                    <div className={`text-2xl font-bold ${(() => {
-                      if (game.homeScore === game.awayScore) return 'text-gray-300';
-                      const isWin = (game.homeOrAway === 'home' && game.homeScore > game.awayScore) || 
-                                   (game.homeOrAway === 'away' && game.awayScore > game.homeScore);
-                      return isWin ? 'text-green-400' : 'text-red-400';
-                    })()}`}>
-                      {game.homeScore ?? 0} - {game.awayScore ?? 0}
                     </div>
-                    <div className="text-xs text-slate-400 mt-1">Final Score</div>
+
+                    {/* Secondary info: Date, Context (Season/Tournament), Status */}
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                      {game.gameDate && (
+                        <span>{new Date(game.gameDate).toLocaleDateString(i18n.language)}</span>
+                      )}
+                      {game.gameDate && contextName && <span>•</span>}
+                      {contextName && <span>{contextName}</span>}
+                      {game.isPlayed === false && (
+                        <>
+                          <span>•</span>
+                          <span className="text-red-400 font-medium">{t('loadGameModal.unplayedBadge', 'NOT PLAYED')}</span>
+                        </>
+                      )}
+                      {isCurrent && (
+                        <>
+                          <span>•</span>
+                          <span className="text-green-400 font-medium flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
+                            {t('loadGameModal.currentlyLoaded', 'Loaded')}
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  {isExpanded ? <HiOutlineChevronUp className="w-5 h-5 text-slate-400" /> : <HiOutlineChevronDown className="w-5 h-5 text-slate-400" />}
-                </div>
-              </button>
 
-              {isExpanded && (
-                <div className="border-t border-slate-600/40 bg-slate-700/40">
-                  <div className="p-5 space-y-4">
-                    {/* Game notes */}
-                    {game.gameNotes && (
-                      <div className="bg-slate-800/60 rounded-lg p-4 border border-slate-700/40">
-                        <div className="text-sm font-medium text-slate-200 mb-2">Game Notes</div>
-                        <div className="text-slate-300 whitespace-pre-line leading-relaxed">{game.gameNotes}</div>
+                  {/* Right: Score and actions */}
+                  <div className="flex items-start gap-2 flex-shrink-0">
+                    {/* Score */}
+                    <div className="text-right">
+                      <div className={`text-xl font-bold ${scoreColor}`}>
+                        {game.homeScore ?? 0} - {game.awayScore ?? 0}
                       </div>
-                    )}
+                    </div>
 
-                    {/* Assessments progress */}
-                    {totalPlayers > 0 && (
-                      <div className="bg-slate-800/60 rounded-lg p-3 border border-slate-700/40">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-slate-200">Player Assessments</span>
-                          <span className="text-xs text-slate-400">{Math.round((assessmentsDone / totalPlayers) * 100)}%</span>
-                        </div>
-                        <div className="w-full bg-slate-700 rounded-full h-1.5 overflow-hidden">
-                          <div 
-                            className="h-1.5 bg-indigo-500 rounded-full transition-all duration-500"
-                            style={{ width: `${(assessmentsDone / totalPlayers) * 100}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Actions row */}
-                    <div className="flex items-center justify-between">
-                      {/* Left: primary Load button */}
+                    {/* Actions menu button */}
+                    <div className="relative" ref={actionsMenuId === gameId ? actionsMenuRef : null}>
                       <button
-                        onClick={(e) => { e.stopPropagation(); onLoad(gameId); onClose(); }}
-                        className={`px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors flex items-center ${
-                          isLoadActionActive ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                        disabled={disableActions || isLoadActionActive}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActionsMenuId(actionsMenuId === gameId ? null : gameId);
+                        }}
+                        className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
+                        aria-label="Game actions"
+                        disabled={disableActions}
                       >
                         {isLoadActionActive ? (
-                          <svg className="animate-spin h-4 w-4 text-white mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <svg className="animate-spin h-4 w-4 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
                         ) : (
-                          <HiOutlineDocumentArrowDown className="h-4 w-4 mr-2" />
+                          <HiOutlineEllipsisVertical className="w-4 h-4" />
                         )}
-                        {t('loadGameModal.loadButton', 'Load Game')}
                       </button>
 
-                      {/* Right: secondary icon buttons */}
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onExportOneJson(gameId); }}
-                          className={`p-2 text-slate-400 hover:text-slate-300 hover:bg-slate-700/40 rounded-lg transition-colors ${
-                            isLoadActionActive ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                          disabled={disableActions || isLoadActionActive}
-                          title="Export JSON"
-                        >
-                          <HiOutlineDocumentText className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onExportOneCsv(gameId); }}
-                          className={`p-2 text-slate-400 hover:text-slate-300 hover:bg-slate-700/40 rounded-lg transition-colors ${
-                            isLoadActionActive ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                          disabled={disableActions || isLoadActionActive}
-                          title="Export CSV"
-                        >
-                          <HiOutlineTableCells className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteClick(gameId, `${liveTeamName || 'Team'} vs ${game.opponentName || 'Opponent'}`); }}
-                          className={`p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-lg transition-colors ${
-                            isLoadActionActive ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                          disabled={disableActions || isLoadActionActive}
-                          title="Delete"
-                        >
-                          <HiOutlineTrash className="h-5 w-5" />
-                        </button>
-                      </div>
+                      {/* Actions dropdown menu */}
+                      {actionsMenuId === gameId && (
+                        <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onExportOneJson(gameId);
+                              setActionsMenuId(null);
+                            }}
+                            className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
+                            disabled={disableActions}
+                          >
+                            <HiOutlineDocumentText className="w-4 h-4" />
+                            Export JSON
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onExportOneCsv(gameId);
+                              setActionsMenuId(null);
+                            }}
+                            className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
+                            disabled={disableActions}
+                          >
+                            <HiOutlineTableCells className="w-4 h-4" />
+                            Export CSV
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(gameId, `${displayHomeTeamName} vs ${displayAwayTeamName}`);
+                            }}
+                            className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2"
+                            disabled={disableActions}
+                          >
+                            <HiOutlineTrash className="w-4 h-4" />
+                            {t('common.delete', 'Delete')}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  {isProcessingThisGame && gameLoadError && (
-                    <p className="text-xs text-red-400 mt-1 animate-pulse">{gameLoadError}</p>
-                  )}
-                  {isProcessingThisGame && gameDeleteError && (
-                    <p className="text-xs text-red-400 mt-1 animate-pulse">{gameDeleteError}</p>
-                  )}
                 </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     );
   }
 

@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: remove team filter buttons from LoadGameModal"
+  "notes": "feat: add games counter and compact search in LoadGameModal"
 }
