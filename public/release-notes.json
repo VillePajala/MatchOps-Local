@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: remove unused color and badge fields from season, tournament, and team management"
+  "notes": "fix: prevent white background on search fields when typing"
 }
