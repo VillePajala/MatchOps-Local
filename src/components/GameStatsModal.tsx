@@ -381,7 +381,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     }
 
     return null;
-  }, [activeTab, availablePlayers, seasons, tournaments, savedGames, selectedTeamIdFilter, selectedPlayer, masterRoster, t]);
+  }, [activeTab, availablePlayers, seasons, tournaments, savedGames, selectedTeamIdFilter, selectedPlayer, masterRoster]);
 
   // Calculate team assessment averages
   const teamAssessmentAverages = useMemo(() => {
