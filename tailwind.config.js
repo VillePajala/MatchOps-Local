@@ -23,6 +23,8 @@ module.exports = {
   plugins: [],
   safelist: [
     'animate-pulse',
+    'animate-pulse-slow',
     'animate-fade-in-out',
+    'bg-grid-squares',
   ],
 }

@@ -56,11 +56,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
   // Modal-style button classes for unified UI
   const primaryButtonStyle =
-    'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg border-t-2 border-amber-400/40';
+    'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] hover:from-indigo-600 hover:to-indigo-700 hover:shadow-lg active:scale-[0.98] active:shadow-inner border border-white/10 shadow-md [box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_6px_-1px_rgba(0,0,0,0.3)]';
 
   // Emphasized variant for primary (Continue/Get Started) — same style as primary
   const primaryEmphasisStyle =
-    'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg border-t-2 border-amber-400/40';
+    'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] hover:from-indigo-600 hover:to-indigo-700 hover:shadow-lg active:scale-[0.98] active:shadow-inner border border-white/10 shadow-md [box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_6px_-1px_rgba(0,0,0,0.3)]';
 
   const disabledButtonStyle =
     'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed text-slate-500 bg-slate-800 border border-slate-600/40';
@@ -107,6 +107,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-800 bg-noise-texture text-slate-100 font-display overflow-hidden">
       {/* Modal-style background effects for unified feel */}
+      <div className="absolute inset-0 bg-grid-squares opacity-[0.12]" />
       <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
       <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
       <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
@@ -119,9 +120,14 @@ const StartScreen: React.FC<StartScreenProps> = ({
         <div className="row-start-1 relative flex flex-col items-center justify-center w-full mt-[clamp(8px,3vh,24px)]">
           {/* New Logo with spotlight */}
           <div className="relative flex flex-col items-center justify-center">
-            {/* Spotlight behind logo */}
+            {/* Multi-layered dramatic glow behind logo */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-[120%] h-[140%] bg-gradient-radial from-cyan-400/20 via-sky-400/10 to-transparent blur-2xl" />
+              {/* Primary amber/yellow glow - matches logo color */}
+              <div className="absolute w-[160%] h-[180%] bg-amber-400/25 blur-[80px] rounded-full" />
+              {/* Secondary indigo glow for depth */}
+              <div className="absolute w-[180%] h-[200%] bg-indigo-500/20 blur-[100px] rounded-full" />
+              {/* Outer cyan rim for pop */}
+              <div className="absolute w-[200%] h-[220%] bg-cyan-400/12 blur-[120px] rounded-full" />
             </div>
             {/* Logo with gradient depth effect using mask */}
             <div className="relative inline-block [filter:drop-shadow(6px_6px_12px_rgba(0,0,0,0.5))]">
@@ -196,7 +202,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
         {isFirstTimeUser ? (
           /* FIRST-TIME USER: Simplified Interface */
           <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+110px)] overflow-y-auto min-h-0">
-            <div className="w-full flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(8px,4vh,28px)]">
+            <div className="relative w-full flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(8px,4vh,28px)]">
+              {/* Subtle glow behind buttons */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-[105%] h-[110%] bg-indigo-500/15 blur-[50px] rounded-3xl" />
+              </div>
               {/* Large Get Started button */}
               <button
                 className={primaryButtonStyle}
@@ -217,7 +227,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
         ) : (
           /* EXPERIENCED USER: Full-Featured Interface */
           <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+110px)] overflow-y-auto min-h-0">
-            <div className="w-full flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(8px,4vh,28px)]">
+            <div className="relative w-full flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(8px,4vh,28px)]">
+              {/* Subtle glow behind buttons */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-[105%] h-[110%] bg-indigo-500/15 blur-[50px] rounded-3xl" />
+              </div>
               {/* Continue / Jatka button */}
               <button
                 className={canResume ? primaryEmphasisStyle : disabledButtonStyle}
@@ -262,14 +276,14 @@ const StartScreen: React.FC<StartScreenProps> = ({
           <button
             aria-label={t('startScreen.languageEnglish', 'English')}
             onClick={() => setLanguage('en')}
-            className={`px-4 h-9 text-xs font-bold transition-all duration-200 ${language === 'en' ? 'bg-amber-400/70 text-slate-900' : 'text-slate-300 hover:bg-slate-700'}`}
+            className={`px-4 h-9 text-xs font-bold transition-all duration-200 ${language === 'en' ? 'bg-amber-400/70 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
           >
             EN
           </button>
           <button
             aria-label={t('startScreen.languageFinnish', 'Finnish')}
             onClick={() => setLanguage('fi')}
-            className={`px-4 h-9 text-xs font-bold transition-all duration-200 ${language === 'fi' ? 'bg-amber-400/70 text-slate-900' : 'text-slate-300 hover:bg-slate-700'}`}
+            className={`px-4 h-9 text-xs font-bold transition-all duration-200 ${language === 'fi' ? 'bg-amber-400/70 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
           >
             FI
           </button>
