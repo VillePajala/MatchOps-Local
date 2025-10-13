@@ -4,11 +4,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { Player, Season, Tournament, Team } from '@/types';
-import { HiPlusCircle } from 'react-icons/hi2';
 import logger from '@/utils/logger';
 import { getTeamRoster } from '@/utils/teams';
 import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
-import { UseMutationResult } from '@tanstack/react-query';
 import AssessmentSlider from './AssessmentSlider';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
@@ -42,10 +40,6 @@ interface NewGameSetupModalProps {
     availablePlayersForGame: Player[] // Add the actual roster to use for the game
   ) => void;
   onCancel: () => void;
-  addSeasonMutation: UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
-  addTournamentMutation: UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>;
-  isAddingSeason: boolean;
-  isAddingTournament: boolean;
   // Fresh data from React Query
   masterRoster: Player[];
   seasons: Season[];
@@ -61,10 +55,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   onManageTeamRoster,
   onStart,
   onCancel,
-  addSeasonMutation,
-  addTournamentMutation,
-  isAddingSeason,
-  isAddingTournament,
   masterRoster,
   seasons,
   tournaments,
@@ -88,13 +78,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
 
-  // State for creating new season/tournament
-  const [showNewSeasonInput, setShowNewSeasonInput] = useState(false);
-  const [newSeasonName, setNewSeasonName] = useState('');
-  const newSeasonInputRef = useRef<HTMLInputElement>(null);
-  const [showNewTournamentInput, setShowNewTournamentInput] = useState(false);
-  const [newTournamentName, setNewTournamentName] = useState('');
-  const newTournamentInputRef = useRef<HTMLInputElement>(null);
+  // State for active tab
+  const [activeTab, setActiveTab] = useState<'none' | 'season' | 'tournament'>('none');
 
   // state for periods and duration
   const [localNumPeriods, setLocalNumPeriods] = useState<1 | 2>(2);
@@ -127,10 +112,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       setSelectedSeasonId(null);
       setSelectedTournamentId(null);
       setSelectedTeamId(null);
-      setShowNewSeasonInput(false);
-      setNewSeasonName('');
-      setShowNewTournamentInput(false);
-      setNewTournamentName('');
       setLocalNumPeriods(2);
       setLocalPeriodDurationString('10');
       setLocalHomeOrAway('home');
@@ -166,8 +147,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     if (value) {
       setSelectedSeasonId(value);
       setSelectedTournamentId(null);
-      setShowNewSeasonInput(false); // Hide create input if selecting existing
-      setNewSeasonName('');
     } else {
       setSelectedSeasonId(null);
     }
@@ -275,8 +254,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     if (value) {
       setSelectedTournamentId(value);
       setSelectedSeasonId(null);
-      setShowNewTournamentInput(false); // Hide create input if selecting existing
-      setNewTournamentName('');
     } else {
       setSelectedTournamentId(null);
     }
@@ -295,85 +272,31 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     }
   }, [selectedTournamentId, tournaments, availablePlayersForSetup]);
 
-  // --- Handlers for Create New Buttons ---
-  const handleShowCreateSeason = () => {
-    setShowNewSeasonInput(true);
-    setSelectedSeasonId(null); // Deselect any existing season
-    setSelectedTournamentId(null); // Ensure tournament is also deselected
-  };
-
-  const handleShowCreateTournament = () => {
-    setShowNewTournamentInput(true);
-    setSelectedTournamentId(null); // Deselect any existing tournament
-    setSelectedSeasonId(null); // Ensure season is also deselected
-  };
-
-  // Implement Add New Season logic
-  const handleAddNewSeason = async () => {
-    const trimmedName = newSeasonName.trim();
-    if (!trimmedName) {
-      showToast(t('newGameSetupModal.newSeasonNameRequired', 'Please enter a name for the new season.'), 'error');
-      newSeasonInputRef.current?.focus();
-      return;
-    }
-
-    try {
-      // Use the mutation
-      const newSeason = await addSeasonMutation.mutateAsync({ name: trimmedName });
-      
-      if (newSeason) {
-        // React Query invalidation will update the parent's seasons prop
-        setSelectedSeasonId(newSeason.id);
-        setSelectedTournamentId(null);
-        setNewSeasonName('');
-        setShowNewSeasonInput(false);
-        logger.log("Add season mutation initiated for:", newSeason.name);
+  // Sync activeTab with selection state
+  useEffect(() => {
+    if (isOpen) {
+      if (selectedSeasonId && selectedSeasonId !== '') {
+        setActiveTab('season');
+      } else if (selectedTournamentId && selectedTournamentId !== '') {
+        setActiveTab('tournament');
       } else {
-        // This block might be reached if mutateAsync resolves but utilAddSeason returned null (e.g., duplicate)
-        // The mutation's onSuccess/onError in page.tsx would have more context.
-        logger.warn("addSeasonMutation.mutateAsync completed, but newSeason is null. Check mutation's onSuccess/onError for details.");
-        // alert for duplicate is better handled by the mutation's error/success reporting if it returns a specific error or null for it
+        setActiveTab('none');
       }
-    } catch (error) {
-      // This catch is for errors from mutateAsync itself, if not handled by mutation's onError
-      logger.error("Error calling addSeasonMutation.mutateAsync:", error);
-      // alert(t('newGameSetupModal.errorAddingSeasonGeneric', 'Error initiating add season. See console.'));
-      // The actual user-facing error for mutation failure should come from the mutation's onError handler in page.tsx
-      newSeasonInputRef.current?.focus();
+    }
+  }, [isOpen, selectedSeasonId, selectedTournamentId]);
+
+  // Handle tab changes
+  const handleTabChange = (tab: 'none' | 'season' | 'tournament') => {
+    setActiveTab(tab);
+    if (tab === 'none') {
+      setSelectedSeasonId(null);
+      setSelectedTournamentId(null);
+    } else if (tab === 'season') {
+      setSelectedTournamentId(null);
+    } else if (tab === 'tournament') {
+      setSelectedSeasonId(null);
     }
   };
-
-  // Implement Add New Tournament logic
-  const handleAddNewTournament = async () => {
-    const trimmedName = newTournamentName.trim();
-    if (!trimmedName) {
-      showToast(t('newGameSetupModal.newTournamentNameRequired', 'Please enter a name for the new tournament.'), 'error');
-      newTournamentInputRef.current?.focus();
-      return;
-    }
-
-    try {
-      // Use the mutation
-      const newTournament = await addTournamentMutation.mutateAsync({ name: trimmedName });
-
-      if (newTournament) {
-        // React Query invalidation will update the parent's tournaments prop
-        setSelectedTournamentId(newTournament.id);
-        setSelectedSeasonId(null);
-        setNewTournamentName('');
-        setShowNewTournamentInput(false);
-        logger.log("Add tournament mutation initiated for:", newTournament.name);
-      } else{
-        logger.warn("addTournamentMutation.mutateAsync completed, but newTournament is null.");
-      }
-    } catch (error) {
-      logger.error("Error calling addTournamentMutation.mutateAsync:", error);
-      // alert(t('newGameSetupModal.errorAddingTournamentGeneric', 'Error initiating add tournament. See console.'));
-      newTournamentInputRef.current?.focus();
-    }
-  };
-  // --- End Handlers for Create New ---
-
 
   const handleStartClick = async () => {
     const trimmedHomeTeamName = homeTeamName.trim();
@@ -389,18 +312,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       showToast(t('newGameSetupModal.opponentNameRequired', 'Opponent Name is required.'), 'error');
       opponentInputRef.current?.focus();
       return;
-    }
-
-    // Handle case where user is trying to submit while create input is open but empty
-    if (showNewSeasonInput && !newSeasonName.trim()) {
-        showToast(t('newGameSetupModal.newSeasonNameRequired', 'Please enter a name for the new season or select an existing one.'), 'error');
-        newSeasonInputRef.current?.focus();
-        return;
-    }
-    if (showNewTournamentInput && !newTournamentName.trim()) {
-        showToast(t('newGameSetupModal.newTournamentNameRequired', 'Please enter a name for the new tournament or select an existing one.'), 'error');
-        newTournamentInputRef.current?.focus();
-        return;
     }
 
     if (selectedPlayerIds.length === 0) {
@@ -454,36 +365,18 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
-    // Allow Enter to submit only from main text inputs, not the create new inputs yet
-    if (event.key === 'Enter' && !showNewSeasonInput && !showNewTournamentInput) {
+    // Allow Enter to submit from main text inputs
+    if (event.key === 'Enter') {
         const target = event.target as HTMLElement;
         // Avoid submitting if focus is on dropdowns or buttons that might have their own Enter behavior
         if (target.tagName !== 'SELECT' && target.tagName !== 'BUTTON') {
-            handleStartClick(); 
+            handleStartClick();
         }
     } else if (event.key === 'Escape') {
       onCancel();
     }
   };
 
-  // Separate KeyDown handlers for the create new inputs
-  const handleNewSeasonKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      handleAddNewSeason();
-    } else if (event.key === 'Escape') {
-      setShowNewSeasonInput(false);
-      setNewSeasonName('');
-    }
-  };
-
-  const handleNewTournamentKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      handleAddNewTournament();
-    } else if (event.key === 'Escape') {
-      setShowNewTournamentInput(false);
-      setNewTournamentName('');
-    }
-  };
 
   // ... handleHourChange and handleMinuteChange functions ...
   const handleHourChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -594,17 +487,48 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                         {t('newGameSetupModal.gameTypeLabel', 'Game Type')}
                       </h3>
 
+                      {/* Tabs */}
+                      <div className="flex gap-2 mb-4">
+                        <button
+                          onClick={() => handleTabChange('none')}
+                          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            activeTab === 'none'
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          }`}
+                        >
+                          {t('gameSettingsModal.eiMitaan', 'None')}
+                        </button>
+                        <button
+                          onClick={() => handleTabChange('season')}
+                          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            activeTab === 'season'
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          }`}
+                        >
+                          {t('gameSettingsModal.kausi', 'Season')}
+                        </button>
+                        <button
+                          onClick={() => handleTabChange('tournament')}
+                          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            activeTab === 'tournament'
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          }`}
+                        >
+                          {t('gameSettingsModal.turnaus', 'Tournament')}
+                        </button>
+                      </div>
+
                       {/* Season Selection */}
-                      <div className="mb-4">
-                        <label htmlFor="seasonSelect" className="block text-sm font-medium text-slate-300 mb-1">
-                          {t('newGameSetupModal.seasonLabel', 'Season')}
-                        </label>
-                        <div className="flex items-center gap-2">
+                      {activeTab === 'season' && (
+                        <div className="mb-4">
                           <select
                             id="seasonSelect"
                             value={selectedSeasonId || ''}
                             onChange={handleSeasonChange}
-                            className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                           >
                             <option value="">{t('newGameSetupModal.selectSeason', '-- Select Season --')}</option>
                             {seasons.filter(season => !season.archived).map((season) => (
@@ -613,61 +537,17 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                               </option>
                             ))}
                           </select>
-                          <button
-                            type="button"
-                            onClick={handleShowCreateSeason}
-                            className="p-2 text-indigo-400 hover:text-indigo-300 disabled:opacity-50"
-                            title={showNewSeasonInput ? t('newGameSetupModal.cancelCreate', 'Cancel creation') : t('newGameSetupModal.createSeason', 'Create new season')}
-                            disabled={isAddingSeason || isAddingTournament}
-                          >
-                            <HiPlusCircle className={`w-6 h-6 transition-transform ${showNewSeasonInput ? 'rotate-45' : ''}`} />
-                          </button>
                         </div>
-                        {showNewSeasonInput && (
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <input
-                              ref={newSeasonInputRef}
-                              type="text"
-                              value={newSeasonName}
-                              onChange={(e) => setNewSeasonName(e.target.value)}
-                              onKeyDown={handleNewSeasonKeyDown}
-                              placeholder={t('newGameSetupModal.newSeasonPlaceholder', 'Enter new season name...')}
-                              className="flex-1 min-w-[200px] px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                              disabled={isAddingSeason}
-                            />
-                            <div className="flex gap-2 shrink-0">
-                              <button
-                                onClick={handleAddNewSeason}
-                                disabled={isAddingSeason || !newSeasonName.trim()}
-                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow-sm disabled:opacity-50 whitespace-nowrap"
-                              >
-                                {isAddingSeason ? t('newGameSetupModal.creating', 'Creating...') : t('newGameSetupModal.addButton', 'Add')}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setShowNewSeasonInput(false);
-                                  setNewSeasonName('');
-                                }}
-                                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md shadow-sm whitespace-nowrap"
-                              >
-                                {t('common.cancelButton', 'Cancel')}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                      )}
 
                       {/* Tournament Selection */}
-                      <div className="mb-4">
-                        <label htmlFor="tournamentSelect" className="block text-sm font-medium text-slate-300 mb-1">
-                          {t('newGameSetupModal.tournamentLabel', 'Tournament')}
-                        </label>
-                        <div className="flex items-center gap-2">
+                      {activeTab === 'tournament' && (
+                        <div className="mb-4">
                           <select
                             id="tournamentSelect"
                             value={selectedTournamentId || ''}
                             onChange={handleTournamentChange}
-                            className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                           >
                             <option value="">{t('newGameSetupModal.selectTournament', '-- Select Tournament --')}</option>
                             {tournaments.filter(tournament => !tournament.archived).map((tournament) => (
@@ -676,72 +556,31 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                               </option>
                             ))}
                           </select>
-                          <button
-                            type="button"
-                            onClick={handleShowCreateTournament}
-                            className="p-2 text-indigo-400 hover:text-indigo-300 disabled:opacity-50"
-                            title={showNewTournamentInput ? t('newGameSetupModal.cancelCreate', 'Cancel creation') : t('newGameSetupModal.createTournament', 'Create new tournament')}
-                            disabled={isAddingSeason || isAddingTournament}
-                          >
-                          <HiPlusCircle className={`w-6 h-6 transition-transform ${showNewTournamentInput ? 'rotate-45' : ''}`} />
-                          </button>
-                        </div>
-                        {selectedTournamentId && (
-                          <div className="mt-2">
-                            <label htmlFor="tournamentLevelInput" className="block text-sm font-medium text-slate-300 mb-1">
-                              {t('newGameSetupModal.levelLabel', 'Level')}
-                            </label>
-                            <select
-                              id="tournamentLevelInput"
-                              value={tournamentLevel}
-                              onChange={(e) => setTournamentLevel(e.target.value)}
-                              onKeyDown={handleKeyDown}
-                              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                              
-                            >
-                              <option value="">{t('common.none', 'None')}</option>
-                              {LEVELS.map((lvl) => (
-                                <option key={lvl} value={lvl}>
-                                  {t(`common.level${lvl}` as TranslationKey, lvl)}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-                        {showNewTournamentInput && (
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <input
-                              ref={newTournamentInputRef}
-                              type="text"
-                              value={newTournamentName}
-                              onChange={(e) => setNewTournamentName(e.target.value)}
-                              onKeyDown={handleNewTournamentKeyDown}
-                              placeholder={t('newGameSetupModal.newTournamentPlaceholder', 'Enter new tournament name...')}
-                              className="flex-1 min-w-[200px] px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                              disabled={isAddingTournament}
-                            />
-                            <div className="flex gap-2 shrink-0">
-                              <button
-                                onClick={handleAddNewTournament}
-                                disabled={isAddingTournament || !newTournamentName.trim()}
-                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow-sm disabled:opacity-50 whitespace-nowrap"
+                          {selectedTournamentId && (
+                            <div className="mt-2">
+                              <label htmlFor="tournamentLevelInput" className="block text-sm font-medium text-slate-300 mb-1">
+                                {t('newGameSetupModal.levelLabel', 'Level')}
+                              </label>
+                              <select
+                                id="tournamentLevelInput"
+                                value={tournamentLevel}
+                                onChange={(e) => setTournamentLevel(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+
                               >
-                                {isAddingTournament ? t('newGameSetupModal.creating', 'Creating...') : t('newGameSetupModal.addButton', 'Add')}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setShowNewTournamentInput(false);
-                                  setNewTournamentName('');
-                                }}
-                                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md shadow-sm whitespace-nowrap"
-                              >
-                                {t('common.cancelButton', 'Cancel')}
-                              </button>
+                                <option value="">{t('common.none', 'None')}</option>
+                                {LEVELS.map((lvl) => (
+                                  <option key={lvl} value={lvl}>
+                                    {t(`common.level${lvl}` as TranslationKey, lvl)}
+                                  </option>
+                                ))}
+                              </select>
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
 
                     {/* Age Group */}
                     <div className="mb-4">
@@ -974,8 +813,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
               </button>
               <button
                 onClick={handleStartClick}
-                disabled={isAddingSeason || isAddingTournament}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow-sm disabled:opacity-50"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow-sm"
               >
                 {t('newGameSetupModal.confirmAndStart', 'Confirm & Start Game')}
               </button>

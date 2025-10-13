@@ -1035,10 +1035,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 opponentPlaceholder={t('gameSettingsModal.opponentNamePlaceholder', 'Enter opponent name')}
               />
             </div>
-            {/* Linkitä Section */}
+            {/* Pelityyppi Section */}
             <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
-                {t('gameSettingsModal.linkita', 'Link')}
+                {t('newGameSetupModal.gameTypeLabel', 'Game Type')}
               </h3>
 
               {/* Tabs */}

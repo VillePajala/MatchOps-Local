@@ -93,7 +93,7 @@ const PlayerBar: React.FC<PlayerBarProps> = ({ players, onPlayerDragStartFromBar
         }}
       >
         <Image
-          src="/logos/app-logo.png"
+          src="/logos/app-logo-yellow.png"
           alt="MatchOps Local"
           width={80}
           height={27}
