@@ -10,7 +10,6 @@ import {
   HiOutlineTrash,
   HiOutlineDocumentText,
   HiOutlineTableCells,
-  HiOutlineMagnifyingGlass,
   HiOutlineEllipsisVertical
 } from 'react-icons/hi2';
 import { DEFAULT_GAME_ID } from '@/config/constants';
@@ -272,7 +271,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             // Look up entities using maps for O(1) performance
             const season = game.seasonId ? entityMaps.seasons.get(game.seasonId) : null;
             const tournament = game.tournamentId ? entityMaps.tournaments.get(game.tournamentId) : null;
-            const contextName = season?.name || tournament?.name;
 
             // Get live entity names (or fallback to snapshots)
             const { teamName: liveTeamName } = getDisplayNames(game, entityMaps);
