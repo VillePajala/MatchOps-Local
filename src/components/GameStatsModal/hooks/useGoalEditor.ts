@@ -13,7 +13,6 @@ interface UseGoalEditorParams {
   onDeleteGameEvent?: (goalId: string) => void;
   setLocalGameEvents: React.Dispatch<React.SetStateAction<GameEvent[]>>;
   setIsEditingNotes: (editing: boolean) => void;
-  setInlineEditingField: (field: 'opponent' | 'date' | 'home' | 'away' | null) => void;
   t: TFunction;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
@@ -51,7 +50,6 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
     onDeleteGameEvent,
     setLocalGameEvents,
     setIsEditingNotes,
-    setInlineEditingField,
     t,
     showToast,
   } = params;
@@ -70,7 +68,6 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
     setEditGoalScorerId(goal.scorerId ?? '');
     setEditGoalAssisterId(goal.assisterId ?? '');
     setIsEditingNotes(false);
-    setInlineEditingField(null);
   };
 
   const handleCancelEditGoal = () => {
