@@ -354,7 +354,8 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                 placeholder={t('seasonTournamentModal.searchPlaceholder')}
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
-                className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                autoComplete="off"
+                className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-slate-700"
               />
             </div>
 
