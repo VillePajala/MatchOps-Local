@@ -243,6 +243,16 @@ const ControlBar: React.FC<ControlBarProps> = ({
               <HiOutlineWrench className={iconSize} />
             </button>
 
+            {/* Place All Players Button - Square shape */}
+            <button
+              onClick={onPlaceAllPlayers}
+              className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
+              title={t('controlBar.placeAllPlayers', 'Place All Players')}
+              aria-label={t('controlBar.placeAllPlayers', 'Place All Players')}
+            >
+              <HiOutlineSquares2X2 className={iconSize} />
+            </button>
+
             {/* Clickable Timer Display - Fixed height */}
             <button
               onClick={onToggleLargeTimerOverlay}
@@ -317,16 +327,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
               <HiOutlineClipboard className={iconSize} />
             </button>
 
-            {/* Place All Players / Add Home Disc (conditional) */}
-            {!isTacticsBoardView ? (
-              <button
-                onClick={onPlaceAllPlayers}
-                className={`${buttonStyle} bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
-                title={t('controlBar.placeAllPlayers', 'Place All Players')}
-              >
-                <HiOutlineSquares2X2 className={iconSize} />
-              </button>
-            ) : (
+            {/* Add Home Disc (only visible in tactics board mode) */}
+            {isTacticsBoardView && (
               <button
                 onClick={onAddHomeDisc}
                 className={`${buttonStyle} bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
