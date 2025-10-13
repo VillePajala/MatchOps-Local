@@ -36,8 +36,6 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [notes, setNotes] = useState('');
-  const [color, setColor] = useState('');
-  const [badge, setBadge] = useState('');
   const [awardedPlayerId, setAwardedPlayerId] = useState<string | undefined>(undefined);
   const [archived, setArchived] = useState(false);
 
@@ -53,8 +51,6 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
       setStartDate(tournament.startDate || '');
       setEndDate(tournament.endDate || '');
       setNotes(tournament.notes || '');
-      setColor(tournament.color || '');
-      setBadge(tournament.badge || '');
       setAwardedPlayerId(tournament.awardedPlayerId);
       setArchived(tournament.archived || false);
     }
@@ -83,8 +79,6 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
       startDate: startDate || undefined,
       endDate: endDate || undefined,
       notes: notes.trim() || undefined,
-      color: color.trim() || undefined,
-      badge: badge.trim() || undefined,
       awardedPlayerId: awardedPlayerId || undefined,
       archived,
     };
@@ -258,34 +252,6 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
-              </div>
-
-              {/* Color */}
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  {t('tournamentDetailsModal.colorLabel', 'Color')}
-                </label>
-                <input
-                  type="text"
-                  value={color}
-                  onChange={(e) => setColor(e.target.value)}
-                  placeholder={t('tournamentDetailsModal.colorPlaceholder', 'e.g., #3B82F6')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-
-              {/* Badge */}
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  {t('tournamentDetailsModal.badgeLabel', 'Badge')}
-                </label>
-                <input
-                  type="text"
-                  value={badge}
-                  onChange={(e) => setBadge(e.target.value)}
-                  placeholder={t('tournamentDetailsModal.badgePlaceholder', 'e.g., 🏆')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
-                />
               </div>
 
               {/* Player of Tournament Award */}

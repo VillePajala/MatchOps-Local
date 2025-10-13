@@ -32,8 +32,6 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [notes, setNotes] = useState('');
-  const [color, setColor] = useState('');
-  const [badge, setBadge] = useState('');
   const [archived, setArchived] = useState(false);
 
   // Initialize form when season changes
@@ -47,8 +45,6 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
       setStartDate(season.startDate || '');
       setEndDate(season.endDate || '');
       setNotes(season.notes || '');
-      setColor(season.color || '');
-      setBadge(season.badge || '');
       setArchived(season.archived || false);
     }
   }, [season]);
@@ -75,8 +71,6 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
       startDate: startDate || undefined,
       endDate: endDate || undefined,
       notes: notes.trim() || undefined,
-      color: color.trim() || undefined,
-      badge: badge.trim() || undefined,
       archived,
     };
 
@@ -232,34 +226,6 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
-              </div>
-
-              {/* Color */}
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  {t('seasonDetailsModal.colorLabel', 'Color')}
-                </label>
-                <input
-                  type="text"
-                  value={color}
-                  onChange={(e) => setColor(e.target.value)}
-                  placeholder={t('seasonDetailsModal.colorPlaceholder', 'e.g., #3B82F6')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-
-              {/* Badge */}
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  {t('seasonDetailsModal.badgeLabel', 'Badge')}
-                </label>
-                <input
-                  type="text"
-                  value={badge}
-                  onChange={(e) => setBadge(e.target.value)}
-                  placeholder={t('seasonDetailsModal.badgePlaceholder', 'e.g., ⭐')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
-                />
               </div>
 
               {/* Notes */}
