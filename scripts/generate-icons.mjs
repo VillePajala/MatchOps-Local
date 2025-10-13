@@ -39,15 +39,15 @@ async function generateIcons() {
     const sourceInfo = await sharp(sourceImage).metadata();
     console.log(`📏 Source image: ${sourceInfo.width}x${sourceInfo.height}`);
 
-    // Darker blue background color
-    const backgroundColor = { r: 15, g: 25, b: 45, alpha: 1 };
+    // Background color matching app's loading screen (Tailwind slate-900: rgb(15, 23, 42))
+    const backgroundColor = { r: 15, g: 23, b: 42, alpha: 1 };
 
     // Generate each required size
     for (const { size, name } of iconSizes) {
       const outputPath = path.join(iconsDir, name);
 
-      // Calculate text size to match current appearance (90% of icon size)
-      const textSize = Math.round(size * 0.9);
+      // Calculate text size to match current appearance (94% of icon size - larger logo)
+      const textSize = Math.round(size * 0.94);
 
       // Create a canvas with background color and place transparent logo
       await sharp({
@@ -78,7 +78,7 @@ async function generateIcons() {
     const faviconPath = path.join(projectRoot, 'public', 'favicon.ico');
 
     // Create a 32x32 favicon with single background
-    const faviconTextSize = Math.round(32 * 0.9);
+    const faviconTextSize = Math.round(32 * 0.94);
 
     await sharp({
       create: {
