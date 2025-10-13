@@ -614,65 +614,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
               {t('loadGameModal.showUnplayedOnly', 'Show only unplayed games')}
             </label>
           </div>
-
-          {/* Team Filter Section */}
-          {teams.length > 0 && (
-            <div className="mt-3">
-              <div className="text-xs text-slate-400 mb-2">
-                {t('loadGameModal.teamFilter', 'Filter by Team:')}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {/* All Teams option */}
-                <button
-                  onClick={() => {
-                    setFilterType(null);
-                    setFilterId(null);
-                  }}
-                  className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium transition-colors ${
-                    filterType !== 'team' 
-                      ? 'bg-slate-600/80 text-slate-200 hover:bg-slate-600' 
-                      : 'bg-slate-700/60 text-slate-400 hover:bg-slate-700'
-                  }`}
-                >
-                  {t('loadGameModal.allTeams', 'All Teams')}
-                </button>
-
-                {/* Legacy games option */}
-                <button
-                  onClick={() => handleBadgeClick('team', 'legacy')}
-                  className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium transition-colors ${
-                    filterType === 'team' && filterId === 'legacy'
-                      ? 'bg-amber-500/30 text-amber-300 ring-2 ring-amber-500/50' 
-                      : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
-                  }`}
-                >
-                  {t('loadGameModal.legacyGames', 'Legacy Games')}
-                </button>
-
-                {/* Team filter buttons */}
-                {teams.map((team) => (
-                  <button
-                    key={team.id}
-                    onClick={() => handleBadgeClick('team', team.id)}
-                    className={`inline-flex items-center px-3 py-1 rounded text-xs font-medium transition-colors ${
-                      filterType === 'team' && filterId === team.id
-                        ? 'bg-green-500/30 text-green-300 ring-2 ring-green-500/50' 
-                        : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                    }`}
-                    style={team.color ? { 
-                      backgroundColor: `${team.color}20`, 
-                      color: team.color,
-                      ...(filterType === 'team' && filterId === team.id ? { 
-                        boxShadow: `0 0 0 2px ${team.color}80` 
-                      } : {})
-                    } : undefined}
-                  >
-                    {team.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
         <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6">
           {mainContent}
