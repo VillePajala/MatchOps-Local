@@ -67,7 +67,7 @@ const PlayerBar: React.FC<PlayerBarProps> = ({ players, onPlayerDragStartFromBar
   return (
     <div
       data-testid="player-bar"
-      className="relative pl-4 pr-2 py-0.5 flex items-center space-x-3 flex-shrink-0 overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-slate-700/80 scrollbar-track-slate-800/50 shadow-lg border-b border-slate-700/50 backdrop-blur-md"
+      className="relative pl-2 pr-2 py-0.5 flex items-center space-x-1 flex-shrink-0 overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-slate-700/80 scrollbar-track-slate-800/50 shadow-lg border-b border-slate-700/50 backdrop-blur-md"
       style={{
         background: `
           linear-gradient(to bottom, rgba(56, 189, 248, 0.1), transparent, transparent),

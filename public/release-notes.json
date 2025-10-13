@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: switch PWA icons to yellow logo with transparent background"
+  "notes": "fix: update install prompt to use yellow logo"
 }
