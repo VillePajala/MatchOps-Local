@@ -301,7 +301,8 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                   e.target.blur();
                 }
               }}
-              className={inputBaseStyle}
+              autoComplete="off"
+              className={`${inputBaseStyle} focus:bg-slate-700`}
             />
             {/* Form to Add New Player (appears here when isAddingPlayer is true) */}
             {isAddingPlayer && (
