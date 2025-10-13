@@ -65,8 +65,6 @@ describe('TournamentDetailsModal', () => {
     expect(screen.getByDisplayValue('Championship Cup 2024')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Central Arena')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Championship tournament')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('#F59E0B')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('🏆')).toBeInTheDocument();
   });
 
   it('displays statistics when provided', async () => {

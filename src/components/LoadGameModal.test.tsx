@@ -137,11 +137,12 @@ describe('LoadGameModal', () => {
 
   it('calls onLoad and onClose when a game is loaded', async () => {
     await renderModal();
-    const gameItem = await screen.findByText('Lions');
-    fireEvent.click(gameItem.closest('button')!);
-    const loadButton = within(gameItem.closest('li')!).getByRole('button', { name: /loadGameModal.loadButton/i });
+    const gameCard = await screen.findByTestId('game-item-game_1659123456_abc');
 
-    fireEvent.click(loadButton);
+    await act(async () => {
+      fireEvent.click(gameCard);
+    });
+
     expect(mockHandlers.onLoad).toHaveBeenCalledWith('game_1659123456_abc');
     expect(mockHandlers.onClose).toHaveBeenCalled();
   });
@@ -179,26 +180,47 @@ describe('LoadGameModal', () => {
 
   it('calls onExportOneJson when JSON export button is clicked', async () => {
     await renderModal();
-    const gameItem = await screen.findByText('Lions');
-    fireEvent.click(gameItem.closest('button')!);
-    const exportButton = within(gameItem.closest('li')!).getByTitle('Export JSON');
-    fireEvent.click(exportButton);
+    const gameCard = await screen.findByTestId('game-item-game_1659123456_abc');
+
+    // Open actions menu
+    const actionsButton = within(gameCard).getByLabelText('Game actions');
+    await act(async () => {
+      fireEvent.click(actionsButton);
+    });
+
+    // Click Export JSON
+    const exportButton = await screen.findByText('Export JSON');
+    await act(async () => {
+      fireEvent.click(exportButton);
+    });
+
     expect(mockHandlers.onExportOneJson).toHaveBeenCalledWith('game_1659123456_abc');
     });
 
   it('calls onExportOneCsv when CSV export button is clicked', async () => {
     await renderModal();
-    const gameItem = await screen.findByText('Lions');
-    fireEvent.click(gameItem.closest('button')!);
-    const csvExportButton = within(gameItem.closest('li')!).getByTitle('Export CSV');
-    fireEvent.click(csvExportButton);
+    const gameCard = await screen.findByTestId('game-item-game_1659123456_abc');
+
+    // Open actions menu
+    const actionsButton = within(gameCard).getByLabelText('Game actions');
+    await act(async () => {
+      fireEvent.click(actionsButton);
+    });
+
+    // Click Export CSV
+    const csvExportButton = await screen.findByText('Export CSV');
+    await act(async () => {
+      fireEvent.click(csvExportButton);
+    });
+
     expect(mockHandlers.onExportOneCsv).toHaveBeenCalledWith('game_1659123456_abc');
     });
 
   it('displays current game indicator when loaded', async () => {
     await renderModal({ currentGameId: 'game_1659123456_abc' });
-    const gameItem = await screen.findByText('Lions');
-    const currentBadge = within(gameItem.closest('li')!).getByText('loadGameModal.currentlyLoaded');
-    expect(currentBadge).toBeInTheDocument();
+    const gameCard = await screen.findByTestId('game-item-game_1659123456_abc');
+
+    // Check for the subtle left border indicator
+    expect(gameCard).toHaveClass('border-l-4', 'border-indigo-500');
   });
 });

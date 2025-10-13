@@ -185,7 +185,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         const placeholder = type === 'season' ? t('seasonTournamentModal.newSeasonPlaceholder') : t('seasonTournamentModal.newTournamentPlaceholder');
 
         return (
-            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+            <div className="bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner">
                 <h3 className="text-lg font-semibold text-slate-200 mb-4">{t(`seasonTournamentModal.${type}s`)}</h3>
                 {showInput && (
                     <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600 mb-3 flex flex-col gap-2">
@@ -245,31 +245,16 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                         </div>
                     </div>
                 )}
-                <div className="space-y-0">
-                    {filtered.map((item, index) => (
+                <div className="space-y-3">
+                    {filtered.map((item) => (
                         <div
                             key={item.id}
-                            className={`py-1.5 px-2 rounded transition-colors hover:bg-slate-800/40 cursor-pointer ${
-                                index < filtered.length - 1 ? 'border-b border-slate-700/50' : ''
-                            }`}
+                            className="p-4 rounded-lg bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 cursor-pointer transition-all"
                             onClick={() => type === 'season' ? handleSeasonClick(item.id) : handleTournamentClick(item.id)}
                         >
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-slate-100 font-medium">{item.name}</p>
-                                        {type==='tournament' && (item as Tournament).awardedPlayerId && (() => {
-                                            // Edge case: if awarded player was deleted from roster, playerLookup returns undefined
-                                            // This gracefully hides the trophy badge (no broken UI)
-                                            const playerId = (item as Tournament).awardedPlayerId!; // Safe due to && check above
-                                            const awardedPlayer = playerLookup.get(playerId);
-                                            return awardedPlayer ? (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded">
-                                                    🏆 {awardedPlayer.name}
-                                                </span>
-                                            ) : null;
-                                        })()}
-                                    </div>
+                                    <p className="text-slate-100 font-medium">{item.name}</p>
                                     {type==='tournament' && ((item as Tournament).startDate || (item as Tournament).endDate) && (
                                         <p className="text-xs text-slate-400">{(item as Tournament).startDate || ''}{(item as Tournament).startDate && (item as Tournament).endDate ? ' - ' : ''}{(item as Tournament).endDate || ''}</p>
                                     )}
@@ -328,9 +313,9 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
           </div>
 
           {/* Fixed Section (Counters and Add Buttons) */}
-          <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20">
+          <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
             {/* Counters Section */}
-            <div className="mb-4 text-center text-sm">
+            <div className="mb-5 text-center text-sm">
               <div className="flex justify-center items-center gap-6 text-slate-300">
                 <span>
                   <span className="text-yellow-400 font-semibold">{seasons.length}</span>
@@ -345,18 +330,6 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                     : t('seasonTournamentModal.tournaments', 'Tournaments')}
                 </span>
               </div>
-            </div>
-
-            {/* Search Field */}
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder={t('seasonTournamentModal.searchPlaceholder')}
-                value={searchText}
-                onChange={e => setSearchText(e.target.value)}
-                autoComplete="off"
-                className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-slate-700"
-              />
             </div>
 
             {/* Add Buttons */}
@@ -378,7 +351,19 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 p-6">
+        <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
+            {/* Search Field */}
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder={t('seasonTournamentModal.searchPlaceholder')}
+                value={searchText}
+                onChange={e => setSearchText(e.target.value)}
+                autoComplete="off"
+                className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {renderList('season')}
                 {renderList('tournament')}

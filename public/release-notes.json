@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: add games counter and compact search in LoadGameModal"
+  "notes": "feat: enhance LoadGameModal with actions menu and improved game display"
 }

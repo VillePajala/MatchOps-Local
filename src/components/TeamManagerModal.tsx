@@ -318,15 +318,13 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               </p>
             </div>
           ) : (
-            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-              <div className="space-y-0">
-                {teams.map((team, index) => (
+            <div className="bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner">
+              <div className="space-y-3">
+                {teams.map((team) => (
                   <div
                     key={team.id}
-                    className={`py-1.5 px-1 rounded transition-colors ${
-                      editingTeamId === team.id ? 'bg-slate-700/75' : 'hover:bg-slate-800/40'
-                    } ${
-                      index < teams.length - 1 ? 'border-b border-slate-700/50' : ''
+                    className={`p-4 rounded-lg transition-all ${
+                      editingTeamId === team.id ? 'bg-slate-700/75' : 'bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40'
                     }`}
                   >
                   {editingTeamId === team.id ? (

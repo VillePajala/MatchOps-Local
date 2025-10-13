@@ -237,7 +237,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   // --- Style Guide Definitions ---
   const modalContainerStyle = "bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden";
   const titleStyle = "text-3xl font-bold text-yellow-400 tracking-wide";
-  const cardStyle = "bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner";
+  const cardStyle = "bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner";
   const labelStyle = "text-sm font-medium text-slate-300 mb-1";
   const inputBaseStyle = "block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 focus:bg-slate-700 sm:text-sm text-white";
   const buttonBaseStyle = "px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed";
@@ -289,7 +289,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
           </div>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0 p-6">
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
             <input
               type="text"
               placeholder={t('rosterSettingsModal.searchPlaceholder', 'Search players...')}
@@ -302,7 +302,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                 }
               }}
               autoComplete="off"
-              className={`${inputBaseStyle} focus:bg-slate-700`}
+              className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
             {/* Form to Add New Player (appears here when isAddingPlayer is true) */}
             {isAddingPlayer && (
@@ -336,15 +336,13 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
 
             {/* Player List */}
             <div className={`${cardStyle} mt-4`}>
-              <div className="space-y-0">
+              <div className="space-y-3">
                 {filteredPlayers.map((player, index) => (
                   <div
                     key={player.id}
                     ref={(el) => { playerRefs.current[index] = el; }}
-                    className={`py-1.5 px-2 rounded transition-colors ${
-                      editingPlayerId === player.id ? 'bg-slate-700/75' : 'hover:bg-slate-800/40'
-                    } ${
-                      index < filteredPlayers.length - 1 ? 'border-b border-slate-700/50' : ''
+                    className={`p-4 rounded-lg transition-all ${
+                      editingPlayerId === player.id ? 'bg-slate-700/75' : 'bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40'
                     }`}
                   >
                     {editingPlayerId === player.id ? (

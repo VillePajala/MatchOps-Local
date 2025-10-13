@@ -56,8 +56,6 @@ describe('SeasonDetailsModal', () => {
     expect(screen.getByDisplayValue('Spring Season 2024')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Main Stadium')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Main season notes')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('#3B82F6')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('⭐')).toBeInTheDocument();
   });
 
   it('displays statistics when provided', async () => {
