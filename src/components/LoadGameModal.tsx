@@ -251,7 +251,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
     );
   } else {
     mainContent = (
-      <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+      <div className="bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner">
         {/* Display general game load/delete errors here */}
         {gameLoadError && processingGameId === null && (
           <div className="px-3 py-2 mb-3 bg-red-700/20 border border-red-600 text-red-300 text-xs rounded" role="alert">
@@ -296,11 +296,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             return (
               <div
                 key={gameId}
-                className={`p-4 rounded-lg cursor-pointer transition-all ${
-                  isCurrent
-                    ? 'bg-indigo-900/30 hover:bg-indigo-900/40'
-                    : 'bg-slate-800/30 hover:bg-slate-800/50'
-                }`}
+                className={`px-4 py-6 rounded-lg cursor-pointer transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 ${isCurrent ? 'border-l-4 border-indigo-500' : ''}`}
                 data-testid={`game-item-${gameId}`}
                 onClick={() => {
                   if (!disableActions && !isLoadActionActive) {
@@ -309,115 +305,121 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                   }
                 }}
               >
-                {/* Card layout with score in top right */}
-                <div className="flex items-start justify-between gap-4">
-                  {/* Left: Game info */}
-                  <div className="flex-1 min-w-0">
+                {/* Card layout with two rows */}
+                <div className="flex flex-col gap-3">
+                  {/* Top row: Team names and score */}
+                  <div className="flex items-start justify-between gap-4">
                     {/* Team names */}
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className={`font-semibold text-base ${isCurrent ? 'text-indigo-300' : 'text-slate-100'}`}>
+                    <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                      <span className="font-semibold text-base text-slate-100">
                         {displayHomeTeamName}
                       </span>
                       <span className="text-slate-400 text-sm">vs</span>
-                      <span className={`font-medium text-base ${isCurrent ? 'text-indigo-300' : 'text-slate-200'}`}>
+                      <span className="font-medium text-base text-slate-200">
                         {displayAwayTeamName}
                       </span>
                     </div>
 
-                    {/* Secondary info: Date, Context (Season/Tournament), Status */}
+                    {/* Score and actions */}
+                    <div className="flex items-start gap-2 flex-shrink-0">
+                      {/* Score */}
+                      <div className="text-right">
+                        <div className={`text-xl font-bold ${scoreColor}`}>
+                          {game.homeScore ?? 0} - {game.awayScore ?? 0}
+                        </div>
+                      </div>
+
+                      {/* Actions menu button */}
+                      <div className="relative" ref={actionsMenuId === gameId ? actionsMenuRef : null}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActionsMenuId(actionsMenuId === gameId ? null : gameId);
+                          }}
+                          className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
+                          aria-label="Game actions"
+                          disabled={disableActions}
+                        >
+                          {isLoadActionActive ? (
+                            <svg className="animate-spin h-4 w-4 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          ) : (
+                            <HiOutlineEllipsisVertical className="w-4 h-4" />
+                          )}
+                        </button>
+
+                        {/* Actions dropdown menu */}
+                        {actionsMenuId === gameId && (
+                          <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onExportOneJson(gameId);
+                                setActionsMenuId(null);
+                              }}
+                              className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
+                              disabled={disableActions}
+                            >
+                              <HiOutlineDocumentText className="w-4 h-4" />
+                              Export JSON
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onExportOneCsv(gameId);
+                                setActionsMenuId(null);
+                              }}
+                              className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
+                              disabled={disableActions}
+                            >
+                              <HiOutlineTableCells className="w-4 h-4" />
+                              Export CSV
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteClick(gameId, `${displayHomeTeamName} vs ${displayAwayTeamName}`);
+                              }}
+                              className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2"
+                              disabled={disableActions}
+                            >
+                              <HiOutlineTrash className="w-4 h-4" />
+                              {t('common.delete', 'Delete')}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom row: Date on left, Badges on right (full width) */}
+                  <div className="flex items-center justify-between gap-2">
+                    {/* Left side: Date and Status */}
                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                       {game.gameDate && (
                         <span>{new Date(game.gameDate).toLocaleDateString(i18n.language)}</span>
                       )}
-                      {game.gameDate && contextName && <span>•</span>}
-                      {contextName && <span>{contextName}</span>}
                       {game.isPlayed === false && (
                         <>
-                          <span>•</span>
+                          {game.gameDate && <span>•</span>}
                           <span className="text-red-400 font-medium">{t('loadGameModal.unplayedBadge', 'NOT PLAYED')}</span>
                         </>
                       )}
-                      {isCurrent && (
-                        <>
-                          <span>•</span>
-                          <span className="text-green-400 font-medium flex items-center gap-1">
-                            <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
-                            {t('loadGameModal.currentlyLoaded', 'Loaded')}
-                          </span>
-                        </>
+                    </div>
+
+                    {/* Right side: Season/Tournament badges */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {season && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                          {season.name}
+                        </span>
                       )}
-                    </div>
-                  </div>
-
-                  {/* Right: Score and actions */}
-                  <div className="flex items-start gap-2 flex-shrink-0">
-                    {/* Score */}
-                    <div className="text-right">
-                      <div className={`text-xl font-bold ${scoreColor}`}>
-                        {game.homeScore ?? 0} - {game.awayScore ?? 0}
-                      </div>
-                    </div>
-
-                    {/* Actions menu button */}
-                    <div className="relative" ref={actionsMenuId === gameId ? actionsMenuRef : null}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActionsMenuId(actionsMenuId === gameId ? null : gameId);
-                        }}
-                        className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
-                        aria-label="Game actions"
-                        disabled={disableActions}
-                      >
-                        {isLoadActionActive ? (
-                          <svg className="animate-spin h-4 w-4 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                        ) : (
-                          <HiOutlineEllipsisVertical className="w-4 h-4" />
-                        )}
-                      </button>
-
-                      {/* Actions dropdown menu */}
-                      {actionsMenuId === gameId && (
-                        <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onExportOneJson(gameId);
-                              setActionsMenuId(null);
-                            }}
-                            className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
-                            disabled={disableActions}
-                          >
-                            <HiOutlineDocumentText className="w-4 h-4" />
-                            Export JSON
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onExportOneCsv(gameId);
-                              setActionsMenuId(null);
-                            }}
-                            className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
-                            disabled={disableActions}
-                          >
-                            <HiOutlineTableCells className="w-4 h-4" />
-                            Export CSV
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteClick(gameId, `${displayHomeTeamName} vs ${displayAwayTeamName}`);
-                            }}
-                            className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2"
-                            disabled={disableActions}
-                          >
-                            <HiOutlineTrash className="w-4 h-4" />
-                            {t('common.delete', 'Delete')}
-                          </button>
-                        </div>
+                      {tournament && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                          {tournament.name}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -435,25 +437,35 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       <div className="bg-slate-800 flex flex-col h-full w-full bg-noise-texture relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
-        <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">{t('loadGameModal.title', 'Load Game')}</h2>
-        </div>
-        <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          {/* Games Counter Section */}
-          <div className="mb-4 text-center text-sm">
-            <div className="flex justify-center items-center text-slate-300">
-              <span>
-                <span className="text-yellow-400 font-semibold">{filteredGameIds.length}</span>
-                {" "}{t('loadGameModal.gamesCount', 'Games')}
-              </span>
-            </div>
+
+        {/* Header */}
+        <div className="flex flex-col">
+          {/* Title Section */}
+          <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
+            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">{t('loadGameModal.title', 'Load Game')}</h2>
           </div>
 
-          <div className="relative">
-            <input type="text" placeholder={t('loadGameModal.filterPlaceholder', 'Filter by name, date, etc...')} value={searchText} onChange={handleSearchChange} autoComplete="off" className="w-full pl-10 pr-4 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-slate-700 text-sm" />
-            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          {/* Fixed Section (Games Counter) */}
+          <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
+            {/* Games Counter Section */}
+            <div className="mb-5 text-center text-sm">
+              <div className="flex justify-center items-center text-slate-300">
+                <span>
+                  <span className="text-yellow-400 font-semibold">{filteredGameIds.length}</span>
+                  {" "}{t('loadGameModal.gamesCount', 'Games')}
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+        </div>
+
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-6 pt-4 pb-6">
+          {/* Search and filters */}
+          <div className="relative mb-4">
+            <input type="text" placeholder={t('loadGameModal.filterPlaceholder', 'Filter by name, date, etc...')} value={searchText} onChange={handleSearchChange} autoComplete="off" className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+          </div>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <label className="flex items-center gap-2 text-sm text-slate-300">
               <input
                 type="checkbox"
@@ -464,8 +476,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
               {t('loadGameModal.showUnplayedOnly', 'Show only unplayed games')}
             </label>
           </div>
-        </div>
-        <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6">
+
           {mainContent}
         </div>
         <div className="p-4 border-t border-slate-700/20 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">

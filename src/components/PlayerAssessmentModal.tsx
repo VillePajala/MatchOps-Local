@@ -61,7 +61,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
   const titleStyle =
     'text-3xl font-bold text-yellow-400 tracking-wide';
   const cardStyle =
-    'bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner';
+    'bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner';
   const buttonBaseStyle =
     'px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed';
   const secondaryButtonStyle =
@@ -204,16 +204,14 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
               </div>
             )}
             <div className={cardStyle}>
-              <div className="space-y-0">
-                {selectedPlayerIds.map((pid, index) => {
+              <div className="space-y-3">
+                {selectedPlayerIds.map((pid) => {
                   const player = getPlayer(pid);
                   if (!player) return null;
                   return (
                     <div
                       key={pid}
-                      className={`py-1.5 px-1 ${
-                        index < selectedPlayerIds.length - 1 ? 'border-b border-slate-700/50' : ''
-                      }`}
+                      className="p-4 rounded-lg bg-gradient-to-br from-slate-600/50 to-slate-800/30"
                     >
                       <PlayerAssessmentCard
                         player={player}

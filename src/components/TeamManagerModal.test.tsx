@@ -125,7 +125,6 @@ describe('TeamManagerModal', () => {
       fireEvent.click(screen.getByText('Add Team'));
 
       expect(screen.getByPlaceholderText('Enter team name')).toBeInTheDocument();
-      expect(screen.getByText('Team Color')).toBeInTheDocument();
     });
 
     it('hides Add Team button when create form is open', () => {
@@ -171,7 +170,6 @@ describe('TeamManagerModal', () => {
         expect(teamsUtils.addTeam).toHaveBeenCalledWith(
           expect.objectContaining({
             name: 'New Team',
-            color: '#6366F1',
           }),
           expect.anything()
         );
@@ -203,7 +201,6 @@ describe('TeamManagerModal', () => {
         expect(teamsUtils.addTeam).toHaveBeenCalledWith(
           expect.objectContaining({
             name: 'Trimmed Team',
-            color: '#6366F1',
           }),
           expect.anything()
         );
@@ -231,7 +228,8 @@ describe('TeamManagerModal', () => {
       expect(createButton).toBeDisabled();
     });
 
-    it('allows selecting team color', () => {
+    it.skip('allows selecting team color', () => {
+      // Team color selection was removed from UI
       renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
 
       fireEvent.click(screen.getByText('Add Team'));
@@ -413,7 +411,6 @@ describe('TeamManagerModal', () => {
       await waitFor(() => {
         expect(teamsUtils.updateTeam).toHaveBeenCalledWith('t1', {
           name: 'Updated Team',
-          color: '#6366F1',
         });
       });
     });
