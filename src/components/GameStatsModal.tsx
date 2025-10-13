@@ -381,6 +381,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     }
 
     return null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` intentionally excluded: translation function changes don't require counter recalculation
   }, [activeTab, availablePlayers, seasons, tournaments, savedGames, selectedTeamIdFilter, selectedPlayer, masterRoster]);
 
   // Calculate team assessment averages
