@@ -134,26 +134,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // --- State ---
   const [editGameNotes, setEditGameNotes] = useState(gameNotes);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
-
-  /**
-   * Inline editing field state for game metadata (opponent, date, scores)
-   *
-   * @remarks
-   * This state is currently only used by setInlineEditingField to ensure
-   * mutual exclusivity between different editing modes (notes, goals, metadata).
-   * The getter (inlineEditingField) is not yet consumed because the inline
-   * editing UI for game metadata has not been implemented.
-   *
-   * @future
-   * When implementing inline editing for GameInfoCard fields:
-   * 1. Check this state to conditionally render inline editors
-   * 2. Update state when clicking edit buttons for opponent/date/scores
-   * 3. Clear state (set to null) when saving or canceling edits
-   *
-   * @see GameStatsModal/hooks/useGoalEditor.ts:73 - Clears this state when editing goals
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [inlineEditingField, setInlineEditingField] = useState<'opponent' | 'date' | 'home' | 'away' | null>(null);
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [sortColumn, setSortColumn] = useState<SortableColumn>('totalScore');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -224,7 +204,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     if (isOpen) {
       setEditGameNotes(gameNotes);
       setIsEditingNotes(false);
-      setInlineEditingField(null);
     }
   }, [isOpen, gameNotes]);
 
@@ -282,7 +261,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     onDeleteGameEvent,
     setLocalGameEvents,
     setIsEditingNotes,
-    setInlineEditingField,
     showToast,
     t,
   });

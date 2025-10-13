@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor(ui): streamline game setup with tab-based UI and unified branding"
+  "notes": "test: update tests for tab-based UI in game setup modals"
 }
