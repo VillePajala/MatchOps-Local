@@ -51,16 +51,6 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         return sanitized;
     };
 
-    /**
-     * Performance optimization: Pre-compute player lookup map
-     * Reduces complexity from O(n*m) to O(n+m) when rendering tournament awards
-     * Critical for large rosters (50-100 players) × multiple tournaments (50-100)
-     */
-    const playerLookup = React.useMemo(
-        () => new Map(masterRoster.map(p => [p.id, p])),
-        [masterRoster]
-    );
-
     const [newSeasonName, setNewSeasonName] = useState('');
     const [showNewSeasonInput, setShowNewSeasonInput] = useState(false);
 
