@@ -690,6 +690,7 @@
     "timerDesc": "Näytä pelikello ja vaihdot",
     "menu": "Valikko",
     "menuDesc": "Kaikki ominaisuudet ja asetukset",
+    "fieldToolsTip": "Avaa kenttätyökalut (peru, tee uudelleen, taktiikat, jne.):",
     "undoRedoTip": "Kumoa/Tee uudelleen toiminnot:",
     "logGoalTip": "Kirjaa maali:",
     "rosterTip": "Avaa kokoonpanoasetukset:",

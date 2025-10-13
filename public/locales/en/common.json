@@ -751,6 +751,7 @@
     "timerDesc": "Show game clock & substitutions",
     "menu": "Menu",
     "menuDesc": "Access all features & settings",
+    "fieldToolsTip": "Open field tools (undo, redo, tactics, etc.):",
     "undoRedoTip": "Undo/Redo your last actions:",
     "logGoalTip": "Log a goal:",
     "rosterTip": "Open roster settings:",

@@ -10,10 +10,6 @@ import {
   HiOutlineTrash,
   HiOutlineClipboard,
   HiOutlineUsers,
-  HiOutlineAdjustmentsHorizontal,
-  HiOutlineClipboardDocumentList,
-  HiOutlineClock,
-  HiOutlineQuestionMarkCircle,
   HiBars3,
   HiOutlineFolderOpen,
   HiOutlineArchiveBoxArrowDown,
@@ -23,6 +19,7 @@ import {
   HiOutlineArrowsPointingOut,
   HiOutlineCog6Tooth,
   HiOutlineBookOpen,
+  HiOutlineWrench,
 } from 'react-icons/hi2';
 
 interface InstructionsModalProps {
@@ -126,37 +123,18 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
               <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
                 <li>
-                  <span className="text-slate-200">{t('firstGameGuide.undoRedoTip', 'Undo/Redo your last actions:')}</span>
-                  <span className="inline-flex items-center ml-2 gap-1 align-[-2px]">
-                    <svg className="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 010 8h-1"/></svg>
-                    <svg className="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 10l4 4-4 4"/><path d="M19 14H8a4 4 0 010-8h1"/></svg>
-                  </span>
+                  <span className="text-slate-200">{t('firstGameGuide.fieldToolsTip', 'Open field tools (undo, redo, tactics, etc.):')}</span>
+                  <HiOutlineWrench aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
+                </li>
+                <li>
+                  <span className="text-slate-200">{t('firstGameGuide.timerOverlayTip', 'Show/hide large timer:')}</span>
+                  <span className="inline-block align-[-2px] ml-2 text-green-400 font-bold text-sm">00:00</span>
                 </li>
                 <li>
                   <span className="text-slate-200">{t('firstGameGuide.logGoalTip', 'Log a goal:')}</span>
                   <span className="inline-block align-[-2px] ml-2 text-blue-300">
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
                   </span>
-                </li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.rosterTip', 'Open roster settings:')}</span>
-                  <HiOutlineUsers aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
-                </li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.gameSettingsTip', 'Open game settings:')}</span>
-                  <HiOutlineAdjustmentsHorizontal aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
-                </li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.statsTip', 'Show stats:')}</span>
-                  <HiOutlineClipboardDocumentList aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
-                </li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.timerOverlayTip', 'Show/hide large timer:')}</span>
-                  <HiOutlineClock aria-hidden className="inline-block align-[-2px] ml-2 text-green-300" size={18} />
-                </li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.helpTip', 'Open help:')}</span>
-                  <HiOutlineQuestionMarkCircle aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
                 </li>
                 <li>
                   <span className="text-slate-200">{t('firstGameGuide.menuTip', 'Open the menu for more:')}</span>

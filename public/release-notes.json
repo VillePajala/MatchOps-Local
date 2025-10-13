@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: update install prompt to use yellow logo"
+  "notes": "refactor: remove unused color and badge fields from season, tournament, and team management"
 }
