@@ -40,7 +40,7 @@ jest.mock('react-i18next', () => ({
         'gameSettingsModal.periodsLabel': 'Erät',
         'gameSettingsModal.numPeriodsLabel': 'Erien määrä',
         'gameSettingsModal.periodDurationLabel': 'Erän kesto',
-        'gameSettingsModal.linkita': 'Link',
+        'newGameSetupModal.gameTypeLabel': 'Game Type',
         'gameSettingsModal.eiMitaan': 'None',
         'gameSettingsModal.kausi': 'Season',
         'gameSettingsModal.turnaus': 'Tournament',
@@ -353,7 +353,7 @@ describe('<GameSettingsModal />', () => {
 
   describe('Association Section', () => {
     const getAssociationSection = () => {
-      const section = screen.getByRole('heading', { name: t('gameSettingsModal.linkita') }).closest('div');
+      const section = screen.getByRole('heading', { name: t('newGameSetupModal.gameTypeLabel') }).closest('div');
       if (!section) throw new Error("Association section not found");
       return section as HTMLElement;
     };
@@ -512,7 +512,7 @@ describe('<GameSettingsModal />', () => {
       renderModal(propsWithAward);
 
       // Switch to tournament tab
-      const section = screen.getByRole('heading', { name: t('gameSettingsModal.linkita') }).closest('div') as HTMLElement;
+      const section = screen.getByRole('heading', { name: t('newGameSetupModal.gameTypeLabel') }).closest('div') as HTMLElement;
       const tournamentTab = within(section).getByText(t('gameSettingsModal.turnaus'));
       const user = userEvent.setup();
       await user.click(tournamentTab);
@@ -543,7 +543,7 @@ describe('<GameSettingsModal />', () => {
       renderModal(propsWithoutAward);
 
       // Switch to tournament tab
-      const section = screen.getByRole('heading', { name: t('gameSettingsModal.linkita') }).closest('div') as HTMLElement;
+      const section = screen.getByRole('heading', { name: t('newGameSetupModal.gameTypeLabel') }).closest('div') as HTMLElement;
       const tournamentTab = within(section).getByText(t('gameSettingsModal.turnaus'));
       const user = userEvent.setup();
       await user.click(tournamentTab);
@@ -572,7 +572,7 @@ describe('<GameSettingsModal />', () => {
       renderModal(propsWithDeletedPlayer);
 
       // Switch to tournament tab
-      const section = screen.getByRole('heading', { name: t('gameSettingsModal.linkita') }).closest('div') as HTMLElement;
+      const section = screen.getByRole('heading', { name: t('newGameSetupModal.gameTypeLabel') }).closest('div') as HTMLElement;
       const tournamentTab = within(section).getByText(t('gameSettingsModal.turnaus'));
       const user = userEvent.setup();
       await user.click(tournamentTab);
