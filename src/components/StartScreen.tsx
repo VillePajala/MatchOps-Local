@@ -56,11 +56,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
   // Modal-style button classes for unified UI
   const primaryButtonStyle =
-    'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] hover:from-indigo-600 hover:to-indigo-700 hover:shadow-lg active:scale-[0.98] active:shadow-inner border border-white/10 shadow-md [box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_6px_-1px_rgba(0,0,0,0.3)]';
+    'w-full h-12 px-4 py-2 rounded-md text-base font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] hover:from-indigo-600 hover:to-indigo-700 hover:shadow-lg active:scale-[0.98] active:shadow-inner border border-white/10 shadow-md [box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_6px_-1px_rgba(0,0,0,0.3)]';
 
   // Emphasized variant for primary (Continue/Get Started) — same style as primary
   const primaryEmphasisStyle =
-    'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] hover:from-indigo-600 hover:to-indigo-700 hover:shadow-lg active:scale-[0.98] active:shadow-inner border border-white/10 shadow-md [box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_6px_-1px_rgba(0,0,0,0.3)]';
+    'w-full h-12 px-4 py-2 rounded-md text-base font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] hover:from-indigo-600 hover:to-indigo-700 hover:shadow-lg active:scale-[0.98] active:shadow-inner border border-white/10 shadow-md [box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_6px_-1px_rgba(0,0,0,0.3)]';
 
   const disabledButtonStyle =
     'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed text-slate-500 bg-slate-800 border border-slate-600/40';
@@ -123,11 +123,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
             {/* Multi-layered dramatic glow behind logo */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               {/* Primary amber/yellow glow - matches logo color */}
-              <div className="absolute w-[160%] h-[180%] bg-amber-400/25 blur-[80px] rounded-full" />
+              <div className="absolute w-[160%] h-[180%] bg-amber-400/20 blur-[80px] rounded-full" />
               {/* Secondary indigo glow for depth */}
-              <div className="absolute w-[180%] h-[200%] bg-indigo-500/20 blur-[100px] rounded-full" />
+              <div className="absolute w-[180%] h-[200%] bg-indigo-500/15 blur-[100px] rounded-full" />
               {/* Outer cyan rim for pop */}
-              <div className="absolute w-[200%] h-[220%] bg-cyan-400/12 blur-[120px] rounded-full" />
+              <div className="absolute w-[200%] h-[220%] bg-cyan-400/10 blur-[120px] rounded-full" />
             </div>
             {/* Logo with gradient depth effect using mask */}
             <div className="relative inline-block [filter:drop-shadow(6px_6px_12px_rgba(0,0,0,0.5))]">
@@ -276,14 +276,14 @@ const StartScreen: React.FC<StartScreenProps> = ({
           <button
             aria-label={t('startScreen.languageEnglish', 'English')}
             onClick={() => setLanguage('en')}
-            className={`px-4 h-9 text-xs font-bold transition-all duration-200 ${language === 'en' ? 'bg-amber-400/70 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
+            className={`px-4 h-9 text-xs font-bold transition-all duration-200 ${language === 'en' ? 'bg-gradient-to-b from-indigo-500 to-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
           >
             EN
           </button>
           <button
             aria-label={t('startScreen.languageFinnish', 'Finnish')}
             onClick={() => setLanguage('fi')}
-            className={`px-4 h-9 text-xs font-bold transition-all duration-200 ${language === 'fi' ? 'bg-amber-400/70 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
+            className={`px-4 h-9 text-xs font-bold transition-all duration-200 ${language === 'fi' ? 'bg-gradient-to-b from-indigo-500 to-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
           >
             FI
           </button>
