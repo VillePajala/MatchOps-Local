@@ -598,10 +598,20 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
         <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
           <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">{t('loadGameModal.title', 'Load Game')}</h2>
         </div>
-        <div className="px-6 py-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
+        <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
+          {/* Games Counter Section */}
+          <div className="mb-4 text-center text-sm">
+            <div className="flex justify-center items-center text-slate-300">
+              <span>
+                <span className="text-yellow-400 font-semibold">{filteredGameIds.length}</span>
+                {" "}{t('loadGameModal.gamesCount', 'Games')}
+              </span>
+            </div>
+          </div>
+
           <div className="relative">
-            <input type="text" placeholder={t('loadGameModal.filterPlaceholder', 'Filter by name, date, etc...')} value={searchText} onChange={handleSearchChange} autoComplete="off" className="w-full pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-slate-700" />
-            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <input type="text" placeholder={t('loadGameModal.filterPlaceholder', 'Filter by name, date, etc...')} value={searchText} onChange={handleSearchChange} autoComplete="off" className="w-full pl-10 pr-4 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:bg-slate-700 text-sm" />
+            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <label className="flex items-center gap-2 text-sm text-slate-300">
