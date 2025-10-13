@@ -3379,12 +3379,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           }}
           onStart={handleStartNewGameWithSetup} // CORRECTED Handler
           onCancel={handleCancelNewGameSetup}
-          // Pass the new mutation functions
-          addSeasonMutation={addSeasonMutation}
-          addTournamentMutation={addTournamentMutation}
-          // Pass loading states from mutations
-          isAddingSeason={addSeasonMutation.isPending}
-          isAddingTournament={addTournamentMutation.isPending}
           // Pass fresh data from React Query
           masterRoster={masterRosterQueryResultData || []}
           seasons={seasons}
