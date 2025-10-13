@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: prevent white background on all form inputs in PWA"
+  "notes": "refactor: remove team filter buttons from LoadGameModal"
 }
