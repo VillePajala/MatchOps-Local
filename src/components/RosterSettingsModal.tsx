@@ -239,7 +239,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   const titleStyle = "text-3xl font-bold text-yellow-400 tracking-wide";
   const cardStyle = "bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner";
   const labelStyle = "text-sm font-medium text-slate-300 mb-1";
-  const inputBaseStyle = "block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm text-white";
+  const inputBaseStyle = "block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 focus:bg-slate-700 sm:text-sm text-white";
   const buttonBaseStyle = "px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed";
   const primaryButtonStyle = `${buttonBaseStyle} bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg`;
   const secondaryButtonStyle = `${buttonBaseStyle} bg-gradient-to-b from-slate-600 to-slate-700 text-slate-200 hover:from-slate-700 hover:to-slate-600`;
@@ -309,22 +309,23 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
               <div className={`${cardStyle} mt-4 space-y-3`}>
                 <h3 className="text-lg font-semibold text-slate-200">{t('rosterSettingsModal.addPlayerButton', 'Add Player')}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <input type="text" name="name" placeholder={t('rosterSettingsModal.playerNamePlaceholder', 'Player Name')} value={newPlayerData.name} onChange={handleNewPlayerInputChange} className={inputBaseStyle} />
-                  <input 
-                    type="text" 
-                    name="nickname" 
-                    placeholder={t('rosterSettingsModal.nicknamePlaceholder', 'Nickname (Optional)')} 
-                    value={newPlayerData.nickname} 
-                    onChange={handleNewPlayerInputChange} 
+                  <input type="text" name="name" placeholder={t('rosterSettingsModal.playerNamePlaceholder', 'Player Name')} value={newPlayerData.name} onChange={handleNewPlayerInputChange} autoComplete="off" className={inputBaseStyle} />
+                  <input
+                    type="text"
+                    name="nickname"
+                    placeholder={t('rosterSettingsModal.nicknamePlaceholder', 'Nickname (Optional)')}
+                    value={newPlayerData.nickname}
+                    onChange={handleNewPlayerInputChange}
                     onFocus={(e) => {
                       // Ensure focus stays on this field when user taps/clicks on it
                       e.stopPropagation();
                     }}
-                    className={inputBaseStyle} 
+                    autoComplete="off"
+                    className={inputBaseStyle}
                   />
                 </div>
-                <input type="text" name="jerseyNumber" placeholder={t('rosterSettingsModal.jerseyHeader', '#')} value={newPlayerData.jerseyNumber} onChange={handleNewPlayerInputChange} className={`${inputBaseStyle} w-24 text-center`} maxLength={3} />
-                <textarea name="notes" placeholder={t('rosterSettingsModal.notesPlaceholder', 'Player notes...')} value={newPlayerData.notes} onChange={handleNewPlayerInputChange} className={`${inputBaseStyle} h-20 resize-none`} rows={3} />
+                <input type="text" name="jerseyNumber" placeholder={t('rosterSettingsModal.jerseyHeader', '#')} value={newPlayerData.jerseyNumber} onChange={handleNewPlayerInputChange} autoComplete="off" className={`${inputBaseStyle} w-24 text-center`} maxLength={3} />
+                <textarea name="notes" placeholder={t('rosterSettingsModal.notesPlaceholder', 'Player notes...')} value={newPlayerData.notes} onChange={handleNewPlayerInputChange} autoComplete="off" className={`${inputBaseStyle} h-20 resize-none`} rows={3} />
                 <div className="flex justify-end gap-3 pt-2">
                   <button onClick={handleCancelAddPlayer} className={secondaryButtonStyle} disabled={isRosterUpdating}>{t('common.cancelButton', 'Cancel')}</button>
                   <button onClick={handleAddNewPlayer} className={primaryButtonStyle} disabled={isRosterUpdating}>{t('rosterSettingsModal.confirmAddPlayer', 'Add Player')}</button>
@@ -351,20 +352,20 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <div>
                             <label htmlFor={`name-${player.id}`} className={labelStyle}>{t('rosterSettingsModal.nameHeader', 'Name')}</label>
-                            <input id={`name-${player.id}`} type="text" name="name" value={editPlayerData.name} onChange={handleEditInputChange} className={inputBaseStyle} />
+                            <input id={`name-${player.id}`} type="text" name="name" value={editPlayerData.name} onChange={handleEditInputChange} autoComplete="off" className={inputBaseStyle} />
                           </div>
                           <div>
                             <label htmlFor={`nickname-${player.id}`} className={labelStyle}>{t('rosterSettingsModal.nicknamePlaceholder', 'Nickname')}</label>
-                            <input id={`nickname-${player.id}`} type="text" name="nickname" value={editPlayerData.nickname} onChange={handleEditInputChange} className={inputBaseStyle} placeholder={t('rosterSettingsModal.nicknamePlaceholder', 'Nickname (Optional)')} />
+                            <input id={`nickname-${player.id}`} type="text" name="nickname" value={editPlayerData.nickname} onChange={handleEditInputChange} autoComplete="off" className={inputBaseStyle} placeholder={t('rosterSettingsModal.nicknamePlaceholder', 'Nickname (Optional)')} />
                           </div>
                         </div>
                         <div>
                           <label htmlFor={`jersey-${player.id}`} className={labelStyle}>{t('rosterSettingsModal.jerseyHeader', 'Jersey #')}</label>
-                          <input id={`jersey-${player.id}`} type="text" name="jerseyNumber" value={editPlayerData.jerseyNumber} onChange={handleEditInputChange} className={`${inputBaseStyle} w-24 text-center`} placeholder="#" maxLength={3} />
+                          <input id={`jersey-${player.id}`} type="text" name="jerseyNumber" value={editPlayerData.jerseyNumber} onChange={handleEditInputChange} autoComplete="off" className={`${inputBaseStyle} w-24 text-center`} placeholder="#" maxLength={3} />
                         </div>
                         <div>
                           <label htmlFor={`notes-${player.id}`} className={labelStyle}>{t('rosterSettingsModal.notesPlaceholder', 'Notes')}</label>
-                          <textarea id={`notes-${player.id}`} name="notes" value={editPlayerData.notes} onChange={handleEditInputChange} className={`${inputBaseStyle} h-20 resize-none`} placeholder={t('rosterSettingsModal.notesPlaceholder', 'Player notes...')} rows={3} />
+                          <textarea id={`notes-${player.id}`} name="notes" value={editPlayerData.notes} onChange={handleEditInputChange} autoComplete="off" className={`${inputBaseStyle} h-20 resize-none`} placeholder={t('rosterSettingsModal.notesPlaceholder', 'Player notes...')} rows={3} />
                         </div>
                         <div className="flex justify-end gap-2">
                           <button onClick={handleCancelEdit} className={`${iconButtonBaseStyle} text-slate-400 hover:bg-slate-600`} title={t('common.cancel', 'Cancel')}><HiOutlineXMark className="w-5 h-5" /></button>

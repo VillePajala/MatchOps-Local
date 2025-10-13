@@ -281,7 +281,8 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                     value={newTeamName}
                     onChange={(e) => setNewTeamName(e.target.value)}
                     placeholder={t('teamManager.namePlaceholder', 'Enter team name')}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    autoComplete="off"
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-slate-700"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleCreateTeam();
                       if (e.key === 'Escape') setIsCreatingTeam(false);
@@ -337,7 +338,8 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                           type="text"
                           value={editTeamName}
                           onChange={(e) => setEditTeamName(e.target.value)}
-                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          autoComplete="off"
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-slate-700"
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') handleSaveEdit();
                             if (e.key === 'Escape') handleCancelEdit();
