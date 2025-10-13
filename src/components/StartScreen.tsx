@@ -65,9 +65,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
   const disabledButtonStyle =
     'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed text-slate-500 bg-slate-800 border border-slate-600/40';
 
-  const containerStyle =
-    'relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-950 text-slate-100 font-display overflow-hidden';
-
   /* Commented out - was used for animated text
   const titleStyle =
     'relative text-6xl sm:text-8xl md:text-9xl lg:text-[10rem] font-extrabold tracking-tight leading-[0.9] drop-shadow-lg mb-1.5 text-center px-4';
@@ -108,31 +105,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
   
 
   return (
-    <div className={containerStyle}>
-      {/* 1) Base slate gradient (PlayerBar colors) */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-800 to-slate-900" />
-      {/* 2) Noise texture */}
-      <div className="absolute inset-0 bg-noise-texture opacity-35" />
-      {/* 3) Modal background effects for unified feel */}
-      <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
-      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
-      {/* 4) Animated blue aurora sweep (subtler) */}
-      <div className="absolute inset-0 pointer-events-none animate-gradient [background:linear-gradient(120deg,theme(colors.indigo.900/40),theme(colors.sky.800/35),theme(colors.cyan.800/40),theme(colors.indigo.900/40))] opacity-25" />
-      {/* 5) Subtle grid for texture (dimmed) */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.03] [background-image:linear-gradient(to_right,rgba(255,255,255,.22)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,.22)_1px,transparent_1px)] [background-size:40px_40px]" />
-      {/* 6) Corner lighting - top */}
-      <div className="absolute -inset-[50px] bg-sky-500/5 blur-3xl top-0 left-0 opacity-40" />
-      {/* 7) Corner lighting - bottom */}
-      <div className="absolute -inset-[50px] bg-cyan-600/6 blur-3xl bottom-0 right-0 opacity-35" />
-      {/* 8) Radial accent lights */}
-      <div className="pointer-events-none absolute inset-0 opacity-30 [background:radial-gradient(50%_40%_at_20%_20%,theme(colors.sky.700/20)_0%,transparent_70%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-26 [background:radial-gradient(45%_35%_at_80%_70%,theme(colors.cyan.700/18)_0%,transparent_70%)]" />
-      {/* 9) Vignette for depth */}
-      <div className="absolute inset-0 pointer-events-none [background:radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.3)_100%)]" />
-
-      {/* 9) Stadium light beams */}
-      <div className="stadium-beam" />
-      <div className="stadium-beam alt" />
+    <div className="relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-800 bg-noise-texture text-slate-100 font-display overflow-hidden">
+      {/* Modal-style background effects for unified feel */}
+      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
+      <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
+      <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
+      <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
 
       {/* Safe container with proper bounds */}
       <div className="relative z-10 grid grid-rows-[auto_1fr] gap-y-2 sm:gap-y-3 items-center justify-items-center w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 py-6 sm:py-8 h-[calc(100dvh-2rem)] sm:h-[calc(100dvh-1rem)] min-h-0">
