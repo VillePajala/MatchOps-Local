@@ -6,8 +6,6 @@ import {
   HiOutlineXMark,
   HiOutlineSquares2X2,
   HiOutlinePlusCircle,
-  HiOutlineBackspace,
-  HiOutlineTrash,
   HiOutlineClipboard,
   HiOutlineUsers,
   HiBars3,
@@ -21,6 +19,7 @@ import {
   HiOutlineBookOpen,
   HiOutlineWrench,
 } from 'react-icons/hi2';
+import { FaFutbol } from 'react-icons/fa';
 
 interface InstructionsModalProps {
   isOpen: boolean;
@@ -68,23 +67,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
               <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
                 <li>{t('firstGameGuide.dragToAdjust', 'Drag players by dragging')}</li>
                 <li>{t('firstGameGuide.doubleTapRemove', 'Double-tap to remove a player from the field')}</li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.placeAllTip', 'Place all players at once with:')}</span>
-                  <HiOutlineSquares2X2 aria-hidden className="inline-block align-[-2px] ml-2 text-purple-300" size={18} />
-                </li>
                 <li>{t('firstGameGuide.drawTactics', 'You can draw on the field with your finger')}</li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.addOpponentTip', 'Add opponents with:')}</span>
-                  <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-red-300" size={18} />
-                </li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.clearDrawingsTip', 'Clear drawings with:')}</span>
-                  <HiOutlineBackspace aria-hidden className="inline-block align-[-2px] ml-2 text-amber-300" size={18} />
-                </li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.resetFieldTip', 'Reset field with:')}</span>
-                  <HiOutlineTrash aria-hidden className="inline-block align-[-2px] ml-2 text-red-400" size={18} />
-                </li>
               </ul>
             </div>
           </section>
@@ -106,14 +89,6 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
                   <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-red-300" size={18} />
                 </li>
                 <li>{t('firstGameGuide.drawLinesTip', 'Draw lines on the field with your finger')}</li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.clearDrawingsTip', 'Clear drawings with:')}</span>
-                  <HiOutlineBackspace aria-hidden className="inline-block align-[-2px] ml-2 text-amber-300" size={18} />
-                </li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.resetFieldTip', 'Reset field with:')}</span>
-                  <HiOutlineTrash aria-hidden className="inline-block align-[-2px] ml-2 text-red-400" size={18} />
-                </li>
               </ul>
             </div>
           </section>
@@ -127,14 +102,16 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
                   <HiOutlineWrench aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
                 </li>
                 <li>
+                  <span className="text-slate-200">{t('firstGameGuide.placeAllTip', 'Place all players at once with:')}</span>
+                  <HiOutlineSquares2X2 aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
+                </li>
+                <li>
                   <span className="text-slate-200">{t('firstGameGuide.timerOverlayTip', 'Show/hide large timer:')}</span>
                   <span className="inline-block align-[-2px] ml-2 text-green-400 font-bold text-sm">00:00</span>
                 </li>
                 <li>
                   <span className="text-slate-200">{t('firstGameGuide.logGoalTip', 'Log a goal:')}</span>
-                  <span className="inline-block align-[-2px] ml-2 text-blue-300">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
-                  </span>
+                  <FaFutbol aria-hidden className="inline-block align-[-2px] ml-2 text-blue-300" size={16} />
                 </li>
                 <li>
                   <span className="text-slate-200">{t('firstGameGuide.menuTip', 'Open the menu for more:')}</span>
