@@ -373,7 +373,11 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                     ) : (
                       <div className="flex items-center gap-3">
                         <div className="flex-grow flex items-center gap-2 truncate">
-                          <span className="text-base text-slate-100 truncate" title={player.name}>
+                          <span
+                            className="text-base text-slate-100 truncate cursor-pointer hover:text-yellow-400"
+                            title={player.name}
+                            onClick={() => onOpenPlayerStats(player.id)}
+                          >
                             {player.name}{player.nickname ? <span className="text-slate-400"> ({player.nickname})</span> : ''}
                           </span>
                         </div>
