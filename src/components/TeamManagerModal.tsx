@@ -17,6 +17,7 @@ import {
   updateTeam,
   deleteTeam,
   countGamesForTeam,
+  getAllTeamRosters,
 } from '@/utils/teams';
 import logger from '@/utils/logger';
 
@@ -47,6 +48,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   const [actionsMenuTeamId, setActionsMenuTeamId] = useState<string | null>(null);
   const [deleteConfirmTeamId, setDeleteConfirmTeamId] = useState<string | null>(null);
   const [deleteTeamGamesCount, setDeleteTeamGamesCount] = useState<number>(0);
+  const [rosterCounts, setRosterCounts] = useState<Record<string, number>>({});
 
   // Refs
   const actionsMenuRef = useRef<HTMLDivElement>(null);
@@ -119,6 +121,25 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       setNewTeamName('');
     }
   }, [isOpen]);
+
+  // Load roster counts when modal opens or teams change
+  useEffect(() => {
+    const loadRosterCounts = async () => {
+      if (!isOpen) return;
+      try {
+        const rostersIndex = await getAllTeamRosters();
+        const counts: Record<string, number> = {};
+        teams.forEach(team => {
+          counts[team.id] = rostersIndex[team.id]?.length || 0;
+        });
+        setRosterCounts(counts);
+      } catch (err) {
+        logger.warn('[TeamManager] Failed to load roster counts', err);
+        setRosterCounts({});
+      }
+    };
+    loadRosterCounts();
+  }, [isOpen, teams]);
 
   // Focus input when creating/editing
   useEffect(() => {
@@ -269,7 +290,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
         <div className="flex-1 overflow-y-auto min-h-0 p-6">
           {/* Create New Team Form */}
           {isCreatingTeam && (
-            <div className="mb-6 bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+            <div className="mb-6 bg-slate-700/50 rounded-lg p-4 border border-slate-600 -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <div className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">
@@ -318,7 +339,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               </p>
             </div>
           ) : (
-            <div className="bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner">
+            <div className="bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <div className="space-y-3">
                 {teams.map((team) => (
                   <div
@@ -369,9 +390,19 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                         onClick={() => onManageRoster && onManageRoster(team.id)}
                         title={t('teamManager.roster', 'Roster')}
                       >
-                        <span className="text-slate-200">
-                          {team.name}
-                        </span>
+                        <div>
+                          <div className="text-slate-200">{team.name}</div>
+                          <div className="text-xs text-slate-400">
+                            {rosterCounts[team.id] === 1
+                              ? t('teamManager.onePlayer', '1 player')
+                              : t('teamManager.playersCount', '{{count}} players', { count: rosterCounts[team.id] || 0 })
+                            }
+                            {" "}•{" "}
+                            {t('teamManager.createdAt', 'Created {{date}}', {
+                              date: new Date(team.createdAt).toLocaleDateString()
+                            })}
+                          </div>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2">
