@@ -90,48 +90,48 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
           {sections.map((section) => {
             const isExpanded = expandedSection === section.key;
             return (
-              <div key={section.key} className="bg-slate-900/70 border border-slate-700 rounded-lg overflow-hidden">
+              <div key={section.key} className="bg-slate-900/60 rounded-lg border border-slate-700 shadow-inner overflow-hidden">
                 <button
                   onClick={() => toggleSection(section.key)}
-                  className="w-full flex justify-between items-center p-3 text-left bg-slate-800/50 hover:bg-slate-700/80 transition-colors"
+                  className="w-full flex justify-between items-center p-4 text-left bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 transition-all"
                   aria-expanded={isExpanded}
                 >
                   <span className="font-semibold text-lg text-slate-100">{t(section.titleKey)}</span>
                   {isExpanded ? <HiOutlineChevronUp className="w-5 h-5 text-slate-400"/> : <HiOutlineChevronDown className="w-5 h-5 text-slate-400"/>}
                 </button>
-                
+
                 {isExpanded && (
-                  <div className="p-4 text-sm sm:text-base border-t border-slate-700">
+                  <div className="p-6 text-sm sm:text-base">
                     {section.key === 'warmup' && (
                         <div className="space-y-6">
-                        <h3 className="text-xl font-semibold text-yellow-300">{t('warmup.title')}</h3>
-                        <section>
-                          <h4 className="text-lg font-bold mb-2 text-yellow-200">{t('warmup.section1Title')}</h4>
-                          <ul className="list-disc list-inside space-y-1.5 pl-2">{renderListItems(t('warmup.section1Points', { returnObjects: true }) as ListItem[], 's1')}</ul>
+                        <h3 className="text-xl font-semibold text-slate-200 mb-2">{t('warmup.title')}</h3>
+                        <section className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 p-4 rounded-lg">
+                          <h4 className="text-lg font-bold mb-2 text-slate-200">{t('warmup.section1Title')}</h4>
+                          <ul className="list-disc list-inside space-y-1.5 pl-2 text-slate-300">{renderListItems(t('warmup.section1Points', { returnObjects: true }) as ListItem[], 's1')}</ul>
                         </section>
-                        <section>
-                            <h4 className="text-lg font-bold mb-2 text-yellow-200">{t('warmup.section2Title')}</h4>
-                          <ul className="list-disc list-inside space-y-1.5 pl-2">{renderListItems(t('warmup.section2Activities', { returnObjects: true }) as ListItem[], 's2')}</ul>
+                        <section className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 p-4 rounded-lg">
+                            <h4 className="text-lg font-bold mb-2 text-slate-200">{t('warmup.section2Title')}</h4>
+                          <ul className="list-disc list-inside space-y-1.5 pl-2 text-slate-300">{renderListItems(t('warmup.section2Activities', { returnObjects: true }) as ListItem[], 's2')}</ul>
                           </section>
-                          <section>
-                            <h4 className="text-lg font-bold mb-2 text-yellow-200">{t('warmup.section3Title')}</h4>
-                          <ul className="list-disc list-inside space-y-1.5 pl-2">{renderListItems(t('warmup.section3PairWorkPoints', { returnObjects: true }) as ListItem[], 's3')}</ul>
+                          <section className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 p-4 rounded-lg">
+                            <h4 className="text-lg font-bold mb-2 text-slate-200">{t('warmup.section3Title')}</h4>
+                          <ul className="list-disc list-inside space-y-1.5 pl-2 text-slate-300">{renderListItems(t('warmup.section3PairWorkPoints', { returnObjects: true }) as ListItem[], 's3')}</ul>
                           </section>
-                          <section>
-                            <h4 className="text-lg font-bold mb-2 text-yellow-200">{t('warmup.section3GoalieWarmup')}</h4>
-                          <ul className="list-disc list-inside space-y-1.5 pl-2">{renderListItems(t('warmup.section3GoalieWarmupPoints', { returnObjects: true }) as ListItem[], 's4')}</ul>
+                          <section className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 p-4 rounded-lg">
+                            <h4 className="text-lg font-bold mb-2 text-slate-200">{t('warmup.section3GoalieWarmup')}</h4>
+                          <ul className="list-disc list-inside space-y-1.5 pl-2 text-slate-300">{renderListItems(t('warmup.section3GoalieWarmupPoints', { returnObjects: true }) as ListItem[], 's4')}</ul>
                           </section>
-                          <section>
-                            <h4 className="text-lg font-bold mb-2 text-yellow-200">{t('warmup.section3CombinedGoalieWarmup')}</h4>
-                          <ul className="list-disc list-inside space-y-1.5 pl-2">{renderListItems(t('warmup.section3CombinedGoalieWarmupPoints', { returnObjects: true }) as ListItem[], 'dg')}</ul>
+                          <section className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 p-4 rounded-lg">
+                            <h4 className="text-lg font-bold mb-2 text-slate-200">{t('warmup.section3CombinedGoalieWarmup')}</h4>
+                          <ul className="list-disc list-inside space-y-1.5 pl-2 text-slate-300">{renderListItems(t('warmup.section3CombinedGoalieWarmupPoints', { returnObjects: true }) as ListItem[], 'dg')}</ul>
                           </section>
-                          <section>
-                            <h4 className="text-lg font-bold mb-2 text-yellow-200">{t('warmup.section4Title')}</h4>
-                          <ul className="list-disc list-inside space-y-1.5 pl-2">{renderListItems(t('warmup.section4Points', { returnObjects: true }) as ListItem[], 's5')}</ul>
+                          <section className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 p-4 rounded-lg">
+                            <h4 className="text-lg font-bold mb-2 text-slate-200">{t('warmup.section4Title')}</h4>
+                          <ul className="list-disc list-inside space-y-1.5 pl-2 text-slate-300">{renderListItems(t('warmup.section4Points', { returnObjects: true }) as ListItem[], 's5')}</ul>
                           </section>
-                          <section>
-                            <h4 className="text-lg font-bold mb-2 text-yellow-200">{t('warmup.duringGameTitle')}</h4>
-                          <ul className="list-disc list-inside space-y-1.5 pl-2">{renderListItems(t('warmup.duringGamePoints', { returnObjects: true }) as ListItem[], 's6')}</ul>
+                          <section className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 p-4 rounded-lg">
+                            <h4 className="text-lg font-bold mb-2 text-slate-200">{t('warmup.duringGameTitle')}</h4>
+                          <ul className="list-disc list-inside space-y-1.5 pl-2 text-slate-300">{renderListItems(t('warmup.duringGamePoints', { returnObjects: true }) as ListItem[], 's6')}</ul>
                           </section>
                         </div>
                     )}
@@ -139,7 +139,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
                 )}
               </div>
             );
-          })} 
+          })}
         </div>
 
           {/* Footer */}

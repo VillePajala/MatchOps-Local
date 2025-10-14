@@ -29,6 +29,7 @@ interface TeamPerformanceCardProps {
   averageGoalsAgainst: number;
   teamAssessmentAverages?: TeamAssessmentAverages | null;
   lastGameDate?: string;
+  useGradient?: boolean;
 }
 
 export function TeamPerformanceCard({
@@ -45,11 +46,16 @@ export function TeamPerformanceCard({
   averageGoalsAgainst,
   teamAssessmentAverages,
   lastGameDate,
+  useGradient = false,
 }: TeamPerformanceCardProps) {
   const { t } = useTranslation();
 
+  const cardClassName = useGradient
+    ? "bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all"
+    : "bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner";
+
   return (
-    <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+    <div className={cardClassName}>
       <h3 className="text-xl font-semibold text-slate-200 mb-4">{title}</h3>
       <div className="space-y-0 text-sm">
         <div className="flex justify-between items-center py-1.5 px-2 border-b border-slate-700/50">

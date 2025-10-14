@@ -888,7 +888,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               <h4 className="text-md font-semibold text-slate-200 mb-2">{t('playerStats.seasonPerformance', 'Season Performance')}</h4>
               <div className="space-y-2">
                 {Object.entries(playerStats.performanceBySeason).map(([id, stats]) => (
-                  <div key={id} className="p-2 bg-slate-700/50 rounded-md">
+                  <div key={id} className="p-2 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 rounded-md transition-all">
                     <p className="font-semibold text-slate-100 mb-1">{stats.name}</p>
                     <div className="grid grid-cols-5 gap-2 text-center text-sm">
                       <div><p className="font-bold text-yellow-400">{stats.gamesPlayed}</p><p className="text-xs text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
@@ -907,7 +907,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               <h4 className="text-md font-semibold text-slate-200 mb-2">{t('playerStats.tournamentPerformance', 'Tournament Performance')}</h4>
               <div className="space-y-2">
                 {Object.entries(playerStats.performanceByTournament).map(([id, stats]) => (
-                  <div key={id} className="p-2 bg-slate-700/50 rounded-md">
+                  <div key={id} className="p-2 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 rounded-md transition-all">
                     <p className="font-semibold text-slate-100 mb-1 flex items-center gap-2">
                       {stats.name}
                       {stats.isTournamentWinner && (
@@ -937,10 +937,9 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               playerStats.gameByGameStats.map(game => (
                 <button
                   key={game.gameId}
-                  className="relative w-full bg-slate-800/40 border border-slate-700/50 p-4 rounded-md flex justify-between items-center text-left hover:bg-slate-800/60 transition-colors shadow-inner"
+                  className="relative w-full bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 border border-slate-700/50 p-4 rounded-md flex justify-between items-center text-left transition-all shadow-inner"
                   onClick={() => onGameClick(game.gameId)}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none rounded-md" />
                   <span className={`absolute inset-y-0 left-0 w-1 rounded-l-md ${getResultClass(game.result)}`}></span>
                   <div className="flex items-center pl-2">
                     <div>

@@ -565,6 +565,7 @@
     "hourPlaceholder": "HH",
     "minutePlaceholder": "MM",
     "gameTypeLabel": "Game Type",
+    "playersSelectedCounter": "Players Selected",
     "seasonLabel": "Season",
     "selectSeason": "-- Select Season --",
     "cancelCreate": "Cancel creation",
@@ -577,7 +578,7 @@
     "createTournament": "Create new tournament",
     "newTournamentPlaceholder": "Enter new tournament name...",
     "levelLabel": "Level",
-    "periodsLabel": "Game Settings",
+    "periodsLabel": "Periods",
     "numPeriodsLabel": "Number of Periods",
     "periodDurationLabel": "Period Duration (minutes)",
     "demandFactorLabel": "Game Demand Level",
@@ -593,7 +594,12 @@
     "emptyTeamRosterTitle": "Empty Team Roster",
     "manageRoster": "Manage Roster",
     "continueWithoutPlayers": "Continue Without Players",
-    "gameTeamsLabel": "Game Teams"
+    "gameTeamsLabel": "Game Teams",
+    "gameInformationLabel": "Game Information",
+    "teamsAndRosterLabel": "Teams & Roster",
+    "gameDetailsLabel": "Game Details",
+    "gameRulesLabel": "Game Rules",
+    "gameConfigLabel": "Game Configuration"
   },
   "gameSettingsModal": {
     "unknownPlayer": "Unknown Player",
@@ -675,7 +681,11 @@
     "noGoalsLogged": "No goals logged yet.",
     "notesTitle": "Game Notes",
     "notesPlaceholder": "Write notes...",
-    "noNotes": "No notes yet. Click to add."
+    "noNotes": "No notes yet. Click to add.",
+    "teamsAndRosterLabel": "Teams & Roster",
+    "gameDetailsLabel": "Game Details",
+    "gameRulesLabel": "Game Rules",
+    "gameConfigLabel": "Game Configuration"
   },
   "startScreen": {
     "tagline": "Plan | Track | Assess",

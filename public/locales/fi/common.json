@@ -589,6 +589,7 @@
     "hourPlaceholder": "HH",
     "minutePlaceholder": "MM",
     "gameTypeLabel": "Pelityyppi",
+    "playersSelectedCounter": "Pelaajaa Valittu",
     "seasonLabel": "Kausi",
     "selectSeason": "-- Valitse kausi --",
     "cancelCreate": "Peru luonti",
@@ -601,7 +602,7 @@
     "createTournament": "Luo uusi turnaus",
     "newTournamentPlaceholder": "Syötä uuden turnauksen nimi...",
     "levelLabel": "Taso",
-    "periodsLabel": "Peliasetukset",
+    "periodsLabel": "Erät",
     "numPeriodsLabel": "Jaksojen määrä",
     "periodDurationLabel": "Jakson kesto (minuuteissa)",
     "demandFactorLabel": "Pelin vaativuustaso",
@@ -614,7 +615,12 @@
     "teamSelectedNote": "Pelaajat ladataan valitusta joukkueesta.",
     "masterRosterNote": "Käytössä pääkokoonpano – kaikki pelaajat käytettävissä.",
     "emptyTeamRosterPrompt": "Valitussa joukkueessa ei ole pelaajia. Haluatko hallita kokoonpanoa nyt?",
-    "gameTeamsLabel": "Pelin joukkueet"
+    "gameTeamsLabel": "Pelin joukkueet",
+    "gameInformationLabel": "Pelin tiedot",
+    "teamsAndRosterLabel": "Joukkueet ja kokoonpano",
+    "gameDetailsLabel": "Pelin yksityiskohdat",
+    "gameRulesLabel": "Pelisäännöt",
+    "gameConfigLabel": "Pelin asetukset"
   },
   "startScreen": {
     "tagline": "Suunnittele · Kirjaa · Arvioi",
@@ -913,7 +919,11 @@
     "noGoalsLogged": "Yhtään maalia ei ole kirjattu.",
     "notesTitle": "Pelin muistiinpanot",
     "notesPlaceholder": "Kirjoita muistiinpanoja...",
-    "noNotes": "Ei muistiinpanoja. Klikkaa lisätäksesi."
+    "noNotes": "Ei muistiinpanoja. Klikkaa lisätäksesi.",
+    "teamsAndRosterLabel": "Joukkueet ja kokoonpano",
+    "gameDetailsLabel": "Pelin yksityiskohdat",
+    "gameRulesLabel": "Pelisäännöt",
+    "gameConfigLabel": "Pelin asetukset"
   },
   "matchPreparation": {
     "duringGame": {
