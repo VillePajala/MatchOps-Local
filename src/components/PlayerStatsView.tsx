@@ -211,7 +211,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         </div>
 
         {/* Summary Stats */}
-        <div className="bg-slate-800/60 rounded-lg p-4 mb-3">
+        <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 rounded-lg p-4 mb-3 shadow-inner transition-all">
           {/* Primary Stats Row with Averages */}
           <div className="grid grid-cols-4 gap-3 sm:gap-4 text-center">
             <div>

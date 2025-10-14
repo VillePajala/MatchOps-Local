@@ -659,7 +659,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                                 averageGoalsFor={stats.averageGoalsFor}
                                 averageGoalsAgainst={stats.averageGoalsAgainst}
                                 lastGameDate={stats.lastGameDate ? formatDisplayDate(stats.lastGameDate) : undefined}
-                                useGradient={true}
+                                useGradient={false}
                               />
                             </div>
                           ))

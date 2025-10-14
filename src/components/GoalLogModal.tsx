@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Player } from '@/types';
-import { FaEdit, FaTrashAlt } from 'react-icons/fa';
+import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { updateGameEvent, removeGameEvent } from '@/utils/savedGames';
 import logger from '@/utils/logger';
 import { TFunction } from 'i18next';
@@ -94,6 +94,8 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   // Confirmation modal state
   const [showDeleteEventConfirm, setShowDeleteEventConfirm] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
+  const [eventActionsMenuId, setEventActionsMenuId] = useState<string | null>(null);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
 
   // Format time MM:SS
   const formatTime = (timeInSeconds: number): string => {
@@ -112,6 +114,18 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
       </option>
     ));
   }, [availablePlayers]);
+
+  // Close actions menu when clicking outside
+  useEffect(() => {
+    if (!eventActionsMenuId) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
+        setEventActionsMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [eventActionsMenuId]);
 
   const handleLogOwnGoalClick = () => {
     if (scorerId) {
@@ -314,18 +328,21 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
             </h2>
           </div>
 
+          {/* Fixed Counter Section (timer as header counter) */}
+          <div className="px-6 pt-1 pb-2 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
+            <div className="mb-1 text-center text-sm">
+              <div className="flex justify-center items-center text-slate-300">
+                <span className="text-yellow-400 font-semibold">{formatTime(currentTime)}</span>
+              </div>
+            </div>
+          </div>
+
           {/* Scrollable Content - Split View Layout */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4">
             <div className="flex flex-col md:flex-row gap-4 h-full">
               {/* Left: Goal Logging Form (40% on desktop) */}
               <div className="md:w-2/5 space-y-4">
-                <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                  {/* Current Time Display */}
-                  <div className="text-center text-lg mb-4">
-                    <span className="text-slate-300">{t('goalLogModal.timeLabel', 'Time')}: </span>
-                    <span className="font-semibold text-yellow-400 font-mono text-xl">{formatTime(currentTime)}</span>
-                  </div>
-
+                <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:mx-0 -mt-2 sm:-mt-4 md:mt-0">
                   {/* Goal Form */}
                   <div className="space-y-4">
                     <div>
@@ -391,7 +408,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
 
               {/* Right: Event Log (60% on desktop) */}
               <div className="md:w-3/5 space-y-4">
-                <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+                <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:mx-0 -mt-2 sm:-mt-4 md:mt-0">
                   <h3 className="text-lg font-semibold text-slate-200 mb-4">
                     {t('gameSettingsModal.eventLogTitle', 'Event Log')}
                   </h3>
@@ -411,7 +428,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                         className={`p-3 rounded-md border ${
                           editingGoalId === event.id
                             ? 'bg-slate-700/75 border-indigo-500'
-                            : 'bg-slate-800/40 border-slate-700/50'
+                            : 'bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 border-transparent'
                         }`}
                       >
                         {editingGoalId === event.id ? (
@@ -485,23 +502,36 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                                 {getEventDescription(event, availablePlayers, t)}
                               </span>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="relative" ref={eventActionsMenuId === event.id ? actionsMenuRef : null}>
                               <button
-                                onClick={() => handleEditGoal(event)}
-                                className="p-1.5 rounded-md text-slate-400 hover:text-indigo-400 transition-colors"
-                                title={t('common.edit', 'Edit')}
+                                onClick={() => setEventActionsMenuId(eventActionsMenuId === event.id ? null : event.id)}
+                                className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-600 transition-colors"
+                                aria-label={t('gameSettingsModal.eventActions', 'Event actions')}
                                 disabled={isProcessing}
                               >
-                                <FaEdit className="w-5 h-5" />
+                                <HiOutlineEllipsisVertical className="w-5 h-5" />
                               </button>
-                              <button
-                                onClick={() => handleDeleteGoal(event.id)}
-                                className="p-1.5 rounded-md text-slate-400 hover:text-red-500 transition-colors"
-                                title={t('common.delete', 'Delete')}
-                                disabled={isProcessing}
-                              >
-                                <FaTrashAlt className="w-5 h-5" />
-                              </button>
+
+                              {eventActionsMenuId === event.id && (
+                                <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
+                                  <button
+                                    onClick={() => { setEventActionsMenuId(null); handleEditGoal(event); }}
+                                    className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"
+                                    disabled={isProcessing}
+                                  >
+                                    <HiOutlinePencil className="w-4 h-4" />
+                                    {t('common.edit', 'Edit')}
+                                  </button>
+                                  <button
+                                    onClick={() => { setEventActionsMenuId(null); handleDeleteGoal(event.id); }}
+                                    className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 last:rounded-b-md transition-colors"
+                                    disabled={isProcessing}
+                                  >
+                                    <HiOutlineTrash className="w-4 h-4" />
+                                    {t('common.delete', 'Delete')}
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}

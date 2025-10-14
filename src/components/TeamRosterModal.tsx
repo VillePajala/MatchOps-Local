@@ -135,7 +135,7 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
 
           {/* Select from Master Roster */}
           {isSelectingFromMaster && (
-            <div className="space-y-4">
+            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <PlayerSelectionSection
                 availablePlayers={masterRoster}
                 selectedPlayerIds={selectedPlayerIds}
@@ -173,7 +173,7 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
 
           {/* Current Team Roster */}
           {!isSelectingFromMaster && (
-            <div className="bg-slate-900/70 rounded-lg border border-slate-700 shadow-inner p-4">
+            <div className="bg-slate-900/70 rounded-lg border border-slate-700 shadow-inner p-4 -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               {isLoadingRoster ? (
                 <div className="text-center py-8 text-slate-400">
                   <div className="flex items-center justify-center space-x-2">

@@ -339,7 +339,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               </p>
             </div>
           ) : (
-            <div className="bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <div className="space-y-3">
                 {teams.map((team) => (
                   <div

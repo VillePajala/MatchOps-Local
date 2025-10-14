@@ -237,7 +237,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   // --- Style Guide Definitions ---
   const modalContainerStyle = "bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden";
   const titleStyle = "text-3xl font-bold text-yellow-400 tracking-wide";
-  const cardStyle = "bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner";
+  const cardStyle = "bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner";
   const labelStyle = "text-sm font-medium text-slate-300 mb-1";
   const inputBaseStyle = "block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 focus:bg-slate-700 sm:text-sm text-white";
   const buttonBaseStyle = "px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed";

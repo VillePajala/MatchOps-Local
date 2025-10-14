@@ -90,7 +90,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
           {sections.map((section) => {
             const isExpanded = expandedSection === section.key;
             return (
-              <div key={section.key} className="bg-slate-900/60 rounded-lg border border-slate-700 shadow-inner overflow-hidden">
+              <div key={section.key} className="bg-slate-900/60 rounded-lg border border-slate-700 shadow-inner overflow-hidden -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
                 <button
                   onClick={() => toggleSection(section.key)}
                   className="w-full flex justify-between items-center p-4 text-left bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 transition-all"
@@ -129,7 +129,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
                             <h4 className="text-lg font-bold mb-2 text-slate-200">{t('warmup.section4Title')}</h4>
                           <ul className="list-disc list-inside space-y-1.5 pl-2 text-slate-300">{renderListItems(t('warmup.section4Points', { returnObjects: true }) as ListItem[], 's5')}</ul>
                           </section>
-                          <section className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 p-4 rounded-lg">
+                          <section className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg border border-slate-700/50 transition-all">
                             <h4 className="text-lg font-bold mb-2 text-slate-200">{t('warmup.duringGameTitle')}</h4>
                           <ul className="list-disc list-inside space-y-1.5 pl-2 text-slate-300">{renderListItems(t('warmup.duringGamePoints', { returnObjects: true }) as ListItem[], 's6')}</ul>
                           </section>

@@ -443,7 +443,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
             {/* CARD 1: Teams & Roster */}
-            <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6">
+            <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
                 {t('newGameSetupModal.teamsAndRosterLabel', 'Teams & Roster')}
               </h3>
@@ -510,7 +510,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
             </div>
 
             {/* CARD 2: Game Details */}
-            <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6">
+            <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
                 {t('newGameSetupModal.gameDetailsLabel', 'Game Details')}
               </h3>
@@ -746,7 +746,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
             </div>
 
             {/* CARD 3: Pelin asetukset (Game Configuration) */}
-            <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6">
+            <div className="space-y-4 bg-gradient-to-br from-slate-900/60 to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
                 {t('newGameSetupModal.gameConfigLabel', 'Pelin asetukset')}
               </h3>
