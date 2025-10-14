@@ -425,70 +425,102 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
             </h2>
           </div>
 
-          {/* Fixed Controls Section - Team Selection */}
-          <div className="px-6 pt-3 pb-4 backdrop-blur-sm bg-slate-900/20">
-            <div className="mb-4">
-              <label htmlFor="teamSelectTop" className="block text-sm font-medium text-slate-300 mb-1">
-                {t('newGameSetupModal.selectTeamLabel', 'Select Team')}
-              </label>
-              <select
-                id="teamSelectTop"
-                value={selectedTeamId || ''}
-                onChange={(e) => handleTeamSelection(e.target.value || null)}
-                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-              >
-                <option value="">
-                  {t('newGameSetupModal.noTeamMasterRoster', 'No Team (Use Master Roster)')}
-                </option>
-                {teams.filter(team => !team.archived).map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-              {selectedTeamId && (
-                <p className="mt-1 text-xs text-slate-400">
-                  {t('newGameSetupModal.teamSelectedNote', 'Player roster will be loaded from selected team.')}
-                </p>
-              )}
-              {!selectedTeamId && (
-                <p className="mt-1 text-xs text-slate-400">
-                  {t('newGameSetupModal.masterRosterNote', 'Using master roster - all players available.')}
-                </p>
-              )}
+          {/* Fixed Section (Player Counter) */}
+          <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
+            {/* Player Counter */}
+            <div className="mb-5 text-center text-sm">
+              <div className="flex justify-center items-center text-slate-300">
+                <span>
+                  <span className="text-yellow-400 font-semibold">{selectedPlayerIds.length}</span>
+                  {" / "}
+                  <span className="text-yellow-400 font-semibold">{availablePlayersForSetup.length}</span>
+                  {" "}{t('newGameSetupModal.playersSelectedCounter', 'Players Selected')}
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Scrollable Content Area */}
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
-            {/* Team & Opponent Names Section */}
-                    <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                      <h3 className="text-lg font-semibold text-slate-200 mb-3">
-                        {t('newGameSetupModal.gameTeamsLabel', 'Game Teams')}
-                      </h3>
-                      <TeamOpponentInputs
-                        teamName={homeTeamName}
-                        opponentName={opponentName}
-                        onTeamNameChange={handleTeamNameChange}
-                        onOpponentNameChange={setOpponentName}
-                        teamLabel={t('newGameSetupModal.homeTeamName', 'Your Team Name') + ' *'}
-                        teamPlaceholder={t('newGameSetupModal.homeTeamPlaceholder', 'e.g., Galaxy U10')}
-                        opponentLabel={t('newGameSetupModal.opponentNameLabel', 'Opponent Name') + ' *'}
-                        opponentPlaceholder={t('newGameSetupModal.opponentPlaceholder', 'Enter opponent name')}
-                        teamInputRef={homeTeamInputRef}
-                        opponentInputRef={opponentInputRef}
-                        onKeyDown={handleKeyDown}
-                      />
-                    </div>
+            {/* CARD 1: Teams & Roster */}
+            <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all">
+              <h3 className="text-lg font-semibold text-slate-200 mb-3">
+                {t('newGameSetupModal.teamsAndRosterLabel', 'Teams & Roster')}
+              </h3>
 
-                    {/* Season & Tournament Section */}
-                    <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                      <h3 className="text-lg font-semibold text-slate-200 mb-3">
-                        {t('newGameSetupModal.gameTypeLabel', 'Game Type')}
-                      </h3>
+              {/* Team Selection */}
+              <div className="mb-4">
+                <label htmlFor="teamSelectTop" className="block text-sm font-medium text-slate-300 mb-1">
+                  {t('newGameSetupModal.selectTeamLabel', 'Select Team')}
+                </label>
+                <select
+                  id="teamSelectTop"
+                  value={selectedTeamId || ''}
+                  onChange={(e) => handleTeamSelection(e.target.value || null)}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                >
+                  <option value="">
+                    {t('newGameSetupModal.noTeamMasterRoster', 'No Team (Use Master Roster)')}
+                  </option>
+                  {teams.filter(team => !team.archived).map((team) => (
+                    <option key={team.id} value={team.id}>
+                      {team.name}
+                    </option>
+                  ))}
+                </select>
+                {selectedTeamId && (
+                  <p className="mt-1 text-xs text-slate-400">
+                    {t('newGameSetupModal.teamSelectedNote', 'Player roster will be loaded from selected team.')}
+                  </p>
+                )}
+                {!selectedTeamId && (
+                  <p className="mt-1 text-xs text-slate-400">
+                    {t('newGameSetupModal.masterRosterNote', 'Using master roster - all players available.')}
+                  </p>
+                )}
+              </div>
 
-                      {/* Tabs */}
-                      <div className="flex gap-2 mb-4">
+              {/* Team & Opponent Names */}
+              <div className="mb-4">
+                <TeamOpponentInputs
+                  teamName={homeTeamName}
+                  opponentName={opponentName}
+                  onTeamNameChange={handleTeamNameChange}
+                  onOpponentNameChange={setOpponentName}
+                  teamLabel={t('newGameSetupModal.homeTeamName', 'Your Team Name') + ' *'}
+                  teamPlaceholder={t('newGameSetupModal.homeTeamPlaceholder', 'e.g., Galaxy U10')}
+                  opponentLabel={t('newGameSetupModal.opponentNameLabel', 'Opponent Name') + ' *'}
+                  opponentPlaceholder={t('newGameSetupModal.opponentPlaceholder', 'Enter opponent name')}
+                  teamInputRef={homeTeamInputRef}
+                  opponentInputRef={opponentInputRef}
+                  onKeyDown={handleKeyDown}
+                />
+              </div>
+
+              {/* Player Selection */}
+              <PlayerSelectionSection
+                availablePlayers={availablePlayersForSetup}
+                selectedPlayerIds={selectedPlayerIds}
+                onSelectedPlayersChange={setSelectedPlayerIds}
+                title={t('newGameSetupModal.selectPlayers', 'Select Players')}
+                playersSelectedText={t('newGameSetupModal.playersSelected', 'selected')}
+                selectAllText={t('newGameSetupModal.selectAll', 'Select All')}
+                noPlayersText={t('newGameSetupModal.noPlayersInRoster', 'No players in roster. Add players in Roster Settings.')}
+              />
+            </div>
+
+            {/* CARD 2: Game Details */}
+            <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all">
+              <h3 className="text-lg font-semibold text-slate-200 mb-3">
+                {t('newGameSetupModal.gameDetailsLabel', 'Game Details')}
+              </h3>
+
+              {/* Game Type Tabs */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  {t('newGameSetupModal.gameTypeLabel', 'Game Type')}
+                </label>
+                <div className="flex gap-2">
                         <button
                           onClick={() => handleTabChange('none')}
                           className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -519,7 +551,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                         >
                           {t('gameSettingsModal.turnaus', 'Tournament')}
                         </button>
-                      </div>
+                </div>
+              </div>
 
                       {/* Season Selection */}
                       {activeTab === 'season' && (
@@ -580,226 +613,214 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           )}
                         </div>
                       )}
-                    </div>
 
-                    {/* Age Group */}
-                    <div className="mb-4">
-                      <label htmlFor="ageGroupSelect" className="block text-sm font-medium text-slate-300 mb-1">
-                        {t('newGameSetupModal.ageGroupLabel', 'Age Group (Optional)')}
-                      </label>
-                      <select
-                        id="ageGroupSelect"
-                        value={ageGroup}
-                        onChange={(e) => setAgeGroup(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                        
-                      >
-                        <option value="">{t('common.none', 'None')}</option>
-                        {AGE_GROUPS.map((group) => (
-                          <option key={group} value={group}>
-                            {group}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-
-                    {/* Game Date */}
-                    <div className="mb-6">
-                      <label htmlFor="gameDateInput" className="block text-sm font-medium text-slate-300 mb-2">
-                        {t('newGameSetupModal.gameDateLabel', 'Game Date')}
-                      </label>
-                      <input
-                        type="date"
-                        id="gameDateInput"
-                        name="gameDate"
-                        value={gameDate}
-                        onChange={(e) => setGameDate(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                        autoComplete="off"
-                        
-                      />
-                    </div>
-
-                    {/* Game Location */}
-                    <div className="mb-4">
-                      <label htmlFor="gameLocationInput" className="block text-sm font-medium text-slate-300 mb-1">
-                        {t('newGameSetupModal.gameLocationLabel', 'Location (Optional)')}
-                      </label>
-                      <input
-                        type="text"
-                        id="gameLocationInput"
-                        value={gameLocation}
-                        onChange={(e) => setGameLocation(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder={t('newGameSetupModal.locationPlaceholder', 'e.g., Central Park Field 2')}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                        
-                      />
-                    </div>
-
-                    {/* Game Time */}
-                    <div className="mb-6 pt-2 border-t border-slate-700/40">
-                      <label className="block text-sm font-medium text-slate-300 mb-2">
-                        {t('newGameSetupModal.gameTimeLabel', 'Time (Optional)')}
-                      </label>
-                      <div className="flex items-center space-x-3 max-w-xs">
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          maxLength={2}
-                          value={gameHour}
-                          onChange={handleHourChange}
-                          onKeyDown={handleKeyDown}
-                          placeholder={t('newGameSetupModal.hourPlaceholder', 'HH')}
-                          className="w-1/2 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="off"
-                          spellCheck="false"
-                          
-                          onFocus={(e) => e.target.select()}
-                        />
-                        <span className="text-slate-400 font-mono">:</span>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          maxLength={2}
-                          value={gameMinute}
-                          onChange={handleMinuteChange}
-                          onKeyDown={handleKeyDown}
-                          placeholder={t('newGameSetupModal.minutePlaceholder', 'MM')}
-                          className="w-1/2 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="off"
-                          spellCheck="false"
-                          
-                          onFocus={(e) => e.target.select()}
-                        />
-                      </div>
-                    </div>
-
-
-                    {/* Player Selection Section */}
-                    <PlayerSelectionSection
-                      availablePlayers={availablePlayersForSetup}
-                      selectedPlayerIds={selectedPlayerIds}
-                      onSelectedPlayersChange={setSelectedPlayerIds}
-                      title={t('newGameSetupModal.selectPlayers', 'Select Players')}
-                      playersSelectedText={t('newGameSetupModal.playersSelected', 'selected')}
-                      selectAllText={t('newGameSetupModal.selectAll', 'Select All')}
-                      noPlayersText={t('newGameSetupModal.noPlayersInRoster', 'No players in roster. Add players in Roster Settings.')}
-                      
-                    />
-
-                    {/* Game Settings Section */}
-                    <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
-                      <h3 className="text-lg font-semibold text-slate-200 mb-3">
-                        {t('newGameSetupModal.periodsLabel', 'Game Settings')}
-                      </h3>
-
-                      {/* Number of Periods */}
+              {/* Age Group */}
                       <div className="mb-4">
-                        <label htmlFor="numPeriodsSelect" className="block text-sm font-medium text-slate-300 mb-1">
-                          {t('newGameSetupModal.numPeriodsLabel', 'Number of Periods')}
+                        <label htmlFor="ageGroupSelect" className="block text-sm font-medium text-slate-300 mb-1">
+                          {t('newGameSetupModal.ageGroupLabel', 'Age Group (Optional)')}
                         </label>
                         <select
-                          id="numPeriodsSelect"
-                          value={localNumPeriods}
-                          onChange={(e) => setLocalNumPeriods(parseInt(e.target.value) as 1 | 2)}
+                          id="ageGroupSelect"
+                          value={ageGroup}
+                          onChange={(e) => setAgeGroup(e.target.value)}
+                          onKeyDown={handleKeyDown}
                           className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+
                         >
-                          <option value={1}>1</option>
-                          <option value={2}>2</option>
+                          <option value="">{t('common.none', 'None')}</option>
+                          {AGE_GROUPS.map((group) => (
+                            <option key={group} value={group}>
+                              {group}
+                            </option>
+                          ))}
                         </select>
                       </div>
 
-                      {/* Period Duration */}
-                      <div className="mb-4">
-                        <label htmlFor="periodDurationInput" className="block text-sm font-medium text-slate-300 mb-1">
-                          {t('newGameSetupModal.periodDurationLabel', 'Period Duration (minutes)')}
+                      {/* Game Date */}
+                      <div className="mb-6">
+                        <label htmlFor="gameDateInput" className="block text-sm font-medium text-slate-300 mb-2">
+                          {t('newGameSetupModal.gameDateLabel', 'Game Date')}
                         </label>
-                      <input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          id="periodDurationInput"
-                          value={localPeriodDurationString}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            const numericValue = value.replace(/[^0-9]/g, '');
-                            // Allow reasonable period durations (1-999 minutes)
-                            if (numericValue === '' || (parseInt(numericValue, 10) >= 1 && parseInt(numericValue, 10) <= 999)) {
-                              setLocalPeriodDurationString(numericValue);
-                            }
-                          }}
-                          className="w-full max-w-xs px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                        <input
+                          type="date"
+                          id="gameDateInput"
+                          name="gameDate"
+                          value={gameDate}
+                          onChange={(e) => setGameDate(e.target.value)}
+                          onKeyDown={handleKeyDown}
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                           autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="off"
-                          spellCheck="false"
-                          placeholder="15"
+
                         />
                       </div>
 
-                      {/* Demand Factor Slider */}
+                      {/* Game Location */}
                       <div className="mb-4">
-                        <AssessmentSlider
-                          label={t('newGameSetupModal.demandFactorLabel', 'Game Demand Level')}
-                          value={demandFactor}
-                          onChange={onDemandFactorChange}
-                          min={0.5}
-                          max={1.5}
-                          step={0.05}
-                          reverseColor
-                        />
-                      </div>
-
-                      {/* Home/Away Selection */}
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-slate-300 mb-1">
-                          {t('newGameSetupModal.homeOrAwayLabel', 'Your Team is')}
+                        <label htmlFor="gameLocationInput" className="block text-sm font-medium text-slate-300 mb-1">
+                          {t('newGameSetupModal.gameLocationLabel', 'Location (Optional)')}
                         </label>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => setLocalHomeOrAway('home')}
-                            className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                              localHomeOrAway === 'home'
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                            }`}
-                          >
-                            {t('common.home', 'Home')}
-                          </button>
-                      <button
-                        onClick={() => setLocalHomeOrAway('away')}
-                        className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
-                          localHomeOrAway === 'away'
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                        }`}
-                      >
-                        {t('common.away', 'Away')}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mb-4">
-                    <label className="inline-flex items-center text-sm text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={!isPlayed}
-                        onChange={(e) => setIsPlayed(!e.target.checked)}
-                        className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
-                      />
-                      <span className="ml-2">{t('newGameSetupModal.unplayedToggle', 'Not played yet')}</span>
-                    </label>
-                  </div>
+                        <input
+                          type="text"
+                          id="gameLocationInput"
+                          value={gameLocation}
+                          onChange={(e) => setGameLocation(e.target.value)}
+                          onKeyDown={handleKeyDown}
+                          placeholder={t('newGameSetupModal.locationPlaceholder', 'e.g., Central Park Field 2')}
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+
+                        />
+                      </div>
+
+                      {/* Game Time */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                          {t('newGameSetupModal.gameTimeLabel', 'Time (Optional)')}
+                        </label>
+                        <div className="flex items-center space-x-3 max-w-xs">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={2}
+                            value={gameHour}
+                            onChange={handleHourChange}
+                            onKeyDown={handleKeyDown}
+                            placeholder={t('newGameSetupModal.hourPlaceholder', 'HH')}
+                            className="w-1/2 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck="false"
+
+                            onFocus={(e) => e.target.select()}
+                          />
+                          <span className="text-slate-400 font-mono">:</span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            maxLength={2}
+                            value={gameMinute}
+                            onChange={handleMinuteChange}
+                            onKeyDown={handleKeyDown}
+                            placeholder={t('newGameSetupModal.minutePlaceholder', 'MM')}
+                            className="w-1/2 px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-center"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck="false"
+
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </div>
+                      </div>
+
+              {/* Home/Away Selection */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  {t('newGameSetupModal.homeOrAwayLabel', 'Your Team is')}
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setLocalHomeOrAway('home')}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      localHomeOrAway === 'home'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('common.home', 'Home')}
+                  </button>
+                  <button
+                    onClick={() => setLocalHomeOrAway('away')}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      localHomeOrAway === 'away'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('common.away', 'Away')}
+                  </button>
                 </div>
+              </div>
+            </div>
+
+            {/* CARD 3: Pelin asetukset (Game Configuration) */}
+            <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all">
+              <h3 className="text-lg font-semibold text-slate-200 mb-3">
+                {t('newGameSetupModal.gameConfigLabel', 'Pelin asetukset')}
+              </h3>
+
+              {/* Number of Periods */}
+              <div className="mb-4">
+                <label htmlFor="numPeriodsSelect" className="block text-sm font-medium text-slate-300 mb-1">
+                  {t('newGameSetupModal.numPeriodsLabel', 'Number of Periods')}
+                </label>
+                <select
+                  id="numPeriodsSelect"
+                  value={localNumPeriods}
+                  onChange={(e) => setLocalNumPeriods(parseInt(e.target.value) as 1 | 2)}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                >
+                  <option value={1}>1</option>
+                  <option value={2}>2</option>
+                </select>
+              </div>
+
+              {/* Period Duration */}
+              <div className="mb-4">
+                <label htmlFor="periodDurationInput" className="block text-sm font-medium text-slate-300 mb-1">
+                  {t('newGameSetupModal.periodDurationLabel', 'Period Duration (minutes)')}
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  id="periodDurationInput"
+                  value={localPeriodDurationString}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const numericValue = value.replace(/[^0-9]/g, '');
+                    // Allow reasonable period durations (1-999 minutes)
+                    if (numericValue === '' || (parseInt(numericValue, 10) >= 1 && parseInt(numericValue, 10) <= 999)) {
+                      setLocalPeriodDurationString(numericValue);
+                    }
+                  }}
+                  className="w-full max-w-xs px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  placeholder="15"
+                />
+              </div>
+
+              {/* Demand Factor Slider */}
+              <div className="mb-4">
+                <AssessmentSlider
+                  label={t('newGameSetupModal.demandFactorLabel', 'Game Demand Level')}
+                  value={demandFactor}
+                  onChange={onDemandFactorChange}
+                  min={0.5}
+                  max={1.5}
+                  step={0.05}
+                  reverseColor
+                />
+              </div>
+
+              {/* Not Played Yet Checkbox */}
+              <div className="mb-4">
+                <label className="inline-flex items-center text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={!isPlayed}
+                    onChange={(e) => setIsPlayed(!e.target.checked)}
+                    className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
+                  />
+                  <span className="ml-2">{t('newGameSetupModal.unplayedToggle', 'Not played yet')}</span>
+                </label>
+              </div>
+            </div>
           </div>
 
           {/* Footer */}

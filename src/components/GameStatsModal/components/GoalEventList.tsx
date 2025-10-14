@@ -65,7 +65,7 @@ export function GoalEventList({
             className={`p-3 rounded-md border transition-all ${
               editingGoalId === goal.id
                 ? 'bg-slate-700/75 border-indigo-500'
-                : 'bg-slate-800/40 border-slate-700/50'
+                : 'bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 border-slate-700/50'
             }`}
           >
             {editingGoalId === goal.id ? (

@@ -21,6 +21,7 @@ import {
 } from "./storage";
 import type { PlayerAdjustmentsIndex } from './playerAdjustments';
 import type { TeamsIndex, TeamRostersIndex } from './teams';
+import type { AppSettings } from './appSettings';
 import { processImportedGames } from './gameImportHelper';
 
 // Define the structure of the backup file
@@ -31,7 +32,7 @@ interface FullBackupData {
   };
   localStorage: { // Note: field name kept for backward compatibility with existing backups
     [SAVED_GAMES_KEY]?: SavedGamesCollection | null;
-    [APP_SETTINGS_KEY]?: { currentGameId: string | null } | null;
+    [APP_SETTINGS_KEY]?: AppSettings | null;
     [SEASONS_LIST_KEY]?: Season[] | null;
     [TOURNAMENTS_LIST_KEY]?: Tournament[] | null;
     [MASTER_ROSTER_KEY]?: Player[] | null;

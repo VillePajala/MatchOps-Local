@@ -37,7 +37,7 @@ export function GameInfoCard({
         {t('gameStatsModal.gameInfoTitle', 'Game Information')}
       </h3>
       <div className="space-y-3">
-        <div className="bg-slate-800/40 p-3 rounded-md border border-slate-700/50">
+        <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-3 rounded-md border border-slate-700/50 transition-all">
           <div className="flex justify-center items-center text-center">
             <span className="font-semibold text-slate-100 flex-1 text-right">
               {homeTeamName}
@@ -51,23 +51,23 @@ export function GameInfoCard({
           </div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-2 gap-3 text-sm">
-          <div className="bg-slate-800/40 p-2 rounded-md">
+          <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md transition-all">
             <label className="block text-xs text-slate-400">{t('common.date')}</label>
             <span className="font-medium text-slate-200">{formattedDate}</span>
           </div>
-          <div className="bg-slate-800/40 p-2 rounded-md">
+          <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md transition-all">
             <label className="block text-xs text-slate-400">{t('common.time')}</label>
             <span className="font-medium text-slate-200">
               {gameTime || t('common.notSet')}
             </span>
           </div>
-          <div className="bg-slate-800/40 p-2 rounded-md">
+          <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md transition-all">
             <label className="block text-xs text-slate-400">{t('common.location')}</label>
             <span className="font-medium text-slate-200">
               {gameLocation || t('common.notSet')}
             </span>
           </div>
-          <div className="bg-slate-800/40 p-2 rounded-md">
+          <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md transition-all">
             <label className="block text-xs text-slate-400">
               {t('newGameSetupModal.periodsLabel')}
             </label>
