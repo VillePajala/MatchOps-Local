@@ -477,6 +477,8 @@
   "loadGameModal": {
     "title": "Load Game",
     "gamesCount": "Games",
+    "gameSingular": "Game",
+    "gamePlural": "Games",
     "loadButtonTooltip": "Load this game",
     "deleteButtonTooltip": "Delete this saved game",
     "deleteConfirm": "Are you sure you want to delete the saved game \"{gameName}\"? This action cannot be undone.",
