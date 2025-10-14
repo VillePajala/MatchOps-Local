@@ -129,7 +129,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
                             <h4 className="text-lg font-bold mb-2 text-slate-200">{t('warmup.section4Title')}</h4>
                           <ul className="list-disc list-inside space-y-1.5 pl-2 text-slate-300">{renderListItems(t('warmup.section4Points', { returnObjects: true }) as ListItem[], 's5')}</ul>
                           </section>
-                          <section className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg border border-slate-700/50 transition-all">
+                          <section className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg transition-all">
                             <h4 className="text-lg font-bold mb-2 text-slate-200">{t('warmup.duringGameTitle')}</h4>
                           <ul className="list-disc list-inside space-y-1.5 pl-2 text-slate-300">{renderListItems(t('warmup.duringGamePoints', { returnObjects: true }) as ListItem[], 's6')}</ul>
                           </section>

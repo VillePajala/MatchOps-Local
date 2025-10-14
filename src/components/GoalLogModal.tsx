@@ -425,10 +425,10 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                     {sortedEvents.map(event => (
                       <div
                         key={event.id}
-                        className={`p-3 rounded-md border ${
+                        className={`p-3 rounded-md ${
                           editingGoalId === event.id
-                            ? 'bg-slate-700/75 border-indigo-500'
-                            : 'bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 border-transparent'
+                            ? 'bg-slate-700/75 border border-indigo-500'
+                            : 'bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40'
                         }`}
                       >
                         {editingGoalId === event.id ? (

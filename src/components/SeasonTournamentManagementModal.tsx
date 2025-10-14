@@ -239,7 +239,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                     {filtered.map((item) => (
                         <div
                             key={item.id}
-                            className="p-4 rounded-lg bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 cursor-pointer transition-all border border-slate-700/50"
+                            className="p-4 rounded-lg bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 cursor-pointer transition-all"
                             onClick={() => type === 'season' ? handleSeasonClick(item.id) : handleTournamentClick(item.id)}
                         >
                             <div className="flex justify-between items-center">

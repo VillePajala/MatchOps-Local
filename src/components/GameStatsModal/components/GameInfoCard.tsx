@@ -37,7 +37,7 @@ export function GameInfoCard({
         {t('gameStatsModal.gameInfoTitle', 'Game Information')}
       </h3>
       <div className="space-y-3">
-        <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-3 rounded-md border border-slate-700/50 transition-all">
+        <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-3 rounded-md transition-all">
           <div className="flex justify-center items-center text-center">
             <span className="font-semibold text-slate-100 flex-1 text-right">
               {homeTeamName}

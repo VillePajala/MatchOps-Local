@@ -51,7 +51,7 @@ export function TeamPerformanceCard({
   const { t } = useTranslation();
 
   const cardClassName = useGradient
-    ? "bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg border border-slate-700 shadow-inner transition-all"
+    ? "bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all"
     : "bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner";
 
   return (
