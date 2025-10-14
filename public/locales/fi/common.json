@@ -498,6 +498,8 @@
   "loadGameModal": {
     "title": "Tallennetut pelit",
     "gamesCount": "Pelejä",
+    "gameSingular": "Peli",
+    "gamePlural": "Peliä",
     "loadButtonTooltip": "Lataa tämä peli",
     "deleteButtonTooltip": "Poista tallennettu peli",
     "deleteConfirm": "Haluatko varmasti poistaa tallennetun pelin \"{gameName}\"? Toimintoa ei voi peruuttaa.",

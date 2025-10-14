@@ -450,7 +450,10 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
               <div className="flex justify-center items-center text-slate-300">
                 <span>
                   <span className="text-yellow-400 font-semibold">{filteredGameIds.length}</span>
-                  {" "}{t('loadGameModal.gamesCount', 'Games')}
+                  {" "}
+                  {filteredGameIds.length === 1
+                    ? t('loadGameModal.gameSingular', 'Game')
+                    : t('loadGameModal.gamePlural', 'Games')}
                 </span>
               </div>
             </div>
