@@ -175,7 +175,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         const placeholder = type === 'season' ? t('seasonTournamentModal.newSeasonPlaceholder') : t('seasonTournamentModal.newTournamentPlaceholder');
 
         return (
-            <div className="bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner">
+            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
                 <h3 className="text-lg font-semibold text-slate-200 mb-4">{t(`seasonTournamentModal.${type}s`)}</h3>
                 {showInput && (
                     <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600 mb-3 flex flex-col gap-2">
@@ -239,7 +239,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                     {filtered.map((item) => (
                         <div
                             key={item.id}
-                            className="p-4 rounded-lg bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 cursor-pointer transition-all"
+                            className="p-4 rounded-lg bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 cursor-pointer transition-all border border-slate-700/50"
                             onClick={() => type === 'season' ? handleSeasonClick(item.id) : handleTournamentClick(item.id)}
                         >
                             <div className="flex justify-between items-center">

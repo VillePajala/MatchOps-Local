@@ -250,7 +250,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
     );
   } else {
     mainContent = (
-      <div className="bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner">
+      <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
         {/* Display general game load/delete errors here */}
         {gameLoadError && processingGameId === null && (
           <div className="px-3 py-2 mb-3 bg-red-700/20 border border-red-600 text-red-300 text-xs rounded" role="alert">

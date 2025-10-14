@@ -273,7 +273,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             <h2 className={titleStyle}>{t('settingsModal.title', 'App Settings')}</h2>
           </div>
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
-            <div>
+            {/* General Settings */}
+            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 space-y-4">
               <label htmlFor="language-select" className={labelStyle}>{t('settingsModal.languageLabel', 'Language')}</label>
               <select
                 id="language-select"
@@ -284,8 +285,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 <option value="en">English</option>
                 <option value="fi">Suomi</option>
               </select>
-            </div>
-            <div>
+              <div>
               <label htmlFor="team-name-input" className={labelStyle}>{t('settingsModal.defaultTeamNameLabel', 'Default Team Name')}</label>
               <input
                 id="team-name-input"
@@ -295,8 +295,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 onBlur={() => onDefaultTeamNameChange(teamName)}
                 className={inputStyle}
               />
+              </div>
             </div>
-            <div className="pt-2 border-t border-slate-700/40 space-y-3">
+            {/* Club Season */}
+            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.clubSeasonTitle', 'Club Season Period')}
               </h3>
@@ -354,7 +356,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
             </div>
-            <div className="pt-2 border-t border-slate-700/40 space-y-3">
+            {/* Data Management */}
+            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.backupTitle', 'Data Management')}
               </h3>
@@ -413,7 +416,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 )}
               </p>
             </div>
-            <div className="pt-2 border-t border-slate-700/40 space-y-2">
+            {/* About */}
+            <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.aboutTitle', 'About')}
               </h3>
@@ -470,7 +474,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </p>
               </div>
             </div>
-            <div className="pt-2 border-t border-slate-700/40 space-y-2">
+            {/* Danger Zone */}
+            <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-red-300">
                 {t('settingsModal.dangerZoneTitle', 'Danger Zone')}
               </h3>

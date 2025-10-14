@@ -61,7 +61,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
   const titleStyle =
     'text-3xl font-bold text-yellow-400 tracking-wide';
   const cardStyle =
-    'bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner';
+    'bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner';
   const buttonBaseStyle =
     'px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed';
   const secondaryButtonStyle =
@@ -145,7 +145,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
                   {t('gameStatsModal.gameInfoTitle', 'Game Information')}
                 </h3>
                 <div className="space-y-3">
-                  <div className="bg-slate-800/40 p-3 rounded-md border border-slate-700/50">
+                  <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-3 rounded-md border border-slate-700/50 transition-all">
                     <div className="flex justify-center items-center text-center">
                       <span className="font-semibold text-slate-100 flex-1 text-right">
                         {displayHomeTeamName || 'Home'}
@@ -160,7 +160,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     {gameDate && (
-                      <div className="bg-slate-800/40 p-2 rounded-md">
+                      <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md border border-slate-700/50 transition-all">
                         <label className="block text-xs text-slate-400">
                           {t('common.date', 'Date')}
                         </label>
@@ -170,7 +170,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
                       </div>
                     )}
                     {gameTime && (
-                      <div className="bg-slate-800/40 p-2 rounded-md">
+                      <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md border border-slate-700/50 transition-all">
                         <label className="block text-xs text-slate-400">
                           {t('common.time', 'Time')}
                         </label>
@@ -180,7 +180,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
                       </div>
                     )}
                     {gameLocation && (
-                      <div className="bg-slate-800/40 p-2 rounded-md">
+                      <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md border border-slate-700/50 transition-all">
                         <label className="block text-xs text-slate-400">
                           {t('common.location', 'Location')}
                         </label>
@@ -190,7 +190,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
                       </div>
                     )}
                     {numberOfPeriods && periodDurationMinutes && (
-                      <div className="bg-slate-800/40 p-2 rounded-md">
+                      <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-2 rounded-md border border-slate-700/50 transition-all">
                         <label className="block text-xs text-slate-400">
                           {t('newGameSetupModal.periodsLabel', 'Periods')}
                         </label>
@@ -211,7 +211,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
                   return (
                     <div
                       key={pid}
-                      className="p-4 rounded-lg bg-gradient-to-br from-slate-600/50 to-slate-800/30"
+                      className="p-4 rounded-lg bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 border border-slate-700/50 transition-all"
                     >
                       <PlayerAssessmentCard
                         player={player}

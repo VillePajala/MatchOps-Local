@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
-import { FaEdit, FaTrashAlt } from 'react-icons/fa';
+import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { Season, Tournament, Player, Team } from '@/types';
 import { AppState } from '@/types';
 import { getTeamRoster } from '@/utils/teams';
@@ -218,6 +218,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const durationInputRef = useRef<HTMLInputElement>(null);
   const notesTextareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // (moved) Close actions menu when clicking outside — see below after menu state
+
   // Removed: showNewSeasonInput, setShowNewSeasonInput - unused state (season creation moved to dedicated modal)
   // Removed: newSeasonName, setNewSeasonName - unused state (season creation moved to dedicated modal)
   // Removed: showNewTournamentInput, setShowNewTournamentInput - unused state (tournament creation moved to dedicated modal)
@@ -235,6 +237,20 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // Confirmation modal state
   const [showDeleteEventConfirm, setShowDeleteEventConfirm] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
+  const [eventActionsMenuId, setEventActionsMenuId] = useState<string | null>(null);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close actions menu when clicking outside
+  useEffect(() => {
+    if (!eventActionsMenuId) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
+        setEventActionsMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [eventActionsMenuId]);
 
   // State for game time
   const [gameHour, setGameHour] = useState<string>('');
@@ -997,7 +1013,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
 
             {/* CARD 1: Teams & Roster */}
-            <div className="space-y-4 bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
                 {t('gameSettingsModal.teamsAndRosterLabel', 'Teams & Roster')}
               </h3>
@@ -1077,7 +1093,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               />
 
               {/* Fair Play Card Section */}
-              <div className="space-y-4 bg-slate-700/50 p-4 rounded-lg border border-slate-600 shadow-inner transition-all">
+              <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all">
                 <h3 className="text-lg font-semibold text-slate-200 mb-4">
                   {t('gameSettingsModal.fairPlayCardTitle', 'Fair Play Card')}
                 </h3>
@@ -1116,7 +1132,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             </div>
 
             {/* CARD 2: Game Details */}
-            <div className="space-y-4 bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-4">
                 {t('gameSettingsModal.gameDetailsLabel', 'Game Details')}
               </h3>
@@ -1380,7 +1396,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             </div>
 
             {/* CARD 3: Pelin asetukset (Game Configuration) */}
-            <div className="space-y-4 bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner transition-all -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-3">
                 {t('gameSettingsModal.gameConfigLabel', 'Pelin asetukset')}
               </h3>
@@ -1482,7 +1498,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             </div>
 
             {/* Game Events Section */}
-            <div className="space-y-4 bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-4">
                 {t('gameSettingsModal.eventLogTitle', 'Event Log')}
               </h3>
@@ -1570,23 +1586,36 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                             {getEventDescription(event, availablePlayers, t)}
                           </span>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="relative" ref={eventActionsMenuId === event.id ? actionsMenuRef : null}>
                           <button
-                            onClick={() => handleEditGoal(event)}
-                            className="p-1.5 rounded-md text-slate-400 hover:text-indigo-400 transition-colors"
-                            title={t('common.edit', 'Edit')}
+                            onClick={() => setEventActionsMenuId(eventActionsMenuId === event.id ? null : event.id)}
+                            className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-600 transition-colors"
+                            aria-label={t('gameSettingsModal.eventActions', 'Event actions')}
                             disabled={isProcessing}
                           >
-                            <FaEdit className="w-5 h-5" />
+                            <HiOutlineEllipsisVertical className="w-5 h-5" />
                           </button>
-                          <button
-                            onClick={() => handleDeleteGoal(event.id)}
-                            className="p-1.5 rounded-md text-slate-400 hover:text-red-500 transition-colors"
-                            title={t('common.delete', 'Delete')}
-                            disabled={isProcessing}
-                          >
-                            <FaTrashAlt className="w-5 h-5" />
-                          </button>
+
+                          {eventActionsMenuId === event.id && (
+                            <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
+                              <button
+                                onClick={() => { setEventActionsMenuId(null); handleEditGoal(event); }}
+                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"
+                                disabled={isProcessing}
+                              >
+                                <HiOutlinePencil className="w-4 h-4" />
+                                {t('common.edit', 'Edit')}
+                              </button>
+                              <button
+                                onClick={() => { setEventActionsMenuId(null); handleDeleteGoal(event.id); }}
+                                className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 last:rounded-b-md transition-colors"
+                                disabled={isProcessing}
+                              >
+                                <HiOutlineTrash className="w-4 h-4" />
+                                {t('common.delete', 'Delete')}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -1601,7 +1630,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             </div>
 
             {/* Game Notes Section */}
-            <div className="space-y-4 bg-slate-900/60 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200 mb-4">
                 {t('gameSettingsModal.notesTitle', 'Game Notes')}
               </h3>
