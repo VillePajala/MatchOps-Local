@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Team, Player } from '@/types';
 import { useTeamRosterQuery, useAddPlayerToRosterMutation, useSetTeamRosterMutation } from '@/hooks/useTeamQueries';
@@ -213,31 +214,23 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-700/20 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">
+        <ModalFooter>
           {onBack ? (
-            <div className="flex gap-3">
-              <button 
-                onClick={onBack}
-                className="flex-1 px-4 py-2 rounded-md font-semibold text-slate-200 bg-indigo-600 hover:bg-indigo-700 transition-colors"
-              >
+            <>
+              <button onClick={onBack} className={secondaryButtonStyle}>
                 {t('teamRosterModal.backToTeamManager', 'Back to Team Manager')}
               </button>
-              <button 
-                onClick={onClose}
-                className="px-6 py-2 rounded-md font-semibold text-slate-400 bg-slate-700 hover:bg-slate-600 transition-colors"
-              >
-                {t('common.close', 'Close')}
+              <div className="flex-1" />
+              <button onClick={onClose} className={primaryButtonStyle}>
+                {t('common.doneButton', 'Done')}
               </button>
-            </div>
+            </>
           ) : (
-            <button 
-              onClick={onClose} 
-              className="w-full px-4 py-2 rounded-md font-semibold text-slate-200 bg-slate-700 hover:bg-slate-600 transition-colors"
-            >
-              {t('common.close', 'Close')}
+            <button onClick={onClose} className={primaryButtonStyle}>
+              {t('common.doneButton', 'Done')}
             </button>
           )}
-        </div>
+        </ModalFooter>
       </div>
     </div>
   );

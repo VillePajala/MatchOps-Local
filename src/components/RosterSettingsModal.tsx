@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { ModalFooter } from '@/styles/modalStyles';
 import type { Player } from '@/types'; // Import Player type from the central types file
 import {
     HiOutlineXMark,
@@ -436,13 +437,11 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-slate-700/20 backdrop-blur-sm bg-slate-900/20">
-            <div className="flex justify-end px-4">
-              <button onClick={onClose} className={secondaryButtonStyle}>
-                {t('common.doneButton', 'Done')}
-              </button>
-            </div>
-          </div>
+          <ModalFooter>
+            <button onClick={onClose} className={secondaryButtonStyle}>
+              {t('common.doneButton', 'Done')}
+            </button>
+          </ModalFooter>
         </div>
       </div>
 

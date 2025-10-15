@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineChevronDown, HiOutlineChevronUp } from 'react-icons/hi2';
 
@@ -143,11 +144,11 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
         </div>
 
           {/* Footer */}
-          <div className="px-6 py-3 bg-slate-800/50 border-t border-slate-700/20 backdrop-blur-sm flex justify-end items-center gap-4 flex-shrink-0">
-            <button onClick={onClose} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors">
+          <ModalFooter>
+            <button onClick={onClose} className={primaryButtonStyle}>
               {t('common.doneButton', 'Done')}
             </button>
-          </div>
+          </ModalFooter>
         </div>
       </div>
     </div>

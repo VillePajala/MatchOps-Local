@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { primaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -445,7 +446,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 bg-slate-800/50 border-t border-slate-700/20 backdrop-blur-sm flex justify-between items-center gap-4 flex-shrink-0">
+        <div className="px-6 py-3 bg-slate-800/50 border-t border-slate-700/20 backdrop-blur-sm flex items-center gap-4 flex-shrink-0">
           {onManageOrphanedGames ? (
             <button 
               onClick={onManageOrphanedGames}
@@ -455,15 +456,10 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               {t('teamManager.orphanedGames', 'Orphaned Games')}
             </button>
           ) : (
-            <div />
+            null
           )}
-          
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors"
-          >
-            {t('common.doneButton', 'Done')}
-          </button>
+          <div className="ml-auto" />
+          <button onClick={onClose} className={primaryButtonStyle}>{t('common.doneButton', 'Done')}</button>
         </div>
 
         {/* Delete Confirmation Modal */}

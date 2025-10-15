@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Tournament, Player } from '@/types';
 import { UseMutationResult } from '@tanstack/react-query';
@@ -303,23 +304,20 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 bg-slate-800/50 border-t border-slate-700/20 backdrop-blur-sm flex justify-end items-center gap-4 flex-shrink-0">
-          <button
-            onClick={handleCancel}
-            className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-md text-sm font-medium transition-colors"
-          >
+        <ModalFooter>
+          <button onClick={handleCancel} className={secondaryButtonStyle}>
             {t('common.cancel', 'Cancel')}
           </button>
           <button
             onClick={handleSave}
             disabled={!name.trim() || updateTournamentMutation.isPending}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-600 disabled:opacity-50 text-white rounded-md text-sm font-medium transition-colors"
+            className={primaryButtonStyle}
           >
             {updateTournamentMutation.isPending
               ? t('common.saving', 'Saving...')
               : t('common.save', 'Save')}
           </button>
-        </div>
+        </ModalFooter>
       </div>
     </div>
   );
