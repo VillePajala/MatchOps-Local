@@ -10,6 +10,7 @@ import { importFullBackup } from '@/utils/fullBackup';
 import { useGameImport } from '@/hooks/useGameImport';
 import ImportResultsModal from './ImportResultsModal';
 import ConfirmationModal from './ConfirmationModal';
+import { ModalFooter } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { validateSeasonMonths } from '@/utils/clubSeason';
@@ -492,11 +493,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </button>
             </div>
           </div>
-          <div className="p-4 border-t border-slate-700/20 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">
+          <ModalFooter>
             <button onClick={onClose} className={primaryButtonStyle}>
               {t('settingsModal.doneButton', 'Done')}
             </button>
-          </div>
+          </ModalFooter>
         </div>
       </div>
       
