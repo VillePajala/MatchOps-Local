@@ -16,6 +16,7 @@ import { extractClubSeasonsFromGames } from '@/utils/clubSeason';
 import { getAppSettings } from '@/utils/appSettings';
 import { useToast } from '@/contexts/ToastProvider';
 import ConfirmationModal from './ConfirmationModal';
+import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 
 // Import extracted hooks
 import { useGameStats } from './GameStatsModal/hooks/useGameStats';
@@ -864,6 +865,34 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             {t('common.doneButton', 'Done')}
           </button>
         </div>
+
+        {/* Footer */}
+        <ModalFooter>
+          {(onExportAggregateCsv || onExportOneCsv) ? (
+            <>
+              {activeTab === 'currentGame' && currentGameId && onExportOneCsv && (
+                <button
+                  onClick={() => onExportOneCsv(currentGameId)}
+                  className="px-4 py-2 rounded-md font-medium transition-colors bg-slate-700 hover:bg-slate-600 text-slate-200"
+                >
+                  {t('common.exportCsv', 'Vie CSV')}
+                </button>
+              )}
+              {activeTab !== 'currentGame' && onExportAggregateCsv && (
+                <button
+                  onClick={() => onExportAggregateCsv(processedGameIds, playerStats)}
+                  className="px-4 py-2 rounded-md font-medium transition-colors bg-slate-700 hover:bg-slate-600 text-slate-200"
+                >
+                  {t('common.exportCsv', 'Vie CSV')}
+                </button>
+              )}
+              <div className="flex-1" />
+            </>
+          ) : null}
+          <button onClick={onClose} className={primaryButtonStyle}>
+            {t('common.doneButton', 'Done')}
+          </button>
+        </ModalFooter>
 
         {/* Confirmation Modal for Delete Event */}
         <ConfirmationModal

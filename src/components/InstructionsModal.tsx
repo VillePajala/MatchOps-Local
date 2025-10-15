@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import {
   HiOutlineXMark,
   HiOutlineSquares2X2,
@@ -153,11 +154,11 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
           </section>
         </div>
 
-        <div className="p-4 border-t border-slate-700/20 backdrop-blur-sm bg-slate-900/20 flex-shrink-0 flex justify-end">
-          <button onClick={onClose} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors">
-            {t('instructionsModal.closeButton')}
+        <ModalFooter>
+          <button onClick={onClose} className={primaryButtonStyle}>
+            {t('common.doneButton', 'Done')}
           </button>
-        </div>
+        </ModalFooter>
       </div>
     </div>
   );

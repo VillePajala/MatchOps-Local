@@ -9,6 +9,7 @@ import logger from '@/utils/logger';
 import { TFunction } from 'i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import ConfirmationModal from './ConfirmationModal';
+import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 
 // Game Event Types (matching GameSettingsModal)
 export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard';
@@ -549,16 +550,11 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-slate-700/20 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">
-            <div className="flex justify-end px-4">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md text-sm font-medium transition-colors shadow-sm"
-              >
-                {t('common.close', 'Close')}
-              </button>
-            </div>
-          </div>
+          <ModalFooter>
+            <button onClick={onClose} className={primaryButtonStyle}>
+              {t('common.doneButton', 'Done')}
+            </button>
+          </ModalFooter>
         </div>
       </div>
 

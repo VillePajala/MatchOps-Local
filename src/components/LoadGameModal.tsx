@@ -14,6 +14,7 @@ import {
 } from 'react-icons/hi2';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import ConfirmationModal from './ConfirmationModal';
+import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 
 export interface LoadGameModalProps {
   isOpen: boolean;
@@ -480,11 +481,11 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
 
           {mainContent}
         </div>
-        <div className="p-4 border-t border-slate-700/20 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">
-          <button onClick={onClose} className="w-full px-4 py-2 rounded-md font-semibold text-slate-200 bg-slate-700 hover:bg-slate-600 transition-colors">
-            {t('common.close', 'Close')}
+        <ModalFooter>
+          <button onClick={onClose} className={primaryButtonStyle}>
+            {t('common.doneButton', 'Done')}
           </button>
-        </div>
+        </ModalFooter>
       </div>
 
       {/* Confirmation Modal */}

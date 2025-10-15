@@ -17,6 +17,7 @@ import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
+import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 
 export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard';
 
@@ -1674,19 +1675,14 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-slate-700/20 backdrop-blur-sm bg-slate-900/20">
-            <div className="flex justify-end px-4">
-              {error && (
-                <div className="text-red-400 text-sm mr-auto">{error}</div>
-              )}
-              <button
-                onClick={onClose}
-                className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800"
-              >
-                {t('common.close', 'Close')}
-              </button>
-            </div>
-          </div>
+          <ModalFooter>
+            {error && (
+              <div className="text-red-400 text-sm mr-auto">{error}</div>
+            )}
+            <button onClick={onClose} className={primaryButtonStyle}>
+              {t('common.doneButton', 'Done')}
+            </button>
+          </ModalFooter>
         </div>
       </div>
 
