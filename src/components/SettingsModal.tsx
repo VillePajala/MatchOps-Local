@@ -446,22 +446,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                 )}
               </div>
-              <div className="space-y-1">
-                <a
-                  href="https://github.com/VillePajala/soccer-pre-game-app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-indigo-400 underline"
-                >
-                  {t('settingsModal.documentationLink', 'Documentation')}
-                </a>
-                <p className="text-sm text-slate-300">
-                  {t(
-                    'settingsModal.documentationDescription',
-                    'Read the full user guide and troubleshooting tips.'
-                  )}
-                </p>
-              </div>
+
               <div className="space-y-1">
                 <button onClick={onResetGuide} className={primaryButtonStyle}>
                   {t('settingsModal.resetGuideButton', 'Reset App Guide')}

@@ -120,14 +120,14 @@ const StartScreen: React.FC<StartScreenProps> = ({
         <div className="row-start-1 relative flex flex-col items-center justify-center w-full mt-[clamp(8px,3vh,24px)]">
           {/* New Logo with spotlight */}
           <div className="relative flex flex-col items-center justify-center">
-            {/* Multi-layered dramatic glow behind logo */}
+            {/* Multi-layered subtle glow behind logo (slightly reduced) */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              {/* Primary amber/yellow glow - matches logo color */}
-              <div className="absolute w-[160%] h-[180%] bg-amber-400/20 blur-[80px] rounded-full" />
-              {/* Secondary indigo glow for depth */}
-              <div className="absolute w-[180%] h-[200%] bg-indigo-500/15 blur-[100px] rounded-full" />
-              {/* Outer cyan rim for pop */}
-              <div className="absolute w-[200%] h-[220%] bg-cyan-400/10 blur-[120px] rounded-full" />
+              {/* Primary amber/yellow glow - slightly smaller and lighter */}
+              <div className="absolute w-[150%] h-[170%] bg-amber-400/15 blur-[64px] rounded-full" />
+              {/* Secondary indigo glow for depth - reduced */}
+              <div className="absolute w-[170%] h-[190%] bg-indigo-500/12 blur-[84px] rounded-full" />
+              {/* Outer cyan rim for pop - reduced */}
+              <div className="absolute w-[190%] h-[210%] bg-cyan-400/8 blur-[96px] rounded-full" />
             </div>
             {/* Logo with gradient depth effect using mask */}
             <div className="relative inline-block [filter:drop-shadow(6px_6px_12px_rgba(0,0,0,0.5))]">
