@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { ModalFooter } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import type { Player, PlayerAssessment } from '@/types';
 import PlayerAssessmentCard from './PlayerAssessmentCard';
@@ -233,13 +234,11 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-slate-700/20 backdrop-blur-sm bg-slate-900/20">
-            <div className="flex justify-end px-4">
-              <button onClick={onClose} className={secondaryButtonStyle}>
-                {t('common.doneButton', 'Done')}
-              </button>
-            </div>
-          </div>
+          <ModalFooter>
+            <button onClick={onClose} className={secondaryButtonStyle}>
+              {t('common.doneButton', 'Done')}
+            </button>
+          </ModalFooter>
         </div>
       </div>
     </div>

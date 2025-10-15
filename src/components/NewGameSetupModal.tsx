@@ -13,6 +13,7 @@ import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
+import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 
 interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -824,22 +825,14 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-slate-700/20 backdrop-blur-sm bg-slate-900/20">
-            <div className="flex justify-end gap-3 px-6">
-              <button
-                onClick={onCancel}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-md shadow-sm"
-              >
-                {t('common.cancelButton', 'Cancel')}
-              </button>
-              <button
-                onClick={handleStartClick}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md shadow-sm"
-              >
-                {t('newGameSetupModal.confirmAndStart', 'Confirm & Start Game')}
-              </button>
-            </div>
-          </div>
+          <ModalFooter>
+            <button onClick={onCancel} className={secondaryButtonStyle}>
+              {t('common.cancelButton', 'Cancel')}
+            </button>
+            <button onClick={handleStartClick} className={primaryButtonStyle}>
+              {t('newGameSetupModal.confirmAndStart', 'Confirm & Start Game')}
+            </button>
+          </ModalFooter>
         </div>
       </div>
 
