@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="public/logos/match_ops_local_logo_transparent.png" alt="MatchOps-Local Logo" width="200"/>
+</div>
+
 # MatchOps-Local
 
 **A local-first soccer coaching PWA that puts coaches in control of their data**
@@ -8,6 +12,7 @@
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://reactjs.org/)
 [![Tests](https://img.shields.io/badge/tests-1060+-green.svg)](#)
 [![PWA](https://img.shields.io/badge/PWA-Enabled-5a0fc8.svg)](https://web.dev/progressive-web-apps/)
+[![Code Quality](https://img.shields.io/badge/status-Critical_Fixes_Pending-red.svg)](docs/CRITICAL_FIXES_REQUIRED.md)
 
 ## What is MatchOps-Local?
 
@@ -230,6 +235,34 @@ Visit our hosted instance (link coming soon) - no installation required, works i
 5. Deploy static files to your web server
 
 For detailed setup instructions, see [docs/deployment/](docs/deployment/).
+
+## ⚠️ Important: Critical Fixes Required
+
+**🔴 For Developers and Contributors**
+
+Before starting any major feature development, please be aware that we have identified **5 critical/high-priority architectural issues** that must be addressed:
+
+| Issue | Impact | Time | Status |
+|-------|--------|------|--------|
+| HomePage.tsx (3,602 lines) | Blocks maintainability | 2-3h | ❌ Not Started |
+| GameSettingsModal.tsx (1,707 lines) | Complex changes difficult | 1h | ❌ Not Started |
+| Modal state management | Race conditions | 30m | ❌ Not Started |
+| Error handling | Silent failures | 1h | ❌ Not Started |
+| Performance optimization | Slow re-renders | 30m | ❌ Not Started |
+
+**Total Investment**: 4-5 hours | **ROI**: ~1000% over 2 years (3-5x faster development)
+
+### Essential Reading for Contributors
+
+📋 **[CRITICAL_FIXES_REQUIRED.md](docs/CRITICAL_FIXES_REQUIRED.md)** - Complete analysis and detailed fix plans
+
+📊 **[CRITICAL_FIXES_TRACKER.md](docs/CRITICAL_FIXES_TRACKER.md)** - Interactive progress tracker
+
+📄 **[QUICK_FIX_REFERENCE.md](docs/05-development/QUICK_FIX_REFERENCE.md)** - One-page printable summary
+
+🔍 **[Code Review (Oct 16, 2025)](docs/reviews/code-review-2025-10-16.md)** - Full code review findings
+
+**Note**: These fixes are documented in detail with step-by-step implementation plans. See [CLAUDE.md](CLAUDE.md) for AI assistant guidance on these issues.
 
 ## 📖 Documentation
 

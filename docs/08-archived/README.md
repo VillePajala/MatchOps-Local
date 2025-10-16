@@ -43,6 +43,29 @@ This directory contains completed work, superseded plans, and historical documen
 - **security-advisories.md** - Security advisory history
 - **test-fixes.md** - Test fix history
 
+### 📅 Recently Archived (October 2025)
+
+#### Bug Fixes & Investigations
+- **BUG_FIX_SUMMARY.md** - LoadGameModal score update bug fix (commit 6ed75d6)
+- **STALE_DATA_INVESTIGATION.md** - Historical stale data investigation
+- **TEAM_ROSTER_INVESTIGATION.md** - Team roster bug investigation
+- **TESTING_SETTIMEOUT_USAGE.md** - setTimeout usage investigation
+- **TOAST_FIX_SUMMARY.md** - Toast notification system fixes
+
+#### Completed Refactoring
+- **GameStatsModal-Refactoring-Progress.md** - GameStatsModal refactoring from 1,625 lines to modular components
+
+#### Testing Documentation (Historical)
+- **MANUAL_TESTING_GUIDE.md** - Auto-save and bug fix testing guide
+- **MANUAL_TEST_CHECKLIST.md** - IndexedDB migration verification checklist (completed October 2025)
+
+#### Process Documentation
+- **PUSH_INSTRUCTIONS.md** - Git workflow and push instructions
+
+#### Code Reviews
+- **comprehensive-code-review.md** - Comprehensive codebase review (976 lines)
+- **ConfirmationModal-migration-review.md** - ConfirmationModal migration review
+
 ## ⚠️ Important Notes
 
 1. **Do not use these for current work** - See [../03-active-plans/](../03-active-plans/) instead

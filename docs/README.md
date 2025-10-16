@@ -6,6 +6,56 @@ This documentation covers everything about the MatchOps-Local project - what it 
 
 ---
 
+## ⚠️ CRITICAL FIXES REQUIRED
+
+**🔴 BLOCKING: Code quality issues must be addressed before major feature development**
+
+**Status**: 5 critical/high-priority fixes identified (4-5 hours total effort)
+
+Before proceeding with new major features, these architectural issues MUST be resolved:
+
+| Priority | Issue | Status | Time | Plan |
+|----------|-------|--------|------|------|
+| **P0** | HomePage.tsx Refactoring (3,602 lines) | ❌ Not Started | 2-3h | [Fix Plan](./05-development/fix-plans/P0-HomePage-Refactoring-Plan.md) |
+| **P1** | GameSettingsModal Refactoring (1,707 lines) | ❌ Not Started | 1h | [Fix Plan](./05-development/fix-plans/P1-GameSettingsModal-Refactoring-Plan.md) |
+| **P2** | Modal State Management | ❌ Not Started | 30m | [Fix Plan](./05-development/fix-plans/P2-Modal-State-Management-Fix.md) |
+| **P2** | Error Handling Improvements | ❌ Not Started | 1h | [Fix Plan](./05-development/fix-plans/P2-Error-Handling-Improvements.md) |
+| **P2** | Performance Optimization | ❌ Not Started | 30m | [Fix Plan](./05-development/fix-plans/P2-Performance-Optimization-Plan.md) |
+
+**📋 Essential Reading:**
+- **[CRITICAL_FIXES_REQUIRED.md](./CRITICAL_FIXES_REQUIRED.md)** - Detailed analysis and impact assessment
+- **[CRITICAL_FIXES_TRACKER.md](./CRITICAL_FIXES_TRACKER.md)** - Interactive progress tracker with checklists
+- **[QUICK_FIX_REFERENCE.md](./05-development/QUICK_FIX_REFERENCE.md)** - One-page printable reference card
+- **[Code Review (Oct 16, 2025)](./reviews/code-review-2025-10-16.md)** - Full code review findings
+
+**Why This Matters:**
+- **Without fixes**: Every new feature takes 3-5x longer, high bug risk, difficult testing
+- **With fixes**: Clean architecture, fast development, reduced bugs, easy maintenance
+- **ROI**: 4-5 hour investment → 3-5x faster development for 2+ years (~1000% return)
+
+**⛔ DO NOT:**
+- Start new major features
+- Implement new game modes
+- Add complex functionality
+- Create new large components
+
+**✅ DO:**
+- Bug fixes and small improvements
+- Documentation updates
+- Test improvements
+- Performance measurements
+
+**Fix Dependencies:**
+```
+P0 (HomePage) ← CRITICAL - Must complete first
+    ↓
+P1 (GameSettingsModal) ← Can parallel with P0
+    ↓
+P2 (Modal State, Error Handling, Performance) ← After P0/P1
+```
+
+---
+
 ## 🚀 Quick Navigation
 
 ### ⭐ **Start Here**
@@ -22,12 +72,14 @@ This documentation covers everything about the MatchOps-Local project - what it 
 2. **[02-technical/](./02-technical/)** - Technical Architecture
    - System architecture, technology decisions, security
    - Data freshness & modal data flow: see [02-technical/data-freshness-and-modal-data-flow.md](./02-technical/data-freshness-and-modal-data-flow.md)
-   - **Database schemas**: [Current IndexedDB Schema](./02-technical/database/current-storage-schema.md) | [Supabase Schema](./02-technical/database/supabase-schema.md)
-   - **Dual-backend architecture**: [Architecture Overview](./02-technical/architecture/dual-backend-architecture.md) | [DataStore Interface](./02-technical/architecture/datastore-interface.md) | [AuthService Interface](./02-technical/architecture/auth-service-interface.md)
+   - **Current Implementation**: [IndexedDB Schema](./02-technical/database/current-storage-schema.md) | [Architecture](./02-technical/architecture.md)
+   - **🔮 Future: Dual-Backend Architecture** (Planned Feature - Local + Cloud Premium)
+     - [Architecture Overview](./02-technical/architecture/dual-backend-architecture.md) | [Supabase Schema](./02-technical/database/supabase-schema.md) | [DataStore Interface](./02-technical/architecture/datastore-interface.md) | [AuthService Interface](./02-technical/architecture/auth-service-interface.md)
 
 3. **[03-active-plans/](./03-active-plans/)** - Active Plans & Current Status ⭐
    - Master execution guide, production readiness, roadmaps, release checklists
-   - **Backend evolution**: [Phased Implementation Roadmap](./03-active-plans/backend-evolution/phased-implementation-roadmap.md) | [Migration Strategy](./03-active-plans/backend-evolution/migration-strategy.md)
+   - **🔮 Future: Backend Evolution** (Long-term plan for cloud features)
+     - [Phased Implementation Roadmap](./03-active-plans/backend-evolution/phased-implementation-roadmap.md) | [Migration Strategy](./03-active-plans/backend-evolution/migration-strategy.md)
 
 4. **[04-features/](./04-features/)** - Feature Specifications
    - Detailed feature specs and implementation plans
@@ -103,10 +155,10 @@ Create a local-first sports software ecosystem and demonstrate the viability of 
 - **Next.js 15** with App Router for cutting-edge performance
 - **React 19** with TypeScript for reliability and maintainability
 - **React Query** + **Storage Abstraction** for local-first data management
-  - ✅ Current backend: localStorage via async wrappers (sufficient for data size)
-  - 🚧 IndexedDB support: Implemented in foundation work; available/planned depending on configuration
-  - 📋 See [08-archived/indexeddb-foundation/](./08-archived/indexeddb-foundation/) for historical context
+  - ✅ Current backend: IndexedDB with automatic localStorage migration (production-ready)
+  - 📦 Storage capacity: 50MB+ quota (vs 5-10MB localStorage limit)
   - 🔄 Fresh data pattern: See [Data Freshness and Modal Data Flow](./02-technical/data-freshness-and-modal-data-flow.md)
+  - 📋 Migration history: See [08-archived/indexeddb-foundation/](./08-archived/indexeddb-foundation/) for historical context
 - **Tailwind CSS 4** for responsive, professional design
 - **Comprehensive testing** with Jest and Playwright
 

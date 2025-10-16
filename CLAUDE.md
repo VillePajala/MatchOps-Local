@@ -2,6 +2,86 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+---
+
+## ⚠️ CRITICAL TECHNICAL DEBT - READ FIRST
+
+**🔴 BLOCKING: Major architectural issues must be resolved before feature development**
+
+**Status**: 5 critical/high-priority fixes required (4-5 hours total)
+
+### Pre-Flight Checklist
+
+**BEFORE starting ANY major feature development work, verify:**
+
+- [ ] Have you read [docs/CRITICAL_FIXES_REQUIRED.md](./docs/CRITICAL_FIXES_REQUIRED.md)?
+- [ ] Are all P0/P1 fixes completed? Check [docs/CRITICAL_FIXES_TRACKER.md](./docs/CRITICAL_FIXES_TRACKER.md)
+- [ ] Is the work you're about to do a **major feature** or **complex functionality**?
+
+**If you answered YES to #3, STOP and check fix status first.**
+
+### The Issues
+
+| Priority | Issue | Impact | Fix Plan |
+|----------|-------|--------|----------|
+| **P0** | `HomePage.tsx` is 3,602 lines | 8.5x too large, impossible to maintain | [Plan](./docs/05-development/fix-plans/P0-HomePage-Refactoring-Plan.md) |
+| **P1** | `GameSettingsModal.tsx` is 1,707 lines | 4.3x too large, 90+ props | [Plan](./docs/05-development/fix-plans/P1-GameSettingsModal-Refactoring-Plan.md) |
+| **P2** | Modal state race conditions | 10 independent useState calls | [Plan](./docs/05-development/fix-plans/P2-Modal-State-Management-Fix.md) |
+| **P2** | Silent error swallowing | `.catch(() => {})` patterns hide errors | [Plan](./docs/05-development/fix-plans/P2-Error-Handling-Improvements.md) |
+| **P2** | Re-render performance | Large components cause slow renders | [Plan](./docs/05-development/fix-plans/P2-Performance-Optimization-Plan.md) |
+
+### What You Can Do NOW
+
+**✅ ALLOWED:**
+- Bug fixes and small improvements
+- Documentation updates
+- Test improvements
+- Refactoring work (especially the critical fixes above)
+- Performance measurements
+
+**⛔ FORBIDDEN until fixes complete:**
+- New major features (multi-team games, advanced analytics, etc.)
+- New game modes
+- Complex new functionality
+- Large new components
+
+### Why This Matters
+
+**Current cost of development:**
+- Adding a new modal: ~4 hours (should be 30 minutes)
+- Modifying HomePage: ~2 hours (should be 15 minutes)
+- Testing changes: Very difficult (components too large)
+- Onboarding new developers: Nearly impossible
+
+**After fixes:**
+- Clean component architecture (all <600 lines)
+- Fast feature development (3-5x faster)
+- Easy testing (isolated components)
+- Simple onboarding (clear structure)
+
+**Investment vs Return:**
+- Time investment: 4-5 hours
+- ROI: ~1000% over 2 years
+- Risk of NOT fixing: Technical bankruptcy
+
+### Essential Reading
+
+- **[CRITICAL_FIXES_REQUIRED.md](./docs/CRITICAL_FIXES_REQUIRED.md)** - Complete analysis
+- **[CRITICAL_FIXES_TRACKER.md](./docs/CRITICAL_FIXES_TRACKER.md)** - Progress tracking
+- **[QUICK_FIX_REFERENCE.md](./docs/05-development/QUICK_FIX_REFERENCE.md)** - One-page summary
+- **[Code Review (Oct 16, 2025)](./docs/reviews/code-review-2025-10-16.md)** - Full findings
+
+### When Starting Work
+
+**Always do this sequence:**
+
+1. **Check fix status**: Are critical fixes complete?
+2. **Assess task scope**: Is this major feature work?
+3. **If YES to #2 and NO to #1**: Prioritize fixes first OR work on allowed tasks only
+4. **If in doubt**: Ask the user whether to proceed or fix critical issues first
+
+---
+
 ## Development Commands
 
 ### Core Commands
