@@ -3,9 +3,9 @@
  * Supports viewing, editing, and deleting goal events
  */
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FaEdit, FaTrashAlt } from 'react-icons/fa';
+import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { GameEvent, Player } from '@/types';
 
 interface GoalEventListProps {
@@ -52,6 +52,22 @@ export function GoalEventList({
   onEditGoalAssisterChange,
 }: GoalEventListProps) {
   const { t } = useTranslation();
+
+  // State for actions menu
+  const [goalActionsMenuId, setGoalActionsMenuId] = useState<string | null>(null);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close actions menu when clicking outside
+  useEffect(() => {
+    if (!goalActionsMenuId) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
+        setGoalActionsMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [goalActionsMenuId]);
 
   return (
     <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
@@ -155,23 +171,41 @@ export function GoalEventList({
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {goal.type === 'goal' && (
-                    <button
-                      onClick={() => onStartEditGoal(goal)}
-                      className="p-1.5 text-slate-400 hover:text-indigo-400 rounded-md transition-colors"
-                      aria-label={t('common.edit', 'Edit')}
-                    >
-                      <FaEdit />
-                    </button>
-                  )}
+                <div className="relative" ref={goalActionsMenuId === goal.id ? actionsMenuRef : null}>
                   <button
-                    onClick={() => onDeleteGoal(goal.id)}
-                    className="p-1.5 text-slate-400 hover:text-red-500 rounded-md transition-colors"
-                    aria-label={t('common.delete', 'Delete')}
+                    onClick={() => setGoalActionsMenuId(goalActionsMenuId === goal.id ? null : goal.id)}
+                    className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-600 transition-colors"
+                    aria-label={t('common.actions', 'Actions')}
                   >
-                    <FaTrashAlt />
+                    <HiOutlineEllipsisVertical className="w-5 h-5" />
                   </button>
+
+                  {goalActionsMenuId === goal.id && (
+                    <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
+                      {goal.type === 'goal' && (
+                        <button
+                          onClick={() => {
+                            setGoalActionsMenuId(null);
+                            onStartEditGoal(goal);
+                          }}
+                          className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"
+                        >
+                          <HiOutlinePencil className="w-4 h-4" />
+                          {t('common.edit', 'Edit')}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          setGoalActionsMenuId(null);
+                          onDeleteGoal(goal.id);
+                        }}
+                        className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 last:rounded-b-md transition-colors"
+                      >
+                        <HiOutlineTrash className="w-4 h-4" />
+                        {t('common.delete', 'Delete')}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

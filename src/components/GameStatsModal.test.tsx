@@ -313,6 +313,18 @@ describe('GameStatsModal', () => {
     expect(firstGoalCard).not.toBeNull();
 
     if (firstGoalCard) {
+      // Click the actions menu button (3-dot menu)
+      const actionsButton = within(firstGoalCard as HTMLElement).getByRole('button', { name: i18n.t('common.actions', 'Actions') });
+      await act(async () => {
+        fireEvent.click(actionsButton);
+      });
+
+      // Wait for dropdown menu to appear, then click delete
+      await waitFor(() => {
+        const deleteButton = within(firstGoalCard as HTMLElement).getByRole('button', { name: i18n.t('common.delete', 'Delete') });
+        expect(deleteButton).toBeInTheDocument();
+      });
+
       const deleteButton = within(firstGoalCard as HTMLElement).getByRole('button', { name: i18n.t('common.delete', 'Delete') });
       await act(async () => {
         fireEvent.click(deleteButton);
@@ -347,6 +359,18 @@ describe('GameStatsModal', () => {
     expect(firstGoalCard).not.toBeNull();
 
     if (firstGoalCard) {
+      // Click the actions menu button (3-dot menu)
+      const actionsButton = within(firstGoalCard as HTMLElement).getByRole('button', { name: i18n.t('common.actions', 'Actions') });
+      await act(async () => {
+        fireEvent.click(actionsButton);
+      });
+
+      // Wait for dropdown menu to appear, then click delete
+      await waitFor(() => {
+        const deleteButton = within(firstGoalCard as HTMLElement).getByRole('button', { name: i18n.t('common.delete', 'Delete') });
+        expect(deleteButton).toBeInTheDocument();
+      });
+
       const deleteButton = within(firstGoalCard as HTMLElement).getByRole('button', { name: i18n.t('common.delete', 'Delete') });
       await act(async () => {
         fireEvent.click(deleteButton);
@@ -380,6 +404,18 @@ describe('GameStatsModal', () => {
     expect(firstGoalCard).not.toBeNull();
 
     if (firstGoalCard) {
+      // Click the actions menu button (3-dot menu)
+      const actionsButton = within(firstGoalCard as HTMLElement).getByRole('button', { name: i18n.t('common.actions', 'Actions') });
+      await act(async () => {
+        fireEvent.click(actionsButton);
+      });
+
+      // Wait for dropdown menu to appear, then click edit
+      await waitFor(() => {
+        const editButton = within(firstGoalCard as HTMLElement).getByRole('button', { name: i18n.t('common.edit', 'Edit') });
+        expect(editButton).toBeInTheDocument();
+      });
+
       const editButton = within(firstGoalCard as HTMLElement).getByRole('button', { name: i18n.t('common.edit', 'Edit') });
       fireEvent.click(editButton);
 
@@ -387,7 +423,7 @@ describe('GameStatsModal', () => {
       expect(await within(firstGoalCard as HTMLElement).findByRole('button', { name: i18n.t('common.save', 'Save Changes') })).toBeInTheDocument();
       expect(within(firstGoalCard as HTMLElement).getByRole('button', { name: i18n.t('common.cancel', 'Cancel') })).toBeInTheDocument();
     }
-    
+
     // onUpdateGameEvent should NOT be called until save is clicked
     expect(mockProps.onUpdateGameEvent).not.toHaveBeenCalled();
   });
@@ -429,11 +465,32 @@ describe('GameStatsModal', () => {
       renderComponent(mockProps);
     });
 
-    // Find the delete button for the first goal
-    const deleteButtons = await screen.findAllByRole('button', { name: i18n.t('common.delete', 'Delete') });
-    await act(async () => {
-      fireEvent.click(deleteButtons[0]);
-    });
+    // Find the goal log section
+    const goalLogSection = await screen.findByRole('heading', { name: i18n.t('gameStatsModal.goalLogTitle', 'Goal Log') });
+    const goalLogContainer = goalLogSection.parentElement as HTMLElement;
+
+    // Find the first goal card
+    const firstGoalCard = within(goalLogContainer).getByText('02:00').closest('div.p-3');
+    expect(firstGoalCard).not.toBeNull();
+
+    if (firstGoalCard) {
+      // Click the actions menu button (3-dot menu)
+      const actionsButton = within(firstGoalCard as HTMLElement).getByRole('button', { name: i18n.t('common.actions', 'Actions') });
+      await act(async () => {
+        fireEvent.click(actionsButton);
+      });
+
+      // Wait for dropdown menu to appear, then click delete
+      await waitFor(() => {
+        const deleteButton = within(firstGoalCard as HTMLElement).getByRole('button', { name: i18n.t('common.delete', 'Delete') });
+        expect(deleteButton).toBeInTheDocument();
+      });
+
+      const deleteButton = within(firstGoalCard as HTMLElement).getByRole('button', { name: i18n.t('common.delete', 'Delete') });
+      await act(async () => {
+        fireEvent.click(deleteButton);
+      });
+    }
 
     // Wait for confirmation modal to appear
     await waitFor(() => {
