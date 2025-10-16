@@ -55,24 +55,25 @@ MatchOps-Local is in **active beta** with core functionality complete and stable
 - ✅ **Player Assessment System** - Performance rating with weighted difficulty
 - ✅ **Backup & Restore** - Complete data backup and recovery system
 - ✅ **Smart UI Flows** - Intelligent user guidance and error prevention
-- ✅ **IndexedDB Storage Foundation** - Complete IndexedDB-only architecture with 877-line async storage helper, comprehensive error handling, and zero localStorage fallbacks
+- ✅ **IndexedDB Storage Foundation** - Complete IndexedDB-only architecture with 877-line async storage helper, comprehensive error handling, and zero localStorage fallbacks (completed September 30, 2025)
+- ✅ **Linked Entity Resolution** - Live entity name resolution for teams/seasons/tournaments (completed October 5, 2025)
 
 ### 🚧 **In Active Development**
 
-#### Enhanced User Experience
-- 🚧 **Adaptive Start Screen** - Context-aware initial user experience
-- 🚧 **First-Game Onboarding** - Guided setup for new users
-- 🚧 **Advanced Help System** - Comprehensive in-app guidance
+#### Production Readiness (Current Focus)
+- 🚧 **Security Headers & CSP** - Content Security Policy implementation (P1)
+- 🚧 **Service Worker Hardening** - Versioned caching, offline optimization (P1)
+- 🚧 **PWA Packaging** - Play Store preparation, TWA build (P2)
+- 🚧 **Quality Gates** - E2E testing, accessibility audits (P3)
 
-#### Data & Analytics Enhancements  
-- 🚧 **External Game Integration** - Import games from other sources
-- 🚧 **Advanced Statistics** - More sophisticated analytics and insights
-- 🚧 **Bulk Data Operations** - Mass import/export capabilities
+#### Planned Features (Ready for Implementation)
+- 📋 **Team Final Position Tracking** - Record tournament/season standings (6-8 hours)
+- 📋 **Personnel Management** - Coach and staff management system (8-10 hours)
 
-#### System Improvements
-- 🚧 **Performance Optimization** - Continued performance tuning
-- 🚧 **Enhanced Testing** - Expanding test coverage and E2E testing
-- 🚧 **Accessibility Improvements** - WCAG 2.1 AA compliance enhancements
+#### Enhanced User Experience (Backlog)
+- 📅 **Adaptive Start Screen** - Context-aware initial user experience
+- 📅 **First-Game Onboarding** - Guided setup for new users
+- 📅 **Advanced Help System** - Comprehensive in-app guidance
 
 ### 📋 **Planned Features**
 
@@ -118,10 +119,16 @@ MatchOps-Local is in **active beta** with core functionality complete and stable
 ## Deployment Readiness
 
 ### Production Use
-✅ **Ready for Production** - Core functionality stable for coaching use  
-✅ **Data Safety** - Robust backup and recovery systems tested  
-✅ **Performance** - Optimized for real-world coaching scenarios  
-✅ **Security** - Privacy-first design with no external dependencies  
+🚧 **Production Hardening in Progress** (35% complete)
+- ✅ Core functionality stable and tested
+- ✅ Data safety with robust backup/recovery
+- ✅ IndexedDB storage foundation complete
+- 🚧 Security headers and CSP (P1 - next phase)
+- 🚧 Service worker optimization (P1)
+- 📅 Play Store packaging (P2)
+- 📅 Quality gates and accessibility (P3)
+
+**Est. Time to Play Store**: 35-50 hours remaining  
 
 ### Self-Hosting Requirements
 - **Server**: Static file hosting (Vercel, Netlify, Apache, Nginx)

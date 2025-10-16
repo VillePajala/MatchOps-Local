@@ -25,7 +25,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
   disabled,
 }) => {
   return (
-    <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+    <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-slate-200">{title}</h3>
         <div className="text-sm text-slate-400">

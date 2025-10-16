@@ -4,8 +4,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom';
 import NewGameSetupModal from './NewGameSetupModal';
 import { getLastHomeTeamName, saveLastHomeTeamName } from '@/utils/appSettings';
-import type { UseMutationResult } from '@tanstack/react-query';
-import type { Season, Tournament } from '@/types';
+import { ToastProvider } from '@/contexts/ToastProvider';
 
 // Mock the utility functions
 jest.mock('@/utils/appSettings', () => ({
@@ -25,13 +24,6 @@ const translations: { [key: string]: string } = {
   'newGameSetupModal.playersHeader': 'Select Players',
   'newGameSetupModal.playersSelected': 'selected',
   'newGameSetupModal.selectAll': 'Select All',
-  'newGameSetupModal.seasonLabel': 'Season:',
-  'newGameSetupModal.tournamentLabel': 'Tournament:',
-  'newGameSetupModal.createSeason': 'Create new season',
-  'newGameSetupModal.createTournament': 'Create new tournament',
-  'newGameSetupModal.addSeasonPlaceholder': 'Enter new season name...',
-  'newGameSetupModal.addTournamentPlaceholder': 'Enter new tournament name...',
-  'common.add': 'Add',
   'common.cancel': 'Cancel',
   'newGameSetupModal.confirmButton': 'Confirm & Start Game',
   'newGameSetupModal.errorHomeTeamRequired': 'Home Team Name is required.',
@@ -71,18 +63,6 @@ describe('NewGameSetupModal', () => {
   const mockOnStart = jest.fn();
   const mockOnCancel = jest.fn();
 
-  const mockAddSeasonMutation = {
-    mutate: jest.fn(),
-    mutateAsync: jest.fn(),
-    isPending: false, isError: false, isIdle: true, isSuccess: false, error: null, data: undefined, reset: jest.fn(), variables: undefined, status: 'idle' as const, failureCount: 0, failureReason: null, context: undefined, isPaused: false, submittedAt: 0,
-  } as any;
-  
-  const mockAddTournamentMutation = {
-    mutate: jest.fn(),
-    mutateAsync: jest.fn(),
-    isPending: false, isError: false, isIdle: true, isSuccess: false, error: null, data: undefined, reset: jest.fn(), variables: undefined, status: 'idle' as const, failureCount: 0, failureReason: null, context: undefined, isPaused: false, submittedAt: 0,
-  } as any;
-
   const mockSeasonsData = [{ id: 'season1', name: 'Spring 2024' }, { id: 'season2', name: 'Summer 2024' }];
   const mockTournamentsData = [{ id: 'tournament1', name: 'City Cup' }, { id: 'tournament2', name: 'Regional Tournament' }];
   const mockPlayersData = [{ id: 'player1', name: 'John Doe', jerseyNumber: '10' },{ id: 'player2', name: 'Jane Smith', jerseyNumber: '7' }];
@@ -93,9 +73,6 @@ describe('NewGameSetupModal', () => {
 
   const defaultProps = {
     isOpen: true, initialPlayerSelection: ['player1', 'player2'], onStart: mockOnStart, onCancel: mockOnCancel,
-    addSeasonMutation: mockAddSeasonMutation as UseMutationResult<Season | null, Error, { name: string }, unknown>,
-    addTournamentMutation: mockAddTournamentMutation as UseMutationResult<Tournament | null, Error, { name: string }, unknown>,
-    isAddingSeason: false, isAddingTournament: false,
     demandFactor: 1,
     onDemandFactorChange: jest.fn(),
     masterRoster: mockPlayersData,
@@ -110,13 +87,14 @@ describe('NewGameSetupModal', () => {
 
     (getLastHomeTeamName as jest.Mock).mockResolvedValue('Last Team');
     (saveLastHomeTeamName as jest.Mock).mockResolvedValue(true);
-
-    (mockAddSeasonMutation.mutateAsync as jest.Mock).mockImplementation(async ({ name }) => ({ id: `new-${name}`, name }));
-    (mockAddTournamentMutation.mutateAsync as jest.Mock).mockImplementation(async ({ name }) => ({ id: `new-${name}`, name }));
   });
 
   const renderModal = () => {
-    render(<NewGameSetupModal {...defaultProps} />);
+    render(
+      <ToastProvider>
+        <NewGameSetupModal {...defaultProps} />
+      </ToastProvider>
+    );
   };
 
   test('loads the last home team name from appSettings utility and populates input', async () => {
@@ -129,10 +107,30 @@ describe('NewGameSetupModal', () => {
     });
   });
 
-  test('renders seasons and tournaments from props', async () => {
+  test('renders seasons and tournaments from props in tab-based UI', async () => {
     renderModal();
-    expect(screen.getByText('Spring 2024')).toBeInTheDocument();
-    expect(screen.getByText('City Cup')).toBeInTheDocument();
+
+    // Seasons are hidden until the "Season" tab is clicked
+    const seasonTab = screen.getByRole('button', { name: /Season/i });
+    await act(async () => {
+      fireEvent.click(seasonTab);
+    });
+
+    // Now season dropdown should be visible with options
+    await waitFor(() => {
+      expect(screen.getByText('Spring 2024')).toBeInTheDocument();
+    });
+
+    // Switch to tournament tab
+    const tournamentTab = screen.getByRole('button', { name: /Tournament/i });
+    await act(async () => {
+      fireEvent.click(tournamentTab);
+    });
+
+    // Now tournament dropdown should be visible with options
+    await waitFor(() => {
+      expect(screen.getByText('City Cup')).toBeInTheDocument();
+    });
   });
 
   test('saves last home team name using utility function on start', async () => {
@@ -166,39 +164,9 @@ describe('NewGameSetupModal', () => {
     );
   });
 
-  test('adds a new season using utility function', async () => {
-    renderModal();
-    
-    await act(async () => {
-        fireEvent.click(screen.getByTitle('Create new season'));
-    });
-    
-    const seasonNameInput = screen.getByPlaceholderText('Enter new season name...');
-    fireEvent.change(seasonNameInput, { target: { value: 'Fall 2024' } });
-    
-    await act(async () => {
-        fireEvent.click(screen.getByText('Add'));
-    });
-
-    await waitFor(() => expect(mockAddSeasonMutation.mutateAsync).toHaveBeenCalledWith({ name: 'Fall 2024' }));
-  });
-
-  test('adds a new tournament using utility function', async () => {
-    renderModal();
-
-    await act(async () => {
-        fireEvent.click(screen.getByTitle('Create new tournament'));
-    });
-
-    const tournamentNameInput = screen.getByPlaceholderText('Enter new tournament name...');
-    fireEvent.change(tournamentNameInput, { target: { value: 'National Cup' } });
-
-    await act(async () => {
-        fireEvent.click(screen.getByText('Add'));
-    });
-    
-    await waitFor(() => expect(mockAddTournamentMutation.mutateAsync).toHaveBeenCalledWith({ name: 'National Cup' }));
-  });
+  // Tests for inline season/tournament creation removed as this functionality
+  // was replaced with tab-based UI. Seasons and tournaments should now be created
+  // in the SeasonTournamentManagementModal.
 
   test('passes isPlayed false when not played toggle checked', async () => {
     renderModal();
@@ -241,16 +209,15 @@ describe('NewGameSetupModal', () => {
     fireEvent.change(homeTeamInput, { target: { value: '' } });
     const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
     fireEvent.change(opponentInput, { target: { value: 'Opponent Team' } });
-    window.alert = jest.fn();
     const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
-    
+
     await act(async () => {
         fireEvent.click(startButton);
     });
 
     await waitFor(() => {
-      // Use translation key for alert message
-      expect(window.alert).toHaveBeenCalledWith(translations['newGameSetupModal.errorHomeTeamRequired']);
+      // Check for toast message
+      expect(screen.getByText('Home Team Name is required.')).toBeInTheDocument();
     });
     expect(saveLastHomeTeamName).not.toHaveBeenCalled();
     expect(mockOnStart).not.toHaveBeenCalled();

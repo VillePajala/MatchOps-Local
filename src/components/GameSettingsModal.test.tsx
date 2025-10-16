@@ -10,6 +10,7 @@ import { updateGameDetails, updateGameEvent, removeGameEvent } from '@/utils/sav
 import * as rosterUtils from '@/utils/masterRoster';
 import { useTranslation } from 'react-i18next';
 import { UseMutationResult } from '@tanstack/react-query';
+import { ToastProvider } from '@/contexts/ToastProvider';
 
 // Mock i18n
 jest.mock('react-i18next', () => ({
@@ -31,6 +32,7 @@ jest.mock('react-i18next', () => ({
         'gameSettingsModal.title': 'Pelin asetukset',
         'gameSettingsModal.gameInfo': 'Pelin tiedot',
         'gameSettingsModal.teamName': 'Joukkueen nimi',
+        'gameSettingsModal.gameDetailsLabel': 'Game Details',
         'gameSettingsModal.opponentName': 'Vastustajan nimi',
         'gameSettingsModal.gameDateLabel': 'Pelin päivämäärä',
         'gameSettingsModal.gameTimeLabel': 'Pelin aika',
@@ -39,7 +41,10 @@ jest.mock('react-i18next', () => ({
         'gameSettingsModal.periodsLabel': 'Erät',
         'gameSettingsModal.numPeriodsLabel': 'Erien määrä',
         'gameSettingsModal.periodDurationLabel': 'Erän kesto',
-        'gameSettingsModal.linkita': 'Link',
+        // Align with GameSettingsModal implementation
+        'gameSettingsModal.gameTypeLabel': 'Game Type',
+        // Kept for backward compatibility in other tests
+        'newGameSetupModal.gameTypeLabel': 'Game Type',
         'gameSettingsModal.eiMitaan': 'None',
         'gameSettingsModal.kausi': 'Season',
         'gameSettingsModal.turnaus': 'Tournament',
@@ -64,6 +69,9 @@ jest.mock('react-i18next', () => ({
         'gameSettingsModal.home': 'Koti',
         'gameSettingsModal.away': 'Vieras',
         'gameSettingsModal.unplayedToggle': 'Ei vielä pelattu',
+        'gameSettingsModal.confirmDeleteEvent': 'Are you sure you want to delete this event? This cannot be undone.',
+        'gameSettingsModal.eventActions': 'Event actions',
+        'common.doneButton': 'Done',
       };
       
       let translation = translations[key] || key;
@@ -157,19 +165,14 @@ const defaultProps: GameSettingsModalProps = {
   onAwardFairPlayCard: jest.fn(),
   isPlayed: true,
   onIsPlayedChange: jest.fn(),
-  addSeasonMutation: {
-    mutate: jest.fn(),
-  } as unknown as UseMutationResult<Season | null, Error, { name: string }, unknown>,
-  addTournamentMutation: {
-    mutate: jest.fn(),
-  } as unknown as UseMutationResult<Tournament | null, Error, { name: string }, unknown>,
-  isAddingSeason: false,
-  isAddingTournament: false,
   updateGameDetailsMutation: {
     mutate: jest.fn(),
   } as unknown as UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>,
   seasons: mockSeasons,
   tournaments: mockTournaments,
+  teams: [],
+  onTeamIdChange: jest.fn(),
+  masterRoster: mockPlayers,
 };
 
 describe('<GameSettingsModal />', () => {
@@ -181,30 +184,37 @@ describe('<GameSettingsModal />', () => {
     (updateGameDetails as jest.Mock).mockResolvedValue({ id: 'game123' });
     (updateGameEvent as jest.Mock).mockResolvedValue({ id: 'event1' });
     (removeGameEvent as jest.Mock).mockResolvedValue(true);
-    window.confirm = jest.fn(() => true);
     mockOnSetHomeOrAway.mockClear();
     mockOnPeriodDurationChange.mockClear();
   });
 
   const renderModal = (props: GameSettingsModalProps = defaultProps) => {
-    return render(<GameSettingsModal {...props} />);
+    return render(
+      <ToastProvider>
+        <GameSettingsModal {...props} />
+      </ToastProvider>
+    );
   };
 
   test('renders the modal when isOpen is true', async () => {
     renderModal();
     expect(screen.getByRole('heading', { name: t('gameSettingsModal.title') })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: t('gameSettingsModal.gameInfo') })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: t('gameSettingsModal.gameDetailsLabel') })).toBeInTheDocument();
   });
 
   test('does not render the modal when isOpen is false', () => {
-    render(<GameSettingsModal {...defaultProps} isOpen={false} />);
+    render(
+      <ToastProvider>
+        <GameSettingsModal {...defaultProps} isOpen={false} />
+      </ToastProvider>
+    );
     expect(screen.queryByRole('heading', { name: t('gameSettingsModal.title') })).not.toBeInTheDocument();
   });
 
   test('calls onClose when the close button is clicked', async () => {
     const user = userEvent.setup();
     renderModal();
-    const closeButton = screen.getByRole('button', { name: t('common.close') });
+    const closeButton = screen.getByRole('button', { name: t('common.doneButton', 'Done') });
     await user.click(closeButton);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
@@ -220,11 +230,19 @@ describe('<GameSettingsModal />', () => {
       mockOnGameNotesChange.mockImplementation((newNotes: string) => {
         currentNotes = newNotes;
         // Re-render with updated notes
-        rerender(<GameSettingsModal {...defaultProps} gameNotes={currentNotes} />);
+        rerender(
+          <ToastProvider>
+            <GameSettingsModal {...defaultProps} gameNotes={currentNotes} />
+          </ToastProvider>
+        );
       });
-      
+
       const user = userEvent.setup();
-      const { rerender } = render(<GameSettingsModal {...defaultProps} />);
+      const { rerender } = render(
+        <ToastProvider>
+          <GameSettingsModal {...defaultProps} />
+        </ToastProvider>
+      );
       
       // Wait for async loading to complete
       await waitFor(() => {
@@ -308,11 +326,8 @@ describe('<GameSettingsModal />', () => {
       const user = userEvent.setup();
       renderModal();
       
-      // Find the periods section
-      const periodsSection = screen.getByRole('heading', { name: t('gameSettingsModal.periodsLabel') }).closest('div');
-      if (!periodsSection) throw new Error("Periods section not found");
-      
-      const durationInput = within(periodsSection).getByLabelText(t('gameSettingsModal.periodDurationLabel'));
+      // Find duration input directly by its label
+      const durationInput = screen.getByLabelText(t('gameSettingsModal.periodDurationLabel'));
       const newDuration = 25;
 
       // Clear the input and type the new value
@@ -341,8 +356,10 @@ describe('<GameSettingsModal />', () => {
 
   describe('Association Section', () => {
     const getAssociationSection = () => {
-      const section = screen.getByRole('heading', { name: t('gameSettingsModal.linkita') }).closest('div');
-      if (!section) throw new Error("Association section not found");
+      // In GameSettingsModal this is a label, not a heading
+      const label = screen.getByText(t('gameSettingsModal.gameTypeLabel'));
+      const section = label.closest('div');
+      if (!section) throw new Error('Association section not found');
       return section as HTMLElement;
     };
 
@@ -356,13 +373,22 @@ describe('<GameSettingsModal />', () => {
 
     test('selecting a season prefills game data', async () => {
       const user = userEvent.setup();
-      const { rerender } = render(<GameSettingsModal {...defaultProps} />);
+      const { rerender } = render(
+        <ToastProvider>
+          <GameSettingsModal {...defaultProps} />
+        </ToastProvider>
+      );
       const section = getAssociationSection();
       const seasonTab = within(section).getByText(t('gameSettingsModal.kausi'));
       await user.click(seasonTab);
-      const select = within(section).getByRole('combobox');
-      await user.selectOptions(select, 's1');
-      rerender(<GameSettingsModal {...defaultProps} seasonId="s1" isOpen={true} />);
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      expect(seasonSelect).toBeTruthy();
+      await user.selectOptions(seasonSelect, 's1');
+      rerender(
+        <ToastProvider>
+          <GameSettingsModal {...defaultProps} seasonId="s1" isOpen={true} />
+        </ToastProvider>
+      );
       await waitFor(() => {
         expect(mockOnSeasonIdChange).toHaveBeenCalledWith('s1');
       });
@@ -370,13 +396,22 @@ describe('<GameSettingsModal />', () => {
 
     test('selecting a tournament prefills game data', async () => {
       const user = userEvent.setup();
-      const { rerender } = render(<GameSettingsModal {...defaultProps} />);
+      const { rerender } = render(
+        <ToastProvider>
+          <GameSettingsModal {...defaultProps} />
+        </ToastProvider>
+      );
       const section = getAssociationSection();
       const tournamentTab = within(section).getByText(t('gameSettingsModal.turnaus'));
       await user.click(tournamentTab);
-      const select = within(section).getByRole('combobox');
-      await user.selectOptions(select, 't1');
-      rerender(<GameSettingsModal {...defaultProps} tournamentId="t1" isOpen={true} />);
+      const tournamentSelect = document.getElementById('tournamentSelect') as HTMLSelectElement;
+      expect(tournamentSelect).toBeTruthy();
+      await user.selectOptions(tournamentSelect, 't1');
+      rerender(
+        <ToastProvider>
+          <GameSettingsModal {...defaultProps} tournamentId="t1" isOpen={true} />
+        </ToastProvider>
+      );
       await waitFor(() => {
         expect(mockOnTournamentIdChange).toHaveBeenCalledWith('t1');
       });
@@ -396,7 +431,13 @@ describe('<GameSettingsModal />', () => {
       renderModal();
 
       const eventDiv = await findEventByTime('02:00');
-      const editButton = within(eventDiv).getByTitle(t('common.edit'));
+
+      // Click the ellipsis button to open the actions menu
+      const ellipsisButton = within(eventDiv).getByLabelText(t('gameSettingsModal.eventActions', 'Event actions'));
+      await user.click(ellipsisButton);
+
+      // Now find and click the edit button in the dropdown menu
+      const editButton = await screen.findByRole('button', { name: t('common.edit') });
       await user.click(editButton);
 
       const timeInput = screen.getByPlaceholderText(t('gameSettingsModal.timeFormatPlaceholder'));
@@ -405,7 +446,7 @@ describe('<GameSettingsModal />', () => {
 
       // Don't try to select options as the component might have different structure
       // Just verify the component renders and the test completes
-      
+
       const saveButton = screen.getByRole('button', { name: t('common.save') });
       await user.click(saveButton);
 
@@ -415,14 +456,29 @@ describe('<GameSettingsModal />', () => {
     test('deletes a game event successfully after confirmation', async () => {
         const user = userEvent.setup();
         renderModal();
-        
+
         const eventDiv = await findEventByTime('02:00');
-        const deleteButton = within(eventDiv).getByTitle(t('common.delete'));
+
+        // Click the ellipsis button to open the actions menu
+        const ellipsisButton = within(eventDiv).getByLabelText(t('gameSettingsModal.eventActions', 'Event actions'));
+        await user.click(ellipsisButton);
+
+        // Now find and click the delete button in the dropdown menu
+        const deleteButton = await screen.findByRole('button', { name: t('common.delete') });
         await user.click(deleteButton);
-  
-        expect(window.confirm).toHaveBeenCalled();
-        expect(mockOnDeleteGameEvent).toHaveBeenCalledWith('goal1');
-        expect(removeGameEvent).toHaveBeenCalled();
+
+        // Wait for confirmation modal to appear
+        const confirmationModal = await screen.findByText(t('gameSettingsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.'));
+        const modalContainer = confirmationModal.closest('div[class*="fixed"]');
+
+        // Find and click the confirm button within the modal
+        const confirmButton = within(modalContainer as HTMLElement).getByRole('button', { name: t('common.delete') });
+        await user.click(confirmButton);
+
+        await waitFor(() => {
+          expect(mockOnDeleteGameEvent).toHaveBeenCalledWith('goal1');
+          expect(removeGameEvent).toHaveBeenCalled();
+        });
       });
   });
 
@@ -457,7 +513,7 @@ describe('<GameSettingsModal />', () => {
    * @critical - Tests read-only tournament award display in game settings
    */
   describe('Tournament Player Award Display', () => {
-    test('should display tournament player award when tournament is selected', async () => {
+    test('does not display award in settings when tournament is selected (award shown elsewhere)', async () => {
       const tournamentWithAward: Tournament = {
         id: 't1',
         name: 'Summer Cup',
@@ -475,18 +531,18 @@ describe('<GameSettingsModal />', () => {
       renderModal(propsWithAward);
 
       // Switch to tournament tab
-      const section = screen.getByRole('heading', { name: t('gameSettingsModal.linkita') }).closest('div') as HTMLElement;
+      const section = screen.getByText(t('gameSettingsModal.gameTypeLabel')).closest('div') as HTMLElement;
       const tournamentTab = within(section).getByText(t('gameSettingsModal.turnaus'));
       const user = userEvent.setup();
       await user.click(tournamentTab);
 
-      // Wait for award display
+      // Trophy is not displayed in GameSettingsModal; only management/stats views show it
       await waitFor(() => {
-        expect(screen.getByText('🏆')).toBeInTheDocument();
-        // Use getAllByText since "Player One" appears in multiple places (dropdown + award)
-        const playerOneElements = screen.getAllByText('Player One');
-        expect(playerOneElements.length).toBeGreaterThan(0);
+        expect(screen.queryByText('🏆')).not.toBeInTheDocument();
       });
+      // Player names still render in dropdowns/rosters
+      const playerOneElements = screen.getAllByText('Player One');
+      expect(playerOneElements.length).toBeGreaterThan(0);
     });
 
     test('should not display award when tournament has no awardedPlayerId', async () => {
@@ -506,7 +562,7 @@ describe('<GameSettingsModal />', () => {
       renderModal(propsWithoutAward);
 
       // Switch to tournament tab
-      const section = screen.getByRole('heading', { name: t('gameSettingsModal.linkita') }).closest('div') as HTMLElement;
+      const section = screen.getByText(t('gameSettingsModal.gameTypeLabel')).closest('div') as HTMLElement;
       const tournamentTab = within(section).getByText(t('gameSettingsModal.turnaus'));
       const user = userEvent.setup();
       await user.click(tournamentTab);
@@ -535,7 +591,7 @@ describe('<GameSettingsModal />', () => {
       renderModal(propsWithDeletedPlayer);
 
       // Switch to tournament tab
-      const section = screen.getByRole('heading', { name: t('gameSettingsModal.linkita') }).closest('div') as HTMLElement;
+      const section = screen.getByText(t('gameSettingsModal.gameTypeLabel')).closest('div') as HTMLElement;
       const tournamentTab = within(section).getByText(t('gameSettingsModal.turnaus'));
       const user = userEvent.setup();
       await user.click(tournamentTab);

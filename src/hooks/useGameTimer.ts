@@ -39,7 +39,13 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         },
       });
     } else if (state.gameStatus === 'inProgress') {
-      dispatch({ type: 'SET_TIMER_RUNNING', payload: !state.isTimerRunning });
+      // Use proper START_TIMER/PAUSE_TIMER actions instead of SET_TIMER_RUNNING
+      // to ensure startTimestamp is correctly managed
+      if (state.isTimerRunning) {
+        dispatch({ type: 'PAUSE_TIMER' });
+      } else {
+        dispatch({ type: 'START_TIMER' });
+      }
     }
   }, [dispatch, state]);
 

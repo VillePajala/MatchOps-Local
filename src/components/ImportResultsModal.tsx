@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { 
   HiOutlineCheckCircle, 
@@ -81,9 +82,9 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={handleBackdropClick}>
-      <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto" role="dialog" aria-modal="true">
-        <div className="flex items-center justify-between p-6 border-b">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" onClick={handleBackdropClick}>
+      <div className="bg-slate-800 rounded-lg border border-slate-600 shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto text-slate-100" role="dialog" aria-modal="true">
+        <div className="flex items-center justify-between p-6 border-b border-slate-700/50 bg-slate-900/20 backdrop-blur-sm">
           <div className="flex items-center space-x-3">
             {getStatusIcon()}
             <h2 className={`text-xl font-semibold ${getStatusColor()}`}>
@@ -92,7 +93,7 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-slate-300 hover:text-slate-100 transition-colors"
             disabled={isImporting}
           >
             <HiOutlineXMark className="w-6 h-6" />
@@ -102,44 +103,44 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
         <div className="p-6">
           {isImporting ? (
             <div className="text-center py-8">
-              <p className="text-gray-600 mb-4">{t('importResults.processing')}</p>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-blue-500 h-2 rounded-full animate-pulse w-1/2"></div>
+              <p className="text-slate-300 mb-4">{t('importResults.processing')}</p>
+              <div className="w-full bg-slate-700 rounded-full h-2">
+                <div className="bg-indigo-500 h-2 rounded-full animate-pulse w-1/2"></div>
               </div>
             </div>
           ) : importResult ? (
             <div className="space-y-6">
               {/* Summary Statistics */}
-              <div className="bg-gray-50 rounded-lg p-4">
+              <div className="bg-slate-900/40 border border-slate-700/50 rounded-lg p-4">
                 <h3 className="text-lg font-medium mb-3">{t('importResults.summary')}</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                  <div className="bg-white rounded p-3">
-                    <div className="text-2xl font-bold text-green-600">{importResult.successful}</div>
-                    <div className="text-sm text-gray-600">{t('importResults.successful')}</div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center text-slate-200">
+                  <div className="bg-slate-800/60 border border-slate-700 rounded p-3">
+                    <div className="text-2xl font-bold text-green-400">{importResult.successful}</div>
+                    <div className="text-sm text-slate-400">{t('importResults.successful')}</div>
                   </div>
-                  <div className="bg-white rounded p-3">
-                    <div className="text-2xl font-bold text-blue-600">{importResult.skipped}</div>
-                    <div className="text-sm text-gray-600">{t('importResults.skipped')}</div>
+                  <div className="bg-slate-800/60 border border-slate-700 rounded p-3">
+                    <div className="text-2xl font-bold text-indigo-400">{importResult.skipped}</div>
+                    <div className="text-sm text-slate-400">{t('importResults.skipped')}</div>
                   </div>
-                  <div className="bg-white rounded p-3">
-                    <div className="text-2xl font-bold text-red-600">{importResult.failed.length}</div>
-                    <div className="text-sm text-gray-600">{t('importResults.failed')}</div>
+                  <div className="bg-slate-800/60 border border-slate-700 rounded p-3">
+                    <div className="text-2xl font-bold text-red-400">{importResult.failed.length}</div>
+                    <div className="text-sm text-slate-400">{t('importResults.failed')}</div>
                   </div>
-                  <div className="bg-white rounded p-3">
-                    <div className="text-2xl font-bold text-gray-600">{getSuccessRate()}%</div>
-                    <div className="text-sm text-gray-600">{t('importResults.successRate')}</div>
+                  <div className="bg-slate-800/60 border border-slate-700 rounded p-3">
+                    <div className="text-2xl font-bold text-slate-300">{getSuccessRate()}%</div>
+                    <div className="text-sm text-slate-400">{t('importResults.successRate')}</div>
                   </div>
                 </div>
               </div>
 
               {/* Progress Bar */}
-              <div className="w-full bg-gray-200 rounded-full h-3">
+              <div className="w-full bg-slate-700 rounded-full h-3">
                 <div
                   className="bg-green-500 h-3 rounded-l-full"
                   style={{ width: `${(importResult.successful / getTotalProcessed()) * 100}%` }}
                 ></div>
                 <div
-                  className="bg-blue-500 h-3"
+                  className="bg-indigo-500 h-3"
                   style={{ 
                     width: `${(importResult.skipped / getTotalProcessed()) * 100}%`,
                     marginLeft: `${(importResult.successful / getTotalProcessed()) * 100}%`
@@ -156,14 +157,14 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
 
               {/* Warnings */}
               {importResult.warnings.length > 0 && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="bg-amber-900/20 border border-amber-600/30 rounded-lg p-4">
                   <div className="flex items-start space-x-2">
-                    <HiOutlineExclamationTriangle className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                    <HiOutlineExclamationTriangle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
                     <div>
-                      <h4 className="text-yellow-800 font-medium mb-2">{t('importResults.warnings')}</h4>
+                      <h4 className="text-amber-300 font-medium mb-2">{t('importResults.warnings')}</h4>
                       <ul className="space-y-1">
                         {importResult.warnings.map((warning, index) => (
-                          <li key={index} className="text-yellow-700 text-sm">
+                          <li key={index} className="text-amber-200 text-sm">
                             • {warning}
                           </li>
                         ))}
@@ -175,18 +176,18 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
 
               {/* Failed Imports */}
               {importResult.failed.length > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="bg-red-900/20 border border-red-600/30 rounded-lg p-4">
                   <div className="flex items-start space-x-2">
-                    <HiOutlineXCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    <HiOutlineXCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
-                      <h4 className="text-red-800 font-medium mb-2">
+                      <h4 className="text-red-300 font-medium mb-2">
                         {t('importResults.failedImports')} ({importResult.failed.length})
                       </h4>
                       <div className="space-y-2 max-h-48 overflow-y-auto">
                         {importResult.failed.map((failure, index) => (
-                          <div key={index} className="text-sm bg-white rounded p-2 border border-red-100">
-                            <div className="font-medium text-red-800">{failure.gameId}</div>
-                            <div className="text-red-600">{failure.error}</div>
+                          <div key={index} className="text-sm bg-slate-800/60 rounded p-2 border border-red-600/20">
+                            <div className="font-medium text-red-300">{failure.gameId}</div>
+                            <div className="text-red-400">{failure.error}</div>
                           </div>
                         ))}
                       </div>
@@ -197,10 +198,10 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
 
               {/* Success Message */}
               {importResult.failed.length === 0 && importResult.successful > 0 && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="bg-green-900/20 border border-green-600/30 rounded-lg p-4">
                   <div className="flex items-center space-x-2">
-                    <HiOutlineCheckCircle className="w-5 h-5 text-green-500" />
-                    <p className="text-green-800">
+                    <HiOutlineCheckCircle className="w-5 h-5 text-green-400" />
+                    <p className="text-green-200">
                       {t('importResults.successMessage', { 
                         count: importResult.successful,
                         skipped: importResult.skipped 
@@ -212,21 +213,17 @@ const ImportResultsModal: React.FC<ImportResultsModalProps> = ({
             </div>
           ) : (
             <div className="text-center py-8">
-              <HiOutlineInformationCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">{t('importResults.noResults')}</p>
+              <HiOutlineInformationCircle className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+              <p className="text-slate-300">{t('importResults.noResults')}</p>
             </div>
           )}
         </div>
 
-        <div className="border-t p-4 flex justify-end">
-          <button
-            onClick={onClose}
-            disabled={isImporting}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-          >
-            {isImporting ? t('common.processing') : t('common.close')}
+        <ModalFooter>
+          <button onClick={onClose} disabled={isImporting} className={primaryButtonStyle}>
+            {isImporting ? t('common.processing', 'Processing...') : t('common.doneButton', 'Done')}
           </button>
-        </div>
+        </ModalFooter>
       </div>
     </div>
   );

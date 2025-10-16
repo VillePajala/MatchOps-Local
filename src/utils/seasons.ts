@@ -1,5 +1,6 @@
-import { SEASONS_LIST_KEY } from '@/config/storageKeys';
+import { SEASONS_LIST_KEY, SAVED_GAMES_KEY } from '@/config/storageKeys';
 import type { Season } from '@/types'; // Import Season type from shared types
+import type { AppState } from '@/types/game';
 import logger from '@/utils/logger';
 import { getStorageItem, setStorageItem } from '@/utils/storage';
 import { withKeyLock } from './storageKeyLock';
@@ -148,4 +149,30 @@ export const deleteSeason = async (seasonId: string): Promise<boolean> => {
       return Promise.resolve(false);
     }
   });
+};
+
+/**
+ * Count games associated with a season (for deletion impact analysis).
+ * @param seasonId - The ID of the season to count games for.
+ * @returns A promise that resolves to the number of games associated with this season.
+ */
+export const countGamesForSeason = async (seasonId: string): Promise<number> => {
+  try {
+    const savedGamesJson = await getStorageItem(SAVED_GAMES_KEY);
+    if (!savedGamesJson) return 0;
+
+    const savedGames = JSON.parse(savedGamesJson);
+    let count = 0;
+
+    for (const gameState of Object.values(savedGames)) {
+      if ((gameState as AppState).seasonId === seasonId) {
+        count++;
+      }
+    }
+
+    return count;
+  } catch (error) {
+    logger.warn('Failed to count games for season, returning 0', { seasonId, error });
+    return 0;
+  }
 }; 

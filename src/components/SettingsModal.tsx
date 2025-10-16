@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '@/utils/bytes';
 import packageJson from '../../package.json';
@@ -8,6 +9,8 @@ import { HiOutlineDocumentArrowDown, HiOutlineDocumentArrowUp, HiOutlineChartBar
 import { importFullBackup } from '@/utils/fullBackup';
 import { useGameImport } from '@/hooks/useGameImport';
 import ImportResultsModal from './ImportResultsModal';
+import ConfirmationModal from './ConfirmationModal';
+import { ModalFooter } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { validateSeasonMonths } from '@/utils/clubSeason';
@@ -38,6 +41,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onDataImportSuccess,
 }) => {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const [teamName, setTeamName] = useState(defaultTeamName);
   const [resetConfirm, setResetConfirm] = useState('');
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
@@ -48,6 +52,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [clubSeasonStartMonth, setClubSeasonStartMonth] = useState<number>(10);
   const [clubSeasonEndMonth, setClubSeasonEndMonth] = useState<number>(5);
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
+  const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
+  const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+  const [pendingRestoreContent, setPendingRestoreContent] = useState<string | null>(null);
 
   useEffect(() => {
     setTeamName(defaultTeamName);
@@ -96,14 +104,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     reader.onload = (e) => {
       const jsonContent = e.target?.result as string;
       if (jsonContent) {
-        importFullBackup(jsonContent, onDataImportSuccess);
+        setPendingRestoreContent(jsonContent);
+        setShowRestoreConfirm(true);
       } else {
-        alert(t('settingsModal.importReadError', 'Error reading file content.'));
+        showToast(t('settingsModal.importReadError', 'Error reading file content.'), 'error');
       }
     };
-    reader.onerror = () => alert(t('settingsModal.importReadError', 'Error reading file content.'));
+    reader.onerror = () => showToast(t('settingsModal.importReadError', 'Error reading file content.'), 'error');
     reader.readAsText(file);
     event.target.value = '';
+  };
+
+  const handleRestoreConfirmed = () => {
+    if (pendingRestoreContent) {
+      importFullBackup(pendingRestoreContent, onDataImportSuccess, showToast, true);
+    }
+    setShowRestoreConfirm(false);
+    setPendingRestoreContent(null);
   };
 
   const handleGameImportFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -120,7 +137,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         logger.error('Game import issues:', { warnings: result.warnings, failed: result.failed });
       }
     } catch (error) {
-      alert(t('settingsModal.gameImportError', 'Error importing games: ') + (error instanceof Error ? error.message : 'Unknown error'));
+      showToast(t('settingsModal.gameImportError', 'Error importing games: ') + (error instanceof Error ? error.message : 'Unknown error'), 'error');
     }
 
     event.target.value = '';
@@ -167,29 +184,35 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
           if (registration.waiting) {
             logger.log('[PWA] Update found! Waiting worker detected');
-            const result = confirm(t('settingsModal.updateAvailableConfirm', 'Update available! Click OK to reload now, or Cancel to update later.'));
-            if (result) {
-              registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-              window.location.reload();
-            }
+            setUpdateRegistration(registration);
+            setShowUpdateConfirm(true);
           } else if (registration.installing) {
             logger.log('[PWA] Update installing... please wait');
-            alert(t('settingsModal.updateInstalling', 'Update is installing... Please wait a moment and check again.'));
+            showToast(t('settingsModal.updateInstalling', 'Update is installing... Please wait a moment and check again.'), 'info');
           } else {
             logger.log('[PWA] No update available - app is up to date');
-            alert(t('settingsModal.upToDate', 'App is up to date!'));
+            showToast(t('settingsModal.upToDate', 'App is up to date!'), 'success');
           }
         } else {
           logger.error('[PWA] No service worker registration found');
-          alert(t('settingsModal.noServiceWorker', 'Service worker not registered'));
+          showToast(t('settingsModal.noServiceWorker', 'Service worker not registered'), 'error');
         }
       }
     } catch (error) {
       logger.error('[PWA] Manual update check failed:', error);
-      alert(t('settingsModal.updateCheckFailed', 'Failed to check for updates'));
+      showToast(t('settingsModal.updateCheckFailed', 'Failed to check for updates'), 'error');
     } finally {
       setCheckingForUpdates(false);
     }
+  };
+
+  const handleUpdateConfirmed = () => {
+    if (updateRegistration?.waiting) {
+      updateRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      window.location.reload();
+    }
+    setShowUpdateConfirm(false);
+    setUpdateRegistration(null);
   };
 
   const handleClubSeasonStartMonthChange = async (month: number) => {
@@ -251,7 +274,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             <h2 className={titleStyle}>{t('settingsModal.title', 'App Settings')}</h2>
           </div>
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
-            <div>
+            {/* General Settings */}
+            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 space-y-4">
               <label htmlFor="language-select" className={labelStyle}>{t('settingsModal.languageLabel', 'Language')}</label>
               <select
                 id="language-select"
@@ -262,8 +286,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 <option value="en">English</option>
                 <option value="fi">Suomi</option>
               </select>
-            </div>
-            <div>
+              <div>
               <label htmlFor="team-name-input" className={labelStyle}>{t('settingsModal.defaultTeamNameLabel', 'Default Team Name')}</label>
               <input
                 id="team-name-input"
@@ -273,8 +296,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 onBlur={() => onDefaultTeamNameChange(teamName)}
                 className={inputStyle}
               />
+              </div>
             </div>
-            <div className="pt-2 border-t border-slate-700/40 space-y-3">
+            {/* Club Season */}
+            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.clubSeasonTitle', 'Club Season Period')}
               </h3>
@@ -332,7 +357,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
             </div>
-            <div className="pt-2 border-t border-slate-700/40 space-y-3">
+            {/* Data Management */}
+            <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.backupTitle', 'Data Management')}
               </h3>
@@ -391,7 +417,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 )}
               </p>
             </div>
-            <div className="pt-2 border-t border-slate-700/40 space-y-2">
+            {/* About */}
+            <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.aboutTitle', 'About')}
               </h3>
@@ -420,22 +447,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                 )}
               </div>
-              <div className="space-y-1">
-                <a
-                  href="https://github.com/VillePajala/soccer-pre-game-app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-indigo-400 underline"
-                >
-                  {t('settingsModal.documentationLink', 'Documentation')}
-                </a>
-                <p className="text-sm text-slate-300">
-                  {t(
-                    'settingsModal.documentationDescription',
-                    'Read the full user guide and troubleshooting tips.'
-                  )}
-                </p>
-              </div>
+
               <div className="space-y-1">
                 <button onClick={onResetGuide} className={primaryButtonStyle}>
                   {t('settingsModal.resetGuideButton', 'Reset App Guide')}
@@ -448,7 +460,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </p>
               </div>
             </div>
-            <div className="pt-2 border-t border-slate-700/40 space-y-2">
+            {/* Danger Zone */}
+            <div className="space-y-2 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-red-300">
                 {t('settingsModal.dangerZoneTitle', 'Danger Zone')}
               </h3>
@@ -480,11 +493,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               </button>
             </div>
           </div>
-          <div className="p-4 border-t border-slate-700/20 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">
+          <ModalFooter>
             <button onClick={onClose} className={primaryButtonStyle}>
               {t('settingsModal.doneButton', 'Done')}
             </button>
-          </div>
+          </ModalFooter>
         </div>
       </div>
       
@@ -494,6 +507,37 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         onClose={() => setShowImportResults(false)}
         importResult={lastResult}
         isImporting={isImporting}
+      />
+
+      {/* Update Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showUpdateConfirm}
+        title={t('settingsModal.updateAvailableTitle', 'Update Available')}
+        message={t('settingsModal.updateAvailableConfirm', 'Update available! Click OK to reload now, or Cancel to update later.')}
+        onConfirm={handleUpdateConfirmed}
+        onCancel={() => {
+          setShowUpdateConfirm(false);
+          setUpdateRegistration(null);
+        }}
+        confirmLabel={t('common.ok', 'OK')}
+        cancelLabel={t('common.cancel', 'Cancel')}
+        variant="primary"
+      />
+
+      {/* Restore Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showRestoreConfirm}
+        title={t('fullBackup.confirmRestoreTitle', 'Restore from Backup?')}
+        message={t('fullBackup.confirmRestore', 'Are you sure you want to restore from this backup? All current data will be replaced with the backup data.')}
+        warningMessage={t('fullBackup.confirmRestoreWarning', 'This action cannot be undone. Make sure you have a current backup before proceeding.')}
+        onConfirm={handleRestoreConfirmed}
+        onCancel={() => {
+          setShowRestoreConfirm(false);
+          setPendingRestoreContent(null);
+        }}
+        confirmLabel={t('common.restore', 'Restore')}
+        cancelLabel={t('common.cancel', 'Cancel')}
+        variant="danger"
       />
     </div>
   );

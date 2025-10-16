@@ -54,19 +54,16 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
   // (Reverted) No last game meta fetching here.
 
-  // Option 1 — Brighter Indigo Buttons for stronger contrast
+  // Modal-style button classes for unified UI
   const primaryButtonStyle =
-    'w-full h-12 px-6 rounded-lg text-base font-semibold tracking-[0.02em] text-[#F8FBFF] bg-indigo-600 hover:bg-indigo-500 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ring-1 ring-inset ring-white/10 border border-white/8 shadow-[0_10px_24px_rgba(7,18,38,.45)] hover:shadow-[0_16px_36px_rgba(7,18,38,.55)] hover:-translate-y-0.5 active:translate-y-0 text-center relative before:content-[\'\'] before:absolute before:inset-0 before:rounded-lg before:pointer-events-none before:shadow-[inset_0_1px_0_rgba(255,255,255,.14)] drop-shadow-[0_1px_0_rgba(0,0,0,.35)]';
+    'w-full h-12 px-4 py-2 rounded-md text-base font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] hover:from-indigo-600 hover:to-indigo-700 hover:shadow-lg active:scale-[0.98] active:shadow-inner border border-white/10 shadow-md [box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_6px_-1px_rgba(0,0,0,0.3)]';
 
-  // Emphasized variant for primary (Continue) — slightly brighter
+  // Emphasized variant for primary (Continue/Get Started) — same style as primary
   const primaryEmphasisStyle =
-    'w-full h-12 px-6 rounded-lg text-base font-semibold tracking-[0.02em] text-[#F8FBFF] bg-indigo-500 hover:bg-indigo-400 transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ring-1 ring-inset ring-white/10 border border-white/8 shadow-[0_12px_26px_rgba(7,18,38,.5)] hover:shadow-[0_18px_38px_rgba(7,18,38,.6)] hover:-translate-y-0.5 active:translate-y-0 text-center relative before:content-[\'\'] before:absolute before:inset-0 before:rounded-lg before:pointer-events-none before:shadow-[inset_0_1px_0_rgba(255,255,255,.16)] drop-shadow-[0_1px_0_rgba(0,0,0,.35)]';
+    'w-full h-12 px-4 py-2 rounded-md text-base font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] hover:from-indigo-600 hover:to-indigo-700 hover:shadow-lg active:scale-[0.98] active:shadow-inner border border-white/10 shadow-md [box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_6px_-1px_rgba(0,0,0,0.3)]';
 
   const disabledButtonStyle =
-    'w-full h-12 px-6 rounded-lg text-base font-semibold text-slate-500 bg-[#0E1A2C] cursor-not-allowed opacity-60 text-center leading-tight border border-slate-600/40 ring-1 ring-inset ring-white/10';
-
-  const containerStyle =
-    'relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-950 text-slate-100 font-display overflow-hidden';
+    'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed text-slate-500 bg-slate-800 border border-slate-600/40';
 
   /* Commented out - was used for animated text
   const titleStyle =
@@ -108,28 +105,13 @@ const StartScreen: React.FC<StartScreenProps> = ({
   
 
   return (
-    <div className={containerStyle}>
-      {/* 1) Base slate gradient (PlayerBar colors) */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-800 to-slate-900" />
-      {/* 2) Noise texture */}
-      <div className="absolute inset-0 bg-noise-texture opacity-35" />
-      {/* 3) Animated blue aurora sweep (subtler) */}
-      <div className="absolute inset-0 pointer-events-none animate-gradient [background:linear-gradient(120deg,theme(colors.indigo.900/40),theme(colors.sky.800/35),theme(colors.cyan.800/40),theme(colors.indigo.900/40))] opacity-25" />
-      {/* 4) Subtle grid for texture (dimmed) */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.03] [background-image:linear-gradient(to_right,rgba(255,255,255,.22)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,.22)_1px,transparent_1px)] [background-size:40px_40px]" />
-      {/* 5) Corner lighting - top */}
-      <div className="absolute -inset-[50px] bg-sky-500/5 blur-3xl top-0 left-0 opacity-40" />
-      {/* 6) Corner lighting - bottom */}
-      <div className="absolute -inset-[50px] bg-cyan-600/6 blur-3xl bottom-0 right-0 opacity-35" />
-      {/* 7) Radial accent lights */}
-      <div className="pointer-events-none absolute inset-0 opacity-30 [background:radial-gradient(50%_40%_at_20%_20%,theme(colors.sky.700/20)_0%,transparent_70%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-26 [background:radial-gradient(45%_35%_at_80%_70%,theme(colors.cyan.700/18)_0%,transparent_70%)]" />
-      {/* 8) Vignette for depth */}
-      <div className="absolute inset-0 pointer-events-none [background:radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,0.3)_100%)]" />
-
-      {/* 9) Stadium light beams */}
-      <div className="stadium-beam" />
-      <div className="stadium-beam alt" />
+    <div className="relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-800 bg-noise-texture text-slate-100 font-display overflow-hidden">
+      {/* Modal-style background effects for unified feel */}
+      <div className="absolute inset-0 bg-grid-squares opacity-[0.12]" />
+      <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
+      <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
+      <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
+      <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
 
       {/* Safe container with proper bounds */}
       <div className="relative z-10 grid grid-rows-[auto_1fr] gap-y-2 sm:gap-y-3 items-center justify-items-center w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl px-4 py-6 sm:py-8 h-[calc(100dvh-2rem)] sm:h-[calc(100dvh-1rem)] min-h-0">
@@ -137,20 +119,28 @@ const StartScreen: React.FC<StartScreenProps> = ({
         {/* Title section (nudged higher) */}
         <div className="row-start-1 relative flex flex-col items-center justify-center w-full mt-[clamp(8px,3vh,24px)]">
           {/* New Logo with spotlight */}
-          <div className="relative flex items-center justify-center">
-            {/* Spotlight behind logo */}
+          <div className="relative flex flex-col items-center justify-center">
+            {/* Multi-layered subtle glow behind logo (slightly reduced) */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-[120%] h-[140%] bg-gradient-radial from-cyan-400/20 via-sky-400/10 to-transparent blur-2xl" />
+              {/* Primary amber/yellow glow - slightly smaller and lighter */}
+              <div className="absolute w-[150%] h-[170%] bg-amber-400/15 blur-[64px] rounded-full" />
+              {/* Secondary indigo glow for depth - reduced */}
+              <div className="absolute w-[170%] h-[190%] bg-indigo-500/12 blur-[84px] rounded-full" />
+              {/* Outer cyan rim for pop - reduced */}
+              <div className="absolute w-[190%] h-[210%] bg-cyan-400/8 blur-[96px] rounded-full" />
             </div>
-            {/* Logo */}
-            <Image
-              src="/logos/app-logo.png"
-              alt="MatchOps Local Logo"
-              width={600}
-              height={200}
-              priority={true}
-              className="relative h-auto w-auto max-w-[72vw] xs:max-w-[360px] sm:max-w-[420px] md:max-w-[520px] lg:max-w-[560px] max-h-[32vh] drop-shadow-2xl"
-            />
+            {/* Logo with gradient depth effect using mask */}
+            <div className="relative inline-block [filter:drop-shadow(6px_6px_12px_rgba(0,0,0,0.5))]">
+              {/* Logo - Yellow variant with gradient mask for depth */}
+              <Image
+                src="/logos/app-logo-yellow.png"
+                alt="MatchOps Local Logo"
+                width={600}
+                height={200}
+                priority={true}
+                className="relative h-auto w-auto max-w-[72vw] xs:max-w-[360px] sm:max-w-[420px] md:max-w-[520px] lg:max-w-[560px] max-h-[32vh] [mask-image:radial-gradient(circle_at_30%_30%,black_30%,rgba(0,0,0,0.6)_100%)]"
+              />
+            </div>
           </div>
         </div>
 
@@ -212,7 +202,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
         {isFirstTimeUser ? (
           /* FIRST-TIME USER: Simplified Interface */
           <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+110px)] overflow-y-auto min-h-0">
-            <div className="w-full flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(8px,4vh,28px)]">
+            <div className="relative w-full flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(8px,4vh,28px)]">
+              {/* Subtle glow behind buttons */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-[105%] h-[110%] bg-indigo-500/15 blur-[50px] rounded-3xl" />
+              </div>
               {/* Large Get Started button */}
               <button
                 className={primaryButtonStyle}
@@ -233,7 +227,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
         ) : (
           /* EXPERIENCED USER: Full-Featured Interface */
           <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+110px)] overflow-y-auto min-h-0">
-            <div className="w-full flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(8px,4vh,28px)]">
+            <div className="relative w-full flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(8px,4vh,28px)]">
+              {/* Subtle glow behind buttons */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-[105%] h-[110%] bg-indigo-500/15 blur-[50px] rounded-3xl" />
+              </div>
               {/* Continue / Jatka button */}
               <button
                 className={canResume ? primaryEmphasisStyle : disabledButtonStyle}
@@ -274,18 +272,18 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
       {/* Bottom-centered language switcher - absolutely positioned to prevent overlap */}
       <div className="absolute bottom-0 left-0 right-0 z-30 flex flex-col justify-center items-center min-h-[56px] pt-1 sm:pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+12px)] pointer-events-none">
-        <div className="flex rounded-lg bg-slate-800/90 border border-slate-700 backdrop-blur-sm overflow-hidden pointer-events-auto shadow-lg">
+        <div className="flex rounded-lg bg-slate-800/95 border border-white/20 backdrop-blur-sm overflow-hidden pointer-events-auto shadow-lg">
           <button
             aria-label={t('startScreen.languageEnglish', 'English')}
             onClick={() => setLanguage('en')}
-            className={`px-4 h-9 text-xs font-bold transition-all duration-200 ${language === 'en' ? 'bg-gradient-to-b from-indigo-600 to-indigo-700 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
+            className={`px-4 h-9 text-xs font-bold transition-all duration-200 ${language === 'en' ? 'bg-gradient-to-b from-indigo-500 to-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
           >
             EN
           </button>
           <button
             aria-label={t('startScreen.languageFinnish', 'Finnish')}
             onClick={() => setLanguage('fi')}
-            className={`px-4 h-9 text-xs font-bold transition-all duration-200 border-l border-slate-700 ${language === 'fi' ? 'bg-gradient-to-b from-indigo-600 to-indigo-700 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
+            className={`px-4 h-9 text-xs font-bold transition-all duration-200 ${language === 'fi' ? 'bg-gradient-to-b from-indigo-500 to-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700'}`}
           >
             FI
           </button>

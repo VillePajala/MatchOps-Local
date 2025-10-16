@@ -1,5 +1,7 @@
 # Personnel Feature Implementation Plan
 
+> **⚠️ NOTE**: This file has been superseded by `personnel-implementation-plan.md` which provides a more structured, phase-based approach with better organization. This file is kept for reference but the implementation plan is the canonical document for execution.
+
 ## Overview
 
 This document outlines the complete implementation plan for adding personnel (coaches, trainers, managers, etc.) management to MatchOps-Local. The feature will follow the same architectural patterns as the existing player roster system.
