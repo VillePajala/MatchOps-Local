@@ -6,10 +6,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15.3+-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://reactjs.org/)
-[![Tests](https://img.shields.io/badge/tests-7900+-green.svg)](#)
+[![Tests](https://img.shields.io/badge/tests-1060+-green.svg)](#)
 [![PWA](https://img.shields.io/badge/PWA-Enabled-5a0fc8.svg)](https://web.dev/progressive-web-apps/)
-
-<!-- PWA update detection - Final verification test -->
 
 ## What is MatchOps-Local?
 
@@ -28,42 +26,152 @@ MatchOps-Local is a comprehensive Progressive Web App (PWA) designed specificall
 ### ⚽ **Game Day Management**
 - **Interactive Soccer Field**: Drag-and-drop player positioning with realistic field visualization
 - **Live Game Timer**: Professional timer with large overlay display for sideline visibility
-- **Real-Time Event Logging**: Goals, assists, cards, and substitutions with timestamp tracking
+  - Configurable substitution intervals (1-20 minutes)
+  - Time-since-last-substitution tracking
+  - Visual alerts for upcoming substitutions (warning at 1 minute, due when time reached)
+  - Substitution history log with timestamps
+- **Real-Time Event Logging**:
+  - Goals with scorer and assist tracking
+  - Opponent goals
+  - Inline opponent name editing during games
+  - Event timestamps synced with game timer
 - **Tactics Board**: Dedicated drawing interface for play design and team instruction
+  - Add/remove opponent players and discs
+  - Clear drawings without resetting field
+  - Undo/Redo support for field changes
+  - Toggle between tactics view and standard player view
+- **Field Tools Panel**: Quick access to field management
+  - Place all selected players automatically
+  - Reset field to default state
+  - Undo/Redo field actions
+  - Clear tactical drawings
 
 ### 📊 **Statistics & Analytics**
-- **Comprehensive Player Stats**: Goals, assists, playtime, and performance tracking
-- **Club Season Filtering**: Smart filtering by club season period (e.g., Oct-May)
-- **Historical Analysis**: Game-by-game performance with trend visualization
-- **Aggregate Reporting**: Season, tournament, club season, and all-time statistics
-- **Fair Play Trophy System**: Tournament player awards and recognition
-- **Data Export**: Professional reports in JSON and CSV formats
+- **Comprehensive Player Stats**:
+  - Goals, assists, appearances, playtime tracking
+  - Performance trends across games, seasons, and tournaments
+  - Per-game statistics with sortable columns (goals, assists, time played)
+  - Tournament-specific performance tracking
+- **Advanced Filtering**:
+  - Filter by season, tournament, or team
+  - Club season filtering (e.g., Oct-May for winter season)
+  - Combined filters for detailed analysis
+  - Player-specific game history view
+- **Tournament System**:
+  - Tournament player awards (Fair Play Trophy, etc.)
+  - Tournament winner tracking
+  - Performance statistics per tournament
+  - Season and tournament details modals for comprehensive management
+- **Game Statistics Modal**:
+  - Overall statistics across all games
+  - Current game stats with live updates
+  - Season performance summaries
+  - Tournament performance summaries
+  - Player-focused view with season participation count
+  - Sortable tables (by goals, assists, playtime, etc.)
+  - Integrated goal log with edit/delete functionality via 3-dot menu
 
 ### 👥 **Team Management**
-- **Master Roster System**: Central player database with complete player profiles
-- **Multi-Team Support**: Manage unlimited teams with independent rosters and settings
-- **Season & Tournament Organization**: Create and track competitions across all teams
-- **Player Performance Assessment**: Multi-dimensional rating system (technical, tactical, physical, mental) with weighted difficulty tracking and game context
+- **Master Roster System**: Central player database shared across all teams
+  - Add, edit, and remove players
+  - Player stats view from roster (goals, games played, etc.)
+  - Goalie designation support
+  - Player name and nickname support
+- **Multi-Team Support**:
+  - Create and manage unlimited teams
+  - Independent rosters from master player database
+  - Team-specific settings and configurations
+  - Team roster selection for each game
+- **Season & Tournament Organization**:
+  - Create seasons with date ranges (e.g., Fall 2024: Sep - Dec)
+  - Create tournaments with winners and awards
+  - Detailed season and tournament management modals
+  - Associate games with seasons or tournaments
+  - Track performance across competitions
+- **Player Performance Assessment**:
+  - Multi-dimensional rating system:
+    - Technical skills (passing, shooting, dribbling, etc.)
+    - Tactical understanding (positioning, decision-making)
+    - Physical attributes (speed, stamina, strength)
+    - Mental qualities (focus, attitude, teamwork)
+  - Weighted difficulty tracking based on opponent strength
+  - Game context captured (score, date, location, periods)
+  - Historical assessment trends per player
+  - Save and reset assessment functionality
+
+### 🎮 **User Experience**
+- **Intuitive Interface**:
+  - Clean, modern design with dark mode optimized for sideline use
+  - Touch-optimized controls for mobile devices
+  - Drag-to-close menus and modals
+  - Keyboard shortcuts for common actions
+- **Quick Access Menu**:
+  - Organized sections: Game Management, Setup & Configuration, Analysis & Tools, Resources
+  - Save/Load/New Game workflows
+  - Direct access to all modals and settings
+  - External links to coaching resources (Finnish FA materials, TASO platform)
+- **Confirmation Modals**:
+  - Non-blocking confirmations for destructive actions
+  - WCAG 2.1 AA compliant with keyboard navigation
+  - Focus management and ESC key support
+- **Toast Notifications**: Context-aware success/error/info messages
+- **Instructions Modal**: Built-in "How It Works" guide for new users
 
 ### 🛡️ **Data & Privacy**
-- **IndexedDB Storage**: High-performance browser storage with automatic migration
-- **Complete Backup & Restore**: One-click full backup export and import with data integrity verification
-- **Game Import/Export**: Flexible JSON-based game import for data portability
-- **Privacy by Design**: Zero external data transmission (except opt-in error reporting)
-- **GDPR Compliant**: No personal data collection or processing
-- **Data Ownership**: Full control over your data with comprehensive export capabilities
+- **IndexedDB Storage**:
+  - High-performance browser storage (typically 50MB+ quota)
+  - Automatic migration from legacy localStorage
+  - Pause/resume/cancel migration controls
+  - Memory-optimized batch processing
+  - Cross-tab coordination with heartbeat mechanism
+- **Complete Backup & Restore**:
+  - One-click full backup export (JSON format)
+  - Data integrity verification with checksums
+  - Import full backups with validation
+  - Individual game import/export support
+- **Game Import/Export**:
+  - Flexible JSON-based game data format
+  - Batch import support
+  - Import results modal with success/failure reporting
+- **Privacy by Design**:
+  - Zero external data transmission (except opt-in error reporting via Sentry)
+  - No personal data collection or processing
+  - GDPR compliant
+  - All data stays on device
+- **Data Ownership**: Full control with comprehensive export capabilities
+
+### 🔧 **Technical Features**
+- **Progressive Web App**:
+  - Install to home screen on mobile devices
+  - Offline functionality with service worker caching
+  - Auto-update detection with user prompt
+  - App manifest with custom icons
+  - Wake Lock API support (screen stays on during games)
+- **Internationalization**:
+  - English and Finnish language support
+  - i18next-based translation system
+  - Context-aware pluralization
+- **Performance Optimizations**:
+  - React Query for efficient data caching
+  - Debounced auto-save (2-second intervals)
+  - Memory pressure monitoring and optimization
+  - Lazy loading and code splitting
 
 ## 🏗️ Technology Stack
 
 - **Frontend**: Next.js 15.3+ with React 19 and TypeScript 5
 - **Data Storage**: IndexedDB-first architecture with automatic legacy localStorage migration
-- **State Management**: React Query for server state, useReducer for game logic
+- **State Management**:
+  - React Query for server state and caching
+  - useReducer for complex game logic
+  - useState for local component state
 - **Styling**: Tailwind CSS 4 for responsive, professional design
 - **PWA**: Full Progressive Web App with offline capability, wake lock, and auto-updates
-- **Error Monitoring**: Sentry integration for production error tracking
-- **Testing**: 7,900+ tests across 258 suites with Jest and Playwright (unit, integration, accessibility, performance)
+- **Error Monitoring**: Sentry integration for production error tracking (opt-in)
+- **Testing**: 1,060+ tests across 91 suites with Jest and React Testing Library
 - **Internationalization**: i18next with English and Finnish support
-- **Analytics**: Vercel Analytics integration for usage insights
+- **Icons**: React Icons (Heroicons 2, Font Awesome)
+- **Analytics**: Vercel Analytics integration for usage insights (production only)
 
 ## 📊 Project Status: Production Ready
 
@@ -72,16 +180,17 @@ MatchOps-Local has reached **production maturity** with enterprise-grade feature
 ### ✅ **Core System Features**
 - **Advanced Data Migration**: Enterprise-grade IndexedDB migration with pause/resume/cancel
 - **Memory Management**: Intelligent memory pressure detection and optimization
-- **Error Monitoring**: Production error tracking with Sentry integration
-- **Comprehensive Testing**: 500+ test cases covering edge cases and error scenarios
+- **Error Monitoring**: Production error tracking with Sentry integration (optional)
+- **Comprehensive Testing**: 1,060+ tests across 91 suites covering core workflows, edge cases, and accessibility
 - **Performance Optimized**: Sub-second response times with intelligent caching
 
 ### ✅ **Production Quality**
-- **Cross-Platform**: Works on all modern browsers and devices
+- **Cross-Platform**: Works on all modern browsers and devices (Chrome, Firefox, Safari, Edge)
 - **Offline Capable**: Complete functionality without internet connection
-- **Data Safe**: Robust backup, recovery, and migration systems
-- **Privacy Focused**: Zero external data transmission (except error reporting in production)
-- **Accessibility**: WCAG compliant with comprehensive a11y testing
+- **Data Safe**: Robust backup, recovery, and migration systems with integrity verification
+- **Privacy Focused**: Zero external data transmission except optional error reporting
+- **Accessibility**: WCAG 2.1 AA compliant with keyboard navigation, ARIA attributes, and focus management
+- **Mobile Optimized**: Touch-friendly controls, responsive design, installable as PWA
 
 ## 🔧 Recent Technical Achievements
 
@@ -95,11 +204,18 @@ MatchOps-Local has reached **production maturity** with enterprise-grade feature
 
 ### **Production Monitoring & Quality Assurance**
 - **Comprehensive Error Tracking**: Sentry integration with privacy-focused configuration
-- **7,900+ Test Suite**: Unit, integration, accessibility, and performance tests across 258 suites
-- **CI/CD Pipeline**: Automated linting, type-checking, testing, and security scanning
+- **1,060+ Test Suite**: Unit, integration, and accessibility tests across 91 suites
+- **CI/CD Pipeline**: Automated linting, type-checking, testing, and build verification
 - **Memory Leak Detection**: Advanced memory management with pressure monitoring
 - **Build Optimization**: Production-ready builds with source map generation
 - **Wake Lock Integration**: Screen stays on during active games for sideline coaching
+
+### **UI/UX Improvements**
+- **Modular Component Architecture**: GameStatsModal refactored from 1,625 lines to modular hooks and components
+- **Consistent Design System**: Unified modal styling with gradient effects and proper spacing
+- **3-Dot Action Menus**: Consistent dropdown pattern for Edit/Delete actions across modals
+- **Accessibility Enhancements**: Full keyboard navigation, ARIA attributes, focus management
+- **Toast System**: Non-blocking notifications replacing window.alert/window.confirm
 
 ## 🚀 Quick Start
 
@@ -109,8 +225,9 @@ Visit our hosted instance (link coming soon) - no installation required, works i
 ### Option 2: Self-Host
 1. Clone this repository
 2. Install dependencies: `npm install`
-3. Build the application: `npm run build`
-4. Deploy static files to your web server
+3. Run development server: `npm run dev`
+4. Build for production: `npm run build`
+5. Deploy static files to your web server
 
 For detailed setup instructions, see [docs/deployment/](docs/deployment/).
 
@@ -122,7 +239,7 @@ For detailed setup instructions, see [docs/deployment/](docs/deployment/).
 - **[Competitive Analysis](docs/01-project/competitive-analysis.md)** - How we compare to other coaching software
 
 ### **Understanding the Project**
-- **[Architecture Overview](docs/02-technical/architecture.md)** - Technical design and system architecture
+- **[Architecture Overview](docs/02-technical/architecture/)** - Technical design and system architecture
 - **[Database Schema](docs/02-technical/database/)** - Current storage structure and data models
 - **[Security & Privacy](docs/02-technical/security.md)** - Privacy-first design and security measures
 
@@ -130,6 +247,7 @@ For detailed setup instructions, see [docs/deployment/](docs/deployment/).
 - **[Contributing Guide](docs/05-development/)** - How to contribute to the project
 - **[Development Guides](docs/05-development/)** - Code reviews, bug reports, and development processes
 - **[Testing Strategy](docs/06-testing/)** - Comprehensive testing approach
+- **[CLAUDE.md](CLAUDE.md)** - AI assistant guidance for development
 
 ### **Feature Documentation**
 - **[Features Overview](docs/04-features/)** - Detailed feature specifications and implementation
@@ -140,6 +258,7 @@ For detailed setup instructions, see [docs/deployment/](docs/deployment/).
 Browse all documentation in the [docs/](docs/) directory:
 - **[01-Project](docs/01-project/)** - Vision, philosophy, and strategic direction
 - **[02-Technical](docs/02-technical/)** - Architecture and technical decisions
+- **[03-Active Plans](docs/03-active-plans/)** - Current development roadmap
 - **[04-Features](docs/04-features/)** - Feature specifications and plans
 - **[05-Development](docs/05-development/)** - Contribution and development guides
 - **[06-Testing](docs/06-testing/)** - Testing strategies and quality assurance
@@ -162,7 +281,7 @@ In an era of increasing data privacy concerns, MatchOps-Local demonstrates that 
 - **Eliminate ongoing costs** without subscription dependencies
 - **Work reliably offline** in any environment
 
-For youth sports, where we handle sensitive information about minors, the local-first approach isn't just preferred—**it's essential**.
+For youth sports, where we handle information about minors, the local-first approach isn't just preferred—**it's essential**.
 
 ## 📄 License
 
