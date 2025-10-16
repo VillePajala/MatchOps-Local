@@ -186,8 +186,8 @@ In youth sports, where we handle sensitive information about minors, the local-f
 2. Review [01-project/local-first-philosophy.md](./01-project/local-first-philosophy.md) - Core principles
 3. Check [01-project/competitive-analysis.md](./01-project/competitive-analysis.md) - How we compare
 
-### **Ready to Contribute?**
-1. Start with [05-development/contributing.md](./05-development/contributing.md) - Contribution guidelines
+### **Want to Provide Feedback?**
+1. Review [05-development/contributing.md](./05-development/contributing.md) - IP transfer terms for contributions
 2. Follow [05-development/style-guide.md](./05-development/style-guide.md) - Code standards
 3. Review [03-active-plans/project-status.md](./03-active-plans/project-status.md) - Current status
 
@@ -210,16 +210,16 @@ This project documentation is:
 - **Accessible**: Written for both technical and non-technical audiences
 - **Organized**: Numbered directories (01-10) for logical navigation
 
-## 🤝 Community & Contribution
+## 💬 Feedback & Improvements
 
-MatchOps-Local is an open-source project that welcomes community involvement:
+MatchOps-Local is proprietary software that values feedback and may consider contributions under specific terms:
 
-- **Feature Development**: Help implement new coaching features
-- **Testing & Quality Assurance**: Ensure reliability across use cases
-- **Documentation**: Improve project understanding and accessibility
+- **Testing & Feedback**: Report bugs and suggest improvements
+- **Feature Suggestions**: Propose new coaching features
+- **Documentation**: Help improve project understanding and accessibility
 - **Advocacy**: Promote local-first principles in sports technology
 
-For technical contribution guidelines, see [05-development/contributing.md](./05-development/contributing.md).
+**Note**: All contributions transfer intellectual property rights to the author. For technical contribution guidelines and IP transfer terms, see [05-development/contributing.md](./05-development/contributing.md).
 
 ## 📞 Contact & Community
 

@@ -6,7 +6,7 @@
 
 **A local-first soccer coaching PWA that puts coaches in control of their data**
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-All_Rights_Reserved-red.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15.3+-black.svg)](https://nextjs.org/)
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://reactjs.org/)
@@ -296,15 +296,16 @@ Browse all documentation in the [docs/](docs/) directory:
 - **[05-Development](docs/05-development/)** - Contribution and development guides
 - **[06-Testing](docs/06-testing/)** - Testing strategies and quality assurance
 
-## 🤝 Contributing
+## 💬 Feedback & Improvements
 
-We welcome contributions from the community! Whether you're:
-- **Coaches** providing feedback and testing
-- **Developers** contributing code and features
-- **Designers** improving user experience
-- **Advocates** promoting local-first principles
+While MatchOps-Local is proprietary software, we value feedback and may consider contributions under specific terms:
 
-See our [Contributing Guide](docs/development/CONTRIBUTING.md) to get started.
+- **🏃 Coaches**: Provide feedback, bug reports, and feature suggestions
+- **💻 Developers**: Review code and propose improvements (see [Contributing Guide](docs/05-development/contributing.md) for IP transfer terms)
+- **🎨 Designers**: Suggest UX/UI enhancements
+- **📣 Advocates**: Share the local-first philosophy
+
+**Note**: All contributions transfer intellectual property rights to Ville Pajala. See [Contributing Guide](docs/05-development/contributing.md) for complete terms.
 
 ## 🌟 Why Local-First Matters
 
@@ -318,7 +319,9 @@ For youth sports, where we handle information about minors, the local-first appr
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+**Copyright (c) 2025 Ville Pajala. All Rights Reserved.**
+
+This software and all associated files are the exclusive intellectual property of Ville Pajala. No part of this repository may be used, copied, modified, or distributed without express written permission. See the [LICENSE](LICENSE) file for complete details.
 
 ## 🎯 Project Vision
 

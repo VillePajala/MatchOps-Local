@@ -173,7 +173,7 @@ MatchOps-Local is part of a broader vision for local-first software that priorit
 - **Innovation**: Competition focuses on features and experience, not data lock-in
 
 #### **Community Development**
-- **Shared Knowledge**: Open-source community advancing local-first techniques
+- **Shared Knowledge**: Developer community advancing local-first techniques
 - **Common Challenges**: Collaborative solutions to multi-device access and synchronization
 - **Best Practices**: Documented patterns for local-first application development
 - **Tool Ecosystem**: Supporting tools and libraries for local-first development
