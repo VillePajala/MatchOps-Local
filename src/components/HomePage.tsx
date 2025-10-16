@@ -78,7 +78,7 @@ import { queryKeys } from '@/config/queryKeys';
 import { updateGameDetails as utilUpdateGameDetails } from '@/utils/savedGames';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { MASTER_ROSTER_KEY, TIMER_STATE_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
-import { exportJson, exportCsv, exportAggregateJson, exportAggregateCsv } from '@/utils/exportGames';
+import { exportJson, exportCsv, exportAggregateCsv } from '@/utils/exportGames';
 import { 
   HiOutlineSquares2X2,
   HiOutlinePlusCircle,
@@ -2372,21 +2372,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   //   if (tab === 'overall') return 'Overall';
   //   return 'Unknown Filter'; // Fallback
   // };
-  
-  const handleExportAggregateJson = useCallback((gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) => {
-    if (gameIds.length === 0) {
-      showToast(t('export.noGamesInSelection', 'No games match the current filter.'), 'error');
-      return;
-    }
-    const gamesData = gameIds.reduce((acc, id) => {
-      const gameData = savedGames[id];
-      if (gameData) {
-        acc[id] = gameData;
-      }
-      return acc;
-    }, {} as SavedGamesCollection);
-    exportAggregateJson(gamesData, aggregateStats);
-  }, [savedGames, t, showToast]);
 
   const handleExportAggregateCsv = useCallback((gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) => {
     if (gameIds.length === 0) {
@@ -3332,9 +3317,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           savedGames={savedGames}
           currentGameId={currentGameId}
           onDeleteGameEvent={handleDeleteGameEvent}
-          onExportOneJson={handleExportOneJson}
           onExportOneCsv={handleExportOneCsv}
-          onExportAggregateJson={handleExportAggregateJson}
           onExportAggregateCsv={handleExportAggregateCsv}
           initialSelectedPlayerId={selectedPlayerForStats?.id}
           onGameClick={handleGameLogClick}
