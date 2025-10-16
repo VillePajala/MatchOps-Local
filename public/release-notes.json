@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: unify modal layouts and enhance saved games UI"
+  "notes": "style(modals): unify footer design with ModalFooter component"
 }

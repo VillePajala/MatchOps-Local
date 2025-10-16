@@ -70,6 +70,8 @@ jest.mock('react-i18next', () => ({
         'gameSettingsModal.away': 'Vieras',
         'gameSettingsModal.unplayedToggle': 'Ei vielä pelattu',
         'gameSettingsModal.confirmDeleteEvent': 'Are you sure you want to delete this event? This cannot be undone.',
+        'gameSettingsModal.eventActions': 'Event actions',
+        'common.doneButton': 'Done',
       };
       
       let translation = translations[key] || key;
@@ -212,7 +214,7 @@ describe('<GameSettingsModal />', () => {
   test('calls onClose when the close button is clicked', async () => {
     const user = userEvent.setup();
     renderModal();
-    const closeButton = screen.getByRole('button', { name: t('common.close') });
+    const closeButton = screen.getByRole('button', { name: t('common.doneButton', 'Done') });
     await user.click(closeButton);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
@@ -429,7 +431,13 @@ describe('<GameSettingsModal />', () => {
       renderModal();
 
       const eventDiv = await findEventByTime('02:00');
-      const editButton = within(eventDiv).getByTitle(t('common.edit'));
+
+      // Click the ellipsis button to open the actions menu
+      const ellipsisButton = within(eventDiv).getByLabelText(t('gameSettingsModal.eventActions', 'Event actions'));
+      await user.click(ellipsisButton);
+
+      // Now find and click the edit button in the dropdown menu
+      const editButton = await screen.findByRole('button', { name: t('common.edit') });
       await user.click(editButton);
 
       const timeInput = screen.getByPlaceholderText(t('gameSettingsModal.timeFormatPlaceholder'));
@@ -438,7 +446,7 @@ describe('<GameSettingsModal />', () => {
 
       // Don't try to select options as the component might have different structure
       // Just verify the component renders and the test completes
-      
+
       const saveButton = screen.getByRole('button', { name: t('common.save') });
       await user.click(saveButton);
 
@@ -450,7 +458,13 @@ describe('<GameSettingsModal />', () => {
         renderModal();
 
         const eventDiv = await findEventByTime('02:00');
-        const deleteButton = within(eventDiv).getByTitle(t('common.delete'));
+
+        // Click the ellipsis button to open the actions menu
+        const ellipsisButton = within(eventDiv).getByLabelText(t('gameSettingsModal.eventActions', 'Event actions'));
+        await user.click(ellipsisButton);
+
+        // Now find and click the delete button in the dropdown menu
+        const deleteButton = await screen.findByRole('button', { name: t('common.delete') });
         await user.click(deleteButton);
 
         // Wait for confirmation modal to appear
