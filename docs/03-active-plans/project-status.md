@@ -167,11 +167,12 @@ MatchOps-Local is in **active beta** with core functionality complete and stable
 - **Use Cases**: Youth soccer, school teams, club coaching
 - **Feedback**: Positive reception with feature requests driving development
 
-### Open Source Status
-- **License**: Open source with permissive licensing
-- **Contributions**: Accepting community contributions and feedback
-- **Documentation**: Comprehensive developer onboarding materials
-- **Governance**: Transparent development process with public roadmap
+### Development & Licensing
+- **License**: Proprietary software with all rights reserved
+- **Feedback**: Accepting bug reports, feature suggestions, and feedback
+- **Contributions**: May accept contributions under IP transfer terms (see contributing.md)
+- **Documentation**: Comprehensive developer and user documentation
+- **Development**: Transparent roadmap with public documentation
 
 ## Success Metrics & KPIs
 

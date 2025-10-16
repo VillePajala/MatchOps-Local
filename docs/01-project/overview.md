@@ -91,7 +91,7 @@ MatchOps-Local combines the best of modern web technology with local data storag
 ### Long-term Goals
 - **Industry Standard**: Establish local-first as the preferred approach for youth sports applications
 - **Global Adoption**: Support multiple languages and regional soccer variations
-- **Extensible Platform**: Enable community contributions and customizations
+- **Extensible Platform**: Consider customization points for user-specific needs
 - **Educational Impact**: Demonstrate the benefits of local-first architecture
 
 ## Success Metrics

@@ -15,7 +15,7 @@ For detailed business strategy and monetization planning, see:
 ## Core Principles
 1. **Local-First**: All data stays on user's device
 2. **Privacy-Focused**: No data collection or tracking
-3. **Open Source**: Transparent development and community-driven
+3. **Transparent Development**: Public roadmap and documentation
 4. **User-Centric**: Features driven by actual coaching needs
 
 ## Repository Focus
