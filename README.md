@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/logos/match_ops_local_logo_transparent.png" alt="MatchOps-Local Logo" width="200"/>
+  <img src="public/logos/app-logo-yellow.png" alt="MatchOps-Local Logo" width="200"/>
 </div>
 
 # MatchOps-Local
