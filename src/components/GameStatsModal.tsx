@@ -60,10 +60,8 @@ interface GameStatsModalProps {
   selectedPlayerIds: string[];
   savedGames: SavedGamesCollection;
   currentGameId: string | null;
-  onExportOneJson?: (gameId: string) => void;
   onExportOneCsv?: (gameId: string) => void;
   onDeleteGameEvent?: (goalId: string) => void;
-  onExportAggregateJson?: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
   onExportAggregateCsv?: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
   initialSelectedPlayerId?: string | null;
   onGameClick?: (gameId: string) => void;
@@ -91,10 +89,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   selectedPlayerIds,
   savedGames,
   currentGameId,
-  onExportOneJson,
   onExportOneCsv,
   onDeleteGameEvent,
-  onExportAggregateJson,
   onExportAggregateCsv,
   initialSelectedPlayerId = null,
   onGameClick = () => {},
@@ -400,15 +396,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     }
     return [];
   }, [activeTab, localGameEvents]);
-
-  // Determine if export should be disabled
-  const isExportDisabled = useMemo(() => {
-    if (activeTab === 'currentGame') {
-      return !currentGameId;
-    } else {
-      return processedGameIds.length === 0 || (!onExportAggregateJson && !onExportAggregateCsv);
-    }
-  }, [activeTab, currentGameId, processedGameIds, onExportAggregateJson, onExportAggregateCsv]);
 
   // Determine display names based on home/away
   const displayHomeTeamName = homeOrAway === 'home' ? teamName : opponentName;
@@ -810,60 +797,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               </div>
             </div>
           )}
-        </div>
-
-        {/* Footer Section */}
-        <div className="px-6 py-3 bg-slate-800/50 border-t border-slate-700/20 backdrop-blur-sm flex justify-end items-center gap-4 flex-shrink-0">
-          {(onExportOneJson || onExportAggregateJson) && (
-            <button
-              onClick={() => {
-                if (activeTab === 'currentGame' && currentGameId && onExportOneJson) {
-                  onExportOneJson(currentGameId);
-                } else if (activeTab !== 'currentGame' && onExportAggregateJson) {
-                  onExportAggregateJson(processedGameIds, playerStats);
-                }
-              }}
-              disabled={isExportDisabled}
-              className={`px-4 py-2 rounded-md font-medium transition-colors ${
-                isExportDisabled
-                  ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                  : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
-              }`}
-            >
-              {activeTab === 'currentGame'
-                ? t('common.exportJson', 'Vie JSON')
-                : t('common.exportJson', 'Vie JSON')}
-            </button>
-          )}
-
-          {(onExportOneCsv || onExportAggregateCsv) && (
-            <button
-              onClick={() => {
-                if (activeTab === 'currentGame' && currentGameId && onExportOneCsv) {
-                  onExportOneCsv(currentGameId);
-                } else if (activeTab !== 'currentGame' && onExportAggregateCsv) {
-                  onExportAggregateCsv(processedGameIds, playerStats);
-                }
-              }}
-              disabled={isExportDisabled}
-              className={`px-4 py-2 rounded-md font-medium transition-colors ${
-                isExportDisabled
-                  ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-                  : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
-              }`}
-            >
-              {activeTab === 'currentGame'
-                ? t('common.exportCsv', 'Vie CSV')
-                : t('common.exportCsv', 'Vie CSV')}
-            </button>
-          )}
-
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors"
-          >
-            {t('common.doneButton', 'Done')}
-          </button>
         </div>
 
         {/* Footer */}
