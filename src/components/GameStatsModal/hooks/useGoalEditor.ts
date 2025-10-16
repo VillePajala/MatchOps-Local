@@ -90,7 +90,7 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
     if (timeParts) {
       const m = parseInt(timeParts[1], 10);
       const s = parseInt(timeParts[2], 10);
-      if (!isNaN(m) && !isNaN(s) && m >= 0 && s >= 0 && s < 60) {
+      if (!isNaN(m) && !isNaN(s) && m >= 0 && m <= 120 && s >= 0 && s < 60) {
         timeInSeconds = m * 60 + s;
       } else {
         showToast(t('gameStatsModal.invalidTimeFormat', 'Invalid time format. MM:SS'), 'error');
@@ -118,7 +118,7 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
       assisterId: updatedAssisterId
     };
 
-    if (typeof onUpdateGameEvent === 'function') {
+    if (onUpdateGameEvent) {
       onUpdateGameEvent(updatedEvent);
     }
 
@@ -139,7 +139,7 @@ export function useGoalEditor(params: UseGoalEditorParams): UseGoalEditorResult 
   };
 
   const confirmDeleteEvent = () => {
-    if (goalIdToDelete && onDeleteGameEvent && typeof onDeleteGameEvent === 'function') {
+    if (goalIdToDelete && onDeleteGameEvent) {
       onDeleteGameEvent(goalIdToDelete);
       setLocalGameEvents(prevEvents => prevEvents.filter(event => event.id !== goalIdToDelete));
     }
