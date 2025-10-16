@@ -1,9 +1,10 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import RosterSettingsModal from './RosterSettingsModal';
 import type { Player } from '@/types';
+import { ToastProvider } from '@/contexts/ToastProvider';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -45,36 +46,56 @@ describe('<RosterSettingsModal />', () => {
   });
 
   test('renders the modal when isOpen is true', () => {
-    render(<RosterSettingsModal {...defaultProps} />);
+    render(
+      <ToastProvider>
+        <RosterSettingsModal {...defaultProps} />
+      </ToastProvider>
+    );
     expect(screen.getByText('Manage Roster')).toBeInTheDocument();
-    expect(screen.getByText('P1')).toBeInTheDocument();
-    expect(screen.getByText('P2')).toBeInTheDocument();
+    expect(screen.getByText('Player One')).toBeInTheDocument();
+    expect(screen.getByText('Player Two')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Add Player/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Done/i })).toBeInTheDocument();
   });
 
   test('does not render when isOpen is false', () => {
-    render(<RosterSettingsModal {...defaultProps} isOpen={false} />);
+    render(
+      <ToastProvider>
+        <RosterSettingsModal {...defaultProps} isOpen={false} />
+      </ToastProvider>
+    );
     expect(screen.queryByText('Manage Roster')).not.toBeInTheDocument();
   });
 
   test('calls onClose when Done button is clicked', () => {
-    render(<RosterSettingsModal {...defaultProps} />);
+    render(
+      <ToastProvider>
+        <RosterSettingsModal {...defaultProps} />
+      </ToastProvider>
+    );
     const doneButton = screen.getByRole('button', { name: /Done/i });
     fireEvent.click(doneButton);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
   test('shows add player form when Add Player button is clicked', () => {
-    render(<RosterSettingsModal {...defaultProps} />);
+    render(
+      <ToastProvider>
+        <RosterSettingsModal {...defaultProps} />
+      </ToastProvider>
+    );
     const addButton = screen.getByRole('button', { name: /Add Player/i });
     fireEvent.click(addButton);
     expect(screen.getByPlaceholderText(/Player Name/i)).toBeInTheDocument();
   });
 
   test('adds a new player when form is submitted', () => {
-    render(<RosterSettingsModal {...defaultProps} />);
-    
+    render(
+      <ToastProvider>
+        <RosterSettingsModal {...defaultProps} />
+      </ToastProvider>
+    );
+
     // Open form
     const addButtons = screen.getAllByRole('button', { name: /Add Player/i });
     const mainAddButton = addButtons.find(button => !button.hasAttribute('disabled'));
@@ -104,11 +125,19 @@ describe('<RosterSettingsModal />', () => {
   });
 
   test('edits player when edit form is submitted', () => {
-    render(<RosterSettingsModal {...defaultProps} />);
+    render(
+      <ToastProvider>
+        <RosterSettingsModal {...defaultProps} />
+      </ToastProvider>
+    );
 
-    // Find and click edit button for P1
-    const editButtons = screen.getAllByTitle('Edit');
-    fireEvent.click(editButtons[0]); // First edit button should be for P1
+    // Open the actions menu for first player (P1)
+    const actionsButtons = screen.getAllByTitle('Actions');
+    fireEvent.click(actionsButtons[0]);
+
+    // Click Edit in the dropdown
+    const editButton = screen.getByRole('button', { name: /Edit/i });
+    fireEvent.click(editButton);
 
     // Fill edit form
     const updatedData = {
@@ -135,33 +164,68 @@ describe('<RosterSettingsModal />', () => {
     });
   });
 
-  test('removes player when remove button is clicked', () => {
-    window.confirm = jest.fn(() => true);
-    render(<RosterSettingsModal {...defaultProps} />);
-    
-    const removeButtons = screen.getAllByTitle('Remove');
-    fireEvent.click(removeButtons[0]); // Remove first player
-    
-    expect(mockOnRemovePlayer).toHaveBeenCalledWith('p1');
+  test('removes player when remove button is clicked', async () => {
+    render(
+      <ToastProvider>
+        <RosterSettingsModal {...defaultProps} />
+      </ToastProvider>
+    );
+
+    // Open the actions menu for first player (P1)
+    const actionsButtons = screen.getAllByTitle('Actions');
+    fireEvent.click(actionsButtons[0]);
+
+    // Click Delete in the dropdown
+    const deleteButton = screen.getByRole('button', { name: /Delete/i });
+    fireEvent.click(deleteButton);
+
+    // Wait for confirmation modal to appear
+    await waitFor(() => {
+      expect(screen.getByText(/Are you sure/i)).toBeInTheDocument();
+    });
+
+    // Click Remove in the confirmation modal (not the Delete buttons)
+    const allButtons = screen.getAllByRole('button');
+    const removeButton = allButtons.find(btn =>
+      btn.textContent === 'Remove' && btn.className.includes('bg-gradient-to-b')
+    );
+    fireEvent.click(removeButton!);
+
+    await waitFor(() => {
+      expect(mockOnRemovePlayer).toHaveBeenCalledWith('p1');
+    });
   });
 
 
 
   test('opens player stats', () => {
-    render(<RosterSettingsModal {...defaultProps} />);
+    render(
+      <ToastProvider>
+        <RosterSettingsModal {...defaultProps} />
+      </ToastProvider>
+    );
 
-    const statsButtons = screen.getAllByTitle('Stats');
-    fireEvent.click(statsButtons[0]); // Open stats for first player
+    // Open the actions menu for first player (P1)
+    const actionsButtons = screen.getAllByTitle('Actions');
+    fireEvent.click(actionsButtons[0]);
+
+    // Click Stats in the dropdown
+    const statsButton = screen.getByRole('button', { name: /Stats/i });
+    fireEvent.click(statsButton);
 
     expect(mockOnOpenPlayerStats).toHaveBeenCalledWith('p1');
   });
 
   test('filters players by search input', () => {
-    render(<RosterSettingsModal {...defaultProps} />);
+    render(
+      <ToastProvider>
+        <RosterSettingsModal {...defaultProps} />
+      </ToastProvider>
+    );
     const searchInput = screen.getByPlaceholderText('Search players...');
     fireEvent.change(searchInput, { target: { value: 'Two' } });
-    expect(screen.queryByText('P1')).not.toBeInTheDocument();
-    expect(screen.getByText('P2')).toBeInTheDocument();
+    expect(screen.queryByText('Player One')).not.toBeInTheDocument();
+    expect(screen.getByText('Player Two')).toBeInTheDocument();
   });
 
 });

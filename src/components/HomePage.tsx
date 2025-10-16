@@ -16,10 +16,10 @@ import SettingsModal from '@/components/SettingsModal';
 import SeasonTournamentManagementModal from '@/components/SeasonTournamentManagementModal';
 import TeamManagerModal from '@/components/TeamManagerModal';
 import TeamRosterModal from '@/components/TeamRosterModal';
-import OrphanedGameHandler from '@/components/OrphanedGameHandler';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import InstructionsModal from '@/components/InstructionsModal';
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
+import ConfirmationModal from '@/components/ConfirmationModal';
 import usePlayerAssessments from '@/hooks/usePlayerAssessments';
 import { exportFullBackup } from '@/utils/fullBackup';
 import { useTranslation } from 'react-i18next';
@@ -78,7 +78,7 @@ import { queryKeys } from '@/config/queryKeys';
 import { updateGameDetails as utilUpdateGameDetails } from '@/utils/savedGames';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { MASTER_ROSTER_KEY, TIMER_STATE_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
-import { exportJson, exportCsv, exportAggregateJson, exportAggregateCsv } from '@/utils/exportGames';
+import { exportJson, exportCsv, exportAggregateCsv } from '@/utils/exportGames';
 import { 
   HiOutlineSquares2X2,
   HiOutlinePlusCircle,
@@ -454,7 +454,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState<boolean>(false);
   const [isTeamRosterModalOpen, setIsTeamRosterModalOpen] = useState<boolean>(false);
   const [selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
-  const [isOrphanedGamesOpen, setIsOrphanedGamesOpen] = useState<boolean>(false);
 
   // --- Timer State (Still needed here) ---
   const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
@@ -473,13 +472,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         case 'newGame':
           // Check if roster is empty before opening new game modal
           if (availablePlayers.length === 0) {
-            const shouldOpenRoster = window.confirm(
-              t('controlBar.noPlayersForNewGame', 'You need at least one player in your roster to create a game. Would you like to add players now?')
-            );
-            
-            if (shouldOpenRoster) {
-              setIsRosterModalOpen(true);
-            }
+            setShowNoPlayersConfirm(true);
           } else {
             setIsNewGameSetupModalOpen(true);
           }
@@ -529,6 +522,13 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   // NEW: States for LoadGameModal operations
   const [isLoadingGamesList, setIsLoadingGamesList] = useState(false);
+
+  // Confirmation modal states
+  const [showNoPlayersConfirm, setShowNoPlayersConfirm] = useState(false);
+  const [showHardResetConfirm, setShowHardResetConfirm] = useState(false);
+  const [showSaveBeforeNewConfirm, setShowSaveBeforeNewConfirm] = useState(false);
+  const [gameIdentifierForSave, setGameIdentifierForSave] = useState<string>('');
+  const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
   const [loadGamesListError, setLoadGamesListError] = useState<string | null>(null);
   const [isGameLoading, setIsGameLoading] = useState(false); // For loading a specific game
   const [gameLoadError, setGameLoadError] = useState<string | null>(null);
@@ -921,7 +921,8 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
               const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
 
               dispatchGameSession({ type: 'SET_TIMER_ELAPSED', payload: correctedElapsedSeconds });
-              dispatchGameSession({ type: 'SET_TIMER_RUNNING', payload: true });
+              // Use START_TIMER instead of SET_TIMER_RUNNING to properly set startTimestamp
+              dispatchGameSession({ type: 'START_TIMER' });
             } else {
               await removeStorageItem(TIMER_STATE_KEY).catch(() => {});
             }
@@ -1186,7 +1187,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     loadGame();
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentGameId, savedGames, initialLoadComplete]); // IMPORTANT: initialLoadComplete ensures this runs after master roster is loaded.
+  }, [currentGameId, initialLoadComplete]); // IMPORTANT: initialLoadComplete ensures this runs after master roster is loaded. savedGames removed to prevent auto-save from triggering reload and resetting timer.
 
   // --- Save state to localStorage ---
   useEffect(() => {
@@ -1247,7 +1248,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
       } catch (error) {
         logger.error("Failed to auto-save game state:", error);
-        alert("Error saving game."); // Notify user
+        showToast("Error saving game.", 'error');
       }
     } else if (initialLoadComplete && currentGameId === DEFAULT_GAME_ID) {
       logger.log("Not auto-saving as this is an unsaved game (no ID assigned yet)");
@@ -1267,6 +1268,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       tacticalBallPosition,
       isPlayed,
       queryClient,
+      showToast,
     ]);
 
   // **** ADDED: Effect to prompt for setup if default game ID is loaded ****
@@ -1637,29 +1639,33 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   // NEW: Handler for Hard Reset
   const handleHardResetApp = useCallback(async () => {
-    if (window.confirm(t('controlBar.hardResetConfirmation', 'Are you sure you want to completely reset the application? All saved data (players, stats, positions) will be permanently lost.'))) {
-      try {
-        logger.log("Performing hard reset using utility...");
+    setShowHardResetConfirm(true);
+  }, []);
 
-        // Show full-screen overlay to unmount all components
-        setIsResetting(true);
+  const handleHardResetConfirmed = useCallback(async () => {
+    try {
+      logger.log("Performing hard reset using utility...");
 
-        // Clear storage completely
-        await utilResetAppSettings();
+      // Show full-screen overlay to unmount all components
+      setIsResetting(true);
 
-        logger.log("Hard reset complete, reloading app...");
+      // Clear storage completely
+      await utilResetAppSettings();
 
-        // Note: In development mode, Next.js HMR may show harmless module errors
-        // after reload. These are cosmetic and don't affect functionality.
-        // Production builds don't have this issue.
-        window.location.reload();
-      } catch (error) {
-        logger.error("Error during hard reset:", error);
-        setIsResetting(false); // Re-enable UI on error
-        alert("Failed to reset application data.");
-      }
+      logger.log("Hard reset complete, reloading app...");
+
+      // Note: In development mode, Next.js HMR may show harmless module errors
+      // after reload. These are cosmetic and don't affect functionality.
+      // Production builds don't have this issue.
+      window.location.reload();
+    } catch (error) {
+      logger.error("Error during hard reset:", error);
+      setIsResetting(false); // Re-enable UI on error
+      showToast("Failed to reset application data.", 'error');
+    } finally {
+      setShowHardResetConfirm(false);
     }
-  }, [t]);
+  }, [showToast]);
 
 
   
@@ -1796,7 +1802,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const handleExportOneJson = (gameId: string) => {
     const gameData = savedGames[gameId];
     if (!gameData) {
-      alert(`Error: Could not find game data for ${gameId}`);
+      showToast(`Error: Could not find game data for ${gameId}`, 'error');
       return;
     }
     exportJson(gameId, gameData, seasons, tournaments);
@@ -1805,7 +1811,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const handleExportOneCsv = (gameId: string) => {
     const gameData = savedGames[gameId];
     if (!gameData) {
-      alert(`Error: Could not find game data for ${gameId}`);
+      showToast(`Error: Could not find game data for ${gameId}`, 'error');
       return;
     }
     exportCsv(gameId, gameData, availablePlayers, seasons, tournaments);
@@ -2173,7 +2179,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
       } catch (error) {
         logger.error("Failed to quick save game state:", error);
-        alert("Error quick saving game.");
+        showToast("Error quick saving game.", 'error');
       }
     } else {
       // If no current game ID, create a new saved game entry
@@ -2220,7 +2226,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         }
       } catch (error) {
         logger.error('Failed to save new game:', error);
-        alert('Error quick saving game.');
+        showToast('Error quick saving game.', 'error');
       }
     }
   },    [
@@ -2318,6 +2324,13 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     dispatchGameSession({ type: 'SET_TOURNAMENT_LEVEL', payload: level });
   };
 
+  const handleTeamIdChange = useCallback((newTeamId: string | null) => {
+    logger.log('[HomePage] handleTeamIdChange called with:', newTeamId);
+    // TeamId is stored in AppState (saved game), not GameSessionState
+    // GameSettingsModal already handles calling updateGameDetailsMutation
+    // This handler is just for any additional HomePage-level logic if needed in the future
+  }, []);
+
   const handleSetDemandFactor = (factor: number) => {
     dispatchGameSession({ type: 'SET_DEMAND_FACTOR', payload: factor });
   };
@@ -2359,25 +2372,10 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   //   if (tab === 'overall') return 'Overall';
   //   return 'Unknown Filter'; // Fallback
   // };
-  
-  const handleExportAggregateJson = useCallback((gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) => {
-    if (gameIds.length === 0) {
-      alert(t('export.noGamesInSelection', 'No games match the current filter.'));
-      return;
-    }
-    const gamesData = gameIds.reduce((acc, id) => {
-      const gameData = savedGames[id];
-      if (gameData) {
-        acc[id] = gameData;
-      }
-      return acc;
-    }, {} as SavedGamesCollection);
-    exportAggregateJson(gamesData, aggregateStats);
-  }, [savedGames, t]);
 
   const handleExportAggregateCsv = useCallback((gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) => {
     if (gameIds.length === 0) {
-      alert(t('export.noGamesInSelection', 'No games match the current filter.'));
+      showToast(t('export.noGamesInSelection', 'No games match the current filter.'), 'error');
       return;
     }
     const gamesData = gameIds.reduce((acc, id) => {
@@ -2388,7 +2386,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       return acc;
     }, {} as SavedGamesCollection);
     exportAggregateCsv(gamesData, aggregateStats);
-  }, [savedGames, t]);
+  }, [savedGames, t, showToast]);
 
   // --- END AGGREGATE EXPORT HANDLERS ---
 
@@ -2540,72 +2538,56 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const handleStartNewGame = useCallback(() => {
     // Check if roster is empty first
     if (availablePlayers.length === 0) {
-      const shouldOpenRoster = window.confirm(
-        t('controlBar.noPlayersForNewGame', 'No players in roster. Would you like to add players now?')
-      );
-      
-      if (shouldOpenRoster) {
-        setIsRosterModalOpen(true);
-      }
-      return; // Exit early regardless of user choice
+      setShowNoPlayersConfirm(true);
+      return; // Exit early
     }
-    
+
     // Check if the current game is potentially unsaved (not the default ID and not null)
     if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
       // Prompt to save first
       const gameData = savedGames[currentGameId]; // Safe to access due to check above
-      const gameIdentifier = gameData?.teamName 
-                             ? `${gameData.teamName} vs ${gameData.opponentName}` 
+      const gameIdentifier = gameData?.teamName
+                             ? `${gameData.teamName} vs ${gameData.opponentName}`
                              : `ID: ${currentGameId}`;
-                             
-      const saveConfirmation = window.confirm(
-        t('controlBar.saveBeforeNewPrompt', 
-          `Save changes to the current game "${gameIdentifier}" before starting a new one?`, 
-          { gameName: gameIdentifier }
-        ) + "\n\n[OK = Save & Continue] [Cancel = Discard & Continue]"
-      );
 
-      if (saveConfirmation) {
-        // User chose OK (Save) -> Call Quick Save, then open setup modal.
-        logger.log("User chose to Quick Save before starting new game.");
-        handleQuickSaveGame(); // Call quick save directly
-        setIsNewGameSetupModalOpen(true); // Open setup modal immediately after
-        // No need to return here; flow continues after quick save
-      } else {
-        // User chose Cancel (Discard) -> Proceed to next confirmation
-        logger.log("Discarding current game changes to start new game.");
-        // Confirmation for actually starting new game (ONLY shown if user DISCARDED previous game)
-        if (window.confirm(t('controlBar.startNewMatchConfirmation', 'Are you sure you want to start a new match? Any unsaved progress will be lost.') ?? 'Are you sure?')) {
-          logger.log("Start new game confirmed after discarding, opening setup modal...");
-          // <<< SET default player selection (all players) >>>
-          setPlayerIdsForNewGame(availablePlayers.map(p => p.id));
-          setIsNewGameSetupModalOpen(true); // Open the setup modal
-        } 
-        // If user cancels this second confirmation, do nothing.
-        // Exit the function after handling the discard path.
-        return;
-      }
+      setGameIdentifierForSave(gameIdentifier);
+      setShowSaveBeforeNewConfirm(true);
     } else {
       // If no real game is loaded, proceed directly to the main confirmation
-       if (window.confirm(t('controlBar.startNewMatchConfirmation', 'Are you sure you want to start a new match? Any unsaved progress will be lost.') ?? 'Are you sure?')) {
-         logger.log("Start new game confirmed (no prior game to save), opening setup modal...");
-         // <<< SET default player selection (all players) >>>
-         setPlayerIdsForNewGame(availablePlayers.map(p => p.id));
-         setIsNewGameSetupModalOpen(true); // Open the setup modal
-       }
-       // If user cancels this confirmation, do nothing.
-       // Exit the function after handling the no-game-loaded path.
-       return; 
+      setShowStartNewConfirm(true);
     }
-    // Note: This part of the code is now only reachable if the user chose 'OK (Save & Continue)'
-    // because the other paths explicitly return earlier.
-    // <<< SET player selection based on current game BEFORE opening modal >>>
-       setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds);  // Use the current selection
-    setIsNewGameSetupModalOpen(true); // Open setup modal (moved here for save & continue path)
+  }, [currentGameId, savedGames, availablePlayers]);
 
-  }, [t, currentGameId, savedGames, handleQuickSaveGame,
-      availablePlayers, gameSessionState.selectedPlayerIds, setIsNewGameSetupModalOpen, setIsRosterModalOpen
-     ]); 
+  // Handler for "No Players" confirmation
+  const handleNoPlayersConfirmed = useCallback(() => {
+    setShowNoPlayersConfirm(false);
+    setIsRosterModalOpen(true);
+  }, [setIsRosterModalOpen]);
+
+  // Handler for "Save Before New" confirmation - user chooses to save
+  const handleSaveBeforeNewConfirmed = useCallback(() => {
+    logger.log("User chose to Quick Save before starting new game.");
+    handleQuickSaveGame(); // Call quick save directly
+    setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds); // Use the current selection
+    setShowSaveBeforeNewConfirm(false);
+    setIsNewGameSetupModalOpen(true); // Open setup modal immediately after
+  }, [handleQuickSaveGame, gameSessionState.selectedPlayerIds, setIsNewGameSetupModalOpen]);
+
+  // Handler for "Save Before New" cancellation - user chooses to discard
+  const handleSaveBeforeNewCancelled = useCallback(() => {
+    logger.log("Discarding current game changes to start new game.");
+    setShowSaveBeforeNewConfirm(false);
+    // Show the "start new" confirmation after discarding
+    setShowStartNewConfirm(true);
+  }, []);
+
+  // Handler for "Start New" confirmation
+  const handleStartNewConfirmed = useCallback(() => {
+    logger.log("Start new game confirmed, opening setup modal...");
+    setPlayerIdsForNewGame(availablePlayers.map(p => p.id)); // SET default player selection (all players)
+    setShowStartNewConfirm(false);
+    setIsNewGameSetupModalOpen(true); // Open the setup modal
+  }, [availablePlayers, setIsNewGameSetupModalOpen]);
   // --- END Start New Game Handler ---
 
   // New handler to place all selected players on the field at once
@@ -2775,7 +2757,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   }
 
   // Define a consistent, premium style for the top and bottom bars
-  const barStyle = "bg-gradient-to-b from-app-700 to-app-800 shadow-lg";
+  const barStyle = "bg-gradient-to-b from-slate-800 to-slate-900 shadow-lg";
   // We can add a noise texture via pseudo-elements or a background image later if desired
 
   // Determine which players are available for the current game based on selected IDs
@@ -3230,9 +3212,14 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         {/* Other components that might overlay or interact with the field */}
       </div>
 
-      {/* Bottom Section: Control Bar */}
+      {/* Bottom Section: Control Bar (always visible) */}
       <div className={barStyle}>
         <ControlBar
+          // Timer props
+          timeElapsedInSeconds={timeElapsedInSeconds}
+          isTimerRunning={isTimerRunning}
+          onToggleLargeTimerOverlay={handleToggleLargeTimerOverlay}
+          // Field tools props
           onUndo={handleUndo}
           onRedo={handleRedo}
           canUndo={canUndo}
@@ -3240,10 +3227,15 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           onResetField={handleResetField}
           onClearDrawings={handleClearDrawingsForView}
           onAddOpponent={handleAddOpponent}
-          showLargeTimerOverlay={showLargeTimerOverlay}
-          onToggleLargeTimerOverlay={handleToggleLargeTimerOverlay}
-          onToggleTrainingResources={handleToggleTrainingResources}
+          onPlaceAllPlayers={handlePlaceAllPlayers}
+          isTacticsBoardView={isTacticsBoardView}
+          onToggleTacticsBoard={handleToggleTacticsBoard}
+          onAddHomeDisc={() => handleAddTacticalDisc('home')}
+          onAddOpponentDisc={() => handleAddTacticalDisc('opponent')}
+          // Goal props
           onToggleGoalLogModal={handleToggleGoalLogModal}
+          // Menu props
+          onToggleTrainingResources={handleToggleTrainingResources}
           onToggleGameStatsModal={handleToggleGameStatsModal}
           onOpenLoadGameModal={handleOpenLoadGameModal}
           onStartNewGame={handleStartNewGame}
@@ -3251,13 +3243,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           onQuickSave={handleQuickSaveGame}
           onOpenGameSettingsModal={handleOpenGameSettingsModal}
           isGameLoaded={!!currentGameId && currentGameId !== DEFAULT_GAME_ID}
-          onPlaceAllPlayers={handlePlaceAllPlayers}
-          highlightRosterButton={highlightRosterButton}
           onOpenSeasonTournamentModal={handleOpenSeasonTournamentModal}
-          isTacticsBoardView={isTacticsBoardView}
-          onToggleTacticsBoard={handleToggleTacticsBoard}
-          onAddHomeDisc={() => handleAddTacticalDisc('home')}
-          onAddOpponentDisc={() => handleAddTacticalDisc('opponent')}
           onToggleInstructionsModal={handleToggleInstructionsModal}
           onOpenSettingsModal={handleOpenSettingsModal}
           onOpenPlayerAssessmentModal={openPlayerAssessmentModal}
@@ -3281,7 +3267,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           onClose={handleCloseTeamManagerModal}
           teams={teams}
           onManageRoster={handleManageTeamRoster}
-          onManageOrphanedGames={() => setIsOrphanedGamesOpen(true)}
         />
       </ErrorBoundary>
       
@@ -3296,25 +3281,18 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         />
       </ErrorBoundary>
 
-      <ErrorBoundary>
-        <OrphanedGameHandler
-          isOpen={isOrphanedGamesOpen}
-          onClose={() => setIsOrphanedGamesOpen(false)}
-          onRefresh={() => {
-            // Refresh saved games and teams data
-            queryClient.invalidateQueries({ queryKey: ['savedGames'] });
-            queryClient.invalidateQueries({ queryKey: ['teams'] });
-          }}
-        />
-      </ErrorBoundary>
       {/* Goal Log Modal */}
-      <GoalLogModal 
+      <GoalLogModal
         isOpen={isGoalLogModalOpen}
         onClose={handleToggleGoalLogModal}
         onLogGoal={handleAddGoalEvent}
-        onLogOpponentGoal={handleLogOpponentGoal} // ADDED: Pass the handler
-        availablePlayers={playersForCurrentGame} // MODIFIED: Pass players selected for the current game
+        onLogOpponentGoal={handleLogOpponentGoal}
+        availablePlayers={playersForCurrentGame}
         currentTime={gameSessionState.timeElapsedInSeconds}
+        currentGameId={currentGameId}
+        gameEvents={gameSessionState.gameEvents}
+        onUpdateGameEvent={handleUpdateGameEvent}
+        onDeleteGameEvent={handleDeleteGameEvent}
       />
       {/* Game Stats Modal - Restore props for now */}
       {isGameStatsModalOpen && (
@@ -3339,9 +3317,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           savedGames={savedGames}
           currentGameId={currentGameId}
           onDeleteGameEvent={handleDeleteGameEvent}
-          onExportOneJson={handleExportOneJson}
           onExportOneCsv={handleExportOneCsv}
-          onExportAggregateJson={handleExportAggregateJson}
           onExportAggregateCsv={handleExportAggregateCsv}
           initialSelectedPlayerId={selectedPlayerForStats?.id}
           onGameClick={handleGameLogClick}
@@ -3386,12 +3362,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           }}
           onStart={handleStartNewGameWithSetup} // CORRECTED Handler
           onCancel={handleCancelNewGameSetup}
-          // Pass the new mutation functions
-          addSeasonMutation={addSeasonMutation}
-          addTournamentMutation={addTournamentMutation}
-          // Pass loading states from mutations
-          isAddingSeason={addSeasonMutation.isPending}
-          isAddingTournament={addTournamentMutation.isPending}
           // Pass fresh data from React Query
           masterRoster={masterRosterQueryResultData || []}
           seasons={seasons}
@@ -3481,16 +3451,14 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         onSetHomeOrAway={handleSetHomeOrAway}
         isPlayed={isPlayed}
         onIsPlayedChange={handleSetIsPlayed}
-        addSeasonMutation={addSeasonMutation}
-        addTournamentMutation={addTournamentMutation}
-        isAddingSeason={addSeasonMutation.isPending}
-        isAddingTournament={addTournamentMutation.isPending}
         timeElapsedInSeconds={timeElapsedInSeconds}
         updateGameDetailsMutation={updateGameDetailsMutation}
         // Pass fresh data from React Query
         seasons={seasons}
         tournaments={tournaments}
         masterRoster={masterRosterQueryResultData || []}
+        teams={teams}
+        onTeamIdChange={handleTeamIdChange}
       />
 
       <SettingsModal
@@ -3505,7 +3473,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         }}
         onResetGuide={handleShowAppGuide}
         onHardResetApp={handleHardResetApp}
-        onCreateBackup={exportFullBackup}
+        onCreateBackup={() => exportFullBackup(showToast)}
         onDataImportSuccess={onDataImportSuccess}
       />
 
@@ -3517,6 +3485,16 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         assessments={playerAssessments}
         onSave={handleSavePlayerAssessment}
         onDelete={handleDeletePlayerAssessment}
+        teamName={gameSessionState.teamName}
+        opponentName={gameSessionState.opponentName}
+        gameDate={gameSessionState.gameDate}
+        homeScore={gameSessionState.homeScore}
+        awayScore={gameSessionState.awayScore}
+        homeOrAway={gameSessionState.homeOrAway}
+        gameLocation={gameSessionState.gameLocation}
+        gameTime={gameSessionState.gameTime}
+        numberOfPeriods={gameSessionState.numberOfPeriods}
+        periodDurationMinutes={gameSessionState.periodDurationMinutes}
       />
 
       {/* Team Reassignment Modal for Orphaned Games */}
@@ -3567,6 +3545,56 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       )}
 
       {/* Removed debug reset button for first game guide */}
+
+      {/* Confirmation Modals */}
+
+      {/* No Players Confirmation */}
+      <ConfirmationModal
+        isOpen={showNoPlayersConfirm}
+        title={t('controlBar.noPlayersTitle', 'No Players in Roster')}
+        message={t('controlBar.noPlayersForNewGame', 'You need at least one player in your roster to create a game. Would you like to add players now?')}
+        onConfirm={handleNoPlayersConfirmed}
+        onCancel={() => setShowNoPlayersConfirm(false)}
+        confirmLabel={t('common.addPlayers', 'Add Players')}
+        variant="primary"
+      />
+
+      {/* Hard Reset Confirmation */}
+      <ConfirmationModal
+        isOpen={showHardResetConfirm}
+        title={t('controlBar.hardResetTitle', 'Reset Application')}
+        message={t('controlBar.hardResetConfirmation', 'Are you sure you want to completely reset the application? All saved data (players, stats, positions) will be permanently lost.')}
+        warningMessage={t('controlBar.hardResetWarning', 'This action cannot be undone. All your data will be permanently deleted.')}
+        onConfirm={handleHardResetConfirmed}
+        onCancel={() => setShowHardResetConfirm(false)}
+        confirmLabel={t('common.reset', 'Reset')}
+        variant="danger"
+      />
+
+      {/* Save Before New Game Confirmation */}
+      <ConfirmationModal
+        isOpen={showSaveBeforeNewConfirm}
+        title={t('controlBar.saveBeforeNewTitle', 'Save Current Game?')}
+        message={t('controlBar.saveBeforeNewPrompt', `Save changes to the current game "${gameIdentifierForSave}" before starting a new one?`, { gameName: gameIdentifierForSave })}
+        warningMessage={t('controlBar.saveBeforeNewInfo', 'Click "Save & Continue" to save your progress, or "Discard" to start fresh without saving.')}
+        onConfirm={handleSaveBeforeNewConfirmed}
+        onCancel={handleSaveBeforeNewCancelled}
+        confirmLabel={t('controlBar.saveAndContinue', 'Save & Continue')}
+        cancelLabel={t('controlBar.discard', 'Discard')}
+        variant="primary"
+      />
+
+      {/* Start New Game Confirmation */}
+      <ConfirmationModal
+        isOpen={showStartNewConfirm}
+        title={t('controlBar.startNewMatchTitle', 'Start New Match?')}
+        message={t('controlBar.startNewMatchConfirmation', 'Are you sure you want to start a new match? Any unsaved progress will be lost.')}
+        warningMessage={t('controlBar.startNewMatchWarning', 'Make sure you have saved your current game if you want to keep it.')}
+        onConfirm={handleStartNewConfirmed}
+        onCancel={() => setShowStartNewConfirm(false)}
+        confirmLabel={t('common.startNew', 'Start New')}
+        variant="danger"
+      />
 
     </main>
   );

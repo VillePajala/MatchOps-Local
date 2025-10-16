@@ -21,6 +21,7 @@ import {
 } from "./storage";
 import type { PlayerAdjustmentsIndex } from './playerAdjustments';
 import type { TeamsIndex, TeamRostersIndex } from './teams';
+import type { AppSettings } from './appSettings';
 import { processImportedGames } from './gameImportHelper';
 
 // Define the structure of the backup file
@@ -31,7 +32,7 @@ interface FullBackupData {
   };
   localStorage: { // Note: field name kept for backward compatibility with existing backups
     [SAVED_GAMES_KEY]?: SavedGamesCollection | null;
-    [APP_SETTINGS_KEY]?: { currentGameId: string | null } | null;
+    [APP_SETTINGS_KEY]?: AppSettings | null;
     [SEASONS_LIST_KEY]?: Season[] | null;
     [TOURNAMENTS_LIST_KEY]?: Tournament[] | null;
     [MASTER_ROSTER_KEY]?: Player[] | null;
@@ -81,7 +82,9 @@ export const generateFullBackupJson = async (): Promise<string> => {
 };
 
 // Function to export all relevant application data
-export const exportFullBackup = async (): Promise<string> => {
+export const exportFullBackup = async (
+  showToast?: (message: string, type?: 'success' | 'error' | 'info') => void
+): Promise<string> => {
   logger.log("Starting full backup export...");
   try {
     const jsonString = await generateFullBackupJson();
@@ -100,19 +103,51 @@ export const exportFullBackup = async (): Promise<string> => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     logger.log(`Full backup exported successfully as ${a.download}`);
-    alert(i18n.t("fullBackup.exportSuccess"));
+    if (showToast) {
+      showToast(i18n.t("fullBackup.exportSuccess"), 'success');
+    } else {
+      alert(i18n.t("fullBackup.exportSuccess"));
+    }
     return jsonString;
   } catch (error) {
     logger.error("Failed to export full backup:", error);
-    alert(i18n.t("fullBackup.exportError"));
+    if (showToast) {
+      showToast(i18n.t("fullBackup.exportError"), 'error');
+    } else {
+      alert(i18n.t("fullBackup.exportError"));
+    }
     throw error;
   }
 };
 
-// Function to import data from a backup file
+/**
+ * Imports application data from a backup file, restoring all saved games, roster, and settings.
+ *
+ * @param jsonContent - The JSON string containing the backup data
+ * @param onImportSuccess - Optional callback to execute after successful import (e.g., refresh app state)
+ * @param showToast - Optional toast notification function for user feedback
+ * @param confirmed - When true, bypasses the confirmation prompt for React component usage.
+ *                    React components should show ConfirmationModal first, then pass confirmed=true.
+ *                    The window.confirm fallback (lines 156-161) is intentional for CLI/utility-only usage
+ *                    and maintains backward compatibility with direct function calls outside React context.
+ *
+ * @returns Promise<boolean> - true if import succeeded, false if user cancelled or import failed
+ *
+ * @example
+ * // From React component (preferred)
+ * const handleConfirm = async () => {
+ *   await importFullBackup(jsonContent, onSuccess, showToast, true); // confirmed=true
+ * };
+ *
+ * @example
+ * // Direct usage (CLI/utility scripts) - uses window.confirm fallback
+ * await importFullBackup(jsonContent); // confirmed=undefined, triggers window.confirm
+ */
 export const importFullBackup = async (
   jsonContent: string,
   onImportSuccess?: () => void,
+  showToast?: (message: string, type?: 'success' | 'error' | 'info') => void,
+  confirmed?: boolean
 ): Promise<boolean> => {
   logger.log("Starting full backup import...");
   try {
@@ -141,9 +176,11 @@ export const importFullBackup = async (
     }
 
     // --- Confirmation ---
-    if (!window.confirm(i18n.t("fullBackup.confirmRestore"))) {
-      logger.log("User cancelled the import process.");
-      return false; // User cancelled
+    if (!confirmed) {
+      if (!window.confirm(i18n.t("fullBackup.confirmRestore"))) {
+        logger.log("User cancelled the import process.");
+        return false; // User cancelled
+      }
     }
 
     logger.log("User confirmed import. Proceeding to overwrite data...");
@@ -180,7 +217,11 @@ export const importFullBackup = async (
           if (mappingReport.gamesWithMappedPlayers > 0) {
             const message = `Successfully processed ${mappingReport.totalGames} games. ${mappingReport.gamesWithMappedPlayers} games had players mapped to your current roster. This ensures imported games appear in player statistics.`;
             // We'll show this after the main success message
-            setTimeout(() => alert(message), 1000);
+            if (showToast) {
+              setTimeout(() => showToast(message, 'info'), 1000);
+            } else {
+              setTimeout(() => alert(message), 1000);
+            }
           }
         }
       } catch (error) {
@@ -212,7 +253,11 @@ export const importFullBackup = async (
             innerError,
           );
           // It's important to alert the user and rethrow or handle appropriately
-          alert(i18n.t("fullBackup.restoreKeyError", { key }));
+          if (showToast) {
+            showToast(i18n.t("fullBackup.restoreKeyError", { key }), 'error');
+          } else {
+            alert(i18n.t("fullBackup.restoreKeyError", { key }));
+          }
           throw new Error(
             `Failed to restore data for key ${key}. Aborting import.`,
           );
@@ -236,7 +281,11 @@ export const importFullBackup = async (
 
     // --- Final Step: Trigger app refresh ---
     logger.log("Data restored successfully. Triggering app state refresh...");
-    alert(i18n.t("fullBackup.restoreSuccess"));
+    if (showToast) {
+      showToast(i18n.t("fullBackup.restoreSuccess"), 'success');
+    } else {
+      alert(i18n.t("fullBackup.restoreSuccess"));
+    }
 
     // Use callback to refresh app state without reload, or fallback to reload
     if (onImportSuccess) {
@@ -256,7 +305,11 @@ export const importFullBackup = async (
     logger.error("Failed to import full backup:", error);
     // Type check for error before accessing message
     const errorMessage = error instanceof Error ? error.message : String(error);
-    alert(i18n.t("fullBackup.restoreError", { error: errorMessage }));
+    if (showToast) {
+      showToast(i18n.t("fullBackup.restoreError", { error: errorMessage }), 'error');
+    } else {
+      alert(i18n.t("fullBackup.restoreError", { error: errorMessage }));
+    }
     return false; // Indicate failure
   }
 };

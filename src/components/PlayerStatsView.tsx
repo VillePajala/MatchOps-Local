@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '@/contexts/ToastProvider';
 import type { TranslationKey } from '@/i18n-types';
 import { Player, Season, Tournament } from '@/types';
 import { AppState } from '@/types';
@@ -17,7 +18,7 @@ import RatingBar from './RatingBar';
 import MetricTrendChart from './MetricTrendChart';
 import MetricAreaChart from './MetricAreaChart';
 import logger from '@/utils/logger';
-import { extractClubSeasonsFromGames, getClubSeasonForDate } from '@/utils/clubSeason';
+import { getClubSeasonForDate } from '@/utils/clubSeason';
 
 interface PlayerStatsViewProps {
   player: Player | null;
@@ -26,17 +27,18 @@ interface PlayerStatsViewProps {
   seasons: Season[];
   tournaments: Tournament[];
   teamId?: string; // Optional team filtering
+  selectedClubSeason: string;
+  clubSeasonStartMonth: number;
+  clubSeasonEndMonth: number;
 }
 
-const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId }) => {
+const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartMonth, clubSeasonEndMonth }) => {
   const { t, i18n } = useTranslation();
+  const { showToast } = useToast();
 
   const [showRatings, setShowRatings] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState('goalsAssists');
   const [useDemandCorrection, setUseDemandCorrection] = useState(false);
-  const [selectedClubSeason, setSelectedClubSeason] = useState<string>('all');
-  const [clubSeasonStartMonth, setClubSeasonStartMonth] = useState<number>(10);
-  const [clubSeasonEndMonth, setClubSeasonEndMonth] = useState<number>(5);
   const [adjustments, setAdjustments] = useState<PlayerStatAdjustment[]>([]);
   const [showAdjForm, setShowAdjForm] = useState(false);
   const [adjSeasonId, setAdjSeasonId] = useState('');
@@ -67,12 +69,11 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [editIncludeInSeasonTournament, setEditIncludeInSeasonTournament] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null);
+  const [showExternalGames, setShowExternalGames] = useState(false);
 
   useEffect(() => {
     getAppSettings().then(s => {
       setUseDemandCorrection(s.useDemandCorrection ?? false);
-      setClubSeasonStartMonth(s.clubSeasonStartMonth ?? 10);
-      setClubSeasonEndMonth(s.clubSeasonEndMonth ?? 5);
     });
     // Set default date to today
     if (!adjGameDate) {
@@ -136,12 +137,6 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     if (!player) return [];
     return getPlayerAssessmentNotes(player.id, savedGames);
   }, [player, savedGames]);
-
-  // Extract available club seasons from games
-  const availableClubSeasons = useMemo(() => {
-    const gamesArray = Object.values(savedGames);
-    return extractClubSeasonsFromGames(gamesArray, clubSeasonStartMonth, clubSeasonEndMonth);
-  }, [savedGames, clubSeasonStartMonth, clubSeasonEndMonth]);
 
   // Filter games by selected club season
   const filteredGamesByClubSeason = useMemo(() => {
@@ -212,73 +207,55 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         <div className="flex justify-between items-start mb-4">
           <div>
             <h2 className="text-2xl font-bold text-yellow-400">{player.name}</h2>
-            <p className="text-md text-slate-400">#{player.jerseyNumber}</p>
           </div>
         </div>
-
-        {/* Club Season Filter */}
-        {availableClubSeasons.length > 0 && (
-          <div className="mb-4">
-            <label htmlFor="club-season-filter" className="block text-sm font-medium text-slate-300 mb-2">
-              {t('playerStats.clubSeasonFilter', 'Filter by Club Season')}
-            </label>
-            <select
-              id="club-season-filter"
-              value={selectedClubSeason}
-              onChange={(e) => setSelectedClubSeason(e.target.value)}
-              className="w-full sm:w-auto px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="all">{t('playerStats.allSeasons', 'All Seasons')}</option>
-              {availableClubSeasons.map(season => (
-                <option key={season} value={season}>
-                  {season === 'off-season'
-                    ? t('playerStats.offSeason', 'Off-Season')
-                    : `${t('playerStats.season', 'Season')} ${season}`
-                  }
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 text-center mb-3 p-4 bg-slate-800/60 rounded-lg">
-          <div>
-            <p className="text-2xl font-bold text-yellow-400">{playerStats.totalGames}</p>
-            <p className="text-sm text-slate-400">{t('playerStats.gamesPlayed', 'Games Played')}</p>
-            <p className="text-xs text-slate-500">{hasAdjustments ? t('playerStats.includesAdjustments', 'Includes external games') : '\u00A0'}</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-yellow-400">{playerStats.totalGoals}</p>
-            <p className="text-sm text-slate-400">{t('playerStats.goals', 'Goals')}</p>
-            <p className="text-xs text-slate-500">({playerStats.avgGoalsPerGame.toFixed(1)} {t('playerStats.perGame', '/ game')})</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-yellow-400">{playerStats.totalAssists}</p>
-            <p className="text-sm text-slate-400">{t('playerStats.assists', 'Assists')}</p>
-            <p className="text-xs text-slate-500">({playerStats.avgAssistsPerGame.toFixed(1)} {t('playerStats.perGame', '/ game')})</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-yellow-400">{playerStats.totalGoals + playerStats.totalAssists}</p>
-            <p className="text-sm text-slate-400">{t('playerStats.points', 'Points')}</p>
-            <p className="text-xs text-slate-500">({(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame).toFixed(1)} {t('playerStats.perGame', '/ game')})</p>
-          </div>
-          <div aria-label="Fair play cards received">
-            <p className="text-2xl font-bold text-green-400">{playerStats.totalFairPlayCards}</p>
-            <p className="text-sm text-slate-400">{t('playerStats.fairPlayCards', 'Fair Play Cards')}</p>
-            <p className="text-xs text-slate-500">⚽ {t('playerStats.sportsmanship', 'Sportsmanship')}</p>
+        <div className="bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 rounded-lg p-4 mb-3 shadow-inner transition-all">
+          {/* Primary Stats Row with Averages */}
+          <div className="grid grid-cols-4 gap-3 sm:gap-4 text-center">
+            <div>
+              <p className="text-3xl font-bold text-yellow-400">{playerStats.totalGames}</p>
+              <p className="text-sm text-slate-300 font-medium">{t('playerStats.gamesPlayed', 'Games Played')}</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-yellow-400">{playerStats.totalGoals}</p>
+              <p className="text-sm text-slate-300 font-medium">{t('playerStats.goals', 'Goals')}</p>
+              <p className="text-xs text-slate-400 mt-1">({playerStats.avgGoalsPerGame.toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-yellow-400">{playerStats.totalAssists}</p>
+              <p className="text-sm text-slate-300 font-medium">{t('playerStats.assists', 'Assists')}</p>
+              <p className="text-xs text-slate-400 mt-1">({playerStats.avgAssistsPerGame.toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-yellow-400">{playerStats.totalGoals + playerStats.totalAssists}</p>
+              <p className="text-sm text-slate-300 font-medium">{t('playerStats.points', 'Points')}</p>
+              <p className="text-xs text-slate-400 mt-1">({(playerStats.avgGoalsPerGame + playerStats.avgAssistsPerGame).toFixed(1)}/{t('playerStats.perGameShort', 'game')})</p>
+            </div>
           </div>
         </div>
 
-        {/* Add Adjustment UI */}
-        <div className="mt-2 mb-4">
+        {/* External Games Section - Collapsible */}
+        <div className="mt-6 mb-4">
           <button
             type="button"
-            className="text-sm px-3 py-1.5 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600"
-            onClick={() => setShowAdjForm(v => !v)}
+            onClick={() => setShowExternalGames(v => !v)}
+            className="text-left w-full bg-slate-800/60 p-3 rounded-lg flex justify-between items-center hover:bg-slate-800/80 transition-colors"
+            aria-expanded={showExternalGames}
           >
-            {t('playerStats.addExternalStats', 'Add external stats')}
+            <span className="font-semibold">{t('playerStats.externalGames', 'External Games')}</span>
+            <span className="text-sm text-slate-400">{showExternalGames ? '-' : '+'}</span>
           </button>
+          {showExternalGames && (
+            <div className="mt-2">
+              <button
+                type="button"
+                className="text-sm px-3 py-1.5 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600"
+                onClick={() => setShowAdjForm(v => !v)}
+              >
+                {t('playerStats.addExternalStats', 'Add external stats')}
+              </button>
           {showAdjForm && (
             <form
               className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-800/60 p-4 rounded-lg border border-slate-600"
@@ -288,31 +265,31 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 
                 // Comprehensive Validation
                 if (!adjSeasonId && seasons.length === 0) {
-                  alert(t('playerStats.seasonRequired', 'Please create a season first.'));
+                  showToast(t('playerStats.seasonRequired', 'Please create a season first.'), 'error');
                   return;
                 }
                 if (!adjExternalTeam.trim()) {
-                  alert(t('playerStats.teamRequired', 'Team name is required.'));
+                  showToast(t('playerStats.teamRequired', 'Team name is required.'), 'error');
                   return;
                 }
                 if (!adjOpponentName.trim()) {
-                  alert(t('playerStats.opponentRequired', 'Opponent name is required.'));
+                  showToast(t('playerStats.opponentRequired', 'Opponent name is required.'), 'error');
                   return;
                 }
                 if (adjGames < 0 || adjGoals < 0 || adjAssists < 0) {
-                  alert(t('playerStats.negativeStatsError', 'Stats cannot be negative.'));
+                  showToast(t('playerStats.negativeStatsError', 'Stats cannot be negative.'), 'error');
                   return;
                 }
                 if (adjGames === 0 && adjGoals === 0 && adjAssists === 0) {
-                  alert(t('playerStats.emptyStatsError', 'Please enter at least one statistic (games, goals, or assists).'));
+                  showToast(t('playerStats.emptyStatsError', 'Please enter at least one statistic (games, goals, or assists).'), 'error');
                   return;
                 }
                 if (adjGames > 0 && adjGoals > adjGames * 20) {
-                  alert(t('playerStats.unrealisticGoalsError', 'Goals per game seems unrealistic. Please check your input.'));
+                  showToast(t('playerStats.unrealisticGoalsError', 'Goals per game seems unrealistic. Please check your input.'), 'error');
                   return;
                 }
                 if (adjGames > 0 && adjAssists > adjGames * 20) {
-                  alert(t('playerStats.unrealisticAssistsError', 'Assists per game seems unrealistic. Please check your input.'));
+                  showToast(t('playerStats.unrealisticAssistsError', 'Assists per game seems unrealistic. Please check your input.'), 'error');
                   return;
                 }
                 
@@ -450,9 +427,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               </div>
             </form>
           )}
-        </div>
 
-        {/* External stats list and editor (moved below the button for layout clarity) */}
+        {/* External stats list - inside collapsible section */}
         {hasAdjustments && (
           <div className="mb-4 text-xs text-slate-400">
             {t('playerStats.adjustmentsInfo', 'External stats are transparently added to totals.')}
@@ -466,13 +442,13 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   const extName = a.externalTeamName || 'Unknown Team';
                   const oppName = a.opponentName || 'Unknown Opponent';
                   const dateText = a.gameDate ? formatDisplayDate(a.gameDate) : formatDisplayDate(a.appliedAt);
-                  
+
                   // Determine match result display based on home/away
                   const getScoreDisplay = () => {
                     if (typeof a.scoreFor !== 'number' || typeof a.scoreAgainst !== 'number') {
                       return null;
                     }
-                    
+
                     if (a.homeOrAway === 'home') {
                       return `${extName} ${a.scoreFor} - ${a.scoreAgainst} ${oppName}`;
                     } else if (a.homeOrAway === 'away') {
@@ -483,7 +459,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   };
 
                   const scoreDisplay = getScoreDisplay();
-                  
+
                   return (
                     <div key={a.id} className="bg-slate-700/40 p-3 rounded-lg border border-slate-600/50">
                       {/* Header with date and association */}
@@ -609,7 +585,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           </div>
         )}
 
-        {editingAdjId && (
+        {editingAdjId && showExternalGames && (
           <form
             className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-800/60 p-4 rounded-lg border border-slate-600"
             onSubmit={async (e) => {
@@ -618,23 +594,23 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               
               // Comprehensive Validation
               if (!editExternalTeam.trim() || !editOpponentName.trim()) {
-                alert(t('playerStats.requiredFields', 'Team and opponent names are required.'));
+                showToast(t('playerStats.requiredFields', 'Team and opponent names are required.'), 'error');
                 return;
               }
               if (editGames < 0 || editGoals < 0 || editAssists < 0) {
-                alert(t('playerStats.negativeStatsError', 'Stats cannot be negative.'));
+                showToast(t('playerStats.negativeStatsError', 'Stats cannot be negative.'), 'error');
                 return;
               }
               if (editGames === 0 && editGoals === 0 && editAssists === 0) {
-                alert(t('playerStats.emptyStatsError', 'Please enter at least one statistic (games, goals, or assists).'));
+                showToast(t('playerStats.emptyStatsError', 'Please enter at least one statistic (games, goals, or assists).'), 'error');
                 return;
               }
               if (editGames > 0 && editGoals > editGames * 20) {
-                alert(t('playerStats.unrealisticGoalsError', 'Goals per game seems unrealistic. Please check your input.'));
+                showToast(t('playerStats.unrealisticGoalsError', 'Goals per game seems unrealistic. Please check your input.'), 'error');
                 return;
               }
               if (editGames > 0 && editAssists > editGames * 20) {
-                alert(t('playerStats.unrealisticAssistsError', 'Assists per game seems unrealistic. Please check your input.'));
+                showToast(t('playerStats.unrealisticAssistsError', 'Assists per game seems unrealistic. Please check your input.'), 'error');
                 return;
               }
               
@@ -755,6 +731,9 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             </div>
           </form>
         )}
+            </div>
+          )}
+        </div>
 
         {/* Delete Confirmation Dialog */}
         {showDeleteConfirm && (
@@ -781,7 +760,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       setAdjustments(prev => prev.filter(a => a.id !== showDeleteConfirm));
                       setShowDeleteConfirm(null);
                     } else {
-                      alert(t('playerStats.deleteError', 'Failed to delete the external game entry.'));
+                      showToast(t('playerStats.deleteError', 'Failed to delete the external game entry.'), 'error');
                     }
                   }}
                   className="px-4 py-2 bg-red-600 rounded hover:bg-red-500 text-sm font-medium transition-colors text-white"
@@ -909,7 +888,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               <h4 className="text-md font-semibold text-slate-200 mb-2">{t('playerStats.seasonPerformance', 'Season Performance')}</h4>
               <div className="space-y-2">
                 {Object.entries(playerStats.performanceBySeason).map(([id, stats]) => (
-                  <div key={id} className="p-2 bg-slate-700/50 rounded-md">
+                  <div key={id} className="p-2 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 rounded-md transition-all">
                     <p className="font-semibold text-slate-100 mb-1">{stats.name}</p>
                     <div className="grid grid-cols-5 gap-2 text-center text-sm">
                       <div><p className="font-bold text-yellow-400">{stats.gamesPlayed}</p><p className="text-xs text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}</p></div>
@@ -928,7 +907,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               <h4 className="text-md font-semibold text-slate-200 mb-2">{t('playerStats.tournamentPerformance', 'Tournament Performance')}</h4>
               <div className="space-y-2">
                 {Object.entries(playerStats.performanceByTournament).map(([id, stats]) => (
-                  <div key={id} className="p-2 bg-slate-700/50 rounded-md">
+                  <div key={id} className="p-2 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 rounded-md transition-all">
                     <p className="font-semibold text-slate-100 mb-1 flex items-center gap-2">
                       {stats.name}
                       {stats.isTournamentWinner && (
@@ -953,15 +932,14 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
         {/* Individual Game Log List */}
         <div className="flex-grow mt-4">
-          <div className="space-y-2 max-h-48 overflow-y-auto">
+          <div className="space-y-2">
             {playerStats.gameByGameStats.length > 0 ? (
               playerStats.gameByGameStats.map(game => (
                 <button
                   key={game.gameId}
-                  className="relative w-full bg-slate-800/40 border border-slate-700/50 p-4 rounded-md flex justify-between items-center text-left hover:bg-slate-800/60 transition-colors shadow-inner"
+                  className="relative w-full bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 border border-slate-700/50 p-4 rounded-md flex justify-between items-center text-left transition-all shadow-inner"
                   onClick={() => onGameClick(game.gameId)}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none rounded-md" />
                   <span className={`absolute inset-y-0 left-0 w-1 rounded-l-md ${getResultClass(game.result)}`}></span>
                   <div className="flex items-center pl-2">
                     <div>

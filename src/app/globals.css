@@ -140,7 +140,7 @@ body > div {
 
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .stadium-beam, .stadium-beam.alt, .logo-halo {
+  .stadium-beam, .stadium-beam.alt, .logo-halo, .animate-pulse-slow {
     animation: none !important;
   }
 }

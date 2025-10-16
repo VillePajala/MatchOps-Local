@@ -2,18 +2,13 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import {
   HiOutlineXMark,
   HiOutlineSquares2X2,
   HiOutlinePlusCircle,
-  HiOutlineBackspace,
-  HiOutlineTrash,
   HiOutlineClipboard,
   HiOutlineUsers,
-  HiOutlineAdjustmentsHorizontal,
-  HiOutlineClipboardDocumentList,
-  HiOutlineClock,
-  HiOutlineQuestionMarkCircle,
   HiBars3,
   HiOutlineFolderOpen,
   HiOutlineArchiveBoxArrowDown,
@@ -23,7 +18,9 @@ import {
   HiOutlineArrowsPointingOut,
   HiOutlineCog6Tooth,
   HiOutlineBookOpen,
+  HiOutlineWrench,
 } from 'react-icons/hi2';
+import { FaFutbol } from 'react-icons/fa';
 
 interface InstructionsModalProps {
   isOpen: boolean;
@@ -71,23 +68,7 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
               <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
                 <li>{t('firstGameGuide.dragToAdjust', 'Drag players by dragging')}</li>
                 <li>{t('firstGameGuide.doubleTapRemove', 'Double-tap to remove a player from the field')}</li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.placeAllTip', 'Place all players at once with:')}</span>
-                  <HiOutlineSquares2X2 aria-hidden className="inline-block align-[-2px] ml-2 text-purple-300" size={18} />
-                </li>
                 <li>{t('firstGameGuide.drawTactics', 'You can draw on the field with your finger')}</li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.addOpponentTip', 'Add opponents with:')}</span>
-                  <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-red-300" size={18} />
-                </li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.clearDrawingsTip', 'Clear drawings with:')}</span>
-                  <HiOutlineBackspace aria-hidden className="inline-block align-[-2px] ml-2 text-amber-300" size={18} />
-                </li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.resetFieldTip', 'Reset field with:')}</span>
-                  <HiOutlineTrash aria-hidden className="inline-block align-[-2px] ml-2 text-red-400" size={18} />
-                </li>
               </ul>
             </div>
           </section>
@@ -109,14 +90,6 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
                   <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-red-300" size={18} />
                 </li>
                 <li>{t('firstGameGuide.drawLinesTip', 'Draw lines on the field with your finger')}</li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.clearDrawingsTip', 'Clear drawings with:')}</span>
-                  <HiOutlineBackspace aria-hidden className="inline-block align-[-2px] ml-2 text-amber-300" size={18} />
-                </li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.resetFieldTip', 'Reset field with:')}</span>
-                  <HiOutlineTrash aria-hidden className="inline-block align-[-2px] ml-2 text-red-400" size={18} />
-                </li>
               </ul>
             </div>
           </section>
@@ -126,37 +99,20 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
               <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
                 <li>
-                  <span className="text-slate-200">{t('firstGameGuide.undoRedoTip', 'Undo/Redo your last actions:')}</span>
-                  <span className="inline-flex items-center ml-2 gap-1 align-[-2px]">
-                    <svg className="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 010 8h-1"/></svg>
-                    <svg className="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 10l4 4-4 4"/><path d="M19 14H8a4 4 0 010-8h1"/></svg>
-                  </span>
+                  <span className="text-slate-200">{t('firstGameGuide.fieldToolsTip', 'Open field tools (undo, redo, tactics, etc.):')}</span>
+                  <HiOutlineWrench aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
                 </li>
                 <li>
-                  <span className="text-slate-200">{t('firstGameGuide.logGoalTip', 'Log a goal:')}</span>
-                  <span className="inline-block align-[-2px] ml-2 text-blue-300">
-                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
-                  </span>
-                </li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.rosterTip', 'Open roster settings:')}</span>
-                  <HiOutlineUsers aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
-                </li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.gameSettingsTip', 'Open game settings:')}</span>
-                  <HiOutlineAdjustmentsHorizontal aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
-                </li>
-                <li>
-                  <span className="text-slate-200">{t('firstGameGuide.statsTip', 'Show stats:')}</span>
-                  <HiOutlineClipboardDocumentList aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
+                  <span className="text-slate-200">{t('firstGameGuide.placeAllTip', 'Place all players at once with:')}</span>
+                  <HiOutlineSquares2X2 aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
                 </li>
                 <li>
                   <span className="text-slate-200">{t('firstGameGuide.timerOverlayTip', 'Show/hide large timer:')}</span>
-                  <HiOutlineClock aria-hidden className="inline-block align-[-2px] ml-2 text-green-300" size={18} />
+                  <span className="inline-block align-[-2px] ml-2 text-green-400 font-bold text-sm">00:00</span>
                 </li>
                 <li>
-                  <span className="text-slate-200">{t('firstGameGuide.helpTip', 'Open help:')}</span>
-                  <HiOutlineQuestionMarkCircle aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
+                  <span className="text-slate-200">{t('firstGameGuide.logGoalTip', 'Log a goal:')}</span>
+                  <FaFutbol aria-hidden className="inline-block align-[-2px] ml-2 text-blue-300" size={16} />
                 </li>
                 <li>
                   <span className="text-slate-200">{t('firstGameGuide.menuTip', 'Open the menu for more:')}</span>
@@ -198,11 +154,11 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
           </section>
         </div>
 
-        <div className="p-4 border-t border-slate-700/20 backdrop-blur-sm bg-slate-900/20 flex-shrink-0 flex justify-end">
-          <button onClick={onClose} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors">
-            {t('instructionsModal.closeButton')}
+        <ModalFooter>
+          <button onClick={onClose} className={primaryButtonStyle}>
+            {t('common.doneButton', 'Done')}
           </button>
-        </div>
+        </ModalFooter>
       </div>
     </div>
   );

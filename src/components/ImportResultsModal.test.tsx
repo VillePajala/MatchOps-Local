@@ -37,7 +37,8 @@ describe('ImportResultsModal', () => {
         'importResults.successMessage': `Successfully imported ${options?.count || 0} games. ${options?.skipped || 0} games were skipped as they already exist.`,
         'importResults.noResults': 'No import results available.',
         'common.processing': 'Processing...',
-        'common.close': 'Close'
+        'common.close': 'Close',
+        'common.doneButton': 'Done'
       };
       return translations[key] || key;
     });
@@ -148,7 +149,7 @@ describe('ImportResultsModal', () => {
 
   it('calls onClose when close button is clicked', async () => {
     const onCloseMock = jest.fn();
-    
+
     renderWithI18n(
       <ImportResultsModal
         isOpen={true}
@@ -156,9 +157,9 @@ describe('ImportResultsModal', () => {
         importResult={mockImportResult}
       />
     );
-    
-    fireEvent.click(screen.getByText('Close'));
-    
+
+    fireEvent.click(screen.getByText('Done'));
+
     await waitFor(() => {
       expect(onCloseMock).toHaveBeenCalledTimes(1);
     });

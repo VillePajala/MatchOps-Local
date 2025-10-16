@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const projectRoot = path.join(__dirname, '..');
-const sourceImage = path.join(projectRoot, 'public', 'logos', 'match_ops_local_logo_transparent.png');
+const sourceImage = path.join(projectRoot, 'public', 'logos', 'app-logo-yellow.png');
 const iconsDir = path.join(projectRoot, 'public', 'icons');
 
 // Icon sizes we need to generate
@@ -39,37 +39,18 @@ async function generateIcons() {
     const sourceInfo = await sharp(sourceImage).metadata();
     console.log(`📏 Source image: ${sourceInfo.width}x${sourceInfo.height}`);
 
-    // Darker blue background color
-    const backgroundColor = { r: 15, g: 25, b: 45, alpha: 1 };
-
     // Generate each required size
     for (const { size, name } of iconSizes) {
       const outputPath = path.join(iconsDir, name);
 
-      // Calculate text size to match current appearance (90% of icon size)
-      const textSize = Math.round(size * 0.9);
-
-      // Create a canvas with background color and place transparent logo
-      await sharp({
-        create: {
-          width: size,
-          height: size,
-          channels: 4,
-          background: backgroundColor
-        }
-      })
-      .composite([{
-        input: await sharp(sourceImage)
-          .resize(textSize, textSize, {
-            fit: 'contain',
-            background: { r: 0, g: 0, b: 0, alpha: 0 }
-          })
-          .toBuffer(),
-        top: Math.round((size - textSize) / 2) + 6,
-        left: Math.round((size - textSize) / 2)
-      }])
-      .png()
-      .toFile(outputPath);
+      // Resize logo with transparent background
+      await sharp(sourceImage)
+        .resize(size, size, {
+          fit: 'contain',
+          background: { r: 0, g: 0, b: 0, alpha: 0 }
+        })
+        .png()
+        .toFile(outputPath);
 
       console.log(`✅ Generated: ${name} (${size}x${size})`);
     }
@@ -77,29 +58,14 @@ async function generateIcons() {
     // Generate favicon.ico (multi-size ICO file)
     const faviconPath = path.join(projectRoot, 'public', 'favicon.ico');
 
-    // Create a 32x32 favicon with single background
-    const faviconTextSize = Math.round(32 * 0.9);
-
-    await sharp({
-      create: {
-        width: 32,
-        height: 32,
-        channels: 4,
-        background: backgroundColor
-      }
-    })
-    .composite([{
-      input: await sharp(sourceImage)
-        .resize(faviconTextSize, faviconTextSize, {
-          fit: 'contain',
-          background: { r: 0, g: 0, b: 0, alpha: 0 }
-        })
-        .toBuffer(),
-      top: Math.round((32 - faviconTextSize) / 2) + 1,
-      left: Math.round((32 - faviconTextSize) / 2)
-    }])
-    .png()
-    .toFile(faviconPath);
+    // Create a 32x32 favicon with transparent background
+    await sharp(sourceImage)
+      .resize(32, 32, {
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      })
+      .png()
+      .toFile(faviconPath);
 
     console.log('✅ Generated: favicon.ico');
     

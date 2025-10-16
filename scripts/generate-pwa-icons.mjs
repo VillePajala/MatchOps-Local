@@ -10,11 +10,12 @@ const projectRoot = join(__dirname, '..');
 
 const pwaIconSizes = [192, 512];
 const faviconSizes = [16, 32];
-const inputLogo = join(projectRoot, 'public/logos/app-logo.png');
+const inputLogo = join(projectRoot, 'public/logos/app-logo-yellow.png');
 const outputDir = join(projectRoot, 'public/icons');
+const backgroundColor = '#4f46e5'; // indigo-600 - app theme color
 
 async function generateIcons() {
-  console.log('Generating PWA icons from app-logo.png...');
+  console.log('Generating PWA icons from app-logo-yellow.png with blue background...');
 
   // Generate PWA icons with padding to prevent overflow/zoom appearance
   for (const size of pwaIconSizes) {
@@ -25,18 +26,31 @@ async function generateIcons() {
     const padding = Math.round((size - logoSize) / 2);
 
     try {
-      await sharp(inputLogo)
+      // Create background
+      const background = await sharp({
+        create: {
+          width: size,
+          height: size,
+          channels: 4,
+          background: backgroundColor
+        }
+      }).png().toBuffer();
+
+      // Load and resize logo
+      const logo = await sharp(inputLogo)
         .resize(logoSize, logoSize, {
-          fit: 'contain',
+          fit: 'inside',
           background: { r: 0, g: 0, b: 0, alpha: 0 }
         })
-        .extend({
+        .toBuffer();
+
+      // Composite logo on background
+      await sharp(background)
+        .composite([{
+          input: logo,
           top: padding,
-          bottom: padding,
-          left: padding,
-          right: padding,
-          background: { r: 0, g: 0, b: 0, alpha: 0 }
-        })
+          left: padding
+        }])
         .png()
         .toFile(outputPath);
 
@@ -50,13 +64,35 @@ async function generateIcons() {
   // Generate favicons
   for (const size of faviconSizes) {
     const outputPath = join(outputDir, `favicon-${size}x${size}.png`);
+    const padding = size === 16 ? 2 : 5;
+    const logoSize = size - (padding * 2);
 
     try {
-      await sharp(inputLogo)
-        .resize(size, size, {
-          fit: 'contain',
+      // Create background
+      const background = await sharp({
+        create: {
+          width: size,
+          height: size,
+          channels: 4,
+          background: backgroundColor
+        }
+      }).png().toBuffer();
+
+      // Load and resize logo
+      const logo = await sharp(inputLogo)
+        .resize(logoSize, logoSize, {
+          fit: 'inside',
           background: { r: 0, g: 0, b: 0, alpha: 0 }
         })
+        .toBuffer();
+
+      // Composite logo on background
+      await sharp(background)
+        .composite([{
+          input: logo,
+          top: padding,
+          left: padding
+        }])
         .png()
         .toFile(outputPath);
 
@@ -69,12 +105,36 @@ async function generateIcons() {
 
   // Also generate apple-touch-icon (180x180)
   const appleTouchIconPath = join(outputDir, 'apple-touch-icon.png');
+  const appleIconSize = 180;
+  const applePadding = 28;
+  const appleLogoSize = appleIconSize - (applePadding * 2);
+
   try {
-    await sharp(inputLogo)
-      .resize(180, 180, {
-        fit: 'contain',
+    // Create background
+    const background = await sharp({
+      create: {
+        width: appleIconSize,
+        height: appleIconSize,
+        channels: 4,
+        background: backgroundColor
+      }
+    }).png().toBuffer();
+
+    // Load and resize logo
+    const logo = await sharp(inputLogo)
+      .resize(appleLogoSize, appleLogoSize, {
+        fit: 'inside',
         background: { r: 0, g: 0, b: 0, alpha: 0 }
       })
+      .toBuffer();
+
+    // Composite logo on background
+    await sharp(background)
+      .composite([{
+        input: logo,
+        top: applePadding,
+        left: applePadding
+      }])
       .png()
       .toFile(appleTouchIconPath);
 
@@ -84,7 +144,7 @@ async function generateIcons() {
     throw error;
   }
 
-  console.log('\nPWA icons generated successfully!');
+  console.log('\nPWA icons with yellow logo on blue background generated successfully!');
 }
 
 generateIcons().catch(error => {

@@ -65,9 +65,16 @@ const PlayerBar: React.FC<PlayerBarProps> = ({ players, onPlayerDragStartFromBar
   )`;
   */
   return (
-    <div 
+    <div
       data-testid="player-bar"
-      className="bg-gradient-to-b from-slate-800 to-slate-900/85 backdrop-blur-md pl-4 pr-2 py-0.5 flex items-center space-x-3 flex-shrink-0 overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-slate-700/80 scrollbar-track-slate-800/50 shadow-lg border-b border-slate-700/50"
+      className="relative pl-2 pr-2 py-0.5 flex items-center space-x-1 flex-shrink-0 overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-slate-700/80 scrollbar-track-slate-800/50 shadow-lg border-b border-slate-700/50 backdrop-blur-md"
+      style={{
+        background: `
+          linear-gradient(to bottom, rgba(56, 189, 248, 0.1), transparent, transparent),
+          linear-gradient(to bottom, rgba(79, 70, 229, 0.1), rgba(79, 70, 229, 0.1)),
+          linear-gradient(to bottom, rgb(30, 41, 59), rgba(15, 23, 42, 0.85))
+        `
+      }}
       onClick={(e) => {
         // Check if the click target is the div itself (the background)
         if (e.target === e.currentTarget && onBarBackgroundClick) {
@@ -77,7 +84,7 @@ const PlayerBar: React.FC<PlayerBarProps> = ({ players, onPlayerDragStartFromBar
     >
       {/* Team Logo */}
       <div
-        className="flex items-center justify-center flex-shrink-0 py-0.5 px-0.5"
+        className="relative flex items-center justify-center flex-shrink-0 py-0.5 px-0.5 z-10"
         onClick={() => {
           // Also deselect player when clicking the logo/team name area
           if (onBarBackgroundClick) {
@@ -86,7 +93,7 @@ const PlayerBar: React.FC<PlayerBarProps> = ({ players, onPlayerDragStartFromBar
         }}
       >
         <Image
-          src="/logos/app-logo.png"
+          src="/logos/app-logo-yellow.png"
           alt="MatchOps Local"
           width={80}
           height={27}
@@ -146,10 +153,10 @@ const PlayerBar: React.FC<PlayerBarProps> = ({ players, onPlayerDragStartFromBar
       </div>
 
       {/* Separator */}
-      <div className="border-l border-slate-600 h-16 self-center"></div>
+      <div className="relative border-l border-slate-600 h-16 self-center z-10"></div>
 
       {/* Player Disks */}
-      <div className="flex items-center space-x-1"> 
+      <div className="relative flex items-center space-x-1 z-10"> 
         {players.map(player => (
           <PlayerDisk
             key={player.id}

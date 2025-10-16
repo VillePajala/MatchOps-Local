@@ -148,10 +148,10 @@ const InstallPrompt: React.FC = () => {
     <div className={styles.installPrompt}>
       <div className={styles.logoContainer}>
         <Image
-          src="/logos/app-logo.png"
+          src="/logos/app-logo-yellow.png"
           alt="MatchOps Local"
           width={200}
-          height={67}
+          height={200}
           priority={true}
           className={styles.logo}
         />
