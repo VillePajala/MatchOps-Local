@@ -1187,7 +1187,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     loadGame();
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentGameId, savedGames, initialLoadComplete]); // IMPORTANT: initialLoadComplete ensures this runs after master roster is loaded.
+  }, [currentGameId, initialLoadComplete]); // IMPORTANT: initialLoadComplete ensures this runs after master roster is loaded. savedGames removed to prevent auto-save from triggering reload and resetting timer.
 
   // --- Save state to localStorage ---
   useEffect(() => {
