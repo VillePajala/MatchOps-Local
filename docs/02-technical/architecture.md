@@ -27,14 +27,14 @@ MatchOps-Local is built on **local-first principles** with a **progressive enhan
 │           │                       │                    │    │
 │           ▼                       ▼                    ▼    │
 │  ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐ │
-│  │   Next.js       │    │    Hooks &       │    │Browser  │ │
-│  │   App Router    │    │    Utilities     │    │LocalDB  │ │
+│  │   Next.js       │    │    Hooks &       │    │IndexedDB│ │
+│  │   App Router    │    │    Utilities     │    │Adapter  │ │
 │  └─────────────────┘    └──────────────────┘    └─────────┘ │
 │           │                       │                    │    │
 │           ▼                       ▼                    ▼    │
 │  ┌─────────────────┐    ┌──────────────────┐    ┌─────────┐ │
-│  │   PWA Shell     │    │   TypeScript     │    │localStorage│ │
-│  │(Service Worker) │    │   Type System    │    │   JSON    │ │
+│  │   PWA Shell     │    │   TypeScript     │    │IndexedDB│ │
+│  │(Service Worker) │    │   Type System    │    │ KV Store│ │
 │  └─────────────────┘    └──────────────────┘    └─────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -54,18 +54,19 @@ MatchOps-Local is built on **local-first principles** with a **progressive enhan
 - **Streaming**: Progressive loading for better perceived performance  
 - **Server Components**: Future extensibility if server features needed
 
-### State Management: React Query + localStorage
+### State Management: React Query + IndexedDB
 **Why React Query?**
-- **Async State Management**: Perfect for localStorage operations
+- **Async State Management**: Perfect for IndexedDB operations
 - **Caching Strategy**: Intelligent data caching and invalidation
 - **Background Updates**: Automatic data refresh and synchronization
 - **Error Handling**: Robust error boundaries and retry logic
 
-**Why localStorage?**
+**Why IndexedDB?**
 - **Local-First**: Data stays on device, zero external dependencies
 - **Performance**: Instant data access without network overhead
 - **Privacy**: Complete data control, no external data transmission
-- **Simplicity**: No database setup or maintenance required
+- **Scalability**: 50MB+ storage quota vs 5-10MB localStorage limit
+- **Data Structure**: Supports complex objects and efficient queries
 
 ### UI Framework: React 19 with TypeScript
 **Why React 19?**
@@ -89,46 +90,50 @@ MatchOps-Local is built on **local-first principles** with a **progressive enhan
 
 ## Data Architecture
 
-### Local Storage Schema
+### IndexedDB Storage Schema
 
 ```typescript
-// Core Data Entities
+// Core Data Entities stored in IndexedDB key-value store
 interface StorageSchema {
   // Player and Team Data
   masterRoster: Player[]           // Central player database
   teams: Team[]                   // Team definitions
   teamRosters: TeamRoster[]       // Player assignments to teams
-  
-  // Game and Season Data  
-  savedGames: SavedGame[]         // Individual game states
-  seasons: Season[]               // Season definitions
-  tournaments: Tournament[]       // Tournament structures
-  
+
+  // Game and Season Data
+  savedSoccerGames: SavedGame[]   // Individual game states
+  seasons_list: Season[]          // Season definitions
+  tournaments_list: Tournament[]  // Tournament structures
+
   // Application State
   appSettings: AppSettings        // User preferences and config
   timerState: TimerState         // Game timer persistence
-  
+
   // Analytics and History
   playerAdjustments: PlayerAdjustment[]  // Performance tracking
   gameHistory: GameEvent[]        // Historical game events
+
+  // Migration Control
+  storage_config: StorageConfig   // Storage mode and version
 }
 ```
 
 ### Data Flow Architecture
 
 ```
-User Interaction → React Component → Custom Hook → React Query → Utility Function → localStorage
+User Interaction → React Component → Custom Hook → React Query → Utility Function → IndexedDB
                                                               ↓
                                          Component Re-render ← Query Cache Update ← Data Validation
 ```
 
 ### Key Storage Strategies
 
-1. **Atomic Operations**: All localStorage operations are atomic
-2. **Data Validation**: Schema validation on read/write operations  
-3. **Migration Support**: Automatic data migration for schema changes
+1. **Atomic Operations**: All IndexedDB operations use transactions for atomicity
+2. **Data Validation**: Schema validation on read/write operations
+3. **Migration Support**: Automatic migration from localStorage to IndexedDB
 4. **Backup Integration**: Built-in export/import for data portability
-5. **Error Recovery**: Graceful handling of corrupted data
+5. **Error Recovery**: Graceful handling of corrupted data with fallback mechanisms
+6. **Performance**: Batch operations and efficient querying for large datasets
 
 ## Component Architecture
 
