@@ -78,14 +78,16 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .prose code {
-  background-color: #f3f4f6;
+  background-color: #e5e7eb;
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
   font-size: 0.875rem;
+  color: #374151;
 }
 
 .dark .prose code {
-  background-color: #1f2937;
+  background-color: #374151;
+  color: #e5e7eb;
 }
 
 .prose pre {
