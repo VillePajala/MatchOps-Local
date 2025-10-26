@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/site/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -19,7 +20,9 @@ playwright/.cache/
 
 # next.js
 /.next/
+/site/.next/
 /out/
+/site/out/
 
 # production
 /build
@@ -57,3 +60,15 @@ public/manifest.json
 
 # example/test data
 public/example_data/
+
+# site/ (marketing website)
+site/.next/
+site/out/
+site/pages/docs/
+site/node_modules/
+site/.vercel/
+site/next-env.d.ts
+site/*.tsbuildinfo
+
+# site-specific (marketing/docs site)
+/site/pages/docs/
