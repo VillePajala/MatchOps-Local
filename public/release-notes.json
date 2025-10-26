@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix(site): replace rsync with Node.js script for Vercel compatibility"
+  "notes": "fix: exclude site/ directory from root project TypeScript compilation"
 }
