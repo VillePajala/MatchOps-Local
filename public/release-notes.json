@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: update README and documentation for proprietary status and contribution guidelines"
+  "notes": "fix(site): replace rsync with Node.js script for Vercel compatibility"
 }
