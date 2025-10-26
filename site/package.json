@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "prebuild": "rm -rf pages/docs && mkdir -p pages && rsync -av --delete --exclude '08-archived' --exclude '.git' ../docs/ pages/docs/",
+    "prebuild": "node scripts/copy-docs.js",
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
