@@ -17,7 +17,7 @@ export default function Home() {
             <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
               Professional team management, statistics, and tactics—all on your device.
               <br />
-              <strong>No subscriptions. No cloud. No compromises.</strong>
+              <strong>Professional features. Local-first. Complete control.</strong>
             </p>
 
             {/* CTA Buttons */}
@@ -52,89 +52,67 @@ export default function Home() {
               </div>
               <div className="flex flex-col items-center">
                 <FaDollarSign className="text-primary text-3xl mb-3" />
-                <h3 className="font-bold text-gray-900 dark:text-white mb-2">No Subscriptions</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">One-time setup</p>
+                <h3 className="font-bold text-gray-900 dark:text-white mb-2">Get Started Free</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Free version available</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Problem Statement Section */}
+      {/* Why Local-First Section */}
       <section className="py-20 bg-white dark:bg-gray-800">
         <div className="container-custom">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Why Most Coaching Apps Fall Short
+              Why Local-First?
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-              Traditional cloud-based coaching software creates unnecessary problems for coaches
+              Local-first architecture gives you control, privacy, and reliability
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Privacy Concerns */}
-            <div className="card border-2 border-red-200 dark:border-red-900">
-              <FaServer className="text-red-500 text-3xl mb-4" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Data Privacy & Control */}
+            <div className="card border-2 border-green-200 dark:border-green-900">
+              <FaShieldAlt className="text-green-500 text-3xl mb-4" />
               <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">
-                Privacy Concerns
+                Data Privacy & Control
               </h3>
               <ul className="space-y-3 text-gray-600 dark:text-gray-400">
                 <li className="flex items-start">
-                  <span className="text-red-500 mr-2">✗</span>
-                  <span>Your players&apos; data stored on external servers</span>
+                  <span className="text-green-500 mr-2">✓</span>
+                  <span>Your data stays on your device under your control</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-red-500 mr-2">✗</span>
-                  <span>Unknown who has access or how it&apos;s used</span>
+                  <span className="text-green-500 mr-2">✓</span>
+                  <span>You know exactly where your data is and who has access</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-red-500 mr-2">✗</span>
-                  <span>GDPR compliance complications</span>
+                  <span className="text-green-500 mr-2">✓</span>
+                  <span>Simple GDPR compliance—no external data transmission</span>
                 </li>
               </ul>
             </div>
 
-            {/* Connectivity Issues */}
-            <div className="card border-2 border-red-200 dark:border-red-900">
-              <FaWifi className="text-red-500 text-3xl mb-4" />
+            {/* Works Anywhere */}
+            <div className="card border-2 border-green-200 dark:border-green-900">
+              <FaBolt className="text-green-500 text-3xl mb-4" />
               <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">
-                Connectivity Issues
+                Works Anywhere
               </h3>
               <ul className="space-y-3 text-gray-600 dark:text-gray-400">
                 <li className="flex items-start">
-                  <span className="text-red-500 mr-2">✗</span>
-                  <span>Apps fail when cell service is poor</span>
+                  <span className="text-green-500 mr-2">✓</span>
+                  <span>Works perfectly offline, even at remote fields</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-red-500 mr-2">✗</span>
-                  <span>Can&apos;t access data at remote fields</span>
+                  <span className="text-green-500 mr-2">✓</span>
+                  <span>Access all your data anytime, no internet required</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-red-500 mr-2">✗</span>
-                  <span>Battery drain from constant syncing</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Subscription Fatigue */}
-            <div className="card border-2 border-red-200 dark:border-red-900">
-              <FaCreditCard className="text-red-500 text-3xl mb-4" />
-              <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">
-                Subscription Fatigue
-              </h3>
-              <ul className="space-y-3 text-gray-600 dark:text-gray-400">
-                <li className="flex items-start">
-                  <span className="text-red-500 mr-2">✗</span>
-                  <span>$10-30/month adds up quickly</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-red-500 mr-2">✗</span>
-                  <span>Per-user fees for multiple coaches</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-red-500 mr-2">✗</span>
-                  <span>Data held hostage if you cancel</span>
+                  <span className="text-green-500 mr-2">✓</span>
+                  <span>Battery efficient—no constant syncing</span>
                 </li>
               </ul>
             </div>
@@ -187,12 +165,12 @@ export default function Home() {
             />
             <FeatureCard
               icon={<FaDollarSign />}
-              title="Cost Effective"
-              description="No ongoing costs. Install once and use forever with free updates."
+              title="Free Version Available"
+              description="Get started with the free version. Install once and start managing your team immediately."
               highlights={[
-                'No subscriptions',
-                'No per-user fees',
-                'Free updates'
+                'No credit card required',
+                'Full feature access',
+                'Install instantly'
               ]}
             />
           </div>
@@ -282,7 +260,7 @@ export default function Home() {
             Get Started Now
           </a>
           <p className="text-sm mt-4 opacity-75">
-            Free to use • No credit card required • Your data stays on your device
+            No credit card required • Your data stays on your device
           </p>
         </div>
       </section>
