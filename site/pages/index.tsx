@@ -1,5 +1,6 @@
 import Layout from '@/components/Layout';
 import FeatureCard from '@/components/FeatureCard';
+import TechBadge from '@/components/TechBadge';
 import Link from 'next/link';
 import { FaLock, FaBolt, FaDollarSign, FaWifi, FaChartLine, FaCreditCard, FaServer, FaShieldAlt, FaFutbol, FaClock, FaPencilAlt, FaUsers, FaTrophy } from 'react-icons/fa';
 
@@ -38,22 +39,36 @@ export default function Home() {
               </a>
             </div>
 
+            {/* Hero Screenshot Placeholder */}
+            <div className="mt-12 max-w-5xl mx-auto">
+              <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-xl shadow-2xl border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden">
+                <div className="text-center px-6">
+                  <p className="text-gray-600 dark:text-gray-400 text-lg font-semibold mb-2">
+                    Interactive Soccer Field View
+                  </p>
+                  <p className="text-gray-500 dark:text-gray-500 text-sm">
+                    Screenshot coming soon
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Hero Points */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
               <div className="flex flex-col items-center">
                 <FaLock className="text-primary text-3xl mb-3" />
                 <h3 className="font-bold text-gray-900 dark:text-white mb-2">Complete Privacy</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Zero data collection</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">Zero data collection</p>
               </div>
               <div className="flex flex-col items-center">
                 <FaBolt className="text-primary text-3xl mb-3" />
                 <h3 className="font-bold text-gray-900 dark:text-white mb-2">Works Offline</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">No internet required</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">No internet required</p>
               </div>
               <div className="flex flex-col items-center">
                 <FaDollarSign className="text-primary text-3xl mb-3" />
                 <h3 className="font-bold text-gray-900 dark:text-white mb-2">Get Started Free</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Free version available</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">Free version available</p>
               </div>
             </div>
           </div>
@@ -67,7 +82,7 @@ export default function Home() {
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Why Local-First?
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto">
               Local-first architecture gives you control, privacy, and reliability
             </p>
           </div>
@@ -79,7 +94,7 @@ export default function Home() {
               <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">
                 Data Privacy & Control
               </h3>
-              <ul className="space-y-3 text-gray-600 dark:text-gray-400">
+              <ul className="space-y-3 text-gray-700 dark:text-gray-300">
                 <li className="flex items-start">
                   <span className="text-green-500 mr-2">✓</span>
                   <span>Your data stays on your device under your control</span>
@@ -101,7 +116,7 @@ export default function Home() {
               <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">
                 Works Anywhere
               </h3>
-              <ul className="space-y-3 text-gray-600 dark:text-gray-400">
+              <ul className="space-y-3 text-gray-700 dark:text-gray-300">
                 <li className="flex items-start">
                   <span className="text-green-500 mr-2">✓</span>
                   <span>Works perfectly offline, even at remote fields</span>
@@ -127,7 +142,7 @@ export default function Home() {
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
               The Local-First Solution
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto">
               MatchOps-Local puts you in complete control of your team data
             </p>
           </div>
@@ -184,51 +199,85 @@ export default function Home() {
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Everything You Need for Match Day
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto">
               Comprehensive tools designed specifically for soccer coaching
             </p>
+          </div>
+
+          {/* Feature Screenshots Placeholders */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-lg shadow-lg border border-gray-300 dark:border-gray-600 flex items-center justify-center">
+              <div className="text-center px-4">
+                <p className="text-gray-600 dark:text-gray-400 text-sm font-semibold">
+                  Timer & Substitutions
+                </p>
+                <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">
+                  Screenshot
+                </p>
+              </div>
+            </div>
+            <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-lg shadow-lg border border-gray-300 dark:border-gray-600 flex items-center justify-center">
+              <div className="text-center px-4">
+                <p className="text-gray-600 dark:text-gray-400 text-sm font-semibold">
+                  Player Statistics
+                </p>
+                <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">
+                  Screenshot
+                </p>
+              </div>
+            </div>
+            <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-lg shadow-lg border border-gray-300 dark:border-gray-600 flex items-center justify-center">
+              <div className="text-center px-4">
+                <p className="text-gray-600 dark:text-gray-400 text-sm font-semibold">
+                  Tactics Board
+                </p>
+                <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">
+                  Screenshot
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="card">
               <FaFutbol className="text-primary text-3xl mb-3" />
               <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Interactive Soccer Field</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
                 Drag-and-drop player positioning with realistic field visualization
               </p>
             </div>
             <div className="card">
               <FaClock className="text-primary text-3xl mb-3" />
               <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Professional Game Timer</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
                 Substitution tracking with visual alerts and history logging
               </p>
             </div>
             <div className="card">
               <FaChartLine className="text-primary text-3xl mb-3" />
               <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Comprehensive Statistics</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
                 Player performance tracking with goals, assists, and playtime
               </p>
             </div>
             <div className="card">
               <FaPencilAlt className="text-primary text-3xl mb-3" />
               <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Tactics Board</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
                 Drawing tools for play design and team instruction
               </p>
             </div>
             <div className="card">
               <FaUsers className="text-primary text-3xl mb-3" />
               <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Multi-Team Management</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
                 Master roster system with unlimited teams and players
               </p>
             </div>
             <div className="card">
               <FaTrophy className="text-primary text-3xl mb-3" />
               <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Season & Tournaments</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
                 Organize competitions and track performance over time
               </p>
             </div>
@@ -238,6 +287,38 @@ export default function Home() {
             <Link href="/features" className="btn btn-primary">
               Explore All Features
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Technical Details Section */}
+      <section className="py-16 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
+        <div className="container-custom">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Built With Modern Web Technology
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Professional-grade tech stack for reliability and performance
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-4xl mx-auto">
+            <TechBadge name="React 19" />
+            <TechBadge name="Next.js 15" />
+            <TechBadge name="TypeScript" />
+            <TechBadge name="IndexedDB" />
+            <TechBadge name="PWA" />
+            <TechBadge name="Tailwind CSS" />
+          </div>
+          <div className="text-center mt-8">
+            <a
+              href="https://github.com/VillePajala/MatchOps-Local"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:text-primary-dark text-sm font-semibold"
+            >
+              View Source Code on GitHub →
+            </a>
           </div>
         </div>
       </section>
