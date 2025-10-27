@@ -21,10 +21,10 @@
   },
   "home": {
     "hero": {
-      "title": "Mobiilisovellus jalkapallovalmentajalle",
+      "title": "Mobiilityökalu jalkapallovalmentajille pelien suunnitteluun, ottelutapahtumien kirjaamiseen ja edistyneen tilastoinnin keräämiseen",
       "titleHighlight": "",
-      "subtitle": "Jalkapallovalmentajan työkalu pelien suunnitteluun, ottelutapahtumien kirjaamiseen ja edistyneen tilastoinnin keräämiseen.",
-      "subtitleBold": "Luo ja hallinnoi joukkueita, ottelu- ja kilpailutapahtumia ja tilastoja.",
+      "subtitle": "Luo ja hallinnoi joukkueita, ottelu- ja kilpailutapahtumia ja dokumentoi historia",
+      "subtitleBold": "",
       "tryItNow": "Kokeile nyt",
       "seeHowItWorks": "Katso miten se toimii",
       "screenshotTitle": "Interaktiivinen jalkapallokenttänäkymä",

@@ -21,10 +21,10 @@
   },
   "home": {
     "hero": {
-      "title": "Mobile App for Soccer Coaches",
+      "title": "Mobile Tool for Soccer Coaches to Plan Games, Record Match Events, and Collect Advanced Statistics",
       "titleHighlight": "",
-      "subtitle": "Plan games, record match events, and collect advanced statistics.",
-      "subtitleBold": "Create and manage teams, matches, competitions, and statistics.",
+      "subtitle": "Create and manage teams, match and competition events, and document history",
+      "subtitleBold": "",
       "tryItNow": "Try It Now",
       "seeHowItWorks": "See How It Works",
       "screenshotTitle": "Interactive Soccer Field View",
