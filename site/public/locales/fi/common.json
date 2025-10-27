@@ -21,10 +21,10 @@
   },
   "home": {
     "hero": {
-      "title": "Jalkapallosovellus, jossa",
-      "titleHighlight": "yksityisyytesi on turvassa",
-      "subtitle": "Joukkueiden hallinta, tilastot ja taktiikka—kaikki omalla laitteellasi.",
-      "subtitleBold": "Kaikki tarvittavat ominaisuudet. Toimii laitteellasi. Sinulla on täysi hallinta.",
+      "title": "Mobiilisovellus jalkapallovalmentajalle",
+      "titleHighlight": "",
+      "subtitle": "Jalkapallovalmentajan työkalu pelien suunnitteluun, ottelutapahtumien kirjaamiseen ja edistyneen tilastoinnin keräämiseen.",
+      "subtitleBold": "Luo ja hallinnoi joukkueita, ottelu- ja kilpailutapahtumia ja tilastoja.",
       "tryItNow": "Kokeile nyt",
       "seeHowItWorks": "Katso miten se toimii",
       "screenshotTitle": "Interaktiivinen jalkapallokenttänäkymä",
