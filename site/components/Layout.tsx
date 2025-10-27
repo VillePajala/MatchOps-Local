@@ -1,9 +1,9 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
-import { FaGithub, FaGlobe } from 'react-icons/fa';
+import { FaGithub, FaGlobe, FaBars, FaTimes } from 'react-icons/fa';
 import { useTranslation } from 'next-i18next';
 
 interface LayoutProps {
@@ -13,9 +13,11 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const { t } = useTranslation('common');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const changeLanguage = (locale: string) => {
     router.push(router.pathname, router.asPath, { locale });
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -52,8 +54,8 @@ export default function Layout({ children }: LayoutProps) {
                 height={40}
                 priority
               />
-              <span className="text-xl font-bold text-gray-900 dark:text-white">
-                MatchOps-Local
+              <span className="text-xl font-bold text-white drop-shadow-lg">
+                MatchOps Local
               </span>
             </Link>
 
@@ -114,57 +116,85 @@ export default function Layout({ children }: LayoutProps) {
             </div>
 
             {/* Mobile menu button */}
-            <div className="md:hidden flex items-center space-x-3">
+            <div className="md:hidden flex items-center">
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="text-slate-300 hover:text-primary transition-colors p-2"
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? <FaTimes className="h-6 w-6" /> : <FaBars className="h-6 w-6" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileMenuOpen ? 'max-h-96 pb-4' : 'max-h-0'}`}>
+            <div className="space-y-2 pt-4 border-t border-slate-700/50">
+              <Link
+                href="/features"
+                className="block text-slate-300 hover:text-primary transition-colors py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {t('nav.features')}
+              </Link>
+              <Link
+                href="/download"
+                className="block text-slate-300 hover:text-primary transition-colors py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {t('nav.download')}
+              </Link>
+              <Link
+                href="/docs"
+                className="block text-slate-300 hover:text-primary transition-colors py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {t('nav.docs')}
+              </Link>
+              <a
+                href="https://github.com/VillePajala/MatchOps-Local"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-slate-300 hover:text-primary transition-colors py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <div className="flex items-center gap-2">
+                  <FaGithub className="h-5 w-5" />
+                  {t('nav.github')}
+                </div>
+              </a>
+
               {/* Mobile Language Toggle */}
-              <div className="flex items-center space-x-1 text-sm text-gray-600 dark:text-gray-300">
+              <div className="flex items-center gap-2 pt-2">
+                <FaGlobe className="h-5 w-5 text-slate-400" />
                 <button
                   onClick={() => changeLanguage('en')}
-                  className={`px-2 py-1 rounded ${
-                    router.locale === 'en' ? 'text-primary font-semibold' : ''
+                  className={`px-3 py-1 rounded ${
+                    router.locale === 'en' ? 'bg-primary text-white font-semibold' : 'text-slate-300'
                   }`}
                 >
                   EN
                 </button>
-                <span>|</span>
                 <button
                   onClick={() => changeLanguage('fi')}
-                  className={`px-2 py-1 rounded ${
-                    router.locale === 'fi' ? 'text-primary font-semibold' : ''
+                  className={`px-3 py-1 rounded ${
+                    router.locale === 'fi' ? 'bg-primary text-white font-semibold' : 'text-slate-300'
                   }`}
                 >
                   FI
                 </button>
               </div>
+
               <a
                 href="https://matchops.app"
-                className="btn btn-primary text-sm px-4 py-2"
+                className="btn btn-primary text-sm px-4 py-2 mt-4 inline-block"
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => setMobileMenuOpen(false)}
               >
-                {t('nav.tryNow')}
+                {t('nav.tryItNow')}
               </a>
             </div>
-          </div>
-
-          {/* Mobile Navigation */}
-          <div className="md:hidden pb-4 space-y-2">
-            <Link href="/features" className="block text-gray-600 dark:text-gray-300 hover:text-primary transition-colors py-2">
-              {t('nav.features')}
-            </Link>
-            <Link href="/download" className="block text-gray-600 dark:text-gray-300 hover:text-primary transition-colors py-2">
-              {t('nav.download')}
-            </Link>
-            <Link href="/docs" className="block text-gray-600 dark:text-gray-300 hover:text-primary transition-colors py-2">
-              {t('nav.docs')}
-            </Link>
-            <a
-              href="https://github.com/VillePajala/MatchOps-Local"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block text-gray-600 dark:text-gray-300 hover:text-primary transition-colors py-2"
-            >
-              {t('nav.github')}
-            </a>
           </div>
         </div>
       </nav>
