@@ -12,17 +12,20 @@
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #1f2937;
   --primary: #F59E0B;
   --primary-dark: #D97706;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #111827;
-    --foreground: #f9fafb;
-  }
+/* Light mode (default - not used since we force dark) */
+html {
+  --background: #ffffff;
+  --foreground: #1f2937;
+}
+
+/* Dark mode - using class selector */
+html.dark {
+  --background: #111827;
+  --foreground: #f9fafb;
 }
 
 body {
