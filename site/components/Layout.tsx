@@ -61,6 +61,9 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Navigation Links */}
             <div className="hidden md:flex items-center space-x-8">
+              <Link href="/info" className="text-slate-300 hover:text-primary transition-colors">
+                Info
+              </Link>
               <Link href="/features" className="text-slate-300 hover:text-primary transition-colors">
                 {t('nav.features')}
               </Link>
@@ -130,6 +133,13 @@ export default function Layout({ children }: LayoutProps) {
           {/* Mobile Navigation */}
           <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileMenuOpen ? 'max-h-96 pb-4' : 'max-h-0'}`}>
             <div className="space-y-2 pt-4 border-t border-slate-700/50">
+              <Link
+                href="/info"
+                className="block text-slate-300 hover:text-primary transition-colors py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Info
+              </Link>
               <Link
                 href="/features"
                 className="block text-slate-300 hover:text-primary transition-colors py-2"
