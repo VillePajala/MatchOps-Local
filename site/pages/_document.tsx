@@ -5,17 +5,13 @@ export default function Document() {
     <Html lang="en">
       <Head />
       <body>
-        {/* Set dark mode as default */}
+        {/* Force dark mode as default */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                if (!('theme' in localStorage)) {
-                  document.documentElement.classList.add('dark');
-                  localStorage.theme = 'dark';
-                } else if (localStorage.theme === 'dark') {
-                  document.documentElement.classList.add('dark');
-                }
+                document.documentElement.classList.add('dark');
+                localStorage.theme = 'dark';
               } catch (e) {}
             `,
           }}
