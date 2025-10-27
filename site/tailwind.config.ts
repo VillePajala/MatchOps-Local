@@ -5,7 +5,15 @@ const config: Config = {
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  darkMode: 'media', // Respects system preference - defaults to dark if system is dark
+  darkMode: 'class', // Use class-based dark mode
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['var(--font-rajdhani)', 'Inter', 'sans-serif'],
+        display: ['var(--font-rajdhani)', 'sans-serif'],
+      },
+    },
+  },
 };
 
 export default config;
