@@ -1,0 +1,276 @@
+{
+  "nav": {
+    "features": "Ominaisuudet",
+    "download": "Lataa",
+    "docs": "Dokumentaatio",
+    "github": "GitHub",
+    "tryItNow": "Kokeile nyt",
+    "tryNow": "Kokeile"
+  },
+  "footer": {
+    "tagline": "Paikallinen jalkapallovalmentajan ohjelmisto, joka kunnioittaa yksityisyyttäsi.",
+    "product": "Tuote",
+    "launchApp": "Avaa sovellus",
+    "resources": "Resurssit",
+    "documentation": "Dokumentaatio",
+    "reportIssue": "Ilmoita ongelmasta",
+    "legal": "Lailliset",
+    "license": "Lisenssi",
+    "copyright": "© {{year}} MatchOps-Local. Kaikki oikeudet pidätetään.",
+    "dataStays": "Tietosi pysyvät laitteellasi. Aina."
+  },
+  "home": {
+    "hero": {
+      "title": "Jalkapallovalmentajan ohjelmisto, joka",
+      "titleHighlight": "Kunnioittaa yksityisyyttäsi",
+      "subtitle": "Ammattimainen joukkueiden hallinta, tilastot ja taktiikka—kaikki laitteellasi.",
+      "subtitleBold": "Ammattimaiset ominaisuudet. Paikallinen-ensisijainen. Täysi hallinta.",
+      "tryItNow": "Kokeile nyt",
+      "seeHowItWorks": "Katso miten se toimii",
+      "screenshotTitle": "Interaktiivinen jalkapallokenttänäkymä",
+      "screenshotPlaceholder": "Kuvakaappaus tulossa pian",
+      "privacyTitle": "Täysi yksityisyys",
+      "privacyDesc": "Ei tiedonkeruuta",
+      "offlineTitle": "Toimii ilman nettiä",
+      "offlineDesc": "Ei vaadi internetyhteyttä",
+      "freeTitle": "Aloita ilmaiseksi",
+      "freeDesc": "Ilmainen versio saatavilla"
+    },
+    "whyLocalFirst": {
+      "title": "Miksi paikallinen-ensisijainen?",
+      "subtitle": "Paikallinen-ensisijainen arkkitehtuuri antaa sinulle hallinnan, yksityisyyden ja luotettavuuden",
+      "privacyTitle": "Tietosuoja ja hallinta",
+      "privacyPoint1": "Tietosi pysyvät laitteellasi sinun hallinnassasi",
+      "privacyPoint2": "Tiedät tarkalleen missä tietosi ovat ja kenellä on pääsy",
+      "privacyPoint3": "Yksinkertainen GDPR-yhteensopivuus—ei ulkoista tiedonsiirtoa",
+      "worksAnywhereTitle": "Toimii kaikkialla",
+      "worksPoint1": "Toimii täydellisesti offline-tilassa, jopa kaukaisilla kentillä",
+      "worksPoint2": "Pääsy kaikkiin tietoihisi milloin tahansa, ei internettiä tarvita",
+      "worksPoint3": "Akkutehokas—ei jatkuvaa synkronointia"
+    },
+    "solution": {
+      "title": "Paikallinen-ensisijainen ratkaisu",
+      "subtitle": "MatchOps-Local antaa sinulle täyden hallinnan joukkuetiedoistasi",
+      "deviceTitle": "Laitteesi, tietosi",
+      "deviceDesc": "Kaikki tiedot tallennetaan paikallisesti selaimeesi. Ei ulkoisia palvelimia, ei tiedonkeruuta, ei seurantaa.",
+      "deviceHighlight1": "Vie milloin tahansa",
+      "deviceHighlight2": "Omista ikuisesti",
+      "deviceHighlight3": "Täysi hallinta",
+      "sidelineTitle": "Valmis kentälle",
+      "sidelineDesc": "Toimii täydellisesti ilman internetyhteyttä. Välittömät vastausajat ja akkutehokkuus.",
+      "sidelineHighlight1": "Täysi offline-tila",
+      "sidelineHighlight2": "<50ms vaste",
+      "sidelineHighlight3": "Akkutehokas",
+      "proFeaturesTitle": "Ammattimaiset ominaisuudet",
+      "proFeaturesDesc": "Kaikki mitä tarvitset ottelupäivänä ja sen jälkeen, kaikki yhdessä kattavassa sovelluksessa.",
+      "proFeaturesHighlight1": "Interaktiivinen kenttä",
+      "proFeaturesHighlight2": "Reaaliaikaiset tilastot",
+      "proFeaturesHighlight3": "Turnausseuranta",
+      "freeVersionTitle": "Ilmainen versio saatavilla",
+      "freeVersionDesc": "Aloita ilmaisella versiolla. Asenna kerran ja aloita joukkueesi hallinta välittömästi.",
+      "freeVersionHighlight1": "Ei luottokorttia tarvita",
+      "freeVersionHighlight2": "Täysi ominaisuuspääsy",
+      "freeVersionHighlight3": "Asenna välittömästi"
+    },
+    "features": {
+      "title": "Kaikki mitä tarvitset ottelupäivänä",
+      "subtitle": "Kattavat työkalut suunniteltu erityisesti jalkapallovalmentajille",
+      "screenshot1": "Ajastin ja vaihdot",
+      "screenshot2": "Pelaajatilastot",
+      "screenshot3": "Taktiiikkataulu",
+      "screenshotLabel": "Kuvakaappaus",
+      "interactiveFieldTitle": "Interaktiivinen jalkapallokenttä",
+      "interactiveFieldDesc": "Vedä ja pudota pelaajien sijoittelu realistisella kentän visualisoinnilla",
+      "timerTitle": "Ammattimainen pelin ajastin",
+      "timerDesc": "Vaihtoseuranta visuaalisilla hälytyksillä ja historian kirjaamisella",
+      "statsTitle": "Kattavat tilastot",
+      "statsDesc": "Pelaajien suorituskyvyn seuranta maaleilla, syötöillä ja peliajalla",
+      "tacticsTitle": "Taktiikkataulu",
+      "tacticsDesc": "Piirtotyökalut pelien suunnitteluun ja joukkueen ohjeistukseen",
+      "multiTeamTitle": "Monijoukkuehallinta",
+      "multiTeamDesc": "Master roster -järjestelmä rajoittamattomalla määrällä joukkueita ja pelaajia",
+      "seasonTitle": "Kaudet ja turnaukset",
+      "seasonDesc": "Järjestä kilpailut ja seuraa suorituskykyä ajan mittaan",
+      "exploreAll": "Tutustu kaikkiin ominaisuuksiin"
+    },
+    "technical": {
+      "title": "Rakennettu modernilla web-teknologialla",
+      "subtitle": "Ammattimainen teknologiapino luotettavuuden ja suorituskyvyn takaamiseksi",
+      "viewSource": "Katso lähdekoodi GitHubissa →"
+    },
+    "cta": {
+      "title": "Valmis ottamaan joukkuetietosi hallintaan?",
+      "subtitle": "Aloita MatchOps-Localin käyttö tänään. Ei rekisteröitymistä tarvita. Toimii selaimessasi välittömästi.",
+      "getStarted": "Aloita nyt",
+      "disclaimer": "Ei luottokorttia tarvita • Tietosi pysyvät laitteellasi"
+    }
+  },
+  "features": {
+    "hero": {
+      "title": "Kaikki mitä tarvitset ottelupäivänä ja sen jälkeen",
+      "subtitle": "Kattavat jalkapallovalmentajan työkalut suunniteltu erityisesti tarpeisiisi"
+    },
+    "gameDay": {
+      "title": "Ottelupäivän hallinta",
+      "subtitle": "Ammattimaiset työkalut live-ottelun hallintaan",
+      "interactiveFieldTitle": "Interaktiivinen jalkapallokenttä",
+      "interactiveFieldDesc": "Vedä ja pudota pelaajien sijoittelu realistisella kentän visualisoinnilla. Sijoita pelaajia, seuraa kokoonpanoja ja hallitse kokoonpanoasi reaaliajassa.",
+      "interactiveFieldHighlight1": "Realistinen kentän renderöinti",
+      "interactiveFieldHighlight2": "Vedä ja pudota -sijoittelu",
+      "interactiveFieldHighlight3": "Kokoonpanon hallinta",
+      "interactiveFieldHighlight4": "Pelaajan tilanilmaisimet",
+      "interactiveFieldHighlight5": "Yhdellä klikkauksella sijoitustyökalut",
+      "timerTitle": "Ammattimainen pelin ajastin",
+      "timerDesc": "Edistynyt ajastin vaihtovälien seurannalla ja visuaalisilla hälytyksillä. Älä koskaan ohita vaihtoikkunaa uudelleen.",
+      "timerHighlight1": "Määritettävät intervallit (1-20 min)",
+      "timerHighlight2": "Aika viimeisestä vaihdosta -seuranta",
+      "timerHighlight3": "Visuaaliset hälytykset 1 minuutin varoituksella",
+      "timerHighlight4": "Vaihtohistorian loki",
+      "timerHighlight5": "Suuri peitto kentän reunan näkyvyydelle",
+      "eventLoggingTitle": "Reaaliaikainen tapahtumien kirjaus",
+      "eventLoggingDesc": "Seuraa jokaista tärkeää hetkeä sen tapahtuessa. Maalit, syötöt, vastustajan maalit—kaikki aikaleimalla ja tallennettuna.",
+      "eventLoggingHighlight1": "Maalinseuranta tekijöillä",
+      "eventLoggingHighlight2": "Syöttöjen määrittely",
+      "eventLoggingHighlight3": "Vastustajan maalien kirjaus",
+      "eventLoggingHighlight4": "Vastustajan nimen muokkaus suoraan",
+      "eventLoggingHighlight5": "Tapahtumien aikaleimat synkronoitu ajastimen kanssa",
+      "tacticsTitle": "Taktiikkataulu",
+      "tacticsDesc": "Omistettu piirtoliittymä pelien suunnitteluun ja joukkueen ohjeistukseen. Piirrä pelejä, aseta kokoonpanoja ja kommunikoi strategiaa.",
+      "tacticsHighlight1": "Piirtotyökalut peleille",
+      "tacticsHighlight2": "Lisää/poista vastustajan pelaajia",
+      "tacticsHighlight3": "Kiekkojen sijoittelu merkitsimille",
+      "tacticsHighlight4": "Kumoa/Tee uudelleen -tuki",
+      "tacticsHighlight5": "Taktiikkanäkymän päälle/pois"
+    },
+    "statistics": {
+      "title": "Tilastot ja analytiikka",
+      "subtitle": "Seuraa suorituskykyä ja tunnista trendejä",
+      "playerStatsTitle": "Kattavat pelaajatilastot",
+      "playerStatsDesc": "Seuraa kaikkea mikä merkitsee: maalit, syötöt, esiintymiset, peliaika ja suorituskykytrendit ajan mittaan.",
+      "playerStatsHighlight1": "Maalien ja syöttöjen seuranta",
+      "playerStatsHighlight2": "Esiintymisten yhteismäärä",
+      "playerStatsHighlight3": "Peliajan seuranta",
+      "playerStatsHighlight4": "Suorituskykytrendit",
+      "playerStatsHighlight5": "Turnauskohtaiset tilastot",
+      "filteringTitle": "Edistynyt suodatus",
+      "filteringDesc": "Analysoi suorituskykyä kauden, turnauksen, joukkueen tai ajanjakson mukaan. Saa tarkalleen tarvitsemasi oivallukset.",
+      "filteringHighlight1": "Suodata kauden mukaan",
+      "filteringHighlight2": "Suodata turnauksen mukaan",
+      "filteringHighlight3": "Suodata joukkueen mukaan",
+      "filteringHighlight4": "Seurajoukkueen kauden suodatus (loka-touko)",
+      "filteringHighlight5": "Pelaajan oma pelihistoria"
+    },
+    "teamManagement": {
+      "title": "Joukkueiden hallinta",
+      "subtitle": "Järjestä joukkueita, pelaajia ja kilpailuja",
+      "rosterTitle": "Master Roster -järjestelmä",
+      "rosterDesc": "Keskitetty pelaajatietokanta jaettuna kaikkien joukkueiden kesken. Lisää, muokkaa ja hallitse pelaajia helposti.",
+      "rosterHighlight1": "Lisää/muokkaa/poista pelaajia",
+      "rosterHighlight2": "Pelinumeron hallinta",
+      "rosterHighlight3": "Maalivahdin määrittely",
+      "rosterHighlight4": "Pelaajien lempinimet",
+      "rosterHighlight5": "Katso pelaajatilastot rosterista",
+      "seasonTitle": "Kausi- ja turnausjärjestö",
+      "seasonDesc": "Luo kaudet päivämääräalueilla ja seuraa turnaussuorituksia palkinnoilla ja voittajilla.",
+      "seasonHighlight1": "Kauden luonti (päivämääräalueet)",
+      "seasonHighlight2": "Turnausten hallinta",
+      "seasonHighlight3": "Voittajien seuranta",
+      "seasonHighlight4": "Pelaajapalkinnot",
+      "seasonHighlight5": "Suorituskyky kilpailun mukaan"
+    },
+    "dataPrivacy": {
+      "title": "Tiedot ja yksityisyys",
+      "subtitle": "Tietosi, hallintasi",
+      "backupTitle": "Täydellinen varmuuskopio",
+      "backupDesc": "Vie kaikki tietosi milloin tahansa. Täysi varmuuskopio- ja palautustoiminto varmistaa ettet koskaan menetä mitään.",
+      "exportTitle": "JSON vienti/tuonti",
+      "exportDesc": "Standardi JSON-formaatti maksimaalisen yhteensopivuuden ja tietojen siirrettävyyden takaamiseksi.",
+      "storageTitle": "IndexedDB-tallennus",
+      "storageDesc": "Vankat selaimen tallennustilat 50MB+ kapasiteetilla. Kaikki tiedot pysyvät laitteellasi.",
+      "transmissionTitle": "Nolla siirtoa",
+      "transmissionDesc": "Ei ulkoista tiedonsiirtoa. Mikä pysyy laitteellasi, pysyy laitteellasi."
+    },
+    "technicalFeatures": {
+      "title": "Tekniset ominaisuudet",
+      "subtitle": "Moderni web-teknologia maksimaalisen luotettavuuden takaamiseksi",
+      "pwaTitle": "Progressive Web App",
+      "pwaDesc": "Asenna mihin tahansa laitteeseen. Toimii kuin natiivisovellus webin mukavuudella.",
+      "offlineTitle": "Offline-ensisijainen",
+      "offlineDesc": "Täysi toiminnallisuus ilman internettiä. Täydellinen kaukaisille kentille huonolla yhteydellä.",
+      "multiLanguageTitle": "Monikielinen",
+      "multiLanguageDesc": "Englannin ja suomen kielten tuki, lisää kieliä tulossa pian."
+    },
+    "cta": {
+      "title": "Valmis kokemaan eron?",
+      "subtitle": "Kokeile MatchOps-Localia nyt. Ei rekisteröitymistä tarvita.",
+      "getStarted": "Aloita nyt",
+      "installationGuide": "Asennusohje"
+    }
+  },
+  "download": {
+    "hero": {
+      "title": "Aloita 3 helppoa vaihetta",
+      "subtitle": "Ei rekisteröitymistä, ei asennushäiriöitä. Aloita valmentaminen alle minuutissa."
+    },
+    "step1": {
+      "title": "Avaa selaimessasi",
+      "description": "Vieraile <1>matchops.app</1> -sivustolla millä tahansa modernilla selaimella. Toimii työpöytä- ja mobiililaitteilla.",
+      "button": "Avaa MatchOps-Local"
+    },
+    "step2": {
+      "title": "Asenna (valinnainen)",
+      "description": "Parhaan kokemuksen saamiseksi asenna MatchOps-Local Progressive Web App -sovelluksena:",
+      "mobileTitle": "Mobiilissa",
+      "iosSafari": "<strong>iOS Safari:</strong> Napauta Jaa-painiketta, sitten \"Lisää kotinäyttöön\"",
+      "androidChrome": "<strong>Android Chrome:</strong> Napauta valikkoa (⋮), sitten \"Asenna sovellus\" tai \"Lisää kotinäyttöön\"",
+      "desktopTitle": "Työpöydällä",
+      "chromeEdge": "<strong>Chrome/Edge:</strong> Etsi asennuskuvake (⊕) osoitepalkista tai avaa valikko → \"Asenna MatchOps-Local\"",
+      "firefox": "<strong>Firefox:</strong> Klikkaa ilmestyvää asennuskehotetta tai tarkista osoitepalkki asennusvaihtoehdolle"
+    },
+    "step3": {
+      "title": "Aloita valmentaminen",
+      "description": "Siinä se! Ei tiliä tarvita, ei rekisteröintilomakkeita. Sovellus on valmis käytettäväksi välittömästi.",
+      "point1": "Lisää pelaajasi master rosteriin",
+      "point2": "Luo ensimmäinen joukkueesi",
+      "point3": "Aloita uusi peli ja aloita seuranta"
+    },
+    "browserSupport": {
+      "title": "Tuetut selaimet",
+      "subtitle": "MatchOps-Local toimii kaikilla moderneilla selaimilla",
+      "chrome": "Chrome",
+      "firefox": "Firefox",
+      "safari": "Safari",
+      "edge": "Edge"
+    },
+    "systemRequirements": {
+      "title": "Järjestelmävaatimukset",
+      "browserTitle": "Moderni web-selain:",
+      "browserDesc": " Chrome 90+, Firefox 88+, Safari 14+ tai Edge 90+",
+      "jsTitle": "JavaScript käytössä:",
+      "jsDesc": " Standardi kaikille moderneille selaimille",
+      "indexedDbTitle": "IndexedDB-tuki:",
+      "indexedDbDesc": " Saatavilla kaikissa tuetuissa selaimissa",
+      "storageTitle": "Tallennustila:",
+      "storageDesc": " ~50MB saatavilla (tyypillinen käyttö on paljon vähemmän)"
+    },
+    "faq": {
+      "title": "Usein kysytyt kysymykset",
+      "q1": "Tarvitsenko luoda tilin?",
+      "a1": "Ei! MatchOps-Local toimii välittömästi ilman rekisteröitymistä tai tilin luomista. Avaa vain sovellus ja aloita käyttö.",
+      "q2": "Toimiiko se offline-tilassa?",
+      "a2": "Kyllä! Kun ladattu, MatchOps-Local toimii täysin offline-tilassa. Täydellinen jalkapallokentille, joilla on huono internetyhteys.",
+      "q3": "Entä päivitykset?",
+      "a3": "Päivitykset ovat automaattisia kun sinulla on internetyhteys. Sovellus ilmoittaa kun uusi versio on saatavilla ja päivittyy saumattomasti.",
+      "q4": "Voinko viedä tietoni?",
+      "a4": "Ehdottomasti! Voit viedä täydellisen tietojoukkosi milloin tahansa JSON-formaatissa. Tietosi ovat sinun säilytettäviä, varmuuskopioitavia ja käytettäviä miten tahansa tarvitset.",
+      "q5": "Ovatko tietoni turvassa?",
+      "a5": "Kyllä! Kaikki tiedot tallennetaan paikallisesti laitteellesi käyttäen selaimen IndexedDB:tä. Mitään ei siirretä ulkoisille palvelimille, varmistaen täydellisen yksityisyyden ja hallinnan."
+    },
+    "cta": {
+      "title": "Valmis aloittamaan?",
+      "subtitle": "Avaa MatchOps-Local nyt ja aloita älykkäämpi valmentaminen",
+      "button": "Käynnistä MatchOps-Local",
+      "disclaimer": "Ei asennusta tarvita • Toimii välittömästi • Tietosi pysyvät yksityisinä"
+    }
+  }
+}

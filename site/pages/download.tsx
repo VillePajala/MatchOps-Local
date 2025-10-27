@@ -1,17 +1,21 @@
 import Layout from '@/components/Layout';
 import { FaChrome, FaFirefox, FaSafari, FaEdge, FaMobileAlt, FaDesktop, FaCheckCircle, FaQuestionCircle } from 'react-icons/fa';
+import { useTranslation, Trans } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import type { GetStaticProps } from 'next';
 
 export default function Download() {
+  const { t } = useTranslation('common');
   return (
     <Layout>
       {/* Hero */}
       <section className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-16">
         <div className="container-custom text-center">
           <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-            Get Started in 3 Easy Steps
+            {t('download.hero.title')}
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-            No signup, no installation hassles. Start coaching in under a minute.
+            {t('download.hero.subtitle')}
           </p>
         </div>
       </section>
@@ -27,11 +31,12 @@ export default function Download() {
               </div>
               <div>
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
-                  Open in Your Browser
+                  {t('download.step1.title')}
                 </h2>
                 <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
-                  Visit <a href="https://matchops.app" className="text-primary hover:underline font-semibold" target="_blank" rel="noopener noreferrer">matchops.app</a> on any modern browser.
-                  Works on desktop and mobile devices.
+                  <Trans i18nKey="download.step1.description" components={{
+                    1: <a href="https://matchops.app" className="text-primary hover:underline font-semibold" target="_blank" rel="noopener noreferrer" />
+                  }} />
                 </p>
                 <a
                   href="https://matchops.app"
@@ -39,7 +44,7 @@ export default function Download() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Open MatchOps-Local
+                  {t('download.step1.button')}
                 </a>
               </div>
             </div>
@@ -51,16 +56,16 @@ export default function Download() {
               </div>
               <div>
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
-                  Install (Optional)
+                  {t('download.step2.title')}
                 </h2>
                 <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
-                  For the best experience, install MatchOps-Local as a Progressive Web App:
+                  {t('download.step2.description')}
                 </p>
                 <div className="space-y-4">
                   <div className="card">
                     <div className="flex items-center mb-3">
                       <FaMobileAlt className="text-primary text-2xl mr-3" />
-                      <h3 className="font-bold text-gray-900 dark:text-white">On Mobile</h3>
+                      <h3 className="font-bold text-gray-900 dark:text-white">{t('download.step2.mobileTitle')}</h3>
                     </div>
                     <ul className="space-y-2 text-gray-600 dark:text-gray-400">
                       <li className="flex items-start">
@@ -76,7 +81,7 @@ export default function Download() {
                   <div className="card">
                     <div className="flex items-center mb-3">
                       <FaDesktop className="text-primary text-2xl mr-3" />
-                      <h3 className="font-bold text-gray-900 dark:text-white">On Desktop</h3>
+                      <h3 className="font-bold text-gray-900 dark:text-white">{t('download.step2.desktopTitle')}</h3>
                     </div>
                     <ul className="space-y-2 text-gray-600 dark:text-gray-400">
                       <li className="flex items-start">
@@ -100,23 +105,23 @@ export default function Download() {
               </div>
               <div>
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
-                  Start Coaching
+                  {t('download.step3.title')}
                 </h2>
                 <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
-                  That&apos;s it! No account required, no signup forms. The app is ready to use immediately.
+                  {t('download.step3.description')}
                 </p>
                 <ul className="space-y-2 text-gray-600 dark:text-gray-400">
                   <li className="flex items-start">
                     <FaCheckCircle className="text-green-500 mr-2 mt-1" />
-                    <span>Add your players to the master roster</span>
+                    <span>{t('download.step3.point1')}</span>
                   </li>
                   <li className="flex items-start">
                     <FaCheckCircle className="text-green-500 mr-2 mt-1" />
-                    <span>Create your first team</span>
+                    <span>{t('download.step3.point2')}</span>
                   </li>
                   <li className="flex items-start">
                     <FaCheckCircle className="text-green-500 mr-2 mt-1" />
-                    <span>Start a new game and begin tracking</span>
+                    <span>{t('download.step3.point3')}</span>
                   </li>
                 </ul>
               </div>
@@ -130,32 +135,32 @@ export default function Download() {
         <div className="container-custom">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Supported Browsers
+              {t('download.browserSupport.title')}
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-400">
-              MatchOps-Local works on all modern browsers
+              {t('download.browserSupport.subtitle')}
             </p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
             <div className="card text-center">
               <FaChrome className="text-5xl text-blue-500 mx-auto mb-3" />
-              <h3 className="font-bold text-gray-900 dark:text-white mb-1">Chrome</h3>
+              <h3 className="font-bold text-gray-900 dark:text-white mb-1">{t('download.browserSupport.chrome')}</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">90+</p>
             </div>
             <div className="card text-center">
               <FaFirefox className="text-5xl text-orange-500 mx-auto mb-3" />
-              <h3 className="font-bold text-gray-900 dark:text-white mb-1">Firefox</h3>
+              <h3 className="font-bold text-gray-900 dark:text-white mb-1">{t('download.browserSupport.firefox')}</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">88+</p>
             </div>
             <div className="card text-center">
               <FaSafari className="text-5xl text-blue-400 mx-auto mb-3" />
-              <h3 className="font-bold text-gray-900 dark:text-white mb-1">Safari</h3>
+              <h3 className="font-bold text-gray-900 dark:text-white mb-1">{t('download.browserSupport.safari')}</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">14+</p>
             </div>
             <div className="card text-center">
               <FaEdge className="text-5xl text-blue-600 mx-auto mb-3" />
-              <h3 className="font-bold text-gray-900 dark:text-white mb-1">Edge</h3>
+              <h3 className="font-bold text-gray-900 dark:text-white mb-1">{t('download.browserSupport.edge')}</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">90+</p>
             </div>
           </div>
@@ -167,7 +172,7 @@ export default function Download() {
         <div className="container-custom max-w-3xl">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              System Requirements
+              {t('download.systemRequirements.title')}
             </h2>
           </div>
 
@@ -211,7 +216,7 @@ export default function Download() {
         <div className="container-custom max-w-3xl">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Frequently Asked Questions
+              {t('download.faq.title')}
             </h2>
           </div>
 
@@ -221,11 +226,10 @@ export default function Download() {
                 <FaQuestionCircle className="text-primary text-xl mr-3 mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">
-                    Do I need to create an account?
+                    {t('download.faq.q1')}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400">
-                    No! MatchOps-Local works immediately without any signup or account creation.
-                    Just open the app and start using it.
+                    {t('download.faq.a1')}
                   </p>
                 </div>
               </div>
@@ -236,11 +240,10 @@ export default function Download() {
                 <FaQuestionCircle className="text-primary text-xl mr-3 mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">
-                    Does it work offline?
+                    {t('download.faq.q2')}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400">
-                    Yes! Once loaded, MatchOps-Local works completely offline. Perfect for
-                    soccer fields with poor internet connectivity.
+                    {t('download.faq.a2')}
                   </p>
                 </div>
               </div>
@@ -251,11 +254,10 @@ export default function Download() {
                 <FaQuestionCircle className="text-primary text-xl mr-3 mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">
-                    What about updates?
+                    {t('download.faq.q3')}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400">
-                    Updates are automatic when you have an internet connection. The app will
-                    notify you when a new version is available and update seamlessly.
+                    {t('download.faq.a3')}
                   </p>
                 </div>
               </div>
@@ -266,11 +268,10 @@ export default function Download() {
                 <FaQuestionCircle className="text-primary text-xl mr-3 mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">
-                    Can I export my data?
+                    {t('download.faq.q4')}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400">
-                    Absolutely! You can export your complete data set at any time in JSON format.
-                    Your data is yours to keep, backup, and use however you need.
+                    {t('download.faq.a4')}
                   </p>
                 </div>
               </div>
@@ -281,11 +282,10 @@ export default function Download() {
                 <FaQuestionCircle className="text-primary text-xl mr-3 mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2">
-                    Is my data safe?
+                    {t('download.faq.q5')}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400">
-                    Yes! All data is stored locally on your device using browser IndexedDB.
-                    Nothing is transmitted to external servers, ensuring complete privacy and control.
+                    {t('download.faq.a5')}
                   </p>
                 </div>
               </div>
@@ -298,10 +298,10 @@ export default function Download() {
       <section className="py-20 bg-gradient-to-br from-primary to-primary-dark text-white">
         <div className="container-custom text-center">
           <h2 className="text-4xl font-bold mb-4">
-            Ready to Get Started?
+            {t('download.cta.title')}
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Open MatchOps-Local now and start coaching smarter
+            {t('download.cta.subtitle')}
           </p>
           <a
             href="https://matchops.app"
@@ -309,13 +309,19 @@ export default function Download() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            Launch MatchOps-Local
+            {t('download.cta.button')}
           </a>
           <p className="text-sm mt-4 opacity-75">
-            No installation required • Works immediately • Your data stays private
+            {t('download.cta.disclaimer')}
           </p>
         </div>
       </section>
     </Layout>
   );
 }
+
+export const getStaticProps: GetStaticProps = async ({ locale }) => ({
+  props: {
+    ...(await serverSideTranslations(locale ?? 'en', ['common'])),
+  },
+});

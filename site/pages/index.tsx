@@ -3,8 +3,12 @@ import FeatureCard from '@/components/FeatureCard';
 import TechBadge from '@/components/TechBadge';
 import Link from 'next/link';
 import { FaLock, FaBolt, FaDollarSign, FaWifi, FaChartLine, FaCreditCard, FaServer, FaShieldAlt, FaFutbol, FaClock, FaPencilAlt, FaUsers, FaTrophy } from 'react-icons/fa';
+import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import type { GetStaticProps } from 'next';
 
 export default function Home() {
+  const { t } = useTranslation('common');
   return (
     <Layout>
       {/* Hero Section */}
@@ -12,13 +16,13 @@ export default function Home() {
         <div className="container-custom">
           <div className="text-center max-w-4xl mx-auto">
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-              Soccer Coaching Software That{' '}
-              <span className="text-primary">Respects Your Privacy</span>
+              {t('home.hero.title')}{' '}
+              <span className="text-primary">{t('home.hero.titleHighlight')}</span>
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
-              Professional team management, statistics, and tactics—all on your device.
+              {t('home.hero.subtitle')}
               <br />
-              <strong>Professional features. Local-first. Complete control.</strong>
+              <strong>{t('home.hero.subtitleBold')}</strong>
             </p>
 
             {/* CTA Buttons */}
@@ -29,13 +33,13 @@ export default function Home() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Try It Now
+                {t('home.hero.tryItNow')}
               </a>
               <a
                 href="#features"
                 className="btn btn-outline text-lg"
               >
-                See How It Works
+                {t('home.hero.seeHowItWorks')}
               </a>
             </div>
 
@@ -44,10 +48,10 @@ export default function Home() {
               <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-xl shadow-2xl border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center overflow-hidden">
                 <div className="text-center px-6">
                   <p className="text-gray-600 dark:text-gray-400 text-lg font-semibold mb-2">
-                    Interactive Soccer Field View
+                    {t('home.hero.screenshotTitle')}
                   </p>
                   <p className="text-gray-500 dark:text-gray-500 text-sm">
-                    Screenshot coming soon
+                    {t('home.hero.screenshotPlaceholder')}
                   </p>
                 </div>
               </div>
@@ -57,18 +61,18 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
               <div className="flex flex-col items-center">
                 <FaLock className="text-primary text-3xl mb-3" />
-                <h3 className="font-bold text-gray-900 dark:text-white mb-2">Complete Privacy</h3>
-                <p className="text-sm text-gray-700 dark:text-gray-300">Zero data collection</p>
+                <h3 className="font-bold text-gray-900 dark:text-white mb-2">{t('home.hero.privacyTitle')}</h3>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{t('home.hero.privacyDesc')}</p>
               </div>
               <div className="flex flex-col items-center">
                 <FaBolt className="text-primary text-3xl mb-3" />
-                <h3 className="font-bold text-gray-900 dark:text-white mb-2">Works Offline</h3>
-                <p className="text-sm text-gray-700 dark:text-gray-300">No internet required</p>
+                <h3 className="font-bold text-gray-900 dark:text-white mb-2">{t('home.hero.offlineTitle')}</h3>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{t('home.hero.offlineDesc')}</p>
               </div>
               <div className="flex flex-col items-center">
                 <FaDollarSign className="text-primary text-3xl mb-3" />
-                <h3 className="font-bold text-gray-900 dark:text-white mb-2">Get Started Free</h3>
-                <p className="text-sm text-gray-700 dark:text-gray-300">Free version available</p>
+                <h3 className="font-bold text-gray-900 dark:text-white mb-2">{t('home.hero.freeTitle')}</h3>
+                <p className="text-sm text-gray-700 dark:text-gray-300">{t('home.hero.freeDesc')}</p>
               </div>
             </div>
           </div>
@@ -80,10 +84,10 @@ export default function Home() {
         <div className="container-custom">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Why Local-First?
+              {t('home.whyLocalFirst.title')}
             </h2>
             <p className="text-xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto">
-              Local-first architecture gives you control, privacy, and reliability
+              {t('home.whyLocalFirst.subtitle')}
             </p>
           </div>
 
@@ -92,20 +96,20 @@ export default function Home() {
             <div className="card border-2 border-green-200 dark:border-green-900">
               <FaShieldAlt className="text-green-500 text-3xl mb-4" />
               <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">
-                Data Privacy & Control
+                {t('home.whyLocalFirst.privacyTitle')}
               </h3>
               <ul className="space-y-3 text-gray-700 dark:text-gray-300">
                 <li className="flex items-start">
                   <span className="text-green-500 mr-2">✓</span>
-                  <span>Your data stays on your device under your control</span>
+                  <span>{t('home.whyLocalFirst.privacyPoint1')}</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-green-500 mr-2">✓</span>
-                  <span>You know exactly where your data is and who has access</span>
+                  <span>{t('home.whyLocalFirst.privacyPoint2')}</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-green-500 mr-2">✓</span>
-                  <span>Simple GDPR compliance—no external data transmission</span>
+                  <span>{t('home.whyLocalFirst.privacyPoint3')}</span>
                 </li>
               </ul>
             </div>
@@ -114,20 +118,20 @@ export default function Home() {
             <div className="card border-2 border-green-200 dark:border-green-900">
               <FaBolt className="text-green-500 text-3xl mb-4" />
               <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">
-                Works Anywhere
+                {t('home.whyLocalFirst.worksAnywhereTitle')}
               </h3>
               <ul className="space-y-3 text-gray-700 dark:text-gray-300">
                 <li className="flex items-start">
                   <span className="text-green-500 mr-2">✓</span>
-                  <span>Works perfectly offline, even at remote fields</span>
+                  <span>{t('home.whyLocalFirst.worksPoint1')}</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-green-500 mr-2">✓</span>
-                  <span>Access all your data anytime, no internet required</span>
+                  <span>{t('home.whyLocalFirst.worksPoint2')}</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-green-500 mr-2">✓</span>
-                  <span>Battery efficient—no constant syncing</span>
+                  <span>{t('home.whyLocalFirst.worksPoint3')}</span>
                 </li>
               </ul>
             </div>
@@ -140,52 +144,52 @@ export default function Home() {
         <div className="container-custom">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              The Local-First Solution
+              {t('home.solution.title')}
             </h2>
             <p className="text-xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto">
-              MatchOps-Local puts you in complete control of your team data
+              {t('home.solution.subtitle')}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <FeatureCard
               icon={<FaShieldAlt />}
-              title="Your Device, Your Data"
-              description="All data stored locally in your browser. No external servers, no data collection, no tracking."
+              title={t('home.solution.deviceTitle')}
+              description={t('home.solution.deviceDesc')}
               highlights={[
-                'Export anytime',
-                'Own it forever',
-                'Complete control'
+                t('home.solution.deviceHighlight1'),
+                t('home.solution.deviceHighlight2'),
+                t('home.solution.deviceHighlight3')
               ]}
             />
             <FeatureCard
               icon={<FaBolt />}
-              title="Sideline Ready"
-              description="Works perfectly without internet connection. Instant response times and battery efficiency."
+              title={t('home.solution.sidelineTitle')}
+              description={t('home.solution.sidelineDesc')}
               highlights={[
-                'Full offline mode',
-                '<50ms response',
-                'Battery efficient'
+                t('home.solution.sidelineHighlight1'),
+                t('home.solution.sidelineHighlight2'),
+                t('home.solution.sidelineHighlight3')
               ]}
             />
             <FeatureCard
               icon={<FaChartLine />}
-              title="Professional Features"
-              description="Everything you need for game day and beyond, all in one comprehensive app."
+              title={t('home.solution.proFeaturesTitle')}
+              description={t('home.solution.proFeaturesDesc')}
               highlights={[
-                'Interactive field',
-                'Live statistics',
-                'Tournament tracking'
+                t('home.solution.proFeaturesHighlight1'),
+                t('home.solution.proFeaturesHighlight2'),
+                t('home.solution.proFeaturesHighlight3')
               ]}
             />
             <FeatureCard
               icon={<FaDollarSign />}
-              title="Free Version Available"
-              description="Get started with the free version. Install once and start managing your team immediately."
+              title={t('home.solution.freeVersionTitle')}
+              description={t('home.solution.freeVersionDesc')}
               highlights={[
-                'No credit card required',
-                'Full feature access',
-                'Install instantly'
+                t('home.solution.freeVersionHighlight1'),
+                t('home.solution.freeVersionHighlight2'),
+                t('home.solution.freeVersionHighlight3')
               ]}
             />
           </div>
@@ -197,10 +201,10 @@ export default function Home() {
         <div className="container-custom">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Everything You Need for Match Day
+              {t('home.features.title')}
             </h2>
             <p className="text-xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto">
-              Comprehensive tools designed specifically for soccer coaching
+              {t('home.features.subtitle')}
             </p>
           </div>
 
@@ -209,30 +213,30 @@ export default function Home() {
             <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-lg shadow-lg border border-gray-300 dark:border-gray-600 flex items-center justify-center">
               <div className="text-center px-4">
                 <p className="text-gray-600 dark:text-gray-400 text-sm font-semibold">
-                  Timer & Substitutions
+                  {t('home.features.screenshot1')}
                 </p>
                 <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">
-                  Screenshot
+                  {t('home.features.screenshotLabel')}
                 </p>
               </div>
             </div>
             <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-lg shadow-lg border border-gray-300 dark:border-gray-600 flex items-center justify-center">
               <div className="text-center px-4">
                 <p className="text-gray-600 dark:text-gray-400 text-sm font-semibold">
-                  Player Statistics
+                  {t('home.features.screenshot2')}
                 </p>
                 <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">
-                  Screenshot
+                  {t('home.features.screenshotLabel')}
                 </p>
               </div>
             </div>
             <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-lg shadow-lg border border-gray-300 dark:border-gray-600 flex items-center justify-center">
               <div className="text-center px-4">
                 <p className="text-gray-600 dark:text-gray-400 text-sm font-semibold">
-                  Tactics Board
+                  {t('home.features.screenshot3')}
                 </p>
                 <p className="text-gray-500 dark:text-gray-500 text-xs mt-1">
-                  Screenshot
+                  {t('home.features.screenshotLabel')}
                 </p>
               </div>
             </div>
@@ -241,51 +245,51 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="card">
               <FaFutbol className="text-primary text-3xl mb-3" />
-              <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Interactive Soccer Field</h3>
+              <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">{t('home.features.interactiveFieldTitle')}</h3>
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                Drag-and-drop player positioning with realistic field visualization
+                {t('home.features.interactiveFieldDesc')}
               </p>
             </div>
             <div className="card">
               <FaClock className="text-primary text-3xl mb-3" />
-              <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Professional Game Timer</h3>
+              <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">{t('home.features.timerTitle')}</h3>
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                Substitution tracking with visual alerts and history logging
+                {t('home.features.timerDesc')}
               </p>
             </div>
             <div className="card">
               <FaChartLine className="text-primary text-3xl mb-3" />
-              <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Comprehensive Statistics</h3>
+              <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">{t('home.features.statsTitle')}</h3>
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                Player performance tracking with goals, assists, and playtime
+                {t('home.features.statsDesc')}
               </p>
             </div>
             <div className="card">
               <FaPencilAlt className="text-primary text-3xl mb-3" />
-              <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Tactics Board</h3>
+              <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">{t('home.features.tacticsTitle')}</h3>
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                Drawing tools for play design and team instruction
+                {t('home.features.tacticsDesc')}
               </p>
             </div>
             <div className="card">
               <FaUsers className="text-primary text-3xl mb-3" />
-              <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Multi-Team Management</h3>
+              <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">{t('home.features.multiTeamTitle')}</h3>
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                Master roster system with unlimited teams and players
+                {t('home.features.multiTeamDesc')}
               </p>
             </div>
             <div className="card">
               <FaTrophy className="text-primary text-3xl mb-3" />
-              <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">Season & Tournaments</h3>
+              <h3 className="font-bold text-lg mb-2 text-gray-900 dark:text-white">{t('home.features.seasonTitle')}</h3>
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                Organize competitions and track performance over time
+                {t('home.features.seasonDesc')}
               </p>
             </div>
           </div>
 
           <div className="text-center mt-12">
             <Link href="/features" className="btn btn-primary">
-              Explore All Features
+              {t('home.features.exploreAll')}
             </Link>
           </div>
         </div>
@@ -296,10 +300,10 @@ export default function Home() {
         <div className="container-custom">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              Built With Modern Web Technology
+              {t('home.technical.title')}
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
-              Professional-grade tech stack for reliability and performance
+              {t('home.technical.subtitle')}
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 max-w-4xl mx-auto">
@@ -317,7 +321,7 @@ export default function Home() {
               rel="noopener noreferrer"
               className="text-primary hover:text-primary-dark text-sm font-semibold"
             >
-              View Source Code on GitHub →
+              {t('home.technical.viewSource')}
             </a>
           </div>
         </div>
@@ -327,10 +331,10 @@ export default function Home() {
       <section className="py-20 bg-gradient-to-br from-primary to-primary-dark text-white">
         <div className="container-custom text-center">
           <h2 className="text-4xl font-bold mb-4">
-            Ready to Take Control of Your Team Data?
+            {t('home.cta.title')}
           </h2>
           <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-            Start using MatchOps-Local today. No signup required. Works in your browser immediately.
+            {t('home.cta.subtitle')}
           </p>
           <a
             href="https://matchops.app"
@@ -338,13 +342,19 @@ export default function Home() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            Get Started Now
+            {t('home.cta.getStarted')}
           </a>
           <p className="text-sm mt-4 opacity-75">
-            No credit card required • Your data stays on your device
+            {t('home.cta.disclaimer')}
           </p>
         </div>
       </section>
     </Layout>
   );
 }
+
+export const getStaticProps: GetStaticProps = async ({ locale }) => ({
+  props: {
+    ...(await serverSideTranslations(locale ?? 'en', ['common'])),
+  },
+});

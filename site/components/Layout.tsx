@@ -1,12 +1,21 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
-import { FaGithub } from 'react-icons/fa';
+import { useRouter } from 'next/router';
+import { FaGithub, FaGlobe } from 'react-icons/fa';
+import { useTranslation } from 'next-i18next';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
+  const router = useRouter();
+  const { t } = useTranslation('common');
+
+  const changeLanguage = (locale: string) => {
+    router.push(router.pathname, router.asPath, { locale });
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Navigation */}
@@ -28,14 +37,41 @@ export default function Layout({ children }: LayoutProps) {
             {/* Navigation Links */}
             <div className="hidden md:flex items-center space-x-8">
               <Link href="/features" className="text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">
-                Features
+                {t('nav.features')}
               </Link>
               <Link href="/download" className="text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">
-                Download
+                {t('nav.download')}
               </Link>
               <Link href="/docs" className="text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">
-                Docs
+                {t('nav.docs')}
               </Link>
+
+              {/* Language Toggle */}
+              <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-300">
+                <FaGlobe className="h-5 w-5" />
+                <button
+                  onClick={() => changeLanguage('en')}
+                  className={`px-2 py-1 rounded transition-colors ${
+                    router.locale === 'en'
+                      ? 'text-primary font-semibold'
+                      : 'hover:text-primary'
+                  }`}
+                >
+                  EN
+                </button>
+                <span className="text-gray-400">|</span>
+                <button
+                  onClick={() => changeLanguage('fi')}
+                  className={`px-2 py-1 rounded transition-colors ${
+                    router.locale === 'fi'
+                      ? 'text-primary font-semibold'
+                      : 'hover:text-primary'
+                  }`}
+                >
+                  FI
+                </button>
+              </div>
+
               <a
                 href="https://github.com/VillePajala/MatchOps-Local"
                 target="_blank"
@@ -50,19 +86,39 @@ export default function Layout({ children }: LayoutProps) {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Try It Now
+                {t('nav.tryItNow')}
               </a>
             </div>
 
             {/* Mobile menu button */}
-            <div className="md:hidden">
+            <div className="md:hidden flex items-center space-x-3">
+              {/* Mobile Language Toggle */}
+              <div className="flex items-center space-x-1 text-sm text-gray-600 dark:text-gray-300">
+                <button
+                  onClick={() => changeLanguage('en')}
+                  className={`px-2 py-1 rounded ${
+                    router.locale === 'en' ? 'text-primary font-semibold' : ''
+                  }`}
+                >
+                  EN
+                </button>
+                <span>|</span>
+                <button
+                  onClick={() => changeLanguage('fi')}
+                  className={`px-2 py-1 rounded ${
+                    router.locale === 'fi' ? 'text-primary font-semibold' : ''
+                  }`}
+                >
+                  FI
+                </button>
+              </div>
               <a
                 href="https://matchops.app"
                 className="btn btn-primary text-sm px-4 py-2"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Try Now
+                {t('nav.tryNow')}
               </a>
             </div>
           </div>
@@ -70,13 +126,13 @@ export default function Layout({ children }: LayoutProps) {
           {/* Mobile Navigation */}
           <div className="md:hidden pb-4 space-y-2">
             <Link href="/features" className="block text-gray-600 dark:text-gray-300 hover:text-primary transition-colors py-2">
-              Features
+              {t('nav.features')}
             </Link>
             <Link href="/download" className="block text-gray-600 dark:text-gray-300 hover:text-primary transition-colors py-2">
-              Download
+              {t('nav.download')}
             </Link>
             <Link href="/docs" className="block text-gray-600 dark:text-gray-300 hover:text-primary transition-colors py-2">
-              Docs
+              {t('nav.docs')}
             </Link>
             <a
               href="https://github.com/VillePajala/MatchOps-Local"
@@ -84,7 +140,7 @@ export default function Layout({ children }: LayoutProps) {
               rel="noopener noreferrer"
               className="block text-gray-600 dark:text-gray-300 hover:text-primary transition-colors py-2"
             >
-              GitHub
+              {t('nav.github')}
             </a>
           </div>
         </div>
@@ -103,22 +159,22 @@ export default function Layout({ children }: LayoutProps) {
             <div>
               <h3 className="font-bold text-gray-900 dark:text-white mb-4">MatchOps-Local</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Local-first soccer coaching software that respects your privacy.
+                {t('footer.tagline')}
               </p>
             </div>
 
             {/* Product */}
             <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Product</h4>
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-4">{t('footer.product')}</h4>
               <ul className="space-y-2 text-sm">
                 <li>
                   <Link href="/features" className="text-gray-600 dark:text-gray-400 hover:text-primary">
-                    Features
+                    {t('nav.features')}
                   </Link>
                 </li>
                 <li>
                   <Link href="/download" className="text-gray-600 dark:text-gray-400 hover:text-primary">
-                    Download
+                    {t('nav.download')}
                   </Link>
                 </li>
                 <li>
@@ -128,7 +184,7 @@ export default function Layout({ children }: LayoutProps) {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    Launch App
+                    {t('footer.launchApp')}
                   </a>
                 </li>
               </ul>
@@ -136,11 +192,11 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Resources */}
             <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Resources</h4>
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-4">{t('footer.resources')}</h4>
               <ul className="space-y-2 text-sm">
                 <li>
                   <Link href="/docs" className="text-gray-600 dark:text-gray-400 hover:text-primary">
-                    Documentation
+                    {t('footer.documentation')}
                   </Link>
                 </li>
                 <li>
@@ -150,7 +206,7 @@ export default function Layout({ children }: LayoutProps) {
                     rel="noopener noreferrer"
                     className="text-gray-600 dark:text-gray-400 hover:text-primary"
                   >
-                    GitHub
+                    {t('nav.github')}
                   </a>
                 </li>
                 <li>
@@ -160,7 +216,7 @@ export default function Layout({ children }: LayoutProps) {
                     rel="noopener noreferrer"
                     className="text-gray-600 dark:text-gray-400 hover:text-primary"
                   >
-                    Report Issue
+                    {t('footer.reportIssue')}
                   </a>
                 </li>
               </ul>
@@ -168,7 +224,7 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Legal */}
             <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Legal</h4>
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-4">{t('footer.legal')}</h4>
               <ul className="space-y-2 text-sm">
                 <li>
                   <a
@@ -177,7 +233,7 @@ export default function Layout({ children }: LayoutProps) {
                     rel="noopener noreferrer"
                     className="text-gray-600 dark:text-gray-400 hover:text-primary"
                   >
-                    License
+                    {t('footer.license')}
                   </a>
                 </li>
               </ul>
@@ -187,10 +243,10 @@ export default function Layout({ children }: LayoutProps) {
           {/* Copyright */}
           <div className="border-t border-gray-200 dark:border-gray-800 mt-8 pt-8 text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              © {new Date().getFullYear()} MatchOps-Local. All rights reserved.
+              {t('footer.copyright', { year: new Date().getFullYear() })}
             </p>
             <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-              Your data stays on your device. Always.
+              {t('footer.dataStays')}
             </p>
           </div>
         </div>
