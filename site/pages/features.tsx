@@ -2,18 +2,22 @@ import Layout from '@/components/Layout';
 import FeatureCard from '@/components/FeatureCard';
 import Link from 'next/link';
 import { FaFutbol, FaClock, FaChartLine, FaPencilAlt, FaUsers, FaTrophy, FaDatabase, FaShieldAlt, FaBolt, FaDownload, FaGlobe, FaMobileAlt } from 'react-icons/fa';
+import { useTranslation } from 'next-i18next';
+import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
+import type { GetStaticProps } from 'next';
 
 export default function Features() {
+  const { t } = useTranslation('common');
   return (
     <Layout>
       {/* Hero */}
       <section className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-16">
         <div className="container-custom text-center">
           <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
-            Everything You Need for Match Day and Beyond
+            {t('features.hero.title')}
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-            Comprehensive soccer coaching tools designed specifically for your needs
+            {t('features.hero.subtitle')}
           </p>
         </div>
       </section>
@@ -23,60 +27,60 @@ export default function Features() {
         <div className="container-custom">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Game Day Management
+              {t('features.gameDay.title')}
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-400">
-              Professional tools for live match management
+              {t('features.gameDay.subtitle')}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <FeatureCard
               icon={<FaFutbol />}
-              title="Interactive Soccer Field"
-              description="Drag-and-drop player positioning with realistic field visualization. Place players, track formations, and manage your lineup in real-time."
+              title={t("features.gameDay.interactiveFieldTitle")}
+              description={t("features.gameDay.interactiveFieldDesc")}
               highlights={[
-                'Realistic field rendering',
-                'Drag-and-drop positioning',
-                'Formation management',
-                'Player status indicators',
-                'One-click placement tools'
+                t('features.gameDay.interactiveFieldHighlight1'),
+                t('features.gameDay.interactiveFieldHighlight2'),
+                t('features.gameDay.interactiveFieldHighlight3'),
+                t('features.gameDay.interactiveFieldHighlight4'),
+                t('features.gameDay.interactiveFieldHighlight5')
               ]}
             />
             <FeatureCard
               icon={<FaClock />}
-              title="Professional Game Timer"
-              description="Advanced timer with substitution interval tracking and visual alerts. Never miss a substitution window again."
+              title={t('features.gameDay.timerTitle')}
+              description={t('features.gameDay.timerDesc')}
               highlights={[
-                'Configurable intervals (1-20 min)',
-                'Time-since-last-sub tracking',
-                'Visual alerts at 1 minute warning',
-                'Substitution history log',
-                'Large overlay for sideline visibility'
+                t('features.gameDay.timerHighlight1'),
+                t('features.gameDay.timerHighlight2'),
+                t('features.gameDay.timerHighlight3'),
+                t('features.gameDay.timerHighlight4'),
+                t('features.gameDay.timerHighlight5')
               ]}
             />
             <FeatureCard
               icon={<FaChartLine />}
-              title="Real-Time Event Logging"
-              description="Track every important moment as it happens. Goals, assists, opponent scores—all timestamped and recorded."
+              title={t('features.gameDay.eventLoggingTitle')}
+              description={t('features.gameDay.eventLoggingDesc')}
               highlights={[
-                'Goal tracking with scorers',
-                'Assist attribution',
-                'Opponent goal logging',
-                'Inline opponent name editing',
-                'Event timestamps synced with timer'
+                t('features.gameDay.eventLoggingHighlight1'),
+                t('features.gameDay.eventLoggingHighlight2'),
+                t('features.gameDay.eventLoggingHighlight3'),
+                t('features.gameDay.eventLoggingHighlight4'),
+                t('features.gameDay.eventLoggingHighlight5')
               ]}
             />
             <FeatureCard
               icon={<FaPencilAlt />}
-              title="Tactics Board"
-              description="Dedicated drawing interface for play design and team instruction. Draw plays, set formations, and communicate strategy."
+              title={t('features.gameDay.tacticsTitle')}
+              description={t('features.gameDay.tacticsDesc')}
               highlights={[
-                'Drawing tools for plays',
-                'Add/remove opponent players',
-                'Disc placement for markers',
-                'Undo/Redo support',
-                'Toggle tactics view on/off'
+                t('features.gameDay.tacticsHighlight1'),
+                t('features.gameDay.tacticsHighlight2'),
+                t('features.gameDay.tacticsHighlight3'),
+                t('features.gameDay.tacticsHighlight4'),
+                t('features.gameDay.tacticsHighlight5')
               ]}
             />
           </div>
@@ -88,36 +92,36 @@ export default function Features() {
         <div className="container-custom">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Statistics & Analytics
+              {t('features.statistics.title')}
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-400">
-              Track performance and identify trends
+              {t('features.statistics.subtitle')}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <FeatureCard
               icon={<FaChartLine />}
-              title="Comprehensive Player Stats"
-              description="Track everything that matters: goals, assists, appearances, playtime, and performance trends over time."
+              title={t('features.statistics.playerStatsTitle')}
+              description={t('features.statistics.playerStatsDesc')}
               highlights={[
-                'Goals and assists tracking',
-                'Total appearances',
-                'Playtime monitoring',
-                'Performance trends',
-                'Tournament-specific stats'
+                t('features.statistics.playerStatsHighlight1'),
+                t('features.statistics.playerStatsHighlight2'),
+                t('features.statistics.playerStatsHighlight3'),
+                t('features.statistics.playerStatsHighlight4'),
+                t('features.statistics.playerStatsHighlight5')
               ]}
             />
             <FeatureCard
               icon={<FaTrophy />}
-              title="Advanced Filtering"
-              description="Analyze performance by season, tournament, team, or time period. Get exactly the insights you need."
+              title={t('features.statistics.filteringTitle')}
+              description={t('features.statistics.filteringDesc')}
               highlights={[
-                'Filter by season',
-                'Filter by tournament',
-                'Filter by team',
-                'Club season filtering (Oct-May)',
-                'Player-specific game history'
+                t('features.statistics.filteringHighlight1'),
+                t('features.statistics.filteringHighlight2'),
+                t('features.statistics.filteringHighlight3'),
+                t('features.statistics.filteringHighlight4'),
+                t('features.statistics.filteringHighlight5')
               ]}
             />
           </div>
@@ -129,36 +133,36 @@ export default function Features() {
         <div className="container-custom">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Team Management
+              {t('features.teamManagement.title')}
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-400">
-              Organize teams, players, and competitions
+              {t('features.teamManagement.subtitle')}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <FeatureCard
               icon={<FaUsers />}
-              title="Master Roster System"
-              description="Central player database shared across all teams. Add, edit, and manage players with ease."
+              title={t('features.teamManagement.rosterTitle')}
+              description={t('features.teamManagement.rosterDesc')}
               highlights={[
-                'Add/edit/remove players',
-                'Jersey number management',
-                'Goalie designation',
-                'Player nicknames',
-                'View player stats from roster'
+                t('features.teamManagement.rosterHighlight1'),
+                t('features.teamManagement.rosterHighlight2'),
+                t('features.teamManagement.rosterHighlight3'),
+                t('features.teamManagement.rosterHighlight4'),
+                t('features.teamManagement.rosterHighlight5')
               ]}
             />
             <FeatureCard
               icon={<FaTrophy />}
-              title="Season & Tournament Organization"
-              description="Create seasons with date ranges and track tournament performance with awards and winners."
+              title={t('features.teamManagement.seasonTitle')}
+              description={t('features.teamManagement.seasonDesc')}
               highlights={[
-                'Season creation (date ranges)',
-                'Tournament management',
-                'Winner tracking',
-                'Player awards',
-                'Performance by competition'
+                t('features.teamManagement.seasonHighlight1'),
+                t('features.teamManagement.seasonHighlight2'),
+                t('features.teamManagement.seasonHighlight3'),
+                t('features.teamManagement.seasonHighlight4'),
+                t('features.teamManagement.seasonHighlight5')
               ]}
             />
           </div>
@@ -170,33 +174,33 @@ export default function Features() {
         <div className="container-custom">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Data & Privacy
+              {t('features.dataPrivacy.title')}
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-400">
-              Your data, your control
+              {t('features.dataPrivacy.subtitle')}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <FeatureCard
               icon={<FaDatabase />}
-              title="Complete Backup"
-              description="Export all your data anytime. Full backup and restore functionality ensures you never lose anything."
+              title={t('features.dataPrivacy.backupTitle')}
+              description={t('features.dataPrivacy.backupDesc')}
             />
             <FeatureCard
               icon={<FaDownload />}
-              title="JSON Export/Import"
-              description="Standard JSON format for maximum compatibility and data portability."
+              title={t('features.dataPrivacy.exportTitle')}
+              description={t('features.dataPrivacy.exportDesc')}
             />
             <FeatureCard
               icon={<FaShieldAlt />}
-              title="IndexedDB Storage"
-              description="Robust browser storage with 50MB+ capacity. All data stays on your device."
+              title={t('features.dataPrivacy.storageTitle')}
+              description={t('features.dataPrivacy.storageDesc')}
             />
             <FeatureCard
               icon={<FaBolt />}
-              title="Zero Transmission"
-              description="No external data transmission. What stays on your device, stays on your device."
+              title={t('features.dataPrivacy.transmissionTitle')}
+              description={t('features.dataPrivacy.transmissionDesc')}
             />
           </div>
         </div>
@@ -207,28 +211,28 @@ export default function Features() {
         <div className="container-custom">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Technical Features
+              {t('features.technicalFeatures.title')}
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-400">
-              Modern web technology for maximum reliability
+              {t('features.technicalFeatures.subtitle')}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <FeatureCard
               icon={<FaMobileAlt />}
-              title="Progressive Web App"
-              description="Install on any device. Works like a native app with the convenience of the web."
+              title={t('features.technicalFeatures.pwaTitle')}
+              description={t('features.technicalFeatures.pwaDesc')}
             />
             <FeatureCard
               icon={<FaBolt />}
-              title="Offline-First"
-              description="Full functionality without internet. Perfect for remote fields with poor connectivity."
+              title={t('features.technicalFeatures.offlineTitle')}
+              description={t('features.technicalFeatures.offlineDesc')}
             />
             <FeatureCard
               icon={<FaGlobe />}
-              title="Multi-Language"
-              description="English and Finnish language support with more languages coming soon."
+              title={t('features.technicalFeatures.multiLanguageTitle')}
+              description={t('features.technicalFeatures.multiLanguageDesc')}
             />
           </div>
         </div>
@@ -238,10 +242,10 @@ export default function Features() {
       <section className="py-20 bg-gradient-to-br from-primary to-primary-dark text-white">
         <div className="container-custom text-center">
           <h2 className="text-4xl font-bold mb-4">
-            Ready to Experience the Difference?
+            {t('features.cta.title')}
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Try MatchOps-Local now. No signup required.
+            {t('features.cta.subtitle')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
@@ -250,13 +254,13 @@ export default function Features() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              Get Started Now
+              {t('features.cta.getStarted')}
             </a>
             <Link
               href="/download"
               className="btn border-2 border-white text-white hover:bg-white hover:text-primary text-lg"
             >
-              Installation Guide
+              {t('features.cta.installationGuide')}
             </Link>
           </div>
         </div>
@@ -264,3 +268,9 @@ export default function Features() {
     </Layout>
   );
 }
+
+export const getStaticProps: GetStaticProps = async ({ locale }) => ({
+  props: {
+    ...(await serverSideTranslations(locale ?? 'en', ['common'])),
+  },
+});
