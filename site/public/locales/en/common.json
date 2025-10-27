@@ -272,5 +272,105 @@
       "button": "Launch MatchOps-Local",
       "disclaimer": "No installation required • Works immediately • Your data stays private"
     }
+  },
+  "info": {
+    "whatIsThis": {
+      "title": "What is MatchOps Local?",
+      "description": "MatchOps Local is a mobile app for soccer coaches. It helps you manage teams, track games, and build statistics—all from your phone or tablet.",
+      "oneLine": "Track games, manage teams, and build statistics. Works completely offline on your device."
+    },
+    "challenges": {
+      "title": "Common Challenges for Coaches",
+      "challenge1": "Juggling multiple separate tools during games: clipboard, stopwatch, notebook, calculator",
+      "challenge2": "Difficult to keep your eyes on the game while managing everything",
+      "challenge3": "Hard to track complex statistics during live games without missing action",
+      "challenge4": "No easy way to see patterns and trends across seasons and tournaments",
+      "challenge5": "Planning ahead who plays what position requires separate tools or paper"
+    },
+    "whatYouCanDo": {
+      "title": "What You Can Do With It",
+      "beforeGame": {
+        "title": "Before the Game",
+        "item1": "Add players to your master roster",
+        "item2": "Create teams and assign jersey numbers",
+        "item3": "Plan starting positions on the field",
+        "item4": "Set up game details (opponent, tournament, date)"
+      },
+      "duringGame": {
+        "title": "During the Game",
+        "item1": "Interactive field view - drag players to positions",
+        "item2": "Track game time with built-in timer",
+        "item3": "Record substitutions with automatic time tracking",
+        "item4": "Log goals and assists as they happen",
+        "item5": "Log opponent goals",
+        "item6": "Draw tactics on the field"
+      },
+      "afterGame": {
+        "title": "After the Game",
+        "item1": "View complete game statistics",
+        "item2": "See player performance (goals, assists, playtime)",
+        "item3": "Compare statistics across games, seasons, tournaments",
+        "item4": "Export your data as backup"
+      }
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "step1": "Open the app on your phone or tablet",
+      "step2": "Select your team or create a new one",
+      "step3": "Choose players for this game",
+      "step4": "Start the game timer",
+      "step5": "Track events as they happen",
+      "step6": "Review statistics after the game"
+    },
+    "features": {
+      "title": "Features",
+      "feature1": {
+        "title": "Interactive Soccer Field",
+        "desc": "Drag-and-drop player positioning with realistic field visualization"
+      },
+      "feature2": {
+        "title": "Game Timer",
+        "desc": "Timer with substitution interval tracking and visual alerts"
+      },
+      "feature3": {
+        "title": "Player Statistics",
+        "desc": "Track appearances, playtime, goals, assists, and performance trends"
+      },
+      "feature4": {
+        "title": "Season & Tournament Organization",
+        "desc": "Create seasons with date ranges and track tournament performance"
+      },
+      "feature5": {
+        "title": "Works Offline",
+        "desc": "Progressive Web App that works completely without internet connection"
+      },
+      "feature6": {
+        "title": "Data Export",
+        "desc": "Export all your data in JSON format for backup and portability"
+      }
+    },
+    "technical": {
+      "title": "Technical Details",
+      "desc1": "MatchOps Local is a Progressive Web App (PWA). This means it installs like a native app but runs in your web browser.",
+      "desc2": "All data is stored locally on your device using IndexedDB, a browser database. No internet connection is required after the initial load.",
+      "desc3": "Compatible with iOS Safari, Android Chrome, and all major desktop browsers."
+    },
+    "faq": {
+      "title": "Common Questions",
+      "q1": "How do I install it?",
+      "a1": "Visit matchops.app in your browser. On mobile, tap the share button (iOS) or menu (Android) and select 'Add to Home Screen' or 'Install App'.",
+      "q2": "Where is my data stored?",
+      "a2": "All data is stored locally on your device in IndexedDB (browser storage). Nothing is sent to external servers.",
+      "q3": "Can I use it on multiple devices?",
+      "a3": "Yes, but you'll need to export your data from one device and import it on another. There's no automatic syncing since everything is stored locally.",
+      "q4": "How do I back up my data?",
+      "a4": "Open the Settings menu and use the Export function. This creates a JSON file with all your data that you can save and import later.",
+      "q5": "Does it cost anything?",
+      "a5": "No. MatchOps Local is completely free and open source. No subscription, no ads, no hidden costs."
+    },
+    "cta": {
+      "button": "Try It",
+      "subtitle": "No signup required. Works immediately in your browser."
+    }
   }
 }
