@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Service Worker Cleanup</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 { color: #1f2937; }
+    .status {
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    .success { background: #d1fae5; color: #065f46; }
+    .info { background: #dbeafe; color: #1e40af; }
+    button {
+      background: #F59E0B;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    button:hover { background: #D97706; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Service Worker Cleanup</h1>
+    <div id="status" class="status info">Checking for service workers...</div>
+    <button onclick="location.reload()">Reload Page</button>
+    <button onclick="location.href='/'">Go to Home</button>
+  </div>
+
+  <script>
+    async function unregisterAllServiceWorkers() {
+      const statusEl = document.getElementById('status');
+
+      if (!('serviceWorker' in navigator)) {
+        statusEl.className = 'status info';
+        statusEl.textContent = 'Service workers not supported in this browser.';
+        return;
+      }
+
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+
+        if (registrations.length === 0) {
+          statusEl.className = 'status success';
+          statusEl.textContent = '✓ No service workers found. Cache is clean!';
+          return;
+        }
+
+        statusEl.className = 'status info';
+        statusEl.textContent = `Found ${registrations.length} service worker(s). Unregistering...`;
+
+        // Unregister all service workers
+        await Promise.all(registrations.map(reg => reg.unregister()));
+
+        // Clear all caches
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+
+        statusEl.className = 'status success';
+        statusEl.textContent = `✓ Successfully unregistered ${registrations.length} service worker(s) and cleared all caches! The page will reload in 2 seconds...`;
+
+        // Reload after 2 seconds
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+
+      } catch (error) {
+        statusEl.className = 'status info';
+        statusEl.textContent = `Error: ${error.message}`;
+      }
+    }
+
+    // Run on load
+    unregisterAllServiceWorkers();
+  </script>
+</body>
+</html>
