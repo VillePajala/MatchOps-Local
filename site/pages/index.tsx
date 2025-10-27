@@ -15,14 +15,23 @@ export default function Home() {
       <section className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-20">
         <div className="container-custom">
           <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-              {t('home.hero.title')}{' '}
-              <span className="text-primary">{t('home.hero.titleHighlight')}</span>
+            {/* Logo */}
+            <div className="mb-8 flex justify-center">
+              <img
+                src="/logos/match_ops_local_logo_transparent.png"
+                alt="MatchOps-Local Logo"
+                className="h-32 md:h-40 w-auto"
+              />
+            </div>
+
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              {t('home.hero.title')}
             </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
               {t('home.hero.subtitle')}
-              <br />
-              <strong>{t('home.hero.subtitleBold')}</strong>
+            </p>
+            <p className="text-base md:text-lg text-gray-700 dark:text-gray-400 mb-8">
+              {t('home.hero.subtitleBold')}
             </p>
 
             {/* CTA Buttons */}
