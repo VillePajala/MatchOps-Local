@@ -21,10 +21,10 @@
   },
   "home": {
     "hero": {
-      "title": "Mobiilityökalu jalkapallovalmentajille pelien suunnitteluun, ottelutapahtumien kirjaamiseen ja edistyneen tilastoinnin keräämiseen",
+      "title": "MatchOps-Local",
       "titleHighlight": "",
-      "subtitle": "Luo ja hallinnoi joukkueita, ottelu- ja kilpailutapahtumia ja dokumentoi historia",
-      "subtitleBold": "",
+      "subtitle": "Mobiilityökalu jalkapallovalmentajille pelien suunnitteluun, ottelutapahtumien kirjaamiseen ja edistyneen tilastoinnin keräämiseen",
+      "subtitleBold": "Luo ja hallinnoi joukkueita, ottelu- ja kilpailutapahtumia ja dokumentoi historia",
       "tryItNow": "Kokeile nyt",
       "seeHowItWorks": "Katso miten se toimii",
       "screenshotTitle": "Interaktiivinen jalkapallokenttänäkymä",

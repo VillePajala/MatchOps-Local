@@ -21,10 +21,10 @@
   },
   "home": {
     "hero": {
-      "title": "Mobile Tool for Soccer Coaches to Plan Games, Record Match Events, and Collect Advanced Statistics",
+      "title": "MatchOps-Local",
       "titleHighlight": "",
-      "subtitle": "Create and manage teams, match and competition events, and document history",
-      "subtitleBold": "",
+      "subtitle": "Mobile tool for soccer coaches to plan games, record match events, and collect advanced statistics",
+      "subtitleBold": "Create and manage teams, match and competition events, and document history",
       "tryItNow": "Try It Now",
       "seeHowItWorks": "See How It Works",
       "screenshotTitle": "Interactive Soccer Field View",
