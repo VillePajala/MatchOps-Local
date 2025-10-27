@@ -125,14 +125,15 @@ h1, h2, h3, h4, h5, h6 {
   text-align: center;
 }
 
+/* Match app's primary gradient button */
 .btn-primary {
-  background-color: var(--primary);
-  color: white;
+  background-image: linear-gradient(to bottom, #6366f1, #4f46e5); /* indigo-500 -> indigo-600 */
+  color: #fff;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
 }
 
 .btn-primary:hover {
-  background-color: var(--primary-dark);
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  background-image: linear-gradient(to bottom, #4f46e5, #4338ca); /* indigo-600 -> indigo-700 */
 }
 
 .btn-secondary {
@@ -155,21 +156,19 @@ h1, h2, h3, h4, h5, h6 {
   color: white;
 }
 
-/* Card styles */
+/* Gradient card style to match root app visuals */
 .card {
-  background-color: white;
+  background-image: linear-gradient(to bottom right, rgba(71, 85, 105, 0.5), rgba(30, 41, 59, 0.3)); /* slate-600/50 -> slate-800/30 */
+  border: 1px solid rgba(51, 65, 85, 0.5); /* slate-700/50 */
   border-radius: 0.5rem;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,0.1), 0 4px 6px -1px rgb(0 0 0 / 0.1);
   padding: 1.5rem;
-  transition: box-shadow 0.2s;
-}
-
-.dark .card {
-  background-color: #1f2937;
+  transition: filter 0.2s, box-shadow 0.2s;
 }
 
 .card:hover {
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  filter: saturate(1.05);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.15);
 }
 
 /* Container */
