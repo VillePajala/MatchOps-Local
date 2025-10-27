@@ -18,9 +18,9 @@ export default function Home() {
             {/* Logo */}
             <div className="mb-8 flex justify-center">
               <img
-                src="/logos/match_ops_local_logo_transparent.png"
+                src="/logos/app-logo-yellow.png"
                 alt="MatchOps-Local Logo"
-                className="h-32 md:h-40 w-auto"
+                className="h-32 md:h-40 w-32 md:w-40"
               />
             </div>
 
