@@ -28,7 +28,7 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-rajdhani), 'Inter', system-ui, sans-serif;
+  font-family: 'Rajdhani', 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;

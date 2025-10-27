@@ -9,8 +9,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-rajdhani)', 'Inter', 'sans-serif'],
-        display: ['var(--font-rajdhani)', 'sans-serif'],
+        sans: ['Rajdhani', 'Inter', 'sans-serif'],
+        display: ['Rajdhani', 'sans-serif'],
       },
     },
   },
