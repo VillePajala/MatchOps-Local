@@ -1,7 +1,6 @@
 import Layout from '@/components/Layout';
-import FeatureCard from '@/components/FeatureCard';
-import Link from 'next/link';
-import { FaFutbol, FaClock, FaChartLine, FaPencilAlt, FaUsers, FaTrophy, FaDatabase, FaShieldAlt, FaBolt, FaDownload, FaGlobe, FaMobileAlt } from 'react-icons/fa';
+import FeaturesSections from '@/components/FeaturesSections';
+import Head from 'next/head';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
@@ -10,261 +9,25 @@ export default function Features() {
   const { t } = useTranslation('common');
   return (
     <Layout>
+      <Head>
+        <title>Features — MatchOps-Local</title>
+        <meta name="description" content="Interactive field, live timer and event logging, comprehensive stats, tactics, and team/season management — all offline." />
+        <meta property="og:title" content="MatchOps-Local — Features" />
+        <meta property="og:description" content="All the tools for match day and beyond, fully local-first." />
+      </Head>
       {/* Hero */}
-      <section className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-16">
+      <section className="py-16">
         <div className="container-custom text-center">
-          <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-4">
+          <h1 className="text-5xl font-bold text-white mb-4">
             {t('features.hero.title')}
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+          <p className="text-xl text-slate-200 max-w-3xl mx-auto">
             {t('features.hero.subtitle')}
           </p>
         </div>
       </section>
 
-      {/* Game Day Management */}
-      <section className="py-20 bg-white dark:bg-gray-800">
-        <div className="container-custom">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              {t('features.gameDay.title')}
-            </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-              {t('features.gameDay.subtitle')}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <FeatureCard
-              icon={<FaFutbol />}
-              title={t("features.gameDay.interactiveFieldTitle")}
-              description={t("features.gameDay.interactiveFieldDesc")}
-              highlights={[
-                t('features.gameDay.interactiveFieldHighlight1'),
-                t('features.gameDay.interactiveFieldHighlight2'),
-                t('features.gameDay.interactiveFieldHighlight3'),
-                t('features.gameDay.interactiveFieldHighlight4'),
-                t('features.gameDay.interactiveFieldHighlight5')
-              ]}
-            />
-            <FeatureCard
-              icon={<FaClock />}
-              title={t('features.gameDay.timerTitle')}
-              description={t('features.gameDay.timerDesc')}
-              highlights={[
-                t('features.gameDay.timerHighlight1'),
-                t('features.gameDay.timerHighlight2'),
-                t('features.gameDay.timerHighlight3'),
-                t('features.gameDay.timerHighlight4'),
-                t('features.gameDay.timerHighlight5')
-              ]}
-            />
-            <FeatureCard
-              icon={<FaChartLine />}
-              title={t('features.gameDay.eventLoggingTitle')}
-              description={t('features.gameDay.eventLoggingDesc')}
-              highlights={[
-                t('features.gameDay.eventLoggingHighlight1'),
-                t('features.gameDay.eventLoggingHighlight2'),
-                t('features.gameDay.eventLoggingHighlight3'),
-                t('features.gameDay.eventLoggingHighlight4'),
-                t('features.gameDay.eventLoggingHighlight5')
-              ]}
-            />
-            <FeatureCard
-              icon={<FaPencilAlt />}
-              title={t('features.gameDay.tacticsTitle')}
-              description={t('features.gameDay.tacticsDesc')}
-              highlights={[
-                t('features.gameDay.tacticsHighlight1'),
-                t('features.gameDay.tacticsHighlight2'),
-                t('features.gameDay.tacticsHighlight3'),
-                t('features.gameDay.tacticsHighlight4'),
-                t('features.gameDay.tacticsHighlight5')
-              ]}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Statistics & Analytics */}
-      <section className="py-20 bg-gray-50 dark:bg-gray-900">
-        <div className="container-custom">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              {t('features.statistics.title')}
-            </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-              {t('features.statistics.subtitle')}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <FeatureCard
-              icon={<FaChartLine />}
-              title={t('features.statistics.playerStatsTitle')}
-              description={t('features.statistics.playerStatsDesc')}
-              highlights={[
-                t('features.statistics.playerStatsHighlight1'),
-                t('features.statistics.playerStatsHighlight2'),
-                t('features.statistics.playerStatsHighlight3'),
-                t('features.statistics.playerStatsHighlight4'),
-                t('features.statistics.playerStatsHighlight5')
-              ]}
-            />
-            <FeatureCard
-              icon={<FaTrophy />}
-              title={t('features.statistics.filteringTitle')}
-              description={t('features.statistics.filteringDesc')}
-              highlights={[
-                t('features.statistics.filteringHighlight1'),
-                t('features.statistics.filteringHighlight2'),
-                t('features.statistics.filteringHighlight3'),
-                t('features.statistics.filteringHighlight4'),
-                t('features.statistics.filteringHighlight5')
-              ]}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Team Management */}
-      <section className="py-20 bg-white dark:bg-gray-800">
-        <div className="container-custom">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              {t('features.teamManagement.title')}
-            </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-              {t('features.teamManagement.subtitle')}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <FeatureCard
-              icon={<FaUsers />}
-              title={t('features.teamManagement.rosterTitle')}
-              description={t('features.teamManagement.rosterDesc')}
-              highlights={[
-                t('features.teamManagement.rosterHighlight1'),
-                t('features.teamManagement.rosterHighlight2'),
-                t('features.teamManagement.rosterHighlight3'),
-                t('features.teamManagement.rosterHighlight4'),
-                t('features.teamManagement.rosterHighlight5')
-              ]}
-            />
-            <FeatureCard
-              icon={<FaTrophy />}
-              title={t('features.teamManagement.seasonTitle')}
-              description={t('features.teamManagement.seasonDesc')}
-              highlights={[
-                t('features.teamManagement.seasonHighlight1'),
-                t('features.teamManagement.seasonHighlight2'),
-                t('features.teamManagement.seasonHighlight3'),
-                t('features.teamManagement.seasonHighlight4'),
-                t('features.teamManagement.seasonHighlight5')
-              ]}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Data & Privacy */}
-      <section className="py-20 bg-gray-50 dark:bg-gray-900">
-        <div className="container-custom">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              {t('features.dataPrivacy.title')}
-            </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-              {t('features.dataPrivacy.subtitle')}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <FeatureCard
-              icon={<FaDatabase />}
-              title={t('features.dataPrivacy.backupTitle')}
-              description={t('features.dataPrivacy.backupDesc')}
-            />
-            <FeatureCard
-              icon={<FaDownload />}
-              title={t('features.dataPrivacy.exportTitle')}
-              description={t('features.dataPrivacy.exportDesc')}
-            />
-            <FeatureCard
-              icon={<FaShieldAlt />}
-              title={t('features.dataPrivacy.storageTitle')}
-              description={t('features.dataPrivacy.storageDesc')}
-            />
-            <FeatureCard
-              icon={<FaBolt />}
-              title={t('features.dataPrivacy.transmissionTitle')}
-              description={t('features.dataPrivacy.transmissionDesc')}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Technical Features */}
-      <section className="py-20 bg-white dark:bg-gray-800">
-        <div className="container-custom">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              {t('features.technicalFeatures.title')}
-            </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-              {t('features.technicalFeatures.subtitle')}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <FeatureCard
-              icon={<FaMobileAlt />}
-              title={t('features.technicalFeatures.pwaTitle')}
-              description={t('features.technicalFeatures.pwaDesc')}
-            />
-            <FeatureCard
-              icon={<FaBolt />}
-              title={t('features.technicalFeatures.offlineTitle')}
-              description={t('features.technicalFeatures.offlineDesc')}
-            />
-            <FeatureCard
-              icon={<FaGlobe />}
-              title={t('features.technicalFeatures.multiLanguageTitle')}
-              description={t('features.technicalFeatures.multiLanguageDesc')}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-20 bg-gradient-to-br from-primary to-primary-dark text-white">
-        <div className="container-custom text-center">
-          <h2 className="text-4xl font-bold mb-4">
-            {t('features.cta.title')}
-          </h2>
-          <p className="text-xl mb-8 opacity-90">
-            {t('features.cta.subtitle')}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="https://matchops.app"
-              className="btn bg-white text-primary hover:bg-gray-100 text-lg"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t('features.cta.getStarted')}
-            </a>
-            <Link
-              href="/download"
-              className="btn border-2 border-white text-white hover:bg-white hover:text-primary text-lg"
-            >
-              {t('features.cta.installationGuide')}
-            </Link>
-          </div>
-        </div>
-      </section>
+      <FeaturesSections />
     </Layout>
   );
 }

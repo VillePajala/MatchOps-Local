@@ -5,12 +5,15 @@ const config: Config = {
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  darkMode: 'media', // Use media query (always matches since we set dark as default)
+  darkMode: 'class', // Use class-based dark mode (set by useEffect in _app.tsx)
   theme: {
     extend: {
       fontFamily: {
         sans: ['Rajdhani', 'Inter', 'sans-serif'],
         display: ['Rajdhani', 'sans-serif'],
+      },
+      backgroundImage: {
+        'noise-texture': "url('/noise.svg')",
       },
     },
   },

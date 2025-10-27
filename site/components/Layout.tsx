@@ -1,5 +1,7 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
+import Head from 'next/head';
+import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { FaGithub, FaGlobe } from 'react-icons/fa';
 import { useTranslation } from 'next-i18next';
@@ -17,17 +19,38 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="relative min-h-screen flex flex-col bg-slate-800 bg-noise-texture text-slate-100 overflow-hidden">
+      {/* Background Effects to match app visuals */}
+      <div className="pointer-events-none absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
+      <Head>
+        <title>MatchOps-Local — Local-first match management</title>
+        <meta
+          name="description"
+          content="Run the clock, log events, and track team stats — fully offline. Your data stays on your device."
+        />
+        <meta property="og:title" content="MatchOps-Local" />
+        <meta
+          property="og:description"
+          content="Local-first soccer coaching app. Works offline. No signup."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="/favicon.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <link rel="icon" href="/favicon.png" />
+      </Head>
       {/* Navigation */}
-      <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+      <nav className="backdrop-blur-sm bg-slate-900/40 border-b border-slate-700/20 relative z-10">
         <div className="container-custom">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-              <img
+              <Image
                 src="/logos/app-logo-yellow.png"
                 alt="MatchOps Logo"
-                className="h-10 w-10"
+                width={40}
+                height={40}
+                priority
               />
               <span className="text-xl font-bold text-gray-900 dark:text-white">
                 MatchOps-Local
@@ -36,18 +59,18 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Navigation Links */}
             <div className="hidden md:flex items-center space-x-8">
-              <Link href="/features" className="text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">
+              <Link href="/features" className="text-slate-300 hover:text-primary transition-colors">
                 {t('nav.features')}
               </Link>
-              <Link href="/download" className="text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">
+              <Link href="/download" className="text-slate-300 hover:text-primary transition-colors">
                 {t('nav.download')}
               </Link>
-              <Link href="/docs" className="text-gray-600 dark:text-gray-300 hover:text-primary transition-colors">
+              <Link href="/docs" className="text-slate-300 hover:text-primary transition-colors">
                 {t('nav.docs')}
               </Link>
 
               {/* Language Toggle */}
-              <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-300">
+              <div className="flex items-center space-x-2 text-slate-300">
                 <FaGlobe className="h-5 w-5" />
                 <button
                   onClick={() => changeLanguage('en')}
@@ -76,7 +99,7 @@ export default function Layout({ children }: LayoutProps) {
                 href="https://github.com/VillePajala/MatchOps-Local"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
+                className="text-slate-300 hover:text-primary transition-colors"
               >
                 <FaGithub className="h-6 w-6" />
               </a>
@@ -152,35 +175,35 @@ export default function Layout({ children }: LayoutProps) {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 mt-20">
+      <footer className="mt-20 border-t border-slate-700/20 bg-slate-900/40 backdrop-blur-sm relative z-10">
         <div className="container-custom py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {/* About */}
             <div>
-              <h3 className="font-bold text-gray-900 dark:text-white mb-4">MatchOps-Local</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <h3 className="font-bold text-white mb-4">MatchOps-Local</h3>
+              <p className="text-sm text-slate-300">
                 {t('footer.tagline')}
               </p>
             </div>
 
             {/* Product */}
             <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-4">{t('footer.product')}</h4>
+              <h4 className="font-semibold text-white mb-4">{t('footer.product')}</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/features" className="text-gray-600 dark:text-gray-400 hover:text-primary">
+                  <Link href="/features" className="text-slate-300 hover:text-primary">
                     {t('nav.features')}
                   </Link>
                 </li>
                 <li>
-                  <Link href="/download" className="text-gray-600 dark:text-gray-400 hover:text-primary">
+                  <Link href="/download" className="text-slate-300 hover:text-primary">
                     {t('nav.download')}
                   </Link>
                 </li>
                 <li>
                   <a
                     href="https://matchops.app"
-                    className="text-gray-600 dark:text-gray-400 hover:text-primary"
+                    className="text-slate-300 hover:text-primary"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -192,10 +215,10 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Resources */}
             <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-4">{t('footer.resources')}</h4>
+              <h4 className="font-semibold text-white mb-4">{t('footer.resources')}</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/docs" className="text-gray-600 dark:text-gray-400 hover:text-primary">
+                  <Link href="/docs" className="text-slate-300 hover:text-primary">
                     {t('footer.documentation')}
                   </Link>
                 </li>
@@ -204,7 +227,7 @@ export default function Layout({ children }: LayoutProps) {
                     href="https://github.com/VillePajala/MatchOps-Local"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-600 dark:text-gray-400 hover:text-primary"
+                    className="text-slate-300 hover:text-primary"
                   >
                     {t('nav.github')}
                   </a>
@@ -214,7 +237,7 @@ export default function Layout({ children }: LayoutProps) {
                     href="https://github.com/VillePajala/MatchOps-Local/issues"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-600 dark:text-gray-400 hover:text-primary"
+                    className="text-slate-300 hover:text-primary"
                   >
                     {t('footer.reportIssue')}
                   </a>
@@ -224,14 +247,14 @@ export default function Layout({ children }: LayoutProps) {
 
             {/* Legal */}
             <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-4">{t('footer.legal')}</h4>
+              <h4 className="font-semibold text-white mb-4">{t('footer.legal')}</h4>
               <ul className="space-y-2 text-sm">
                 <li>
                   <a
                     href="https://github.com/VillePajala/MatchOps-Local/blob/master/LICENSE"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-gray-600 dark:text-gray-400 hover:text-primary"
+                    className="text-slate-300 hover:text-primary"
                   >
                     {t('footer.license')}
                   </a>
@@ -241,11 +264,11 @@ export default function Layout({ children }: LayoutProps) {
           </div>
 
           {/* Copyright */}
-          <div className="border-t border-gray-200 dark:border-gray-800 mt-8 pt-8 text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+          <div className="border-t border-slate-700/20 mt-8 pt-8 text-center">
+            <p className="text-sm text-slate-300">
               {t('footer.copyright', { year: new Date().getFullYear() })}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
+            <p className="text-xs text-slate-400 mt-2">
               {t('footer.dataStays')}
             </p>
           </div>

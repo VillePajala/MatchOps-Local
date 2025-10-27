@@ -21,14 +21,14 @@
   },
   "home": {
     "hero": {
-      "title": "MatchOps-Local",
+      "title": "Paikallinen ottelunhallinta jalkapallojoukkueille",
       "titleHighlight": "",
-      "subtitle": "Mobiilityökalu jalkapallovalmentajille pelien suunnitteluun, ottelutapahtumien kirjaamiseen ja edistyneen tilastoinnin keräämiseen",
-      "subtitleBold": "Luo ja hallinnoi joukkueita, ottelu- ja kilpailutapahtumia ja dokumentoi historia",
+      "subtitle": "Käynnistä kello, kirjaa tapahtumat ja seuraa joukkueen tilastoja — täysin ilman nettiä. Tietosi pysyvät laitteellasi.",
+      "subtitleBold": "",
       "tryItNow": "Kokeile nyt",
       "seeHowItWorks": "Katso miten se toimii",
-      "screenshotTitle": "Interaktiivinen jalkapallokenttänäkymä",
-      "screenshotPlaceholder": "Kuvakaappaus tulossa pian",
+      "screenshotTitle": "Ajastin, tapahtumaloki ja taktiikat",
+      "screenshotPlaceholder": "Esikatselu",
       "privacyTitle": "Täysi yksityisyys",
       "privacyDesc": "Ei tiedonkeruuta",
       "offlineTitle": "Toimii ilman nettiä",
@@ -99,8 +99,8 @@
       "viewSource": "Katso lähdekoodi GitHubissa →"
     },
     "cta": {
-      "title": "Haluatko kokeilla?",
-      "subtitle": "Aloita heti. Ei rekisteröitymistä. Toimii selaimessa.",
+      "title": "Haluatko sujuvamman ottelupäivän?",
+      "subtitle": "Ei rekisteröitymistä. Asenna kerran ja käytä ilman nettiä kentän laidalla.",
       "getStarted": "Aloita nyt",
       "disclaimer": "Ei luottokorttia • Tietosi pysyvät laitteellasi"
     }
