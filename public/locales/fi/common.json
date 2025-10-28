@@ -731,6 +731,8 @@
     "levelLabel": "Taso",
     "startDateLabel": "Alkupäivä",
     "endDateLabel": "Loppupäivä",
+    "archive": "Arkistoi",
+    "unarchive": "Palauta arkistosta",
     "archiveLabel": "Arkistoi",
     "showArchived": "Näytä arkistoidut",
     "archivedBadge": "Arkistoitu",
