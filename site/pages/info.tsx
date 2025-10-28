@@ -63,10 +63,6 @@ export default function InfoPage() {
                 <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                 <p className="text-lg text-slate-200">{t('info.challenges.challenge4')}</p>
               </div>
-              <div className="flex gap-4 items-start">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                <p className="text-lg text-slate-200">{t('info.challenges.challenge5')}</p>
-              </div>
             </div>
           </div>
         </div>
