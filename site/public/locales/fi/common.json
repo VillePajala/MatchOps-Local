@@ -159,5 +159,26 @@
     "cta": {
       "title": "Rajoitettu testaus käynnissä"
     }
+  },
+  "screenshots": {
+    "labels": {
+      "plan": "Suunnittele",
+      "track": "Kirjaa",
+      "review": "Tarkastele"
+    },
+    "captions": {
+      "plan": "Suunnittele ottelun kokoonpano",
+      "track": "Kirjaa tapahtumia reaaliajassa",
+      "review": "Tarkastele tilastoja jälkikäteen"
+    },
+    "aria": {
+      "carousel": "Kuvakaruselli",
+      "prev": "Edellinen kuva",
+      "next": "Seuraava kuva",
+      "close": "Sulje esikatselu",
+      "preview": "Kuvan esikatselu",
+      "goTo": "Siirry: {{label}}",
+      "enlarge": "Suurenna kuva: {{label}}"
+    }
   }
 }
