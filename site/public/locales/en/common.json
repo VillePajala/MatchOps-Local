@@ -1,8 +1,6 @@
 {
   "nav": {
-    "technical": "Technical",
-    "tryItNow": "Try It Now",
-    "tryNow": "Try Now"
+    "technical": "Technical"
   },
   "seo": {
     "home": {
@@ -98,12 +96,13 @@
     },
     "challenges": {
       "title": "Common Challenges for Coaches",
-      "challenge1": "Juggling multiple separate tools during games: clipboard, stopwatch, notebook, calculator",
-      "challenge2": "Difficult to watch the game while simultaneously documenting field events",
-      "challenge3": "No easy way to see patterns and trends across seasons and tournaments",
-      "challenge4": "Planning ahead who plays what position requires separate tools or paper",
-      "challenge5": "Most things on game day stay undocumented and eventually get forgotten",
-      "challenge6": "Some decisions over a period are based on intuition and not real data"
+      "challenge1": "Planning positions ahead of time practically requires using grid notebooks and loose papers, which can be cumbersome to use",
+      "challenge2": "Multiple tools needed on game day: clipboard, stopwatch, notebook",
+      "challenge3": "Coach needs to focus on the match and doesn't have time to easily document field events besides substitution moments",
+      "challenge4": "Most things on match day remain undocumented and eventually get completely forgotten",
+      "challenge5": "No easy way to track development and trends over longer periods like seasons or tournaments",
+      "challenge6": "Risk that decisions and assessments over the long term are based on intuition rather than data",
+      "challenge7": "Justifying gut-feeling decisions can be challenging"
     },
     "whatYouCanDo": {
       "title": "What You Can Do With It",
