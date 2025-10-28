@@ -8,7 +8,7 @@ export default function FeaturesSections() {
   return (
     <>
       {/* Team Management (Planning first) */}
-      <section id="team" className="py-20">
+      <section id="team" className="section">
         <div className="container-custom">
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -41,7 +41,7 @@ export default function FeaturesSections() {
       </section>
 
       {/* Game Day Management */}
-      <section id="gameday" className="py-20">
+      <section id="gameday" className="section section-divider">
         <div className="container-custom">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <FeatureCard
@@ -97,7 +97,7 @@ export default function FeaturesSections() {
       </section>
 
       {/* Statistics */}
-      <section id="statistics" className="py-20">
+      <section id="statistics" className="section section-divider">
         <div className="container-custom">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <FeatureCard
@@ -130,7 +130,7 @@ export default function FeaturesSections() {
       </section>
 
       {/* Data & Privacy */}
-      <section id="privacy" className="py-20">
+      <section id="privacy" className="section section-divider">
         <div className="container-custom">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <FeatureCard icon={<FaDatabase />} title={t('features.dataPrivacy.backupTitle')} description={t('features.dataPrivacy.backupDesc')} />
@@ -142,7 +142,7 @@ export default function FeaturesSections() {
       </section>
 
       {/* Technical Features */}
-      <section id="technical" className="py-20">
+      <section id="technical" className="section section-divider">
         <div className="container-custom">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <FeatureCard icon={<FaMobileAlt />} title={t('features.technicalFeatures.pwaTitle')} description={t('features.technicalFeatures.pwaDesc')} />
