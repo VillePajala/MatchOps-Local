@@ -228,19 +228,6 @@ describe('TeamManagerModal', () => {
       expect(createButton).toBeDisabled();
     });
 
-    it.skip('allows selecting team color', () => {
-      // Team color selection was removed from UI
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Add Team'));
-
-      const colorButtons = screen.getAllByLabelText(/Select color/i);
-      expect(colorButtons.length).toBeGreaterThan(0);
-
-      fireEvent.click(colorButtons[1]); // Select second color
-      // Color selection should work without errors
-    });
-
     it('closes create form when Cancel clicked', () => {
       renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
 
@@ -786,6 +773,107 @@ describe('TeamManagerModal', () => {
       await waitFor(() => {
         expect(screen.queryByText('Rename')).not.toBeInTheDocument();
       });
+    });
+  });
+
+  describe('Search Functionality', () => {
+    it('renders search input field', () => {
+      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
+
+      const searchInput = screen.getByPlaceholderText('Search teams...');
+      expect(searchInput).toBeInTheDocument();
+      expect(searchInput).toHaveAttribute('aria-label', 'Search teams by name');
+    });
+
+    it('filters teams by search text (case insensitive)', () => {
+      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
+
+      const searchInput = screen.getByPlaceholderText('Search teams...');
+      fireEvent.change(searchInput, { target: { value: 'alpha' } });
+
+      expect(screen.getByText('Team Alpha')).toBeInTheDocument();
+      expect(screen.queryByText('Team Beta')).not.toBeInTheDocument();
+      expect(screen.queryByText('Team Gamma')).not.toBeInTheDocument();
+    });
+
+    it('filters teams with partial match', () => {
+      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
+
+      const searchInput = screen.getByPlaceholderText('Search teams...');
+      fireEvent.change(searchInput, { target: { value: 'Team' } });
+
+      expect(screen.getByText('Team Alpha')).toBeInTheDocument();
+      expect(screen.getByText('Team Beta')).toBeInTheDocument();
+      expect(screen.getByText('Team Gamma')).toBeInTheDocument();
+    });
+
+    it('shows no results message when search has no matches', () => {
+      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
+
+      const searchInput = screen.getByPlaceholderText('Search teams...');
+      fireEvent.change(searchInput, { target: { value: 'NonexistentTeam' } });
+
+      expect(screen.getByText(/No teams match your search for "NonexistentTeam"/i)).toBeInTheDocument();
+      expect(screen.queryByText('Team Alpha')).not.toBeInTheDocument();
+    });
+
+    it('clears search when modal closes', () => {
+      const { rerender } = renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
+
+      const searchInput = screen.getByPlaceholderText('Search teams...');
+      fireEvent.change(searchInput, { target: { value: 'Alpha' } });
+      expect(searchInput).toHaveValue('Alpha');
+
+      // Close modal
+      rerender(
+        <QueryClientProvider client={createQueryClient()}>
+          <ToastProvider>
+            <TeamManagerModal {...defaultProps} isOpen={false} />
+          </ToastProvider>
+        </QueryClientProvider>
+      );
+
+      // Reopen modal
+      rerender(
+        <QueryClientProvider client={createQueryClient()}>
+          <ToastProvider>
+            <TeamManagerModal {...defaultProps} isOpen={true} />
+          </ToastProvider>
+        </QueryClientProvider>
+      );
+
+      const reopenedSearchInput = screen.getByPlaceholderText('Search teams...');
+      expect(reopenedSearchInput).toHaveValue('');
+    });
+
+    it('combines search with archived filter', () => {
+      const teamsWithArchived: Team[] = [
+        ...mockTeams,
+        { id: 't4', name: 'Team Delta', color: '#EC4899', archived: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      ];
+
+      renderWithQueryClient(<TeamManagerModal {...defaultProps} teams={teamsWithArchived} />);
+
+      // Enable show archived
+      const showArchivedCheckbox = screen.getByLabelText('Show Archived');
+      fireEvent.click(showArchivedCheckbox);
+
+      // Search for "Delta"
+      const searchInput = screen.getByPlaceholderText('Search teams...');
+      fireEvent.change(searchInput, { target: { value: 'Delta' } });
+
+      expect(screen.getByText('Team Delta')).toBeInTheDocument();
+      expect(screen.queryByText('Team Alpha')).not.toBeInTheDocument();
+    });
+
+    it('shows archived empty message when only archived teams are hidden', () => {
+      const archivedOnlyTeams: Team[] = [
+        { id: 't1', name: 'Team Alpha', color: '#6366F1', archived: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      ];
+
+      renderWithQueryClient(<TeamManagerModal {...defaultProps} teams={archivedOnlyTeams} />);
+
+      expect(screen.getByText('No archived teams to show.')).toBeInTheDocument();
     });
   });
 
