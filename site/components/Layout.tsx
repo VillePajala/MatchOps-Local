@@ -1,9 +1,9 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 import Link from 'next/link';
 import Head from 'next/head';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
-import { FaGithub, FaGlobe, FaBars, FaTimes } from 'react-icons/fa';
+import { FaGlobe } from 'react-icons/fa';
 import { useTranslation } from 'next-i18next';
 
 interface LayoutProps {
@@ -13,11 +13,9 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const router = useRouter();
   const { t } = useTranslation('common');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const changeLanguage = (locale: string) => {
     router.push(router.pathname, router.asPath, { locale });
-    setMobileMenuOpen(false);
   };
 
   return (
@@ -27,18 +25,27 @@ export default function Layout({ children }: LayoutProps) {
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
       <Head>
         <title>MatchOps-Local — Local-first match management</title>
-        <meta
-          name="description"
-          content="Run the clock, log events, and track team stats — fully offline. Your data stays on your device."
-        />
+        <meta name="description" content={t('footer.tagline')} />
         <meta property="og:title" content="MatchOps-Local" />
-        <meta
-          property="og:description"
-          content="Local-first soccer coaching app. Works offline. No signup."
-        />
+        <meta property="og:description" content={t('footer.tagline')} />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="/favicon.png" />
+        <meta property="og:locale" content={router.locale === 'en' ? 'en_US' : 'fi_FI'} />
+        <meta property="og:locale:alternate" content={router.locale === 'en' ? 'fi_FI' : 'en_US'} />
         <meta name="twitter:card" content="summary_large_image" />
+        {(() => {
+          const path = router.asPath || '/';
+          const basePath = path.replace(/^\/(en|fi)(?=\/|$)/, '');
+          const fiHref = basePath || '/';
+          const enHref = `/en${basePath || '/'}`;
+          return (
+            <>
+              <link rel="alternate" hrefLang="fi" href={fiHref} />
+              <link rel="alternate" hrefLang="en" href={enHref} />
+              <link rel="alternate" hrefLang="x-default" href={fiHref} />
+            </>
+          );
+        })()}
         <link rel="icon" href="/favicon.png" />
       </Head>
       {/* Navigation */}
@@ -59,26 +66,27 @@ export default function Layout({ children }: LayoutProps) {
               </span>
             </Link>
 
-            {/* Navigation Links */}
+            {/* Navigation Links (desktop) */}
             <div className="hidden md:flex items-center space-x-8">
-              <Link href="/info" className="text-slate-300 hover:text-primary transition-colors">
-                Info
-              </Link>
-              <Link href="/features" className="text-slate-300 hover:text-primary transition-colors">
-                {t('nav.features')}
-              </Link>
-              <Link href="/download" className="text-slate-300 hover:text-primary transition-colors">
-                {t('nav.download')}
-              </Link>
-              <Link href="/docs" className="text-slate-300 hover:text-primary transition-colors">
-                {t('nav.docs')}
+              <Link
+                href="/technical"
+                aria-current={router.pathname === '/technical' ? 'page' : undefined}
+                className={`nav-link transition-colors ${
+                  router.pathname === '/technical'
+                    ? 'text-primary font-semibold nav-link--active'
+                    : 'text-slate-300 hover:text-primary'
+                }`}
+              >
+                {t('nav.technical')}
               </Link>
 
               {/* Language Toggle */}
-              <div className="flex items-center space-x-2 text-slate-300">
-                <FaGlobe className="h-5 w-5" />
+              <div className="flex items-center space-x-2 text-slate-300" role="group" aria-label="Language selector">
+                <FaGlobe className="h-5 w-5" aria-hidden="true" />
                 <button
                   onClick={() => changeLanguage('en')}
+                  aria-pressed={router.locale === 'en'}
+                  aria-label="Switch language to English"
                   className={`px-2 py-1 rounded transition-colors ${
                     router.locale === 'en'
                       ? 'text-primary font-semibold'
@@ -90,6 +98,8 @@ export default function Layout({ children }: LayoutProps) {
                 <span className="text-gray-400">|</span>
                 <button
                   onClick={() => changeLanguage('fi')}
+                  aria-pressed={router.locale === 'fi'}
+                  aria-label="Vaihda kieleen suomi"
                   className={`px-2 py-1 rounded transition-colors ${
                     router.locale === 'fi'
                       ? 'text-primary font-semibold'
@@ -99,113 +109,31 @@ export default function Layout({ children }: LayoutProps) {
                   FI
                 </button>
               </div>
-
-              <a
-                href="https://github.com/VillePajala/MatchOps-Local"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-slate-300 hover:text-primary transition-colors"
-              >
-                <FaGithub className="h-6 w-6" />
-              </a>
-              <a
-                href="https://matchops.app"
-                className="btn btn-primary"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t('nav.tryItNow')}
-              </a>
             </div>
 
-            {/* Mobile menu button */}
-            <div className="md:hidden flex items-center">
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="text-slate-300 hover:text-primary transition-colors p-2"
-                aria-label="Toggle menu"
+            {/* Mobile: inline link + quick language toggle (no hamburger) */}
+            <div className="md:hidden flex items-center gap-3">
+              <Link
+                href="/technical"
+                aria-current={router.pathname === '/technical' ? 'page' : undefined}
+                className={`text-sm nav-link transition-colors ${
+                  router.pathname === '/technical'
+                    ? 'text-primary font-semibold nav-link--active'
+                    : 'text-slate-300 hover:text-primary'
+                }`}
               >
-                {mobileMenuOpen ? <FaTimes className="h-6 w-6" /> : <FaBars className="h-6 w-6" />}
+                {t('nav.technical')}
+              </Link>
+              <button
+                onClick={() => changeLanguage(router.locale === 'fi' ? 'en' : 'fi')}
+                aria-label={router.locale === 'fi' ? 'Switch language to English' : 'Vaihda kieleen suomi'}
+                className="px-2 py-1 text-xs rounded border border-slate-600 text-slate-200 hover:text-white hover:border-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                {router.locale?.toUpperCase() ?? 'EN'}
               </button>
             </div>
           </div>
 
-          {/* Mobile Navigation */}
-          <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileMenuOpen ? 'max-h-96 pb-4' : 'max-h-0'}`}>
-            <div className="space-y-2 pt-4 border-t border-slate-700/50">
-              <Link
-                href="/info"
-                className="block text-slate-300 hover:text-primary transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Info
-              </Link>
-              <Link
-                href="/features"
-                className="block text-slate-300 hover:text-primary transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {t('nav.features')}
-              </Link>
-              <Link
-                href="/download"
-                className="block text-slate-300 hover:text-primary transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {t('nav.download')}
-              </Link>
-              <Link
-                href="/docs"
-                className="block text-slate-300 hover:text-primary transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {t('nav.docs')}
-              </Link>
-              <a
-                href="https://github.com/VillePajala/MatchOps-Local"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-slate-300 hover:text-primary transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <div className="flex items-center gap-2">
-                  <FaGithub className="h-5 w-5" />
-                  {t('nav.github')}
-                </div>
-              </a>
-
-              {/* Mobile Language Toggle */}
-              <div className="flex items-center gap-2 pt-2">
-                <FaGlobe className="h-5 w-5 text-slate-400" />
-                <button
-                  onClick={() => changeLanguage('en')}
-                  className={`px-3 py-1 rounded ${
-                    router.locale === 'en' ? 'bg-primary text-white font-semibold' : 'text-slate-300'
-                  }`}
-                >
-                  EN
-                </button>
-                <button
-                  onClick={() => changeLanguage('fi')}
-                  className={`px-3 py-1 rounded ${
-                    router.locale === 'fi' ? 'bg-primary text-white font-semibold' : 'text-slate-300'
-                  }`}
-                >
-                  FI
-                </button>
-              </div>
-
-              <a
-                href="https://matchops.app"
-                className="btn btn-primary text-sm px-4 py-2 mt-4 inline-block"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {t('nav.tryItNow')}
-              </a>
-            </div>
-          </div>
         </div>
       </nav>
 
@@ -217,7 +145,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Footer */}
       <footer className="mt-20 border-t border-slate-700/20 bg-slate-900/40 backdrop-blur-sm relative z-10">
         <div className="container-custom py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* About */}
             <div>
               <h3 className="font-bold text-white mb-4">MatchOps-Local</h3>
@@ -226,61 +154,19 @@ export default function Layout({ children }: LayoutProps) {
               </p>
             </div>
 
-            {/* Product */}
+            {/* Navigation */}
             <div>
-              <h4 className="font-semibold text-white mb-4">{t('footer.product')}</h4>
+              <h4 className="font-semibold text-white mb-4">{t('footer.navigation')}</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/features" className="text-slate-300 hover:text-primary">
-                    {t('nav.features')}
+                  <Link href="/" className="text-slate-300 hover:text-primary">
+                    {t('footer.home')}
                   </Link>
                 </li>
                 <li>
-                  <Link href="/download" className="text-slate-300 hover:text-primary">
-                    {t('nav.download')}
+                  <Link href="/technical" className="text-slate-300 hover:text-primary">
+                    {t('nav.technical')}
                   </Link>
-                </li>
-                <li>
-                  <a
-                    href="https://matchops.app"
-                    className="text-slate-300 hover:text-primary"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {t('footer.launchApp')}
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Resources */}
-            <div>
-              <h4 className="font-semibold text-white mb-4">{t('footer.resources')}</h4>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href="/docs" className="text-slate-300 hover:text-primary">
-                    {t('footer.documentation')}
-                  </Link>
-                </li>
-                <li>
-                  <a
-                    href="https://github.com/VillePajala/MatchOps-Local"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-slate-300 hover:text-primary"
-                  >
-                    {t('nav.github')}
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="https://github.com/VillePajala/MatchOps-Local/issues"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-slate-300 hover:text-primary"
-                  >
-                    {t('footer.reportIssue')}
-                  </a>
                 </li>
               </ul>
             </div>
@@ -290,14 +176,7 @@ export default function Layout({ children }: LayoutProps) {
               <h4 className="font-semibold text-white mb-4">{t('footer.legal')}</h4>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <a
-                    href="https://github.com/VillePajala/MatchOps-Local/blob/master/LICENSE"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-slate-300 hover:text-primary"
-                  >
-                    {t('footer.license')}
-                  </a>
+                  <span className="text-slate-300">{t('footer.license')}</span>
                 </li>
               </ul>
             </div>

@@ -8,7 +8,7 @@
   --color-secondary-dark: #111827;
   --color-secondary-light: #374151;
 
-  --font-family-sans: Inter, system-ui, sans-serif;
+  --font-family-sans: var(--font-inter), system-ui, sans-serif;
 }
 
 :root {
@@ -21,7 +21,7 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Rajdhani', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
@@ -29,8 +29,39 @@ body {
 
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-rajdhani), system-ui, sans-serif;
   font-weight: 700;
   line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+
+/* Polished checked list style (replaces ad-hoc icon rows) */
+.list-checked {
+  list-style: none;
+  padding-left: 0;
+}
+
+.list-checked li {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.list-checked li::before {
+  content: '✓';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.125rem;
+  border-radius: 9999px;
+  background: linear-gradient(to bottom, #4f46e5, #4338ca); /* indigo-600 → indigo-700 */
+  color: white;
+  font-weight: 800;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.2);
 }
 
 /* Prose styling for markdown content */
@@ -344,4 +375,75 @@ h1, h2, h3, h4, h5, h6 {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Shadow tokens */
+.shadow-card {
+  box-shadow: 0 8px 16px -6px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.2);
+}
+.shadow-card-hover {
+  box-shadow: 0 16px 28px -10px rgba(0,0,0,0.45), 0 3px 6px rgba(0,0,0,0.25);
+}
+
+/* Nav underline indicator */
+.nav-link { position: relative; }
+.nav-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  height: 2px;
+  width: 100%;
+  background: var(--primary);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 200ms ease;
+}
+.nav-link:hover::after { transform: scaleX(1); }
+.nav-link--active::after { transform: scaleX(1); }
+
+/* Section rhythm and dividers */
+.section {
+  padding-top: 5rem; /* matches py-20 */
+  padding-bottom: 5rem;
+}
+
+.section-divider {
+  border-top: 1px solid rgba(51, 65, 85, 0.3); /* slate-700/30 */
+}
+
+/* Screenshot framing to match app visuals */
+.screenshot-frame {
+  border-radius: 0.75rem; /* rounded-xl */
+  overflow: hidden;
+  border: 1px solid rgba(51, 65, 85, 0.4); /* slate-700/40 */
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 10px 15px -3px rgb(0 0 0 / 0.3);
+}
+
+/* Focus ring for interactive elements */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-pulse-glow,
+  .animate-fade-in-up,
+  .animate-slide-in-right {
+    animation: none !important;
+  }
+  .btn,
+  .card,
+  a,
+  button {
+    transition-duration: 0.01ms !important;
+  }
 }

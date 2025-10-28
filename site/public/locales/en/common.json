@@ -1,375 +1,163 @@
 {
   "nav": {
-    "features": "Features",
-    "download": "Download",
-    "docs": "Docs",
-    "github": "GitHub",
+    "technical": "Technical",
     "tryItNow": "Try It Now",
     "tryNow": "Try Now"
   },
+  "seo": {
+    "home": {
+      "title": "MatchOps Local - Soccer Coaching App for Local Data Privacy",
+      "description": "Free mobile soccer coaching app. Manage teams, track games in real-time, build statistics. No signup required. Your data stays private on your device."
+    },
+    "technical": {
+      "title": "Technical Specifications - MatchOps Local",
+      "description": "Technical details of MatchOps Local: Progressive Web App built with React 19, Next.js 15, IndexedDB storage. Offline-first, local-first architecture."
+    }
+  },
   "footer": {
     "tagline": "Local-first soccer coaching mobile app that respects your privacy.",
-    "product": "Product",
-    "launchApp": "Launch App",
-    "resources": "Resources",
-    "documentation": "Documentation",
-    "reportIssue": "Report Issue",
+    "home": "Home",
+    "navigation": "Navigation",
     "legal": "Legal",
     "license": "License",
     "copyright": "© {{year}} MatchOps-Local. All rights reserved.",
     "dataStays": "Your data stays on your device. Always."
   },
-  "home": {
+  "technical": {
     "hero": {
-      "title": "MatchOps Local",
-      "titleHighlight": "",
-      "subtitle": "Mobile tool for soccer coaches to plan games, record match events, and collect advanced statistics",
-      "subtitleBold": "Create and manage teams, match and competition events, and document history",
-      "tryItNow": "Try It Now",
-      "seeHowItWorks": "See How It Works",
-      "screenshotTitle": "Interactive Soccer Field View",
-      "screenshotPlaceholder": "Screenshot coming soon",
-      "privacyTitle": "Complete Privacy",
-      "privacyDesc": "Zero data collection",
-      "offlineTitle": "Works Offline",
-      "offlineDesc": "No internet required",
-      "freeTitle": "Get Started Free",
-      "freeDesc": "Free version available"
+      "title": "Technical Specifications",
+      "subtitle": "Architecture, technology stack, and system requirements"
     },
-    "whyLocalFirst": {
-      "title": "Why Local-First?",
-      "subtitle": "Local-first architecture gives you control, privacy, and reliability",
-      "privacyTitle": "Data Privacy & Control",
-      "privacyPoint1": "Your data stays on your device under your control",
-      "privacyPoint2": "You know exactly where your data is and who has access",
-      "privacyPoint3": "Simple GDPR compliance—no external data transmission",
-      "worksAnywhereTitle": "Works Anywhere",
-      "worksPoint1": "Works perfectly offline, even at remote fields",
-      "worksPoint2": "Access all your data anytime, no internet required",
-      "worksPoint3": "Battery efficient—no constant syncing"
+    "architecture": {
+      "title": "Architecture",
+      "localFirst": "Local-First Design",
+      "localFirstDesc": "All data stored locally on your device using IndexedDB. No external servers or databases required.",
+      "offlineFirst": "Offline-First",
+      "offlineFirstDesc": "Full functionality without internet connection. Network only required for PWA updates.",
+      "singleUser": "Single-User",
+      "singleUserDesc": "Designed for individual coaches. One installation per device, no authentication or user management."
     },
-    "solution": {
-      "title": "The Local-First Solution",
-      "subtitle": "MatchOps-Local puts you in complete control of your team data",
-      "deviceTitle": "Your Device, Your Data",
-      "deviceDesc": "All data stored locally in your browser. No external servers, no data collection, no tracking.",
-      "deviceHighlight1": "Export anytime",
-      "deviceHighlight2": "Own it forever",
-      "deviceHighlight3": "Complete control",
-      "sidelineTitle": "Sideline Ready",
-      "sidelineDesc": "Works perfectly without internet connection. Instant response times and battery efficiency.",
-      "sidelineHighlight1": "Full offline mode",
-      "sidelineHighlight2": "<50ms response",
-      "sidelineHighlight3": "Battery efficient",
-      "proFeaturesTitle": "Professional Features",
-      "proFeaturesDesc": "Everything you need for game day and beyond, all in one comprehensive app.",
-      "proFeaturesHighlight1": "Interactive field",
-      "proFeaturesHighlight2": "Live statistics",
-      "proFeaturesHighlight3": "Tournament tracking",
-      "freeVersionTitle": "Free Version Available",
-      "freeVersionDesc": "Get started with the free version. Install once and start managing your team immediately.",
-      "freeVersionHighlight1": "No credit card required",
-      "freeVersionHighlight2": "Full feature access",
-      "freeVersionHighlight3": "Install instantly"
+    "techStack": {
+      "title": "Technology Stack",
+      "frontend": "Frontend Framework",
+      "frontendDesc": "React 19 with Next.js 15 (Pages Router)",
+      "language": "Language",
+      "languageDesc": "TypeScript for type safety and better developer experience",
+      "styling": "Styling",
+      "stylingDesc": "Tailwind CSS 4 for responsive, modern UI",
+      "storage": "Data Storage",
+      "storageDesc": "Browser IndexedDB with async storage adapters",
+      "stateManagement": "State Management",
+      "stateManagementDesc": "React Query for server state, useReducer for game session state",
+      "pwa": "Progressive Web App",
+      "pwaDesc": "Service Worker for offline capability and app-like experience",
+      "i18n": "Internationalization",
+      "i18nDesc": "next-i18next for English and Finnish support"
     },
-    "features": {
-      "title": "Everything You Need for Match Day",
-      "subtitle": "Comprehensive tools designed specifically for soccer coaching",
-      "screenshot1": "Timer & Substitutions",
-      "screenshot2": "Player Statistics",
-      "screenshot3": "Tactics Board",
-      "screenshotLabel": "Screenshot",
-      "interactiveFieldTitle": "Interactive Soccer Field",
-      "interactiveFieldDesc": "Drag-and-drop player positioning with realistic field visualization",
-      "timerTitle": "Professional Game Timer",
-      "timerDesc": "Substitution tracking with visual alerts and history logging",
-      "statsTitle": "Comprehensive Statistics",
-      "statsDesc": "Player performance tracking with goals, assists, and playtime",
-      "tacticsTitle": "Tactics Board",
-      "tacticsDesc": "Drawing tools for play design and team instruction",
-      "multiTeamTitle": "Multi-Team Management",
-      "multiTeamDesc": "Master roster system with unlimited teams and players",
-      "seasonTitle": "Season & Tournaments",
-      "seasonDesc": "Organize competitions and track performance over time",
-      "exploreAll": "Explore All Features"
+    "storage": {
+      "title": "Storage & Data",
+      "indexedDB": "IndexedDB Storage",
+      "indexedDBDesc": "Uses device's free storage space (typically tens to hundreds of GB available). Typical usage: under 50MB for 100+ games.",
+      "dataScale": "Data Scale",
+      "dataScaleDesc": "Optimized for 50-100 players, 50-100 games per season. Small dataset, fast performance.",
+      "backup": "Backup & Export",
+      "backupDesc": "Full data export to JSON format. Import/restore on any device.",
+      "privacy": "Privacy",
+      "privacyDesc": "Zero data transmission. Everything stays on your device."
     },
-    "technical": {
-      "title": "Built With Modern Web Technology",
-      "subtitle": "Professional-grade tech stack for reliability and performance",
-      "viewSource": "View Source Code on GitHub →"
-    },
-    "cta": {
-      "title": "Ready to run match day smoother?",
-      "subtitle": "No signup. Install once and use it offline at the field.",
-      "getStarted": "Get Started Now",
-      "disclaimer": "No credit card required • Your data stays on your device"
-    }
-  },
-  "features": {
-    "hero": {
-      "title": "Everything You Need for Match Day and Beyond",
-      "subtitle": "Comprehensive soccer coaching tools designed specifically for your needs"
-    },
-    "gameDay": {
-      "title": "Game Day Management",
-      "subtitle": "Professional tools for live match management",
-      "interactiveFieldTitle": "Interactive Soccer Field",
-      "interactiveFieldDesc": "Drag-and-drop player positioning with realistic field visualization. Place players, track formations, and manage your lineup in real-time.",
-      "interactiveFieldHighlight1": "Realistic field rendering",
-      "interactiveFieldHighlight2": "Drag-and-drop positioning",
-      "interactiveFieldHighlight3": "Formation management",
-      "interactiveFieldHighlight4": "Player status indicators",
-      "interactiveFieldHighlight5": "One-click placement tools",
-      "timerTitle": "Professional Game Timer",
-      "timerDesc": "Advanced timer with substitution interval tracking and visual alerts. Never miss a substitution window again.",
-      "timerHighlight1": "Configurable intervals (1-20 min)",
-      "timerHighlight2": "Time-since-last-sub tracking",
-      "timerHighlight3": "Visual alerts at 1 minute warning",
-      "timerHighlight4": "Substitution history log",
-      "timerHighlight5": "Large overlay for sideline visibility",
-      "eventLoggingTitle": "Real-Time Event Logging",
-      "eventLoggingDesc": "Track every important moment as it happens. Goals, assists, opponent scores—all timestamped and recorded.",
-      "eventLoggingHighlight1": "Goal tracking with scorers",
-      "eventLoggingHighlight2": "Assist attribution",
-      "eventLoggingHighlight3": "Opponent goal logging",
-      "eventLoggingHighlight4": "Inline opponent name editing",
-      "eventLoggingHighlight5": "Event timestamps synced with timer",
-      "tacticsTitle": "Tactics Board",
-      "tacticsDesc": "Dedicated drawing interface for play design and team instruction. Draw plays, set formations, and communicate strategy.",
-      "tacticsHighlight1": "Drawing tools for plays",
-      "tacticsHighlight2": "Add/remove opponent players",
-      "tacticsHighlight3": "Disc placement for markers",
-      "tacticsHighlight4": "Undo/Redo support",
-      "tacticsHighlight5": "Toggle tactics view on/off"
-    },
-    "statistics": {
-      "title": "Statistics & Analytics",
-      "subtitle": "Track performance and identify trends",
-      "playerStatsTitle": "Comprehensive Player Stats",
-      "playerStatsDesc": "Track everything that matters: goals, assists, appearances, playtime, and performance trends over time.",
-      "playerStatsHighlight1": "Goals and assists tracking",
-      "playerStatsHighlight2": "Total appearances",
-      "playerStatsHighlight3": "Playtime monitoring",
-      "playerStatsHighlight4": "Performance trends",
-      "playerStatsHighlight5": "Tournament-specific stats",
-      "filteringTitle": "Advanced Filtering",
-      "filteringDesc": "Analyze performance by season, tournament, team, or time period. Get exactly the insights you need.",
-      "filteringHighlight1": "Filter by season",
-      "filteringHighlight2": "Filter by tournament",
-      "filteringHighlight3": "Filter by team",
-      "filteringHighlight4": "Club season filtering (Oct-May)",
-      "filteringHighlight5": "Player-specific game history"
-    },
-    "teamManagement": {
-      "title": "Team Management",
-      "subtitle": "Organize teams, players, and competitions",
-      "rosterTitle": "Master Roster System",
-      "rosterDesc": "Central player database shared across all teams. Add, edit, and manage players with ease.",
-      "rosterHighlight1": "Add/edit/remove players",
-      "rosterHighlight2": "Jersey number management",
-      "rosterHighlight3": "Goalie designation",
-      "rosterHighlight4": "Player nicknames",
-      "rosterHighlight5": "View player stats from roster",
-      "seasonTitle": "Season & Tournament Organization",
-      "seasonDesc": "Create seasons with date ranges and track tournament performance with awards and winners.",
-      "seasonHighlight1": "Season creation (date ranges)",
-      "seasonHighlight2": "Tournament management",
-      "seasonHighlight3": "Winner tracking",
-      "seasonHighlight4": "Player awards",
-      "seasonHighlight5": "Performance by competition"
-    },
-    "dataPrivacy": {
-      "title": "Data & Privacy",
-      "subtitle": "Your data, your control",
-      "backupTitle": "Complete Backup",
-      "backupDesc": "Export all your data anytime. Full backup and restore functionality ensures you never lose anything.",
-      "exportTitle": "JSON Export/Import",
-      "exportDesc": "Standard JSON format for maximum compatibility and data portability.",
-      "storageTitle": "IndexedDB Storage",
-      "storageDesc": "Robust browser storage with 50MB+ capacity. All data stays on your device.",
-      "transmissionTitle": "Zero Transmission",
-      "transmissionDesc": "No external data transmission. What stays on your device, stays on your device."
-    },
-    "technicalFeatures": {
-      "title": "Technical Features",
-      "subtitle": "Modern web technology for maximum reliability",
-      "pwaTitle": "Progressive Web App",
-      "pwaDesc": "Install on any device. Works like a native app with the convenience of the web.",
-      "offlineTitle": "Offline-First",
-      "offlineDesc": "Full functionality without internet. Perfect for remote fields with poor connectivity.",
-      "multiLanguageTitle": "Multi-Language",
-      "multiLanguageDesc": "English and Finnish language support with more languages coming soon."
-    },
-    "cta": {
-      "title": "Ready to run match day smoother?",
-      "subtitle": "No signup. Install once and use it offline at the field.",
-      "getStarted": "Get Started Now",
-      "installationGuide": "Installation Guide"
-    }
-  },
-  "download": {
-    "hero": {
-      "title": "Get Started in 3 Easy Steps",
-      "subtitle": "No signup, no installation hassles. Start coaching in under a minute."
-    },
-    "step1": {
-      "title": "Open in Your Browser",
-      "description": "Visit <1>matchops.app</1> on any modern browser. Works on desktop and mobile devices.",
-      "button": "Open MatchOps-Local"
-    },
-    "step2": {
-      "title": "Install (Optional)",
-      "description": "For the best experience, install MatchOps-Local as a Progressive Web App:",
-      "mobileTitle": "On Mobile",
-      "iosSafari": "<strong>iOS Safari:</strong> Tap the Share button, then \"Add to Home Screen\"",
-      "androidChrome": "<strong>Android Chrome:</strong> Tap the menu (⋮), then \"Install App\" or \"Add to Home Screen\"",
-      "desktopTitle": "On Desktop",
-      "chromeEdge": "<strong>Chrome/Edge:</strong> Look for the install icon (⊕) in the address bar, or open menu → \"Install MatchOps-Local\"",
-      "firefox": "<strong>Firefox:</strong> Click the install prompt that appears, or check the address bar for install option"
-    },
-    "step3": {
-      "title": "Start Coaching",
-      "description": "That's it! No account required, no signup forms. The app is ready to use immediately.",
-      "point1": "Add your players to the master roster",
-      "point2": "Create your first team",
-      "point3": "Start a new game and begin tracking"
-    },
-    "browserSupport": {
-      "title": "Supported Browsers",
-      "subtitle": "MatchOps-Local works on all modern browsers",
-      "chrome": "Chrome",
-      "firefox": "Firefox",
-      "safari": "Safari",
-      "edge": "Edge"
-    },
-    "systemRequirements": {
+    "requirements": {
       "title": "System Requirements",
-      "browserTitle": "Modern Web Browser:",
-      "browserDesc": " Chrome 90+, Firefox 88+, Safari 14+, or Edge 90+",
-      "jsTitle": "JavaScript Enabled:",
-      "jsDesc": " Standard for all modern browsers",
-      "indexedDbTitle": "IndexedDB Support:",
-      "indexedDbDesc": " Available in all supported browsers",
-      "storageTitle": "Storage Space:",
-      "storageDesc": " ~50MB available (typical usage is much less)"
+      "browser": "Supported Browsers",
+      "browserList": "Chrome 90+, Firefox 88+, Safari 14+, Edge 90+",
+      "javascript": "JavaScript",
+      "javascriptDesc": "Must be enabled (standard in all modern browsers)",
+      "indexedDBSupport": "IndexedDB Support",
+      "indexedDBSupportDesc": "Required (available in all supported browsers)",
+      "storageSpace": "Storage Space",
+      "storageSpaceDesc": "Minimum 50MB recommended (typical usage is much less)",
+      "privateMode": "Private/Incognito Mode",
+      "privateModeDesc": "Not supported (PWA installation requires persistent storage)"
     },
-    "faq": {
-      "title": "Frequently Asked Questions",
-      "q1": "Do I need to create an account?",
-      "a1": "No! MatchOps-Local works immediately without any signup or account creation. Just open the app and start using it.",
-      "q2": "Does it work offline?",
-      "a2": "Yes! Once loaded, MatchOps-Local works completely offline. Perfect for soccer fields with poor internet connectivity.",
-      "q3": "What about updates?",
-      "a3": "Updates are automatic when you have an internet connection. The app will notify you when a new version is available and update seamlessly.",
-      "q4": "Can I export my data?",
-      "a4": "Absolutely! You can export your complete data set at any time in JSON format. Your data is yours to keep, backup, and use however you need.",
-      "q5": "Is my data safe?",
-      "a5": "Yes! All data is stored locally on your device using browser IndexedDB. Nothing is transmitted to external servers, ensuring complete privacy and control."
-    },
-    "cta": {
-      "title": "Ready to Get Started?",
-      "subtitle": "Open MatchOps-Local now and start coaching smarter",
-      "button": "Launch MatchOps-Local",
-      "disclaimer": "No installation required • Works immediately • Your data stays private"
+    "performance": {
+      "title": "Performance",
+      "responseTime": "Response Time",
+      "responseTimeDesc": "Sub-50ms for all interactions (local data access)",
+      "offline": "Offline Capability",
+      "offlineDesc": "100% functional without internet connection",
+      "battery": "Battery Efficiency",
+      "batteryDesc": "No constant syncing or network polling",
+      "bundleSize": "Bundle Size",
+      "bundleSizeDesc": "Optimized for fast initial load"
     }
   },
   "info": {
     "whatIsThis": {
       "title": "What is MatchOps Local?",
-      "description": "MatchOps Local is a mobile app for soccer coaches. It helps you manage teams, track games, and build statistics—all from your phone or tablet.",
-      "oneLine": "Track games, manage teams, and build statistics. Works completely offline on your device."
+      "description": "MatchOps Local is a mobile app for soccer coaches. It helps you manage teams, track and document games in real-time, and build statistics—all from your phone or tablet.",
+      "oneLine": "No signup required. Install once and your data stays private on your device. Works anywhere, even without internet."
     },
     "challenges": {
       "title": "Common Challenges for Coaches",
       "challenge1": "Juggling multiple separate tools during games: clipboard, stopwatch, notebook, calculator",
-      "challenge2": "Difficult to keep your eyes on the game while managing everything",
+      "challenge2": "Difficult to watch the game while simultaneously documenting field events",
       "challenge3": "No easy way to see patterns and trends across seasons and tournaments",
-      "challenge4": "Planning ahead who plays what position requires separate tools or paper"
+      "challenge4": "Planning ahead who plays what position requires separate tools or paper",
+      "challenge5": "Most things on game day stay undocumented and eventually get forgotten",
+      "challenge6": "Some decisions over a period are based on intuition and not real data"
     },
     "whatYouCanDo": {
       "title": "What You Can Do With It",
       "beforeGame": {
         "title": "Before the Game",
-        "item1": "Add players to your master roster",
-        "item2": "Create teams and assign jersey numbers",
-        "item3": "Plan starting positions on the field",
-        "item4": "Set up game details (opponent, tournament, date)"
+        "item1": "Build your team",
+        "item2": "Create your match event",
+        "item3": "Define season or tournament event",
+        "item4": "Plan your match lineup and game plan"
       },
       "duringGame": {
         "title": "During the Game",
-        "item1": "Interactive field view - drag players to positions",
-        "item2": "Track game time with built-in timer",
-        "item3": "Record substitutions with automatic time tracking",
-        "item4": "Log goals and assists as they happen",
-        "item5": "Log opponent goals",
-        "item6": "Draw tactics on the field"
+        "item1": "Track the game clock",
+        "item2": "Monitor predefined substitution intervals",
+        "item3": "Log substitution moments with a button press",
+        "item4": "Record goals and assists with a few taps",
+        "item5": "Draw tactics for halftime"
       },
       "afterGame": {
         "title": "After the Game",
-        "item1": "View complete game statistics",
-        "item2": "See player performance (goals, assists, playtime)",
-        "item3": "Compare statistics across games, seasons, tournaments",
-        "item4": "Export your data as backup"
-      }
-    },
-    "howItWorks": {
-      "title": "How It Works",
-      "step1": "Open the app on your phone or tablet",
-      "step2": "Select your team or create a new one",
-      "step3": "Choose players for this game",
-      "step4": "Start the game timer",
-      "step5": "Track events as they happen",
-      "step6": "Review statistics after the game"
-    },
-    "features": {
-      "title": "Features",
-      "feature1": {
-        "title": "Interactive Soccer Field",
-        "desc": "Drag-and-drop player positioning with realistic field visualization"
-      },
-      "feature2": {
-        "title": "Game Timer",
-        "desc": "Timer with substitution interval tracking and visual alerts"
-      },
-      "feature3": {
-        "title": "Player Statistics",
-        "desc": "Track appearances, playtime, goals, assists, and performance trends"
-      },
-      "feature4": {
-        "title": "Season & Tournament Organization",
-        "desc": "Create seasons with date ranges and track tournament performance"
-      },
-      "feature5": {
-        "title": "Works Offline",
-        "desc": "Progressive Web App that works completely without internet connection"
-      },
-      "feature6": {
-        "title": "Data Export",
-        "desc": "Export all your data in JSON format for backup and portability"
+        "item1": "Review game statistics and events",
+        "item2": "View team statistics",
+        "item3": "View player statistics",
+        "item4": "Compare statistics across games, seasons, and tournaments",
+        "item5": "Optionally assess individual player performance with 10 different metrics"
       }
     },
     "technical": {
       "title": "Technical Details",
       "desc1": "MatchOps Local is a Progressive Web App (PWA). This means it installs like a native app but runs in your web browser.",
-      "desc2": "All data is stored locally on your device using IndexedDB, a browser database. No internet connection is required after the initial load.",
+      "desc2": "All data is stored locally on your device using IndexedDB, a browser database. No internet connection is required to use the app.",
       "desc3": "Compatible with iOS Safari, Android Chrome, and all major desktop browsers."
     },
     "faq": {
       "title": "Common Questions",
-      "q1": "How do I install it?",
-      "a1": "Visit matchops.app in your browser. On mobile, tap the share button (iOS) or menu (Android) and select 'Add to Home Screen' or 'Install App'.",
+      "q1": "How do I install the app?",
+      "a1": "Open the app in your browser [Link coming soon]. The app will prompt you to install it - just tap 'Install'.",
       "q2": "Where is my data stored?",
       "a2": "All data is stored locally on your device in IndexedDB (browser storage). Nothing is sent to external servers.",
       "q3": "Can I use it on multiple devices?",
       "a3": "Yes, but you'll need to export your data from one device and import it on another. There's no automatic syncing since everything is stored locally.",
       "q4": "How do I back up my data?",
       "a4": "Open the Settings menu and use the Export function. This creates a JSON file with all your data that you can save and import later.",
-      "q5": "Does it cost anything?",
-      "a5": "No. MatchOps Local is completely free and open source. No subscription, no ads, no hidden costs."
+      "q5": "Can I edit game data after it's recorded?",
+      "a5": "Yes. You can edit, add or delete goal events, and edit match details. Just open the game from your history and make corrections.",
+      "q6": "What happens if I lose my phone or it breaks?",
+      "a6": "If you've made regular exports (backups), you can import your data on a new device. Without backups, data is lost with the device.",
+      "q7": "Can I manage multiple teams?",
+      "a7": "Yes. You can create and manage multiple teams (U12, U14, etc.) from the same app and switch between them easily.",
+      "q8": "How much storage space does the app use?",
+      "a8": "The app uses your device's free storage space through IndexedDB. Available space depends on your device and can be tens or even hundreds of gigabytes. Typical usage with 100+ games and full statistics is under 50MB."
     },
     "cta": {
-      "button": "Try It",
-      "subtitle": "No signup required. Works immediately in your browser."
+      "title": "Currently in Limited Testing"
     }
   }
 }
