@@ -23,8 +23,8 @@ const mockGetFilteredGames = getFilteredGames as jest.MockedFunction<typeof getF
 const defaultProps = {
   isOpen: true,
   onClose: jest.fn(),
-  seasons: [{ id: 's1', name: 'Season 1' }],
-  tournaments: [{ id: 't1', name: 'Tournament 1' }],
+  seasons: [{ id: 's1', name: 'Season 1' }] as Season[],
+  tournaments: [{ id: 't1', name: 'Tournament 1' }] as Tournament[],
   masterRoster: [{ id: 'p1', name: 'Test Player', jerseyNumber: '10' }],
   addSeasonMutation: mockMutation() as unknown as UseMutationResult<Season | null, Error, { name: string; }>,
   addTournamentMutation: mockMutation() as unknown as UseMutationResult<Tournament | null, Error, { name: string; }>,
@@ -237,6 +237,98 @@ describe('SeasonTournamentManagementModal', () => {
     expect(screen.getByText('Winter Season')).toBeInTheDocument();
     expect(screen.queryByText('Summer Season')).toBeNull();
     expect(screen.queryByText('Autumn Cup')).toBeNull();
+  });
+
+  it('allows archiving a season', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      renderWithProviders();
+    });
+    await act(async () => {});
+
+    const seasonActionsButton = screen.getByLabelText('season actions');
+    await user.click(seasonActionsButton);
+
+    const archiveOption = await screen.findByRole('button', { name: i18n.t('seasonTournamentModal.archive', 'Archive') });
+    await user.click(archiveOption);
+
+    expect(defaultProps.updateSeasonMutation.mutate).toHaveBeenCalledWith({
+      id: 's1',
+      name: 'Season 1',
+      archived: true,
+    });
+  });
+
+  it('allows unarchiving a season', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      renderWithProviders({
+        seasons: [{ id: 's1', name: 'Season 1', archived: true }],
+      });
+    });
+    await act(async () => {});
+
+    // Enable show archived to see archived items
+    const showArchivedCheckbox = screen.getByLabelText(i18n.t('seasonTournamentModal.showArchived', 'Show Archived'));
+    await user.click(showArchivedCheckbox);
+
+    const seasonActionsButton = screen.getByLabelText('season actions');
+    await user.click(seasonActionsButton);
+
+    const unarchiveOption = await screen.findByRole('button', { name: i18n.t('seasonTournamentModal.unarchive', 'Unarchive') });
+    await user.click(unarchiveOption);
+
+    expect(defaultProps.updateSeasonMutation.mutate).toHaveBeenCalledWith({
+      id: 's1',
+      name: 'Season 1',
+      archived: false,
+    });
+  });
+
+  it('allows archiving a tournament', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      renderWithProviders();
+    });
+    await act(async () => {});
+
+    const tournamentActionsButton = screen.getByLabelText('tournament actions');
+    await user.click(tournamentActionsButton);
+
+    const archiveOption = await screen.findByRole('button', { name: i18n.t('seasonTournamentModal.archive', 'Archive') });
+    await user.click(archiveOption);
+
+    expect(defaultProps.updateTournamentMutation.mutate).toHaveBeenCalledWith({
+      id: 't1',
+      name: 'Tournament 1',
+      archived: true,
+    });
+  });
+
+  it('allows unarchiving a tournament', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      renderWithProviders({
+        tournaments: [{ id: 't1', name: 'Tournament 1', archived: true }],
+      });
+    });
+    await act(async () => {});
+
+    // Enable show archived to see archived items
+    const showArchivedCheckbox = screen.getByLabelText(i18n.t('seasonTournamentModal.showArchived', 'Show Archived'));
+    await user.click(showArchivedCheckbox);
+
+    const tournamentActionsButton = screen.getByLabelText('tournament actions');
+    await user.click(tournamentActionsButton);
+
+    const unarchiveOption = await screen.findByRole('button', { name: i18n.t('seasonTournamentModal.unarchive', 'Unarchive') });
+    await user.click(unarchiveOption);
+
+    expect(defaultProps.updateTournamentMutation.mutate).toHaveBeenCalledWith({
+      id: 't1',
+      name: 'Tournament 1',
+      archived: false,
+    });
   });
 
   /**

@@ -5,7 +5,7 @@ import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import { Season, Tournament, Player } from '@/types';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
-import { HiOutlinePencil, HiOutlineTrash, HiOutlineEllipsisVertical } from 'react-icons/hi2';
+import { HiOutlinePencil, HiOutlineTrash, HiOutlineEllipsisVertical, HiOutlineArchiveBox } from 'react-icons/hi2';
 import { UseMutationResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import SeasonDetailsModal from './SeasonDetailsModal';
@@ -167,6 +167,21 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         setItemToDelete(null);
     };
 
+    const handleToggleArchive = (item: Season | Tournament, type: 'season' | 'tournament') => {
+        const updatedItem = {
+            ...item,
+            archived: !item.archived,
+        };
+
+        if (type === 'season') {
+            updateSeasonMutation.mutate(updatedItem as Season);
+        } else {
+            updateTournamentMutation.mutate(updatedItem as Tournament);
+        }
+
+        setActionsMenuId(null);
+    };
+
     const renderList = (type: 'season' | 'tournament') => {
         const data = type === 'season' ? seasons : tournaments;
         const filtered = data
@@ -273,15 +288,24 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                     {actionsMenuId === item.id && (
                                         <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
                                             <button
+                                                onClick={() => handleToggleArchive(item, type)}
+                                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"
+                                            >
+                                                <HiOutlineArchiveBox className="w-4 h-4" />
+                                                {item.archived
+                                                    ? t('seasonTournamentModal.unarchive', 'Unarchive')
+                                                    : t('seasonTournamentModal.archive', 'Archive')}
+                                            </button>
+                                            <button
                                                 onClick={() => handleEditClick(item, type)}
-                                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
+                                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"
                                             >
                                                 <HiOutlinePencil className="w-4 h-4" />
                                                 {t('common.edit', 'Edit')}
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteClick(item, type)}
-                                                className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2"
+                                                className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 transition-colors"
                                             >
                                                 <HiOutlineTrash className="w-4 h-4" />
                                                 {t('common.delete', 'Delete')}
