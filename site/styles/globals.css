@@ -420,6 +420,15 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 10px 15px -3px rgb(0 0 0 / 0.3);
 }
 
+/* Utility: hide scrollbar for overflow containers (mobile carousels) */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 /* Focus ring for interactive elements */
 a:focus-visible,
 button:focus-visible,
