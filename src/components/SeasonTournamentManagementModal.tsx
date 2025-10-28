@@ -67,6 +67,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     const [stats, setStats] = useState<Record<string, { games: number; goals: number }>>({});
 
     const [searchText, setSearchText] = useState('');
+    const [showArchived, setShowArchived] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string; type: 'season' | 'tournament' } | null>(null);
 
@@ -168,7 +169,9 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
 
     const renderList = (type: 'season' | 'tournament') => {
         const data = type === 'season' ? seasons : tournaments;
-        const filtered = data.filter(d => d.name.toLowerCase().includes(searchText.toLowerCase()));
+        const filtered = data
+            .filter(d => showArchived || !d.archived)
+            .filter(d => d.name.toLowerCase().includes(searchText.toLowerCase()));
         const showInput = type === 'season' ? showNewSeasonInput : showNewTournamentInput;
         const setShowInput = type === 'season' ? setShowNewSeasonInput : setShowNewTournamentInput;
         const name = type === 'season' ? newSeasonName : newTournamentName;
@@ -240,12 +243,19 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                     {filtered.map((item) => (
                         <div
                             key={item.id}
-                            className="p-4 rounded-lg bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 cursor-pointer transition-all"
+                            className={`p-4 rounded-lg bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 cursor-pointer transition-all ${item.archived ? 'opacity-60' : ''}`}
                             onClick={() => type === 'season' ? handleSeasonClick(item.id) : handleTournamentClick(item.id)}
                         >
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <p className="text-slate-100 font-medium">{item.name}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-slate-100 font-medium">{item.name}</p>
+                                        {item.archived && (
+                                            <span className="text-xs px-2 py-0.5 rounded bg-slate-700/70 text-slate-400 border border-slate-600">
+                                                {t('seasonTournamentModal.archivedBadge', 'Archived')}
+                                            </span>
+                                        )}
+                                    </div>
                                     {type==='tournament' && ((item as Tournament).startDate || (item as Tournament).endDate) && (
                                         <p className="text-xs text-slate-400">{(item as Tournament).startDate || ''}{(item as Tournament).startDate && (item as Tournament).endDate ? ' - ' : ''}{(item as Tournament).endDate || ''}</p>
                                     )}
@@ -343,16 +353,25 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
-            {/* Search Field */}
-            <div className="mb-4">
+            {/* Search Field and Show Archived Toggle */}
+            <div className="mb-4 flex flex-col sm:flex-row gap-3">
               <input
                 type="text"
                 placeholder={t('seasonTournamentModal.searchPlaceholder')}
                 value={searchText}
                 onChange={e => setSearchText(e.target.value)}
                 autoComplete="off"
-                className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
+              <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={showArchived}
+                  onChange={(e) => setShowArchived(e.target.checked)}
+                  className="form-checkbox h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
+                />
+                {t('seasonTournamentModal.showArchived', 'Show Archived')}
+              </label>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
