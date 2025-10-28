@@ -281,11 +281,10 @@
     },
     "challenges": {
       "title": "Yleisiä haasteita valmentajille",
-      "challenge1": "Useita eri työkaluja pelipäivänä: leike, sekuntikello, muistivihko, laskin",
+      "challenge1": "Useita eri työkaluja pelipäivänä: piirtolevy, sekuntikello, muistivihko, laskin",
       "challenge2": "Vaikea seurata peliä kun joutuu hoitamaan kaikkea muuta",
-      "challenge3": "Tilastojen seuranta pelin aikana on hankalaa ilman että menettää otteen pelistä",
-      "challenge4": "Ei helppoa tapaa nähdä kehitystä ja trendejä kaudella tai turnauksissa",
-      "challenge5": "Pelipaikkojen suunnittelu etukäteen vaatii erillisiä työkaluja tai papereita"
+      "challenge3": "Ei helppoa tapaa nähdä kehitystä ja trendejä kaudella tai turnauksissa",
+      "challenge4": "Pelipaikkojen suunnittelu etukäteen vaatii erillisiä työkaluja tai papereita"
     },
     "whatYouCanDo": {
       "title": "Mitä voit tehdä sovelluksella",
