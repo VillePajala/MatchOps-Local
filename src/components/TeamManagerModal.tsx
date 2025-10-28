@@ -47,6 +47,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamArchived, setNewTeamArchived] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [searchText, setSearchText] = useState('');
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [editTeamName, setEditTeamName] = useState('');
   const [actionsMenuTeamId, setActionsMenuTeamId] = useState<string | null>(null);
@@ -277,9 +278,9 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
         {/* Fixed Section (Button and Team Counter) */}
         <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          {/* Team Counter and Show Archived Toggle */}
+          {/* Team Counter */}
           <div className="mb-5 text-center text-sm">
-            <div className="flex justify-center items-center gap-4 text-slate-300">
+            <div className="flex justify-center items-center text-slate-300">
               <span>
                 <span className="text-yellow-400 font-semibold">{teams.length}</span>
                 {" "}{teams.length === 1
@@ -287,15 +288,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                   : t('teamManager.totalTeamsPlural', 'Teams')
                 }
               </span>
-              <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
-                <input
-                  type="checkbox"
-                  checked={showArchived}
-                  onChange={(e) => setShowArchived(e.target.checked)}
-                  className="form-checkbox h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
-                />
-                {t('teamManager.showArchived', 'Show Archived')}
-              </label>
             </div>
           </div>
 
@@ -314,6 +306,27 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto min-h-0 p-6">
+          {/* Search Field and Show Archived Toggle */}
+          <div className="mb-4 flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              placeholder={t('teamManager.searchPlaceholder', 'Search teams...')}
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+              autoComplete="off"
+              className="flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+                className="form-checkbox h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
+              />
+              {t('teamManager.showArchived', 'Show Archived')}
+            </label>
+          </div>
+
           {/* Create New Team Form */}
           {isCreatingTeam && (
             <div className="mb-6 bg-slate-700/50 rounded-lg p-4 border border-slate-600 -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
@@ -381,6 +394,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               <div className="space-y-3">
                 {teams
                   .filter(team => showArchived || !team.archived)
+                  .filter(team => team.name.toLowerCase().includes(searchText.toLowerCase()))
                   .map((team) => (
                   <div
                     key={team.id}
