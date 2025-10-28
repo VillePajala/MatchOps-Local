@@ -159,5 +159,26 @@
     "cta": {
       "title": "Currently in Limited Testing"
     }
+  },
+  "screenshots": {
+    "labels": {
+      "plan": "Plan",
+      "track": "Track",
+      "review": "Review"
+    },
+    "captions": {
+      "plan": "Plan your match setup",
+      "track": "Track events live",
+      "review": "Review insights afterward"
+    },
+    "aria": {
+      "carousel": "Screenshots carousel",
+      "prev": "Previous screenshot",
+      "next": "Next screenshot",
+      "close": "Close preview",
+      "preview": "Screenshot preview",
+      "goTo": "Go to {{label}}",
+      "enlarge": "Enlarge {{label}} screenshot"
+    }
   }
 }
