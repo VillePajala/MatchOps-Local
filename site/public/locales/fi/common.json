@@ -1,8 +1,6 @@
 {
   "nav": {
-    "technical": "Tekniset tiedot",
-    "tryItNow": "Kokeile nyt",
-    "tryNow": "Kokeile"
+    "technical": "Tekniset tiedot"
   },
   "seo": {
     "home": {
@@ -98,12 +96,13 @@
     },
     "challenges": {
       "title": "Yleisiä haasteita valmentajille",
-      "challenge1": "Useita eri työkaluja pelipäivänä: piirtolevy, sekuntikello, muistivihko, laskin",
-      "challenge2": "Vaikea seurata peliä, jos haluaisi samalla dokumentoida kentän tapahtumia",
-      "challenge3": "Ei helppoa tapaa nähdä kehitystä ja trendejä kaudella tai turnauksissa",
-      "challenge4": "Pelipaikkojen suunnittelu etukäteen vaatii erillisiä työkaluja tai papereita",
-      "challenge5": "Useimmat asiat ottelupäivänä jäävät dokumentoimatta ja unohtuvat lopulta",
-      "challenge6": "Jotkut päätökset kaudella perustuvat intuitioon eivätkä todelliseen dataan"
+      "challenge1": "Useita eri työkaluja pelipäivänä: piirtolevy, sekuntikello, muistivihko",
+      "challenge2": "Valmentajan täytyy keskittyä otteluun, eikä ehdi vaihtohetkien lisäksi dokumentoida kentän tapahtumia helposti",
+      "challenge3": "Ei helppoa tapaa seurata kehitystä ja trendejä pidemmällä aikavälillä kuten kaudella tai turnauksissa",
+      "challenge4": "Suunnittelu käyttäen vihkoja ja papereita voi olla sotkuista ja vaivalloista",
+      "challenge5": "Useimmat ottelupäivän asiat jäävät dokumentoimatta ja unohtuvat lopulta kokonaan",
+      "challenge6": "On riski, että päätökset ja arviot pitkällä aikavälillä perustuvat intuitioon eivätkä dataan",
+      "challenge7": "Mututiedon perustelu voi olla haastavaa"
     },
     "whatYouCanDo": {
       "title": "Mitä voit tehdä sovelluksella",
