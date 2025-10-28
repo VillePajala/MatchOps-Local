@@ -9,7 +9,8 @@ import {
   HiOutlinePencil,
   HiOutlineTrash,
   HiOutlineUsers, // Used in empty state
-  HiOutlineEllipsisVertical
+  HiOutlineEllipsisVertical,
+  HiOutlineArchiveBox
 } from 'react-icons/hi2';
 import { Team } from '@/types';
 import { queryKeys } from '@/config/queryKeys';
@@ -44,6 +45,8 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   // State management
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
+  const [newTeamArchived, setNewTeamArchived] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [editTeamName, setEditTeamName] = useState('');
   const [actionsMenuTeamId, setActionsMenuTeamId] = useState<string | null>(null);
@@ -63,6 +66,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       queryClient.invalidateQueries({ queryKey: queryKeys.teams });
       setIsCreatingTeam(false);
       setNewTeamName('');
+      setNewTeamArchived(false);
       logger.log('[TeamManager] Created team:', newTeam);
     },
     onError: (error) => {
@@ -120,6 +124,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       setActionsMenuTeamId(null);
       setDeleteConfirmTeamId(null);
       setNewTeamName('');
+      setNewTeamArchived(false);
     }
   }, [isOpen]);
 
@@ -179,6 +184,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
     createTeamMutation.mutate({
       name: trimmedName,
+      archived: newTeamArchived,
     });
   };
 
@@ -221,6 +227,16 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     setEditTeamName('');
   };
 
+  const handleToggleArchive = (teamId: string, currentArchived: boolean) => {
+    updateTeamMutation.mutate({
+      teamId,
+      updates: {
+        archived: !currentArchived,
+      },
+    });
+    setActionsMenuTeamId(null);
+  };
+
   const handleDeleteTeam = async (teamId: string) => {
     // Load games count for impact warning
     const gamesCount = await countGamesForTeam(teamId);
@@ -261,9 +277,9 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
         {/* Fixed Section (Button and Team Counter) */}
         <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-          {/* Team Counter */}
+          {/* Team Counter and Show Archived Toggle */}
           <div className="mb-5 text-center text-sm">
-            <div className="flex justify-center items-center text-slate-300">
+            <div className="flex justify-center items-center gap-4 text-slate-300">
               <span>
                 <span className="text-yellow-400 font-semibold">{teams.length}</span>
                 {" "}{teams.length === 1
@@ -271,6 +287,15 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                   : t('teamManager.totalTeamsPlural', 'Teams')
                 }
               </span>
+              <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={showArchived}
+                  onChange={(e) => setShowArchived(e.target.checked)}
+                  className="form-checkbox h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
+                />
+                {t('teamManager.showArchived', 'Show Archived')}
+              </label>
             </div>
           </div>
 
@@ -312,6 +337,18 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                   />
                 </div>
 
+                <div>
+                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newTeamArchived}
+                      onChange={(e) => setNewTeamArchived(e.target.checked)}
+                      className="form-checkbox h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
+                    />
+                    {t('teamManager.archivedLabel', 'Archived')}
+                  </label>
+                </div>
+
                 <div className="flex gap-2 pt-2">
                   <button
                     onClick={handleCreateTeam}
@@ -342,12 +379,14 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           ) : (
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <div className="space-y-3">
-                {teams.map((team) => (
+                {teams
+                  .filter(team => showArchived || !team.archived)
+                  .map((team) => (
                   <div
                     key={team.id}
                     className={`p-4 rounded-lg transition-all ${
                       editingTeamId === team.id ? 'bg-slate-700/75' : 'bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40'
-                    }`}
+                    } ${team.archived ? 'opacity-60' : ''}`}
                   >
                   {editingTeamId === team.id ? (
                     // Edit mode
@@ -392,7 +431,14 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                         title={t('teamManager.roster', 'Roster')}
                       >
                         <div>
-                          <div className="text-slate-200">{team.name}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-200">{team.name}</span>
+                            {team.archived && (
+                              <span className="text-xs px-2 py-0.5 rounded bg-slate-700/70 text-slate-400 border border-slate-600">
+                                {t('teamManager.archivedBadge', 'Archived')}
+                              </span>
+                            )}
+                          </div>
                           <div className="text-xs text-slate-400">
                             {rosterCounts[team.id] === 1
                               ? t('teamManager.onePlayer', '1 player')
@@ -424,6 +470,15 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                               >
                                 <HiOutlinePencil className="w-4 h-4" />
                                 {t('teamManager.rename', 'Rename')}
+                              </button>
+                              <button
+                                onClick={() => handleToggleArchive(team.id, team.archived || false)}
+                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"
+                              >
+                                <HiOutlineArchiveBox className="w-4 h-4" />
+                                {team.archived
+                                  ? t('teamManager.unarchive', 'Unarchive')
+                                  : t('teamManager.archive', 'Archive')}
                               </button>
                               <button
                                 onClick={() => handleDeleteTeam(team.id)}
