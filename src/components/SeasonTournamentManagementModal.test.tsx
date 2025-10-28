@@ -23,8 +23,8 @@ const mockGetFilteredGames = getFilteredGames as jest.MockedFunction<typeof getF
 const defaultProps = {
   isOpen: true,
   onClose: jest.fn(),
-  seasons: [{ id: 's1', name: 'Season 1' }],
-  tournaments: [{ id: 't1', name: 'Tournament 1' }],
+  seasons: [{ id: 's1', name: 'Season 1' }] as Season[],
+  tournaments: [{ id: 't1', name: 'Tournament 1' }] as Tournament[],
   masterRoster: [{ id: 'p1', name: 'Test Player', jerseyNumber: '10' }],
   addSeasonMutation: mockMutation() as unknown as UseMutationResult<Season | null, Error, { name: string; }>,
   addTournamentMutation: mockMutation() as unknown as UseMutationResult<Tournament | null, Error, { name: string; }>,
