@@ -126,6 +126,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       setDeleteConfirmTeamId(null);
       setNewTeamName('');
       setNewTeamArchived(false);
+      setSearchText('');
     }
   }, [isOpen]);
 
@@ -314,6 +315,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               value={searchText}
               onChange={e => setSearchText(e.target.value)}
               autoComplete="off"
+              aria-label={t('teamManager.searchAriaLabel', 'Search teams by name')}
               className="flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
             <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer whitespace-nowrap">
@@ -382,20 +384,40 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           )}
 
           {/* Teams List */}
-          {teams.length === 0 ? (
-            <div className="text-center py-8">
-              <HiOutlineUsers className="w-12 h-12 mx-auto text-slate-400 mb-3" />
-              <p className="text-slate-400 mb-4">
-                {t('teamManager.noTeams', 'No teams yet. Create your first team to get started.')}
-              </p>
-            </div>
-          ) : (
-            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
-              <div className="space-y-3">
-                {teams
-                  .filter(team => showArchived || !team.archived)
-                  .filter(team => team.name.toLowerCase().includes(searchText.toLowerCase()))
-                  .map((team) => (
+          {(() => {
+            const filteredTeams = teams
+              .filter(team => showArchived || !team.archived)
+              .filter(team => team.name.toLowerCase().includes(searchText.toLowerCase()));
+
+            if (teams.length === 0) {
+              return (
+                <div className="text-center py-8">
+                  <HiOutlineUsers className="w-12 h-12 mx-auto text-slate-400 mb-3" />
+                  <p className="text-slate-400 mb-4">
+                    {t('teamManager.noTeams', 'No teams yet. Create your first team to get started.')}
+                  </p>
+                </div>
+              );
+            }
+
+            if (filteredTeams.length === 0) {
+              return (
+                <div className="text-center py-8">
+                  <HiOutlineUsers className="w-12 h-12 mx-auto text-slate-400 mb-3" />
+                  <p className="text-slate-400 mb-4">
+                    {searchText
+                      ? t('teamManager.noSearchResults', 'No teams match your search for "{{search}}".', { search: searchText })
+                      : t('teamManager.noArchivedTeams', 'No archived teams to show.')
+                    }
+                  </p>
+                </div>
+              );
+            }
+
+            return (
+              <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
+                <div className="space-y-3">
+                  {filteredTeams.map((team) => (
                   <div
                     key={team.id}
                     className={`p-4 rounded-lg transition-all ${
@@ -511,7 +533,8 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                 ))}
               </div>
             </div>
-          )}
+            );
+          })()}
         </div>
 
         {/* Footer */}
