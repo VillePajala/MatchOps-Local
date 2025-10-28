@@ -272,5 +272,105 @@
       "button": "Avaa sovellus",
       "disclaimer": "Ei asennusta • Toimii heti • Tietosi pysyvät laitteellasi"
     }
+  },
+  "info": {
+    "whatIsThis": {
+      "title": "Mikä on MatchOps Local?",
+      "description": "MatchOps Local on mobiilisovellus jalkapallovalmentajille. Sen avulla hallitset joukkueita, seuraat pelejä ja keräät tilastoja—kaikki puhelimesta tai tabletista.",
+      "oneLine": "Seuraa pelejä, hallitse joukkueita ja kerää tilastoja. Toimii täysin ilman nettiä omalla laitteellasi."
+    },
+    "challenges": {
+      "title": "Yleisiä haasteita valmentajille",
+      "challenge1": "Useita eri työkaluja pelipäivänä: leike, sekuntikello, muistivihko, laskin",
+      "challenge2": "Vaikea seurata peliä kun joutuu hoitamaan kaikkea muuta",
+      "challenge3": "Tilastojen seuranta pelin aikana on hankalaa ilman että menettää otteen pelistä",
+      "challenge4": "Ei helppoa tapaa nähdä kehitystä ja trendejä kaudella tai turnauksissa",
+      "challenge5": "Pelipaikkojen suunnittelu etukäteen vaatii erillisiä työkaluja tai papereita"
+    },
+    "whatYouCanDo": {
+      "title": "Mitä voit tehdä sovelluksella",
+      "beforeGame": {
+        "title": "Ennen peliä",
+        "item1": "Lisää pelaajat pelaajalistallesi",
+        "item2": "Luo joukkueet ja anna pelinumerot",
+        "item3": "Suunnittele aloituskokoonpano kentällä",
+        "item4": "Aseta pelin tiedot (vastustaja, turnaus, päivämäärä)"
+      },
+      "duringGame": {
+        "title": "Pelin aikana",
+        "item1": "Interaktiivinen kenttänäkymä - raahaa pelaajia paikoille",
+        "item2": "Seuraa pelaikaa sisäänrakennetulla ajastimella",
+        "item3": "Kirjaa vaihdot automaattisella aikalaskennalla",
+        "item4": "Merkitse maalit ja syötöt kun ne tapahtuvat",
+        "item5": "Merkitse vastustajan maalit",
+        "item6": "Piirrä taktiikoita kentälle"
+      },
+      "afterGame": {
+        "title": "Pelin jälkeen",
+        "item1": "Katso kattavat pelitilastot",
+        "item2": "Näe pelaajien suoritukset (maalit, syötöt, peliaika)",
+        "item3": "Vertaa tilastoja pelien, kausien ja turnausten välillä",
+        "item4": "Vie tietosi varmuuskopioksi"
+      }
+    },
+    "howItWorks": {
+      "title": "Miten se toimii",
+      "step1": "Avaa sovellus puhelimella tai tabletilla",
+      "step2": "Valitse joukkueesi tai luo uusi",
+      "step3": "Valitse pelaajat tähän peliin",
+      "step4": "Käynnistä pelin ajastin",
+      "step5": "Seuraa tapahtumia niiden tapahtuessa",
+      "step6": "Katso tilastot pelin jälkeen"
+    },
+    "features": {
+      "title": "Ominaisuudet",
+      "feature1": {
+        "title": "Interaktiivinen jalkapallokenttä",
+        "desc": "Raahaa ja pudota pelaajia realistisella kentällä"
+      },
+      "feature2": {
+        "title": "Pelin ajastin",
+        "desc": "Ajastin joka seuraa vaihtovälejä ja muistuttaa visuaalisesti"
+      },
+      "feature3": {
+        "title": "Pelaajatilastot",
+        "desc": "Seuraa pelien määrää, peliaikaa, maaleja, syöttöjä ja suoritustrendejä"
+      },
+      "feature4": {
+        "title": "Kaudet ja turnaukset",
+        "desc": "Luo kaudet aikajaksoilla ja seuraa turnaussuorituksia"
+      },
+      "feature5": {
+        "title": "Toimii ilman nettiä",
+        "desc": "Nettisovellus joka toimii täysin ilman internetyhteyttä"
+      },
+      "feature6": {
+        "title": "Tietojen vienti",
+        "desc": "Vie kaikki tietosi JSON-muodossa varmuuskopiointia ja siirrettävyyttä varten"
+      }
+    },
+    "technical": {
+      "title": "Tekniset tiedot",
+      "desc1": "MatchOps Local on progressiivinen nettisovellus (PWA). Tämä tarkoittaa, että se asentuu kuin tavallinen sovellus mutta toimii selaimessasi.",
+      "desc2": "Kaikki tiedot tallennetaan paikallisesti laitteellesi IndexedDB-tietokantaan. Nettiyhteyttä ei tarvita ensimmäisen latauksen jälkeen.",
+      "desc3": "Yhteensopiva iOS Safarin, Android Chromen ja kaikkien suurten työpöytäselainten kanssa."
+    },
+    "faq": {
+      "title": "Yleisiä kysymyksiä",
+      "q1": "Miten asennan sen?",
+      "a1": "Mene osoitteeseen matchops.app selaimellasi. Mobiilissa napauta Jaa-painiketta (iOS) tai valikkoa (Android) ja valitse 'Lisää kotinäyttöön' tai 'Asenna sovellus'.",
+      "q2": "Mihin tietoni tallennetaan?",
+      "a2": "Kaikki tiedot tallennetaan paikallisesti laitteellesi IndexedDB-tietokantaan (selaimen tallennustila). Mitään ei lähetetä ulkoisille palvelimille.",
+      "q3": "Voinko käyttää useammalla laitteella?",
+      "a3": "Kyllä, mutta sinun täytyy viedä tietosi yhdeltä laitteelta ja tuoda ne toiselle. Automaattista synkronointia ei ole, koska kaikki tallentuu paikallisesti.",
+      "q4": "Miten varmuuskopioin tietoni?",
+      "a4": "Avaa Asetukset-valikko ja käytä Vie-toimintoa. Tämä luo JSON-tiedoston, jossa on kaikki tietosi ja jonka voit tallentaa ja tuoda myöhemmin.",
+      "q5": "Maksaako se mitään?",
+      "a5": "Ei. MatchOps Local on täysin ilmainen ja avoimen lähdekoodin ohjelma. Ei tilausta, ei mainoksia, ei piilokustannuksia."
+    },
+    "cta": {
+      "button": "Kokeile",
+      "subtitle": "Ei rekisteröitymistä. Toimii heti selaimessasi."
+    }
   }
 }
