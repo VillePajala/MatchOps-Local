@@ -796,6 +796,8 @@
     "levelLabel": "Level",
     "startDateLabel": "Start Date",
     "endDateLabel": "End Date",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
     "archiveLabel": "Archive",
     "showArchived": "Show Archived",
     "archivedBadge": "Archived",
