@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: change Finnish off-season translation from \"Kesätauko\" to \"Kausiulkopuolella\""
+  "notes": "feat: remove off-season from filters and improve Overall tab layout"
 }

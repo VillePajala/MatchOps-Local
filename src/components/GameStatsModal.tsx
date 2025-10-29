@@ -673,7 +673,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               {/* Filters */}
               {activeTab === 'overall' && availableClubSeasons.length > 0 ? (
                 /* Overall tab with club season filter - side by side layout */
-                <div className="mb-4 mx-1 grid grid-cols-2 gap-2 items-center">
+                <div className={`mb-4 mx-1 grid ${teams.length > 0 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 items-center`}>
                   {/* Team Filter */}
                   {teams.length > 0 && (
                     <select
