@@ -160,9 +160,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [playerQuery, setPlayerQuery] = useState('');
   const [selectedClubSeason, setSelectedClubSeason] = useState<string>('all');
-  const currentYear = new Date().getUTCFullYear();
-  const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>(`${currentYear}-10-01`);
-  const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>(`${currentYear + 1}-05-01`);
+  const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>('2000-10-01');
+  const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>('2000-05-01');
   const [hasConfiguredSeasonDates, setHasConfiguredSeasonDates] = useState<boolean>(false);
 
   // Filtered players for Player tab combobox
@@ -184,7 +183,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   }, [savedGames, clubSeasonStartDate, clubSeasonEndDate]);
 
   // --- Effects ---
-  // Load seasons/tournaments/teams
+  // Load seasons/tournaments/teams and refresh settings when modal opens
+  // This ensures season dates are always up-to-date when user reopens the modal
+  // after changing settings elsewhere (e.g., in SettingsModal)
   useEffect(() => {
     const loadData = async () => {
       if (isOpen) {
@@ -197,11 +198,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         setTournaments(loadedTournaments);
         setTeams(loadedTeams);
 
+        // Reload settings to catch any changes made in SettingsModal
         const settings = await getAppSettings();
         if (settings) {
-          const currentYear = new Date().getUTCFullYear();
-          setClubSeasonStartDate(settings.clubSeasonStartDate ?? `${currentYear}-10-01`);
-          setClubSeasonEndDate(settings.clubSeasonEndDate ?? `${currentYear + 1}-05-01`);
+          setClubSeasonStartDate(settings.clubSeasonStartDate ?? '2000-10-01');
+          setClubSeasonEndDate(settings.clubSeasonEndDate ?? '2000-05-01');
           setHasConfiguredSeasonDates(settings.hasConfiguredSeasonDates ?? false);
         }
       }

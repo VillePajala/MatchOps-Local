@@ -6,7 +6,7 @@ import StartScreen from '@/components/StartScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import { useState, useEffect, useCallback } from 'react';
-import { getCurrentGameIdSetting, migrateAppSettings } from '@/utils/appSettings';
+import { getCurrentGameIdSetting } from '@/utils/appSettings';
 import { getSavedGames } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import { runMigration } from '@/utils/migration';
@@ -28,12 +28,8 @@ export default function Home() {
   const checkAppState = useCallback(async () => {
     setIsCheckingState(true);
     try {
-      // Migrate app settings from legacy format (month-based) to current format (date-based)
-      // This runs once at app startup and is safe to call multiple times
-      await migrateAppSettings();
-
-      // This runs once to ensure legacy data is converted to IndexedDB.
-      // IndexedDB is the runtime storage; this is not the focus of current work.
+      // Run IndexedDB migration to ensure legacy data is converted to IndexedDB.
+      // App settings migration happens automatically in getAppSettings() when needed.
       await runMigration();
 
       // Check for resume capability
