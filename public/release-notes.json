@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: replace date pickers with month/day dropdowns for club season"
+  "notes": "fix: correct translation keys for month names in season dropdowns"
 }
