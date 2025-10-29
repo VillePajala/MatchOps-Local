@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: add defensive parsing and dynamic day limits for season dropdowns"
+  "notes": "fix: reload season settings when GameStatsModal regains focus"
 }
