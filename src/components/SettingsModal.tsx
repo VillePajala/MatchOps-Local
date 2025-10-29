@@ -227,7 +227,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
     setClubSeasonStartDate(date);
     try {
-      await updateAppSettings({ clubSeasonStartDate: date });
+      // Mark season dates as configured when user changes them
+      await updateAppSettings({
+        clubSeasonStartDate: date,
+        hasConfiguredSeasonDates: true
+      });
     } catch (error) {
       logger.error('Failed to save club season start date:', error);
     }
@@ -242,7 +246,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
     setClubSeasonEndDate(date);
     try {
-      await updateAppSettings({ clubSeasonEndDate: date });
+      // Mark season dates as configured when user changes them
+      await updateAppSettings({
+        clubSeasonEndDate: date,
+        hasConfiguredSeasonDates: true
+      });
     } catch (error) {
       logger.error('Failed to save club season end date:', error);
     }

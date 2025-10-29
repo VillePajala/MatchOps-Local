@@ -1074,7 +1074,11 @@
     "fairPlayCardsShort": "FP",
     "sportsmanship": "Sportsmanship",
     "fairPlayTrophy": "Fair Play Trophy",
-    "playerOfTournament": "Player of Tournament"
+    "playerOfTournament": "Player of Tournament",
+    "seasonNotConfiguredTitle": "Season Dates Not Configured",
+    "seasonNotConfiguredMessage": "To filter statistics by season, first configure your club's season period (e.g., October to May) in Settings.",
+    "configureSeasonDates": "Configure Season Dates",
+    "configureSeasonDatesFirst": "Configure season dates in Settings first"
   },
   "months": {
     "january": "January",

@@ -52,6 +52,7 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         hasSeenAppGuide: false,
         useDemandCorrection: false,
+        hasConfiguredSeasonDates: false,
         clubSeasonStartDate: `${currentYear}-10-01`,
         clubSeasonEndDate: `${currentYear}-05-01`
       });
@@ -70,6 +71,7 @@ describe('App Settings Utilities', () => {
         language: 'fi', // From default settings
         hasSeenAppGuide: false,
         useDemandCorrection: false,
+        hasConfiguredSeasonDates: false,
         clubSeasonStartDate: expect.stringMatching(/^\d{4}-10-01$/),
         clubSeasonEndDate: expect.stringMatching(/^\d{4}-05-01$/)
       });
@@ -88,6 +90,7 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         hasSeenAppGuide: false,
         useDemandCorrection: false,
+        hasConfiguredSeasonDates: false,
         clubSeasonStartDate: expect.stringMatching(/^\d{4}-10-01$/),
         clubSeasonEndDate: expect.stringMatching(/^\d{4}-05-01$/)
       });
@@ -109,6 +112,7 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         hasSeenAppGuide: false,
         useDemandCorrection: false,
+        hasConfiguredSeasonDates: false,
         clubSeasonStartDate: expect.stringMatching(/^\d{4}-10-01$/),
         clubSeasonEndDate: expect.stringMatching(/^\d{4}-05-01$/)
       });
@@ -165,6 +169,7 @@ describe('App Settings Utilities', () => {
         language: 'fi', // Preserved
         hasSeenAppGuide: false,
         useDemandCorrection: false,
+        hasConfiguredSeasonDates: false,
         clubSeasonStartDate: expect.stringMatching(/^\d{4}-10-01$/),
         clubSeasonEndDate: expect.stringMatching(/^\d{4}-05-01$/)
       });
@@ -195,6 +200,7 @@ describe('App Settings Utilities', () => {
         ...currentSettings,
         language: 'fi',
         useDemandCorrection: false,
+        hasConfiguredSeasonDates: false,
         clubSeasonStartDate: expect.stringMatching(/^\d{4}-10-01$/),
         clubSeasonEndDate: expect.stringMatching(/^\d{4}-05-01$/)
       });

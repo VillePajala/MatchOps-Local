@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: prevent deadlock in settings migration by avoiding nested lock acquisition"
+  "notes": "fix: use current year for season date defaults instead of year 2000"
 }

@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Combobox } from '@headlessui/react';
-import { HiOutlineChevronUpDown } from 'react-icons/hi2';
+import { HiOutlineChevronUpDown, HiCog6Tooth } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
 import { Player, PlayerStatRow, Season, Tournament, Team } from '@/types';
@@ -66,6 +66,7 @@ interface GameStatsModalProps {
   initialSelectedPlayerId?: string | null;
   onGameClick?: (gameId: string) => void;
   masterRoster?: Player[];
+  onOpenSettings?: () => void;
 }
 
 const GameStatsModal: React.FC<GameStatsModalProps> = ({
@@ -95,6 +96,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   initialSelectedPlayerId = null,
   onGameClick = () => {},
   masterRoster = [],
+  onOpenSettings,
 }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
@@ -128,6 +130,18 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     }
   }, [i18n.language, t]);
 
+  // Handler for when disabled season filter is clicked or settings button is clicked
+  const handleOpenSeasonSettings = useCallback(() => {
+    if (onOpenSettings) {
+      // If parent provides a callback, use it to open Settings modal
+      onOpenSettings();
+    } else {
+      // Otherwise, show a toast message
+      const message = t('playerStats.seasonNotConfiguredMessage', 'To filter statistics by season, first configure your club\'s season period (e.g., October to May) in Settings.');
+      showToast(message, 'info');
+    }
+  }, [onOpenSettings, showToast, t]);
+
   // --- State ---
   const [editGameNotes, setEditGameNotes] = useState(gameNotes);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -149,6 +163,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const currentYear = new Date().getUTCFullYear();
   const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>(`${currentYear}-10-01`);
   const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>(`${currentYear}-05-01`);
+  const [hasConfiguredSeasonDates, setHasConfiguredSeasonDates] = useState<boolean>(false);
 
   // Filtered players for Player tab combobox
   const filteredPlayers = useMemo(() => {
@@ -187,6 +202,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           const currentYear = new Date().getUTCFullYear();
           setClubSeasonStartDate(settings.clubSeasonStartDate ?? `${currentYear}-10-01`);
           setClubSeasonEndDate(settings.clubSeasonEndDate ?? `${currentYear}-05-01`);
+          setHasConfiguredSeasonDates(settings.hasConfiguredSeasonDates ?? false);
         }
       }
     };
@@ -555,21 +571,36 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   </div>
                 </Combobox>
                 {availableClubSeasons.length > 0 && (
-                  <select
-                    value={selectedClubSeason}
-                    onChange={(e) => setSelectedClubSeason(e.target.value)}
-                    className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  >
-                    <option value="all">{t('playerStats.allSeasons', 'All Seasons')}</option>
-                    {availableClubSeasons.map(season => (
-                      <option key={season} value={season}>
-                        {season === 'off-season'
-                          ? t('playerStats.offSeason', 'Off-Season')
-                          : `${t('playerStats.season', 'Season')} ${season}`
-                        }
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-2">
+                    <select
+                        value={selectedClubSeason}
+                        onChange={(e) => setSelectedClubSeason(e.target.value)}
+                        disabled={!hasConfiguredSeasonDates}
+                        onClick={!hasConfiguredSeasonDates ? handleOpenSeasonSettings : undefined}
+                        className={`flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                          !hasConfiguredSeasonDates ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        title={!hasConfiguredSeasonDates ? t('playerStats.configureSeasonDatesFirst', 'Configure season dates in Settings first') : undefined}
+                      >
+                        <option value="all">{t('playerStats.allSeasons', 'All Seasons')}</option>
+                        {availableClubSeasons.map(season => (
+                          <option key={season} value={season}>
+                            {season === 'off-season'
+                              ? t('playerStats.offSeason', 'Off-Season')
+                              : `${t('playerStats.season', 'Season')} ${season}`
+                            }
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={handleOpenSeasonSettings}
+                        className="p-1.5 rounded-md bg-slate-700 border border-slate-600 text-slate-300 hover:text-indigo-400 hover:border-indigo-500 transition-colors"
+                        title={t('playerStats.configureSeasonDates', 'Configure Season Dates')}
+                        aria-label={t('playerStats.configureSeasonDates', 'Configure Season Dates')}
+                      >
+                        <HiCog6Tooth className="w-5 h-5" />
+                      </button>
+                  </div>
                 )}
               </div>
               {/* Player Stats View */}
