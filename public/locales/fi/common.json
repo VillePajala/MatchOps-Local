@@ -1099,7 +1099,7 @@
     "includeInSeasonTournamentHelp": "Valitse tämä, jos ulkoinen peli pelattiin samassa joukkueessa",
     "clubSeasonFilter": "Suodata seuran kauden mukaan",
     "allSeasons": "Kaikki kaudet",
-    "offSeason": "Kesätauko",
+    "offSeason": "Kausiulkopuolella",
     "seasonNotConfiguredTitle": "Kauden päivämääriä ei ole määritetty",
     "seasonNotConfiguredMessage": "Suodattaaksesi tilastoja kauden mukaan, määritä ensin seurasi kausijakso (esim. lokakuu - toukokuu) asetuksista.",
     "configureSeasonDates": "Määritä kauden päivämäärät",
