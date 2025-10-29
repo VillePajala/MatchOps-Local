@@ -52,13 +52,34 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>('2000-10-01');
   const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>('2000-05-01');
 
-  // Helper to parse month and day from date string
+  // Helper to get maximum day for a given month
+  const getMaxDayForMonth = (month: number): number => {
+    // February has 29 days (use 29 to allow leap year dates)
+    if (month === 2) return 29;
+    // April, June, September, November have 30 days
+    if (month === 4 || month === 6 || month === 9 || month === 11) return 30;
+    // All other months have 31 days
+    return 31;
+  };
+
+  // Helper to parse month and day from date string with defensive fallback
   const parseMonthDay = (dateStr: string): { month: number; day: number } => {
-    const parts = dateStr.split('-');
-    return {
-      month: parseInt(parts[1], 10),
-      day: parseInt(parts[2], 10),
-    };
+    try {
+      const parts = dateStr.split('-');
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+
+      // Validate parsed values
+      if (isNaN(month) || isNaN(day) || month < 1 || month > 12 || day < 1 || day > 31) {
+        logger.warn('[parseMonthDay] Invalid date string, using defaults:', dateStr);
+        return { month: 10, day: 1 }; // Default to October 1
+      }
+
+      return { month, day };
+    } catch (error) {
+      logger.error('[parseMonthDay] Failed to parse date string, using defaults:', dateStr, error);
+      return { month: 10, day: 1 }; // Default to October 1
+    }
   };
 
   // Helper to construct date string from month and day (using year 2000 as template)
@@ -232,7 +253,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleClubSeasonStartMonthChange = async (month: number) => {
-    const { day } = parseMonthDay(clubSeasonStartDate);
+    let { day } = parseMonthDay(clubSeasonStartDate);
+
+    // Auto-correct day if it exceeds max for the new month
+    const maxDay = getMaxDayForMonth(month);
+    if (day > maxDay) {
+      day = maxDay;
+      logger.log(`[handleClubSeasonStartMonthChange] Auto-corrected day from ${day} to ${maxDay} for month ${month}`);
+    }
+
     const date = constructDateString(month, day);
 
     // Validate date before saving
@@ -290,7 +319,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleClubSeasonEndMonthChange = async (month: number) => {
-    const { day } = parseMonthDay(clubSeasonEndDate);
+    let { day } = parseMonthDay(clubSeasonEndDate);
+
+    // Auto-correct day if it exceeds max for the new month
+    const maxDay = getMaxDayForMonth(month);
+    if (day > maxDay) {
+      day = maxDay;
+      logger.log(`[handleClubSeasonEndMonthChange] Auto-corrected day from ${day} to ${maxDay} for month ${month}`);
+    }
+
     const date = constructDateString(month, day);
 
     // Validate date before saving
@@ -444,7 +481,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       aria-describedby="club-season-description"
                       aria-label={t('settingsModal.dayLabel', 'Day')}
                     >
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                      {Array.from(
+                        { length: getMaxDayForMonth(parseMonthDay(clubSeasonStartDate).month) },
+                        (_, i) => i + 1
+                      ).map(day => (
                         <option key={day} value={day}>{day}</option>
                       ))}
                     </select>
@@ -485,7 +525,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       aria-describedby="club-season-description"
                       aria-label={t('settingsModal.dayLabel', 'Day')}
                     >
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                      {Array.from(
+                        { length: getMaxDayForMonth(parseMonthDay(clubSeasonEndDate).month) },
+                        (_, i) => i + 1
+                      ).map(day => (
                         <option key={day} value={day}>{day}</option>
                       ))}
                     </select>
