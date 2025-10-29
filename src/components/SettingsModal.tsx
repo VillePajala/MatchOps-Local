@@ -423,18 +423,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       aria-describedby="club-season-description"
                       aria-label={t('settingsModal.monthLabel', 'Month')}
                     >
-                      <option value={1}>{t('common.months.january', 'January')}</option>
-                      <option value={2}>{t('common.months.february', 'February')}</option>
-                      <option value={3}>{t('common.months.march', 'March')}</option>
-                      <option value={4}>{t('common.months.april', 'April')}</option>
-                      <option value={5}>{t('common.months.may', 'May')}</option>
-                      <option value={6}>{t('common.months.june', 'June')}</option>
-                      <option value={7}>{t('common.months.july', 'July')}</option>
-                      <option value={8}>{t('common.months.august', 'August')}</option>
-                      <option value={9}>{t('common.months.september', 'September')}</option>
-                      <option value={10}>{t('common.months.october', 'October')}</option>
-                      <option value={11}>{t('common.months.november', 'November')}</option>
-                      <option value={12}>{t('common.months.december', 'December')}</option>
+                      <option value={1}>{t('months.january', 'January')}</option>
+                      <option value={2}>{t('months.february', 'February')}</option>
+                      <option value={3}>{t('months.march', 'March')}</option>
+                      <option value={4}>{t('months.april', 'April')}</option>
+                      <option value={5}>{t('months.may', 'May')}</option>
+                      <option value={6}>{t('months.june', 'June')}</option>
+                      <option value={7}>{t('months.july', 'July')}</option>
+                      <option value={8}>{t('months.august', 'August')}</option>
+                      <option value={9}>{t('months.september', 'September')}</option>
+                      <option value={10}>{t('months.october', 'October')}</option>
+                      <option value={11}>{t('months.november', 'November')}</option>
+                      <option value={12}>{t('months.december', 'December')}</option>
                     </select>
                     <select
                       id="season-start-day"
@@ -464,18 +464,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                       aria-describedby="club-season-description"
                       aria-label={t('settingsModal.monthLabel', 'Month')}
                     >
-                      <option value={1}>{t('common.months.january', 'January')}</option>
-                      <option value={2}>{t('common.months.february', 'February')}</option>
-                      <option value={3}>{t('common.months.march', 'March')}</option>
-                      <option value={4}>{t('common.months.april', 'April')}</option>
-                      <option value={5}>{t('common.months.may', 'May')}</option>
-                      <option value={6}>{t('common.months.june', 'June')}</option>
-                      <option value={7}>{t('common.months.july', 'July')}</option>
-                      <option value={8}>{t('common.months.august', 'August')}</option>
-                      <option value={9}>{t('common.months.september', 'September')}</option>
-                      <option value={10}>{t('common.months.october', 'October')}</option>
-                      <option value={11}>{t('common.months.november', 'November')}</option>
-                      <option value={12}>{t('common.months.december', 'December')}</option>
+                      <option value={1}>{t('months.january', 'January')}</option>
+                      <option value={2}>{t('months.february', 'February')}</option>
+                      <option value={3}>{t('months.march', 'March')}</option>
+                      <option value={4}>{t('months.april', 'April')}</option>
+                      <option value={5}>{t('months.may', 'May')}</option>
+                      <option value={6}>{t('months.june', 'June')}</option>
+                      <option value={7}>{t('months.july', 'July')}</option>
+                      <option value={8}>{t('months.august', 'August')}</option>
+                      <option value={9}>{t('months.september', 'September')}</option>
+                      <option value={10}>{t('months.october', 'October')}</option>
+                      <option value={11}>{t('months.november', 'November')}</option>
+                      <option value={12}>{t('months.december', 'December')}</option>
                     </select>
                     <select
                       id="season-end-day"
