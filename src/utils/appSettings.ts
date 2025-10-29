@@ -36,30 +36,42 @@ export interface AppSettings {
 /**
  * Default application settings
  */
+/**
+ * Gets the default season dates using the current year
+ * The year is just for display - only month/day are used in calculations
+ */
+const getDefaultSeasonDates = () => {
+  const currentYear = new Date().getUTCFullYear();
+  return {
+    clubSeasonStartDate: `${currentYear}-10-01`, // October 1st of current year
+    clubSeasonEndDate: `${currentYear}-05-01`,   // May 1st of current year (spans to next year)
+  };
+};
+
 const DEFAULT_APP_SETTINGS: AppSettings = {
   currentGameId: null,
   lastHomeTeamName: '',
   language: 'fi',
   hasSeenAppGuide: false,
   useDemandCorrection: false,
-  clubSeasonStartDate: '2000-10-01', // October 1st (year is template)
-  clubSeasonEndDate: '2000-05-01',   // May 1st (year is template)
+  ...getDefaultSeasonDates(),
 };
 
 /**
  * Converts legacy month number (1-12) to ISO date string
- * Uses year 2000 as template year (actual year doesn't matter for season templates)
+ * Uses current year (actual year doesn't matter for season templates, only month/day are used)
  *
  * @param month - Month number (1-12)
- * @returns ISO date string "2000-MM-01" (first day of month)
+ * @returns ISO date string "YYYY-MM-01" (first day of month, current year)
  *
  * @example
- * convertMonthToDate(3)  // "2000-03-01" (March 1st)
- * convertMonthToDate(10) // "2000-10-01" (October 1st)
+ * convertMonthToDate(3)  // "2025-03-01" (March 1st of current year)
+ * convertMonthToDate(10) // "2025-10-01" (October 1st of current year)
  */
 function convertMonthToDate(month: number): string {
+  const currentYear = new Date().getUTCFullYear();
   const monthStr = month.toString().padStart(2, '0');
-  return `2000-${monthStr}-01`;
+  return `${currentYear}-${monthStr}-01`;
 }
 
 /**
