@@ -1101,7 +1101,8 @@
     "seasonNotConfiguredTitle": "Kauden päivämääriä ei ole määritetty",
     "seasonNotConfiguredMessage": "Suodattaaksesi tilastoja kauden mukaan, määritä ensin seurasi kausijakso (esim. lokakuu - toukokuu) asetuksista.",
     "configureSeasonDates": "Määritä kauden päivämäärät",
-    "configureSeasonDatesFirst": "Määritä kauden päivämäärät asetuksista ensin"
+    "configureSeasonDatesFirst": "Määritä kauden päivämäärät asetuksista ensin",
+    "tapGearToConfigureSeasons": "Napauta ratas-kuvaketta määrittääksesi kauden päivämäärät"
   },
   "months": {
     "january": "Tammikuu",
