@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: improve season filter discoverability with disabled state and prompts"
+  "notes": "fix: address PR review feedback - critical and important issues"
 }

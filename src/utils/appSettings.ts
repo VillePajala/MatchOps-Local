@@ -78,9 +78,103 @@ function convertMonthToDate(month: number): string {
   return `${currentYear}-${monthStr}-01`;
 }
 
+// Migration state tracking
+let migrationPromise: Promise<void> | null = null;
+let migrationComplete = false;
+
 /**
- * Gets the application settings from localStorage
- * Handles migration from legacy month-based settings to date-based settings
+ * Resets the migration state. FOR TESTING ONLY.
+ * This allows tests to re-run migration scenarios.
+ */
+export const __resetMigrationStateForTesting = (): void => {
+  migrationPromise = null;
+  migrationComplete = false;
+};
+
+/**
+ * Performs one-time migration of legacy settings to current format.
+ * Safe to call multiple times - will only execute migration once.
+ * Subsequent calls will wait for the in-progress migration or return immediately if complete.
+ *
+ * This should be called once at app startup before any components try to read settings.
+ *
+ * @returns Promise that resolves when migration is complete
+ */
+export const migrateAppSettings = async (): Promise<void> => {
+  // If migration already complete, return immediately
+  if (migrationComplete) {
+    logger.log('[migrateAppSettings] Migration already complete, skipping');
+    return;
+  }
+
+  // If migration is in progress, wait for it
+  if (migrationPromise) {
+    logger.log('[migrateAppSettings] Migration in progress, waiting...');
+    return migrationPromise;
+  }
+
+  // Start migration
+  logger.log('[migrateAppSettings] Starting settings migration...');
+  migrationPromise = (async () => {
+    try {
+      const settingsJson = await getStorageItem(APP_SETTINGS_KEY);
+      if (!settingsJson) {
+        logger.log('[migrateAppSettings] No settings found, migration not needed');
+        migrationComplete = true;
+        return;
+      }
+
+      const settings = JSON.parse(settingsJson) as AppSettings & {
+        clubSeasonStartMonth?: number;
+        clubSeasonEndMonth?: number;
+      };
+
+      let needsMigration = false;
+
+      // Migrate clubSeasonStartMonth to clubSeasonStartDate
+      if (settings.clubSeasonStartMonth !== undefined && !settings.clubSeasonStartDate) {
+        settings.clubSeasonStartDate = convertMonthToDate(settings.clubSeasonStartMonth);
+        logger.log('[migrateAppSettings] Migrated clubSeasonStartMonth to clubSeasonStartDate:', settings.clubSeasonStartDate);
+        needsMigration = true;
+      }
+
+      // Migrate clubSeasonEndMonth to clubSeasonEndDate
+      if (settings.clubSeasonEndMonth !== undefined && !settings.clubSeasonEndDate) {
+        settings.clubSeasonEndDate = convertMonthToDate(settings.clubSeasonEndMonth);
+        logger.log('[migrateAppSettings] Migrated clubSeasonEndMonth to clubSeasonEndDate:', settings.clubSeasonEndDate);
+        needsMigration = true;
+      }
+
+      if (needsMigration) {
+        // Remove legacy fields
+        delete settings.clubSeasonStartMonth;
+        delete settings.clubSeasonEndMonth;
+
+        // Save migrated settings
+        await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(settings));
+        logger.log('[migrateAppSettings] Successfully saved migrated settings');
+      } else {
+        logger.log('[migrateAppSettings] No migration needed, settings already up to date');
+      }
+
+      migrationComplete = true;
+    } catch (error) {
+      logger.error('[migrateAppSettings] Migration failed:', error);
+      // Reset promise so migration can be retried
+      migrationPromise = null;
+      throw error;
+    }
+  })();
+
+  return migrationPromise;
+};
+
+/**
+ * Gets the application settings from localStorage.
+ *
+ * NOTE: This function no longer handles migration inline. Migration should be performed
+ * once at app startup by calling migrateAppSettings() before any components read settings.
+ *
  * @returns A promise that resolves to the application settings
  */
 export const getAppSettings = async (): Promise<AppSettings> => {
@@ -90,41 +184,7 @@ export const getAppSettings = async (): Promise<AppSettings> => {
       return DEFAULT_APP_SETTINGS;
     }
 
-    const settings = JSON.parse(settingsJson) as AppSettings & {
-      clubSeasonStartMonth?: number;
-      clubSeasonEndMonth?: number;
-    };
-
-    // Migration: Convert legacy month-based settings to date-based settings
-    let needsMigration = false;
-    if (settings.clubSeasonStartMonth !== undefined && !settings.clubSeasonStartDate) {
-      settings.clubSeasonStartDate = convertMonthToDate(settings.clubSeasonStartMonth);
-      logger.log('[getAppSettings] Migrated clubSeasonStartMonth to clubSeasonStartDate:', settings.clubSeasonStartDate);
-      needsMigration = true;
-    }
-    if (settings.clubSeasonEndMonth !== undefined && !settings.clubSeasonEndDate) {
-      settings.clubSeasonEndDate = convertMonthToDate(settings.clubSeasonEndMonth);
-      logger.log('[getAppSettings] Migrated clubSeasonEndMonth to clubSeasonEndDate:', settings.clubSeasonEndDate);
-      needsMigration = true;
-    }
-
-    // Remove legacy fields
-    delete settings.clubSeasonStartMonth;
-    delete settings.clubSeasonEndMonth;
-
-    // Save migrated settings back to storage
-    // NOTE: We save directly using setStorageItem instead of saveAppSettings
-    // to avoid nested lock acquisition (saveAppSettings uses withKeyLock)
-    if (needsMigration) {
-      try {
-        await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(settings));
-        logger.log('[getAppSettings] Successfully saved migrated settings');
-      } catch (error) {
-        logger.warn('[getAppSettings] Failed to save migrated settings, will retry on next load:', error);
-        // Non-critical: migration will be retried on next app load
-      }
-    }
-
+    const settings = JSON.parse(settingsJson) as AppSettings;
     return { ...DEFAULT_APP_SETTINGS, ...settings };
   } catch (error) {
     logger.error('Error getting app settings from storage:', error);
