@@ -5,6 +5,8 @@
  * Club seasons typically span calendar years (e.g., October 2024 - May 2025).
  */
 
+import logger from '@/utils/logger';
+
 /**
  * Parses a 2-digit year string to a full 4-digit year
  *
@@ -38,16 +40,26 @@ function parseSeasonYear(shortYear: string): number {
  * - Feb 20, 2025 → "24/25" (in second half of season)
  * - Jul 10, 2024 → "off-season" (outside season period)
  *
- * @param dateStr - ISO date string (YYYY-MM-DD) of the game date
- * @param startDate - Season start date (ISO format, year is template)
- * @param endDate - Season end date (ISO format, year is template)
+ * @param dateStr - ISO date string (YYYY-MM-DD format required) of the game date
+ * @param startDate - Season start date (ISO format YYYY-MM-DD, year is template)
+ * @param endDate - Season end date (ISO format YYYY-MM-DD, year is template)
  * @returns Season label (e.g., "24/25") or "off-season"
+ *
+ * @remarks
+ * Returns "off-season" for invalid date formats to gracefully handle corrupted data.
  */
 export function getClubSeasonForDate(
   dateStr: string,
   startDate: string = '2000-10-01',
   endDate: string = '2000-05-01'
 ): string {
+  // Validate ISO format (YYYY-MM-DD) to protect against corrupted data
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    // Log warning but don't throw - gracefully degrade to off-season
+    logger.warn('[getClubSeasonForDate] Invalid date format (expected YYYY-MM-DD):', dateStr);
+    return 'off-season';
+  }
+
   // Force UTC interpretation to avoid timezone issues
   const date = new Date(dateStr + 'T00:00:00Z');
   const year = date.getUTCFullYear();

@@ -6,6 +6,18 @@ import {
   getClubSeasonDateRange,
   validateSeasonDates,
 } from './clubSeason';
+import logger from '@/utils/logger';
+
+// Mock logger
+jest.mock('@/utils/logger', () => ({
+  __esModule: true,
+  default: {
+    log: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
 
 describe('clubSeason utilities', () => {
   describe('getClubSeasonForDate', () => {
@@ -255,6 +267,68 @@ describe('clubSeason utilities', () => {
       // March is in the second half of the season (Jan-May)
       const result = getClubSeasonForDate('2024-03-15', '2000-10-01', '2000-05-01');
       expect(result).toBe('23/24'); // March is in second half of Oct-May season
+    });
+  });
+
+  describe('invalid date format handling', () => {
+    const mockLoggerWarn = logger.warn as jest.MockedFunction<typeof logger.warn>;
+
+    beforeEach(() => {
+      mockLoggerWarn.mockClear();
+    });
+
+    /**
+     * Tests graceful handling of invalid date formats
+     * @edge-case
+     *
+     * Protects against IndexedDB corruption or malformed data.
+     * Returns "off-season" instead of throwing to maintain app stability.
+     *
+     * Note: This validates format (YYYY-MM-DD pattern), not value correctness.
+     * Dates like '2024-13-01' pass format validation (JavaScript Date handles rollover).
+     */
+    it('should return "off-season" for invalid date formats', () => {
+      const invalidFormats = [
+        '2024/10/15',     // Wrong separator
+        '10-15-2024',     // Wrong order (MM-DD-YYYY)
+        '2024-10',        // Missing day
+        '24-10-15',       // 2-digit year
+        'invalid',        // Non-date string
+        '',               // Empty string
+        '2024-1-15',      // Non-zero-padded month
+        '2024-10-1',      // Non-zero-padded day
+      ];
+
+      invalidFormats.forEach(invalidDate => {
+        expect(getClubSeasonForDate(invalidDate, '2000-10-01', '2000-05-01')).toBe('off-season');
+        expect(mockLoggerWarn).toHaveBeenCalledWith(
+          '[getClubSeasonForDate] Invalid date format (expected YYYY-MM-DD):',
+          invalidDate
+        );
+        mockLoggerWarn.mockClear();
+      });
+    });
+
+    it('should handle dates with invalid month/day values (JavaScript Invalid Date)', () => {
+      // These pass format validation but have invalid calendar values
+      // JavaScript Date constructor returns Invalid Date (NaN for all fields)
+      // e.g., new Date('2024-13-01T00:00:00Z') → Invalid Date
+      const result1 = getClubSeasonForDate('2024-13-01', '2000-10-01', '2000-05-01');
+      const result2 = getClubSeasonForDate('2024-10-32', '2000-10-01', '2000-05-01');
+
+      // Should NOT log warnings (format is valid, regex check passes)
+      expect(mockLoggerWarn).not.toHaveBeenCalled();
+
+      // Invalid Date causes NaN comparisons, falls through to 'off-season'
+      expect(result1).toBe('off-season');
+      expect(result2).toBe('off-season');
+    });
+
+    it('should accept valid ISO date formats', () => {
+      // Verify validation doesn't reject valid dates
+      expect(getClubSeasonForDate('2024-10-15', '2000-10-01', '2000-05-01')).toBe('24/25');
+      expect(getClubSeasonForDate('2024-01-01', '2000-10-01', '2000-05-01')).toBe('23/24');
+      expect(mockLoggerWarn).not.toHaveBeenCalled();
     });
   });
 

@@ -4,6 +4,7 @@ import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { Combobox } from '@headlessui/react';
 import { HiOutlineChevronUpDown, HiCog6Tooth } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import logger from '@/utils/logger';
 import { Player, PlayerStatRow, Season, Tournament, Team } from '@/types';
 import { GameEvent, SavedGamesCollection } from '@/types';
@@ -17,6 +18,7 @@ import { getAppSettings } from '@/utils/appSettings';
 import { useToast } from '@/contexts/ToastProvider';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { queryKeys } from '@/config/queryKeys';
 
 // Import extracted hooks
 import { useGameStats } from './GameStatsModal/hooks/useGameStats';
@@ -160,10 +162,20 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [playerQuery, setPlayerQuery] = useState('');
   const [selectedClubSeason, setSelectedClubSeason] = useState<string>('all');
-  const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>('2000-10-01');
-  const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>('2000-05-01');
-  const [hasConfiguredSeasonDates, setHasConfiguredSeasonDates] = useState<boolean>(false);
-  const [isLoadingSettings, setIsLoadingSettings] = useState<boolean>(false);
+
+  // Use React Query for settings management
+  const { data: settings, isLoading: isLoadingSettings } = useQuery({
+    queryKey: queryKeys.settings.detail(),
+    queryFn: getAppSettings,
+    staleTime: 5000, // 5 seconds
+    refetchOnWindowFocus: true, // Automatic refetch on focus
+    enabled: isOpen, // Only fetch when modal is open
+  });
+
+  // Derive settings values with defaults
+  const clubSeasonStartDate = settings?.clubSeasonStartDate ?? '2000-10-01';
+  const clubSeasonEndDate = settings?.clubSeasonEndDate ?? '2000-05-01';
+  const hasConfiguredSeasonDates = settings?.hasConfiguredSeasonDates ?? false;
 
   // Filtered players for Player tab combobox
   const filteredPlayers = useMemo(() => {
@@ -184,75 +196,26 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   }, [savedGames, clubSeasonStartDate, clubSeasonEndDate]);
 
   // --- Effects ---
-  // Load seasons/tournaments/teams and refresh settings when modal opens
-  // This ensures season dates are always up-to-date when user reopens the modal
-  // after changing settings elsewhere (e.g., in SettingsModal)
-  // Loading state prevents brief flash of stale values during async settings load
+  // Load seasons/tournaments/teams when modal opens
   useEffect(() => {
     const loadData = async () => {
       if (isOpen) {
-        setIsLoadingSettings(true);
         try {
-          const [loadedSeasons, loadedTournaments, loadedTeams, settings] = await Promise.all([
+          const [loadedSeasons, loadedTournaments, loadedTeams] = await Promise.all([
             utilGetSeasons(),
             utilGetTournaments(),
             utilGetTeams(),
-            getAppSettings(),
           ]);
           setSeasons(loadedSeasons);
           setTournaments(loadedTournaments);
           setTeams(loadedTeams);
-
-          // Reload settings to catch any changes made in SettingsModal
-          if (settings) {
-            setClubSeasonStartDate(settings.clubSeasonStartDate ?? '2000-10-01');
-            setClubSeasonEndDate(settings.clubSeasonEndDate ?? '2000-05-01');
-            setHasConfiguredSeasonDates(settings.hasConfiguredSeasonDates ?? false);
-          }
-        } finally {
-          setIsLoadingSettings(false);
+        } catch (error) {
+          logger.error('[GameStatsModal] Failed to load data:', error);
         }
       }
     };
     loadData();
   }, [isOpen]);
-
-  // Reload settings when window regains focus (e.g., after returning from SettingsModal)
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const reloadSettings = async () => {
-      try {
-        const settings = await getAppSettings();
-        if (settings) {
-          const hasChanged =
-            settings.hasConfiguredSeasonDates !== hasConfiguredSeasonDates ||
-            settings.clubSeasonStartDate !== clubSeasonStartDate ||
-            settings.clubSeasonEndDate !== clubSeasonEndDate;
-
-          if (hasChanged) {
-            logger.log('[GameStatsModal] Settings changed, reloading...');
-            setClubSeasonStartDate(settings.clubSeasonStartDate ?? '2000-10-01');
-            setClubSeasonEndDate(settings.clubSeasonEndDate ?? '2000-05-01');
-            setHasConfiguredSeasonDates(settings.hasConfiguredSeasonDates ?? false);
-          }
-        }
-      } catch (error) {
-        logger.error('[GameStatsModal] Failed to reload settings:', error);
-      }
-    };
-
-    // Reload settings when window regains focus
-    const handleFocus = () => {
-      reloadSettings();
-    };
-
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [isOpen, hasConfiguredSeasonDates, clubSeasonStartDate, clubSeasonEndDate]);
 
   // Sync local game events with props
   useEffect(() => {

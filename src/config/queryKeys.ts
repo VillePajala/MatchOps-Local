@@ -11,7 +11,11 @@ export const queryKeys = {
   
   // App settings
   appSettingsCurrentGameId: ['appSettingsCurrentGameId'] as const,
-  
+  settings: {
+    all: ['settings'] as const,
+    detail: () => ['settings', 'detail'] as const,
+  },
+
   // Example for a detail query if needed later:
   // gameById: (gameId: string) => ['games', 'detail', gameId] as const,
 }; 

@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: remove off-season from filters and improve Overall tab layout"
+  "notes": "fix: preserve hasConfiguredSeasonDates flag during migration (P1 fix)"
 }
