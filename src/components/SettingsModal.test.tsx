@@ -225,12 +225,12 @@ describe('<SettingsModal />', () => {
       </TestWrapper>
     );
 
-    // Check for season start label
-    const startLabel = screen.getByText(/Season Start/i);
+    // Check for period start label
+    const startLabel = screen.getByText(/Period Start/i);
     expect(startLabel).toBeInTheDocument();
 
-    // Check for season end label
-    const endLabel = screen.getByText(/Season End/i);
+    // Check for period end label
+    const endLabel = screen.getByText(/Period End/i);
     expect(endLabel).toBeInTheDocument();
 
     // Verify month and day dropdowns exist
@@ -254,7 +254,7 @@ describe('<SettingsModal />', () => {
 
     // Wait for component to render
     await waitFor(() => {
-      expect(screen.getByText(/Season Start/i)).toBeInTheDocument();
+      expect(screen.getByText(/Period Start/i)).toBeInTheDocument();
     });
 
     // Find the month and day select elements
