@@ -448,6 +448,39 @@ describe('App Settings Utilities', () => {
       expect(result.clubSeasonEndDate).toBe('2000-05-01');
     });
 
+    /**
+     * Tests that migration preserves the configured season flag
+     * @critical
+     *
+     * Validates P1 fix from Codex review: when migrating from legacy month-based
+     * settings, hasConfiguredSeasonDates must be set to true so existing users'
+     * configurations remain enabled after upgrade.
+     */
+    it('should set hasConfiguredSeasonDates=true when migrating legacy month settings', async () => {
+      const legacySettings = {
+        currentGameId: 'game123',
+        language: 'fi',
+        clubSeasonStartMonth: 3,  // March
+        clubSeasonEndMonth: 11,   // November
+      };
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(legacySettings));
+      mockSetStorageItem.mockImplementation(async () => {});
+
+      const result = await getAppSettings();
+
+      // Should have migrated and saved settings
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+      const savedData = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
+
+      // Critical: Flag must be preserved so user's configuration remains enabled
+      expect(savedData.hasConfiguredSeasonDates).toBe(true);
+      expect(result.hasConfiguredSeasonDates).toBe(true);
+
+      // Verify dates were migrated correctly
+      expect(savedData.clubSeasonStartDate).toBe('2000-03-01');
+      expect(savedData.clubSeasonEndDate).toBe('2000-11-01');
+    });
+
     it('should not migrate if settings already have date-based format', async () => {
       const modernSettings = {
         currentGameId: 'game123',
