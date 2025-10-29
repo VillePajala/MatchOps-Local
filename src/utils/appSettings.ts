@@ -80,13 +80,16 @@ export const getAppSettings = async (): Promise<AppSettings> => {
     };
 
     // Migration: Convert legacy month-based settings to date-based settings
+    let needsMigration = false;
     if (settings.clubSeasonStartMonth !== undefined && !settings.clubSeasonStartDate) {
       settings.clubSeasonStartDate = convertMonthToDate(settings.clubSeasonStartMonth);
       logger.log('[getAppSettings] Migrated clubSeasonStartMonth to clubSeasonStartDate:', settings.clubSeasonStartDate);
+      needsMigration = true;
     }
     if (settings.clubSeasonEndMonth !== undefined && !settings.clubSeasonEndDate) {
       settings.clubSeasonEndDate = convertMonthToDate(settings.clubSeasonEndMonth);
       logger.log('[getAppSettings] Migrated clubSeasonEndMonth to clubSeasonEndDate:', settings.clubSeasonEndDate);
+      needsMigration = true;
     }
 
     // Remove legacy fields
@@ -94,8 +97,16 @@ export const getAppSettings = async (): Promise<AppSettings> => {
     delete settings.clubSeasonEndMonth;
 
     // Save migrated settings back to storage
-    if (settings.clubSeasonStartDate || settings.clubSeasonEndDate) {
-      await saveAppSettings(settings as AppSettings);
+    // NOTE: We save directly using setStorageItem instead of saveAppSettings
+    // to avoid nested lock acquisition (saveAppSettings uses withKeyLock)
+    if (needsMigration) {
+      try {
+        await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(settings));
+        logger.log('[getAppSettings] Successfully saved migrated settings');
+      } catch (error) {
+        logger.warn('[getAppSettings] Failed to save migrated settings, will retry on next load:', error);
+        // Non-critical: migration will be retried on next app load
+      }
     }
 
     return { ...DEFAULT_APP_SETTINGS, ...settings };
