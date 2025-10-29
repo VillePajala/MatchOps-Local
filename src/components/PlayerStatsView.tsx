@@ -28,7 +28,9 @@ interface PlayerStatsViewProps {
   tournaments: Tournament[];
   teamId?: string; // Optional team filtering
   selectedClubSeason: string;
+  /** Club season start date (ISO format YYYY-MM-DD). Year is template (e.g., "2000-10-01" for Oct 1). */
   clubSeasonStartDate: string;
+  /** Club season end date (ISO format YYYY-MM-DD). Year is template (e.g., "2000-05-01" for May 1). */
   clubSeasonEndDate: string;
 }
 

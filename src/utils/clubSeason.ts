@@ -272,19 +272,25 @@ export function getClubSeasonDateRange(
 }
 
 /**
- * Validates that season date strings are valid ISO dates
+ * Validates that season date strings are valid ISO dates and represent a valid season period
  *
  * @param startDate - Season start date (ISO format YYYY-MM-DD)
  * @param endDate - Season end date (ISO format YYYY-MM-DD)
- * @returns true if both dates are valid ISO dates, false otherwise
+ * @returns true if both dates are valid ISO dates and form a valid season, false otherwise
  *
  * @remarks
  * Use this validation before saving season settings to prevent invalid configurations.
  * Protects against user input errors or data corruption.
  *
+ * Validation checks:
+ * - ISO format (YYYY-MM-DD)
+ * - Valid calendar dates (no Feb 30, etc.)
+ * - Non-zero season length (start and end must differ in month or day)
+ *
  * @example
- * validateSeasonDates('2000-10-01', '2000-05-01') // true (Oct 1 - May 1, valid)
- * validateSeasonDates('2000-01-01', '2000-12-31') // true (Jan 1 - Dec 31, valid)
+ * validateSeasonDates('2000-10-01', '2000-05-01') // true (Oct 1 - May 1, valid cross-year)
+ * validateSeasonDates('2000-01-01', '2000-12-31') // true (Jan 1 - Dec 31, valid same-year)
+ * validateSeasonDates('2000-10-01', '2000-10-01') // false (zero-length season)
  * validateSeasonDates('2000-13-01', '2000-05-01') // false (invalid month)
  * validateSeasonDates('invalid', '2000-05-01') // false (invalid format)
  * validateSeasonDates('2000-02-30', '2000-05-01') // false (invalid day)
@@ -313,6 +319,17 @@ export function validateSeasonDates(
     startParsed.toISOString().split('T')[0] !== startDate ||
     endParsed.toISOString().split('T')[0] !== endDate
   ) {
+    return false;
+  }
+
+  // Extract month and day (year is template, so we ignore it for season logic)
+  const startMonth = parseInt(startDate.split('-')[1], 10);
+  const startDay = parseInt(startDate.split('-')[2], 10);
+  const endMonth = parseInt(endDate.split('-')[1], 10);
+  const endDay = parseInt(endDate.split('-')[2], 10);
+
+  // Prevent zero-length seasons: start and end must differ in month or day
+  if (startMonth === endMonth && startDay === endDay) {
     return false;
   }
 
