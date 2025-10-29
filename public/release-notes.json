@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: add club season filtering to Overall tab and simplify UI"
+  "notes": "fix: change Finnish off-season translation from \"Kesätauko\" to \"Kausiulkopuolella\""
 }

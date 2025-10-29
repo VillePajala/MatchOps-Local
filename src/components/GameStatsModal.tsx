@@ -671,52 +671,70 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           ) : (
             <div className="p-4 sm:p-6">
               {/* Filters */}
-              <FilterControls
-                activeTab={activeTab}
-                seasons={seasons}
-                tournaments={tournaments}
-                teams={teams}
-                selectedSeasonIdFilter={selectedSeasonIdFilter}
-                selectedTournamentIdFilter={selectedTournamentIdFilter}
-                selectedTeamIdFilter={selectedTeamIdFilter}
-                onSeasonFilterChange={setSelectedSeasonIdFilter}
-                onTournamentFilterChange={setSelectedTournamentIdFilter}
-                onTeamFilterChange={setSelectedTeamIdFilter}
-              />
-
-              {/* Club Season Filter for Overall Tab */}
-              {activeTab === 'overall' && availableClubSeasons.length > 0 && (
-                <div className="mb-4 flex items-center gap-2">
-                  <select
-                    value={selectedClubSeason}
-                    onChange={(e) => setSelectedClubSeason(e.target.value)}
-                    disabled={!hasConfiguredSeasonDates || isLoadingSettings}
-                    onClick={!hasConfiguredSeasonDates ? handleOpenSeasonSettings : undefined}
-                    className={`flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
-                      !hasConfiguredSeasonDates || isLoadingSettings ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
-                    aria-describedby={!hasConfiguredSeasonDates ? 'season-help-text-overall' : undefined}
-                  >
-                    <option value="all">{t('playerStats.allSeasons', 'All Seasons')}</option>
-                    {availableClubSeasons.map(season => (
-                      <option key={season} value={season}>
-                        {season === 'off-season'
-                          ? t('playerStats.offSeason', 'Off-Season')
-                          : `${t('playerStats.season', 'Season')} ${season}`
-                        }
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={handleOpenSeasonSettings}
-                    className={`p-1.5 rounded-md bg-slate-700 border border-slate-600 text-slate-300 hover:text-indigo-400 hover:border-indigo-500 transition-colors ${
-                      !hasConfiguredSeasonDates && !isLoadingSettings ? 'animate-pulse ring-2 ring-indigo-500' : ''
-                    }`}
-                    aria-label={t('playerStats.configureSeasonDates', 'Configure Season Dates')}
-                  >
-                    <HiCog6Tooth className="w-5 h-5" />
-                  </button>
+              {activeTab === 'overall' && availableClubSeasons.length > 0 ? (
+                /* Overall tab with club season filter - side by side layout */
+                <div className="mb-4 mx-1 grid grid-cols-2 gap-2 items-center">
+                  {/* Team Filter */}
+                  {teams.length > 0 && (
+                    <select
+                      value={selectedTeamIdFilter}
+                      onChange={(e) =>
+                        setSelectedTeamIdFilter(e.target.value as 'all' | 'legacy' | string)
+                      }
+                      className="h-[34px] px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="all">{t('loadGameModal.allTeamsFilter', 'All Teams')}</option>
+                      <option value="legacy">{t('loadGameModal.legacyGamesFilter', 'Legacy Games')}</option>
+                      {teams.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {/* Club Season Filter with gear icon */}
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={selectedClubSeason}
+                      onChange={(e) => setSelectedClubSeason(e.target.value)}
+                      disabled={!hasConfiguredSeasonDates || isLoadingSettings}
+                      onClick={!hasConfiguredSeasonDates ? handleOpenSeasonSettings : undefined}
+                      className={`flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                        !hasConfiguredSeasonDates || isLoadingSettings ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <option value="all">{t('playerStats.allSeasons', 'All Seasons')}</option>
+                      {availableClubSeasons.map(season => (
+                        <option key={season} value={season}>
+                          {`${t('playerStats.season', 'Season')} ${season}`}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={handleOpenSeasonSettings}
+                      className={`p-1.5 rounded-md bg-slate-700 border border-slate-600 text-slate-300 hover:text-indigo-400 hover:border-indigo-500 transition-colors ${
+                        !hasConfiguredSeasonDates && !isLoadingSettings ? 'animate-pulse ring-2 ring-indigo-500' : ''
+                      }`}
+                      aria-label={t('playerStats.configureSeasonDates', 'Configure Season Dates')}
+                    >
+                      <HiCog6Tooth className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
+              ) : (
+                /* Other tabs - normal layout */
+                <FilterControls
+                  activeTab={activeTab}
+                  seasons={seasons}
+                  tournaments={tournaments}
+                  teams={teams}
+                  selectedSeasonIdFilter={selectedSeasonIdFilter}
+                  selectedTournamentIdFilter={selectedTournamentIdFilter}
+                  selectedTeamIdFilter={selectedTeamIdFilter}
+                  onSeasonFilterChange={setSelectedSeasonIdFilter}
+                  onTournamentFilterChange={setSelectedTournamentIdFilter}
+                  onTeamFilterChange={setSelectedTeamIdFilter}
+                />
               )}
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
