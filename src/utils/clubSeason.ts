@@ -155,7 +155,7 @@ export function getClubSeasonDisplayLabel(
  * @param games - Collection of games with gameDate property
  * @param startDate - Season start date (ISO format, year is template)
  * @param endDate - Season end date (ISO format, year is template)
- * @returns Array of unique season labels, sorted newest first
+ * @returns Array of unique season labels, sorted newest first (excludes off-season)
  */
 export function extractClubSeasonsFromGames(
   games: { gameDate?: string }[],
@@ -167,14 +167,16 @@ export function extractClubSeasonsFromGames(
   games.forEach(game => {
     if (game.gameDate) {
       const season = getClubSeasonForDate(game.gameDate, startDate, endDate);
-      seasons.add(season);
+      // Exclude off-season games from filter options
+      // Users can still see off-season games by selecting "All Seasons"
+      if (season !== 'off-season') {
+        seasons.add(season);
+      }
     }
   });
 
-  // Sort seasons newest first (off-season goes to end)
+  // Sort seasons newest first
   return Array.from(seasons).sort((a, b) => {
-    if (a === 'off-season') return 1;
-    if (b === 'off-season') return -1;
     return b.localeCompare(a); // Reverse alphabetical for year labels
   });
 }
