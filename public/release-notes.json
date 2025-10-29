@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: refactor migration to run once at startup (P1 from PR review)"
+  "notes": "refactor: simplify season settings to year 2000 template and inline migration"
 }
