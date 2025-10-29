@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: reload season settings when GameStatsModal regains focus"
+  "notes": "feat: add club season filtering to Overall tab and simplify UI"
 }
