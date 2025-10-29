@@ -7,6 +7,8 @@ import {
   getLastHomeTeamName,
   saveLastHomeTeamName,
   resetAppSettings,
+  migrateAppSettings,
+  __resetMigrationStateForTesting,
   AppSettings
 } from './appSettings';
 import { APP_SETTINGS_KEY, LAST_HOME_TEAM_NAME_KEY } from '@/config/storageKeys';
@@ -420,6 +422,113 @@ describe('App Settings Utilities', () => {
 
       const result = await resetAppSettings();
       expect(result).toBe(false);
+    });
+  });
+
+  describe('migrateAppSettings', () => {
+    beforeEach(() => {
+      // Reset migration state before each migration test
+      __resetMigrationStateForTesting();
+    });
+
+    it('should migrate legacy month-based settings to date-based settings', async () => {
+      const legacySettings = {
+        currentGameId: 'game123',
+        language: 'fi',
+        clubSeasonStartMonth: 10, // October
+        clubSeasonEndMonth: 5,    // May
+      };
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(legacySettings));
+      mockSetStorageItem.mockImplementation(async () => {});
+
+      await migrateAppSettings();
+
+      // Should have saved migrated settings
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
+        APP_SETTINGS_KEY,
+        expect.stringContaining('"clubSeasonStartDate"')
+      );
+
+      // Verify migrated data structure
+      const savedData = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
+      expect(savedData.clubSeasonStartDate).toMatch(/^\d{4}-10-01$/); // October 1st
+      expect(savedData.clubSeasonEndDate).toMatch(/^\d{4}-05-01$/);   // May 1st
+      expect(savedData.clubSeasonStartMonth).toBeUndefined(); // Legacy field removed
+      expect(savedData.clubSeasonEndMonth).toBeUndefined();   // Legacy field removed
+    });
+
+    it('should not migrate if settings already have date-based format', async () => {
+      const currentYear = new Date().getUTCFullYear();
+      const modernSettings = {
+        currentGameId: 'game123',
+        language: 'fi',
+        clubSeasonStartDate: `${currentYear}-10-01`,
+        clubSeasonEndDate: `${currentYear + 1}-05-01`,
+      };
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(modernSettings));
+      mockSetStorageItem.mockImplementation(async () => {});
+
+      await migrateAppSettings();
+
+      // Should not save anything (no migration needed)
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
+    });
+
+    it('should skip migration if no settings exist', async () => {
+      mockGetStorageItem.mockResolvedValue(null);
+      mockSetStorageItem.mockImplementation(async () => {});
+
+      await migrateAppSettings();
+
+      // Should not attempt to save
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
+    });
+
+    it('should only run migration once even if called multiple times', async () => {
+      const legacySettings = {
+        currentGameId: 'game123',
+        clubSeasonStartMonth: 10,
+        clubSeasonEndMonth: 5,
+      };
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(legacySettings));
+      mockSetStorageItem.mockImplementation(async () => {});
+
+      // Call migration multiple times simultaneously
+      await Promise.all([
+        migrateAppSettings(),
+        migrateAppSettings(),
+        migrateAppSettings(),
+      ]);
+
+      // Should only save once
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle migration errors gracefully and allow retry', async () => {
+      const legacySettings = {
+        currentGameId: 'game123',
+        clubSeasonStartMonth: 10,
+        clubSeasonEndMonth: 5,
+      };
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(legacySettings));
+
+      // First attempt fails
+      mockSetStorageItem.mockImplementationOnce(async () => {
+        throw new Error('Storage error');
+      });
+
+      // First call should throw
+      await expect(migrateAppSettings()).rejects.toThrow('Storage error');
+
+      // Reset mocks for retry
+      mockSetStorageItem.mockReset();
+      mockSetStorageItem.mockImplementation(async () => {});
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(legacySettings));
+
+      // Second attempt should succeed
+      await migrateAppSettings();
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
     });
   });
 }); 
