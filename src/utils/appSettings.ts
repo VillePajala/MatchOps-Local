@@ -41,12 +41,13 @@ export interface AppSettings {
 /**
  * Gets the default season dates using the current year
  * The year is just for display - only month/day are used in calculations
+ * For cross-year seasons (Oct-May), end date uses next year for clarity
  */
 const getDefaultSeasonDates = () => {
   const currentYear = new Date().getUTCFullYear();
   return {
-    clubSeasonStartDate: `${currentYear}-10-01`, // October 1st of current year
-    clubSeasonEndDate: `${currentYear}-05-01`,   // May 1st of current year (spans to next year)
+    clubSeasonStartDate: `${currentYear}-10-01`,     // October 1st of current year
+    clubSeasonEndDate: `${currentYear + 1}-05-01`,   // May 1st of next year (cross-year season)
   };
 };
 
