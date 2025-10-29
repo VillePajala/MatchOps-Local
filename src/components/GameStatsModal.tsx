@@ -217,6 +217,43 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     loadData();
   }, [isOpen]);
 
+  // Reload settings when window regains focus (e.g., after returning from SettingsModal)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const reloadSettings = async () => {
+      try {
+        const settings = await getAppSettings();
+        if (settings) {
+          const hasChanged =
+            settings.hasConfiguredSeasonDates !== hasConfiguredSeasonDates ||
+            settings.clubSeasonStartDate !== clubSeasonStartDate ||
+            settings.clubSeasonEndDate !== clubSeasonEndDate;
+
+          if (hasChanged) {
+            logger.log('[GameStatsModal] Settings changed, reloading...');
+            setClubSeasonStartDate(settings.clubSeasonStartDate ?? '2000-10-01');
+            setClubSeasonEndDate(settings.clubSeasonEndDate ?? '2000-05-01');
+            setHasConfiguredSeasonDates(settings.hasConfiguredSeasonDates ?? false);
+          }
+        }
+      } catch (error) {
+        logger.error('[GameStatsModal] Failed to reload settings:', error);
+      }
+    };
+
+    // Reload settings when window regains focus
+    const handleFocus = () => {
+      reloadSettings();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [isOpen, hasConfiguredSeasonDates, clubSeasonStartDate, clubSeasonEndDate]);
+
   // Sync local game events with props
   useEffect(() => {
     setLocalGameEvents(gameEvents);
