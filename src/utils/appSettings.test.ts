@@ -54,7 +54,7 @@ describe('App Settings Utilities', () => {
         useDemandCorrection: false,
         hasConfiguredSeasonDates: false,
         clubSeasonStartDate: `${currentYear}-10-01`,
-        clubSeasonEndDate: `${currentYear}-05-01`
+        clubSeasonEndDate: `${currentYear + 1}-05-01`
       });
     });
 

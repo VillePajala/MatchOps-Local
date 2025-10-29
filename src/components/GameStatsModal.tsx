@@ -162,7 +162,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [selectedClubSeason, setSelectedClubSeason] = useState<string>('all');
   const currentYear = new Date().getUTCFullYear();
   const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>(`${currentYear}-10-01`);
-  const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>(`${currentYear}-05-01`);
+  const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>(`${currentYear + 1}-05-01`);
   const [hasConfiguredSeasonDates, setHasConfiguredSeasonDates] = useState<boolean>(false);
 
   // Filtered players for Player tab combobox
@@ -201,7 +201,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         if (settings) {
           const currentYear = new Date().getUTCFullYear();
           setClubSeasonStartDate(settings.clubSeasonStartDate ?? `${currentYear}-10-01`);
-          setClubSeasonEndDate(settings.clubSeasonEndDate ?? `${currentYear}-05-01`);
+          setClubSeasonEndDate(settings.clubSeasonEndDate ?? `${currentYear + 1}-05-01`);
           setHasConfiguredSeasonDates(settings.hasConfiguredSeasonDates ?? false);
         }
       }
