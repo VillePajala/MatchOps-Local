@@ -146,8 +146,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [playerQuery, setPlayerQuery] = useState('');
   const [selectedClubSeason, setSelectedClubSeason] = useState<string>('all');
-  const [clubSeasonStartMonth, setClubSeasonStartMonth] = useState<number>(10);
-  const [clubSeasonEndMonth, setClubSeasonEndMonth] = useState<number>(5);
+  const currentYear = new Date().getUTCFullYear();
+  const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>(`${currentYear}-10-01`);
+  const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>(`${currentYear}-05-01`);
 
   // Filtered players for Player tab combobox
   const filteredPlayers = useMemo(() => {
@@ -164,8 +165,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // Extract available club seasons from games
   const availableClubSeasons = useMemo(() => {
     const gamesArray = Object.values(savedGames || {});
-    return extractClubSeasonsFromGames(gamesArray, clubSeasonStartMonth, clubSeasonEndMonth);
-  }, [savedGames, clubSeasonStartMonth, clubSeasonEndMonth]);
+    return extractClubSeasonsFromGames(gamesArray, clubSeasonStartDate, clubSeasonEndDate);
+  }, [savedGames, clubSeasonStartDate, clubSeasonEndDate]);
 
   // --- Effects ---
   // Load seasons/tournaments/teams
@@ -183,8 +184,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
         const settings = await getAppSettings();
         if (settings) {
-          setClubSeasonStartMonth(settings.clubSeasonStartMonth ?? 10);
-          setClubSeasonEndMonth(settings.clubSeasonEndMonth ?? 5);
+          const currentYear = new Date().getUTCFullYear();
+          setClubSeasonStartDate(settings.clubSeasonStartDate ?? `${currentYear}-10-01`);
+          setClubSeasonEndDate(settings.clubSeasonEndDate ?? `${currentYear}-05-01`);
         }
       }
     };
@@ -579,8 +581,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 tournaments={tournaments}
                 teamId={selectedTeamIdFilter !== 'all' && selectedTeamIdFilter !== 'legacy' ? selectedTeamIdFilter : undefined}
                 selectedClubSeason={selectedClubSeason}
-                clubSeasonStartMonth={clubSeasonStartMonth}
-                clubSeasonEndMonth={clubSeasonEndMonth}
+                clubSeasonStartDate={clubSeasonStartDate}
+                clubSeasonEndDate={clubSeasonEndDate}
               />
             </div>
           ) : (
