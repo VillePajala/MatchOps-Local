@@ -295,5 +295,16 @@ describe('clubSeason utilities', () => {
       expect(validateSeasonMonths(13, 13)).toBe(false);
       expect(validateSeasonMonths(-1, 20)).toBe(false);
     });
+
+    it('should reject zero-length seasons (start equals end)', () => {
+      expect(validateSeasonDates('2000-10-01', '2000-10-01')).toBe(false);
+      expect(validateSeasonDates('2000-05-15', '2000-05-15')).toBe(false);
+      expect(validateSeasonDates('2000-12-31', '2000-12-31')).toBe(false);
+    });
+
+    it('should allow seasons that differ by one day', () => {
+      expect(validateSeasonDates('2000-10-01', '2000-10-02')).toBe(true);
+      expect(validateSeasonDates('2000-05-15', '2000-05-16')).toBe(true);
+    });
   });
 });
