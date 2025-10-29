@@ -995,14 +995,14 @@
     "importGamesButton": "Tuo pelejä",
     "importing": "Tuodaan...",
     "gameImportError": "Virhe pelien tuonnissa: ",
-    "clubSeasonTitle": "Seuran kausijakso",
-    "clubSeasonDescription": "Määritä seurasi kausijakso pelaajatilastojen suodatusta varten (esim. lokakuu - toukokuu). Vain kuukausi ja päivä vaikuttavat - vuosi on vain mallipohja.",
-    "seasonStartLabel": "Kauden alku",
-    "seasonEndLabel": "Kauden loppu",
+    "seasonPeriodTitle": "Ajanjakso",
+    "seasonPeriodDescription": "Määritä ajanjakso tilastojen suodatusta varten (esim. lokakuu - toukokuu). Vain kuukausi ja päivä vaikuttavat - vuosi on vain mallipohja.",
+    "periodStartLabel": "Jakson alku",
+    "periodEndLabel": "Jakson loppu",
     "monthLabel": "Kuukausi",
     "dayLabel": "Päivä",
-    "invalidSeasonDateError": "Virheellinen kauden päivämäärä. Anna kelvollinen päivämäärä.",
-    "saveSeasonDateError": "Kauden päivämäärän tallennus epäonnistui. Yritä uudelleen."
+    "invalidPeriodDateError": "Virheellinen jakson päivämäärä. Anna kelvollinen päivämäärä.",
+    "savePeriodDateError": "Jakson päivämäärän tallennus epäonnistui. Yritä uudelleen."
   },
   "playerAssessmentModal": {
     "title": "Arvioi ottelusuoritukset",
@@ -1097,14 +1097,14 @@
     "deleteError": "Ulkoisen pelin merkinnän poisto epäonnistui.",
     "includeInSeasonTournament": "Sisällytä kausi/turnaus-tilastoihin",
     "includeInSeasonTournamentHelp": "Valitse tämä, jos ulkoinen peli pelattiin samassa joukkueessa",
-    "clubSeasonFilter": "Suodata seuran kauden mukaan",
-    "allSeasons": "Kaikki kaudet",
-    "offSeason": "Kausiulkopuolella",
-    "seasonNotConfiguredTitle": "Kauden päivämääriä ei ole määritetty",
-    "seasonNotConfiguredMessage": "Suodattaaksesi tilastoja kauden mukaan, määritä ensin seurasi kausijakso (esim. lokakuu - toukokuu) asetuksista.",
-    "configureSeasonDates": "Määritä kauden päivämäärät",
-    "configureSeasonDatesFirst": "Määritä kauden päivämäärät asetuksista ensin",
-    "tapGearToConfigureSeasons": "Napauta ratas-kuvaketta määrittääksesi kauden päivämäärät"
+    "periodFilter": "Suodata ajanjakson mukaan",
+    "allPeriods": "Kaikki ajanjaksot",
+    "offPeriod": "Jakson ulkopuolella",
+    "periodNotConfiguredTitle": "Ajanjaksoa ei ole määritetty",
+    "periodNotConfiguredMessage": "Suodattaaksesi tilastoja ajanjakson mukaan, määritä ensin ajanjakso (esim. lokakuu - toukokuu) asetuksista.",
+    "configurePeriodDates": "Määritä ajanjakso",
+    "configurePeriodDatesFirst": "Määritä ajanjakso asetuksista ensin",
+    "tapGearToConfigurePeriods": "Napauta ratas-kuvaketta määrittääksesi ajanjakso"
   },
   "months": {
     "january": "Tammikuu",

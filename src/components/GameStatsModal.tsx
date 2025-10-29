@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Combobox } from '@headlessui/react';
-import { HiOutlineChevronUpDown, HiCog6Tooth } from 'react-icons/hi2';
+import { HiOutlineChevronUpDown } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import logger from '@/utils/logger';
@@ -36,6 +36,7 @@ import {
   GameNotesEditor,
   FilterControls,
   TeamPerformanceCard,
+  ClubSeasonFilter,
 } from './GameStatsModal/components';
 
 // Import types
@@ -139,7 +140,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       onOpenSettings();
     } else {
       // Otherwise, show a toast message
-      const message = t('playerStats.seasonNotConfiguredMessage', 'To filter statistics by season, first configure your club\'s season period (e.g., October to May) in Settings.');
+      const message = t('playerStats.periodNotConfiguredMessage', 'To filter statistics by period, first configure your season period (e.g., October to May) in Settings.');
       showToast(message, 'info');
     }
   }, [onOpenSettings, showToast, t]);
@@ -167,8 +168,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const { data: settings, isLoading: isLoadingSettings } = useQuery({
     queryKey: queryKeys.settings.detail(),
     queryFn: getAppSettings,
-    staleTime: 5000, // 5 seconds
-    refetchOnWindowFocus: true, // Automatic refetch on focus
+    staleTime: Infinity, // Settings rarely change during session
+    refetchOnWindowFocus: true, // Refetch on focus for cross-tab sync
+    gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
     enabled: isOpen, // Only fetch when modal is open
   });
 
@@ -586,36 +588,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   </div>
                 </Combobox>
                 {availableClubSeasons.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <select
-                        value={selectedClubSeason}
-                        onChange={(e) => setSelectedClubSeason(e.target.value)}
-                        disabled={!hasConfiguredSeasonDates || isLoadingSettings}
-                        onClick={!hasConfiguredSeasonDates ? handleOpenSeasonSettings : undefined}
-                        className={`flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
-                          !hasConfiguredSeasonDates || isLoadingSettings ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                      >
-                        <option value="all">{t('playerStats.allSeasons', 'All Seasons')}</option>
-                        {availableClubSeasons.map(season => (
-                          <option key={season} value={season}>
-                            {season === 'off-season'
-                              ? t('playerStats.offSeason', 'Off-Season')
-                              : `${t('playerStats.season', 'Season')} ${season}`
-                            }
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={handleOpenSeasonSettings}
-                        className={`p-1.5 rounded-md bg-slate-700 border border-slate-600 text-slate-300 hover:text-indigo-400 hover:border-indigo-500 transition-colors ${
-                          !hasConfiguredSeasonDates && !isLoadingSettings ? 'animate-pulse ring-2 ring-indigo-500' : ''
-                        }`}
-                        aria-label={t('playerStats.configureSeasonDates', 'Configure Season Dates')}
-                      >
-                        <HiCog6Tooth className="w-5 h-5" />
-                      </button>
-                  </div>
+                  <ClubSeasonFilter
+                    selectedSeason={selectedClubSeason}
+                    onChange={setSelectedClubSeason}
+                    seasons={availableClubSeasons}
+                    hasConfigured={hasConfiguredSeasonDates}
+                    isLoading={isLoadingSettings}
+                    onOpenSettings={handleOpenSeasonSettings}
+                  />
                 )}
               </div>
               {/* Player Stats View */}
@@ -656,33 +636,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     </select>
                   )}
                   {/* Club Season Filter with gear icon */}
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={selectedClubSeason}
-                      onChange={(e) => setSelectedClubSeason(e.target.value)}
-                      disabled={!hasConfiguredSeasonDates || isLoadingSettings}
-                      onClick={!hasConfiguredSeasonDates ? handleOpenSeasonSettings : undefined}
-                      className={`flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
-                        !hasConfiguredSeasonDates || isLoadingSettings ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      <option value="all">{t('playerStats.allSeasons', 'All Seasons')}</option>
-                      {availableClubSeasons.map(season => (
-                        <option key={season} value={season}>
-                          {`${t('playerStats.season', 'Season')} ${season}`}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={handleOpenSeasonSettings}
-                      className={`p-1.5 rounded-md bg-slate-700 border border-slate-600 text-slate-300 hover:text-indigo-400 hover:border-indigo-500 transition-colors ${
-                        !hasConfiguredSeasonDates && !isLoadingSettings ? 'animate-pulse ring-2 ring-indigo-500' : ''
-                      }`}
-                      aria-label={t('playerStats.configureSeasonDates', 'Configure Season Dates')}
-                    >
-                      <HiCog6Tooth className="w-5 h-5" />
-                    </button>
-                  </div>
+                  <ClubSeasonFilter
+                    selectedSeason={selectedClubSeason}
+                    onChange={setSelectedClubSeason}
+                    seasons={availableClubSeasons}
+                    hasConfigured={hasConfiguredSeasonDates}
+                    isLoading={isLoadingSettings}
+                    onOpenSettings={handleOpenSeasonSettings}
+                  />
                 </div>
               ) : (
                 /* Other tabs - normal layout */

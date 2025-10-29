@@ -268,7 +268,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     if (!validateSeasonDates(date, clubSeasonEndDate)) {
       logger.error('Invalid season start date:', date);
       showToast(
-        t('settingsModal.invalidSeasonDateError', 'Invalid season date. Please enter a valid date.'),
+        t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
         'error'
       );
       return;
@@ -283,7 +283,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     } catch (error) {
       logger.error('Failed to save club season start date:', error);
       showToast(
-        t('settingsModal.saveSeasonDateError', 'Failed to save season date. Please try again.'),
+        t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
         'error'
       );
     }
@@ -297,7 +297,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     if (!validateSeasonDates(date, clubSeasonEndDate)) {
       logger.error('Invalid season start date:', date);
       showToast(
-        t('settingsModal.invalidSeasonDateError', 'Invalid season date. Please enter a valid date.'),
+        t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
         'error'
       );
       return;
@@ -312,7 +312,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     } catch (error) {
       logger.error('Failed to save club season start date:', error);
       showToast(
-        t('settingsModal.saveSeasonDateError', 'Failed to save season date. Please try again.'),
+        t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
         'error'
       );
     }
@@ -334,7 +334,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     if (!validateSeasonDates(clubSeasonStartDate, date)) {
       logger.error('Invalid season end date:', date);
       showToast(
-        t('settingsModal.invalidSeasonDateError', 'Invalid season date. Please enter a valid date.'),
+        t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
         'error'
       );
       return;
@@ -349,7 +349,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     } catch (error) {
       logger.error('Failed to save club season end date:', error);
       showToast(
-        t('settingsModal.saveSeasonDateError', 'Failed to save season date. Please try again.'),
+        t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
         'error'
       );
     }
@@ -363,7 +363,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     if (!validateSeasonDates(clubSeasonStartDate, date)) {
       logger.error('Invalid season end date:', date);
       showToast(
-        t('settingsModal.invalidSeasonDateError', 'Invalid season date. Please enter a valid date.'),
+        t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
         'error'
       );
       return;
@@ -378,7 +378,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     } catch (error) {
       logger.error('Failed to save club season end date:', error);
       showToast(
-        t('settingsModal.saveSeasonDateError', 'Failed to save season date. Please try again.'),
+        t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
         'error'
       );
     }
@@ -437,19 +437,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               />
               </div>
             </div>
-            {/* Club Season */}
+            {/* Season Period */}
             <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200">
-                {t('settingsModal.clubSeasonTitle', 'Club Season Period')}
+                {t('settingsModal.seasonPeriodTitle', 'Season Period')}
               </h3>
               <p id="club-season-description" className="text-sm text-slate-300">
-                {t('settingsModal.clubSeasonDescription', 'Define your club\'s season period for filtering player statistics (e.g., October to May). The year shown is just a template - only the month and day are used for categorizing games.')}
+                {t('settingsModal.seasonPeriodDescription', 'Define when your season runs (for filtering statistics). Month and day only - the year is just a template (e.g., October to May).')}
               </p>
               <div className="space-y-3">
-                {/* Season Start */}
+                {/* Period Start */}
                 <div>
                   <label className={labelStyle}>
-                    {t('settingsModal.seasonStartLabel', 'Season Start')}
+                    {t('settingsModal.periodStartLabel', 'Period Start')}
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <select
@@ -490,10 +490,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     </select>
                   </div>
                 </div>
-                {/* Season End */}
+                {/* Period End */}
                 <div>
                   <label className={labelStyle}>
-                    {t('settingsModal.seasonEndLabel', 'Season End')}
+                    {t('settingsModal.periodEndLabel', 'Period End')}
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <select
