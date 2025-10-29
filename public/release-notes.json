@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: preserve hasConfiguredSeasonDates flag during migration (P1 fix)"
+  "notes": "refactor: migrate GameStatsModal settings to React Query and improve date validation"
 }
