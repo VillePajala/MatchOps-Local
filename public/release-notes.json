@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: use current year for season date defaults instead of year 2000"
+  "notes": "feat: improve season filter discoverability with disabled state and prompts"
 }

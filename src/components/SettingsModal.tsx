@@ -51,7 +51,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const { importFromFile, isImporting, lastResult } = useGameImport();
   const currentYear = new Date().getUTCFullYear();
   const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>(`${currentYear}-10-01`);
-  const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>(`${currentYear}-05-01`);
+  const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>(`${currentYear + 1}-05-01`);
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
   const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
   const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
@@ -68,13 +68,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       getAppSettings().then(settings => {
         const currentYear = new Date().getUTCFullYear();
         setClubSeasonStartDate(settings.clubSeasonStartDate ?? `${currentYear}-10-01`);
-        setClubSeasonEndDate(settings.clubSeasonEndDate ?? `${currentYear}-05-01`);
+        setClubSeasonEndDate(settings.clubSeasonEndDate ?? `${currentYear + 1}-05-01`);
       }).catch((error) => {
         // Use defaults if loading fails
         logger.error('Failed to load club season settings:', error);
         const currentYear = new Date().getUTCFullYear();
         setClubSeasonStartDate(`${currentYear}-10-01`);
-        setClubSeasonEndDate(`${currentYear}-05-01`);
+        setClubSeasonEndDate(`${currentYear + 1}-05-01`);
       });
 
       if (navigator.storage?.estimate) {
@@ -222,6 +222,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     // Validate date before saving
     if (!validateSeasonDates(date, clubSeasonEndDate)) {
       logger.error('Invalid season start date:', date);
+      showToast(
+        t('settingsModal.invalidSeasonDateError', 'Invalid season date. Please enter a valid date.'),
+        'error'
+      );
       return;
     }
 
@@ -234,6 +238,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       });
     } catch (error) {
       logger.error('Failed to save club season start date:', error);
+      showToast(
+        t('settingsModal.saveSeasonDateError', 'Failed to save season date. Please try again.'),
+        'error'
+      );
     }
   };
 
@@ -241,6 +249,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     // Validate date before saving
     if (!validateSeasonDates(clubSeasonStartDate, date)) {
       logger.error('Invalid season end date:', date);
+      showToast(
+        t('settingsModal.invalidSeasonDateError', 'Invalid season date. Please enter a valid date.'),
+        'error'
+      );
       return;
     }
 
@@ -253,6 +265,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       });
     } catch (error) {
       logger.error('Failed to save club season end date:', error);
+      showToast(
+        t('settingsModal.saveSeasonDateError', 'Failed to save season date. Please try again.'),
+        'error'
+      );
     }
   };
 
@@ -314,8 +330,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               <h3 className="text-lg font-semibold text-slate-200">
                 {t('settingsModal.clubSeasonTitle', 'Club Season Period')}
               </h3>
-              <p className="text-sm text-slate-300">
-                {t('settingsModal.clubSeasonDescription', 'Define your club\'s season period for filtering player statistics (e.g., October to May).')}
+              <p id="club-season-description" className="text-sm text-slate-300">
+                {t('settingsModal.clubSeasonDescription', 'Define your club\'s season period for filtering player statistics (e.g., October to May). The year shown is just a template - only the month and day are used for categorizing games.')}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -328,6 +344,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     value={clubSeasonStartDate}
                     onChange={(e) => handleClubSeasonStartDateChange(e.target.value)}
                     className={inputStyle}
+                    aria-describedby="club-season-description"
+                    aria-label={t('settingsModal.seasonStartDateLabel', 'Season Start Date')}
                   />
                 </div>
                 <div>
@@ -340,6 +358,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     value={clubSeasonEndDate}
                     onChange={(e) => handleClubSeasonEndDateChange(e.target.value)}
                     className={inputStyle}
+                    aria-describedby="club-season-description"
+                    aria-label={t('settingsModal.seasonEndDateLabel', 'Season End Date')}
                   />
                 </div>
               </div>

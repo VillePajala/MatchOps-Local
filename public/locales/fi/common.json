@@ -996,9 +996,11 @@
     "importing": "Tuodaan...",
     "gameImportError": "Virhe pelien tuonnissa: ",
     "clubSeasonTitle": "Seuran kausijakso",
-    "clubSeasonDescription": "Määritä seurasi kausijakso pelaajatilastojen suodatusta varten (esim. lokakuu - toukokuu).",
+    "clubSeasonDescription": "Määritä seurasi kausijakso pelaajatilastojen suodatusta varten (esim. lokakuu - toukokuu). Näkyvä vuosiluku on vain malli - vain kuukausi ja päivä käytetään pelien luokitteluun.",
     "seasonStartDateLabel": "Kauden alkupäivämäärä",
-    "seasonEndDateLabel": "Kauden loppupäivämäärä"
+    "seasonEndDateLabel": "Kauden loppupäivämäärä",
+    "invalidSeasonDateError": "Virheellinen kauden päivämäärä. Anna kelvollinen päivämäärä.",
+    "saveSeasonDateError": "Kauden päivämäärän tallennus epäonnistui. Yritä uudelleen."
   },
   "playerAssessmentModal": {
     "title": "Arvioi ottelusuoritukset",
