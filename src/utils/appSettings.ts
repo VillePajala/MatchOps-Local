@@ -30,6 +30,8 @@ export interface AppSettings {
   clubSeasonStartDate?: string;
   /** Club season end date (ISO format YYYY-MM-DD, default: "2000-05-01" = May 1st) */
   clubSeasonEndDate?: string;
+  /** Tracks whether user has explicitly configured season dates (enables season filtering UI) */
+  hasConfiguredSeasonDates?: boolean;
   // Add other settings as needed
 }
 
@@ -54,6 +56,7 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   language: 'fi',
   hasSeenAppGuide: false,
   useDemandCorrection: false,
+  hasConfiguredSeasonDates: false,
   ...getDefaultSeasonDates(),
 };
 
