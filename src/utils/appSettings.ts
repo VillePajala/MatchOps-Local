@@ -17,6 +17,7 @@ import {
 } from './storage';
 import logger from '@/utils/logger';
 import { withKeyLock } from './storageKeyLock';
+import { storageConfigManager } from './storageConfigManager';
 /**
  * Interface for application settings
  */
@@ -288,6 +289,10 @@ export const resetAppSettings = async (): Promise<boolean> => {
     // Then use clearStorage to ensure everything is gone
     logger.log('[resetAppSettings] Performing full storage clear...');
     await clearStorage();
+
+    // Reset storage configuration to defaults
+    logger.log('[resetAppSettings] Resetting storage configuration...');
+    await storageConfigManager.resetToDefaults();
 
     logger.log('[resetAppSettings] All storage cleared successfully');
     return true;

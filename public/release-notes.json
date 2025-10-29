@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: migrate GameStatsModal settings to React Query and improve date validation"
+  "notes": "fix: remove unused ToastProvider import from GameStatsModal test"
 }
