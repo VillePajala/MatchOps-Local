@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: address PR review feedback - critical and important issues"
+  "notes": "fix: refactor migration to run once at startup (P1 from PR review)"
 }

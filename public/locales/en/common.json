@@ -975,7 +975,7 @@
     "importing": "Importing...",
     "gameImportError": "Error importing games: ",
     "clubSeasonTitle": "Club Season Period",
-    "clubSeasonDescription": "Define your club's season period for filtering player statistics (e.g., October to May). The year shown is just a template - only the month and day are used for categorizing games.",
+    "clubSeasonDescription": "Define your club's season period for filtering player statistics (e.g., October to May). Games are grouped by season based on these dates, regardless of the calendar year shown.",
     "seasonStartDateLabel": "Season Start Date",
     "seasonEndDateLabel": "Season End Date",
     "invalidSeasonDateError": "Invalid season date. Please enter a valid date.",
