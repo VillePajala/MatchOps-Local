@@ -26,10 +26,10 @@ export interface AppSettings {
   language?: string;
   hasSeenAppGuide?: boolean;
   useDemandCorrection?: boolean;
-  /** Club season start month (1-12, default: 10 = October) */
-  clubSeasonStartMonth?: number;
-  /** Club season end month (1-12, default: 5 = May) */
-  clubSeasonEndMonth?: number;
+  /** Club season start date (ISO format YYYY-MM-DD, default: "2000-10-01" = October 1st) */
+  clubSeasonStartDate?: string;
+  /** Club season end date (ISO format YYYY-MM-DD, default: "2000-05-01" = May 1st) */
+  clubSeasonEndDate?: string;
   // Add other settings as needed
 }
 
@@ -42,12 +42,29 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   language: 'fi',
   hasSeenAppGuide: false,
   useDemandCorrection: false,
-  clubSeasonStartMonth: 10, // October
-  clubSeasonEndMonth: 5,    // May
+  clubSeasonStartDate: '2000-10-01', // October 1st (year is template)
+  clubSeasonEndDate: '2000-05-01',   // May 1st (year is template)
 };
 
 /**
+ * Converts legacy month number (1-12) to ISO date string
+ * Uses year 2000 as template year (actual year doesn't matter for season templates)
+ *
+ * @param month - Month number (1-12)
+ * @returns ISO date string "2000-MM-01" (first day of month)
+ *
+ * @example
+ * convertMonthToDate(3)  // "2000-03-01" (March 1st)
+ * convertMonthToDate(10) // "2000-10-01" (October 1st)
+ */
+function convertMonthToDate(month: number): string {
+  const monthStr = month.toString().padStart(2, '0');
+  return `2000-${monthStr}-01`;
+}
+
+/**
  * Gets the application settings from localStorage
+ * Handles migration from legacy month-based settings to date-based settings
  * @returns A promise that resolves to the application settings
  */
 export const getAppSettings = async (): Promise<AppSettings> => {
@@ -57,7 +74,30 @@ export const getAppSettings = async (): Promise<AppSettings> => {
       return DEFAULT_APP_SETTINGS;
     }
 
-    const settings = JSON.parse(settingsJson);
+    const settings = JSON.parse(settingsJson) as AppSettings & {
+      clubSeasonStartMonth?: number;
+      clubSeasonEndMonth?: number;
+    };
+
+    // Migration: Convert legacy month-based settings to date-based settings
+    if (settings.clubSeasonStartMonth !== undefined && !settings.clubSeasonStartDate) {
+      settings.clubSeasonStartDate = convertMonthToDate(settings.clubSeasonStartMonth);
+      logger.log('[getAppSettings] Migrated clubSeasonStartMonth to clubSeasonStartDate:', settings.clubSeasonStartDate);
+    }
+    if (settings.clubSeasonEndMonth !== undefined && !settings.clubSeasonEndDate) {
+      settings.clubSeasonEndDate = convertMonthToDate(settings.clubSeasonEndMonth);
+      logger.log('[getAppSettings] Migrated clubSeasonEndMonth to clubSeasonEndDate:', settings.clubSeasonEndDate);
+    }
+
+    // Remove legacy fields
+    delete settings.clubSeasonStartMonth;
+    delete settings.clubSeasonEndMonth;
+
+    // Save migrated settings back to storage
+    if (settings.clubSeasonStartDate || settings.clubSeasonEndDate) {
+      await saveAppSettings(settings as AppSettings);
+    }
+
     return { ...DEFAULT_APP_SETTINGS, ...settings };
   } catch (error) {
     logger.error('Error getting app settings from storage:', error);

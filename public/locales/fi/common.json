@@ -997,8 +997,8 @@
     "gameImportError": "Virhe pelien tuonnissa: ",
     "clubSeasonTitle": "Seuran kausijakso",
     "clubSeasonDescription": "Määritä seurasi kausijakso pelaajatilastojen suodatusta varten (esim. lokakuu - toukokuu).",
-    "seasonStartMonthLabel": "Kauden alkukuukausi",
-    "seasonEndMonthLabel": "Kauden loppukuukausi"
+    "seasonStartDateLabel": "Kauden alkupäivämäärä",
+    "seasonEndDateLabel": "Kauden loppupäivämäärä"
   },
   "playerAssessmentModal": {
     "title": "Arvioi ottelusuoritukset",

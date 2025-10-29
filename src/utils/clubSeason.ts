@@ -31,64 +31,58 @@ function parseSeasonYear(shortYear: string): number {
 }
 
 /**
- * Gets the last day of a given month in UTC
- *
- * @param year - Full year (e.g., 2024)
- * @param month - Month number (1-12)
- * @returns Date object set to last day of month at 23:59:59.999 UTC
- *
- * @remarks
- * Uses the date arithmetic trick: Day 0 of month N+1 = last day of month N
- *
- * @example
- * getLastDayOfMonth(2024, 2) // Feb 29, 2024 23:59:59.999 (leap year)
- * getLastDayOfMonth(2025, 2) // Feb 28, 2025 23:59:59.999
- * getLastDayOfMonth(2024, 4) // Apr 30, 2024 23:59:59.999
- */
-function getLastDayOfMonth(year: number, month: number): Date {
-  // Day 0 of next month = last day of current month
-  // Set time to 23:59:59.999 to include the entire last day
-  return new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
-}
-
-/**
  * Determines the club season label for a given date.
  *
- * Examples (with startMonth=10, endMonth=5):
+ * Examples (with startDate="2000-10-01", endDate="2000-05-01"):
  * - Nov 15, 2024 → "24/25" (in first half of season)
  * - Feb 20, 2025 → "24/25" (in second half of season)
  * - Jul 10, 2024 → "off-season" (outside season period)
  *
- * @param dateStr - ISO date string (YYYY-MM-DD)
- * @param startMonth - Season start month (1-12)
- * @param endMonth - Season end month (1-12)
+ * @param dateStr - ISO date string (YYYY-MM-DD) of the game date
+ * @param startDate - Season start date (ISO format, year is template)
+ * @param endDate - Season end date (ISO format, year is template)
  * @returns Season label (e.g., "24/25") or "off-season"
  */
 export function getClubSeasonForDate(
   dateStr: string,
-  startMonth: number = 10,
-  endMonth: number = 5
+  startDate: string = '2000-10-01',
+  endDate: string = '2000-05-01'
 ): string {
   // Force UTC interpretation to avoid timezone issues
   const date = new Date(dateStr + 'T00:00:00Z');
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth() + 1; // Convert 0-based to 1-based
+  const day = date.getUTCDate();
 
-  if (startMonth <= endMonth) {
-    // Season within same calendar year (e.g., Jan-Dec)
-    if (month >= startMonth && month <= endMonth) {
+  // Extract month and day from season dates (year is template, so we ignore it)
+  const startMonth = parseInt(startDate.split('-')[1], 10);
+  const startDay = parseInt(startDate.split('-')[2], 10);
+  const endMonth = parseInt(endDate.split('-')[1], 10);
+  const endDay = parseInt(endDate.split('-')[2], 10);
+
+  // Helper to compare dates within a year (ignoring year)
+  const isAfterOrEqual = (m1: number, d1: number, m2: number, d2: number): boolean => {
+    return m1 > m2 || (m1 === m2 && d1 >= d2);
+  };
+  const isBeforeOrEqual = (m1: number, d1: number, m2: number, d2: number): boolean => {
+    return m1 < m2 || (m1 === m2 && d1 <= d2);
+  };
+
+  if (startMonth < endMonth || (startMonth === endMonth && startDay <= endDay)) {
+    // Season within same calendar year (e.g., Jan-Dec or Mar 15 - Nov 20)
+    if (isAfterOrEqual(month, day, startMonth, startDay) && isBeforeOrEqual(month, day, endMonth, endDay)) {
       // Within season
       return `${year}`;
     }
     // Outside season
     return 'off-season';
   } else {
-    // Season spans calendar years (e.g., Oct-May)
-    if (month >= startMonth) {
+    // Season spans calendar years (e.g., Oct 1 - May 1 or Dec 15 - Feb 10)
+    if (isAfterOrEqual(month, day, startMonth, startDay)) {
       // In first half of season (Oct-Dec 2024 → "24/25")
       const nextYear = year + 1;
       return `${year.toString().slice(2)}/${nextYear.toString().slice(2)}`;
-    } else if (month <= endMonth) {
+    } else if (isBeforeOrEqual(month, day, endMonth, endDay)) {
       // In second half of season (Jan-May 2025 → "24/25")
       const prevYear = year - 1;
       return `${prevYear.toString().slice(2)}/${year.toString().slice(2)}`;
@@ -102,8 +96,8 @@ export function getClubSeasonForDate(
  * Gets the full display label for a club season
  *
  * @param seasonLabel - Season label (e.g., "24/25" or "2024")
- * @param startMonth - Season start month (1-12)
- * @param endMonth - Season end month (1-12)
+ * @param startDate - Season start date (ISO format, year is template)
+ * @param endDate - Season end date (ISO format, year is template)
  * @returns Display label with date range (English month names)
  *
  * @remarks
@@ -117,14 +111,14 @@ export function getClubSeasonForDate(
  * It is currently not used in production code.
  *
  * @example
- * getClubSeasonDisplayLabel("24/25", 10, 5) // "Oct 2024 - May 2025"
- * getClubSeasonDisplayLabel("2024", 1, 12) // "Jan - Dec 2024"
+ * getClubSeasonDisplayLabel("24/25", "2000-10-01", "2000-05-01") // "Oct 1, 2024 - May 1, 2025"
+ * getClubSeasonDisplayLabel("2024", "2000-01-01", "2000-12-31") // "Jan 1 - Dec 31, 2024"
  * getClubSeasonDisplayLabel("off-season") // "Off-Season"
  */
 export function getClubSeasonDisplayLabel(
   seasonLabel: string,
-  startMonth: number = 10,
-  endMonth: number = 5
+  startDate: string = '2000-10-01',
+  endDate: string = '2000-05-01'
 ): string {
   if (seasonLabel === 'off-season') {
     return 'Off-Season';
@@ -136,16 +130,22 @@ export function getClubSeasonDisplayLabel(
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
 
+  // Extract month and day from dates
+  const startMonth = parseInt(startDate.split('-')[1], 10);
+  const startDay = parseInt(startDate.split('-')[2], 10);
+  const endMonth = parseInt(endDate.split('-')[1], 10);
+  const endDay = parseInt(endDate.split('-')[2], 10);
+
   const startMonthName = monthNames[startMonth - 1];
   const endMonthName = monthNames[endMonth - 1];
 
   if (seasonLabel.includes('/')) {
     // Cross-year season (e.g., "24/25")
     const [startYear, endYear] = seasonLabel.split('/');
-    return `${startMonthName} ${parseSeasonYear(startYear)} - ${endMonthName} ${parseSeasonYear(endYear)}`;
+    return `${startMonthName} ${startDay}, ${parseSeasonYear(startYear)} - ${endMonthName} ${endDay}, ${parseSeasonYear(endYear)}`;
   } else {
     // Same-year season (e.g., "2024")
-    return `${startMonthName} - ${endMonthName} ${seasonLabel}`;
+    return `${startMonthName} ${startDay} - ${endMonthName} ${endDay}, ${seasonLabel}`;
   }
 }
 
@@ -153,20 +153,20 @@ export function getClubSeasonDisplayLabel(
  * Extracts unique club seasons from a collection of games
  *
  * @param games - Collection of games with gameDate property
- * @param startMonth - Season start month (1-12)
- * @param endMonth - Season end month (1-12)
+ * @param startDate - Season start date (ISO format, year is template)
+ * @param endDate - Season end date (ISO format, year is template)
  * @returns Array of unique season labels, sorted newest first
  */
 export function extractClubSeasonsFromGames(
   games: { gameDate?: string }[],
-  startMonth: number = 10,
-  endMonth: number = 5
+  startDate: string = '2000-10-01',
+  endDate: string = '2000-05-01'
 ): string[] {
   const seasons = new Set<string>();
 
   games.forEach(game => {
     if (game.gameDate) {
-      const season = getClubSeasonForDate(game.gameDate, startMonth, endMonth);
+      const season = getClubSeasonForDate(game.gameDate, startDate, endDate);
       seasons.add(season);
     }
   });
@@ -184,8 +184,8 @@ export function extractClubSeasonsFromGames(
  *
  * @param games - Array of games to filter
  * @param seasonLabel - Season label to filter by, or 'all' for no filtering
- * @param startMonth - Season start month (1-12)
- * @param endMonth - Season end month (1-12)
+ * @param startDate - Season start date (ISO format, year is template)
+ * @param endDate - Season end date (ISO format, year is template)
  * @returns Filtered array of games
  *
  * @remarks
@@ -200,14 +200,14 @@ export function extractClubSeasonsFromGames(
  *   { id: '1', gameDate: '2024-11-15' }, // 24/25 season
  *   { id: '2', gameDate: '2024-07-01' }, // off-season
  * ];
- * const filtered = filterGamesByClubSeason(games, '24/25', 10, 5);
+ * const filtered = filterGamesByClubSeason(games, '24/25', '2000-10-01', '2000-05-01');
  * // Returns: [{ id: '1', gameDate: '2024-11-15' }]
  */
 export function filterGamesByClubSeason<T extends { gameDate?: string }>(
   games: T[],
   seasonLabel: string,
-  startMonth: number = 10,
-  endMonth: number = 5
+  startDate: string = '2000-10-01',
+  endDate: string = '2000-05-01'
 ): T[] {
   if (seasonLabel === 'all') {
     return games;
@@ -215,7 +215,7 @@ export function filterGamesByClubSeason<T extends { gameDate?: string }>(
 
   return games.filter(game => {
     if (!game.gameDate) return false;
-    const gameSeason = getClubSeasonForDate(game.gameDate, startMonth, endMonth);
+    const gameSeason = getClubSeasonForDate(game.gameDate, startDate, endDate);
     return gameSeason === seasonLabel;
   });
 }
@@ -224,18 +224,24 @@ export function filterGamesByClubSeason<T extends { gameDate?: string }>(
  * Gets the date range for a given club season label
  *
  * @param seasonLabel - Season label (e.g., "24/25")
- * @param startMonth - Season start month (1-12)
- * @param endMonth - Season end month (1-12)
+ * @param startDate - Season start date template (ISO format, year is template)
+ * @param endDate - Season end date template (ISO format, year is template)
  * @returns Object with startDate and endDate ISO strings, or null for invalid/off-season
  */
 export function getClubSeasonDateRange(
   seasonLabel: string,
-  startMonth: number = 10,
-  endMonth: number = 5
+  startDate: string = '2000-10-01',
+  endDate: string = '2000-05-01'
 ): { startDate: string; endDate: string } | null {
   if (seasonLabel === 'off-season' || seasonLabel === 'all') {
     return null;
   }
+
+  // Extract month and day from template dates
+  const startMonth = parseInt(startDate.split('-')[1], 10);
+  const startDay = parseInt(startDate.split('-')[2], 10);
+  const endMonth = parseInt(endDate.split('-')[1], 10);
+  const endDay = parseInt(endDate.split('-')[2], 10);
 
   if (seasonLabel.includes('/')) {
     // Cross-year season (e.g., "24/25")
@@ -244,51 +250,71 @@ export function getClubSeasonDateRange(
     const fullEndYear = parseSeasonYear(endYear);
 
     // Use UTC to avoid timezone issues
-    const startDate = new Date(Date.UTC(fullStartYear, startMonth - 1, 1));
-    const endDate = getLastDayOfMonth(fullEndYear, endMonth);
+    const seasonStart = new Date(Date.UTC(fullStartYear, startMonth - 1, startDay));
+    const seasonEnd = new Date(Date.UTC(fullEndYear, endMonth - 1, endDay));
 
     return {
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0]
+      startDate: seasonStart.toISOString().split('T')[0],
+      endDate: seasonEnd.toISOString().split('T')[0]
     };
   } else {
     // Same-year season (e.g., "2024")
     const year = parseInt(seasonLabel, 10);
     // Use UTC to avoid timezone issues
-    const startDate = new Date(Date.UTC(year, startMonth - 1, 1));
-    const endDate = getLastDayOfMonth(year, endMonth);
+    const seasonStart = new Date(Date.UTC(year, startMonth - 1, startDay));
+    const seasonEnd = new Date(Date.UTC(year, endMonth - 1, endDay));
 
     return {
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0]
+      startDate: seasonStart.toISOString().split('T')[0],
+      endDate: seasonEnd.toISOString().split('T')[0]
     };
   }
 }
 
 /**
- * Validates that season month values are in valid range (1-12)
+ * Validates that season date strings are valid ISO dates
  *
- * @param startMonth - Season start month
- * @param endMonth - Season end month
- * @returns true if both months are valid (1-12), false otherwise
+ * @param startDate - Season start date (ISO format YYYY-MM-DD)
+ * @param endDate - Season end date (ISO format YYYY-MM-DD)
+ * @returns true if both dates are valid ISO dates, false otherwise
  *
  * @remarks
  * Use this validation before saving season settings to prevent invalid configurations.
  * Protects against user input errors or data corruption.
  *
  * @example
- * validateSeasonMonths(10, 5) // true (Oct-May, valid cross-year season)
- * validateSeasonMonths(1, 12) // true (Jan-Dec, valid same-year season)
- * validateSeasonMonths(0, 5) // false (invalid start month)
- * validateSeasonMonths(10, 13) // false (invalid end month)
- * validateSeasonMonths(-1, 5) // false (negative month)
+ * validateSeasonDates('2000-10-01', '2000-05-01') // true (Oct 1 - May 1, valid)
+ * validateSeasonDates('2000-01-01', '2000-12-31') // true (Jan 1 - Dec 31, valid)
+ * validateSeasonDates('2000-13-01', '2000-05-01') // false (invalid month)
+ * validateSeasonDates('invalid', '2000-05-01') // false (invalid format)
+ * validateSeasonDates('2000-02-30', '2000-05-01') // false (invalid day)
  */
-export function validateSeasonMonths(
-  startMonth: number,
-  endMonth: number
+export function validateSeasonDates(
+  startDate: string,
+  endDate: string
 ): boolean {
-  return (
-    startMonth >= 1 && startMonth <= 12 &&
-    endMonth >= 1 && endMonth <= 12
-  );
+  // Check ISO format (YYYY-MM-DD)
+  const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!isoDateRegex.test(startDate) || !isoDateRegex.test(endDate)) {
+    return false;
+  }
+
+  // Check if dates are valid by parsing them
+  const startParsed = new Date(startDate + 'T00:00:00Z');
+  const endParsed = new Date(endDate + 'T00:00:00Z');
+
+  // Check for invalid dates (NaN timestamp)
+  if (isNaN(startParsed.getTime()) || isNaN(endParsed.getTime())) {
+    return false;
+  }
+
+  // Check that parsed dates match input (catches invalid dates like Feb 30)
+  if (
+    startParsed.toISOString().split('T')[0] !== startDate ||
+    endParsed.toISOString().split('T')[0] !== endDate
+  ) {
+    return false;
+  }
+
+  return true;
 }

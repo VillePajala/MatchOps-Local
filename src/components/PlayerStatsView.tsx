@@ -28,11 +28,11 @@ interface PlayerStatsViewProps {
   tournaments: Tournament[];
   teamId?: string; // Optional team filtering
   selectedClubSeason: string;
-  clubSeasonStartMonth: number;
-  clubSeasonEndMonth: number;
+  clubSeasonStartDate: string;
+  clubSeasonEndDate: string;
 }
 
-const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartMonth, clubSeasonEndMonth }) => {
+const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
 
@@ -151,13 +151,13 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         if (!game.gameDate) return false;
         const gameSeason = getClubSeasonForDate(
           game.gameDate,
-          clubSeasonStartMonth,
-          clubSeasonEndMonth
+          clubSeasonStartDate,
+          clubSeasonEndDate
         );
         return gameSeason === selectedClubSeason;
       })
     );
-  }, [savedGames, selectedClubSeason, clubSeasonStartMonth, clubSeasonEndMonth]);
+  }, [savedGames, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
 
   const playerStats: PlayerStatsData | null = useMemo(() => {
     if (!player) return null;

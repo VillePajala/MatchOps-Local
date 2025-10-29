@@ -51,8 +51,8 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         hasSeenAppGuide: false,
         useDemandCorrection: false,
-        clubSeasonStartMonth: 10,
-        clubSeasonEndMonth: 5
+        clubSeasonStartDate: '2000-10-01',
+        clubSeasonEndDate: '2000-05-01'
       });
     });
 
@@ -69,8 +69,8 @@ describe('App Settings Utilities', () => {
         language: 'fi', // From default settings
         hasSeenAppGuide: false,
         useDemandCorrection: false,
-        clubSeasonStartMonth: 10,
-        clubSeasonEndMonth: 5
+        clubSeasonStartDate: '2000-10-01',
+        clubSeasonEndDate: '2000-05-01'
       });
     });
 
@@ -87,8 +87,8 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         hasSeenAppGuide: false,
         useDemandCorrection: false,
-        clubSeasonStartMonth: 10,
-        clubSeasonEndMonth: 5
+        clubSeasonStartDate: '2000-10-01',
+        clubSeasonEndDate: '2000-05-01'
       });
 
       consoleSpy.mockRestore();
@@ -108,8 +108,8 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         hasSeenAppGuide: false,
         useDemandCorrection: false,
-        clubSeasonStartMonth: 10,
-        clubSeasonEndMonth: 5
+        clubSeasonStartDate: '2000-10-01',
+        clubSeasonEndDate: '2000-05-01'
       });
       consoleSpy.mockRestore();
     });
@@ -164,8 +164,8 @@ describe('App Settings Utilities', () => {
         language: 'fi', // Preserved
         hasSeenAppGuide: false,
         useDemandCorrection: false,
-        clubSeasonStartMonth: 10,
-        clubSeasonEndMonth: 5
+        clubSeasonStartDate: '2000-10-01',
+        clubSeasonEndDate: '2000-05-01'
       });
 
       expect(mockSetStorageItem).toHaveBeenCalledWith(
@@ -176,8 +176,8 @@ describe('App Settings Utilities', () => {
           language: 'fi',
           hasSeenAppGuide: false,
           useDemandCorrection: false,
-          clubSeasonStartMonth: 10,
-          clubSeasonEndMonth: 5
+          clubSeasonStartDate: '2000-10-01',
+          clubSeasonEndDate: '2000-05-01'
         })
       );
     });
@@ -197,8 +197,8 @@ describe('App Settings Utilities', () => {
         ...currentSettings,
         language: 'fi',
         useDemandCorrection: false,
-        clubSeasonStartMonth: 10,
-        clubSeasonEndMonth: 5
+        clubSeasonStartDate: '2000-10-01',
+        clubSeasonEndDate: '2000-05-01'
       });
       expect(mockSetStorageItem).toHaveBeenCalledWith(
         APP_SETTINGS_KEY,
@@ -206,8 +206,8 @@ describe('App Settings Utilities', () => {
           ...currentSettings,
           language: 'fi',
           useDemandCorrection: false,
-          clubSeasonStartMonth: 10,
-          clubSeasonEndMonth: 5
+          clubSeasonStartDate: '2000-10-01',
+          clubSeasonEndDate: '2000-05-01'
         })
       );
     });
@@ -282,8 +282,8 @@ describe('App Settings Utilities', () => {
           language: 'fi',
           hasSeenAppGuide: false,
           useDemandCorrection: false,
-          clubSeasonStartMonth: 10,
-          clubSeasonEndMonth: 5
+          clubSeasonStartDate: '2000-10-01',
+          clubSeasonEndDate: '2000-05-01'
         })
       );
       expect(result).toBe(true);
@@ -367,8 +367,8 @@ describe('App Settings Utilities', () => {
           ...currentSettings, // Ensure other settings are preserved
           lastHomeTeamName: 'New Team Name', // The updated value
           useDemandCorrection: false,
-          clubSeasonStartMonth: 10,
-          clubSeasonEndMonth: 5
+          clubSeasonStartDate: '2000-10-01',
+          clubSeasonEndDate: '2000-05-01'
         });
       }
 
