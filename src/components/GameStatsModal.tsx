@@ -579,35 +579,44 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   </div>
                 </Combobox>
                 {availableClubSeasons.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <select
-                        value={selectedClubSeason}
-                        onChange={(e) => setSelectedClubSeason(e.target.value)}
-                        disabled={!hasConfiguredSeasonDates || isLoadingSettings}
-                        onClick={!hasConfiguredSeasonDates ? handleOpenSeasonSettings : undefined}
-                        className={`flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
-                          !hasConfiguredSeasonDates || isLoadingSettings ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                        title={isLoadingSettings ? 'Loading settings...' : (!hasConfiguredSeasonDates ? t('playerStats.configureSeasonDatesFirst', 'Configure season dates in Settings first') : undefined)}
-                      >
-                        <option value="all">{t('playerStats.allSeasons', 'All Seasons')}</option>
-                        {availableClubSeasons.map(season => (
-                          <option key={season} value={season}>
-                            {season === 'off-season'
-                              ? t('playerStats.offSeason', 'Off-Season')
-                              : `${t('playerStats.season', 'Season')} ${season}`
-                            }
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={handleOpenSeasonSettings}
-                        className="p-1.5 rounded-md bg-slate-700 border border-slate-600 text-slate-300 hover:text-indigo-400 hover:border-indigo-500 transition-colors"
-                        title={t('playerStats.configureSeasonDates', 'Configure Season Dates')}
-                        aria-label={t('playerStats.configureSeasonDates', 'Configure Season Dates')}
-                      >
-                        <HiCog6Tooth className="w-5 h-5" />
-                      </button>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <select
+                          value={selectedClubSeason}
+                          onChange={(e) => setSelectedClubSeason(e.target.value)}
+                          disabled={!hasConfiguredSeasonDates || isLoadingSettings}
+                          onClick={!hasConfiguredSeasonDates ? handleOpenSeasonSettings : undefined}
+                          className={`flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+                            !hasConfiguredSeasonDates || isLoadingSettings ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                          aria-describedby={!hasConfiguredSeasonDates ? 'season-help-text' : undefined}
+                        >
+                          <option value="all">{t('playerStats.allSeasons', 'All Seasons')}</option>
+                          {availableClubSeasons.map(season => (
+                            <option key={season} value={season}>
+                              {season === 'off-season'
+                                ? t('playerStats.offSeason', 'Off-Season')
+                                : `${t('playerStats.season', 'Season')} ${season}`
+                              }
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={handleOpenSeasonSettings}
+                          className={`p-1.5 rounded-md bg-slate-700 border border-slate-600 text-slate-300 hover:text-indigo-400 hover:border-indigo-500 transition-colors ${
+                            !hasConfiguredSeasonDates && !isLoadingSettings ? 'animate-pulse ring-2 ring-indigo-500' : ''
+                          }`}
+                          aria-label={t('playerStats.configureSeasonDates', 'Configure Season Dates')}
+                        >
+                          <HiCog6Tooth className="w-5 h-5" />
+                        </button>
+                    </div>
+                    {!hasConfiguredSeasonDates && !isLoadingSettings && (
+                      <p id="season-help-text" className="text-xs text-amber-400 flex items-center gap-1">
+                        <span>→</span>
+                        <span>{t('playerStats.tapGearToConfigureSeasons', 'Tap gear icon to configure season dates')}</span>
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

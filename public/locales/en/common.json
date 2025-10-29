@@ -1080,7 +1080,8 @@
     "seasonNotConfiguredTitle": "Season Dates Not Configured",
     "seasonNotConfiguredMessage": "To filter statistics by season, first configure your club's season period (e.g., October to May) in Settings.",
     "configureSeasonDates": "Configure Season Dates",
-    "configureSeasonDatesFirst": "Configure season dates in Settings first"
+    "configureSeasonDatesFirst": "Configure season dates in Settings first",
+    "tapGearToConfigureSeasons": "Tap gear icon to configure season dates"
   },
   "months": {
     "january": "January",
