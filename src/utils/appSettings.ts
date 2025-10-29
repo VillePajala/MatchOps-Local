@@ -104,8 +104,12 @@ export const getAppSettings = async (): Promise<AppSettings> => {
         // Remove legacy fields before saving
         delete settings.clubSeasonStartMonth;
         delete settings.clubSeasonEndMonth;
+
+        // Preserve configured season flag - if user had legacy month settings, they had configured seasons
+        settings.hasConfiguredSeasonDates = true;
+
         await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(settings));
-        logger.log('[getAppSettings] Successfully saved migrated settings');
+        logger.log('[getAppSettings] Successfully saved migrated settings with hasConfiguredSeasonDates=true');
       } catch (saveError) {
         // Log error but don't fail the read - user can still use the app
         logger.error('[getAppSettings] Failed to save migrated settings:', saveError);
