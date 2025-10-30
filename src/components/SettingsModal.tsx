@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '@/utils/bytes';
@@ -14,6 +15,7 @@ import { ModalFooter } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { validateSeasonDates } from '@/utils/clubSeason';
+import { queryKeys } from '@/config/queryKeys';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -42,6 +44,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [teamName, setTeamName] = useState(defaultTeamName);
   const [resetConfirm, setResetConfirm] = useState('');
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
@@ -280,6 +283,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         clubSeasonStartDate: date,
         hasConfiguredSeasonDates: true
       });
+      // Invalidate React Query cache so GameStatsModal sees the update
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
     } catch (error) {
       logger.error('Failed to save club season start date:', error);
       showToast(
@@ -309,6 +314,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         clubSeasonStartDate: date,
         hasConfiguredSeasonDates: true
       });
+      // Invalidate React Query cache so GameStatsModal sees the update
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
     } catch (error) {
       logger.error('Failed to save club season start date:', error);
       showToast(
@@ -346,6 +353,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         clubSeasonEndDate: date,
         hasConfiguredSeasonDates: true
       });
+      // Invalidate React Query cache so GameStatsModal sees the update
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
     } catch (error) {
       logger.error('Failed to save club season end date:', error);
       showToast(
@@ -375,6 +384,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         clubSeasonEndDate: date,
         hasConfiguredSeasonDates: true
       });
+      // Invalidate React Query cache so GameStatsModal sees the update
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
     } catch (error) {
       logger.error('Failed to save club season end date:', error);
       showToast(
