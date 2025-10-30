@@ -194,6 +194,11 @@ describe('GameStatsModal', () => {
     mockGetSeasons.mockResolvedValue(sampleSeasonsData);
     mockGetTournaments.mockResolvedValue(sampleTournamentsData);
     mockGetAppSettings.mockResolvedValue({
+      currentGameId: null,
+      lastHomeTeamName: '',
+      language: 'fi',
+      hasSeenAppGuide: false,
+      useDemandCorrection: false,
       clubSeasonStartDate: '2000-10-01',
       clubSeasonEndDate: '2000-05-01',
       hasConfiguredSeasonDates: false,

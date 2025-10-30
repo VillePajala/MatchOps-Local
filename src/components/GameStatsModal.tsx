@@ -213,11 +213,15 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           setTeams(loadedTeams);
         } catch (error) {
           logger.error('[GameStatsModal] Failed to load data:', error);
+          showToast(
+            t('errors.failedToLoadData', 'Failed to load data. Some features may not be available.'),
+            'error'
+          );
         }
       }
     };
     loadData();
-  }, [isOpen]);
+  }, [isOpen, showToast, t]);
 
   // Sync local game events with props
   useEffect(() => {
