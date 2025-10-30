@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: add user-facing error handling and complete test mocks (P1/P2)"
+  "notes": "fix: invalidate React Query cache when season settings are updated"
 }

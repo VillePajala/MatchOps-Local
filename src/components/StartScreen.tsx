@@ -107,7 +107,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen min-h-[100dvh] bg-slate-800 bg-noise-texture text-slate-100 font-display overflow-hidden">
       {/* Modal-style background effects for unified feel */}
-      <div className="absolute inset-0 bg-grid-squares opacity-[0.12]" />
+      <div className="absolute inset-0 bg-grid-squares opacity-[0.35]" />
       <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
       <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
       <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
@@ -120,6 +120,117 @@ const StartScreen: React.FC<StartScreenProps> = ({
         <div className="row-start-1 relative flex flex-col items-center justify-center w-full mt-[clamp(8px,3vh,24px)]">
           {/* New Logo with spotlight */}
           <div className="relative flex flex-col items-center justify-center">
+            {/* Spiderweb SVG - centered on logo */}
+            <svg
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              style={{ transform: 'scale(3)' }}
+              viewBox="0 0 200 200"
+            >
+              <defs>
+                {/* Radial gradient for strand opacity (stronger center, fade edges) */}
+                <radialGradient id="webOpacityGradient" cx="50%" cy="50%">
+                  <stop offset="0%" stopColor="rgba(255, 255, 255, 0.15)" />
+                  <stop offset="50%" stopColor="rgba(255, 255, 255, 0.10)" />
+                  <stop offset="100%" stopColor="rgba(255, 255, 255, 0.04)" />
+                </radialGradient>
+                {/* Subtle cyan-white gradient for color variation */}
+                <radialGradient id="webColorGradient" cx="50%" cy="50%">
+                  <stop offset="0%" stopColor="rgba(255, 255, 200, 0.12)" />
+                  <stop offset="40%" stopColor="rgba(255, 255, 255, 0.10)" />
+                  <stop offset="100%" stopColor="rgba(200, 240, 255, 0.06)" />
+                </radialGradient>
+                {/* Glow filter */}
+                <filter id="webGlow">
+                  <feGaussianBlur stdDeviation="0.5" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+                {/* Radial mask for fade-out at edges */}
+                <radialGradient id="webFadeMask">
+                  <stop offset="0%" stopOpacity="1" />
+                  <stop offset="60%" stopOpacity="1" />
+                  <stop offset="85%" stopOpacity="0.3" />
+                  <stop offset="100%" stopOpacity="0" />
+                </radialGradient>
+                <mask id="webMask">
+                  <circle cx="100" cy="96" r="300" fill="url(#webFadeMask)" />
+                </mask>
+              </defs>
+              <g transform="translate(100, 96)">
+                {/* Concentric circles with varying density (denser near center) */}
+                {[15, 25, 35, 50, 65, 85, 105, 130, 160].map((radius, i) => (
+                  <circle
+                    key={`circle-${radius}`}
+                    cx="0"
+                    cy="0"
+                    r={radius}
+                    fill="none"
+                    stroke="url(#webColorGradient)"
+                    strokeWidth={i < 3 ? "0.6" : "0.4"}
+                    filter="url(#webGlow)"
+                    opacity={0.85 - (i * 0.08)}
+                  />
+                ))}
+                {/* Cardinal direction lines (main cross) - solid white */}
+                <line x1="0" y1="0" x2="180" y2="0" stroke="rgba(255, 255, 255, 0.06)" strokeWidth="0.8" />
+                <line x1="0" y1="0" x2="-180" y2="0" stroke="rgba(255, 255, 255, 0.06)" strokeWidth="0.8" />
+                <line x1="0" y1="0" x2="0" y2="180" stroke="rgba(255, 255, 255, 0.06)" strokeWidth="0.8" />
+                <line x1="0" y1="0" x2="0" y2="-180" stroke="rgba(255, 255, 255, 0.06)" strokeWidth="0.8" />
+
+                {/* Radial lines - remaining 32 lines (skipping 0, 90, 180, 270) */}
+                {Array.from({ length: 36 }, (_, i) => {
+                  const angle = (i * 10 * Math.PI) / 180;
+                  // Skip cardinal directions (0, 90, 180, 270)
+                  if (i % 9 === 0) return null;
+                  const x = Math.cos(angle) * 180;
+                  const y = Math.sin(angle) * 180;
+                  return (
+                    <line
+                      key={`line-${i}`}
+                      x1="0"
+                      y1="0"
+                      x2={x}
+                      y2={y}
+                      stroke="url(#webColorGradient)"
+                      strokeWidth="0.4"
+                      filter="url(#webGlow)"
+                      opacity={0.7}
+                    />
+                  );
+                })}
+                {/* Sparkle points at random intersections */}
+                {[
+                  { r: 50, angle: 15 }, { r: 85, angle: 75 }, { r: 130, angle: 155 },
+                  { r: 65, angle: 200 }, { r: 105, angle: 260 }, { r: 160, angle: 340 },
+                ].map((sparkle, i) => {
+                  const angle = (sparkle.angle * Math.PI) / 180;
+                  const x = Math.cos(angle) * sparkle.r;
+                  const y = Math.sin(angle) * sparkle.r;
+                  return (
+                    <circle
+                      key={`sparkle-${i}`}
+                      cx={x}
+                      cy={y}
+                      r="0.8"
+                      fill="rgba(255, 255, 255, 0.4)"
+                      filter="url(#webGlow)"
+                    />
+                  );
+                })}
+                {/* Center hub/node */}
+                <circle
+                  cx="0"
+                  cy="0"
+                  r="2"
+                  fill="rgba(255, 255, 200, 0.2)"
+                  stroke="rgba(255, 255, 255, 0.25)"
+                  strokeWidth="0.5"
+                  filter="url(#webGlow)"
+                />
+              </g>
+            </svg>
             {/* Multi-layered subtle white glow behind logo */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               {/* Primary white glow - soft and subtle */}
@@ -141,6 +252,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 className="relative h-auto w-auto max-w-[72vw] xs:max-w-[360px] sm:max-w-[420px] md:max-w-[520px] lg:max-w-[560px] max-h-[32vh] [mask-image:radial-gradient(circle_at_30%_30%,black_30%,rgba(0,0,0,0.6)_100%)]"
               />
             </div>
+            {/* Tagline */}
+            <p className="text-slate-300 text-sm sm:text-base tracking-wide text-center mt-3 px-6">
+              {t('startScreen.tagline', 'Plan | Track | Assess')}
+            </p>
           </div>
         </div>
 
