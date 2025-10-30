@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: extract ClubSeasonFilter component and optimize React Query settings"
+  "notes": "fix: add user-facing error handling and complete test mocks (P1/P2)"
 }
