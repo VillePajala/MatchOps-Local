@@ -33,7 +33,6 @@ export const ClubSeasonFilter: React.FC<ClubSeasonFilterProps> = ({
         value={selectedSeason}
         onChange={(e) => onChange(e.target.value)}
         disabled={!hasConfigured || isLoading}
-        onClick={!hasConfigured ? onOpenSettings : undefined}
         className={`flex-1 min-w-0 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
           !hasConfigured || isLoading ? 'opacity-50 cursor-not-allowed' : ''
         }`}
