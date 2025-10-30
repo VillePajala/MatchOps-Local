@@ -232,10 +232,6 @@ function getUserFriendlyErrorMessage(technicalMessage: string): string {
     return 'Storage operation took too long. Please refresh the page and try again.';
   }
 
-  if (lowerMessage.includes('network') || lowerMessage.includes('offline')) {
-    return 'Network connection issue detected. Please check your internet connection and try again.';
-  }
-
   if (lowerMessage.includes('corruption') || lowerMessage.includes('corrupted')) {
     return 'Storage data appears corrupted. Please clear browser data and restart the application.';
   }

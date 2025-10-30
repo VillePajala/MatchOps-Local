@@ -274,8 +274,13 @@ export const getLatestGameId = (games: SavedGamesCollection): string | null => {
   const sortedIds = ids.sort((a, b) => {
     const gameA = games[a];
     const gameB = games[b];
-    const dateA = gameA?.gameDate ? new Date(gameA.gameDate).getTime() : 0;
-    const dateB = gameB?.gameDate ? new Date(gameB.gameDate).getTime() : 0;
+    let dateA = gameA?.gameDate ? new Date(gameA.gameDate).getTime() : 0;
+    let dateB = gameB?.gameDate ? new Date(gameB.gameDate).getTime() : 0;
+
+    // Normalize NaN to 0 for consistent comparison (handles corrupted/invalid dates)
+    if (isNaN(dateA)) dateA = 0;
+    if (isNaN(dateB)) dateB = 0;
+
     if (dateB !== dateA) {
       if (!dateA) return 1;
       if (!dateB) return -1;
