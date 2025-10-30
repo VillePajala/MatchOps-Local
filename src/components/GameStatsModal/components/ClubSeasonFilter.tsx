@@ -28,13 +28,13 @@ export const ClubSeasonFilter: React.FC<ClubSeasonFilterProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 min-w-0">
       <select
         value={selectedSeason}
         onChange={(e) => onChange(e.target.value)}
         disabled={!hasConfigured || isLoading}
         onClick={!hasConfigured ? onOpenSettings : undefined}
-        className={`flex-1 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+        className={`flex-1 min-w-0 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
           !hasConfigured || isLoading ? 'opacity-50 cursor-not-allowed' : ''
         }`}
       >
@@ -43,7 +43,7 @@ export const ClubSeasonFilter: React.FC<ClubSeasonFilterProps> = ({
           <option key={season} value={season}>
             {season === 'off-season'
               ? t('playerStats.offPeriod', 'Off-Period')
-              : season
+              : `${t('common.year', 'Year')} ${season}`
             }
           </option>
         ))}

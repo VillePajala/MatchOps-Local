@@ -523,7 +523,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         </div>
 
         {/* Controls Section */}
-        <div className="px-6 py-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
+        <div className="px-4 sm:px-6 py-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* Tabs */}
             <div className="flex items-center gap-2 flex-wrap flex-1">
@@ -553,7 +553,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           {activeTab === 'player' ? (
             <div className="p-4 sm:p-6">
               {/* Player and Season Filters */}
-              <div className="mb-4 grid grid-cols-2 gap-2">
+              <div className="mb-4 grid grid-cols-2 gap-2 overflow-visible">
                 <Combobox
                   value={selectedPlayer}
                   onChange={(player) => {

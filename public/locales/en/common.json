@@ -129,6 +129,7 @@
     "saveChanges": "Save Changes",
     "scorer": "Scorer",
     "season": "Season",
+    "year": "Year",
     "section": "Section",
     "sections": "Sections",
     "select": "Select",
@@ -693,6 +694,7 @@
   "startScreen": {
     "tagline": "Plan | Track | Assess",
     "premiumTagline": "Professional Soccer Coaching",
+    "description": "Soccer Tactics and Timer App for Coaches",
     "createNewGame": "Create New Game",
     "createFirstGame": "Create First Game",
     "loadGame": "Load Game",
