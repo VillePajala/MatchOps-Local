@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: resolve TypeScript/ESLint errors blocking build"
+  "notes": "refactor: improve personnel deletion UX and concurrency control"
 }

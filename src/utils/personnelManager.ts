@@ -1,4 +1,4 @@
-import { PERSONNEL_KEY } from '@/config/storageKeys';
+import { PERSONNEL_KEY, SAVED_GAMES_KEY } from '@/config/storageKeys';
 import { getStorageItem, setStorageItem } from './storage';
 import type { Personnel, PersonnelCollection } from '@/types/personnel';
 import logger from '@/utils/logger';
@@ -140,63 +140,61 @@ export const updatePersonnelMember = async (
  * This function performs a cascade delete - it removes the personnel from all games
  * that reference them before deleting the personnel record itself.
  *
- * **Concurrency Control**:
- * - Locks PERSONNEL_KEY to prevent concurrent personnel deletions
- * - SAVED_GAMES_KEY is modified without explicit lock for performance
- * - Single-user app assumption: Low risk of race conditions
- * - Operations are idempotent: Removing non-existent personnel ID is safe
- * - Multi-tab scenario: Both tabs read same games, filter same ID (harmless)
+ * **Concurrency Control** (Two-Phase Locking):
+ * - Locks PERSONNEL_KEY first to prevent concurrent personnel deletions
+ * - Locks SAVED_GAMES_KEY second to prevent race conditions during cascade delete
+ * - Nested locking ensures atomic CASCADE DELETE across both storage keys
+ * - Prevents data loss in multi-tab scenarios:
+ *   - Tab A: Deleting personnel
+ *   - Tab B: Editing game personnel assignments
+ *   - Without nested lock: Tab B's changes could be overwritten
+ *   - With nested lock: Operations are serialized, no data loss
  *
- * For multi-user environments, implement two-phase locking:
- * ```typescript
- * await withKeyLock(PERSONNEL_KEY, async () => {
- *   await withKeyLock(SAVED_GAMES_KEY, async () => {
- *     // ... cascade delete operations ...
- *   });
- * });
- * ```
+ * **Performance**: Nested locking increases lock duration but ensures data integrity.
+ * This is the correct trade-off for CASCADE DELETE operations.
  */
 export const removePersonnelMember = async (personnelId: string): Promise<boolean> => {
+  // Two-phase locking: Lock both keys to ensure atomic CASCADE DELETE
   return withKeyLock(PERSONNEL_KEY, async () => {
-    try {
-      const collection = await getPersonnelCollection();
+    return withKeyLock(SAVED_GAMES_KEY, async () => {
+      try {
+        const collection = await getPersonnelCollection();
 
-      if (!collection[personnelId]) {
-        logger.warn('Personnel member not found for removal:', personnelId);
-        return false;
-      }
-
-      // CASCADE DELETE: Remove personnel from all games
-      const games = await getSavedGames();
-      let gamesUpdated = 0;
-
-      for (const [gameId, gameState] of Object.entries(games)) {
-        if (gameState.gamePersonnel?.includes(personnelId)) {
-          // Remove personnel from this game
-          gameState.gamePersonnel = gameState.gamePersonnel.filter(id => id !== personnelId);
-          games[gameId] = gameState;
-          gamesUpdated++;
+        if (!collection[personnelId]) {
+          logger.warn('Personnel member not found for removal:', personnelId);
+          return false;
         }
+
+        // CASCADE DELETE: Remove personnel from all games
+        const games = await getSavedGames();
+        let gamesUpdated = 0;
+
+        for (const [gameId, gameState] of Object.entries(games)) {
+          if (gameState.gamePersonnel?.includes(personnelId)) {
+            // Remove personnel from this game
+            gameState.gamePersonnel = gameState.gamePersonnel.filter(id => id !== personnelId);
+            games[gameId] = gameState;
+            gamesUpdated++;
+          }
+        }
+
+        // Save updated games if any were modified
+        if (gamesUpdated > 0) {
+          await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+          logger.log(`Removed personnel ${personnelId} from ${gamesUpdated} games`);
+        }
+
+        // Now delete the personnel record
+        delete collection[personnelId];
+        await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
+        logger.log('Personnel member removed:', personnelId);
+
+        return true;
+      } catch (error) {
+        logger.error('Error removing personnel member:', error);
+        throw error;
       }
-
-      // Save updated games if any were modified
-      if (gamesUpdated > 0) {
-        const { setStorageItem: setGamesItem } = await import('./storage');
-        const { SAVED_GAMES_KEY } = await import('@/config/storageKeys');
-        await setGamesItem(SAVED_GAMES_KEY, JSON.stringify(games));
-        logger.log(`Removed personnel ${personnelId} from ${gamesUpdated} games`);
-      }
-
-      // Now delete the personnel record
-      delete collection[personnelId];
-      await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
-      logger.log('Personnel member removed:', personnelId);
-
-      return true;
-    } catch (error) {
-      logger.error('Error removing personnel member:', error);
-      throw error;
-    }
+    });
   });
 };
 
