@@ -79,6 +79,7 @@ describe('NewGameSetupModal', () => {
     seasons: mockSeasonsData,
     tournaments: mockTournamentsData,
     teams: mockTeamsData,
+    personnel: [],
   };
 
   beforeEach(() => {

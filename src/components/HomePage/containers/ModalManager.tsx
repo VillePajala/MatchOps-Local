@@ -41,6 +41,7 @@ import type {
   Season,
   Tournament,
   AppState,
+  Personnel,
 } from '@/types';
 import type { UseGameOrchestrationReturn } from '../hooks/useGameOrchestration';
 import { useModalContext } from '@/contexts/ModalProvider';
@@ -76,6 +77,7 @@ interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   defaultTeamNameSetting: string;
   appLanguage: string;
   isInstructionsModalOpen: boolean;
+  personnel: Personnel[];
 
   // Handlers
   handleToggleGoalLogModal: () => void;
@@ -215,6 +217,7 @@ export function ModalManager(props: ModalManagerProps) {
     defaultTeamNameSetting,
     appLanguage,
     isInstructionsModalOpen,
+    personnel,
     // Handlers
     handleToggleGoalLogModal,
     handleAddGoalEvent,
@@ -420,6 +423,7 @@ export function ModalManager(props: ModalManagerProps) {
           seasons={seasons || []}
           tournaments={tournaments || []}
           teams={teams || []}
+          personnel={personnel || []}
         />
       )}
 
