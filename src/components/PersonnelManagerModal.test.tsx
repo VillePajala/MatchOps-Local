@@ -297,8 +297,7 @@ describe('PersonnelManagerModal', () => {
   });
 
   describe('Delete Personnel', () => {
-    it('should call window.confirm when Delete clicked from 3-dot menu', async () => {
-      const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
+    it('should show confirmation modal when Delete clicked from 3-dot menu', async () => {
       renderModal();
 
       // Click 3-dot menu button
@@ -309,46 +308,66 @@ describe('PersonnelManagerModal', () => {
       const deleteButton = screen.getByText(/Delete/i);
       fireEvent.click(deleteButton);
 
-      // Wait for async getGamesWithPersonnel call before confirm is shown
+      // Wait for ConfirmationModal to appear
       await waitFor(() => {
-        expect(confirmSpy).toHaveBeenCalled();
+        expect(screen.getByText('Delete Personnel')).toBeInTheDocument();
+        expect(screen.getByText(/Are you sure you want to remove John Coach/i)).toBeInTheDocument();
       });
-      confirmSpy.mockRestore();
     });
 
     it('should call onRemovePersonnel when deletion confirmed', async () => {
-      const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
       renderModal();
 
       // Click 3-dot menu button
       const menuButtons = screen.getAllByLabelText(/More options/i);
       fireEvent.click(menuButtons[0]);
 
-      // Click Delete from dropdown
+      // Click Delete from dropdown to open confirmation modal
       const deleteButton = screen.getByText(/Delete/i);
       fireEvent.click(deleteButton);
+
+      // Wait for confirmation modal to appear
+      await waitFor(() => {
+        expect(screen.getByText('Delete Personnel')).toBeInTheDocument();
+      });
+
+      // Click Delete button in confirmation modal
+      const confirmDeleteButtons = screen.getAllByText(/Delete/i);
+      const modalDeleteButton = confirmDeleteButtons[confirmDeleteButtons.length - 1]; // Last one is the modal button
+      fireEvent.click(modalDeleteButton);
 
       await waitFor(() => {
         expect(mockOnRemovePersonnel).toHaveBeenCalledWith('personnel_1');
       });
-
-      confirmSpy.mockRestore();
     });
 
-    it('should not call onRemovePersonnel when deletion cancelled', () => {
-      const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
+    it('should not call onRemovePersonnel when deletion cancelled', async () => {
       renderModal();
 
       // Click 3-dot menu button
       const menuButtons = screen.getAllByLabelText(/More options/i);
       fireEvent.click(menuButtons[0]);
 
-      // Click Delete from dropdown
+      // Click Delete from dropdown to open confirmation modal
       const deleteButton = screen.getByText(/Delete/i);
       fireEvent.click(deleteButton);
 
+      // Wait for confirmation modal to appear
+      await waitFor(() => {
+        expect(screen.getByText('Delete Personnel')).toBeInTheDocument();
+      });
+
+      // Click Cancel button in confirmation modal
+      const cancelButton = screen.getByText(/Cancel/i);
+      fireEvent.click(cancelButton);
+
+      // Verify onRemovePersonnel was not called
       expect(mockOnRemovePersonnel).not.toHaveBeenCalled();
-      confirmSpy.mockRestore();
+
+      // Verify modal is closed
+      await waitFor(() => {
+        expect(screen.queryByText('Delete Personnel')).not.toBeInTheDocument();
+      });
     });
   });
 

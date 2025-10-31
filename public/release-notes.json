@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: add comprehensive personnel management system with critical fixes"
+  "notes": "fix: resolve TypeScript/ESLint errors blocking build"
 }
