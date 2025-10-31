@@ -120,6 +120,7 @@ export const appStateSchema = z.object({
   tacticalBallPosition: pointSchema.nullable(),
   isPlayed: z.boolean().optional(),
   teamId: z.string().optional(),
+  gamePersonnel: z.array(z.string()).optional(),
 });
 
 export type AppStateSchema = typeof appStateSchema;

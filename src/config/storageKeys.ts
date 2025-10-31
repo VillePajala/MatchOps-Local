@@ -11,3 +11,6 @@ export const PLAYER_ADJUSTMENTS_KEY = 'soccerPlayerAdjustments';
 export const TEAMS_INDEX_KEY = 'soccerTeamsIndex';
 export const TEAM_ROSTERS_KEY = 'soccerTeamRosters';
 export const APP_DATA_VERSION_KEY = 'appDataVersion';
+
+// Personnel storage key
+export const PERSONNEL_KEY = 'soccerPersonnel';
