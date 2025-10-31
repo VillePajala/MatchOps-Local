@@ -98,31 +98,29 @@ export function filterGameIds(
     }
 
     // Season filter (based on activeTab context)
-    if (seasonFilter !== undefined) {
-      if (activeTab === 'season') {
-        // Season tab: exclude games that have tournaments
-        if (seasonFilter === 'all') {
-          // Show all season games (no tournament)
-          return game.seasonId != null && (game.tournamentId == null || game.tournamentId === '');
-        } else {
-          // Show specific season only
-          return game.seasonId === seasonFilter;
-        }
+    if (activeTab === 'season') {
+      if (seasonFilter === 'all') {
+        // Show all season games (must have seasonId, no tournament)
+        return game.seasonId != null && game.seasonId !== '' && (game.tournamentId == null || game.tournamentId === '');
+      } else if (seasonFilter !== undefined) {
+        // Show specific season only
+        return game.seasonId === seasonFilter;
       }
+      // If on season tab but no seasonFilter or game has no season, exclude
+      return false;
     }
 
     // Tournament filter (based on activeTab context)
-    if (tournamentFilter !== undefined) {
-      if (activeTab === 'tournament') {
-        // Tournament tab: exclude games that have seasons
-        if (tournamentFilter === 'all') {
-          // Show all tournament games (no season)
-          return game.tournamentId != null && (game.seasonId == null || game.seasonId === '');
-        } else {
-          // Show specific tournament only
-          return game.tournamentId === tournamentFilter;
-        }
+    if (activeTab === 'tournament') {
+      if (tournamentFilter === 'all') {
+        // Show all tournament games (must have tournamentId, no season)
+        return game.tournamentId != null && game.tournamentId !== '' && (game.seasonId == null || game.seasonId === '');
+      } else if (tournamentFilter !== undefined) {
+        // Show specific tournament only
+        return game.tournamentId === tournamentFilter;
       }
+      // If on tournament tab but no tournamentFilter or game has no tournament, exclude
+      return false;
     }
 
     return true;

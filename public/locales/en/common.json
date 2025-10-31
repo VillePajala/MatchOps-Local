@@ -129,6 +129,7 @@
     "saveChanges": "Save Changes",
     "scorer": "Scorer",
     "season": "Season",
+    "year": "Year",
     "section": "Section",
     "sections": "Sections",
     "select": "Select",
@@ -693,6 +694,7 @@
   "startScreen": {
     "tagline": "Plan | Track | Assess",
     "premiumTagline": "Professional Soccer Coaching",
+    "description": "Soccer Tactics and Timer App for Coaches",
     "createNewGame": "Create New Game",
     "createFirstGame": "Create First Game",
     "loadGame": "Load Game",
@@ -974,10 +976,14 @@
     "importGamesButton": "Import Games",
     "importing": "Importing...",
     "gameImportError": "Error importing games: ",
-    "clubSeasonTitle": "Club Season Period",
-    "clubSeasonDescription": "Define your club's season period for filtering player statistics (e.g., October to May).",
-    "seasonStartMonthLabel": "Season Start Month",
-    "seasonEndMonthLabel": "Season End Month"
+    "seasonPeriodTitle": "Season Period",
+    "seasonPeriodDescription": "Define when your season runs (for filtering statistics). Month and day only - the year is just a template (e.g., October to May).",
+    "periodStartLabel": "Period Start",
+    "periodEndLabel": "Period End",
+    "monthLabel": "Month",
+    "dayLabel": "Day",
+    "invalidPeriodDateError": "Invalid period date. Please enter a valid date.",
+    "savePeriodDateError": "Failed to save period date. Please try again."
   },
   "playerAssessmentModal": {
     "title": "Assess Game Performance",
@@ -1067,14 +1073,19 @@
     "deleteError": "Failed to delete the external game entry.",
     "includeInSeasonTournament": "Include in season/tournament statistics",
     "includeInSeasonTournamentHelp": "Check this if the external game was played for the same team",
-    "clubSeasonFilter": "Filter by Club Season",
-    "allSeasons": "All Seasons",
-    "offSeason": "Off-Season",
+    "periodFilter": "Filter by Period",
+    "allPeriods": "All Periods",
+    "offPeriod": "Off-Period",
     "fairPlayCards": "Fair Play Cards",
     "fairPlayCardsShort": "FP",
     "sportsmanship": "Sportsmanship",
     "fairPlayTrophy": "Fair Play Trophy",
-    "playerOfTournament": "Player of Tournament"
+    "playerOfTournament": "Player of Tournament",
+    "periodNotConfiguredTitle": "Season Period Not Configured",
+    "periodNotConfiguredMessage": "To filter statistics by period, first configure your season period (e.g., October to May) in Settings.",
+    "configurePeriodDates": "Configure Period Dates",
+    "configurePeriodDatesFirst": "Configure period dates in Settings first",
+    "tapGearToConfigurePeriods": "Tap gear icon to configure period dates"
   },
   "months": {
     "january": "January",

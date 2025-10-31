@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '@/utils/bytes';
@@ -13,7 +14,8 @@ import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
-import { validateSeasonMonths } from '@/utils/clubSeason';
+import { validateSeasonDates } from '@/utils/clubSeason';
+import { queryKeys } from '@/config/queryKeys';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -42,6 +44,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [teamName, setTeamName] = useState(defaultTeamName);
   const [resetConfirm, setResetConfirm] = useState('');
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
@@ -49,8 +52,45 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const gameImportFileInputRef = useRef<HTMLInputElement>(null);
   const [showImportResults, setShowImportResults] = useState(false);
   const { importFromFile, isImporting, lastResult } = useGameImport();
-  const [clubSeasonStartMonth, setClubSeasonStartMonth] = useState<number>(10);
-  const [clubSeasonEndMonth, setClubSeasonEndMonth] = useState<number>(5);
+  const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>('2000-10-01');
+  const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>('2000-05-01');
+
+  // Helper to get maximum day for a given month
+  const getMaxDayForMonth = (month: number): number => {
+    // February has 29 days (use 29 to allow leap year dates)
+    if (month === 2) return 29;
+    // April, June, September, November have 30 days
+    if (month === 4 || month === 6 || month === 9 || month === 11) return 30;
+    // All other months have 31 days
+    return 31;
+  };
+
+  // Helper to parse month and day from date string with defensive fallback
+  const parseMonthDay = (dateStr: string): { month: number; day: number } => {
+    try {
+      const parts = dateStr.split('-');
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+
+      // Validate parsed values
+      if (isNaN(month) || isNaN(day) || month < 1 || month > 12 || day < 1 || day > 31) {
+        logger.warn('[parseMonthDay] Invalid date string, using defaults:', dateStr);
+        return { month: 10, day: 1 }; // Default to October 1
+      }
+
+      return { month, day };
+    } catch (error) {
+      logger.error('[parseMonthDay] Failed to parse date string, using defaults:', dateStr, error);
+      return { month: 10, day: 1 }; // Default to October 1
+    }
+  };
+
+  // Helper to construct date string from month and day (using year 2000 as template)
+  const constructDateString = (month: number, day: number): string => {
+    const monthStr = month.toString().padStart(2, '0');
+    const dayStr = day.toString().padStart(2, '0');
+    return `2000-${monthStr}-${dayStr}`;
+  };
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
   const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
   const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
@@ -65,13 +105,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     if (isOpen) {
       // Load club season settings
       getAppSettings().then(settings => {
-        setClubSeasonStartMonth(settings.clubSeasonStartMonth ?? 10);
-        setClubSeasonEndMonth(settings.clubSeasonEndMonth ?? 5);
+        setClubSeasonStartDate(settings.clubSeasonStartDate ?? '2000-10-01');
+        setClubSeasonEndDate(settings.clubSeasonEndDate ?? '2000-05-01');
       }).catch((error) => {
         // Use defaults if loading fails
         logger.error('Failed to load club season settings:', error);
-        setClubSeasonStartMonth(10);
-        setClubSeasonEndMonth(5);
+        setClubSeasonStartDate('2000-10-01');
+        setClubSeasonEndDate('2000-05-01');
       });
 
       if (navigator.storage?.estimate) {
@@ -216,32 +256,142 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleClubSeasonStartMonthChange = async (month: number) => {
-    // Validate month before saving
-    if (!validateSeasonMonths(month, clubSeasonEndMonth)) {
-      logger.error('Invalid season start month:', month);
+    let { day } = parseMonthDay(clubSeasonStartDate);
+
+    // Auto-correct day if it exceeds max for the new month
+    const maxDay = getMaxDayForMonth(month);
+    if (day > maxDay) {
+      day = maxDay;
+      logger.log(`[handleClubSeasonStartMonthChange] Auto-corrected day from ${day} to ${maxDay} for month ${month}`);
+    }
+
+    const date = constructDateString(month, day);
+
+    // Validate date before saving
+    if (!validateSeasonDates(date, clubSeasonEndDate)) {
+      logger.error('Invalid season start date:', date);
+      showToast(
+        t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
+        'error'
+      );
       return;
     }
 
-    setClubSeasonStartMonth(month);
+    setClubSeasonStartDate(date);
     try {
-      await updateAppSettings({ clubSeasonStartMonth: month });
+      await updateAppSettings({
+        clubSeasonStartDate: date,
+        hasConfiguredSeasonDates: true
+      });
+      // Invalidate React Query cache so GameStatsModal sees the update
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
     } catch (error) {
-      logger.error('Failed to save club season start month:', error);
+      logger.error('Failed to save club season start date:', error);
+      showToast(
+        t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
+        'error'
+      );
+    }
+  };
+
+  const handleClubSeasonStartDayChange = async (day: number) => {
+    const { month } = parseMonthDay(clubSeasonStartDate);
+    const date = constructDateString(month, day);
+
+    // Validate date before saving
+    if (!validateSeasonDates(date, clubSeasonEndDate)) {
+      logger.error('Invalid season start date:', date);
+      showToast(
+        t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
+        'error'
+      );
+      return;
+    }
+
+    setClubSeasonStartDate(date);
+    try {
+      await updateAppSettings({
+        clubSeasonStartDate: date,
+        hasConfiguredSeasonDates: true
+      });
+      // Invalidate React Query cache so GameStatsModal sees the update
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
+    } catch (error) {
+      logger.error('Failed to save club season start date:', error);
+      showToast(
+        t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
+        'error'
+      );
     }
   };
 
   const handleClubSeasonEndMonthChange = async (month: number) => {
-    // Validate month before saving
-    if (!validateSeasonMonths(clubSeasonStartMonth, month)) {
-      logger.error('Invalid season end month:', month);
+    let { day } = parseMonthDay(clubSeasonEndDate);
+
+    // Auto-correct day if it exceeds max for the new month
+    const maxDay = getMaxDayForMonth(month);
+    if (day > maxDay) {
+      day = maxDay;
+      logger.log(`[handleClubSeasonEndMonthChange] Auto-corrected day from ${day} to ${maxDay} for month ${month}`);
+    }
+
+    const date = constructDateString(month, day);
+
+    // Validate date before saving
+    if (!validateSeasonDates(clubSeasonStartDate, date)) {
+      logger.error('Invalid season end date:', date);
+      showToast(
+        t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
+        'error'
+      );
       return;
     }
 
-    setClubSeasonEndMonth(month);
+    setClubSeasonEndDate(date);
     try {
-      await updateAppSettings({ clubSeasonEndMonth: month });
+      await updateAppSettings({
+        clubSeasonEndDate: date,
+        hasConfiguredSeasonDates: true
+      });
+      // Invalidate React Query cache so GameStatsModal sees the update
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
     } catch (error) {
-      logger.error('Failed to save club season end month:', error);
+      logger.error('Failed to save club season end date:', error);
+      showToast(
+        t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
+        'error'
+      );
+    }
+  };
+
+  const handleClubSeasonEndDayChange = async (day: number) => {
+    const { month } = parseMonthDay(clubSeasonEndDate);
+    const date = constructDateString(month, day);
+
+    // Validate date before saving
+    if (!validateSeasonDates(clubSeasonStartDate, date)) {
+      logger.error('Invalid season end date:', date);
+      showToast(
+        t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
+        'error'
+      );
+      return;
+    }
+
+    setClubSeasonEndDate(date);
+    try {
+      await updateAppSettings({
+        clubSeasonEndDate: date,
+        hasConfiguredSeasonDates: true
+      });
+      // Invalidate React Query cache so GameStatsModal sees the update
+      queryClient.invalidateQueries({ queryKey: queryKeys.settings.detail() });
+    } catch (error) {
+      logger.error('Failed to save club season end date:', error);
+      showToast(
+        t('settingsModal.savePeriodDateError', 'Failed to save period date. Please try again.'),
+        'error'
+      );
     }
   };
 
@@ -298,62 +448,102 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               />
               </div>
             </div>
-            {/* Club Season */}
+            {/* Season Period */}
             <div className="space-y-3 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
               <h3 className="text-lg font-semibold text-slate-200">
-                {t('settingsModal.clubSeasonTitle', 'Club Season Period')}
+                {t('settingsModal.seasonPeriodTitle', 'Season Period')}
               </h3>
-              <p className="text-sm text-slate-300">
-                {t('settingsModal.clubSeasonDescription', 'Define your club\'s season period for filtering player statistics (e.g., October to May).')}
+              <p id="club-season-description" className="text-sm text-slate-300">
+                {t('settingsModal.seasonPeriodDescription', 'Define when your season runs (for filtering statistics). Month and day only - the year is just a template (e.g., October to May).')}
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-3">
+                {/* Period Start */}
                 <div>
-                  <label htmlFor="season-start-month" className={labelStyle}>
-                    {t('settingsModal.seasonStartMonthLabel', 'Season Start Month')}
+                  <label className={labelStyle}>
+                    {t('settingsModal.periodStartLabel', 'Period Start')}
                   </label>
-                  <select
-                    id="season-start-month"
-                    value={clubSeasonStartMonth}
-                    onChange={(e) => handleClubSeasonStartMonthChange(parseInt(e.target.value, 10))}
-                    className={inputStyle}
-                  >
-                    <option value={1}>{t('months.january', 'January')}</option>
-                    <option value={2}>{t('months.february', 'February')}</option>
-                    <option value={3}>{t('months.march', 'March')}</option>
-                    <option value={4}>{t('months.april', 'April')}</option>
-                    <option value={5}>{t('months.may', 'May')}</option>
-                    <option value={6}>{t('months.june', 'June')}</option>
-                    <option value={7}>{t('months.july', 'July')}</option>
-                    <option value={8}>{t('months.august', 'August')}</option>
-                    <option value={9}>{t('months.september', 'September')}</option>
-                    <option value={10}>{t('months.october', 'October')}</option>
-                    <option value={11}>{t('months.november', 'November')}</option>
-                    <option value={12}>{t('months.december', 'December')}</option>
-                  </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      id="season-start-month"
+                      value={parseMonthDay(clubSeasonStartDate).month}
+                      onChange={(e) => handleClubSeasonStartMonthChange(parseInt(e.target.value, 10))}
+                      className={inputStyle}
+                      aria-describedby="club-season-description"
+                      aria-label={t('settingsModal.monthLabel', 'Month')}
+                    >
+                      <option value={1}>{t('months.january', 'January')}</option>
+                      <option value={2}>{t('months.february', 'February')}</option>
+                      <option value={3}>{t('months.march', 'March')}</option>
+                      <option value={4}>{t('months.april', 'April')}</option>
+                      <option value={5}>{t('months.may', 'May')}</option>
+                      <option value={6}>{t('months.june', 'June')}</option>
+                      <option value={7}>{t('months.july', 'July')}</option>
+                      <option value={8}>{t('months.august', 'August')}</option>
+                      <option value={9}>{t('months.september', 'September')}</option>
+                      <option value={10}>{t('months.october', 'October')}</option>
+                      <option value={11}>{t('months.november', 'November')}</option>
+                      <option value={12}>{t('months.december', 'December')}</option>
+                    </select>
+                    <select
+                      id="season-start-day"
+                      value={parseMonthDay(clubSeasonStartDate).day}
+                      onChange={(e) => handleClubSeasonStartDayChange(parseInt(e.target.value, 10))}
+                      className={inputStyle}
+                      aria-describedby="club-season-description"
+                      aria-label={t('settingsModal.dayLabel', 'Day')}
+                    >
+                      {Array.from(
+                        { length: getMaxDayForMonth(parseMonthDay(clubSeasonStartDate).month) },
+                        (_, i) => i + 1
+                      ).map(day => (
+                        <option key={day} value={day}>{day}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
+                {/* Period End */}
                 <div>
-                  <label htmlFor="season-end-month" className={labelStyle}>
-                    {t('settingsModal.seasonEndMonthLabel', 'Season End Month')}
+                  <label className={labelStyle}>
+                    {t('settingsModal.periodEndLabel', 'Period End')}
                   </label>
-                  <select
-                    id="season-end-month"
-                    value={clubSeasonEndMonth}
-                    onChange={(e) => handleClubSeasonEndMonthChange(parseInt(e.target.value, 10))}
-                    className={inputStyle}
-                  >
-                    <option value={1}>{t('months.january', 'January')}</option>
-                    <option value={2}>{t('months.february', 'February')}</option>
-                    <option value={3}>{t('months.march', 'March')}</option>
-                    <option value={4}>{t('months.april', 'April')}</option>
-                    <option value={5}>{t('months.may', 'May')}</option>
-                    <option value={6}>{t('months.june', 'June')}</option>
-                    <option value={7}>{t('months.july', 'July')}</option>
-                    <option value={8}>{t('months.august', 'August')}</option>
-                    <option value={9}>{t('months.september', 'September')}</option>
-                    <option value={10}>{t('months.october', 'October')}</option>
-                    <option value={11}>{t('months.november', 'November')}</option>
-                    <option value={12}>{t('months.december', 'December')}</option>
-                  </select>
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      id="season-end-month"
+                      value={parseMonthDay(clubSeasonEndDate).month}
+                      onChange={(e) => handleClubSeasonEndMonthChange(parseInt(e.target.value, 10))}
+                      className={inputStyle}
+                      aria-describedby="club-season-description"
+                      aria-label={t('settingsModal.monthLabel', 'Month')}
+                    >
+                      <option value={1}>{t('months.january', 'January')}</option>
+                      <option value={2}>{t('months.february', 'February')}</option>
+                      <option value={3}>{t('months.march', 'March')}</option>
+                      <option value={4}>{t('months.april', 'April')}</option>
+                      <option value={5}>{t('months.may', 'May')}</option>
+                      <option value={6}>{t('months.june', 'June')}</option>
+                      <option value={7}>{t('months.july', 'July')}</option>
+                      <option value={8}>{t('months.august', 'August')}</option>
+                      <option value={9}>{t('months.september', 'September')}</option>
+                      <option value={10}>{t('months.october', 'October')}</option>
+                      <option value={11}>{t('months.november', 'November')}</option>
+                      <option value={12}>{t('months.december', 'December')}</option>
+                    </select>
+                    <select
+                      id="season-end-day"
+                      value={parseMonthDay(clubSeasonEndDate).day}
+                      onChange={(e) => handleClubSeasonEndDayChange(parseInt(e.target.value, 10))}
+                      className={inputStyle}
+                      aria-describedby="club-season-description"
+                      aria-label={t('settingsModal.dayLabel', 'Day')}
+                    >
+                      {Array.from(
+                        { length: getMaxDayForMonth(parseMonthDay(clubSeasonEndDate).month) },
+                        (_, i) => i + 1
+                      ).map(day => (
+                        <option key={day} value={day}>{day}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>

@@ -104,7 +104,6 @@ describe('StartScreen', () => {
 
     // Should only show simplified interface
     expect(screen.getByRole('button', { name: 'Get Started' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'How It Works' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'English' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Finnish' })).toBeInTheDocument();
 

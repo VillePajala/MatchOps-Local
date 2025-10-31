@@ -41,9 +41,9 @@ describe('App Settings Utilities', () => {
   describe('getAppSettings', () => {
     it('should return default settings if nothing is stored', async () => {
       mockGetStorageItem.mockResolvedValue(null);
-      
+
       const result = await getAppSettings();
-      
+
       expect(mockGetStorageItem).toHaveBeenCalledWith(APP_SETTINGS_KEY);
       expect(result).toEqual({
         currentGameId: null,
@@ -51,8 +51,9 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         hasSeenAppGuide: false,
         useDemandCorrection: false,
-        clubSeasonStartMonth: 10,
-        clubSeasonEndMonth: 5
+        hasConfiguredSeasonDates: false,
+        clubSeasonStartDate: '2000-10-01',
+        clubSeasonEndDate: '2000-05-01'
       });
     });
 
@@ -69,8 +70,9 @@ describe('App Settings Utilities', () => {
         language: 'fi', // From default settings
         hasSeenAppGuide: false,
         useDemandCorrection: false,
-        clubSeasonStartMonth: 10,
-        clubSeasonEndMonth: 5
+        hasConfiguredSeasonDates: false,
+        clubSeasonStartDate: expect.stringMatching(/^\d{4}-10-01$/),
+        clubSeasonEndDate: expect.stringMatching(/^\d{4}-05-01$/)
       });
     });
 
@@ -87,8 +89,9 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         hasSeenAppGuide: false,
         useDemandCorrection: false,
-        clubSeasonStartMonth: 10,
-        clubSeasonEndMonth: 5
+        hasConfiguredSeasonDates: false,
+        clubSeasonStartDate: expect.stringMatching(/^\d{4}-10-01$/),
+        clubSeasonEndDate: expect.stringMatching(/^\d{4}-05-01$/)
       });
 
       consoleSpy.mockRestore();
@@ -108,8 +111,9 @@ describe('App Settings Utilities', () => {
         language: 'fi',
         hasSeenAppGuide: false,
         useDemandCorrection: false,
-        clubSeasonStartMonth: 10,
-        clubSeasonEndMonth: 5
+        hasConfiguredSeasonDates: false,
+        clubSeasonStartDate: expect.stringMatching(/^\d{4}-10-01$/),
+        clubSeasonEndDate: expect.stringMatching(/^\d{4}-05-01$/)
       });
       consoleSpy.mockRestore();
     });
@@ -164,22 +168,20 @@ describe('App Settings Utilities', () => {
         language: 'fi', // Preserved
         hasSeenAppGuide: false,
         useDemandCorrection: false,
-        clubSeasonStartMonth: 10,
-        clubSeasonEndMonth: 5
+        hasConfiguredSeasonDates: false,
+        clubSeasonStartDate: expect.stringMatching(/^\d{4}-10-01$/),
+        clubSeasonEndDate: expect.stringMatching(/^\d{4}-05-01$/)
       });
 
+      // Check that setStorageItem was called with updated settings
       expect(mockSetStorageItem).toHaveBeenCalledWith(
         APP_SETTINGS_KEY,
-        JSON.stringify({
-          currentGameId: 'game456',
-          lastHomeTeamName: 'Team A',
-          language: 'fi',
-          hasSeenAppGuide: false,
-          useDemandCorrection: false,
-          clubSeasonStartMonth: 10,
-          clubSeasonEndMonth: 5
-        })
+        expect.stringContaining('"currentGameId":"game456"')
       );
+      // Verify the saved data contains season dates with correct format
+      const savedData = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
+      expect(savedData.clubSeasonStartDate).toMatch(/^\d{4}-10-01$/);
+      expect(savedData.clubSeasonEndDate).toMatch(/^\d{4}-05-01$/);
     });
 
     it('should update the language setting', async () => {
@@ -197,19 +199,19 @@ describe('App Settings Utilities', () => {
         ...currentSettings,
         language: 'fi',
         useDemandCorrection: false,
-        clubSeasonStartMonth: 10,
-        clubSeasonEndMonth: 5
+        hasConfiguredSeasonDates: false,
+        clubSeasonStartDate: expect.stringMatching(/^\d{4}-10-01$/),
+        clubSeasonEndDate: expect.stringMatching(/^\d{4}-05-01$/)
       });
+
+      // Verify setStorageItem was called with correct structure
       expect(mockSetStorageItem).toHaveBeenCalledWith(
         APP_SETTINGS_KEY,
-        JSON.stringify({
-          ...currentSettings,
-          language: 'fi',
-          useDemandCorrection: false,
-          clubSeasonStartMonth: 10,
-          clubSeasonEndMonth: 5
-        })
+        expect.stringContaining('"language":"fi"')
       );
+      const savedData = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
+      expect(savedData.clubSeasonStartDate).toMatch(/^\d{4}-10-01$/);
+      expect(savedData.clubSeasonEndDate).toMatch(/^\d{4}-05-01$/);
     });
 
     it('should throw an error if update fails', async () => {
@@ -273,19 +275,20 @@ describe('App Settings Utilities', () => {
       mockSetStorageItem.mockImplementation(async () => {}); 
 
       const result = await saveCurrentGameIdSetting('newGameId');
-      
+
+      // Verify setStorageItem was called with correct structure
       expect(mockSetStorageItem).toHaveBeenCalledWith(
         APP_SETTINGS_KEY,
-        JSON.stringify({
-          currentGameId: 'newGameId',
-          lastHomeTeamName: 'Team B',
-          language: 'fi',
-          hasSeenAppGuide: false,
-          useDemandCorrection: false,
-          clubSeasonStartMonth: 10,
-          clubSeasonEndMonth: 5
-        })
+        expect.stringContaining('"currentGameId":"newGameId"')
       );
+      const savedData = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
+      expect(savedData.currentGameId).toBe('newGameId');
+      expect(savedData.lastHomeTeamName).toBe('Team B');
+      expect(savedData.language).toBe('fi');
+      expect(savedData.hasSeenAppGuide).toBe(false);
+      expect(savedData.useDemandCorrection).toBe(false);
+      expect(savedData.clubSeasonStartDate).toMatch(/^\d{4}-10-01$/);
+      expect(savedData.clubSeasonEndDate).toMatch(/^\d{4}-05-01$/);
       expect(result).toBe(true);
     });
 
@@ -363,13 +366,13 @@ describe('App Settings Utilities', () => {
       expect(appSettingsCall).toBeDefined();
       if (appSettingsCall) {
         const savedSettings = JSON.parse(appSettingsCall[1]);
-        expect(savedSettings).toEqual({
-          ...currentSettings, // Ensure other settings are preserved
-          lastHomeTeamName: 'New Team Name', // The updated value
-          useDemandCorrection: false,
-          clubSeasonStartMonth: 10,
-          clubSeasonEndMonth: 5
-        });
+        expect(savedSettings.currentGameId).toBe(currentSettings.currentGameId);
+        expect(savedSettings.lastHomeTeamName).toBe('New Team Name');
+        expect(savedSettings.language).toBe(currentSettings.language);
+        expect(savedSettings.hasSeenAppGuide).toBe(currentSettings.hasSeenAppGuide);
+        expect(savedSettings.useDemandCorrection).toBe(false);
+        expect(savedSettings.clubSeasonStartDate).toMatch(/^\d{4}-10-01$/);
+        expect(savedSettings.clubSeasonEndDate).toMatch(/^\d{4}-05-01$/);
       }
 
       // Check legacy save
@@ -416,6 +419,99 @@ describe('App Settings Utilities', () => {
 
       const result = await resetAppSettings();
       expect(result).toBe(false);
+    });
+  });
+
+  describe('inline migration during getAppSettings', () => {
+    it('should migrate legacy month-based settings to date-based settings on read', async () => {
+      const legacySettings = {
+        currentGameId: 'game123',
+        language: 'fi',
+        clubSeasonStartMonth: 10, // October
+        clubSeasonEndMonth: 5,    // May
+      };
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(legacySettings));
+      mockSetStorageItem.mockImplementation(async () => {});
+
+      const result = await getAppSettings();
+
+      // Should have migrated and saved settings
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+      const savedData = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
+      expect(savedData.clubSeasonStartDate).toBe('2000-10-01'); // October 1st (year 2000 template)
+      expect(savedData.clubSeasonEndDate).toBe('2000-05-01');   // May 1st (year 2000 template)
+      expect(savedData.clubSeasonStartMonth).toBeUndefined();   // Legacy field removed
+      expect(savedData.clubSeasonEndMonth).toBeUndefined();     // Legacy field removed
+
+      // Should return migrated values
+      expect(result.clubSeasonStartDate).toBe('2000-10-01');
+      expect(result.clubSeasonEndDate).toBe('2000-05-01');
+    });
+
+    /**
+     * Tests that migration preserves the configured season flag
+     * @critical
+     *
+     * Validates P1 fix from Codex review: when migrating from legacy month-based
+     * settings, hasConfiguredSeasonDates must be set to true so existing users'
+     * configurations remain enabled after upgrade.
+     */
+    it('should set hasConfiguredSeasonDates=true when migrating legacy month settings', async () => {
+      const legacySettings = {
+        currentGameId: 'game123',
+        language: 'fi',
+        clubSeasonStartMonth: 3,  // March
+        clubSeasonEndMonth: 11,   // November
+      };
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(legacySettings));
+      mockSetStorageItem.mockImplementation(async () => {});
+
+      const result = await getAppSettings();
+
+      // Should have migrated and saved settings
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+      const savedData = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
+
+      // Critical: Flag must be preserved so user's configuration remains enabled
+      expect(savedData.hasConfiguredSeasonDates).toBe(true);
+      expect(result.hasConfiguredSeasonDates).toBe(true);
+
+      // Verify dates were migrated correctly
+      expect(savedData.clubSeasonStartDate).toBe('2000-03-01');
+      expect(savedData.clubSeasonEndDate).toBe('2000-11-01');
+    });
+
+    it('should not migrate if settings already have date-based format', async () => {
+      const modernSettings = {
+        currentGameId: 'game123',
+        language: 'fi',
+        clubSeasonStartDate: '2000-10-01',
+        clubSeasonEndDate: '2000-05-01',
+      };
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(modernSettings));
+      mockSetStorageItem.mockImplementation(async () => {});
+
+      await getAppSettings();
+
+      // Should not save anything (no migration needed)
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
+    });
+
+    it('should handle migration save errors gracefully and continue', async () => {
+      const legacySettings = {
+        currentGameId: 'game123',
+        clubSeasonStartMonth: 10,
+        clubSeasonEndMonth: 5,
+      };
+      mockGetStorageItem.mockResolvedValue(JSON.stringify(legacySettings));
+      mockSetStorageItem.mockRejectedValue(new Error('Storage error'));
+
+      // Should not throw - migration save failure is non-fatal
+      const result = await getAppSettings();
+
+      // Should still return migrated values in memory
+      expect(result.clubSeasonStartDate).toBe('2000-10-01');
+      expect(result.clubSeasonEndDate).toBe('2000-05-01');
     });
   });
 }); 

@@ -4,6 +4,7 @@ import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import { Combobox } from '@headlessui/react';
 import { HiOutlineChevronUpDown } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import logger from '@/utils/logger';
 import { Player, PlayerStatRow, Season, Tournament, Team } from '@/types';
 import { GameEvent, SavedGamesCollection } from '@/types';
@@ -12,11 +13,12 @@ import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
 import { getTeams as utilGetTeams } from '@/utils/teams';
 import PlayerStatsView from './PlayerStatsView';
 import { calculateTeamAssessmentAverages } from '@/utils/assessmentStats';
-import { extractClubSeasonsFromGames } from '@/utils/clubSeason';
+import { extractClubSeasonsFromGames, getClubSeasonForDate } from '@/utils/clubSeason';
 import { getAppSettings } from '@/utils/appSettings';
 import { useToast } from '@/contexts/ToastProvider';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { queryKeys } from '@/config/queryKeys';
 
 // Import extracted hooks
 import { useGameStats } from './GameStatsModal/hooks/useGameStats';
@@ -34,6 +36,7 @@ import {
   GameNotesEditor,
   FilterControls,
   TeamPerformanceCard,
+  ClubSeasonFilter,
 } from './GameStatsModal/components';
 
 // Import types
@@ -66,6 +69,7 @@ interface GameStatsModalProps {
   initialSelectedPlayerId?: string | null;
   onGameClick?: (gameId: string) => void;
   masterRoster?: Player[];
+  onOpenSettings?: () => void;
 }
 
 const GameStatsModal: React.FC<GameStatsModalProps> = ({
@@ -95,6 +99,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   initialSelectedPlayerId = null,
   onGameClick = () => {},
   masterRoster = [],
+  onOpenSettings,
 }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
@@ -128,6 +133,18 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     }
   }, [i18n.language, t]);
 
+  // Handler for when disabled season filter is clicked or settings button is clicked
+  const handleOpenSeasonSettings = useCallback(() => {
+    if (onOpenSettings) {
+      // If parent provides a callback, use it to open Settings modal
+      onOpenSettings();
+    } else {
+      // Otherwise, show a toast message
+      const message = t('playerStats.periodNotConfiguredMessage', 'To filter statistics by period, first configure your season period (e.g., October to May) in Settings.');
+      showToast(message, 'info');
+    }
+  }, [onOpenSettings, showToast, t]);
+
   // --- State ---
   const [editGameNotes, setEditGameNotes] = useState(gameNotes);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -146,8 +163,21 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [playerQuery, setPlayerQuery] = useState('');
   const [selectedClubSeason, setSelectedClubSeason] = useState<string>('all');
-  const [clubSeasonStartMonth, setClubSeasonStartMonth] = useState<number>(10);
-  const [clubSeasonEndMonth, setClubSeasonEndMonth] = useState<number>(5);
+
+  // Use React Query for settings management
+  const { data: settings, isLoading: isLoadingSettings } = useQuery({
+    queryKey: queryKeys.settings.detail(),
+    queryFn: getAppSettings,
+    staleTime: Infinity, // Settings rarely change during session
+    refetchOnWindowFocus: true, // Refetch on focus for cross-tab sync
+    gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
+    enabled: isOpen, // Only fetch when modal is open
+  });
+
+  // Derive settings values with defaults
+  const clubSeasonStartDate = settings?.clubSeasonStartDate ?? '2000-10-01';
+  const clubSeasonEndDate = settings?.clubSeasonEndDate ?? '2000-05-01';
+  const hasConfiguredSeasonDates = settings?.hasConfiguredSeasonDates ?? false;
 
   // Filtered players for Player tab combobox
   const filteredPlayers = useMemo(() => {
@@ -164,32 +194,34 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // Extract available club seasons from games
   const availableClubSeasons = useMemo(() => {
     const gamesArray = Object.values(savedGames || {});
-    return extractClubSeasonsFromGames(gamesArray, clubSeasonStartMonth, clubSeasonEndMonth);
-  }, [savedGames, clubSeasonStartMonth, clubSeasonEndMonth]);
+    return extractClubSeasonsFromGames(gamesArray, clubSeasonStartDate, clubSeasonEndDate);
+  }, [savedGames, clubSeasonStartDate, clubSeasonEndDate]);
 
   // --- Effects ---
-  // Load seasons/tournaments/teams
+  // Load seasons/tournaments/teams when modal opens
   useEffect(() => {
     const loadData = async () => {
       if (isOpen) {
-        const [loadedSeasons, loadedTournaments, loadedTeams] = await Promise.all([
-          utilGetSeasons(),
-          utilGetTournaments(),
-          utilGetTeams(),
-        ]);
-        setSeasons(loadedSeasons);
-        setTournaments(loadedTournaments);
-        setTeams(loadedTeams);
-
-        const settings = await getAppSettings();
-        if (settings) {
-          setClubSeasonStartMonth(settings.clubSeasonStartMonth ?? 10);
-          setClubSeasonEndMonth(settings.clubSeasonEndMonth ?? 5);
+        try {
+          const [loadedSeasons, loadedTournaments, loadedTeams] = await Promise.all([
+            utilGetSeasons(),
+            utilGetTournaments(),
+            utilGetTeams(),
+          ]);
+          setSeasons(loadedSeasons);
+          setTournaments(loadedTournaments);
+          setTeams(loadedTeams);
+        } catch (error) {
+          logger.error('[GameStatsModal] Failed to load data:', error);
+          showToast(
+            t('errors.failedToLoadData', 'Failed to load data. Some features may not be available.'),
+            'error'
+          );
         }
       }
     };
     loadData();
-  }, [isOpen]);
+  }, [isOpen, showToast, t]);
 
   // Sync local game events with props
   useEffect(() => {
@@ -273,6 +305,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     playedGameIds.forEach(gameId => {
       const game = savedGames?.[gameId];
       if (!game) return;
+
+      // Filter by club season if one is selected
+      if (selectedClubSeason !== 'all' && game.gameDate) {
+        const gameSeason = getClubSeasonForDate(game.gameDate, clubSeasonStartDate, clubSeasonEndDate);
+        if (gameSeason !== selectedClubSeason) return; // Skip games not in selected club season
+      }
+
       gamesPlayed++;
       const ourScore = game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
       const theirScore = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
@@ -297,7 +336,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       averageGoalsFor: gamesPlayed > 0 ? goalsFor / gamesPlayed : 0,
       averageGoalsAgainst: gamesPlayed > 0 ? goalsAgainst / gamesPlayed : 0,
     };
-  }, [activeTab, savedGames, selectedTeamIdFilter]);
+  }, [activeTab, savedGames, selectedTeamIdFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
 
   // Tab counter memoized for performance
   const tabCounterContent = useMemo(() => {
@@ -484,7 +523,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         </div>
 
         {/* Controls Section */}
-        <div className="px-6 py-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
+        <div className="px-4 sm:px-6 py-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* Tabs */}
             <div className="flex items-center gap-2 flex-wrap flex-1">
@@ -514,7 +553,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           {activeTab === 'player' ? (
             <div className="p-4 sm:p-6">
               {/* Player and Season Filters */}
-              <div className="mb-4 grid grid-cols-2 gap-2">
+              <div className="mb-4 grid grid-cols-2 gap-2 overflow-visible">
                 <Combobox
                   value={selectedPlayer}
                   onChange={(player) => {
@@ -552,23 +591,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     )}
                   </div>
                 </Combobox>
-                {availableClubSeasons.length > 0 && (
-                  <select
-                    value={selectedClubSeason}
-                    onChange={(e) => setSelectedClubSeason(e.target.value)}
-                    className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  >
-                    <option value="all">{t('playerStats.allSeasons', 'All Seasons')}</option>
-                    {availableClubSeasons.map(season => (
-                      <option key={season} value={season}>
-                        {season === 'off-season'
-                          ? t('playerStats.offSeason', 'Off-Season')
-                          : `${t('playerStats.season', 'Season')} ${season}`
-                        }
-                      </option>
-                    ))}
-                  </select>
-                )}
+                <ClubSeasonFilter
+                  selectedSeason={selectedClubSeason}
+                  onChange={setSelectedClubSeason}
+                  seasons={availableClubSeasons}
+                  hasConfigured={hasConfiguredSeasonDates}
+                  isLoading={isLoadingSettings}
+                  onOpenSettings={handleOpenSeasonSettings}
+                />
               </div>
               {/* Player Stats View */}
               <PlayerStatsView
@@ -579,25 +609,59 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 tournaments={tournaments}
                 teamId={selectedTeamIdFilter !== 'all' && selectedTeamIdFilter !== 'legacy' ? selectedTeamIdFilter : undefined}
                 selectedClubSeason={selectedClubSeason}
-                clubSeasonStartMonth={clubSeasonStartMonth}
-                clubSeasonEndMonth={clubSeasonEndMonth}
+                clubSeasonStartDate={clubSeasonStartDate}
+                clubSeasonEndDate={clubSeasonEndDate}
               />
             </div>
           ) : (
             <div className="p-4 sm:p-6">
               {/* Filters */}
-              <FilterControls
-                activeTab={activeTab}
-                seasons={seasons}
-                tournaments={tournaments}
-                teams={teams}
-                selectedSeasonIdFilter={selectedSeasonIdFilter}
-                selectedTournamentIdFilter={selectedTournamentIdFilter}
-                selectedTeamIdFilter={selectedTeamIdFilter}
-                onSeasonFilterChange={setSelectedSeasonIdFilter}
-                onTournamentFilterChange={setSelectedTournamentIdFilter}
-                onTeamFilterChange={setSelectedTeamIdFilter}
-              />
+              {activeTab === 'overall' ? (
+                /* Overall tab with club season filter - side by side layout */
+                <div className={`mb-4 mx-1 grid ${teams.length > 0 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 items-center`}>
+                  {/* Team Filter */}
+                  {teams.length > 0 && (
+                    <select
+                      value={selectedTeamIdFilter}
+                      onChange={(e) =>
+                        setSelectedTeamIdFilter(e.target.value as 'all' | 'legacy' | string)
+                      }
+                      className="h-[34px] px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="all">{t('loadGameModal.allTeamsFilter', 'All Teams')}</option>
+                      <option value="legacy">{t('loadGameModal.legacyGamesFilter', 'Legacy Games')}</option>
+                      {teams.map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {/* Club Season Filter with gear icon */}
+                  <ClubSeasonFilter
+                    selectedSeason={selectedClubSeason}
+                    onChange={setSelectedClubSeason}
+                    seasons={availableClubSeasons}
+                    hasConfigured={hasConfiguredSeasonDates}
+                    isLoading={isLoadingSettings}
+                    onOpenSettings={handleOpenSeasonSettings}
+                  />
+                </div>
+              ) : (
+                /* Other tabs - normal layout */
+                <FilterControls
+                  activeTab={activeTab}
+                  seasons={seasons}
+                  tournaments={tournaments}
+                  teams={teams}
+                  selectedSeasonIdFilter={selectedSeasonIdFilter}
+                  selectedTournamentIdFilter={selectedTournamentIdFilter}
+                  selectedTeamIdFilter={selectedTeamIdFilter}
+                  onSeasonFilterChange={setSelectedSeasonIdFilter}
+                  onTournamentFilterChange={setSelectedTournamentIdFilter}
+                  onTeamFilterChange={setSelectedTeamIdFilter}
+                />
+              )}
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left Column */}
