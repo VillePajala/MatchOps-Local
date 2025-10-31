@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
-import { Season, Tournament, Player, Team } from '@/types';
+import { Season, Tournament, Player, Team, Personnel } from '@/types';
 import { AppState } from '@/types';
 import { getTeamRoster } from '@/utils/teams';
 import { updateGameDetails, updateGameEvent, removeGameEvent } from '@/utils/savedGames';
@@ -13,6 +13,7 @@ import { UseMutationResult } from '@tanstack/react-query';
 import { TFunction } from 'i18next';
 import AssessmentSlider from './AssessmentSlider';
 import PlayerSelectionSection from './PlayerSelectionSection';
+import PersonnelSelectionSection from './PersonnelSelectionSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
@@ -49,11 +50,14 @@ export interface GameSettingsModalProps {
   tournamentId?: string | null;
   gameEvents: GameEvent[];
   availablePlayers: Player[];
+  availablePersonnel: Personnel[];
   numPeriods: number;
   periodDurationMinutes: number;
   demandFactor?: number;
   selectedPlayerIds: string[];
+  selectedPersonnelIds: string[];
   onSelectedPlayersChange: (playerIds: string[]) => void;
+  onSelectedPersonnelChange: (personnelIds: string[]) => void;
   // --- Handlers for updating game data ---
   onTeamNameChange: (name: string) => void;
   onOpponentNameChange: (name: string) => void;
@@ -148,8 +152,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   onAwardFairPlayCard,
   gameEvents,
   availablePlayers,
+  availablePersonnel,
   selectedPlayerIds,
+  selectedPersonnelIds,
   onSelectedPlayersChange,
+  onSelectedPersonnelChange,
   seasonId,
   tournamentId,
   numPeriods,
@@ -1091,6 +1098,22 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 selectAllText={t('gameSettingsModal.selectAll', 'Select All')}
                 noPlayersText={t('gameSettingsModal.noPlayersInRoster', 'No players in roster. Add players in Roster Settings.')}
                 disabled={isProcessing}
+              />
+
+              {/* Personnel Selection Section */}
+              <PersonnelSelectionSection
+                availablePersonnel={availablePersonnel}
+                selectedPersonnelIds={selectedPersonnelIds}
+                onSelectedPersonnelChange={(personnelIds: string[]) => {
+                  onSelectedPersonnelChange(personnelIds);
+                  if (currentGameId) {
+                    updateGameDetailsMutation.mutate({
+                      gameId: currentGameId,
+                      updates: { gamePersonnel: personnelIds },
+                    });
+                  }
+                }}
+                title={t('gameSettingsModal.selectPersonnel', 'Select Personnel')}
               />
 
               {/* Fair Play Card Section */}

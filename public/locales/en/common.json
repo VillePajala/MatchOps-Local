@@ -47,7 +47,7 @@
     "newGameButton": "Start New Game",
     "gameSettingsButton": "Game Settings",
     "manageRoster": "All Players",
-    "manageSeasonsAndTournaments": "Seasons & Tournaments",
+    "manageSeasonsAndTournaments": "Competitions",
     "manageTeams": "Teams",
     "personnelManager": "Personnel Manager",
     "assessPlayers": "Assess Players",
@@ -906,6 +906,7 @@
       "fitnessCoach": "Fitness Coach",
       "physio": "Physiotherapist",
       "teamManager": "Team Manager",
+      "supportStaff": "Support Staff",
       "other": "Other"
     }
   },
@@ -913,6 +914,7 @@
     "title": "Personnel Manager",
     "addPersonnel": "Add Personnel",
     "newPersonnel": "New Personnel",
+    "totalPersonnel": "Personnel",
     "totalPersonnelSingular": "Personnel",
     "totalPersonnelPlural": "Personnel",
     "name": "Name",
@@ -927,6 +929,7 @@
     "notesPlaceholder": "Additional notes (optional)",
     "noPersonnel": "No personnel yet. Add your first staff member to get started.",
     "confirmDelete": "Delete {{name}}?",
+    "confirmDeleteWithGames": "{{name}} is assigned to {{count}} game(s). Removing this personnel will unassign them from all games. Continue?",
     "deleteWarning": "This action cannot be undone.",
     "addSuccess": "{{name}} added successfully",
     "updateSuccess": "{{name}} updated successfully",

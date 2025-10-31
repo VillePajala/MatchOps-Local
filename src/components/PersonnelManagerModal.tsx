@@ -7,12 +7,23 @@ import {
   HiOutlineCheck,
   HiOutlinePencil,
   HiOutlineTrash,
-  HiPlusCircle,
+  HiOutlineEllipsisVertical,
 } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { getRoleLabelKey } from '@/utils/personnelRoles';
+import { getGamesWithPersonnel } from '@/utils/personnelManager';
+import {
+  ModalFooter,
+  modalContainerStyle,
+  titleStyle,
+  cardStyle,
+  inputBaseStyle,
+  primaryButtonStyle,
+  secondaryButtonStyle,
+  iconButtonBaseStyle,
+} from '@/styles/modalStyles';
 
 interface PersonnelManagerModalProps {
   isOpen: boolean;
@@ -32,6 +43,7 @@ const PERSONNEL_ROLES: { value: PersonnelRole; labelKey: string }[] = [
   { value: 'fitness_coach', labelKey: 'personnel.roles.fitnessCoach' },
   { value: 'physio', labelKey: 'personnel.roles.physio' },
   { value: 'team_manager', labelKey: 'personnel.roles.teamManager' },
+  { value: 'support_staff', labelKey: 'personnel.roles.supportStaff' },
   { value: 'other', labelKey: 'personnel.roles.other' },
 ];
 
@@ -68,7 +80,9 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
   });
 
   const [searchText, setSearchText] = useState('');
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const personnelRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   // Reset state when modal closes
   useEffect(() => {
@@ -84,8 +98,23 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
         notes: '',
       });
       setSearchText('');
+      setOpenMenuId(null);
     }
   }, [isOpen]);
+
+  // Handle click outside dropdown to close it
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+
+    if (openMenuId) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [openMenuId]);
 
   // Handle start editing
   const handleStartEdit = (personnelId: string) => {
@@ -108,8 +137,9 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
     // Scroll into view
     setTimeout(() => {
       const personIndex = personnel.findIndex(p => p.id === personnelId);
-      if (personnelRefs.current[personIndex]) {
-        personnelRefs.current[personIndex]?.scrollIntoView({
+      const target = personnelRefs.current[personIndex];
+      if (target && typeof target.scrollIntoView === 'function') {
+        target.scrollIntoView({
           behavior: 'smooth',
           block: 'nearest'
         });
@@ -124,43 +154,105 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
   const handleSaveEdit = async (personnelId: string) => {
     const trimmedName = editData.name.trim();
     if (!trimmedName) {
-      showToast(t('personnelManager.nameRequired', 'Personnel name cannot be empty.'), 'error');
+      showToast(
+        t('personnelManager.nameRequired', {
+          defaultValue: 'Personnel name cannot be empty.',
+        }),
+        'error'
+      );
       return;
     }
 
     try {
-      await onUpdatePersonnel(personnelId, editData);
+      await onUpdatePersonnel(personnelId, {
+        ...editData,
+        name: trimmedName,
+      });
       setEditingPersonnelId(null);
-      showToast(t('personnelManager.updateSuccess', 'Personnel updated successfully'), 'success');
+      showToast(
+        t('personnelManager.updateSuccess', {
+          defaultValue: 'Personnel updated successfully',
+          name: trimmedName,
+        }),
+        'success'
+      );
     } catch (error) {
       logger.error('Error saving personnel:', error);
-      showToast(t('personnelManager.updateError', 'Failed to update personnel'), 'error');
+      showToast(
+        t('personnelManager.updateError', {
+          defaultValue: 'Failed to update personnel',
+        }),
+        'error'
+      );
     }
   };
 
   const handleRemove = async (personnelId: string, personName: string) => {
-    if (!confirm(t('personnelManager.confirmDelete', 'Are you sure you want to remove {{name}}?', { name: personName }))) {
-      return;
-    }
-
     try {
+      // Check if personnel is assigned to any games
+      const gamesWithPersonnel = await getGamesWithPersonnel(personnelId);
+
+      if (gamesWithPersonnel.length > 0) {
+        // Show warning about games that will be affected
+        const confirmMessage = t('personnelManager.confirmDeleteWithGames', {
+          defaultValue: '{{name}} is assigned to {{count}} game(s). Removing this personnel will unassign them from all games. Continue?',
+          name: personName,
+          count: gamesWithPersonnel.length,
+        });
+
+        if (!confirm(confirmMessage)) {
+          return;
+        }
+      } else {
+        // Standard confirmation for personnel not assigned to any games
+        if (
+          !confirm(
+            t('personnelManager.confirmDelete', {
+              defaultValue: 'Are you sure you want to remove {{name}}?',
+              name: personName,
+            })
+          )
+        ) {
+          return;
+        }
+      }
+
       await onRemovePersonnel(personnelId);
-      showToast(t('personnelManager.deleteSuccess', 'Personnel removed successfully'), 'success');
+      showToast(
+        t('personnelManager.deleteSuccess', {
+          defaultValue: 'Personnel removed successfully',
+          name: personName,
+        }),
+        'success'
+      );
     } catch (error) {
       logger.error('Error removing personnel:', error);
-      showToast(t('personnelManager.deleteError', 'Failed to remove personnel'), 'error');
+      showToast(
+        t('personnelManager.deleteError', {
+          defaultValue: 'Failed to remove personnel',
+        }),
+        'error'
+      );
     }
   };
 
   const handleAddPersonnel = async () => {
     const trimmedName = newPersonnelData.name.trim();
     if (!trimmedName) {
-      showToast(t('personnelManager.nameRequired', 'Personnel name cannot be empty.'), 'error');
+      showToast(
+        t('personnelManager.nameRequired', {
+          defaultValue: 'Personnel name cannot be empty.',
+        }),
+        'error'
+      );
       return;
     }
 
     try {
-      await onAddPersonnel(newPersonnelData);
+      await onAddPersonnel({
+        ...newPersonnelData,
+        name: trimmedName,
+      });
       setIsAddingPersonnel(false);
       setNewPersonnelData({
         name: '',
@@ -170,10 +262,21 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
         certifications: [],
         notes: '',
       });
-      showToast(t('personnelManager.addSuccess', 'Personnel added successfully'), 'success');
+      showToast(
+        t('personnelManager.addSuccess', {
+          defaultValue: 'Personnel added successfully',
+          name: trimmedName,
+        }),
+        'success'
+      );
     } catch (error) {
       logger.error('Error adding personnel:', error);
-      showToast(t('personnelManager.addError', 'Failed to add personnel'), 'error');
+      showToast(
+        t('personnelManager.addError', {
+          defaultValue: 'Failed to add personnel',
+        }),
+        'error'
+      );
     }
   };
 
@@ -186,16 +289,6 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Style definitions (matching RosterSettingsModal)
-  const modalContainerStyle = "bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden";
-  const titleStyle = "text-3xl font-bold text-yellow-400 tracking-wide";
-  const cardStyle = "bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner";
-  const inputBaseStyle = "block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 focus:bg-slate-700 sm:text-sm text-white";
-  const buttonBaseStyle = "px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed";
-  const primaryButtonStyle = `${buttonBaseStyle} bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg`;
-  const secondaryButtonStyle = `${buttonBaseStyle} bg-gradient-to-b from-slate-600 to-slate-700 text-slate-200 hover:from-slate-700 hover:to-slate-600`;
-  const iconButtonBaseStyle = "p-1.5 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
       <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full flex flex-col`}>
@@ -206,7 +299,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
         <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
 
         {/* Content wrapper */}
-        <div className="relative z-10 flex flex-col min-h-0">
+        <div className="relative z-10 flex flex-col min-h-0 h-full">
           {/* Header */}
           <div className="flex flex-col">
             {/* Title Section */}
@@ -231,10 +324,9 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
               {/* Add Personnel Button */}
               <button
                 onClick={() => { setIsAddingPersonnel(true); setEditingPersonnelId(null); }}
-                className={`${primaryButtonStyle} w-full bg-indigo-600 hover:bg-indigo-700 flex items-center justify-center gap-2`}
+                className={`${primaryButtonStyle} w-full bg-indigo-600 hover:bg-indigo-700`}
                 disabled={!!editingPersonnelId || isUpdating || isAddingPersonnel}
               >
-                <HiPlusCircle className="h-5 w-5" />
                 {t('personnelManager.addPersonnel', 'Add Personnel')}
               </button>
             </div>
@@ -420,21 +512,39 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                               <p className="text-xs text-slate-500 mt-2 italic">{person.notes}</p>
                             )}
                           </div>
-                          <div className="flex gap-2 ml-4">
+                          <div className="relative ml-4" ref={openMenuId === person.id ? menuRef : null}>
                             <button
-                              onClick={() => handleStartEdit(person.id)}
-                              className={`${iconButtonBaseStyle} bg-indigo-600 hover:bg-indigo-700 text-white`}
+                              onClick={() => setOpenMenuId(openMenuId === person.id ? null : person.id)}
+                              className={`${iconButtonBaseStyle} text-slate-400 hover:text-slate-200`}
                               disabled={!!editingPersonnelId || isUpdating}
+                              aria-label="More options"
                             >
-                              <HiOutlinePencil className="h-5 w-5" />
+                              <HiOutlineEllipsisVertical className="h-5 w-5" />
                             </button>
-                            <button
-                              onClick={() => handleRemove(person.id, person.name)}
-                              className={`${iconButtonBaseStyle} bg-red-600 hover:bg-red-700 text-white`}
-                              disabled={!!editingPersonnelId || isUpdating}
-                            >
-                              <HiOutlineTrash className="h-5 w-5" />
-                            </button>
+                            {openMenuId === person.id && (
+                              <div className="absolute right-0 top-full mt-1 w-36 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-10">
+                                <button
+                                  onClick={() => {
+                                    handleStartEdit(person.id);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-700 rounded-t-lg flex items-center gap-2"
+                                >
+                                  <HiOutlinePencil className="h-4 w-4" />
+                                  {t('common.edit', 'Edit')}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    handleRemove(person.id, person.name);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="w-full px-4 py-2.5 text-left text-sm text-red-400 hover:bg-slate-700 rounded-b-lg flex items-center gap-2"
+                                >
+                                  <HiOutlineTrash className="h-4 w-4" />
+                                  {t('common.delete', 'Delete')}
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
@@ -446,14 +556,14 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
           </div>
 
           {/* Footer with Close Button */}
-          <div className="px-6 py-4 backdrop-blur-sm bg-slate-900/20 border-t border-slate-700">
+          <ModalFooter>
             <button
               onClick={onClose}
-              className={`${secondaryButtonStyle} w-full`}
+              className={secondaryButtonStyle}
             >
               {t('common.close', 'Close')}
             </button>
-          </div>
+          </ModalFooter>
         </div>
       </div>
     </div>

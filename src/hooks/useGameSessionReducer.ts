@@ -15,6 +15,7 @@ export interface GameSessionState {
   currentPeriod: number;
   gameStatus: 'notStarted' | 'inProgress' | 'periodEnd' | 'gameEnd';
   selectedPlayerIds: string[];
+  gamePersonnel: string[];
   seasonId: string;
   tournamentId: string;
   ageGroup?: string;
@@ -62,6 +63,7 @@ export const initialGameSessionStatePlaceholder: GameSessionState = {
   currentPeriod: 1,
   gameStatus: 'notStarted',
   selectedPlayerIds: [],
+  gamePersonnel: [],
   seasonId: '',
   tournamentId: '',
   ageGroup: '',
@@ -102,6 +104,7 @@ export type GameSessionAction =
   | { type: 'START_TIMER' }
   | { type: 'PAUSE_TIMER' }
   | { type: 'SET_SELECTED_PLAYER_IDS'; payload: string[] }
+  | { type: 'SET_GAME_PERSONNEL'; payload: string[] }
   | { type: 'SET_SEASON_ID'; payload: string }
   | { type: 'SET_TOURNAMENT_ID'; payload: string }
   | { type: 'SET_GAME_LOCATION'; payload: string }
@@ -215,6 +218,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
     }
     case 'SET_SELECTED_PLAYER_IDS':
       return { ...state, selectedPlayerIds: action.payload };
+    case 'SET_GAME_PERSONNEL':
+      return { ...state, gamePersonnel: action.payload };
     case 'SET_SEASON_ID':
       return { ...state, seasonId: action.payload, tournamentId: '' };
     case 'SET_TOURNAMENT_ID':
@@ -384,6 +389,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const subIntervalMinutes = loadedData.subIntervalMinutes ?? initialGameSessionStatePlaceholder.subIntervalMinutes;
       const showPlayerNames = loadedData.showPlayerNames ?? initialGameSessionStatePlaceholder.showPlayerNames;
       const completedIntervalDurations = loadedData.completedIntervalDurations ?? [];
+      const gamePersonnel = loadedData.gamePersonnel ?? [];
 
       let timeElapsedAtLoad = 0;
       if (gameStatus === 'periodEnd' || gameStatus === 'gameEnd') {
@@ -405,6 +411,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         currentPeriod,
         gameStatus,
         selectedPlayerIds,
+        gamePersonnel,
         seasonId,
         tournamentId,
         gameLocation,

@@ -13,6 +13,7 @@ const baseState: GameSessionState = {
   currentPeriod: 1,
   gameStatus: 'notStarted',
   selectedPlayerIds: [],
+  gamePersonnel: [],
   seasonId: '',
   tournamentId: '',
   gameLocation: '',

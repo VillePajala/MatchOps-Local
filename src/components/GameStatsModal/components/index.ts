@@ -9,3 +9,4 @@ export { GameNotesEditor } from './GameNotesEditor';
 export { FilterControls } from './FilterControls';
 export { TeamPerformanceCard } from './TeamPerformanceCard';
 export { ClubSeasonFilter } from './ClubSeasonFilter';
+export { PersonnelSummaryCard } from './PersonnelSummaryCard';
