@@ -591,16 +591,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     )}
                   </div>
                 </Combobox>
-                {availableClubSeasons.length > 0 && (
-                  <ClubSeasonFilter
-                    selectedSeason={selectedClubSeason}
-                    onChange={setSelectedClubSeason}
-                    seasons={availableClubSeasons}
-                    hasConfigured={hasConfiguredSeasonDates}
-                    isLoading={isLoadingSettings}
-                    onOpenSettings={handleOpenSeasonSettings}
-                  />
-                )}
+                <ClubSeasonFilter
+                  selectedSeason={selectedClubSeason}
+                  onChange={setSelectedClubSeason}
+                  seasons={availableClubSeasons}
+                  hasConfigured={hasConfiguredSeasonDates}
+                  isLoading={isLoadingSettings}
+                  onOpenSettings={handleOpenSeasonSettings}
+                />
               </div>
               {/* Player Stats View */}
               <PlayerStatsView
@@ -618,7 +616,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           ) : (
             <div className="p-4 sm:p-6">
               {/* Filters */}
-              {activeTab === 'overall' && availableClubSeasons.length > 0 ? (
+              {activeTab === 'overall' ? (
                 /* Overall tab with club season filter - side by side layout */
                 <div className={`mb-4 mx-1 grid ${teams.length > 0 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 items-center`}>
                   {/* Team Filter */}
