@@ -56,14 +56,14 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
   // Modal-style button classes for unified UI
   const primaryButtonStyle =
-    'w-full h-12 px-4 py-2 rounded-md text-base font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] hover:from-indigo-600 hover:to-indigo-700 hover:shadow-lg active:scale-[0.98] active:shadow-inner border border-white/10 shadow-md [box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_6px_-1px_rgba(0,0,0,0.3)]';
+    'w-[240px] h-12 px-4 py-2 rounded-md text-base font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] hover:from-indigo-600 hover:to-indigo-700 hover:shadow-lg active:scale-[0.98] active:shadow-inner border border-white/10 shadow-md [box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_6px_-1px_rgba(0,0,0,0.3)]';
 
   // Emphasized variant for primary (Continue/Get Started) — same style as primary
   const primaryEmphasisStyle =
-    'w-full h-12 px-4 py-2 rounded-md text-base font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] hover:from-indigo-600 hover:to-indigo-700 hover:shadow-lg active:scale-[0.98] active:shadow-inner border border-white/10 shadow-md [box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_6px_-1px_rgba(0,0,0,0.3)]';
+    'w-[240px] h-12 px-4 py-2 rounded-md text-base font-bold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-slate-800 bg-gradient-to-b from-indigo-500 to-indigo-600 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] hover:from-indigo-600 hover:to-indigo-700 hover:shadow-lg active:scale-[0.98] active:shadow-inner border border-white/10 shadow-md [box-shadow:inset_0_1px_0_0_rgba(255,255,255,0.1),0_4px_6px_-1px_rgba(0,0,0,0.3)]';
 
   const disabledButtonStyle =
-    'w-full h-12 px-4 py-2 rounded-md text-base font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed text-slate-500 bg-slate-800 border border-slate-600/40';
+    'w-[240px] h-12 px-4 py-2 rounded-md text-base font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed text-slate-500 bg-slate-800 border border-slate-600/40';
 
   /* Commented out - was used for animated text
   const titleStyle =
@@ -200,25 +200,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     />
                   );
                 })}
-                {/* Sparkle points at random intersections */}
-                {[
-                  { r: 50, angle: 15 }, { r: 85, angle: 75 }, { r: 130, angle: 155 },
-                  { r: 65, angle: 200 }, { r: 105, angle: 260 }, { r: 160, angle: 340 },
-                ].map((sparkle, i) => {
-                  const angle = (sparkle.angle * Math.PI) / 180;
-                  const x = Math.cos(angle) * sparkle.r;
-                  const y = Math.sin(angle) * sparkle.r;
-                  return (
-                    <circle
-                      key={`sparkle-${i}`}
-                      cx={x}
-                      cy={y}
-                      r="0.6"
-                      fill="rgba(255, 255, 255, 0.2)"
-                      filter="url(#webGlow)"
-                    />
-                  );
-                })}
                 {/* Center hub/node */}
                 <circle
                   cx="0"
@@ -316,8 +297,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
         {/* Conditional interface based on user type */}
         {isFirstTimeUser ? (
           /* FIRST-TIME USER: Simplified Interface */
-          <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+110px)] overflow-y-auto min-h-0">
-            <div className="relative w-full flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(4px,0.5vh,8px)]">
+          <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+110px)] overflow-visible min-h-0">
+            <div className="relative flex flex-col items-center gap-4 sm:gap-5 -mt-16">
               {/* Subtle glow behind buttons */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="w-[105%] h-[110%] bg-indigo-500/15 blur-[50px] rounded-3xl" />
@@ -329,20 +310,12 @@ const StartScreen: React.FC<StartScreenProps> = ({
               >
                 {t('startScreen.getStarted', 'Get Started')}
               </button>
-
-              {/* Secondary help button */}
-              <button
-                className="w-full px-4 py-2.5 rounded-md text-sm font-medium text-slate-300 bg-slate-800/50 hover:bg-slate-700/50 transition-colors border border-slate-600"
-                onClick={() => setIsInstructionsModalOpen(true)}
-              >
-                {t('startScreen.howItWorks', 'How It Works')}
-              </button>
             </div>
           </div>
         ) : (
           /* EXPERIENCED USER: Full-Featured Interface */
           <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+110px)] overflow-y-auto min-h-0">
-            <div className="relative w-full flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(8px,4vh,28px)]">
+            <div className="relative flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(8px,4vh,28px)]">
               {/* Subtle glow behind buttons */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="w-[105%] h-[110%] bg-indigo-500/15 blur-[50px] rounded-3xl" />
