@@ -55,7 +55,7 @@ import { deleteSeason as utilDeleteSeason, updateSeason as utilUpdateSeason, add
 import { deleteTournament as utilDeleteTournament, updateTournament as utilUpdateTournament, addTournament as utilAddTournament } from '@/utils/tournaments';
 import { getTeams, getTeam } from '@/utils/teams';
 // Import Player from types directory
-import { Player, Season, Tournament, Team, Personnel } from '@/types';
+import { Player, Season, Tournament, Team } from '@/types';
 // Import saveMasterRoster utility
 import type { GameEvent, AppState, SavedGamesCollection, TimerState, PlayerAssessment } from "@/types";
 import { saveMasterRoster } from '@/utils/masterRoster';
