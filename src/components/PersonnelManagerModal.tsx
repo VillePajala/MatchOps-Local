@@ -14,6 +14,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { getRoleLabelKey } from '@/utils/personnelRoles';
 import { getGamesWithPersonnel } from '@/utils/personnelManager';
+import ConfirmationModal from './ConfirmationModal';
 import {
   ModalFooter,
   modalContainerStyle,
@@ -83,6 +84,14 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const personnelRefs = useRef<(HTMLDivElement | null)[]>([]);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // Confirmation modal state
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [personnelToDelete, setPersonnelToDelete] = useState<{
+    id: string;
+    name: string;
+    gamesCount: number;
+  } | null>(null);
 
   // Reset state when modal closes
   useEffect(() => {
@@ -192,39 +201,39 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
       // Check if personnel is assigned to any games
       const gamesWithPersonnel = await getGamesWithPersonnel(personnelId);
 
-      if (gamesWithPersonnel.length > 0) {
-        // Show warning about games that will be affected
-        const confirmMessage = t('personnelManager.confirmDeleteWithGames', {
-          defaultValue: '{{name}} is assigned to {{count}} game(s). Removing this personnel will unassign them from all games. Continue?',
-          name: personName,
-          count: gamesWithPersonnel.length,
-        });
+      // Open confirmation modal with game count
+      setPersonnelToDelete({
+        id: personnelId,
+        name: personName,
+        gamesCount: gamesWithPersonnel.length,
+      });
+      setIsDeleteConfirmOpen(true);
+      setOpenMenuId(null); // Close dropdown menu
+    } catch (error) {
+      logger.error('Error checking personnel game assignments:', error);
+      showToast(
+        t('personnelManager.checkError', {
+          defaultValue: 'Failed to check game assignments',
+        }),
+        'error'
+      );
+    }
+  };
 
-        if (!confirm(confirmMessage)) {
-          return;
-        }
-      } else {
-        // Standard confirmation for personnel not assigned to any games
-        if (
-          !confirm(
-            t('personnelManager.confirmDelete', {
-              defaultValue: 'Are you sure you want to remove {{name}}?',
-              name: personName,
-            })
-          )
-        ) {
-          return;
-        }
-      }
+  const handleConfirmDelete = async () => {
+    if (!personnelToDelete) return;
 
-      await onRemovePersonnel(personnelId);
+    try {
+      await onRemovePersonnel(personnelToDelete.id);
       showToast(
         t('personnelManager.deleteSuccess', {
           defaultValue: 'Personnel removed successfully',
-          name: personName,
+          name: personnelToDelete.name,
         }),
         'success'
       );
+      setIsDeleteConfirmOpen(false);
+      setPersonnelToDelete(null);
     } catch (error) {
       logger.error('Error removing personnel:', error);
       showToast(
@@ -234,6 +243,11 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
         'error'
       );
     }
+  };
+
+  const handleCancelDelete = () => {
+    setIsDeleteConfirmOpen(false);
+    setPersonnelToDelete(null);
   };
 
   const handleAddPersonnel = async () => {
@@ -566,6 +580,40 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
           </ModalFooter>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isDeleteConfirmOpen}
+        title={t('personnelManager.confirmDeleteTitle', {
+          defaultValue: 'Delete Personnel',
+        })}
+        message={
+          personnelToDelete?.gamesCount && personnelToDelete.gamesCount > 0
+            ? t('personnelManager.confirmDeleteWithGames', {
+                defaultValue: '{{name}} is assigned to {{count}} game(s). Removing this personnel will unassign them from all games. Continue?',
+                name: personnelToDelete.name,
+                count: personnelToDelete.gamesCount,
+              })
+            : t('personnelManager.confirmDelete', {
+                defaultValue: 'Are you sure you want to remove {{name}}?',
+                name: personnelToDelete?.name || '',
+              })
+        }
+        warningMessage={
+          personnelToDelete?.gamesCount && personnelToDelete.gamesCount > 0
+            ? t('personnelManager.deleteWarning', {
+                defaultValue: 'This action cannot be undone. The personnel will be removed from {{count}} game(s).',
+                count: personnelToDelete.gamesCount,
+              })
+            : undefined
+        }
+        confirmLabel={t('common.delete', 'Delete')}
+        cancelLabel={t('common.cancel', 'Cancel')}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isConfirming={isUpdating}
+        variant="danger"
+      />
     </div>
   );
 };

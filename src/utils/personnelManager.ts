@@ -139,6 +139,22 @@ export const updatePersonnelMember = async (
  * @remarks
  * This function performs a cascade delete - it removes the personnel from all games
  * that reference them before deleting the personnel record itself.
+ *
+ * **Concurrency Control**:
+ * - Locks PERSONNEL_KEY to prevent concurrent personnel deletions
+ * - SAVED_GAMES_KEY is modified without explicit lock for performance
+ * - Single-user app assumption: Low risk of race conditions
+ * - Operations are idempotent: Removing non-existent personnel ID is safe
+ * - Multi-tab scenario: Both tabs read same games, filter same ID (harmless)
+ *
+ * For multi-user environments, implement two-phase locking:
+ * ```typescript
+ * await withKeyLock(PERSONNEL_KEY, async () => {
+ *   await withKeyLock(SAVED_GAMES_KEY, async () => {
+ *     // ... cascade delete operations ...
+ *   });
+ * });
+ * ```
  */
 export const removePersonnelMember = async (personnelId: string): Promise<boolean> => {
   return withKeyLock(PERSONNEL_KEY, async () => {
