@@ -215,30 +215,37 @@ describe('<SettingsModal />', () => {
   });
 
   /**
-   * Tests club season month selectors rendering
+   * Tests club season date selectors rendering
    * @critical
    */
-  test('should render club season month selectors', () => {
+  test('should render club season date selectors', () => {
     render(
       <TestWrapper>
         <SettingsModal {...defaultProps} />
       </TestWrapper>
     );
 
-    // Check for season start month selector
-    const startMonthLabel = screen.getByText(/Season Start Month/i);
-    expect(startMonthLabel).toBeInTheDocument();
+    // Check for period start label
+    const startLabel = screen.getByText(/Period Start/i);
+    expect(startLabel).toBeInTheDocument();
 
-    // Check for season end month selector
-    const endMonthLabel = screen.getByText(/Season End Month/i);
-    expect(endMonthLabel).toBeInTheDocument();
+    // Check for period end label
+    const endLabel = screen.getByText(/Period End/i);
+    expect(endLabel).toBeInTheDocument();
+
+    // Verify month and day dropdowns exist
+    const monthSelects = screen.getAllByLabelText(/Month/i);
+    expect(monthSelects.length).toBeGreaterThanOrEqual(2); // At least 2 month selects (start and end)
+
+    const daySelects = screen.getAllByLabelText(/Day/i);
+    expect(daySelects.length).toBeGreaterThanOrEqual(2); // At least 2 day selects (start and end)
   });
 
   /**
-   * Tests that season month dropdowns are interactive
+   * Tests that season date dropdowns are interactive
    * @integration
    */
-  test('should allow changing season month values', async () => {
+  test('should allow changing season date values', async () => {
     render(
       <TestWrapper>
         <SettingsModal {...defaultProps} />
@@ -247,17 +254,17 @@ describe('<SettingsModal />', () => {
 
     // Wait for component to render
     await waitFor(() => {
-      expect(screen.getByText(/Season Start Month/i)).toBeInTheDocument();
+      expect(screen.getByText(/Period Start/i)).toBeInTheDocument();
     });
 
-    // Find the start month select element
-    // The label text is "Season Start Month" and it has an associated select
-    const startMonthSelects = screen.getAllByRole('combobox');
-    // There are multiple select elements, find the one after "Season Start Month" label
-    // Since we can't easily identify by label association, we'll verify the selects exist
-    expect(startMonthSelects.length).toBeGreaterThan(0);
+    // Find the month and day select elements
+    const monthSelects = screen.getAllByLabelText(/Month/i);
+    const daySelects = screen.getAllByLabelText(/Day/i);
 
     // Verify the dropdown elements are rendered and can be interacted with
+    expect(monthSelects.length).toBeGreaterThanOrEqual(2);
+    expect(daySelects.length).toBeGreaterThanOrEqual(2);
+
     // Note: We're not testing the actual save functionality here as that's
     // tested at the unit level in appSettings.test.ts and requires complex mocking
   });

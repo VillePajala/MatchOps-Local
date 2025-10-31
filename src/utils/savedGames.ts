@@ -261,6 +261,51 @@ export const getFilteredGames = async (filters: {
 };
 
 /**
+ * Safely parse a date string to timestamp, returning 0 for invalid dates
+ * @param dateStr - Date string to parse (can be null/undefined/empty)
+ * @returns Unix timestamp in milliseconds, or 0 if invalid
+ */
+const parseDateSafely = (dateStr: string | null | undefined): number => {
+  if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === '') {
+    return 0;
+  }
+
+  const timestamp = new Date(dateStr).getTime();
+
+  // Explicitly check for NaN and invalid dates
+  if (isNaN(timestamp)) {
+    logger.warn('[getLatestGameId] Invalid game date detected', { date: dateStr });
+    return 0;
+  }
+
+  return timestamp;
+};
+
+/**
+ * Safely extract timestamp from game ID format (game_TIMESTAMP)
+ * @param gameId - Game ID string
+ * @returns Timestamp as number, or 0 if extraction fails
+ */
+const extractTimestampFromGameId = (gameId: string): number => {
+  const parts = gameId.split('_');
+
+  // Validate format: should have at least 2 parts
+  if (parts.length < 2) {
+    logger.warn('[getLatestGameId] Malformed game ID format', { gameId });
+    return 0;
+  }
+
+  const timestamp = parseInt(parts[1], 10);
+
+  if (isNaN(timestamp)) {
+    logger.warn('[getLatestGameId] Invalid timestamp in game ID', { gameId, part: parts[1] });
+    return 0;
+  }
+
+  return timestamp;
+};
+
+/**
  * Determines the most recently created game ID from a collection.
  * Games are sorted by gameDate (newest first) and then by timestamp
  * embedded in the game ID.
@@ -274,18 +319,27 @@ export const getLatestGameId = (games: SavedGamesCollection): string | null => {
   const sortedIds = ids.sort((a, b) => {
     const gameA = games[a];
     const gameB = games[b];
-    const dateA = gameA?.gameDate ? new Date(gameA.gameDate).getTime() : 0;
-    const dateB = gameB?.gameDate ? new Date(gameB.gameDate).getTime() : 0;
+
+    // Use defensive date parsing
+    const dateA = parseDateSafely(gameA?.gameDate);
+    const dateB = parseDateSafely(gameB?.gameDate);
+
+    // Compare by date first (newest first)
     if (dateB !== dateA) {
-      if (!dateA) return 1;
-      if (!dateB) return -1;
-      return dateB - dateA;
+      if (!dateA) return 1;  // A has no date, B comes first
+      if (!dateB) return -1; // B has no date, A comes first
+      return dateB - dateA;  // Normal comparison (descending)
     }
-    const tsA = parseInt(a.split('_')[1], 10);
-    const tsB = parseInt(b.split('_')[1], 10);
-    if (!isNaN(tsA) && !isNaN(tsB)) {
-      return tsB - tsA;
+
+    // Dates are equal, compare by embedded timestamp (newest first)
+    const tsA = extractTimestampFromGameId(a);
+    const tsB = extractTimestampFromGameId(b);
+
+    if (tsA !== tsB) {
+      return tsB - tsA; // Descending order
     }
+
+    // Both date and timestamp are equal, consider them equal
     return 0;
   });
 

@@ -8,3 +8,4 @@ export { GoalEventList } from './GoalEventList';
 export { GameNotesEditor } from './GameNotesEditor';
 export { FilterControls } from './FilterControls';
 export { TeamPerformanceCard } from './TeamPerformanceCard';
+export { ClubSeasonFilter } from './ClubSeasonFilter';

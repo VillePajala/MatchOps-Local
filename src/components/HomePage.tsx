@@ -3322,6 +3322,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           initialSelectedPlayerId={selectedPlayerForStats?.id}
           onGameClick={handleGameLogClick}
           masterRoster={masterRosterQueryResultData || []}
+          onOpenSettings={handleOpenSettingsModal}
         />
       )}
       <LoadGameModal

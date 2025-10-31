@@ -1,5 +1,6 @@
 import React from 'react';
-import { render, screen, waitFor, within, fireEvent, act } from '@testing-library/react';
+import { screen, waitFor, within, fireEvent, act } from '@testing-library/react';
+import { render } from '../../tests/utils/test-utils';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import GameStatsModal from './GameStatsModal';
@@ -7,9 +8,9 @@ import { Player, Season, Tournament } from '@/types';
 import { GameEvent, SavedGamesCollection, AppState } from '@/types';
 import * as seasonsUtils from '@/utils/seasons';
 import * as tournamentsUtils from '@/utils/tournaments';
+import * as appSettingsUtils from '@/utils/appSettings';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '../i18n.test';
-import { ToastProvider } from '@/contexts/ToastProvider';
 
 // Mock ResizeObserver for headlessui components
 global.ResizeObserver = class ResizeObserver {
@@ -45,9 +46,11 @@ beforeAll(() => {
 // Mocks
 jest.mock('@/utils/seasons');
 jest.mock('@/utils/tournaments');
+jest.mock('@/utils/appSettings');
 
 const mockGetSeasons = seasonsUtils.getSeasons as jest.Mock;
 const mockGetTournaments = tournamentsUtils.getTournaments as jest.Mock;
+const mockGetAppSettings = appSettingsUtils.getAppSettings as jest.Mock;
 
 // Sample Data
 const samplePlayers: Player[] = [
@@ -174,14 +177,13 @@ const getDefaultProps = (): TestProps => ({
   onExportAggregateCsv: jest.fn(),
 });
 
-// Helper to render with mocked context/providers if needed
+// Helper to render with mocked context/providers
+// Note: QueryClientProvider is automatically included from test-utils render
 const renderComponent = (props: TestProps) => {
   return render(
     <div style={{ width: 800, height: 600 }}>
       <I18nextProvider i18n={i18n}>
-        <ToastProvider>
-          <GameStatsModal {...props} />
-        </ToastProvider>
+        <GameStatsModal {...props} />
       </I18nextProvider>
     </div>
   );
@@ -191,6 +193,16 @@ describe('GameStatsModal', () => {
   beforeEach(async () => {
     mockGetSeasons.mockResolvedValue(sampleSeasonsData);
     mockGetTournaments.mockResolvedValue(sampleTournamentsData);
+    mockGetAppSettings.mockResolvedValue({
+      currentGameId: null,
+      lastHomeTeamName: '',
+      language: 'fi',
+      hasSeenAppGuide: false,
+      useDemandCorrection: false,
+      clubSeasonStartDate: '2000-10-01',
+      clubSeasonEndDate: '2000-05-01',
+      hasConfiguredSeasonDates: false,
+    });
     await i18n.changeLanguage('fi');
   });
 

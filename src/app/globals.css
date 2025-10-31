@@ -393,6 +393,49 @@ h1.start-title .start-logo-gradient-animate:nth-child(3) {
   background-position: -1px -1px;
 }
 
+/* Spiderweb pattern - concentric circles and radial lines */
+.bg-spiderweb {
+  background-image:
+    /* Radial lines from center - 24 lines every 15 degrees */
+    conic-gradient(from 0deg at 50% 25%,
+      transparent 0deg, rgba(255, 255, 255, 0.05) 0.3deg, transparent 0.8deg,
+      transparent 15deg, rgba(255, 255, 255, 0.05) 15.3deg, transparent 15.8deg,
+      transparent 30deg, rgba(255, 255, 255, 0.05) 30.3deg, transparent 30.8deg,
+      transparent 45deg, rgba(255, 255, 255, 0.05) 45.3deg, transparent 45.8deg,
+      transparent 60deg, rgba(255, 255, 255, 0.05) 60.3deg, transparent 60.8deg,
+      transparent 75deg, rgba(255, 255, 255, 0.05) 75.3deg, transparent 75.8deg,
+      transparent 90deg, rgba(255, 255, 255, 0.05) 90.3deg, transparent 90.8deg,
+      transparent 105deg, rgba(255, 255, 255, 0.05) 105.3deg, transparent 105.8deg,
+      transparent 120deg, rgba(255, 255, 255, 0.05) 120.3deg, transparent 120.8deg,
+      transparent 135deg, rgba(255, 255, 255, 0.05) 135.3deg, transparent 135.8deg,
+      transparent 150deg, rgba(255, 255, 255, 0.05) 150.3deg, transparent 150.8deg,
+      transparent 165deg, rgba(255, 255, 255, 0.05) 165.3deg, transparent 165.8deg,
+      transparent 180deg, rgba(255, 255, 255, 0.05) 180.3deg, transparent 180.8deg,
+      transparent 195deg, rgba(255, 255, 255, 0.05) 195.3deg, transparent 195.8deg,
+      transparent 210deg, rgba(255, 255, 255, 0.05) 210.3deg, transparent 210.8deg,
+      transparent 225deg, rgba(255, 255, 255, 0.05) 225.3deg, transparent 225.8deg,
+      transparent 240deg, rgba(255, 255, 255, 0.05) 240.3deg, transparent 240.8deg,
+      transparent 255deg, rgba(255, 255, 255, 0.05) 255.3deg, transparent 255.8deg,
+      transparent 270deg, rgba(255, 255, 255, 0.05) 270.3deg, transparent 270.8deg,
+      transparent 285deg, rgba(255, 255, 255, 0.05) 285.3deg, transparent 285.8deg,
+      transparent 300deg, rgba(255, 255, 255, 0.05) 300.3deg, transparent 300.8deg,
+      transparent 315deg, rgba(255, 255, 255, 0.05) 315.3deg, transparent 315.8deg,
+      transparent 330deg, rgba(255, 255, 255, 0.05) 330.3deg, transparent 330.8deg,
+      transparent 345deg, rgba(255, 255, 255, 0.05) 345.3deg, transparent 345.8deg,
+      transparent 360deg
+    ),
+    /* Concentric circles - every 40px for more density */
+    repeating-radial-gradient(circle at 50% 25%,
+      transparent 0px,
+      transparent 40px,
+      rgba(255, 255, 255, 0.04) 40px,
+      rgba(255, 255, 255, 0.04) 41px,
+      transparent 41px,
+      transparent 80px
+    );
+  background-position: center 25%;
+}
+
 /* Subtle vignette darkening toward edges */
 .bg-vignette {
   background: radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,0.6) 100%);

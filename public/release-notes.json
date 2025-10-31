@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: improve marketing site content and translations"
+  "notes": "fix: invalidate React Query cache when season settings are updated"
 }

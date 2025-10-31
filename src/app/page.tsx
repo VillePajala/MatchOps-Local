@@ -28,8 +28,8 @@ export default function Home() {
   const checkAppState = useCallback(async () => {
     setIsCheckingState(true);
     try {
-      // This runs once to ensure legacy data is converted to IndexedDB.
-      // IndexedDB is the runtime storage; this is not the focus of current work.
+      // Run IndexedDB migration to ensure legacy data is converted to IndexedDB.
+      // App settings migration happens automatically in getAppSettings() when needed.
       await runMigration();
 
       // Check for resume capability
