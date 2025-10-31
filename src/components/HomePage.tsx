@@ -2449,7 +2449,8 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     tournamentLevel: string,
     isPlayed: boolean,
     teamId: string | null, // Add team ID parameter
-    availablePlayersForGame: Player[] // Add the actual roster for the game
+    availablePlayersForGame: Player[], // Add the actual roster for the game
+    selectedPersonnelIds: string[] // Add personnel selection
   ) => {
 
       // Determine the player selection for the new game
@@ -2494,6 +2495,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           completedIntervalDurations: [], // Always reset intervals
           lastSubConfirmationTimeSeconds: 0, // Always reset last sub time
           tacticalBallPosition: { relX: 0.5, relY: 0.5 },
+          gamePersonnel: selectedPersonnelIds, // Personnel assigned to this game
       };
 
       // Log the constructed state *before* saving
@@ -3432,6 +3434,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           seasons={seasons}
           tournaments={tournaments}
           teams={teams}
+          personnel={personnel}
         />
       )}
 

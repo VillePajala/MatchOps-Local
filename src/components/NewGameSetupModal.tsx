@@ -3,12 +3,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
-import { Player, Season, Tournament, Team } from '@/types';
+import { Player, Season, Tournament, Team, Personnel } from '@/types';
 import logger from '@/utils/logger';
 import { getTeamRoster } from '@/utils/teams';
 import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
 import AssessmentSlider from './AssessmentSlider';
 import PlayerSelectionSection from './PlayerSelectionSection';
+import PersonnelSelectionSection from './PersonnelSelectionSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
@@ -38,7 +39,8 @@ interface NewGameSetupModalProps {
     tournamentLevel: string,
     isPlayed: boolean,
     teamId: string | null, // Add team selection parameter
-    availablePlayersForGame: Player[] // Add the actual roster to use for the game
+    availablePlayersForGame: Player[], // Add the actual roster to use for the game
+    selectedPersonnelIds: string[] // Add personnel selection parameter
   ) => void;
   onCancel: () => void;
   // Fresh data from React Query
@@ -46,6 +48,7 @@ interface NewGameSetupModalProps {
   seasons: Season[];
   tournaments: Tournament[];
   teams: Team[];
+  personnel: Personnel[];
 }
 
 const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
@@ -60,6 +63,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   seasons,
   tournaments,
   teams,
+  personnel,
 }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
@@ -93,6 +97,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // Player selection state
   const [availablePlayersForSetup, setAvailablePlayersForSetup] = useState<Player[]>([]);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>(initialPlayerSelection || []);
+
+  // Personnel selection state
+  const [selectedPersonnelIds, setSelectedPersonnelIds] = useState<string[]>([]);
 
   // Team selection state
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
@@ -359,7 +366,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       tournamentLevel,
       isPlayed,
       selectedTeamId, // Add team selection parameter
-      availablePlayersForSetup // Pass the actual roster being used in the modal
+      availablePlayersForSetup, // Pass the actual roster being used in the modal
+      selectedPersonnelIds // Pass the personnel selection
     );
 
     // Modal will be closed by parent component after onStart
@@ -507,6 +515,14 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 playersSelectedText={t('newGameSetupModal.playersSelected', 'selected')}
                 selectAllText={t('newGameSetupModal.selectAll', 'Select All')}
                 noPlayersText={t('newGameSetupModal.noPlayersInRoster', 'No players in roster. Add players in Roster Settings.')}
+              />
+
+              {/* Personnel Selection */}
+              <PersonnelSelectionSection
+                availablePersonnel={personnel}
+                selectedPersonnelIds={selectedPersonnelIds}
+                onSelectedPersonnelChange={setSelectedPersonnelIds}
+                title={t('newGameSetupModal.selectPersonnel', 'Select Personnel')}
               />
             </div>
 
