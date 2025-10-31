@@ -4,7 +4,10 @@ export const queryKeys = {
   seasons: ['seasons'] as const,
   tournaments: ['tournaments'] as const,
   savedGames: ['savedGames'] as const,
-  
+  personnel: ['personnel'] as const,
+  personnelDetail: (id: string) => ['personnel', 'detail', id] as const,
+  personnelByRole: (role: string) => ['personnel', 'byRole', role] as const,
+
   // Team-specific entities
   teams: ['teams'] as const,
   teamRoster: (teamId: string) => ['teams', teamId, 'roster'] as const,
