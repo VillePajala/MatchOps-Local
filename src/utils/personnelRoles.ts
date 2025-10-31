@@ -11,6 +11,7 @@ export const PERSONNEL_ROLE_LABEL_KEYS = {
   fitness_coach: 'personnel.roles.fitnessCoach',
   physio: 'personnel.roles.physio',
   team_manager: 'personnel.roles.teamManager',
+  support_staff: 'personnel.roles.supportStaff',
   other: 'personnel.roles.other',
 } as const;
 

@@ -66,7 +66,7 @@ import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useTacticalBoard } from '@/hooks/useTacticalBoard';
 import { useRoster } from '@/hooks/useRoster';
 import { useTeamsQuery } from '@/hooks/useTeamQueries';
-import { usePersonnel, useAddPersonnel, useUpdatePersonnel, useRemovePersonnel } from '@/hooks/usePersonnel';
+import { usePersonnelManager } from '@/hooks/usePersonnelManager';
 import { useModalContext } from '@/contexts/ModalProvider';
 // Import async storage utilities
 import {
@@ -124,6 +124,7 @@ const initialState: AppState = {
   demandFactor: 1,
   // Initialize selectedPlayerIds as empty for clean app start
   selectedPlayerIds: [],
+  gamePersonnel: [],
   // gameType: 'season', // REMOVED
   seasonId: '', // Initialize season ID
   tournamentId: '', // Initialize tournament ID
@@ -171,6 +172,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     gameStatus: initialState.gameStatus,
     demandFactor: initialState.demandFactor ?? 1,
     selectedPlayerIds: initialState.selectedPlayerIds,
+    gamePersonnel: initialState.gamePersonnel ?? [],
     seasonId: initialState.seasonId,
     tournamentId: initialState.tournamentId,
     ageGroup: initialState.ageGroup,
@@ -273,6 +275,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       currentPeriod: gameSessionState.currentPeriod,
       gameStatus: gameSessionState.gameStatus,
       selectedPlayerIds: gameSessionState.selectedPlayerIds,
+      gamePersonnel: gameSessionState.gamePersonnel,
       seasonId: gameSessionState.seasonId,
       tournamentId: gameSessionState.tournamentId,
       gameLocation: gameSessionState.gameLocation,
@@ -304,11 +307,8 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   // Teams query for multi-team support
   const { data: teams = [] } = useTeamsQuery();
 
-  // Personnel data and mutations
-  const { data: personnel = [] } = usePersonnel();
-  const addPersonnelMutation = useAddPersonnel();
-  const updatePersonnelMutation = useUpdatePersonnel();
-  const removePersonnelMutation = useRemovePersonnel();
+  // Personnel management with consolidated hook
+  const personnelManager = usePersonnelManager();
 
   const isMasterRosterQueryLoading = isGameDataLoading;
   const areSeasonsQueryLoading = isGameDataLoading;
@@ -1087,6 +1087,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         currentPeriod: gameData.currentPeriod,
         gameStatus: gameData.gameStatus,
         selectedPlayerIds: gameData.selectedPlayerIds,
+        gamePersonnel: Array.isArray(gameData.gamePersonnel) ? gameData.gamePersonnel : [],
         seasonId: gameData.seasonId ?? undefined,
         tournamentId: gameData.tournamentId ?? undefined,
         gameLocation: gameData.gameLocation,
@@ -1162,6 +1163,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       showPlayerNames: gameData?.showPlayerNames === undefined ? initialGameSessionData.showPlayerNames : gameData.showPlayerNames,
       selectedPlayerIds: gameData?.selectedPlayerIds ?? initialGameSessionData.selectedPlayerIds,
       gameEvents: gameData?.gameEvents ?? initialGameSessionData.gameEvents,
+      gamePersonnel: gameData?.gamePersonnel ?? [],
       playersOnField: gameData?.playersOnField || initialState.playersOnField,
       opponents: gameData?.opponents || initialState.opponents,
       drawings: gameData?.drawings || initialState.drawings,
@@ -1230,6 +1232,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds,
           showPlayerNames: gameSessionState.showPlayerNames, // from gameSessionState
           selectedPlayerIds: gameSessionState.selectedPlayerIds, // from gameSessionState
+          gamePersonnel: gameSessionState.gamePersonnel ?? [],
           gameEvents: gameSessionState.gameEvents, // from gameSessionState
           assessments: playerAssessments,
 
@@ -2037,38 +2040,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   // --- END Roster Management Handlers ---
 
-  // --- Personnel Management Handlers ---
-  const handleAddPersonnelForModal = useCallback(async (data: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>) => {
-    logger.log('[HomePage] handleAddPersonnelForModal called with:', data);
-    try {
-      await addPersonnelMutation.mutateAsync(data);
-      logger.log('[HomePage] Personnel added successfully');
-    } catch (error) {
-      logger.error('[HomePage] Error adding personnel:', error);
-    }
-  }, [addPersonnelMutation]);
-
-  const handleUpdatePersonnelForModal = useCallback(async (personnelId: string, updates: Partial<Omit<Personnel, 'id' | 'createdAt'>>) => {
-    logger.log('[HomePage] handleUpdatePersonnelForModal called with:', personnelId, updates);
-    try {
-      await updatePersonnelMutation.mutateAsync({ personnelId, updates });
-      logger.log('[HomePage] Personnel updated successfully');
-    } catch (error) {
-      logger.error('[HomePage] Error updating personnel:', error);
-    }
-  }, [updatePersonnelMutation]);
-
-  const handleRemovePersonnelForModal = useCallback(async (personnelId: string) => {
-    logger.log('[HomePage] handleRemovePersonnelForModal called with:', personnelId);
-    try {
-      await removePersonnelMutation.mutateAsync(personnelId);
-      logger.log('[HomePage] Personnel removed successfully');
-    } catch (error) {
-      logger.error('[HomePage] Error removing personnel:', error);
-    }
-  }, [removePersonnelMutation]);
-  // --- END Personnel Management Handlers ---
-
   // --- NEW: Handler to Award Fair Play Card ---
   const handleAwardFairPlayCard = useCallback(async (playerId: string | null) => {
       // <<< ADD LOG HERE >>>
@@ -2531,6 +2502,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
       // 4. Reset History with the new state
       resetHistory(newGameState);
+      dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: selectedPersonnelIds });
 
       setIsPlayed(isPlayed);
 
@@ -3329,21 +3301,12 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         <PersonnelManagerModal
           isOpen={isPersonnelManagerOpen}
           onClose={() => setIsPersonnelManagerOpen(false)}
-          personnel={personnel}
-          onAddPersonnel={handleAddPersonnelForModal}
-          onUpdatePersonnel={handleUpdatePersonnelForModal}
-          onRemovePersonnel={handleRemovePersonnelForModal}
-          isUpdating={
-            addPersonnelMutation.isPending ||
-            updatePersonnelMutation.isPending ||
-            removePersonnelMutation.isPending
-          }
-          error={
-            addPersonnelMutation.error?.message ||
-            updatePersonnelMutation.error?.message ||
-            removePersonnelMutation.error?.message ||
-            null
-          }
+          personnel={personnelManager.personnel}
+          onAddPersonnel={personnelManager.addPersonnel}
+          onUpdatePersonnel={personnelManager.updatePersonnel}
+          onRemovePersonnel={personnelManager.removePersonnel}
+          isUpdating={personnelManager.isLoading}
+          error={personnelManager.error}
         />
       </ErrorBoundary>
 
@@ -3434,7 +3397,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           seasons={seasons}
           tournaments={tournaments}
           teams={teams}
-          personnel={personnel}
+          personnel={personnelManager.personnel}
         />
       )}
 
@@ -3492,8 +3455,13 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         tournamentLevel={gameSessionState.tournamentLevel}
         gameEvents={gameSessionState.gameEvents}
         availablePlayers={availablePlayers}
+        availablePersonnel={personnelManager.personnel}
         selectedPlayerIds={gameSessionState.selectedPlayerIds}
+        selectedPersonnelIds={gameSessionState.gamePersonnel || []}
         onSelectedPlayersChange={handleUpdateSelectedPlayers}
+        onSelectedPersonnelChange={(personnelIds: string[]) => {
+          dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: personnelIds });
+        }}
         numPeriods={gameSessionState.numberOfPeriods}
         periodDurationMinutes={gameSessionState.periodDurationMinutes}
         demandFactor={gameSessionState.demandFactor}

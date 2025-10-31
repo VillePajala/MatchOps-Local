@@ -27,6 +27,7 @@ export type PersonnelRole =
   | 'fitness_coach'
   | 'physio'
   | 'team_manager'
+  | 'support_staff'
   | 'other';
 
 /**

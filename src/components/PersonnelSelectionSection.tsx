@@ -44,6 +44,7 @@ const PersonnelSelectionSection: React.FC<PersonnelSelectionSectionProps> = ({
                 disabled={disabled}
                 checked={availablePersonnel.length === selectedPersonnelIds.length}
                 onChange={() => {
+                  if (disabled) return;
                   if (selectedPersonnelIds.length === availablePersonnel.length) {
                     onSelectedPersonnelChange([]);
                   } else {
@@ -68,6 +69,7 @@ const PersonnelSelectionSection: React.FC<PersonnelSelectionSectionProps> = ({
                     disabled={disabled}
                     checked={selectedPersonnelIds.includes(person.id)}
                     onChange={() => {
+                      if (disabled) return;
                       if (selectedPersonnelIds.includes(person.id)) {
                         onSelectedPersonnelChange(
                           selectedPersonnelIds.filter((id) => id !== person.id)

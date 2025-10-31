@@ -1,8 +1,10 @@
 import { PERSONNEL_KEY } from '@/config/storageKeys';
 import { getStorageItem, setStorageItem } from './storage';
 import type { Personnel, PersonnelCollection } from '@/types/personnel';
+import type { SavedGamesCollection } from '@/types';
 import logger from '@/utils/logger';
 import { withKeyLock } from './storageKeyLock';
+import { getSavedGames } from './savedGames';
 
 /**
  * Get all personnel from storage
@@ -14,7 +16,10 @@ export const getAllPersonnel = async (): Promise<Personnel[]> => {
       return [];
     }
     const collection: PersonnelCollection = JSON.parse(personnelJson);
-    return Object.values(collection);
+    // Sort by creation date, newest first
+    return Object.values(collection).sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
   } catch (error) {
     logger.error('Error getting personnel:', error);
     throw error;
@@ -131,6 +136,10 @@ export const updatePersonnelMember = async (
 
 /**
  * Remove personnel member
+ *
+ * @remarks
+ * This function performs a cascade delete - it removes the personnel from all games
+ * that reference them before deleting the personnel record itself.
  */
 export const removePersonnelMember = async (personnelId: string): Promise<boolean> => {
   return withKeyLock(PERSONNEL_KEY, async () => {
@@ -142,6 +151,28 @@ export const removePersonnelMember = async (personnelId: string): Promise<boolea
         return false;
       }
 
+      // CASCADE DELETE: Remove personnel from all games
+      const games = await getSavedGames();
+      let gamesUpdated = 0;
+
+      for (const [gameId, gameState] of Object.entries(games)) {
+        if (gameState.gamePersonnel?.includes(personnelId)) {
+          // Remove personnel from this game
+          gameState.gamePersonnel = gameState.gamePersonnel.filter(id => id !== personnelId);
+          games[gameId] = gameState;
+          gamesUpdated++;
+        }
+      }
+
+      // Save updated games if any were modified
+      if (gamesUpdated > 0) {
+        const { setStorageItem: setGamesItem } = await import('./storage');
+        const { SAVED_GAMES_KEY } = await import('@/config/storageKeys');
+        await setGamesItem(SAVED_GAMES_KEY, JSON.stringify(games));
+        logger.log(`Removed personnel ${personnelId} from ${gamesUpdated} games`);
+      }
+
+      // Now delete the personnel record
       delete collection[personnelId];
       await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
       logger.log('Personnel member removed:', personnelId);
@@ -163,6 +194,31 @@ export const getPersonnelByRole = async (role: Personnel['role']): Promise<Perso
     return allPersonnel.filter(p => p.role === role);
   } catch (error) {
     logger.error('Error getting personnel by role:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get all games that reference a specific personnel member
+ *
+ * @param personnelId - The personnel ID to search for
+ * @returns Array of game IDs that reference this personnel member
+ */
+export const getGamesWithPersonnel = async (personnelId: string): Promise<string[]> => {
+  try {
+    const games = await getSavedGames();
+    const gameIds: string[] = [];
+
+    for (const [gameId, gameState] of Object.entries(games)) {
+      if (gameState.gamePersonnel?.includes(personnelId)) {
+        gameIds.push(gameId);
+      }
+    }
+
+    logger.log(`Found ${gameIds.length} games using personnel ${personnelId}`);
+    return gameIds;
+  } catch (error) {
+    logger.error('Error getting games with personnel:', error);
     throw error;
   }
 };

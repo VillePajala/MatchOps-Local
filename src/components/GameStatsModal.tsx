@@ -6,7 +6,7 @@ import { HiOutlineChevronUpDown } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import logger from '@/utils/logger';
-import { Player, PlayerStatRow, Season, Tournament, Team } from '@/types';
+import { Player, PlayerStatRow, Season, Tournament, Team, Personnel } from '@/types';
 import { GameEvent, SavedGamesCollection } from '@/types';
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';
 import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
@@ -37,6 +37,7 @@ import {
   FilterControls,
   TeamPerformanceCard,
   ClubSeasonFilter,
+  PersonnelSummaryCard,
 } from './GameStatsModal/components';
 
 // Import types
@@ -63,6 +64,8 @@ interface GameStatsModalProps {
   selectedPlayerIds: string[];
   savedGames: SavedGamesCollection;
   currentGameId: string | null;
+  gamePersonnel?: string[];
+  personnelDirectory?: Personnel[];
   onExportOneCsv?: (gameId: string) => void;
   onDeleteGameEvent?: (goalId: string) => void;
   onExportAggregateCsv?: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
@@ -93,6 +96,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   selectedPlayerIds,
   savedGames,
   currentGameId,
+  gamePersonnel = [],
+  personnelDirectory = [],
   onExportOneCsv,
   onDeleteGameEvent,
   onExportAggregateCsv,
@@ -132,6 +137,17 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       return 'Date Error';
     }
   }, [i18n.language, t]);
+
+  // Resolve personnel IDs to full Personnel objects
+  const resolvedGamePersonnel = useMemo(() => {
+    if (!gamePersonnel || gamePersonnel.length === 0) {
+      return [] as Personnel[];
+    }
+    const directoryMap = new Map(personnelDirectory.map(member => [member.id, member] as const));
+    return gamePersonnel
+      .map(id => directoryMap.get(id))
+      .filter((person): person is Personnel => Boolean(person));
+  }, [gamePersonnel, personnelDirectory]);
 
   // Handler for when disabled season filter is clicked or settings button is clicked
   const handleOpenSeasonSettings = useCallback(() => {
@@ -666,6 +682,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left Column */}
                 <div className="space-y-6">
+            <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
                   {/* Overall Statistics Section */}
                   {activeTab === 'overall' && overallTeamStats && (
                     <TeamPerformanceCard

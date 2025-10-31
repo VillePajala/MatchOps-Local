@@ -131,6 +131,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       } else if (masterRoster.length > 0) {
         setSelectedPlayerIds(masterRoster.map(p => p.id));
       }
+      setSelectedPersonnelIds([]);
 
       // Load last home team name
       const loadLastTeamName = async () => {
