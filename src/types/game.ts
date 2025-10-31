@@ -77,6 +77,14 @@ export interface AppState {
   tacticalDrawings: Point[][];
   tacticalBallPosition: Point | null;
   teamId?: string;              // NEW: the team this game belongs to
+  /**
+   * Personnel assigned to this game (coaches, trainers, etc.)
+   *
+   * @remarks
+   * Optional for backwards compatibility with old games.
+   * Stores IDs only - names resolved from global personnel collection.
+   */
+  gamePersonnel?: string[];
 }
 
 export interface SavedGamesCollection {

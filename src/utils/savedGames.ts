@@ -205,6 +205,7 @@ export const createGame = async (gameData: Partial<AppState>): Promise<{ gameId:
       subIntervalMinutes: gameData.subIntervalMinutes === undefined ? 5 : gameData.subIntervalMinutes,
       completedIntervalDurations: gameData.completedIntervalDurations || [],
       lastSubConfirmationTimeSeconds: gameData.lastSubConfirmationTimeSeconds === undefined ? 0 : gameData.lastSubConfirmationTimeSeconds,
+      gamePersonnel: Array.isArray(gameData.gamePersonnel) ? gameData.gamePersonnel : [],
       ...gameData,
     };
     
