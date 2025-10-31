@@ -16,6 +16,7 @@ import SettingsModal from '@/components/SettingsModal';
 import SeasonTournamentManagementModal from '@/components/SeasonTournamentManagementModal';
 import TeamManagerModal from '@/components/TeamManagerModal';
 import TeamRosterModal from '@/components/TeamRosterModal';
+import PersonnelManagerModal from '@/components/PersonnelManagerModal';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import InstructionsModal from '@/components/InstructionsModal';
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
@@ -54,7 +55,7 @@ import { deleteSeason as utilDeleteSeason, updateSeason as utilUpdateSeason, add
 import { deleteTournament as utilDeleteTournament, updateTournament as utilUpdateTournament, addTournament as utilAddTournament } from '@/utils/tournaments';
 import { getTeams, getTeam } from '@/utils/teams';
 // Import Player from types directory
-import { Player, Season, Tournament, Team } from '@/types';
+import { Player, Season, Tournament, Team, Personnel } from '@/types';
 // Import saveMasterRoster utility
 import type { GameEvent, AppState, SavedGamesCollection, TimerState, PlayerAssessment } from "@/types";
 import { saveMasterRoster } from '@/utils/masterRoster';
@@ -65,6 +66,7 @@ import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useTacticalBoard } from '@/hooks/useTacticalBoard';
 import { useRoster } from '@/hooks/useRoster';
 import { useTeamsQuery } from '@/hooks/useTeamQueries';
+import { usePersonnel, useAddPersonnel, useUpdatePersonnel, useRemovePersonnel } from '@/hooks/usePersonnel';
 import { useModalContext } from '@/contexts/ModalProvider';
 // Import async storage utilities
 import {
@@ -302,6 +304,12 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   // Teams query for multi-team support
   const { data: teams = [] } = useTeamsQuery();
 
+  // Personnel data and mutations
+  const { data: personnel = [] } = usePersonnel();
+  const addPersonnelMutation = useAddPersonnel();
+  const updatePersonnelMutation = useUpdatePersonnel();
+  const removePersonnelMutation = useRemovePersonnel();
+
   const isMasterRosterQueryLoading = isGameDataLoading;
   const areSeasonsQueryLoading = isGameDataLoading;
   const areTournamentsQueryLoading = isGameDataLoading;
@@ -454,6 +462,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState<boolean>(false);
   const [isTeamRosterModalOpen, setIsTeamRosterModalOpen] = useState<boolean>(false);
   const [selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
+  const [isPersonnelManagerOpen, setIsPersonnelManagerOpen] = useState<boolean>(false);
 
   // --- Timer State (Still needed here) ---
   const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
@@ -2028,6 +2037,38 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   // --- END Roster Management Handlers ---
 
+  // --- Personnel Management Handlers ---
+  const handleAddPersonnelForModal = useCallback(async (data: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>) => {
+    logger.log('[HomePage] handleAddPersonnelForModal called with:', data);
+    try {
+      await addPersonnelMutation.mutateAsync(data);
+      logger.log('[HomePage] Personnel added successfully');
+    } catch (error) {
+      logger.error('[HomePage] Error adding personnel:', error);
+    }
+  }, [addPersonnelMutation]);
+
+  const handleUpdatePersonnelForModal = useCallback(async (personnelId: string, updates: Partial<Omit<Personnel, 'id' | 'createdAt'>>) => {
+    logger.log('[HomePage] handleUpdatePersonnelForModal called with:', personnelId, updates);
+    try {
+      await updatePersonnelMutation.mutateAsync({ personnelId, updates });
+      logger.log('[HomePage] Personnel updated successfully');
+    } catch (error) {
+      logger.error('[HomePage] Error updating personnel:', error);
+    }
+  }, [updatePersonnelMutation]);
+
+  const handleRemovePersonnelForModal = useCallback(async (personnelId: string) => {
+    logger.log('[HomePage] handleRemovePersonnelForModal called with:', personnelId);
+    try {
+      await removePersonnelMutation.mutateAsync(personnelId);
+      logger.log('[HomePage] Personnel removed successfully');
+    } catch (error) {
+      logger.error('[HomePage] Error removing personnel:', error);
+    }
+  }, [removePersonnelMutation]);
+  // --- END Personnel Management Handlers ---
+
   // --- NEW: Handler to Award Fair Play Card ---
   const handleAwardFairPlayCard = useCallback(async (playerId: string | null) => {
       // <<< ADD LOG HERE >>>
@@ -3248,6 +3289,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           onOpenSettingsModal={handleOpenSettingsModal}
           onOpenPlayerAssessmentModal={openPlayerAssessmentModal}
           onOpenTeamManagerModal={handleOpenTeamManagerModal}
+          onOpenPersonnelManager={() => setIsPersonnelManagerOpen(true)}
         />
       </div>
 
@@ -3278,6 +3320,28 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           teamId={selectedTeamForRoster}
           team={teams.find(t => t.id === selectedTeamForRoster) || null}
           masterRoster={masterRosterQueryResultData || []}
+        />
+      </ErrorBoundary>
+
+      <ErrorBoundary>
+        <PersonnelManagerModal
+          isOpen={isPersonnelManagerOpen}
+          onClose={() => setIsPersonnelManagerOpen(false)}
+          personnel={personnel}
+          onAddPersonnel={handleAddPersonnelForModal}
+          onUpdatePersonnel={handleUpdatePersonnelForModal}
+          onRemovePersonnel={handleRemovePersonnelForModal}
+          isUpdating={
+            addPersonnelMutation.isPending ||
+            updatePersonnelMutation.isPending ||
+            removePersonnelMutation.isPending
+          }
+          error={
+            addPersonnelMutation.error?.message ||
+            updatePersonnelMutation.error?.message ||
+            removePersonnelMutation.error?.message ||
+            null
+          }
         />
       </ErrorBoundary>
 
