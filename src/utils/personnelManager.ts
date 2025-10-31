@@ -1,7 +1,6 @@
 import { PERSONNEL_KEY } from '@/config/storageKeys';
 import { getStorageItem, setStorageItem } from './storage';
 import type { Personnel, PersonnelCollection } from '@/types/personnel';
-import type { SavedGamesCollection } from '@/types';
 import logger from '@/utils/logger';
 import { withKeyLock } from './storageKeyLock';
 import { getSavedGames } from './savedGames';

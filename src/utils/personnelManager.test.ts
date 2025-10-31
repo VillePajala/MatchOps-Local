@@ -28,7 +28,6 @@ jest.mock('./storageKeyLock', () => {
   const lockQueues = new Map<string, Promise<any>>();
 
   return {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     withKeyLock: jest.fn(async <T>(key: string, fn: () => Promise<T>): Promise<T> => {
       // Get or create queue for this key
       const currentLock = lockQueues.get(key) || Promise.resolve();

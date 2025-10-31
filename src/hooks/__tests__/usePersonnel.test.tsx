@@ -202,7 +202,7 @@ describe('usePersonnel hooks', () => {
             certifications: [],
             notes: '',
           });
-        } catch (e) {
+        } catch {
           // Expected to throw
         }
       });
@@ -287,7 +287,7 @@ describe('usePersonnel hooks', () => {
             personnelId: 'non-existent',
             updates: { name: 'Test' },
           });
-        } catch (e) {
+        } catch {
           // Expected to throw
         }
       });
@@ -345,7 +345,7 @@ describe('usePersonnel hooks', () => {
       await act(async () => {
         try {
           await result.current.mutateAsync('personnel_123');
-        } catch (e) {
+        } catch {
           // Expected to throw
         }
       });
