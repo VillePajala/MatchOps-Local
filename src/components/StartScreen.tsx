@@ -129,19 +129,19 @@ const StartScreen: React.FC<StartScreenProps> = ({
               <defs>
                 {/* Radial gradient for strand opacity (stronger center, fade edges) */}
                 <radialGradient id="webOpacityGradient" cx="50%" cy="50%">
-                  <stop offset="0%" stopColor="rgba(255, 255, 255, 0.15)" />
-                  <stop offset="50%" stopColor="rgba(255, 255, 255, 0.10)" />
-                  <stop offset="100%" stopColor="rgba(255, 255, 255, 0.04)" />
+                  <stop offset="0%" stopColor="rgba(255, 255, 255, 0.08)" />
+                  <stop offset="50%" stopColor="rgba(255, 255, 255, 0.05)" />
+                  <stop offset="100%" stopColor="rgba(255, 255, 255, 0.02)" />
                 </radialGradient>
                 {/* Subtle cyan-white gradient for color variation */}
                 <radialGradient id="webColorGradient" cx="50%" cy="50%">
-                  <stop offset="0%" stopColor="rgba(255, 255, 200, 0.12)" />
-                  <stop offset="40%" stopColor="rgba(255, 255, 255, 0.10)" />
-                  <stop offset="100%" stopColor="rgba(200, 240, 255, 0.06)" />
+                  <stop offset="0%" stopColor="rgba(255, 255, 200, 0.06)" />
+                  <stop offset="40%" stopColor="rgba(255, 255, 255, 0.05)" />
+                  <stop offset="100%" stopColor="rgba(200, 240, 255, 0.03)" />
                 </radialGradient>
                 {/* Glow filter */}
                 <filter id="webGlow">
-                  <feGaussianBlur stdDeviation="0.5" result="coloredBlur"/>
+                  <feGaussianBlur stdDeviation="0.3" result="coloredBlur"/>
                   <feMerge>
                     <feMergeNode in="coloredBlur"/>
                     <feMergeNode in="SourceGraphic"/>
@@ -168,16 +168,16 @@ const StartScreen: React.FC<StartScreenProps> = ({
                     r={radius}
                     fill="none"
                     stroke="url(#webColorGradient)"
-                    strokeWidth={i < 3 ? "0.6" : "0.4"}
+                    strokeWidth={i < 3 ? "0.4" : "0.3"}
                     filter="url(#webGlow)"
-                    opacity={0.85 - (i * 0.08)}
+                    opacity={0.5 - (i * 0.05)}
                   />
                 ))}
                 {/* Cardinal direction lines (main cross) - solid white */}
-                <line x1="0" y1="0" x2="180" y2="0" stroke="rgba(255, 255, 255, 0.06)" strokeWidth="0.8" />
-                <line x1="0" y1="0" x2="-180" y2="0" stroke="rgba(255, 255, 255, 0.06)" strokeWidth="0.8" />
-                <line x1="0" y1="0" x2="0" y2="180" stroke="rgba(255, 255, 255, 0.06)" strokeWidth="0.8" />
-                <line x1="0" y1="0" x2="0" y2="-180" stroke="rgba(255, 255, 255, 0.06)" strokeWidth="0.8" />
+                <line x1="0" y1="0" x2="180" y2="0" stroke="rgba(255, 255, 255, 0.03)" strokeWidth="0.5" />
+                <line x1="0" y1="0" x2="-180" y2="0" stroke="rgba(255, 255, 255, 0.03)" strokeWidth="0.5" />
+                <line x1="0" y1="0" x2="0" y2="180" stroke="rgba(255, 255, 255, 0.03)" strokeWidth="0.5" />
+                <line x1="0" y1="0" x2="0" y2="-180" stroke="rgba(255, 255, 255, 0.03)" strokeWidth="0.5" />
 
                 {/* Radial lines - remaining 32 lines (skipping 0, 90, 180, 270) */}
                 {Array.from({ length: 36 }, (_, i) => {
@@ -194,9 +194,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       x2={x}
                       y2={y}
                       stroke="url(#webColorGradient)"
-                      strokeWidth="0.4"
+                      strokeWidth="0.3"
                       filter="url(#webGlow)"
-                      opacity={0.7}
+                      opacity={0.4}
                     />
                   );
                 })}
@@ -213,8 +213,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
                       key={`sparkle-${i}`}
                       cx={x}
                       cy={y}
-                      r="0.8"
-                      fill="rgba(255, 255, 255, 0.4)"
+                      r="0.6"
+                      fill="rgba(255, 255, 255, 0.2)"
                       filter="url(#webGlow)"
                     />
                   );
@@ -223,10 +223,10 @@ const StartScreen: React.FC<StartScreenProps> = ({
                 <circle
                   cx="0"
                   cy="0"
-                  r="2"
-                  fill="rgba(255, 255, 200, 0.2)"
-                  stroke="rgba(255, 255, 255, 0.25)"
-                  strokeWidth="0.5"
+                  r="1.5"
+                  fill="rgba(255, 255, 200, 0.1)"
+                  stroke="rgba(255, 255, 255, 0.15)"
+                  strokeWidth="0.4"
                   filter="url(#webGlow)"
                 />
               </g>
@@ -253,7 +253,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
               />
             </div>
             {/* Tagline */}
-            <p className="text-slate-300 text-sm sm:text-base tracking-wide text-center mt-3 px-6">
+            <p className={`text-sm sm:text-base tracking-wide text-center px-6 bg-gradient-to-b from-white to-slate-200 bg-clip-text text-transparent ${isFirstTimeUser ? 'mt-6' : 'mt-3'}`}>
               {t('startScreen.tagline', 'Plan | Track | Assess')}
             </p>
           </div>
@@ -317,7 +317,7 @@ const StartScreen: React.FC<StartScreenProps> = ({
         {isFirstTimeUser ? (
           /* FIRST-TIME USER: Simplified Interface */
           <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+110px)] overflow-y-auto min-h-0">
-            <div className="relative w-full flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(8px,4vh,28px)]">
+            <div className="relative w-full flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(4px,0.5vh,8px)]">
               {/* Subtle glow behind buttons */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="w-[105%] h-[110%] bg-indigo-500/15 blur-[50px] rounded-3xl" />
