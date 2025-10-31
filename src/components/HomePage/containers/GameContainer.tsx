@@ -98,6 +98,7 @@ interface GameContainerProps extends Partial<UseGameOrchestrationReturn> {
   handleToggleInstructionsModal: () => void;
   handleOpenSettingsModal: () => void;
   openPlayerAssessmentModal: () => void;
+  handleOpenPersonnelManager: () => void;
 }
 
 export function GameContainer(props: GameContainerProps) {
@@ -191,6 +192,7 @@ export function GameContainer(props: GameContainerProps) {
     handleToggleInstructionsModal,
     handleOpenSettingsModal,
     openPlayerAssessmentModal,
+    handleOpenPersonnelManager,
   } = props;
 
   if (!gameSessionState) return null;
@@ -457,6 +459,7 @@ export function GameContainer(props: GameContainerProps) {
           onOpenSettingsModal={handleOpenSettingsModal || (() => {})}
           onOpenPlayerAssessmentModal={openPlayerAssessmentModal || (() => {})}
           onOpenTeamManagerModal={handleOpenTeamManagerModal || (() => {})}
+          onOpenPersonnelManager={handleOpenPersonnelManager || (() => {})}
         />
       </div>
     </main>
