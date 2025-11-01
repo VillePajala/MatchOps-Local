@@ -157,6 +157,13 @@ export const removePersonnelMember = async (personnelId: string): Promise<boolea
   // Two-phase locking: Lock both keys to ensure atomic CASCADE DELETE
   return withKeyLock(PERSONNEL_KEY, async () => {
     return withKeyLock(SAVED_GAMES_KEY, async () => {
+      // BACKUP: Capture state before any modifications
+      // This enables rollback if any operation fails during cascade delete
+      const backup = {
+        personnel: await getPersonnelCollection(),
+        games: await getSavedGames(),
+      };
+
       try {
         const collection = await getPersonnelCollection();
 
@@ -191,7 +198,22 @@ export const removePersonnelMember = async (personnelId: string): Promise<boolea
 
         return true;
       } catch (error) {
-        logger.error('Error removing personnel member:', error);
+        // ROLLBACK: Restore original state on any failure
+        try {
+          await setStorageItem(PERSONNEL_KEY, JSON.stringify(backup.personnel));
+          await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(backup.games));
+          logger.log('Rollback successful after personnel deletion error:', error);
+        } catch (rollbackError) {
+          // Critical: Rollback failed - data may be corrupted
+          logger.error('CRITICAL: Rollback failed - data may be corrupted', {
+            originalError: error,
+            rollbackError,
+            personnelId,
+          });
+          // Re-throw rollback error as it's more critical
+          throw new Error(`CASCADE DELETE failed and rollback also failed: ${rollbackError}`);
+        }
+        logger.error('Error removing personnel member (rolled back):', error);
         throw error;
       }
     });

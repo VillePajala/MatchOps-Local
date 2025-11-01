@@ -139,6 +139,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   }, [i18n.language, t]);
 
   // Resolve personnel IDs to full Personnel objects
+  // DEFENSIVE: Filters out undefined (deleted personnel) to prevent crashes
+  //
+  // Multi-tab limitation: Per-tab lock manager cannot prevent cross-tab race conditions
+  // where one tab deletes personnel while another tab assigns them to a game.
+  // This filtering prevents UI crashes from orphaned references but doesn't fix
+  // the underlying data integrity issue.
+  //
+  // Future improvement: Use IndexedDB transactions with read-modify-write isolation
   const resolvedGamePersonnel = useMemo(() => {
     if (!gamePersonnel || gamePersonnel.length === 0) {
       return [] as Personnel[];
