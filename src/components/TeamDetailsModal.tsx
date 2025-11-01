@@ -89,6 +89,10 @@ const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({
 
       addTeamMutation.mutate(newTeam, {
         onSuccess: () => onClose(),
+        onError: (error) => {
+          console.error('Failed to create team:', error);
+          // Error is handled by React Query and displayed via toast in parent component
+        },
       });
     } else {
       // Update existing team
@@ -103,6 +107,10 @@ const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({
         },
       }, {
         onSuccess: () => onClose(),
+        onError: (error) => {
+          console.error('Failed to update team:', error);
+          // Error is handled by React Query and displayed via toast in parent component
+        },
       });
     }
   };

@@ -88,34 +88,39 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
       notes: notes.trim() || undefined,
     };
 
-    if (mode === 'create') {
-      // Create new personnel
-      if (!onAddPersonnel) return;
-      await onAddPersonnel(data);
-    } else {
-      // Update existing personnel
-      if (!personnel || !onUpdatePersonnel) return;
+    try {
+      if (mode === 'create') {
+        // Create new personnel
+        if (!onAddPersonnel) return;
+        await onAddPersonnel(data);
+      } else {
+        // Update existing personnel
+        if (!personnel || !onUpdatePersonnel) return;
 
-      const updates: Partial<Omit<Personnel, 'id' | 'createdAt'>> = {};
+        const updates: Partial<Omit<Personnel, 'id' | 'createdAt'>> = {};
 
-      if (data.name !== personnel.name) updates.name = data.name;
-      if (data.role !== personnel.role) updates.role = data.role;
-      if (data.phone !== (personnel.phone || undefined)) updates.phone = data.phone;
-      if (data.email !== (personnel.email || undefined)) updates.email = data.email;
+        if (data.name !== personnel.name) updates.name = data.name;
+        if (data.role !== personnel.role) updates.role = data.role;
+        if (data.phone !== (personnel.phone || undefined)) updates.phone = data.phone;
+        if (data.email !== (personnel.email || undefined)) updates.email = data.email;
 
-      // Compare certifications arrays
-      const oldCerts = JSON.stringify(personnel.certifications || []);
-      const newCerts = JSON.stringify(parsedCertifications);
-      if (oldCerts !== newCerts) updates.certifications = parsedCertifications.length > 0 ? parsedCertifications : undefined;
+        // Compare certifications arrays
+        const oldCerts = JSON.stringify(personnel.certifications || []);
+        const newCerts = JSON.stringify(parsedCertifications);
+        if (oldCerts !== newCerts) updates.certifications = parsedCertifications.length > 0 ? parsedCertifications : undefined;
 
-      if (data.notes !== (personnel.notes || undefined)) updates.notes = data.notes;
+        if (data.notes !== (personnel.notes || undefined)) updates.notes = data.notes;
 
-      if (Object.keys(updates).length > 0) {
-        await onUpdatePersonnel(personnel.id, updates);
+        if (Object.keys(updates).length > 0) {
+          await onUpdatePersonnel(personnel.id, updates);
+        }
       }
-    }
 
-    onClose();
+      onClose();
+    } catch (error) {
+      console.error('Failed to save personnel:', error);
+      // Error displayed to user via parent component toast
+    }
   };
 
   const handleCancel = () => {
