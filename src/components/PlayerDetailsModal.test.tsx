@@ -6,9 +6,11 @@ import { Player } from '@/types';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
 
+type PlayerDetailsModalProps = React.ComponentProps<typeof PlayerDetailsModal>;
+
 const mockPlayers: Player[] = [
-  { id: 'p1', name: 'John Doe', nickname: 'JD', jerseyNumber: '10', notes: '', isGoalie: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-  { id: 'p2', name: 'Jane Smith', nickname: '', jerseyNumber: '1', notes: '', isGoalie: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { id: 'p1', name: 'John Doe', nickname: 'JD', jerseyNumber: '10', notes: '', isGoalie: false },
+  { id: 'p2', name: 'Jane Smith', nickname: '', jerseyNumber: '1', notes: '', isGoalie: true },
 ];
 
 const mockPlayer: Player = {
@@ -18,21 +20,19 @@ const mockPlayer: Player = {
   jerseyNumber: '10',
   notes: 'Excellent striker',
   isGoalie: false,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
 };
 
-const defaultProps = {
+const defaultProps: PlayerDetailsModalProps = {
   isOpen: true,
   onClose: jest.fn(),
-  mode: 'edit' as const,
+  mode: 'edit',
   player: mockPlayer,
   players: mockPlayers,
   onUpdatePlayer: jest.fn().mockResolvedValue(undefined),
   isRosterUpdating: false,
 };
 
-const renderWithProviders = (props: Partial<typeof defaultProps> = {}) => {
+const renderWithProviders = (props: Partial<PlayerDetailsModalProps> = {}) => {
   return render(
     <I18nextProvider i18n={i18n}>
       <PlayerDetailsModal {...defaultProps} {...props} />
@@ -86,27 +86,6 @@ describe('PlayerDetailsModal', () => {
       expect(screen.getByPlaceholderText('Optional nickname')).toBeInTheDocument();
       expect(screen.getByPlaceholderText('e.g., 10')).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/Optional notes about this player/i)).toBeInTheDocument();
-      expect(screen.getByRole('checkbox', { name: /Goalkeeper/i })).toBeInTheDocument();
-    });
-
-    it('shows goalie checkbox unchecked for non-goalie player', async () => {
-      await act(async () => {
-        renderWithProviders();
-      });
-
-      const goalieCheckbox = screen.getByRole('checkbox', { name: /Goalkeeper/i });
-      expect(goalieCheckbox).not.toBeChecked();
-    });
-
-    it('shows goalie checkbox checked for goalie player', async () => {
-      const goaliePlayer = { ...mockPlayer, isGoalie: true };
-
-      await act(async () => {
-        renderWithProviders({ player: goaliePlayer });
-      });
-
-      const goalieCheckbox = screen.getByRole('checkbox', { name: /Goalkeeper/i });
-      expect(goalieCheckbox).toBeChecked();
     });
   });
 
@@ -166,23 +145,6 @@ describe('PlayerDetailsModal', () => {
 
       expect(screen.getByDisplayValue('Great defender')).toBeInTheDocument();
     });
-
-    it('allows toggling goalie checkbox', async () => {
-      const user = userEvent.setup();
-
-      await act(async () => {
-        renderWithProviders();
-      });
-
-      const goalieCheckbox = screen.getByRole('checkbox', { name: /Goalkeeper/i });
-      expect(goalieCheckbox).not.toBeChecked();
-
-      await user.click(goalieCheckbox);
-      expect(goalieCheckbox).toBeChecked();
-
-      await user.click(goalieCheckbox);
-      expect(goalieCheckbox).not.toBeChecked();
-    });
   });
 
   describe('Save Functionality', () => {
@@ -235,9 +197,6 @@ describe('PlayerDetailsModal', () => {
       await user.clear(jerseyInput);
       await user.type(jerseyInput, '7');
 
-      const goalieCheckbox = screen.getByRole('checkbox', { name: /Goalkeeper/i });
-      await user.click(goalieCheckbox);
-
       const saveButton = screen.getByRole('button', { name: /Save/i });
       await user.click(saveButton);
 
@@ -245,7 +204,6 @@ describe('PlayerDetailsModal', () => {
         name: 'New Name',
         nickname: 'NN',
         jerseyNumber: '7',
-        isGoalie: true,
       });
       expect(onClose).toHaveBeenCalledTimes(1);
     });
@@ -293,9 +251,6 @@ describe('PlayerDetailsModal', () => {
       const jerseyInput = screen.getByPlaceholderText('e.g., 10');
       await user.type(jerseyInput, '15');
 
-      const goalieCheckbox = screen.getByRole('checkbox', { name: /Goalkeeper/i });
-      await user.click(goalieCheckbox);
-
       const createButton = screen.getByRole('button', { name: /Add/i });
       await user.click(createButton);
 
@@ -304,7 +259,6 @@ describe('PlayerDetailsModal', () => {
         nickname: 'NP',
         jerseyNumber: '15',
         notes: '',
-        isGoalie: true,
       });
       expect(onClose).toHaveBeenCalledTimes(1);
     });

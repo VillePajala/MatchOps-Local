@@ -326,7 +326,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                                   className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"
                                 >
                                   <HiOutlinePencil className="w-4 h-4" />
-                                  {t('common.edit', 'Edit')}
+                                  {t('teamManager.editRoster', 'Edit Roster')}
                                 </button>
                                 <button
                                   onClick={() => handleToggleArchive(team.id, team.archived || false)}

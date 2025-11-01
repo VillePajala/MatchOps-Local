@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Player } from '@/types';
+import logger from '@/utils/logger';
 
 interface PlayerDetailsModalProps {
   isOpen: boolean;
@@ -11,7 +12,7 @@ interface PlayerDetailsModalProps {
   mode: 'create' | 'edit';
   player?: Player | null;
   players: Player[]; // Available players list (for future enhancements)
-  onAddPlayer?: (playerData: { name: string; nickname: string; jerseyNumber: string; notes: string; isGoalie?: boolean }) => void;
+  onAddPlayer?: (playerData: { name: string; nickname: string; jerseyNumber: string; notes: string }) => void;
   onUpdatePlayer?: (playerId: string, updates: Partial<Omit<Player, 'id'>>) => Promise<void>;
   isRosterUpdating?: boolean;
 }
@@ -35,7 +36,6 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   const [nickname, setNickname] = useState('');
   const [jerseyNumber, setJerseyNumber] = useState('');
   const [notes, setNotes] = useState('');
-  const [isGoalie, setIsGoalie] = useState(false);
 
   // Initialize form when player changes or modal opens
   useEffect(() => {
@@ -45,14 +45,12 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
       setNickname('');
       setJerseyNumber('');
       setNotes('');
-      setIsGoalie(false);
     } else if (player) {
       // Load existing player data for edit mode
       setName(player.name || '');
       setNickname(player.nickname || '');
       setJerseyNumber(player.jerseyNumber || '');
       setNotes(player.notes || '');
-      setIsGoalie(player.isGoalie || false);
     }
   }, [mode, player, isOpen]);
 
@@ -74,7 +72,6 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
           nickname: trimmedNickname,
           jerseyNumber: jerseyNumber.trim(),
           notes: notes.trim(),
-          isGoalie,
         });
       } else {
         // Update existing player
@@ -86,7 +83,6 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
         if (trimmedNickname !== (player.nickname || '')) updates.nickname = trimmedNickname;
         if (jerseyNumber !== (player.jerseyNumber || '')) updates.jerseyNumber = jerseyNumber;
         if (notes !== (player.notes || '')) updates.notes = notes;
-        if (isGoalie !== (player.isGoalie || false)) updates.isGoalie = isGoalie;
 
         if (Object.keys(updates).length > 0) {
           await onUpdatePlayer(player.id, updates);
@@ -95,7 +91,7 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
 
       onClose();
     } catch (error) {
-      console.error('Failed to save player:', error);
+      logger.error('Failed to save player:', error);
       // Error displayed to user via parent component toast
     }
   };
@@ -190,19 +186,6 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                   rows={3}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
                 />
-              </div>
-
-              {/* Is Goalie */}
-              <div>
-                <label className="text-slate-200 text-sm flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={isGoalie}
-                    onChange={(e) => setIsGoalie(e.target.checked)}
-                    className="form-checkbox h-4 w-4 text-indigo-600 rounded"
-                  />
-                  {t('playerDetailsModal.goalieLabel', 'Goalkeeper')}
-                </label>
               </div>
             </div>
           </div>

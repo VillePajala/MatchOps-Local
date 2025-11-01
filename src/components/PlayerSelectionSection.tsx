@@ -25,8 +25,8 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
   disabled,
 }) => {
   return (
-    <div className="space-y-4 bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-full bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all">
+      <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <h3 className="text-lg font-semibold text-slate-200">{title}</h3>
         <div className="text-sm text-slate-400">
           <span className="text-yellow-400 font-semibold">{selectedPlayerIds.length}</span>{' / '}
@@ -36,7 +36,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
       </div>
       {availablePlayers.length > 0 ? (
         <>
-          <div className="flex items-center py-2 px-1 border-b border-slate-700/50">
+          <div className="flex items-center py-2 px-1 border-b border-slate-700/50 mb-4 flex-shrink-0">
             <label className="flex items-center text-sm text-slate-300 hover:text-slate-200 cursor-pointer">
               <input
                 type="checkbox"
@@ -54,7 +54,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
               <span className="ml-2">{selectAllText}</span>
             </label>
           </div>
-          <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+          <div className="flex-1 space-y-1 overflow-y-auto pr-1 min-h-0">
             {availablePlayers.map((player) => (
               <div key={player.id} className="flex items-center py-1.5 px-1 rounded hover:bg-slate-800/40 transition-colors">
                 <label className="flex items-center flex-1 cursor-pointer">

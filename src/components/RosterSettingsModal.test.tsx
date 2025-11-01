@@ -115,7 +115,6 @@ describe('<RosterSettingsModal />', () => {
       nickname: 'NP',
       jerseyNumber: '99',
       notes: 'Test notes',
-      isGoalie: false
     };
 
     fireEvent.change(screen.getByPlaceholderText(/Enter player name/i), { target: { value: newPlayer.name }});

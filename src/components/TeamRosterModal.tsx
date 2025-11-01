@@ -131,40 +131,42 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 p-6">
+        <div className={`flex-1 overflow-y-auto min-h-0 ${isSelectingFromMaster ? 'p-0' : 'p-6'}`}>
 
 
           {/* Select from Master Roster */}
           {isSelectingFromMaster && (
-            <div className="space-y-4 bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
-              <PlayerSelectionSection
-                availablePlayers={masterRoster}
-                selectedPlayerIds={selectedPlayerIds}
-                onSelectedPlayersChange={setSelectedPlayerIds}
-                title={t('teamRosterModal.selectFromMaster', 'Select from Master Roster')}
-                playersSelectedText={t('teamRosterModal.selected', 'selected')}
-                selectAllText={t('teamRosterModal.selectAll', 'Select All')}
-                noPlayersText={t('teamRosterModal.noAvailablePlayers', 'No available players to add from master roster.')}
-                disabled={addPlayerToRosterMutation.isPending}
-              />
-              
-              <div className="flex gap-3 justify-end">
+            <div className="flex flex-col h-full bg-slate-900/70 p-4 border-0">
+              <div className="flex-1 overflow-y-auto min-h-0">
+                <PlayerSelectionSection
+                  availablePlayers={masterRoster}
+                  selectedPlayerIds={selectedPlayerIds}
+                  onSelectedPlayersChange={setSelectedPlayerIds}
+                  title={t('teamRosterModal.selectFromMaster', 'Select from Master Roster')}
+                  playersSelectedText={t('teamRosterModal.selected', 'selected')}
+                  selectAllText={t('teamRosterModal.selectAll', 'Select All')}
+                  noPlayersText={t('teamRosterModal.noAvailablePlayers', 'No available players to add from master roster.')}
+                  disabled={addPlayerToRosterMutation.isPending}
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end flex-shrink-0 pt-4">
                 <button
                   onClick={() => {
                     setIsSelectingFromMaster(false);
                     setSelectedPlayerIds([]);
                   }}
-                  className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-md transition-colors font-medium"
+                  className={secondaryButtonStyle}
                 >
                   {t('common.cancel', 'Cancel')}
                 </button>
                 <button
                   onClick={handleAddSelectedPlayers}
                   disabled={selectedPlayerIds.length === 0 || addPlayerToRosterMutation.isPending}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-600 disabled:opacity-50 text-white rounded-md transition-colors font-medium"
+                  className={primaryButtonStyle}
                 >
-                  {addPlayerToRosterMutation.isPending 
-                    ? t('teamRosterModal.adding', 'Adding...') 
+                  {addPlayerToRosterMutation.isPending
+                    ? t('teamRosterModal.adding', 'Adding...')
                     : `${t('teamRosterModal.addSelected', 'Add Selected')} (${selectedPlayerIds.length})`
                   }
                 </button>
@@ -193,18 +195,16 @@ const TeamRosterModal: React.FC<TeamRosterModalProps> = ({
                   </p>
                 </div>
               ) : (
-                <div role="list" className="space-y-0" aria-label={t('teamRosterModal.playerList', 'Team player list')}>
-                  {teamRoster.map((player, index) => (
+                <div role="list" className="space-y-3" aria-label={t('teamRosterModal.playerList', 'Team player list')}>
+                  {teamRoster.map((player) => (
                     <div
                       key={player.id}
                       role="listitem"
                       tabIndex={0}
                       aria-label={`${t('teamRosterModal.player', 'Player')}: ${player.name}`}
-                      className={`flex items-center py-1.5 px-2 rounded hover:bg-slate-800/40 focus:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
-                        index < teamRoster.length - 1 ? 'border-b border-slate-700/50' : ''
-                      }`}
+                      className="p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
-                      <p className="text-slate-100 font-medium">{player.name}</p>
+                      <p className="text-base text-slate-100 font-medium">{player.name}</p>
                     </div>
                   ))}
                 </div>
