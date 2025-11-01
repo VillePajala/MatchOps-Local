@@ -466,13 +466,6 @@ describe('PersonnelManagerModal', () => {
       // Add button itself should be disabled when isUpdating
       expect(addButton).toBeDisabled();
     });
-
-    // TODO: Error display not implemented - component uses toast messages instead
-    it.skip('should display error message when error prop is provided', () => {
-      renderModal({ error: 'Failed to add personnel' });
-
-      expect(screen.getByText('Failed to add personnel')).toBeInTheDocument();
-    });
   });
 
   describe('Modal Controls', () => {

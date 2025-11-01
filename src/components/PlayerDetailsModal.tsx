@@ -64,35 +64,40 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
       return; // Name is required
     }
 
-    if (mode === 'create') {
-      // Create new player
-      if (!onAddPlayer) return;
+    try {
+      if (mode === 'create') {
+        // Create new player
+        if (!onAddPlayer) return;
 
-      onAddPlayer({
-        name: trimmedName,
-        nickname: trimmedNickname,
-        jerseyNumber: jerseyNumber.trim(),
-        notes: notes.trim(),
-        isGoalie,
-      });
-    } else {
-      // Update existing player
-      if (!player || !onUpdatePlayer) return;
+        onAddPlayer({
+          name: trimmedName,
+          nickname: trimmedNickname,
+          jerseyNumber: jerseyNumber.trim(),
+          notes: notes.trim(),
+          isGoalie,
+        });
+      } else {
+        // Update existing player
+        if (!player || !onUpdatePlayer) return;
 
-      const updates: Partial<Omit<Player, 'id'>> = {};
+        const updates: Partial<Omit<Player, 'id'>> = {};
 
-      if (trimmedName !== player.name) updates.name = trimmedName;
-      if (trimmedNickname !== (player.nickname || '')) updates.nickname = trimmedNickname;
-      if (jerseyNumber !== (player.jerseyNumber || '')) updates.jerseyNumber = jerseyNumber;
-      if (notes !== (player.notes || '')) updates.notes = notes;
-      if (isGoalie !== (player.isGoalie || false)) updates.isGoalie = isGoalie;
+        if (trimmedName !== player.name) updates.name = trimmedName;
+        if (trimmedNickname !== (player.nickname || '')) updates.nickname = trimmedNickname;
+        if (jerseyNumber !== (player.jerseyNumber || '')) updates.jerseyNumber = jerseyNumber;
+        if (notes !== (player.notes || '')) updates.notes = notes;
+        if (isGoalie !== (player.isGoalie || false)) updates.isGoalie = isGoalie;
 
-      if (Object.keys(updates).length > 0) {
-        await onUpdatePlayer(player.id, updates);
+        if (Object.keys(updates).length > 0) {
+          await onUpdatePlayer(player.id, updates);
+        }
       }
-    }
 
-    onClose();
+      onClose();
+    } catch (error) {
+      console.error('Failed to save player:', error);
+      // Error displayed to user via parent component toast
+    }
   };
 
   const handleCancel = () => {
