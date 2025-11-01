@@ -26,83 +26,142 @@ MatchOps-Local is a comprehensive Progressive Web App (PWA) designed specificall
 - **💰 Zero Ongoing Costs**: No subscriptions, no per-user fees, install once and use forever
 - **⚽ Soccer-Specific**: Purpose-built for soccer coaching workflows and needs
 
+## 📋 Complete Coaching Workflow: Plan, Track, Assess
+
+MatchOps-Local supports coaches through the complete game cycle with three integrated phases:
+
+### 🎯 **Plan** (Pre-Game)
+Before the game, organize your coaching staff, set up teams, and prepare rosters. The **Personnel Management** system helps you maintain a global database of coaches, trainers, and support staff across all your teams. The **Team Management** system lets you create multiple teams from your master roster, while **Season & Tournament** organization helps you structure your competitive calendar.
+
+### ⚽ **Track** (In-Game)
+During the game, use the **Interactive Field** to visualize player positions, manage substitutions with the **Live Timer** (including visual alerts and substitution tracking), and log important events like goals and assists in real-time. The **Tactics Board** lets you draw plays and communicate adjustments without disrupting the game flow.
+
+### 📊 **Assess** (Post-Game)
+After the game, review comprehensive **Player Statistics** (goals, assists, playtime across games, seasons, and tournaments), conduct detailed **Performance Assessments** across multiple dimensions (technical, tactical, physical, mental), and analyze trends with advanced filtering by season, tournament, or team. Track player development over time and gain insights to guide training priorities.
+
+---
+
 ## 🚀 Core Features
 
-### ⚽ **Game Day Management**
-- **Interactive Soccer Field**: Drag-and-drop player positioning with realistic field visualization
-- **Live Game Timer**: Professional timer with large overlay display for sideline visibility
+### 🎯 **PLAN: Pre-Game Preparation**
+
+#### 👥 **Personnel Management**
+- **Global Staff Database**: Maintain a centralized database of all coaching staff across teams
+  - Head Coach, Assistant Coach, Goalkeeper Coach
+  - Fitness Coach, Physiotherapist, Team Manager
+  - Support Staff and other customizable roles
+- **Contact Information Management**: Store phone numbers, emails, certifications, and notes for each staff member
+- **Game Assignments**: Select specific personnel for each game from your global pool
+- **Cross-Team Support**: Same personnel can work with multiple teams without data duplication
+- **Bilingual Interface**: Full English and Finnish language support
+
+#### 👥 **Team Management**
+- **Master Roster System**: Central player database shared across all teams
+  - Add, edit, and remove players with goalie designation
+  - Player name and nickname support for field display
+  - Jersey number assignment
+  - Player notes and development tracking
+- **Multi-Team Support**:
+  - Create and manage unlimited independent teams
+  - Build team rosters from master player database
+  - Team duplication with full roster copy
+  - Team-specific settings and configurations
+  - Impact analysis before team deletion (shows affected games)
+- **Game Roster Selection**: Choose specific players and personnel for each game
+
+#### 🏆 **Season & Tournament Organization**
+- **Season Management**:
+  - Create seasons with custom date ranges (e.g., Fall 2024: Sep - Dec)
+  - Club season filtering for winter/summer schedules
+  - Season-specific settings and statistics
+  - Detailed season management modals
+- **Tournament Tracking**:
+  - Create tournaments with winners and awards
+  - Tournament player recognition (Fair Play Trophy, Player of Tournament, etc.)
+  - Performance statistics per tournament
+  - Tournament details and management modals
+- **Competition Association**: Link games to specific seasons or tournaments for organized tracking
+
+### ⚽ **TRACK: In-Game Management**
+
+#### 🗺️ **Interactive Soccer Field**
+- **Drag-and-Drop Positioning**: Visual player placement with realistic field rendering
+- **Field Tools Panel**: Quick access to field management
+  - Place all selected players automatically in formation
+  - Reset field to default state
+  - Undo/Redo support for all field actions
+  - Clear tactical drawings without resetting positions
+
+#### ⏱️ **Live Game Timer**
+- **Professional Timer Display**: Large overlay optimized for sideline visibility
+- **Substitution Management**:
   - Configurable substitution intervals (1-20 minutes)
   - Time-since-last-substitution tracking
-  - Visual alerts for upcoming substitutions (warning at 1 minute, due when time reached)
-  - Substitution history log with timestamps
-- **Real-Time Event Logging**:
-  - Goals with scorer and assist tracking
-  - Opponent goals
-  - Inline opponent name editing during games
-  - Event timestamps synced with game timer
-- **Tactics Board**: Dedicated drawing interface for play design and team instruction
-  - Add/remove opponent players and discs
-  - Clear drawings without resetting field
-  - Undo/Redo support for field changes
-  - Toggle between tactics view and standard player view
-- **Field Tools Panel**: Quick access to field management
-  - Place all selected players automatically
-  - Reset field to default state
-  - Undo/Redo field actions
-  - Clear tactical drawings
+  - Visual alerts (warning at 1 minute, due when time reached)
+  - Complete substitution history with timestamps
+- **Period Tracking**: Multi-period game support with period transitions
 
-### 📊 **Statistics & Analytics**
-- **Comprehensive Player Stats**:
-  - Goals, assists, appearances, playtime tracking
+#### 📝 **Real-Time Event Logging**
+- **Goal Tracking**:
+  - Record scorer and assist for every goal
+  - Event timestamps synced with game timer
+  - Inline editing via 3-dot menu
+- **Opponent Tracking**:
+  - Opponent goal recording
+  - Inline opponent name editing during games
+- **Event Management**: Edit or delete events with full confirmation workflow
+
+#### 🎨 **Tactics Board**
+- **Drawing Interface**: Dedicated tactical play design mode
+  - Add/remove opponent players and tactical discs
+  - Draw plays and movement patterns
+  - Clear drawings without resetting field positions
+- **View Modes**: Toggle between tactics view and standard player view
+- **Undo/Redo**: Full history support for tactical changes
+
+### 📊 **ASSESS: Post-Game Analysis**
+
+#### 📈 **Comprehensive Player Statistics**
+- **Performance Tracking**:
+  - Goals, assists, appearances, and playtime tracking
   - Performance trends across games, seasons, and tournaments
-  - Per-game statistics with sortable columns (goals, assists, time played)
-  - Tournament-specific performance tracking
-- **Advanced Filtering**:
-  - Filter by season, tournament, or team
-  - Club season filtering (e.g., Oct-May for winter season)
-  - Combined filters for detailed analysis
-  - Player-specific game history view
-- **Tournament System**:
-  - Tournament player awards (Fair Play Trophy, etc.)
-  - Tournament winner tracking
-  - Performance statistics per tournament
-  - Season and tournament details modals for comprehensive management
+  - Per-game statistics with sortable columns
+  - Tournament-specific performance analysis
 - **Game Statistics Modal**:
   - Overall statistics across all games
   - Current game stats with live updates
   - Season performance summaries
   - Tournament performance summaries
-  - Player-focused view with season participation count
-  - Sortable tables (by goals, assists, playtime, etc.)
-  - Integrated goal log with edit/delete functionality via 3-dot menu
+  - Player-focused view with season participation counts
 
-### 👥 **Team Management**
-- **Master Roster System**: Central player database shared across all teams
-  - Add, edit, and remove players
-  - Player stats view from roster (goals, games played, etc.)
-  - Goalie designation support
-  - Player name and nickname support
-- **Multi-Team Support**:
-  - Create and manage unlimited teams
-  - Independent rosters from master player database
-  - Team-specific settings and configurations
-  - Team roster selection for each game
-- **Season & Tournament Organization**:
-  - Create seasons with date ranges (e.g., Fall 2024: Sep - Dec)
-  - Create tournaments with winners and awards
-  - Detailed season and tournament management modals
-  - Associate games with seasons or tournaments
-  - Track performance across competitions
-- **Player Performance Assessment**:
-  - Multi-dimensional rating system:
-    - Technical skills (passing, shooting, dribbling, etc.)
-    - Tactical understanding (positioning, decision-making)
-    - Physical attributes (speed, stamina, strength)
-    - Mental qualities (focus, attitude, teamwork)
-  - Weighted difficulty tracking based on opponent strength
+#### 🔍 **Advanced Filtering & Analysis**
+- **Multi-Dimensional Filtering**:
+  - Filter by season, tournament, or team
+  - Club season filtering (e.g., Oct-May for winter season)
+  - Combined filters for detailed analysis
+  - Player-specific game history view
+- **Sortable Data Tables**: Sort by goals, assists, playtime, and more
+- **Trend Analysis**: Identify performance patterns over time
+
+#### 🎯 **Player Performance Assessment**
+- **Multi-Dimensional Rating System**:
+  - **Technical Skills**: Passing, shooting, dribbling, ball control
+  - **Tactical Understanding**: Positioning, decision-making, game reading
+  - **Physical Attributes**: Speed, stamina, strength, agility
+  - **Mental Qualities**: Focus, attitude, teamwork, composure
+- **Context Tracking**:
+  - Weighted difficulty based on opponent strength
   - Game context captured (score, date, location, periods)
   - Historical assessment trends per player
   - Save and reset assessment functionality
+- **Development Insights**: Track player growth across assessments
+
+#### 🏆 **Tournament & Award System**
+- **Recognition Tracking**:
+  - Tournament player awards (Fair Play Trophy, etc.)
+  - Tournament winner tracking
+  - Season champions and performance highlights
+- **Performance Statistics**: Detailed stats per competition
 
 ### 🎮 **User Experience**
 - **Intuitive Interface**:
@@ -131,6 +190,7 @@ MatchOps-Local is a comprehensive Progressive Web App (PWA) designed specificall
   - Cross-tab coordination with heartbeat mechanism
 - **Complete Backup & Restore**:
   - One-click full backup export (JSON format)
+  - Includes all data: teams, rosters, personnel, seasons, tournaments, and games
   - Data integrity verification with checksums
   - Import full backups with validation
   - Individual game import/export support
@@ -221,6 +281,15 @@ MatchOps-Local has reached **production maturity** with enterprise-grade feature
 - **3-Dot Action Menus**: Consistent dropdown pattern for Edit/Delete actions across modals
 - **Accessibility Enhancements**: Full keyboard navigation, ARIA attributes, focus management
 - **Toast System**: Non-blocking notifications replacing window.alert/window.confirm
+
+### **Personnel Management System**
+- **Global Staff Pool**: Centralized management of coaches, trainers, and support staff across all teams
+- **Role-Based Organization**: Seven distinct staff roles (Head Coach, Assistant Coach, Goalkeeper Coach, Fitness Coach, Physiotherapist, Team Manager, Support Staff)
+- **React Query Integration**: Real-time cache invalidation with optimistic updates for instant UI feedback
+- **Cross-Team Personnel**: Same staff can work with multiple teams without data duplication
+- **Contact Management**: Store phone numbers, emails, certifications, and notes for each staff member
+- **Backup Integration**: Personnel data automatically included in full backup/restore system
+- **Bilingual Support**: Complete English and Finnish translations for all personnel features
 
 ## 🚀 Quick Start
 
