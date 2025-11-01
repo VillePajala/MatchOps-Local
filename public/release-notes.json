@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: improve personnel deletion UX and concurrency control"
+  "notes": "fix: implement two-phase locking to prevent CASCADE DELETE race condition"
 }

@@ -913,6 +913,7 @@
   "personnelManager": {
     "title": "Personnel Manager",
     "addPersonnel": "Add Personnel",
+    "confirmAddPersonnel": "Add Personnel",
     "newPersonnel": "New Personnel",
     "totalPersonnel": "Personnel",
     "totalPersonnelSingular": "Personnel",

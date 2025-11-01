@@ -330,7 +330,12 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                 <div className="flex justify-center items-center text-slate-300">
                   <span>
                     <span className="text-yellow-400 font-semibold">{personnel.length}</span>
-                    {" "}{t('personnelManager.totalPersonnel', 'Total Personnel')}
+                    {" "}{t(
+                      personnel.length === 1
+                        ? 'personnelManager.totalPersonnelSingular'
+                        : 'personnelManager.totalPersonnelPlural',
+                      'Personnel'
+                    )}
                   </span>
                 </div>
               </div>
