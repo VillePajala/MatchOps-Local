@@ -159,6 +159,10 @@ export const removePersonnelMember = async (personnelId: string): Promise<boolea
     return withKeyLock(SAVED_GAMES_KEY, async () => {
       // BACKUP: Capture state before any modifications
       // This enables rollback if any operation fails during cascade delete
+      //
+      // Memory consideration: Full collection backup is used for simplicity and safety.
+      // For datasets beyond ~100 games, consider selective backup (only affected games).
+      // Current scale (50-100 games per CLAUDE.md) works well with this approach.
       const backup = {
         personnel: await getPersonnelCollection(),
         games: await getSavedGames(),
@@ -173,6 +177,7 @@ export const removePersonnelMember = async (personnelId: string): Promise<boolea
         }
 
         // CASCADE DELETE: Remove personnel from all games
+        // LOCK SAFETY: Reading games here is safe - already inside withKeyLock(SAVED_GAMES_KEY)
         const games = await getSavedGames();
         let gamesUpdated = 0;
 
