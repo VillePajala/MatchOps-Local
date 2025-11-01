@@ -680,6 +680,12 @@
     "playersSelected": "selected",
     "selectAll": "Select All",
     "noPlayersInRoster": "No players in roster. Add players in Roster Settings.",
+    "selectPersonnel": "Select Personnel",
+    "personnelSelectedLabel": "selected",
+    "selectTeamLabel": "Select Team",
+    "noTeamMasterRoster": "No Team (Use Master Roster)",
+    "teamSelectedNote": "Player roster loaded from selected team.",
+    "masterRosterNote": "Using master roster - all players available.",
     "eventLogTitle": "Event Log",
     "timeFormatPlaceholder": "MM:SS",
     "selectScorer": "Select Scorer...",
@@ -692,6 +698,10 @@
     "gameDetailsLabel": "Game Details",
     "gameRulesLabel": "Game Rules",
     "gameConfigLabel": "Game Configuration"
+  },
+  "gameStats": {
+    "personnelSectionTitle": "Game Personnel",
+    "personnelEmpty": "No personnel assigned."
   },
   "startScreen": {
     "tagline": "Plan | Track | Assess",
@@ -933,6 +943,9 @@
     "confirmDelete": "Delete {{name}}?",
     "confirmDeleteWithGames": "{{name}} is assigned to {{count}} game(s). Removing this personnel will unassign them from all games. Continue?",
     "deleteWarning": "This action cannot be undone. The personnel will be removed from {{count}} game(s).",
+    "impactChanged": "Impact changed: was {{oldCount}} game(s), now {{newCount}}. Please review and retry.",
+    "quotaExceeded": "Storage quota full. Delete some old games first to free space.",
+    "databaseCorrupted": "Database error detected. Try refreshing the page.",
     "checkError": "Failed to check game assignments",
     "deleteError": "Failed to remove personnel",
     "addSuccess": "{{name}} added successfully",

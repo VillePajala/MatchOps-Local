@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: implement two-phase locking to prevent CASCADE DELETE race condition"
+  "notes": "i18n: rename Henkilöstö to Taustahenkilö in Finnish translations"
 }

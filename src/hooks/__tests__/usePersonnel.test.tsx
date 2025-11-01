@@ -212,6 +212,35 @@ describe('usePersonnel hooks', () => {
       expect(result.current.error).toBeTruthy();
     });
 
+    it('should handle QuotaExceededError with specific error message', async () => {
+      const quotaError = new Error('QuotaExceededError');
+      quotaError.name = 'QuotaExceededError';
+      (personnelManager.addPersonnelMember as jest.Mock).mockRejectedValue(quotaError);
+
+      const { result } = renderHook(() => useAddPersonnel(), { wrapper });
+
+      await act(async () => {
+        try {
+          await result.current.mutateAsync({
+            name: 'Test',
+            role: 'head_coach',
+            phone: '',
+            email: '',
+            certifications: [],
+            notes: '',
+          });
+        } catch {
+          // Expected to throw
+        }
+      });
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+
+      expect(result.current.error?.name).toBe('QuotaExceededError');
+      // Verify no retry attempted (quotas don't auto-resolve)
+      expect(personnelManager.addPersonnelMember).toHaveBeenCalledTimes(1);
+    });
+
     it('should handle concurrent add mutations', async () => {
       const person1 = createTestPersonnel('Person 1', 'head_coach');
       const person2 = createTestPersonnel('Person 2', 'assistant_coach');
@@ -413,9 +442,10 @@ describe('usePersonnel hooks', () => {
     it('should not update state after unmount during mutation', async () => {
       const newPersonnel = createTestPersonnel('Test', 'head_coach');
 
-      // Slow mock to simulate async operation
+      // Use deferred promise pattern instead of setTimeout (anti-pattern)
+      let resolveAdd: ((value: Personnel) => void) | null = null;
       (personnelManager.addPersonnelMember as jest.Mock).mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve(newPersonnel), 100))
+        () => new Promise(resolve => { resolveAdd = resolve; })
       );
 
       const { result, unmount } = renderHook(() => useAddPersonnel(), { wrapper });
@@ -435,8 +465,10 @@ describe('usePersonnel hooks', () => {
       // Unmount immediately
       unmount();
 
-      // Wait for mutation to complete
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Resolve after unmount
+      if (resolveAdd) resolveAdd(newPersonnel);
+
+      await waitFor(() => expect(true).toBe(true));
 
       // Should not throw errors about state updates after unmount
       expect(true).toBe(true);

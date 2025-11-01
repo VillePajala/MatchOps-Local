@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Personnel, PersonnelRole } from '@/types/personnel';
 import {
   HiOutlineXMark,
@@ -82,7 +82,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
 
   const [searchText, setSearchText] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const personnelRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const personnelRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   // Confirmation modal state
@@ -125,6 +125,20 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
     }
   }, [openMenuId]);
 
+  // Scroll to editing personnel with cleanup to prevent memory leaks
+  useEffect(() => {
+    if (editingPersonnelId) {
+      const timer = setTimeout(() => {
+        const target = personnelRefs.current[editingPersonnelId];
+        if (target?.scrollIntoView) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 50);
+
+      return () => clearTimeout(timer); // Cleanup on unmount or when editingPersonnelId changes
+    }
+  }, [editingPersonnelId]);
+
   // Handle start editing
   const handleStartEdit = (personnelId: string) => {
     const personToEdit = personnel.find(p => p.id === personnelId);
@@ -142,18 +156,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
       certifications: personToEdit.certifications || [],
       notes: personToEdit.notes || '',
     });
-
-    // Scroll into view
-    setTimeout(() => {
-      const personIndex = personnel.findIndex(p => p.id === personnelId);
-      const target = personnelRefs.current[personIndex];
-      if (target && typeof target.scrollIntoView === 'function') {
-        target.scrollIntoView({
-          behavior: 'smooth',
-          block: 'nearest'
-        });
-      }
-    }, 50);
+    // Scroll behavior handled by useEffect below
   };
 
   const handleCancelEdit = () => {
@@ -224,6 +227,28 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
     if (!personnelToDelete) return;
 
     try {
+      // TOCTOU Protection: Re-check game count before actual deletion
+      // Prevents race condition where game assignments change between
+      // confirmation dialog and actual deletion
+      const currentGames = await getGamesWithPersonnel(personnelToDelete.id);
+      const currentCount = currentGames.length;
+
+      if (currentCount !== personnelToDelete.gamesCount) {
+        // Count changed - abort deletion and warn user
+        showToast(
+          t('personnelManager.impactChanged', {
+            defaultValue: 'Impact changed: was {{oldCount}} game(s), now {{newCount}}. Please review and retry.',
+            oldCount: personnelToDelete.gamesCount,
+            newCount: currentCount,
+          }),
+          'info'
+        );
+        setIsDeleteConfirmOpen(false);
+        setPersonnelToDelete(null);
+        return; // ABORT - don't proceed with deletion
+      }
+
+      // Count matches - safe to proceed
       await onRemovePersonnel(personnelToDelete.id);
       showToast(
         t('personnelManager.deleteSuccess', {
@@ -236,12 +261,32 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
       setPersonnelToDelete(null);
     } catch (error) {
       logger.error('Error removing personnel:', error);
-      showToast(
-        t('personnelManager.deleteError', {
-          defaultValue: 'Failed to remove personnel',
-        }),
-        'error'
-      );
+
+      // Provide specific error messages based on error type
+      const errorName = error instanceof Error ? error.name : 'Unknown';
+
+      if (errorName === 'QuotaExceededError') {
+        showToast(
+          t('personnelManager.quotaExceeded', {
+            defaultValue: 'Storage quota full. Delete some old games first to free space.',
+          }),
+          'error'
+        );
+      } else if (errorName === 'InvalidStateError') {
+        showToast(
+          t('personnelManager.databaseCorrupted', {
+            defaultValue: 'Database error detected. Try refreshing the page.',
+          }),
+          'error'
+        );
+      } else {
+        showToast(
+          t('personnelManager.deleteError', {
+            defaultValue: 'Failed to remove personnel',
+          }),
+          'error'
+        );
+      }
     }
   };
 
@@ -285,21 +330,43 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
       );
     } catch (error) {
       logger.error('Error adding personnel:', error);
-      showToast(
-        t('personnelManager.addError', {
-          defaultValue: 'Failed to add personnel',
-        }),
-        'error'
-      );
+
+      // Provide specific error messages based on error type
+      const errorName = error instanceof Error ? error.name : 'Unknown';
+
+      if (errorName === 'QuotaExceededError') {
+        showToast(
+          t('personnelManager.quotaExceeded', {
+            defaultValue: 'Storage quota full. Delete some old games first to free space.',
+          }),
+          'error'
+        );
+      } else if (errorName === 'InvalidStateError') {
+        showToast(
+          t('personnelManager.databaseCorrupted', {
+            defaultValue: 'Database error detected. Try refreshing the page.',
+          }),
+          'error'
+        );
+      } else {
+        showToast(
+          t('personnelManager.addError', {
+            defaultValue: 'Failed to add personnel',
+          }),
+          'error'
+        );
+      }
     }
   };
 
-  // Filter personnel by search
-  const filteredPersonnel = personnel.filter(p =>
-    p.name.toLowerCase().includes(searchText.toLowerCase()) ||
-    p.role.toLowerCase().includes(searchText.toLowerCase()) ||
-    t(getRoleLabelKey(p.role)).toLowerCase().includes(searchText.toLowerCase())
-  );
+  // Filter personnel by search (memoized to avoid re-computation on every render)
+  const filteredPersonnel = useMemo(() => {
+    return personnel.filter(p =>
+      p.name.toLowerCase().includes(searchText.toLowerCase()) ||
+      p.role.toLowerCase().includes(searchText.toLowerCase()) ||
+      t(getRoleLabelKey(p.role)).toLowerCase().includes(searchText.toLowerCase())
+    );
+  }, [personnel, searchText, t]);
 
   if (!isOpen) return null;
 
@@ -445,10 +512,13 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                     }
                   </div>
                 ) : (
-                  filteredPersonnel.map((person, index) => (
+                  filteredPersonnel.map((person) => (
                     <div
                       key={person.id}
-                      ref={(el) => { personnelRefs.current[index] = el; }}
+                      ref={(el) => {
+                        if (el) personnelRefs.current[person.id] = el;
+                        else delete personnelRefs.current[person.id];
+                      }}
                       className={`p-4 rounded-lg transition-all ${
                         editingPersonnelId === person.id
                           ? 'bg-slate-700/75'
