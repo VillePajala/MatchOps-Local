@@ -443,9 +443,9 @@ describe('usePersonnel hooks', () => {
       const newPersonnel = createTestPersonnel('Test', 'head_coach');
 
       // Use deferred promise pattern instead of setTimeout (anti-pattern)
-      let resolveAdd: ((value: Personnel) => void) | null = null;
+      let resolveAdd: ((value: Personnel) => void) | undefined;
       (personnelManager.addPersonnelMember as jest.Mock).mockImplementation(
-        () => new Promise(resolve => { resolveAdd = resolve; })
+        () => new Promise<Personnel>(resolve => { resolveAdd = resolve; })
       );
 
       const { result, unmount } = renderHook(() => useAddPersonnel(), { wrapper });
@@ -466,7 +466,7 @@ describe('usePersonnel hooks', () => {
       unmount();
 
       // Resolve after unmount
-      if (resolveAdd) resolveAdd(newPersonnel);
+      resolveAdd?.(newPersonnel);
 
       await waitFor(() => expect(true).toBe(true));
 
