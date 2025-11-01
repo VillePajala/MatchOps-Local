@@ -79,6 +79,7 @@ describe('NewGameSetupModal', () => {
     seasons: mockSeasonsData,
     tournaments: mockTournamentsData,
     teams: mockTeamsData,
+    personnel: [],
   };
 
   beforeEach(() => {
@@ -160,7 +161,8 @@ describe('NewGameSetupModal', () => {
       expect.arrayContaining([
         expect.objectContaining({ id: 'player1', name: 'John Doe' }),
         expect.objectContaining({ id: 'player2', name: 'Jane Smith' })
-      ])
+      ]),
+      expect.arrayContaining([])
     );
   });
 
@@ -192,7 +194,8 @@ describe('NewGameSetupModal', () => {
         expect.arrayContaining([
           expect.objectContaining({ id: 'player1', name: 'John Doe' }),
           expect.objectContaining({ id: 'player2', name: 'Jane Smith' })
-        ])
+        ]),
+        expect.arrayContaining([])
       );
     });
   });

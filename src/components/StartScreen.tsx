@@ -215,11 +215,11 @@ const StartScreen: React.FC<StartScreenProps> = ({
             {/* Multi-layered subtle white glow behind logo */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               {/* Primary white glow - soft and subtle */}
-              <div className="absolute w-[145%] h-[165%] bg-white/6 blur-[48px] rounded-full" />
+              <div className="absolute w-[145%] h-[165%] bg-white/3 blur-[40px] rounded-full" />
               {/* Secondary white glow for depth */}
-              <div className="absolute w-[165%] h-[185%] bg-white/4 blur-[64px] rounded-full" />
+              <div className="absolute w-[165%] h-[185%] bg-white/2 blur-[56px] rounded-full" />
               {/* Outer white glow for subtle spread */}
-              <div className="absolute w-[185%] h-[205%] bg-white/2 blur-[72px] rounded-full" />
+              <div className="absolute w-[185%] h-[205%] bg-white/1 blur-[64px] rounded-full" />
             </div>
             {/* Logo with gradient depth effect using mask */}
             <div className="relative inline-block [filter:drop-shadow(6px_6px_12px_rgba(0,0,0,0.5))]">

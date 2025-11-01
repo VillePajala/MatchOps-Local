@@ -41,6 +41,7 @@ import type {
   Season,
   Tournament,
   AppState,
+  Personnel,
 } from '@/types';
 import type { UseGameOrchestrationReturn } from '../hooks/useGameOrchestration';
 import { useModalContext } from '@/contexts/ModalProvider';
@@ -76,6 +77,7 @@ interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   defaultTeamNameSetting: string;
   appLanguage: string;
   isInstructionsModalOpen: boolean;
+  personnel: Personnel[];
 
   // Handlers
   handleToggleGoalLogModal: () => void;
@@ -131,6 +133,7 @@ interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   handleSetHomeOrAway: (homeOrAway: 'home' | 'away') => void;
   handleSetIsPlayed: (played: boolean) => void;
   handleUpdateSelectedPlayers: (playerIds: string[]) => void;
+  handleSetGamePersonnel?: (personnelIds: string[]) => void;
   updateGameDetailsMutation?: UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>;
   handleTeamIdChange: (teamId: string | null) => void;
   handleCloseSettingsModal: () => void;
@@ -215,6 +218,7 @@ export function ModalManager(props: ModalManagerProps) {
     defaultTeamNameSetting,
     appLanguage,
     isInstructionsModalOpen,
+    personnel,
     // Handlers
     handleToggleGoalLogModal,
     handleAddGoalEvent,
@@ -268,6 +272,7 @@ export function ModalManager(props: ModalManagerProps) {
     handleSetHomeOrAway,
     handleSetIsPlayed,
     handleUpdateSelectedPlayers,
+    handleSetGamePersonnel,
     updateGameDetailsMutation,
     handleTeamIdChange,
     handleCloseSettingsModal,
@@ -420,6 +425,7 @@ export function ModalManager(props: ModalManagerProps) {
           seasons={seasons || []}
           tournaments={tournaments || []}
           teams={teams || []}
+          personnel={personnel || []}
         />
       )}
 
@@ -470,8 +476,15 @@ export function ModalManager(props: ModalManagerProps) {
         tournamentLevel={gameSessionState.tournamentLevel}
         gameEvents={gameSessionState.gameEvents}
         availablePlayers={availablePlayers || []}
+        availablePersonnel={personnel || []}
         selectedPlayerIds={gameSessionState.selectedPlayerIds}
+        selectedPersonnelIds={gameSessionState.gamePersonnel || []}
         onSelectedPlayersChange={handleUpdateSelectedPlayers || (() => {})}
+        onSelectedPersonnelChange={personnelIds => {
+          if (handleSetGamePersonnel) {
+            handleSetGamePersonnel(personnelIds);
+          }
+        }}
         numPeriods={gameSessionState.numberOfPeriods}
         periodDurationMinutes={gameSessionState.periodDurationMinutes}
         demandFactor={gameSessionState.demandFactor}

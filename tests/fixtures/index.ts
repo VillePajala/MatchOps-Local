@@ -24,6 +24,7 @@ import * as SeasonsFixtures from './seasons';
 import * as TournamentsFixtures from './tournaments';
 import * as SettingsFixtures from './settings';
 import * as ErrorsFixtures from './errors';
+import * as PersonnelFixtures from './personnel';
 
 // Use the same imported factories
 const players = PlayersFixtures;
@@ -32,6 +33,7 @@ const seasons = SeasonsFixtures;
 const tournaments = TournamentsFixtures;
 const settings = SettingsFixtures;
 const errors = ErrorsFixtures;
+const personnel = PersonnelFixtures;
 
 /**
  * Centralized test fixtures namespace providing organized access to all test data
@@ -79,6 +81,12 @@ export const TestFixtures = {
    * @example TestFixtures.errors.storageQuotaExceeded()
    */
   errors,
+
+  /**
+   * Personnel and coaching staff test data
+   * @example TestFixtures.personnel.headCoach({ name: 'John Coach' })
+   */
+  personnel,
 
   /**
    * Utility methods for common test scenarios

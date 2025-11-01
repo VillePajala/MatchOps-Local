@@ -26,6 +26,7 @@ import {
   HiOutlinePlusCircle,
   HiOutlineSquares2X2,
   HiOutlineXMark,
+  HiOutlineIdentification,
 } from 'react-icons/hi2';
 import { FaFutbol } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
@@ -94,6 +95,7 @@ interface ControlBarProps {
   onOpenSettingsModal: () => void;
   onOpenPlayerAssessmentModal: () => void;
   onOpenTeamManagerModal: () => void;
+  onOpenPersonnelManager: () => void;
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({
@@ -126,6 +128,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
   onOpenSettingsModal,
   onOpenPlayerAssessmentModal,
   onOpenTeamManagerModal,
+  onOpenPersonnelManager,
 }) => {
   const { t } = useTranslation();
   const [isFieldToolsOpen, setIsFieldToolsOpen] = useState(false);
@@ -437,6 +440,9 @@ const ControlBar: React.FC<ControlBarProps> = ({
             </button>
             <button onClick={wrapHandler(onOpenTeamManagerModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineUserGroup className="w-5 h-5 mr-2" /> {t('controlBar.manageTeams', 'Manage Teams')}
+            </button>
+            <button onClick={wrapHandler(onOpenPersonnelManager)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+              <HiOutlineIdentification className="w-5 h-5 mr-2" /> {t('controlBar.personnelManager', 'Personnel Manager')}
             </button>
             <button onClick={wrapHandler(onOpenSeasonTournamentModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineTrophy className="w-5 h-5 mr-2" /> {t('controlBar.manageSeasonsAndTournaments', 'Manage Seasons & Tournaments')}
