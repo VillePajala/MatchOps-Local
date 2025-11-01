@@ -10,15 +10,19 @@ import { AGE_GROUPS } from '@/config/gameOptions';
 interface SeasonDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  season: Season | null;
-  updateSeasonMutation: UseMutationResult<Season | null, Error, Season, unknown>;
+  mode: 'create' | 'edit';
+  season?: Season | null;
+  addSeasonMutation?: UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
+  updateSeasonMutation?: UseMutationResult<Season | null, Error, Season, unknown>;
   stats?: { games: number; goals: number };
 }
 
 const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   isOpen,
   onClose,
+  mode,
   season,
+  addSeasonMutation,
   updateSeasonMutation,
   stats,
 }) => {
@@ -35,9 +39,21 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   const [notes, setNotes] = useState('');
   const [archived, setArchived] = useState(false);
 
-  // Initialize form when season changes
+  // Initialize form when season changes or modal opens
   useEffect(() => {
-    if (season) {
+    if (mode === 'create') {
+      // Reset form for create mode
+      setName('');
+      setLocation('');
+      setAgeGroup('');
+      setPeriodCount(undefined);
+      setPeriodDuration(undefined);
+      setStartDate('');
+      setEndDate('');
+      setNotes('');
+      setArchived(false);
+    } else if (season) {
+      // Load existing season data for edit mode
       setName(season.name || '');
       setLocation(season.location || '');
       setAgeGroup(season.ageGroup || '');
@@ -48,7 +64,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
       setNotes(season.notes || '');
       setArchived(season.archived || false);
     }
-  }, [season]);
+  }, [mode, season, isOpen]);
 
   const parseIntOrUndefined = (value: string): number | undefined => {
     const parsed = parseInt(value, 10);
@@ -56,36 +72,63 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   };
 
   const handleSave = () => {
-    if (!season || !name.trim()) return;
+    if (!name.trim()) return;
 
     // Sanitize period values
     const sanitizedPeriodCount = periodCount === 1 || periodCount === 2 ? periodCount : undefined;
     const sanitizedPeriodDuration = periodDuration && periodDuration > 0 ? periodDuration : undefined;
 
-    const updatedSeason: Season = {
-      ...season,
-      name: name.trim(),
-      location: location.trim() || undefined,
-      ageGroup: ageGroup || undefined,
-      periodCount: sanitizedPeriodCount,
-      periodDuration: sanitizedPeriodDuration,
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
-      notes: notes.trim() || undefined,
-      archived,
-    };
+    if (mode === 'create') {
+      // Create new season
+      if (!addSeasonMutation) return;
 
-    updateSeasonMutation.mutate(updatedSeason);
-    onClose();
+      const newSeason: Partial<Season> & { name: string } = {
+        name: name.trim(),
+        location: location.trim() || undefined,
+        ageGroup: ageGroup || undefined,
+        periodCount: sanitizedPeriodCount,
+        periodDuration: sanitizedPeriodDuration,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        notes: notes.trim() || undefined,
+        archived,
+      };
+
+      addSeasonMutation.mutate(newSeason, {
+        onSuccess: () => onClose(),
+      });
+    } else {
+      // Update existing season
+      if (!season || !updateSeasonMutation) return;
+
+      const updatedSeason: Season = {
+        ...season,
+        name: name.trim(),
+        location: location.trim() || undefined,
+        ageGroup: ageGroup || undefined,
+        periodCount: sanitizedPeriodCount,
+        periodDuration: sanitizedPeriodDuration,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        notes: notes.trim() || undefined,
+        archived,
+      };
+
+      updateSeasonMutation.mutate(updatedSeason, {
+        onSuccess: () => onClose(),
+      });
+    }
   };
 
   const handleCancel = () => {
     onClose();
   };
 
-  if (!isOpen || !season) {
+  if (!isOpen) {
     return null;
   }
+
+  const isPending = mode === 'create' ? addSeasonMutation?.isPending : updateSeasonMutation?.isPending;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[70] font-display">
@@ -98,12 +141,14 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         <div className="flex flex-col flex-shrink-0">
           <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20">
             <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
-              {t('seasonDetailsModal.title', 'Season Details')}
+              {mode === 'create'
+                ? t('seasonDetailsModal.createTitle', 'Create Season')
+                : t('seasonDetailsModal.editTitle', 'Season Details')}
             </h2>
           </div>
 
-          {/* Stats Section */}
-          {stats && (
+          {/* Stats Section - Only show in edit mode */}
+          {mode === 'edit' && stats && (
             <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20">
               <div className="mb-2 text-center text-sm">
                 <div className="flex justify-center items-center gap-6 text-slate-300">
@@ -266,11 +311,13 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
           </button>
           <button
             onClick={handleSave}
-            disabled={!name.trim() || updateSeasonMutation.isPending}
+            disabled={!name.trim() || isPending}
             className={primaryButtonStyle}
           >
-            {updateSeasonMutation.isPending
+            {isPending
               ? t('common.saving', 'Saving...')
+              : mode === 'create'
+              ? t('common.create', 'Create')
               : t('common.save', 'Save')}
           </button>
         </ModalFooter>

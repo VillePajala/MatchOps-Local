@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { primaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
-import { useToast } from '@/contexts/ToastProvider';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   HiOutlinePencil,
@@ -22,6 +21,7 @@ import {
   getAllTeamRosters,
 } from '@/utils/teams';
 import logger from '@/utils/logger';
+import TeamDetailsModal from './TeamDetailsModal';
 
 interface TeamManagerModalProps {
   isOpen: boolean;
@@ -39,17 +39,13 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   onManageOrphanedGames,
 }) => {
   const { t } = useTranslation();
-  const { showToast } = useToast();
   const queryClient = useQueryClient();
 
   // State management
-  const [isCreatingTeam, setIsCreatingTeam] = useState(false);
-  const [newTeamName, setNewTeamName] = useState('');
-  const [newTeamArchived, setNewTeamArchived] = useState(false);
+  const [createTeamModalOpen, setCreateTeamModalOpen] = useState(false);
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
-  const [editTeamName, setEditTeamName] = useState('');
   const [actionsMenuTeamId, setActionsMenuTeamId] = useState<string | null>(null);
   const [deleteConfirmTeamId, setDeleteConfirmTeamId] = useState<string | null>(null);
   const [deleteTeamGamesCount, setDeleteTeamGamesCount] = useState<number>(0);
@@ -57,17 +53,13 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
   // Refs
   const actionsMenuRef = useRef<HTMLDivElement>(null);
-  const newTeamInputRef = useRef<HTMLInputElement>(null);
-  const editTeamInputRef = useRef<HTMLInputElement>(null);
 
   // Mutations
   const createTeamMutation = useMutation({
     mutationFn: addTeam,
     onSuccess: (newTeam) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.teams });
-      setIsCreatingTeam(false);
-      setNewTeamName('');
-      setNewTeamArchived(false);
+      setCreateTeamModalOpen(false);
       logger.log('[TeamManager] Created team:', newTeam);
     },
     onError: (error) => {
@@ -80,7 +72,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       updateTeam(teamId, updates),
     onSuccess: (updatedTeam) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.teams });
-      setEditingTeamId(null);
+      setSelectedTeamId(null);
       logger.log('[TeamManager] Updated team:', updatedTeam);
     },
     onError: (error) => {
@@ -120,12 +112,10 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setIsCreatingTeam(false);
-      setEditingTeamId(null);
+      setCreateTeamModalOpen(false);
+      setSelectedTeamId(null);
       setActionsMenuTeamId(null);
       setDeleteConfirmTeamId(null);
-      setNewTeamName('');
-      setNewTeamArchived(false);
       setSearchText('');
     }
   }, [isOpen]);
@@ -149,84 +139,10 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     loadRosterCounts();
   }, [isOpen, teams]);
 
-  // Focus input when creating/editing
-  useEffect(() => {
-    if (isCreatingTeam && newTeamInputRef.current) {
-      newTeamInputRef.current.focus();
-    }
-  }, [isCreatingTeam]);
-
-  useEffect(() => {
-    if (editingTeamId && editTeamInputRef.current) {
-      editTeamInputRef.current.focus();
-      editTeamInputRef.current.select();
-    }
-  }, [editingTeamId]);
-
   // Handlers
-  const handleCreateTeam = () => {
-    if (!newTeamName.trim()) return;
-
-    // Check for duplicate team name
-    const trimmedName = newTeamName.trim();
-    const existingTeam = teams.find(
-      team => team.name.toLowerCase() === trimmedName.toLowerCase()
-    );
-
-    if (existingTeam) {
-      showToast(
-        t('teamManager.duplicateNameError',
-          'A team named "{{name}}" already exists. Please choose a different name.',
-          { name: existingTeam.name }
-        ),
-        'error'
-      );
-      return;
-    }
-
-    createTeamMutation.mutate({
-      name: trimmedName,
-      archived: newTeamArchived,
-    });
-  };
-
-  const handleStartEdit = (team: Team) => {
-    setEditingTeamId(team.id);
-    setEditTeamName(team.name);
+  const handleEditTeam = (teamId: string) => {
+    setSelectedTeamId(teamId);
     setActionsMenuTeamId(null);
-  };
-
-  const handleSaveEdit = () => {
-    if (!editingTeamId || !editTeamName.trim()) return;
-
-    // Check for duplicate team name (excluding current team)
-    const trimmedName = editTeamName.trim();
-    const existingTeam = teams.find(
-      team => team.id !== editingTeamId && team.name.toLowerCase() === trimmedName.toLowerCase()
-    );
-
-    if (existingTeam) {
-      showToast(
-        t('teamManager.duplicateNameError',
-          'A team named "{{name}}" already exists. Please choose a different name.',
-          { name: existingTeam.name }
-        ),
-        'error'
-      );
-      return;
-    }
-
-    updateTeamMutation.mutate({
-      teamId: editingTeamId,
-      updates: {
-        name: trimmedName,
-      },
-    });
-  };
-
-  const handleCancelEdit = () => {
-    setEditingTeamId(null);
-    setEditTeamName('');
   };
 
   const handleToggleArchive = (teamId: string, currentArchived: boolean) => {
@@ -293,16 +209,13 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           </div>
 
           {/* Add Team Button */}
-          {!isCreatingTeam ? (
-            <button
-              onClick={() => setIsCreatingTeam(true)}
-              className="w-full px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg bg-indigo-600 hover:bg-indigo-700"
-              aria-label={t('teamManager.createNewTeam', 'Create new team')}
-              disabled={!!editingTeamId}
-            >
-              {t('teamManager.addTeam', 'Add Team')}
-            </button>
-          ) : null}
+          <button
+            onClick={() => setCreateTeamModalOpen(true)}
+            className="w-full px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg bg-indigo-600 hover:bg-indigo-700"
+            aria-label={t('teamManager.createNewTeam', 'Create new team')}
+          >
+            {t('teamManager.addTeam', 'Add Team')}
+          </button>
         </div>
 
         {/* Scrollable Content */}
@@ -328,60 +241,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               {t('teamManager.showArchived', 'Show Archived')}
             </label>
           </div>
-
-          {/* Create New Team Form */}
-          {isCreatingTeam && (
-            <div className="mb-6 bg-slate-700/50 rounded-lg p-4 border border-slate-600 -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    {t('teamManager.teamName', 'Team Name')}
-                  </label>
-                  <input
-                    ref={newTeamInputRef}
-                    type="text"
-                    value={newTeamName}
-                    onChange={(e) => setNewTeamName(e.target.value)}
-                    placeholder={t('teamManager.namePlaceholder', 'Enter team name')}
-                    autoComplete="off"
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-slate-700"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleCreateTeam();
-                      if (e.key === 'Escape') setIsCreatingTeam(false);
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={newTeamArchived}
-                      onChange={(e) => setNewTeamArchived(e.target.checked)}
-                      className="form-checkbox h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
-                    />
-                    {t('teamManager.archivedLabel', 'Archived')}
-                  </label>
-                </div>
-
-                <div className="flex gap-2 pt-2">
-                  <button
-                    onClick={handleCreateTeam}
-                    disabled={!newTeamName.trim() || createTeamMutation.isPending}
-                    className="flex-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-md font-medium transition-colors"
-                  >
-                    {createTeamMutation.isPending ? t('common.creating', 'Creating...') : t('common.create', 'Create')}
-                  </button>
-                  <button
-                    onClick={() => setIsCreatingTeam(false)}
-                    className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-slate-300 rounded-md font-medium transition-colors"
-                  >
-                    {t('common.cancel', 'Cancel')}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Teams List */}
           {(() => {
@@ -418,119 +277,80 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6">
                 <div className="space-y-3">
                   {filteredTeams.map((team) => (
-                  <div
-                    key={team.id}
-                    className={`p-4 rounded-lg transition-all ${
-                      editingTeamId === team.id ? 'bg-slate-700/75' : 'bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40'
-                    } ${team.archived ? 'opacity-60' : ''}`}
-                  >
-                  {editingTeamId === team.id ? (
-                    // Edit mode
-                    <div className="space-y-3">
-                      <div>
-                        <input
-                          ref={editTeamInputRef}
-                          type="text"
-                          value={editTeamName}
-                          onChange={(e) => setEditTeamName(e.target.value)}
-                          autoComplete="off"
-                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-slate-700"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleSaveEdit();
-                            if (e.key === 'Escape') handleCancelEdit();
-                          }}
-                        />
-                      </div>
+                    <div
+                      key={team.id}
+                      className={`p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 ${team.archived ? 'opacity-60' : ''}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div
+                          className="flex items-center gap-2 flex-1 cursor-pointer hover:opacity-80 transition-opacity py-1"
+                          onClick={() => onManageRoster && onManageRoster(team.id)}
+                          title={t('teamManager.roster', 'Roster')}
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-200">{team.name}</span>
+                              {team.archived && (
+                                <span className="text-xs px-2 py-0.5 rounded bg-slate-700/70 text-slate-400 border border-slate-600">
+                                  {t('teamManager.archivedBadge', 'Archived')}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-slate-400">
+                              {rosterCounts[team.id] === 1
+                                ? t('teamManager.onePlayer', '1 player')
+                                : t('teamManager.playersCount', '{{count}} players', { count: rosterCounts[team.id] || 0 })
+                              }
+                              {" "}•{" "}
+                              {t('teamManager.createdAt', 'Created {{date}}', {
+                                date: new Date(team.createdAt).toLocaleDateString()
+                              })}
+                            </div>
+                          </div>
+                        </div>
 
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleSaveEdit}
-                          disabled={!editTeamName.trim() || updateTeamMutation.isPending}
-                          className="px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:bg-slate-600 text-white rounded-md text-sm font-medium transition-colors"
-                        >
-                          {updateTeamMutation.isPending ? t('common.saving', 'Saving...') : t('common.save', 'Save')}
-                        </button>
-                        <button
-                          onClick={handleCancelEdit}
-                          className="px-3 py-1.5 bg-slate-600 hover:bg-slate-500 text-slate-300 rounded-md text-sm font-medium transition-colors"
-                        >
-                          {t('common.cancel', 'Cancel')}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    // Display mode
-                    <div className="flex items-center justify-between">
-                      <div
-                        className="flex items-center gap-2 flex-1 cursor-pointer hover:opacity-80 transition-opacity py-1"
-                        onClick={() => onManageRoster && onManageRoster(team.id)}
-                        title={t('teamManager.roster', 'Roster')}
-                      >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-200">{team.name}</span>
-                            {team.archived && (
-                              <span className="text-xs px-2 py-0.5 rounded bg-slate-700/70 text-slate-400 border border-slate-600">
-                                {t('teamManager.archivedBadge', 'Archived')}
-                              </span>
+                        <div className="flex items-center gap-2">
+                          <div className="relative" ref={actionsMenuTeamId === team.id ? actionsMenuRef : null}>
+                            <button
+                              onClick={() => setActionsMenuTeamId(actionsMenuTeamId === team.id ? null : team.id)}
+                              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
+                              aria-label="Team actions"
+                            >
+                              <HiOutlineEllipsisVertical className="w-4 h-4" />
+                            </button>
+
+                            {actionsMenuTeamId === team.id && (
+                              <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
+                                <button
+                                  onClick={() => handleEditTeam(team.id)}
+                                  className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"
+                                >
+                                  <HiOutlinePencil className="w-4 h-4" />
+                                  {t('common.edit', 'Edit')}
+                                </button>
+                                <button
+                                  onClick={() => handleToggleArchive(team.id, team.archived || false)}
+                                  className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"
+                                >
+                                  <HiOutlineArchiveBox className="w-4 h-4" />
+                                  {team.archived
+                                    ? t('teamManager.unarchive', 'Unarchive')
+                                    : t('teamManager.archive', 'Archive')}
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteTeam(team.id)}
+                                  className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 last:rounded-b-md transition-colors"
+                                >
+                                  <HiOutlineTrash className="w-4 h-4" />
+                                  {t('teamManager.delete', 'Delete')}
+                                </button>
+                              </div>
                             )}
                           </div>
-                          <div className="text-xs text-slate-400">
-                            {rosterCounts[team.id] === 1
-                              ? t('teamManager.onePlayer', '1 player')
-                              : t('teamManager.playersCount', '{{count}} players', { count: rosterCounts[team.id] || 0 })
-                            }
-                            {" "}•{" "}
-                            {t('teamManager.createdAt', 'Created {{date}}', {
-                              date: new Date(team.createdAt).toLocaleDateString()
-                            })}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <div className="relative" ref={actionsMenuTeamId === team.id ? actionsMenuRef : null}>
-                          <button
-                            onClick={() => setActionsMenuTeamId(actionsMenuTeamId === team.id ? null : team.id)}
-                            className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
-                            aria-label="Team actions"
-                          >
-                            <HiOutlineEllipsisVertical className="w-4 h-4" />
-                          </button>
-
-                          {actionsMenuTeamId === team.id && (
-                            <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
-                              <button
-                                onClick={() => handleStartEdit(team)}
-                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"
-                              >
-                                <HiOutlinePencil className="w-4 h-4" />
-                                {t('teamManager.rename', 'Rename')}
-                              </button>
-                              <button
-                                onClick={() => handleToggleArchive(team.id, team.archived || false)}
-                                className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"
-                              >
-                                <HiOutlineArchiveBox className="w-4 h-4" />
-                                {team.archived
-                                  ? t('teamManager.unarchive', 'Unarchive')
-                                  : t('teamManager.archive', 'Archive')}
-                              </button>
-                              <button
-                                onClick={() => handleDeleteTeam(team.id)}
-                                className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 last:rounded-b-md transition-colors"
-                              >
-                                <HiOutlineTrash className="w-4 h-4" />
-                                {t('teamManager.delete', 'Delete')}
-                              </button>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>
-                  )}
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
             );
@@ -602,6 +422,25 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
             </div>
           </div>
         )}
+
+        {/* Team Create Modal */}
+        <TeamDetailsModal
+          isOpen={createTeamModalOpen}
+          onClose={() => setCreateTeamModalOpen(false)}
+          mode="create"
+          teams={teams}
+          addTeamMutation={createTeamMutation}
+        />
+
+        {/* Team Edit Modal */}
+        <TeamDetailsModal
+          isOpen={selectedTeamId !== null}
+          onClose={() => setSelectedTeamId(null)}
+          mode="edit"
+          team={teams.find(t => t.id === selectedTeamId) || null}
+          teams={teams}
+          updateTeamMutation={updateTeamMutation}
+        />
       </div>
     </div>
   );

@@ -821,6 +821,46 @@
     "editDetails": "Edit Details",
     "searchPlaceholder": "Search..."
   },
+  "teamDetailsModal": {
+    "createTitle": "Create Team",
+    "editTitle": "Team Details",
+    "nameLabel": "Team Name",
+    "namePlaceholder": "Enter team name",
+    "colorLabel": "Team Color",
+    "colorPlaceholder": "e.g., #FF5733 or blue",
+    "colorHint": "Optional: hex code or color name",
+    "archivedLabel": "Archived"
+  },
+  "playerDetailsModal": {
+    "createTitle": "Add Player",
+    "editTitle": "Player Details",
+    "nameLabel": "Player Name",
+    "namePlaceholder": "Enter player name",
+    "nicknameLabel": "Nickname",
+    "nicknamePlaceholder": "Optional nickname",
+    "nicknameHint": "Shown on field if provided",
+    "jerseyNumberLabel": "Jersey Number",
+    "jerseyNumberPlaceholder": "e.g., 10",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Optional notes about this player",
+    "goalieLabel": "Goalkeeper"
+  },
+  "personnelDetailsModal": {
+    "createTitle": "Add Personnel",
+    "editTitle": "Personnel Details",
+    "nameLabel": "Name",
+    "namePlaceholder": "Enter name",
+    "roleLabel": "Role",
+    "phoneLabel": "Phone",
+    "phonePlaceholder": "Phone number",
+    "emailLabel": "Email",
+    "emailPlaceholder": "Email address",
+    "certificationsLabel": "Certifications",
+    "certificationsPlaceholder": "One per line (e.g., UEFA A License)",
+    "certificationsHint": "Enter each certification on a new line",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Additional notes"
+  },
   "seasonDetailsModal": {
     "title": "Season Details",
     "gameSingular": "Game",

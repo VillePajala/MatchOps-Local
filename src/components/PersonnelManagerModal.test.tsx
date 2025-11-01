@@ -151,36 +151,45 @@ describe('PersonnelManagerModal', () => {
   });
 
   describe('Add Personnel', () => {
-    it('should show add form when Add Personnel button clicked', () => {
+    it('should show add form when Add Personnel button clicked', async () => {
       renderModal();
 
       const addButton = screen.getByRole('button', { name: /Add Personnel/i });
       fireEvent.click(addButton);
 
-      expect(screen.getByPlaceholderText('Full Name')).toBeInTheDocument();
-      expect(screen.getByRole('combobox')).toBeInTheDocument();
+      // Should open PersonnelDetailsModal
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/Enter name/i)).toBeInTheDocument();
+        expect(screen.getByRole('combobox')).toBeInTheDocument();
+      });
     });
 
     it('should call onAddPersonnel with correct data when form submitted', async () => {
       renderModal();
 
-      // Open add form
+      // Open add modal
       const addButton = screen.getByRole('button', { name: /Add Personnel/i });
       fireEvent.click(addButton);
 
-      // Fill form
-      const nameInput = screen.getByPlaceholderText('Full Name');
+      // Wait for modal to open
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/Enter name/i)).toBeInTheDocument();
+      });
+
+      // Fill form in modal
+      const nameInput = screen.getByPlaceholderText(/Enter name/i);
       fireEvent.change(nameInput, { target: { value: 'New Coach' } });
 
       const roleSelect = screen.getByRole('combobox');
       fireEvent.change(roleSelect, { target: { value: 'fitness_coach' } });
 
-      const phoneInput = screen.getByPlaceholderText('Phone (optional)');
+      const phoneInput = screen.getByPlaceholderText(/Phone number/i);
       fireEvent.change(phoneInput, { target: { value: '+1111111111' } });
 
-      // Submit - button is "Add Personnel" in add mode
-      const submitButtons = screen.getAllByRole('button', { name: /Add Personnel/i });
-      const saveButton = submitButtons[submitButtons.length - 1]; // Get the last one (form submit button)
+      // Submit - click Add button in modal
+      const submitButtons = screen.getAllByRole('button', { name: /Add/i });
+      const saveButton = submitButtons.find(btn => btn.textContent === 'Add');
+      if (!saveButton) throw new Error('Add button not found');
       fireEvent.click(saveButton);
 
       await waitFor(() => {
@@ -200,27 +209,36 @@ describe('PersonnelManagerModal', () => {
       const addButton = screen.getByRole('button', { name: /Add Personnel/i });
       fireEvent.click(addButton);
 
-      // Try to save without name
-      const submitButtons = screen.getAllByRole('button', { name: /Add Personnel/i });
-      const saveButton = submitButtons[submitButtons.length - 1]; // Get the form submit button
-      fireEvent.click(saveButton);
+      // Wait for modal to open
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/Enter name/i)).toBeInTheDocument();
+      });
 
-      // Should not call onAddPersonnel
-      expect(mockOnAddPersonnel).not.toHaveBeenCalled();
+      // Try to save without name - button should be disabled
+      const submitButtons = screen.getAllByRole('button', { name: /Add/i });
+      const saveButton = submitButtons.find(btn => btn.textContent === 'Add');
+
+      // Button should be disabled when name is empty
+      expect(saveButton).toBeDisabled();
     });
 
-    it('should close add form when cancel clicked', () => {
+    it('should close add form when cancel clicked', async () => {
       renderModal();
 
       const addButton = screen.getByRole('button', { name: /Add Personnel/i });
       fireEvent.click(addButton);
 
-      expect(screen.getByPlaceholderText('Full Name')).toBeInTheDocument();
+      // Wait for modal to open
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/Enter name/i)).toBeInTheDocument();
+      });
 
       const cancelButton = screen.getByRole('button', { name: /Cancel/i });
       fireEvent.click(cancelButton);
 
-      expect(screen.queryByPlaceholderText('Full Name')).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByPlaceholderText(/Enter name/i)).not.toBeInTheDocument();
+      });
     });
   });
 
@@ -467,14 +485,16 @@ describe('PersonnelManagerModal', () => {
       expect(mockOnClose).toHaveBeenCalled();
     });
 
-    it('should reset form state when modal closes', () => {
+    it('should reset form state when modal closes', async () => {
       const { rerender } = renderModal();
 
-      // Open add form
+      // Open add modal
       const addButton = screen.getByRole('button', { name: /Add Personnel/i });
       fireEvent.click(addButton);
 
-      expect(screen.getByPlaceholderText('Full Name')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/Enter name/i)).toBeInTheDocument();
+      });
 
       // Close modal
       rerender(
@@ -490,8 +510,8 @@ describe('PersonnelManagerModal', () => {
         </ToastProvider>
       );
 
-      // Add form should not be visible
-      expect(screen.queryByPlaceholderText('Full Name')).not.toBeInTheDocument();
+      // Add modal should not be visible
+      expect(screen.queryByPlaceholderText(/Enter name/i)).not.toBeInTheDocument();
     });
   });
 
@@ -525,14 +545,17 @@ describe('PersonnelManagerModal', () => {
       expect(screen.getByRole('button', { name: /Close/i })).toBeInTheDocument();
     });
 
-    it('should have accessible form inputs', () => {
+    it('should have accessible form inputs', async () => {
       renderModal();
 
       const addButton = screen.getByRole('button', { name: /Add Personnel/i });
       fireEvent.click(addButton);
 
-      expect(screen.getByPlaceholderText('Full Name')).toBeInTheDocument();
-      expect(screen.getByRole('combobox')).toBeInTheDocument();
+      // Wait for modal and check accessible inputs
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText(/Enter name/i)).toBeInTheDocument();
+        expect(screen.getByRole('combobox')).toBeInTheDocument();
+      });
     });
   });
 });

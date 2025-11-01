@@ -8,7 +8,12 @@ import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
 
 const mockMutation = () => ({
-  mutate: jest.fn(),
+  mutate: jest.fn((data, options) => {
+    // Simulate successful mutation by calling onSuccess
+    if (options?.onSuccess) {
+      options.onSuccess();
+    }
+  }),
   isPending: false,
 });
 
@@ -30,6 +35,7 @@ const mockSeason: Season = {
 const defaultProps = {
   isOpen: true,
   onClose: jest.fn(),
+  mode: 'edit' as const,
   season: mockSeason,
   updateSeasonMutation: mockMutation() as unknown as UseMutationResult<Season | null, Error, Season, unknown>,
   stats: { games: 15, goals: 42 },
@@ -154,13 +160,13 @@ describe('SeasonDetailsModal', () => {
     const saveButton = screen.getByRole('button', { name: i18n.t('common.save', 'Save') });
     await user.click(saveButton);
 
-    expect(updateMutation.mutate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 's1',
-        name: 'Updated Season',
-        location: 'Main Stadium',
-      })
-    );
+    expect(updateMutation.mutate).toHaveBeenCalled();
+    const [[firstArg]] = (updateMutation.mutate as jest.Mock).mock.calls;
+    expect(firstArg).toMatchObject({
+      id: 's1',
+      name: 'Updated Season',
+      location: 'Main Stadium',
+    });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -231,11 +237,11 @@ describe('SeasonDetailsModal', () => {
     await user.click(saveButton);
 
     // Period count should be sanitized to undefined (invalid value)
-    expect(updateMutation.mutate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        periodCount: undefined,
-      })
-    );
+    expect(updateMutation.mutate).toHaveBeenCalled();
+    const [[firstArg]] = (updateMutation.mutate as jest.Mock).mock.calls;
+    expect(firstArg).toMatchObject({
+      periodCount: undefined,
+    });
   });
 
   it('does not render when season is null', () => {
