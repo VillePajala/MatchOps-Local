@@ -860,6 +860,7 @@
     "delete": "Poista",
     "archive": "Arkistoi",
     "unarchive": "Palauta arkistosta",
+    "editRoster": "Muokkaa kokoonpanoa",
     "archivedLabel": "Arkistoitu",
     "showArchived": "Näytä arkistoidut",
     "archivedBadge": "Arkistoitu",

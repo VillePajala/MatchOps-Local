@@ -6,6 +6,8 @@ import { Personnel } from '@/types/personnel';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
 
+type PersonnelDetailsModalProps = React.ComponentProps<typeof PersonnelDetailsModal>;
+
 const mockPersonnel: Personnel = {
   id: 'per1',
   name: 'John Coach',
@@ -18,16 +20,16 @@ const mockPersonnel: Personnel = {
   updatedAt: new Date().toISOString(),
 };
 
-const defaultProps = {
+const defaultProps: PersonnelDetailsModalProps = {
   isOpen: true,
   onClose: jest.fn(),
-  mode: 'edit' as const,
+  mode: 'edit',
   personnel: mockPersonnel,
   onUpdatePersonnel: jest.fn().mockResolvedValue(undefined),
   isUpdating: false,
 };
 
-const renderWithProviders = (props: Partial<typeof defaultProps> = {}) => {
+const renderWithProviders = (props: Partial<PersonnelDetailsModalProps> = {}) => {
   return render(
     <I18nextProvider i18n={i18n}>
       <PersonnelDetailsModal {...defaultProps} {...props} />

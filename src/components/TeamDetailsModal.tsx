@@ -5,6 +5,7 @@ import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/
 import { useTranslation } from 'react-i18next';
 import { Team } from '@/types';
 import { UseMutationResult } from '@tanstack/react-query';
+import logger from '@/utils/logger';
 
 interface TeamDetailsModalProps {
   isOpen: boolean;
@@ -29,7 +30,6 @@ const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({
 
   // Form state
   const [name, setName] = useState('');
-  const [color, setColor] = useState('');
   const [archived, setArchived] = useState(false);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
@@ -38,13 +38,11 @@ const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({
     if (mode === 'create') {
       // Reset form for create mode
       setName('');
-      setColor('');
       setArchived(false);
       setDuplicateError(null);
     } else if (team) {
       // Load existing team data for edit mode
       setName(team.name || '');
-      setColor(team.color || '');
       setArchived(team.archived || false);
       setDuplicateError(null);
     }
@@ -83,14 +81,13 @@ const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({
 
       const newTeam: Partial<Team> & { name: string } = {
         name: trimmedName,
-        color: color.trim() || undefined,
         archived,
       };
 
       addTeamMutation.mutate(newTeam, {
         onSuccess: () => onClose(),
         onError: (error) => {
-          console.error('Failed to create team:', error);
+          logger.error('Failed to create team:', error);
           // Error is handled by React Query and displayed via toast in parent component
         },
       });
@@ -102,13 +99,12 @@ const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({
         teamId: team.id,
         updates: {
           name: trimmedName,
-          color: color.trim() || undefined,
           archived,
         },
       }, {
         onSuccess: () => onClose(),
         onError: (error) => {
-          console.error('Failed to update team:', error);
+          logger.error('Failed to update team:', error);
           // Error is handled by React Query and displayed via toast in parent component
         },
       });
@@ -163,23 +159,6 @@ const TeamDetailsModal: React.FC<TeamDetailsModalProps> = ({
                 {duplicateError && (
                   <p className="mt-1 text-sm text-red-400">{duplicateError}</p>
                 )}
-              </div>
-
-              {/* Color */}
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  {t('teamDetailsModal.colorLabel', 'Team Color')}
-                </label>
-                <input
-                  type="text"
-                  value={color}
-                  onChange={(e) => setColor(e.target.value)}
-                  placeholder={t('teamDetailsModal.colorPlaceholder', 'e.g., #FF5733 or blue')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-                <p className="mt-1 text-xs text-slate-400">
-                  {t('teamDetailsModal.colorHint', 'Optional: hex code or color name')}
-                </p>
               </div>
 
               {/* Archived */}

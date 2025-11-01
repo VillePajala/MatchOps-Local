@@ -935,6 +935,7 @@
     "delete": "Delete",
     "archive": "Archive",
     "unarchive": "Unarchive",
+    "editRoster": "Edit Roster",
     "archivedLabel": "Archived",
     "showArchived": "Show Archived",
     "archivedBadge": "Archived",

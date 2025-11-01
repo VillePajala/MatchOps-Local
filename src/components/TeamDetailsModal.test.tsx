@@ -7,6 +7,8 @@ import { Team } from '@/types';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
 
+type TeamDetailsModalProps = React.ComponentProps<typeof TeamDetailsModal>;
+
 const mockMutation = () => ({
   mutate: jest.fn((data, options) => {
     // Simulate successful mutation by calling onSuccess
@@ -31,16 +33,16 @@ const mockTeam: Team = {
   updatedAt: new Date().toISOString(),
 };
 
-const defaultProps = {
+const defaultProps: TeamDetailsModalProps = {
   isOpen: true,
   onClose: jest.fn(),
-  mode: 'edit' as const,
+  mode: 'edit',
   team: mockTeam,
   teams: mockTeams,
   updateTeamMutation: mockMutation() as unknown as UseMutationResult<Team | null, Error, { teamId: string; updates: Partial<Team> }, unknown>,
 };
 
-const renderWithProviders = (props: Partial<typeof defaultProps> = {}) => {
+const renderWithProviders = (props: Partial<TeamDetailsModalProps> = {}) => {
   return render(
     <I18nextProvider i18n={i18n}>
       <TeamDetailsModal {...defaultProps} {...props} />

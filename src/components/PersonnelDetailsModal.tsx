@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Personnel, PersonnelRole } from '@/types/personnel';
+import logger from '@/utils/logger';
 
 interface PersonnelDetailsModalProps {
   isOpen: boolean;
@@ -118,7 +119,7 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
 
       onClose();
     } catch (error) {
-      console.error('Failed to save personnel:', error);
+      logger.error('Failed to save personnel:', error);
       // Error displayed to user via parent component toast
     }
   };
