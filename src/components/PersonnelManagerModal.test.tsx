@@ -130,7 +130,17 @@ describe('PersonnelManagerModal', () => {
       renderModal();
 
       expect(screen.getByText('3')).toBeInTheDocument(); // Total count
-      expect(screen.getByText('Total Personnel')).toBeInTheDocument();
+      // With 3 personnel, should show plural form "Personnel"
+      expect(screen.getByText('Personnel')).toBeInTheDocument();
+    });
+
+    it('should display singular form with one personnel', () => {
+      const singlePersonnel = [mockPersonnel[0]];
+      renderModal({ personnel: singlePersonnel });
+
+      expect(screen.getByText('1')).toBeInTheDocument(); // Count is 1
+      // With 1 personnel, should show singular form "Personnel" (in English, same as plural)
+      expect(screen.getByText('Personnel')).toBeInTheDocument();
     });
 
     it('should show empty state when no personnel', () => {

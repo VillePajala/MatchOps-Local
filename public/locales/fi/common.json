@@ -848,6 +848,7 @@
   "personnelManager": {
     "title": "Henkilöstöhallinta",
     "addPersonnel": "Lisää henkilö",
+    "confirmAddPersonnel": "Lisää henkilö",
     "newPersonnel": "Uusi henkilöstö",
     "totalPersonnel": "Henkilöä",
     "totalPersonnelSingular": "henkilö",
