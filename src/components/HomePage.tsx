@@ -16,6 +16,7 @@ import SettingsModal from '@/components/SettingsModal';
 import SeasonTournamentManagementModal from '@/components/SeasonTournamentManagementModal';
 import TeamManagerModal from '@/components/TeamManagerModal';
 import TeamRosterModal from '@/components/TeamRosterModal';
+import PersonnelManagerModal from '@/components/PersonnelManagerModal';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import InstructionsModal from '@/components/InstructionsModal';
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
@@ -65,6 +66,7 @@ import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useTacticalBoard } from '@/hooks/useTacticalBoard';
 import { useRoster } from '@/hooks/useRoster';
 import { useTeamsQuery } from '@/hooks/useTeamQueries';
+import { usePersonnelManager } from '@/hooks/usePersonnelManager';
 import { useModalContext } from '@/contexts/ModalProvider';
 // Import async storage utilities
 import {
@@ -122,6 +124,7 @@ const initialState: AppState = {
   demandFactor: 1,
   // Initialize selectedPlayerIds as empty for clean app start
   selectedPlayerIds: [],
+  gamePersonnel: [],
   // gameType: 'season', // REMOVED
   seasonId: '', // Initialize season ID
   tournamentId: '', // Initialize tournament ID
@@ -169,6 +172,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     gameStatus: initialState.gameStatus,
     demandFactor: initialState.demandFactor ?? 1,
     selectedPlayerIds: initialState.selectedPlayerIds,
+    gamePersonnel: initialState.gamePersonnel ?? [],
     seasonId: initialState.seasonId,
     tournamentId: initialState.tournamentId,
     ageGroup: initialState.ageGroup,
@@ -271,6 +275,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       currentPeriod: gameSessionState.currentPeriod,
       gameStatus: gameSessionState.gameStatus,
       selectedPlayerIds: gameSessionState.selectedPlayerIds,
+      gamePersonnel: gameSessionState.gamePersonnel,
       seasonId: gameSessionState.seasonId,
       tournamentId: gameSessionState.tournamentId,
       gameLocation: gameSessionState.gameLocation,
@@ -301,6 +306,9 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   // Teams query for multi-team support
   const { data: teams = [] } = useTeamsQuery();
+
+  // Personnel management with consolidated hook
+  const personnelManager = usePersonnelManager();
 
   const isMasterRosterQueryLoading = isGameDataLoading;
   const areSeasonsQueryLoading = isGameDataLoading;
@@ -454,6 +462,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState<boolean>(false);
   const [isTeamRosterModalOpen, setIsTeamRosterModalOpen] = useState<boolean>(false);
   const [selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
+  const [isPersonnelManagerOpen, setIsPersonnelManagerOpen] = useState<boolean>(false);
 
   // --- Timer State (Still needed here) ---
   const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
@@ -1078,6 +1087,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         currentPeriod: gameData.currentPeriod,
         gameStatus: gameData.gameStatus,
         selectedPlayerIds: gameData.selectedPlayerIds,
+        gamePersonnel: Array.isArray(gameData.gamePersonnel) ? gameData.gamePersonnel : [],
         seasonId: gameData.seasonId ?? undefined,
         tournamentId: gameData.tournamentId ?? undefined,
         gameLocation: gameData.gameLocation,
@@ -1153,6 +1163,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       showPlayerNames: gameData?.showPlayerNames === undefined ? initialGameSessionData.showPlayerNames : gameData.showPlayerNames,
       selectedPlayerIds: gameData?.selectedPlayerIds ?? initialGameSessionData.selectedPlayerIds,
       gameEvents: gameData?.gameEvents ?? initialGameSessionData.gameEvents,
+      gamePersonnel: gameData?.gamePersonnel ?? [],
       playersOnField: gameData?.playersOnField || initialState.playersOnField,
       opponents: gameData?.opponents || initialState.opponents,
       drawings: gameData?.drawings || initialState.drawings,
@@ -1221,6 +1232,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds,
           showPlayerNames: gameSessionState.showPlayerNames, // from gameSessionState
           selectedPlayerIds: gameSessionState.selectedPlayerIds, // from gameSessionState
+          gamePersonnel: gameSessionState.gamePersonnel ?? [],
           gameEvents: gameSessionState.gameEvents, // from gameSessionState
           assessments: playerAssessments,
 
@@ -2408,7 +2420,8 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     tournamentLevel: string,
     isPlayed: boolean,
     teamId: string | null, // Add team ID parameter
-    availablePlayersForGame: Player[] // Add the actual roster for the game
+    availablePlayersForGame: Player[], // Add the actual roster for the game
+    selectedPersonnelIds: string[] // Add personnel selection
   ) => {
 
       // Determine the player selection for the new game
@@ -2453,6 +2466,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           completedIntervalDurations: [], // Always reset intervals
           lastSubConfirmationTimeSeconds: 0, // Always reset last sub time
           tacticalBallPosition: { relX: 0.5, relY: 0.5 },
+          gamePersonnel: selectedPersonnelIds, // Personnel assigned to this game
       };
 
       // Log the constructed state *before* saving
@@ -2488,6 +2502,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
       // 4. Reset History with the new state
       resetHistory(newGameState);
+      dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: selectedPersonnelIds });
 
       setIsPlayed(isPlayed);
 
@@ -3248,6 +3263,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           onOpenSettingsModal={handleOpenSettingsModal}
           onOpenPlayerAssessmentModal={openPlayerAssessmentModal}
           onOpenTeamManagerModal={handleOpenTeamManagerModal}
+          onOpenPersonnelManager={() => setIsPersonnelManagerOpen(true)}
         />
       </div>
 
@@ -3278,6 +3294,19 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           teamId={selectedTeamForRoster}
           team={teams.find(t => t.id === selectedTeamForRoster) || null}
           masterRoster={masterRosterQueryResultData || []}
+        />
+      </ErrorBoundary>
+
+      <ErrorBoundary>
+        <PersonnelManagerModal
+          isOpen={isPersonnelManagerOpen}
+          onClose={() => setIsPersonnelManagerOpen(false)}
+          personnel={personnelManager.personnel}
+          onAddPersonnel={personnelManager.addPersonnel}
+          onUpdatePersonnel={personnelManager.updatePersonnel}
+          onRemovePersonnel={personnelManager.removePersonnel}
+          isUpdating={personnelManager.isLoading}
+          error={personnelManager.error}
         />
       </ErrorBoundary>
 
@@ -3312,6 +3341,8 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           availablePlayers={playersForCurrentGame}
           gameEvents={gameSessionState.gameEvents}
           gameNotes={gameSessionState.gameNotes}
+          gamePersonnel={gameSessionState.gamePersonnel}
+          personnelDirectory={personnelManager.personnel}
           onUpdateGameEvent={handleUpdateGameEvent}
           selectedPlayerIds={gameSessionState.selectedPlayerIds}
           savedGames={savedGames}
@@ -3368,6 +3399,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           seasons={seasons}
           tournaments={tournaments}
           teams={teams}
+          personnel={personnelManager.personnel}
         />
       )}
 
@@ -3425,8 +3457,13 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         tournamentLevel={gameSessionState.tournamentLevel}
         gameEvents={gameSessionState.gameEvents}
         availablePlayers={availablePlayers}
+        availablePersonnel={personnelManager.personnel}
         selectedPlayerIds={gameSessionState.selectedPlayerIds}
+        selectedPersonnelIds={gameSessionState.gamePersonnel || []}
         onSelectedPlayersChange={handleUpdateSelectedPlayers}
+        onSelectedPersonnelChange={(personnelIds: string[]) => {
+          dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: personnelIds });
+        }}
         numPeriods={gameSessionState.numberOfPeriods}
         periodDurationMinutes={gameSessionState.periodDurationMinutes}
         demandFactor={gameSessionState.demandFactor}
