@@ -78,7 +78,7 @@ describe('<RosterSettingsModal />', () => {
     expect(mockOnClose).toHaveBeenCalledTimes(1);
   });
 
-  test('shows add player form when Add Player button is clicked', () => {
+  test('shows add player form when Add Player button is clicked', async () => {
     render(
       <ToastProvider>
         <RosterSettingsModal {...defaultProps} />
@@ -86,45 +86,54 @@ describe('<RosterSettingsModal />', () => {
     );
     const addButton = screen.getByRole('button', { name: /Add Player/i });
     fireEvent.click(addButton);
-    expect(screen.getByPlaceholderText(/Player Name/i)).toBeInTheDocument();
+
+    // Should open PlayerDetailsModal
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Enter player name/i)).toBeInTheDocument();
+    });
   });
 
-  test('adds a new player when form is submitted', () => {
+  test('adds a new player when form is submitted', async () => {
     render(
       <ToastProvider>
         <RosterSettingsModal {...defaultProps} />
       </ToastProvider>
     );
 
-    // Open form
-    const addButtons = screen.getAllByRole('button', { name: /Add Player/i });
-    const mainAddButton = addButtons.find(button => !button.hasAttribute('disabled'));
-    if (!mainAddButton) throw new Error('No enabled Add Player button found');
-    fireEvent.click(mainAddButton);
-    
-    // Fill form
+    // Open modal
+    const addButton = screen.getByRole('button', { name: /Add Player/i });
+    fireEvent.click(addButton);
+
+    // Wait for modal to open
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Enter player name/i)).toBeInTheDocument();
+    });
+
+    // Fill form in modal
     const newPlayer = {
       name: 'New Player',
       nickname: 'NP',
       jerseyNumber: '99',
-      notes: 'Test notes'
+      notes: 'Test notes',
     };
-    
-    fireEvent.change(screen.getByPlaceholderText(/Player Name/i), { target: { value: newPlayer.name }});
-    fireEvent.change(screen.getByPlaceholderText(/Nickname/i), { target: { value: newPlayer.nickname }});
-    fireEvent.change(screen.getByPlaceholderText(/#/i), { target: { value: newPlayer.jerseyNumber }});
-    fireEvent.change(screen.getByPlaceholderText(/Player notes/i), { target: { value: newPlayer.notes }});
-    
-    // Submit - find the enabled Add Player button in the form
-    const submitButtons = screen.getAllByRole('button', { name: /Add Player/i });
-    const submitButton = submitButtons.find(button => !button.hasAttribute('disabled'));
-    if (!submitButton) throw new Error('No enabled Add Player button found for submission');
-    fireEvent.click(submitButton);
-    
-    expect(mockOnAddPlayer).toHaveBeenCalledWith(newPlayer);
+
+    fireEvent.change(screen.getByPlaceholderText(/Enter player name/i), { target: { value: newPlayer.name }});
+    fireEvent.change(screen.getByPlaceholderText(/Optional nickname/i), { target: { value: newPlayer.nickname }});
+    fireEvent.change(screen.getByPlaceholderText(/e\.g\., 10/i), { target: { value: newPlayer.jerseyNumber }});
+    fireEvent.change(screen.getByPlaceholderText(/Optional notes about this player/i), { target: { value: newPlayer.notes }});
+
+    // Submit - click the Add button in the modal footer
+    const submitButtons = screen.getAllByRole('button', { name: /Add/i });
+    const addButton2 = submitButtons.find(btn => btn.textContent === 'Add');
+    if (!addButton2) throw new Error('Add button not found in modal');
+    fireEvent.click(addButton2);
+
+    await waitFor(() => {
+      expect(mockOnAddPlayer).toHaveBeenCalledWith(newPlayer);
+    });
   });
 
-  test('edits player when edit form is submitted', () => {
+  test('edits player when edit form is submitted', async () => {
     render(
       <ToastProvider>
         <RosterSettingsModal {...defaultProps} />
@@ -139,7 +148,12 @@ describe('<RosterSettingsModal />', () => {
     const editButton = screen.getByRole('button', { name: /Edit/i });
     fireEvent.click(editButton);
 
-    // Fill edit form
+    // Wait for edit modal to open
+    await waitFor(() => {
+      expect(screen.getByText(/Player Details/i)).toBeInTheDocument();
+    });
+
+    // Fill edit form in modal
     const updatedData = {
       name: 'Updated Name',
       nickname: 'UN',
@@ -152,15 +166,18 @@ describe('<RosterSettingsModal />', () => {
     fireEvent.change(screen.getByDisplayValue('10'), { target: { value: updatedData.jerseyNumber }});
     fireEvent.change(screen.getByDisplayValue('Note 1'), { target: { value: updatedData.notes }});
 
-    // Save
-    fireEvent.click(screen.getByTitle('Save'));
+    // Save - click the Save button in the modal footer
+    const saveButton = screen.getByRole('button', { name: /^Save$/i });
+    fireEvent.click(saveButton);
 
     // Should call unified update with all changed fields
-    expect(mockOnUpdatePlayer).toHaveBeenCalledWith('p1', {
-      name: updatedData.name,
-      nickname: updatedData.nickname,
-      jerseyNumber: updatedData.jerseyNumber,
-      notes: updatedData.notes
+    await waitFor(() => {
+      expect(mockOnUpdatePlayer).toHaveBeenCalledWith('p1', {
+        name: updatedData.name,
+        nickname: updatedData.nickname,
+        jerseyNumber: updatedData.jerseyNumber,
+        notes: updatedData.notes
+      });
     });
   });
 

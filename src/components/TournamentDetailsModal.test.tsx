@@ -8,7 +8,12 @@ import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
 
 const mockMutation = () => ({
-  mutate: jest.fn(),
+  mutate: jest.fn((data, options) => {
+    // Simulate successful mutation by calling onSuccess
+    if (options?.onSuccess) {
+      options.onSuccess();
+    }
+  }),
   isPending: false,
 });
 
@@ -38,6 +43,7 @@ const mockTournament: Tournament = {
 const defaultProps = {
   isOpen: true,
   onClose: jest.fn(),
+  mode: 'edit' as const,
   tournament: mockTournament,
   masterRoster: mockPlayers,
   updateTournamentMutation: mockMutation() as unknown as UseMutationResult<Tournament | null, Error, Tournament, unknown>,
@@ -206,13 +212,13 @@ describe('TournamentDetailsModal', () => {
     const saveButton = screen.getByRole('button', { name: i18n.t('common.save', 'Save') });
     await user.click(saveButton);
 
-    expect(updateMutation.mutate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 't1',
-        name: 'Updated Tournament',
-        location: 'Central Arena',
-      })
-    );
+    expect(updateMutation.mutate).toHaveBeenCalled();
+    const [[firstArg]] = (updateMutation.mutate as jest.Mock).mock.calls;
+    expect(firstArg).toMatchObject({
+      id: 't1',
+      name: 'Updated Tournament',
+      location: 'Central Arena',
+    });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -236,12 +242,12 @@ describe('TournamentDetailsModal', () => {
     const saveButton = screen.getByRole('button', { name: i18n.t('common.save', 'Save') });
     await user.click(saveButton);
 
-    expect(updateMutation.mutate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 't1',
-        awardedPlayerId: 'p2',
-      })
-    );
+    expect(updateMutation.mutate).toHaveBeenCalled();
+    const [[firstArg]] = (updateMutation.mutate as jest.Mock).mock.calls;
+    expect(firstArg).toMatchObject({
+      id: 't1',
+      awardedPlayerId: 'p2',
+    });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -265,12 +271,12 @@ describe('TournamentDetailsModal', () => {
     const saveButton = screen.getByRole('button', { name: i18n.t('common.save', 'Save') });
     await user.click(saveButton);
 
-    expect(updateMutation.mutate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 't1',
-        awardedPlayerId: undefined,
-      })
-    );
+    expect(updateMutation.mutate).toHaveBeenCalled();
+    const [[firstArg]] = (updateMutation.mutate as jest.Mock).mock.calls;
+    expect(firstArg).toMatchObject({
+      id: 't1',
+      awardedPlayerId: undefined,
+    });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
@@ -341,11 +347,11 @@ describe('TournamentDetailsModal', () => {
     await user.click(saveButton);
 
     // Period count should be sanitized to undefined (invalid value)
-    expect(updateMutation.mutate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        periodCount: undefined,
-      })
-    );
+    expect(updateMutation.mutate).toHaveBeenCalled();
+    const [[firstArg]] = (updateMutation.mutate as jest.Mock).mock.calls;
+    expect(firstArg).toMatchObject({
+      periodCount: undefined,
+    });
   });
 
   it('does not render when tournament is null', () => {

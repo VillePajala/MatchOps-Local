@@ -72,13 +72,23 @@ describe('SeasonTournamentManagementModal', () => {
     });
     await user.click(createSeasonButton);
 
-    const input = screen.getByPlaceholderText(i18n.t('seasonTournamentModal.newSeasonPlaceholder'));
+    // Now a modal should open - find the input in the modal
+    await waitFor(() => {
+      expect(screen.getByText('Create Season')).toBeInTheDocument();
+    });
+
+    const input = screen.getByPlaceholderText(/Enter season name/i);
     await user.type(input, 'New Amazing Season');
 
-    const saveButton = screen.getByTestId('save-new-season-button');
-    await user.click(saveButton);
+    // Find and click the Create button in the modal
+    const saveButtons = screen.getAllByRole('button', { name: /Create/i });
+    const createButton = saveButtons.find(btn => btn.textContent === 'Create');
+    if (!createButton) throw new Error('Create button not found');
+    await user.click(createButton);
 
-    expect(defaultProps.addSeasonMutation.mutate).toHaveBeenCalledWith({ name: 'New Amazing Season' });
+    expect(defaultProps.addSeasonMutation.mutate).toHaveBeenCalled();
+    const [[firstArg]] = (defaultProps.addSeasonMutation.mutate as jest.Mock).mock.calls;
+    expect(firstArg).toMatchObject({ name: 'New Amazing Season' });
   });
 
   it('allows creating a new tournament', async () => {
@@ -93,13 +103,23 @@ describe('SeasonTournamentManagementModal', () => {
     });
     await user.click(createTournamentButton);
 
-    const input = screen.getByPlaceholderText(i18n.t('seasonTournamentModal.newTournamentPlaceholder'));
+    // Now a modal should open - find the input in the modal
+    await waitFor(() => {
+      expect(screen.getByText('Create Tournament')).toBeInTheDocument();
+    });
+
+    const input = screen.getByPlaceholderText(/Enter tournament name/i);
     await user.type(input, 'New Awesome Tournament');
 
-    const saveButton = screen.getByTestId('save-new-tournament-button');
-    await user.click(saveButton);
+    // Find and click the Create button in the modal
+    const saveButtons = screen.getAllByRole('button', { name: /Create/i });
+    const createButton = saveButtons.find(btn => btn.textContent === 'Create');
+    if (!createButton) throw new Error('Create button not found');
+    await user.click(createButton);
 
-    expect(defaultProps.addTournamentMutation.mutate).toHaveBeenCalledWith({ name: 'New Awesome Tournament' });
+    expect(defaultProps.addTournamentMutation.mutate).toHaveBeenCalled();
+    const [[firstArg]] = (defaultProps.addTournamentMutation.mutate as jest.Mock).mock.calls;
+    expect(firstArg).toMatchObject({ name: 'New Awesome Tournament' });
   });
 
   it('opens season details modal when clicking season item', async () => {

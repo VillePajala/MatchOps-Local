@@ -147,30 +147,34 @@ describe('LoadGameModal', () => {
     expect(mockHandlers.onClose).toHaveBeenCalled();
   });
 
-  it.skip('calls onDelete when delete is confirmed', async () => {
+  it('calls onDelete when delete is confirmed', async () => {
     await renderModal();
-    const gameItem = await screen.findByText('Hawks');
+
+    // Find the game card for Eagles vs Hawks
+    const gameCard = await screen.findByTestId('game-item-game_1659223456_def');
+
+    // Open the actions menu
+    const actionsButton = within(gameCard).getByLabelText('Game actions');
     await act(async () => {
-      fireEvent.click(gameItem.closest('button')!);
+      fireEvent.click(actionsButton);
     });
 
-    const deleteButton = within(gameItem.closest('li')!).getByTitle('Delete');
+    // Click the delete button in the dropdown
+    const deleteButton = await screen.findByText('common.delete');
     await act(async () => {
       fireEvent.click(deleteButton);
     });
 
-    // Wait for confirmation modal to appear (check for translation key)
+    // Wait for confirmation modal to appear
     await waitFor(() => {
-      expect(screen.getByText(/loadGameModal.deleteConfirm/)).toBeInTheDocument();
+      expect(screen.getByText('loadGameModal.deleteConfirmTitle')).toBeInTheDocument();
     });
 
-    // Click Confirm in the modal
-    const allButtons = screen.getAllByRole('button');
-    const confirmButton = allButtons.find(btn =>
-      btn.textContent === 'Delete' && btn.className.includes('bg-gradient-to-b')
-    );
+    // Find and click the Delete confirm button in the modal
+    const deleteButtons = screen.getAllByText('common.delete');
+    const confirmButton = deleteButtons[deleteButtons.length - 1]; // Last one is in the modal
     await act(async () => {
-      fireEvent.click(confirmButton!);
+      fireEvent.click(confirmButton);
     });
 
     await waitFor(() => {

@@ -299,10 +299,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
           /* FIRST-TIME USER: Simplified Interface */
           <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+110px)] overflow-visible min-h-0">
             <div className="relative flex flex-col items-center gap-4 sm:gap-5 -mt-16">
-              {/* Subtle glow behind buttons */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-[105%] h-[110%] bg-indigo-500/15 blur-[50px] rounded-3xl" />
-              </div>
               {/* Large Get Started button */}
               <button
                 className={primaryButtonStyle}
@@ -316,10 +312,6 @@ const StartScreen: React.FC<StartScreenProps> = ({
           /* EXPERIENCED USER: Full-Featured Interface */
           <div className="row-start-2 w-full flex flex-col max-w-sm mx-auto pt-6 md:pt-7 pb-[calc(env(safe-area-inset-bottom,0px)+110px)] overflow-y-auto min-h-0">
             <div className="relative flex flex-col items-center gap-4 sm:gap-5 mt-[clamp(8px,4vh,28px)]">
-              {/* Subtle glow behind buttons */}
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-[105%] h-[110%] bg-indigo-500/15 blur-[50px] rounded-3xl" />
-              </div>
               {/* Continue / Jatka button */}
               <button
                 className={canResume ? primaryEmphasisStyle : disabledButtonStyle}

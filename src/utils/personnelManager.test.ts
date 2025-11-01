@@ -212,8 +212,8 @@ describe('Personnel Manager Utilities', () => {
     it('should update personnel member fields', async () => {
       const member = await addPersonnelMember(createTestPersonnel('Original Name', 'head_coach'));
 
-      // Wait 1ms to ensure different timestamp
-      await new Promise(resolve => setTimeout(resolve, 1));
+      // Wait 10ms to ensure different timestamp
+      await new Promise(resolve => setTimeout(resolve, 10));
 
       const updated = await updatePersonnelMember(member.id, {
         name: 'Updated Name',

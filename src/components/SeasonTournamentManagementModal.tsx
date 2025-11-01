@@ -3,8 +3,6 @@
 import React, { useState } from 'react';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import { Season, Tournament, Player } from '@/types';
-import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
-import type { TranslationKey } from '@/i18n-types';
 import { HiOutlinePencil, HiOutlineTrash, HiOutlineEllipsisVertical, HiOutlineArchiveBox } from 'react-icons/hi2';
 import { UseMutationResult } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -33,36 +31,14 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     updateTournamentMutation, deleteTournamentMutation
 }) => {
     const { t } = useTranslation();
-    const parseIntOrUndefined = (value: string): number | undefined => {
-        const parsed = parseInt(value, 10);
-        return isNaN(parsed) ? undefined : parsed;
-    };
 
-    const sanitizeFields = (fields: Partial<Season | Tournament>): Partial<Season | Tournament> => {
-        const sanitized: Partial<Season | Tournament> = { ...fields };
-        if (sanitized.periodCount !== undefined) {
-            sanitized.periodCount =
-                sanitized.periodCount === 1 || sanitized.periodCount === 2
-                    ? sanitized.periodCount
-                    : undefined;
-        }
-        if (sanitized.periodDuration !== undefined) {
-            sanitized.periodDuration = sanitized.periodDuration > 0 ? sanitized.periodDuration : undefined;
-        }
-        return sanitized;
-    };
+    // Modal state for create
+    const [createSeasonModalOpen, setCreateSeasonModalOpen] = useState(false);
+    const [createTournamentModalOpen, setCreateTournamentModalOpen] = useState(false);
 
-    const [newSeasonName, setNewSeasonName] = useState('');
-    const [showNewSeasonInput, setShowNewSeasonInput] = useState(false);
-
-    const [newTournamentName, setNewTournamentName] = useState('');
-    const [showNewTournamentInput, setShowNewTournamentInput] = useState(false);
-
+    // Modal state for edit
     const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
     const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
-
-    const [newSeasonFields, setNewSeasonFields] = useState<Partial<Season>>({});
-    const [newTournamentFields, setNewTournamentFields] = useState<Partial<Tournament>>({});
 
     const [stats, setStats] = useState<Record<string, { games: number; goals: number }>>({});
 
@@ -116,21 +92,6 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         return null;
     }
 
-    const handleSave = (type: 'season' | 'tournament') => {
-        if (type === 'season' && newSeasonName.trim()) {
-            const sanitized = sanitizeFields(newSeasonFields);
-            addSeasonMutation.mutate({ name: newSeasonName.trim(), ...sanitized });
-            setNewSeasonName('');
-            setNewSeasonFields({});
-            setShowNewSeasonInput(false);
-        } else if (type === 'tournament' && newTournamentName.trim()) {
-            const sanitized = sanitizeFields(newTournamentFields);
-            addTournamentMutation.mutate({ name: newTournamentName.trim(), ...sanitized });
-            setNewTournamentName('');
-            setNewTournamentFields({});
-            setShowNewTournamentInput(false);
-        }
-    };
 
     const handleSeasonClick = (seasonId: string) => {
         setSelectedSeasonId(seasonId);
@@ -187,73 +148,10 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         const filtered = data
             .filter(d => showArchived || !d.archived)
             .filter(d => d.name.toLowerCase().includes(searchText.toLowerCase()));
-        const showInput = type === 'season' ? showNewSeasonInput : showNewTournamentInput;
-        const setShowInput = type === 'season' ? setShowNewSeasonInput : setShowNewTournamentInput;
-        const name = type === 'season' ? newSeasonName : newTournamentName;
-        const setName = type === 'season' ? setNewSeasonName : setNewTournamentName;
-        const placeholder = type === 'season' ? t('seasonTournamentModal.newSeasonPlaceholder') : t('seasonTournamentModal.newTournamentPlaceholder');
 
         return (
             <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
                 <h3 className="text-lg font-semibold text-slate-200 mb-4">{t(`seasonTournamentModal.${type}s`)}</h3>
-                {showInput && (
-                    <div className="bg-slate-700/50 rounded-lg p-4 border border-slate-600 mb-3 flex flex-col gap-2">
-                        <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder={placeholder}
-                            className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                        <input
-                            type="text"
-                            value={(type==='season'?newSeasonFields.location:newTournamentFields.location) || ''}
-                            onChange={(e) => type==='season'?setNewSeasonFields(f=>({...f,location:e.target.value})):setNewTournamentFields(f=>({...f,location:e.target.value}))}
-                            placeholder={t('seasonTournamentModal.locationLabel')}
-                            className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                        <select
-                            value={(type==='season'?newSeasonFields.ageGroup:newTournamentFields.ageGroup) || ''}
-                            onChange={(e)=>type==='season'?setNewSeasonFields(f=>({...f,ageGroup:e.target.value})):setNewTournamentFields(f=>({...f,ageGroup:e.target.value}))}
-                            className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
-                        >
-                            <option value="">{t('common.selectAgeGroup', '-- Select Age Group --')}</option>
-                            {AGE_GROUPS.map(group => (
-                                <option key={group} value={group}>{group}</option>
-                            ))}
-                        </select>
-                        {type==='tournament' && (
-                            <select
-                                value={newTournamentFields.level || ''}
-                                onChange={e=>setNewTournamentFields(f=>({...f,level:e.target.value}))}
-                                className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
-                            >
-                                <option value="">{t('common.selectLevel', '-- Select Level --')}</option>
-                                {LEVELS.map(lvl => (
-                                    <option key={lvl} value={lvl}>{t(`common.level${lvl}` as TranslationKey, lvl)}</option>
-                                ))}
-                            </select>
-                        )}
-                        <div className="grid grid-cols-2 gap-2">
-                            <input type="number" value={(type==='season'?newSeasonFields.periodCount:newTournamentFields.periodCount) || ''} onChange={(e)=>type==='season'?setNewSeasonFields(f=>({...f,periodCount:parseIntOrUndefined(e.target.value)})):setNewTournamentFields(f=>({...f,periodCount:parseIntOrUndefined(e.target.value)}))} placeholder={t('seasonTournamentModal.periodCountLabel')} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500" />
-                            <input type="number" value={(type==='season'?newSeasonFields.periodDuration:newTournamentFields.periodDuration) || ''} onChange={(e)=>type==='season'?setNewSeasonFields(f=>({...f,periodDuration:parseIntOrUndefined(e.target.value)})):setNewTournamentFields(f=>({...f,periodDuration:parseIntOrUndefined(e.target.value)}))} placeholder={t('seasonTournamentModal.periodDurationLabel')} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500" />
-                        </div>
-                        {type==='tournament' && (
-                            <>
-                                <input type="date" value={(newTournamentFields.startDate as string) || ''} onChange={e=>setNewTournamentFields(f=>({...f,startDate:e.target.value}))} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500" placeholder={t('seasonTournamentModal.startDateLabel')} />
-                                <input type="date" value={(newTournamentFields.endDate as string) || ''} onChange={e=>setNewTournamentFields(f=>({...f,endDate:e.target.value}))} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500" placeholder={t('seasonTournamentModal.endDateLabel')} />
-                            </>
-                        )}
-                        <textarea value={(type==='season'?newSeasonFields.notes:newTournamentFields.notes) || ''} onChange={(e)=>type==='season'?setNewSeasonFields(f=>({...f,notes:e.target.value})):setNewTournamentFields(f=>({...f,notes:e.target.value}))} placeholder={t('seasonTournamentModal.notesLabel')} className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500" />
-                        <div className="flex items-center gap-2">
-                            <label className="text-slate-200 text-sm flex items-center gap-1"><input type="checkbox" checked={(type==='season'?newSeasonFields.archived:newTournamentFields.archived) || false} onChange={(e)=>type==='season'?setNewSeasonFields(f=>({...f,archived:e.target.checked})):setNewTournamentFields(f=>({...f,archived:e.target.checked}))} className="form-checkbox h-4 w-4" />{t('seasonTournamentModal.archiveLabel')}</label>
-                        </div>
-                        <div className="flex justify-end gap-2">
-                            <button onClick={() => {setShowInput(false); if(type==='season'){setNewSeasonFields({});} else {setNewTournamentFields({});}}} className="px-3 py-1 text-xs rounded bg-slate-600 hover:bg-slate-500">{t('common.cancel')}</button>
-                            <button onClick={() => handleSave(type)} className="px-3 py-1 text-xs rounded bg-indigo-600 hover:bg-indigo-500" data-testid={`save-new-${type}-button`}>{t('common.save')}</button>
-                        </div>
-                    </div>
-                )}
                 <div className="space-y-3">
                     {filtered.map((item) => (
                         <div
@@ -360,13 +258,13 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
             {/* Add Buttons */}
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => setShowNewSeasonInput(true)}
+                onClick={() => setCreateSeasonModalOpen(true)}
                 className="px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg"
               >
                 {t('seasonTournamentModal.addSeason', 'Add Season')}
               </button>
               <button
-                onClick={() => setShowNewTournamentInput(true)}
+                onClick={() => setCreateTournamentModalOpen(true)}
                 className="px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg"
               >
                 {t('seasonTournamentModal.addTournament', 'Add Tournament')}
@@ -412,19 +310,38 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         </ModalFooter>
       </div>
 
-      {/* Season Details Modal */}
+      {/* Season Create Modal */}
+      <SeasonDetailsModal
+        isOpen={createSeasonModalOpen}
+        onClose={() => setCreateSeasonModalOpen(false)}
+        mode="create"
+        addSeasonMutation={addSeasonMutation}
+      />
+
+      {/* Season Edit Modal */}
       <SeasonDetailsModal
         isOpen={selectedSeasonId !== null}
         onClose={() => setSelectedSeasonId(null)}
+        mode="edit"
         season={seasons.find(s => s.id === selectedSeasonId) || null}
         updateSeasonMutation={updateSeasonMutation}
         stats={selectedSeasonId ? stats[selectedSeasonId] : undefined}
       />
 
-      {/* Tournament Details Modal */}
+      {/* Tournament Create Modal */}
+      <TournamentDetailsModal
+        isOpen={createTournamentModalOpen}
+        onClose={() => setCreateTournamentModalOpen(false)}
+        mode="create"
+        masterRoster={masterRoster}
+        addTournamentMutation={addTournamentMutation}
+      />
+
+      {/* Tournament Edit Modal */}
       <TournamentDetailsModal
         isOpen={selectedTournamentId !== null}
         onClose={() => setSelectedTournamentId(null)}
+        mode="edit"
         tournament={tournaments.find(t => t.id === selectedTournamentId) || null}
         masterRoster={masterRoster}
         updateTournamentMutation={updateTournamentMutation}
