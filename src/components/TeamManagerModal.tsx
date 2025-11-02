@@ -11,7 +11,7 @@ import {
   HiOutlineEllipsisVertical,
   HiOutlineArchiveBox
 } from 'react-icons/hi2';
-import { Team, Player } from '@/types';
+import { Team, Player, Tournament, Season } from '@/types';
 import { queryKeys } from '@/config/queryKeys';
 import {
   updateTeam,
@@ -19,6 +19,9 @@ import {
   countGamesForTeam,
   getAllTeamRosters,
 } from '@/utils/teams';
+import { useQuery } from '@tanstack/react-query';
+import { getTournaments } from '@/utils/tournaments';
+import { getSeasons } from '@/utils/seasons';
 import logger from '@/utils/logger';
 import UnifiedTeamModal from './UnifiedTeamModal';
 
@@ -66,6 +69,43 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       logger.error('[TeamManager] Error deleting team:', error);
     }
   });
+
+  // Queries for tournaments and seasons (for placement badges)
+  const { data: tournaments = [] } = useQuery<Tournament[]>({
+    queryKey: queryKeys.tournaments,
+    queryFn: getTournaments,
+  });
+
+  const { data: seasons = [] } = useQuery<Season[]>({
+    queryKey: queryKeys.seasons,
+    queryFn: getSeasons,
+  });
+
+  // Helper function to get placement badges for a team
+  const getTeamPlacements = (teamId: string): Array<{ name: string; placement: number; emoji: string }> => {
+    const placements: Array<{ name: string; placement: number; emoji: string }> = [];
+
+    tournaments.forEach(t => {
+      if (t.teamPlacements?.[teamId]) {
+        const emoji = t.teamPlacements[teamId].placement === 1 ? '🥇' :
+                     t.teamPlacements[teamId].placement === 2 ? '🥈' :
+                     t.teamPlacements[teamId].placement === 3 ? '🥉' : '🏆';
+        placements.push({ name: t.name, placement: t.teamPlacements[teamId].placement, emoji });
+      }
+    });
+
+    seasons.forEach(s => {
+      if (s.teamPlacements?.[teamId]) {
+        const emoji = s.teamPlacements[teamId].placement === 1 ? '🥇' :
+                     s.teamPlacements[teamId].placement === 2 ? '🥈' :
+                     s.teamPlacements[teamId].placement === 3 ? '🥉' : '📅';
+        placements.push({ name: s.name, placement: s.teamPlacements[teamId].placement, emoji });
+      }
+    });
+
+    // Return top 3 placements sorted by placement number
+    return placements.sort((a, b) => a.placement - b.placement).slice(0, 3);
+  };
 
   // Close actions menu when clicking outside
   useEffect(() => {
@@ -302,6 +342,24 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                                 date: new Date(team.createdAt).toLocaleDateString()
                               })}
                             </div>
+                            {/* Placement Badges */}
+                            {(() => {
+                              const placements = getTeamPlacements(team.id);
+                              if (placements.length === 0) return null;
+                              return (
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  {placements.map((p, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="text-xs px-2 py-0.5 rounded bg-yellow-900/30 text-yellow-300 border border-yellow-700/50 flex items-center gap-1"
+                                      title={p.name}
+                                    >
+                                      {p.emoji} {p.name.length > 15 ? p.name.substring(0, 15) + '...' : p.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </div>
                         </div>
 

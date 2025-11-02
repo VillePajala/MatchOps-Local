@@ -59,6 +59,22 @@ export interface Season {
   color?: string;
   badge?: string;
   ageGroup?: string;
+  /**
+   * Optional team placements for this season.
+   * Maps team IDs to their final placement/ranking.
+   *
+   * @remarks
+   * - Allows tracking team achievements (1st, 2nd, 3rd place, etc.)
+   * - Backward compatible: seasons without placements work seamlessly
+   * - Displayed with placement badges (🥇🥈🥉) in UI
+   */
+  teamPlacements?: {
+    [teamId: string]: {
+      placement: number;  // 1 = 1st place, 2 = 2nd place, etc.
+      award?: string;     // Optional: "Champion", "Runner-up", etc.
+      note?: string;      // Optional coach notes
+    };
+  };
   // Note: teamId removed - seasons are global entities per plan
   // Note: roster management removed - teams handle rosters now
 }
@@ -87,6 +103,22 @@ export interface Tournament {
    * - Displayed with trophy emoji 🏆 in UI (stats tables, tournament list, settings)
    */
   awardedPlayerId?: string;
+  /**
+   * Optional team placements for this tournament.
+   * Maps team IDs to their final placement/ranking.
+   *
+   * @remarks
+   * - Allows tracking team achievements (1st, 2nd, 3rd place, etc.)
+   * - Backward compatible: tournaments without placements work seamlessly
+   * - Displayed with placement badges (🥇🥈🥉) in UI
+   */
+  teamPlacements?: {
+    [teamId: string]: {
+      placement: number;  // 1 = 1st place, 2 = 2nd place, etc.
+      award?: string;     // Optional: "Champion", "Runner-up", etc.
+      note?: string;      // Optional coach notes
+    };
+  };
   // Note: teamId removed - tournaments are global entities per plan
   // Note: roster management removed - teams handle rosters now
 }

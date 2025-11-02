@@ -18,6 +18,7 @@ export interface GameSessionState {
   gamePersonnel: string[];
   seasonId: string;
   tournamentId: string;
+  teamId?: string; // Optional team ID for multi-team support
   ageGroup?: string;
   tournamentLevel?: string;
   gameLocation?: string;
@@ -382,6 +383,12 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const selectedPlayerIds = loadedData.selectedPlayerIds ?? [];
       const seasonId = loadedData.seasonId ?? '';
       const tournamentId = loadedData.tournamentId ?? '';
+      const teamId = loadedData.teamId;
+      logger.log('[useGameSessionReducer] LOAD_PERSISTED_GAME_DATA extracting teamId', {
+        loadedDataTeamId: loadedData.teamId,
+        extractedTeamId: teamId,
+        hasTeamId: 'teamId' in loadedData,
+      });
       const gameLocation = loadedData.gameLocation ?? '';
       const gameTime = loadedData.gameTime ?? '';
       const demandFactor = loadedData.demandFactor ?? 1;
@@ -414,6 +421,7 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         gamePersonnel,
         seasonId,
         tournamentId,
+        teamId,
         gameLocation,
         gameTime,
         demandFactor,

@@ -188,4 +188,93 @@ export const countGamesForTournament = async (tournamentId: string): Promise<num
     logger.warn('Failed to count games for tournament, returning 0', { tournamentId, error });
     return 0;
   }
+};
+
+/**
+ * Updates a team's placement in a tournament.
+ * @param tournamentId - The ID of the tournament.
+ * @param teamId - The ID of the team.
+ * @param placement - The team's placement (1 = 1st place, 2 = 2nd place, etc.). Pass null to remove placement.
+ * @param award - Optional award label (e.g., "Champion", "Runner-up").
+ * @param note - Optional coach note.
+ * @returns A promise that resolves to true if successful, false otherwise.
+ */
+export const updateTeamPlacement = async (
+  tournamentId: string,
+  teamId: string,
+  placement: number | null,
+  award?: string,
+  note?: string
+): Promise<boolean> => {
+  if (!tournamentId || !teamId) {
+    logger.error('[updateTeamPlacement] Invalid tournament ID or team ID provided.');
+    return false;
+  }
+
+  return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
+    try {
+      const tournaments = await getTournaments();
+      const tournamentIndex = tournaments.findIndex(t => t.id === tournamentId);
+
+      if (tournamentIndex === -1) {
+        logger.error(`[updateTeamPlacement] Tournament with ID ${tournamentId} not found.`);
+        return false;
+      }
+
+      const tournament = tournaments[tournamentIndex];
+
+      // If placement is null, remove the team's placement
+      if (placement === null) {
+        if (tournament.teamPlacements) {
+          delete tournament.teamPlacements[teamId];
+          // Clean up empty object
+          if (Object.keys(tournament.teamPlacements).length === 0) {
+            delete tournament.teamPlacements;
+          }
+        }
+      } else {
+        // Set or update the team's placement
+        tournament.teamPlacements = {
+          ...tournament.teamPlacements,
+          [teamId]: {
+            placement,
+            ...(award && { award }),
+            ...(note && { note }),
+          },
+        };
+      }
+
+      tournaments[tournamentIndex] = tournament;
+      await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(tournaments));
+      return true;
+    } catch (error) {
+      logger.error('[updateTeamPlacement] Unexpected error updating team placement:', error);
+      return false;
+    }
+  });
+};
+
+/**
+ * Gets a team's placement in a tournament.
+ * @param tournamentId - The ID of the tournament.
+ * @param teamId - The ID of the team.
+ * @returns A promise that resolves to the team's placement data, or null if not found.
+ */
+export const getTeamPlacement = async (
+  tournamentId: string,
+  teamId: string
+): Promise<{ placement: number; award?: string; note?: string } | null> => {
+  try {
+    const tournaments = await getTournaments();
+    const tournament = tournaments.find(t => t.id === tournamentId);
+
+    if (!tournament || !tournament.teamPlacements || !tournament.teamPlacements[teamId]) {
+      return null;
+    }
+
+    return tournament.teamPlacements[teamId];
+  } catch (error) {
+    logger.error('[getTeamPlacement] Error getting team placement:', error);
+    return null;
+  }
 }; 
