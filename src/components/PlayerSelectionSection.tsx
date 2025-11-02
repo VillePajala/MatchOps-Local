@@ -12,6 +12,8 @@ export interface PlayerSelectionSectionProps {
   selectAllText: string;
   noPlayersText: string;
   disabled?: boolean;
+  useFlexHeight?: boolean; // Enable flexible height to fill parent container
+  className?: string; // Additional CSS classes for wrapper
 }
 
 const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
@@ -23,9 +25,11 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
   selectAllText,
   noPlayersText,
   disabled,
+  useFlexHeight = false,
+  className = '',
 }) => {
   return (
-    <div className="flex flex-col bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all">
+    <div className={`flex flex-col bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 p-4 rounded-lg shadow-inner transition-all ${useFlexHeight ? 'h-full' : ''} ${className}`}>
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <h3 className="text-lg font-semibold text-slate-200">{title}</h3>
         <div className="text-sm text-slate-400">
@@ -54,7 +58,7 @@ const PlayerSelectionSection: React.FC<PlayerSelectionSectionProps> = ({
               <span className="ml-2">{selectAllText}</span>
             </label>
           </div>
-          <div className="space-y-1 overflow-y-auto pr-1 max-h-60">
+          <div className={`space-y-1 overflow-y-auto pr-1 ${useFlexHeight ? 'flex-1 min-h-0' : 'max-h-60'}`}>
             {availablePlayers.map((player) => (
               <div key={player.id} className="flex items-center py-1.5 px-1 rounded hover:bg-slate-800/40 transition-colors">
                 <label className="flex items-center flex-1 cursor-pointer">

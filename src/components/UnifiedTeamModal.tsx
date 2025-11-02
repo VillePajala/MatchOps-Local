@@ -333,8 +333,8 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                     </>
                   ) : (
                     <>
-                      {/* Player Selection - Fixed height for internal scrolling */}
-                      <div className="mb-2 h-[calc(100vh-280px)] min-h-[300px] max-h-[750px]">
+                      {/* Player Selection - Flexible height to stretch to buttons */}
+                      <div className="mb-2 flex flex-col h-[calc(100vh-280px)] min-h-[300px] max-h-[750px]">
                         <PlayerSelectionSection
                           availablePlayers={masterRoster}
                           selectedPlayerIds={selectedPlayerIds}
@@ -344,6 +344,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                           selectAllText={t('teamRosterModal.selectAll', 'Select All')}
                           noPlayersText={t('teamRosterModal.noAvailablePlayers', 'No available players to add from master roster.')}
                           disabled={isPending}
+                          useFlexHeight={true}
                         />
                       </div>
 
