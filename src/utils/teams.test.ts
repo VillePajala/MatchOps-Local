@@ -148,22 +148,20 @@ describe('Team metadata fields', () => {
 
   /**
    * Tests handling of empty ageGroup and notes at the DATA LAYER.
-   * Note: UnifiedTeamModal converts empty strings to undefined before calling addTeam,
-   * so this scenario only occurs if addTeam is called directly (e.g., programmatically).
-   * This test validates that the data layer preserves empty strings as-is.
+   * Empty strings are normalized to undefined to ensure data consistency.
+   * This prevents having two representations of "no value" (undefined vs empty string).
    * @edge-case
    */
-  it('should handle empty ageGroup and notes gracefully', async () => {
+  it('should normalize empty ageGroup and notes to undefined', async () => {
     const team = await addTeam({
       name: 'Minimal Team',
       ageGroup: '',
       notes: ''
     });
 
-    // Empty strings are preserved as-is by addTeam
-    // (UnifiedTeamModal converts them to undefined before calling addTeam)
-    expect(team.ageGroup).toBe('');
-    expect(team.notes).toBe('');
+    // Empty strings are normalized to undefined for data consistency
+    expect(team.ageGroup).toBeUndefined();
+    expect(team.notes).toBeUndefined();
   });
 
   /**
@@ -367,15 +365,72 @@ describe('Team metadata fields', () => {
   });
 
   /**
-   * Tests that empty string age group is allowed (will be converted to undefined by UI)
+   * Tests that empty string age group is normalized to undefined
    * @edge-case
    */
-  it('should allow empty string age group', async () => {
+  it('should normalize empty string age group to undefined', async () => {
     const team = await addTeam({
       name: 'Team with Empty Age Group',
       ageGroup: ''
     });
 
-    expect(team.ageGroup).toBe('');
+    expect(team.ageGroup).toBeUndefined();
+  });
+
+  /**
+   * Tests that whitespace-only fields are trimmed and normalized
+   * @edge-case
+   */
+  it('should trim and normalize whitespace in ageGroup and notes', async () => {
+    const team = await addTeam({
+      name: 'Team with Whitespace',
+      ageGroup: '  U10  ',
+      notes: '  Test notes  '
+    });
+
+    expect(team.ageGroup).toBe('U10');
+    expect(team.notes).toBe('Test notes');
+  });
+
+  /**
+   * Tests that whitespace-only strings are normalized to undefined
+   * @edge-case
+   */
+  it('should normalize whitespace-only strings to undefined', async () => {
+    const team = await addTeam({
+      name: 'Team with Whitespace Only',
+      ageGroup: '   ',
+      notes: '   '
+    });
+
+    expect(team.ageGroup).toBeUndefined();
+    expect(team.notes).toBeUndefined();
+  });
+
+  /**
+   * Tests that updateTeam also normalizes empty strings and whitespace
+   * @critical
+   */
+  it('should normalize empty strings and whitespace when updating', async () => {
+    const team = await addTeam({
+      name: 'Team to Update Normalization',
+      ageGroup: 'U10',
+      notes: 'Initial notes'
+    });
+
+    // Update with empty string - should become undefined
+    const updated1 = await updateTeam(team.id, { ageGroup: '', notes: '' });
+    expect(updated1?.ageGroup).toBeUndefined();
+    expect(updated1?.notes).toBeUndefined();
+
+    // Update with whitespace - should be trimmed
+    const updated2 = await updateTeam(team.id, { ageGroup: '  U12  ', notes: '  New notes  ' });
+    expect(updated2?.ageGroup).toBe('U12');
+    expect(updated2?.notes).toBe('New notes');
+
+    // Update with whitespace-only - should become undefined
+    const updated3 = await updateTeam(team.id, { ageGroup: '   ', notes: '   ' });
+    expect(updated3?.ageGroup).toBeUndefined();
+    expect(updated3?.notes).toBeUndefined();
   });
 });
