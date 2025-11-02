@@ -909,7 +909,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   onClick={() => {
                     const playerData = playerStats.find(p => p.id === selectedPlayer.id);
                     if (playerData) {
-                      const playerGameIds = Object.keys(savedGames || {}).filter(
+                      const playerGameIds = processedGameIds.filter(
                         gameId => savedGames[gameId].selectedPlayerIds?.includes(selectedPlayer.id)
                       );
                       onExportPlayerExcel(selectedPlayer.id, playerData, playerGameIds);

@@ -53,6 +53,9 @@ const calculateRecord = (
   let ties = 0;
 
   Object.values(games).forEach((game) => {
+    // Skip games explicitly marked as "not yet played" in game settings
+    if (game.isPlayed === false) return;
+
     const isHome = game.homeOrAway === 'home';
     const ourScore = isHome ? game.homeScore : game.awayScore;
     const theirScore = isHome ? game.awayScore : game.homeScore;
