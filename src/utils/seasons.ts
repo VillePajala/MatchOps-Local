@@ -175,4 +175,93 @@ export const countGamesForSeason = async (seasonId: string): Promise<number> => 
     logger.warn('Failed to count games for season, returning 0', { seasonId, error });
     return 0;
   }
+};
+
+/**
+ * Updates a team's placement in a season.
+ * @param seasonId - The ID of the season.
+ * @param teamId - The ID of the team.
+ * @param placement - The team's placement (1 = 1st place, 2 = 2nd place, etc.). Pass null to remove placement.
+ * @param award - Optional award label (e.g., "Champion", "Runner-up").
+ * @param note - Optional coach note.
+ * @returns A promise that resolves to true if successful, false otherwise.
+ */
+export const updateTeamPlacement = async (
+  seasonId: string,
+  teamId: string,
+  placement: number | null,
+  award?: string,
+  note?: string
+): Promise<boolean> => {
+  if (!seasonId || !teamId) {
+    logger.error('[updateTeamPlacement] Invalid season ID or team ID provided.');
+    return false;
+  }
+
+  return withKeyLock(SEASONS_LIST_KEY, async () => {
+    try {
+      const seasons = await getSeasons();
+      const seasonIndex = seasons.findIndex(s => s.id === seasonId);
+
+      if (seasonIndex === -1) {
+        logger.error(`[updateTeamPlacement] Season with ID ${seasonId} not found.`);
+        return false;
+      }
+
+      const season = seasons[seasonIndex];
+
+      // If placement is null, remove the team's placement
+      if (placement === null) {
+        if (season.teamPlacements) {
+          delete season.teamPlacements[teamId];
+          // Clean up empty object
+          if (Object.keys(season.teamPlacements).length === 0) {
+            delete season.teamPlacements;
+          }
+        }
+      } else {
+        // Set or update the team's placement
+        season.teamPlacements = {
+          ...season.teamPlacements,
+          [teamId]: {
+            placement,
+            ...(award && { award }),
+            ...(note && { note }),
+          },
+        };
+      }
+
+      seasons[seasonIndex] = season;
+      await setStorageItem(SEASONS_LIST_KEY, JSON.stringify(seasons));
+      return true;
+    } catch (error) {
+      logger.error('[updateTeamPlacement] Unexpected error updating team placement:', error);
+      return false;
+    }
+  });
+};
+
+/**
+ * Gets a team's placement in a season.
+ * @param seasonId - The ID of the season.
+ * @param teamId - The ID of the team.
+ * @returns A promise that resolves to the team's placement data, or null if not found.
+ */
+export const getTeamPlacement = async (
+  seasonId: string,
+  teamId: string
+): Promise<{ placement: number; award?: string; note?: string } | null> => {
+  try {
+    const seasons = await getSeasons();
+    const season = seasons.find(s => s.id === seasonId);
+
+    if (!season || !season.teamPlacements || !season.teamPlacements[teamId]) {
+      return null;
+    }
+
+    return season.teamPlacements[teamId];
+  } catch (error) {
+    logger.error('[getTeamPlacement] Error getting team placement:', error);
+    return null;
+  }
 }; 

@@ -1087,6 +1087,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         gamePersonnel: Array.isArray(gameData.gamePersonnel) ? gameData.gamePersonnel : [],
         seasonId: gameData.seasonId ?? undefined,
         tournamentId: gameData.tournamentId ?? undefined,
+        teamId: gameData.teamId,
         gameLocation: gameData.gameLocation,
         gameTime: gameData.gameTime,
         demandFactor: gameData.demandFactor,
@@ -1202,7 +1203,10 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     // Only auto-save if loaded AND we have a proper game ID (not the default unsaved one)
     const autoSave = async () => {
     if (initialLoadComplete && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-      logger.log(`Auto-saving state for game ID: ${currentGameId}`);
+      logger.log(`Auto-saving state for game ID: ${currentGameId}`, {
+        teamId: gameSessionState.teamId,
+        tournamentId: gameSessionState.tournamentId,
+      });
       try {
         // 1. Create the current game state snapshot (excluding history and volatile timer states)
         const currentSnapshot: AppState = {
@@ -1221,6 +1225,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           gameStatus: gameSessionState.gameStatus, // Persisted
           seasonId: gameSessionState.seasonId, // USE gameSessionState
           tournamentId: gameSessionState.tournamentId, // USE gameSessionState
+          teamId: gameSessionState.teamId, // USE gameSessionState
           gameLocation: gameSessionState.gameLocation,
           gameTime: gameSessionState.gameTime,
           demandFactor: gameSessionState.demandFactor,
@@ -2108,7 +2113,10 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   // --- NEW: Quick Save Handler ---
   const handleQuickSaveGame = useCallback(async (silent = false) => {
     if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-      logger.log(`Quick saving game with ID: ${currentGameId}${silent ? ' (silent)' : ''}`);
+      logger.log(`Quick saving game with ID: ${currentGameId}${silent ? ' (silent)' : ''}`, {
+        teamId: gameSessionState.teamId,
+        tournamentId: gameSessionState.tournamentId,
+      });
       try {
         // 1. Create the current game state snapshot
         const currentSnapshot: AppState = {
@@ -2142,7 +2150,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           completedIntervalDurations: gameSessionState.completedIntervalDurations, // Use gameSessionState for completedIntervalDurations
           lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds, // Use gameSessionState for lastSubConfirmationTimeSeconds
           homeOrAway: gameSessionState.homeOrAway,
-          teamId: savedGames[currentGameId]?.teamId, // Preserve the teamId from the current game
+          teamId: gameSessionState.teamId, // Use teamId from gameSessionState
           isPlayed,
           // VOLATILE TIMER STATES ARE EXCLUDED:
           // timeElapsedInSeconds: gameSessionState.timeElapsedInSeconds, // REMOVE from AppState snapshot
@@ -2404,6 +2412,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     availablePlayersForGame: Player[], // Add the actual roster for the game
     selectedPersonnelIds: string[] // Add personnel selection
   ) => {
+    logger.log('[handleStartNewGameWithSetup] Received teamId:', teamId);
 
       // Determine the player selection for the new game
       const finalSelectedPlayerIds = initialSelectedPlayerIds && initialSelectedPlayerIds.length > 0 
@@ -2451,6 +2460,9 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       };
 
       // Log the constructed state *before* saving
+      logger.log('[handleStartNewGameWithSetup] newGameState.teamId:', newGameState.teamId);
+      logger.log('[handleStartNewGameWithSetup] newGameState.tournamentId:', newGameState.tournamentId);
+      logger.log('[handleStartNewGameWithSetup] newGameState.seasonId:', newGameState.seasonId);
 
       // 2. Auto-generate ID
       const newGameId = `game_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
