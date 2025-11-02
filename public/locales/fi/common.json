@@ -754,6 +754,10 @@
     "colorLabel": "Joukkueen väri",
     "colorPlaceholder": "esim. #FF5733 tai sininen",
     "colorHint": "Valinnainen: heksakoodi tai värin nimi",
+    "ageGroupLabel": "Ikäluokka",
+    "selectAgeGroup": "-- Valitse ikäluokka --",
+    "notesLabel": "Muistiinpanot",
+    "notesPlaceholder": "Kirjoita joukkueen muistiinpanot tai kuvaus",
     "archivedLabel": "Arkistoitu"
   },
   "playerDetailsModal": {
