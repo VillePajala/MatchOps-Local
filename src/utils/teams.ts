@@ -9,6 +9,7 @@ import { getStorageItem, setStorageItem } from './storage';
 import { withRosterLock } from './lockManager';
 import { withKeyLock } from './storageKeyLock';
 import logger from '@/utils/logger';
+import { AGE_GROUPS } from '@/config/gameOptions';
 
 // Team index storage format: { [teamId: string]: Team }
 export interface TeamsIndex {
@@ -77,10 +78,18 @@ const validateTeamNotes = (notes?: string): void => {
   }
 };
 
+// Validate team age group
+const validateTeamAgeGroup = (ageGroup?: string): void => {
+  if (ageGroup && !AGE_GROUPS.includes(ageGroup)) {
+    throw new Error(`Invalid age group: ${ageGroup}. Must be one of: ${AGE_GROUPS.join(', ')}`);
+  }
+};
+
 // Create new team
 export const addTeam = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>): Promise<Team> => {
   await validateTeamName(teamData.name);
   validateTeamNotes(teamData.notes);
+  validateTeamAgeGroup(teamData.ageGroup);
 
   return withKeyLock(TEAMS_INDEX_KEY, async () => {
     const now = new Date().toISOString();
@@ -119,6 +128,11 @@ export const updateTeam = async (teamId: string, updates: Partial<Omit<Team, 'id
     // Validate notes if being updated
     if (updates.notes !== undefined) {
       validateTeamNotes(updates.notes);
+    }
+
+    // Validate age group if being updated
+    if (updates.ageGroup !== undefined) {
+      validateTeamAgeGroup(updates.ageGroup);
     }
 
     const updatedTeam: Team = {
