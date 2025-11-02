@@ -290,7 +290,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                   ) : (
                     <>
                       {/* Player Selection - Fixed height for internal scrolling */}
-                      <div className="mb-2 h-[calc(100vh-310px)] min-h-[300px] max-h-[700px]">
+                      <div className="mb-2 h-[calc(100vh-280px)] min-h-[300px] max-h-[750px]">
                         <PlayerSelectionSection
                           availablePlayers={masterRoster}
                           selectedPlayerIds={selectedPlayerIds}
