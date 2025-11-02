@@ -218,23 +218,6 @@ describe('Team metadata fields', () => {
   });
 
   /**
-   * Tests that all age groups are valid
-   * @edge-case
-   */
-  it('should handle all valid age groups', async () => {
-    const ageGroups = ['U7', 'U8', 'U9', 'U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'U19', 'U20', 'U21'];
-
-    for (const ageGroup of ageGroups) {
-      const team = await addTeam({
-        name: `Team ${ageGroup}`,
-        ageGroup
-      });
-
-      expect(team.ageGroup).toBe(ageGroup);
-    }
-  });
-
-  /**
    * Tests that notes can contain multiline text
    * @edge-case
    */
@@ -315,5 +298,84 @@ describe('Team metadata fields', () => {
     await expect(
       updateTeam(team.id, { notes: tooLongNotes })
     ).rejects.toThrow('Team notes cannot exceed 1000 characters');
+  });
+
+  /**
+   * Tests that invalid age groups are rejected
+   * @critical
+   */
+  it('should reject invalid age groups', async () => {
+    await expect(
+      addTeam({
+        name: 'Team with Invalid Age Group',
+        ageGroup: 'InvalidAgeGroup'
+      })
+    ).rejects.toThrow(/Invalid age group: InvalidAgeGroup/);
+
+    await expect(
+      addTeam({
+        name: 'Team with U22',
+        ageGroup: 'U22'
+      })
+    ).rejects.toThrow(/Invalid age group: U22/);
+  });
+
+  /**
+   * Tests that all valid age groups are accepted
+   * This test already exists but validates that ALL age groups pass validation
+   * @critical
+   */
+  it('should accept all valid age groups (U7-U21)', async () => {
+    const validAgeGroups = ['U7', 'U8', 'U9', 'U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'U19', 'U20', 'U21'];
+
+    for (const ageGroup of validAgeGroups) {
+      const team = await addTeam({
+        name: `Valid Team ${ageGroup}`,
+        ageGroup
+      });
+
+      expect(team.ageGroup).toBe(ageGroup);
+    }
+  });
+
+  /**
+   * Tests that updateTeam also validates age group
+   * @critical
+   */
+  it('should reject invalid age groups when updating', async () => {
+    const team = await addTeam({
+      name: 'Team to Update Age Group',
+      ageGroup: 'U10'
+    });
+
+    await expect(
+      updateTeam(team.id, { ageGroup: 'InvalidValue' })
+    ).rejects.toThrow(/Invalid age group: InvalidValue/);
+  });
+
+  /**
+   * Tests that undefined age group is allowed
+   * @edge-case
+   */
+  it('should allow undefined age group', async () => {
+    const team = await addTeam({
+      name: 'Team without Age Group'
+      // ageGroup intentionally omitted
+    });
+
+    expect(team.ageGroup).toBeUndefined();
+  });
+
+  /**
+   * Tests that empty string age group is allowed (will be converted to undefined by UI)
+   * @edge-case
+   */
+  it('should allow empty string age group', async () => {
+    const team = await addTeam({
+      name: 'Team with Empty Age Group',
+      ageGroup: ''
+    });
+
+    expect(team.ageGroup).toBe('');
   });
 });
