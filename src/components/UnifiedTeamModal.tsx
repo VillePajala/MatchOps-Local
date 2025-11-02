@@ -261,15 +261,21 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
 
                     {/* Notes */}
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1">
-                        {t('teamDetailsModal.notesLabel', 'Notes')}
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-sm font-medium text-slate-300">
+                          {t('teamDetailsModal.notesLabel', 'Notes')}
+                        </label>
+                        <span className="text-xs text-slate-400">
+                          {notes.length}/1000
+                        </span>
+                      </div>
                       <textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
                         placeholder={t('teamDetailsModal.notesPlaceholder', 'Enter team notes or description')}
                         className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
                         rows={3}
+                        maxLength={1000}
                       />
                     </div>
 
