@@ -1,4 +1,4 @@
-import { setTeamRoster, getTeamRoster, addPlayerToRoster, addTeam, duplicateTeam, getTeam } from './teams';
+import { setTeamRoster, getTeamRoster, addPlayerToRoster, addTeam, duplicateTeam, getTeam, updateTeam } from './teams';
 import { TeamPlayer } from '@/types';
 import { clearMockStore } from './__mocks__/storage';
 
@@ -147,9 +147,10 @@ describe('Team metadata fields', () => {
   });
 
   /**
-   * Tests handling of empty ageGroup and notes
-   * Empty strings passed to addTeam are preserved, but the UI layer
-   * (UnifiedTeamModal) converts empty strings to undefined before calling addTeam
+   * Tests handling of empty ageGroup and notes at the DATA LAYER.
+   * Note: UnifiedTeamModal converts empty strings to undefined before calling addTeam,
+   * so this scenario only occurs if addTeam is called directly (e.g., programmatically).
+   * This test validates that the data layer preserves empty strings as-is.
    * @edge-case
    */
   it('should handle empty ageGroup and notes gracefully', async () => {
@@ -248,5 +249,71 @@ describe('Team metadata fields', () => {
 
     const retrieved = await getTeam(team.id);
     expect(retrieved?.notes).toBe(multilineNotes);
+  });
+
+  /**
+   * Tests that notes cannot exceed the maximum length (1000 characters)
+   * @critical
+   */
+  it('should reject notes that exceed 1000 characters', async () => {
+    const tooLongNotes = 'A'.repeat(1001);
+
+    await expect(
+      addTeam({
+        name: 'Team with Long Notes',
+        notes: tooLongNotes
+      })
+    ).rejects.toThrow('Team notes cannot exceed 1000 characters');
+  });
+
+  /**
+   * Tests that notes can contain exactly 1000 characters (boundary)
+   * @edge-case
+   */
+  it('should accept notes with exactly 1000 characters', async () => {
+    const maxLengthNotes = 'A'.repeat(1000);
+
+    const team = await addTeam({
+      name: 'Team with Max Notes',
+      notes: maxLengthNotes
+    });
+
+    expect(team.notes).toBe(maxLengthNotes);
+    expect(team.notes?.length).toBe(1000);
+  });
+
+  /**
+   * Tests that notes can contain special characters and Unicode
+   * @edge-case
+   */
+  it('should handle notes with special characters and Unicode', async () => {
+    const specialNotes = 'Emojis: ⚽🥅🏆\nUnicode: Ä Ö Å ñ\nSymbols: @#$%^&*()';
+
+    const team = await addTeam({
+      name: 'Team with Special Notes',
+      notes: specialNotes
+    });
+
+    expect(team.notes).toBe(specialNotes);
+
+    const retrieved = await getTeam(team.id);
+    expect(retrieved?.notes).toBe(specialNotes);
+  });
+
+  /**
+   * Tests that updateTeam also validates notes length
+   * @critical
+   */
+  it('should reject notes that exceed 1000 characters when updating', async () => {
+    const team = await addTeam({
+      name: 'Team to Update',
+      notes: 'Initial notes'
+    });
+
+    const tooLongNotes = 'B'.repeat(1001);
+
+    await expect(
+      updateTeam(team.id, { notes: tooLongNotes })
+    ).rejects.toThrow('Team notes cannot exceed 1000 characters');
   });
 });

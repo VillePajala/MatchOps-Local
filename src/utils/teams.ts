@@ -44,6 +44,9 @@ export const getTeam = async (teamId: string): Promise<Team | null> => {
   return teamsIndex[teamId] || null;
 };
 
+// Constants for validation
+const MAX_NOTES_LENGTH = 1000;
+
 // Validate team name uniqueness (case-insensitive, normalized)
 const validateTeamName = async (name: string, excludeTeamId?: string): Promise<void> => {
   const trimmed = name.trim();
@@ -56,20 +59,28 @@ const validateTeamName = async (name: string, excludeTeamId?: string): Promise<v
 
   const teams = await getTeams();
   const normalizedName = trimmed.toLowerCase().normalize('NFKC');
-  
-  const existingTeam = teams.find(team => 
-    team.id !== excludeTeamId && 
+
+  const existingTeam = teams.find(team =>
+    team.id !== excludeTeamId &&
     team.name.toLowerCase().normalize('NFKC') === normalizedName
   );
-  
+
   if (existingTeam) {
     throw new Error(`A team named '${trimmed}' already exists.`);
+  }
+};
+
+// Validate team notes length
+const validateTeamNotes = (notes?: string): void => {
+  if (notes && notes.length > MAX_NOTES_LENGTH) {
+    throw new Error(`Team notes cannot exceed ${MAX_NOTES_LENGTH} characters`);
   }
 };
 
 // Create new team
 export const addTeam = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>): Promise<Team> => {
   await validateTeamName(teamData.name);
+  validateTeamNotes(teamData.notes);
 
   return withKeyLock(TEAMS_INDEX_KEY, async () => {
     const now = new Date().toISOString();
@@ -103,6 +114,11 @@ export const updateTeam = async (teamId: string, updates: Partial<Omit<Team, 'id
     if (updates.name !== undefined) {
       await validateTeamName(updates.name, teamId);
       updates.name = updates.name.trim();
+    }
+
+    // Validate notes if being updated
+    if (updates.notes !== undefined) {
+      validateTeamNotes(updates.notes);
     }
 
     const updatedTeam: Team = {
