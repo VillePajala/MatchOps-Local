@@ -125,8 +125,8 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 p-6">
-          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+        <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
+          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
             <div className="space-y-3">
               {/* Name */}
               <div>

@@ -207,7 +207,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
 
         {/* Content */}
         <div className="flex-1 min-h-0 p-6 pb-2 relative z-10 flex flex-col">
-          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 -mb-2 flex-1 overflow-y-auto">
+          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 flex-1 overflow-y-auto">
               <div className="space-y-4">
                 {!isEditingRoster && (
                   <>

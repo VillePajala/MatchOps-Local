@@ -181,7 +181,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
             />
 
             {/* Player List */}
-            <div className={`${cardStyle} mt-4`}>
+            <div className={`${cardStyle} mt-4 -mx-2 sm:-mx-4 md:-mx-6`}>
               <div className="space-y-3">
                 {filteredPlayers.map((player) => (
                   <div
