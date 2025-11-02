@@ -10,7 +10,7 @@ import {
   useTeamRosterQuery,
   useSetTeamRosterMutation
 } from '@/hooks/useTeamQueries';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
 import { getTournaments, updateTeamPlacement as updateTournamentTeamPlacement } from '@/utils/tournaments';
 import { getSeasons, updateTeamPlacement as updateSeasonTeamPlacement } from '@/utils/seasons';
@@ -18,6 +18,7 @@ import { getSavedGames } from '@/utils/savedGames';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import logger from '@/utils/logger';
 import { AGE_GROUPS } from '@/config/gameOptions';
+import { useToast } from '@/contexts/ToastProvider';
 
 interface UnifiedTeamModalProps {
   isOpen: boolean;
@@ -56,36 +57,36 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   const updateTeamMutation = useUpdateTeamMutation();
   const setTeamRosterMutation = useSetTeamRosterMutation();
 
+  // Query client for cache invalidation
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
   // Query for existing roster (edit mode only)
   const { data: existingRoster = [] } = useTeamRosterQuery(teamId || null);
 
   // Queries for tournaments, seasons, and saved games (when viewing/editing existing team)
-  // Force refetch on mount to ensure fresh data after creating games
   const { data: tournaments = [] } = useQuery<Tournament[]>({
     queryKey: queryKeys.tournaments,
     queryFn: getTournaments,
     enabled: !!teamId,
-    staleTime: 0, // Mark as stale immediately
-    refetchOnMount: 'always', // Always refetch when modal opens
-    refetchOnWindowFocus: false, // Don't refetch on window focus
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: true,
   });
 
   const { data: seasons = [] } = useQuery<Season[]>({
     queryKey: queryKeys.seasons,
     queryFn: getSeasons,
     enabled: !!teamId,
-    staleTime: 0, // Mark as stale immediately
-    refetchOnMount: 'always', // Always refetch when modal opens
-    refetchOnWindowFocus: false, // Don't refetch on window focus
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: true,
   });
 
   const { data: savedGames = {} } = useQuery({
     queryKey: queryKeys.savedGames,
     queryFn: getSavedGames,
     enabled: !!teamId,
-    staleTime: 0, // Mark as stale immediately
-    refetchOnMount: 'always', // Always refetch when modal opens
-    refetchOnWindowFocus: false, // Don't refetch on window focus
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: true,
   });
 
   // Initialize form when modal opens or team changes
@@ -141,48 +142,13 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   const teamHistory = useMemo(() => {
     if (!teamId) return { tournaments: [], seasons: [] };
 
-    // Debug: Show detailed filtering info
-    const gamesWithThisTeam = Object.entries(savedGames)
-      .filter(([_, game]) => game.teamId === teamId)
-      .map(([id, game]) => ({
-        gameId: id,
-        tournamentId: game.tournamentId,
-        seasonId: game.seasonId,
-        teamName: game.teamName,
-      }));
-
-    logger.log('[UnifiedTeamModal] Filtering team history', {
-      teamId,
-      tournamentsCount: tournaments.length,
-      seasonsCount: seasons.length,
-      gamesCount: Object.keys(savedGames).length,
-      gamesWithThisTeam,
-      allTournamentIds: tournaments.map(t => ({ id: t.id, name: t.name })),
-    });
-
     const teamTournaments = tournaments.filter(t => {
       // Show if team has games in this tournament OR has a placement assigned
-      const hasGames = Object.values(savedGames).some(game => {
-        const matches = game.teamId === teamId && game.tournamentId === t.id;
-        if (game.teamId === teamId) {
-          logger.log('[UnifiedTeamModal] Checking tournament match', {
-            tournamentName: t.name,
-            tournamentId: t.id,
-            gameTeamId: game.teamId,
-            gameTournamentId: game.tournamentId,
-            matches,
-          });
-        }
-        return matches;
-      });
+      const hasGames = Object.values(savedGames).some(game =>
+        game.teamId === teamId && game.tournamentId === t.id
+      );
       const hasPlacement = !!t.teamPlacements?.[teamId];
-      const shouldShow = hasGames || hasPlacement;
-
-      if (shouldShow) {
-        logger.log('[UnifiedTeamModal] ✅ Including tournament', { name: t.name, hasGames, hasPlacement });
-      }
-
-      return shouldShow;
+      return hasGames || hasPlacement;
     });
 
     const teamSeasons = seasons.filter(s => {
@@ -192,11 +158,6 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
       );
       const hasPlacement = !!s.teamPlacements?.[teamId];
       return hasGames || hasPlacement;
-    });
-
-    logger.log('[UnifiedTeamModal] Filtered results:', {
-      teamTournamentsFound: teamTournaments.map(t => t.name),
-      teamSeasonsFound: teamSeasons.map(s => s.name),
     });
 
     return { tournaments: teamTournaments, seasons: teamSeasons };
@@ -215,12 +176,21 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
     try {
       if (type === 'tournament') {
         await updateTournamentTeamPlacement(id, teamId, placement);
+        await queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
       } else {
         await updateSeasonTeamPlacement(id, teamId, placement);
+        await queryClient.invalidateQueries({ queryKey: queryKeys.seasons });
       }
-      // Note: React Query will auto-refresh the data
+      showToast(
+        t('unifiedTeamModal.placementUpdated', 'Placement updated successfully'),
+        'success'
+      );
     } catch (error) {
       logger.error(`Failed to update ${type} placement:`, error);
+      showToast(
+        t('unifiedTeamModal.placementUpdateFailed', 'Failed to update placement'),
+        'error'
+      );
     }
   };
 
