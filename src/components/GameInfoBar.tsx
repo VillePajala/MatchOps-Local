@@ -108,9 +108,9 @@ const GameInfoBar: React.FC<GameInfoBarProps> = ({
       <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
       <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
       {/* Center Content: Teams and Score */}
-      <div className="relative flex items-center space-x-3 font-semibold z-10">
+      <div className="relative flex items-center space-x-3 font-semibold z-10 max-w-full">
         {/* Left Team Name */}
-        <div className="text-right" title={editingField !== 'left' ? "Double-click to edit" : undefined}>
+        <div className="text-right min-w-0 max-w-[140px] overflow-hidden" title={editingField !== 'left' ? "Double-click to edit" : undefined}>
           {editingField === 'left' ? (
             <input
               ref={teamInputRef}
@@ -122,8 +122,8 @@ const GameInfoBar: React.FC<GameInfoBarProps> = ({
               className={`${inputClasses} text-right max-w-[120px] w-full`}
             />
           ) : (
-            <span 
-              className="truncate cursor-pointer hover:bg-slate-700/50 p-1 rounded" 
+            <span
+              className="block truncate cursor-pointer hover:bg-slate-700/50 p-1 rounded"
               onTouchEnd={() => handleTap('left')}
               onDoubleClick={() => handleStartEdit('left')}
               title={leftTeamName}
@@ -134,12 +134,12 @@ const GameInfoBar: React.FC<GameInfoBarProps> = ({
         </div>
 
         {/* Score */}
-        <span className="bg-slate-700 px-2 py-0.5 rounded text-yellow-300 text-sm font-bold">
+        <span className="bg-slate-700 px-2 py-0.5 rounded text-yellow-300 text-sm font-bold flex-shrink-0">
           {leftScore} - {rightScore}
         </span>
 
         {/* Right Team Name */}
-        <div className="text-left" title={editingField !== 'right' ? "Double-click to edit" : undefined}>
+        <div className="text-left min-w-0 max-w-[140px] overflow-hidden" title={editingField !== 'right' ? "Double-click to edit" : undefined}>
           {editingField === 'right' ? (
             <input
               ref={opponentInputRef}
@@ -151,8 +151,8 @@ const GameInfoBar: React.FC<GameInfoBarProps> = ({
               className={`${inputClasses} text-left max-w-[120px] w-full`}
             />
           ) : (
-            <span 
-              className="truncate cursor-pointer hover:bg-slate-700/50 p-1 rounded" 
+            <span
+              className="block truncate cursor-pointer hover:bg-slate-700/50 p-1 rounded"
               onTouchEnd={() => handleTap('right')}
               onDoubleClick={() => handleStartEdit('right')}
               title={rightTeamName}
