@@ -12,6 +12,7 @@ import {
 } from '@/hooks/useTeamQueries';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import logger from '@/utils/logger';
+import { AGE_GROUPS } from '@/config/gameOptions';
 
 interface UnifiedTeamModalProps {
   isOpen: boolean;
@@ -36,6 +37,8 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
 
   // Team details state
   const [name, setName] = useState('');
+  const [ageGroup, setAgeGroup] = useState('');
+  const [notes, setNotes] = useState('');
   const [archived, setArchived] = useState(false);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
@@ -57,6 +60,8 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
       if (mode === 'create') {
         // Reset for create mode
         setName('');
+        setAgeGroup('');
+        setNotes('');
         setArchived(false);
         setSelectedPlayerIds([]);
         setDuplicateError(null);
@@ -64,6 +69,8 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
       } else if (team) {
         // Load existing team data for edit mode
         setName(team.name || '');
+        setAgeGroup(team.ageGroup || '');
+        setNotes(team.notes || '');
         setArchived(team.archived || false);
         setDuplicateError(null);
         setIsEditingRoster(false);
@@ -121,9 +128,11 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
 
     try {
       if (mode === 'create') {
-        // Create new team
+        // Create new team (data layer normalizes empty strings to undefined)
         const newTeam = await addTeamMutation.mutateAsync({
           name: trimmedName,
+          ageGroup: ageGroup,
+          notes: notes,
           archived,
         });
 
@@ -136,13 +145,15 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
           });
         }
       } else {
-        // Update existing team
+        // Update existing team (data layer normalizes empty strings to undefined)
         if (!team) return;
 
         await updateTeamMutation.mutateAsync({
           teamId: team.id,
           updates: {
             name: trimmedName,
+            ageGroup: ageGroup,
+            notes: notes,
             archived,
           },
         });
@@ -229,6 +240,45 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                       )}
                     </div>
 
+                    {/* Age Group */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1">
+                        {t('teamDetailsModal.ageGroupLabel', 'Age Group')}
+                      </label>
+                      <select
+                        value={ageGroup}
+                        onChange={(e) => setAgeGroup(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="">{t('teamDetailsModal.selectAgeGroup', '-- Select Age Group --')}</option>
+                        {AGE_GROUPS.map((ag) => (
+                          <option key={ag} value={ag}>
+                            {ag}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Notes */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-sm font-medium text-slate-300">
+                          {t('teamDetailsModal.notesLabel', 'Notes')}
+                        </label>
+                        <span className="text-xs text-slate-400">
+                          {notes.length}/1000
+                        </span>
+                      </div>
+                      <textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder={t('teamDetailsModal.notesPlaceholder', 'Enter team notes or description')}
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                        rows={3}
+                        maxLength={1000}
+                      />
+                    </div>
+
                     {/* Archived */}
                     <div>
                       <label className="text-slate-200 text-sm flex items-center gap-2">
@@ -289,8 +339,8 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                     </>
                   ) : (
                     <>
-                      {/* Player Selection - Fixed height for internal scrolling */}
-                      <div className="mb-2 h-[calc(100vh-280px)] min-h-[300px] max-h-[750px]">
+                      {/* Player Selection - Flexible height to stretch to buttons */}
+                      <div className="mb-2 flex flex-col h-[calc(100vh-280px)] min-h-[300px] max-h-[750px]">
                         <PlayerSelectionSection
                           availablePlayers={masterRoster}
                           selectedPlayerIds={selectedPlayerIds}
@@ -300,6 +350,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                           selectAllText={t('teamRosterModal.selectAll', 'Select All')}
                           noPlayersText={t('teamRosterModal.noAvailablePlayers', 'No available players to add from master roster.')}
                           disabled={isPending}
+                          useFlexHeight={true}
                         />
                       </div>
 

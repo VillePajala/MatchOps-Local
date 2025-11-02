@@ -9,6 +9,7 @@ import { getStorageItem, setStorageItem } from './storage';
 import { withRosterLock } from './lockManager';
 import { withKeyLock } from './storageKeyLock';
 import logger from '@/utils/logger';
+import { AGE_GROUPS } from '@/config/gameOptions';
 
 // Team index storage format: { [teamId: string]: Team }
 export interface TeamsIndex {
@@ -44,6 +45,16 @@ export const getTeam = async (teamId: string): Promise<Team | null> => {
   return teamsIndex[teamId] || null;
 };
 
+// Constants for validation
+const MAX_NOTES_LENGTH = 1000;
+
+// Normalize optional string fields: trim and convert empty strings to undefined
+const normalizeOptionalString = (value?: string): string | undefined => {
+  if (value === undefined) return undefined;
+  const trimmed = value.trim();
+  return trimmed === '' ? undefined : trimmed;
+};
+
 // Validate team name uniqueness (case-insensitive, normalized)
 const validateTeamName = async (name: string, excludeTeamId?: string): Promise<void> => {
   const trimmed = name.trim();
@@ -56,20 +67,40 @@ const validateTeamName = async (name: string, excludeTeamId?: string): Promise<v
 
   const teams = await getTeams();
   const normalizedName = trimmed.toLowerCase().normalize('NFKC');
-  
-  const existingTeam = teams.find(team => 
-    team.id !== excludeTeamId && 
+
+  const existingTeam = teams.find(team =>
+    team.id !== excludeTeamId &&
     team.name.toLowerCase().normalize('NFKC') === normalizedName
   );
-  
+
   if (existingTeam) {
     throw new Error(`A team named '${trimmed}' already exists.`);
   }
 };
 
+// Validate team notes length
+const validateTeamNotes = (notes?: string): void => {
+  if (notes && notes.length > MAX_NOTES_LENGTH) {
+    throw new Error(`Team notes cannot exceed ${MAX_NOTES_LENGTH} characters`);
+  }
+};
+
+// Validate team age group
+const validateTeamAgeGroup = (ageGroup?: string): void => {
+  if (ageGroup && !AGE_GROUPS.includes(ageGroup)) {
+    throw new Error(`Invalid age group: ${ageGroup}. Must be one of: ${AGE_GROUPS.join(', ')}`);
+  }
+};
+
 // Create new team
 export const addTeam = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>): Promise<Team> => {
+  // Normalize optional fields (trim and convert empty strings to undefined)
+  const normalizedAgeGroup = normalizeOptionalString(teamData.ageGroup);
+  const normalizedNotes = normalizeOptionalString(teamData.notes);
+
   await validateTeamName(teamData.name);
+  validateTeamNotes(normalizedNotes);
+  validateTeamAgeGroup(normalizedAgeGroup);
 
   return withKeyLock(TEAMS_INDEX_KEY, async () => {
     const now = new Date().toISOString();
@@ -77,6 +108,8 @@ export const addTeam = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updated
       id: `team_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       ...teamData,
       name: teamData.name.trim(), // Ensure trimmed
+      ageGroup: normalizedAgeGroup,
+      notes: normalizedNotes,
       createdAt: now,
       updatedAt: now,
     };
@@ -103,6 +136,18 @@ export const updateTeam = async (teamId: string, updates: Partial<Omit<Team, 'id
     if (updates.name !== undefined) {
       await validateTeamName(updates.name, teamId);
       updates.name = updates.name.trim();
+    }
+
+    // Normalize and validate notes if being updated
+    if (updates.notes !== undefined) {
+      updates.notes = normalizeOptionalString(updates.notes);
+      validateTeamNotes(updates.notes);
+    }
+
+    // Normalize and validate age group if being updated
+    if (updates.ageGroup !== undefined) {
+      updates.ageGroup = normalizeOptionalString(updates.ageGroup);
+      validateTeamAgeGroup(updates.ageGroup);
     }
 
     const updatedTeam: Team = {
@@ -212,6 +257,8 @@ export const duplicateTeam = async (teamId: string): Promise<Team | null> => {
   const newTeam = await addTeam({
     name: `${originalTeam.name} (Copy)`,
     color: originalTeam.color,
+    ageGroup: originalTeam.ageGroup,
+    notes: originalTeam.notes,
   });
 
   // Duplicate roster with new player IDs (per plan: globally unique IDs)
