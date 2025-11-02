@@ -858,6 +858,7 @@
     "rename": "Nimeä uudelleen",
     "duplicate": "Kopioi",
     "delete": "Poista",
+    "edit": "Muokkaa",
     "archive": "Arkistoi",
     "unarchive": "Palauta arkistosta",
     "editRoster": "Muokkaa kokoonpanoa",
@@ -869,7 +870,22 @@
     "confirmDelete": "Poistetaanko joukkue \"{{name}}\"?",
     "deleteImpactWarning": "Tämä tekee {{count}} pelistä orpoja. Pelit säilyvät, mutta ne eivät liity tähän joukkueeseen.",
     "noGamesImpact": "Tähän joukkueeseen ei ole liitetty otteluita.",
-    "duplicateNameWarning": "Joukkue nimellä \"{{name}}\" on jo olemassa. Jatketaanko silti?"
+    "duplicateNameWarning": "Joukkue nimellä \"{{name}}\" on jo olemassa. Jatketaanko silti?",
+    "nameRequired": "Joukkueen nimi vaaditaan",
+    "duplicateNameError": "Joukkue nimellä \"{{name}}\" on jo olemassa. Valitse eri nimi."
+  },
+  "unifiedTeamModal": {
+    "createTitle": "Luo joukkue",
+    "editTitle": "Muokkaa joukkuetta",
+    "detailsTab": "Tiedot",
+    "rosterTab": "Kokoonpano",
+    "selectPlayers": "Valitse pelaajat joukkueeseen",
+    "saveChanges": "Tallenna muutokset",
+    "roster": "Kokoonpano",
+    "editRoster": "Muokkaa kokoonpanoa",
+    "noPlayersSelected": "Ei valittuja pelaajia. Klikkaa \"Muokkaa kokoonpanoa\" lisätäksesi pelaajia.",
+    "playerSingular": "Pelaaja",
+    "playerPlural": "Pelaajaa"
   },
   "personnel": {
     "selected": "valittu",

@@ -933,6 +933,7 @@
     "rename": "Rename",
     "duplicate": "Duplicate",
     "delete": "Delete",
+    "edit": "Edit",
     "archive": "Archive",
     "unarchive": "Unarchive",
     "editRoster": "Edit Roster",
@@ -944,7 +945,22 @@
     "confirmDelete": "Delete team \"{{name}}\"?",
     "deleteImpactWarning": "This will orphan {{count}} game(s). Games will remain but won't be associated with this team.",
     "noGamesImpact": "No games are associated with this team.",
-    "duplicateNameWarning": "A team named \"{{name}}\" already exists. Continue anyway?"
+    "duplicateNameWarning": "A team named \"{{name}}\" already exists. Continue anyway?",
+    "nameRequired": "Team name is required",
+    "duplicateNameError": "A team named \"{{name}}\" already exists. Please choose a different name."
+  },
+  "unifiedTeamModal": {
+    "createTitle": "Create Team",
+    "editTitle": "Edit Team",
+    "detailsTab": "Details",
+    "rosterTab": "Roster",
+    "selectPlayers": "Select Players for Team",
+    "saveChanges": "Save Changes",
+    "roster": "Roster",
+    "editRoster": "Edit Roster",
+    "noPlayersSelected": "No players selected. Click \"Edit Roster\" to add players.",
+    "playerSingular": "Player",
+    "playerPlural": "Players"
   },
   "personnel": {
     "selected": "selected",
