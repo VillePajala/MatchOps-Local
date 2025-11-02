@@ -4,7 +4,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import {
-  HiOutlineXMark,
   HiOutlineSquares2X2,
   HiOutlinePlusCircle,
   HiOutlineClipboard,
@@ -40,13 +39,10 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
         <div className="absolute top-0 -left-1/4 w-1/2 h-1/2 bg-sky-400/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
         <div className="absolute bottom-0 -right-1/4 w-1/2 h-1/2 bg-indigo-600/10 blur-3xl opacity-50 rounded-full pointer-events-none" />
 
-        <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0 relative">
+        <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
           <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
             {t('instructionsModal.title')}
           </h2>
-          <button onClick={onClose} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-100" title={t('instructionsModal.closeButton')}>
-            <HiOutlineXMark className="w-6 h-6" />
-          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 space-y-6">

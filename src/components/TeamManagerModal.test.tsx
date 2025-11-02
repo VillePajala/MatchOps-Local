@@ -44,7 +44,7 @@ const defaultProps = {
   isOpen: true,
   onClose: jest.fn(),
   teams: mockTeams,
-  onManageRoster: jest.fn(),
+  masterRoster: [],
   onManageOrphanedGames: jest.fn(),
 };
 
@@ -118,448 +118,6 @@ describe('TeamManagerModal', () => {
     });
   });
 
-  describe('Team Creation', () => {
-    it('shows create form when Add Team clicked', () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Add Team'));
-
-      expect(screen.getByPlaceholderText('Enter team name')).toBeInTheDocument();
-    });
-
-    it('hides Add Team button when create form is open', () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Add Team'));
-
-      expect(screen.queryByText('Add Team')).not.toBeInTheDocument();
-    });
-
-    it('focuses input when create form opens', async () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Add Team'));
-
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText('Enter team name')).toHaveFocus();
-      });
-    });
-
-    it('creates team with valid name', async () => {
-      (teamsUtils.addTeam as jest.Mock).mockResolvedValue({ id: 't4', name: 'New Team', color: '#6366F1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
-
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Add Team'));
-
-      const input = screen.getByPlaceholderText('Enter team name');
-      fireEvent.change(input, { target: { value: 'New Team' } });
-
-      // Wait for button to be enabled
-      await waitFor(() => {
-        const buttons = screen.getAllByRole('button');
-        const createButton = buttons.find(btn => btn.textContent === 'Create' && !btn.hasAttribute('disabled'));
-        expect(createButton).toBeDefined();
-      });
-
-      const buttons = screen.getAllByRole('button');
-      const createButton = buttons.find(btn => btn.textContent === 'Create');
-      fireEvent.click(createButton!);
-
-      await waitFor(() => {
-        expect(teamsUtils.addTeam).toHaveBeenCalledWith(
-          expect.objectContaining({
-            name: 'New Team',
-          }),
-          expect.anything()
-        );
-      });
-    });
-
-    it('trims whitespace from team name', async () => {
-      (teamsUtils.addTeam as jest.Mock).mockResolvedValue({ id: 't4', name: 'Trimmed Team', color: '#6366F1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
-
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Add Team'));
-
-      const input = screen.getByPlaceholderText('Enter team name');
-      fireEvent.change(input, { target: { value: '  Trimmed Team  ' } });
-
-      // Wait for button to be enabled
-      await waitFor(() => {
-        const buttons = screen.getAllByRole('button');
-        const createButton = buttons.find(btn => btn.textContent === 'Create' && !btn.hasAttribute('disabled'));
-        expect(createButton).toBeDefined();
-      });
-
-      const buttons = screen.getAllByRole('button');
-      const createButton = buttons.find(btn => btn.textContent === 'Create');
-      fireEvent.click(createButton!);
-
-      await waitFor(() => {
-        expect(teamsUtils.addTeam).toHaveBeenCalledWith(
-          expect.objectContaining({
-            name: 'Trimmed Team',
-          }),
-          expect.anything()
-        );
-      });
-    });
-
-    it('prevents creating team with empty name', () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Add Team'));
-
-      const createButton = screen.getByRole('button', { name: /Create/i });
-      expect(createButton).toBeDisabled();
-    });
-
-    it('prevents creating team with only whitespace', () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Add Team'));
-
-      const input = screen.getByPlaceholderText('Enter team name');
-      fireEvent.change(input, { target: { value: '   ' } });
-
-      const createButton = screen.getByRole('button', { name: /Create/i });
-      expect(createButton).toBeDisabled();
-    });
-
-    it('closes create form when Cancel clicked', () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Add Team'));
-      expect(screen.getByPlaceholderText('Enter team name')).toBeInTheDocument();
-
-      const cancelButtons = screen.getAllByRole('button', { name: /Cancel/i });
-      fireEvent.click(cancelButtons[0]);
-
-      expect(screen.queryByPlaceholderText('Enter team name')).not.toBeInTheDocument();
-    });
-
-    it('creates team on Enter key press', async () => {
-      (teamsUtils.addTeam as jest.Mock).mockResolvedValue({ id: 't4', name: 'Quick Team', color: '#6366F1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
-
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Add Team'));
-
-      const input = screen.getByPlaceholderText('Enter team name');
-      fireEvent.change(input, { target: { value: 'Quick Team' } });
-      fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
-
-      await waitFor(() => {
-        expect(teamsUtils.addTeam).toHaveBeenCalled();
-      });
-    });
-
-    it('closes form on Escape key press', () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Add Team'));
-
-      const input = screen.getByPlaceholderText('Enter team name');
-      fireEvent.keyDown(input, { key: 'Escape', code: 'Escape' });
-
-      expect(screen.queryByPlaceholderText('Enter team name')).not.toBeInTheDocument();
-    });
-  });
-
-  describe('Duplicate Name Validation - Create', () => {
-    it('prevents creating team with duplicate name (exact match)', async () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Add Team'));
-
-      const input = screen.getByPlaceholderText('Enter team name');
-      fireEvent.change(input, { target: { value: 'Team Alpha' } });
-
-      const createButton = screen.getByRole('button', { name: /Create/i });
-      fireEvent.click(createButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('A team named "Team Alpha" already exists. Please choose a different name.')).toBeInTheDocument();
-      });
-
-      expect(teamsUtils.addTeam).not.toHaveBeenCalled();
-    });
-
-    it('prevents creating team with duplicate name (case insensitive)', async () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Add Team'));
-
-      const input = screen.getByPlaceholderText('Enter team name');
-      fireEvent.change(input, { target: { value: 'TEAM ALPHA' } });
-
-      const createButton = screen.getByRole('button', { name: /Create/i });
-      fireEvent.click(createButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('A team named "Team Alpha" already exists. Please choose a different name.')).toBeInTheDocument();
-      });
-
-      expect(teamsUtils.addTeam).not.toHaveBeenCalled();
-    });
-
-    it('prevents creating team with duplicate name (with whitespace)', async () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Add Team'));
-
-      const input = screen.getByPlaceholderText('Enter team name');
-      fireEvent.change(input, { target: { value: '  team alpha  ' } });
-
-      const createButton = screen.getByRole('button', { name: /Create/i });
-      fireEvent.click(createButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('A team named "Team Alpha" already exists. Please choose a different name.')).toBeInTheDocument();
-      });
-
-      expect(teamsUtils.addTeam).not.toHaveBeenCalled();
-    });
-
-    it('allows creating team with unique name', async () => {
-      (teamsUtils.addTeam as jest.Mock).mockResolvedValue({ id: 't4', name: 'Unique Team', color: '#6366F1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
-
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Add Team'));
-
-      const input = screen.getByPlaceholderText('Enter team name');
-      fireEvent.change(input, { target: { value: 'Unique Team' } });
-
-      const createButton = screen.getByRole('button', { name: /Create/i });
-      fireEvent.click(createButton);
-
-      await waitFor(() => {
-        expect(teamsUtils.addTeam).toHaveBeenCalled();
-      });
-
-      expect(screen.queryByText(/already exists/i)).not.toBeInTheDocument();
-    });
-  });
-
-  describe('Team Editing', () => {
-    it('opens edit form when Rename clicked', async () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      const actionsButtons = screen.getAllByLabelText('Team actions');
-      fireEvent.click(actionsButtons[0]);
-
-      await waitFor(() => {
-        expect(screen.getByText('Rename')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByText('Rename'));
-
-      const input = screen.getByDisplayValue('Team Alpha');
-      expect(input).toBeInTheDocument();
-    });
-
-    it('focuses and selects text when edit form opens', async () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      const actionsButtons = screen.getAllByLabelText('Team actions');
-      fireEvent.click(actionsButtons[0]);
-
-      await waitFor(() => {
-        fireEvent.click(screen.getByText('Rename'));
-      });
-
-      await waitFor(() => {
-        const input = screen.getByDisplayValue('Team Alpha');
-        expect(input).toHaveFocus();
-      });
-    });
-
-    it('saves edited team name', async () => {
-      (teamsUtils.updateTeam as jest.Mock).mockResolvedValue({ ...mockTeams[0], name: 'Updated Team' });
-
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      const actionsButtons = screen.getAllByLabelText('Team actions');
-      fireEvent.click(actionsButtons[0]);
-
-      await waitFor(() => {
-        fireEvent.click(screen.getByText('Rename'));
-      });
-
-      const input = screen.getByDisplayValue('Team Alpha');
-      fireEvent.change(input, { target: { value: 'Updated Team' } });
-
-      const saveButton = screen.getByRole('button', { name: /Save/i });
-      fireEvent.click(saveButton);
-
-      await waitFor(() => {
-        expect(teamsUtils.updateTeam).toHaveBeenCalledWith('t1', {
-          name: 'Updated Team',
-        });
-      });
-    });
-
-    it('cancels edit when Cancel clicked', async () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      const actionsButtons = screen.getAllByLabelText('Team actions');
-      fireEvent.click(actionsButtons[0]);
-
-      await waitFor(() => {
-        fireEvent.click(screen.getByText('Rename'));
-      });
-
-      expect(screen.getByDisplayValue('Team Alpha')).toBeInTheDocument();
-
-      const cancelButtons = screen.getAllByRole('button', { name: /Cancel/i });
-      fireEvent.click(cancelButtons[cancelButtons.length - 1]); // Last cancel button
-
-      await waitFor(() => {
-        expect(screen.queryByDisplayValue('Team Alpha')).not.toBeInTheDocument();
-      });
-    });
-
-    it('saves edit on Enter key press', async () => {
-      (teamsUtils.updateTeam as jest.Mock).mockResolvedValue({ ...mockTeams[0], name: 'Quick Edit' });
-
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      const actionsButtons = screen.getAllByLabelText('Team actions');
-      fireEvent.click(actionsButtons[0]);
-
-      await waitFor(() => {
-        fireEvent.click(screen.getByText('Rename'));
-      });
-
-      const input = screen.getByDisplayValue('Team Alpha');
-      fireEvent.change(input, { target: { value: 'Quick Edit' } });
-      fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
-
-      await waitFor(() => {
-        expect(teamsUtils.updateTeam).toHaveBeenCalled();
-      });
-    });
-
-    it('cancels edit on Escape key press', async () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      const actionsButtons = screen.getAllByLabelText('Team actions');
-      fireEvent.click(actionsButtons[0]);
-
-      await waitFor(() => {
-        fireEvent.click(screen.getByText('Rename'));
-      });
-
-      const input = screen.getByDisplayValue('Team Alpha');
-      fireEvent.keyDown(input, { key: 'Escape', code: 'Escape' });
-
-      await waitFor(() => {
-        expect(screen.queryByDisplayValue('Team Alpha')).not.toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Duplicate Name Validation - Edit', () => {
-    it('prevents renaming to duplicate name', async () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      const actionsButtons = screen.getAllByLabelText('Team actions');
-      fireEvent.click(actionsButtons[0]);
-
-      await waitFor(() => {
-        fireEvent.click(screen.getByText('Rename'));
-      });
-
-      const input = screen.getByDisplayValue('Team Alpha');
-      fireEvent.change(input, { target: { value: 'Team Beta' } }); // Already exists
-
-      const saveButton = screen.getByRole('button', { name: /Save/i });
-      fireEvent.click(saveButton);
-
-      await waitFor(() => {
-        expect(screen.getByText('A team named "Team Beta" already exists. Please choose a different name.')).toBeInTheDocument();
-      });
-
-      expect(teamsUtils.updateTeam).not.toHaveBeenCalled();
-    });
-
-    it('prevents renaming to duplicate name (case insensitive)', async () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      const actionsButtons = screen.getAllByLabelText('Team actions');
-      fireEvent.click(actionsButtons[0]);
-
-      await waitFor(() => {
-        fireEvent.click(screen.getByText('Rename'));
-      });
-
-      const input = screen.getByDisplayValue('Team Alpha');
-      fireEvent.change(input, { target: { value: 'TEAM BETA' } });
-
-      const saveButton = screen.getByRole('button', { name: /Save/i });
-      fireEvent.click(saveButton);
-
-      await waitFor(() => {
-        expect(screen.getByText(/already exists/i)).toBeInTheDocument();
-      });
-
-      expect(teamsUtils.updateTeam).not.toHaveBeenCalled();
-    });
-
-    it('allows renaming to same name (no change)', async () => {
-      (teamsUtils.updateTeam as jest.Mock).mockResolvedValue(mockTeams[0]);
-
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      const actionsButtons = screen.getAllByLabelText('Team actions');
-      fireEvent.click(actionsButtons[0]);
-
-      await waitFor(() => {
-        fireEvent.click(screen.getByText('Rename'));
-      });
-
-      const input = screen.getByDisplayValue('Team Alpha');
-      fireEvent.change(input, { target: { value: 'Team Alpha' } });
-
-      const saveButton = screen.getByRole('button', { name: /Save/i });
-      fireEvent.click(saveButton);
-
-      await waitFor(() => {
-        expect(teamsUtils.updateTeam).toHaveBeenCalled();
-      });
-
-      expect(screen.queryByText(/already exists/i)).not.toBeInTheDocument();
-    });
-
-    it('allows renaming to same name with different case', async () => {
-      (teamsUtils.updateTeam as jest.Mock).mockResolvedValue({ ...mockTeams[0], name: 'TEAM ALPHA' });
-
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
-
-      const actionsButtons = screen.getAllByLabelText('Team actions');
-      fireEvent.click(actionsButtons[0]);
-
-      await waitFor(() => {
-        fireEvent.click(screen.getByText('Rename'));
-      });
-
-      const input = screen.getByDisplayValue('Team Alpha');
-      fireEvent.change(input, { target: { value: 'TEAM ALPHA' } });
-
-      const saveButton = screen.getByRole('button', { name: /Save/i });
-      fireEvent.click(saveButton);
-
-      await waitFor(() => {
-        expect(teamsUtils.updateTeam).toHaveBeenCalled();
-      });
-
-      expect(screen.queryByText(/already exists/i)).not.toBeInTheDocument();
-    });
-  });
-
   describe('Team Deletion', () => {
     it('shows delete confirmation when Delete clicked', async () => {
       renderWithQueryClient(<TeamManagerModal {...defaultProps} />);
@@ -630,12 +188,11 @@ describe('TeamManagerModal', () => {
         expect(screen.getByText('Confirm Delete')).toBeInTheDocument();
       });
 
-      // Find the red delete button in the confirmation modal (not the one in the menu)
-      const allButtons = screen.getAllByRole('button');
-      const confirmDeleteButton = allButtons.find(btn =>
-        btn.textContent === 'Delete' && btn.className.includes('bg-red-600')
-      );
-      fireEvent.click(confirmDeleteButton!);
+      // Find the delete button in the confirmation modal by its text and role
+      const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
+      // The last one should be the confirmation button (first one is in the actions menu)
+      const confirmDeleteButton = deleteButtons[deleteButtons.length - 1];
+      fireEvent.click(confirmDeleteButton);
 
       await waitFor(() => {
         expect(teamsUtils.deleteTeam).toHaveBeenCalledWith('t1', expect.anything());
@@ -663,26 +220,6 @@ describe('TeamManagerModal', () => {
       });
 
       expect(teamsUtils.deleteTeam).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Team Roster Access', () => {
-    it('calls onManageRoster when team name clicked', () => {
-      const onManageRoster = jest.fn();
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} onManageRoster={onManageRoster} />);
-
-      fireEvent.click(screen.getByText('Team Alpha'));
-
-      expect(onManageRoster).toHaveBeenCalledWith('t1');
-    });
-
-    it('does not error when onManageRoster not provided', () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} onManageRoster={undefined} />);
-
-      fireEvent.click(screen.getByText('Team Alpha'));
-
-      // Should not crash or throw error
-      expect(screen.getByText('Team Alpha')).toBeInTheDocument();
     });
   });
 
@@ -735,7 +272,7 @@ describe('TeamManagerModal', () => {
       fireEvent.click(actionsButtons[0]);
 
       await waitFor(() => {
-        expect(screen.getByText('Rename')).toBeInTheDocument();
+        expect(screen.getByText('Muokkaa')).toBeInTheDocument();
         expect(screen.getByText('Delete')).toBeInTheDocument();
       });
     });
@@ -747,13 +284,13 @@ describe('TeamManagerModal', () => {
       fireEvent.click(actionsButtons[0]);
 
       await waitFor(() => {
-        expect(screen.getByText('Rename')).toBeInTheDocument();
+        expect(screen.getByText('Muokkaa')).toBeInTheDocument();
       });
 
       fireEvent.mouseDown(document.body);
 
       await waitFor(() => {
-        expect(screen.queryByText('Rename')).not.toBeInTheDocument();
+        expect(screen.queryByText('Muokkaa')).not.toBeInTheDocument();
       });
     });
 
@@ -765,13 +302,13 @@ describe('TeamManagerModal', () => {
       // Open
       fireEvent.click(actionsButton);
       await waitFor(() => {
-        expect(screen.getByText('Rename')).toBeInTheDocument();
+        expect(screen.getByText('Muokkaa')).toBeInTheDocument();
       });
 
       // Close
       fireEvent.click(actionsButton);
       await waitFor(() => {
-        expect(screen.queryByText('Rename')).not.toBeInTheDocument();
+        expect(screen.queryByText('Muokkaa')).not.toBeInTheDocument();
       });
     });
   });

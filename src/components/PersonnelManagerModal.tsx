@@ -1,26 +1,27 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import type { Personnel, PersonnelRole } from '@/types/personnel';
+import type { Personnel } from '@/types/personnel';
 import {
-  HiOutlineXMark,
-  HiOutlineCheck,
   HiOutlinePencil,
   HiOutlineTrash,
   HiOutlineEllipsisVertical,
+  HiOutlinePhone,
+  HiOutlineEnvelope,
 } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { getRoleLabelKey } from '@/utils/personnelRoles';
 import { getGamesWithPersonnel } from '@/utils/personnelManager';
+import { getSafeTelHref, getSafeMailtoHref } from '@/utils/contactValidation';
 import ConfirmationModal from './ConfirmationModal';
+import PersonnelDetailsModal from './PersonnelDetailsModal';
 import {
   ModalFooter,
   modalContainerStyle,
   titleStyle,
   cardStyle,
-  inputBaseStyle,
   primaryButtonStyle,
   secondaryButtonStyle,
   iconButtonBaseStyle,
@@ -34,19 +35,7 @@ interface PersonnelManagerModalProps {
   onUpdatePersonnel: (personnelId: string, updates: Partial<Omit<Personnel, 'id' | 'createdAt'>>) => Promise<void>;
   onRemovePersonnel: (personnelId: string) => Promise<void>;
   isUpdating?: boolean;
-  error?: string | null;
 }
-
-const PERSONNEL_ROLES: { value: PersonnelRole; labelKey: string }[] = [
-  { value: 'head_coach', labelKey: 'personnel.roles.headCoach' },
-  { value: 'assistant_coach', labelKey: 'personnel.roles.assistantCoach' },
-  { value: 'goalkeeper_coach', labelKey: 'personnel.roles.goalkeeperCoach' },
-  { value: 'fitness_coach', labelKey: 'personnel.roles.fitnessCoach' },
-  { value: 'physio', labelKey: 'personnel.roles.physio' },
-  { value: 'team_manager', labelKey: 'personnel.roles.teamManager' },
-  { value: 'support_staff', labelKey: 'personnel.roles.supportStaff' },
-  { value: 'other', labelKey: 'personnel.roles.other' },
-];
 
 const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
   isOpen,
@@ -56,33 +45,16 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
   onUpdatePersonnel,
   onRemovePersonnel,
   isUpdating,
-  error,
 }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
-  const [editingPersonnelId, setEditingPersonnelId] = useState<string | null>(null);
-  const [editData, setEditData] = useState<Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>>({
-    name: '',
-    role: 'head_coach',
-    phone: '',
-    email: '',
-    certifications: [],
-    notes: '',
-  });
 
-  const [isAddingPersonnel, setIsAddingPersonnel] = useState(false);
-  const [newPersonnelData, setNewPersonnelData] = useState<Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>>({
-    name: '',
-    role: 'head_coach',
-    phone: '',
-    email: '',
-    certifications: [],
-    notes: '',
-  });
+  // Modal state
+  const [createPersonnelModalOpen, setCreatePersonnelModalOpen] = useState(false);
+  const [selectedPersonnelId, setSelectedPersonnelId] = useState<string | null>(null);
 
   const [searchText, setSearchText] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const personnelRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   // Confirmation modal state
@@ -96,16 +68,8 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setEditingPersonnelId(null);
-      setIsAddingPersonnel(false);
-      setNewPersonnelData({
-        name: '',
-        role: 'head_coach',
-        phone: '',
-        email: '',
-        certifications: [],
-        notes: '',
-      });
+      setCreatePersonnelModalOpen(false);
+      setSelectedPersonnelId(null);
       setSearchText('');
       setOpenMenuId(null);
     }
@@ -125,80 +89,13 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
     }
   }, [openMenuId]);
 
-  // Scroll to editing personnel with cleanup to prevent memory leaks
-  useEffect(() => {
-    if (editingPersonnelId) {
-      const timer = setTimeout(() => {
-        const target = personnelRefs.current[editingPersonnelId];
-        if (target?.scrollIntoView) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-      }, 50);
-
-      return () => clearTimeout(timer); // Cleanup on unmount or when editingPersonnelId changes
-    }
-  }, [editingPersonnelId]);
-
-  // Handle start editing
-  const handleStartEdit = (personnelId: string) => {
-    const personToEdit = personnel.find(p => p.id === personnelId);
-    if (!personToEdit) {
-      logger.error('Personnel not found for editing:', personnelId);
-      return;
-    }
-
-    setEditingPersonnelId(personnelId);
-    setEditData({
-      name: personToEdit.name,
-      role: personToEdit.role,
-      phone: personToEdit.phone || '',
-      email: personToEdit.email || '',
-      certifications: personToEdit.certifications || [],
-      notes: personToEdit.notes || '',
-    });
-    // Scroll behavior handled by useEffect below
+  // Handle opening edit modal
+  const handleEditPersonnel = (personnelId: string) => {
+    setSelectedPersonnelId(personnelId);
+    setOpenMenuId(null);
   };
 
-  const handleCancelEdit = () => {
-    setEditingPersonnelId(null);
-  };
-
-  const handleSaveEdit = async (personnelId: string) => {
-    const trimmedName = editData.name.trim();
-    if (!trimmedName) {
-      showToast(
-        t('personnelManager.nameRequired', {
-          defaultValue: 'Personnel name cannot be empty.',
-        }),
-        'error'
-      );
-      return;
-    }
-
-    try {
-      await onUpdatePersonnel(personnelId, {
-        ...editData,
-        name: trimmedName,
-      });
-      setEditingPersonnelId(null);
-      showToast(
-        t('personnelManager.updateSuccess', {
-          defaultValue: 'Personnel updated successfully',
-          name: trimmedName,
-        }),
-        'success'
-      );
-    } catch (error) {
-      logger.error('Error saving personnel:', error);
-      showToast(
-        t('personnelManager.updateError', {
-          defaultValue: 'Failed to update personnel',
-        }),
-        'error'
-      );
-    }
-  };
-
+  // Handle remove personnel
   const handleRemove = async (personnelId: string, personName: string) => {
     try {
       // Check if personnel is assigned to any games
@@ -295,70 +192,6 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
     setPersonnelToDelete(null);
   };
 
-  const handleAddPersonnel = async () => {
-    const trimmedName = newPersonnelData.name.trim();
-    if (!trimmedName) {
-      showToast(
-        t('personnelManager.nameRequired', {
-          defaultValue: 'Personnel name cannot be empty.',
-        }),
-        'error'
-      );
-      return;
-    }
-
-    try {
-      await onAddPersonnel({
-        ...newPersonnelData,
-        name: trimmedName,
-      });
-      setIsAddingPersonnel(false);
-      setNewPersonnelData({
-        name: '',
-        role: 'head_coach',
-        phone: '',
-        email: '',
-        certifications: [],
-        notes: '',
-      });
-      showToast(
-        t('personnelManager.addSuccess', {
-          defaultValue: 'Personnel added successfully',
-          name: trimmedName,
-        }),
-        'success'
-      );
-    } catch (error) {
-      logger.error('Error adding personnel:', error);
-
-      // Provide specific error messages based on error type
-      const errorName = error instanceof Error ? error.name : 'Unknown';
-
-      if (errorName === 'QuotaExceededError') {
-        showToast(
-          t('personnelManager.quotaExceeded', {
-            defaultValue: 'Storage quota full. Delete some old games first to free space.',
-          }),
-          'error'
-        );
-      } else if (errorName === 'InvalidStateError') {
-        showToast(
-          t('personnelManager.databaseCorrupted', {
-            defaultValue: 'Database error detected. Try refreshing the page.',
-          }),
-          'error'
-        );
-      } else {
-        showToast(
-          t('personnelManager.addError', {
-            defaultValue: 'Failed to add personnel',
-          }),
-          'error'
-        );
-      }
-    }
-  };
-
   // Filter personnel by search (memoized to avoid re-computation on every render)
   const filteredPersonnel = useMemo(() => {
     return personnel.filter(p =>
@@ -409,9 +242,9 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
 
               {/* Add Personnel Button */}
               <button
-                onClick={() => { setIsAddingPersonnel(true); setEditingPersonnelId(null); }}
+                onClick={() => setCreatePersonnelModalOpen(true)}
                 className={`${primaryButtonStyle} w-full bg-indigo-600 hover:bg-indigo-700`}
-                disabled={!!editingPersonnelId || isUpdating || isAddingPersonnel}
+                disabled={isUpdating}
               >
                 {t('personnelManager.addPersonnel', 'Add Personnel')}
               </button>
@@ -430,79 +263,8 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
               className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
 
-            {/* Add Personnel Form */}
-            {isAddingPersonnel && (
-              <div className={`${cardStyle} mt-4 space-y-3`}>
-                <h3 className="text-lg font-semibold text-slate-200">
-                  {t('personnelManager.addNew', 'Add New Personnel')}
-                </h3>
-
-                <input
-                  type="text"
-                  placeholder={t('personnelManager.namePlaceholder', 'Full Name')}
-                  value={newPersonnelData.name}
-                  onChange={(e) => setNewPersonnelData({ ...newPersonnelData, name: e.target.value })}
-                  className={inputBaseStyle}
-                />
-
-                <select
-                  value={newPersonnelData.role}
-                  onChange={(e) => setNewPersonnelData({ ...newPersonnelData, role: e.target.value as PersonnelRole })}
-                  className={inputBaseStyle}
-                >
-                  {PERSONNEL_ROLES.map(({ value, labelKey }) => (
-                    <option key={value} value={value}>
-                      {t(labelKey, value)}
-                    </option>
-                  ))}
-                </select>
-
-                <input
-                  type="tel"
-                  placeholder={t('personnelManager.phonePlaceholder', 'Phone (optional)')}
-                  value={newPersonnelData.phone}
-                  onChange={(e) => setNewPersonnelData({ ...newPersonnelData, phone: e.target.value })}
-                  className={inputBaseStyle}
-                />
-
-                <input
-                  type="email"
-                  placeholder={t('personnelManager.emailPlaceholder', 'Email (optional)')}
-                  value={newPersonnelData.email}
-                  onChange={(e) => setNewPersonnelData({ ...newPersonnelData, email: e.target.value })}
-                  className={inputBaseStyle}
-                />
-
-                <textarea
-                  placeholder={t('personnelManager.notesPlaceholder', 'Notes (optional)')}
-                  value={newPersonnelData.notes}
-                  onChange={(e) => setNewPersonnelData({ ...newPersonnelData, notes: e.target.value })}
-                  className={`${inputBaseStyle} h-20 resize-none`}
-                  rows={3}
-                />
-
-                <div className="flex justify-end gap-3 pt-2">
-                  <button
-                    onClick={() => setIsAddingPersonnel(false)}
-                    className={secondaryButtonStyle}
-                    disabled={isUpdating}
-                  >
-                    {t('common.cancelButton', 'Cancel')}
-                  </button>
-                  <button
-                    onClick={handleAddPersonnel}
-                    className={primaryButtonStyle}
-                    disabled={isUpdating}
-                  >
-                    {t('personnelManager.confirmAddPersonnel', 'Add Personnel')}
-                  </button>
-                </div>
-                {error && <div className="mt-2 text-sm text-red-400">{error}</div>}
-              </div>
-            )}
-
             {/* Personnel List */}
-            <div className={`${cardStyle} mt-4`}>
+            <div className={`${cardStyle} mt-4 -mx-2 sm:-mx-4 md:-mx-6`}>
               <div className="space-y-3">
                 {filteredPersonnel.length === 0 ? (
                   <div className="text-center py-8 text-slate-400">
@@ -515,128 +277,84 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                   filteredPersonnel.map((person) => (
                     <div
                       key={person.id}
-                      ref={(el) => {
-                        if (el) personnelRefs.current[person.id] = el;
-                        else delete personnelRefs.current[person.id];
-                      }}
-                      className={`p-4 rounded-lg transition-all ${
-                        editingPersonnelId === person.id
-                          ? 'bg-slate-700/75'
-                          : 'bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40'
-                      }`}
+                      className="p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40"
                     >
-                      {editingPersonnelId === person.id ? (
-                        // Edit mode
-                        <div className="space-y-3">
-                          <input
-                            type="text"
-                            value={editData.name}
-                            onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                            className={inputBaseStyle}
-                          />
-                          <select
-                            value={editData.role}
-                            onChange={(e) => setEditData({ ...editData, role: e.target.value as PersonnelRole })}
-                            className={inputBaseStyle}
+                      <div className="flex items-start justify-between">
+                        <div
+                          className="flex-1 cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => handleEditPersonnel(person.id)}
+                          title={t('common.edit', 'Edit')}
+                        >
+                          <h4 className="font-semibold text-slate-200 text-lg">{person.name}</h4>
+                          <p className="text-sm text-slate-400">
+                            {t(getRoleLabelKey(person.role), person.role)}
+                          </p>
+                          {(() => {
+                            const telHref = getSafeTelHref(person.phone);
+                            return telHref ? (
+                              <a
+                                href={telHref}
+                                // Prevent triggering parent card's onClick (which opens edit modal)
+                                onClick={(e) => e.stopPropagation()}
+                                aria-label={t('personnel.callPhone', { phone: person.phone })}
+                                className="flex items-center gap-2 text-sm text-slate-400 mt-1 active:text-indigo-400 transition-colors"
+                              >
+                                <HiOutlinePhone className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                                <span>{person.phone}</span>
+                              </a>
+                            ) : null;
+                          })()}
+                          {(() => {
+                            const mailtoHref = getSafeMailtoHref(person.email);
+                            return mailtoHref ? (
+                              <a
+                                href={mailtoHref}
+                                // Prevent triggering parent card's onClick (which opens edit modal)
+                                onClick={(e) => e.stopPropagation()}
+                                aria-label={t('personnel.sendEmail', { email: person.email })}
+                                className="flex items-center gap-2 text-sm text-slate-400 mt-1 active:text-indigo-400 transition-colors"
+                              >
+                                <HiOutlineEnvelope className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                                <span>{person.email}</span>
+                              </a>
+                            ) : null;
+                          })()}
+                          {person.notes && (
+                            <p className="text-xs text-slate-500 mt-2 italic">{person.notes}</p>
+                          )}
+                        </div>
+                        <div className="relative ml-4" ref={openMenuId === person.id ? menuRef : null}>
+                          <button
+                            onClick={() => setOpenMenuId(openMenuId === person.id ? null : person.id)}
+                            className={`${iconButtonBaseStyle} text-slate-400 hover:text-slate-200`}
+                            disabled={isUpdating}
+                            aria-label="More options"
                           >
-                            {PERSONNEL_ROLES.map(({ value, labelKey }) => (
-                              <option key={value} value={value}>
-                                {t(labelKey, value)}
-                              </option>
-                            ))}
-                          </select>
-                          <input
-                            type="tel"
-                            placeholder={t('personnelManager.phonePlaceholder', 'Phone (optional)')}
-                            value={editData.phone}
-                            onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                            className={inputBaseStyle}
-                          />
-                          <input
-                            type="email"
-                            placeholder={t('personnelManager.emailPlaceholder', 'Email (optional)')}
-                            value={editData.email}
-                            onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                            className={inputBaseStyle}
-                          />
-                          <textarea
-                            placeholder={t('personnelManager.notesPlaceholder', 'Notes (optional)')}
-                            value={editData.notes}
-                            onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
-                            className={`${inputBaseStyle} h-20 resize-none`}
-                            rows={3}
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleSaveEdit(person.id)}
-                              className={`${iconButtonBaseStyle} bg-green-600 hover:bg-green-700 text-white flex-1 flex items-center justify-center gap-2`}
-                            >
-                              <HiOutlineCheck className="h-5 w-5" />
-                              {t('common.save', 'Save')}
-                            </button>
-                            <button
-                              onClick={handleCancelEdit}
-                              className={`${iconButtonBaseStyle} bg-slate-600 hover:bg-slate-700 text-white flex-1 flex items-center justify-center gap-2`}
-                            >
-                              <HiOutlineXMark className="h-5 w-5" />
-                              {t('common.cancelButton', 'Cancel')}
-                            </button>
-                          </div>
+                            <HiOutlineEllipsisVertical className="h-5 w-5" />
+                          </button>
+                          {openMenuId === person.id && (
+                            <div className="absolute right-0 top-full mt-1 w-36 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-10">
+                              <button
+                                onClick={() => handleEditPersonnel(person.id)}
+                                className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-700 rounded-t-lg flex items-center gap-2"
+                              >
+                                <HiOutlinePencil className="h-4 w-4" />
+                                {t('common.edit', 'Edit')}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleRemove(person.id, person.name);
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full px-4 py-2.5 text-left text-sm text-red-400 hover:bg-slate-700 rounded-b-lg flex items-center gap-2"
+                              >
+                                <HiOutlineTrash className="h-4 w-4" />
+                                {t('common.delete', 'Delete')}
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        // View mode
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-slate-200 text-lg">{person.name}</h4>
-                            <p className="text-sm text-slate-400">
-                              {t(getRoleLabelKey(person.role), person.role)}
-                            </p>
-                            {person.phone && (
-                              <p className="text-sm text-slate-400 mt-1">{person.phone}</p>
-                            )}
-                            {person.email && (
-                              <p className="text-sm text-slate-400 mt-1">{person.email}</p>
-                            )}
-                            {person.notes && (
-                              <p className="text-xs text-slate-500 mt-2 italic">{person.notes}</p>
-                            )}
-                          </div>
-                          <div className="relative ml-4" ref={openMenuId === person.id ? menuRef : null}>
-                            <button
-                              onClick={() => setOpenMenuId(openMenuId === person.id ? null : person.id)}
-                              className={`${iconButtonBaseStyle} text-slate-400 hover:text-slate-200`}
-                              disabled={!!editingPersonnelId || isUpdating}
-                              aria-label="More options"
-                            >
-                              <HiOutlineEllipsisVertical className="h-5 w-5" />
-                            </button>
-                            {openMenuId === person.id && (
-                              <div className="absolute right-0 top-full mt-1 w-36 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-10">
-                                <button
-                                  onClick={() => {
-                                    handleStartEdit(person.id);
-                                    setOpenMenuId(null);
-                                  }}
-                                  className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-700 rounded-t-lg flex items-center gap-2"
-                                >
-                                  <HiOutlinePencil className="h-4 w-4" />
-                                  {t('common.edit', 'Edit')}
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    handleRemove(person.id, person.name);
-                                    setOpenMenuId(null);
-                                  }}
-                                  className="w-full px-4 py-2.5 text-left text-sm text-red-400 hover:bg-slate-700 rounded-b-lg flex items-center gap-2"
-                                >
-                                  <HiOutlineTrash className="h-4 w-4" />
-                                  {t('common.delete', 'Delete')}
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                      </div>
                     </div>
                   ))
                 )}
@@ -688,6 +406,25 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
         onCancel={handleCancelDelete}
         isConfirming={isUpdating}
         variant="danger"
+      />
+
+      {/* Personnel Create Modal */}
+      <PersonnelDetailsModal
+        isOpen={createPersonnelModalOpen}
+        onClose={() => setCreatePersonnelModalOpen(false)}
+        mode="create"
+        onAddPersonnel={onAddPersonnel}
+        isUpdating={isUpdating}
+      />
+
+      {/* Personnel Edit Modal */}
+      <PersonnelDetailsModal
+        isOpen={selectedPersonnelId !== null}
+        onClose={() => setSelectedPersonnelId(null)}
+        mode="edit"
+        personnel={personnel.find(p => p.id === selectedPersonnelId) || null}
+        onUpdatePersonnel={onUpdatePersonnel}
+        isUpdating={isUpdating}
       />
     </div>
   );

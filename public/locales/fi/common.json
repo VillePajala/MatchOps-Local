@@ -746,6 +746,46 @@
     "editDetails": "Muokkaa tietoja",
     "searchPlaceholder": "Etsi..."
   },
+  "teamDetailsModal": {
+    "createTitle": "Luo joukkue",
+    "editTitle": "Joukkueen tiedot",
+    "nameLabel": "Joukkueen nimi",
+    "namePlaceholder": "Syötä joukkueen nimi",
+    "colorLabel": "Joukkueen väri",
+    "colorPlaceholder": "esim. #FF5733 tai sininen",
+    "colorHint": "Valinnainen: heksakoodi tai värin nimi",
+    "archivedLabel": "Arkistoitu"
+  },
+  "playerDetailsModal": {
+    "createTitle": "Lisää pelaaja",
+    "editTitle": "Pelaajan tiedot",
+    "nameLabel": "Pelaajan nimi",
+    "namePlaceholder": "Syötä pelaajan nimi",
+    "nicknameLabel": "Lempinimi",
+    "nicknamePlaceholder": "Valinnainen lempinimi",
+    "nicknameHint": "Näytetään kentällä, jos annettu",
+    "jerseyNumberLabel": "Pelinumero",
+    "jerseyNumberPlaceholder": "esim. 10",
+    "notesLabel": "Muistiinpanot",
+    "notesPlaceholder": "Valinnaiset muistiinpanot pelaajasta",
+    "goalieLabel": "Maalivahti"
+  },
+  "personnelDetailsModal": {
+    "createTitle": "Lisää taustahenkilö",
+    "editTitle": "Taustahenkilön tiedot",
+    "nameLabel": "Nimi",
+    "namePlaceholder": "Syötä nimi",
+    "roleLabel": "Rooli",
+    "phoneLabel": "Puhelin",
+    "phonePlaceholder": "Puhelinnumero",
+    "emailLabel": "Sähköposti",
+    "emailPlaceholder": "Sähköpostiosoite",
+    "certificationsLabel": "Sertifikaatit",
+    "certificationsPlaceholder": "Yksi per rivi (esim. UEFA A -lisenssi)",
+    "certificationsHint": "Syötä jokainen sertifikaatti uudelle riville",
+    "notesLabel": "Muistiinpanot",
+    "notesPlaceholder": "Lisämuistiinpanot"
+  },
   "seasonDetailsModal": {
     "title": "Kauden tiedot",
     "gameSingular": "Ottelu",
@@ -818,8 +858,10 @@
     "rename": "Nimeä uudelleen",
     "duplicate": "Kopioi",
     "delete": "Poista",
+    "edit": "Muokkaa",
     "archive": "Arkistoi",
     "unarchive": "Palauta arkistosta",
+    "editRoster": "Muokkaa kokoonpanoa",
     "archivedLabel": "Arkistoitu",
     "showArchived": "Näytä arkistoidut",
     "archivedBadge": "Arkistoitu",
@@ -828,12 +870,29 @@
     "confirmDelete": "Poistetaanko joukkue \"{{name}}\"?",
     "deleteImpactWarning": "Tämä tekee {{count}} pelistä orpoja. Pelit säilyvät, mutta ne eivät liity tähän joukkueeseen.",
     "noGamesImpact": "Tähän joukkueeseen ei ole liitetty otteluita.",
-    "duplicateNameWarning": "Joukkue nimellä \"{{name}}\" on jo olemassa. Jatketaanko silti?"
+    "duplicateNameWarning": "Joukkue nimellä \"{{name}}\" on jo olemassa. Jatketaanko silti?",
+    "nameRequired": "Joukkueen nimi vaaditaan",
+    "duplicateNameError": "Joukkue nimellä \"{{name}}\" on jo olemassa. Valitse eri nimi."
+  },
+  "unifiedTeamModal": {
+    "createTitle": "Luo joukkue",
+    "editTitle": "Muokkaa joukkuetta",
+    "detailsTab": "Tiedot",
+    "rosterTab": "Kokoonpano",
+    "selectPlayers": "Valitse pelaajat joukkueeseen",
+    "saveChanges": "Tallenna muutokset",
+    "roster": "Kokoonpano",
+    "editRoster": "Muokkaa kokoonpanoa",
+    "noPlayersSelected": "Ei valittuja pelaajia. Klikkaa \"Muokkaa kokoonpanoa\" lisätäksesi pelaajia.",
+    "playerSingular": "Pelaaja",
+    "playerPlural": "Pelaajaa"
   },
   "personnel": {
     "selected": "valittu",
     "selectAll": "Valitse kaikki",
     "noPersonnel": "Taustahenkilöitä ei ole saatavilla. Lisää taustahenkilöitä Taustahenkilöhallinnassa.",
+    "callPhone": "Soita numeroon {{phone}}",
+    "sendEmail": "Lähetä sähköposti osoitteeseen {{email}}",
     "roles": {
       "headCoach": "Päävalmentaja",
       "assistantCoach": "Apuvalmentaja",
@@ -881,7 +940,10 @@
     "cancel": "Peruuta",
     "save": "Tallenna",
     "edit": "Muokkaa",
-    "delete": "Poista"
+    "delete": "Poista",
+    "searchPlaceholder": "Hae taustahenkilöitä...",
+    "noResults": "Taustahenkilöitä ei löytynyt",
+    "empty": "Ei taustahenkilöitä vielä. Lisää ensimmäinen henkilö yllä."
   },
   "teamRosterModal": {
     "title": "Joukkueen kokoonpano",

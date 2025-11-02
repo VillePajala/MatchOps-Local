@@ -11,7 +11,7 @@ import { importFullBackup } from '@/utils/fullBackup';
 import { useGameImport } from '@/hooks/useGameImport';
 import ImportResultsModal from './ImportResultsModal';
 import ConfirmationModal from './ConfirmationModal';
-import { ModalFooter } from '@/styles/modalStyles';
+import { ModalFooter, primaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
 import { validateSeasonDates } from '@/utils/clubSeason';
@@ -404,12 +404,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const labelStyle = 'text-sm font-medium text-slate-300 mb-1';
   const inputStyle =
     'block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm text-white';
-  const buttonStyle =
-    'px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed';
-  const primaryButtonStyle =
-    `${buttonStyle} bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg`;
-  const dangerButtonStyle =
-    `${buttonStyle} bg-gradient-to-b from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 shadow-lg`;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">

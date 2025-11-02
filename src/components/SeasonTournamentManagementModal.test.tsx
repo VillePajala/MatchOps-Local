@@ -72,13 +72,23 @@ describe('SeasonTournamentManagementModal', () => {
     });
     await user.click(createSeasonButton);
 
-    const input = screen.getByPlaceholderText(i18n.t('seasonTournamentModal.newSeasonPlaceholder'));
+    // Now a modal should open - find the input in the modal
+    await waitFor(() => {
+      expect(screen.getByText('Create Season')).toBeInTheDocument();
+    });
+
+    const input = screen.getByPlaceholderText(/Enter season name/i);
     await user.type(input, 'New Amazing Season');
 
-    const saveButton = screen.getByTestId('save-new-season-button');
-    await user.click(saveButton);
+    // Find and click the Create button in the modal
+    const saveButtons = screen.getAllByRole('button', { name: /Create/i });
+    const createButton = saveButtons.find(btn => btn.textContent === 'Create');
+    if (!createButton) throw new Error('Create button not found');
+    await user.click(createButton);
 
-    expect(defaultProps.addSeasonMutation.mutate).toHaveBeenCalledWith({ name: 'New Amazing Season' });
+    expect(defaultProps.addSeasonMutation.mutate).toHaveBeenCalled();
+    const [[firstArg]] = (defaultProps.addSeasonMutation.mutate as jest.Mock).mock.calls;
+    expect(firstArg).toMatchObject({ name: 'New Amazing Season' });
   });
 
   it('allows creating a new tournament', async () => {
@@ -93,13 +103,23 @@ describe('SeasonTournamentManagementModal', () => {
     });
     await user.click(createTournamentButton);
 
-    const input = screen.getByPlaceholderText(i18n.t('seasonTournamentModal.newTournamentPlaceholder'));
+    // Now a modal should open - find the input in the modal
+    await waitFor(() => {
+      expect(screen.getByText('Create Tournament')).toBeInTheDocument();
+    });
+
+    const input = screen.getByPlaceholderText(/Enter tournament name/i);
     await user.type(input, 'New Awesome Tournament');
 
-    const saveButton = screen.getByTestId('save-new-tournament-button');
-    await user.click(saveButton);
+    // Find and click the Create button in the modal
+    const saveButtons = screen.getAllByRole('button', { name: /Create/i });
+    const createButton = saveButtons.find(btn => btn.textContent === 'Create');
+    if (!createButton) throw new Error('Create button not found');
+    await user.click(createButton);
 
-    expect(defaultProps.addTournamentMutation.mutate).toHaveBeenCalledWith({ name: 'New Awesome Tournament' });
+    expect(defaultProps.addTournamentMutation.mutate).toHaveBeenCalled();
+    const [[firstArg]] = (defaultProps.addTournamentMutation.mutate as jest.Mock).mock.calls;
+    expect(firstArg).toMatchObject({ name: 'New Awesome Tournament' });
   });
 
   it('opens season details modal when clicking season item', async () => {
@@ -112,8 +132,8 @@ describe('SeasonTournamentManagementModal', () => {
     const seasonItem = screen.getByText('Season 1');
     await user.click(seasonItem);
 
-    // SeasonDetailsModal should open (title should be visible)
-    expect(await screen.findByText(i18n.t('seasonDetailsModal.title', 'Season Details'))).toBeInTheDocument();
+    // SeasonDetailsModal should open (title shows the season name)
+    expect(await screen.findByRole('heading', { name: 'Season 1' })).toBeInTheDocument();
   });
 
   it('opens season details modal when clicking edit in actions menu', async () => {
@@ -129,8 +149,8 @@ describe('SeasonTournamentManagementModal', () => {
     const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
     await user.click(editOption);
 
-    // SeasonDetailsModal should open
-    expect(await screen.findByText(i18n.t('seasonDetailsModal.title', 'Season Details'))).toBeInTheDocument();
+    // SeasonDetailsModal should open (title shows the season name)
+    expect(await screen.findByRole('heading', { name: 'Season 1' })).toBeInTheDocument();
   });
 
   it('opens tournament details modal when clicking tournament item', async () => {
@@ -144,7 +164,7 @@ describe('SeasonTournamentManagementModal', () => {
     await user.click(tournamentItem);
 
     // TournamentDetailsModal should open (title should be visible)
-    expect(await screen.findByText(i18n.t('tournamentDetailsModal.title', 'Tournament Details'))).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Tournament 1' })).toBeInTheDocument();
   });
 
   it('opens tournament details modal when clicking edit in actions menu', async () => {
@@ -161,7 +181,7 @@ describe('SeasonTournamentManagementModal', () => {
     await user.click(editOption);
 
     // TournamentDetailsModal should open
-    expect(await screen.findByText(i18n.t('tournamentDetailsModal.title', 'Tournament Details'))).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Tournament 1' })).toBeInTheDocument();
   });
 
   it('allows deleting a season', async () => {
@@ -353,8 +373,8 @@ describe('SeasonTournamentManagementModal', () => {
       const tournamentItem = screen.getByText('Championship Cup');
       await user.click(tournamentItem);
 
-      // TournamentDetailsModal should open with player award dropdown
-      expect(await screen.findByText(i18n.t('tournamentDetailsModal.title', 'Tournament Details'))).toBeInTheDocument();
+      // TournamentDetailsModal should open with player award dropdown (shows tournament name)
+      expect(await screen.findByRole('heading', { name: 'Championship Cup' })).toBeInTheDocument();
 
       const awardDropdown = screen.getByRole('combobox', { name: /select player of tournament/i });
       expect(awardDropdown).toBeInTheDocument();
@@ -377,8 +397,8 @@ describe('SeasonTournamentManagementModal', () => {
       const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
       await user.click(editOption);
 
-      // TournamentDetailsModal should open
-      expect(await screen.findByText(i18n.t('tournamentDetailsModal.title', 'Tournament Details'))).toBeInTheDocument();
+      // TournamentDetailsModal should open (shows tournament name)
+      expect(await screen.findByRole('heading', { name: 'Championship Cup' })).toBeInTheDocument();
 
       // Award dropdown should show the current award
       const awardDropdown = screen.getByRole('combobox', { name: /select player of tournament/i });

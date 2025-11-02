@@ -821,6 +821,46 @@
     "editDetails": "Edit Details",
     "searchPlaceholder": "Search..."
   },
+  "teamDetailsModal": {
+    "createTitle": "Create Team",
+    "editTitle": "Team Details",
+    "nameLabel": "Team Name",
+    "namePlaceholder": "Enter team name",
+    "colorLabel": "Team Color",
+    "colorPlaceholder": "e.g., #FF5733 or blue",
+    "colorHint": "Optional: hex code or color name",
+    "archivedLabel": "Archived"
+  },
+  "playerDetailsModal": {
+    "createTitle": "Add Player",
+    "editTitle": "Player Details",
+    "nameLabel": "Player Name",
+    "namePlaceholder": "Enter player name",
+    "nicknameLabel": "Nickname",
+    "nicknamePlaceholder": "Optional nickname",
+    "nicknameHint": "Shown on field if provided",
+    "jerseyNumberLabel": "Jersey Number",
+    "jerseyNumberPlaceholder": "e.g., 10",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Optional notes about this player",
+    "goalieLabel": "Goalkeeper"
+  },
+  "personnelDetailsModal": {
+    "createTitle": "Add Personnel",
+    "editTitle": "Personnel Details",
+    "nameLabel": "Name",
+    "namePlaceholder": "Enter name",
+    "roleLabel": "Role",
+    "phoneLabel": "Phone",
+    "phonePlaceholder": "Phone number",
+    "emailLabel": "Email",
+    "emailPlaceholder": "Email address",
+    "certificationsLabel": "Certifications",
+    "certificationsPlaceholder": "One per line (e.g., UEFA A License)",
+    "certificationsHint": "Enter each certification on a new line",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Additional notes"
+  },
   "seasonDetailsModal": {
     "title": "Season Details",
     "gameSingular": "Game",
@@ -893,8 +933,10 @@
     "rename": "Rename",
     "duplicate": "Duplicate",
     "delete": "Delete",
+    "edit": "Edit",
     "archive": "Archive",
     "unarchive": "Unarchive",
+    "editRoster": "Edit Roster",
     "archivedLabel": "Archived",
     "showArchived": "Show Archived",
     "archivedBadge": "Archived",
@@ -903,12 +945,29 @@
     "confirmDelete": "Delete team \"{{name}}\"?",
     "deleteImpactWarning": "This will orphan {{count}} game(s). Games will remain but won't be associated with this team.",
     "noGamesImpact": "No games are associated with this team.",
-    "duplicateNameWarning": "A team named \"{{name}}\" already exists. Continue anyway?"
+    "duplicateNameWarning": "A team named \"{{name}}\" already exists. Continue anyway?",
+    "nameRequired": "Team name is required",
+    "duplicateNameError": "A team named \"{{name}}\" already exists. Please choose a different name."
+  },
+  "unifiedTeamModal": {
+    "createTitle": "Create Team",
+    "editTitle": "Edit Team",
+    "detailsTab": "Details",
+    "rosterTab": "Roster",
+    "selectPlayers": "Select Players for Team",
+    "saveChanges": "Save Changes",
+    "roster": "Roster",
+    "editRoster": "Edit Roster",
+    "noPlayersSelected": "No players selected. Click \"Edit Roster\" to add players.",
+    "playerSingular": "Player",
+    "playerPlural": "Players"
   },
   "personnel": {
     "selected": "selected",
     "selectAll": "Select All",
     "noPersonnel": "No personnel available. Add personnel in Personnel Manager.",
+    "callPhone": "Call {{phone}}",
+    "sendEmail": "Send email to {{email}}",
     "roles": {
       "headCoach": "Head Coach",
       "assistantCoach": "Assistant Coach",
@@ -956,7 +1015,10 @@
     "cancel": "Cancel",
     "save": "Save",
     "edit": "Edit",
-    "delete": "Delete"
+    "delete": "Delete",
+    "searchPlaceholder": "Search personnel...",
+    "noResults": "No personnel found",
+    "empty": "No personnel yet. Add your first person above."
   },
   "teamRosterModal": {
     "title": "Team Roster",

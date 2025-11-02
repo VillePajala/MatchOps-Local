@@ -11,17 +11,21 @@ import type { TranslationKey } from '@/i18n-types';
 interface TournamentDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  tournament: Tournament | null;
+  mode: 'create' | 'edit';
+  tournament?: Tournament | null;
   masterRoster: Player[];
-  updateTournamentMutation: UseMutationResult<Tournament | null, Error, Tournament, unknown>;
+  addTournamentMutation?: UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>;
+  updateTournamentMutation?: UseMutationResult<Tournament | null, Error, Tournament, unknown>;
   stats?: { games: number; goals: number };
 }
 
 const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   isOpen,
   onClose,
+  mode,
   tournament,
   masterRoster,
+  addTournamentMutation,
   updateTournamentMutation,
   stats,
 }) => {
@@ -40,9 +44,23 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   const [awardedPlayerId, setAwardedPlayerId] = useState<string | undefined>(undefined);
   const [archived, setArchived] = useState(false);
 
-  // Initialize form when tournament changes
+  // Initialize form when tournament changes or modal opens
   useEffect(() => {
-    if (tournament) {
+    if (mode === 'create') {
+      // Reset form for create mode
+      setName('');
+      setLocation('');
+      setAgeGroup('');
+      setLevel('');
+      setPeriodCount(undefined);
+      setPeriodDuration(undefined);
+      setStartDate('');
+      setEndDate('');
+      setNotes('');
+      setAwardedPlayerId(undefined);
+      setArchived(false);
+    } else if (tournament) {
+      // Load existing tournament data for edit mode
       setName(tournament.name || '');
       setLocation(tournament.location || '');
       setAgeGroup(tournament.ageGroup || '');
@@ -55,7 +73,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
       setAwardedPlayerId(tournament.awardedPlayerId);
       setArchived(tournament.archived || false);
     }
-  }, [tournament]);
+  }, [mode, tournament, isOpen]);
 
   const parseIntOrUndefined = (value: string): number | undefined => {
     const parsed = parseInt(value, 10);
@@ -63,38 +81,67 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   };
 
   const handleSave = () => {
-    if (!tournament || !name.trim()) return;
+    if (!name.trim()) return;
 
     // Sanitize period values
     const sanitizedPeriodCount = periodCount === 1 || periodCount === 2 ? periodCount : undefined;
     const sanitizedPeriodDuration = periodDuration && periodDuration > 0 ? periodDuration : undefined;
 
-    const updatedTournament: Tournament = {
-      ...tournament,
-      name: name.trim(),
-      location: location.trim() || undefined,
-      ageGroup: ageGroup || undefined,
-      level: level || undefined,
-      periodCount: sanitizedPeriodCount,
-      periodDuration: sanitizedPeriodDuration,
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
-      notes: notes.trim() || undefined,
-      awardedPlayerId: awardedPlayerId || undefined,
-      archived,
-    };
+    if (mode === 'create') {
+      // Create new tournament
+      if (!addTournamentMutation) return;
 
-    updateTournamentMutation.mutate(updatedTournament);
-    onClose();
+      const newTournament: Partial<Tournament> & { name: string } = {
+        name: name.trim(),
+        location: location.trim() || undefined,
+        ageGroup: ageGroup || undefined,
+        level: level || undefined,
+        periodCount: sanitizedPeriodCount,
+        periodDuration: sanitizedPeriodDuration,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        notes: notes.trim() || undefined,
+        awardedPlayerId: awardedPlayerId || undefined,
+        archived,
+      };
+
+      addTournamentMutation.mutate(newTournament, {
+        onSuccess: () => onClose(),
+      });
+    } else {
+      // Update existing tournament
+      if (!tournament || !updateTournamentMutation) return;
+
+      const updatedTournament: Tournament = {
+        ...tournament,
+        name: name.trim(),
+        location: location.trim() || undefined,
+        ageGroup: ageGroup || undefined,
+        level: level || undefined,
+        periodCount: sanitizedPeriodCount,
+        periodDuration: sanitizedPeriodDuration,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        notes: notes.trim() || undefined,
+        awardedPlayerId: awardedPlayerId || undefined,
+        archived,
+      };
+
+      updateTournamentMutation.mutate(updatedTournament, {
+        onSuccess: () => onClose(),
+      });
+    }
   };
 
   const handleCancel = () => {
     onClose();
   };
 
-  if (!isOpen || !tournament) {
+  if (!isOpen) {
     return null;
   }
+
+  const isPending = mode === 'create' ? addTournamentMutation?.isPending : updateTournamentMutation?.isPending;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[70] font-display">
@@ -107,12 +154,14 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         <div className="flex flex-col flex-shrink-0">
           <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20">
             <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
-              {t('tournamentDetailsModal.title', 'Tournament Details')}
+              {mode === 'create'
+                ? t('tournamentDetailsModal.createTitle', 'Create Tournament')
+                : tournament?.name || t('tournamentDetailsModal.editTitle', 'Tournament Details')}
             </h2>
           </div>
 
-          {/* Stats Section */}
-          {stats && (
+          {/* Stats Section - Only show in edit mode */}
+          {mode === 'edit' && stats && (
             <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20">
               <div className="mb-2 text-center text-sm">
                 <div className="flex justify-center items-center gap-6 text-slate-300">
@@ -135,8 +184,8 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 p-6">
-          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+        <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
+          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
             <div className="space-y-3">
               {/* Name */}
               <div>
@@ -310,11 +359,13 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
           </button>
           <button
             onClick={handleSave}
-            disabled={!name.trim() || updateTournamentMutation.isPending}
+            disabled={!name.trim() || isPending}
             className={primaryButtonStyle}
           >
-            {updateTournamentMutation.isPending
+            {isPending
               ? t('common.saving', 'Saving...')
+              : mode === 'create'
+              ? t('common.create', 'Create')
               : t('common.save', 'Save')}
           </button>
         </ModalFooter>
