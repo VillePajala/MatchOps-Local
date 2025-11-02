@@ -891,6 +891,8 @@
     "selected": "valittu",
     "selectAll": "Valitse kaikki",
     "noPersonnel": "Taustahenkilöitä ei ole saatavilla. Lisää taustahenkilöitä Taustahenkilöhallinnassa.",
+    "callPhone": "Soita numeroon {{phone}}",
+    "sendEmail": "Lähetä sähköposti osoitteeseen {{email}}",
     "roles": {
       "headCoach": "Päävalmentaja",
       "assistantCoach": "Apuvalmentaja",

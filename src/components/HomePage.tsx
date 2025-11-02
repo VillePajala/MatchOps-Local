@@ -3268,7 +3268,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           onUpdatePersonnel={personnelManager.updatePersonnel}
           onRemovePersonnel={personnelManager.removePersonnel}
           isUpdating={personnelManager.isLoading}
-          error={personnelManager.error}
         />
       </ErrorBoundary>
 

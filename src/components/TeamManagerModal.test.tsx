@@ -44,7 +44,7 @@ const defaultProps = {
   isOpen: true,
   onClose: jest.fn(),
   teams: mockTeams,
-  onManageRoster: jest.fn(),
+  masterRoster: [],
   onManageOrphanedGames: jest.fn(),
 };
 
@@ -188,12 +188,11 @@ describe('TeamManagerModal', () => {
         expect(screen.getByText('Confirm Delete')).toBeInTheDocument();
       });
 
-      // Find the red delete button in the confirmation modal (not the one in the menu)
-      const allButtons = screen.getAllByRole('button');
-      const confirmDeleteButton = allButtons.find(btn =>
-        btn.textContent === 'Delete' && btn.className.includes('bg-red-600')
-      );
-      fireEvent.click(confirmDeleteButton!);
+      // Find the delete button in the confirmation modal by its text and role
+      const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
+      // The last one should be the confirmation button (first one is in the actions menu)
+      const confirmDeleteButton = deleteButtons[deleteButtons.length - 1];
+      fireEvent.click(confirmDeleteButton);
 
       await waitFor(() => {
         expect(teamsUtils.deleteTeam).toHaveBeenCalledWith('t1', expect.anything());
@@ -221,26 +220,6 @@ describe('TeamManagerModal', () => {
       });
 
       expect(teamsUtils.deleteTeam).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Team Roster Access', () => {
-    it('calls onManageRoster when team name clicked', () => {
-      const onManageRoster = jest.fn();
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} onManageRoster={onManageRoster} />);
-
-      fireEvent.click(screen.getByText('Team Alpha'));
-
-      expect(onManageRoster).toHaveBeenCalledWith('t1');
-    });
-
-    it('does not error when onManageRoster not provided', () => {
-      renderWithQueryClient(<TeamManagerModal {...defaultProps} onManageRoster={undefined} />);
-
-      fireEvent.click(screen.getByText('Team Alpha'));
-
-      // Should not crash or throw error
-      expect(screen.getByText('Team Alpha')).toBeInTheDocument();
     });
   });
 
@@ -293,7 +272,7 @@ describe('TeamManagerModal', () => {
       fireEvent.click(actionsButtons[0]);
 
       await waitFor(() => {
-        expect(screen.getByText('Edit')).toBeInTheDocument();
+        expect(screen.getByText('Muokkaa')).toBeInTheDocument();
         expect(screen.getByText('Delete')).toBeInTheDocument();
       });
     });
@@ -305,13 +284,13 @@ describe('TeamManagerModal', () => {
       fireEvent.click(actionsButtons[0]);
 
       await waitFor(() => {
-        expect(screen.getByText('Edit')).toBeInTheDocument();
+        expect(screen.getByText('Muokkaa')).toBeInTheDocument();
       });
 
       fireEvent.mouseDown(document.body);
 
       await waitFor(() => {
-        expect(screen.queryByText('Edit')).not.toBeInTheDocument();
+        expect(screen.queryByText('Muokkaa')).not.toBeInTheDocument();
       });
     });
 
@@ -323,13 +302,13 @@ describe('TeamManagerModal', () => {
       // Open
       fireEvent.click(actionsButton);
       await waitFor(() => {
-        expect(screen.getByText('Edit')).toBeInTheDocument();
+        expect(screen.getByText('Muokkaa')).toBeInTheDocument();
       });
 
       // Close
       fireEvent.click(actionsButton);
       await waitFor(() => {
-        expect(screen.queryByText('Edit')).not.toBeInTheDocument();
+        expect(screen.queryByText('Muokkaa')).not.toBeInTheDocument();
       });
     });
   });

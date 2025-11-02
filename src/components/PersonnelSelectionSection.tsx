@@ -57,7 +57,7 @@ const PersonnelSelectionSection: React.FC<PersonnelSelectionSectionProps> = ({
             </label>
           </div>
 
-          <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+          <div className="space-y-1 max-h-60 overflow-y-auto pr-1">
             {availablePersonnel.map((person) => (
               <div
                 key={person.id}

@@ -741,7 +741,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                             </div>
                           ))
                         ) : (
-                          <div className="bg-slate-900/70 p-8 rounded-lg border border-slate-700 shadow-inner text-center text-slate-400">
+                          <div className="bg-slate-900/70 p-8 rounded-lg border border-slate-700 shadow-inner text-center text-slate-400 -mx-2 sm:-mx-4 md:-mx-6">
                             {activeTab === 'season'
                               ? t('gameStatsModal.noSeasonGames', 'No games found for this season.')
                               : t('gameStatsModal.noTournamentGames', 'No games found for this tournament.')
@@ -750,7 +750,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                         )
                       ) : (
                         // "All Seasons/Tournaments" selected - show aggregate stats in a card
-                        <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+                        <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
                           <h3 className="text-xl font-semibold text-slate-200 mb-4">
                             {activeTab === 'season'
                               ? t('gameStatsModal.filterAllSeasons', 'All Seasons')
@@ -819,7 +819,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   )}
 
                   {/* Player Stats Table */}
-                  <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+                  <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
                     <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.playerStatsTitle', 'Player Statistics')}</h3>
                     {/* Search Input */}
                     <div className="relative mb-4">
