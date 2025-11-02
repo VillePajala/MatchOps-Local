@@ -691,7 +691,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left Column */}
                 <div className="space-y-6">
-            <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
                   {/* Overall Statistics Section */}
                   {activeTab === 'overall' && overallTeamStats && (
                     <TeamPerformanceCard
@@ -870,6 +869,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                         onEditGoalScorerChange={goalEditorHook.setEditGoalScorerId}
                         onEditGoalAssisterChange={goalEditorHook.setEditGoalAssisterId}
                       />
+
+                      <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
 
                       <GameNotesEditor
                         gameNotes={gameNotes}

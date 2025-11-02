@@ -150,7 +150,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
             .filter(d => d.name.toLowerCase().includes(searchText.toLowerCase()));
 
         return (
-            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+            <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
                 <h3 className="text-lg font-semibold text-slate-200 mb-4">{t(`seasonTournamentModal.${type}s`)}</h3>
                 <div className="space-y-3">
                     {filtered.map((item) => (
