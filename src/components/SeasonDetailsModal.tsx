@@ -143,7 +143,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
             <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
               {mode === 'create'
                 ? t('seasonDetailsModal.createTitle', 'Create Season')
-                : t('seasonDetailsModal.editTitle', 'Season Details')}
+                : season?.name || t('seasonDetailsModal.editTitle', 'Season Details')}
             </h2>
           </div>
 
@@ -171,8 +171,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto min-h-0 p-6">
-          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+        <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
+          <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
             <div className="space-y-3">
               {/* Name */}
               <div>

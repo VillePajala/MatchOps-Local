@@ -1013,7 +1013,10 @@
     "cancel": "Cancel",
     "save": "Save",
     "edit": "Edit",
-    "delete": "Delete"
+    "delete": "Delete",
+    "searchPlaceholder": "Search personnel...",
+    "noResults": "No personnel found",
+    "empty": "No personnel yet. Add your first person above."
   },
   "teamRosterModal": {
     "title": "Team Roster",

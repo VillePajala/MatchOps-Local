@@ -938,7 +938,10 @@
     "cancel": "Peruuta",
     "save": "Tallenna",
     "edit": "Muokkaa",
-    "delete": "Poista"
+    "delete": "Poista",
+    "searchPlaceholder": "Hae taustahenkilöitä...",
+    "noResults": "Taustahenkilöitä ei löytynyt",
+    "empty": "Ei taustahenkilöitä vielä. Lisää ensimmäinen henkilö yllä."
   },
   "teamRosterModal": {
     "title": "Joukkueen kokoonpano",

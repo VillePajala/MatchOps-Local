@@ -6,6 +6,8 @@ import {
   HiOutlinePencil,
   HiOutlineTrash,
   HiOutlineEllipsisVertical,
+  HiOutlinePhone,
+  HiOutlineEnvelope,
 } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
@@ -266,7 +268,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
             />
 
             {/* Personnel List */}
-            <div className={`${cardStyle} mt-4`}>
+            <div className={`${cardStyle} mt-4 -mx-2 sm:-mx-4 md:-mx-6`}>
               <div className="space-y-3">
                 {filteredPersonnel.length === 0 ? (
                   <div className="text-center py-8 text-slate-400">
@@ -282,21 +284,34 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                       className="p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40"
                     >
                       <div className="flex items-start justify-between">
-                        <div className="flex-1">
+                        <div
+                          className="flex-1 cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => handleEditPersonnel(person.id)}
+                          title={t('common.edit', 'Edit')}
+                        >
                           <h4 className="font-semibold text-slate-200 text-lg">{person.name}</h4>
                           <p className="text-sm text-slate-400">
                             {t(getRoleLabelKey(person.role), person.role)}
                           </p>
                           {person.phone && (
-                            <p className="text-sm text-slate-400 mt-1">{person.phone}</p>
+                            <a
+                              href={`tel:${person.phone}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-2 text-sm text-slate-400 mt-1 active:text-indigo-400 transition-colors"
+                            >
+                              <HiOutlinePhone className="h-4 w-4 flex-shrink-0" />
+                              <span>{person.phone}</span>
+                            </a>
                           )}
                           {person.email && (
-                            <p className="text-sm text-slate-400 mt-1">{person.email}</p>
-                          )}
-                          {person.certifications && person.certifications.length > 0 && (
-                            <p className="text-xs text-slate-400 mt-2">
-                              {person.certifications.join(', ')}
-                            </p>
+                            <a
+                              href={`mailto:${person.email}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-2 text-sm text-slate-400 mt-1 active:text-indigo-400 transition-colors"
+                            >
+                              <HiOutlineEnvelope className="h-4 w-4 flex-shrink-0" />
+                              <span>{person.email}</span>
+                            </a>
                           )}
                           {person.notes && (
                             <p className="text-xs text-slate-500 mt-2 italic">{person.notes}</p>

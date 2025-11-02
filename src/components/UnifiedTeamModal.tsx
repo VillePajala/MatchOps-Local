@@ -185,7 +185,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
             <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">
               {mode === 'create'
                 ? t('unifiedTeamModal.createTitle', 'Create Team')
-                : t('unifiedTeamModal.editTitle', 'Edit Team')}
+                : team?.name || t('unifiedTeamModal.editTitle', 'Edit Team')}
             </h2>
           </div>
 
