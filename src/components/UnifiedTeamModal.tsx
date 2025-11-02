@@ -530,6 +530,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                                     value={placement}
                                     onChange={(e) => handlePlacementChange('tournament', tournament.id, e.target.value)}
                                     disabled={updatePlacementMutation.isPending}
+                                    aria-label={`Tournament placement for ${tournament.name}`}
                                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     <option value="">{t('unifiedTeamModal.selectPlacement', 'Select placement...')}</option>
@@ -564,6 +565,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                                     value={placement}
                                     onChange={(e) => handlePlacementChange('season', season.id, e.target.value)}
                                     disabled={updatePlacementMutation.isPending}
+                                    aria-label={`Season placement for ${season.name}`}
                                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     <option value="">{t('unifiedTeamModal.selectPlacement', 'Select placement...')}</option>

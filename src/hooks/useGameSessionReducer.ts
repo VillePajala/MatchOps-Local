@@ -384,11 +384,6 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const seasonId = loadedData.seasonId ?? '';
       const tournamentId = loadedData.tournamentId ?? '';
       const teamId = loadedData.teamId;
-      logger.log('[useGameSessionReducer] LOAD_PERSISTED_GAME_DATA extracting teamId', {
-        loadedDataTeamId: loadedData.teamId,
-        extractedTeamId: teamId,
-        hasTeamId: 'teamId' in loadedData,
-      });
       const gameLocation = loadedData.gameLocation ?? '';
       const gameTime = loadedData.gameTime ?? '';
       const demandFactor = loadedData.demandFactor ?? 1;

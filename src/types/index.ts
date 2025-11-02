@@ -45,6 +45,20 @@ export interface TeamPlayer {
   // Note: relX/relY are removed as they're field-specific, not roster-specific
 }
 
+/**
+ * Team placement information for tournaments and seasons.
+ *
+ * @remarks
+ * - Tracks team achievements (1st, 2nd, 3rd place, etc.)
+ * - Used in both Season and Tournament interfaces
+ * - Displayed with placement badges (🥇🥈🥉) in UI
+ */
+export interface TeamPlacementInfo {
+  placement: number;  // 1 = 1st place, 2 = 2nd place, etc.
+  award?: string;     // Optional: "Champion", "Runner-up", etc.
+  note?: string;      // Optional coach notes
+}
+
 export interface Season {
   id: string;
   name: string;
@@ -69,11 +83,7 @@ export interface Season {
    * - Displayed with placement badges (🥇🥈🥉) in UI
    */
   teamPlacements?: {
-    [teamId: string]: {
-      placement: number;  // 1 = 1st place, 2 = 2nd place, etc.
-      award?: string;     // Optional: "Champion", "Runner-up", etc.
-      note?: string;      // Optional coach notes
-    };
+    [teamId: string]: TeamPlacementInfo;
   };
   // Note: teamId removed - seasons are global entities per plan
   // Note: roster management removed - teams handle rosters now
@@ -113,11 +123,7 @@ export interface Tournament {
    * - Displayed with placement badges (🥇🥈🥉) in UI
    */
   teamPlacements?: {
-    [teamId: string]: {
-      placement: number;  // 1 = 1st place, 2 = 2nd place, etc.
-      award?: string;     // Optional: "Champion", "Runner-up", etc.
-      note?: string;      // Optional coach notes
-    };
+    [teamId: string]: TeamPlacementInfo;
   };
   // Note: teamId removed - tournaments are global entities per plan
   // Note: roster management removed - teams handle rosters now

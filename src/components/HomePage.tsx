@@ -1203,10 +1203,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     // Only auto-save if loaded AND we have a proper game ID (not the default unsaved one)
     const autoSave = async () => {
     if (initialLoadComplete && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-      logger.log(`Auto-saving state for game ID: ${currentGameId}`, {
-        teamId: gameSessionState.teamId,
-        tournamentId: gameSessionState.tournamentId,
-      });
       try {
         // 1. Create the current game state snapshot (excluding history and volatile timer states)
         const currentSnapshot: AppState = {
@@ -1264,8 +1260,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         logger.error("Failed to auto-save game state:", error);
         showToast("Error saving game.", 'error');
       }
-    } else if (initialLoadComplete && currentGameId === DEFAULT_GAME_ID) {
-      logger.log("Not auto-saving as this is an unsaved game (no ID assigned yet)");
     }
     };
     autoSave();
@@ -2173,7 +2167,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         // This makes the quick save behave like loading a game, resetting undo/redo
         resetHistory(currentSnapshot);
 
-        logger.log(`Game quick saved successfully with ID: ${currentGameId}`);
         if (!silent) {
           showToast('Game saved!');
         }
@@ -2574,7 +2567,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   // Handler for "Save Before New" confirmation - user chooses to save
   const handleSaveBeforeNewConfirmed = useCallback(() => {
-    logger.log("User chose to Quick Save before starting new game.");
     handleQuickSaveGame(); // Call quick save directly
     setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds); // Use the current selection
     setShowSaveBeforeNewConfirm(false);
@@ -2583,7 +2575,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   // Handler for "Save Before New" cancellation - user chooses to discard
   const handleSaveBeforeNewCancelled = useCallback(() => {
-    logger.log("Discarding current game changes to start new game.");
     setShowSaveBeforeNewConfirm(false);
     // Show the "start new" confirmation after discarding
     setShowStartNewConfirm(true);
@@ -2591,7 +2582,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   // Handler for "Start New" confirmation
   const handleStartNewConfirmed = useCallback(() => {
-    logger.log("Start new game confirmed, opening setup modal...");
     setPlayerIdsForNewGame(availablePlayers.map(p => p.id)); // SET default player selection (all players)
     setShowStartNewConfirm(false);
     setIsNewGameSetupModalOpen(true); // Open the setup modal
