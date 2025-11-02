@@ -1,4 +1,4 @@
-import { setTeamRoster, getTeamRoster, addPlayerToRoster } from './teams';
+import { setTeamRoster, getTeamRoster, addPlayerToRoster, addTeam, duplicateTeam, getTeam } from './teams';
 import { TeamPlayer } from '@/types';
 import { clearMockStore } from './__mocks__/storage';
 
@@ -99,5 +99,131 @@ describe('Teams Lock Integration', () => {
     const playerIds = finalRoster.map(p => p.id);
     const uniqueIds = new Set(playerIds);
     expect(uniqueIds.size).toBe(operationCount);
+  });
+});
+
+describe('Team metadata fields', () => {
+  beforeEach(() => {
+    clearMockStore();
+  });
+
+  /**
+   * Tests preservation of ageGroup and notes when creating a team
+   * @critical
+   */
+  it('should preserve ageGroup and notes when creating team', async () => {
+    const team = await addTeam({
+      name: 'Test Team',
+      ageGroup: 'U10',
+      notes: 'Spring season team'
+    });
+
+    expect(team.ageGroup).toBe('U10');
+    expect(team.notes).toBe('Spring season team');
+
+    // Verify it persists when retrieved
+    const retrieved = await getTeam(team.id);
+    expect(retrieved?.ageGroup).toBe('U10');
+    expect(retrieved?.notes).toBe('Spring season team');
+  });
+
+  /**
+   * Tests preservation of ageGroup and notes when duplicating a team
+   * @critical
+   */
+  it('should preserve ageGroup and notes when duplicating team', async () => {
+    const original = await addTeam({
+      name: 'Original Team',
+      ageGroup: 'U12',
+      notes: 'Original notes'
+    });
+
+    const duplicate = await duplicateTeam(original.id);
+
+    expect(duplicate).not.toBeNull();
+    expect(duplicate?.ageGroup).toBe('U12');
+    expect(duplicate?.notes).toBe('Original notes');
+    expect(duplicate?.name).toBe('Original Team (Copy)');
+  });
+
+  /**
+   * Tests handling of empty ageGroup and notes
+   * @edge-case
+   */
+  it('should handle empty ageGroup and notes gracefully', async () => {
+    const team = await addTeam({
+      name: 'Minimal Team',
+      ageGroup: '',
+      notes: ''
+    });
+
+    // Empty strings are preserved as-is
+    expect(team.ageGroup).toBe('');
+    expect(team.notes).toBe('');
+  });
+
+  /**
+   * Tests handling of undefined ageGroup and notes
+   * @edge-case
+   */
+  it('should handle undefined ageGroup and notes gracefully', async () => {
+    const team = await addTeam({
+      name: 'Minimal Team 2'
+      // ageGroup and notes intentionally omitted
+    });
+
+    expect(team.ageGroup).toBeUndefined();
+    expect(team.notes).toBeUndefined();
+  });
+
+  /**
+   * Tests that duplicating a team without metadata works correctly
+   * @edge-case
+   */
+  it('should duplicate team without metadata correctly', async () => {
+    const original = await addTeam({
+      name: 'Minimal Original'
+    });
+
+    const duplicate = await duplicateTeam(original.id);
+
+    expect(duplicate).not.toBeNull();
+    expect(duplicate?.ageGroup).toBeUndefined();
+    expect(duplicate?.notes).toBeUndefined();
+    expect(duplicate?.name).toBe('Minimal Original (Copy)');
+  });
+
+  /**
+   * Tests that all age groups are valid
+   * @edge-case
+   */
+  it('should handle all valid age groups', async () => {
+    const ageGroups = ['U7', 'U8', 'U9', 'U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'U19', 'U20', 'U21'];
+
+    for (const ageGroup of ageGroups) {
+      const team = await addTeam({
+        name: `Team ${ageGroup}`,
+        ageGroup
+      });
+
+      expect(team.ageGroup).toBe(ageGroup);
+    }
+  });
+
+  /**
+   * Tests that notes can contain multiline text
+   * @edge-case
+   */
+  it('should handle multiline notes', async () => {
+    const multilineNotes = 'Line 1\nLine 2\nLine 3';
+    const team = await addTeam({
+      name: 'Team with Notes',
+      notes: multilineNotes
+    });
+
+    expect(team.notes).toBe(multilineNotes);
+
+    const retrieved = await getTeam(team.id);
+    expect(retrieved?.notes).toBe(multilineNotes);
   });
 });
