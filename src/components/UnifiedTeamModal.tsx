@@ -128,11 +128,11 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
 
     try {
       if (mode === 'create') {
-        // Create new team
+        // Create new team (data layer normalizes empty strings to undefined)
         const newTeam = await addTeamMutation.mutateAsync({
           name: trimmedName,
-          ageGroup: ageGroup || undefined,
-          notes: notes || undefined,
+          ageGroup: ageGroup,
+          notes: notes,
           archived,
         });
 
@@ -145,15 +145,15 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
           });
         }
       } else {
-        // Update existing team
+        // Update existing team (data layer normalizes empty strings to undefined)
         if (!team) return;
 
         await updateTeamMutation.mutateAsync({
           teamId: team.id,
           updates: {
             name: trimmedName,
-            ageGroup: ageGroup || undefined,
-            notes: notes || undefined,
+            ageGroup: ageGroup,
+            notes: notes,
             archived,
           },
         });

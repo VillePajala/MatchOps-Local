@@ -165,21 +165,23 @@ describe('Team metadata fields', () => {
   });
 
   /**
-   * Tests that the UI layer pattern (|| undefined) works correctly
-   * This simulates what UnifiedTeamModal does when saving
+   * Tests backwards compatibility with the (|| undefined) pattern.
+   * Note: The UI layer (UnifiedTeamModal) no longer uses this pattern since the
+   * data layer automatically normalizes empty strings to undefined. However, this
+   * test validates that the pattern still works correctly for programmatic access.
    * @edge-case
    */
-  it('should store undefined when UI passes empty strings with || undefined pattern', async () => {
+  it('should handle legacy || undefined pattern for backwards compatibility', async () => {
     const ageGroup = '';
     const notes = '';
 
     const team = await addTeam({
-      name: 'UI Pattern Team',
+      name: 'Legacy Pattern Team',
       ageGroup: ageGroup || undefined,
       notes: notes || undefined
     });
 
-    // The || undefined pattern converts empty strings to undefined
+    // Both the || undefined pattern and data layer normalization result in undefined
     expect(team.ageGroup).toBeUndefined();
     expect(team.notes).toBeUndefined();
   });
