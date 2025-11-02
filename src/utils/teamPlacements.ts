@@ -4,15 +4,7 @@
 
 import logger from './logger';
 import { withKeyLock } from './storageKeyLock';
-
-/**
- * Placement data for a team
- */
-export interface TeamPlacementData {
-  placement: number;  // 1 = 1st place, 2 = 2nd place, etc.
-  award?: string;     // Optional: "Champion", "Runner-up", etc.
-  note?: string;      // Optional coach notes
-}
+import type { TeamPlacementInfo } from '@/types';
 
 /**
  * An entity (Tournament or Season) that can have team placements
@@ -20,7 +12,7 @@ export interface TeamPlacementData {
 export interface EntityWithPlacements {
   id: string;
   teamPlacements?: {
-    [teamId: string]: TeamPlacementData;
+    [teamId: string]: TeamPlacementInfo;
   };
 }
 
@@ -116,7 +108,7 @@ export function getTeamPlacementFromItems<T extends EntityWithPlacements>(
   entityId: string,
   teamId: string,
   entityType: string
-): TeamPlacementData | null {
+): TeamPlacementInfo | null {
   try {
     const item = items.find(i => i.id === entityId);
 

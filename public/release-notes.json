@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: Implement optimistic updates for placement dropdowns"
+  "notes": "test: Add comprehensive test coverage for team placement features"
 }

@@ -2405,8 +2405,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     availablePlayersForGame: Player[], // Add the actual roster for the game
     selectedPersonnelIds: string[] // Add personnel selection
   ) => {
-    logger.log('[handleStartNewGameWithSetup] Received teamId:', teamId);
-
       // Determine the player selection for the new game
       const finalSelectedPlayerIds = initialSelectedPlayerIds && initialSelectedPlayerIds.length > 0 
           ? initialSelectedPlayerIds 
@@ -2451,11 +2449,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           tacticalBallPosition: { relX: 0.5, relY: 0.5 },
           gamePersonnel: selectedPersonnelIds, // Personnel assigned to this game
       };
-
-      // Log the constructed state *before* saving
-      logger.log('[handleStartNewGameWithSetup] newGameState.teamId:', newGameState.teamId);
-      logger.log('[handleStartNewGameWithSetup] newGameState.tournamentId:', newGameState.tournamentId);
-      logger.log('[handleStartNewGameWithSetup] newGameState.seasonId:', newGameState.seasonId);
 
       // 2. Auto-generate ID
       const newGameId = `game_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
