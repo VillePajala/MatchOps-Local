@@ -1,18 +1,24 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
-import { Team, Player } from '@/types';
+import { Team, Player, Tournament, Season } from '@/types';
 import {
   useAddTeamMutation,
   useUpdateTeamMutation,
   useTeamRosterQuery,
   useSetTeamRosterMutation
 } from '@/hooks/useTeamQueries';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { queryKeys } from '@/config/queryKeys';
+import { getTournaments, updateTeamPlacement as updateTournamentTeamPlacement } from '@/utils/tournaments';
+import { getSeasons, updateTeamPlacement as updateSeasonTeamPlacement } from '@/utils/seasons';
+import { getSavedGames } from '@/utils/savedGames';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import logger from '@/utils/logger';
 import { AGE_GROUPS } from '@/config/gameOptions';
+import { useToast } from '@/contexts/ToastProvider';
 
 interface UnifiedTeamModalProps {
   isOpen: boolean;
@@ -51,8 +57,37 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   const updateTeamMutation = useUpdateTeamMutation();
   const setTeamRosterMutation = useSetTeamRosterMutation();
 
+  // Query client for cache invalidation
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
   // Query for existing roster (edit mode only)
   const { data: existingRoster = [] } = useTeamRosterQuery(teamId || null);
+
+  // Queries for tournaments, seasons, and saved games (when viewing/editing existing team)
+  const { data: tournaments = [] } = useQuery<Tournament[]>({
+    queryKey: queryKeys.tournaments,
+    queryFn: getTournaments,
+    enabled: !!teamId,
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: true,
+  });
+
+  const { data: seasons = [] } = useQuery<Season[]>({
+    queryKey: queryKeys.seasons,
+    queryFn: getSeasons,
+    enabled: !!teamId,
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: true,
+  });
+
+  const { data: savedGames = {} } = useQuery({
+    queryKey: queryKeys.savedGames,
+    queryFn: getSavedGames,
+    enabled: !!teamId,
+    staleTime: 30000, // 30 seconds
+    refetchOnWindowFocus: true,
+  });
 
   // Initialize form when modal opens or team changes
   useEffect(() => {
@@ -102,6 +137,140 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name]);
+
+  // Mutation for updating team placement with optimistic updates
+  const updatePlacementMutation = useMutation({
+    mutationFn: async ({
+      type,
+      id,
+      teamId,
+      placement
+    }: {
+      type: 'tournament' | 'season';
+      id: string;
+      teamId: string;
+      placement: number | null;
+    }) => {
+      if (type === 'tournament') {
+        return await updateTournamentTeamPlacement(id, teamId, placement);
+      } else {
+        return await updateSeasonTeamPlacement(id, teamId, placement);
+      }
+    },
+    onMutate: async ({ type, id, teamId: mutationTeamId, placement }) => {
+      const queryKey = type === 'tournament' ? queryKeys.tournaments : queryKeys.seasons;
+
+      // Cancel any outgoing refetches to avoid overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey });
+
+      // Snapshot the previous value for rollback
+      const previousData = queryClient.getQueryData(queryKey);
+
+      // Optimistically update the cache
+      queryClient.setQueryData(queryKey, (old: Tournament[] | Season[] | undefined) => {
+        if (!old) return old;
+
+        return old.map((item) => {
+          if (item.id !== id) return item;
+
+          // Update the placement for this team
+          const updatedItem = { ...item };
+          if (placement === null) {
+            // Remove placement
+            if (updatedItem.teamPlacements) {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              const { [mutationTeamId]: _removed, ...rest } = updatedItem.teamPlacements;
+              updatedItem.teamPlacements = Object.keys(rest).length > 0 ? rest : undefined;
+            }
+          } else {
+            // Set or update placement
+            updatedItem.teamPlacements = {
+              ...updatedItem.teamPlacements,
+              [mutationTeamId]: {
+                placement,
+                ...(updatedItem.teamPlacements?.[mutationTeamId]?.award && {
+                  award: updatedItem.teamPlacements[mutationTeamId].award
+                }),
+                ...(updatedItem.teamPlacements?.[mutationTeamId]?.note && {
+                  note: updatedItem.teamPlacements[mutationTeamId].note
+                }),
+              },
+            };
+          }
+
+          return updatedItem;
+        });
+      });
+
+      // Return context with previous data for rollback
+      return { previousData, queryKey };
+    },
+    onError: (error, variables, context) => {
+      // Rollback to previous data on error
+      if (context?.previousData && context?.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.previousData);
+      }
+
+      logger.error(`Failed to update ${variables.type} placement:`, error);
+      showToast(
+        t('unifiedTeamModal.placementUpdateFailed', 'Failed to update placement'),
+        'error'
+      );
+    },
+    onSuccess: (data, variables) => {
+      // Refetch to ensure we have the latest server data
+      const queryKey = variables.type === 'tournament' ? queryKeys.tournaments : queryKeys.seasons;
+      queryClient.invalidateQueries({ queryKey });
+
+      showToast(
+        t('unifiedTeamModal.placementUpdated', 'Placement updated successfully'),
+        'success'
+      );
+    },
+  });
+
+  // Calculate tournaments/seasons where this team has played games OR has a placement assigned
+  const teamHistory = useMemo(() => {
+    if (!teamId) return { tournaments: [], seasons: [] };
+
+    const teamTournaments = tournaments.filter(t => {
+      // Show if team has games in this tournament OR has a placement assigned
+      const hasGames = Object.values(savedGames).some(game =>
+        game.teamId === teamId && game.tournamentId === t.id
+      );
+      const hasPlacement = !!t.teamPlacements?.[teamId];
+      return hasGames || hasPlacement;
+    });
+
+    const teamSeasons = seasons.filter(s => {
+      // Show if team has games in this season OR has a placement assigned
+      const hasGames = Object.values(savedGames).some(game =>
+        game.teamId === teamId && game.seasonId === s.id
+      );
+      const hasPlacement = !!s.teamPlacements?.[teamId];
+      return hasGames || hasPlacement;
+    });
+
+    return { tournaments: teamTournaments, seasons: teamSeasons };
+  }, [teamId, tournaments, seasons, savedGames]);
+
+  // Handler for updating team placement in tournaments/seasons
+  const handlePlacementChange = (
+    type: 'tournament' | 'season',
+    id: string,
+    placementValue: string
+  ) => {
+    if (!teamId) return;
+
+    const placement = placementValue === '' ? null : parseInt(placementValue, 10);
+
+    updatePlacementMutation.mutate({
+      type,
+      id,
+      teamId,
+      placement,
+    });
+  };
 
   const handleSave = async () => {
     const trimmedName = name.trim();
@@ -336,6 +505,87 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                             ))
                         )}
                       </div>
+
+                      {/* Tournament & Season Placements Section */}
+                      {teamId && (teamHistory.tournaments.length > 0 || teamHistory.seasons.length > 0) && (
+                        <div className="mt-6">
+                          <label className="block text-sm font-medium text-slate-300 mb-2">
+                            {t('unifiedTeamModal.placementsTitle', 'Tournament & Season Placements')} ({teamHistory.tournaments.length + teamHistory.seasons.length})
+                          </label>
+
+                          <div className="space-y-3">
+                            {/* Tournaments */}
+                            {teamHistory.tournaments.map((tournament) => {
+                              const placement = tournament.teamPlacements?.[teamId!]?.placement || '';
+                              return (
+                                <div
+                                  key={tournament.id}
+                                  className="p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40"
+                                >
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-lg">🏆</span>
+                                    <span className="text-slate-100 font-medium">{tournament.name}</span>
+                                  </div>
+                                  <select
+                                    value={placement}
+                                    onChange={(e) => handlePlacementChange('tournament', tournament.id, e.target.value)}
+                                    disabled={updatePlacementMutation.isPending}
+                                    aria-label={`Tournament placement for ${tournament.name}`}
+                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    <option value="">{t('unifiedTeamModal.selectPlacement', 'Select placement...')}</option>
+                                    <option value="1">{t('unifiedTeamModal.placement1st', '1st Place 🥇')}</option>
+                                    <option value="2">{t('unifiedTeamModal.placement2nd', '2nd Place 🥈')}</option>
+                                    <option value="3">{t('unifiedTeamModal.placement3rd', '3rd Place 🥉')}</option>
+                                    <option value="4">{t('unifiedTeamModal.placement4th', '4th Place')}</option>
+                                    <option value="5">{t('unifiedTeamModal.placement5th', '5th Place')}</option>
+                                    <option value="6">{t('unifiedTeamModal.placement6th', '6th Place')}</option>
+                                    <option value="7">{t('unifiedTeamModal.placement7th', '7th Place')}</option>
+                                    <option value="8">{t('unifiedTeamModal.placement8th', '8th Place')}</option>
+                                    <option value="9">{t('unifiedTeamModal.placement9th', '9th Place')}</option>
+                                    <option value="10">{t('unifiedTeamModal.placement10th', '10th Place')}</option>
+                                  </select>
+                                </div>
+                              );
+                            })}
+
+                            {/* Seasons */}
+                            {teamHistory.seasons.map((season) => {
+                              const placement = season.teamPlacements?.[teamId!]?.placement || '';
+                              return (
+                                <div
+                                  key={season.id}
+                                  className="p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40"
+                                >
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-lg">📅</span>
+                                    <span className="text-slate-100 font-medium">{season.name}</span>
+                                  </div>
+                                  <select
+                                    value={placement}
+                                    onChange={(e) => handlePlacementChange('season', season.id, e.target.value)}
+                                    disabled={updatePlacementMutation.isPending}
+                                    aria-label={`Season placement for ${season.name}`}
+                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    <option value="">{t('unifiedTeamModal.selectPlacement', 'Select placement...')}</option>
+                                    <option value="1">{t('unifiedTeamModal.placement1st', '1st Place 🥇')}</option>
+                                    <option value="2">{t('unifiedTeamModal.placement2nd', '2nd Place 🥈')}</option>
+                                    <option value="3">{t('unifiedTeamModal.placement3rd', '3rd Place 🥉')}</option>
+                                    <option value="4">{t('unifiedTeamModal.placement4th', '4th Place')}</option>
+                                    <option value="5">{t('unifiedTeamModal.placement5th', '5th Place')}</option>
+                                    <option value="6">{t('unifiedTeamModal.placement6th', '6th Place')}</option>
+                                    <option value="7">{t('unifiedTeamModal.placement7th', '7th Place')}</option>
+                                    <option value="8">{t('unifiedTeamModal.placement8th', '8th Place')}</option>
+                                    <option value="9">{t('unifiedTeamModal.placement9th', '9th Place')}</option>
+                                    <option value="10">{t('unifiedTeamModal.placement10th', '10th Place')}</option>
+                                  </select>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </>
                   ) : (
                     <>

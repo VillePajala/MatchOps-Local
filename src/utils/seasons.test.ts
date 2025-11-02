@@ -1,5 +1,5 @@
 import { SEASONS_LIST_KEY } from '@/config/storageKeys';
-import { getSeasons, saveSeasons, addSeason, updateSeason, deleteSeason } from './seasons'; // Adjust path as needed
+import { getSeasons, saveSeasons, addSeason, updateSeason, deleteSeason, updateTeamPlacement, getTeamPlacement } from './seasons'; // Adjust path as needed
 import type { Season } from '@/types'; // Import Season type directly from types
 import { clearMockStore } from './__mocks__/storage';
 import { getStorageItem, setStorageItem } from './storage';
@@ -228,6 +228,170 @@ describe('Season Management Utilities (storage)', () => {
     it('should return false and log error for invalid delete ID', async () => {
       expect(await deleteSeason('')).toBe(false);
       expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[deleteSeason] Invalid season ID provided'));
+    });
+  });
+
+  describe('updateTeamPlacement (seasons)', () => {
+
+    /**
+     * Tests adding team placement to season
+     * @critical - Core placement feature for seasons
+     */
+    it('should add a new team placement to a season', async () => {
+      const season: Season = { id: 's1', name: 'Spring 2025' };
+      await saveSeasons([season]);
+
+      const result = await updateTeamPlacement('s1', 'team1', 1, 'Champion', 'Excellent season');
+
+      expect(result).toBe(true);
+      const seasons = await getSeasons();
+      expect(seasons[0].teamPlacements).toEqual({
+        team1: {
+          placement: 1,
+          award: 'Champion',
+          note: 'Excellent season',
+        },
+      });
+    });
+
+    /**
+     * Tests updating existing season placement
+     * @critical - Ensures placement updates work correctly
+     */
+    it('should update an existing team placement in season', async () => {
+      const season: Season = {
+        id: 's1',
+        name: 'Spring 2025',
+        teamPlacements: {
+          team1: { placement: 2, award: 'Runner-up' },
+        },
+      };
+      await saveSeasons([season]);
+
+      const result = await updateTeamPlacement('s1', 'team1', 1, 'Champion');
+
+      expect(result).toBe(true);
+      const seasons = await getSeasons();
+      expect(seasons[0].teamPlacements?.team1).toEqual({
+        placement: 1,
+        award: 'Champion',
+      });
+    });
+
+    /**
+     * Tests removing season placement
+     * @critical - Required for clearing placements
+     */
+    it('should remove a team placement when placement is null', async () => {
+      const season: Season = {
+        id: 's1',
+        name: 'Spring 2025',
+        teamPlacements: {
+          team1: { placement: 1 },
+          team2: { placement: 2 },
+        },
+      };
+      await saveSeasons([season]);
+
+      const result = await updateTeamPlacement('s1', 'team1', null);
+
+      expect(result).toBe(true);
+      const seasons = await getSeasons();
+      expect(seasons[0].teamPlacements).toEqual({
+        team2: { placement: 2 },
+      });
+    });
+
+    /**
+     * Tests cleanup of empty placements object in season
+     * @edge-case - Prevents empty objects in storage
+     */
+    it('should remove teamPlacements object when last placement is removed', async () => {
+      const season: Season = {
+        id: 's1',
+        name: 'Spring 2025',
+        teamPlacements: {
+          team1: { placement: 1 },
+        },
+      };
+      await saveSeasons([season]);
+
+      const result = await updateTeamPlacement('s1', 'team1', null);
+
+      expect(result).toBe(true);
+      const seasons = await getSeasons();
+      expect(seasons[0].teamPlacements).toBeUndefined();
+    });
+
+    /**
+     * Tests handling invalid season ID
+     * @edge-case - Validates error handling
+     */
+    it('should return false when season ID is invalid', async () => {
+      const result = await updateTeamPlacement('', 'team1', 1);
+
+      expect(result).toBe(false);
+    });
+
+    /**
+     * Tests handling non-existent season
+     * @edge-case - Prevents placement on missing seasons
+     */
+    it('should return false when season is not found', async () => {
+      await saveSeasons([{ id: 's1', name: 'Test' }]);
+
+      const result = await updateTeamPlacement('nonexistent', 'team1', 1);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('getTeamPlacement (seasons)', () => {
+
+    /**
+     * Tests retrieving existing placement from season
+     * @critical - Core read functionality
+     */
+    it('should return team placement when it exists in season', async () => {
+      const season: Season = {
+        id: 's1',
+        name: 'Spring 2025',
+        teamPlacements: {
+          team1: { placement: 1, award: 'Champion' },
+        },
+      };
+      await saveSeasons([season]);
+
+      const result = await getTeamPlacement('s1', 'team1');
+
+      expect(result).toEqual({
+        placement: 1,
+        award: 'Champion',
+      });
+    });
+
+    /**
+     * Tests handling non-existent season
+     * @edge-case - Returns null for missing season
+     */
+    it('should return null when season is not found', async () => {
+      await saveSeasons([{ id: 's1', name: 'Test' }]);
+
+      const result = await getTeamPlacement('nonexistent', 'team1');
+
+      expect(result).toBeNull();
+    });
+
+    /**
+     * Tests handling season without placements
+     * @edge-case - Returns null when no placements exist
+     */
+    it('should return null when season has no placements', async () => {
+      await saveSeasons([{ id: 's1', name: 'Spring 2025' }]);
+
+      const result = await getTeamPlacement('s1', 'team1');
+
+      expect(result).toBeNull();
     });
   });
 }); 

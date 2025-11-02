@@ -889,7 +889,21 @@
     "editRoster": "Muokkaa kokoonpanoa",
     "noPlayersSelected": "Ei valittuja pelaajia. Klikkaa \"Muokkaa kokoonpanoa\" lisätäksesi pelaajia.",
     "playerSingular": "Pelaaja",
-    "playerPlural": "Pelaajaa"
+    "playerPlural": "Pelaajaa",
+    "placementsTitle": "Turnaus- ja kausisijoitukset",
+    "selectPlacement": "Valitse sijoitus...",
+    "placement1st": "1. sija 🥇",
+    "placement2nd": "2. sija 🥈",
+    "placement3rd": "3. sija 🥉",
+    "placement4th": "4. sija",
+    "placement5th": "5. sija",
+    "placement6th": "6. sija",
+    "placement7th": "7. sija",
+    "placement8th": "8. sija",
+    "placement9th": "9. sija",
+    "placement10th": "10. sija",
+    "placementUpdated": "Sijoitus päivitetty onnistuneesti",
+    "placementUpdateFailed": "Sijoituksen päivitys epäonnistui"
   },
   "personnel": {
     "selected": "valittu",
