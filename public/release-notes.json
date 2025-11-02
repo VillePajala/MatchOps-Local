@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: Add team placement tracking for tournaments and seasons"
+  "notes": "fix: Address code review issues and improve placement feature"
 }

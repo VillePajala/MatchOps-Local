@@ -10,7 +10,7 @@ import {
   useTeamRosterQuery,
   useSetTeamRosterMutation
 } from '@/hooks/useTeamQueries';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { queryKeys } from '@/config/queryKeys';
 import { getTournaments, updateTeamPlacement as updateTournamentTeamPlacement } from '@/utils/tournaments';
 import { getSeasons, updateTeamPlacement as updateSeasonTeamPlacement } from '@/utils/seasons';
@@ -138,6 +138,97 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name]);
 
+  // Mutation for updating team placement with optimistic updates
+  const updatePlacementMutation = useMutation({
+    mutationFn: async ({
+      type,
+      id,
+      teamId,
+      placement
+    }: {
+      type: 'tournament' | 'season';
+      id: string;
+      teamId: string;
+      placement: number | null;
+    }) => {
+      if (type === 'tournament') {
+        return await updateTournamentTeamPlacement(id, teamId, placement);
+      } else {
+        return await updateSeasonTeamPlacement(id, teamId, placement);
+      }
+    },
+    onMutate: async ({ type, id, teamId: mutationTeamId, placement }) => {
+      const queryKey = type === 'tournament' ? queryKeys.tournaments : queryKeys.seasons;
+
+      // Cancel any outgoing refetches to avoid overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey });
+
+      // Snapshot the previous value for rollback
+      const previousData = queryClient.getQueryData(queryKey);
+
+      // Optimistically update the cache
+      queryClient.setQueryData(queryKey, (old: Tournament[] | Season[] | undefined) => {
+        if (!old) return old;
+
+        return old.map((item) => {
+          if (item.id !== id) return item;
+
+          // Update the placement for this team
+          const updatedItem = { ...item };
+          if (placement === null) {
+            // Remove placement
+            if (updatedItem.teamPlacements) {
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              const { [mutationTeamId]: _removed, ...rest } = updatedItem.teamPlacements;
+              updatedItem.teamPlacements = Object.keys(rest).length > 0 ? rest : undefined;
+            }
+          } else {
+            // Set or update placement
+            updatedItem.teamPlacements = {
+              ...updatedItem.teamPlacements,
+              [mutationTeamId]: {
+                placement,
+                ...(updatedItem.teamPlacements?.[mutationTeamId]?.award && {
+                  award: updatedItem.teamPlacements[mutationTeamId].award
+                }),
+                ...(updatedItem.teamPlacements?.[mutationTeamId]?.note && {
+                  note: updatedItem.teamPlacements[mutationTeamId].note
+                }),
+              },
+            };
+          }
+
+          return updatedItem;
+        });
+      });
+
+      // Return context with previous data for rollback
+      return { previousData, queryKey };
+    },
+    onError: (error, variables, context) => {
+      // Rollback to previous data on error
+      if (context?.previousData && context?.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.previousData);
+      }
+
+      logger.error(`Failed to update ${variables.type} placement:`, error);
+      showToast(
+        t('unifiedTeamModal.placementUpdateFailed', 'Failed to update placement'),
+        'error'
+      );
+    },
+    onSuccess: (data, variables) => {
+      // Refetch to ensure we have the latest server data
+      const queryKey = variables.type === 'tournament' ? queryKeys.tournaments : queryKeys.seasons;
+      queryClient.invalidateQueries({ queryKey });
+
+      showToast(
+        t('unifiedTeamModal.placementUpdated', 'Placement updated successfully'),
+        'success'
+      );
+    },
+  });
+
   // Calculate tournaments/seasons where this team has played games OR has a placement assigned
   const teamHistory = useMemo(() => {
     if (!teamId) return { tournaments: [], seasons: [] };
@@ -164,7 +255,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   }, [teamId, tournaments, seasons, savedGames]);
 
   // Handler for updating team placement in tournaments/seasons
-  const handlePlacementChange = async (
+  const handlePlacementChange = (
     type: 'tournament' | 'season',
     id: string,
     placementValue: string
@@ -173,25 +264,12 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
 
     const placement = placementValue === '' ? null : parseInt(placementValue, 10);
 
-    try {
-      if (type === 'tournament') {
-        await updateTournamentTeamPlacement(id, teamId, placement);
-        await queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
-      } else {
-        await updateSeasonTeamPlacement(id, teamId, placement);
-        await queryClient.invalidateQueries({ queryKey: queryKeys.seasons });
-      }
-      showToast(
-        t('unifiedTeamModal.placementUpdated', 'Placement updated successfully'),
-        'success'
-      );
-    } catch (error) {
-      logger.error(`Failed to update ${type} placement:`, error);
-      showToast(
-        t('unifiedTeamModal.placementUpdateFailed', 'Failed to update placement'),
-        'error'
-      );
-    }
+    updatePlacementMutation.mutate({
+      type,
+      id,
+      teamId,
+      placement,
+    });
   };
 
   const handleSave = async () => {
@@ -451,7 +529,8 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                                   <select
                                     value={placement}
                                     onChange={(e) => handlePlacementChange('tournament', tournament.id, e.target.value)}
-                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    disabled={updatePlacementMutation.isPending}
+                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     <option value="">{t('unifiedTeamModal.selectPlacement', 'Select placement...')}</option>
                                     <option value="1">{t('unifiedTeamModal.placement1st', '1st Place 🥇')}</option>
@@ -484,7 +563,8 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                                   <select
                                     value={placement}
                                     onChange={(e) => handlePlacementChange('season', season.id, e.target.value)}
-                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                                    disabled={updatePlacementMutation.isPending}
+                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     <option value="">{t('unifiedTeamModal.selectPlacement', 'Select placement...')}</option>
                                     <option value="1">{t('unifiedTeamModal.placement1st', '1st Place 🥇')}</option>
