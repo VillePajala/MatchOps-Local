@@ -15,7 +15,6 @@ import GameSettingsModal from '@/components/GameSettingsModal';
 import SettingsModal from '@/components/SettingsModal';
 import SeasonTournamentManagementModal from '@/components/SeasonTournamentManagementModal';
 import TeamManagerModal from '@/components/TeamManagerModal';
-import TeamRosterModal from '@/components/TeamRosterModal';
 import PersonnelManagerModal from '@/components/PersonnelManagerModal';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import InstructionsModal from '@/components/InstructionsModal';
@@ -460,8 +459,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   // const [isPlayerStatsModalOpen, setIsPlayerStatsModalOpen] = useState(false);
   const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<Player | null>(null);
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState<boolean>(false);
-  const [isTeamRosterModalOpen, setIsTeamRosterModalOpen] = useState<boolean>(false);
-  const [selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
   const [isPersonnelManagerOpen, setIsPersonnelManagerOpen] = useState<boolean>(false);
 
   // --- Timer State (Still needed here) ---
@@ -1575,22 +1572,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   };
   const handleCloseTeamManagerModal = () => {
     setIsTeamManagerOpen(false);
-  };
-
-  const handleManageTeamRoster = (teamId: string) => {
-    setSelectedTeamForRoster(teamId);
-    setIsTeamRosterModalOpen(true);
-    setIsTeamManagerOpen(false); // Close team manager modal
-  };
-
-  const handleCloseTeamRosterModal = () => {
-    setIsTeamRosterModalOpen(false);
-    setSelectedTeamForRoster(null);
-  };
-  const handleBackToTeamManager = () => {
-    setIsTeamRosterModalOpen(false);
-    setSelectedTeamForRoster(null);
-    setIsTeamManagerOpen(true); // Reopen team manager modal
   };
 
   // Placeholder handlers for updating game info (will be passed to modal)
@@ -3277,25 +3258,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         isOpen={isInstructionsModalOpen}
         onClose={handleToggleInstructionsModal}
       />
-      <ErrorBoundary>
-        <TeamManagerModal
-          isOpen={isTeamManagerOpen}
-          onClose={handleCloseTeamManagerModal}
-          teams={teams}
-          onManageRoster={handleManageTeamRoster}
-        />
-      </ErrorBoundary>
-      
-      <ErrorBoundary>
-        <TeamRosterModal
-          isOpen={isTeamRosterModalOpen}
-          onClose={handleCloseTeamRosterModal}
-          onBack={handleBackToTeamManager}
-          teamId={selectedTeamForRoster}
-          team={teams.find(t => t.id === selectedTeamForRoster) || null}
-          masterRoster={masterRosterQueryResultData || []}
-        />
-      </ErrorBoundary>
 
       <ErrorBoundary>
         <PersonnelManagerModal
@@ -3306,7 +3268,16 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           onUpdatePersonnel={personnelManager.updatePersonnel}
           onRemovePersonnel={personnelManager.removePersonnel}
           isUpdating={personnelManager.isLoading}
-          error={personnelManager.error}
+        />
+      </ErrorBoundary>
+
+      {/* Team Manager Modal - now includes roster management via UnifiedTeamModal */}
+      <ErrorBoundary>
+        <TeamManagerModal
+          isOpen={isTeamManagerOpen}
+          onClose={handleCloseTeamManagerModal}
+          teams={teams}
+          masterRoster={masterRosterQueryResultData || []}
         />
       </ErrorBoundary>
 
@@ -3386,11 +3357,11 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           initialPlayerSelection={playerIdsForNewGame} // <<< Pass the state here
           demandFactor={newGameDemandFactor}
           onDemandFactorChange={setNewGameDemandFactor}
-          onManageTeamRoster={(teamId) => {
-            // Close new game modal and open team roster modal for the specific team
+          onManageTeamRoster={() => {
+            // Close new game modal and open team manager modal
+            // Note: User will need to navigate to the specific team roster from team manager
             setIsNewGameSetupModalOpen(false);
-            setSelectedTeamForRoster(teamId);
-            setIsTeamRosterModalOpen(true);
+            setIsTeamManagerOpen(true);
           }}
           onStart={handleStartNewGameWithSetup} // CORRECTED Handler
           onCancel={handleCancelNewGameSetup}

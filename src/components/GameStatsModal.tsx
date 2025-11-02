@@ -179,12 +179,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
-  const [activeTab, setActiveTab] = useState<StatsTab>('currentGame');
+  const [activeTab, setActiveTab] = useState<StatsTab>(initialSelectedPlayerId ? 'player' : 'currentGame');
   const [selectedSeasonIdFilter, setSelectedSeasonIdFilter] = useState<string | 'all'>('all');
   const [selectedTournamentIdFilter, setSelectedTournamentIdFilter] = useState<string | 'all'>('all');
   const [selectedTeamIdFilter, setSelectedTeamIdFilter] = useState<string | 'all' | 'legacy'>('all');
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents);
-  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(
+    initialSelectedPlayerId ? availablePlayers.find(p => p.id === initialSelectedPlayerId) || null : null
+  );
   const [playerQuery, setPlayerQuery] = useState('');
   const [selectedClubSeason, setSelectedClubSeason] = useState<string>('all');
 
@@ -265,16 +267,20 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     if (isEditingNotes) notesTextareaRef.current?.focus();
   }, [isEditingNotes]);
 
-  // Set initial selected player
+  // Update selected player and active tab when initialSelectedPlayerId changes
   useEffect(() => {
-    if (isOpen && initialSelectedPlayerId) {
+    if (initialSelectedPlayerId) {
       const player = availablePlayers.find(p => p.id === initialSelectedPlayerId);
       if (player) {
         setSelectedPlayer(player);
         setActiveTab('player');
       }
+    } else if (!isOpen) {
+      // Only reset when modal is closed to avoid flashing
+      setActiveTab('currentGame');
+      setSelectedPlayer(null);
     }
-  }, [isOpen, initialSelectedPlayerId, availablePlayers]);
+  }, [initialSelectedPlayerId, availablePlayers, isOpen]);
 
   // Reset filters when tab changes
   useEffect(() => {
@@ -414,18 +420,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         const playerGames = Object.values(savedGames || {}).filter(
           game => game.selectedPlayerIds?.includes(selectedPlayer.id)
         );
-        const uniqueSeasonIds = new Set(
-          playerGames
-            .map(game => game.seasonId)
-            .filter((id): id is string => id != null)
-        );
-        const seasonsCount = uniqueSeasonIds.size;
+        const matchesCount = playerGames.length;
         return (
           <span>
-            <span className="text-yellow-400 font-semibold">{seasonsCount}</span>
-            {" "}{seasonsCount === 1
-              ? t('seasonTournamentModal.seasonSingular', 'Season')
-              : t('seasonTournamentModal.seasons', 'Seasons')}
+            <span className="text-yellow-400 font-semibold">{matchesCount}</span>
+            {" "}{matchesCount === 1
+              ? t('common.gameSingular', 'Match')
+              : t('common.gamePlural', 'Matches')}
           </span>
         );
       } else {
@@ -690,7 +691,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Left Column */}
                 <div className="space-y-6">
-            <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
                   {/* Overall Statistics Section */}
                   {activeTab === 'overall' && overallTeamStats && (
                     <TeamPerformanceCard
@@ -741,7 +741,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                             </div>
                           ))
                         ) : (
-                          <div className="bg-slate-900/70 p-8 rounded-lg border border-slate-700 shadow-inner text-center text-slate-400">
+                          <div className="bg-slate-900/70 p-8 rounded-lg border border-slate-700 shadow-inner text-center text-slate-400 -mx-2 sm:-mx-4 md:-mx-6">
                             {activeTab === 'season'
                               ? t('gameStatsModal.noSeasonGames', 'No games found for this season.')
                               : t('gameStatsModal.noTournamentGames', 'No games found for this tournament.')
@@ -750,7 +750,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                         )
                       ) : (
                         // "All Seasons/Tournaments" selected - show aggregate stats in a card
-                        <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+                        <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
                           <h3 className="text-xl font-semibold text-slate-200 mb-4">
                             {activeTab === 'season'
                               ? t('gameStatsModal.filterAllSeasons', 'All Seasons')
@@ -819,7 +819,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   )}
 
                   {/* Player Stats Table */}
-                  <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
+                  <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
                     <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.playerStatsTitle', 'Player Statistics')}</h3>
                     {/* Search Input */}
                     <div className="relative mb-4">
@@ -869,6 +869,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                         onEditGoalScorerChange={goalEditorHook.setEditGoalScorerId}
                         onEditGoalAssisterChange={goalEditorHook.setEditGoalAssisterId}
                       />
+
+                      <PersonnelSummaryCard personnel={resolvedGamePersonnel} />
 
                       <GameNotesEditor
                         gameNotes={gameNotes}
