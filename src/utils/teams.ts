@@ -48,6 +48,13 @@ export const getTeam = async (teamId: string): Promise<Team | null> => {
 // Constants for validation
 const MAX_NOTES_LENGTH = 1000;
 
+// Normalize optional string fields: trim and convert empty strings to undefined
+const normalizeOptionalString = (value?: string): string | undefined => {
+  if (value === undefined) return undefined;
+  const trimmed = value.trim();
+  return trimmed === '' ? undefined : trimmed;
+};
+
 // Validate team name uniqueness (case-insensitive, normalized)
 const validateTeamName = async (name: string, excludeTeamId?: string): Promise<void> => {
   const trimmed = name.trim();
@@ -87,9 +94,13 @@ const validateTeamAgeGroup = (ageGroup?: string): void => {
 
 // Create new team
 export const addTeam = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>): Promise<Team> => {
+  // Normalize optional fields (trim and convert empty strings to undefined)
+  const normalizedAgeGroup = normalizeOptionalString(teamData.ageGroup);
+  const normalizedNotes = normalizeOptionalString(teamData.notes);
+
   await validateTeamName(teamData.name);
-  validateTeamNotes(teamData.notes);
-  validateTeamAgeGroup(teamData.ageGroup);
+  validateTeamNotes(normalizedNotes);
+  validateTeamAgeGroup(normalizedAgeGroup);
 
   return withKeyLock(TEAMS_INDEX_KEY, async () => {
     const now = new Date().toISOString();
@@ -97,6 +108,8 @@ export const addTeam = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updated
       id: `team_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       ...teamData,
       name: teamData.name.trim(), // Ensure trimmed
+      ageGroup: normalizedAgeGroup,
+      notes: normalizedNotes,
       createdAt: now,
       updatedAt: now,
     };
@@ -125,13 +138,15 @@ export const updateTeam = async (teamId: string, updates: Partial<Omit<Team, 'id
       updates.name = updates.name.trim();
     }
 
-    // Validate notes if being updated
+    // Normalize and validate notes if being updated
     if (updates.notes !== undefined) {
+      updates.notes = normalizeOptionalString(updates.notes);
       validateTeamNotes(updates.notes);
     }
 
-    // Validate age group if being updated
+    // Normalize and validate age group if being updated
     if (updates.ageGroup !== undefined) {
+      updates.ageGroup = normalizeOptionalString(updates.ageGroup);
       validateTeamAgeGroup(updates.ageGroup);
     }
 
