@@ -148,6 +148,8 @@ describe('Team metadata fields', () => {
 
   /**
    * Tests handling of empty ageGroup and notes
+   * Empty strings passed to addTeam are preserved, but the UI layer
+   * (UnifiedTeamModal) converts empty strings to undefined before calling addTeam
    * @edge-case
    */
   it('should handle empty ageGroup and notes gracefully', async () => {
@@ -157,9 +159,30 @@ describe('Team metadata fields', () => {
       notes: ''
     });
 
-    // Empty strings are preserved as-is
+    // Empty strings are preserved as-is by addTeam
+    // (UnifiedTeamModal converts them to undefined before calling addTeam)
     expect(team.ageGroup).toBe('');
     expect(team.notes).toBe('');
+  });
+
+  /**
+   * Tests that the UI layer pattern (|| undefined) works correctly
+   * This simulates what UnifiedTeamModal does when saving
+   * @edge-case
+   */
+  it('should store undefined when UI passes empty strings with || undefined pattern', async () => {
+    const ageGroup = '';
+    const notes = '';
+
+    const team = await addTeam({
+      name: 'UI Pattern Team',
+      ageGroup: ageGroup || undefined,
+      notes: notes || undefined
+    });
+
+    // The || undefined pattern converts empty strings to undefined
+    expect(team.ageGroup).toBeUndefined();
+    expect(team.notes).toBeUndefined();
   });
 
   /**
