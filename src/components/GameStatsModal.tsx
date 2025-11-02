@@ -66,9 +66,10 @@ interface GameStatsModalProps {
   currentGameId: string | null;
   gamePersonnel?: string[];
   personnelDirectory?: Personnel[];
-  onExportOneCsv?: (gameId: string) => void;
+  onExportOneExcel?: (gameId: string) => void;
   onDeleteGameEvent?: (goalId: string) => void;
-  onExportAggregateCsv?: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
+  onExportAggregateExcel?: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
+  onExportPlayerExcel?: (playerId: string, playerData: PlayerStatRow, gameIds: string[]) => void;
   initialSelectedPlayerId?: string | null;
   onGameClick?: (gameId: string) => void;
   masterRoster?: Player[];
@@ -98,9 +99,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   currentGameId,
   gamePersonnel = [],
   personnelDirectory = [],
-  onExportOneCsv,
+  onExportOneExcel,
   onDeleteGameEvent,
-  onExportAggregateCsv,
+  onExportAggregateExcel,
+  onExportPlayerExcel,
   initialSelectedPlayerId = null,
   onGameClick = () => {},
   masterRoster = [],
@@ -892,22 +894,38 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
         {/* Footer */}
         <ModalFooter>
-          {(onExportAggregateCsv || onExportOneCsv) ? (
+          {(onExportAggregateExcel || onExportOneExcel || onExportPlayerExcel) ? (
             <>
-              {activeTab === 'currentGame' && currentGameId && onExportOneCsv && (
+              {activeTab === 'currentGame' && currentGameId && onExportOneExcel && (
                 <button
-                  onClick={() => onExportOneCsv(currentGameId)}
+                  onClick={() => onExportOneExcel(currentGameId)}
                   className="px-4 py-2 rounded-md font-medium transition-colors bg-slate-700 hover:bg-slate-600 text-slate-200"
                 >
-                  {t('common.exportCsv', 'Vie CSV')}
+                  {t('common.exportExcel', 'Export Excel')}
                 </button>
               )}
-              {activeTab !== 'currentGame' && onExportAggregateCsv && (
+              {activeTab === 'player' && selectedPlayer && onExportPlayerExcel && (
                 <button
-                  onClick={() => onExportAggregateCsv(processedGameIds, playerStats)}
+                  onClick={() => {
+                    const playerData = playerStats.find(p => p.id === selectedPlayer.id);
+                    if (playerData) {
+                      const playerGameIds = Object.keys(savedGames || {}).filter(
+                        gameId => savedGames[gameId].selectedPlayerIds?.includes(selectedPlayer.id)
+                      );
+                      onExportPlayerExcel(selectedPlayer.id, playerData, playerGameIds);
+                    }
+                  }}
                   className="px-4 py-2 rounded-md font-medium transition-colors bg-slate-700 hover:bg-slate-600 text-slate-200"
                 >
-                  {t('common.exportCsv', 'Vie CSV')}
+                  {t('common.exportExcel', 'Export Excel')}
+                </button>
+              )}
+              {activeTab !== 'currentGame' && activeTab !== 'player' && onExportAggregateExcel && (
+                <button
+                  onClick={() => onExportAggregateExcel(processedGameIds, playerStats)}
+                  className="px-4 py-2 rounded-md font-medium transition-colors bg-slate-700 hover:bg-slate-600 text-slate-200"
+                >
+                  {t('common.exportExcel', 'Export Excel')}
                 </button>
               )}
               <div className="flex-1" />

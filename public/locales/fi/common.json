@@ -95,7 +95,7 @@
     "doneButton": "Valmis",
     "edit": "Muokkaa",
     "error": "Virhe",
-    "exportCsv": "Vie CSV",
+    "exportExcel": "Vie Excel",
     "exportJson": "Vie JSON",
     "filterByName": "Suodata nimellä",
     "gamesPlayed": "Ottelut",
