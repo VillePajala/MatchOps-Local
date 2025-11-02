@@ -829,6 +829,10 @@
     "colorLabel": "Team Color",
     "colorPlaceholder": "e.g., #FF5733 or blue",
     "colorHint": "Optional: hex code or color name",
+    "ageGroupLabel": "Age Group",
+    "selectAgeGroup": "-- Select Age Group --",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Enter team notes or description",
     "archivedLabel": "Archived"
   },
   "playerDetailsModal": {

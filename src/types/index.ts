@@ -25,6 +25,8 @@ export interface Team {
   id: string;                 // team_...
   name: string;               // "PEPO U10"
   color?: string;             // brand/accent (optional)
+  ageGroup?: string;          // Optional: age group (U7-U21) for team organization
+  notes?: string;             // Optional: notes/description for the team
   createdAt: string;          // ISO timestamp
   updatedAt: string;          // ISO timestamp
   archived?: boolean;         // Optional: soft delete flag

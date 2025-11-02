@@ -12,6 +12,7 @@ import {
 } from '@/hooks/useTeamQueries';
 import PlayerSelectionSection from './PlayerSelectionSection';
 import logger from '@/utils/logger';
+import { AGE_GROUPS } from '@/config/gameOptions';
 
 interface UnifiedTeamModalProps {
   isOpen: boolean;
@@ -36,6 +37,8 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
 
   // Team details state
   const [name, setName] = useState('');
+  const [ageGroup, setAgeGroup] = useState('');
+  const [notes, setNotes] = useState('');
   const [archived, setArchived] = useState(false);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
@@ -57,6 +60,8 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
       if (mode === 'create') {
         // Reset for create mode
         setName('');
+        setAgeGroup('');
+        setNotes('');
         setArchived(false);
         setSelectedPlayerIds([]);
         setDuplicateError(null);
@@ -64,6 +69,8 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
       } else if (team) {
         // Load existing team data for edit mode
         setName(team.name || '');
+        setAgeGroup(team.ageGroup || '');
+        setNotes(team.notes || '');
         setArchived(team.archived || false);
         setDuplicateError(null);
         setIsEditingRoster(false);
@@ -124,6 +131,8 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         // Create new team
         const newTeam = await addTeamMutation.mutateAsync({
           name: trimmedName,
+          ageGroup: ageGroup || undefined,
+          notes: notes || undefined,
           archived,
         });
 
@@ -143,6 +152,8 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
           teamId: team.id,
           updates: {
             name: trimmedName,
+            ageGroup: ageGroup || undefined,
+            notes: notes || undefined,
             archived,
           },
         });
@@ -227,6 +238,39 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                       {duplicateError && (
                         <p className="mt-1 text-sm text-red-400">{duplicateError}</p>
                       )}
+                    </div>
+
+                    {/* Age Group */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1">
+                        {t('teamDetailsModal.ageGroupLabel', 'Age Group')}
+                      </label>
+                      <select
+                        value={ageGroup}
+                        onChange={(e) => setAgeGroup(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="">{t('teamDetailsModal.selectAgeGroup', '-- Select Age Group --')}</option>
+                        {AGE_GROUPS.map((ag) => (
+                          <option key={ag} value={ag}>
+                            {ag}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Notes */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1">
+                        {t('teamDetailsModal.notesLabel', 'Notes')}
+                      </label>
+                      <textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder={t('teamDetailsModal.notesPlaceholder', 'Enter team notes or description')}
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                        rows={3}
+                      />
                     </div>
 
                     {/* Archived */}
