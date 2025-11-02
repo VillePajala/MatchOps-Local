@@ -206,51 +206,20 @@ export const updateTeamPlacement = async (
   award?: string,
   note?: string
 ): Promise<boolean> => {
-  if (!tournamentId || !teamId) {
-    logger.error('[updateTeamPlacement] Invalid tournament ID or team ID provided.');
-    return false;
-  }
+  const { updateTeamPlacementGeneric } = await import('./teamPlacements');
 
-  return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
-    try {
-      const tournaments = await getTournaments();
-      const tournamentIndex = tournaments.findIndex(t => t.id === tournamentId);
-
-      if (tournamentIndex === -1) {
-        logger.error(`[updateTeamPlacement] Tournament with ID ${tournamentId} not found.`);
-        return false;
-      }
-
-      const tournament = tournaments[tournamentIndex];
-
-      // If placement is null, remove the team's placement
-      if (placement === null) {
-        if (tournament.teamPlacements) {
-          delete tournament.teamPlacements[teamId];
-          // Clean up empty object
-          if (Object.keys(tournament.teamPlacements).length === 0) {
-            delete tournament.teamPlacements;
-          }
-        }
-      } else {
-        // Set or update the team's placement
-        tournament.teamPlacements = {
-          ...tournament.teamPlacements,
-          [teamId]: {
-            placement,
-            ...(award && { award }),
-            ...(note && { note }),
-          },
-        };
-      }
-
-      tournaments[tournamentIndex] = tournament;
-      await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(tournaments));
-      return true;
-    } catch (error) {
-      logger.error('[updateTeamPlacement] Unexpected error updating team placement:', error);
-      return false;
-    }
+  return updateTeamPlacementGeneric({
+    storageKey: TOURNAMENTS_LIST_KEY,
+    entityType: 'tournament',
+    entityId: tournamentId,
+    teamId,
+    placement,
+    award,
+    note,
+    getItems: getTournaments,
+    saveItems: async (items) => {
+      await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(items));
+    },
   });
 };
 
