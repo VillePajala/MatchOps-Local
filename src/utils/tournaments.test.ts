@@ -4,7 +4,9 @@ import {
   addTournament,
   updateTournament,
   deleteTournament,
-  saveTournaments // We will test this directly, and also its effects when called by others
+  saveTournaments, // We will test this directly, and also its effects when called by others
+  updateTeamPlacement,
+  getTeamPlacement
 } from './tournaments';
 import type { Tournament } from '@/types';
 import { clearMockStore } from './__mocks__/storage';
@@ -334,7 +336,6 @@ afterEach(async () => {
   });
 
   describe('updateTeamPlacement', () => {
-    const { updateTeamPlacement, getTeamPlacement } = require('./tournaments');
 
     /**
      * Tests adding a new team placement
@@ -478,7 +479,6 @@ afterEach(async () => {
   });
 
   describe('getTeamPlacement', () => {
-    const { getTeamPlacement } = require('./tournaments');
 
     /**
      * Tests retrieving existing placement

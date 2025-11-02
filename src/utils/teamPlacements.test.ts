@@ -9,9 +9,9 @@
 import {
   updateTeamPlacementGeneric,
   getTeamPlacementFromItems,
-  TeamPlacementData,
   EntityWithPlacements,
 } from './teamPlacements';
+import type { TeamPlacementInfo } from '@/types';
 import { withKeyLock } from './storageKeyLock';
 
 // Mock dependencies
@@ -25,7 +25,7 @@ interface TestEntity extends EntityWithPlacements {
   id: string;
   name: string;
   teamPlacements?: {
-    [teamId: string]: TeamPlacementData;
+    [teamId: string]: TeamPlacementInfo;
   };
 }
 

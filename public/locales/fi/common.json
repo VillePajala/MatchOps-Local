@@ -901,7 +901,9 @@
     "placement7th": "7. sija",
     "placement8th": "8. sija",
     "placement9th": "9. sija",
-    "placement10th": "10. sija"
+    "placement10th": "10. sija",
+    "placementUpdated": "Sijoitus päivitetty onnistuneesti",
+    "placementUpdateFailed": "Sijoituksen päivitys epäonnistui"
   },
   "personnel": {
     "selected": "valittu",

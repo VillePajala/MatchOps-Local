@@ -976,7 +976,9 @@
     "placement7th": "7th Place",
     "placement8th": "8th Place",
     "placement9th": "9th Place",
-    "placement10th": "10th Place"
+    "placement10th": "10th Place",
+    "placementUpdated": "Placement updated successfully",
+    "placementUpdateFailed": "Failed to update placement"
   },
   "personnel": {
     "selected": "selected",

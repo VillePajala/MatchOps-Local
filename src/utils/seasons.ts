@@ -193,51 +193,20 @@ export const updateTeamPlacement = async (
   award?: string,
   note?: string
 ): Promise<boolean> => {
-  if (!seasonId || !teamId) {
-    logger.error('[updateTeamPlacement] Invalid season ID or team ID provided.');
-    return false;
-  }
+  const { updateTeamPlacementGeneric } = await import('./teamPlacements');
 
-  return withKeyLock(SEASONS_LIST_KEY, async () => {
-    try {
-      const seasons = await getSeasons();
-      const seasonIndex = seasons.findIndex(s => s.id === seasonId);
-
-      if (seasonIndex === -1) {
-        logger.error(`[updateTeamPlacement] Season with ID ${seasonId} not found.`);
-        return false;
-      }
-
-      const season = seasons[seasonIndex];
-
-      // If placement is null, remove the team's placement
-      if (placement === null) {
-        if (season.teamPlacements) {
-          delete season.teamPlacements[teamId];
-          // Clean up empty object
-          if (Object.keys(season.teamPlacements).length === 0) {
-            delete season.teamPlacements;
-          }
-        }
-      } else {
-        // Set or update the team's placement
-        season.teamPlacements = {
-          ...season.teamPlacements,
-          [teamId]: {
-            placement,
-            ...(award && { award }),
-            ...(note && { note }),
-          },
-        };
-      }
-
-      seasons[seasonIndex] = season;
-      await setStorageItem(SEASONS_LIST_KEY, JSON.stringify(seasons));
-      return true;
-    } catch (error) {
-      logger.error('[updateTeamPlacement] Unexpected error updating team placement:', error);
-      return false;
-    }
+  return updateTeamPlacementGeneric({
+    storageKey: SEASONS_LIST_KEY,
+    entityType: 'season',
+    entityId: seasonId,
+    teamId,
+    placement,
+    award,
+    note,
+    getItems: getSeasons,
+    saveItems: async (items) => {
+      await setStorageItem(SEASONS_LIST_KEY, JSON.stringify(items));
+    },
   });
 };
 
