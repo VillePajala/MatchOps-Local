@@ -212,6 +212,8 @@ export const duplicateTeam = async (teamId: string): Promise<Team | null> => {
   const newTeam = await addTeam({
     name: `${originalTeam.name} (Copy)`,
     color: originalTeam.color,
+    ageGroup: originalTeam.ageGroup,
+    notes: originalTeam.notes,
   });
 
   // Duplicate roster with new player IDs (per plan: globally unique IDs)
