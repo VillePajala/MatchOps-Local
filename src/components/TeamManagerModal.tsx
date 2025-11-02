@@ -11,23 +11,22 @@ import {
   HiOutlineEllipsisVertical,
   HiOutlineArchiveBox
 } from 'react-icons/hi2';
-import { Team } from '@/types';
+import { Team, Player } from '@/types';
 import { queryKeys } from '@/config/queryKeys';
 import {
-  addTeam,
   updateTeam,
   deleteTeam,
   countGamesForTeam,
   getAllTeamRosters,
 } from '@/utils/teams';
 import logger from '@/utils/logger';
-import TeamDetailsModal from './TeamDetailsModal';
+import UnifiedTeamModal from './UnifiedTeamModal';
 
 interface TeamManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
   teams: Team[];
-  onManageRoster?: (teamId: string) => void;
+  masterRoster: Player[];
   onManageOrphanedGames?: () => void;
 }
 
@@ -35,14 +34,15 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   isOpen,
   onClose,
   teams,
-  onManageRoster,
+  masterRoster,
   onManageOrphanedGames,
 }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   // State management
-  const [createTeamModalOpen, setCreateTeamModalOpen] = useState(false);
+  const [unifiedModalOpen, setUnifiedModalOpen] = useState(false);
+  const [unifiedModalMode, setUnifiedModalMode] = useState<'create' | 'edit'>('create');
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -55,31 +55,6 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   const actionsMenuRef = useRef<HTMLDivElement>(null);
 
   // Mutations
-  const createTeamMutation = useMutation({
-    mutationFn: addTeam,
-    onSuccess: (newTeam) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams });
-      setCreateTeamModalOpen(false);
-      logger.log('[TeamManager] Created team:', newTeam);
-    },
-    onError: (error) => {
-      logger.error('[TeamManager] Error creating team:', error);
-    }
-  });
-
-  const updateTeamMutation = useMutation({
-    mutationFn: ({ teamId, updates }: { teamId: string; updates: Partial<Team> }) =>
-      updateTeam(teamId, updates),
-    onSuccess: (updatedTeam) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams });
-      setSelectedTeamId(null);
-      logger.log('[TeamManager] Updated team:', updatedTeam);
-    },
-    onError: (error) => {
-      logger.error('[TeamManager] Error updating team:', error);
-    }
-  });
-
   const deleteTeamMutation = useMutation({
     mutationFn: deleteTeam,
     onSuccess: () => {
@@ -112,7 +87,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setCreateTeamModalOpen(false);
+      setUnifiedModalOpen(false);
       setSelectedTeamId(null);
       setActionsMenuTeamId(null);
       setDeleteConfirmTeamId(null);
@@ -139,9 +114,24 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     loadRosterCounts();
   }, [isOpen, teams]);
 
+  // Mutations for archive/unarchive
+  const updateTeamMutation = useMutation({
+    mutationFn: ({ teamId, updates }: { teamId: string; updates: Partial<Team> }) =>
+      updateTeam(teamId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams });
+      logger.log('[TeamManager] Updated team');
+    },
+    onError: (error) => {
+      logger.error('[TeamManager] Error updating team:', error);
+    }
+  });
+
   // Handlers
   const handleEditTeam = (teamId: string) => {
     setSelectedTeamId(teamId);
+    setUnifiedModalMode('edit');
+    setUnifiedModalOpen(true);
     setActionsMenuTeamId(null);
   };
 
@@ -153,6 +143,12 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       },
     });
     setActionsMenuTeamId(null);
+  };
+
+  const handleCreateTeam = () => {
+    setSelectedTeamId(null);
+    setUnifiedModalMode('create');
+    setUnifiedModalOpen(true);
   };
 
   const handleDeleteTeam = async (teamId: string) => {
@@ -210,7 +206,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
           {/* Add Team Button */}
           <button
-            onClick={() => setCreateTeamModalOpen(true)}
+            onClick={handleCreateTeam}
             className="w-full px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg bg-indigo-600 hover:bg-indigo-700"
             aria-label={t('teamManager.createNewTeam', 'Create new team')}
           >
@@ -284,7 +280,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                       <div className="flex items-center justify-between">
                         <div
                           className="flex items-center gap-2 flex-1 cursor-pointer hover:opacity-80 transition-opacity py-1"
-                          onClick={() => onManageRoster && onManageRoster(team.id)}
+                          onClick={() => handleEditTeam(team.id)}
                           title={t('teamManager.roster', 'Roster')}
                         >
                           <div>
@@ -326,7 +322,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                                   className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"
                                 >
                                   <HiOutlinePencil className="w-4 h-4" />
-                                  {t('teamManager.editRoster', 'Edit Roster')}
+                                  {t('teamManager.edit', 'Muokkaa')}
                                 </button>
                                 <button
                                   onClick={() => handleToggleArchive(team.id, team.archived || false)}
@@ -423,23 +419,18 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
           </div>
         )}
 
-        {/* Team Create Modal */}
-        <TeamDetailsModal
-          isOpen={createTeamModalOpen}
-          onClose={() => setCreateTeamModalOpen(false)}
-          mode="create"
-          teams={teams}
-          addTeamMutation={createTeamMutation}
-        />
-
-        {/* Team Edit Modal */}
-        <TeamDetailsModal
-          isOpen={selectedTeamId !== null}
-          onClose={() => setSelectedTeamId(null)}
-          mode="edit"
+        {/* Unified Team Modal */}
+        <UnifiedTeamModal
+          isOpen={unifiedModalOpen}
+          onClose={() => {
+            setUnifiedModalOpen(false);
+            setSelectedTeamId(null);
+          }}
+          mode={unifiedModalMode}
+          teamId={selectedTeamId}
           team={teams.find(t => t.id === selectedTeamId) || null}
           teams={teams}
-          updateTeamMutation={updateTeamMutation}
+          masterRoster={masterRoster}
         />
       </div>
     </div>

@@ -26,7 +26,6 @@ import GameSettingsModal from '@/components/GameSettingsModal';
 import SettingsModal from '@/components/SettingsModal';
 import SeasonTournamentManagementModal from '@/components/SeasonTournamentManagementModal';
 import TeamManagerModal from '@/components/TeamManagerModal';
-import TeamRosterModal from '@/components/TeamRosterModal';
 import InstructionsModal from '@/components/InstructionsModal';
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
 import ConfirmationModal from '@/components/ConfirmationModal';
@@ -195,8 +194,6 @@ export function ModalManager(props: ModalManagerProps) {
     timeElapsedInSeconds,
     selectedPlayerForStats,
     isTeamManagerOpen,
-    isTeamRosterModalOpen,
-    selectedTeamForRoster,
     showNoPlayersConfirm,
     showHardResetConfirm,
     showSaveBeforeNewConfirm,
@@ -285,9 +282,6 @@ export function ModalManager(props: ModalManagerProps) {
     handleSavePlayerAssessment,
     handleDeletePlayerAssessment,
     handleCloseTeamManagerModal,
-    handleManageTeamRoster,
-    handleCloseTeamRosterModal,
-    handleBackToTeamManager,
     handleToggleTrainingResources,
     handleToggleInstructionsModal,
     setShowNoPlayersConfirm,
@@ -324,18 +318,6 @@ export function ModalManager(props: ModalManagerProps) {
           isOpen={isTeamManagerOpen || false}
           onClose={handleCloseTeamManagerModal || (() => {})}
           teams={teams || []}
-          onManageRoster={handleManageTeamRoster || (() => {})}
-        />
-      </ErrorBoundary>
-
-      {/* Team Roster Modal */}
-      <ErrorBoundary>
-        <TeamRosterModal
-          isOpen={isTeamRosterModalOpen || false}
-          onClose={handleCloseTeamRosterModal || (() => {})}
-          onBack={handleBackToTeamManager || (() => {})}
-          teamId={selectedTeamForRoster || null}
-          team={(teams || []).find(t => t.id === selectedTeamForRoster) || null}
           masterRoster={masterRosterQueryResultData || []}
         />
       </ErrorBoundary>
