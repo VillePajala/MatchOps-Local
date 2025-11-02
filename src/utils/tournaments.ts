@@ -188,4 +188,62 @@ export const countGamesForTournament = async (tournamentId: string): Promise<num
     logger.warn('Failed to count games for tournament, returning 0', { tournamentId, error });
     return 0;
   }
+};
+
+/**
+ * Updates a team's placement in a tournament.
+ * @param tournamentId - The ID of the tournament.
+ * @param teamId - The ID of the team.
+ * @param placement - The team's placement (1 = 1st place, 2 = 2nd place, etc.). Pass null to remove placement.
+ * @param award - Optional award label (e.g., "Champion", "Runner-up").
+ * @param note - Optional coach note.
+ * @returns A promise that resolves to true if successful, false otherwise.
+ */
+export const updateTeamPlacement = async (
+  tournamentId: string,
+  teamId: string,
+  placement: number | null,
+  award?: string,
+  note?: string
+): Promise<boolean> => {
+  const { updateTeamPlacementGeneric } = await import('./teamPlacements');
+
+  return updateTeamPlacementGeneric({
+    storageKey: TOURNAMENTS_LIST_KEY,
+    entityType: 'tournament',
+    entityId: tournamentId,
+    teamId,
+    placement,
+    award,
+    note,
+    getItems: getTournaments,
+    saveItems: async (items) => {
+      await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(items));
+    },
+  });
+};
+
+/**
+ * Gets a team's placement in a tournament.
+ * @param tournamentId - The ID of the tournament.
+ * @param teamId - The ID of the team.
+ * @returns A promise that resolves to the team's placement data, or null if not found.
+ */
+export const getTeamPlacement = async (
+  tournamentId: string,
+  teamId: string
+): Promise<{ placement: number; award?: string; note?: string } | null> => {
+  try {
+    const tournaments = await getTournaments();
+    const tournament = tournaments.find(t => t.id === tournamentId);
+
+    if (!tournament || !tournament.teamPlacements || !tournament.teamPlacements[teamId]) {
+      return null;
+    }
+
+    return tournament.teamPlacements[teamId];
+  } catch (error) {
+    logger.error('[getTeamPlacement] Error getting team placement:', error);
+    return null;
+  }
 }; 

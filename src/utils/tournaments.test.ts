@@ -4,7 +4,9 @@ import {
   addTournament,
   updateTournament,
   deleteTournament,
-  saveTournaments // We will test this directly, and also its effects when called by others
+  saveTournaments, // We will test this directly, and also its effects when called by others
+  updateTeamPlacement,
+  getTeamPlacement
 } from './tournaments';
 import type { Tournament } from '@/types';
 import { clearMockStore } from './__mocks__/storage';
@@ -332,4 +334,215 @@ afterEach(async () => {
       expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
   });
-}); 
+
+  describe('updateTeamPlacement', () => {
+
+    /**
+     * Tests adding a new team placement
+     * @critical - Core placement feature
+     */
+    it('should add a new team placement to a tournament', async () => {
+      // Setup: create tournament without placements
+      const tournament: Tournament = { id: 't1', name: 'Test Tournament' };
+      await saveTournaments([tournament]);
+
+      const result = await updateTeamPlacement('t1', 'team1', 1, 'Champion', 'Great job');
+
+      expect(result).toBe(true);
+      const tournaments = await getTournaments();
+      expect(tournaments[0].teamPlacements).toEqual({
+        team1: {
+          placement: 1,
+          award: 'Champion',
+          note: 'Great job',
+        },
+      });
+    });
+
+    /**
+     * Tests updating existing placement
+     * @critical - Ensures placement updates work correctly
+     */
+    it('should update an existing team placement', async () => {
+      // Setup: create tournament with existing placement
+      const tournament: Tournament = {
+        id: 't1',
+        name: 'Test Tournament',
+        teamPlacements: {
+          team1: { placement: 2, award: 'Runner-up' },
+        },
+      };
+      await saveTournaments([tournament]);
+
+      const result = await updateTeamPlacement('t1', 'team1', 1, 'Champion');
+
+      expect(result).toBe(true);
+      const tournaments = await getTournaments();
+      expect(tournaments[0].teamPlacements?.team1).toEqual({
+        placement: 1,
+        award: 'Champion',
+      });
+    });
+
+    /**
+     * Tests removing a placement
+     * @critical - Required for clearing placements
+     */
+    it('should remove a team placement when placement is null', async () => {
+      // Setup: create tournament with placement
+      const tournament: Tournament = {
+        id: 't1',
+        name: 'Test Tournament',
+        teamPlacements: {
+          team1: { placement: 1 },
+          team2: { placement: 2 },
+        },
+      };
+      await saveTournaments([tournament]);
+
+      const result = await updateTeamPlacement('t1', 'team1', null);
+
+      expect(result).toBe(true);
+      const tournaments = await getTournaments();
+      expect(tournaments[0].teamPlacements).toEqual({
+        team2: { placement: 2 },
+      });
+    });
+
+    /**
+     * Tests cleanup of empty placements object
+     * @edge-case - Prevents empty objects in storage
+     */
+    it('should remove teamPlacements object when last placement is removed', async () => {
+      const tournament: Tournament = {
+        id: 't1',
+        name: 'Test Tournament',
+        teamPlacements: {
+          team1: { placement: 1 },
+        },
+      };
+      await saveTournaments([tournament]);
+
+      const result = await updateTeamPlacement('t1', 'team1', null);
+
+      expect(result).toBe(true);
+      const tournaments = await getTournaments();
+      expect(tournaments[0].teamPlacements).toBeUndefined();
+    });
+
+    /**
+     * Tests handling invalid tournament ID
+     * @edge-case - Validates error handling
+     */
+    it('should return false when tournament ID is invalid', async () => {
+      const result = await updateTeamPlacement('', 'team1', 1);
+
+      expect(result).toBe(false);
+    });
+
+    /**
+     * Tests handling non-existent tournament
+     * @edge-case - Prevents placement on missing tournaments
+     */
+    it('should return false when tournament is not found', async () => {
+      await saveTournaments([{ id: 't1', name: 'Test' }]);
+
+      const result = await updateTeamPlacement('nonexistent', 'team1', 1);
+
+      expect(result).toBe(false);
+    });
+
+    /**
+     * Tests multiple teams with placements
+     * @integration - Multi-team scenario
+     */
+    it('should handle multiple teams with different placements', async () => {
+      const tournament: Tournament = {
+        id: 't1',
+        name: 'Test Tournament',
+        teamPlacements: {
+          team1: { placement: 1, award: 'Champion' },
+        },
+      };
+      await saveTournaments([tournament]);
+
+      await updateTeamPlacement('t1', 'team2', 2, 'Runner-up');
+      await updateTeamPlacement('t1', 'team3', 3, 'Third Place');
+
+      const tournaments = await getTournaments();
+      expect(tournaments[0].teamPlacements).toEqual({
+        team1: { placement: 1, award: 'Champion' },
+        team2: { placement: 2, award: 'Runner-up' },
+        team3: { placement: 3, award: 'Third Place' },
+      });
+    });
+  });
+
+  describe('getTeamPlacement', () => {
+
+    /**
+     * Tests retrieving existing placement
+     * @critical - Core read functionality
+     */
+    it('should return team placement when it exists', async () => {
+      const tournament: Tournament = {
+        id: 't1',
+        name: 'Test Tournament',
+        teamPlacements: {
+          team1: { placement: 1, award: 'Champion' },
+        },
+      };
+      await saveTournaments([tournament]);
+
+      const result = await getTeamPlacement('t1', 'team1');
+
+      expect(result).toEqual({
+        placement: 1,
+        award: 'Champion',
+      });
+    });
+
+    /**
+     * Tests handling non-existent tournament
+     * @edge-case - Returns null for missing tournament
+     */
+    it('should return null when tournament is not found', async () => {
+      await saveTournaments([{ id: 't1', name: 'Test' }]);
+
+      const result = await getTeamPlacement('nonexistent', 'team1');
+
+      expect(result).toBeNull();
+    });
+
+    /**
+     * Tests handling tournament without placements
+     * @edge-case - Returns null when no placements exist
+     */
+    it('should return null when tournament has no placements', async () => {
+      await saveTournaments([{ id: 't1', name: 'Test' }]);
+
+      const result = await getTeamPlacement('t1', 'team1');
+
+      expect(result).toBeNull();
+    });
+
+    /**
+     * Tests handling non-existent team placement
+     * @edge-case - Returns null for missing team
+     */
+    it('should return null when team has no placement', async () => {
+      const tournament: Tournament = {
+        id: 't1',
+        name: 'Test Tournament',
+        teamPlacements: {
+          team1: { placement: 1 },
+        },
+      };
+      await saveTournaments([tournament]);
+
+      const result = await getTeamPlacement('t1', 'team2');
+
+      expect(result).toBeNull();
+    });
+  });
+});

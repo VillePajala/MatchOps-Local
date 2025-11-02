@@ -964,7 +964,21 @@
     "editRoster": "Edit Roster",
     "noPlayersSelected": "No players selected. Click \"Edit Roster\" to add players.",
     "playerSingular": "Player",
-    "playerPlural": "Players"
+    "playerPlural": "Players",
+    "placementsTitle": "Tournament & Season Placements",
+    "selectPlacement": "Select placement...",
+    "placement1st": "1st Place 🥇",
+    "placement2nd": "2nd Place 🥈",
+    "placement3rd": "3rd Place 🥉",
+    "placement4th": "4th Place",
+    "placement5th": "5th Place",
+    "placement6th": "6th Place",
+    "placement7th": "7th Place",
+    "placement8th": "8th Place",
+    "placement9th": "9th Place",
+    "placement10th": "10th Place",
+    "placementUpdated": "Placement updated successfully",
+    "placementUpdateFailed": "Failed to update placement"
   },
   "personnel": {
     "selected": "selected",

@@ -175,4 +175,62 @@ export const countGamesForSeason = async (seasonId: string): Promise<number> => 
     logger.warn('Failed to count games for season, returning 0', { seasonId, error });
     return 0;
   }
+};
+
+/**
+ * Updates a team's placement in a season.
+ * @param seasonId - The ID of the season.
+ * @param teamId - The ID of the team.
+ * @param placement - The team's placement (1 = 1st place, 2 = 2nd place, etc.). Pass null to remove placement.
+ * @param award - Optional award label (e.g., "Champion", "Runner-up").
+ * @param note - Optional coach note.
+ * @returns A promise that resolves to true if successful, false otherwise.
+ */
+export const updateTeamPlacement = async (
+  seasonId: string,
+  teamId: string,
+  placement: number | null,
+  award?: string,
+  note?: string
+): Promise<boolean> => {
+  const { updateTeamPlacementGeneric } = await import('./teamPlacements');
+
+  return updateTeamPlacementGeneric({
+    storageKey: SEASONS_LIST_KEY,
+    entityType: 'season',
+    entityId: seasonId,
+    teamId,
+    placement,
+    award,
+    note,
+    getItems: getSeasons,
+    saveItems: async (items) => {
+      await setStorageItem(SEASONS_LIST_KEY, JSON.stringify(items));
+    },
+  });
+};
+
+/**
+ * Gets a team's placement in a season.
+ * @param seasonId - The ID of the season.
+ * @param teamId - The ID of the team.
+ * @returns A promise that resolves to the team's placement data, or null if not found.
+ */
+export const getTeamPlacement = async (
+  seasonId: string,
+  teamId: string
+): Promise<{ placement: number; award?: string; note?: string } | null> => {
+  try {
+    const seasons = await getSeasons();
+    const season = seasons.find(s => s.id === seasonId);
+
+    if (!season || !season.teamPlacements || !season.teamPlacements[teamId]) {
+      return null;
+    }
+
+    return season.teamPlacements[teamId];
+  } catch (error) {
+    logger.error('[getTeamPlacement] Error getting team placement:', error);
+    return null;
+  }
 }; 
