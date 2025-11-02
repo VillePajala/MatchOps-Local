@@ -96,7 +96,7 @@
     "doneButton": "Done",
     "edit": "Edit",
     "error": "Error",
-    "exportCsv": "Export Csv",
+    "exportExcel": "Export Excel",
     "exportJson": "Export Json",
     "filterByName": "Filter By Name",
     "gamesPlayed": "Games Played",

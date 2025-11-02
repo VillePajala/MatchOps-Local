@@ -23,7 +23,7 @@ export interface LoadGameModalProps {
   onLoad: (gameId: string) => void;
   onDelete: (gameId: string) => void;
   onExportOneJson: (gameId: string) => void;
-  onExportOneCsv: (gameId: string) => void;
+  onExportOneExcel: (gameId: string) => void;
   currentGameId?: string;
 
   isLoadingGamesList?: boolean;
@@ -50,7 +50,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   onLoad,
   onDelete,
   onExportOneJson,
-  onExportOneCsv,
+  onExportOneExcel,
   currentGameId,
   isLoadingGamesList = false,
   loadGamesListError = null,
@@ -367,14 +367,14 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onExportOneCsv(gameId);
+                                onExportOneExcel(gameId);
                                 setActionsMenuId(null);
                               }}
                               className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2"
                               disabled={disableActions}
                             >
                               <HiOutlineTableCells className="w-4 h-4" />
-                              Export CSV
+                              Export Excel
                             </button>
                             <button
                               onClick={(e) => {
