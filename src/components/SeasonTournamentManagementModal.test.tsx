@@ -132,8 +132,8 @@ describe('SeasonTournamentManagementModal', () => {
     const seasonItem = screen.getByText('Season 1');
     await user.click(seasonItem);
 
-    // SeasonDetailsModal should open (title should be visible)
-    expect(await screen.findByText(i18n.t('seasonDetailsModal.title', 'Season Details'))).toBeInTheDocument();
+    // SeasonDetailsModal should open (title shows the season name)
+    expect(await screen.findByRole('heading', { name: 'Season 1' })).toBeInTheDocument();
   });
 
   it('opens season details modal when clicking edit in actions menu', async () => {
@@ -149,8 +149,8 @@ describe('SeasonTournamentManagementModal', () => {
     const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
     await user.click(editOption);
 
-    // SeasonDetailsModal should open
-    expect(await screen.findByText(i18n.t('seasonDetailsModal.title', 'Season Details'))).toBeInTheDocument();
+    // SeasonDetailsModal should open (title shows the season name)
+    expect(await screen.findByRole('heading', { name: 'Season 1' })).toBeInTheDocument();
   });
 
   it('opens tournament details modal when clicking tournament item', async () => {
@@ -164,7 +164,7 @@ describe('SeasonTournamentManagementModal', () => {
     await user.click(tournamentItem);
 
     // TournamentDetailsModal should open (title should be visible)
-    expect(await screen.findByText(i18n.t('tournamentDetailsModal.title', 'Tournament Details'))).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Tournament 1' })).toBeInTheDocument();
   });
 
   it('opens tournament details modal when clicking edit in actions menu', async () => {
@@ -181,7 +181,7 @@ describe('SeasonTournamentManagementModal', () => {
     await user.click(editOption);
 
     // TournamentDetailsModal should open
-    expect(await screen.findByText(i18n.t('tournamentDetailsModal.title', 'Tournament Details'))).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Tournament 1' })).toBeInTheDocument();
   });
 
   it('allows deleting a season', async () => {
@@ -373,8 +373,8 @@ describe('SeasonTournamentManagementModal', () => {
       const tournamentItem = screen.getByText('Championship Cup');
       await user.click(tournamentItem);
 
-      // TournamentDetailsModal should open with player award dropdown
-      expect(await screen.findByText(i18n.t('tournamentDetailsModal.title', 'Tournament Details'))).toBeInTheDocument();
+      // TournamentDetailsModal should open with player award dropdown (shows tournament name)
+      expect(await screen.findByRole('heading', { name: 'Championship Cup' })).toBeInTheDocument();
 
       const awardDropdown = screen.getByRole('combobox', { name: /select player of tournament/i });
       expect(awardDropdown).toBeInTheDocument();
@@ -397,8 +397,8 @@ describe('SeasonTournamentManagementModal', () => {
       const editOption = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
       await user.click(editOption);
 
-      // TournamentDetailsModal should open
-      expect(await screen.findByText(i18n.t('tournamentDetailsModal.title', 'Tournament Details'))).toBeInTheDocument();
+      // TournamentDetailsModal should open (shows tournament name)
+      expect(await screen.findByRole('heading', { name: 'Championship Cup' })).toBeInTheDocument();
 
       // Award dropdown should show the current award
       const awardDropdown = screen.getByRole('combobox', { name: /select player of tournament/i });

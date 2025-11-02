@@ -1,7 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { ModalFooter } from '@/styles/modalStyles';
+import {
+  ModalFooter,
+  primaryButtonStyle,
+  secondaryButtonStyle,
+  titleStyle,
+  cardStyle,
+  iconButtonBaseStyle,
+  modalContainerStyle
+} from '@/styles/modalStyles';
 import type { Player } from '@/types'; // Import Player type from the central types file
 import {
     HiOutlinePencil,
@@ -17,9 +25,21 @@ interface RosterSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   availablePlayers: Player[];
-  onRenamePlayer: (playerId: string, playerData: { name: string; nickname: string }) => void; // Legacy - kept for backward compatibility
-  onSetJerseyNumber: (playerId: string, number: string) => void; // Legacy - kept for backward compatibility
-  onSetPlayerNotes: (playerId: string, notes: string) => void; // Legacy - kept for backward compatibility
+  /**
+   * @deprecated Use onUpdatePlayer instead. Will be removed in a future version.
+   * This prop is no longer used internally.
+   */
+  onRenamePlayer: (playerId: string, playerData: { name: string; nickname: string }) => void;
+  /**
+   * @deprecated Use onUpdatePlayer instead. Will be removed in a future version.
+   * This prop is no longer used internally.
+   */
+  onSetJerseyNumber: (playerId: string, number: string) => void;
+  /**
+   * @deprecated Use onUpdatePlayer instead. Will be removed in a future version.
+   * This prop is no longer used internally.
+   */
+  onSetPlayerNotes: (playerId: string, notes: string) => void;
   onUpdatePlayer?: (playerId: string, updates: Partial<Omit<Player, 'id'>>) => Promise<void>;
   onRemovePlayer: (playerId: string) => void;
   onAddPlayer: (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => void;
@@ -116,15 +136,6 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
       (p.nickname && p.nickname.toLowerCase().includes(search))
     );
   });
-
-  // --- Style Guide Definitions ---
-  const modalContainerStyle = "bg-slate-800 rounded-none shadow-xl flex flex-col border-0 overflow-hidden";
-  const titleStyle = "text-3xl font-bold text-yellow-400 tracking-wide";
-  const cardStyle = "bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner";
-  const buttonBaseStyle = "px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed";
-  const primaryButtonStyle = `${buttonBaseStyle} bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg`;
-  const secondaryButtonStyle = `${buttonBaseStyle} bg-gradient-to-b from-slate-600 to-slate-700 text-slate-200 hover:from-slate-700 hover:to-slate-600`;
-  const iconButtonBaseStyle = "p-1.5 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">

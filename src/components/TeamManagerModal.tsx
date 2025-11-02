@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { primaryButtonStyle } from '@/styles/modalStyles';
+import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle, ModalFooter } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -354,21 +354,19 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 bg-slate-800/50 border-t border-slate-700/20 backdrop-blur-sm flex items-center gap-4 flex-shrink-0">
-          {onManageOrphanedGames ? (
-            <button 
+        <ModalFooter>
+          {onManageOrphanedGames && (
+            <button
               onClick={onManageOrphanedGames}
               className="px-4 py-2 rounded-md font-medium text-amber-300 bg-amber-900/20 hover:bg-amber-900/30 border border-amber-600/30 transition-colors text-sm"
               title={t('teamManager.manageOrphanedGames', 'Manage games from deleted teams')}
             >
               {t('teamManager.orphanedGames', 'Orphaned Games')}
             </button>
-          ) : (
-            null
           )}
-          <div className="ml-auto" />
+          <div className="flex-1" />
           <button onClick={onClose} className={primaryButtonStyle}>{t('common.doneButton', 'Done')}</button>
-        </div>
+        </ModalFooter>
 
         {/* Delete Confirmation Modal */}
         {deleteConfirmTeamId && (
@@ -403,14 +401,14 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={() => setDeleteConfirmTeamId(null)}
-                  className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-300 rounded-md font-medium transition-colors"
+                  className={secondaryButtonStyle}
                 >
                   {t('common.cancel', 'Cancel')}
                 </button>
                 <button
                   onClick={handleConfirmDelete}
                   disabled={deleteTeamMutation.isPending}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-red-700 text-white rounded-md font-medium transition-colors"
+                  className={dangerButtonStyle}
                 >
                   {deleteTeamMutation.isPending ? t('common.deleting', 'Deleting...') : t('common.delete', 'Delete')}
                 </button>

@@ -14,6 +14,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { getRoleLabelKey } from '@/utils/personnelRoles';
 import { getGamesWithPersonnel } from '@/utils/personnelManager';
+import { getSafeTelHref, getSafeMailtoHref } from '@/utils/contactValidation';
 import ConfirmationModal from './ConfirmationModal';
 import PersonnelDetailsModal from './PersonnelDetailsModal';
 import {
@@ -34,7 +35,6 @@ interface PersonnelManagerModalProps {
   onUpdatePersonnel: (personnelId: string, updates: Partial<Omit<Personnel, 'id' | 'createdAt'>>) => Promise<void>;
   onRemovePersonnel: (personnelId: string) => Promise<void>;
   isUpdating?: boolean;
-  error?: string | null;
 }
 
 const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
@@ -45,13 +45,9 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
   onUpdatePersonnel,
   onRemovePersonnel,
   isUpdating,
-  error,
 }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
-
-  // error prop kept for future use
-  void error;
 
   // Modal state
   const [createPersonnelModalOpen, setCreatePersonnelModalOpen] = useState(false);
@@ -293,26 +289,36 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                           <p className="text-sm text-slate-400">
                             {t(getRoleLabelKey(person.role), person.role)}
                           </p>
-                          {person.phone && (
-                            <a
-                              href={`tel:${person.phone}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex items-center gap-2 text-sm text-slate-400 mt-1 active:text-indigo-400 transition-colors"
-                            >
-                              <HiOutlinePhone className="h-4 w-4 flex-shrink-0" />
-                              <span>{person.phone}</span>
-                            </a>
-                          )}
-                          {person.email && (
-                            <a
-                              href={`mailto:${person.email}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex items-center gap-2 text-sm text-slate-400 mt-1 active:text-indigo-400 transition-colors"
-                            >
-                              <HiOutlineEnvelope className="h-4 w-4 flex-shrink-0" />
-                              <span>{person.email}</span>
-                            </a>
-                          )}
+                          {(() => {
+                            const telHref = getSafeTelHref(person.phone);
+                            return telHref ? (
+                              <a
+                                href={telHref}
+                                // Prevent triggering parent card's onClick (which opens edit modal)
+                                onClick={(e) => e.stopPropagation()}
+                                aria-label={t('personnel.callPhone', { phone: person.phone })}
+                                className="flex items-center gap-2 text-sm text-slate-400 mt-1 active:text-indigo-400 transition-colors"
+                              >
+                                <HiOutlinePhone className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                                <span>{person.phone}</span>
+                              </a>
+                            ) : null;
+                          })()}
+                          {(() => {
+                            const mailtoHref = getSafeMailtoHref(person.email);
+                            return mailtoHref ? (
+                              <a
+                                href={mailtoHref}
+                                // Prevent triggering parent card's onClick (which opens edit modal)
+                                onClick={(e) => e.stopPropagation()}
+                                aria-label={t('personnel.sendEmail', { email: person.email })}
+                                className="flex items-center gap-2 text-sm text-slate-400 mt-1 active:text-indigo-400 transition-colors"
+                              >
+                                <HiOutlineEnvelope className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                                <span>{person.email}</span>
+                              </a>
+                            ) : null;
+                          })()}
                           {person.notes && (
                             <p className="text-xs text-slate-500 mt-2 italic">{person.notes}</p>
                           )}
