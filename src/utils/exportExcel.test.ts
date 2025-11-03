@@ -283,6 +283,8 @@ describe('Excel Export Utilities', () => {
      * @integration - Validates download mechanism
      */
     it('should trigger file download', () => {
+      jest.useFakeTimers();
+
       exportCurrentGameExcel(mockGameId, mockGame, mockPlayers, mockSeasons, mockTournaments);
 
       expect(XLSX.write).toHaveBeenCalled();
@@ -292,7 +294,13 @@ describe('Excel Export Utilities', () => {
       expect(mockAppendChild).toHaveBeenCalled();
       expect(mockClick).toHaveBeenCalled();
       expect(mockRemoveChild).toHaveBeenCalled();
+
+      // URL.revokeObjectURL is now delayed by 100ms to prevent memory leaks
+      expect(mockRevokeObjectURL).not.toHaveBeenCalled();
+      jest.advanceTimersByTime(100);
       expect(mockRevokeObjectURL).toHaveBeenCalled();
+
+      jest.useRealTimers();
     });
 
     /**
@@ -667,19 +675,37 @@ describe('Excel Export Utilities', () => {
 
     /**
      * Tests player-specific filename with sanitization
-     * @edge-case - Validates name sanitization
+     * @edge-case - Validates unicode normalization and character sanitization
      */
     it('should sanitize player name in filename', () => {
       const playerWithSpecialChars: PlayerStatRow = {
         ...mockPlayerData,
-        name: 'John O\'Doe Jr.',
+        name: 'Mäkinen Öberg-Åström',
       };
 
       exportPlayerExcel(mockPlayerId, playerWithSpecialChars, mockGames, [], [], []);
 
       const anchorElement = mockCreateElement.mock.results[0].value;
-      // Note: Special chars replaced with _, period at end creates double __ before timestamp
-      expect(anchorElement.download).toMatch(/^MatchOps_Player_John_O_Doe_Jr__\d{8}_\d{6}\.xlsx$/);
+      // Unicode characters normalized: ä->a, ö->o, å->a
+      // Hyphen preserved, spaces preserved
+      expect(anchorElement.download).toMatch(/^MatchOps_Player_Makinen Oberg-Astrom_\d{8}_\d{6}\.xlsx$/);
+    });
+
+    /**
+     * Tests filename sanitization with special characters
+     * @edge-case - Validates invalid character removal
+     */
+    it('should sanitize special characters in filename', () => {
+      const playerWithInvalidChars: PlayerStatRow = {
+        ...mockPlayerData,
+        name: 'John O\'Doe/Jr.',
+      };
+
+      exportPlayerExcel(mockPlayerId, playerWithInvalidChars, mockGames, [], [], []);
+
+      const anchorElement = mockCreateElement.mock.results[0].value;
+      // Apostrophe and slash replaced with _, period and space preserved
+      expect(anchorElement.download).toMatch(/^MatchOps_Player_John O_Doe_Jr\._\d{8}_\d{6}\.xlsx$/);
     });
 
     /**
