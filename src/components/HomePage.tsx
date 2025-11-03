@@ -1811,7 +1811,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       exportCurrentGameExcel(gameId, gameData, availablePlayers, seasons, tournaments);
     } catch (error) {
       logger.error('[handleExportOneExcel] Export failed:', error);
-      showToast(t('export.exportFailed', 'Failed to export game. Please try again.'), 'error');
+      showToast(t('export.exportGameFailed'), 'error');
     }
   };
 
@@ -2390,7 +2390,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       exportAggregateExcel(gamesData, aggregateStats, seasons, tournaments, []);
     } catch (error) {
       logger.error('[handleExportAggregateExcel] Export failed:', error);
-      showToast(t('export.exportFailed', 'Failed to export stats. Please try again.'), 'error');
+      showToast(t('export.exportStatsFailed'), 'error');
     }
   }, [savedGames, seasons, tournaments, t, showToast]);
 
@@ -2407,7 +2407,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       exportPlayerExcel(playerId, playerData, gamesData, seasons, tournaments, []);
     } catch (error) {
       logger.error('[handleExportPlayerExcel] Export failed:', error);
-      showToast(t('export.exportFailed', 'Failed to export player stats. Please try again.'), 'error');
+      showToast(t('export.exportPlayerFailed'), 'error');
     }
   }, [savedGames, seasons, tournaments, t, showToast]);
 
