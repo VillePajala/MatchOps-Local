@@ -195,6 +195,14 @@
 
 <!-- Removed IndexedDB migration plan -->
 
+- [x] **Personnel Management Feature** ✅ **COMPLETED**
+  - Add personnel management (coaches, trainers, managers, etc.)
+  - CRUD operations with React Query and real-time cache updates
+  - Personnel selection in new game setup
+  - Full i18n support (EN/FI)
+  - Backwards compatible with old games and backups
+  - Documentation archived to `docs/08-archived/completed-features/`
+  - **Completion Date**: January 2025
 
 - [x] **Player Performance Evaluations**
   - Add a modal with ten sliders to rate each player after a game.
