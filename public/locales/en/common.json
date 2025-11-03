@@ -1277,5 +1277,11 @@
     "reassignButton": "Reassign to Team",
     "reassignTitle": "Reassign Game to Team",
     "reassignDescription": "Select a team to associate this game with, or choose \"No Team\" to use the master roster."
+  },
+  "export": {
+    "exportGameFailed": "Failed to export game. Please try again.",
+    "exportStatsFailed": "Failed to export stats. Please try again.",
+    "exportPlayerFailed": "Failed to export player stats. Please try again.",
+    "noGamesInSelection": "No games match the current filter."
   }
 }
