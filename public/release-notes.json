@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "test: Add comprehensive test coverage for team placement features"
+  "notes": "feat: improve Excel export with error handling, fixes, and documentation"
 }

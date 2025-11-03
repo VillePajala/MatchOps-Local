@@ -79,7 +79,8 @@ import { queryKeys } from '@/config/queryKeys';
 import { updateGameDetails as utilUpdateGameDetails } from '@/utils/savedGames';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { MASTER_ROSTER_KEY, TIMER_STATE_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
-import { exportJson, exportCsv, exportAggregateCsv } from '@/utils/exportGames';
+import { exportJson } from '@/utils/exportGames';
+import { exportCurrentGameExcel, exportAggregateExcel, exportPlayerExcel } from '@/utils/exportExcel';
 import { 
   HiOutlineSquares2X2,
   HiOutlinePlusCircle,
@@ -1800,13 +1801,18 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     exportJson(gameId, gameData, seasons, tournaments);
   };
 
-  const handleExportOneCsv = (gameId: string) => {
+  const handleExportOneExcel = (gameId: string) => {
     const gameData = savedGames[gameId];
     if (!gameData) {
       showToast(`Error: Could not find game data for ${gameId}`, 'error');
       return;
     }
-    exportCsv(gameId, gameData, availablePlayers, seasons, tournaments);
+    try {
+      exportCurrentGameExcel(gameId, gameData, availablePlayers, seasons, tournaments);
+    } catch (error) {
+      logger.error('[handleExportOneExcel] Export failed:', error);
+      showToast(t('export.exportGameFailed'), 'error');
+    }
   };
 
   // --- END INDIVIDUAL GAME EXPORT HANDLERS ---
@@ -2367,7 +2373,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   //   return 'Unknown Filter'; // Fallback
   // };
 
-  const handleExportAggregateCsv = useCallback((gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) => {
+  const handleExportAggregateExcel = useCallback((gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) => {
     if (gameIds.length === 0) {
       showToast(t('export.noGamesInSelection', 'No games match the current filter.'), 'error');
       return;
@@ -2379,8 +2385,31 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       }
       return acc;
     }, {} as SavedGamesCollection);
-    exportAggregateCsv(gamesData, aggregateStats);
-  }, [savedGames, t, showToast]);
+    try {
+      // TODO: Pass external adjustments and context info for enhanced exports
+      exportAggregateExcel(gamesData, aggregateStats, seasons, tournaments, []);
+    } catch (error) {
+      logger.error('[handleExportAggregateExcel] Export failed:', error);
+      showToast(t('export.exportStatsFailed'), 'error');
+    }
+  }, [savedGames, seasons, tournaments, t, showToast]);
+
+  const handleExportPlayerExcel = useCallback((playerId: string, playerData: import('@/types').PlayerStatRow, gameIds: string[]) => {
+    const gamesData = gameIds.reduce((acc, id) => {
+      const gameData = savedGames[id];
+      if (gameData) {
+        acc[id] = gameData;
+      }
+      return acc;
+    }, {} as SavedGamesCollection);
+    try {
+      // TODO: Pass external adjustments for this player
+      exportPlayerExcel(playerId, playerData, gamesData, seasons, tournaments, []);
+    } catch (error) {
+      logger.error('[handleExportPlayerExcel] Export failed:', error);
+      showToast(t('export.exportPlayerFailed'), 'error');
+    }
+  }, [savedGames, seasons, tournaments, t, showToast]);
 
   // --- END AGGREGATE EXPORT HANDLERS ---
 
@@ -3314,8 +3343,9 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           savedGames={savedGames}
           currentGameId={currentGameId}
           onDeleteGameEvent={handleDeleteGameEvent}
-          onExportOneCsv={handleExportOneCsv}
-          onExportAggregateCsv={handleExportAggregateCsv}
+          onExportOneExcel={handleExportOneExcel}
+          onExportAggregateExcel={handleExportAggregateExcel}
+          onExportPlayerExcel={handleExportPlayerExcel}
           initialSelectedPlayerId={selectedPlayerForStats?.id}
           onGameClick={handleGameLogClick}
           masterRoster={masterRosterQueryResultData || []}
@@ -3329,7 +3359,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         onLoad={handleLoadGame}
         onDelete={handleDeleteGame}
         onExportOneJson={handleExportOneJson}
-        onExportOneCsv={handleExportOneCsv}
+        onExportOneExcel={handleExportOneExcel}
         currentGameId={currentGameId || undefined} // Convert null to undefined
         // Pass loading and error state props for LoadGameModal
         isLoadingGamesList={isLoadingGamesList}

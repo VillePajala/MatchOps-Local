@@ -95,7 +95,7 @@
     "doneButton": "Valmis",
     "edit": "Muokkaa",
     "error": "Virhe",
-    "exportCsv": "Vie CSV",
+    "exportExcel": "Vie Excel",
     "exportJson": "Vie JSON",
     "filterByName": "Suodata nimellä",
     "gamesPlayed": "Ottelut",
@@ -857,6 +857,10 @@
     "namePlaceholder": "Syötä joukkueen nimi",
     "teamColor": "Joukkueen väri",
     "noTeams": "Ei joukkueita vielä. Luo ensimmäinen joukkue aloittaaksesi.",
+    "searchPlaceholder": "Etsi joukkueita...",
+    "searchAriaLabel": "Etsi joukkueita nimen perusteella",
+    "onePlayer": "1 pelaaja",
+    "playersCount": "{{count}} pelaajaa",
     "createdAt": "Luotu {{date}}",
     "roster": "Kokoonpano",
     "rename": "Nimeä uudelleen",
@@ -1294,5 +1298,11 @@
     "reassignButton": "Liitä joukkueeseen",
     "reassignTitle": "Liitä peli joukkueeseen",
     "reassignDescription": "Valitse joukkue, johon peli liitetään, tai valitse \"Ei joukkuetta\" käyttääksesi pääkokoonpanoa."
+  },
+  "export": {
+    "exportGameFailed": "Pelin vienti epäonnistui. Yritä uudelleen.",
+    "exportStatsFailed": "Tilastojen vienti epäonnistui. Yritä uudelleen.",
+    "exportPlayerFailed": "Pelaajan tilastojen vienti epäonnistui. Yritä uudelleen.",
+    "noGamesInSelection": "Yksikään peli ei täsmää valittuun suodattimeen."
   }
 }

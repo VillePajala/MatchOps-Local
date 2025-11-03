@@ -66,7 +66,7 @@ describe('LoadGameModal', () => {
     onLoad: jest.fn(),
     onDelete: jest.fn(),
     onExportOneJson: jest.fn(),
-    onExportOneCsv: jest.fn(),
+    onExportOneExcel: jest.fn(),
   };
 
   beforeEach(() => {
@@ -201,7 +201,7 @@ describe('LoadGameModal', () => {
     expect(mockHandlers.onExportOneJson).toHaveBeenCalledWith('game_1659123456_abc');
     });
 
-  it('calls onExportOneCsv when CSV export button is clicked', async () => {
+  it('calls onExportOneExcel when Excel export button is clicked', async () => {
     await renderModal();
     const gameCard = await screen.findByTestId('game-item-game_1659123456_abc');
 
@@ -211,13 +211,13 @@ describe('LoadGameModal', () => {
       fireEvent.click(actionsButton);
     });
 
-    // Click Export CSV
-    const csvExportButton = await screen.findByText('Export CSV');
+    // Click Export Excel
+    const excelExportButton = await screen.findByText('Export Excel');
     await act(async () => {
-      fireEvent.click(csvExportButton);
+      fireEvent.click(excelExportButton);
     });
 
-    expect(mockHandlers.onExportOneCsv).toHaveBeenCalledWith('game_1659123456_abc');
+    expect(mockHandlers.onExportOneExcel).toHaveBeenCalledWith('game_1659123456_abc');
     });
 
   it('displays current game indicator when loaded', async () => {

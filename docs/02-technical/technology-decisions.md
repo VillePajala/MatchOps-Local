@@ -271,6 +271,51 @@ test('complete game workflow', async ({ page }) => {
 - **Web Vitals**: Real user performance monitoring
 - **Local-First Advantages**: Consistent performance regardless of network
 
+### Excel Export: SheetJS xlsx (with ExcelJS migration path)
+
+**Why xlsx for Excel exports?**
+
+Excel export is a premium feature that allows coaches to share game and player statistics with parents, organizations, and other coaches. The library choice balances licensing, features, and bundle size.
+
+**Current Implementation:**
+- **Library**: SheetJS xlsx Community Edition
+- **Version**: 0.20.3 (CDN installation required)
+- **License**: Apache 2.0 (free, attribution required)
+- **Bundle Impact**: ~864 KB minified
+- **Location**: `src/utils/exportExcel.ts`
+
+**Why xlsx Community Edition?**
+| Consideration | xlsx CE | ExcelJS | xlsx-js-style |
+|---------------|---------|---------|---------------|
+| **License** | Apache 2.0 | MIT | Apache 2.0 |
+| **Bundle Size** | ~864 KB | ~1080 KB | ~864 KB |
+| **Styling** | ❌ | ✅ Free | ✅ Basic |
+| **Maintenance** | ✅ Active | ✅ Very Active | ⚠️ Moderate |
+| **Migration Effort** | Current | Moderate | Easy |
+
+**Decision Rationale:**
+- **Simple API**: Easy to use for basic workbook generation
+- **No Styling Needed**: Current exports are plain data tables
+- **Acceptable License**: Apache 2.0 allows commercial use with attribution
+- **Security**: Version 0.20.3 fixes critical CVEs (2023-30533, 2024-22363)
+
+**Future Migration Path:**
+When styling features are needed (colored headers, formatted cells), migrate to **ExcelJS**:
+- **MIT License**: Cleaner for commercial use
+- **Rich Styling**: Free styling without Pro license
+- **Bundle Impact**: +150KB (~17% increase) is acceptable
+- **Migration Guide**: See `docs/02-technical/excel-export-library.md`
+
+**Installation Note:**
+```bash
+# xlsx 0.20.3 must be installed from SheetJS CDN (not npm registry)
+npm install https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
+```
+
+**See Also:** [Excel Export Library Documentation](./excel-export-library.md)
+
+---
+
 ## Architecture Decision Records (ADRs)
 
 ### ADR-001: LocalStorage over IndexedDB
