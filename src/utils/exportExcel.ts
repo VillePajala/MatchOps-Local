@@ -11,6 +11,28 @@ import {
 import { formatTime } from './time';
 
 /**
+ * Sanitize filename to remove invalid characters and prevent issues
+ *
+ * @param filename - Raw filename string
+ * @returns Sanitized filename safe for downloads
+ */
+const sanitizeFilename = (filename: string): string => {
+  return filename
+    // Normalize unicode characters (important for Finnish/international names)
+    .normalize('NFD')
+    // Remove combining diacritical marks
+    .replace(/[\u0300-\u036f]/g, '')
+    // Replace invalid filesystem characters with underscore
+    .replace(/[^a-zA-Z0-9_\-. ]/g, '_')
+    // Replace multiple underscores with single
+    .replace(/_+/g, '_')
+    // Trim underscores and spaces from edges
+    .replace(/^[_\s]+|[_\s]+$/g, '')
+    // Limit length to prevent filesystem issues (keep extension)
+    .substring(0, 200);
+};
+
+/**
  * Utility to trigger a download of an Excel file
  */
 const triggerDownload = (workbook: XLSX.WorkBook, filename: string): void => {
@@ -21,12 +43,17 @@ const triggerDownload = (workbook: XLSX.WorkBook, filename: string): void => {
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.download = filename;
+    a.download = sanitizeFilename(filename);
     a.href = url;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+
+    // Delay URL revocation to ensure download starts properly
+    // Immediate revocation can cause issues in some browsers
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 100);
   } catch (error) {
     throw new Error('Failed to generate Excel file. Please try again.', { cause: error });
   }
@@ -814,7 +841,7 @@ export const exportPlayerExcel = (
     XLSX.utils.book_append_sheet(workbook, externalSheet, 'External Games');
   }
 
-    const filename = `MatchOps_Player_${playerData.name.replace(/[^a-zA-Z0-9]/g, '_')}_${getTimestamp()}.xlsx`;
+    const filename = `MatchOps_Player_${playerData.name}_${getTimestamp()}.xlsx`;
     triggerDownload(workbook, filename);
   } catch (error) {
     throw new Error('Failed to export player stats to Excel. Please try again.', { cause: error });
