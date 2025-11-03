@@ -27,8 +27,8 @@ const triggerDownload = (workbook: XLSX.WorkBook, filename: string): void => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  } catch {
-    throw new Error('Failed to generate Excel file. Please try again.');
+  } catch (error) {
+    throw new Error('Failed to generate Excel file. Please try again.', { cause: error });
   }
 };
 
@@ -249,8 +249,8 @@ export const exportCurrentGameExcel = (
 
     const filename = `MatchOps_Game_${gameId}_${getTimestamp()}.xlsx`;
     triggerDownload(workbook, filename);
-  } catch {
-    throw new Error('Failed to export game to Excel. Please try again.');
+  } catch (error) {
+    throw new Error('Failed to export game to Excel. Please try again.', { cause: error });
   }
 };
 
@@ -586,8 +586,8 @@ export const exportAggregateExcel = (
     filename += `${getTimestamp()}.xlsx`;
 
     triggerDownload(workbook, filename);
-  } catch {
-    throw new Error('Failed to export stats to Excel. Please try again.');
+  } catch (error) {
+    throw new Error('Failed to export stats to Excel. Please try again.', { cause: error });
   }
 };
 
@@ -816,7 +816,7 @@ export const exportPlayerExcel = (
 
     const filename = `MatchOps_Player_${playerData.name.replace(/[^a-zA-Z0-9]/g, '_')}_${getTimestamp()}.xlsx`;
     triggerDownload(workbook, filename);
-  } catch {
-    throw new Error('Failed to export player stats to Excel. Please try again.');
+  } catch (error) {
+    throw new Error('Failed to export player stats to Excel. Please try again.', { cause: error });
   }
 };
