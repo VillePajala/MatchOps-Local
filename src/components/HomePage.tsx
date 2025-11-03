@@ -1807,7 +1807,12 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       showToast(`Error: Could not find game data for ${gameId}`, 'error');
       return;
     }
-    exportCurrentGameExcel(gameId, gameData, availablePlayers, seasons, tournaments);
+    try {
+      exportCurrentGameExcel(gameId, gameData, availablePlayers, seasons, tournaments);
+    } catch (error) {
+      logger.error('[handleExportOneExcel] Export failed:', error);
+      showToast(t('export.exportFailed', 'Failed to export game. Please try again.'), 'error');
+    }
   };
 
   // --- END INDIVIDUAL GAME EXPORT HANDLERS ---
@@ -2380,8 +2385,13 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       }
       return acc;
     }, {} as SavedGamesCollection);
-    // TODO: Pass external adjustments and context info for enhanced exports
-    exportAggregateExcel(gamesData, aggregateStats, seasons, tournaments, []);
+    try {
+      // TODO: Pass external adjustments and context info for enhanced exports
+      exportAggregateExcel(gamesData, aggregateStats, seasons, tournaments, []);
+    } catch (error) {
+      logger.error('[handleExportAggregateExcel] Export failed:', error);
+      showToast(t('export.exportFailed', 'Failed to export stats. Please try again.'), 'error');
+    }
   }, [savedGames, seasons, tournaments, t, showToast]);
 
   const handleExportPlayerExcel = useCallback((playerId: string, playerData: import('@/types').PlayerStatRow, gameIds: string[]) => {
@@ -2392,9 +2402,14 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       }
       return acc;
     }, {} as SavedGamesCollection);
-    // TODO: Pass external adjustments for this player
-    exportPlayerExcel(playerId, playerData, gamesData, seasons, tournaments, []);
-  }, [savedGames, seasons, tournaments]);
+    try {
+      // TODO: Pass external adjustments for this player
+      exportPlayerExcel(playerId, playerData, gamesData, seasons, tournaments, []);
+    } catch (error) {
+      logger.error('[handleExportPlayerExcel] Export failed:', error);
+      showToast(t('export.exportFailed', 'Failed to export player stats. Please try again.'), 'error');
+    }
+  }, [savedGames, seasons, tournaments, t, showToast]);
 
   // --- END AGGREGATE EXPORT HANDLERS ---
 

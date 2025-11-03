@@ -14,18 +14,22 @@ import { formatTime } from './time';
  * Utility to trigger a download of an Excel file
  */
 const triggerDownload = (workbook: XLSX.WorkBook, filename: string): void => {
-  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-  const blob = new Blob([excelBuffer], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.download = filename;
-  a.href = url;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  try {
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.download = filename;
+    a.href = url;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch {
+    throw new Error('Failed to generate Excel file. Please try again.');
+  }
 };
 
 /**
@@ -70,6 +74,20 @@ const calculateRecord = (
 
 /**
  * Export a single game to Excel with multiple sheets
+ *
+ * Generates an Excel workbook with the following sheets:
+ * - Player Stats: Goals, assists, points for all players in the game
+ * - Events: Timeline of goals and opponent goals
+ * - Game Info: Metadata (date, location, scores, settings)
+ * - Assessments: Player performance ratings (if available)
+ * - Substitution Intervals: Period timing data (if available)
+ *
+ * @param gameId - Unique identifier for the game
+ * @param game - Complete game state containing all game data
+ * @param players - All players in the roster for name lookups
+ * @param seasons - All seasons for season name resolution (optional)
+ * @param tournaments - All tournaments for tournament name resolution (optional)
+ * @throws {Error} If Excel generation or download fails
  */
 export const exportCurrentGameExcel = (
   gameId: string,
@@ -78,7 +96,8 @@ export const exportCurrentGameExcel = (
   seasons: Season[] = [],
   tournaments: Tournament[] = []
 ): void => {
-  const workbook = XLSX.utils.book_new();
+  try {
+    const workbook = XLSX.utils.book_new();
 
   const seasonName = game.seasonId ? seasons.find((s) => s.id === game.seasonId)?.name : '';
   const tournamentName = game.tournamentId
@@ -228,12 +247,33 @@ export const exportCurrentGameExcel = (
     XLSX.utils.book_append_sheet(workbook, intervalsSheet, 'Substitution Intervals');
   }
 
-  const filename = `Game_${gameId}_${getTimestamp()}.xlsx`;
-  triggerDownload(workbook, filename);
+    const filename = `MatchOps_Game_${gameId}_${getTimestamp()}.xlsx`;
+    triggerDownload(workbook, filename);
+  } catch {
+    throw new Error('Failed to export game to Excel. Please try again.');
+  }
 };
 
 /**
  * Export aggregate stats to Excel with multiple sheets
+ *
+ * Generates an Excel workbook with the following sheets:
+ * - Player Stats Summary: Aggregated goals, assists, points per player
+ * - Team Performance: Win/loss record, goals for/against
+ * - Game Details: List of all games with scores and metadata
+ * - Season Breakdown: Stats grouped by season (if multiple seasons)
+ * - Tournament Breakdown: Stats grouped by tournament (if multiple tournaments)
+ * - Assessments Summary: Average player ratings across all games (if available)
+ * - External Games: Non-MatchOps games added manually (if any)
+ *
+ * @param games - Collection of all games to aggregate
+ * @param aggregateStats - Pre-calculated player statistics
+ * @param seasons - All seasons for season name resolution (optional)
+ * @param tournaments - All tournaments for tournament name resolution (optional)
+ * @param externalAdjustments - External game adjustments to include (optional)
+ * @param contextType - Type of export context: 'season', 'tournament', or 'overall' (optional)
+ * @param contextId - ID of season/tournament if contextType is specified (optional)
+ * @throws {Error} If Excel generation or download fails
  */
 export const exportAggregateExcel = (
   games: SavedGamesCollection,
@@ -244,7 +284,8 @@ export const exportAggregateExcel = (
   contextType?: 'season' | 'tournament' | 'overall',
   contextId?: string
 ): void => {
-  const workbook = XLSX.utils.book_new();
+  try {
+    const workbook = XLSX.utils.book_new();
 
   // Sheet 1: Player Stats Summary
   const playerSummary = aggregateStats
@@ -542,13 +583,32 @@ export const exportAggregateExcel = (
   } else {
     filename += 'AllStats_';
   }
-  filename += `${getTimestamp()}.xlsx`;
+    filename += `${getTimestamp()}.xlsx`;
 
-  triggerDownload(workbook, filename);
+    triggerDownload(workbook, filename);
+  } catch {
+    throw new Error('Failed to export stats to Excel. Please try again.');
+  }
 };
 
 /**
- * Export individual player stats to Excel (for Player tab)
+ * Export individual player stats to Excel with multiple sheets
+ *
+ * Generates an Excel workbook focused on a single player with the following sheets:
+ * - Player Summary: Overall stats (games, goals, assists, points, averages)
+ * - Game History: Per-game breakdown with scores and individual performance
+ * - Assessments: Performance ratings for each game (if available)
+ * - Season Performance: Stats aggregated by season (if available)
+ * - Tournament Performance: Stats aggregated by tournament (if available)
+ * - External Games: Non-MatchOps games for this player (if any)
+ *
+ * @param playerId - Unique identifier for the player
+ * @param playerData - Aggregated player statistics
+ * @param games - Collection of games the player participated in
+ * @param seasons - All seasons for season name resolution (optional)
+ * @param tournaments - All tournaments for tournament name resolution (optional)
+ * @param externalAdjustments - External game adjustments for this player (optional)
+ * @throws {Error} If Excel generation or download fails
  */
 export const exportPlayerExcel = (
   playerId: string,
@@ -558,7 +618,8 @@ export const exportPlayerExcel = (
   tournaments: Tournament[] = [],
   externalAdjustments: PlayerStatAdjustment[] = []
 ): void => {
-  const workbook = XLSX.utils.book_new();
+  try {
+    const workbook = XLSX.utils.book_new();
 
   // Sheet 1: Player Summary
   const summary = [{
@@ -597,6 +658,9 @@ export const exportPlayerExcel = (
       const seasonName = game.seasonId ? seasons.find((s) => s.id === game.seasonId)?.name : '';
       const tournamentName = game.tournamentId ? tournaments.find((t) => t.id === game.tournamentId)?.name : '';
 
+      // Get player from this game's roster snapshot for accurate per-game data
+      const playerInGame = game.availablePlayers?.find(p => p.id === playerId);
+
       return {
         'Game ID': id,
         Date: game.gameDate,
@@ -608,7 +672,7 @@ export const exportPlayerExcel = (
         Goals: goals,
         Assists: assists,
         Points: goals + assists,
-        'Fair Play': playerData.receivedFairPlayCard ? 'Yes' : 'No',
+        'Fair Play': playerInGame?.receivedFairPlayCard ? 'Yes' : 'No',
         'Minutes Played': assessment?.minutesPlayed || '',
         'Overall Rating': assessment?.overall || '',
         Season: seasonName,
@@ -750,6 +814,9 @@ export const exportPlayerExcel = (
     XLSX.utils.book_append_sheet(workbook, externalSheet, 'External Games');
   }
 
-  const filename = `Player_${playerData.name.replace(/[^a-zA-Z0-9]/g, '_')}_${getTimestamp()}.xlsx`;
-  triggerDownload(workbook, filename);
+    const filename = `MatchOps_Player_${playerData.name.replace(/[^a-zA-Z0-9]/g, '_')}_${getTimestamp()}.xlsx`;
+    triggerDownload(workbook, filename);
+  } catch {
+    throw new Error('Failed to export player stats to Excel. Please try again.');
+  }
 };
