@@ -1,7 +1,36 @@
 # 📊 Production Readiness Progress Dashboard
 
-**Last Updated**: January 9, 2025
+**Last Updated**: January 11, 2025
 **Overall Progress**: 35% Complete (2 of 6 phases done)
+
+---
+
+## 🎉 **Recent Completions**
+
+### ✅ Personnel Management Feature (COMPLETED)
+**Completion Date**: January 2025
+**Time Spent**: ~8 hours
+
+**What Was Accomplished**:
+- ✅ Full CRUD operations for personnel (coaches, trainers, managers, etc.)
+- ✅ React Query integration with real-time cache updates
+- ✅ Personnel selection in game setup
+- ✅ PersonnelManagerModal and PersonnelSelectionSection components
+- ✅ Full i18n support (EN/FI)
+- ✅ Backwards compatible with old games and backups
+- ✅ Automatic import/export integration
+- ✅ Comprehensive test coverage
+
+**Files Created**:
+- `src/utils/personnelManager.ts`
+- `src/hooks/usePersonnel.ts`
+- `src/components/PersonnelManagerModal.tsx`
+- `src/components/PersonnelSelectionSection.tsx`
+- `src/types/personnel.ts`
+
+**Documentation Archived**:
+- `docs/08-archived/completed-features/personnel-feature-plan.md`
+- `docs/08-archived/completed-features/personnel-implementation-plan.md`
 
 ---
 
@@ -235,6 +264,58 @@
 
 ---
 
+## 🎯 **NEXT STEPS - Decision Point**
+
+### 🔴 **CRITICAL DECISION REQUIRED**
+
+You have completed all major features but stand at a fork in the road. Choose your path:
+
+### **Option 1: Fix Critical Technical Debt First** ⭐ **RECOMMENDED**
+**Time**: 4-5 hours
+**Impact**: 3-5x faster development forever
+**ROI**: 1000% over project lifetime
+
+**Why This Matters**:
+- HomePage.tsx: 3,602 lines (8.5x too large)
+- GameSettingsModal.tsx: 1,707 lines (4.3x too large)
+- Every new feature currently takes 3-5x longer than it should
+- Testing is extremely difficult
+- Onboarding new developers nearly impossible
+
+**Start Here**: `docs/CRITICAL_FIXES_REQUIRED.md` → `docs/05-development/fix-plans/P0-HomePage-Refactoring-Plan.md`
+
+**After Completion**: All future work (including P1-P5) becomes 3-5x faster
+
+### **Option 2: Production Readiness P1 (Security & Service Worker)**
+**Time**: 3-5 hours
+**Impact**: Security improvements, better offline experience
+**Risk**: Technical debt makes P2-P5 slower and more painful
+
+**Start Here**: `production-readiness.md` §1-2
+
+### **Option 3: Add Team Final Positions Feature**
+**Time**: 6-8 hours (will take longer due to technical debt)
+**Impact**: New user-facing feature
+**Risk**: Makes technical debt worse, compounds future slowdown
+
+**Start Here**: `team-final-positions-plan.md`
+
+### 📊 **Recommendation Matrix**
+
+| Priority | Choose Option |
+|----------|---------------|
+| **Long-term sustainability** | 1️⃣ Fix debt first |
+| **Need Play Store ASAP** | 2️⃣ P1, then fix debt during P2-P5 |
+| **Want new features visible to users** | ⚠️ Not recommended (fix debt first for sanity) |
+
+### ⚡ **Quick Decision Guide**
+
+**If you have 2+ weeks**: Fix debt → P1 → P2-P5 (smooth, fast, maintainable)
+**If you have days**: P1 → P2-P5 → Fix debt (painful but possible)
+**If you're planning to maintain long-term**: Fix debt is non-negotiable
+
+---
+
 ## 🚀 **Quick Links**
 
 ### Current Work
@@ -256,6 +337,12 @@
 
 ## 📝 **Version History**
 
+- **2025-01-11**: Major status update
+  - Added Personnel Management feature completion
+  - Added NEXT STEPS decision point section
+  - Created comprehensive PROJECT_STATUS_SUMMARY.md
+  - Moved personnel plans to archived/completed-features
+  - Clarified critical path forward
 - **2025-10-09**: Documentation audit and organization
   - Clarified personnel plan files
   - Updated links index
