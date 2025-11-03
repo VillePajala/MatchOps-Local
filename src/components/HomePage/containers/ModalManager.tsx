@@ -41,6 +41,7 @@ import type {
   Tournament,
   AppState,
   Personnel,
+  PlayerStatRow,
 } from '@/types';
 import type { UseGameOrchestrationReturn } from '../hooks/useGameOrchestration';
 import { useModalContext } from '@/contexts/ModalProvider';
@@ -85,8 +86,9 @@ interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   handleUpdateGameEvent: (event: GameEvent) => void;
   handleDeleteGameEvent: (eventId: string) => void;
   handleToggleGameStatsModal: () => void;
-  handleExportOneCsv: (gameId: string) => void;
-  handleExportAggregateCsv: () => void;
+  handleExportOneExcel: (gameId: string) => void;
+  handleExportAggregateExcel: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
+  handleExportPlayerExcel: (playerId: string, playerData: PlayerStatRow, gameIds: string[]) => void;
   handleGameLogClick: (gameId: string) => void;
   handleCloseLoadGameModal: () => void;
   handleLoadGame: (gameId: string) => void;
@@ -223,8 +225,9 @@ export function ModalManager(props: ModalManagerProps) {
     handleUpdateGameEvent,
     handleDeleteGameEvent,
     handleToggleGameStatsModal,
-    handleExportOneCsv,
-    handleExportAggregateCsv,
+    handleExportOneExcel,
+    handleExportAggregateExcel,
+    handleExportPlayerExcel,
     handleGameLogClick,
     handleCloseLoadGameModal,
     handleLoadGame,
@@ -359,8 +362,9 @@ export function ModalManager(props: ModalManagerProps) {
           savedGames={savedGames || {}}
           currentGameId={currentGameId || null}
           onDeleteGameEvent={handleDeleteGameEvent || (() => {})}
-          onExportOneCsv={handleExportOneCsv || (() => {})}
-          onExportAggregateCsv={handleExportAggregateCsv || (() => {})}
+          onExportOneExcel={handleExportOneExcel || (() => {})}
+          onExportAggregateExcel={handleExportAggregateExcel || (() => {})}
+          onExportPlayerExcel={handleExportPlayerExcel || (() => {})}
           initialSelectedPlayerId={selectedPlayerForStats?.id}
           onGameClick={handleGameLogClick || (() => {})}
           masterRoster={masterRosterQueryResultData || []}
@@ -375,7 +379,7 @@ export function ModalManager(props: ModalManagerProps) {
         onLoad={handleLoadGame || (() => {})}
         onDelete={handleDeleteGame || (() => {})}
         onExportOneJson={handleExportOneJson || (() => {})}
-        onExportOneCsv={handleExportOneCsv || (() => {})}
+        onExportOneExcel={handleExportOneExcel || (() => {})}
         currentGameId={currentGameId || undefined}
         isLoadingGamesList={isLoadingGamesList || false}
         loadGamesListError={loadGamesListError || null}

@@ -96,7 +96,7 @@
     "doneButton": "Done",
     "edit": "Edit",
     "error": "Error",
-    "exportCsv": "Export Csv",
+    "exportExcel": "Export Excel",
     "exportJson": "Export Json",
     "filterByName": "Filter By Name",
     "gamesPlayed": "Games Played",
@@ -932,6 +932,10 @@
     "namePlaceholder": "Enter team name",
     "teamColor": "Team Color",
     "noTeams": "No teams yet. Create your first team to get started.",
+    "searchPlaceholder": "Search teams...",
+    "searchAriaLabel": "Search teams by name",
+    "onePlayer": "1 player",
+    "playersCount": "{{count}} players",
     "createdAt": "Created {{date}}",
     "roster": "Roster",
     "rename": "Rename",
@@ -1273,5 +1277,11 @@
     "reassignButton": "Reassign to Team",
     "reassignTitle": "Reassign Game to Team",
     "reassignDescription": "Select a team to associate this game with, or choose \"No Team\" to use the master roster."
+  },
+  "export": {
+    "exportGameFailed": "Failed to export game. Please try again.",
+    "exportStatsFailed": "Failed to export stats. Please try again.",
+    "exportPlayerFailed": "Failed to export player stats. Please try again.",
+    "noGamesInSelection": "No games match the current filter."
   }
 }
