@@ -62,6 +62,7 @@ type MutationMetaBase = {
     selectedPlayerIds?: string[];
     gamePersonnel?: string[];
     gameTime?: string;
+    gameDate?: string;
     teamName?: string;
     opponentName?: string;
     demandFactor?: number;
@@ -73,14 +74,6 @@ type MutationMetaBase = {
 };
 
 type MutationMeta = MutationMetaBase & { sequence: number };
-
-type MutationMeta = {
-  source?: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
-  targetId?: string;
-  expectedState?: Partial<AppState>;
-  expectedIsPlayed?: boolean;
-  sequence?: number;
-};
 
 interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   // Modal-specific states
