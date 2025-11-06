@@ -72,7 +72,10 @@ describe('gameSessionReducer', () => {
     const historySnapshot = {
       currentPeriod: 3 as const,
       gameStatus: 'inProgress' as const,
-      completedIntervalDurations: [300, 320],
+      completedIntervalDurations: [
+        { period: 1, duration: 300, timestamp: Date.now() - 620000 },
+        { period: 2, duration: 320, timestamp: Date.now() - 320000 },
+      ],
       lastSubConfirmationTimeSeconds: 180,
       showPlayerNames: false,
       gameEvents: [{ id: 'goal-1', type: 'goal' as const, time: 95, scorerId: 'player1' }],
@@ -98,7 +101,7 @@ describe('gameSessionReducer', () => {
     expect(state).toMatchObject({
       currentPeriod: 3,
       gameStatus: 'inProgress',
-      completedIntervalDurations: [300, 320],
+      completedIntervalDurations: historySnapshot.completedIntervalDurations,
       lastSubConfirmationTimeSeconds: 180,
       showPlayerNames: false,
       gameEvents: historySnapshot.gameEvents,
