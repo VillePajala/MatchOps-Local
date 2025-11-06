@@ -157,8 +157,8 @@ const defaultProps: GameSettingsModalProps = {
   onNumPeriodsChange: mockOnNumPeriodsChange,
   onPeriodDurationChange: mockOnPeriodDurationChange,
   onDemandFactorChange: jest.fn(),
-  seasonId: null,
-  tournamentId: null,
+  seasonId: '',
+  tournamentId: '',
   onSeasonIdChange: mockOnSeasonIdChange,
   onTournamentIdChange: mockOnTournamentIdChange,
   homeOrAway: 'home',
@@ -220,6 +220,32 @@ describe('<GameSettingsModal />', () => {
     const closeButton = screen.getByRole('button', { name: t('common.doneButton', 'Done') });
     await user.click(closeButton);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  describe('Season Prefill Regression', () => {
+    test('applies season data to local handlers immediately when season changes', async () => {
+      const onGameLocationChange = jest.fn();
+      const onAgeGroupChange = jest.fn();
+      const onNumPeriodsChange = jest.fn();
+      const onPeriodDurationChange = jest.fn();
+
+      renderModal({
+        ...defaultProps,
+        seasonId: 'season-100',
+        seasons: [
+          { id: 'season-100', name: 'Elite League', location: 'North Dome', periodCount: 2, periodDuration: 30, ageGroup: 'u13' },
+        ],
+        onGameLocationChange,
+        onAgeGroupChange,
+        onNumPeriodsChange,
+        onPeriodDurationChange,
+      });
+
+      await waitFor(() => expect(onGameLocationChange).toHaveBeenCalledWith('North Dome'));
+      expect(onAgeGroupChange).toHaveBeenCalledWith('u13');
+      expect(onNumPeriodsChange).toHaveBeenCalledWith(2);
+      expect(onPeriodDurationChange).toHaveBeenCalledWith(30);
+    });
   });
 
   describe('Game Notes Section', () => {
@@ -483,6 +509,31 @@ describe('<GameSettingsModal />', () => {
           expect(removeGameEvent).toHaveBeenCalled();
         });
       });
+
+    test('keeps parent state untouched when storage deletion fails', async () => {
+      const user = userEvent.setup();
+      (removeGameEvent as jest.Mock).mockResolvedValueOnce(false);
+      renderModal();
+
+      const eventDiv = await findEventByTime('02:00');
+      const ellipsisButton = within(eventDiv).getByLabelText(t('gameSettingsModal.eventActions', 'Event actions'));
+      await user.click(ellipsisButton);
+
+      const deleteButton = await screen.findByRole('button', { name: t('common.delete') });
+      await user.click(deleteButton);
+
+      const confirmationModal = await screen.findByText(t('gameSettingsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.'));
+      const modalContainer = confirmationModal.closest('div[class*=\"fixed\"]');
+      const confirmButton = within(modalContainer as HTMLElement).getByRole('button', { name: t('common.delete') });
+      await user.click(confirmButton);
+
+      await waitFor(() => {
+        expect(removeGameEvent).toHaveBeenCalled();
+      });
+
+      expect(mockOnDeleteGameEvent).not.toHaveBeenCalled();
+      expect(await findEventByTime('02:00')).toBeInTheDocument();
+    });
   });
 
   describe('Error Handling & Edge Cases', () => {
@@ -608,7 +659,7 @@ describe('<GameSettingsModal />', () => {
     test('should not display award when no tournament is selected', async () => {
       const propsNoTournament: GameSettingsModalProps = {
         ...defaultProps,
-        tournamentId: null,
+        tournamentId: '',
         masterRoster: mockPlayers,
       };
 

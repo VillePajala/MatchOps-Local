@@ -89,8 +89,8 @@ export interface GameSettingsModalProps {
   gameNotes?: string;
   ageGroup?: string;
   tournamentLevel?: string;
-  seasonId?: string | null;
-  tournamentId?: string | null;
+  seasonId?: string;
+  tournamentId?: string;
   gameEvents: GameEvent[];
   availablePlayers: Player[];
   availablePersonnel: Personnel[];
@@ -200,8 +200,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   selectedPersonnelIds,
   onSelectedPlayersChange,
   onSelectedPersonnelChange,
-  seasonId,
-  tournamentId,
+  seasonId = '',
+  tournamentId = '',
   numPeriods,
   periodDurationMinutes,
   demandFactor = 1,
