@@ -50,6 +50,30 @@ import { exportFullBackup } from '@/utils/fullBackup';
 import { saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
 import type { UseMutationResult } from '@tanstack/react-query';
 
+type MutationMetaBase = {
+  source: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
+  targetId?: string;
+  expectedState?: {
+    seasonId?: string;
+    tournamentId?: string;
+    gameLocation?: string;
+    ageGroup?: string;
+    tournamentLevel?: string;
+    selectedPlayerIds?: string[];
+    gamePersonnel?: string[];
+    gameTime?: string;
+    teamName?: string;
+    opponentName?: string;
+    demandFactor?: number;
+    numberOfPeriods?: number;
+    periodDurationMinutes?: number;
+    homeOrAway?: 'home' | 'away';
+  };
+  expectedIsPlayed?: boolean;
+};
+
+type MutationMeta = MutationMetaBase & { sequence: number };
+
 type MutationMeta = {
   source?: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
   targetId?: string;
