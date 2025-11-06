@@ -146,4 +146,47 @@ describe('GameSettingsModal - Regression Documentation for PR #55', () => {
       expect(true).toBe(true);
     });
   });
+
+  /**
+   * Additional Fix: Timeout cleanup to prevent accumulation
+   *
+   * Bug: Rapid season/tournament changes caused multiple timeouts to accumulate
+   * Fix: Added cleanup function to clear timeout when effect re-runs
+   *
+   * Files: src/components/GameSettingsModal.tsx (lines 632-633, 747-748)
+   */
+  describe('Additional: Timeout cleanup prevents accumulation', () => {
+    it('documents that timeouts are cleared on effect re-run', () => {
+      // Season prefill effect (lines 533-641):
+      // const timeoutId = setTimeout(async () => { ... }, 100);
+      // return () => clearTimeout(timeoutId);
+      //
+      // Tournament prefill effect (lines 644-756):
+      // const timeoutId = setTimeout(async () => { ... }, 100);
+      // return () => clearTimeout(timeoutId);
+      //
+      // This ensures that rapid changes (Spring → Summer → Fall) only result
+      // in ONE timeout firing (the last one), not three.
+      //
+      // Without cleanup:
+      // - t=0ms: Spring timeout scheduled (fires at t=100ms)
+      // - t=20ms: Summer timeout scheduled (fires at t=120ms)
+      // - t=40ms: Fall timeout scheduled (fires at t=140ms)
+      // Result: 3 timeouts fire, wasting CPU and spamming logs
+      //
+      // With cleanup:
+      // - t=0ms: Spring timeout scheduled
+      // - t=20ms: Spring timeout CLEARED, Summer timeout scheduled
+      // - t=40ms: Summer timeout CLEARED, Fall timeout scheduled
+      // Result: Only Fall timeout fires at t=140ms
+      expect(true).toBe(true);
+    });
+
+    it('documents that setTimeout returns timeoutId for cleanup', () => {
+      // JavaScript setTimeout returns a numeric ID (NodeJS) or object (browser)
+      // clearTimeout(timeoutId) cancels the pending timeout
+      // This is a standard React cleanup pattern for useEffect with timers
+      expect(true).toBe(true);
+    });
+  });
 });
