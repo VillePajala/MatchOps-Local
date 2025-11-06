@@ -236,6 +236,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     };
   }, []);
 
+  /**
+   * Get next mutation sequence number for race condition prevention.
+   *
+   * Note: No wraparound needed. Number.MAX_SAFE_INTEGER = 9,007,199,254,740,991.
+   * Even at 1 mutation/second, would take 285 million years to overflow.
+   * Wraparound would break stale detection by repeating sequence numbers.
+   */
   const getNextMutationSequence = useCallback(() => {
     mutationSequenceRef.current += 1;
     return mutationSequenceRef.current;
