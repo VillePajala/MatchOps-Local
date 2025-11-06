@@ -18,6 +18,57 @@ The MatchOps-Local codebase is **production-ready** but contains **critical tech
 
 ---
 
+## 📝 REFACTORING APPROACH DECISION (2025-11-05)
+
+**Decision**: **SKIPPING comprehensive test-driven refactoring approach**
+
+**Reason**: After detailed analysis, the proposed test-driven refactoring (Phase 0: Tests → Phase 1: Hook Extraction → Phase 2: Component Decomposition) was determined to be **too complex and time-consuming** for the current project phase.
+
+### Why Skipped
+
+1. **Excessive Upfront Cost**: Estimated 5 weeks (25 days) total effort
+   - Phase 0 alone: 3-4 days just writing tests before ANY refactoring
+   - Risk of analysis paralysis and scope creep
+
+2. **Complexity**: Required coordinating multiple extraction phases:
+   - 4 custom hooks to extract (useModalState, useCompetitionManagement, useGamePersistence, useTimerControls)
+   - 8 new components to create
+   - Extensive test infrastructure buildout
+
+3. **Diminishing Returns**: The codebase already has:
+   - ~57% statement coverage, 45% branch coverage
+   - Existing integration tests for core workflows
+   - Working domain hooks (useGameSessionReducer, useGameTimer, etc.)
+
+4. **Better Path Forward**: Incremental, targeted fixes as needed:
+   - Fix specific bugs when encountered
+   - Extract components only when actively working in that area
+   - Add tests for new features, not comprehensive retroactive coverage
+
+### What This Means
+
+✅ **DO**:
+- Continue with iterative improvements
+- Write tests for NEW code and bug fixes
+- Extract components opportunistically when modifying areas
+- Focus on delivering features over perfect architecture
+
+❌ **DON'T**:
+- Attempt large-scale refactoring without immediate business need
+- Block feature development waiting for "perfect" architecture
+- Create elaborate test infrastructure for legacy code
+
+### Future Consideration
+
+If the monolithic structure becomes a genuine blocker (e.g., multiple developers blocked, high bug rate), revisit with:
+- Smaller scope (target ONE specific component, not entire codebase)
+- Business justification (clear ROI calculation)
+- Incremental approach (one component at a time, not all phases)
+
+**Bottom Line**: Pragmatic iteration beats perfect architecture every time.
+
+---
+
 ## ⛔ DO NOT PROCEED WARNING
 
 **STOP before starting any of these activities:**

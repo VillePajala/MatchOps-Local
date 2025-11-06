@@ -50,6 +50,14 @@ import { exportFullBackup } from '@/utils/fullBackup';
 import { saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
 import type { UseMutationResult } from '@tanstack/react-query';
 
+type MutationMeta = {
+  source?: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
+  targetId?: string;
+  expectedState?: Partial<AppState>;
+  expectedIsPlayed?: boolean;
+  sequence?: number;
+};
+
 interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   // Modal-specific states
   selectedPlayerForStats: Player | null;
@@ -135,7 +143,7 @@ interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   handleSetIsPlayed: (played: boolean) => void;
   handleUpdateSelectedPlayers: (playerIds: string[]) => void;
   handleSetGamePersonnel?: (personnelIds: string[]) => void;
-  updateGameDetailsMutation?: UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>;
+  updateGameDetailsMutation?: UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState>; meta?: MutationMeta }, unknown>;
   handleTeamIdChange: (teamId: string | null) => void;
   handleCloseSettingsModal: () => void;
   handleShowAppGuide: () => void;
@@ -494,7 +502,7 @@ export function ModalManager(props: ModalManagerProps) {
         onTournamentIdChange={handleSetTournamentId || (() => {})}
         homeOrAway={gameSessionState.homeOrAway}
         onSetHomeOrAway={handleSetHomeOrAway || (() => {})}
-        isPlayed={isPlayed || true}
+        isPlayed={typeof isPlayed === 'boolean' ? isPlayed : true}
         onIsPlayedChange={handleSetIsPlayed || (() => {})}
         timeElapsedInSeconds={timeElapsedInSeconds || 0}
         updateGameDetailsMutation={updateGameDetailsMutation!}

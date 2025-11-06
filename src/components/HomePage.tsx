@@ -689,10 +689,88 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     },
   });
 
-  const updateGameDetailsMutation = useMutation({
-    mutationFn: ({ gameId, updates }: { gameId: string, updates: Partial<AppState> }) =>
-      utilUpdateGameDetails(gameId, updates),
+  type UpdateGameDetailsMeta = {
+    source?: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
+    targetId?: string;
+    expectedState?: Partial<AppState>;
+    expectedIsPlayed?: boolean;
+    sequence?: number;
+  };
+
+  type UpdateGameDetailsVariables = {
+    gameId: string;
+    updates: Partial<AppState>;
+    meta?: UpdateGameDetailsMeta;
+  };
+
+  const lastAppliedMutationSequenceRef = useRef(0);
+
+  const updateGameDetailsMutation = useMutation<AppState | null, Error, UpdateGameDetailsVariables>({
+    mutationFn: ({ gameId, updates }) => utilUpdateGameDetails(gameId, updates),
     onSuccess: (data, variables) => {
+      const { meta } = variables;
+      const shouldApplyUpdate = (() => {
+        if (!meta?.source) return true;
+        if (meta.sequence && meta.sequence < lastAppliedMutationSequenceRef.current) {
+          logger.log('[updateGameDetailsMutation] Skipping stale update based on sequence', {
+            sequence: meta.sequence,
+            lastApplied: lastAppliedMutationSequenceRef.current,
+            updates: variables.updates,
+          });
+          return false;
+        }
+        if ((meta.source === 'seasonPrefill' || meta.source === 'seasonSelection') && meta.targetId) {
+          if (gameSessionState.seasonId !== meta.targetId) {
+            logger.log('[updateGameDetailsMutation] Skipping stale season update', {
+              currentSeasonId: gameSessionState.seasonId,
+              targetId: meta.targetId,
+            });
+            return false;
+          }
+        }
+        if ((meta.source === 'tournamentPrefill' || meta.source === 'tournamentSelection') && meta.targetId) {
+          if (gameSessionState.tournamentId !== meta.targetId) {
+            logger.log('[updateGameDetailsMutation] Skipping stale tournament update', {
+              currentTournamentId: gameSessionState.tournamentId,
+              targetId: meta.targetId,
+            });
+            return false;
+          }
+        }
+        if (meta.expectedState) {
+          for (const [key, value] of Object.entries(meta.expectedState)) {
+            // Only check fields that exist in GameSessionState (it's a subset of AppState)
+            if (key in gameSessionState) {
+              const stateValue = (gameSessionState as unknown as Record<string, unknown>)[key];
+              if (stateValue !== value) {
+                logger.log('[updateGameDetailsMutation] Skipping update due to mismatched state', {
+                  field: key,
+                  expected: value,
+                  actual: stateValue,
+                });
+                return false;
+              }
+            }
+          }
+        }
+        if (meta.expectedIsPlayed !== undefined && isPlayed !== meta.expectedIsPlayed) {
+          logger.log('[updateGameDetailsMutation] Skipping isPlayed update due to mismatch', {
+            expected: meta.expectedIsPlayed,
+            actual: isPlayed,
+          });
+          return false;
+        }
+        return true;
+      })();
+
+      if (!shouldApplyUpdate) {
+        return;
+      }
+
+      if (meta?.sequence) {
+        lastAppliedMutationSequenceRef.current = meta.sequence;
+      }
+
       // After a successful update, invalidate the savedGames query to refetch
       queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
 
@@ -1427,10 +1505,16 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         tournamentId: state.tournamentId,
         gameLocation: state.gameLocation,
         gameTime: state.gameTime,
+        // Include all GameSessionState properties for complete restoration
+        ageGroup: state.ageGroup,
+        tournamentLevel: state.tournamentLevel,
+        teamId: state.teamId,
+        gamePersonnel: state.gamePersonnel ?? [],
+        demandFactor: state.demandFactor ?? 1,
+        subIntervalMinutes: state.subIntervalMinutes ?? 5,
+        homeOrAway: state.homeOrAway,
       },
     });
-    dispatchGameSession({ type: 'SET_SUB_INTERVAL', payload: state.subIntervalMinutes ?? 5 });
-    dispatchGameSession({ type: 'SET_HOME_OR_AWAY', payload: state.homeOrAway });
     setTacticalDiscs(state.tacticalDiscs || []);
     setTacticalDrawings(state.tacticalDrawings || []);
     setTacticalBallPosition(state.tacticalBallPosition || null);
@@ -2483,6 +2567,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       const newGameId = `game_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
       // 3. Explicitly save the new game state immediately to state and localStorage
+      let saveSucceeded = false;
       try {
         const updatedSavedGamesCollection = {
           ...savedGames,
@@ -2503,9 +2588,19 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
 
         logger.log(`Saved new game ${newGameId} and settings via utility functions.`);
-
+        saveSucceeded = true;
       } catch (error) {
-         logger.error("Error explicitly saving new game state:", error);
+        logger.error("Error explicitly saving new game state:", error);
+        showToast(t('newGameSetupModal.saveGameFailed', 'Failed to save the new game. Please try again.'), 'error');
+        setSavedGames(prev => {
+          const reverted = { ...prev };
+          delete reverted[newGameId];
+          return reverted;
+        });
+      }
+
+      if (!saveSucceeded) {
+        return;
       }
 
       // 4. Reset History with the new state
@@ -2521,6 +2616,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       // Close the setup modal
       setIsNewGameSetupModalOpen(false);
       setNewGameDemandFactor(1);
+      setPlayerIdsForNewGame(null); // Clear player selection after game creation
 
       // <<< Trigger the roster button highlight >>>
       logger.log('[handleStartNewGameWithSetup] Setting highlightRosterButton to true.'); // Log highlight trigger
@@ -2536,6 +2632,11 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     setIsNewGameSetupModalOpen,
     setHighlightRosterButton,
     queryClient,
+    setNewGameDemandFactor,
+    setPlayerIdsForNewGame,
+    setIsPlayed,
+    showToast,
+    t,
   ]);
 
   // ** REVERT handleCancelNewGameSetup TO ORIGINAL **
@@ -2553,6 +2654,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     setHasSkippedInitialSetup(true); // Still mark as skipped if needed elsewhere
     setIsNewGameSetupModalOpen(false); // ADDED: Explicitly close the modal
     setNewGameDemandFactor(1);
+    setPlayerIdsForNewGame(null); // Clear stale player selection
 
   // REMOVED initialState from dependencies
   }, [setIsNewGameSetupModalOpen]); // Updated dependencies
@@ -3386,6 +3488,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
             // Close new game modal and open team manager modal
             // Note: User will need to navigate to the specific team roster from team manager
             setIsNewGameSetupModalOpen(false);
+            setPlayerIdsForNewGame(null); // Clear player selection when switching to team manager
             setIsTeamManagerOpen(true);
           }}
           onStart={handleStartNewGameWithSetup} // CORRECTED Handler

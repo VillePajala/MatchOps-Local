@@ -150,23 +150,24 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
                 nickname: playerData.nickname 
             });
 
-            if (updatedPlayerFromManager) {
-                const latestRoster = await getMasterRosterFromManager();
-                setAvailablePlayers(latestRoster);
+        if (updatedPlayerFromManager) {
+            const latestRoster = await getMasterRosterFromManager();
+            setAvailablePlayers(latestRoster);
 
-                setPlayersOnField(prevPlayersOnField => 
-                    prevPlayersOnField.map(p => 
-            p.id === playerId ? { ...p, name: playerData.name, nickname: playerData.nickname } : p
-                    )
-        );
+            let updatedPlayersOnFieldState: Player[] = playersOnField;
+            setPlayersOnField(prevPlayersOnField => {
+                updatedPlayersOnFieldState = prevPlayersOnField.map(p =>
+                    p.id === playerId ? { ...p, name: playerData.name, nickname: playerData.nickname } : p
+                );
+                return updatedPlayersOnFieldState;
+            });
 
-                saveStateToHistory({ 
-                    playersOnField: playersOnField.map(p => // This should use the updated playersOnField state for consistency
-            p.id === playerId ? { ...p, name: playerData.name, nickname: playerData.nickname } : p
-                    )
-                });
-                logger.log(`[useGameState] Player ${playerId} renamed to ${playerData.name}. Roster and field updated.`);
-            } else {
+            saveStateToHistory({
+                playersOnField: updatedPlayersOnFieldState,
+                availablePlayers: latestRoster,
+            });
+            logger.log(`[useGameState] Player ${playerId} renamed to ${playerData.name}. Roster and field updated.`);
+        } else {
                 logger.error(`[useGameState] Failed to update player ${playerId} via masterRosterManager.`);
             }
         } catch (error) {
