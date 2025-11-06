@@ -20,6 +20,13 @@ import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 
+/**
+ * Delay before applying prefill mutations to prevent race conditions on mobile devices.
+ * 100ms is chosen to:
+ * - Allow React state updates to complete
+ * - Prevent localStorage conflicts on slow devices
+ * - Still feel instant to users (< 200ms threshold)
+ */
 const PREFILL_MUTATION_DELAY_MS = 100;
 
 export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard';
