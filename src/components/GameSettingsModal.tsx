@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
@@ -31,6 +31,14 @@ export interface GameEvent {
   assisterId?: string;
   entityId?: string;
 }
+
+type MutationMeta = {
+  source?: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
+  targetId?: string;
+  expectedState?: Partial<AppState>;
+  expectedIsPlayed?: boolean;
+  sequence?: number;
+};
 
 export interface GameSettingsModalProps {
   isOpen: boolean;
@@ -85,7 +93,7 @@ export interface GameSettingsModalProps {
   // Removed: isAddingTournament - unused prop, mutations handle loading state internally
   // Add current time for fair play card
   timeElapsedInSeconds?: number;
-  updateGameDetailsMutation: UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>;
+  updateGameDetailsMutation: UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState>; meta?: MutationMeta }, unknown>;
   // Fresh data from React Query
   seasons: Season[];
   tournaments: Tournament[];
@@ -190,6 +198,55 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // Track if we've already applied season/tournament updates to prevent infinite loops
   const appliedSeasonRef = useRef<string | null>(null);
   const appliedTournamentRef = useRef<string | null>(null);
+  // Track if component is mounted to prevent setState on unmounted component
+  const isMountedRef = useRef<boolean>(true);
+  const mutationSequenceRef = useRef(0);
+
+  // Track mount state to prevent race conditions with setTimeout
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const getNextMutationSequence = useCallback(() => {
+    mutationSequenceRef.current += 1;
+    return mutationSequenceRef.current;
+  }, []);
+
+  const mutateGameDetails = useCallback(
+    (updates: Partial<AppState>, meta?: MutationMeta, onError?: (error: unknown) => void) => {
+      if (!currentGameId) return;
+      const sequence = getNextMutationSequence();
+      updateGameDetailsMutation.mutate(
+        {
+          gameId: currentGameId,
+          updates,
+          meta: { ...meta, sequence },
+        },
+        {
+          onError: (error) => {
+            onError?.(error);
+          },
+        }
+      );
+    },
+    [currentGameId, updateGameDetailsMutation, getNextMutationSequence]
+  );
+
+  const mutateGameDetailsAsync = useCallback(
+    (updates: Partial<AppState>, meta?: MutationMeta) => {
+      if (!currentGameId) return Promise.resolve();
+      const sequence = getNextMutationSequence();
+      return updateGameDetailsMutation.mutateAsync({
+        gameId: currentGameId,
+        updates,
+        meta: { ...meta, sequence },
+      });
+    },
+    [currentGameId, updateGameDetailsMutation, getNextMutationSequence]
+  );
 
   // Add defensive logging for debugging Vercel preview issues
   useEffect(() => {
@@ -204,6 +261,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       });
     }
   }, [isOpen, currentGameId, tournamentId, seasonId, updateGameDetailsMutation, gameEvents, availablePlayers]);
+
+  // Clear error state when modal opens to prevent stale error messages
+  useEffect(() => {
+    if (isOpen) {
+      setError(null);
+    }
+  }, [isOpen]);
 
   // State for event editing within the modal
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents || []);
@@ -303,7 +367,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         } catch (error) {
           logger.error('[GameSettingsModal] Error loading team roster:', error);
           setTeamRoster([]);
-          setAdjustedSelectedPlayerIds([]);
+          // Preserve existing selection so the modal doesn't suddenly clear choices
+          setAdjustedSelectedPlayerIds(selectedPlayerIds);
         }
       } else {
         // No teamId - use original selection
@@ -344,9 +409,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     }
 
     onGameTimeChange(timeValue);
-    if (currentGameId) {
-      updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { gameTime: timeValue } });
-    }
+    mutateGameDetails(
+      { gameTime: timeValue },
+      { source: 'stateSync', expectedState: { gameTime: timeValue } }
+    );
   };
 
   // Handle time changes
@@ -450,44 +516,71 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     const batchedUpdates: Partial<AppState> = {};
     let hasUpdates = false;
 
-    if (season.location !== undefined) {
-      // Don't call onGameLocationChange here to avoid infinite loop
-      batchedUpdates.gameLocation = season.location || '';
-      hasUpdates = true;
-    }
-    if (season.ageGroup) {
-      // Don't call onAgeGroupChange here to avoid infinite loop
-      batchedUpdates.ageGroup = season.ageGroup;
-      hasUpdates = true;
-    }
-    const parsedCount = Number(season.periodCount);
-    if (parsedCount === 1 || parsedCount === 2) {
-      const count = parsedCount as 1 | 2;
-      // Don't call onNumPeriodsChange here to avoid infinite loop
-      batchedUpdates.numberOfPeriods = count;
-      hasUpdates = true;
-    }
-    const parsedDuration = Number(season.periodDuration);
-    if (Number.isFinite(parsedDuration) && parsedDuration > 0) {
-      // Don't call onPeriodDurationChange here to avoid infinite loop
-      batchedUpdates.periodDurationMinutes = parsedDuration;
-      hasUpdates = true;
+    // Update local state (form inputs) AND prepare for persistence
+    // Call handlers BEFORE setting ref so failures can retry
+    try {
+      if (season.location !== undefined) {
+        const location = season.location || '';
+        onGameLocationChange(location);
+        batchedUpdates.gameLocation = location;
+        hasUpdates = true;
+      }
+      if (season.ageGroup) {
+        onAgeGroupChange(season.ageGroup);
+        batchedUpdates.ageGroup = season.ageGroup;
+        hasUpdates = true;
+      }
+      const parsedCount = Number(season.periodCount);
+      if (parsedCount === 1 || parsedCount === 2) {
+        const count = parsedCount as 1 | 2;
+        onNumPeriodsChange(count);
+        batchedUpdates.numberOfPeriods = count;
+        hasUpdates = true;
+      }
+      const parsedDuration = Number(season.periodDuration);
+      if (Number.isFinite(parsedDuration) && parsedDuration > 0) {
+        onPeriodDurationChange(parsedDuration);
+        batchedUpdates.periodDurationMinutes = parsedDuration;
+        hasUpdates = true;
+      }
+
+      // Mark this season as applied AFTER handlers succeed to allow retry on failure
+      appliedSeasonRef.current = seasonId;
+    } catch (error) {
+      logger.error('[GameSettingsModal] Error calling season prefill handlers:', error);
+      // Don't set ref on error, allowing retry
+      return;
     }
 
     // Apply all updates in a single mutation call to prevent mobile localStorage conflicts
     if (currentGameId && hasUpdates) {
-      // Mark this season as applied before mutation to prevent re-triggering
-      appliedSeasonRef.current = seasonId;
 
       // Add a small delay to ensure game is fully created on Vercel preview
-      setTimeout(() => {
+      setTimeout(async () => {
+        const targetSeasonId = seasonId;
+        // Check if component is still mounted before calling mutation
+        if (!isMountedRef.current) {
+          logger.log('[GameSettingsModal] Component unmounted, skipping season prefill mutation');
+          return;
+        }
+        // Check if this season is still the active selection (user may have cleared/changed)
+        if (appliedSeasonRef.current !== targetSeasonId) {
+          logger.log('[GameSettingsModal] Season selection changed before mutation, skipping stale prefill mutation');
+          return;
+        }
         try {
-          updateGameDetailsMutation.mutate({
-            gameId: currentGameId,
-            updates: batchedUpdates,
+          await mutateGameDetailsAsync(batchedUpdates, {
+            source: 'seasonPrefill',
+            targetId: targetSeasonId ?? undefined,
+            expectedState: { seasonId: targetSeasonId ?? '' },
           });
         } catch (error) {
           logger.error('[GameSettingsModal] Error updating game with season data:', error);
+          // Only update state if component is still mounted
+          if (!isMountedRef.current) {
+            logger.log('[GameSettingsModal] Component unmounted during mutation, skipping error state update');
+            return;
+          }
           setError(t('gameSettingsModal.errors.seasonUpdateFailed', 'Failed to apply season settings'));
           // Reset ref on error so it can be retried
           appliedSeasonRef.current = null;
@@ -497,7 +590,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
     // Don't update roster selection here to avoid dependency loop
     // The mutation will handle updating the game state
-  }, [seasonId, seasons, isOpen, currentGameId, updateGameDetailsMutation, t]);
+    // Handlers (onGameLocationChange, etc.) intentionally omitted from deps to prevent loops
+    // appliedSeasonRef guard ensures handlers only run once per season selection
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seasonId, seasons, isOpen, currentGameId, mutateGameDetailsAsync, t]);
 
   // Prefill game settings when selecting a tournament
   useEffect(() => {
@@ -528,49 +624,75 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     const batchedUpdates: Partial<AppState> = {};
     let hasUpdates = false;
 
-    if (tournament.location !== undefined) {
-      // Don't call onGameLocationChange here to avoid infinite loop
-      batchedUpdates.gameLocation = tournament.location || '';
-      hasUpdates = true;
-    }
-    if (tournament.ageGroup) {
-      // Don't call onAgeGroupChange here to avoid infinite loop
-      batchedUpdates.ageGroup = tournament.ageGroup;
-      hasUpdates = true;
-    }
-    if (tournament.level) {
-      // Don't call onTournamentLevelChange here to avoid infinite loop
-      batchedUpdates.tournamentLevel = tournament.level;
-      hasUpdates = true;
-    }
-    const parsedCount = Number(tournament.periodCount);
-    if (parsedCount === 1 || parsedCount === 2) {
-      const count = parsedCount as 1 | 2;
-      // Don't call onNumPeriodsChange here to avoid infinite loop
-      batchedUpdates.numberOfPeriods = count;
-      hasUpdates = true;
-    }
-    const parsedDuration = Number(tournament.periodDuration);
-    if (Number.isFinite(parsedDuration) && parsedDuration > 0) {
-      // Don't call onPeriodDurationChange here to avoid infinite loop
-      batchedUpdates.periodDurationMinutes = parsedDuration;
-      hasUpdates = true;
+    // Update local state (form inputs) AND prepare for persistence
+    // Call handlers BEFORE setting ref so failures can retry
+    try {
+      if (tournament.location !== undefined) {
+        const location = tournament.location || '';
+        onGameLocationChange(location);
+        batchedUpdates.gameLocation = location;
+        hasUpdates = true;
+      }
+      if (tournament.ageGroup) {
+        onAgeGroupChange(tournament.ageGroup);
+        batchedUpdates.ageGroup = tournament.ageGroup;
+        hasUpdates = true;
+      }
+      if (tournament.level) {
+        onTournamentLevelChange(tournament.level);
+        batchedUpdates.tournamentLevel = tournament.level;
+        hasUpdates = true;
+      }
+      const parsedCount = Number(tournament.periodCount);
+      if (parsedCount === 1 || parsedCount === 2) {
+        const count = parsedCount as 1 | 2;
+        onNumPeriodsChange(count);
+        batchedUpdates.numberOfPeriods = count;
+        hasUpdates = true;
+      }
+      const parsedDuration = Number(tournament.periodDuration);
+      if (Number.isFinite(parsedDuration) && parsedDuration > 0) {
+        onPeriodDurationChange(parsedDuration);
+        batchedUpdates.periodDurationMinutes = parsedDuration;
+        hasUpdates = true;
+      }
+
+      // Mark this tournament as applied AFTER handlers succeed to allow retry on failure
+      appliedTournamentRef.current = tournamentId;
+    } catch (error) {
+      logger.error('[GameSettingsModal] Error calling tournament prefill handlers:', error);
+      // Don't set ref on error, allowing retry
+      return;
     }
 
     // Apply all updates in a single mutation call to prevent mobile localStorage conflicts
     if (currentGameId && hasUpdates) {
-      // Mark this tournament as applied before mutation to prevent re-triggering
-      appliedTournamentRef.current = tournamentId;
 
       // Add a small delay to ensure game is fully created on Vercel preview
-      setTimeout(() => {
+      setTimeout(async () => {
+        const targetTournamentId = tournamentId;
+        // Check if component is still mounted before calling mutation
+        if (!isMountedRef.current) {
+          logger.log('[GameSettingsModal] Component unmounted, skipping tournament prefill mutation');
+          return;
+        }
+        // Check if this tournament is still the active selection (user may have cleared/changed)
+        if (appliedTournamentRef.current !== targetTournamentId) {
+          logger.log('[GameSettingsModal] Tournament selection changed before mutation, skipping stale prefill mutation');
+          return;
+        }
         try {
-          updateGameDetailsMutation.mutate({
-            gameId: currentGameId,
-            updates: batchedUpdates,
+          await mutateGameDetailsAsync(batchedUpdates, {
+            source: 'tournamentPrefill',
+            targetId: targetTournamentId ?? undefined,
+            expectedState: { tournamentId: targetTournamentId ?? '' },
           });
         } catch (error) {
           logger.error('[GameSettingsModal] Error updating game with tournament data:', error);
+          if (!isMountedRef.current) {
+            logger.log('[GameSettingsModal] Component unmounted during mutation, skipping error state update');
+            return;
+          }
           setError(t('gameSettingsModal.errors.tournamentUpdateFailed', 'Failed to apply tournament settings'));
           // Reset ref on error so it can be retried
           appliedTournamentRef.current = null;
@@ -580,30 +702,81 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
     // Don't update roster selection here to avoid dependency loop
     // The mutation will handle updating the game state
-  }, [tournamentId, tournaments, isOpen, currentGameId, updateGameDetailsMutation, t]);
+    // Handlers (onGameLocationChange, etc.) intentionally omitted from deps to prevent loops
+    // appliedTournamentRef guard ensures handlers only run once per tournament selection
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tournamentId, tournaments, isOpen, currentGameId, mutateGameDetailsAsync, t]);
 
   // --- Event Handlers ---
 
   const handleSeasonChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
-    const newSeasonId = value || undefined;
+    const newSeasonId = value || ''; // Use empty string instead of undefined for JSON consistency
     onSeasonIdChange(newSeasonId);
-    onTournamentIdChange(undefined); // Setting a season clears the tournament
-    if (currentGameId) {
-      updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { seasonId: newSeasonId, tournamentId: undefined } });
+
+    // Only clear tournament if setting a non-empty season (mutual exclusivity)
+    // If clearing season, leave tournament unchanged
+    if (newSeasonId) {
+      appliedTournamentRef.current = null;
+      onTournamentIdChange(''); // Use empty string for cleared state
     }
+
+    const updates = newSeasonId
+      ? { seasonId: newSeasonId, tournamentId: '' }
+      : { seasonId: newSeasonId };
+    const expectedState: Partial<AppState> = newSeasonId
+      ? { seasonId: newSeasonId, tournamentId: '' }
+      : { seasonId: newSeasonId };
+    mutateGameDetails(
+      updates,
+      {
+        source: newSeasonId ? 'seasonSelection' : 'stateSync',
+        targetId: newSeasonId,
+        expectedState,
+      },
+      (error) => {
+        logger.error('[GameSettingsModal] Season selection mutation failed:', error);
+        if (isMountedRef.current) {
+          setError(t('gameSettingsModal.errors.seasonUpdateFailed', 'Failed to apply season settings'));
+        }
+      }
+    );
     // Removed: setShowNewSeasonInput(false) - state no longer exists (season creation moved to dedicated modal)
     // Removed: setNewSeasonName('') - state no longer exists (season creation moved to dedicated modal)
   };
 
   const handleTournamentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
-    const newTournamentId = value || undefined;
+    const newTournamentId = value || ''; // Use empty string instead of undefined for JSON consistency
     onTournamentIdChange(newTournamentId);
-    onSeasonIdChange(undefined); // Setting a tournament clears the season
-    if (currentGameId) {
-      updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { tournamentId: newTournamentId, seasonId: undefined } });
+
+    // Only clear season if setting a non-empty tournament (mutual exclusivity)
+    // If clearing tournament, leave season unchanged
+    if (newTournamentId) {
+      appliedSeasonRef.current = null;
+      onSeasonIdChange(''); // Use empty string for cleared state
     }
+
+    const updates = newTournamentId
+      ? { tournamentId: newTournamentId, seasonId: '' }
+      : { tournamentId: newTournamentId };
+    const expectedState: Partial<AppState> = newTournamentId
+      ? { tournamentId: newTournamentId, seasonId: '' }
+      : { tournamentId: newTournamentId };
+    mutateGameDetails(
+      updates,
+      {
+        source: newTournamentId ? 'tournamentSelection' : 'stateSync',
+        targetId: newTournamentId,
+        expectedState,
+      },
+      (error) => {
+        logger.error('[GameSettingsModal] Tournament selection mutation failed:', error);
+        if (isMountedRef.current) {
+          setError(t('gameSettingsModal.errors.tournamentUpdateFailed', 'Failed to apply tournament settings'));
+        }
+      }
+    );
     // Removed: setShowNewTournamentInput(false) - state no longer exists (tournament creation moved to dedicated modal)
     // Removed: setNewTournamentName('') - state no longer exists (tournament creation moved to dedicated modal)
   };
@@ -616,9 +789,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     setSelectedTeamId(teamId);
     onTeamIdChange(teamId);
 
-    if (currentGameId) {
-      updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { teamId: teamId || undefined } });
-    }
+    mutateGameDetails(
+      { teamId: teamId || undefined },
+      { source: 'stateSync' }
+    );
 
     if (teamId) {
       try {
@@ -776,6 +950,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
     setError(null);
     setIsProcessing(true);
+    // Save original state for rollback if storage fails
+    const originalLocalEvents = localGameEvents;
     try {
       const eventIndex = gameEvents.findIndex(e => e.id === goalId);
       if (eventIndex === -1) {
@@ -785,14 +961,15 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         return;
       }
 
-      // Update local state immediately for UI responsiveness - Parent state updated via prop
-      const originalLocalEvents = localGameEvents;
+      // Update local state immediately for UI responsiveness (optimistic update)
       setLocalGameEvents(prevEvents => prevEvents.filter(event => event.id !== goalId));
-      onDeleteGameEvent(goalId);
 
+      // Only update parent state AFTER storage succeeds to prevent rollback bug
       const success = await removeGameEvent(currentGameId, eventIndex);
       if (success) {
         logger.log(`[GameSettingsModal] Event ${goalId} removed from game ${currentGameId}.`);
+        // Update parent state only after successful storage
+        onDeleteGameEvent(goalId);
       } else {
         logger.error(`[GameSettingsModal] Failed to remove event ${goalId} from game ${currentGameId} via utility.`);
         setError(t('gameSettingsModal.errors.deleteFailed', 'Failed to delete event. Please try again.'));
@@ -801,7 +978,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     } catch (err) {
       logger.error(`[GameSettingsModal] Error removing event ${goalId} from game ${currentGameId}:`, err);
       setError(t('gameSettingsModal.errors.genericDeleteError', 'An unexpected error occurred while deleting the event.'));
-      // Consider reverting localGameEvents here as well if an error occurs
+      // Revert local state on error to maintain UI consistency
+      setLocalGameEvents(originalLocalEvents);
     } finally {
       setIsProcessing(false);
       setShowDeleteEventConfirm(false);
@@ -950,8 +1128,14 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const handleTabChange = (tab: 'none' | 'season' | 'tournament') => {
     setActiveTab(tab);
     if (tab === 'none') {
-      onSeasonIdChange(undefined);
-      onTournamentIdChange(undefined);
+      appliedSeasonRef.current = null;
+      appliedTournamentRef.current = null;
+      onSeasonIdChange('');
+      onTournamentIdChange('');
+      mutateGameDetails(
+        { seasonId: '', tournamentId: '' },
+        { source: 'stateSync', expectedState: { seasonId: '', tournamentId: '' } }
+      );
     }
     // Removed: setShowNewSeasonInput(false) - state no longer exists (season creation moved to dedicated modal)
     // Removed: setShowNewTournamentInput(false) - state no longer exists (tournament creation moved to dedicated modal)
@@ -1065,14 +1249,22 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   opponentName={opponentName}
                   onTeamNameChange={(value) => {
                     onTeamNameChange(value);
-                    if (currentGameId) {
-                      updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { teamName: value } });
+                    const trimmed = value.trim();
+                    if (trimmed) {
+                      mutateGameDetails(
+                        { teamName: trimmed },
+                        { source: 'stateSync', expectedState: { teamName: trimmed } }
+                      );
                     }
                   }}
                   onOpponentNameChange={(value) => {
                     onOpponentNameChange(value);
-                    if (currentGameId) {
-                      updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { opponentName: value } });
+                    const trimmed = value.trim();
+                    if (trimmed) {
+                      mutateGameDetails(
+                        { opponentName: trimmed },
+                        { source: 'stateSync', expectedState: { opponentName: trimmed } }
+                      );
                     }
                   }}
                   teamLabel={t('gameSettingsModal.teamName', 'Your Team Name') + ' *'}
@@ -1089,9 +1281,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 onSelectedPlayersChange={(playerIds: string[]) => {
                   setAdjustedSelectedPlayerIds(playerIds);
                   onSelectedPlayersChange(playerIds);
-                  if (currentGameId) {
-                    updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { selectedPlayerIds: playerIds } });
-                  }
+                  mutateGameDetails(
+                    { selectedPlayerIds: playerIds },
+                    { source: 'stateSync', expectedState: { selectedPlayerIds: playerIds } }
+                  );
                 }}
                 title={t('gameSettingsModal.selectPlayers', 'Select Players')}
                 playersSelectedText={t('gameSettingsModal.playersSelected', 'selected')}
@@ -1106,12 +1299,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 selectedPersonnelIds={selectedPersonnelIds}
                 onSelectedPersonnelChange={(personnelIds: string[]) => {
                   onSelectedPersonnelChange(personnelIds);
-                  if (currentGameId) {
-                    updateGameDetailsMutation.mutate({
-                      gameId: currentGameId,
-                      updates: { gamePersonnel: personnelIds },
-                    });
-                  }
+                  mutateGameDetails(
+                    { gamePersonnel: personnelIds },
+                    { source: 'stateSync', expectedState: { gamePersonnel: personnelIds } }
+                  );
                 }}
                 title={t('gameSettingsModal.selectPersonnel', 'Select Personnel')}
               />
@@ -1247,10 +1438,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   id="ageGroupSelect"
                   value={ageGroup}
                   onChange={(e) => {
-                    onAgeGroupChange(e.target.value);
-                    if (currentGameId) {
-                      updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { ageGroup: e.target.value } });
-                    }
+                    const value = e.target.value;
+                    onAgeGroupChange(value);
+                    mutateGameDetails(
+                      { ageGroup: value },
+                      { source: 'stateSync', expectedState: { ageGroup: value } }
+                    );
                   }}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                 >
@@ -1275,10 +1468,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     name="gameDate"
                     value={gameDate}
                     onChange={(e) => {
-                      onGameDateChange(e.target.value);
-                      if (currentGameId) {
-                        updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { gameDate: e.target.value } });
-                      }
+                      const value = e.target.value;
+                      onGameDateChange(value);
+                      mutateGameDetails(
+                        { gameDate: value },
+                        { source: 'stateSync', expectedState: { gameDate: value } }
+                      );
                     }}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                     autoComplete="off"
@@ -1336,10 +1531,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     name="gameLocation"
                     value={gameLocation}
                     onChange={(e) => {
-                      onGameLocationChange(e.target.value);
-                      if (currentGameId) {
-                        updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { gameLocation: e.target.value } });
-                      }
+                        const value = e.target.value;
+                        onGameLocationChange(value);
+                        mutateGameDetails(
+                          { gameLocation: value },
+                          { source: 'stateSync', expectedState: { gameLocation: value } }
+                        );
                     }}
                     placeholder={t('gameSettingsModal.locationPlaceholder', 'e.g., Central Park Field 2')}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
@@ -1359,10 +1556,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     id="levelInput"
                     value={tournamentLevel}
                     onChange={(e) => {
-                      onTournamentLevelChange(e.target.value);
-                      if (currentGameId) {
-                        updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { tournamentLevel: e.target.value } });
-                      }
+                        const value = e.target.value;
+                        onTournamentLevelChange(value);
+                        mutateGameDetails(
+                          { tournamentLevel: value },
+                          { source: 'stateSync', expectedState: { tournamentLevel: value } }
+                        );
                     }}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                   >
@@ -1385,10 +1584,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        onSetHomeOrAway('home');
-                        if (currentGameId) {
-                          updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { homeOrAway: 'home' } });
-                        }
+                          onSetHomeOrAway('home');
+                          mutateGameDetails(
+                            { homeOrAway: 'home' },
+                            { source: 'stateSync', expectedState: { homeOrAway: 'home' } }
+                          );
                       }}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors w-full ${
                         homeOrAway === 'home'
@@ -1401,10 +1601,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        onSetHomeOrAway('away');
-                        if (currentGameId) {
-                          updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { homeOrAway: 'away' } });
-                        }
+                          onSetHomeOrAway('away');
+                          mutateGameDetails(
+                            { homeOrAway: 'away' },
+                            { source: 'stateSync', expectedState: { homeOrAway: 'away' } }
+                          );
                       }}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors w-full ${
                         homeOrAway === 'away'
@@ -1435,10 +1636,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   value={numPeriods}
                   onChange={(e) => {
                     const periods = parseInt(e.target.value) as 1 | 2;
-                    onNumPeriodsChange(periods);
-                    if (currentGameId) {
-                      updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { numberOfPeriods: periods } });
-                    }
+                      onNumPeriodsChange(periods);
+                      mutateGameDetails(
+                        { numberOfPeriods: periods },
+                        { source: 'stateSync', expectedState: { numberOfPeriods: periods } }
+                      );
                   }}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                 >
@@ -1466,9 +1668,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     if (numericValue === '' || (duration >= 1 && duration <= 999)) {
                       const finalDuration = numericValue === '' ? 1 : duration;
                       onPeriodDurationChange(finalDuration);
-                      if (currentGameId) {
-                        updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { periodDurationMinutes: finalDuration } });
-                      }
+                      mutateGameDetails(
+                        { periodDurationMinutes: finalDuration },
+                        { source: 'stateSync', expectedState: { periodDurationMinutes: finalDuration } }
+                      );
                     }
                   }}
                   className="w-full max-w-xs px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
@@ -1487,12 +1690,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   value={demandFactor}
                   onChange={(v) => {
                     onDemandFactorChange(v);
-                    if (currentGameId) {
-                      updateGameDetailsMutation.mutate({
-                        gameId: currentGameId,
-                        updates: { demandFactor: v },
-                      });
-                    }
+                    mutateGameDetails(
+                      { demandFactor: v },
+                      { source: 'stateSync', expectedState: { demandFactor: v } }
+                    );
                   }}
                   min={0.5}
                   max={1.5}
@@ -1510,9 +1711,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     onChange={(e) => {
                       const newValue = !e.target.checked;
                       onIsPlayedChange(newValue);
-                      if (currentGameId) {
-                        updateGameDetailsMutation.mutate({ gameId: currentGameId, updates: { isPlayed: newValue } });
-                      }
+                      mutateGameDetails(
+                        { isPlayed: newValue },
+                        { source: 'stateSync', expectedIsPlayed: newValue }
+                      );
                     }}
                     className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-700 border-slate-500 rounded focus:ring-indigo-500 focus:ring-offset-slate-800"
                   />
