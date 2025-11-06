@@ -257,40 +257,48 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   }, [currentHistoryState, pushHistoryState]);
 
+  const buildGameSessionHistorySlice = useCallback((state: GameSessionState) => {
+    const slice = {
+      teamName: state.teamName,
+      opponentName: state.opponentName,
+      gameDate: state.gameDate,
+      homeScore: state.homeScore,
+      awayScore: state.awayScore,
+      gameNotes: state.gameNotes,
+      homeOrAway: state.homeOrAway,
+      numberOfPeriods: state.numberOfPeriods,
+      periodDurationMinutes: state.periodDurationMinutes,
+      currentPeriod: state.currentPeriod,
+      gameStatus: state.gameStatus,
+      selectedPlayerIds: state.selectedPlayerIds,
+      gamePersonnel: state.gamePersonnel,
+      seasonId: state.seasonId,
+      tournamentId: state.tournamentId,
+      teamId: state.teamId,
+      ageGroup: state.ageGroup,
+      tournamentLevel: state.tournamentLevel,
+      gameLocation: state.gameLocation,
+      gameTime: state.gameTime,
+      gameEvents: state.gameEvents,
+      demandFactor: state.demandFactor,
+      subIntervalMinutes: state.subIntervalMinutes,
+      completedIntervalDurations: state.completedIntervalDurations,
+      lastSubConfirmationTimeSeconds: state.lastSubConfirmationTimeSeconds,
+      showPlayerNames: state.showPlayerNames,
+    } satisfies Partial<AppState>;
+    return slice;
+  }, []);
+
   // --- Effect to save gameSessionState changes to history ---
   useEffect(() => {
     // This effect runs after gameSessionState has been updated by the reducer.
     // It constructs the relevant slice of AppState from the new gameSessionState
     // and saves it to the history.
-    const gameSessionHistorySlice: Partial<AppState> = {
-      teamName: gameSessionState.teamName,
-      opponentName: gameSessionState.opponentName,
-      gameDate: gameSessionState.gameDate,
-      homeScore: gameSessionState.homeScore,
-      awayScore: gameSessionState.awayScore,
-      gameNotes: gameSessionState.gameNotes,
-      homeOrAway: gameSessionState.homeOrAway,
-      numberOfPeriods: gameSessionState.numberOfPeriods,
-      periodDurationMinutes: gameSessionState.periodDurationMinutes,
-      currentPeriod: gameSessionState.currentPeriod,
-      gameStatus: gameSessionState.gameStatus,
-      selectedPlayerIds: gameSessionState.selectedPlayerIds,
-      gamePersonnel: gameSessionState.gamePersonnel,
-      seasonId: gameSessionState.seasonId,
-      tournamentId: gameSessionState.tournamentId,
-      gameLocation: gameSessionState.gameLocation,
-      gameTime: gameSessionState.gameTime,
-      gameEvents: gameSessionState.gameEvents,
-      subIntervalMinutes: gameSessionState.subIntervalMinutes,
-      completedIntervalDurations: gameSessionState.completedIntervalDurations,
-      lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds,
-      showPlayerNames: gameSessionState.showPlayerNames,
-      // Ensure any other fields from GameSessionState that are part of AppState history are included
-    };
+    const gameSessionHistorySlice = buildGameSessionHistorySlice(gameSessionState);
     // saveStateToHistory will merge this with other non-gameSessionState parts of AppState
     // (like playersOnField, opponents, drawings) that are handled elsewhere.
     saveStateToHistory(gameSessionHistorySlice);
-  }, [gameSessionState, saveStateToHistory]);
+  }, [gameSessionState, saveStateToHistory, buildGameSessionHistorySlice]);
   // END --- Effect to save gameSessionState changes to history ---
 
   // --- Load game data via hook ---
@@ -689,13 +697,29 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     },
   });
 
-  type UpdateGameDetailsMeta = {
-    source?: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
-    targetId?: string;
-    expectedState?: Partial<AppState>;
-    expectedIsPlayed?: boolean;
-    sequence?: number;
+type UpdateGameDetailsMetaBase = {
+  source: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
+  targetId?: string;
+  expectedState?: {
+    seasonId?: string;
+    tournamentId?: string;
+    gameLocation?: string;
+    ageGroup?: string;
+    tournamentLevel?: string;
+    selectedPlayerIds?: string[];
+    gamePersonnel?: string[];
+    gameTime?: string;
+    teamName?: string;
+    opponentName?: string;
+    demandFactor?: number;
+    numberOfPeriods?: number;
+    periodDurationMinutes?: number;
+    homeOrAway?: 'home' | 'away';
   };
+  expectedIsPlayed?: boolean;
+};
+
+type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
   type UpdateGameDetailsVariables = {
     gameId: string;

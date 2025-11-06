@@ -20,6 +20,8 @@ import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 
+const PREFILL_MUTATION_DELAY_MS = 100;
+
 export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard';
 
 export interface GameEvent {
@@ -32,13 +34,29 @@ export interface GameEvent {
   entityId?: string;
 }
 
-type MutationMeta = {
-  source?: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
+type MutationMetaBase = {
+  source: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
   targetId?: string;
-  expectedState?: Partial<AppState>;
+  expectedState?: {
+    seasonId?: string;
+    tournamentId?: string;
+    gameLocation?: string;
+    ageGroup?: string;
+    tournamentLevel?: string;
+    selectedPlayerIds?: string[];
+    gamePersonnel?: string[];
+    gameTime?: string;
+    teamName?: string;
+    opponentName?: string;
+    demandFactor?: number;
+    numberOfPeriods?: number;
+    periodDurationMinutes?: number;
+    homeOrAway?: 'home' | 'away';
+  };
   expectedIsPlayed?: boolean;
-  sequence?: number;
 };
+
+type MutationMeta = MutationMetaBase & { sequence: number };
 
 export interface GameSettingsModalProps {
   isOpen: boolean;
@@ -216,7 +234,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   }, []);
 
   const mutateGameDetails = useCallback(
-    (updates: Partial<AppState>, meta?: MutationMeta, onError?: (error: unknown) => void) => {
+    (updates: Partial<AppState>, meta: MutationMetaBase, onError?: (error: unknown) => void) => {
       if (!currentGameId) return;
       const sequence = getNextMutationSequence();
       updateGameDetailsMutation.mutate(
@@ -236,7 +254,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   );
 
   const mutateGameDetailsAsync = useCallback(
-    (updates: Partial<AppState>, meta?: MutationMeta) => {
+    (updates: Partial<AppState>, meta: MutationMetaBase) => {
       if (!currentGameId) return Promise.resolve();
       const sequence = getNextMutationSequence();
       return updateGameDetailsMutation.mutateAsync({
@@ -585,7 +603,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           // Reset ref on error so it can be retried
           appliedSeasonRef.current = null;
         }
-      }, 100);
+      }, PREFILL_MUTATION_DELAY_MS);
     }
 
     // Don't update roster selection here to avoid dependency loop
@@ -697,7 +715,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           // Reset ref on error so it can be retried
           appliedTournamentRef.current = null;
         }
-      }, 100);
+      }, PREFILL_MUTATION_DELAY_MS);
     }
 
     // Don't update roster selection here to avoid dependency loop
