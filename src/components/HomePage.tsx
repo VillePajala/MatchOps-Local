@@ -799,6 +799,16 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       },
   });
 
+  useEffect(() => {
+    lastAppliedMutationSequenceRef.current = 0;
+  }, [currentGameId]);
+
+  useEffect(() => {
+    if (isGameSettingsModalOpen) {
+      lastAppliedMutationSequenceRef.current = 0;
+    }
+  }, [isGameSettingsModalOpen]);
+
   // --- Mutation for Adding a new Tournament ---
   const addTournamentMutation = useMutation<
     Tournament | null,
