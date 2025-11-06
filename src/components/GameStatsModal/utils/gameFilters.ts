@@ -90,7 +90,7 @@ export function filterGameIds(
     if (teamFilter !== 'all') {
       if (teamFilter === 'legacy') {
         // Legacy games have no teamId or empty teamId
-        if (game.teamId != null && game.teamId !== '') return false;
+        if ((game.teamId ?? '') !== '') return false;
       } else {
         // Specific team
         if (game.teamId !== teamFilter) return false;
@@ -101,7 +101,9 @@ export function filterGameIds(
     if (activeTab === 'season') {
       if (seasonFilter === 'all') {
         // Show all season games (must have seasonId, no tournament)
-        return game.seasonId != null && game.seasonId !== '' && (game.tournamentId == null || game.tournamentId === '');
+        const hasSeason = (game.seasonId ?? '') !== '';
+        const hasTournament = (game.tournamentId ?? '') !== '';
+        return hasSeason && !hasTournament;
       } else if (seasonFilter !== undefined) {
         // Show specific season only
         return game.seasonId === seasonFilter;
@@ -114,7 +116,9 @@ export function filterGameIds(
     if (activeTab === 'tournament') {
       if (tournamentFilter === 'all') {
         // Show all tournament games (must have tournamentId, no season)
-        return game.tournamentId != null && game.tournamentId !== '' && (game.seasonId == null || game.seasonId === '');
+        const hasTournament = (game.tournamentId ?? '') !== '';
+        const hasSeason = (game.seasonId ?? '') !== '';
+        return hasTournament && !hasSeason;
       } else if (tournamentFilter !== undefined) {
         // Show specific tournament only
         return game.tournamentId === tournamentFilter;

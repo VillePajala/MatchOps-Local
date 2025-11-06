@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: update project status and organize completed features"
+  "notes": "fix: add missing gameDate field to MutationMeta type and remove duplicate type definition"
 }

@@ -163,7 +163,7 @@ const getDefaultProps = (): TestProps => ({
   savedGames: mockSavedGames,
   currentGameId: 'game1',
   seasonId: 's1',
-  tournamentId: null,
+  tournamentId: '',
   onOpponentNameChange: jest.fn(),
   onGameDateChange: jest.fn(),
   onHomeScoreChange: jest.fn(),
