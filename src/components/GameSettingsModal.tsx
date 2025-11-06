@@ -260,12 +260,21 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         },
         {
           onError: (error) => {
-            onError?.(error);
+            // Call custom error handler if provided
+            if (onError) {
+              onError(error);
+            } else {
+              // Default error handler for mutations without explicit error handling
+              logger.error('[GameSettingsModal] Game details mutation failed:', error);
+              if (isMountedRef.current) {
+                setError(t('gameSettingsModal.errors.updateFailed', 'Failed to save changes'));
+              }
+            }
           },
         }
       );
     },
-    [currentGameId, updateGameDetailsMutation, getNextMutationSequence]
+    [currentGameId, updateGameDetailsMutation, getNextMutationSequence, t]
   );
 
   const mutateGameDetailsAsync = useCallback(
