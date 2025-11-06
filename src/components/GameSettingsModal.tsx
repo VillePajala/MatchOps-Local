@@ -46,6 +46,7 @@ type MutationMetaBase = {
     selectedPlayerIds?: string[];
     gamePersonnel?: string[];
     gameTime?: string;
+    gameDate?: string;
     teamName?: string;
     opponentName?: string;
     demandFactor?: number;
