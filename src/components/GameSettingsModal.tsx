@@ -26,6 +26,15 @@ import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
  * - Allow React state updates to complete
  * - Prevent localStorage conflicts on slow devices
  * - Still feel instant to users (< 200ms threshold)
+ *
+ * Note: This is an educated guess based on React lifecycle timing and mobile device
+ * performance characteristics. Consider adding telemetry to measure:
+ * - Actual race condition frequency at different delay values
+ * - User-perceived latency (time from selection to visible update)
+ * - Failed mutation rate vs delay correlation
+ *
+ * Hypothesis: 100ms is sufficient for 99%+ of devices. If telemetry shows issues,
+ * consider adaptive delay based on device performance detection.
  */
 const PREFILL_MUTATION_DELAY_MS = 100;
 
@@ -598,7 +607,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     if (currentGameId && hasUpdates) {
 
       // Add a small delay to ensure game is fully created on Vercel preview
-      setTimeout(async () => {
+      const timeoutId = setTimeout(async () => {
         const targetSeasonId = seasonId;
         // Check if component is still mounted before calling mutation
         if (!isMountedRef.current) {
@@ -628,6 +637,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           appliedSeasonRef.current = null;
         }
       }, PREFILL_MUTATION_DELAY_MS);
+
+      // Cleanup: Clear timeout if effect re-runs (e.g., user changes season rapidly)
+      return () => clearTimeout(timeoutId);
     }
 
     // Don't update roster selection here to avoid dependency loop
@@ -711,7 +723,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     if (currentGameId && hasUpdates) {
 
       // Add a small delay to ensure game is fully created on Vercel preview
-      setTimeout(async () => {
+      const timeoutId = setTimeout(async () => {
         const targetTournamentId = tournamentId;
         // Check if component is still mounted before calling mutation
         if (!isMountedRef.current) {
@@ -740,6 +752,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           appliedTournamentRef.current = null;
         }
       }, PREFILL_MUTATION_DELAY_MS);
+
+      // Cleanup: Clear timeout if effect re-runs (e.g., user changes tournament rapidly)
+      return () => clearTimeout(timeoutId);
     }
 
     // Don't update roster selection here to avoid dependency loop
