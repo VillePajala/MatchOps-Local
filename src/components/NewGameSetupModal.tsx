@@ -16,7 +16,7 @@ import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 
-interface NewGameSetupModalProps {
+export interface NewGameSetupModalProps {
   isOpen: boolean;
   initialPlayerSelection: string[] | null;
   demandFactor: number;

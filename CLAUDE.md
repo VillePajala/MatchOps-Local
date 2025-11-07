@@ -24,8 +24,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | Priority | Issue | Impact | Fix Plan |
 |----------|-------|--------|----------|
-| **P0** | `HomePage.tsx` is 3,602 lines | 8.5x too large, impossible to maintain | [Plan](./docs/05-development/fix-plans/P0-HomePage-Refactoring-Plan.md) |
-| **P1** | `GameSettingsModal.tsx` is 1,707 lines | 4.3x too large, 90+ props | [Plan](./docs/05-development/fix-plans/P1-GameSettingsModal-Refactoring-Plan.md) |
+| **P0** | `HomePage.tsx` is 3,086 lines | 7.7x too large, impossible to maintain | [Plan](./docs/05-development/fix-plans/P0-HomePage-Refactoring-Plan.md) |
+| **P1** | `GameSettingsModal.tsx` is 1,995 lines | 5.0x too large, 90+ props | [Plan](./docs/05-development/fix-plans/P1-GameSettingsModal-Refactoring-Plan.md) |
 | **P2** | Modal state race conditions | 10 independent useState calls | [Plan](./docs/05-development/fix-plans/P2-Modal-State-Management-Fix.md) |
 | **P2** | Silent error swallowing | `.catch(() => {})` patterns hide errors | [Plan](./docs/05-development/fix-plans/P2-Error-Handling-Improvements.md) |
 | **P2** | Re-render performance | Large components cause slow renders | [Plan](./docs/05-development/fix-plans/P2-Performance-Optimization-Plan.md) |
