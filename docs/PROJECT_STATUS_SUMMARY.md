@@ -64,14 +64,14 @@
 
 | Priority | Issue | Status | Time |
 |----------|-------|--------|------|
-| **P0** 🔴 | HomePage.tsx (3,725 lines) → Split to <600 line components | ❌ Not Started | 2-3h |
+| **P0** 🔴 | HomePage.tsx (3,086 lines) → Split to <600 line components | 🟡 In Progress | 2-3h |
 | **P1** 🟡 | GameSettingsModal.tsx (1,995 lines) → Split | ❌ Not Started | 1h |
 | **P2** 🟡 | Modal state race conditions | ❌ Not Started | 30m |
 | **P2** 🟡 | Silent error swallowing | ❌ Not Started | 1h |
 | **P2** 🟡 | Performance (re-renders) | ❌ Not Started | 30m |
 
 **Why This Matters**:
-- HomePage at ~9.3x recommended size
+- HomePage at ~7.7x recommended size (down from ~9.3x)
 - Adding modals takes 4 hours (should be 30 minutes)
 - Testing is extremely difficult
 - New developer onboarding nearly impossible
@@ -172,12 +172,13 @@
 ## 📚 **DOCUMENTATION STATUS**
 
 ### Well-Documented
-- ✅ `CLAUDE.md` - AI assistant guidelines
+- ✅ `CLAUDE.md` - AI assistant guidelines (metrics updated Nov 7, 2025)
 - ✅ `CRITICAL_FIXES_REQUIRED.md` - Technical debt analysis
 - ✅ `CRITICAL_FIXES_TRACKER.md` - Fix progress tracker
 - ✅ `production-readiness.md` - P1-P5 implementation checklist
 - ✅ `PROGRESS_DASHBOARD.md` - Overall status (updated with personnel completion)
 - ✅ `team-final-positions-plan.md` - Complete implementation plan
+- ✅ `comprehensive-documentation-review-2025-11-07.md` - Complete documentation audit
 
 ### Recently Archived
 - ✅ `personnel-feature-plan.md` → `08-archived/completed-features/`
@@ -247,13 +248,13 @@ You have **three clear paths** forward:
 ## 📊 **QUALITY METRICS**
 
 ### Current State
-- ✅ **Tests**: 991 passing (0 failing)
+- ✅ **Tests**: 1,306 passing (0 failing)
 - ✅ **Build**: Production build succeeds
 - ✅ **Lint**: All ESLint checks pass
 - ✅ **TypeScript**: Full type coverage, no `any` in production code
 - ✅ **Code Quality**: 8.5/10 overall (per code review)
-- ⚠️ **Component Size**: HomePage ≈9.3x too large (3,725 lines)
-- ⚠️ **Modal Complexity**: GameSettingsModal ≈5x too large (1,995 lines)
+- ⚠️ **Component Size**: HomePage ≈7.7x too large (3,086 lines, down from 3,725)
+- ⚠️ **Modal Complexity**: GameSettingsModal ≈5.0x too large (1,995 lines)
 
 ### Coverage
 - Lines: 85%+
@@ -302,8 +303,8 @@ What you've built so far is **impressive**:
 
 You have **two 800-pound gorillas** blocking the path:
 
-1. **HomePage.tsx (3,725 lines)** - ≈9.3x too large
-2. **GameSettingsModal.tsx (1,995 lines)** - ≈5x too large
+1. **HomePage.tsx (3,086 lines)** - ≈7.7x too large (down from 3,725 lines)
+2. **GameSettingsModal.tsx (1,995 lines)** - ≈5.0x too large
 
 **Every major feature** you add will:
 - Take 3-5x longer than it should
