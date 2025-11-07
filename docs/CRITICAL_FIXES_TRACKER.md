@@ -23,7 +23,7 @@
 
 ## 🧪 Test Coverage Follow-ups
 
-- [ ] Automate regression for clearing `playerIdsForNewGame` after new game setup (Fix #2 – stale player selection) to ensure selections reset post-start.
+- [x] Automate regression for clearing `playerIdsForNewGame` after new game setup (Fix #2 – stale player selection) to ensure selections reset post-start. *(See `src/components/HomePage/utils/newGameHandlers.test.ts`)*
 
 ---
 
