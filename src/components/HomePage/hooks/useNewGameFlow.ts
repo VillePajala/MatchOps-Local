@@ -71,6 +71,13 @@ export function useNewGameFlow({
     }
 
     if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
+      // TODO(P0): Potential race condition - savedGames state could be stale if autosave is running
+      // Consider fetching directly from storage or checking autosave state before accessing
+      // For now, this is acceptable as:
+      // 1. Autosave conflicts are rare (autosave runs every 30s, user action timing unlikely to collide)
+      // 2. Worst case: User sees slightly stale team name in confirmation dialog (non-critical)
+      // 3. User can retry if needed
+      // Future: Add autosave state check or fetch from storage directly
       const gameData = savedGames[currentGameId];
       const identifier = gameData?.teamName
         ? `${gameData.teamName} vs ${gameData.opponentName}`

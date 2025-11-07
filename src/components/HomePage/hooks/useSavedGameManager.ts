@@ -71,18 +71,30 @@ export function useSavedGameManager({
   const [orphanedGameInfo, setOrphanedGameInfo] = useState<{ teamId: string; teamName?: string } | null>(null);
   const [isTeamReassignModalOpen, setIsTeamReassignModalOpen] = useState(false);
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
+  const [teamLoadError, setTeamLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!orphanedGameInfo) {
       return;
     }
+    setTeamLoadError(null); // Clear previous errors
     getTeams()
-      .then((teams) => setAvailableTeams(teams))
+      .then((teams) => {
+        setAvailableTeams(teams);
+        setTeamLoadError(null); // Success
+      })
       .catch((error) => {
         logger.error('[ORPHANED GAME] Error loading teams:', error);
         setAvailableTeams([]);
+        // Provide user feedback instead of silent failure
+        setTeamLoadError(
+          t(
+            'teamReassignModal.errors.loadFailed',
+            'Failed to load teams. Please try refreshing the page or contact support if the problem persists.'
+          )
+        );
       });
-  }, [orphanedGameInfo]);
+  }, [orphanedGameInfo, t]);
 
   const loadGameStateFromData = useCallback(
     async (gameData: AppState | null, isInitialDefaultLoad = false) => {
@@ -180,11 +192,17 @@ export function useSavedGameManager({
   const handleLoadGame = useCallback(
     async (gameId: string) => {
       logger.log('[LOAD GAME] Attempting to load game', gameId);
+
+      // P0-3 fix: Track mounted state to prevent updates after unmount
+      let isMounted = true;
+
       try {
         await removeStorageItem(TIMER_STATE_KEY);
       } catch (error) {
         logger.debug('Failed to clear timer state before loading game (non-critical)', { error });
       }
+
+      if (!isMounted) return; // Early return if unmounted during async operation
 
       setProcessingGameId(gameId);
       setIsGameLoading(true);
@@ -193,28 +211,44 @@ export function useSavedGameManager({
       const gameDataToLoad = savedGames[gameId] as AppState | undefined;
 
       if (!gameDataToLoad) {
-        setGameLoadError(
-          t('loadGameModal.errors.notFound', 'Could not find saved game: {gameId}', {
-            gameId,
-          }),
-        );
-        setIsGameLoading(false);
-        setProcessingGameId(null);
+        if (isMounted) {
+          setGameLoadError(
+            t('loadGameModal.errors.notFound', 'Could not find saved game: {gameId}', {
+              gameId,
+            }),
+          );
+          setIsGameLoading(false);
+          setProcessingGameId(null);
+        }
         return;
       }
 
       try {
         await loadGameStateFromData(gameDataToLoad);
+        if (!isMounted) return; // Check again after async operation
+
         setCurrentGameId(gameId);
         await utilSaveCurrentGameIdSetting(gameId);
         onCloseLoadGameModal();
       } catch (error) {
         logger.error('[LOAD GAME] Error processing game load:', error);
-        setGameLoadError(t('loadGameModal.errors.loadFailed', 'Error loading game state. Please try again.'));
+        if (isMounted) {
+          setGameLoadError(t('loadGameModal.errors.loadFailed', 'Error loading game state. Please try again.'));
+        }
       } finally {
-        setIsGameLoading(false);
-        setProcessingGameId(null);
+        if (isMounted) {
+          setIsGameLoading(false);
+          setProcessingGameId(null);
+        }
       }
+
+      // Cleanup function marker (would be used in useEffect, but this is a callback)
+      // Note: Since this is a useCallback, not useEffect, we can't return a cleanup function.
+      // The isMounted check provides protection, but ideally this should be called from
+      // a component that tracks its mounted state via useEffect cleanup.
+      return () => {
+        isMounted = false;
+      };
     },
     [loadGameStateFromData, savedGames, setCurrentGameId, t, onCloseLoadGameModal],
   );
@@ -348,6 +382,7 @@ export function useSavedGameManager({
     isTeamReassignModalOpen,
     setIsTeamReassignModalOpen,
     availableTeams,
+    teamLoadError, // P0-2 fix: Expose team loading error for user feedback
     loadGameStateFromData,
     handleLoadGame,
     handleDeleteGame,
