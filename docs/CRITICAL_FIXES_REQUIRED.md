@@ -11,7 +11,7 @@
 The MatchOps-Local codebase is **production-ready** but contains **critical technical debt** that will severely impact development velocity if not addressed. The codebase scored **8.5/10** overall, but the monolithic `HomePage.tsx` (3,725 lines) is a **maintenance disaster** that must be refactored before adding major features.
 
 ### Critical Stats
-- **HomePage.tsx**: 3,086 lines (~7.7x recommended maximum, down from 3,725)
+- **HomePage.tsx**: 2,474 lines (~7.7x recommended maximum, down from 3,725)
 - **GameSettingsModal.tsx**: 1,995 lines (~5.0x recommended maximum)
 - **Estimated Total Fix Time**: 4-5 hours
 - **Impact if Not Fixed**: Exponential increase in development time, bug introduction risk, impossible testing
@@ -70,7 +70,7 @@ If the monolithic structure becomes a genuine blocker (e.g., multiple developers
 ### Related Documentation
 
 - **[TECH_DEBT_REDUCTION_PLAN.md](./TECH_DEBT_REDUCTION_PLAN.md)**: Comprehensive 5-phase plan that was considered but NOT adopted. Archived for reference.
-- **Current Approach**: Incremental extraction as demonstrated by newGameHandlers.ts extraction (17% reduction in 2 hours).
+- **Current Approach**: Incremental extraction as demonstrated by newGameHandlers.ts extraction (33.6% reduction in 2 hours).
 
 ---
 
@@ -93,7 +93,7 @@ If the monolithic structure becomes a genuine blocker (e.g., multiple developers
 
 | Priority | Issue | File | Lines | Effort | Status | Fix Plan |
 |----------|-------|------|-------|--------|--------|----------|
-| **P0** 🔴 | Monolithic HomePage | `HomePage.tsx` | 3,086 | 2-3h | 🟡 **IN PROGRESS** | [Detailed Plan](./05-development/fix-plans/P0-HomePage-Refactoring-Plan.md) |
+| **P0** 🔴 | Monolithic HomePage | `HomePage.tsx` | 2,474 | 2-3h | 🟡 **IN PROGRESS** | [Detailed Plan](./05-development/fix-plans/P0-HomePage-Refactoring-Plan.md) |
 | **P1** 🟡 | Complex Modal | `GameSettingsModal.tsx` | 1,995 | 1h | ⚠️ **HIGH** | [Detailed Plan](./05-development/fix-plans/P1-GameSettingsModal-Refactoring-Plan.md) |
 | **P2** 🟡 | Modal State Races | `ModalProvider.tsx` | - | 30m | ⚠️ **MEDIUM** | [Detailed Plan](./05-development/fix-plans/P2-Modal-State-Management-Fix.md) |
 | **P2** 🟡 | Silent Error Swallowing | Multiple files | - | 1h | ⚠️ **MEDIUM** | [Detailed Plan](./05-development/fix-plans/P2-Error-Handling-Improvements.md) |

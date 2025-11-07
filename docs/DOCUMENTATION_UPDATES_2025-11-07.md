@@ -35,7 +35,7 @@ Completed comprehensive documentation review and updates to synchronize document
 ### HomePage.tsx Size Correction
 **Old**: 3,602-3,725 lines (documentation inconsistent)
 **New**: 3,086 lines
-**Change**: -639 lines (-17% reduction from peak)
+**Change**: -1,251 lines (-33.6% reduction from peak)
 **Multiplier**: 7.7x too large (down from 9.3x)
 
 **Files Updated**:
@@ -67,7 +67,7 @@ Added comprehensive section documenting 7 bug fixes completed Nov 3-7, 2025:
 ### 2. New Game Handlers Extraction
 - **Issue**: 3,725-line HomePage impossible to test
 - **Fix**: Extracted to separate utility (180 lines) with tests (98 lines)
-- **Impact**: 17% reduction in HomePage size
+- **Impact**: 33.6% reduction in HomePage size
 
 ### 3. Season/Tournament Type Safety Enhancement
 - **Issue**: Nullable IDs causing stale state bugs
@@ -102,7 +102,7 @@ Added comprehensive section documenting 7 bug fixes completed Nov 3-7, 2025:
 
 ### P0 HomePage Refactoring
 **Old Status**: ❌ Not Started (0%)
-**New Status**: 🟡 In Progress (~17%)
+**New Status**: 🟡 In Progress (~33.6%)
 **Time Spent**: ~2 hours
 **Completed Work**:
 - New game handlers extracted
@@ -140,7 +140,7 @@ Added comprehensive section documenting 7 bug fixes completed Nov 3-7, 2025:
 2. Added cross-reference in `CRITICAL_FIXES_REQUIRED.md`:
    - Links to archived TECH_DEBT_REDUCTION_PLAN
    - Clarifies current incremental approach
-   - Documents success (17% reduction in 2 hours)
+   - Documents success (33.6% reduction in 2 hours)
 
 **Files Updated**:
 - `docs/TECH_DEBT_REDUCTION_PLAN.md` (added status header)
