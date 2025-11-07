@@ -94,7 +94,7 @@ const mockOnGameLocationChange = jest.fn();
 const mockOnGameTimeChange = jest.fn();
 const mockOnGameNotesChange = jest.fn();
 const mockOnUpdateGameEvent = jest.fn();
-const mockOnDeleteGameEvent = jest.fn();
+const mockOnDeleteGameEvent = jest.fn().mockResolvedValue(true); // Now async, returns Promise<boolean>
 const mockOnNumPeriodsChange = jest.fn();
 const mockOnPeriodDurationChange = jest.fn();
 const mockOnSeasonIdChange = jest.fn();
@@ -507,13 +507,12 @@ describe('<GameSettingsModal />', () => {
 
         await waitFor(() => {
           expect(mockOnDeleteGameEvent).toHaveBeenCalledWith('goal1');
-          expect(removeGameEvent).toHaveBeenCalled();
         });
       });
 
     test('keeps parent state untouched when storage deletion fails', async () => {
       const user = userEvent.setup();
-      (removeGameEvent as jest.Mock).mockResolvedValueOnce(false);
+      mockOnDeleteGameEvent.mockResolvedValueOnce(false); // Parent handler returns false (storage failed)
       renderModal();
 
       const eventDiv = await findEventByTime('02:00');
@@ -528,17 +527,17 @@ describe('<GameSettingsModal />', () => {
       const confirmButton = within(modalContainer as HTMLElement).getByRole('button', { name: t('common.delete') });
       await user.click(confirmButton);
 
+    // Parent handler will be called but returns false (storage failed)
     await waitFor(() => {
-      expect(removeGameEvent).toHaveBeenCalled();
+      expect(mockOnDeleteGameEvent).toHaveBeenCalledWith('goal1');
     });
 
+    // Error message should appear
     await waitFor(() => {
       expect(
         screen.getByText(t('gameSettingsModal.errors.deleteFailed', 'Failed to delete event. Please try again.'))
       ).toBeInTheDocument();
     });
-
-    expect(mockOnDeleteGameEvent).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(screen.getByText('02:00')).toBeInTheDocument();
     });

@@ -8,7 +8,7 @@ import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'reac
 import { Season, Tournament, Player, Team, Personnel } from '@/types';
 import { AppState } from '@/types';
 import { getTeamRoster } from '@/utils/teams';
-import { updateGameDetails, updateGameEvent, removeGameEvent } from '@/utils/savedGames';
+import { updateGameDetails, updateGameEvent } from '@/utils/savedGames';
 import { UseMutationResult } from '@tanstack/react-query';
 import { TFunction } from 'i18next';
 import AssessmentSlider from './AssessmentSlider';
@@ -111,7 +111,7 @@ export interface GameSettingsModalProps {
   onAgeGroupChange: (age: string) => void;
   onTournamentLevelChange: (level: string) => void;
   onUpdateGameEvent: (updatedEvent: GameEvent) => void;
-  onDeleteGameEvent?: (goalId: string) => void;
+  onDeleteGameEvent?: (goalId: string) => Promise<boolean>;
   onAwardFairPlayCard: (playerId: string | null, time: number) => void;
   onNumPeriodsChange: (num: number) => void;
   onPeriodDurationChange: (minutes: number) => void;
@@ -1005,36 +1005,27 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
     setError(null);
     setIsProcessing(true);
-    // Save original state for rollback if storage fails
+    // Save original state for rollback if parent handler fails
     const originalLocalEvents = localGameEvents;
-    try {
-      const eventIndex = gameEvents.findIndex(e => e.id === goalId);
-      if (eventIndex === -1) {
-        logger.error(`[GameSettingsModal] Event ${goalId} not found in original gameEvents for deletion.`);
-        setError(t('gameSettingsModal.errors.eventNotFoundDelete', 'Event to delete not found.'));
-        setIsProcessing(false); // Stop processing early
-        return;
-      }
 
-      // Update local state immediately for UI responsiveness (optimistic update)
+    try {
+      // Optimistic update for UI responsiveness
       setLocalGameEvents(prevEvents => prevEvents.filter(event => event.id !== goalId));
 
-      // Only update parent state AFTER storage succeeds to prevent rollback bug
-      const success = await removeGameEvent(currentGameId, eventIndex);
-      if (success) {
-        logger.log(`[GameSettingsModal] Event ${goalId} removed from game ${currentGameId}.`);
-        // Update parent state only after successful storage
-        onDeleteGameEvent(goalId);
-      } else {
-        logger.error(`[GameSettingsModal] Failed to remove event ${goalId} from game ${currentGameId} via utility.`);
+      // Call parent handler (now handles storage internally and returns success status)
+      const success = await onDeleteGameEvent(goalId);
+
+      if (!success) {
+        logger.error(`[GameSettingsModal] Failed to delete event ${goalId} (parent handler returned false).`);
         setError(t('gameSettingsModal.errors.deleteFailed', 'Failed to delete event. Please try again.'));
-        setLocalGameEvents(originalLocalEvents); // Revert local UI on failure
+        setLocalGameEvents(originalLocalEvents); // Rollback on failure
+      } else {
+        logger.log(`[GameSettingsModal] Event ${goalId} deleted successfully.`);
       }
     } catch (err) {
-      logger.error(`[GameSettingsModal] Error removing event ${goalId} from game ${currentGameId}:`, err);
+      logger.error(`[GameSettingsModal] Error deleting event ${goalId}:`, err);
       setError(t('gameSettingsModal.errors.genericDeleteError', 'An unexpected error occurred while deleting the event.'));
-      // Revert local state on error to maintain UI consistency
-      setLocalGameEvents(originalLocalEvents);
+      setLocalGameEvents(originalLocalEvents); // Rollback on error
     } finally {
       setIsProcessing(false);
       setShowDeleteEventConfirm(false);

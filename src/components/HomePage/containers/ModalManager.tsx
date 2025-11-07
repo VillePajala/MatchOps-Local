@@ -109,7 +109,7 @@ interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   handleAddGoalEvent: (playerId: string, assistId?: string) => void;
   handleLogOpponentGoal: (currentTime: number) => void;
   handleUpdateGameEvent: (event: GameEvent) => void;
-  handleDeleteGameEvent: (eventId: string) => void;
+  handleDeleteGameEvent: (eventId: string) => Promise<boolean>;
   handleToggleGameStatsModal: () => void;
   handleExportOneExcel: (gameId: string) => void;
   handleExportAggregateExcel: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
