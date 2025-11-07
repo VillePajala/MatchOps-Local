@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: add type assertion for mock t function in newGameHandlers test"
+  "notes": "feat: implement new game setup handlers and improve error handling in GameSettingsModal tests"
 }
