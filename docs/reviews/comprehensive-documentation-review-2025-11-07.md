@@ -62,7 +62,7 @@ $ wc -l src/components/HomePage.tsx src/components/GameSettingsModal.tsx
 ```
 
 **Discrepancies**:
-- HomePage.tsx: Docs say 3,602-3,725 lines, **actually 3,086 lines** (~550-640 line reduction not documented)
+- HomePage.tsx: Docs say 3,602-3,725 lines, **actually 2,474 lines** (~550-640 line reduction not documented)
 - GameSettingsModal.tsx: Inconsistent docs (1,707 vs 1,995), **actually 1,995 lines**
 
 **Analysis**: HomePage.tsx has been reduced by ~17-20% but docs weren't updated. This is significant progress!
@@ -81,7 +81,7 @@ $ wc -l src/components/HomePage.tsx src/components/GameSettingsModal.tsx
 
 **Calculation Check**:
 - 3,602 lines ÷ 400 (recommended) = 9.0x (not 8.5x)
-- Actual 3,086 lines ÷ 400 = **7.7x too large** (not 8.5x or 9.0x)
+- Actual 2,474 lines ÷ 400 = **7.7x too large** (not 8.5x or 9.0x)
 
 **Recommendation**: Use actual measurements when updating.
 
@@ -287,13 +287,13 @@ The following documentation is **excellent** and up-to-date:
 ```
 
 **Issues**:
-1. HomePage.tsx is actually 3,086 lines (not 3,725)
+1. HomePage.tsx is actually 2,474 lines (not 3,725)
 2. Status shows "Not Started" but ~640 lines have been removed
 3. Work IS in progress (newGameHandlers extracted, bug fixes made)
 
 **Recommended Update**:
 ```markdown
-| **P0** 🔴 | HomePage.tsx (3,086 lines, down from 3,725) → Split to <600 line components | 🟡 In Progress (17% reduction achieved) | 2-3h |
+| **P0** 🔴 | HomePage.tsx (2,474 lines, down from 3,725) → Split to <600 line components | 🟡 In Progress (33.6% reduction achieved) | 2-3h |
 ```
 
 ---
@@ -331,7 +331,7 @@ All fixes marked as "❌ Not Started" with 0% progress.
 - Lists GameSettingsModal.tsx at 1,707 lines and 4.3x too large
 
 **Actual**:
-- HomePage.tsx: 3,086 lines = 7.7x too large
+- HomePage.tsx: 2,474 lines = 7.7x too large
 - GameSettingsModal.tsx: 1,995 lines = 5.0x too large
 
 **Recommended Update**: Use actual current measurements.
@@ -411,7 +411,7 @@ I verified the following features exist in codebase and match documentation:
 **Files to Update**:
 1. `docs/PROJECT_STATUS_SUMMARY.md`
    - Line 14: 991 → 1306 tests
-   - Line 67: 3,725 → 3,086 lines (HomePage.tsx)
+   - Line 67: 3,725 → 2,474 lines (HomePage.tsx)
    - Line 256: Update component size metrics
 
 2. `docs/CRITICAL_FIXES_TRACKER.md`
@@ -420,7 +420,7 @@ I verified the following features exist in codebase and match documentation:
    - Line 79: Update test count in acceptance criteria
 
 3. `CLAUDE.md`
-   - Line 27: 3,602 → 3,086 lines, recalculate multiplier (7.7x)
+   - Line 27: 3,602 → 2,474 lines, recalculate multiplier (7.7x)
    - Line 28: 1,707 → 1,995 lines, recalculate multiplier (5.0x)
 
 4. `docs/CRITICAL_FIXES_REQUIRED.md`
@@ -471,7 +471,7 @@ Major bug fix session addressing race conditions, type safety, and UX improvemen
 [... details ...]
 
 ### Code Quality
-- HomePage.tsx: 3,725 → 3,086 lines (-17%)
+- HomePage.tsx: 3,725 → 2,474 lines (-33.6%)
 [... details ...]
 
 ## Impact
@@ -582,7 +582,7 @@ checklist.
 - ✅ 7 major bug fixes (race conditions, type safety, UX improvements)
 - ✅ 28 new regression tests added (comprehensive coverage)
 - ✅ Test suite growth: 991 → 1306 tests (+32%)
-- ✅ HomePage.tsx reduction: 3,725 → 3,086 lines (-17%)
+- ✅ HomePage.tsx reduction: 3,725 → 2,474 lines (-33.6%)
 - ✅ Code extraction: newGameHandlers utility (280 lines)
 - ✅ Tournament/season date prefill feature
 - ✅ Team selection display fix

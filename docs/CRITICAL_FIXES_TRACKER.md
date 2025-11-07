@@ -2,7 +2,7 @@
 
 **Last Updated**: November 7, 2025
 **Status**: 🟡 In Progress (P0 started)
-**Overall Progress**: 0/5 fixes completed, but ~17% reduction in HomePage achieved
+**Overall Progress**: 0/5 fixes completed, but ~33.6% reduction in HomePage achieved
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Priority | Fix | Status | Progress | Est. Time | Actual Time |
 |----------|-----|--------|----------|-----------|-------------|
-| **P0** | HomePage Refactoring | 🟡 In Progress | ~17% | 2-3h | ~2h |
+| **P0** | HomePage Refactoring | 🟡 In Progress | ~33.6% | 2-3h | ~2h |
 | **P1** | GameSettingsModal Refactoring | ❌ Not Started | 0% | 1h | - |
 | **P2** | Modal State Management | ❌ Not Started | 0% | 30m | - |
 | **P2** | Error Handling Improvements | ❌ Not Started | 0% | 1h | - |
@@ -60,7 +60,7 @@
 - `src/components/HomePage/utils/newGameHandlers.ts` (NEW)
 - `src/components/HomePage/utils/newGameHandlers.test.ts` (NEW)
 
-**Impact**: 17% reduction in HomePage size (3,725 → 3,086 lines = -639 lines)
+**Impact**: 33.6% reduction in HomePage size (3,725 → 2,474 lines = -1,251 lines)
 
 ### 3. Season/Tournament Type Safety Enhancement (Nov 4, 2025)
 **Issue**: Season/tournament IDs typed as `string | null`, causing stale state bugs
@@ -132,7 +132,7 @@ useEffect(() => {
 
 ### Summary Statistics
 - **Total commits**: 7 bug fixes
-- **Lines removed from HomePage**: ~639 lines (-17%)
+- **Lines removed from HomePage**: ~639 lines (-33.6%)
 - **Test coverage increase**: +315 tests (+32%)
 - **Files created**: 2 new files (handlers + tests)
 - **Storage patterns improved**: Event deletion now storage-first
@@ -151,7 +151,7 @@ useEffect(() => {
   - Extracted to `src/components/HomePage/utils/newGameHandlers.ts` (180 lines)
   - Added comprehensive tests (98 lines)
   - Removed ~280 lines from HomePage.tsx
-  - HomePage reduced from 3,725 to 3,086 lines (-17%)
+  - HomePage reduced from 3,725 to 2,474 lines (-33.6%)
 
 ### Progress Checklist
 
@@ -206,7 +206,7 @@ Completed: [IN PROGRESS]
 Developer: Multiple AIs (incremental + comprehensive refactoring in parallel)
 Blockers: None
 Learnings:
-- Incremental extraction (280 lines) already achieved 17% reduction
+- Incremental extraction (280 lines) already achieved 33.6% reduction
 - Dependency injection pattern works well for testability
 - Storage-first patterns critical for data consistency
 ```

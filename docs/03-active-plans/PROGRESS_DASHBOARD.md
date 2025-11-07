@@ -10,7 +10,7 @@
 ### ✅ Bug Fixes & Incremental Refactoring (Nov 3-7, 2025)
 **Completion Date**: November 7, 2025
 **Time Spent**: ~2 hours
-**Impact**: 17% reduction in HomePage size, +315 tests, improved data consistency
+**Impact**: 33.6% reduction in HomePage size, +315 tests, improved data consistency
 
 **What Was Accomplished**:
 - ✅ Event deletion storage-aware pattern (prevents data loss)
@@ -22,7 +22,7 @@
 - ✅ Team selection display fix
 
 **Metrics Improved**:
-- HomePage.tsx: 3,725 → 3,086 lines (-639 lines, -17%)
+- HomePage.tsx: 3,725 → 2,474 lines (-1,251 lines, -33.6%)
 - Test count: 991 → 1,306 (+315 tests, +32%)
 - Storage consistency: Event deletion now storage-first with rollback
 - Type safety: Season/tournament IDs non-nullable
@@ -67,7 +67,7 @@
 ### Phase: P0 - HomePage Refactoring (In Progress)
 **Status**: 🟡 **IN PROGRESS** (another AI working on this)
 **Estimated Time**: 2-3 hours (1-1.5h remaining)
-**Progress**: ~17% complete (640 lines removed)
+**Progress**: ~33.6% complete (1,251 lines removed)
 **Owner**: Separate AI instance
 
 ### Phase: P1 - Security & Service Worker Hardening
@@ -375,7 +375,7 @@ You have completed all major features but stand at a fork in the road. Choose yo
 - **2025-11-07**: Metrics refresh & bug fix documentation
   - Added Recent Completions section for Nov 3-7 bug fixes
   - Updated test count (991 → 1,306, +315 tests)
-  - Updated HomePage metrics (3,725 → 3,086 lines, -17%)
+  - Updated HomePage metrics (3,725 → 2,474 lines, -33.6%)
   - Documented 7 bug fixes with detailed impact analysis
   - Marked P0 as in progress (separate AI working on it)
   - Updated current phase section to show parallel work

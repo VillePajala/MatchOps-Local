@@ -18,7 +18,7 @@ MatchOps-Local is a **remarkably well-engineered** local-first PWA for soccer co
 - 🏆 Production-ready infrastructure (Sentry, IndexedDB, i18n)
 
 **Key Weaknesses**:
-- ⚠️ Two monolithic components (HomePage 3,086 lines, Modal 1,995 lines)
+- ⚠️ Two monolithic components (HomePage 2,474 lines, Modal 1,995 lines)
 - ⚠️ Some modal state management race conditions
 - ⚠️ Silent error swallowing in 3 components
 
@@ -50,7 +50,7 @@ MatchOps-Local is a **remarkably well-engineered** local-first PWA for soccer co
 - Storage-first patterns with rollback
 
 ❌ Size issues:
-- HomePage.tsx: 3,086 lines (7.7x recommended max)
+- HomePage.tsx: 2,474 lines (7.7x recommended max)
 - GameSettingsModal.tsx: 1,995 lines (5.0x recommended max)
 - These two files alone: 5,081 lines (12.5% of entire codebase)
 
@@ -367,7 +367,7 @@ Needs Work:
 Maintainability Metrics:
 
 Component Sizes:
-├── HomePage.tsx: 3,086 lines ❌ (should be <400)
+├── HomePage.tsx: 2,474 lines ❌ (should be <400)
 ├── GameSettingsModal.tsx: 1,995 lines ❌ (should be <400)
 ├── useGameSessionReducer.ts: 1,200+ lines ⚠️ (borderline)
 └── Most other components: <300 lines ✅
@@ -382,7 +382,7 @@ Impact of Component Size:
 
 **Maintainability Issues**:
 
-**HomePage.tsx (3,086 lines)**:
+**HomePage.tsx (2,474 lines)**:
 ```typescript
 // This component handles:
 - 18 modal state variables
@@ -396,7 +396,7 @@ Impact of Component Size:
 - React Query orchestration
 - Game session reducer
 
-// One change can trigger unexpected side effects across 3,086 lines
+// One change can trigger unexpected side effects across 2,474 lines
 ```
 
 **GameSettingsModal.tsx (1,995 lines)**:
@@ -454,12 +454,12 @@ Performance Metrics (estimated):
 ├── Initial load: <2s (PWA cached)
 ├── Time to interactive: ~3s
 ├── Bundle size: ~500KB (reasonable)
-├── Re-render issues: HomePage re-evaluates 3,086 lines on ANY state change
+├── Re-render issues: HomePage re-evaluates 2,474 lines on ANY state change
 └── Memory: No leaks detected (tests pass with detectLeaks: true)
 
 Performance Issues:
 ❌ HomePage re-renders:
-- Any modal state change → 3,086 line re-evaluation
+- Any modal state change → 2,474 line re-evaluation
 - Timer tick → full component re-render
 - Player position change → unnecessary re-renders
 
@@ -478,7 +478,7 @@ Performance Issues:
 
 **1. HomePage Re-renders**:
 ```typescript
-// Current: Any state change re-evaluates entire 3,086 lines
+// Current: Any state change re-evaluates entire 2,474 lines
 const [isGameStatsModalOpen, setIsGameStatsModalOpen] = useState(false);
 
 // Effect: Setting one modal state → entire HomePage re-renders
@@ -644,7 +644,7 @@ Developer Experience:
 
 ❌ **Frustration**:
 - HomePage/Modal size
-- Difficulty finding code in 3,086-line file
+- Difficulty finding code in 2,474-line file
 - Some flaky tests
 - Large PR reviews
 
@@ -736,7 +736,7 @@ Every critical fix has:
 ```
 | Priority | Fix | Status | Progress | Est. Time | Actual Time |
 |----------|-----|--------|----------|-----------|-------------|
-| P0 | HomePage Refactoring | 🟡 In Progress | ~17% | 2-3h | ~2h |
+| P0 | HomePage Refactoring | 🟡 In Progress | ~33.6% | 2-3h | ~2h |
 ```
 Clear, measurable progress.
 
@@ -910,7 +910,7 @@ Weighted Score (by importance):
 | Test Coverage | 40-60% | 85%+ | +42% |
 | Documentation | README only | 20+ docs | +1900% |
 | TypeScript | Partial | 100% | +100% |
-| Component Size | 200-400 lines | 3,086 max | -672% ❌ |
+| Component Size | 200-400 lines | 2,474 max | -672% ❌ |
 | Error Monitoring | Maybe | Sentry | ✅ |
 | i18n | Rare | Full | ✅ |
 | PWA | Rare | Full | ✅ |
@@ -1017,7 +1017,7 @@ Before → After:
 
 ## 📉 Critical Weaknesses to Address
 
-### 1. HomePage.tsx (3,086 lines) - P0 Priority
+### 1. HomePage.tsx (2,474 lines) - P0 Priority
 **Impact**:
 - Development velocity: -70% (takes 3-5x longer)
 - Bug risk: High (complex interactions)
