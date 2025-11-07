@@ -11,7 +11,7 @@ Complete IndexedDB-only storage architecture with:
 - ✅ Migration system with cross-tab coordination
 - ✅ localStorage elimination (no fallbacks)
 - ✅ Comprehensive error handling and type safety
-- ✅ Full application integration (877-line storage helper)
+- ✅ Full application integration (847-line storage helper)
 
 ## Key Documents
 
@@ -38,7 +38,7 @@ Complete IndexedDB-only storage architecture with:
 
 ## Related Code
 
-- `src/utils/storage.ts` - Main IndexedDB storage helper (877 lines)
+- `src/utils/storage.ts` - Main IndexedDB storage helper (847 lines)
 - `src/utils/storageFactory.ts` - Storage factory (no fallbacks)
 - `src/utils/migration.ts` - One-time migration system
 - All utility files now use IndexedDB-only storage

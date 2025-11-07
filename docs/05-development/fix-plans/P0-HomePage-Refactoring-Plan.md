@@ -2,7 +2,7 @@
 
 **Priority**: P0 - CRITICAL
 **File**: `/src/components/HomePage.tsx`
-**Current Size**: 3,602 lines
+**Current Size**: 3,725 lines
 **Target Size**: 150 lines (orchestrator only)
 **Estimated Effort**: 2-3 hours
 **Impact**: HIGH - Blocks all major feature development
@@ -12,7 +12,7 @@
 
 ## 🎯 OBJECTIVE
 
-Transform the monolithic 3,602-line HomePage component into a clean, testable architecture with 12-15 focused components, each under 600 lines.
+Transform the monolithic 3,725-line HomePage component into a clean, testable architecture with 12-15 focused components, each under 600 lines.
 
 ---
 
@@ -583,7 +583,7 @@ Track these before and after refactoring:
 
 | Metric | Before | Target After | Measurement |
 |--------|--------|--------------|-------------|
-| Largest file size | 3,602 lines | ≤600 lines | `wc -l HomePage/**/*.{ts,tsx}` |
+| Largest file size | 3,725 lines | ≤600 lines | `wc -l HomePage/**/*.{ts,tsx}` |
 | Test coverage | ~85% | ≥85% | `npm run test:coverage` |
 | Test execution time | ~28s | ≤30s | `npm test` |
 | HomePage component re-render | ~150ms | ≤50ms | React DevTools Profiler |

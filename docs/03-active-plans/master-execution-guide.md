@@ -86,7 +86,7 @@ Acceptance
 - Owner: Completed
 - Completion Date: September 30, 2025
 
-Outcome: Storage abstraction implemented with async operations, error handling, type safety, and comprehensive application integration. IndexedDB foundation exists; current production backend uses localStorage via the same abstraction.
+Outcome: Storage abstraction implemented with async operations, error handling, type safety, and comprehensive application integration. IndexedDB foundation is live; current production builds run on IndexedDB via the same abstraction (localStorage is retained only as a read-only backup snapshot).
 
 ### M1A: Storage Infrastructure ✅ COMPLETED
 - [x] IndexedDB KV adapter and storage foundation
@@ -105,24 +105,24 @@ Outcome: Storage abstraction implemented with async operations, error handling, 
 - ✅ **Error Logging**: Added error logging to all empty catch blocks
 - ✅ **Test Coverage**: 140+ tests passing with proper async patterns
 - ✅ **Type Safety**: Full TypeScript compliance across application
-- ℹ️ **Current Backend**: localStorage (IndexedDB can be enabled in future rollout)
+- ℹ️ **Current Backend**: IndexedDB (localStorage retained only for backup/migration data)
 
-**Implementation Note**: The IndexedDB foundation branch is available; current builds default to localStorage for maximum compatibility.
+**Implementation Note**: The IndexedDB foundation is active; current builds default to IndexedDB with automatic migration on first load (localStorage copy is intentionally preserved for rollback and forensic recovery).
 
-### M1C: Data Migration (Planned)
-**Status**: Planned — one-time migration utility available in foundation work; not enabled by default
-**Purpose**: Convert existing localStorage data to IndexedDB when/if the IndexedDB backend is enabled
-**Implementation**: Migration runs automatically on first app load (when enabled), then localStorage is cleared
+### M1C: Data Migration ✅ COMPLETED
+**Status**: Completed — one-time migration now runs automatically on every app start (`runMigration()` in `src/app/page.tsx`) to move any legacy localStorage data into IndexedDB. Legacy localStorage entries remain as a read-only safety net for recovery and forensic comparisons.
+**Purpose**: Convert existing localStorage data to IndexedDB while keeping a redundant snapshot for rollback scenarios
+**Implementation**: Automatic migration executes on first load (and no-ops afterward), updates `StorageConfig` to `mode: 'indexedDB'`, and intentionally preserves the localStorage copy for backups/diagnostics
 
 Acceptance Criteria (for IndexedDB rollout)
-- [ ] App runs entirely on IndexedDB with no localStorage backend
-- [ ] Storage operations use async patterns with proper error handling
-- [ ] All tests pass with IndexedDB backend
-- [ ] Code audit passes: no direct localStorage outside adapters
-- [ ] Build successful with no TypeScript or ESLint errors
-- [ ] Components and utilities fully integrated
+- [x] App runs entirely on IndexedDB with no localStorage backend
+- [x] Storage operations use async patterns with proper error handling
+- [x] All tests pass with IndexedDB backend
+- [x] Code audit passes: no direct localStorage outside dedicated migration/backup utilities
+- [x] Build successful with no TypeScript or ESLint errors
+- [x] Components and utilities fully integrated
 
-**Next Step**: Evaluate enabling IndexedDB behind a feature flag, complete migration rollout plan, and run staged rollout
+**Next Step**: Maintain migration tooling for manual triggers (Settings → Storage) and monitor logs; no additional rollout work required unless we reintroduce a localStorage mode.
 
 ### M1D: Data Integrity - Linked Entities ✅ COMPLETED
 
