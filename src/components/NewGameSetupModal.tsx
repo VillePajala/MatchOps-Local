@@ -254,6 +254,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         setAgeGroup(s.ageGroup || '');
         setLocalNumPeriods((s.periodCount as 1 | 2) || 2);
         setLocalPeriodDurationString(s.periodDuration ? String(s.periodDuration) : '10');
+        if (s.startDate) {
+          setGameDate(s.startDate);
+        }
       }
     }
   }, [selectedSeasonId, seasons, availablePlayersForSetup]);
@@ -277,6 +280,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         setTournamentLevel(t.level || '');
         setLocalNumPeriods((t.periodCount as 1 | 2) || 2);
         setLocalPeriodDurationString(t.periodDuration ? String(t.periodDuration) : '10');
+        if (t.startDate) {
+          setGameDate(t.startDate);
+        }
       }
     }
   }, [selectedTournamentId, tournaments, availablePlayersForSetup]);
