@@ -40,7 +40,7 @@ import {
 // Removed unused import of utilGetMasterRoster
 
 // Import utility functions for seasons and tournaments
-import { saveGame as utilSaveGame, deleteGame as utilDeleteGame, getLatestGameId, createGame, getSavedGames as utilGetSavedGames } from '@/utils/savedGames';
+import { saveGame as utilSaveGame, deleteGame as utilDeleteGame, getLatestGameId, createGame, getSavedGames as utilGetSavedGames, removeGameEvent } from '@/utils/savedGames';
 import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
   resetAppSettings as utilResetAppSettings,
@@ -1644,22 +1644,48 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   };
 
   // Handler to delete a game event
-  const handleDeleteGameEvent = (goalId: string) => {
+  const handleDeleteGameEvent = async (goalId: string): Promise<boolean> => {
     const eventToDelete = gameSessionState.gameEvents.find(e => e.id === goalId);
     if (!eventToDelete) {
       logger.error("Event to delete not found in gameSessionState.gameEvents:", goalId);
-      return;
+      return false;
     }
 
-    dispatchGameSession({ type: 'DELETE_GAME_EVENT', payload: goalId });
-    if (eventToDelete.type === 'goal' || eventToDelete.type === 'opponentGoal') {
-      dispatchGameSession({ 
-        type: 'ADJUST_SCORE_FOR_EVENT', 
-        payload: { eventType: eventToDelete.type, action: 'delete' } 
-      });
+    if (!currentGameId) {
+      logger.error("No current game ID for event deletion");
+      return false;
     }
-    
-    logger.log("Deleted game event via dispatch and updated state/history:", goalId);
+
+    try {
+      // Storage FIRST - find event index and remove from storage
+      const eventIndex = gameSessionState.gameEvents.findIndex(e => e.id === goalId);
+      if (eventIndex === -1) {
+        logger.error("Event index not found for deletion:", goalId);
+        return false;
+      }
+
+      const updatedGame = await removeGameEvent(currentGameId, eventIndex);
+
+      if (!updatedGame) {
+        logger.error("Failed to remove event from storage:", goalId);
+        return false; // Storage failed
+      }
+
+      // State update SECOND (only if storage succeeded)
+      dispatchGameSession({ type: 'DELETE_GAME_EVENT', payload: goalId });
+      if (eventToDelete.type === 'goal' || eventToDelete.type === 'opponentGoal') {
+        dispatchGameSession({
+          type: 'ADJUST_SCORE_FOR_EVENT',
+          payload: { eventType: eventToDelete.type, action: 'delete' }
+        });
+      }
+
+      logger.log("Deleted game event successfully (storage then state):", goalId);
+      return true; // Success
+    } catch (error) {
+      logger.error("Error deleting game event:", error);
+      return false; // Error
+    }
   };
   // --- Button/Action Handlers ---
   
