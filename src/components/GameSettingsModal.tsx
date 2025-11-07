@@ -385,6 +385,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(teamId || null);
   const teamSelectionRequestRef = useRef<number>(0); // Track current team selection request for race condition protection
 
+  // Sync selectedTeamId with teamId prop when modal opens or teamId changes
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedTeamId(teamId || null);
+    }
+  }, [isOpen, teamId]);
+
   // Load team roster when modal opens with teamId
   useEffect(() => {
     const loadTeamRoster = async () => {
@@ -579,6 +586,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         batchedUpdates.ageGroup = season.ageGroup;
         hasUpdates = true;
       }
+      if (season.startDate) {
+        onGameDateChange(season.startDate);
+        batchedUpdates.gameDate = season.startDate;
+        hasUpdates = true;
+      }
       const parsedCount = Number(season.periodCount);
       if (parsedCount === 1 || parsedCount === 2) {
         const count = parsedCount as 1 | 2;
@@ -693,6 +705,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       if (tournament.level) {
         onTournamentLevelChange(tournament.level);
         batchedUpdates.tournamentLevel = tournament.level;
+        hasUpdates = true;
+      }
+      if (tournament.startDate) {
+        onGameDateChange(tournament.startDate);
+        batchedUpdates.gameDate = tournament.startDate;
         hasUpdates = true;
       }
       const parsedCount = Number(tournament.periodCount);
