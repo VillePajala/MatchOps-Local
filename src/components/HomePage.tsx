@@ -96,6 +96,7 @@ import {
 } from 'react-icons/hi2';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
+import { startNewGameWithSetup, cancelNewGameSetup } from './HomePage/utils/newGameHandlers';
 
 
 // Empty initial data for clean app start
@@ -2534,164 +2535,89 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // --- Handler that is called when setup modal is confirmed ---
   const handleStartNewGameWithSetup = useCallback(async (
     initialSelectedPlayerIds: string[],
-    homeTeamName: string, // <-- Add parameter
+    homeTeamName: string,
     opponentName: string,
     gameDate: string,
     gameLocation: string,
     gameTime: string,
     seasonId: string | null,
     tournamentId: string | null,
-    numPeriods: 1 | 2, // Parameter
-    periodDuration: number, // Parameter
-    homeOrAway: 'home' | 'away', // <<< Step 4b: Add parameter
+    numPeriods: 1 | 2,
+    periodDuration: number,
+    homeOrAway: 'home' | 'away',
     demandFactor: number,
     ageGroup: string,
     tournamentLevel: string,
-    isPlayed: boolean,
-    teamId: string | null, // Add team ID parameter
-    availablePlayersForGame: Player[], // Add the actual roster for the game
-    selectedPersonnelIds: string[] // Add personnel selection
+    isPlayedParam: boolean,
+    teamId: string | null,
+    availablePlayersForGame: Player[],
+    selectedPersonnelIds: string[]
   ) => {
-      // Determine the player selection for the new game
-      const finalSelectedPlayerIds = initialSelectedPlayerIds && initialSelectedPlayerIds.length > 0 
-          ? initialSelectedPlayerIds 
-          : availablePlayers.map(p => p.id); // Fallback to all players if none provided
-
-      // 1. Manually construct the new game state EXPLICITLY
-      const newGameState: AppState = {
-          opponentName: opponentName,
-          gameDate: gameDate,
-          gameLocation: gameLocation,
-          gameTime: gameTime,
-          seasonId: seasonId || '',
-          tournamentId: tournamentId || '',
-          ageGroup: ageGroup,
-          tournamentLevel: tournamentLevel,
-          numberOfPeriods: numPeriods, // Use parameter
-          periodDurationMinutes: periodDuration, // Use parameter
-          homeScore: 0,
-          awayScore: 0,
-          gameNotes: '',
-          teamName: homeTeamName, // Use current teamName state
-          homeOrAway: homeOrAway, // <<< Step 4b: Use parameter value
-          demandFactor: demandFactor,
-          isPlayed: isPlayed,
-          teamId: teamId || undefined, // Add team ID to game state
-          availablePlayers: availablePlayersForGame, // Use the roster from the modal (team roster or master roster)
-          selectedPlayerIds: finalSelectedPlayerIds, // <-- USE PASSED OR FALLBACK
-          playersOnField: [], // Always start with empty field
-          opponents: [], // Always start with empty opponents
-          showPlayerNames: true, // Default visibility
-          drawings: [], // Always start with empty drawings
-          gameEvents: [], // Always start with empty events
-          currentPeriod: 1, // Always start at period 1
-          gameStatus: 'notStarted', // Always start as not started
-          tacticalDiscs: [],
-          tacticalDrawings: [],
-          // Timer/Sub State - Use TOP-LEVEL initialState defaults (or current settings?)
-          // Let's stick with initialState defaults for timer/sub settings for now
-          subIntervalMinutes: initialState.subIntervalMinutes ?? 5,
-          completedIntervalDurations: [], // Always reset intervals
-          lastSubConfirmationTimeSeconds: 0, // Always reset last sub time
-          tacticalBallPosition: { relX: 0.5, relY: 0.5 },
-          gamePersonnel: selectedPersonnelIds, // Personnel assigned to this game
-      };
-
-      // 2. Auto-generate ID
-      const newGameId = `game_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-
-      // 3. Explicitly save the new game state immediately to state and localStorage
-      let saveSucceeded = false;
-      try {
-        const updatedSavedGamesCollection = {
-          ...savedGames,
-          [newGameId]: newGameState
-        };
-        setSavedGames(updatedSavedGamesCollection);
-        // localStorage.setItem(SAVED_GAMES_KEY, JSON.stringify(updatedSavedGames)); // OLD
-        // logger.log(`Explicitly saved initial state for new game ID: ${newGameId}`); // OLD
-
-        // const currentSettings: AppSettings = { currentGameId: newGameId }; // OLD
-        // localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(currentSettings)); // OLD
-        // logger.log(`Updated app settings with new game ID: ${newGameId}`); // OLD
-
-        await utilSaveGame(newGameId, newGameState);
-        await utilSaveCurrentGameIdSetting(newGameId);
-
-        // Invalidate React Query cache to update LoadGameModal
-        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
-
-        logger.log(`Saved new game ${newGameId} and settings via utility functions.`);
-        saveSucceeded = true;
-      } catch (error) {
-        logger.error("Error explicitly saving new game state:", error);
-        showToast(t('newGameSetupModal.saveGameFailed', 'Failed to save the new game. Please try again.'), 'error');
-        setSavedGames(prev => {
-          const reverted = { ...prev };
-          delete reverted[newGameId];
-          return reverted;
-        });
-      }
-
-      if (!saveSucceeded) {
-        return;
-      }
-
-      // 4. Reset History with the new state
-      resetHistory(newGameState);
-      dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: selectedPersonnelIds });
-
-      setIsPlayed(isPlayed);
-
-      // 5. Set the current game ID - This will trigger the loading useEffect
-      setCurrentGameId(newGameId);
-      logger.log(`Set current game ID to: ${newGameId}. Loading useEffect will sync component state.`);
-
-      // Close the setup modal
-      setIsNewGameSetupModalOpen(false);
-      setNewGameDemandFactor(1);
-      setPlayerIdsForNewGame(null); // Clear player selection after game creation
-
-      // <<< Trigger the roster button highlight >>>
-      logger.log('[handleStartNewGameWithSetup] Setting highlightRosterButton to true.'); // Log highlight trigger
-      setHighlightRosterButton(true);
-
+    await startNewGameWithSetup(
+      {
+        availablePlayers,
+        savedGames,
+        setSavedGames,
+        resetHistory,
+        dispatchGameSession,
+        setCurrentGameId,
+        setIsNewGameSetupModalOpen,
+        setNewGameDemandFactor,
+        setPlayerIdsForNewGame,
+        setHighlightRosterButton,
+        setIsPlayed,
+        queryClient,
+        showToast,
+        t,
+        utilSaveGame,
+        utilSaveCurrentGameIdSetting,
+        defaultSubIntervalMinutes: initialState.subIntervalMinutes ?? 5,
+      },
+      initialSelectedPlayerIds,
+      homeTeamName,
+      opponentName,
+      gameDate,
+      gameLocation,
+      gameTime,
+      seasonId,
+      tournamentId,
+      numPeriods,
+      periodDuration,
+      homeOrAway,
+      demandFactor,
+      ageGroup,
+      tournamentLevel,
+      isPlayedParam,
+      teamId,
+      availablePlayersForGame,
+      selectedPersonnelIds
+    );
   }, [
-    // Keep necessary dependencies
-    savedGames,
     availablePlayers,
+    savedGames,
     setSavedGames,
     resetHistory,
+    dispatchGameSession,
     setCurrentGameId,
     setIsNewGameSetupModalOpen,
-    setHighlightRosterButton,
-    queryClient,
     setNewGameDemandFactor,
     setPlayerIdsForNewGame,
+    setHighlightRosterButton,
     setIsPlayed,
+    queryClient,
     showToast,
     t,
   ]);
 
   // ** REVERT handleCancelNewGameSetup TO ORIGINAL **
   const handleCancelNewGameSetup = useCallback(() => {
-    logger.log("New game setup skipped/cancelled.");
-    // REMOVED call to handleStartNewGameWithSetup
-    // // Initialize with default values similar to handleStartNewGameWithSetup
-    // const defaultOpponent = ''; // Empty opponent name
-    // ... (rest of default value setup removed)
-    // // Call the main setup function with defaults
-    // handleStartNewGameWithSetup(
-    //     ...
-    // );
-
-    setHasSkippedInitialSetup(true); // Still mark as skipped if needed elsewhere
-    setIsNewGameSetupModalOpen(false); // ADDED: Explicitly close the modal
-    setNewGameDemandFactor(1);
-    setPlayerIdsForNewGame(null); // Clear stale player selection
-
-  // REMOVED initialState from dependencies
-  }, [setIsNewGameSetupModalOpen]); // Updated dependencies
+    cancelNewGameSetup({
+      setHasSkippedInitialSetup,
+      setIsNewGameSetupModalOpen,
+      setNewGameDemandFactor,
+      setPlayerIdsForNewGame,
+    });
+  }, [setHasSkippedInitialSetup, setIsNewGameSetupModalOpen, setNewGameDemandFactor, setPlayerIdsForNewGame]);
 
   // --- Start New Game Handler (Uses Quick Save) ---
   const handleStartNewGame = useCallback(() => {

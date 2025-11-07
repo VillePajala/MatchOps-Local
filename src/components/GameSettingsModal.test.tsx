@@ -64,6 +64,7 @@ jest.mock('react-i18next', () => ({
         'gameSettingsModal.scorerLabel': 'Maalintekijä',
         'gameSettingsModal.assisterLabel': 'Syöttäjä',
         'gameSettingsModal.errors.updateFailed': 'Päivitys epäonnistui. Yritä uudelleen.',
+        'gameSettingsModal.errors.deleteFailed': 'Failed to delete event. Please try again.',
         'gameSettingsModal.errors.genericSaveError': 'Tapahtuman tallennuksessa tapahtui odottamaton virhe.',
         'gameSettingsModal.errors.genericDeleteError': 'Tapahtuman poistamisessa tapahtui odottamaton virhe.',
         'gameSettingsModal.home': 'Koti',
@@ -527,13 +528,23 @@ describe('<GameSettingsModal />', () => {
       const confirmButton = within(modalContainer as HTMLElement).getByRole('button', { name: t('common.delete') });
       await user.click(confirmButton);
 
-      await waitFor(() => {
-        expect(removeGameEvent).toHaveBeenCalled();
-      });
-
-      expect(mockOnDeleteGameEvent).not.toHaveBeenCalled();
-      expect(await findEventByTime('02:00')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(removeGameEvent).toHaveBeenCalled();
     });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(t('gameSettingsModal.errors.deleteFailed', 'Failed to delete event. Please try again.'))
+      ).toBeInTheDocument();
+    });
+
+    expect(mockOnDeleteGameEvent).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.getByText('02:00')).toBeInTheDocument();
+    });
+    const restoredEvent = await findEventByTime('02:00');
+    expect(restoredEvent).toBeInTheDocument();
+  });
   });
 
   describe('Error Handling & Edge Cases', () => {

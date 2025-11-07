@@ -235,7 +235,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const appliedTournamentRef = useRef<string | null>(null);
   // Track if component is mounted to prevent setState on unmounted component
   const isMountedRef = useRef<boolean>(true);
-  const mutationSequenceRef = useRef(0);
+  const mutationSequenceRef = useRef<number>(0);
 
   // Track mount state to prevent race conditions with setTimeout
   useEffect(() => {
@@ -315,9 +315,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
   // Clear error state when modal opens to prevent stale error messages
   useEffect(() => {
-    if (isOpen) {
-      setError(null);
-    }
+    setError(null);
   }, [isOpen]);
 
   // State for event editing within the modal
