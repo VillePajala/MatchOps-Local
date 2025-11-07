@@ -21,6 +21,12 @@
 
 ---
 
+## 🧪 Test Coverage Follow-ups
+
+- [x] Automate regression for clearing `playerIdsForNewGame` after new game setup (Fix #2 – stale player selection) to ensure selections reset post-start. *(See `src/components/HomePage/utils/newGameHandlers.test.ts`)*
+
+---
+
 ## 🎯 P0: HomePage Refactoring (CRITICAL)
 
 **Fix Plan**: [P0-HomePage-Refactoring-Plan.md](./05-development/fix-plans/P0-HomePage-Refactoring-Plan.md)

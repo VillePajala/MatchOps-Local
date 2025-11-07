@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Player } from '@/types';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
-import { updateGameEvent, removeGameEvent } from '@/utils/savedGames';
+import { updateGameEvent } from '@/utils/savedGames';
 import logger from '@/utils/logger';
 import { TFunction } from 'i18next';
 import { useToast } from '@/contexts/ToastProvider';
@@ -35,7 +35,7 @@ interface GoalLogModalProps {
   currentGameId: string | null;
   gameEvents: GameEvent[];
   onUpdateGameEvent: (event: GameEvent) => void;
-  onDeleteGameEvent: (eventId: string) => void;
+  onDeleteGameEvent: (eventId: string) => Promise<boolean>;
 }
 
 // Helper to get event description
@@ -251,30 +251,27 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
 
     setError(null);
     setIsProcessing(true);
+    // Save original state for rollback if parent handler fails
+    const originalLocalEvents = localGameEvents;
+
     try {
-      const eventIndex = gameEvents.findIndex(e => e.id === goalId);
-      if (eventIndex === -1) {
-        logger.error(`[GoalLogModal] Event ${goalId} not found for deletion.`);
-        setError(t('gameSettingsModal.errors.eventNotFoundDelete', 'Event to delete not found.'));
-        setIsProcessing(false);
-        return;
-      }
-
-      const originalLocalEvents = localGameEvents;
+      // Optimistic update for UI responsiveness
       setLocalGameEvents(prevEvents => prevEvents.filter(event => event.id !== goalId));
-      onDeleteGameEvent(goalId);
 
-      const success = await removeGameEvent(currentGameId, eventIndex);
-      if (success) {
-        logger.log(`[GoalLogModal] Event ${goalId} removed from game ${currentGameId}.`);
-      } else {
-        logger.error(`[GoalLogModal] Failed to remove event ${goalId}`);
+      // Call parent handler (now handles storage internally and returns success status)
+      const success = await onDeleteGameEvent(goalId);
+
+      if (!success) {
+        logger.error(`[GoalLogModal] Failed to delete event ${goalId} (parent handler returned false).`);
         setError(t('gameSettingsModal.errors.deleteFailed', 'Failed to delete event. Please try again.'));
-        setLocalGameEvents(originalLocalEvents);
+        setLocalGameEvents(originalLocalEvents); // Rollback on failure
+      } else {
+        logger.log(`[GoalLogModal] Event ${goalId} deleted successfully.`);
       }
     } catch (err) {
-      logger.error(`[GoalLogModal] Error removing event ${goalId}:`, err);
+      logger.error(`[GoalLogModal] Error deleting event ${goalId}:`, err);
       setError(t('gameSettingsModal.errors.genericDeleteError', 'An unexpected error occurred while deleting the event.'));
+      setLocalGameEvents(originalLocalEvents); // Rollback on error
     } finally {
       setIsProcessing(false);
       setShowDeleteEventConfirm(false);

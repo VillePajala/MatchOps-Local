@@ -1,0 +1,98 @@
+import type { SavedGamesCollection, Player, AppState } from '@/types';
+import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
+import type { QueryClient } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
+
+import { startNewGameWithSetup, cancelNewGameSetup } from './newGameHandlers';
+
+const createSetStateMock = <T,>(initial: T) => {
+  let state = initial;
+  const setter = jest.fn((updater: T | ((prev: T) => T)) => {
+    state = typeof updater === 'function' ? (updater as (prev: T) => T)(state) : updater;
+  });
+  return {
+    getState: () => state,
+    setter,
+  };
+};
+
+const mockPlayers: Player[] = [
+  { id: 'p1', name: 'Player 1', isGoalie: false },
+  { id: 'p2', name: 'Player 2', isGoalie: true },
+];
+
+describe('newGameHandlers', () => {
+  it('clears playerIdsForNewGame after successful start', async () => {
+    const savedGamesState = createSetStateMock<SavedGamesCollection>({});
+    const setPlayerIdsForNewGame = jest.fn();
+    const dispatchGameSession = jest.fn();
+    const setCurrentGameId = jest.fn();
+    const setIsNewGameSetupModalOpen = jest.fn();
+    const setNewGameDemandFactor = jest.fn();
+    const setHighlightRosterButton = jest.fn();
+    const setIsPlayed = jest.fn();
+    const resetHistory = jest.fn();
+    const queryClient = {
+      invalidateQueries: jest.fn().mockResolvedValue(undefined),
+    } as unknown as QueryClient;
+    const showToast = jest.fn();
+    const deps = {
+      availablePlayers: mockPlayers,
+      savedGames: savedGamesState.getState(),
+      setSavedGames: savedGamesState.setter,
+      resetHistory,
+      dispatchGameSession: dispatchGameSession as unknown as (action: GameSessionAction) => void,
+      setCurrentGameId,
+      setIsNewGameSetupModalOpen,
+      setNewGameDemandFactor,
+      setPlayerIdsForNewGame,
+      setHighlightRosterButton,
+      setIsPlayed,
+      queryClient,
+      showToast,
+      t: ((_key: string, fallback?: string) => fallback ?? _key) as TFunction,
+      utilSaveGame: jest.fn().mockImplementation(async (_id: string, state: AppState) => state),
+      utilSaveCurrentGameIdSetting: jest.fn().mockResolvedValue(undefined),
+      defaultSubIntervalMinutes: 5,
+    };
+
+    await startNewGameWithSetup(
+      deps,
+      [],
+      'Home Team',
+      'Away Team',
+      '2024-10-01',
+      'Main Arena',
+      '15:00',
+      null,
+      null,
+      2,
+      25,
+      'home',
+      1,
+      'U12',
+      'regular',
+      true,
+      null,
+      mockPlayers,
+      []
+    );
+
+    expect(setPlayerIdsForNewGame).toHaveBeenCalledWith(null);
+    expect(setIsNewGameSetupModalOpen).toHaveBeenCalledWith(false);
+    expect(setHighlightRosterButton).toHaveBeenCalledWith(true);
+  });
+
+  it('clears playerIdsForNewGame when setup is cancelled', () => {
+    const setPlayerIdsForNewGame = jest.fn();
+
+    cancelNewGameSetup({
+      setHasSkippedInitialSetup: jest.fn(),
+      setIsNewGameSetupModalOpen: jest.fn(),
+      setNewGameDemandFactor: jest.fn(),
+      setPlayerIdsForNewGame,
+    });
+
+    expect(setPlayerIdsForNewGame).toHaveBeenCalledWith(null);
+  });
+});

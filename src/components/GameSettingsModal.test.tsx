@@ -64,6 +64,7 @@ jest.mock('react-i18next', () => ({
         'gameSettingsModal.scorerLabel': 'Maalintekijä',
         'gameSettingsModal.assisterLabel': 'Syöttäjä',
         'gameSettingsModal.errors.updateFailed': 'Päivitys epäonnistui. Yritä uudelleen.',
+        'gameSettingsModal.errors.deleteFailed': 'Failed to delete event. Please try again.',
         'gameSettingsModal.errors.genericSaveError': 'Tapahtuman tallennuksessa tapahtui odottamaton virhe.',
         'gameSettingsModal.errors.genericDeleteError': 'Tapahtuman poistamisessa tapahtui odottamaton virhe.',
         'gameSettingsModal.home': 'Koti',
@@ -93,7 +94,7 @@ const mockOnGameLocationChange = jest.fn();
 const mockOnGameTimeChange = jest.fn();
 const mockOnGameNotesChange = jest.fn();
 const mockOnUpdateGameEvent = jest.fn();
-const mockOnDeleteGameEvent = jest.fn();
+const mockOnDeleteGameEvent = jest.fn().mockResolvedValue(true); // Now async, returns Promise<boolean>
 const mockOnNumPeriodsChange = jest.fn();
 const mockOnPeriodDurationChange = jest.fn();
 const mockOnSeasonIdChange = jest.fn();
@@ -157,8 +158,8 @@ const defaultProps: GameSettingsModalProps = {
   onNumPeriodsChange: mockOnNumPeriodsChange,
   onPeriodDurationChange: mockOnPeriodDurationChange,
   onDemandFactorChange: jest.fn(),
-  seasonId: null,
-  tournamentId: null,
+  seasonId: '',
+  tournamentId: '',
   onSeasonIdChange: mockOnSeasonIdChange,
   onTournamentIdChange: mockOnTournamentIdChange,
   homeOrAway: 'home',
@@ -220,6 +221,32 @@ describe('<GameSettingsModal />', () => {
     const closeButton = screen.getByRole('button', { name: t('common.doneButton', 'Done') });
     await user.click(closeButton);
     expect(mockOnClose).toHaveBeenCalledTimes(1);
+  });
+
+  describe('Season Prefill Regression', () => {
+    test('applies season data to local handlers immediately when season changes', async () => {
+      const onGameLocationChange = jest.fn();
+      const onAgeGroupChange = jest.fn();
+      const onNumPeriodsChange = jest.fn();
+      const onPeriodDurationChange = jest.fn();
+
+      renderModal({
+        ...defaultProps,
+        seasonId: 'season-100',
+        seasons: [
+          { id: 'season-100', name: 'Elite League', location: 'North Dome', periodCount: 2, periodDuration: 30, ageGroup: 'u13' },
+        ],
+        onGameLocationChange,
+        onAgeGroupChange,
+        onNumPeriodsChange,
+        onPeriodDurationChange,
+      });
+
+      await waitFor(() => expect(onGameLocationChange).toHaveBeenCalledWith('North Dome'));
+      expect(onAgeGroupChange).toHaveBeenCalledWith('u13');
+      expect(onNumPeriodsChange).toHaveBeenCalledWith(2);
+      expect(onPeriodDurationChange).toHaveBeenCalledWith(30);
+    });
   });
 
   describe('Game Notes Section', () => {
@@ -480,9 +507,43 @@ describe('<GameSettingsModal />', () => {
 
         await waitFor(() => {
           expect(mockOnDeleteGameEvent).toHaveBeenCalledWith('goal1');
-          expect(removeGameEvent).toHaveBeenCalled();
         });
       });
+
+    test('keeps parent state untouched when storage deletion fails', async () => {
+      const user = userEvent.setup();
+      mockOnDeleteGameEvent.mockResolvedValueOnce(false); // Parent handler returns false (storage failed)
+      renderModal();
+
+      const eventDiv = await findEventByTime('02:00');
+      const ellipsisButton = within(eventDiv).getByLabelText(t('gameSettingsModal.eventActions', 'Event actions'));
+      await user.click(ellipsisButton);
+
+      const deleteButton = await screen.findByRole('button', { name: t('common.delete') });
+      await user.click(deleteButton);
+
+      const confirmationModal = await screen.findByText(t('gameSettingsModal.confirmDeleteEvent', 'Are you sure you want to delete this event? This cannot be undone.'));
+      const modalContainer = confirmationModal.closest('div[class*=\"fixed\"]');
+      const confirmButton = within(modalContainer as HTMLElement).getByRole('button', { name: t('common.delete') });
+      await user.click(confirmButton);
+
+    // Parent handler will be called but returns false (storage failed)
+    await waitFor(() => {
+      expect(mockOnDeleteGameEvent).toHaveBeenCalledWith('goal1');
+    });
+
+    // Error message should appear
+    await waitFor(() => {
+      expect(
+        screen.getByText(t('gameSettingsModal.errors.deleteFailed', 'Failed to delete event. Please try again.'))
+      ).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByText('02:00')).toBeInTheDocument();
+    });
+    const restoredEvent = await findEventByTime('02:00');
+    expect(restoredEvent).toBeInTheDocument();
+  });
   });
 
   describe('Error Handling & Edge Cases', () => {
@@ -608,7 +669,7 @@ describe('<GameSettingsModal />', () => {
     test('should not display award when no tournament is selected', async () => {
       const propsNoTournament: GameSettingsModalProps = {
         ...defaultProps,
-        tournamentId: null,
+        tournamentId: '',
         masterRoster: mockPlayers,
       };
 

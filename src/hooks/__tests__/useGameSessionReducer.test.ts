@@ -68,6 +68,58 @@ describe('gameSessionReducer', () => {
     expect(state.nextSubDueTimeSeconds).toBe(4 * 60);
   });
 
+  test('LOAD_STATE_FROM_HISTORY restores complete session details', () => {
+    const historySnapshot = {
+      currentPeriod: 3 as const,
+      gameStatus: 'inProgress' as const,
+      completedIntervalDurations: [
+        { period: 1, duration: 300, timestamp: Date.now() - 620000 },
+        { period: 2, duration: 320, timestamp: Date.now() - 320000 },
+      ],
+      lastSubConfirmationTimeSeconds: 180,
+      showPlayerNames: false,
+      gameEvents: [{ id: 'goal-1', type: 'goal' as const, time: 95, scorerId: 'player1' }],
+      selectedPlayerIds: ['player1', 'player2'],
+      seasonId: 'season-42',
+      tournamentId: 'tournament-7',
+      gameLocation: 'Stadium One',
+      gameTime: '19:45',
+      ageGroup: 'U13',
+      tournamentLevel: 'elite',
+      teamId: 'team-99',
+      gamePersonnel: ['coach-5'],
+      demandFactor: 1.4,
+      subIntervalMinutes: 7,
+      homeOrAway: 'away' as const,
+    };
+
+    const state = gameSessionReducer(baseState, {
+      type: 'LOAD_STATE_FROM_HISTORY',
+      payload: historySnapshot,
+    });
+
+    expect(state).toMatchObject({
+      currentPeriod: 3,
+      gameStatus: 'inProgress',
+      completedIntervalDurations: historySnapshot.completedIntervalDurations,
+      lastSubConfirmationTimeSeconds: 180,
+      showPlayerNames: false,
+      gameEvents: historySnapshot.gameEvents,
+      selectedPlayerIds: ['player1', 'player2'],
+      seasonId: 'season-42',
+      tournamentId: 'tournament-7',
+      gameLocation: 'Stadium One',
+      gameTime: '19:45',
+      ageGroup: 'U13',
+      tournamentLevel: 'elite',
+      teamId: 'team-99',
+      gamePersonnel: ['coach-5'],
+      demandFactor: 1.4,
+      subIntervalMinutes: 7,
+      homeOrAway: 'away',
+    });
+  });
+
   /**
    * CRITICAL REGRESSION TEST: Validates teamId persists through save/load cycle
    *

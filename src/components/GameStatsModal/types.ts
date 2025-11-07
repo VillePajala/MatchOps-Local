@@ -15,8 +15,8 @@ export type StatsTab = 'currentGame' | 'season' | 'tournament' | 'overall' | 'pl
 export interface SavedGame {
   availablePlayers?: Player[];
   selectedPlayerIds?: string[];
-  seasonId?: string | null;
-  tournamentId?: string | null;
+  seasonId?: string;
+  tournamentId?: string;
   teamId?: string | null;
   gameEvents?: GameEvent[];
   isPlayed?: boolean;

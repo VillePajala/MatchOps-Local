@@ -222,9 +222,17 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
     case 'SET_GAME_PERSONNEL':
       return { ...state, gamePersonnel: action.payload };
     case 'SET_SEASON_ID':
-      return { ...state, seasonId: action.payload, tournamentId: '' };
+      // Only clear tournament if setting a non-empty season (mutual exclusivity)
+      // If clearing season (empty string), leave tournament unchanged
+      return action.payload
+        ? { ...state, seasonId: action.payload, tournamentId: '' }
+        : { ...state, seasonId: action.payload };
     case 'SET_TOURNAMENT_ID':
-      return { ...state, tournamentId: action.payload, seasonId: '' };
+      // Only clear season if setting a non-empty tournament (mutual exclusivity)
+      // If clearing tournament (empty string), leave season unchanged
+      return action.payload
+        ? { ...state, tournamentId: action.payload, seasonId: '' }
+        : { ...state, tournamentId: action.payload };
     case 'SET_GAME_LOCATION':
       return { ...state, gameLocation: action.payload };
     case 'SET_GAME_TIME':

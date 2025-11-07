@@ -50,6 +50,31 @@ import { exportFullBackup } from '@/utils/fullBackup';
 import { saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
 import type { UseMutationResult } from '@tanstack/react-query';
 
+type MutationMetaBase = {
+  source: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
+  targetId?: string;
+  expectedState?: {
+    seasonId?: string;
+    tournamentId?: string;
+    gameLocation?: string;
+    ageGroup?: string;
+    tournamentLevel?: string;
+    selectedPlayerIds?: string[];
+    gamePersonnel?: string[];
+    gameTime?: string;
+    gameDate?: string;
+    teamName?: string;
+    opponentName?: string;
+    demandFactor?: number;
+    numberOfPeriods?: number;
+    periodDurationMinutes?: number;
+    homeOrAway?: 'home' | 'away';
+  };
+  expectedIsPlayed?: boolean;
+};
+
+type MutationMeta = MutationMetaBase & { sequence: number };
+
 interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   // Modal-specific states
   selectedPlayerForStats: Player | null;
@@ -84,7 +109,7 @@ interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   handleAddGoalEvent: (playerId: string, assistId?: string) => void;
   handleLogOpponentGoal: (currentTime: number) => void;
   handleUpdateGameEvent: (event: GameEvent) => void;
-  handleDeleteGameEvent: (eventId: string) => void;
+  handleDeleteGameEvent: (eventId: string) => Promise<boolean>;
   handleToggleGameStatsModal: () => void;
   handleExportOneExcel: (gameId: string) => void;
   handleExportAggregateExcel: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
@@ -135,7 +160,7 @@ interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   handleSetIsPlayed: (played: boolean) => void;
   handleUpdateSelectedPlayers: (playerIds: string[]) => void;
   handleSetGamePersonnel?: (personnelIds: string[]) => void;
-  updateGameDetailsMutation?: UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>;
+  updateGameDetailsMutation?: UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState>; meta?: MutationMeta }, unknown>;
   handleTeamIdChange: (teamId: string | null) => void;
   handleCloseSettingsModal: () => void;
   handleShowAppGuide: () => void;
@@ -494,7 +519,7 @@ export function ModalManager(props: ModalManagerProps) {
         onTournamentIdChange={handleSetTournamentId || (() => {})}
         homeOrAway={gameSessionState.homeOrAway}
         onSetHomeOrAway={handleSetHomeOrAway || (() => {})}
-        isPlayed={isPlayed || true}
+        isPlayed={typeof isPlayed === 'boolean' ? isPlayed : true}
         onIsPlayedChange={handleSetIsPlayed || (() => {})}
         timeElapsedInSeconds={timeElapsedInSeconds || 0}
         updateGameDetailsMutation={updateGameDetailsMutation!}
