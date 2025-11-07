@@ -150,6 +150,14 @@ export function useSavedGameManager({
       setTacticalBallPosition(gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 });
       setIsPlayed(gameData?.isPlayed === false ? false : true);
       setAvailablePlayers(gameData?.availablePlayers || masterRoster || availablePlayers);
+
+      // CRITICAL: Reset undo/redo history to match loaded game state
+      // Without this, pressing Undo after loading will revert to the previous game's state
+      if (gameData) {
+        resetHistory(gameData);
+      } else {
+        resetHistory(initialState);
+      }
     },
     [
       dispatchGameSession,
@@ -165,6 +173,7 @@ export function useSavedGameManager({
       setTacticalDiscs,
       setTacticalDrawings,
       setIsPlayed,
+      resetHistory,
     ],
   );
 
