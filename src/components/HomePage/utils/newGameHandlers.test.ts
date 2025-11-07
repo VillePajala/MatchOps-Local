@@ -1,6 +1,7 @@
 import type { SavedGamesCollection, Player, AppState } from '@/types';
 import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { QueryClient } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
 
 import { startNewGameWithSetup, cancelNewGameSetup } from './newGameHandlers';
 
@@ -49,7 +50,7 @@ describe('newGameHandlers', () => {
       setIsPlayed,
       queryClient,
       showToast,
-      t: ((_key: string, fallback?: string) => fallback ?? _key) as any,
+      t: ((_key: string, fallback?: string) => fallback ?? _key) as TFunction,
       utilSaveGame: jest.fn().mockImplementation(async (_id: string, state: AppState) => state),
       utilSaveCurrentGameIdSetting: jest.fn().mockResolvedValue(undefined),
       defaultSubIntervalMinutes: 5,
