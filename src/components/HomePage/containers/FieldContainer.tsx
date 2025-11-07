@@ -230,7 +230,7 @@ export function FieldContainer({
                   <div className="w-16 h-16 mx-auto bg-indigo-600/20 rounded-full flex items-center justify-center mb-3">
                     <div className="text-3xl">⚽</div>
                   </div>
-                  <h3 className="text-2xl;font-bold text-indigo-300 mb-2">
+                  <h3 className="text-2xl font-bold text-indigo-300 mb-2">
                     {safeAvailablePlayers.length === 0
                       ? t('firstGame.titleNoPlayers', 'Ready to get started?')
                       : t('firstGame.title', 'Ready to track your first game?')}
@@ -267,7 +267,7 @@ export function FieldContainer({
 
                       <button
                       onClick={onOpenTeamManagerModal}
-                        className={`w-full px-6 py-3 rounded-lg;font-semibold transition-colors shadow-lg ${
+                        className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors shadow-lg ${
                           safeTeams.length > 0
                             ? 'bg-slate-600 hover:bg-slate-500 text-slate-300 border border-slate-500'
                             : 'bg-emerald-600 hover:bg-emerald-500 text-white'
@@ -280,7 +280,7 @@ export function FieldContainer({
 
                       <button
                       onClick={() => onOpenSeasonTournamentModal?.()}
-                        className={`w-full px-6 py-3 rounded-lg;font-semibold transition-colors border border-slate-600 ${
+                        className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors border border-slate-600 ${
                           safeSeasons.length > 0 || safeTournaments.length > 0
                             ? 'bg-slate-600 hover:bg-slate-500 text-slate-300'
                             : 'bg-slate-700 hover:bg-slate-600 text-white'
