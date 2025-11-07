@@ -40,7 +40,7 @@ import {
 // Removed unused import of utilGetMasterRoster
 
 // Import utility functions for seasons and tournaments
-import { saveGame as utilSaveGame, deleteGame as utilDeleteGame, getLatestGameId, createGame, getSavedGames as utilGetSavedGames } from '@/utils/savedGames';
+import { saveGame as utilSaveGame, deleteGame as utilDeleteGame, getLatestGameId, createGame, getSavedGames as utilGetSavedGames, removeGameEvent } from '@/utils/savedGames';
 import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
   resetAppSettings as utilResetAppSettings,
@@ -96,6 +96,7 @@ import {
 } from 'react-icons/hi2';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
+import { startNewGameWithSetup, cancelNewGameSetup } from './HomePage/utils/newGameHandlers';
 
 
 // Empty initial data for clean app start
@@ -257,40 +258,48 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   }, [currentHistoryState, pushHistoryState]);
 
+  const buildGameSessionHistorySlice = useCallback((state: GameSessionState) => {
+    const slice = {
+      teamName: state.teamName,
+      opponentName: state.opponentName,
+      gameDate: state.gameDate,
+      homeScore: state.homeScore,
+      awayScore: state.awayScore,
+      gameNotes: state.gameNotes,
+      homeOrAway: state.homeOrAway,
+      numberOfPeriods: state.numberOfPeriods,
+      periodDurationMinutes: state.periodDurationMinutes,
+      currentPeriod: state.currentPeriod,
+      gameStatus: state.gameStatus,
+      selectedPlayerIds: state.selectedPlayerIds,
+      gamePersonnel: state.gamePersonnel,
+      seasonId: state.seasonId,
+      tournamentId: state.tournamentId,
+      teamId: state.teamId,
+      ageGroup: state.ageGroup,
+      tournamentLevel: state.tournamentLevel,
+      gameLocation: state.gameLocation,
+      gameTime: state.gameTime,
+      gameEvents: state.gameEvents,
+      demandFactor: state.demandFactor,
+      subIntervalMinutes: state.subIntervalMinutes,
+      completedIntervalDurations: state.completedIntervalDurations,
+      lastSubConfirmationTimeSeconds: state.lastSubConfirmationTimeSeconds,
+      showPlayerNames: state.showPlayerNames,
+    } satisfies Partial<AppState>;
+    return slice;
+  }, []);
+
   // --- Effect to save gameSessionState changes to history ---
   useEffect(() => {
     // This effect runs after gameSessionState has been updated by the reducer.
     // It constructs the relevant slice of AppState from the new gameSessionState
     // and saves it to the history.
-    const gameSessionHistorySlice: Partial<AppState> = {
-      teamName: gameSessionState.teamName,
-      opponentName: gameSessionState.opponentName,
-      gameDate: gameSessionState.gameDate,
-      homeScore: gameSessionState.homeScore,
-      awayScore: gameSessionState.awayScore,
-      gameNotes: gameSessionState.gameNotes,
-      homeOrAway: gameSessionState.homeOrAway,
-      numberOfPeriods: gameSessionState.numberOfPeriods,
-      periodDurationMinutes: gameSessionState.periodDurationMinutes,
-      currentPeriod: gameSessionState.currentPeriod,
-      gameStatus: gameSessionState.gameStatus,
-      selectedPlayerIds: gameSessionState.selectedPlayerIds,
-      gamePersonnel: gameSessionState.gamePersonnel,
-      seasonId: gameSessionState.seasonId,
-      tournamentId: gameSessionState.tournamentId,
-      gameLocation: gameSessionState.gameLocation,
-      gameTime: gameSessionState.gameTime,
-      gameEvents: gameSessionState.gameEvents,
-      subIntervalMinutes: gameSessionState.subIntervalMinutes,
-      completedIntervalDurations: gameSessionState.completedIntervalDurations,
-      lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds,
-      showPlayerNames: gameSessionState.showPlayerNames,
-      // Ensure any other fields from GameSessionState that are part of AppState history are included
-    };
+    const gameSessionHistorySlice = buildGameSessionHistorySlice(gameSessionState);
     // saveStateToHistory will merge this with other non-gameSessionState parts of AppState
     // (like playersOnField, opponents, drawings) that are handled elsewhere.
     saveStateToHistory(gameSessionHistorySlice);
-  }, [gameSessionState, saveStateToHistory]);
+  }, [gameSessionState, saveStateToHistory, buildGameSessionHistorySlice]);
   // END --- Effect to save gameSessionState changes to history ---
 
   // --- Load game data via hook ---
@@ -689,10 +698,104 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     },
   });
 
-  const updateGameDetailsMutation = useMutation({
-    mutationFn: ({ gameId, updates }: { gameId: string, updates: Partial<AppState> }) =>
-      utilUpdateGameDetails(gameId, updates),
+type UpdateGameDetailsMetaBase = {
+  source: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
+  targetId?: string;
+  expectedState?: {
+    seasonId?: string;
+    tournamentId?: string;
+    gameLocation?: string;
+    ageGroup?: string;
+    tournamentLevel?: string;
+    selectedPlayerIds?: string[];
+    gamePersonnel?: string[];
+    gameTime?: string;
+    teamName?: string;
+    opponentName?: string;
+    demandFactor?: number;
+    numberOfPeriods?: number;
+    periodDurationMinutes?: number;
+    homeOrAway?: 'home' | 'away';
+  };
+  expectedIsPlayed?: boolean;
+};
+
+type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
+
+  type UpdateGameDetailsVariables = {
+    gameId: string;
+    updates: Partial<AppState>;
+    meta?: UpdateGameDetailsMeta;
+  };
+
+  const lastAppliedMutationSequenceRef = useRef(0);
+
+  const updateGameDetailsMutation = useMutation<AppState | null, Error, UpdateGameDetailsVariables>({
+    mutationFn: ({ gameId, updates }) => utilUpdateGameDetails(gameId, updates),
     onSuccess: (data, variables) => {
+      const { meta } = variables;
+      const shouldApplyUpdate = (() => {
+        if (!meta?.source) return true;
+        if (meta.sequence && meta.sequence < lastAppliedMutationSequenceRef.current) {
+          logger.log('[updateGameDetailsMutation] Skipping stale update based on sequence', {
+            sequence: meta.sequence,
+            lastApplied: lastAppliedMutationSequenceRef.current,
+            updates: variables.updates,
+          });
+          return false;
+        }
+        if ((meta.source === 'seasonPrefill' || meta.source === 'seasonSelection') && meta.targetId) {
+          if (gameSessionState.seasonId !== meta.targetId) {
+            logger.log('[updateGameDetailsMutation] Skipping stale season update', {
+              currentSeasonId: gameSessionState.seasonId,
+              targetId: meta.targetId,
+            });
+            return false;
+          }
+        }
+        if ((meta.source === 'tournamentPrefill' || meta.source === 'tournamentSelection') && meta.targetId) {
+          if (gameSessionState.tournamentId !== meta.targetId) {
+            logger.log('[updateGameDetailsMutation] Skipping stale tournament update', {
+              currentTournamentId: gameSessionState.tournamentId,
+              targetId: meta.targetId,
+            });
+            return false;
+          }
+        }
+        if (meta.expectedState) {
+          for (const [key, value] of Object.entries(meta.expectedState)) {
+            // Only check fields that exist in GameSessionState (it's a subset of AppState)
+            if (key in gameSessionState) {
+              const stateValue = (gameSessionState as unknown as Record<string, unknown>)[key];
+              if (stateValue !== value) {
+                logger.log('[updateGameDetailsMutation] Skipping update due to mismatched state', {
+                  field: key,
+                  expected: value,
+                  actual: stateValue,
+                });
+                return false;
+              }
+            }
+          }
+        }
+        if (meta.expectedIsPlayed !== undefined && isPlayed !== meta.expectedIsPlayed) {
+          logger.log('[updateGameDetailsMutation] Skipping isPlayed update due to mismatch', {
+            expected: meta.expectedIsPlayed,
+            actual: isPlayed,
+          });
+          return false;
+        }
+        return true;
+      })();
+
+      if (!shouldApplyUpdate) {
+        return;
+      }
+
+      if (meta?.sequence) {
+        lastAppliedMutationSequenceRef.current = meta.sequence;
+      }
+
       // After a successful update, invalidate the savedGames query to refetch
       queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
 
@@ -720,6 +823,16 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       // Here you could show a toast notification to the user
       },
   });
+
+  useEffect(() => {
+    lastAppliedMutationSequenceRef.current = 0;
+  }, [currentGameId]);
+
+  useEffect(() => {
+    if (isGameSettingsModalOpen) {
+      lastAppliedMutationSequenceRef.current = 0;
+    }
+  }, [isGameSettingsModalOpen]);
 
   // --- Mutation for Adding a new Tournament ---
   const addTournamentMutation = useMutation<
@@ -1427,10 +1540,16 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
         tournamentId: state.tournamentId,
         gameLocation: state.gameLocation,
         gameTime: state.gameTime,
+        // Include all GameSessionState properties for complete restoration
+        ageGroup: state.ageGroup,
+        tournamentLevel: state.tournamentLevel,
+        teamId: state.teamId,
+        gamePersonnel: state.gamePersonnel ?? [],
+        demandFactor: state.demandFactor ?? 1,
+        subIntervalMinutes: state.subIntervalMinutes ?? 5,
+        homeOrAway: state.homeOrAway,
       },
     });
-    dispatchGameSession({ type: 'SET_SUB_INTERVAL', payload: state.subIntervalMinutes ?? 5 });
-    dispatchGameSession({ type: 'SET_HOME_OR_AWAY', payload: state.homeOrAway });
     setTacticalDiscs(state.tacticalDiscs || []);
     setTacticalDrawings(state.tacticalDrawings || []);
     setTacticalBallPosition(state.tacticalBallPosition || null);
@@ -1525,22 +1644,48 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   };
 
   // Handler to delete a game event
-  const handleDeleteGameEvent = (goalId: string) => {
+  const handleDeleteGameEvent = async (goalId: string): Promise<boolean> => {
     const eventToDelete = gameSessionState.gameEvents.find(e => e.id === goalId);
     if (!eventToDelete) {
       logger.error("Event to delete not found in gameSessionState.gameEvents:", goalId);
-      return;
+      return false;
     }
 
-    dispatchGameSession({ type: 'DELETE_GAME_EVENT', payload: goalId });
-    if (eventToDelete.type === 'goal' || eventToDelete.type === 'opponentGoal') {
-      dispatchGameSession({ 
-        type: 'ADJUST_SCORE_FOR_EVENT', 
-        payload: { eventType: eventToDelete.type, action: 'delete' } 
-      });
+    if (!currentGameId) {
+      logger.error("No current game ID for event deletion");
+      return false;
     }
-    
-    logger.log("Deleted game event via dispatch and updated state/history:", goalId);
+
+    try {
+      // Storage FIRST - find event index and remove from storage
+      const eventIndex = gameSessionState.gameEvents.findIndex(e => e.id === goalId);
+      if (eventIndex === -1) {
+        logger.error("Event index not found for deletion:", goalId);
+        return false;
+      }
+
+      const updatedGame = await removeGameEvent(currentGameId, eventIndex);
+
+      if (!updatedGame) {
+        logger.error("Failed to remove event from storage:", goalId);
+        return false; // Storage failed
+      }
+
+      // State update SECOND (only if storage succeeded)
+      dispatchGameSession({ type: 'DELETE_GAME_EVENT', payload: goalId });
+      if (eventToDelete.type === 'goal' || eventToDelete.type === 'opponentGoal') {
+        dispatchGameSession({
+          type: 'ADJUST_SCORE_FOR_EVENT',
+          payload: { eventType: eventToDelete.type, action: 'delete' }
+        });
+      }
+
+      logger.log("Deleted game event successfully (storage then state):", goalId);
+      return true; // Success
+    } catch (error) {
+      logger.error("Error deleting game event:", error);
+      return false; // Error
+    }
   };
   // --- Button/Action Handlers ---
   
@@ -2416,146 +2561,89 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   // --- Handler that is called when setup modal is confirmed ---
   const handleStartNewGameWithSetup = useCallback(async (
     initialSelectedPlayerIds: string[],
-    homeTeamName: string, // <-- Add parameter
+    homeTeamName: string,
     opponentName: string,
     gameDate: string,
     gameLocation: string,
     gameTime: string,
     seasonId: string | null,
     tournamentId: string | null,
-    numPeriods: 1 | 2, // Parameter
-    periodDuration: number, // Parameter
-    homeOrAway: 'home' | 'away', // <<< Step 4b: Add parameter
+    numPeriods: 1 | 2,
+    periodDuration: number,
+    homeOrAway: 'home' | 'away',
     demandFactor: number,
     ageGroup: string,
     tournamentLevel: string,
-    isPlayed: boolean,
-    teamId: string | null, // Add team ID parameter
-    availablePlayersForGame: Player[], // Add the actual roster for the game
-    selectedPersonnelIds: string[] // Add personnel selection
+    isPlayedParam: boolean,
+    teamId: string | null,
+    availablePlayersForGame: Player[],
+    selectedPersonnelIds: string[]
   ) => {
-      // Determine the player selection for the new game
-      const finalSelectedPlayerIds = initialSelectedPlayerIds && initialSelectedPlayerIds.length > 0 
-          ? initialSelectedPlayerIds 
-          : availablePlayers.map(p => p.id); // Fallback to all players if none provided
-
-      // 1. Manually construct the new game state EXPLICITLY
-      const newGameState: AppState = {
-          opponentName: opponentName,
-          gameDate: gameDate,
-          gameLocation: gameLocation,
-          gameTime: gameTime,
-          seasonId: seasonId || '',
-          tournamentId: tournamentId || '',
-          ageGroup: ageGroup,
-          tournamentLevel: tournamentLevel,
-          numberOfPeriods: numPeriods, // Use parameter
-          periodDurationMinutes: periodDuration, // Use parameter
-          homeScore: 0,
-          awayScore: 0,
-          gameNotes: '',
-          teamName: homeTeamName, // Use current teamName state
-          homeOrAway: homeOrAway, // <<< Step 4b: Use parameter value
-          demandFactor: demandFactor,
-          isPlayed: isPlayed,
-          teamId: teamId || undefined, // Add team ID to game state
-          availablePlayers: availablePlayersForGame, // Use the roster from the modal (team roster or master roster)
-          selectedPlayerIds: finalSelectedPlayerIds, // <-- USE PASSED OR FALLBACK
-          playersOnField: [], // Always start with empty field
-          opponents: [], // Always start with empty opponents
-          showPlayerNames: true, // Default visibility
-          drawings: [], // Always start with empty drawings
-          gameEvents: [], // Always start with empty events
-          currentPeriod: 1, // Always start at period 1
-          gameStatus: 'notStarted', // Always start as not started
-          tacticalDiscs: [],
-          tacticalDrawings: [],
-          // Timer/Sub State - Use TOP-LEVEL initialState defaults (or current settings?)
-          // Let's stick with initialState defaults for timer/sub settings for now
-          subIntervalMinutes: initialState.subIntervalMinutes ?? 5,
-          completedIntervalDurations: [], // Always reset intervals
-          lastSubConfirmationTimeSeconds: 0, // Always reset last sub time
-          tacticalBallPosition: { relX: 0.5, relY: 0.5 },
-          gamePersonnel: selectedPersonnelIds, // Personnel assigned to this game
-      };
-
-      // 2. Auto-generate ID
-      const newGameId = `game_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-
-      // 3. Explicitly save the new game state immediately to state and localStorage
-      try {
-        const updatedSavedGamesCollection = {
-          ...savedGames,
-          [newGameId]: newGameState
-        };
-        setSavedGames(updatedSavedGamesCollection);
-        // localStorage.setItem(SAVED_GAMES_KEY, JSON.stringify(updatedSavedGames)); // OLD
-        // logger.log(`Explicitly saved initial state for new game ID: ${newGameId}`); // OLD
-
-        // const currentSettings: AppSettings = { currentGameId: newGameId }; // OLD
-        // localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(currentSettings)); // OLD
-        // logger.log(`Updated app settings with new game ID: ${newGameId}`); // OLD
-
-        await utilSaveGame(newGameId, newGameState);
-        await utilSaveCurrentGameIdSetting(newGameId);
-
-        // Invalidate React Query cache to update LoadGameModal
-        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
-
-        logger.log(`Saved new game ${newGameId} and settings via utility functions.`);
-
-      } catch (error) {
-         logger.error("Error explicitly saving new game state:", error);
-      }
-
-      // 4. Reset History with the new state
-      resetHistory(newGameState);
-      dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: selectedPersonnelIds });
-
-      setIsPlayed(isPlayed);
-
-      // 5. Set the current game ID - This will trigger the loading useEffect
-      setCurrentGameId(newGameId);
-      logger.log(`Set current game ID to: ${newGameId}. Loading useEffect will sync component state.`);
-
-      // Close the setup modal
-      setIsNewGameSetupModalOpen(false);
-      setNewGameDemandFactor(1);
-
-      // <<< Trigger the roster button highlight >>>
-      logger.log('[handleStartNewGameWithSetup] Setting highlightRosterButton to true.'); // Log highlight trigger
-      setHighlightRosterButton(true);
-
+    await startNewGameWithSetup(
+      {
+        availablePlayers,
+        savedGames,
+        setSavedGames,
+        resetHistory,
+        dispatchGameSession,
+        setCurrentGameId,
+        setIsNewGameSetupModalOpen,
+        setNewGameDemandFactor,
+        setPlayerIdsForNewGame,
+        setHighlightRosterButton,
+        setIsPlayed,
+        queryClient,
+        showToast,
+        t,
+        utilSaveGame,
+        utilSaveCurrentGameIdSetting,
+        defaultSubIntervalMinutes: initialState.subIntervalMinutes ?? 5,
+      },
+      initialSelectedPlayerIds,
+      homeTeamName,
+      opponentName,
+      gameDate,
+      gameLocation,
+      gameTime,
+      seasonId,
+      tournamentId,
+      numPeriods,
+      periodDuration,
+      homeOrAway,
+      demandFactor,
+      ageGroup,
+      tournamentLevel,
+      isPlayedParam,
+      teamId,
+      availablePlayersForGame,
+      selectedPersonnelIds
+    );
   }, [
-    // Keep necessary dependencies
-    savedGames,
     availablePlayers,
+    savedGames,
     setSavedGames,
     resetHistory,
+    dispatchGameSession,
     setCurrentGameId,
     setIsNewGameSetupModalOpen,
+    setNewGameDemandFactor,
+    setPlayerIdsForNewGame,
     setHighlightRosterButton,
+    setIsPlayed,
     queryClient,
+    showToast,
+    t,
   ]);
 
   // ** REVERT handleCancelNewGameSetup TO ORIGINAL **
   const handleCancelNewGameSetup = useCallback(() => {
-    logger.log("New game setup skipped/cancelled.");
-    // REMOVED call to handleStartNewGameWithSetup
-    // // Initialize with default values similar to handleStartNewGameWithSetup
-    // const defaultOpponent = ''; // Empty opponent name
-    // ... (rest of default value setup removed)
-    // // Call the main setup function with defaults
-    // handleStartNewGameWithSetup(
-    //     ...
-    // );
-
-    setHasSkippedInitialSetup(true); // Still mark as skipped if needed elsewhere
-    setIsNewGameSetupModalOpen(false); // ADDED: Explicitly close the modal
-    setNewGameDemandFactor(1);
-
-  // REMOVED initialState from dependencies
-  }, [setIsNewGameSetupModalOpen]); // Updated dependencies
+    cancelNewGameSetup({
+      setHasSkippedInitialSetup,
+      setIsNewGameSetupModalOpen,
+      setNewGameDemandFactor,
+      setPlayerIdsForNewGame,
+    });
+  }, [setHasSkippedInitialSetup, setIsNewGameSetupModalOpen, setNewGameDemandFactor, setPlayerIdsForNewGame]);
 
   // --- Start New Game Handler (Uses Quick Save) ---
   const handleStartNewGame = useCallback(() => {
@@ -3386,6 +3474,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
             // Close new game modal and open team manager modal
             // Note: User will need to navigate to the specific team roster from team manager
             setIsNewGameSetupModalOpen(false);
+            setPlayerIdsForNewGame(null); // Clear player selection when switching to team manager
             setIsTeamManagerOpen(true);
           }}
           onStart={handleStartNewGameWithSetup} // CORRECTED Handler

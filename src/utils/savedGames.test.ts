@@ -691,6 +691,24 @@ describe('Saved Games Utilities', () => {
       expect(result[0][1]).toEqual(mockGame2_AppState);
     });
 
+    it('should filter games that have no season when seasonId filter is empty string', async () => {
+      const gamesWithUnassignedSeason = {
+        ...mockSavedGamesCollection,
+        game_789: {
+          ...mockGame2_AppState,
+          seasonId: '',
+          tournamentId: 'tournament_2',
+        },
+      };
+      mockGetStorageItem.mockResolvedValueOnce(JSON.stringify(gamesWithUnassignedSeason));
+
+      const result = await getFilteredGames({ seasonId: '' });
+
+      expect(result.length).toBe(1);
+      expect(result[0][0]).toBe('game_789');
+      expect(result[0][1].seasonId).toBe('');
+    });
+
     it('should filter games by both seasonId and tournamentId', async () => {
       const result = await getFilteredGames({ seasonId: 'season_1', tournamentId: 'tournament_1' });
       expect(result.length).toBe(1);
