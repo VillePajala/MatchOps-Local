@@ -99,7 +99,7 @@
 - [x] Comprehensive storage infrastructure (metrics, mutex, recovery, bootstrap, config)
 
 #### M1B: IndexedDB-Only Storage ✅
-- [x] Storage helper created (`src/utils/storage.ts` - 877 lines)
+- [x] Storage helper created (`src/utils/storage.ts` - 847 lines)
 - [x] localStorage elimination (removed all fallbacks from storageFactory)
 - [x] All 8 utility files converted (savedGames, masterRoster, appSettings, seasons, tournaments, teams, playerAdjustments, fullBackup)
 - [x] Component integration (i18n.ts, useGameTimer.ts, HomePage.tsx)
@@ -276,8 +276,8 @@ You have completed all major features but stand at a fork in the road. Choose yo
 **ROI**: 1000% over project lifetime
 
 **Why This Matters**:
-- HomePage.tsx: 3,602 lines (8.5x too large)
-- GameSettingsModal.tsx: 1,707 lines (4.3x too large)
+- HomePage.tsx: 3,725 lines (~9.3x too large)
+- GameSettingsModal.tsx: 1,995 lines (~5x too large)
 - Every new feature currently takes 3-5x longer than it should
 - Testing is extremely difficult
 - Onboarding new developers nearly impossible

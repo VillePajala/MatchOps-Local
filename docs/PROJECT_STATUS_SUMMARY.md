@@ -64,14 +64,14 @@
 
 | Priority | Issue | Status | Time |
 |----------|-------|--------|------|
-| **P0** 🔴 | HomePage.tsx (3,602 lines) → Split to <600 line components | ❌ Not Started | 2-3h |
-| **P1** 🟡 | GameSettingsModal.tsx (1,707 lines) → Split | ❌ Not Started | 1h |
+| **P0** 🔴 | HomePage.tsx (3,725 lines) → Split to <600 line components | ❌ Not Started | 2-3h |
+| **P1** 🟡 | GameSettingsModal.tsx (1,995 lines) → Split | ❌ Not Started | 1h |
 | **P2** 🟡 | Modal state race conditions | ❌ Not Started | 30m |
 | **P2** 🟡 | Silent error swallowing | ❌ Not Started | 1h |
 | **P2** 🟡 | Performance (re-renders) | ❌ Not Started | 30m |
 
 **Why This Matters**:
-- HomePage at 8.5x recommended size
+- HomePage at ~9.3x recommended size
 - Adding modals takes 4 hours (should be 30 minutes)
 - Testing is extremely difficult
 - New developer onboarding nearly impossible
@@ -252,8 +252,8 @@ You have **three clear paths** forward:
 - ✅ **Lint**: All ESLint checks pass
 - ✅ **TypeScript**: Full type coverage, no `any` in production code
 - ✅ **Code Quality**: 8.5/10 overall (per code review)
-- ⚠️ **Component Size**: HomePage 8.5x too large (3,602 lines)
-- ⚠️ **Modal Complexity**: GameSettingsModal 4.3x too large (1,707 lines)
+- ⚠️ **Component Size**: HomePage ≈9.3x too large (3,725 lines)
+- ⚠️ **Modal Complexity**: GameSettingsModal ≈5x too large (1,995 lines)
 
 ### Coverage
 - Lines: 85%+
@@ -302,8 +302,8 @@ What you've built so far is **impressive**:
 
 You have **two 800-pound gorillas** blocking the path:
 
-1. **HomePage.tsx (3,602 lines)** - 8.5x too large
-2. **GameSettingsModal.tsx (1,707 lines)** - 4.3x too large
+1. **HomePage.tsx (3,725 lines)** - ≈9.3x too large
+2. **GameSettingsModal.tsx (1,995 lines)** - ≈5x too large
 
 **Every major feature** you add will:
 - Take 3-5x longer than it should

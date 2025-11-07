@@ -20,7 +20,7 @@ Optimize React re-renders after HomePage refactoring to ensure <50ms render time
 
 ### Current Performance Issues
 
-1. **Massive Re-renders**: HomePage's 3,602 lines re-evaluate on any state change
+1. **Massive Re-renders**: HomePage's 3,725 lines re-evaluate on any state change
 2. **Prop Drilling**: Changes propagate through many levels
 3. **Unnecessary Re-renders**: Child components re-render when parent state changes unrelated to them
 
@@ -28,7 +28,7 @@ Optimize React re-renders after HomePage refactoring to ensure <50ms render time
 ```typescript
 // Any modal state change triggers:
 setIsGameStatsModalOpen(true);
-  → HomePage re-renders (3,602 lines evaluated)
+  → HomePage re-renders (3,725 lines evaluated)
   → All child components re-render
   → 150ms+ render time on slower devices
 ```
