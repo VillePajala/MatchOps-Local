@@ -77,23 +77,35 @@ export function useSavedGameManager({
     if (!orphanedGameInfo) {
       return;
     }
+
+    // P2-4 fix: Prevent race condition if orphanedGameInfo changes during async operation
+    let cancelled = false;
+
     setTeamLoadError(null); // Clear previous errors
     getTeams()
       .then((teams) => {
-        setAvailableTeams(teams);
-        setTeamLoadError(null); // Success
+        if (!cancelled) {
+          setAvailableTeams(teams);
+          setTeamLoadError(null); // Success
+        }
       })
       .catch((error) => {
         logger.error('[ORPHANED GAME] Error loading teams:', error);
-        setAvailableTeams([]);
-        // Provide user feedback instead of silent failure
-        setTeamLoadError(
-          t(
-            'teamReassignModal.errors.loadFailed',
-            'Failed to load teams. Please try refreshing the page or contact support if the problem persists.'
-          )
-        );
+        if (!cancelled) {
+          setAvailableTeams([]);
+          // Provide user feedback instead of silent failure
+          setTeamLoadError(
+            t(
+              'teamReassignModal.errors.loadFailed',
+              'Failed to load teams. Please try refreshing the page or contact support if the problem persists.'
+            )
+          );
+        }
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [orphanedGameInfo, t]);
 
   const loadGameStateFromData = useCallback(
