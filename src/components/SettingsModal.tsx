@@ -162,12 +162,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     }
 
     try {
-      await importFullBackup(pendingRestoreContent, {
-        onImportSuccess: onDataImportSuccess,
-        showToast,
-        confirmed: true,
-        queryClient,
-      });
+      if (onDataImportSuccess) {
+        await importFullBackup(pendingRestoreContent, {
+          onImportSuccess: onDataImportSuccess,
+          showToast,
+          confirmed: true,
+          queryClient,
+        });
+      } else {
+        await importFullBackup(pendingRestoreContent, {
+          showToast,
+          confirmed: true,
+        });
+      }
     } catch (error) {
       logger.error('[SettingsModal] Full backup restore failed:', error);
     } finally {
