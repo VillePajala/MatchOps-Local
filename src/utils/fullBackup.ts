@@ -234,6 +234,36 @@ export const importFullBackup = async (
       }
     }
 
+    // --- Normalize legacy keys before restore ---
+    // Map older export keys to current storage keys so app state reflects immediately after import.
+    // Known legacy aliases:
+    // - 'availablePlayers'           -> MASTER_ROSTER_KEY ('soccerMasterRoster')
+    // - 'soccerSeasonsList'          -> SEASONS_LIST_KEY   ('soccerSeasons')
+    try {
+      const normalizedLocalStorage = { ...backupData.localStorage } as Record<string, unknown>;
+
+      // Roster alias
+      if (
+        normalizedLocalStorage['availablePlayers'] &&
+        !normalizedLocalStorage[MASTER_ROSTER_KEY]
+      ) {
+        normalizedLocalStorage[MASTER_ROSTER_KEY] = normalizedLocalStorage['availablePlayers'];
+      }
+
+      // Seasons alias
+      if (
+        normalizedLocalStorage['soccerSeasonsList'] &&
+        !normalizedLocalStorage[SEASONS_LIST_KEY]
+      ) {
+        normalizedLocalStorage[SEASONS_LIST_KEY] = normalizedLocalStorage['soccerSeasonsList'];
+      }
+
+      // Replace with normalized map for restore
+      backupData.localStorage = normalizedLocalStorage as FullBackupData['localStorage'];
+    } catch (error) {
+      logger.warn('Backup normalization failed (continuing with raw keys):', error);
+    }
+
     // --- Overwrite storage data ---
     const keysToRestore = Object.keys(backupData.localStorage) as Array<
       keyof FullBackupData["localStorage"]
