@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { useGameState } from '../useGameState';
 import type { AppState, Player } from '@/types';
 
@@ -62,5 +62,51 @@ describe('useGameState', () => {
     );
 
     expect(result.current.availablePlayers).toEqual(initialState.availablePlayers);
+  });
+
+  it('defaults available players to an empty array when initial state omits them', async () => {
+    const saveStateToHistory = jest.fn();
+    const stateWithoutPlayers = {
+      ...initialState,
+      availablePlayers: undefined as unknown as Player[],
+    };
+
+    const { result } = renderHook(() =>
+      useGameState({
+        initialState: stateWithoutPlayers,
+        saveStateToHistory,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.availablePlayers).toEqual([]);
+    });
+  });
+
+  it('syncs available players when the provided initial state changes', async () => {
+    const saveStateToHistory = jest.fn();
+    const newPlayer: Player = { ...basePlayer, id: 'player-2', name: 'Player Two' };
+
+    const { result, rerender } = renderHook(
+      ({ state }: { state: AppState }) =>
+        useGameState({
+          initialState: state,
+          saveStateToHistory,
+        }),
+      { initialProps: { state: initialState } }
+    );
+
+    expect(result.current.availablePlayers).toEqual(initialState.availablePlayers);
+
+    rerender({
+      state: {
+        ...initialState,
+        availablePlayers: [newPlayer],
+      },
+    });
+
+    await waitFor(() => {
+      expect(result.current.availablePlayers).toEqual([newPlayer]);
+    });
   });
 });

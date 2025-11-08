@@ -1,5 +1,5 @@
 // src/hooks/useGameState.ts
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Player } from '@/types'; // Player type is from @/types
 import {
     Opponent,
@@ -54,6 +54,24 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     const [availablePlayers, setAvailablePlayers] = useState<Player[]>(
         initialState.availablePlayers ?? []
     );
+
+    useEffect(() => {
+        const nextAvailablePlayers = initialState.availablePlayers ?? [];
+        setAvailablePlayers(prevPlayers => {
+            if (prevPlayers === nextAvailablePlayers) {
+                return prevPlayers;
+            }
+
+            if (
+                prevPlayers.length === nextAvailablePlayers.length &&
+                prevPlayers.every((player, index) => player === nextAvailablePlayers[index])
+            ) {
+                return prevPlayers;
+            }
+
+            return nextAvailablePlayers;
+        });
+    }, [initialState.availablePlayers]);
     // ... (more state will be moved here)
 
     // --- Handlers ---

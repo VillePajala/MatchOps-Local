@@ -1,5 +1,7 @@
 // src/utils/fullBackup.test.ts
 import "@/i18n";
+import { act, waitFor } from "@testing-library/react";
+import type { QueryClient } from "@tanstack/react-query";
 import { importFullBackup, exportFullBackup } from "./fullBackup";
 import {
   SAVED_GAMES_KEY,
@@ -10,6 +12,7 @@ import {
   TEAMS_INDEX_KEY,
   TEAM_ROSTERS_KEY,
 } from "@/config/storageKeys";
+import { queryKeys } from "@/config/queryKeys";
 
 // Mock the storage module (not localStorage directly!)
 jest.mock("./storage");
@@ -328,24 +331,46 @@ describe("importFullBackup", () => {
       (window.confirm as jest.Mock).mockReturnValue(true);
 
       const onImportSuccess = jest.fn();
+      const invalidateMock = jest.fn().mockResolvedValue(undefined);
+      const queryClient = {
+        invalidateQueries: invalidateMock,
+      } as unknown as QueryClient;
 
-      const result = await importFullBackup(
-        JSON.stringify(backupData),
+      const result = await importFullBackup(JSON.stringify(backupData), {
         onImportSuccess,
-        undefined,
-        true,
-      );
+        confirmed: true,
+        queryClient,
+      });
 
       expect(result).toBe(true);
       expect(mockStore[SAVED_GAMES_KEY]).toEqual(
         backupData.localStorage[SAVED_GAMES_KEY],
       );
 
+      expect(invalidateMock).toHaveBeenCalledTimes(8);
+      const invalidatedQueryKeys = invalidateMock.mock.calls.map(call => call[0]?.queryKey);
+      expect(invalidatedQueryKeys).toEqual(
+        expect.arrayContaining([
+          queryKeys.masterRoster,
+          queryKeys.savedGames,
+          queryKeys.seasons,
+          queryKeys.tournaments,
+          queryKeys.teams,
+          queryKeys.personnel,
+          queryKeys.settings.all,
+          queryKeys.appSettingsCurrentGameId,
+        ]),
+      );
+
       expect(onImportSuccess).not.toHaveBeenCalled();
 
-      jest.runOnlyPendingTimers();
+      await act(async () => {
+        jest.advanceTimersByTime(500);
+      });
 
-      expect(onImportSuccess).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(onImportSuccess).toHaveBeenCalledTimes(1);
+      });
 
       jest.useRealTimers();
     });
@@ -402,7 +427,9 @@ describe("importFullBackup", () => {
       );
 
       // Advance timers to see if reload would have been called
-      jest.advanceTimersByTime(500);
+      await act(async () => {
+        jest.advanceTimersByTime(500);
+      });
       if (jest.isMockFunction(window.location.reload)) {
         expect(window.location.reload).toHaveBeenCalledTimes(1);
       } else {
