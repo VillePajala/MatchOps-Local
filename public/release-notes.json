@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: enhance restore functionality with cache invalidation and error handling"
+  "notes": "fix: update GameContainer test props typing for better type safety"
 }
