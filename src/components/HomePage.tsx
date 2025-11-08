@@ -18,6 +18,7 @@ import { Player, Season, Tournament } from '@/types';
 // Import saveMasterRoster utility
 import type { GameEvent, AppState, SavedGamesCollection, TimerState, PlayerAssessment } from "@/types";
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
+import { getLocalISODate } from '@/utils/time';
 import { saveMasterRoster } from '@/utils/masterRoster';
 import { useMutation } from '@tanstack/react-query';
 import { usePersonnelManager } from '@/hooks/usePersonnelManager';
@@ -58,7 +59,7 @@ const initialState: AppState = {
   gameEvents: [], // Initialize game events as empty array
   // Initialize game info
   opponentName: "Opponent",
-  gameDate: new Date().toISOString().split('T')[0], // Default to today's date YYYY-MM-DD
+  gameDate: getLocalISODate(), // Default to today's local date YYYY-MM-DD
   homeScore: 0,
   awayScore: 0,
   gameNotes: '', // Initialize game notes as empty string
@@ -344,6 +345,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     isTeamReassignModalOpen,
     setIsTeamReassignModalOpen,
     availableTeams,
+    teamLoadError,
     loadGameStateFromData,
     handleLoadGame,
     handleDeleteGame,
@@ -774,12 +776,16 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
               // Use START_TIMER instead of SET_TIMER_RUNNING to properly set startTimestamp
               dispatchGameSession({ type: 'START_TIMER' });
             } else {
-              await removeStorageItem(TIMER_STATE_KEY).catch(() => {});
+              await removeStorageItem(TIMER_STATE_KEY).catch((error) => {
+                logger.debug('[Timer Cleanup] Failed to remove timer state (non-critical):', error);
+              });
             }
           }
         } catch (error) {
           logger.error('[EFFECT init] Error restoring timer state:', error);
-          await removeStorageItem(TIMER_STATE_KEY).catch(() => {});
+          await removeStorageItem(TIMER_STATE_KEY).catch((cleanupError) => {
+            logger.debug('[Timer Cleanup] Failed to remove timer state after error (non-critical):', cleanupError);
+          });
         }
         // --- END TIMER RESTORATION LOGIC ---
 
@@ -2355,6 +2361,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     isTeamReassignModalOpen,
     orphanedGameInfo,
     availableTeams,
+    teamLoadError,
     isLoadingGamesList,
     loadGamesListError,
     isGameLoading,

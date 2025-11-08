@@ -15,6 +15,7 @@ import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
+import { getLocalISODate } from '@/utils/time';
 
 export interface NewGameSetupModalProps {
   isOpen: boolean;
@@ -69,7 +70,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const { showToast } = useToast();
   const [homeTeamName, setHomeTeamName] = useState('');
   const [opponentName, setOpponentName] = useState('');
-  const [gameDate, setGameDate] = useState(new Date().toISOString().split('T')[0]);
+  const [gameDate, setGameDate] = useState(getLocalISODate());
   const [gameLocation, setGameLocation] = useState('');
   const [gameHour, setGameHour] = useState<string>('');
   const [gameMinute, setGameMinute] = useState<string>('');
@@ -113,7 +114,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     if (isOpen) {
       // Reset form
       setOpponentName('');
-      setGameDate(new Date().toISOString().split('T')[0]);
+      setGameDate(getLocalISODate());
       setGameLocation('');
       setGameHour('');
       setGameMinute('');

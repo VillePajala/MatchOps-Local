@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: update GameContainer test props typing for better type safety"
+  "notes": "fix: update GameContainer test props for better type safety and enhance error handling in tests"
 }

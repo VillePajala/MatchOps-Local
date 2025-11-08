@@ -85,17 +85,22 @@ export default function ServiceWorkerRegistration() {
 
     // Listen for controller changes
     let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
+    const onControllerChange = () => {
       if (refreshing) return;
       refreshing = true;
       window.location.reload();
-    });
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
 
     // Cleanup interval on unmount
     return () => {
       if (updateInterval) {
         clearInterval(updateInterval);
       }
+      // Remove controllerchange listener on unmount to avoid leaks
+      try {
+        navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+      } catch {}
     };
   }, []);
 
