@@ -210,9 +210,11 @@ const ControlBar: React.FC<ControlBarProps> = ({
   }, [isSettingsMenuOpen]);
 
   const wrapHandler = (handler: () => void) => () => {
-    handler();
+    // Close the side menu first to avoid overlay interference
     setIsSettingsMenuOpen(false);
     setDragOffset(0);
+    // Defer the action slightly so the modal opens after the menu closes
+    setTimeout(() => handler(), 0);
   };
 
   const handleOverlayClick = () => {

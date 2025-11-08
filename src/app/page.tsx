@@ -21,9 +21,9 @@ export default function Home() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCheckingState, setIsCheckingState] = useState(true);
 
-  // A user is considered "first time" if they haven't created a roster OR a game yet.
-  // This ensures they are guided through the full setup process.
-  const isFirstTimeUser = !hasPlayers || !hasSavedGames;
+  // Consider user "first-time" only if BOTH roster and games are missing.
+  // This makes restores/imports immediately unlock the experienced UI.
+  const isFirstTimeUser = !hasPlayers && !hasSavedGames;
 
   const checkAppState = useCallback(async () => {
     setIsCheckingState(true);
