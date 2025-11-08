@@ -788,6 +788,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
 
     initialLoadInProgressRef.current = true;
+    if (initialLoadComplete) {
+      initialLoadInProgressRef.current = false;
+      return;
+    }
+
     let cancelled = false;
 
     const initializeAppState = async () => {
