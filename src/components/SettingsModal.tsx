@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
@@ -155,29 +155,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     event.target.value = '';
   };
 
-  const invalidateDataCaches = useCallback(async () => {
-    const keysToInvalidate = [
-      queryKeys.masterRoster,
-      queryKeys.savedGames,
-      queryKeys.seasons,
-      queryKeys.tournaments,
-      queryKeys.teams,
-      queryKeys.personnel,
-      queryKeys.settings.all,
-      queryKeys.appSettingsCurrentGameId,
-    ] as const;
-
-    await Promise.all(
-      keysToInvalidate.map(async (key) => {
-        try {
-          await queryClient.invalidateQueries({ queryKey: key, exact: false });
-        } catch (error) {
-          logger.warn('[SettingsModal] Failed to invalidate query key after restore:', key, error);
-        }
-      })
-    );
-  }, [queryClient]);
-
   const handleRestoreConfirmed = async () => {
     if (!pendingRestoreContent) {
       setShowRestoreConfirm(false);
@@ -185,9 +162,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     }
 
     try {
-      const didRestore = await importFullBackup(pendingRestoreContent, onDataImportSuccess, showToast, true);
-      if (didRestore) {
-        await invalidateDataCaches();
+      if (onDataImportSuccess) {
+        await importFullBackup(pendingRestoreContent, {
+          onImportSuccess: onDataImportSuccess,
+          showToast,
+          confirmed: true,
+          queryClient,
+        });
+      } else {
+        await importFullBackup(pendingRestoreContent, {
+          showToast,
+          confirmed: true,
+        });
       }
     } catch (error) {
       logger.error('[SettingsModal] Full backup restore failed:', error);
