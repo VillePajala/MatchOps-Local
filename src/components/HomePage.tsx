@@ -699,105 +699,110 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   
   useEffect(() => {
     const loadInitialAppData = async () => {
-      if (initialLoadComplete) {
-        return;
-      }
-      // This useEffect now primarily ensures that dependent state updates happen
-      // after the core data (masterRoster, seasons, tournaments, savedGames, currentGameIdSetting)
-      // has been fetched by their respective useQuery hooks.
+      // Run legacy migration only once before the first load completes
+      if (!initialLoadComplete) {
+        try {
+          const oldRosterJson = await getStorageItem('availablePlayers').catch(() => null);
+          if (oldRosterJson) {
+            await setStorageItem(MASTER_ROSTER_KEY, oldRosterJson);
+            await removeStorageItem('availablePlayers');
+            // Consider invalidating and refetching masterRoster query here if migration happens
+            // queryClient.invalidateQueries(queryKeys.masterRoster);
+          }
 
-      // Simple migration for old data keys (if any) - Run once
-      // NOTE: This is legacy migration code - consider removing after main migration system is stable
-      try {
-        const oldRosterJson = await getStorageItem('availablePlayers').catch(() => null);
-        if (oldRosterJson) {
-          await setStorageItem(MASTER_ROSTER_KEY, oldRosterJson);
-          await removeStorageItem('availablePlayers');
-          // Consider invalidating and refetching masterRoster query here if migration happens
-          // queryClient.invalidateQueries(queryKeys.masterRoster);
+          const oldSeasonsJson = await getStorageItem('soccerSeasonsList').catch(() => null);
+          if (oldSeasonsJson) {
+            await setStorageItem(SEASONS_LIST_KEY, oldSeasonsJson);
+            // queryClient.invalidateQueries(queryKeys.seasons);
+          }
+        } catch (migrationError) {
+          logger.error('[EFFECT init] Error during data migration:', migrationError);
         }
-        const oldSeasonsJson = await getStorageItem('soccerSeasonsList').catch(() => null); // Another old key
-      if (oldSeasonsJson) {
-          await setStorageItem(SEASONS_LIST_KEY, oldSeasonsJson); // New key
-          // queryClient.invalidateQueries(queryKeys.seasons);
-      }
-    } catch (migrationError) {
-        logger.error('[EFFECT init] Error during data migration:', migrationError);
       }
 
-      // Master Roster, Seasons, Tournaments are handled by their own useEffects reacting to useQuery.
+      // Master roster, seasons, and tournaments are handled by their own effects
 
-      // 4. Update local savedGames state from useQuery for allSavedGames
+      // Keep saved games list in sync with TanStack Query results
       if (isAllSavedGamesQueryLoading) {
         setIsLoadingGamesList(true);
       }
+
       if (allSavedGamesQueryResultData) {
         setSavedGames(allSavedGamesQueryResultData || {});
         setIsLoadingGamesList(false);
-      }
-      if (isAllSavedGamesQueryError) {
+        setLoadGamesListError(null);
+      } else if (isAllSavedGamesQueryError) {
         logger.error('[EFFECT init] Error loading all saved games via TanStack Query:', allSavedGamesQueryErrorData);
         setLoadGamesListError(t('loadGameModal.errors.listLoadFailed', 'Failed to load saved games list.'));
-      setSavedGames({});
+        setSavedGames({});
+        setIsLoadingGamesList(false);
+      } else if (!isAllSavedGamesQueryLoading) {
+        // Ensure loading indicator is cleared once the query settles
         setIsLoadingGamesList(false);
       }
-      
-      // 5. Determine and set current game ID and related state from useQuery data
-      if (isCurrentGameIdSettingQueryLoading || isAllSavedGamesQueryLoading) { 
-      } else {
-        const lastGameIdSetting = currentGameIdSettingQueryResultData;
-        const currentSavedGames = allSavedGamesQueryResultData || {}; 
 
-        if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID && currentSavedGames[lastGameIdSetting]) {
-          setCurrentGameId(lastGameIdSetting);
-          setHasSkippedInitialSetup(true);
-        } else {
-          if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID) {
-            logger.warn(`[EFFECT init] Last game ID ${lastGameIdSetting} not found in saved games (from TanStack Query). Loading default.`);
-          }
-        setCurrentGameId(DEFAULT_GAME_ID);
-      }
-    }
-    
-      // Determine overall initial load completion
-      if (!isMasterRosterQueryLoading && !areSeasonsQueryLoading && !areTournamentsQueryLoading && !isAllSavedGamesQueryLoading && !isCurrentGameIdSettingQueryLoading) {
-        // --- TIMER RESTORATION LOGIC ---
-        try {
-          const savedTimerStateJSON = await getStorageItem(TIMER_STATE_KEY).catch(() => null);
-          const lastGameId = currentGameIdSettingQueryResultData;
+      if (!initialLoadComplete) {
+        // Determine and set current game ID and related state from useQuery data
+        if (!isCurrentGameIdSettingQueryLoading && !isAllSavedGamesQueryLoading) {
+          const lastGameIdSetting = currentGameIdSettingQueryResultData;
+          const currentSavedGames = allSavedGamesQueryResultData || {};
 
-          if (savedTimerStateJSON) {
-            const savedTimerState: TimerState = JSON.parse(savedTimerStateJSON);
-            if (savedTimerState && savedTimerState.gameId === lastGameId) {
-              const elapsedOfflineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
-              const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
-
-              dispatchGameSession({ type: 'SET_TIMER_ELAPSED', payload: correctedElapsedSeconds });
-              // Use START_TIMER instead of SET_TIMER_RUNNING to properly set startTimestamp
-              dispatchGameSession({ type: 'START_TIMER' });
-            } else {
-              await removeStorageItem(TIMER_STATE_KEY).catch((error) => {
-                logger.debug('[Timer Cleanup] Failed to remove timer state (non-critical):', error);
-              });
+          if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID && currentSavedGames[lastGameIdSetting]) {
+            setCurrentGameId(lastGameIdSetting);
+            setHasSkippedInitialSetup(true);
+          } else {
+            if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID) {
+              logger.warn(`[EFFECT init] Last game ID ${lastGameIdSetting} not found in saved games (from TanStack Query). Loading default.`);
             }
+            setCurrentGameId(DEFAULT_GAME_ID);
           }
-        } catch (error) {
-          logger.error('[EFFECT init] Error restoring timer state:', error);
-          await removeStorageItem(TIMER_STATE_KEY).catch((cleanupError) => {
-            logger.debug('[Timer Cleanup] Failed to remove timer state after error (non-critical):', cleanupError);
-          });
-        }
-        // --- END TIMER RESTORATION LOGIC ---
-
-        // Only show automatic instructions for experienced users with specific actions, not first-time users
-        const seenGuide = await getHasSeenAppGuide();
-        const hasAnyData = Object.keys(savedGames).length > 0; // Check if user has any saved games
-        if (!seenGuide && initialAction !== null && hasAnyData) {
-          setIsInstructionsModalOpen(true);
         }
 
-        // This is now the single source of truth for loading completion.
-        setInitialLoadComplete(true);
+        if (
+          !isMasterRosterQueryLoading &&
+          !areSeasonsQueryLoading &&
+          !areTournamentsQueryLoading &&
+          !isAllSavedGamesQueryLoading &&
+          !isCurrentGameIdSettingQueryLoading
+        ) {
+          // --- TIMER RESTORATION LOGIC ---
+          try {
+            const savedTimerStateJSON = await getStorageItem(TIMER_STATE_KEY).catch(() => null);
+            const lastGameId = currentGameIdSettingQueryResultData;
+
+            if (savedTimerStateJSON) {
+              const savedTimerState: TimerState = JSON.parse(savedTimerStateJSON);
+              if (savedTimerState && savedTimerState.gameId === lastGameId) {
+                const elapsedOfflineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
+                const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
+
+                dispatchGameSession({ type: 'SET_TIMER_ELAPSED', payload: correctedElapsedSeconds });
+                // Use START_TIMER instead of SET_TIMER_RUNNING to properly set startTimestamp
+                dispatchGameSession({ type: 'START_TIMER' });
+              } else {
+                await removeStorageItem(TIMER_STATE_KEY).catch((error) => {
+                  logger.debug('[Timer Cleanup] Failed to remove timer state (non-critical):', error);
+                });
+              }
+            }
+          } catch (error) {
+            logger.error('[EFFECT init] Error restoring timer state:', error);
+            await removeStorageItem(TIMER_STATE_KEY).catch((cleanupError) => {
+              logger.debug('[Timer Cleanup] Failed to remove timer state after error (non-critical):', cleanupError);
+            });
+          }
+          // --- END TIMER RESTORATION LOGIC ---
+
+          // Only show automatic instructions for experienced users with specific actions, not first-time users
+          const seenGuide = await getHasSeenAppGuide();
+          const hasAnyData = Object.keys(savedGames).length > 0; // Check if user has any saved games
+          if (!seenGuide && initialAction !== null && hasAnyData) {
+            setIsInstructionsModalOpen(true);
+          }
+
+          // This is now the single source of truth for loading completion.
+          setInitialLoadComplete(true);
+        }
       }
     };
 
