@@ -4,6 +4,7 @@ import { GameContainer } from './GameContainer';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
 import type { FieldContainerProps } from './FieldContainer';
+import type { GameContainerProps } from './GameContainer';
 
 const PlayerBarMock = jest.fn();
 const GameInfoBarMock = jest.fn();
@@ -50,10 +51,10 @@ const createFieldProps = (overrides?: Partial<FieldContainerProps>): FieldContai
     ...overrides,
   } as FieldContainerProps);
 
-const createProps = () => ({
-  gameInfoBarProps: { teamName: 'Team', opponentName: 'Opponent' } as any,
-  playerBarProps: { players: [] } as any,
-  controlBarProps: { onSaveGame: jest.fn() } as any,
+const createProps = (): GameContainerProps => ({
+  gameInfoBarProps: { teamName: 'Team', opponentName: 'Opponent' } as GameContainerProps['gameInfoBarProps'],
+  playerBarProps: { players: [] } as GameContainerProps['playerBarProps'],
+  controlBarProps: { onSaveGame: jest.fn() } as GameContainerProps['controlBarProps'],
   fieldProps: createFieldProps(),
   currentGameId: 'game_123',
 });
@@ -69,7 +70,9 @@ describe('GameContainer', () => {
 
   it('returns null when no game session state', () => {
     const props = createProps();
-    props.fieldProps = createFieldProps({ gameSessionState: null as any });
+    props.fieldProps = createFieldProps({
+      gameSessionState: null as unknown as FieldContainerProps['gameSessionState'],
+    });
 
     const { container } = render(<GameContainer {...props} />);
     expect(container.firstChild).toBeNull();
