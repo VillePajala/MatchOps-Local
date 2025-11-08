@@ -6,7 +6,7 @@ import type { TFunction } from 'i18next';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import type { AppState, Player, SavedGamesCollection } from '@/types';
 import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
-import { saveGame as utilSaveGame } from '@/utils/savedGames';
+import { saveGame as utilSaveGame, getSavedGames as utilGetSavedGames } from '@/utils/savedGames';
 import { saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
 import { startNewGameWithSetup, cancelNewGameSetup } from '../utils/newGameHandlers';
 
@@ -64,31 +64,35 @@ export function useNewGameFlow({
     setIsNewGameSetupModalOpen(true);
   }, [availablePlayers, setIsNewGameSetupModalOpen]);
 
-  const handleStartNewGame = useCallback(() => {
+  const handleStartNewGame = useCallback(async () => {
     if (availablePlayers.length === 0) {
       setShowNoPlayersConfirm(true);
       return;
     }
 
     if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-      // TODO(P0): Potential race condition - savedGames state could be stale if autosave is running
-      // Consider fetching directly from storage or checking autosave state before accessing
-      // For now, this is acceptable as:
-      // 1. Autosave conflicts are rare (autosave runs every 30s, user action timing unlikely to collide)
-      // 2. Worst case: User sees slightly stale team name in confirmation dialog (non-critical)
-      // 3. User can retry if needed
-      // Future: Add autosave state check or fetch from storage directly
-      const gameData = savedGames[currentGameId];
-      const identifier = gameData?.teamName
-        ? `${gameData.teamName} vs ${gameData.opponentName}`
-        : `ID: ${currentGameId}`;
+      let identifier = `ID: ${currentGameId}`;
+
+      try {
+        const freshGames = await utilGetSavedGames();
+        const snapshotGame = freshGames?.[currentGameId] ?? savedGames[currentGameId];
+        if (snapshotGame?.teamName) {
+          identifier = `${snapshotGame.teamName} vs ${snapshotGame.opponentName || t('common.unknownOpponent', 'Opponent')}`;
+        }
+      } catch {
+        const fallbackGame = savedGames[currentGameId];
+        if (fallbackGame?.teamName) {
+          identifier = `${fallbackGame.teamName} vs ${fallbackGame.opponentName || t('common.unknownOpponent', 'Opponent')}`;
+        }
+      }
+
       setGameIdentifierForSave(identifier);
       setShowSaveBeforeNewConfirm(true);
       return;
     }
 
     setShowStartNewConfirm(true);
-  }, [availablePlayers, currentGameId, savedGames]);
+  }, [availablePlayers, currentGameId, savedGames, t]);
 
   const handleNoPlayersConfirmed = useCallback(() => {
     setShowNoPlayersConfirm(false);

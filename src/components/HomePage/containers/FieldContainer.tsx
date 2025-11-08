@@ -137,13 +137,6 @@ export function FieldContainer({
 }: FieldContainerProps) {
   const { t } = useTranslation();
 
-  const safePlayersOnField = playersOnField || [];
-  const safeDrawings = drawings || [];
-  const safeAvailablePlayers = availablePlayers || [];
-  const safeTeams = teams || [];
-  const safeSeasons = seasons || [];
-  const safeTournaments = tournaments || [];
-
   const handleGuideStepChange = (step: number) => {
     onGuideStepChange?.(step);
   };
@@ -190,9 +183,9 @@ export function FieldContainer({
         }
       >
         <SoccerField
-          players={safePlayersOnField}
-          opponents={opponents || []}
-          drawings={isTacticsBoardView ? tacticalDrawings : safeDrawings}
+          players={playersOnField}
+          opponents={opponents}
+          drawings={isTacticsBoardView ? tacticalDrawings : drawings}
           onPlayerMove={handlePlayerMove || (() => {})}
           onPlayerMoveEnd={handlePlayerMoveEnd || (() => {})}
           onPlayerRemove={handlePlayerRemove || (() => {})}
@@ -221,8 +214,8 @@ export function FieldContainer({
       {/* First game setup guidance */}
       {initialLoadComplete &&
         currentGameId === DEFAULT_GAME_ID &&
-        safePlayersOnField.length === 0 &&
-        safeDrawings.length === 0 && (
+        playersOnField.length === 0 &&
+        drawings.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
             <div className="bg-slate-800/95 border border-indigo-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
               <div className="text-center">
@@ -231,12 +224,12 @@ export function FieldContainer({
                     <div className="text-3xl">⚽</div>
                   </div>
                   <h3 className="text-2xl font-bold text-indigo-300 mb-2">
-                    {safeAvailablePlayers.length === 0
+                    {availablePlayers.length === 0
                       ? t('firstGame.titleNoPlayers', 'Ready to get started?')
                       : t('firstGame.title', 'Ready to track your first game?')}
                   </h3>
                   <p className="text-slate-300 text-sm leading-relaxed mb-6">
-                    {safeAvailablePlayers.length === 0
+                    {availablePlayers.length === 0
                       ? t(
                           'firstGame.descNoPlayers',
                           'First, set up your team roster, then create your first game to start tracking player positions, goals, and performance.'
@@ -249,7 +242,7 @@ export function FieldContainer({
                 </div>
 
                 <div className="space-y-3">
-                  {safeAvailablePlayers.length === 0 ? (
+                  {availablePlayers.length === 0 ? (
                     <button
                       onClick={() => onOpenRosterModal?.()}
                       className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
@@ -268,12 +261,12 @@ export function FieldContainer({
                       <button
                       onClick={onOpenTeamManagerModal}
                         className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors shadow-lg ${
-                          safeTeams.length > 0
+                          teams.length > 0
                             ? 'bg-slate-600 hover:bg-slate-500 text-slate-300 border border-slate-500'
                             : 'bg-emerald-600 hover:bg-emerald-500 text-white'
                         }`}
                       >
-                        {safeTeams.length > 0
+                        {teams.length > 0
                           ? t('firstGame.manageTeams', 'Manage Teams')
                           : t('firstGame.createTeam', 'Create First Team')}
                       </button>
@@ -281,12 +274,12 @@ export function FieldContainer({
                       <button
                       onClick={() => onOpenSeasonTournamentModal?.()}
                         className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors border border-slate-600 ${
-                          safeSeasons.length > 0 || safeTournaments.length > 0
+                          seasons.length > 0 || tournaments.length > 0
                             ? 'bg-slate-600 hover:bg-slate-500 text-slate-300'
                             : 'bg-slate-700 hover:bg-slate-600 text-white'
                         }`}
                       >
-                        {safeSeasons.length > 0 || safeTournaments.length > 0
+                        {seasons.length > 0 || tournaments.length > 0
                           ? t('firstGame.manageSeasonsAndTournaments', 'Manage Seasons & Tournaments')
                           : t('firstGame.createSeasonFirst', 'Create Season/Tournament First')}
                       </button>
@@ -300,7 +293,7 @@ export function FieldContainer({
 
       {initialLoadComplete &&
         currentGameId === DEFAULT_GAME_ID &&
-        (safePlayersOnField.length > 0 || safeDrawings.length > 0) && (
+        (playersOnField.length > 0 || drawings.length > 0) && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-40">
             <div className="bg-amber-600/95 border border-amber-500/50 rounded-lg px-6 py-3 shadow-xl backdrop-blur-sm max-w-md">
               <div className="flex items-center gap-3 text-sm">
