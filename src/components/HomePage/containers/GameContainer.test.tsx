@@ -52,9 +52,9 @@ const createFieldProps = (overrides?: Partial<FieldContainerProps>): FieldContai
   } as FieldContainerProps);
 
 const createProps = (): GameContainerProps => ({
-  gameInfoBarProps: { teamName: 'Team', opponentName: 'Opponent' } as GameContainerProps['gameInfoBarProps'],
-  playerBarProps: { players: [] } as GameContainerProps['playerBarProps'],
-  controlBarProps: { onSaveGame: jest.fn() } as GameContainerProps['controlBarProps'],
+  gameInfoBarProps: { teamName: 'Team', opponentName: 'Opponent' } as unknown as GameContainerProps['gameInfoBarProps'],
+  playerBarProps: { players: [], gameEvents: [] } as unknown as GameContainerProps['playerBarProps'],
+  controlBarProps: { onSaveGame: jest.fn() } as unknown as GameContainerProps['controlBarProps'],
   fieldProps: createFieldProps(),
   currentGameId: 'game_123',
 });
@@ -92,7 +92,14 @@ describe('GameContainer', () => {
   });
 
   it('renders fallback UI when PlayerBar throws', () => {
-    mockPlayerBarModule.mockImplementationOnce(() => {
+    // Suppress expected React error boundary console errors
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {
+      // Silently suppress all console.error calls during this test
+      // React error boundaries generate expected errors that we want to ignore
+    });
+
+    // Mock PlayerBar to throw an error during render
+    mockPlayerBarModule.mockImplementation(() => {
       throw new Error('boom');
     });
 
@@ -101,5 +108,7 @@ describe('GameContainer', () => {
     expect(
       screen.getByText('Player bar crashed. Please refresh the page.')
     ).toBeInTheDocument();
+
+    consoleErrorSpy.mockRestore();
   });
 });
