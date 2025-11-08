@@ -1,5 +1,5 @@
 // src/hooks/useGameState.ts
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Player } from '@/types'; // Player type is from @/types
 import {
     Opponent,
@@ -51,7 +51,31 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     const [playersOnField, setPlayersOnField] = useState<Player[]>(initialState.playersOnField);
     const [opponents, setOpponents] = useState<Opponent[]>(initialState.opponents);
     const [drawings, setDrawings] = useState<Point[][]>(initialState.drawings);
-    const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]); // Initialize with empty array
+    const [availablePlayers, setAvailablePlayers] = useState<Player[]>(
+        initialState.availablePlayers ?? []
+    );
+
+    useEffect(() => {
+        const nextAvailablePlayers = initialState.availablePlayers ?? [];
+        setAvailablePlayers(prevPlayers => {
+            if (prevPlayers === nextAvailablePlayers) {
+                return prevPlayers;
+            }
+
+            if (
+                prevPlayers.length === nextAvailablePlayers.length &&
+                // Reference equality is sufficient here because backup restores and roster updates
+                // replace the entire availablePlayers array with newly created objects. When an
+                // individual player's fields change without a new reference, the parent components
+                // also emit a fresh array instance.
+                prevPlayers.every((player, index) => player === nextAvailablePlayers[index])
+            ) {
+                return prevPlayers;
+            }
+
+            return nextAvailablePlayers;
+        });
+    }, [initialState.availablePlayers]);
     // ... (more state will be moved here)
 
     // --- Handlers ---

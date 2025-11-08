@@ -1,5 +1,7 @@
 // src/utils/fullBackup.test.ts
 import "@/i18n";
+import { act, waitFor } from "@testing-library/react";
+import type { QueryClient } from "@tanstack/react-query";
 import { importFullBackup, exportFullBackup } from "./fullBackup";
 import {
   SAVED_GAMES_KEY,
@@ -10,6 +12,7 @@ import {
   TEAMS_INDEX_KEY,
   TEAM_ROSTERS_KEY,
 } from "@/config/storageKeys";
+import { queryKeys } from "@/config/queryKeys";
 
 // Mock the storage module (not localStorage directly!)
 jest.mock("./storage");
@@ -308,6 +311,70 @@ describe("importFullBackup", () => {
       }
     });
 
+    it('should refresh saved games after backup import without requiring reload', async () => {
+      jest.useFakeTimers();
+
+      const initialGames = {
+        game1: { id: 'game1', teamName: 'Initial' },
+      };
+      mockStore[SAVED_GAMES_KEY] = initialGames;
+
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {
+            game2: { id: 'game2', teamName: 'Restored' },
+          },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      const onImportSuccess = jest.fn();
+      const invalidateMock = jest.fn().mockResolvedValue(undefined);
+      const queryClient = {
+        invalidateQueries: invalidateMock,
+      } as unknown as QueryClient;
+
+      const result = await importFullBackup(JSON.stringify(backupData), {
+        onImportSuccess,
+        confirmed: true,
+        queryClient,
+      });
+
+      expect(result).toBe(true);
+      expect(mockStore[SAVED_GAMES_KEY]).toEqual(
+        backupData.localStorage[SAVED_GAMES_KEY],
+      );
+
+      expect(invalidateMock).toHaveBeenCalledTimes(8);
+      const invalidatedQueryKeys = invalidateMock.mock.calls.map(call => call[0]?.queryKey);
+      expect(invalidatedQueryKeys).toEqual(
+        expect.arrayContaining([
+          queryKeys.masterRoster,
+          queryKeys.savedGames,
+          queryKeys.seasons,
+          queryKeys.tournaments,
+          queryKeys.teams,
+          queryKeys.personnel,
+          queryKeys.settings.all,
+          queryKeys.appSettingsCurrentGameId,
+        ]),
+      );
+
+      expect(onImportSuccess).not.toHaveBeenCalled();
+
+      await act(async () => {
+        jest.advanceTimersByTime(500);
+      });
+
+      await waitFor(() => {
+        expect(onImportSuccess).toHaveBeenCalledTimes(1);
+      });
+
+      jest.useRealTimers();
+    });
+
     it("should successfully import partial backup data with only some keys present", async () => {
       jest.useFakeTimers(); // Use FAKE timers for this test
       // Arrange: Define partial backup data with valid structure but only some keys
@@ -360,7 +427,9 @@ describe("importFullBackup", () => {
       );
 
       // Advance timers to see if reload would have been called
-      jest.advanceTimersByTime(500);
+      await act(async () => {
+        jest.advanceTimersByTime(500);
+      });
       if (jest.isMockFunction(window.location.reload)) {
         expect(window.location.reload).toHaveBeenCalledTimes(1);
       } else {
@@ -370,6 +439,54 @@ describe("importFullBackup", () => {
       // Restore mocks and timers
       // REMOVE: alertMock.mockRestore(); // Handled in afterEach
       jest.useRealTimers(); // Restore real timers
+    });
+
+    it('should surface informational feedback when query invalidation fails', async () => {
+      jest.useFakeTimers();
+
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {
+            game1: { id: 'game1', teamName: 'Initial' },
+          },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      const invalidateMock = jest.fn().mockRejectedValue(new Error('invalidation failed'));
+      const queryClient = {
+        invalidateQueries: invalidateMock,
+      } as unknown as QueryClient;
+
+      const showToast = jest.fn();
+      const onImportSuccess = jest.fn();
+
+      const result = await importFullBackup(JSON.stringify(backupData), {
+        confirmed: true,
+        queryClient,
+        showToast,
+        onImportSuccess,
+      });
+
+      expect(result).toBe(true);
+      expect(showToast).toHaveBeenNthCalledWith(1, expect.any(String), 'success');
+      expect(showToast).toHaveBeenNthCalledWith(
+        2,
+        'Data restored, but some updates may require a page refresh.',
+        'info',
+      );
+
+      await act(async () => {
+        jest.advanceTimersByTime(500);
+      });
+
+      await waitFor(() => {
+        expect(onImportSuccess).toHaveBeenCalledTimes(1);
+      });
+
+      jest.useRealTimers();
     });
 
     /**
