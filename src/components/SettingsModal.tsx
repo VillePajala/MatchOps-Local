@@ -206,7 +206,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       setShowImportResults(true);
 
       if (result.success && result.successful > 0) {
-        // Success message is handled by the ImportResultsModal
+        onDataImportSuccess?.();
       } else if (result.warnings.length > 0 || result.failed.length > 0) {
         logger.error('Game import issues:', { warnings: result.warnings, failed: result.failed });
       }

@@ -22,6 +22,12 @@
 ### Newly Logged Fix
 - **P1 – New Game autosave race** *(Nov 2025)*: `useNewGameFlow.handleStartNewGame` now fetches the latest saved game snapshot directly from storage (instead of relying on potentially stale React state) before prompting the “Save current game?” confirmation. This eliminates the documented race condition when autosave mutates state mid-flow.
 
+### Upcoming Layer: Modal & Flow Architecture (next PR chunk)
+- **Split ModalManager** into `GameModalsManager`, `SettingsModalsManager`, and `StatsModalsManager` so each container remains <200 lines and owns a coherent prop subset.
+- **Refactor `startNewGameWithSetup` / `useNewGameFlow`** to accept an `options` object instead of 18 positional arguments, keeping the API testable and self-documenting.
+- **Group FieldContainer props** into view-model objects (`gameState`, `fieldInteractions`, `modalTriggers`, `guideState`) to reduce prop drilling.
+- **Normalize `useHomeModalControls`** by adding open/close helpers for Training Resources & Goal Log modals and implementing `resumeGame` / `explore` initial actions.
+
 ---
 
 ## 🧪 Test Coverage Follow-ups

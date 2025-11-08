@@ -63,5 +63,17 @@ describe('useRoster', () => {
     expect(result.current.availablePlayers).toEqual([newPlayer]);
     expect(result.current.isRosterUpdating).toBe(false);
   });
-});
 
+  test('playersForCurrentGame falls back to all available players when none selected', () => {
+    const available = [
+      { id: 'p1', name: 'One', isGoalie: false, jerseyNumber: '', notes: '', receivedFairPlayCard: false },
+      { id: 'p2', name: 'Two', isGoalie: false, jerseyNumber: '', notes: '', receivedFairPlayCard: false },
+    ];
+    const { result } = renderHook(
+      () => useRoster({ initialPlayers: available, selectedPlayerIds: [] }),
+      { wrapper: createWrapper() }
+    );
+
+    expect(result.current.playersForCurrentGame).toEqual(available);
+  });
+});

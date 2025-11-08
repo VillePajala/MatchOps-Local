@@ -9,6 +9,7 @@ import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
 import { saveGame as utilSaveGame, getSavedGames as utilGetSavedGames } from '@/utils/savedGames';
 import { saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
 import { startNewGameWithSetup, cancelNewGameSetup } from '../utils/newGameHandlers';
+import logger from '@/utils/logger';
 
 type ToastFn = (message: string, type?: 'success' | 'error' | 'info') => void;
 
@@ -79,7 +80,15 @@ export function useNewGameFlow({
         if (snapshotGame?.teamName) {
           identifier = `${snapshotGame.teamName} vs ${snapshotGame.opponentName || t('common.unknownOpponent', 'Opponent')}`;
         }
-      } catch {
+      } catch (error) {
+        logger.warn('[useNewGameFlow] Failed to refresh latest saved game snapshot before starting new game', error);
+        showToast(
+          t(
+            'newGameSetupModal.snapshotFallback',
+            'Unable to refresh latest save info. Using last stored names.'
+          ),
+          'info'
+        );
         const fallbackGame = savedGames[currentGameId];
         if (fallbackGame?.teamName) {
           identifier = `${fallbackGame.teamName} vs ${fallbackGame.opponentName || t('common.unknownOpponent', 'Opponent')}`;
@@ -92,7 +101,7 @@ export function useNewGameFlow({
     }
 
     setShowStartNewConfirm(true);
-  }, [availablePlayers, currentGameId, savedGames, t]);
+  }, [availablePlayers, currentGameId, savedGames, showToast, t]);
 
   const handleNoPlayersConfirmed = useCallback(() => {
     setShowNoPlayersConfirm(false);
