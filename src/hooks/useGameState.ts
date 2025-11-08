@@ -51,7 +51,9 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     const [playersOnField, setPlayersOnField] = useState<Player[]>(initialState.playersOnField);
     const [opponents, setOpponents] = useState<Opponent[]>(initialState.opponents);
     const [drawings, setDrawings] = useState<Point[][]>(initialState.drawings);
-    const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]); // Initialize with empty array
+    const [availablePlayers, setAvailablePlayers] = useState<Player[]>(
+        initialState.availablePlayers ?? []
+    );
     // ... (more state will be moved here)
 
     // --- Handlers ---
