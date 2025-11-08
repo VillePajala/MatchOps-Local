@@ -19,6 +19,9 @@
 **Total Estimated Time**: 4.5-5.5 hours
 **Total Actual Time**: ~2 hours (P0 in progress)
 
+### Newly Logged Fix
+- **P1 – New Game autosave race** *(Nov 2025)*: `useNewGameFlow.handleStartNewGame` now fetches the latest saved game snapshot directly from storage (instead of relying on potentially stale React state) before prompting the “Save current game?” confirmation. This eliminates the documented race condition when autosave mutates state mid-flow.
+
 ---
 
 ## 🧪 Test Coverage Follow-ups

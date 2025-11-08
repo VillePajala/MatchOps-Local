@@ -197,6 +197,10 @@ export function ModalManager(props: ModalManagerProps) {
   const { t } = useTranslation();
   const { showToast } = useToast();
 
+  const rosterPlayers = (props.masterRosterQueryResultData && props.masterRosterQueryResultData.length > 0)
+    ? props.masterRosterQueryResultData
+    : props.availablePlayers || [];
+
   const {
     isGoalLogModalOpen,
     isGameStatsModalOpen,
@@ -465,7 +469,7 @@ export function ModalManager(props: ModalManagerProps) {
       <RosterSettingsModal
         isOpen={isRosterModalOpen || false}
         onClose={closeRosterModal || (() => {})}
-        availablePlayers={availablePlayers || []}
+        availablePlayers={rosterPlayers}
         onUpdatePlayer={handleUpdatePlayerForModal || (() => {})}
         onRenamePlayer={handleRenamePlayerForModal || (() => {})}
         onSetJerseyNumber={handleSetJerseyNumberForModal || (() => {})}
@@ -478,19 +482,26 @@ export function ModalManager(props: ModalManagerProps) {
       />
 
       {/* Season & Tournament Management Modal */}
-      <SeasonTournamentManagementModal
-        isOpen={isSeasonTournamentModalOpen || false}
-        onClose={handleCloseSeasonTournamentModal || (() => {})}
-        seasons={seasons || []}
-        tournaments={tournaments || []}
-        masterRoster={masterRosterQueryResultData || []}
-        addSeasonMutation={addSeasonMutation!}
-        addTournamentMutation={addTournamentMutation!}
-        updateSeasonMutation={updateSeasonMutation!}
-        deleteSeasonMutation={deleteSeasonMutation!}
-        updateTournamentMutation={updateTournamentMutation!}
-        deleteTournamentMutation={deleteTournamentMutation!}
-      />
+      {addSeasonMutation &&
+        addTournamentMutation &&
+        updateSeasonMutation &&
+        deleteSeasonMutation &&
+        updateTournamentMutation &&
+        deleteTournamentMutation && (
+          <SeasonTournamentManagementModal
+            isOpen={isSeasonTournamentModalOpen || false}
+            onClose={handleCloseSeasonTournamentModal || (() => {})}
+            seasons={seasons || []}
+            tournaments={tournaments || []}
+            masterRoster={masterRosterQueryResultData || []}
+            addSeasonMutation={addSeasonMutation}
+            addTournamentMutation={addTournamentMutation}
+            updateSeasonMutation={updateSeasonMutation}
+            deleteSeasonMutation={deleteSeasonMutation}
+            updateTournamentMutation={updateTournamentMutation}
+            deleteTournamentMutation={deleteTournamentMutation}
+          />
+        )}
 
       {/* Game Settings Modal */}
       <GameSettingsModal
