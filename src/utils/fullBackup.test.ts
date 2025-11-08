@@ -308,6 +308,48 @@ describe("importFullBackup", () => {
       }
     });
 
+    it('should refresh saved games after backup import without requiring reload', async () => {
+      jest.useFakeTimers();
+
+      const initialGames = {
+        game1: { id: 'game1', teamName: 'Initial' },
+      };
+      mockStore[SAVED_GAMES_KEY] = initialGames;
+
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {
+            game2: { id: 'game2', teamName: 'Restored' },
+          },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      const onImportSuccess = jest.fn();
+
+      const result = await importFullBackup(
+        JSON.stringify(backupData),
+        onImportSuccess,
+        undefined,
+        true,
+      );
+
+      expect(result).toBe(true);
+      expect(mockStore[SAVED_GAMES_KEY]).toEqual(
+        backupData.localStorage[SAVED_GAMES_KEY],
+      );
+
+      expect(onImportSuccess).not.toHaveBeenCalled();
+
+      jest.runOnlyPendingTimers();
+
+      expect(onImportSuccess).toHaveBeenCalledTimes(1);
+
+      jest.useRealTimers();
+    });
+
     it("should successfully import partial backup data with only some keys present", async () => {
       jest.useFakeTimers(); // Use FAKE timers for this test
       // Arrange: Define partial backup data with valid structure but only some keys

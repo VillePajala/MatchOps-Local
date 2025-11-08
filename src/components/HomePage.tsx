@@ -725,6 +725,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       // Keep saved games list in sync with TanStack Query results
       if (isAllSavedGamesQueryLoading) {
         setIsLoadingGamesList(true);
+        setLoadGamesListError(null);
       }
 
       if (allSavedGamesQueryResultData) {
@@ -735,9 +736,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         logger.error('[EFFECT init] Error loading all saved games via TanStack Query:', allSavedGamesQueryErrorData);
         setLoadGamesListError(t('loadGameModal.errors.listLoadFailed', 'Failed to load saved games list.'));
         setSavedGames({});
-        setIsLoadingGamesList(false);
-      } else if (!isAllSavedGamesQueryLoading) {
-        // Ensure loading indicator is cleared once the query settles
         setIsLoadingGamesList(false);
       }
 

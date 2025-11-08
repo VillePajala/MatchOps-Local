@@ -45,6 +45,12 @@ describe('useGameState', () => {
     gameTime: '',
   };
 
+  /**
+   * Tests that availablePlayers initializes from provided initial state
+   * Prevents regression where players disappeared after backup restore
+   *
+   * @critical
+   */
   it('initializes available players from the provided initial state', () => {
     const saveStateToHistory = jest.fn();
 
