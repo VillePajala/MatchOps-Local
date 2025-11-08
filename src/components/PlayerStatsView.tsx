@@ -19,6 +19,7 @@ import MetricTrendChart from './MetricTrendChart';
 import MetricAreaChart from './MetricAreaChart';
 import logger from '@/utils/logger';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
+import { getLocalISODate } from '@/utils/time';
 
 interface PlayerStatsViewProps {
   player: Player | null;
@@ -79,7 +80,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     });
     // Set default date to today
     if (!adjGameDate) {
-      setAdjGameDate(new Date().toISOString().split('T')[0]);
+      setAdjGameDate(getLocalISODate());
     }
   }, [adjGameDate]);
 
@@ -336,7 +337,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 // Reset form
                 setAdjGames(1); setAdjGoals(0); setAdjAssists(0); setAdjNote('');
                 setAdjTournamentId(''); setAdjExternalTeam(''); setAdjOpponentName(''); setAdjScoreFor(''); setAdjScoreAgainst('');
-                setAdjGameDate(new Date().toISOString().split('T')[0]);
+                setAdjGameDate(getLocalISODate());
                 setAdjHomeAway('neutral');
                 setAdjIncludeInSeasonTournament(false);
               }}

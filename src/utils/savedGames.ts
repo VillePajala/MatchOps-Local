@@ -8,6 +8,7 @@ import type { SavedGamesCollection, AppState, GameEvent as PageGameEvent, Point,
 import type { Player } from '@/types';
 import logger from '@/utils/logger';
 import { appStateSchema } from './appStateSchema';
+import { getLocalISODate } from './time';
 import { withKeyLock } from './storageKeyLock';
 
 // Note: AppState (imported from @/types) is the primary type used for live game state
@@ -91,10 +92,18 @@ export const saveGame = async (gameId: string, gameData: unknown): Promise<AppSt
         throw new Error('Game ID is required');
       }
 
+      // Validate payload to prevent corrupt saves
+      const validation = appStateSchema.safeParse(gameData);
+      if (!validation.success) {
+        const err = validation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+        throw new Error(`Invalid game data: ${err}`);
+      }
+      // Validation passed - persist original shape to preserve equality expectations
+      const toSave = gameData as AppState;
       const allGames = await getSavedGames();
-      allGames[gameId] = gameData as AppState;
+      allGames[gameId] = toSave;
       await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(allGames));
-      return gameData as AppState;
+      return toSave;
     } catch (error) {
       logger.error('Error saving game:', error);
       throw error;
@@ -181,7 +190,7 @@ export const createGame = async (gameData: Partial<AppState>): Promise<{ gameId:
       teamName: gameData.teamName || 'My Team',
       gameEvents: gameData.gameEvents || [],
       opponentName: gameData.opponentName || 'Opponent',
-      gameDate: gameData.gameDate || new Date().toISOString().split('T')[0],
+      gameDate: gameData.gameDate || getLocalISODate(),
       homeScore: gameData.homeScore || 0,
       awayScore: gameData.awayScore || 0,
       gameNotes: gameData.gameNotes || '',
@@ -198,7 +207,7 @@ export const createGame = async (gameData: Partial<AppState>): Promise<{ gameId:
       tournamentLevel: gameData.tournamentLevel || '',
       ageGroup: gameData.ageGroup || '',
       gameLocation: gameData.gameLocation || '',
-      gameTime: gameData.gameTime || '',
+      gameTime: gameData.gameTime || undefined,
       tacticalDiscs: gameData.tacticalDiscs || [],
       tacticalDrawings: gameData.tacticalDrawings || [],
       tacticalBallPosition: gameData.tacticalBallPosition === undefined ? { relX: 0.5, relY: 0.5 } : gameData.tacticalBallPosition,

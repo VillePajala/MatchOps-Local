@@ -91,6 +91,7 @@ export interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   isTeamReassignModalOpen: boolean;
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
   availableTeams: Team[];
+  teamLoadError: string | null;
   isLoadingGamesList: boolean;
   loadGamesListError: string | null;
   isGameLoading: boolean;
@@ -238,6 +239,7 @@ export function ModalManager(props: ModalManagerProps) {
     isTeamReassignModalOpen,
     orphanedGameInfo,
     availableTeams,
+    teamLoadError,
     isLoadingGamesList,
     loadGamesListError,
     isGameLoading,
@@ -610,6 +612,12 @@ export function ModalManager(props: ModalManagerProps) {
             <p className="text-slate-300 mb-4">
               {t('orphanedGame.reassignDescription', 'Select a team to associate this game with, or choose "No Team" to use the master roster.')}
             </p>
+
+            {teamLoadError && (
+              <div className="text-red-400 text-sm mb-3 p-3 bg-red-900/20 rounded border border-red-800">
+                {teamLoadError}
+              </div>
+            )}
 
             <div className="space-y-2 mb-6 max-h-60 overflow-y-auto">
               <button

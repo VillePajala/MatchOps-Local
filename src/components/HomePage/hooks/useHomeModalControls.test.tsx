@@ -28,4 +28,22 @@ describe('useHomeModalControls', () => {
 
     expect(result.current.modalState.isRosterModalOpen).toBe(true);
   });
+
+  it('ensures only one modal is open when initialAction changes quickly', () => {
+    const { result, rerender } = renderHook(
+      (props: { action?: Parameters<typeof useHomeModalControls>[0]['initialAction'] }) =>
+        useHomeModalControls({ initialAction: props.action }),
+      { wrapper, initialProps: { action: 'roster' } }
+    );
+
+    // First action opens roster modal
+    expect(result.current.modalState.isRosterModalOpen).toBe(true);
+
+    // Rapidly switch to loadGame
+    rerender({ action: 'loadGame' });
+
+    // Roster modal should be closed, load game modal open
+    expect(result.current.modalState.isRosterModalOpen).toBe(false);
+    expect(result.current.modalState.isLoadGameModalOpen).toBe(true);
+  });
 });

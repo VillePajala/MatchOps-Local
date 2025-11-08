@@ -93,6 +93,7 @@ const createProps = (): ModalManagerProps => ({
   isTeamReassignModalOpen: false,
   orphanedGameInfo: null,
   availableTeams: [],
+  teamLoadError: null,
   isLoadingGamesList: false,
   loadGamesListError: null,
   isGameLoading: false,

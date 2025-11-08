@@ -5,6 +5,7 @@ import TimerOverlay from '@/components/TimerOverlay';
 import SoccerField from '@/components/SoccerField';
 import { FirstGameGuide } from '@/components/HomePage/components/FirstGameGuide';
 import { DEFAULT_GAME_ID } from '@/config/constants';
+import logger from '@/utils/logger';
 import type {
   Player,
   Team,
@@ -135,6 +136,12 @@ export function FieldContainer({
   handleStartPauseTimer,
   handleResetTimer,
 }: FieldContainerProps) {
+  // Dev-only fallback to increase visibility if critical handlers are missing
+  const devWarnMissingHandler = (name: string) => () => {
+    if (process.env.NODE_ENV !== 'production') {
+      logger.warn(`FieldContainer: missing required handler '${name}'`);
+    }
+  };
   const { t } = useTranslation();
 
   const handleGuideStepChange = (step: number) => {
@@ -147,15 +154,20 @@ export function FieldContainer({
         <TimerOverlay
           timeElapsedInSeconds={timeElapsedInSeconds}
           subAlertLevel={subAlertLevel}
-          onSubstitutionMade={handleSubstitutionMade || (() => {})}
+          onSubstitutionMade={handleSubstitutionMade || devWarnMissingHandler('handleSubstitutionMade')}
           completedIntervalDurations={gameSessionState.completedIntervalDurations || []}
           subIntervalMinutes={gameSessionState.subIntervalMinutes}
-          onSetSubInterval={handleSetSubInterval || (() => {})}
+          onSetSubInterval={handleSetSubInterval || devWarnMissingHandler('handleSetSubInterval')}
           isTimerRunning={isTimerRunning}
-          onStartPauseTimer={handleStartPauseTimer || (() => {})}
-          onResetTimer={handleResetTimer || (() => {})}
-          onToggleGoalLogModal={handleToggleGoalLogModal || (() => {})}
-          onRecordOpponentGoal={() => (handleLogOpponentGoal || (() => {}))(timeElapsedInSeconds)}
+          onStartPauseTimer={handleStartPauseTimer || devWarnMissingHandler('handleStartPauseTimer')}
+          onResetTimer={handleResetTimer || devWarnMissingHandler('handleResetTimer')}
+          onToggleGoalLogModal={handleToggleGoalLogModal || devWarnMissingHandler('handleToggleGoalLogModal')}
+          onRecordOpponentGoal={() => {
+            if (handleLogOpponentGoal) return handleLogOpponentGoal(timeElapsedInSeconds);
+            if (process.env.NODE_ENV !== 'production') {
+              logger.warn("FieldContainer: missing handler 'handleLogOpponentGoal'");
+            }
+          }}
           teamName={gameSessionState.teamName}
           opponentName={gameSessionState.opponentName}
           homeScore={gameSessionState.homeScore}

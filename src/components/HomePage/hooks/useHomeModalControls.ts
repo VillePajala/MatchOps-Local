@@ -81,11 +81,39 @@ export function useHomeModalControls({
   );
 
   const openGameStatsModal = useCallback(() => setIsGameStatsModalOpen(true), [setIsGameStatsModalOpen]);
+  
+  // Ensure only one modal opens in response to initialAction
+  const closeAllModals = useCallback(() => {
+    setIsGameSettingsModalOpen(false);
+    setIsLoadGameModalOpen(false);
+    setIsRosterModalOpen(false);
+    setIsSeasonTournamentModalOpen(false);
+    setIsTrainingResourcesOpen(false);
+    setIsGoalLogModalOpen(false);
+    setIsGameStatsModalOpen(false);
+    setIsNewGameSetupModalOpen(false);
+    setIsSettingsModalOpen(false);
+    setIsPlayerAssessmentModalOpen(false);
+  }, [
+    setIsGameSettingsModalOpen,
+    setIsLoadGameModalOpen,
+    setIsRosterModalOpen,
+    setIsSeasonTournamentModalOpen,
+    setIsTrainingResourcesOpen,
+    setIsGoalLogModalOpen,
+    setIsGameStatsModalOpen,
+    setIsNewGameSetupModalOpen,
+    setIsSettingsModalOpen,
+    setIsPlayerAssessmentModalOpen,
+  ]);
 
   useEffect(() => {
     if (!initialAction) {
       return;
     }
+
+    // Close any other open modals before opening the requested one
+    closeAllModals();
 
     switch (initialAction) {
       case 'newGame':
@@ -116,6 +144,7 @@ export function useHomeModalControls({
     initialAction,
     onRequestNewGameFromShortcut,
     onOpenTeamManager,
+    closeAllModals,
     openLoadGameModal,
     openSeasonTournamentModal,
     openGameStatsModal,
