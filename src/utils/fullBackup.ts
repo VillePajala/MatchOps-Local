@@ -134,7 +134,7 @@ export const exportFullBackup = async (
  *                  - onImportSuccess: callback to execute after successful import (e.g., refresh app state)
  *                  - showToast: toast notification function for user feedback
  *                  - confirmed: when true, bypasses the confirmation prompt for React component usage
- *                  - queryClient: optional TanStack Query client used to invalidate cached data post-restore
+ *                  - queryClient: TanStack Query client used to invalidate cached data post-restore (required when onImportSuccess is provided)
  *                    React components should show ConfirmationModal first, then pass confirmed=true.
  *                    The window.confirm fallback (lines 156-161) is intentional for CLI/utility-only usage
  *                    and maintains backward compatibility with direct function calls outside React context.
@@ -155,12 +155,19 @@ export const exportFullBackup = async (
  * // Direct usage (CLI/utility scripts) - uses window.confirm fallback
  * await importFullBackup(jsonContent); // confirmed=undefined, triggers window.confirm
 */
-export interface ImportFullBackupOptions {
-  onImportSuccess?: () => void;
-  showToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
-  confirmed?: boolean;
-  queryClient?: QueryClient;
-}
+export type ImportFullBackupOptions =
+  | {
+      onImportSuccess?: never;
+      showToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
+      confirmed?: boolean;
+      queryClient?: never;
+    }
+  | {
+      onImportSuccess: () => void;
+      showToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
+      confirmed?: boolean;
+      queryClient: QueryClient;
+    };
 
 export const importFullBackup = async (
   jsonContent: string,
@@ -353,15 +360,32 @@ export const importFullBackup = async (
         queryKeys.appSettingsCurrentGameId,
       ] as const;
 
+      const failedKeys: string[] = [];
+
       await Promise.all(
         keysToInvalidate.map(async (key) => {
           try {
             await queryClient.invalidateQueries({ queryKey: key, exact: false });
           } catch (error) {
-            logger.warn('[fullBackup] Failed to invalidate query key after restore:', key, error);
+            const keyLabel = Array.isArray(key) ? key.join('.') : String(key);
+            logger.error('[fullBackup] Failed to invalidate query key after restore:', keyLabel, error);
+            failedKeys.push(keyLabel);
           }
         }),
       );
+
+      if (failedKeys.length > 0) {
+        const partialRefreshMessage = i18n.t(
+          'fullBackup.restorePartialRefreshWarning',
+          'Data restored, but some updates may require a page refresh.',
+        );
+
+        if (showToast) {
+          showToast(partialRefreshMessage, 'info');
+        } else {
+          alert(partialRefreshMessage);
+        }
+      }
     }
 
     // Use callback to refresh app state without reload, or fallback to reload

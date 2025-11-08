@@ -64,6 +64,10 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
 
             if (
                 prevPlayers.length === nextAvailablePlayers.length &&
+                // Reference equality is sufficient here because backup restores and roster updates
+                // replace the entire availablePlayers array with newly created objects. When an
+                // individual player's fields change without a new reference, the parent components
+                // also emit a fresh array instance.
                 prevPlayers.every((player, index) => player === nextAvailablePlayers[index])
             ) {
                 return prevPlayers;

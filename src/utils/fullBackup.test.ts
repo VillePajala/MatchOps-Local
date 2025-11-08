@@ -441,6 +441,54 @@ describe("importFullBackup", () => {
       jest.useRealTimers(); // Restore real timers
     });
 
+    it('should surface informational feedback when query invalidation fails', async () => {
+      jest.useFakeTimers();
+
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {
+            game1: { id: 'game1', teamName: 'Initial' },
+          },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      const invalidateMock = jest.fn().mockRejectedValue(new Error('invalidation failed'));
+      const queryClient = {
+        invalidateQueries: invalidateMock,
+      } as unknown as QueryClient;
+
+      const showToast = jest.fn();
+      const onImportSuccess = jest.fn();
+
+      const result = await importFullBackup(JSON.stringify(backupData), {
+        confirmed: true,
+        queryClient,
+        showToast,
+        onImportSuccess,
+      });
+
+      expect(result).toBe(true);
+      expect(showToast).toHaveBeenNthCalledWith(1, expect.any(String), 'success');
+      expect(showToast).toHaveBeenNthCalledWith(
+        2,
+        'Data restored, but some updates may require a page refresh.',
+        'info',
+      );
+
+      await act(async () => {
+        jest.advanceTimersByTime(500);
+      });
+
+      await waitFor(() => {
+        expect(onImportSuccess).toHaveBeenCalledTimes(1);
+      });
+
+      jest.useRealTimers();
+    });
+
     /**
      * Tests cross-device team backup and restore scenario
      * Ensures teams and team rosters are included in backups for device transfers
