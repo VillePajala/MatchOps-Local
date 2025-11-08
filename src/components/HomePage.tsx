@@ -203,13 +203,11 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const isSeasonsQueryError = !!gameDataError;
   const isTournamentsQueryError = !!gameDataError;
   const isAllSavedGamesQueryError = !!gameDataError;
-  const isCurrentGameIdSettingQueryError = !!gameDataError;
 
   const masterRosterQueryErrorData = gameDataError;
   const seasonsQueryErrorData = gameDataError;
   const tournamentsQueryErrorData = gameDataError;
   const allSavedGamesQueryErrorData = gameDataError;
-  const currentGameIdSettingQueryErrorData = gameDataError;
 
   const [draggingPlayerFromBarInfo, setDraggingPlayerFromBarInfo] = useState<Player | null>(null);
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
