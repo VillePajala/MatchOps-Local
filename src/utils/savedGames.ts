@@ -4,8 +4,17 @@ import {
   getStorageItem,
   setStorageItem,
 } from './storage';
-import type { SavedGamesCollection, AppState, GameEvent as PageGameEvent, Point, Opponent, IntervalLog } from '@/types';
-import type { Player } from '@/types';
+import type {
+  SavedGamesCollection,
+  AppState,
+  GameEvent as PageGameEvent,
+  Point,
+  Opponent,
+  IntervalLog,
+  Player,
+  PlayerAssessment,
+  TacticalDisc,
+} from '@/types';
 import logger from '@/utils/logger';
 import { appStateSchema } from './appStateSchema';
 import { getLocalISODate } from './time';
@@ -67,10 +76,208 @@ export const getSavedGames = async (): Promise<SavedGamesCollection> => {
  * @param games - Collection of games to save
  * @returns Promise resolving when complete
  */
+const assessmentSliderKeys: Array<keyof PlayerAssessment['sliders']> = [
+  'intensity',
+  'courage',
+  'duels',
+  'technique',
+  'creativity',
+  'decisions',
+  'awareness',
+  'teamwork',
+  'fair_play',
+  'impact',
+];
+
+const isPoint = (value: unknown): value is Point => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as Point).relX === 'number' &&
+    typeof (value as Point).relY === 'number'
+  );
+};
+
+const sanitizeAssessments = (
+  assessments: AppState['assessments'],
+): AppState['assessments'] => {
+  if (!assessments || typeof assessments !== 'object') {
+    return undefined;
+  }
+
+  const entries = Object.entries(assessments);
+
+  const sanitizedEntries = entries.reduce<Record<string, PlayerAssessment>>((acc, [playerId, raw]) => {
+    if (!raw || typeof raw !== 'object') {
+      logger.warn('[savedGames] Dropping invalid assessment entry', { playerId });
+      return acc;
+    }
+
+    const legacyAssessment = raw as Partial<PlayerAssessment> & {
+      sliders?: Partial<PlayerAssessment['sliders']>;
+    };
+
+    const overall = legacyAssessment.overall;
+
+    if (typeof overall !== 'number') {
+      logger.warn('[savedGames] Missing overall score in assessment entry', { playerId });
+      return acc;
+    }
+
+    if (!legacyAssessment.sliders || typeof legacyAssessment.sliders !== 'object') {
+      logger.warn('[savedGames] Missing sliders in assessment entry', { playerId });
+      return acc;
+    }
+
+    const sanitizedSliders = assessmentSliderKeys.reduce((sliderAcc, key) => {
+      const value = legacyAssessment.sliders?.[key];
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        sliderAcc[key] = value;
+      } else {
+        sliderAcc[key] = Math.max(0, Math.min(10, overall));
+      }
+      return sliderAcc;
+    }, {} as PlayerAssessment['sliders']);
+
+    const sanitizedAssessment: PlayerAssessment = {
+      overall,
+      sliders: sanitizedSliders,
+      notes: typeof legacyAssessment.notes === 'string' ? legacyAssessment.notes : '',
+      minutesPlayed:
+        typeof legacyAssessment.minutesPlayed === 'number' && Number.isFinite(legacyAssessment.minutesPlayed)
+          ? legacyAssessment.minutesPlayed
+          : 0,
+      createdAt:
+        typeof legacyAssessment.createdAt === 'number' && Number.isFinite(legacyAssessment.createdAt)
+          ? legacyAssessment.createdAt
+          : Date.now(),
+      createdBy:
+        typeof legacyAssessment.createdBy === 'string' && legacyAssessment.createdBy.trim().length > 0
+          ? legacyAssessment.createdBy
+          : 'imported',
+    };
+
+    acc[playerId] = sanitizedAssessment;
+    return acc;
+  }, {});
+
+  if (Object.keys(sanitizedEntries).length === 0) {
+    return entries.length === 0 ? {} : undefined;
+  }
+
+  return sanitizedEntries;
+};
+
+const normalizeBoolean = (value: unknown, fallback: boolean): boolean =>
+  typeof value === 'boolean' ? value : fallback;
+
+const normalizeNumber = (value: unknown, fallback: number): number =>
+  typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+
+const normalizeString = (value: unknown, fallback: string): string =>
+  typeof value === 'string' ? value : fallback;
+
+const normalizeStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+
+const normalizePlayers = (value: unknown): Player[] =>
+  Array.isArray(value) ? (value as Player[]) : [];
+
+const normalizeOpponents = (value: unknown): Opponent[] =>
+  Array.isArray(value) ? (value as Opponent[]) : [];
+
+const normalizePointMatrix = (value: unknown): Point[][] =>
+  Array.isArray(value)
+    ? (value as unknown[]).filter(Array.isArray).map((row) => (row as unknown[]).filter(isPoint) as Point[])
+    : [];
+
+const normalizeTacticalDiscs = (value: unknown): TacticalDisc[] =>
+  Array.isArray(value) ? (value as TacticalDisc[]) : [];
+
+const normalizeIntervalLogs = (value: unknown): IntervalLog[] =>
+  Array.isArray(value) ? (value as IntervalLog[]) : [];
+
+const normalizeGameEvents = (value: unknown): PageGameEvent[] =>
+  Array.isArray(value) ? (value as PageGameEvent[]) : [];
+
+const normalizePointOrNull = (value: unknown): Point | null => {
+  if (value === null) {
+    return null;
+  }
+  return isPoint(value) ? value : null;
+};
+
+const normalizeGameStatus = (value: unknown): AppState['gameStatus'] =>
+  value === 'inProgress' || value === 'periodEnd' || value === 'gameEnd' ? value : 'notStarted';
+
+const normalizeHomeOrAway = (value: unknown): AppState['homeOrAway'] =>
+  value === 'away' ? 'away' : 'home';
+
+const normalizeNumberOfPeriods = (value: unknown): AppState['numberOfPeriods'] => (value === 1 ? 1 : 2);
+
+const normalizeAppStateForPersistence = (gameData: unknown): AppState => {
+  const candidate = (typeof gameData === 'object' && gameData !== null ? gameData : {}) as Partial<AppState>;
+
+  const normalized: AppState = {
+    playersOnField: normalizePlayers(candidate.playersOnField),
+    opponents: normalizeOpponents(candidate.opponents),
+    drawings: normalizePointMatrix(candidate.drawings),
+    availablePlayers: normalizePlayers(candidate.availablePlayers),
+    showPlayerNames: normalizeBoolean(candidate.showPlayerNames, true),
+    teamName: normalizeString(candidate.teamName, 'My Team'),
+    gameEvents: normalizeGameEvents(candidate.gameEvents),
+    opponentName: normalizeString(candidate.opponentName, 'Opponent'),
+    gameDate: normalizeString(candidate.gameDate, getLocalISODate()),
+    homeScore: normalizeNumber(candidate.homeScore, 0),
+    awayScore: normalizeNumber(candidate.awayScore, 0),
+    gameNotes: normalizeString(candidate.gameNotes, ''),
+    homeOrAway: normalizeHomeOrAway(candidate.homeOrAway),
+    numberOfPeriods: normalizeNumberOfPeriods(candidate.numberOfPeriods),
+    periodDurationMinutes: normalizeNumber(candidate.periodDurationMinutes, 10),
+    currentPeriod: normalizeNumber(candidate.currentPeriod, 1),
+    gameStatus: normalizeGameStatus(candidate.gameStatus),
+    selectedPlayerIds: normalizeStringArray(candidate.selectedPlayerIds),
+    assessments: sanitizeAssessments(candidate.assessments),
+    seasonId: normalizeString(candidate.seasonId, ''),
+    tournamentId: normalizeString(candidate.tournamentId, ''),
+    tournamentLevel: typeof candidate.tournamentLevel === 'string' ? candidate.tournamentLevel : undefined,
+    ageGroup: typeof candidate.ageGroup === 'string' ? candidate.ageGroup : undefined,
+    demandFactor: normalizeNumber(candidate.demandFactor, 1),
+    gameLocation: typeof candidate.gameLocation === 'string' ? candidate.gameLocation : undefined,
+    gameTime: typeof candidate.gameTime === 'string' ? candidate.gameTime : undefined,
+    subIntervalMinutes: candidate.subIntervalMinutes !== undefined
+      ? normalizeNumber(candidate.subIntervalMinutes, 5)
+      : undefined,
+    completedIntervalDurations: candidate.completedIntervalDurations
+      ? normalizeIntervalLogs(candidate.completedIntervalDurations)
+      : undefined,
+    lastSubConfirmationTimeSeconds: candidate.lastSubConfirmationTimeSeconds !== undefined
+      ? normalizeNumber(candidate.lastSubConfirmationTimeSeconds, 0)
+      : undefined,
+    tacticalDiscs: normalizeTacticalDiscs(candidate.tacticalDiscs),
+    tacticalDrawings: normalizePointMatrix(candidate.tacticalDrawings),
+    tacticalBallPosition: normalizePointOrNull(candidate.tacticalBallPosition),
+    isPlayed: typeof candidate.isPlayed === 'boolean' ? candidate.isPlayed : undefined,
+    teamId: typeof candidate.teamId === 'string' ? candidate.teamId : undefined,
+    gamePersonnel: candidate.gamePersonnel ? normalizeStringArray(candidate.gamePersonnel) : undefined,
+  };
+
+  return normalized;
+};
+
+const normalizeSavedGamesCollection = (games: SavedGamesCollection): SavedGamesCollection => {
+  return Object.entries(games).reduce<SavedGamesCollection>((acc, [gameId, game]) => {
+    acc[gameId] = normalizeAppStateForPersistence(game);
+    return acc;
+  }, {});
+};
+
 export const saveGames = async (games: SavedGamesCollection): Promise<void> => {
+  const normalizedGames = normalizeSavedGamesCollection(games);
+
   return withKeyLock(SAVED_GAMES_KEY, async () => {
     try {
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(normalizedGames));
       return;
     } catch (error) {
       logger.error('Error saving games to storage:', error);
@@ -93,13 +300,14 @@ export const saveGame = async (gameId: string, gameData: unknown): Promise<AppSt
       }
 
       // Validate payload to prevent corrupt saves
-      const validation = appStateSchema.safeParse(gameData);
+      const normalizedGame = normalizeAppStateForPersistence(gameData);
+      const validation = appStateSchema.safeParse(normalizedGame);
       if (!validation.success) {
         const err = validation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
         throw new Error(`Invalid game data: ${err}`);
       }
-      // Validation passed - persist original shape to preserve equality expectations
-      const toSave = gameData as AppState;
+      // Validation passed - use the parsed data which applies schema defaults
+      const toSave = validation.data;
       const allGames = await getSavedGames();
       allGames[gameId] = toSave;
       await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(allGames));
@@ -151,7 +359,8 @@ export const deleteGame = async (gameId: string): Promise<string | null> => {
       }
 
       delete allGames[gameId];
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(allGames));
+      const normalizedGames = normalizeSavedGamesCollection(allGames as SavedGamesCollection);
+      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(normalizedGames));
       logger.log(`deleteGame: Game with ID ${gameId} successfully deleted.`);
       return gameId; // Successfully deleted, return the gameId
     } catch (error) {

@@ -26,7 +26,6 @@ import {
   getLatestGameId,
   // GameData, // No longer importing GameData for test mocks, using AppState
 } from './savedGames';
-import { SAVED_GAMES_KEY } from '@/config/storageKeys';
 import { clearMockStore } from './__mocks__/storage';
 import { getStorageItem, setStorageItem } from './storage';
 
@@ -154,7 +153,10 @@ describe('Saved Games Utilities', () => {
     it('should save a AppState collection to storage', async () => {
       // saveGames expects SavedGamesCollection (Record<string, AppState>) and returns Promise<void>
       await expect(saveGames(mockSavedGamesCollection)).resolves.toBeUndefined(); // Promise<void> resolves to undefined
-      expect(mockSetStorageItem).toHaveBeenCalledWith(SAVED_GAMES_KEY, JSON.stringify(mockSavedGamesCollection));
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+      const savedPayload = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
+      expect(savedPayload['game_123']).toEqual(expect.objectContaining(mockGame1_AppState));
+      expect(savedPayload['game_123'].demandFactor).toBe(1);
     });
 
     it('should handle storage errors during saveGames and reject', async () => {
@@ -186,26 +188,27 @@ describe('Saved Games Utilities', () => {
       };
       
       // saveGame now returns Promise<AppState>
-      await expect(saveGame(newGameId, newGame)).resolves.toEqual(newGame);
-      
+      await expect(saveGame(newGameId, newGame)).resolves.toEqual(expect.objectContaining(newGame));
+
       // Verify storage.setItem was called correctly
       expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
       const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
-      expect(savedCollection[newGameId]).toEqual(newGame);
+      expect(savedCollection[newGameId]).toEqual(expect.objectContaining(newGame));
+      expect(savedCollection[newGameId].demandFactor).toBe(1);
       // Ensure other games are preserved using their known IDs
-      expect(savedCollection['game_123']).toEqual(mockGame1_AppState); // Use known ID 'game_123' for mockGame1_AppState
-      expect(savedCollection['game_456']).toEqual(mockGame2_AppState); // Use known ID 'game_456' for mockGame2_AppState
+      expect(savedCollection['game_123']).toEqual(expect.objectContaining(mockGame1_AppState)); // Use known ID 'game_123' for mockGame1_AppState
+      expect(savedCollection['game_456']).toEqual(expect.objectContaining(mockGame2_AppState)); // Use known ID 'game_456' for mockGame2_AppState
     });
 
     it('should update an existing game (as AppState) and resolve with the updated game', async () => {
       const gameIdToUpdate = 'game_123'; // Assuming this ID exists from mockGame1_AppState
       const updatedGame: AppState = { ...mockGame1_AppState, teamName: 'Updated Dragons' };
-      
-      await expect(saveGame(gameIdToUpdate, updatedGame)).resolves.toEqual(updatedGame);
-      
+
+      await expect(saveGame(gameIdToUpdate, updatedGame)).resolves.toEqual(expect.objectContaining(updatedGame));
+
       expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
       const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
-      expect(savedCollection[gameIdToUpdate]).toEqual(updatedGame);
+      expect(savedCollection[gameIdToUpdate]).toEqual(expect.objectContaining(updatedGame));
     });
 
      it('should reject if gameId is empty', async () => {
@@ -220,11 +223,143 @@ describe('Saved Games Utilities', () => {
     });
 
     it('should reject if internal saveGames fails', async () => {
-      mockSetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage set failure'); 
+      mockSetStorageItem.mockImplementation(() => {
+        throw new Error('LocalStorage set failure');
       });
       await expect(saveGame('game_123', mockGame1_AppState)).rejects.toThrow('LocalStorage set failure');
     });
+
+    it('normalizes legacy assessments before persistence', async () => {
+      const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(1700000000000);
+      mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
+      mockSetStorageItem.mockReset();
+
+      const legacyGame = {
+        playersOnField: [],
+        opponents: [],
+        drawings: [],
+        availablePlayers: [],
+        showPlayerNames: true,
+        teamName: 'Legacy',
+        gameEvents: [],
+        opponentName: 'Opp',
+        gameDate: '2024-01-01',
+        homeScore: 1,
+        awayScore: 0,
+        gameNotes: '',
+        homeOrAway: 'home' as const,
+        numberOfPeriods: 2 as const,
+        periodDurationMinutes: 10,
+        currentPeriod: 1,
+        gameStatus: 'notStarted' as const,
+        selectedPlayerIds: [],
+        assessments: {
+          player1: {
+            overall: 7,
+            sliders: {
+              intensity: 7,
+            },
+            notes: 'Great effort',
+          },
+        },
+        seasonId: undefined,
+        tournamentId: undefined,
+        tacticalDiscs: [],
+        tacticalDrawings: [],
+        tacticalBallPosition: null,
+      } as unknown as AppState;
+
+      const result = await saveGame('legacy_game', legacyGame);
+
+      expect(result.assessments?.player1).toEqual(
+        expect.objectContaining({
+          overall: 7,
+          notes: 'Great effort',
+          minutesPlayed: 0,
+          createdAt: 1700000000000,
+          createdBy: 'imported',
+        }),
+      );
+      expect(result.seasonId).toBe('');
+      expect(result.tournamentId).toBe('');
+
+      const storedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
+      expect(storedCollection['legacy_game'].assessments.player1.sliders).toMatchObject({
+        intensity: 7,
+        courage: 7,
+        duels: 7,
+        technique: 7,
+        creativity: 7,
+        decisions: 7,
+        awareness: 7,
+        teamwork: 7,
+        fair_play: 7,
+        impact: 7,
+      });
+
+      nowSpy.mockRestore();
+    });
+  });
+
+  it('normalizes legacy fields when saving multiple games', async () => {
+    const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(1800000000000);
+    mockSetStorageItem.mockReset();
+
+    const legacyCollection: SavedGamesCollection = {
+      old_game: {
+        playersOnField: [],
+        opponents: [],
+        drawings: [],
+        availablePlayers: [],
+        showPlayerNames: false,
+        teamName: 'Old Team',
+        gameEvents: [],
+        opponentName: 'Historic Opp',
+        gameDate: '2023-01-01',
+        homeScore: 2,
+        awayScore: 1,
+        gameNotes: 'note',
+        homeOrAway: 'home',
+        numberOfPeriods: 2,
+        periodDurationMinutes: 10,
+        currentPeriod: 1,
+        gameStatus: 'gameEnd',
+        selectedPlayerIds: [],
+        assessments: {
+          legacy: {
+            overall: 8,
+            sliders: {
+              intensity: 8,
+              courage: 7,
+              duels: 7,
+              technique: 7,
+              creativity: 7,
+              decisions: 7,
+              awareness: 7,
+              teamwork: 7,
+              fair_play: 7,
+              impact: 7,
+            },
+            notes: '',
+          },
+        },
+        seasonId: undefined as unknown as string,
+        tournamentId: undefined as unknown as string,
+        tacticalDiscs: [],
+        tacticalDrawings: [],
+        tacticalBallPosition: null,
+      } as unknown as AppState,
+    };
+
+    await saveGames(legacyCollection);
+
+    expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
+    const storedPayload = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
+    expect(storedPayload.old_game.seasonId).toBe('');
+    expect(storedPayload.old_game.assessments.legacy.createdBy).toBe('imported');
+    expect(storedPayload.old_game.assessments.legacy.createdAt).toBe(1800000000000);
+
+    nowSpy.mockRestore();
   });
 
   describe('deleteGame', () => {
@@ -240,7 +375,7 @@ describe('Saved Games Utilities', () => {
       expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
       const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
       expect(savedCollection['game_123']).toBeUndefined();
-      expect(savedCollection['game_456']).toEqual(mockGame2_AppState);
+      expect(savedCollection['game_456']).toEqual(expect.objectContaining(mockGame2_AppState));
     });
 
      it('should return null if game to delete is not found', async () => {
@@ -550,8 +685,8 @@ describe('Saved Games Utilities', () => {
       
       expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
       const saved = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
-      expect(saved['existing_game_id']).toEqual(mockGame1_AppState);
-      expect(saved['imported_1']).toMatchObject(gamesToImport['imported_1']);
+      expect(saved['existing_game_id']).toEqual(expect.objectContaining(mockGame1_AppState));
+      expect(saved['imported_1']).toEqual(expect.objectContaining(gamesToImport['imported_1']));
       expect(saved['imported_1'].demandFactor).toBe(1); // Schema adds default value
     });
 
@@ -569,9 +704,9 @@ describe('Saved Games Utilities', () => {
       expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
       const saved = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
       // Check each game matches but allow for schema defaults
-      expect(saved['imported_1']).toMatchObject(gamesToImport['imported_1']);
+      expect(saved['imported_1']).toEqual(expect.objectContaining(gamesToImport['imported_1']));
       expect(saved['imported_1'].demandFactor).toBe(1);
-      expect(saved['existing_game_id']).toMatchObject(gamesToImport['existing_game_id']);
+      expect(saved['existing_game_id']).toEqual(expect.objectContaining(gamesToImport['existing_game_id']));
       expect(saved['existing_game_id'].demandFactor).toBe(1);
     });
 

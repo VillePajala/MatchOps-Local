@@ -1,3 +1,4 @@
+import type { QueryClient } from "@tanstack/react-query";
 import { SavedGamesCollection } from "@/types"; // AppState was removed, SavedGamesCollection is still used.
 import { Player, Season, Tournament } from "@/types"; // Corrected import path for these types
 // Import the constants from the central file
@@ -12,6 +13,7 @@ import {
   TEAM_ROSTERS_KEY,
   PERSONNEL_KEY,
 } from "@/config/storageKeys";
+import { queryKeys } from "@/config/queryKeys";
 import logger from "@/utils/logger";
 import i18n from "i18next";
 // Import the new async storage helper functions
@@ -128,9 +130,11 @@ export const exportFullBackup = async (
  * Imports application data from a backup file, restoring all saved games, roster, and settings.
  *
  * @param jsonContent - The JSON string containing the backup data
- * @param onImportSuccess - Optional callback to execute after successful import (e.g., refresh app state)
- * @param showToast - Optional toast notification function for user feedback
- * @param confirmed - When true, bypasses the confirmation prompt for React component usage.
+ * @param options - Optional configuration for the import flow:
+ *                  - onImportSuccess: callback to execute after successful import (e.g., refresh app state)
+ *                  - showToast: toast notification function for user feedback
+ *                  - confirmed: when true, bypasses the confirmation prompt for React component usage
+ *                  - queryClient: TanStack Query client used to invalidate cached data post-restore (required when onImportSuccess is provided)
  *                    React components should show ConfirmationModal first, then pass confirmed=true.
  *                    The window.confirm fallback (lines 156-161) is intentional for CLI/utility-only usage
  *                    and maintains backward compatibility with direct function calls outside React context.
@@ -140,20 +144,43 @@ export const exportFullBackup = async (
  * @example
  * // From React component (preferred)
  * const handleConfirm = async () => {
- *   await importFullBackup(jsonContent, onSuccess, showToast, true); // confirmed=true
+ *   await importFullBackup(jsonContent, {
+ *     onImportSuccess: onSuccess,
+ *     showToast,
+ *     confirmed: true,
+ *   });
  * };
  *
  * @example
  * // Direct usage (CLI/utility scripts) - uses window.confirm fallback
  * await importFullBackup(jsonContent); // confirmed=undefined, triggers window.confirm
- */
+*/
+export type ImportFullBackupOptions =
+  | {
+      onImportSuccess?: never;
+      showToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
+      confirmed?: boolean;
+      queryClient?: never;
+    }
+  | {
+      onImportSuccess: () => void;
+      showToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
+      confirmed?: boolean;
+      queryClient: QueryClient;
+    };
+
 export const importFullBackup = async (
   jsonContent: string,
-  onImportSuccess?: () => void,
-  showToast?: (message: string, type?: 'success' | 'error' | 'info') => void,
-  confirmed?: boolean
+  options: ImportFullBackupOptions = {},
 ): Promise<boolean> => {
   logger.log("Starting full backup import...");
+  const {
+    onImportSuccess,
+    showToast,
+    confirmed,
+    queryClient,
+  } = options;
+
   try {
     const backupData: FullBackupData = JSON.parse(jsonContent);
 
@@ -319,6 +346,46 @@ export const importFullBackup = async (
       showToast(i18n.t("fullBackup.restoreSuccess"), 'success');
     } else {
       alert(i18n.t("fullBackup.restoreSuccess"));
+    }
+
+    if (queryClient) {
+      const keysToInvalidate = [
+        queryKeys.masterRoster,
+        queryKeys.savedGames,
+        queryKeys.seasons,
+        queryKeys.tournaments,
+        queryKeys.teams,
+        queryKeys.personnel,
+        queryKeys.settings.all,
+        queryKeys.appSettingsCurrentGameId,
+      ] as const;
+
+      const failedKeys: string[] = [];
+
+      await Promise.all(
+        keysToInvalidate.map(async (key) => {
+          try {
+            await queryClient.invalidateQueries({ queryKey: key, exact: false });
+          } catch (error) {
+            const keyLabel = Array.isArray(key) ? key.join('.') : String(key);
+            logger.error('[fullBackup] Failed to invalidate query key after restore:', keyLabel, error);
+            failedKeys.push(keyLabel);
+          }
+        }),
+      );
+
+      if (failedKeys.length > 0) {
+        const partialRefreshMessage = i18n.t(
+          'fullBackup.restorePartialRefreshWarning',
+          'Data restored, but some updates may require a page refresh.',
+        );
+
+        if (showToast) {
+          showToast(partialRefreshMessage, 'info');
+        } else {
+          alert(partialRefreshMessage);
+        }
+      }
     }
 
     // Use callback to refresh app state without reload, or fallback to reload
