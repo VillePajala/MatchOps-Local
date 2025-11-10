@@ -6,7 +6,9 @@
 **Target Size**: 150 lines (orchestrator only)
 **Estimated Effort**: 2-3 hours
 **Impact**: HIGH - Blocks all major feature development
-**Status**: ❌ Not Started
+**Status**: ⏸ Superseded by Micro Roadmap
+
+Note: This big‑bang refactor plan is superseded by the small, test‑gated steps in `docs/03-active-plans/MICRO-REFactor-ROADMAP.md`. We will execute Layer 1 tasks in micro‑steps (1.0–1.7), then consider Layer 2/3 once the app is stable.
 
 ---
 

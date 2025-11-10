@@ -20,7 +20,7 @@ import GoalLogModal from '@/components/GoalLogModal';
 import GameStatsModal from '@/components/GameStatsModal';
 import TrainingResourcesModal from '@/components/TrainingResourcesModal';
 import LoadGameModal from '@/components/LoadGameModal';
-import NewGameSetupModal, { type NewGameSetupModalProps } from '@/components/NewGameSetupModal';
+import NewGameSetupModal from '@/components/NewGameSetupModal';
 import RosterSettingsModal from '@/components/RosterSettingsModal';
 import GameSettingsModal from '@/components/GameSettingsModal';
 import SettingsModal from '@/components/SettingsModal';
@@ -29,7 +29,6 @@ import TeamManagerModal from '@/components/TeamManagerModal';
 import InstructionsModal from '@/components/InstructionsModal';
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
 import ConfirmationModal from '@/components/ConfirmationModal';
-import PersonnelManagerModal from '@/components/PersonnelManagerModal';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Types
@@ -45,7 +44,6 @@ import type {
   PlayerStatRow,
 } from '@/types';
 import type { UseGameOrchestrationReturn } from '../hooks/useGameOrchestration';
-import type { PersonnelManagerReturn } from '@/hooks/usePersonnelManager';
 import { useModalContext } from '@/contexts/ModalProvider';
 import { useToast } from '@/contexts/ToastProvider';
 import { exportFullBackup } from '@/utils/fullBackup';
@@ -77,12 +75,12 @@ type MutationMetaBase = {
 
 type MutationMeta = MutationMetaBase & { sequence: number };
 
-export interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
+interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   // Modal-specific states
   selectedPlayerForStats: Player | null;
   isTeamManagerOpen: boolean;
-  isTeamRosterModalOpen?: boolean;
-  selectedTeamForRoster?: string | null;
+  isTeamRosterModalOpen: boolean;
+  selectedTeamForRoster: string | null;
   showNoPlayersConfirm: boolean;
   showHardResetConfirm: boolean;
   showSaveBeforeNewConfirm: boolean;
@@ -91,7 +89,6 @@ export interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   isTeamReassignModalOpen: boolean;
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
   availableTeams: Team[];
-  teamLoadError: string | null;
   isLoadingGamesList: boolean;
   loadGamesListError: string | null;
   isGameLoading: boolean;
@@ -106,9 +103,6 @@ export interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   appLanguage: string;
   isInstructionsModalOpen: boolean;
   personnel: Personnel[];
-  personnelManager: PersonnelManagerReturn;
-  isPersonnelManagerOpen: boolean;
-  onClosePersonnelManager: () => void;
 
   // Handlers
   handleToggleGoalLogModal: () => void;
@@ -126,9 +120,9 @@ export interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   handleDeleteGame: (gameId: string) => void;
   handleExportOneJson: (gameId: string) => void;
   setIsNewGameSetupModalOpen: (open: boolean) => void;
-  setSelectedTeamForRoster?: (teamId: string | null) => void;
-  setIsTeamRosterModalOpen?: (open: boolean) => void;
-  handleStartNewGameWithSetup: NewGameSetupModalProps['onStart'];
+  setSelectedTeamForRoster: (teamId: string | null) => void;
+  setIsTeamRosterModalOpen: (open: boolean) => void;
+  handleStartNewGameWithSetup: (data: unknown) => void;
   handleCancelNewGameSetup: () => void;
   setNewGameDemandFactor: (factor: number) => void;
   closeRosterModal: () => void;
@@ -176,9 +170,9 @@ export interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   handleSavePlayerAssessment: (playerId: string, assessment: Partial<PlayerAssessment>) => void;
   handleDeletePlayerAssessment: (playerId: string) => void;
   handleCloseTeamManagerModal: () => void;
-  handleManageTeamRoster?: (teamId: string) => void;
-  handleCloseTeamRosterModal?: () => void;
-  handleBackToTeamManager?: () => void;
+  handleManageTeamRoster: (teamId: string) => void;
+  handleCloseTeamRosterModal: () => void;
+  handleBackToTeamManager: () => void;
   handleToggleTrainingResources: () => void;
   handleToggleInstructionsModal: () => void;
   setShowNoPlayersConfirm: (show: boolean) => void;
@@ -197,10 +191,6 @@ export interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
 export function ModalManager(props: ModalManagerProps) {
   const { t } = useTranslation();
   const { showToast } = useToast();
-
-  const rosterPlayers = (props.masterRosterQueryResultData && props.masterRosterQueryResultData.length > 0)
-    ? props.masterRosterQueryResultData
-    : props.availablePlayers || [];
 
   const {
     isGoalLogModalOpen,
@@ -239,7 +229,6 @@ export function ModalManager(props: ModalManagerProps) {
     isTeamReassignModalOpen,
     orphanedGameInfo,
     availableTeams,
-    teamLoadError,
     isLoadingGamesList,
     loadGamesListError,
     isGameLoading,
@@ -333,9 +322,6 @@ export function ModalManager(props: ModalManagerProps) {
     handleStartNewConfirmed,
     setIsTeamReassignModalOpen,
     handleTeamReassignment,
-    personnelManager,
-    isPersonnelManagerOpen,
-    onClosePersonnelManager,
   } = props;
 
   if (!gameSessionState) return null;
@@ -353,19 +339,6 @@ export function ModalManager(props: ModalManagerProps) {
         isOpen={isInstructionsModalOpen || false}
         onClose={handleToggleInstructionsModal || (() => {})}
       />
-
-      {/* Personnel Manager Modal */}
-      <ErrorBoundary>
-        <PersonnelManagerModal
-          isOpen={isPersonnelManagerOpen || false}
-          onClose={onClosePersonnelManager}
-          personnel={personnelManager.personnel}
-          onAddPersonnel={personnelManager.addPersonnel}
-          onUpdatePersonnel={personnelManager.updatePersonnel}
-          onRemovePersonnel={personnelManager.removePersonnel}
-          isUpdating={personnelManager.isLoading}
-        />
-      </ErrorBoundary>
 
       {/* Team Manager Modal */}
       <ErrorBoundary>
@@ -471,7 +444,7 @@ export function ModalManager(props: ModalManagerProps) {
       <RosterSettingsModal
         isOpen={isRosterModalOpen || false}
         onClose={closeRosterModal || (() => {})}
-        availablePlayers={rosterPlayers}
+        availablePlayers={availablePlayers || []}
         onUpdatePlayer={handleUpdatePlayerForModal || (() => {})}
         onRenamePlayer={handleRenamePlayerForModal || (() => {})}
         onSetJerseyNumber={handleSetJerseyNumberForModal || (() => {})}
@@ -484,26 +457,19 @@ export function ModalManager(props: ModalManagerProps) {
       />
 
       {/* Season & Tournament Management Modal */}
-      {addSeasonMutation &&
-        addTournamentMutation &&
-        updateSeasonMutation &&
-        deleteSeasonMutation &&
-        updateTournamentMutation &&
-        deleteTournamentMutation && (
-          <SeasonTournamentManagementModal
-            isOpen={isSeasonTournamentModalOpen || false}
-            onClose={handleCloseSeasonTournamentModal || (() => {})}
-            seasons={seasons || []}
-            tournaments={tournaments || []}
-            masterRoster={masterRosterQueryResultData || []}
-            addSeasonMutation={addSeasonMutation}
-            addTournamentMutation={addTournamentMutation}
-            updateSeasonMutation={updateSeasonMutation}
-            deleteSeasonMutation={deleteSeasonMutation}
-            updateTournamentMutation={updateTournamentMutation}
-            deleteTournamentMutation={deleteTournamentMutation}
-          />
-        )}
+      <SeasonTournamentManagementModal
+        isOpen={isSeasonTournamentModalOpen || false}
+        onClose={handleCloseSeasonTournamentModal || (() => {})}
+        seasons={seasons || []}
+        tournaments={tournaments || []}
+        masterRoster={masterRosterQueryResultData || []}
+        addSeasonMutation={addSeasonMutation!}
+        addTournamentMutation={addTournamentMutation!}
+        updateSeasonMutation={updateSeasonMutation!}
+        deleteSeasonMutation={deleteSeasonMutation!}
+        updateTournamentMutation={updateTournamentMutation!}
+        deleteTournamentMutation={deleteTournamentMutation!}
+      />
 
       {/* Game Settings Modal */}
       <GameSettingsModal
@@ -612,12 +578,6 @@ export function ModalManager(props: ModalManagerProps) {
             <p className="text-slate-300 mb-4">
               {t('orphanedGame.reassignDescription', 'Select a team to associate this game with, or choose "No Team" to use the master roster.')}
             </p>
-
-            {teamLoadError && (
-              <div className="text-red-400 text-sm mb-3 p-3 bg-red-900/20 rounded border border-red-800">
-                {teamLoadError}
-              </div>
-            )}
 
             <div className="space-y-2 mb-6 max-h-60 overflow-y-auto">
               <button

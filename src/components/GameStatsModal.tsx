@@ -111,16 +111,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
 
-  // Close on Escape for better UX
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, onClose]);
-
   // Date formatting helper
   const formatDisplayDate = useCallback((isoDate: string): string => {
     if (!isoDate) return t('common.notSet', 'Ei asetettu');

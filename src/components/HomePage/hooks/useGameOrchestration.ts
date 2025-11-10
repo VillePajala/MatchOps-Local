@@ -46,8 +46,6 @@ import {
   getLastHomeTeamName as utilGetLastHomeTeamName,
   updateAppSettings as utilUpdateAppSettings,
 } from '@/utils/appSettings';
-import logger from '@/utils/logger';
-import { getLocalISODate } from '@/utils/time';
 
 // Config
 import { DEFAULT_GAME_ID } from '@/config/constants';
@@ -64,7 +62,7 @@ const initialState: AppState = {
   teamName: 'My Team',
   gameEvents: [],
   opponentName: 'Opponent',
-  gameDate: getLocalISODate(),
+  gameDate: new Date().toISOString().split('T')[0],
   homeScore: 0,
   awayScore: 0,
   gameNotes: '',
@@ -104,10 +102,7 @@ export function useGameOrchestration({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
-  // NOTE: These parameters are accepted for interface compatibility with HomePage,
-  // but the initial action logic (opening modals, showing guides, etc.) is currently
-  // handled directly in HomePage.tsx rather than in this orchestration hook.
-  // Future refactoring could move this logic here for better separation of concerns.
+  // TODO: Use initialAction, skipInitialSetup, isFirstTimeUser in final HomePage integration
   void _initialAction;
   void _skipInitialSetup;
   void _isFirstTimeUser;
@@ -348,10 +343,7 @@ export function useGameOrchestration({
   // --- Language Effect ---
   useEffect(() => {
     i18n.changeLanguage(appLanguage);
-    utilUpdateAppSettings({ language: appLanguage }).catch((error) => {
-      logger.error('[useGameOrchestration] Failed to save language setting:', error);
-      // Non-critical - language still changed in UI even if storage fails
-    });
+    utilUpdateAppSettings({ language: appLanguage }).catch(() => {});
   }, [appLanguage]);
 
   // --- Load Default Team Name ---

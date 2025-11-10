@@ -51,12 +51,10 @@ export interface IntervalLog {
 // The actual initial state will be derived from page.tsx's initialState object.
 // This is just a placeholder for type completeness if needed directly in this file,
 // but generally, the page will provide the true initial state.
-import { getLocalISODate } from '@/utils/time';
-
 export const initialGameSessionStatePlaceholder: GameSessionState = {
   teamName: "My Team",
   opponentName: "Opponent",
-  gameDate: getLocalISODate(),
+  gameDate: new Date().toISOString().split('T')[0],
   homeScore: 0,
   awayScore: 0,
   gameNotes: '',

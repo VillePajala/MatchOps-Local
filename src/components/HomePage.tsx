@@ -1,26 +1,70 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { GameContainer } from '@/components/HomePage/containers/GameContainer';
-import { ModalManager } from '@/components/HomePage/containers/ModalManager';
+import React, { useState, useEffect, useCallback, useReducer, useRef } from 'react';
+import SoccerField from '@/components/SoccerField';
+import PlayerBar from '@/components/PlayerBar';
+import ControlBar from '@/components/ControlBar';
+import TimerOverlay from '@/components/TimerOverlay';
+import GoalLogModal from '@/components/GoalLogModal';
+import GameStatsModal from '@/components/GameStatsModal';
+import TrainingResourcesModal from '@/components/TrainingResourcesModal';
+import LoadGameModal from '@/components/LoadGameModal';
+import NewGameSetupModal from '@/components/NewGameSetupModal';
+import RosterSettingsModal from '@/components/RosterSettingsModal';
+import GameSettingsModal from '@/components/GameSettingsModal';
+import SettingsModal from '@/components/SettingsModal';
+import SeasonTournamentManagementModal from '@/components/SeasonTournamentManagementModal';
+import TeamManagerModal from '@/components/TeamManagerModal';
+import PersonnelManagerModal from '@/components/PersonnelManagerModal';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import InstructionsModal from '@/components/InstructionsModal';
+import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
+import ConfirmationModal from '@/components/ConfirmationModal';
+import usePlayerAssessments from '@/hooks/usePlayerAssessments';
+import { exportFullBackup } from '@/utils/fullBackup';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n';
+import { useGameState, UseGameStateReturn } from '@/hooks/useGameState';
+import GameInfoBar from '@/components/GameInfoBar';
+import { useGameTimer } from '@/hooks/useGameTimer';
 import { useAutoSave } from '@/hooks/useAutoSave';
-import { saveGame as utilSaveGame, createGame, getSavedGames as utilGetSavedGames, removeGameEvent } from '@/utils/savedGames';
+// Import the new game session reducer and related types
+import {
+  gameSessionReducer,
+  GameSessionState,
+  // initialGameSessionStatePlaceholder // We will derive initial state from page.tsx's initialState
+} from '@/hooks/useGameSessionReducer';
+// Import roster utility functions
+// roster mutations now managed inside useRoster hook
+
+// Removed unused import of utilGetMasterRoster
+
+// Import utility functions for seasons and tournaments
+import { saveGame as utilSaveGame, deleteGame as utilDeleteGame, getLatestGameId, createGame, getSavedGames as utilGetSavedGames, removeGameEvent } from '@/utils/savedGames';
 import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
   resetAppSettings as utilResetAppSettings,
   getHasSeenAppGuide,
   saveHasSeenAppGuide,
+  getLastHomeTeamName as utilGetLastHomeTeamName,
+  saveLastHomeTeamName as utilSaveLastHomeTeamName,
+  updateAppSettings as utilUpdateAppSettings,
 } from '@/utils/appSettings';
 import { deleteSeason as utilDeleteSeason, updateSeason as utilUpdateSeason, addSeason as utilAddSeason } from '@/utils/seasons';
 import { deleteTournament as utilDeleteTournament, updateTournament as utilUpdateTournament, addTournament as utilAddTournament } from '@/utils/tournaments';
+import { getTeams, getTeam } from '@/utils/teams';
 // Import Player from types directory
-import { Player, Season, Tournament } from '@/types';
+import { Player, Season, Tournament, Team } from '@/types';
 // Import saveMasterRoster utility
 import type { GameEvent, AppState, SavedGamesCollection, TimerState, PlayerAssessment } from "@/types";
-import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
-import { getLocalISODate } from '@/utils/time';
 import { saveMasterRoster } from '@/utils/masterRoster';
-import { useMutation } from '@tanstack/react-query';
+// Import useQuery, useMutation, useQueryClient
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useGameDataQueries } from '@/hooks/useGameDataQueries';
+import { useUndoRedo } from '@/hooks/useUndoRedo';
+import { useTacticalBoard } from '@/hooks/useTacticalBoard';
+import { useRoster } from '@/hooks/useRoster';
+import { useTeamsQuery } from '@/hooks/useTeamQueries';
 import { usePersonnelManager } from '@/hooks/usePersonnelManager';
 import { useModalContext } from '@/contexts/ModalProvider';
 // Import async storage utilities
@@ -37,13 +81,22 @@ import { DEFAULT_GAME_ID } from '@/config/constants';
 import { MASTER_ROSTER_KEY, TIMER_STATE_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
 import { exportJson } from '@/utils/exportGames';
 import { exportCurrentGameExcel, exportAggregateExcel, exportPlayerExcel } from '@/utils/exportExcel';
+import { 
+  HiOutlineSquares2X2,
+  HiOutlinePlusCircle,
+  HiOutlineBackspace,
+  HiOutlineTrash,
+  HiOutlineClipboard,
+  HiOutlineUsers,
+  HiOutlineAdjustmentsHorizontal,
+  HiOutlineClipboardDocumentList,
+  HiOutlineClock,
+  HiOutlineQuestionMarkCircle,
+  HiBars3,
+} from 'react-icons/hi2';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
-import { useHomeModalControls } from './HomePage/hooks/useHomeModalControls';
-import { useNewGameFlow } from './HomePage/hooks/useNewGameFlow';
-import { useSavedGameManager } from './HomePage/hooks/useSavedGameManager';
-import { useGameOrchestration } from './HomePage/hooks/useGameOrchestration';
-import type { FieldContainerProps } from './HomePage/containers/FieldContainer';
+import { startNewGameWithSetup, cancelNewGameSetup } from './HomePage/utils/newGameHandlers';
 
 
 // Empty initial data for clean app start
@@ -59,7 +112,7 @@ const initialState: AppState = {
   gameEvents: [], // Initialize game events as empty array
   // Initialize game info
   opponentName: "Opponent",
-  gameDate: getLocalISODate(), // Default to today's local date YYYY-MM-DD
+  gameDate: new Date().toISOString().split('T')[0], // Default to today's date YYYY-MM-DD
   homeScore: 0,
   awayScore: 0,
   gameNotes: '', // Initialize game notes as empty string
@@ -99,33 +152,221 @@ interface HomePageProps {
 function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess, isFirstTimeUser = false }: HomePageProps) {
   // Sync hasSkippedInitialSetup with prop to prevent flash
   const [hasSkippedInitialSetup, setHasSkippedInitialSetup] = useState<boolean>(skipInitialSetup);
+  const { t } = useTranslation(); // Get translation function
+  const queryClient = useQueryClient(); // Get query client instance
 
+ 
+  
+  // --- Initialize Game Session Reducer ---
+  // Map necessary fields from page.tsx's initialState to GameSessionState
+  const initialGameSessionData: GameSessionState = {
+    teamName: initialState.teamName,
+    opponentName: initialState.opponentName,
+    gameDate: initialState.gameDate,
+    homeScore: initialState.homeScore,
+    awayScore: initialState.awayScore,
+    gameNotes: initialState.gameNotes,
+    homeOrAway: initialState.homeOrAway,
+    numberOfPeriods: initialState.numberOfPeriods,
+    periodDurationMinutes: initialState.periodDurationMinutes,
+    currentPeriod: initialState.currentPeriod,
+    gameStatus: initialState.gameStatus,
+    demandFactor: initialState.demandFactor ?? 1,
+    selectedPlayerIds: initialState.selectedPlayerIds,
+    gamePersonnel: initialState.gamePersonnel ?? [],
+    seasonId: initialState.seasonId,
+    tournamentId: initialState.tournamentId,
+    ageGroup: initialState.ageGroup,
+    tournamentLevel: initialState.tournamentLevel,
+    gameLocation: initialState.gameLocation,
+    gameTime: initialState.gameTime,
+    gameEvents: initialState.gameEvents,
+    timeElapsedInSeconds: 0, // Initial timer state should be 0
+    isTimerRunning: false,    // Initial timer state
+    subIntervalMinutes: initialState.subIntervalMinutes ?? 5,
+    nextSubDueTimeSeconds: (initialState.subIntervalMinutes ?? 5) * 60,
+    subAlertLevel: 'none',
+    lastSubConfirmationTimeSeconds: 0,
+    completedIntervalDurations: initialState.completedIntervalDurations || [],
+    showPlayerNames: initialState.showPlayerNames,
+    startTimestamp: null,
+  };
+
+  const [gameSessionState, dispatchGameSession] = useReducer(gameSessionReducer, initialGameSessionData);
+
+
+  useEffect(() => {
+  }, [gameSessionState]);
+
+  // --- History Management ---
   const {
-    gameSessionState,
-    dispatchGameSession,
-    saveStateToHistory,
-    resetHistory,
-    undoHistory,
-    redoHistory,
+    state: currentHistoryState,
+    set: pushHistoryState,
+    reset: resetHistory,
+    undo: undoHistory,
+    redo: redoHistory,
     canUndo,
     canRedo,
+  } = useUndoRedo<AppState>(initialState);
+
+  const saveStateToHistory = useCallback((newState: Partial<AppState>) => {
+    if (!currentHistoryState) return; // Should not happen
+
+    // If newState includes seasonId, ensure tournamentId is cleared if seasonId is truthy
+    // This mirrors the reducer logic for SET_SEASON_ID.
+    // Similarly, if newState includes tournamentId, ensure seasonId is cleared if tournamentId is truthy.
+    const adjustedNewState: Partial<AppState> = {
+      ...newState,
+      ...(newState.seasonId && newState.tournamentId === undefined 
+          ? { tournamentId: '' } 
+          : {}),
+      ...(newState.tournamentId && newState.seasonId === undefined 
+          ? { seasonId: '' } 
+          : {}),
+    };
+
+    // Only compare the fields present in adjustedNewState to avoid
+    // expensive deep comparison of the full state tree.
+    const hasRelevantChanges = Object.keys(adjustedNewState).some((key) => {
+      const k = key as keyof AppState;
+      const prevVal = currentHistoryState[k];
+      // For primitives, strict equality is enough; for objects/arrays,
+      // fall back to a lightweight structural check via JSON serialization.
+      if (
+        prevVal === (adjustedNewState as AppState)[k]
+      ) {
+        return false;
+      }
+      // If both are objects/arrays, do a cheap structural compare per field
+      const isObjectLike = (val: unknown) => typeof val === 'object' && val !== null;
+      if (isObjectLike(prevVal) && isObjectLike((adjustedNewState as AppState)[k])) {
+        try {
+          return JSON.stringify(prevVal) !== JSON.stringify((adjustedNewState as AppState)[k]);
+        } catch {
+          // On serialization failure, assume changed to be safe
+          return true;
+        }
+      }
+      return true;
+    });
+
+    if (!hasRelevantChanges) return; // Don't save if nothing changed in provided fields
+
+    const nextState: AppState = { ...currentHistoryState, ...adjustedNewState };
+
+    pushHistoryState(nextState);
+
+  }, [currentHistoryState, pushHistoryState]);
+
+  const buildGameSessionHistorySlice = useCallback((state: GameSessionState) => {
+    const slice = {
+      teamName: state.teamName,
+      opponentName: state.opponentName,
+      gameDate: state.gameDate,
+      homeScore: state.homeScore,
+      awayScore: state.awayScore,
+      gameNotes: state.gameNotes,
+      homeOrAway: state.homeOrAway,
+      numberOfPeriods: state.numberOfPeriods,
+      periodDurationMinutes: state.periodDurationMinutes,
+      currentPeriod: state.currentPeriod,
+      gameStatus: state.gameStatus,
+      selectedPlayerIds: state.selectedPlayerIds,
+      gamePersonnel: state.gamePersonnel,
+      seasonId: state.seasonId,
+      tournamentId: state.tournamentId,
+      teamId: state.teamId,
+      ageGroup: state.ageGroup,
+      tournamentLevel: state.tournamentLevel,
+      gameLocation: state.gameLocation,
+      gameTime: state.gameTime,
+      gameEvents: state.gameEvents,
+      demandFactor: state.demandFactor,
+      subIntervalMinutes: state.subIntervalMinutes,
+      completedIntervalDurations: state.completedIntervalDurations,
+      lastSubConfirmationTimeSeconds: state.lastSubConfirmationTimeSeconds,
+      showPlayerNames: state.showPlayerNames,
+    } satisfies Partial<AppState>;
+    return slice;
+  }, []);
+
+  // --- Effect to save gameSessionState changes to history ---
+  useEffect(() => {
+    // This effect runs after gameSessionState has been updated by the reducer.
+    // It constructs the relevant slice of AppState from the new gameSessionState
+    // and saves it to the history.
+    const gameSessionHistorySlice = buildGameSessionHistorySlice(gameSessionState);
+    // saveStateToHistory will merge this with other non-gameSessionState parts of AppState
+    // (like playersOnField, opponents, drawings) that are handled elsewhere.
+    saveStateToHistory(gameSessionHistorySlice);
+  }, [gameSessionState, saveStateToHistory, buildGameSessionHistorySlice]);
+  // END --- Effect to save gameSessionState changes to history ---
+
+  // --- Load game data via hook ---
+  const {
+    masterRoster: masterRosterQueryResultData,
+    seasons: seasonsQueryResultData,
+    tournaments: tournamentsQueryResultData,
+    savedGames: allSavedGamesQueryResultData,
+    currentGameId: currentGameIdSettingQueryResultData,
+    loading: isGameDataLoading,
+    error: gameDataError,
+  } = useGameDataQueries();
+
+  // Teams query for multi-team support
+  const { data: teams = [] } = useTeamsQuery();
+
+  // Personnel management with consolidated hook
+  const personnelManager = usePersonnelManager();
+
+  const isMasterRosterQueryLoading = isGameDataLoading;
+  const areSeasonsQueryLoading = isGameDataLoading;
+  const areTournamentsQueryLoading = isGameDataLoading;
+  const isAllSavedGamesQueryLoading = isGameDataLoading;
+  const isCurrentGameIdSettingQueryLoading = isGameDataLoading;
+
+  const isMasterRosterQueryError = !!gameDataError;
+  const isSeasonsQueryError = !!gameDataError;
+  const isTournamentsQueryError = !!gameDataError;
+  const isAllSavedGamesQueryError = !!gameDataError;
+  const isCurrentGameIdSettingQueryError = !!gameDataError;
+
+  const masterRosterQueryErrorData = gameDataError;
+  const seasonsQueryErrorData = gameDataError;
+  const tournamentsQueryErrorData = gameDataError;
+  const allSavedGamesQueryErrorData = gameDataError;
+  const currentGameIdSettingQueryErrorData = gameDataError;
+
+  // --- Core Game State (Managed by Hook) ---
+  const {
     playersOnField,
     opponents,
-    drawings,
+    drawings, // State from hook
     setPlayersOnField,
     setOpponents,
     setDrawings,
     handlePlayerDrop,
+    // Destructure drawing handlers from hook
     handleDrawingStart,
     handleDrawingAddPoint,
     handleDrawingEnd,
     handleClearDrawings,
+    // Get opponent handlers from hook
     handleAddOpponent,
     handleOpponentMove,
     handleOpponentMoveEnd,
     handleOpponentRemove,
+    // handleRenamePlayer, // This is the one from useGameState, will be passed to PlayerBar
+  }: UseGameStateReturn = useGameState({
+    initialState,
+    saveStateToHistory,
+    // masterRosterKey: MASTER_ROSTER_KEY, // Removed as no longer used by useGameState
+  });
+
+  const {
     availablePlayers,
     setAvailablePlayers,
+    highlightRosterButton,
     setHighlightRosterButton,
     isRosterUpdating,
     setRosterError,
@@ -134,6 +375,187 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     handleAddPlayer,
     handleUpdatePlayer,
     handleRemovePlayer,
+    // handleSetGoalieStatus, // No longer used - using per-game implementation
+  } = useRoster({
+    initialPlayers: initialState.availablePlayers,
+    selectedPlayerIds: gameSessionState.selectedPlayerIds,
+  });
+
+  // --- State Management (Remaining in Home component) ---
+  // const [showPlayerNames, setShowPlayerNames] = useState<boolean>(initialState.showPlayerNames); // REMOVE - Migrated to gameSessionState
+  // const [gameEvents, setGameEvents] = useState<GameEvent[]>(initialState.gameEvents); // REMOVE - Migrated to gameSessionState
+  // const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>(initialState.selectedPlayerIds); // REMOVE - Migrated to gameSessionState
+  // const [seasonId, setSeasonId] = useState<string>(initialState.seasonId); // REMOVE - Migrate to gameSessionState
+  // const [tournamentId, setTournamentId] = useState<string>(initialState.tournamentId); // REMOVE - Migrate to gameSessionState
+  // Add state for location and time
+  // const [gameLocation, setGameLocation] = useState<string>(initialState.gameLocation || ''); // REMOVE - Migrate to gameSessionState
+  // const [gameTime, setGameTime] = useState<string>(initialState.gameTime || ''); // REMOVE - Migrate to gameSessionState
+  // ... Timer state ...
+  // ... Modal states ...
+  // ... UI/Interaction states ...
+  const [draggingPlayerFromBarInfo, setDraggingPlayerFromBarInfo] = useState<Player | null>(null);
+  // Persistence state
+  const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
+  const [currentGameId, setCurrentGameId] = useState<string | null>(DEFAULT_GAME_ID);
+  const [isPlayed, setIsPlayed] = useState<boolean>(true);
+  
+  // This ref needs to be declared after currentGameId
+  const gameIdRef = useRef(currentGameId);
+
+  useEffect(() => { gameIdRef.current = currentGameId; }, [currentGameId]);
+
+  const {
+    assessments: playerAssessments,
+    saveAssessment,
+    deleteAssessment,
+  } = usePlayerAssessments(
+    currentGameId || '',
+    gameSessionState.completedIntervalDurations,
+  );
+
+  const {
+    timeElapsedInSeconds,
+    isTimerRunning,
+    subAlertLevel,
+    lastSubConfirmationTimeSeconds,
+    startPause: handleStartPauseTimer,
+    reset: handleResetTimer,
+    ackSubstitution: handleSubstitutionMade,
+    setSubInterval: handleSetSubInterval,
+  } = useGameTimer({ state: gameSessionState, dispatch: dispatchGameSession, currentGameId: currentGameId || '' });
+
+  // ADD State for seasons/tournaments lists
+  const [seasons, setSeasons] = useState<Season[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  // <<< ADD: State for home/away status >>>
+  const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
+  // hasSkippedInitialSetup moved to top of component to prevent flash
+  const [defaultTeamNameSetting, setDefaultTeamNameSetting] = useState<string>('');
+  const [appLanguage, setAppLanguage] = useState<string>(i18n.language);
+
+  useEffect(() => {
+    utilGetLastHomeTeamName().then((name) => setDefaultTeamNameSetting(name));
+  }, []);
+
+
+
+  useEffect(() => {
+    i18n.changeLanguage(appLanguage);
+    utilUpdateAppSettings({ language: appLanguage }).catch(() => {});
+  }, [appLanguage]);
+  const {
+    isGameSettingsModalOpen,
+    setIsGameSettingsModalOpen,
+    isLoadGameModalOpen,
+    setIsLoadGameModalOpen,
+    isRosterModalOpen,
+    setIsRosterModalOpen,
+    isSeasonTournamentModalOpen,
+    setIsSeasonTournamentModalOpen,
+    isTrainingResourcesOpen,
+    setIsTrainingResourcesOpen,
+    isGoalLogModalOpen,
+    setIsGoalLogModalOpen,
+    isGameStatsModalOpen,
+    setIsGameStatsModalOpen,
+    isNewGameSetupModalOpen,
+    setIsNewGameSetupModalOpen,
+    isSettingsModalOpen,
+    setIsSettingsModalOpen,
+    isPlayerAssessmentModalOpen,
+    setIsPlayerAssessmentModalOpen,
+  } = useModalContext();
+  const { showToast } = useToast();
+  // const [isPlayerStatsModalOpen, setIsPlayerStatsModalOpen] = useState(false);
+  const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<Player | null>(null);
+  const [isTeamManagerOpen, setIsTeamManagerOpen] = useState<boolean>(false);
+  const [isPersonnelManagerOpen, setIsPersonnelManagerOpen] = useState<boolean>(false);
+
+  // --- Timer State (Still needed here) ---
+  const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
+  const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState<boolean>(false);
+  const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
+  const [firstGameGuideStep, setFirstGameGuideStep] = useState<number>(0);
+  // Initialize as true for experienced users to prevent any flash
+  const [hasCheckedFirstGameGuide, setHasCheckedFirstGameGuide] = useState<boolean>(!isFirstTimeUser);
+
+  useEffect(() => {
+    if (!initialAction) return;
+    
+    // Only process the initial action once
+    const processAction = () => {
+      switch (initialAction) {
+        case 'newGame':
+          // Check if roster is empty before opening new game modal
+          if (availablePlayers.length === 0) {
+            setShowNoPlayersConfirm(true);
+          } else {
+            setIsNewGameSetupModalOpen(true);
+          }
+          break;
+        case 'loadGame':
+          setIsLoadGameModalOpen(true);
+          break;
+        case 'season':
+          setIsSeasonTournamentModalOpen(true);
+          break;
+        case 'stats':
+          setIsGameStatsModalOpen(true);
+          break;
+        case 'roster':
+          setIsRosterModalOpen(true);
+          break;
+        case 'teams':
+          setIsTeamManagerOpen(true);
+          break;
+        case 'settings':
+          setIsSettingsModalOpen(true);
+          break;
+        case 'explore':
+          // Explore mode - just let user access the temporary workspace
+          // The first-game overlay will appear automatically for DEFAULT_GAME_ID
+          // No modal needs to be opened, user can explore the interface freely
+          break;
+        default:
+          break;
+      }
+    };
+    
+    processAction();
+    // Only run once when initialAction changes, not when availablePlayers or t changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialAction]);
+  
+  // --- Modal States handled via context ---
+
+  // <<< ADD State to hold player IDs for the next new game >>>
+  const [playerIdsForNewGame, setPlayerIdsForNewGame] = useState<string[] | null>(null);
+  const [newGameDemandFactor, setNewGameDemandFactor] = useState(1);
+  // <<< ADD State for the roster prompt toast >>>
+  // const [showRosterPrompt, setShowRosterPrompt] = useState<boolean>(false);
+
+  // State for game saving error (loading state is from saveGameMutation.isLoading)
+
+  // NEW: States for LoadGameModal operations
+  const [isLoadingGamesList, setIsLoadingGamesList] = useState(false);
+
+  // Confirmation modal states
+  const [showNoPlayersConfirm, setShowNoPlayersConfirm] = useState(false);
+  const [showHardResetConfirm, setShowHardResetConfirm] = useState(false);
+  const [showSaveBeforeNewConfirm, setShowSaveBeforeNewConfirm] = useState(false);
+  const [gameIdentifierForSave, setGameIdentifierForSave] = useState<string>('');
+  const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
+  const [loadGamesListError, setLoadGamesListError] = useState<string | null>(null);
+  const [isGameLoading, setIsGameLoading] = useState(false); // For loading a specific game
+  const [gameLoadError, setGameLoadError] = useState<string | null>(null);
+  const [orphanedGameInfo, setOrphanedGameInfo] = useState<{ teamId: string; teamName?: string } | null>(null);
+  const [isTeamReassignModalOpen, setIsTeamReassignModalOpen] = useState(false);
+  const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
+  const [isGameDeleting, setIsGameDeleting] = useState(false); // For deleting a specific game
+  const [gameDeleteError, setGameDeleteError] = useState<string | null>(null);
+  const [processingGameId, setProcessingGameId] = useState<string | null>(null); // To track which game item is being processed
+  const [isResetting, setIsResetting] = useState(false); // For app reset operation
+  const {
     isTacticsBoardView,
     tacticalDiscs,
     setTacticalDiscs,
@@ -151,224 +573,72 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     handleTacticalDrawingAddPoint,
     handleTacticalDrawingEnd,
     clearTacticalElements,
-    playerAssessments,
-    saveAssessment,
-    deleteAssessment,
-    timeElapsedInSeconds,
-    isTimerRunning,
-    subAlertLevel,
-    lastSubConfirmationTimeSeconds,
-    handleStartPauseTimer,
-    handleResetTimer,
-    handleSubstitutionMade,
-    handleSetSubInterval,
-    masterRosterQueryResultData,
-    seasonsQueryResultData,
-    tournamentsQueryResultData,
-    allSavedGamesQueryResultData,
-    currentGameIdSettingQueryResultData,
-    isGameDataLoading,
-    gameDataError,
-    teams,
-    savedGames,
-    setSavedGames,
-    currentGameId,
-    setCurrentGameId,
-    seasons,
-    setSeasons,
-    tournaments,
-    setTournaments,
-    defaultTeamNameSetting,
-    setDefaultTeamNameSetting,
-    appLanguage,
-    setAppLanguage,
-    initialLoadComplete,
-    setInitialLoadComplete,
-    queryClient,
-    t,
-  } = useGameOrchestration({ initialAction, skipInitialSetup, isFirstTimeUser });
-
- 
-  
-  // Personnel management with consolidated hook
-  const personnelManager = usePersonnelManager();
-
-  const isMasterRosterQueryLoading = isGameDataLoading;
-  const areSeasonsQueryLoading = isGameDataLoading;
-  const areTournamentsQueryLoading = isGameDataLoading;
-  const isAllSavedGamesQueryLoading = isGameDataLoading;
-  const isCurrentGameIdSettingQueryLoading = isGameDataLoading;
-
-  const isMasterRosterQueryError = !!gameDataError;
-  const isSeasonsQueryError = !!gameDataError;
-  const isTournamentsQueryError = !!gameDataError;
-  const isAllSavedGamesQueryError = !!gameDataError;
-
-  const masterRosterQueryErrorData = gameDataError;
-  const seasonsQueryErrorData = gameDataError;
-  const tournamentsQueryErrorData = gameDataError;
-  const allSavedGamesQueryErrorData = gameDataError;
-
-  const [draggingPlayerFromBarInfo, setDraggingPlayerFromBarInfo] = useState<Player | null>(null);
-  const [isPlayed, setIsPlayed] = useState<boolean>(true);
-  const modalContext = useModalContext();
-  const { showToast } = useToast();
-  // const [isPlayerStatsModalOpen, setIsPlayerStatsModalOpen] = useState(false);
-  const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<Player | null>(null);
-  const [isTeamManagerOpen, setIsTeamManagerOpen] = useState<boolean>(false);
-  const [isPersonnelManagerOpen, setIsPersonnelManagerOpen] = useState<boolean>(false);
-
-  // --- Timer State (Still needed here) ---
-  const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
-  const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState<boolean>(false);
-  const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
-  const [firstGameGuideStep, setFirstGameGuideStep] = useState<number>(0);
-  // Initialize as true for experienced users to prevent any flash
-  const [hasCheckedFirstGameGuide, setHasCheckedFirstGameGuide] = useState<boolean>(!isFirstTimeUser);
-
-  const newGameFlow = useNewGameFlow({
-    availablePlayers,
-    savedGames,
-    setSavedGames,
-    currentGameId,
-    setIsNewGameSetupModalOpen: modalContext.setIsNewGameSetupModalOpen,
-    setIsRosterModalOpen: modalContext.setIsRosterModalOpen,
-    setHasSkippedInitialSetup,
-    setHighlightRosterButton,
-    setIsPlayed,
-    resetHistory,
-    dispatchGameSession,
-    setCurrentGameId,
-    queryClient,
-    showToast,
-    t,
-    defaultSubIntervalMinutes: initialState.subIntervalMinutes ?? 5,
+  } = useTacticalBoard({
+    initialDiscs: initialState.tacticalDiscs,
+    initialDrawings: initialState.tacticalDrawings,
+    initialBallPosition: initialState.tacticalBallPosition,
+    saveStateToHistory,
   });
 
-  const {
-    modalState: {
-      isGameSettingsModalOpen,
-      isLoadGameModalOpen,
-      isRosterModalOpen,
-      setIsRosterModalOpen,
-      isSeasonTournamentModalOpen,
-      isTrainingResourcesOpen,
-      setIsTrainingResourcesOpen,
-      isGoalLogModalOpen,
-      setIsGoalLogModalOpen,
-      isGameStatsModalOpen,
-      setIsGameStatsModalOpen,
-      isNewGameSetupModalOpen,
-      setIsNewGameSetupModalOpen,
-      isSettingsModalOpen,
-      setIsSettingsModalOpen,
-      isPlayerAssessmentModalOpen,
-    },
-    openLoadGameModal: handleOpenLoadGameModal,
-    closeLoadGameModal: handleCloseLoadGameModal,
-    openSeasonTournamentModal: handleOpenSeasonTournamentModal,
-    closeSeasonTournamentModal: handleCloseSeasonTournamentModal,
-    openRosterModal: baseOpenRosterModal,
-    closeRosterModal,
-    openGameSettingsModal: handleOpenGameSettingsModal,
-    closeGameSettingsModal: handleCloseGameSettingsModal,
-    openSettingsModal: handleOpenSettingsModal,
-    closeSettingsModal: handleCloseSettingsModal,
-    openPlayerAssessmentModal: openPlayerAssessmentModalBase,
-    closePlayerAssessmentModal: closePlayerAssessmentModalBase,
-  } = useHomeModalControls({
-    initialAction,
-    onRequestNewGameFromShortcut: newGameFlow.handleInitialActionNewGame,
-    onOpenTeamManager: () => setIsTeamManagerOpen(true),
-    modalContextOverride: modalContext,
-  });
+  // Load teams when orphaned game is detected
+  useEffect(() => {
+    if (orphanedGameInfo) {
+      getTeams().then(teams => {
+        setAvailableTeams(teams);
+      }).catch(error => {
+        logger.error('[ORPHANED GAME] Error loading teams:', error);
+        setAvailableTeams([]);
+      });
+    }
+  }, [orphanedGameInfo]);
 
-  const savedGameManager = useSavedGameManager({
-    savedGames,
-    setSavedGames,
-    currentGameId,
-    setCurrentGameId,
-    availablePlayers,
-    setAvailablePlayers,
-    masterRoster: masterRosterQueryResultData,
-    setPlayersOnField,
-    setOpponents,
-    setDrawings,
-    setTacticalDiscs,
-    setTacticalDrawings,
-    setTacticalBallPosition,
-    setIsPlayed,
-    dispatchGameSession,
-    resetHistory,
-    initialState,
-    initialGameSessionData: initialGameSessionStatePlaceholder,
-    queryClient,
-    t,
-    onCloseLoadGameModal: handleCloseLoadGameModal,
-  });
+  // Handle team reassignment for orphaned games
+  const handleTeamReassignment = async (newTeamId: string | null) => {
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) {
+      logger.error('[TEAM REASSIGN] No current game to reassign');
+      return;
+    }
 
-  const {
-    playerIdsForNewGame,
-    newGameDemandFactor,
-    setNewGameDemandFactor,
-    showNoPlayersConfirm,
-    showSaveBeforeNewConfirm,
-    showStartNewConfirm,
-    gameIdentifierForSave,
-    handleStartNewGame: handleStartNewGameFlow,
-    handleNoPlayersConfirmed,
-    handleSaveBeforeNewCancelled,
-    handleStartNewConfirmed,
-    openSetupAfterPreSave,
-    handleStartNewGameWithSetup,
-    handleCancelNewGameSetup,
-    setShowSaveBeforeNewConfirm,
-    setShowStartNewConfirm,
-    setShowNoPlayersConfirm,
-  } = newGameFlow;
+    try {
+      // Get current game data
+      const currentGame = savedGames[currentGameId];
+      if (!currentGame) {
+        logger.error('[TEAM REASSIGN] Current game not found');
+        return;
+      }
 
-  const handleStartNewGame = handleStartNewGameFlow;
+      // Update game with new teamId
+      const updatedGame = {
+        ...currentGame,
+        teamId: newTeamId || undefined
+      };
 
-  const {
-    isLoadingGamesList,
-    setIsLoadingGamesList,
-    loadGamesListError,
-    setLoadGamesListError,
-    isGameLoading,
-    gameLoadError,
-    isGameDeleting,
-    gameDeleteError,
-    processingGameId,
-    orphanedGameInfo,
-    isTeamReassignModalOpen,
-    setIsTeamReassignModalOpen,
-    availableTeams,
-    teamLoadError,
-    loadGameStateFromData,
-    handleLoadGame,
-    handleDeleteGame,
-    handleTeamReassignment,
-  } = savedGameManager;
+      // Save updated game
+      await utilSaveGame(currentGameId, updatedGame);
 
-  const openNewGameSetupModalDirect = useCallback(() => {
-    setIsNewGameSetupModalOpen(true);
-  }, [setIsNewGameSetupModalOpen]);
+      // Update local state
+      setSavedGames(prev => ({
+        ...prev,
+        [currentGameId]: updatedGame
+      }));
 
-  const openTeamReassignModal = useCallback(() => {
-    setIsTeamReassignModalOpen(true);
-  }, [setIsTeamReassignModalOpen]);
+      // Invalidate React Query cache to update LoadGameModal
+      queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
 
-  // --- Modal States handled via context ---
+      // Clear orphaned state if team was assigned
+      if (newTeamId) {
+        setOrphanedGameInfo(null);
+      }
 
-  // <<< ADD State to hold player IDs for the next new game >>>
-  // <<< ADD State for the roster prompt toast >>>
-  // const [showRosterPrompt, setShowRosterPrompt] = useState<boolean>(false);
+      // Close modal
+      setIsTeamReassignModalOpen(false);
 
-  // State for game saving error (loading state is from saveGameMutation.isLoading)
-
-  // NEW: States for LoadGameModal operations
-  const [showHardResetConfirm, setShowHardResetConfirm] = useState(false);
-  const [isResetting, setIsResetting] = useState(false); // For app reset operation
+      // Show success message (could add a toast notification here)
+      logger.log('[TEAM REASSIGN] Game reassigned to team:', newTeamId);
+    } catch (error) {
+      logger.error('[TEAM REASSIGN] Error reassigning team:', error);
+    }
+  };
 
   // --- Mutation for Adding a new Season ---
   const addSeasonMutation = useMutation<
@@ -459,8 +729,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   };
 
   const lastAppliedMutationSequenceRef = useRef(0);
-  const hasRunLegacyMigrationRef = useRef(false);
-  const initialLoadInProgressRef = useRef(false);
 
   const updateGameDetailsMutation = useMutation<AppState | null, Error, UpdateGameDetailsVariables>({
     mutationFn: ({ gameId, updates }) => utilUpdateGameDetails(gameId, updates),
@@ -698,190 +966,136 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // saveStateToHistory is also a dependency as it's used inside.
   
   useEffect(() => {
-    if (hasRunLegacyMigrationRef.current) {
-      return;
-    }
+    const loadInitialAppData = async () => {
+      if (initialLoadComplete) {
+        return;
+      }
+      // This useEffect now primarily ensures that dependent state updates happen
+      // after the core data (masterRoster, seasons, tournaments, savedGames, currentGameIdSetting)
+      // has been fetched by their respective useQuery hooks.
 
-    hasRunLegacyMigrationRef.current = true;
-    let cancelled = false;
-
-    const migrateLegacyData = async () => {
+      // Simple migration for old data keys (if any) - Run once
+      // NOTE: This is legacy migration code - consider removing after main migration system is stable
       try {
         const oldRosterJson = await getStorageItem('availablePlayers').catch(() => null);
-        if (!cancelled && oldRosterJson) {
+        if (oldRosterJson) {
           await setStorageItem(MASTER_ROSTER_KEY, oldRosterJson);
           await removeStorageItem('availablePlayers');
+          // Consider invalidating and refetching masterRoster query here if migration happens
+          // queryClient.invalidateQueries(queryKeys.masterRoster);
         }
-
-        const oldSeasonsJson = await getStorageItem('soccerSeasonsList').catch(() => null);
-        if (!cancelled && oldSeasonsJson) {
-          await setStorageItem(SEASONS_LIST_KEY, oldSeasonsJson);
-        }
-      } catch (migrationError) {
-        if (!cancelled) {
-          logger.error('[EFFECT init] Error during data migration:', migrationError);
-        }
+        const oldSeasonsJson = await getStorageItem('soccerSeasonsList').catch(() => null); // Another old key
+      if (oldSeasonsJson) {
+          await setStorageItem(SEASONS_LIST_KEY, oldSeasonsJson); // New key
+          // queryClient.invalidateQueries(queryKeys.seasons);
       }
-    };
+    } catch (migrationError) {
+        logger.error('[EFFECT init] Error during data migration:', migrationError);
+      }
 
-    migrateLegacyData();
+      // Master Roster, Seasons, Tournaments are handled by their own useEffects reacting to useQuery.
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isAllSavedGamesQueryLoading) {
-      setIsLoadingGamesList(true);
-      setLoadGamesListError(null);
-      return;
-    }
-
-    if (isAllSavedGamesQueryError) {
-      logger.error('[EFFECT init] Error loading all saved games via TanStack Query:', allSavedGamesQueryErrorData);
-      setLoadGamesListError(t('loadGameModal.errors.listLoadFailed', 'Failed to load saved games list.'));
+      // 4. Update local savedGames state from useQuery for allSavedGames
+      if (isAllSavedGamesQueryLoading) {
+        setIsLoadingGamesList(true);
+      }
+      if (allSavedGamesQueryResultData) {
+        setSavedGames(allSavedGamesQueryResultData || {});
+        setIsLoadingGamesList(false);
+      }
+      if (isAllSavedGamesQueryError) {
+        logger.error('[EFFECT init] Error loading all saved games via TanStack Query:', allSavedGamesQueryErrorData);
+        setLoadGamesListError(t('loadGameModal.errors.listLoadFailed', 'Failed to load saved games list.'));
       setSavedGames({});
-      setIsLoadingGamesList(false);
-      return;
-    }
-
-    if (allSavedGamesQueryResultData) {
-      setSavedGames(allSavedGamesQueryResultData || {});
-      setIsLoadingGamesList(false);
-      setLoadGamesListError(null);
-      return;
-    }
-
-    if (!isAllSavedGamesQueryLoading && !isAllSavedGamesQueryError) {
-      setSavedGames({});
-      setIsLoadingGamesList(false);
-      setLoadGamesListError(null);
-    }
-  }, [
-    allSavedGamesQueryResultData,
-    allSavedGamesQueryErrorData,
-    isAllSavedGamesQueryError,
-    isAllSavedGamesQueryLoading,
-    setIsLoadingGamesList,
-    setLoadGamesListError,
-    setSavedGames,
-    t,
-  ]);
-
-  useEffect(() => {
-    if (initialLoadComplete || initialLoadInProgressRef.current) {
-      return;
-    }
-
-    const queriesLoading =
-      isMasterRosterQueryLoading ||
-      areSeasonsQueryLoading ||
-      areTournamentsQueryLoading ||
-      isAllSavedGamesQueryLoading ||
-      isCurrentGameIdSettingQueryLoading;
-
-    if (queriesLoading) {
-      return;
-    }
-
-    initialLoadInProgressRef.current = true;
-    if (initialLoadComplete) {
-      initialLoadInProgressRef.current = false;
-      return;
-    }
-
-    let cancelled = false;
-
-    const initializeAppState = async () => {
-      try {
-        const currentSavedGames = allSavedGamesQueryResultData || {};
+        setIsLoadingGamesList(false);
+      }
+      
+      // 5. Determine and set current game ID and related state from useQuery data
+      if (isCurrentGameIdSettingQueryLoading || isAllSavedGamesQueryLoading) { 
+      } else {
         const lastGameIdSetting = currentGameIdSettingQueryResultData;
+        const currentSavedGames = allSavedGamesQueryResultData || {}; 
 
         if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID && currentSavedGames[lastGameIdSetting]) {
-          if (!cancelled) {
-            setCurrentGameId(lastGameIdSetting);
-            setHasSkippedInitialSetup(true);
-          }
+          setCurrentGameId(lastGameIdSetting);
+          setHasSkippedInitialSetup(true);
         } else {
-          if (!cancelled) {
-            if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID) {
-              logger.warn(`[EFFECT init] Last game ID ${lastGameIdSetting} not found in saved games (from TanStack Query). Loading default.`);
-            }
-            setCurrentGameId(DEFAULT_GAME_ID);
+          if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID) {
+            logger.warn(`[EFFECT init] Last game ID ${lastGameIdSetting} not found in saved games (from TanStack Query). Loading default.`);
           }
-        }
-
+        setCurrentGameId(DEFAULT_GAME_ID);
+      }
+    }
+    
+      // Determine overall initial load completion
+      if (!isMasterRosterQueryLoading && !areSeasonsQueryLoading && !areTournamentsQueryLoading && !isAllSavedGamesQueryLoading && !isCurrentGameIdSettingQueryLoading) {
+        // --- TIMER RESTORATION LOGIC ---
         try {
           const savedTimerStateJSON = await getStorageItem(TIMER_STATE_KEY).catch(() => null);
           const lastGameId = currentGameIdSettingQueryResultData;
 
-          if (!cancelled && savedTimerStateJSON) {
+          if (savedTimerStateJSON) {
             const savedTimerState: TimerState = JSON.parse(savedTimerStateJSON);
             if (savedTimerState && savedTimerState.gameId === lastGameId) {
               const elapsedOfflineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
               const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
 
               dispatchGameSession({ type: 'SET_TIMER_ELAPSED', payload: correctedElapsedSeconds });
+              // Use START_TIMER instead of SET_TIMER_RUNNING to properly set startTimestamp
               dispatchGameSession({ type: 'START_TIMER' });
             } else {
-              await removeStorageItem(TIMER_STATE_KEY).catch((error) => {
-                logger.debug('[Timer Cleanup] Failed to remove timer state (non-critical):', error);
-              });
+              await removeStorageItem(TIMER_STATE_KEY).catch(() => {});
             }
           }
         } catch (error) {
-          if (!cancelled) {
-            logger.error('[EFFECT init] Error restoring timer state:', error);
-          }
-          await removeStorageItem(TIMER_STATE_KEY).catch((cleanupError) => {
-            logger.debug('[Timer Cleanup] Failed to remove timer state after error (non-critical):', cleanupError);
-          });
+          logger.error('[EFFECT init] Error restoring timer state:', error);
+          await removeStorageItem(TIMER_STATE_KEY).catch(() => {});
+        }
+        // --- END TIMER RESTORATION LOGIC ---
+
+        // Only show automatic instructions for experienced users with specific actions, not first-time users
+        const seenGuide = await getHasSeenAppGuide();
+        const hasAnyData = Object.keys(savedGames).length > 0; // Check if user has any saved games
+        if (!seenGuide && initialAction !== null && hasAnyData) {
+          setIsInstructionsModalOpen(true);
         }
 
-        if (!cancelled) {
-          try {
-            const seenGuide = await getHasSeenAppGuide();
-            if (!cancelled) {
-              const hasAnyData = Object.keys(currentSavedGames).length > 0;
-              if (!seenGuide && initialAction !== null && hasAnyData) {
-                setIsInstructionsModalOpen(true);
-              }
-            }
-          } catch (guideError) {
-            if (!cancelled) {
-              logger.error('[EFFECT init] Error checking instructions guide state:', guideError);
-            }
-          }
-        }
-      } finally {
-        initialLoadInProgressRef.current = false;
-        if (!cancelled) {
-          setInitialLoadComplete(true);
-        }
+        // This is now the single source of truth for loading completion.
+        setInitialLoadComplete(true);
       }
     };
 
-    initializeAppState();
-
-    return () => {
-      cancelled = true;
-    };
+    loadInitialAppData();
   }, [
-    allSavedGamesQueryResultData,
-    areSeasonsQueryLoading,
-    areTournamentsQueryLoading,
-    currentGameIdSettingQueryResultData,
-    dispatchGameSession,
-    initialAction,
-    initialLoadComplete,
-    isAllSavedGamesQueryLoading,
-    isCurrentGameIdSettingQueryLoading,
+    masterRosterQueryResultData,
     isMasterRosterQueryLoading,
+    isMasterRosterQueryError,
+    masterRosterQueryErrorData,
+    seasonsQueryResultData,
+    areSeasonsQueryLoading,
+    isSeasonsQueryError,
+    seasonsQueryErrorData,
+    tournamentsQueryResultData,
+    areTournamentsQueryLoading,
+    isTournamentsQueryError,
+    tournamentsQueryErrorData,
+    allSavedGamesQueryResultData,
+    isAllSavedGamesQueryLoading,
+    isAllSavedGamesQueryError,
+    allSavedGamesQueryErrorData,
+    currentGameIdSettingQueryResultData,
+    isCurrentGameIdSettingQueryLoading,
+    isCurrentGameIdSettingQueryError,
+    currentGameIdSettingQueryErrorData,
+    setSavedGames,
+    setIsLoadingGamesList,
+    setLoadGamesListError,
     setCurrentGameId,
     setHasSkippedInitialSetup,
-    setInitialLoadComplete,
-    setIsInstructionsModalOpen,
+    t,
+    initialLoadComplete,
+    initialAction, // Used to determine if instructions modal should show automatically
+    savedGames // Used to check if user has any saved games for instructions modal logic
   ]);
 
   // Check if we should show first game interface guide
@@ -933,6 +1147,146 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
     checkFirstGameGuide();
   }, [initialLoadComplete, currentGameId, isFirstTimeUser]);
+
+  // --- NEW: Robust Visibility Change Handling ---
+  // --- Wake Lock Effect ---
+  useEffect(() => {
+    // This effect is now replaced by the direct call in the main timer effect
+    // to avoid race conditions.
+  }, []);
+
+  // Helper function to load game state from game data
+  const loadGameStateFromData = async (gameData: AppState | null, isInitialDefaultLoad = false) => {
+    logger.log('[LOAD GAME STATE] Called with gameData:', gameData, 'isInitialDefaultLoad:', isInitialDefaultLoad);
+
+    // Check for orphaned game (has teamId but team doesn't exist)
+    if (gameData?.teamId) {
+      try {
+        const team = await getTeam(gameData.teamId);
+        if (!team) {
+          // Team was deleted - game is orphaned
+          setOrphanedGameInfo({ 
+            teamId: gameData.teamId,
+            teamName: gameData.teamName // Preserve original team name if available
+          });
+        } else {
+          // Team exists - clear any previous orphaned state
+          setOrphanedGameInfo(null);
+        }
+      } catch (error) {
+        logger.error('[LOAD GAME] Error checking team existence:', error);
+        // Assume orphaned on error
+        setOrphanedGameInfo({ teamId: gameData.teamId, teamName: gameData.teamName });
+      }
+    } else {
+      // No teamId - legacy game or "No Team" selection
+      setOrphanedGameInfo(null);
+    }
+
+    if (gameData) {
+      // gameData is AppState, map its fields directly to GameSessionState partial payload
+      const payload: Partial<GameSessionState> = {
+        teamName: gameData.teamName,
+        opponentName: gameData.opponentName,
+        gameDate: gameData.gameDate,
+        homeScore: gameData.homeScore,
+        awayScore: gameData.awayScore,
+        gameNotes: gameData.gameNotes,
+        homeOrAway: gameData.homeOrAway,
+        numberOfPeriods: gameData.numberOfPeriods,
+        periodDurationMinutes: gameData.periodDurationMinutes,
+        currentPeriod: gameData.currentPeriod,
+        gameStatus: gameData.gameStatus,
+        selectedPlayerIds: gameData.selectedPlayerIds,
+        gamePersonnel: Array.isArray(gameData.gamePersonnel) ? gameData.gamePersonnel : [],
+        seasonId: gameData.seasonId ?? undefined,
+        tournamentId: gameData.tournamentId ?? undefined,
+        teamId: gameData.teamId,
+        gameLocation: gameData.gameLocation,
+        gameTime: gameData.gameTime,
+        demandFactor: gameData.demandFactor,
+        gameEvents: gameData.gameEvents,
+        subIntervalMinutes: gameData.subIntervalMinutes,
+        completedIntervalDurations: gameData.completedIntervalDurations,
+        lastSubConfirmationTimeSeconds: gameData.lastSubConfirmationTimeSeconds,
+        showPlayerNames: gameData.showPlayerNames,
+      };
+      dispatchGameSession({ type: 'LOAD_PERSISTED_GAME_DATA', payload });
+    } else {
+      dispatchGameSession({ type: 'RESET_TO_INITIAL_STATE', payload: initialGameSessionData });
+      setIsPlayed(true);
+    }
+
+    // Update non-reducer states (these will eventually be migrated or handled differently)
+    // For fields not yet in gameSessionState but are in GameData, update their local states if needed.
+    // This part will shrink as more state moves to the reducer.
+    setPlayersOnField(gameData?.playersOnField || (isInitialDefaultLoad ? initialState.playersOnField : []));
+    setOpponents(gameData?.opponents || (isInitialDefaultLoad ? initialState.opponents : []));
+    setDrawings(gameData?.drawings || (isInitialDefaultLoad ? initialState.drawings : []));
+    setTacticalDiscs(gameData?.tacticalDiscs || (isInitialDefaultLoad ? initialState.tacticalDiscs : []));
+    setTacticalDrawings(gameData?.tacticalDrawings || (isInitialDefaultLoad ? initialState.tacticalDrawings : []));
+    setTacticalBallPosition(gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 });
+    setIsPlayed(gameData?.isPlayed === false ? false : true);
+
+    // Load per-game availablePlayers (with per-game goalie status)
+    // Prioritize saved game data, fall back to master roster for new games
+    setAvailablePlayers(gameData?.availablePlayers || masterRosterQueryResultData || availablePlayers);
+    
+    // Update gameEvents from gameData if present, otherwise from initial state if it's an initial default load
+    // setGameEvents(gameData?.events || (isInitialDefaultLoad ? initialState.gameEvents : [])); // REMOVE - Handled by LOAD_PERSISTED_GAME_DATA in reducer
+
+    // Update selectedPlayerIds, seasonId, tournamentId, gameLocation, gameTime from gameData
+    // These are also part of gameSessionState now, but local states might still be used by some components directly.
+    // Prefer sourcing from gameSessionState once components are updated.
+    // setSelectedPlayerIds(gameData?.selectedPlayerIds || (isInitialDefaultLoad ? initialState.selectedPlayerIds : [])); // REMOVE - Handled by LOAD_PERSISTED_GAME_DATA
+    // setSeasonId(gameData?.seasonId || (isInitialDefaultLoad ? initialState.seasonId : '')); // REMOVE - Handled by LOAD_PERSISTED_GAME_DATA
+    // setTournamentId(gameData?.tournamentId || (isInitialDefaultLoad ? initialState.tournamentId : '')); // REMOVE - Handled by LOAD_PERSISTED_GAME_DATA
+    // setShowPlayerNames(gameData?.showPlayerNames === undefined ? (isInitialDefaultLoad ? initialState.showPlayerNames : true) : gameData.showPlayerNames); // REMOVE - Handled by LOAD_PERSISTED_GAME_DATA in reducer
+
+
+    // History state should be based on the new gameSessionState + other states
+    // For simplicity, we'll form history state AFTER the reducer has processed the load.
+    // This requires a slight delay or a way to access the state post-dispatch if saveStateToHistory is called immediately.
+    // For now, let's assume gameSessionState is updated for the next render cycle.
+    // A more robust way would be to have LOAD_PERSISTED_GAME_DATA return the new state or use a useEffect.
+
+    // Construct historyState using the *potentially* updated gameSessionState for the next render.
+    // And combine with other non-reducer states.
+    const newHistoryState: AppState = {
+      teamName: gameData?.teamName ?? initialGameSessionData.teamName,
+      opponentName: gameData?.opponentName ?? initialGameSessionData.opponentName,
+      gameDate: gameData?.gameDate ?? initialGameSessionData.gameDate,
+      homeScore: gameData?.homeScore ?? initialGameSessionData.homeScore,
+      awayScore: gameData?.awayScore ?? initialGameSessionData.awayScore,
+      gameNotes: gameData?.gameNotes ?? initialGameSessionData.gameNotes,
+      homeOrAway: gameData?.homeOrAway ?? initialGameSessionData.homeOrAway,
+      numberOfPeriods: gameData?.numberOfPeriods ?? initialGameSessionData.numberOfPeriods,
+      periodDurationMinutes: gameData?.periodDurationMinutes ?? initialGameSessionData.periodDurationMinutes,
+      currentPeriod: gameData?.currentPeriod ?? initialGameSessionData.currentPeriod,
+      gameStatus: gameData?.gameStatus ?? initialGameSessionData.gameStatus,
+      seasonId: gameData?.seasonId ?? initialGameSessionData.seasonId,
+      tournamentId: gameData?.tournamentId ?? initialGameSessionData.tournamentId,
+      gameLocation: gameData?.gameLocation ?? initialGameSessionData.gameLocation,
+      gameTime: gameData?.gameTime ?? initialGameSessionData.gameTime,
+      demandFactor: gameData?.demandFactor ?? initialGameSessionData.demandFactor,
+      subIntervalMinutes: gameData?.subIntervalMinutes ?? initialGameSessionData.subIntervalMinutes,
+      completedIntervalDurations: gameData?.completedIntervalDurations ?? initialGameSessionData.completedIntervalDurations,
+      lastSubConfirmationTimeSeconds: gameData?.lastSubConfirmationTimeSeconds ?? initialGameSessionData.lastSubConfirmationTimeSeconds,
+      showPlayerNames: gameData?.showPlayerNames === undefined ? initialGameSessionData.showPlayerNames : gameData.showPlayerNames,
+      selectedPlayerIds: gameData?.selectedPlayerIds ?? initialGameSessionData.selectedPlayerIds,
+      gameEvents: gameData?.gameEvents ?? initialGameSessionData.gameEvents,
+      gamePersonnel: gameData?.gamePersonnel ?? [],
+      playersOnField: gameData?.playersOnField || initialState.playersOnField,
+      opponents: gameData?.opponents || initialState.opponents,
+      drawings: gameData?.drawings || initialState.drawings,
+      tacticalDiscs: gameData?.tacticalDiscs || [],
+      tacticalDrawings: gameData?.tacticalDrawings || [],
+      tacticalBallPosition: gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 },
+      availablePlayers: gameData?.availablePlayers || masterRosterQueryResultData || availablePlayers,
+    };
+    resetHistory(newHistoryState);
+    logger.log('[LOAD GAME STATE] Finished dispatching. Reducer will update gameSessionState.');
+  };
 
   // --- Effect to load game state when currentGameId changes or savedGames updates ---
   useEffect(() => {
@@ -1453,6 +1807,127 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
 
   
+  // Placeholder handlers for Save/Load Modals
+
+  const handleOpenLoadGameModal = () => {
+    logger.log("Opening Load Game Modal...");
+    setIsLoadGameModalOpen(true);
+  };
+
+  const handleCloseLoadGameModal = () => {
+    setIsLoadGameModalOpen(false);
+  };
+
+  const handleOpenSeasonTournamentModal = () => {
+    setIsSeasonTournamentModalOpen(true);
+  };
+
+  const handleCloseSeasonTournamentModal = () => {
+    setIsSeasonTournamentModalOpen(false);
+  };
+
+
+  // Function to handle loading a selected game
+  const handleLoadGame = async (gameId: string) => {
+    logger.log(`[handleLoadGame] Attempting to load game: ${gameId}`);
+    
+    // Clear any existing timer state before loading a new game
+    try {
+      await removeStorageItem(TIMER_STATE_KEY);
+    } catch (error) {
+      // Silent fail - timer cleanup is not critical for game loading
+      logger.debug('Failed to clear timer state before loading game (non-critical)', { error });
+    }
+    
+    setProcessingGameId(gameId);
+    setIsGameLoading(true);
+    setGameLoadError(null);
+
+    const gameDataToLoad = savedGames[gameId] as AppState | undefined; // Ensure this is AppState
+
+    if (gameDataToLoad) {
+      try {
+        // Dispatch to reducer to load the game state
+        await loadGameStateFromData(gameDataToLoad); // This now primarily uses the reducer
+
+        // Update current game ID and save settings
+        setCurrentGameId(gameId);
+        await utilSaveCurrentGameIdSetting(gameId);
+
+        logger.log(`Game ${gameId} load dispatched to reducer.`);
+        handleCloseLoadGameModal();
+
+      } catch(error) {
+          logger.error("Error processing game load:", error);
+          setGameLoadError(t('loadGameModal.errors.loadFailed', 'Error loading game state. Please try again.'));
+      } finally {
+        setIsGameLoading(false);
+        setProcessingGameId(null);
+      }
+    } else {
+      logger.error(`Game state not found for ID: ${gameId}`);
+      setGameLoadError(t('loadGameModal.errors.notFound', 'Could not find saved game: {gameId}', { gameId }));
+      setIsGameLoading(false);
+      setProcessingGameId(null);
+    }
+  };
+
+  // Function to handle deleting a saved game
+  const handleDeleteGame = async (gameId: string) => {
+    logger.log(`Deleting game with ID: ${gameId}`);
+    if (gameId === DEFAULT_GAME_ID) {
+      logger.warn("Cannot delete the default unsaved state.");
+      setGameDeleteError(t('loadGameModal.errors.cannotDeleteDefault', 'Cannot delete the current unsaved game progress.'));
+      return; // Prevent deleting the default placeholder
+    }
+
+    setGameDeleteError(null);
+    setIsGameDeleting(true);
+    setProcessingGameId(gameId);
+
+    try {
+      const deletedGameId = await utilDeleteGame(gameId);
+
+      if (deletedGameId) {
+      const updatedSavedGames = { ...savedGames };
+        delete updatedSavedGames[gameId];
+      setSavedGames(updatedSavedGames);
+        logger.log(`Game ${gameId} deleted from state and persistence.`);
+
+        // Invalidate React Query cache to update LoadGameModal
+        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+
+        if (currentGameId === gameId) {
+          const latestId = getLatestGameId(updatedSavedGames);
+          if (latestId) {
+            logger.log(`Deleted active game. Loading latest game ${latestId}.`);
+            setCurrentGameId(latestId);
+            await utilSaveCurrentGameIdSetting(latestId);
+          } else {
+            logger.log("Currently loaded game was deleted with no other games remaining. Resetting to initial state.");
+            dispatchGameSession({ type: 'RESET_TO_INITIAL_STATE', payload: initialGameSessionData });
+            setPlayersOnField(initialState.playersOnField || []);
+            setOpponents(initialState.opponents || []);
+            setDrawings(initialState.drawings || []);
+            resetHistory(initialState as AppState);
+            setCurrentGameId(DEFAULT_GAME_ID);
+            await utilSaveCurrentGameIdSetting(DEFAULT_GAME_ID);
+          }
+        }
+      } else {
+        // ... (existing error handling)
+        logger.warn(`handleDeleteGame: utilDeleteGame returned null for gameId: ${gameId}. Game might not have been found or ID was invalid.`);
+        setGameDeleteError(t('loadGameModal.errors.deleteFailedNotFound', 'Error deleting game: {gameId}. Game not found or ID was invalid.', { gameId }));
+      }
+    } catch (error) {
+      // ... (existing error handling)
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setGameDeleteError(t('loadGameModal.errors.deleteFailedCatch', 'Error deleting saved game: {gameId}. Details: {errorMessage}', { gameId, errorMessage }));
+    } finally {
+      setIsGameDeleting(false);
+      setProcessingGameId(null);
+    }
+  };
 
   // Function to export all saved games as a single JSON file (RENAMED & PARAMETERIZED)
   // const handleExportAllGamesJson = () => { // This function is no longer used
@@ -1490,16 +1965,13 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // --- Roster Management Handlers ---
   const openRosterModal = () => {
     logger.log('[openRosterModal] Called. Setting highlightRosterButton to false.'); // Log modal open
-    baseOpenRosterModal();
+    setIsRosterModalOpen(true);
     setHighlightRosterButton(false); // <<< Remove highlight when modal is opened
   };
 
-  const openPlayerAssessmentModal = () => openPlayerAssessmentModalBase();
-  const handleOpenPersonnelManager = useCallback(() => setIsPersonnelManagerOpen(true), []);
-  const handleClosePersonnelManager = useCallback(() => setIsPersonnelManagerOpen(false), []);
-  const handleSetGamePersonnel = useCallback((personnelIds: string[]) => {
-    dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: personnelIds });
-  }, [dispatchGameSession]);
+  const openPlayerAssessmentModal = () => setIsPlayerAssessmentModalOpen(true);
+  const closePlayerAssessmentModal = () => setIsPlayerAssessmentModalOpen(false);
+
   const handleSavePlayerAssessment = async (
     playerId: string,
     assessment: Partial<PlayerAssessment>,
@@ -1527,6 +1999,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   
   
   // ... (other code in Home component) ...
+
+  const closeRosterModal = () => setIsRosterModalOpen(false);
 
   // --- ASYNC Roster Management Handlers for RosterSettingsModal ---
   const handleRenamePlayerForModal = useCallback(async (playerId: string, playerData: { name: string; nickname?: string }) => {
@@ -1900,7 +2374,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         showToast('Error quick saving game.', 'error');
       }
     }
-  }, [
+  },    [
     currentGameId,
     savedGames,
     playersOnField,
@@ -1911,19 +2385,13 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     tacticalBallPosition,
     availablePlayers,
     setSavedGames,
-    setCurrentGameId,
     resetHistory,
     showToast,
     gameSessionState, // This now covers all migrated game session fields
     playerAssessments,
     isPlayed,
-    queryClient,
+    queryClient
   ]);
-
-  const handleSaveBeforeNewConfirmed = useCallback(async () => {
-    await handleQuickSaveGame();
-    openSetupAfterPreSave(gameSessionState.selectedPlayerIds);
-  }, [handleQuickSaveGame, openSetupAfterPreSave, gameSessionState.selectedPlayerIds]);
   // --- END Quick Save Handler ---
 
   // --- Auto-Save with Smart Debouncing ---
@@ -1969,6 +2437,20 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   });
   // --- END Auto-Save ---
 
+  // --- NEW: Handlers for Game Settings Modal --- 
+  const handleOpenGameSettingsModal = () => {
+      setIsGameSettingsModalOpen(true); // Corrected State Setter
+  };
+  const handleCloseGameSettingsModal = () => {
+    setIsGameSettingsModalOpen(false); // Corrected State Setter
+  };
+  const handleOpenSettingsModal = () => {
+    setIsSettingsModalOpen(true);
+  };
+  const handleCloseSettingsModal = () => {
+    setIsSettingsModalOpen(false);
+  };
+
   // --- Placeholder Handlers for GameSettingsModal (will be implemented properly later) ---
   const handleGameLocationChange = (location: string) => {
     dispatchGameSession({ type: 'SET_GAME_LOCATION', payload: location });
@@ -2013,13 +2495,13 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     const idToSet = newSeasonId || ''; // Ensure empty string instead of null
     logger.log('[page.tsx] handleSetSeasonId called with:', idToSet);
     dispatchGameSession({ type: 'SET_SEASON_ID', payload: idToSet }); 
-  }, [dispatchGameSession]);
+  }, []); // No dependencies needed since we're only using dispatchGameSession which is stable
 
   const handleSetTournamentId = useCallback((newTournamentId: string | undefined) => {
     const idToSet = newTournamentId || ''; // Ensure empty string instead of null
     logger.log('[page.tsx] handleSetTournamentId called with:', idToSet);
     dispatchGameSession({ type: 'SET_TOURNAMENT_ID', payload: idToSet });
-  }, [dispatchGameSession]);
+  }, []); // No dependencies needed since we're only using dispatchGameSession which is stable
 
   // --- AGGREGATE EXPORT HANDLERS --- 
   
@@ -2075,6 +2557,146 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   }, [savedGames, seasons, tournaments, t, showToast]);
 
   // --- END AGGREGATE EXPORT HANDLERS ---
+
+  // --- Handler that is called when setup modal is confirmed ---
+  const handleStartNewGameWithSetup = useCallback(async (
+    initialSelectedPlayerIds: string[],
+    homeTeamName: string,
+    opponentName: string,
+    gameDate: string,
+    gameLocation: string,
+    gameTime: string,
+    seasonId: string | null,
+    tournamentId: string | null,
+    numPeriods: 1 | 2,
+    periodDuration: number,
+    homeOrAway: 'home' | 'away',
+    demandFactor: number,
+    ageGroup: string,
+    tournamentLevel: string,
+    isPlayedParam: boolean,
+    teamId: string | null,
+    availablePlayersForGame: Player[],
+    selectedPersonnelIds: string[]
+  ) => {
+    await startNewGameWithSetup(
+      {
+        availablePlayers,
+        savedGames,
+        setSavedGames,
+        resetHistory,
+        dispatchGameSession,
+        setCurrentGameId,
+        setIsNewGameSetupModalOpen,
+        setNewGameDemandFactor,
+        setPlayerIdsForNewGame,
+        setHighlightRosterButton,
+        setIsPlayed,
+        queryClient,
+        showToast,
+        t,
+        utilSaveGame,
+        utilSaveCurrentGameIdSetting,
+        defaultSubIntervalMinutes: initialState.subIntervalMinutes ?? 5,
+      },
+      initialSelectedPlayerIds,
+      homeTeamName,
+      opponentName,
+      gameDate,
+      gameLocation,
+      gameTime,
+      seasonId,
+      tournamentId,
+      numPeriods,
+      periodDuration,
+      homeOrAway,
+      demandFactor,
+      ageGroup,
+      tournamentLevel,
+      isPlayedParam,
+      teamId,
+      availablePlayersForGame,
+      selectedPersonnelIds
+    );
+  }, [
+    availablePlayers,
+    savedGames,
+    setSavedGames,
+    resetHistory,
+    dispatchGameSession,
+    setCurrentGameId,
+    setIsNewGameSetupModalOpen,
+    setNewGameDemandFactor,
+    setPlayerIdsForNewGame,
+    setHighlightRosterButton,
+    setIsPlayed,
+    queryClient,
+    showToast,
+    t,
+  ]);
+
+  // ** REVERT handleCancelNewGameSetup TO ORIGINAL **
+  const handleCancelNewGameSetup = useCallback(() => {
+    cancelNewGameSetup({
+      setHasSkippedInitialSetup,
+      setIsNewGameSetupModalOpen,
+      setNewGameDemandFactor,
+      setPlayerIdsForNewGame,
+    });
+  }, [setHasSkippedInitialSetup, setIsNewGameSetupModalOpen, setNewGameDemandFactor, setPlayerIdsForNewGame]);
+
+  // --- Start New Game Handler (Uses Quick Save) ---
+  const handleStartNewGame = useCallback(() => {
+    // Check if roster is empty first
+    if (availablePlayers.length === 0) {
+      setShowNoPlayersConfirm(true);
+      return; // Exit early
+    }
+
+    // Check if the current game is potentially unsaved (not the default ID and not null)
+    if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
+      // Prompt to save first
+      const gameData = savedGames[currentGameId]; // Safe to access due to check above
+      const gameIdentifier = gameData?.teamName
+                             ? `${gameData.teamName} vs ${gameData.opponentName}`
+                             : `ID: ${currentGameId}`;
+
+      setGameIdentifierForSave(gameIdentifier);
+      setShowSaveBeforeNewConfirm(true);
+    } else {
+      // If no real game is loaded, proceed directly to the main confirmation
+      setShowStartNewConfirm(true);
+    }
+  }, [currentGameId, savedGames, availablePlayers]);
+
+  // Handler for "No Players" confirmation
+  const handleNoPlayersConfirmed = useCallback(() => {
+    setShowNoPlayersConfirm(false);
+    setIsRosterModalOpen(true);
+  }, [setIsRosterModalOpen]);
+
+  // Handler for "Save Before New" confirmation - user chooses to save
+  const handleSaveBeforeNewConfirmed = useCallback(() => {
+    handleQuickSaveGame(); // Call quick save directly
+    setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds); // Use the current selection
+    setShowSaveBeforeNewConfirm(false);
+    setIsNewGameSetupModalOpen(true); // Open setup modal immediately after
+  }, [handleQuickSaveGame, gameSessionState.selectedPlayerIds, setIsNewGameSetupModalOpen]);
+
+  // Handler for "Save Before New" cancellation - user chooses to discard
+  const handleSaveBeforeNewCancelled = useCallback(() => {
+    setShowSaveBeforeNewConfirm(false);
+    // Show the "start new" confirmation after discarding
+    setShowStartNewConfirm(true);
+  }, []);
+
+  // Handler for "Start New" confirmation
+  const handleStartNewConfirmed = useCallback(() => {
+    setPlayerIdsForNewGame(availablePlayers.map(p => p.id)); // SET default player selection (all players)
+    setShowStartNewConfirm(false);
+    setIsNewGameSetupModalOpen(true); // Open the setup modal
+  }, [availablePlayers, setIsNewGameSetupModalOpen]);
+  // --- END Start New Game Handler ---
 
   // New handler to place all selected players on the field at once
   const handlePlaceAllPlayers = useCallback(() => {
@@ -2189,6 +2811,30 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     logger.log(`Successfully placed ${playersToPlace.length} players on the field`);
          }, [playersOnField, gameSessionState.selectedPlayerIds, availablePlayers, saveStateToHistory, setPlayersOnField]);
 
+  // --- END Quick Save Handler ---
+
+  // --- Step 3: Handler for Importing Games ---
+  // const handleImportGamesFromJson = useCallback(async (jsonContent: string) => { // This function is no longer used
+  //   // ...
+  // }, [savedGames, setSavedGames, t]); 
+  // --- End Step 3 --- 
+
+  // --- NEW: Handlers for Game Settings Modal --- (Placeholder open/close)
+
+  // Render null or a loading indicator until state is loaded
+  // Note: Console log added before the check itself
+ 
+  // Final console log before returning the main JSX
+  logger.log('[Home Render] highlightRosterButton:', highlightRosterButton); // Log state on render
+
+  // ATTEMPTING TO EXPLICITLY REMOVE THE CONDITIONAL HOOK
+  // The useEffect for highlightRosterButton that was here (around lines 2977-2992)
+  // should be removed as it's called conditionally and its correct version is at the top level.
+
+  // Log gameEvents before PlayerBar is rendered
+  logger.log('[page.tsx] About to render PlayerBar, gameEvents for PlayerBar:', JSON.stringify(gameSessionState.gameEvents));
+
+
   const handleOpenPlayerStats = (playerId: string) => {
     const player = availablePlayers.find(p => p.id === playerId);
     if (player) {
@@ -2219,6 +2865,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   }
 
   // Define a consistent, premium style for the top and bottom bars
+  const barStyle = "bg-gradient-to-b from-slate-800 to-slate-900 shadow-lg";
   // We can add a noise texture via pseudo-elements or a background image later if desired
 
   // Determine which players are available for the current game based on selected IDs
@@ -2250,280 +2897,829 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       </div>
     );
   }
-  const playerBarProps = {
-    players: playersForCurrentGame || [],
-    onPlayerDragStartFromBar: handlePlayerDragStartFromBar,
-    selectedPlayerIdFromBar: draggingPlayerFromBarInfo?.id,
-    onBarBackgroundClick: handleDeselectPlayer,
-    gameEvents: gameSessionState.gameEvents,
-    onPlayerTapInBar: handlePlayerTapInBar,
-    onToggleGoalie: handleToggleGoalieForModal,
-  };
-
-  const gameInfoBarProps = {
-    teamName: gameSessionState.teamName,
-    opponentName: gameSessionState.opponentName,
-    homeScore: gameSessionState.homeScore,
-    awayScore: gameSessionState.awayScore,
-    onTeamNameChange: handleTeamNameChange,
-    onOpponentNameChange: handleOpponentNameChange,
-    homeOrAway: gameSessionState.homeOrAway,
-  };
-
-  const fieldProps: FieldContainerProps = {
-    gameSessionState,
-    playersOnField: playersOnField || [],
-    opponents: opponents || [],
-    drawings: drawings || [],
-    isTacticsBoardView: isTacticsBoardView || false,
-    tacticalDrawings: tacticalDrawings || [],
-    tacticalDiscs: tacticalDiscs || [],
-    tacticalBallPosition: tacticalBallPosition || { relX: 0.5, relY: 0.5 },
-    draggingPlayerFromBarInfo: draggingPlayerFromBarInfo || null,
-    timeElapsedInSeconds: timeElapsedInSeconds || 0,
-    isTimerRunning: isTimerRunning || false,
-    subAlertLevel: subAlertLevel || 'none',
-    lastSubConfirmationTimeSeconds: lastSubConfirmationTimeSeconds || 0,
-    showLargeTimerOverlay,
-    initialLoadComplete: initialLoadComplete || false,
-    currentGameId: currentGameId || DEFAULT_GAME_ID,
-    availablePlayers: availablePlayers || [],
-    teams: teams || [],
-    seasons: seasonsQueryResultData || [],
-    tournaments: tournamentsQueryResultData || [],
-    showFirstGameGuide,
-    hasCheckedFirstGameGuide,
-    firstGameGuideStep: firstGameGuideStep || 0,
-    orphanedGameInfo,
-    onOpenNewGameSetup: openNewGameSetupModalDirect,
-    onOpenRosterModal: openRosterModal,
-    onOpenSeasonTournamentModal: handleOpenSeasonTournamentModal,
-    onOpenTeamManagerModal: handleOpenTeamManagerModal,
-    onGuideStepChange: setFirstGameGuideStep,
-    onGuideClose: () => {
-      setShowFirstGameGuide(false);
-      setStorageItem('hasSeenFirstGameGuide', 'true').catch(error => {
-        logger.debug('Failed to store first game guide dismissal (non-critical)', { error });
-      });
-    },
-    onOpenTeamReassignModal: openTeamReassignModal,
-    handlePlayerMove,
-    handlePlayerMoveEnd,
-    handlePlayerRemove,
-    handleOpponentMove,
-    handleOpponentMoveEnd,
-    handleOpponentRemove,
-    handleDropOnField,
-    handleDrawingStart,
-    handleDrawingAddPoint,
-    handleDrawingEnd,
-    handleTacticalDrawingStart,
-    handleTacticalDrawingAddPoint,
-    handleTacticalDrawingEnd,
-    handleTacticalDiscMove,
-    handleTacticalDiscRemove,
-    handleToggleTacticalDiscType,
-    handleTacticalBallMove,
-    handlePlayerDropViaTouch,
-    handlePlayerDragCancelViaTouch,
-    handleToggleLargeTimerOverlay,
-    handleToggleGoalLogModal,
-    handleLogOpponentGoal,
-    handleSubstitutionMade,
-    handleSetSubInterval,
-    handleStartPauseTimer,
-    handleResetTimer,
-  };
-
-  const controlBarProps = {
-    timeElapsedInSeconds: timeElapsedInSeconds || 0,
-    isTimerRunning: isTimerRunning || false,
-    onToggleLargeTimerOverlay: handleToggleLargeTimerOverlay,
-    onUndo: handleUndo,
-    onRedo: handleRedo,
-    canUndo: canUndo || false,
-    canRedo: canRedo || false,
-    onResetField: handleResetField,
-    onClearDrawings: handleClearDrawingsForView,
-    onAddOpponent: handleAddOpponent,
-    onPlaceAllPlayers: handlePlaceAllPlayers,
-    isTacticsBoardView: isTacticsBoardView || false,
-    onToggleTacticsBoard: handleToggleTacticsBoard,
-    onAddHomeDisc: () => handleAddTacticalDisc?.('home'),
-    onAddOpponentDisc: () => handleAddTacticalDisc?.('opponent'),
-    onToggleGoalLogModal: handleToggleGoalLogModal,
-    onToggleTrainingResources: handleToggleTrainingResources,
-    onToggleGameStatsModal: handleToggleGameStatsModal,
-    onOpenLoadGameModal: handleOpenLoadGameModal,
-    onStartNewGame: handleStartNewGame,
-    onOpenRosterModal: openRosterModal,
-    onQuickSave: handleQuickSaveGame,
-    onOpenGameSettingsModal: handleOpenGameSettingsModal,
-    onOpenSeasonTournamentModal: handleOpenSeasonTournamentModal,
-    onToggleInstructionsModal: handleToggleInstructionsModal,
-    onOpenSettingsModal: handleOpenSettingsModal,
-    onOpenPlayerAssessmentModal: openPlayerAssessmentModal,
-    onOpenTeamManagerModal: handleOpenTeamManagerModal,
-    onOpenPersonnelManager: handleOpenPersonnelManager,
-    isGameLoaded: !!currentGameId && currentGameId !== DEFAULT_GAME_ID,
-  };
-
-  const gameContainerProps = {
-    gameInfoBarProps,
-    playerBarProps,
-    fieldProps,
-    controlBarProps,
-    currentGameId,
-  };
-
-  const modalManagerProps = {
-    gameSessionState,
-    playersForCurrentGame,
-    availablePlayers,
-    savedGames,
-    masterRosterQueryResultData,
-    seasons,
-    tournaments,
-    personnel: personnelManager.personnel,
-    personnelManager,
-    isGoalLogModalOpen,
-    isGameStatsModalOpen,
-    isTrainingResourcesOpen,
-    isInstructionsModalOpen,
-    isLoadGameModalOpen,
-    isNewGameSetupModalOpen,
-    isRosterModalOpen,
-    isSeasonTournamentModalOpen,
-    isGameSettingsModalOpen,
-    isSettingsModalOpen,
-    isPlayerAssessmentModalOpen,
-    isTeamManagerOpen,
-    isPersonnelManagerOpen,
-    onClosePersonnelManager: handleClosePersonnelManager,
-    selectedPlayerForStats,
-    showNoPlayersConfirm,
-    showHardResetConfirm,
-    showSaveBeforeNewConfirm,
-    showStartNewConfirm,
-    gameIdentifierForSave,
-    isTeamReassignModalOpen,
-    orphanedGameInfo,
-    availableTeams,
-    teamLoadError,
-    isLoadingGamesList,
-    loadGamesListError,
-    isGameLoading,
-    gameLoadError,
-    isGameDeleting,
-    gameDeleteError,
-    processingGameId,
-    isPlayed,
-    playerIdsForNewGame,
-    newGameDemandFactor,
-    defaultTeamNameSetting,
-    appLanguage,
-    playerAssessments,
-    isRosterUpdating,
-    rosterError,
-    handleToggleGoalLogModal,
-    handleAddGoalEvent,
-    handleLogOpponentGoal,
-    handleUpdateGameEvent,
-    handleDeleteGameEvent,
-    handleToggleGameStatsModal,
-    handleExportOneExcel,
-    handleExportAggregateExcel,
-    handleExportPlayerExcel,
-    handleGameLogClick,
-    handleCloseLoadGameModal,
-    handleLoadGame,
-    handleDeleteGame,
-    handleExportOneJson,
-    handleStartNewGameWithSetup,
-    handleCancelNewGameSetup,
-    setNewGameDemandFactor,
-    closeRosterModal,
-    handleUpdatePlayerForModal,
-    handleRenamePlayerForModal,
-    handleSetJerseyNumberForModal,
-    handleSetPlayerNotesForModal,
-    handleRemovePlayerForModal,
-    handleAddPlayerForModal,
-    handleOpenPlayerStats,
-    handleCloseSeasonTournamentModal,
-    addSeasonMutation,
-    addTournamentMutation,
-    updateSeasonMutation,
-    deleteSeasonMutation,
-    updateTournamentMutation,
-    deleteTournamentMutation,
-    handleCloseGameSettingsModal,
-    handleGameDateChange,
-    handleGameLocationChange,
-    handleGameTimeChange,
-    handleGameNotesChange,
-    handleAgeGroupChange,
-    handleTournamentLevelChange,
-    handleAwardFairPlayCard,
-    handleSetNumberOfPeriods,
-    handleSetPeriodDuration,
-    handleSetDemandFactor,
-    handleSetSeasonId,
-    handleSetTournamentId,
-    handleSetHomeOrAway,
-    handleSetIsPlayed,
-    handleUpdateSelectedPlayers,
-    handleSetGamePersonnel,
-    updateGameDetailsMutation,
-    handleTeamIdChange,
-    handleCloseSettingsModal,
-    handleShowAppGuide,
-    handleHardResetApp,
-    onDataImportSuccess,
-    closePlayerAssessmentModal: closePlayerAssessmentModalBase,
-    handleSavePlayerAssessment,
-    handleDeletePlayerAssessment,
-    handleCloseTeamManagerModal,
-    handleToggleTrainingResources,
-    handleToggleInstructionsModal,
-    setShowNoPlayersConfirm,
-    handleNoPlayersConfirmed,
-    setShowHardResetConfirm,
-    handleHardResetConfirmed,
-    setShowSaveBeforeNewConfirm,
-    handleSaveBeforeNewConfirmed,
-    handleSaveBeforeNewCancelled,
-    setShowStartNewConfirm,
-    handleStartNewConfirmed,
-    handleTeamReassignment,
-    setAppLanguage,
-    setDefaultTeamNameSetting,
-    handleOpenLoadGameModal,
-    handleStartNewGame,
-    openRosterModal,
-    handleQuickSaveGame,
-    handleOpenGameSettingsModal,
-    handleOpenSeasonTournamentModal,
-    handleOpenSettingsModal,
-    openPlayerAssessmentModal,
-    handleOpenTeamManagerModal,
-    handleOpenPersonnelManager,
-    handleUndo,
-    handleRedo,
-    handleResetField,
-    handleClearDrawingsForView,
-    handlePlaceAllPlayers,
-    setIsNewGameSetupModalOpen,
-    handleTeamNameChange,
-    handleOpponentNameChange,
-    setIsTeamReassignModalOpen,
-  };
 
   return (
-    <>
-      <GameContainer {...gameContainerProps} />
-      <ModalManager {...modalManagerProps} />
-    </>
+    <main className="flex flex-col h-[100dvh] bg-slate-900 text-slate-50" data-testid="home-page">
+      {/* Top Section: Player Bar, Game Info */}
+      <div className={barStyle}>
+        <ErrorBoundary fallback={
+          <div className="p-4 bg-red-900/20 border border-red-700 text-red-300">
+            Player bar crashed. Please refresh the page.
+          </div>
+        }>
+          <PlayerBar
+            players={playersForCurrentGame}
+            onPlayerDragStartFromBar={handlePlayerDragStartFromBar}
+            selectedPlayerIdFromBar={draggingPlayerFromBarInfo?.id}
+            onBarBackgroundClick={handleDeselectPlayer}
+            gameEvents={gameSessionState.gameEvents}
+            onPlayerTapInBar={handlePlayerTapInBar}
+            onToggleGoalie={handleToggleGoalieForModal}
+          />
+        </ErrorBoundary>
+        <GameInfoBar
+          teamName={gameSessionState.teamName}
+          opponentName={gameSessionState.opponentName}
+          homeScore={gameSessionState.homeScore}
+          awayScore={gameSessionState.awayScore}
+          onTeamNameChange={handleTeamNameChange}
+          onOpponentNameChange={handleOpponentNameChange}
+          homeOrAway={gameSessionState.homeOrAway}
+        />
+      </div>
+
+
+      {/* Orphaned Game Warning Banner */}
+      {orphanedGameInfo && (
+        <div className="bg-amber-500/20 border-b border-amber-500/30 px-4 py-2">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <div className="flex items-center gap-2">
+              <span className="text-amber-400 text-xl">⚠️</span>
+              <span className="text-amber-300 text-sm font-medium">
+                {t('orphanedGame.banner', 'Original team "{{teamName}}" no longer exists. Using master roster.', {
+                  teamName: orphanedGameInfo.teamName || t('orphanedGame.unknownTeam', 'Unknown Team')
+                })}
+              </span>
+            </div>
+            <button
+              onClick={() => setIsTeamReassignModalOpen(true)}
+              className="px-3 py-1 bg-amber-500/30 hover:bg-amber-500/40 text-amber-300 rounded-md text-sm font-medium transition-colors"
+            >
+              {t('orphanedGame.reassignButton', 'Reassign to Team')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content: Soccer Field */}
+      <div className="flex-grow relative bg-black overflow-hidden">
+        {/* Pass rel drawing handlers to SoccerField */}
+
+        {showLargeTimerOverlay && (
+          <TimerOverlay
+            timeElapsedInSeconds={timeElapsedInSeconds}
+            subAlertLevel={subAlertLevel}
+            onSubstitutionMade={handleSubstitutionMade}
+            completedIntervalDurations={gameSessionState.completedIntervalDurations || []}
+            subIntervalMinutes={gameSessionState.subIntervalMinutes}
+            onSetSubInterval={handleSetSubInterval}
+            isTimerRunning={isTimerRunning}
+            onStartPauseTimer={handleStartPauseTimer}
+            onResetTimer={handleResetTimer}
+            onToggleGoalLogModal={handleToggleGoalLogModal}
+            onRecordOpponentGoal={() => handleLogOpponentGoal(timeElapsedInSeconds)}
+            teamName={gameSessionState.teamName}
+            opponentName={gameSessionState.opponentName}
+            homeScore={gameSessionState.homeScore}
+            awayScore={gameSessionState.awayScore}
+            homeOrAway={gameSessionState.homeOrAway}
+            lastSubTime={lastSubConfirmationTimeSeconds}
+            numberOfPeriods={gameSessionState.numberOfPeriods}
+            periodDurationMinutes={gameSessionState.periodDurationMinutes}
+            currentPeriod={gameSessionState.currentPeriod}
+            gameStatus={gameSessionState.gameStatus}
+            onOpponentNameChange={handleOpponentNameChange}
+            onClose={handleToggleLargeTimerOverlay}
+            isLoaded={initialLoadComplete}
+          />
+        )}
+
+        <ErrorBoundary fallback={
+          <div className="flex items-center justify-center h-full bg-red-900/20 border border-red-700 text-red-300">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold mb-2">Soccer Field Crashed</h3>
+              <p className="text-sm">Please refresh the page to continue.</p>
+            </div>
+          </div>
+        }>
+          <SoccerField
+            players={playersOnField}
+            opponents={opponents}
+            drawings={isTacticsBoardView ? tacticalDrawings : drawings}
+            onPlayerMove={handlePlayerMove}
+            onPlayerMoveEnd={handlePlayerMoveEnd}
+            onPlayerRemove={handlePlayerRemove}
+            onOpponentMove={handleOpponentMove}
+            onOpponentMoveEnd={handleOpponentMoveEnd}
+            onOpponentRemove={handleOpponentRemove}
+            onPlayerDrop={handleDropOnField}
+            showPlayerNames={gameSessionState.showPlayerNames}
+            onDrawingStart={isTacticsBoardView ? handleTacticalDrawingStart : handleDrawingStart}
+            onDrawingAddPoint={isTacticsBoardView ? handleTacticalDrawingAddPoint : handleDrawingAddPoint}
+            onDrawingEnd={isTacticsBoardView ? handleTacticalDrawingEnd : handleDrawingEnd}
+            draggingPlayerFromBarInfo={draggingPlayerFromBarInfo}
+            onPlayerDropViaTouch={handlePlayerDropViaTouch}
+            onPlayerDragCancelViaTouch={handlePlayerDragCancelViaTouch}
+            timeElapsedInSeconds={timeElapsedInSeconds}
+            isTacticsBoardView={isTacticsBoardView}
+            tacticalDiscs={tacticalDiscs}
+            onTacticalDiscMove={handleTacticalDiscMove}
+            onTacticalDiscRemove={handleTacticalDiscRemove}
+            onToggleTacticalDiscType={handleToggleTacticalDiscType}
+            tacticalBallPosition={tacticalBallPosition}
+            onTacticalBallMove={handleTacticalBallMove}
+          />
+        </ErrorBoundary>
+
+        {/* First Game Setup Overlay */}
+        {initialLoadComplete && currentGameId === DEFAULT_GAME_ID && playersOnField.length === 0 && drawings.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+            <div className="bg-slate-800/95 border border-indigo-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
+              <div className="text-center">
+                <div className="mb-4">
+                  <div className="w-16 h-16 mx-auto bg-indigo-600/20 rounded-full flex items-center justify-center mb-3">
+                    <div className="text-3xl">⚽</div>
+                  </div>
+                  <h3 className="text-2xl font-bold text-indigo-300 mb-2">
+                    {availablePlayers.length === 0 
+                      ? t('firstGame.titleNoPlayers', 'Ready to get started?')
+                      : t('firstGame.title', 'Ready to track your first game?')
+                    }
+                  </h3>
+                  <p className="text-slate-300 text-sm leading-relaxed mb-6">
+                    {availablePlayers.length === 0 
+                      ? t('firstGame.descNoPlayers', 'First, set up your team roster, then create your first game to start tracking player positions, goals, and performance.')
+                      : t('firstGame.desc', 'Create a game to start tracking player positions, recording goals, and analyzing your team\'s performance.')
+                    }
+                  </p>
+                </div>
+                
+                <div className="space-y-3">
+                  {availablePlayers.length === 0 ? (
+                    <>
+                      <button 
+                        onClick={() => setIsRosterModalOpen(true)}
+                        className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                      >
+                        {t('firstGame.setupRoster', 'Set Up Team Roster')}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button 
+                        onClick={() => setIsNewGameSetupModalOpen(true)}
+                        className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
+                      >
+                        {t('firstGame.createGame', 'Create Your First Match')}
+                      </button>
+                      
+                      <button 
+                        onClick={handleOpenTeamManagerModal}
+                        className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors shadow-lg ${
+                          teams.length > 0 
+                            ? 'bg-slate-600 hover:bg-slate-500 text-slate-300 border border-slate-500' 
+                            : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                        }`}
+                      >
+                        {teams.length > 0 
+                          ? t('firstGame.manageTeams', 'Manage Teams') 
+                          : t('firstGame.createTeam', 'Create First Team')
+                        }
+                      </button>
+                      
+                      <button 
+                        onClick={() => setIsSeasonTournamentModalOpen(true)}
+                        className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors border border-slate-600 ${
+                          (seasonsQueryResultData && seasonsQueryResultData.length > 0) || (tournamentsQueryResultData && tournamentsQueryResultData.length > 0)
+                            ? 'bg-slate-600 hover:bg-slate-500 text-slate-300' 
+                            : 'bg-slate-700 hover:bg-slate-600 text-white'
+                        }`}
+                      >
+                        {(seasonsQueryResultData && seasonsQueryResultData.length > 0) || (tournamentsQueryResultData && tournamentsQueryResultData.length > 0)
+                          ? t('firstGame.manageSeasonsAndTournaments', 'Manage Seasons & Tournaments') 
+                          : t('firstGame.createSeasonFirst', 'Create Season/Tournament First')
+                        }
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Temporary Workspace Warning (shows at top when using workspace) */}
+        {initialLoadComplete && currentGameId === DEFAULT_GAME_ID && (playersOnField.length > 0 || drawings.length > 0) && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-40">
+            <div className="bg-amber-600/95 border border-amber-500/50 rounded-lg px-6 py-3 shadow-xl backdrop-blur-sm max-w-md">
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-3 h-3 bg-amber-200 rounded-full animate-pulse flex-shrink-0"></div>
+                <span className="text-amber-100 font-medium flex-1">{t('firstGame.workspaceWarning', 'Temporary workspace - changes won\'t be saved')}</span>
+                <button 
+                  onClick={() => setIsNewGameSetupModalOpen(true)}
+                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-amber-900 rounded-md text-xs font-semibold transition-colors shadow-sm flex-shrink-0"
+                >
+                  {t('firstGame.createRealGame', 'Create real game')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* First Game Interface Guide - compact carousel */}
+        {hasCheckedFirstGameGuide && showFirstGameGuide && currentGameId !== DEFAULT_GAME_ID && (
+          <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none px-6 py-12">
+            <div className="relative bg-slate-800/95 rounded-2xl p-7 sm:p-8 max-w-md sm:max-w-lg w-full pointer-events-auto shadow-2xl backdrop-blur-sm max-h-[85vh] flex flex-col ring-1 ring-indigo-400/30">
+              {/* Header */}
+              <div className="text-center mb-3">
+                <h2 className="text-xl sm:text-2xl font-bold text-indigo-300 leading-snug max-w-[20ch] mx-auto">
+                  {t('firstGameGuide.title', 'Welcome to Your First Game!')}
+                </h2>
+                <p className="text-slate-300 text-sm mt-1">
+                  {t('firstGameGuide.subtitle', "Let's quickly go over the basics")}
+                </p>
+                <div className="h-px bg-indigo-400/20 mt-3" />
+              </div>
+
+              {/* Slides */}
+              <div className="flex-1 overflow-hidden">
+                {firstGameGuideStep === 0 && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-indigo-200 text-base">
+                      {t('firstGameGuide.playerSelection', 'Player Selection (Top Bar)')}
+                    </h3>
+                    <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
+                      <li>{t('firstGameGuide.tapToSelect', 'Tap player disc to select')}</li>
+                      <li>{t('firstGameGuide.goalieInstructions', 'When player is on field, tap shield icon to set as goalie')}</li>
+                      <li>{t('firstGameGuide.tapFieldPlace', 'Tap field to place player')}</li>
+                    </ul>
+                  </div>
+                )}
+                {firstGameGuideStep === 1 && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-indigo-200 text-base">
+                      {t('firstGameGuide.theField', 'The Field')}
+                    </h3>
+                    <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
+                      <li>
+                        {t('firstGameGuide.dragToAdjust', 'Drag players by dragging')}
+                      </li>
+                      <li>
+                        {t('firstGameGuide.doubleTapRemove', 'Double-tap to remove a player from the field')}
+                      </li>
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.placeAllTip', 'Place all players at once with:')}</span>
+                        <HiOutlineSquares2X2 aria-hidden className="inline-block align-[-2px] ml-2 text-purple-300" size={18} />
+                      </li>
+                      <li>
+                        {t('firstGameGuide.drawTactics', 'You can draw on the field with your finger')}
+                      </li>
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.addOpponentTip', 'Add opponents with:')}</span>
+                        <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-red-300" size={18} />
+                      </li>
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.clearDrawingsTip', 'Clear drawings with:')}</span>
+                        <HiOutlineBackspace aria-hidden className="inline-block align-[-2px] ml-2 text-amber-300" size={18} />
+                      </li>
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.resetFieldTip', 'Reset field with:')}</span>
+                        <HiOutlineTrash aria-hidden className="inline-block align-[-2px] ml-2 text-red-400" size={18} />
+                      </li>
+                    </ul>
+                  </div>
+                )}
+                {firstGameGuideStep === 2 && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-indigo-200 text-base">
+                      {t('firstGameGuide.tacticalView', 'Tactical View')}
+                    </h3>
+                    <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.tacticalSwitchTip', 'Switch to tactical mode by pressing:')}</span>
+                        <HiOutlineClipboard aria-hidden className="inline-block align-[-2px] ml-2 text-indigo-300" size={18} />
+                      </li>
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.addHomeDiscTip', 'Add a home disc with:')}</span>
+                        <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-purple-300" size={18} />
+                      </li>
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.addOpponentDiscTip', 'Add an opponent disc with:')}</span>
+                        <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-red-300" size={18} />
+                      </li>
+                      <li>
+                        {t('firstGameGuide.drawLinesTip', 'Draw lines on the field with your finger')}
+                      </li>
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.clearDrawingsTip', 'Clear drawings with:')}</span>
+                        <HiOutlineBackspace aria-hidden className="inline-block align-[-2px] ml-2 text-amber-300" size={18} />
+                      </li>
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.resetFieldTip', 'Reset field with:')}</span>
+                        <HiOutlineTrash aria-hidden className="inline-block align-[-2px] ml-2 text-red-400" size={18} />
+                      </li>
+                    </ul>
+                  </div>
+                )}
+                {firstGameGuideStep === 3 && (
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-indigo-200 text-base">
+                      {t('firstGameGuide.quickActions', 'Quick Actions (Bottom Bar)')}
+                    </h3>
+                    <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.undoRedoTip', 'Undo/Redo your last actions:')}</span>
+                        <span className="inline-flex items-center ml-2 gap-1 align-[-2px]">
+                          <svg className="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 010 8h-1"/></svg>
+                          <svg className="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 10l4 4-4 4"/><path d="M19 14H8a4 4 0 010-8h1"/></svg>
+                        </span>
+                      </li>
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.logGoalTip', 'Log a goal:')}</span>
+                        <span className="inline-block align-[-2px] ml-2 text-blue-300">
+                          {/* soccer ball icon approximation */}
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
+                        </span>
+                      </li>
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.rosterTip', 'Open roster settings:')}</span>
+                        <HiOutlineUsers aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
+                      </li>
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.gameSettingsTip', 'Open game settings:')}</span>
+                        <HiOutlineAdjustmentsHorizontal aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
+                      </li>
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.statsTip', 'Show stats:')}</span>
+                        <HiOutlineClipboardDocumentList aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
+                      </li>
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.timerOverlayTip', 'Show/hide large timer:')}</span>
+                        <HiOutlineClock aria-hidden className="inline-block align-[-2px] ml-2 text-green-300" size={18} />
+                      </li>
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.helpTip', 'Open help:')}</span>
+                        <HiOutlineQuestionMarkCircle aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
+                      </li>
+                      <li>
+                        <span className="text-slate-200">{t('firstGameGuide.menuTip', 'Open the menu for more:')}</span>
+                        <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
+                      </li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Pagination */}
+              <div className="flex items-center justify-center gap-3 mt-4">
+                {[0,1,2,3].map((i) => (
+                  <button
+                    key={i}
+                    onClick={() => setFirstGameGuideStep(i)}
+                    className={`h-3 w-3 rounded-full ${firstGameGuideStep===i ? 'bg-indigo-300' : 'bg-slate-600'} transition-colors`}
+                    aria-label={`Step ${i+1}`}
+                  />
+                ))}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 mt-5">
+                <button
+                  onClick={() => setFirstGameGuideStep((s) => Math.max(0, s-1))}
+                  className="inline-flex items-center justify-center gap-2 px-4 h-10 bg-slate-700/80 hover:bg-slate-600/80 rounded-lg text-slate-200 ring-1 ring-white/10 shadow-sm transition-colors text-sm"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M12.78 15.53a.75.75 0 01-1.06 0l-4.5-4.5a.75.75 0 010-1.06l4.5-4.5a.75.75 0 111.06 1.06L8.81 10l3.97 3.97a.75.75 0 010 1.06z" clipRule="evenodd" />
+                  </svg>
+                  {t('common.backButton', 'Back')}
+                </button>
+                {firstGameGuideStep < 3 ? (
+                  <button
+                    onClick={() => setFirstGameGuideStep((s) => Math.min(3, s+1))}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 h-10 rounded-lg font-semibold text-white transition-colors text-sm bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 shadow-md shadow-indigo-900/30 ring-1 ring-white/10"
+                  >
+                    {t('common.next', 'Next')}
+                    <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fillRule="evenodd" d="M7.22 4.47a.75.75 0 011.06 0l4.5 4.5a.75.75 0 010 1.06l-4.5 4.5a.75.75 0 11-1.06-1.06L11.19 10 7.22 6.03a.75.75 0 010-1.06z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    onClick={async () => {
+                      setShowFirstGameGuide(false);
+                      try {
+                        await setStorageItem('hasSeenFirstGameGuide', 'true');
+                      } catch (error) {
+                        // Silent fail - guide dismissal tracking is not critical
+                        logger.debug('Failed to store first game guide dismissal (non-critical)', { error });
+                      }
+                    }}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 h-10 rounded-lg font-semibold text-white transition-colors text-sm bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 shadow-md shadow-indigo-900/30 ring-1 ring-white/10"
+                  >
+                    {t('firstGameGuide.gotIt', "Got it, let's start!")}
+                    <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fillRule="evenodd" d="M7.22 4.47a.75.75 0 011.06 0l4.5 4.5a.75.75 0 010 1.06l-4.5 4.5a.75.75 0 11-1.06-1.06L11.19 10 7.22 6.03a.75.75 0 010-1.06z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Other components that might overlay or interact with the field */}
+      </div>
+
+      {/* Bottom Section: Control Bar (always visible) */}
+      <div className={barStyle}>
+        <ControlBar
+          // Timer props
+          timeElapsedInSeconds={timeElapsedInSeconds}
+          isTimerRunning={isTimerRunning}
+          onToggleLargeTimerOverlay={handleToggleLargeTimerOverlay}
+          // Field tools props
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onResetField={handleResetField}
+          onClearDrawings={handleClearDrawingsForView}
+          onAddOpponent={handleAddOpponent}
+          onPlaceAllPlayers={handlePlaceAllPlayers}
+          isTacticsBoardView={isTacticsBoardView}
+          onToggleTacticsBoard={handleToggleTacticsBoard}
+          onAddHomeDisc={() => handleAddTacticalDisc('home')}
+          onAddOpponentDisc={() => handleAddTacticalDisc('opponent')}
+          // Goal props
+          onToggleGoalLogModal={handleToggleGoalLogModal}
+          // Menu props
+          onToggleTrainingResources={handleToggleTrainingResources}
+          onToggleGameStatsModal={handleToggleGameStatsModal}
+          onOpenLoadGameModal={handleOpenLoadGameModal}
+          onStartNewGame={handleStartNewGame}
+          onOpenRosterModal={openRosterModal}
+          onQuickSave={handleQuickSaveGame}
+          onOpenGameSettingsModal={handleOpenGameSettingsModal}
+          isGameLoaded={!!currentGameId && currentGameId !== DEFAULT_GAME_ID}
+          onOpenSeasonTournamentModal={handleOpenSeasonTournamentModal}
+          onToggleInstructionsModal={handleToggleInstructionsModal}
+          onOpenSettingsModal={handleOpenSettingsModal}
+          onOpenPlayerAssessmentModal={openPlayerAssessmentModal}
+          onOpenTeamManagerModal={handleOpenTeamManagerModal}
+          onOpenPersonnelManager={() => setIsPersonnelManagerOpen(true)}
+        />
+      </div>
+
+      {/* Modals and Overlays */}
+      {/* Training Resources Modal */}
+      <TrainingResourcesModal
+        isOpen={isTrainingResourcesOpen}
+        onClose={handleToggleTrainingResources}
+      />
+      <InstructionsModal
+        isOpen={isInstructionsModalOpen}
+        onClose={handleToggleInstructionsModal}
+      />
+
+      <ErrorBoundary>
+        <PersonnelManagerModal
+          isOpen={isPersonnelManagerOpen}
+          onClose={() => setIsPersonnelManagerOpen(false)}
+          personnel={personnelManager.personnel}
+          onAddPersonnel={personnelManager.addPersonnel}
+          onUpdatePersonnel={personnelManager.updatePersonnel}
+          onRemovePersonnel={personnelManager.removePersonnel}
+          isUpdating={personnelManager.isLoading}
+        />
+      </ErrorBoundary>
+
+      {/* Team Manager Modal - now includes roster management via UnifiedTeamModal */}
+      <ErrorBoundary>
+        <TeamManagerModal
+          isOpen={isTeamManagerOpen}
+          onClose={handleCloseTeamManagerModal}
+          teams={teams}
+          masterRoster={masterRosterQueryResultData || []}
+        />
+      </ErrorBoundary>
+
+      {/* Goal Log Modal */}
+      <GoalLogModal
+        isOpen={isGoalLogModalOpen}
+        onClose={handleToggleGoalLogModal}
+        onLogGoal={handleAddGoalEvent}
+        onLogOpponentGoal={handleLogOpponentGoal}
+        availablePlayers={playersForCurrentGame}
+        currentTime={gameSessionState.timeElapsedInSeconds}
+        currentGameId={currentGameId}
+        gameEvents={gameSessionState.gameEvents}
+        onUpdateGameEvent={handleUpdateGameEvent}
+        onDeleteGameEvent={handleDeleteGameEvent}
+      />
+      {/* Game Stats Modal - Restore props for now */}
+      {isGameStatsModalOpen && (
+        <GameStatsModal
+          isOpen={isGameStatsModalOpen}
+          onClose={handleToggleGameStatsModal}
+          teamName={gameSessionState.teamName}
+          opponentName={gameSessionState.opponentName}
+          gameDate={gameSessionState.gameDate}
+          homeScore={gameSessionState.homeScore}
+          awayScore={gameSessionState.awayScore}
+          homeOrAway={gameSessionState.homeOrAway}
+          gameLocation={gameSessionState.gameLocation}
+          gameTime={gameSessionState.gameTime}
+          numPeriods={gameSessionState.numberOfPeriods}
+          periodDurationMinutes={gameSessionState.periodDurationMinutes}
+          availablePlayers={playersForCurrentGame}
+          gameEvents={gameSessionState.gameEvents}
+          gameNotes={gameSessionState.gameNotes}
+          gamePersonnel={gameSessionState.gamePersonnel}
+          personnelDirectory={personnelManager.personnel}
+          onUpdateGameEvent={handleUpdateGameEvent}
+          selectedPlayerIds={gameSessionState.selectedPlayerIds}
+          savedGames={savedGames}
+          currentGameId={currentGameId}
+          onDeleteGameEvent={handleDeleteGameEvent}
+          onExportOneExcel={handleExportOneExcel}
+          onExportAggregateExcel={handleExportAggregateExcel}
+          onExportPlayerExcel={handleExportPlayerExcel}
+          initialSelectedPlayerId={selectedPlayerForStats?.id}
+          onGameClick={handleGameLogClick}
+          masterRoster={masterRosterQueryResultData || []}
+          onOpenSettings={handleOpenSettingsModal}
+        />
+      )}
+      <LoadGameModal
+        isOpen={isLoadGameModalOpen}
+        onClose={handleCloseLoadGameModal}
+        savedGames={savedGames}
+        onLoad={handleLoadGame}
+        onDelete={handleDeleteGame}
+        onExportOneJson={handleExportOneJson}
+        onExportOneExcel={handleExportOneExcel}
+        currentGameId={currentGameId || undefined} // Convert null to undefined
+        // Pass loading and error state props for LoadGameModal
+        isLoadingGamesList={isLoadingGamesList}
+        loadGamesListError={loadGamesListError}
+        isGameLoading={isGameLoading}
+        gameLoadError={gameLoadError}
+        isGameDeleting={isGameDeleting}
+        gameDeleteError={gameDeleteError}
+        processingGameId={processingGameId}
+        // Pass fresh data from React Query
+        seasons={seasons}
+        tournaments={tournaments}
+        teams={teams}
+      />
+
+      {/* Conditionally render the New Game Setup Modal */}
+      {isNewGameSetupModalOpen && (
+        <NewGameSetupModal
+          isOpen={isNewGameSetupModalOpen}
+          initialPlayerSelection={playerIdsForNewGame} // <<< Pass the state here
+          demandFactor={newGameDemandFactor}
+          onDemandFactorChange={setNewGameDemandFactor}
+          onManageTeamRoster={() => {
+            // Close new game modal and open team manager modal
+            // Note: User will need to navigate to the specific team roster from team manager
+            setIsNewGameSetupModalOpen(false);
+            setPlayerIdsForNewGame(null); // Clear player selection when switching to team manager
+            setIsTeamManagerOpen(true);
+          }}
+          onStart={handleStartNewGameWithSetup} // CORRECTED Handler
+          onCancel={handleCancelNewGameSetup}
+          // Pass fresh data from React Query
+          masterRoster={masterRosterQueryResultData || []}
+          seasons={seasons}
+          tournaments={tournaments}
+          teams={teams}
+          personnel={personnelManager.personnel}
+        />
+      )}
+
+      {/* Roster Settings Modal */}
+      <RosterSettingsModal
+        isOpen={isRosterModalOpen}
+        onClose={closeRosterModal}
+        availablePlayers={availablePlayers} // Use availablePlayers from useGameState
+        onUpdatePlayer={handleUpdatePlayerForModal}
+        onRenamePlayer={handleRenamePlayerForModal}
+        onSetJerseyNumber={handleSetJerseyNumberForModal}
+        onSetPlayerNotes={handleSetPlayerNotesForModal}
+        onRemovePlayer={handleRemovePlayerForModal} 
+        onAddPlayer={handleAddPlayerForModal}
+        // Pass loading and error states
+        isRosterUpdating={isRosterUpdating}
+        rosterError={rosterError}
+        onOpenPlayerStats={handleOpenPlayerStats}
+      />
+
+      <SeasonTournamentManagementModal
+        isOpen={isSeasonTournamentModalOpen}
+        onClose={handleCloseSeasonTournamentModal}
+        seasons={seasons}
+        tournaments={tournaments}
+        masterRoster={masterRosterQueryResultData || []}
+        addSeasonMutation={addSeasonMutation}
+        addTournamentMutation={addTournamentMutation}
+        updateSeasonMutation={updateSeasonMutation}
+        deleteSeasonMutation={deleteSeasonMutation}
+        updateTournamentMutation={updateTournamentMutation}
+        deleteTournamentMutation={deleteTournamentMutation}
+      />
+      
+      {/* <PlayerStatsModal 
+          isOpen={isPlayerStatsModalOpen} 
+          onClose={handleClosePlayerStats} 
+          player={selectedPlayerForStats}
+          savedGames={allSavedGamesQueryResultData || {}} 
+          onGameClick={handleGameLogClick}
+      /> */}
+
+      <GameSettingsModal
+        isOpen={isGameSettingsModalOpen}
+        onClose={handleCloseGameSettingsModal}
+        currentGameId={currentGameId}
+        teamId={savedGames[currentGameId || '']?.teamId}
+        teamName={gameSessionState.teamName}
+        opponentName={gameSessionState.opponentName}
+        gameDate={gameSessionState.gameDate}
+        gameLocation={gameSessionState.gameLocation}
+        gameTime={gameSessionState.gameTime}
+        gameNotes={gameSessionState.gameNotes}
+        ageGroup={gameSessionState.ageGroup}
+        tournamentLevel={gameSessionState.tournamentLevel}
+        gameEvents={gameSessionState.gameEvents}
+        availablePlayers={availablePlayers}
+        availablePersonnel={personnelManager.personnel}
+        selectedPlayerIds={gameSessionState.selectedPlayerIds}
+        selectedPersonnelIds={gameSessionState.gamePersonnel || []}
+        onSelectedPlayersChange={handleUpdateSelectedPlayers}
+        onSelectedPersonnelChange={(personnelIds: string[]) => {
+          dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: personnelIds });
+        }}
+        numPeriods={gameSessionState.numberOfPeriods}
+        periodDurationMinutes={gameSessionState.periodDurationMinutes}
+        demandFactor={gameSessionState.demandFactor}
+        onTeamNameChange={handleTeamNameChange}
+        onOpponentNameChange={handleOpponentNameChange}
+        onGameDateChange={handleGameDateChange}
+        onGameLocationChange={handleGameLocationChange}
+        onGameTimeChange={handleGameTimeChange}
+        onGameNotesChange={handleGameNotesChange}
+        onAgeGroupChange={handleAgeGroupChange}
+        onTournamentLevelChange={handleTournamentLevelChange}
+        onUpdateGameEvent={handleUpdateGameEvent}
+        onAwardFairPlayCard={handleAwardFairPlayCard}
+        onDeleteGameEvent={handleDeleteGameEvent}
+        onNumPeriodsChange={handleSetNumberOfPeriods}
+        onPeriodDurationChange={handleSetPeriodDuration}
+        onDemandFactorChange={handleSetDemandFactor}
+        seasonId={gameSessionState.seasonId}
+        tournamentId={gameSessionState.tournamentId}
+        onSeasonIdChange={handleSetSeasonId}
+        onTournamentIdChange={handleSetTournamentId}
+        homeOrAway={gameSessionState.homeOrAway}
+        onSetHomeOrAway={handleSetHomeOrAway}
+        isPlayed={isPlayed}
+        onIsPlayedChange={handleSetIsPlayed}
+        timeElapsedInSeconds={timeElapsedInSeconds}
+        updateGameDetailsMutation={updateGameDetailsMutation}
+        // Pass fresh data from React Query
+        seasons={seasons}
+        tournaments={tournaments}
+        masterRoster={masterRosterQueryResultData || []}
+        teams={teams}
+        onTeamIdChange={handleTeamIdChange}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={handleCloseSettingsModal}
+        language={appLanguage}
+        onLanguageChange={(lang) => setAppLanguage(lang)}
+        defaultTeamName={defaultTeamNameSetting}
+        onDefaultTeamNameChange={(name) => {
+          setDefaultTeamNameSetting(name);
+          utilSaveLastHomeTeamName(name);
+        }}
+        onResetGuide={handleShowAppGuide}
+        onHardResetApp={handleHardResetApp}
+        onCreateBackup={() => exportFullBackup(showToast)}
+        onDataImportSuccess={onDataImportSuccess}
+      />
+
+      <PlayerAssessmentModal
+        isOpen={isPlayerAssessmentModalOpen}
+        onClose={closePlayerAssessmentModal}
+        selectedPlayerIds={gameSessionState.selectedPlayerIds}
+        availablePlayers={availablePlayers}
+        assessments={playerAssessments}
+        onSave={handleSavePlayerAssessment}
+        onDelete={handleDeletePlayerAssessment}
+        teamName={gameSessionState.teamName}
+        opponentName={gameSessionState.opponentName}
+        gameDate={gameSessionState.gameDate}
+        homeScore={gameSessionState.homeScore}
+        awayScore={gameSessionState.awayScore}
+        homeOrAway={gameSessionState.homeOrAway}
+        gameLocation={gameSessionState.gameLocation}
+        gameTime={gameSessionState.gameTime}
+        numberOfPeriods={gameSessionState.numberOfPeriods}
+        periodDurationMinutes={gameSessionState.periodDurationMinutes}
+      />
+
+      {/* Team Reassignment Modal for Orphaned Games */}
+      {isTeamReassignModalOpen && orphanedGameInfo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold text-yellow-400 mb-4">
+              {t('orphanedGame.reassignTitle', 'Reassign Game to Team')}
+            </h2>
+            <p className="text-slate-300 mb-4">
+              {t('orphanedGame.reassignDescription', 'Select a team to associate this game with, or choose "No Team" to use the master roster.')}
+            </p>
+            
+            <div className="space-y-2 mb-6 max-h-60 overflow-y-auto">
+              <button
+                onClick={() => handleTeamReassignment(null)}
+                className="w-full text-left px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-200 transition-colors"
+              >
+                {t('orphanedGame.noTeam', 'No Team (Use Master Roster)')}
+              </button>
+              {availableTeams.map(team => (
+                <button
+                  key={team.id}
+                  onClick={() => handleTeamReassignment(team.id)}
+                  className="w-full text-left px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-200 transition-colors flex items-center gap-2"
+                >
+                  {team.color && (
+                    <span 
+                      className="w-4 h-4 rounded-full border border-slate-500" 
+                      style={{ backgroundColor: team.color }}
+                    />
+                  )}
+                  {team.name}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsTeamReassignModalOpen(false)}
+                className="flex-1 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-md font-medium transition-colors"
+              >
+                {t('common.cancel', 'Cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Removed debug reset button for first game guide */}
+
+      {/* Confirmation Modals */}
+
+      {/* No Players Confirmation */}
+      <ConfirmationModal
+        isOpen={showNoPlayersConfirm}
+        title={t('controlBar.noPlayersTitle', 'No Players in Roster')}
+        message={t('controlBar.noPlayersForNewGame', 'You need at least one player in your roster to create a game. Would you like to add players now?')}
+        onConfirm={handleNoPlayersConfirmed}
+        onCancel={() => setShowNoPlayersConfirm(false)}
+        confirmLabel={t('common.addPlayers', 'Add Players')}
+        variant="primary"
+      />
+
+      {/* Hard Reset Confirmation */}
+      <ConfirmationModal
+        isOpen={showHardResetConfirm}
+        title={t('controlBar.hardResetTitle', 'Reset Application')}
+        message={t('controlBar.hardResetConfirmation', 'Are you sure you want to completely reset the application? All saved data (players, stats, positions) will be permanently lost.')}
+        warningMessage={t('controlBar.hardResetWarning', 'This action cannot be undone. All your data will be permanently deleted.')}
+        onConfirm={handleHardResetConfirmed}
+        onCancel={() => setShowHardResetConfirm(false)}
+        confirmLabel={t('common.reset', 'Reset')}
+        variant="danger"
+      />
+
+      {/* Save Before New Game Confirmation */}
+      <ConfirmationModal
+        isOpen={showSaveBeforeNewConfirm}
+        title={t('controlBar.saveBeforeNewTitle', 'Save Current Game?')}
+        message={t('controlBar.saveBeforeNewPrompt', `Save changes to the current game "${gameIdentifierForSave}" before starting a new one?`, { gameName: gameIdentifierForSave })}
+        warningMessage={t('controlBar.saveBeforeNewInfo', 'Click "Save & Continue" to save your progress, or "Discard" to start fresh without saving.')}
+        onConfirm={handleSaveBeforeNewConfirmed}
+        onCancel={handleSaveBeforeNewCancelled}
+        confirmLabel={t('controlBar.saveAndContinue', 'Save & Continue')}
+        cancelLabel={t('controlBar.discard', 'Discard')}
+        variant="primary"
+      />
+
+      {/* Start New Game Confirmation */}
+      <ConfirmationModal
+        isOpen={showStartNewConfirm}
+        title={t('controlBar.startNewMatchTitle', 'Start New Match?')}
+        message={t('controlBar.startNewMatchConfirmation', 'Are you sure you want to start a new match? Any unsaved progress will be lost.')}
+        warningMessage={t('controlBar.startNewMatchWarning', 'Make sure you have saved your current game if you want to keep it.')}
+        onConfirm={handleStartNewConfirmed}
+        onCancel={() => setShowStartNewConfirm(false)}
+        confirmLabel={t('common.startNew', 'Start New')}
+        variant="danger"
+      />
+
+    </main>
   );
 }
 export default HomePage;
