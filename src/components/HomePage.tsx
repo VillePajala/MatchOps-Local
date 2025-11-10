@@ -2399,6 +2399,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // - Immediate (0ms): Goals, assists, scores → Statistics update instantly
   // - Short (500ms): Game metadata → Near-instant feel
   // - Long (2000ms): Tactical data → Battery-friendly
+  // Determine if any blocking modal is open to pause auto-save
+  const isAutoSaveBlockedByModal = isLoadGameModalOpen || isNewGameSetupModalOpen;
+
   useAutoSave({
     immediate: {
       // Critical for statistics - save instantly
@@ -2432,7 +2435,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       delay: 2000,
     },
     saveFunction: () => handleQuickSaveGame(true), // Silent auto-save
-    enabled: currentGameId !== DEFAULT_GAME_ID,
+    enabled: currentGameId !== DEFAULT_GAME_ID && !isAutoSaveBlockedByModal,
     currentGameId,
   });
   // --- END Auto-Save ---
