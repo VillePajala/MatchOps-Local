@@ -209,10 +209,21 @@ const ControlBar: React.FC<ControlBarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isSettingsMenuOpen]);
 
-  const wrapHandler = (handler: () => void) => () => {
+  // Immediate handler: for actions that do not open modals (e.g., quick save, external links)
+  const wrapImmediate = (handler: () => void) => () => {
     handler();
     setIsSettingsMenuOpen(false);
     setDragOffset(0);
+  };
+
+  // Modal handler: close the drawer first, then open modal after a short deferral
+  // to avoid click-through and focus conflicts with the closing menu animation
+  const wrapModal = (handler: () => void) => () => {
+    setIsSettingsMenuOpen(false);
+    setDragOffset(0);
+    setTimeout(() => {
+      handler();
+    }, 150);
   };
 
   const handleOverlayClick = () => {
@@ -221,9 +232,11 @@ const ControlBar: React.FC<ControlBarProps> = ({
   };
 
   const handleStartNewGame = () => {
-    onStartNewGame();
     setIsSettingsMenuOpen(false);
     setDragOffset(0);
+    setTimeout(() => {
+      onStartNewGame();
+    }, 150);
   };
 
   return (
@@ -410,10 +423,10 @@ const ControlBar: React.FC<ControlBarProps> = ({
             <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               {t('controlBar.menu.gameManagement', 'Game Management')}
             </h4>
-            <button onClick={wrapHandler(onQuickSave)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+            <button onClick={wrapImmediate(onQuickSave)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineArchiveBoxArrowDown className="w-5 h-5 mr-2" /> {t('controlBar.saveGame', 'Save')}
             </button>
-            <button onClick={wrapHandler(onOpenLoadGameModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+            <button onClick={wrapModal(onOpenLoadGameModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineFolderOpen className="w-5 h-5 mr-2" /> {t('controlBar.loadGame', 'Load Game...')}
             </button>
             <button onClick={handleStartNewGame} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
@@ -427,7 +440,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
               {t('controlBar.menu.setupConfig', 'Setup & Configuration')}
             </h4>
             <button
-              onClick={wrapHandler(onOpenGameSettingsModal)}
+              onClick={wrapModal(onOpenGameSettingsModal)}
               className={`w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors ${
                 !isGameLoaded ? 'opacity-50 cursor-not-allowed' : ''
               }`}
@@ -435,16 +448,16 @@ const ControlBar: React.FC<ControlBarProps> = ({
             >
               <HiOutlineAdjustmentsHorizontal className="w-5 h-5 mr-2" /> {t('controlBar.gameSettingsButton', 'Game Settings')}
             </button>
-            <button onClick={wrapHandler(onOpenRosterModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+            <button onClick={wrapModal(onOpenRosterModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineUsers className="w-5 h-5 mr-2" /> {t('controlBar.manageRoster', 'Manage Roster')}
             </button>
-            <button onClick={wrapHandler(onOpenTeamManagerModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+            <button onClick={wrapModal(onOpenTeamManagerModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineUserGroup className="w-5 h-5 mr-2" /> {t('controlBar.manageTeams', 'Manage Teams')}
             </button>
-            <button onClick={wrapHandler(onOpenPersonnelManager)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+            <button onClick={wrapModal(onOpenPersonnelManager)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineIdentification className="w-5 h-5 mr-2" /> {t('controlBar.personnelManager', 'Personnel Manager')}
             </button>
-            <button onClick={wrapHandler(onOpenSeasonTournamentModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+            <button onClick={wrapModal(onOpenSeasonTournamentModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineTrophy className="w-5 h-5 mr-2" /> {t('controlBar.manageSeasonsAndTournaments', 'Manage Seasons & Tournaments')}
             </button>
           </div>
@@ -454,20 +467,20 @@ const ControlBar: React.FC<ControlBarProps> = ({
             <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               {t('controlBar.menu.analysisTools', 'Analysis & Tools')}
             </h4>
-            <button onClick={wrapHandler(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+            <button onClick={wrapModal(onToggleGameStatsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineClipboardDocumentList className="w-5 h-5 mr-2" />{t('controlBar.stats', 'Stats')}
             </button>
             <button
-              onClick={wrapHandler(onOpenPlayerAssessmentModal)}
+              onClick={wrapModal(onOpenPlayerAssessmentModal)}
               className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
               title={t('instructionsModal.controlBar.assessPlayers') ?? undefined}
             >
               <HiOutlineClipboard className="w-5 h-5 mr-2" />{t('controlBar.assessPlayers', 'Assess Players')}
             </button>
-            <button onClick={wrapHandler(onToggleTrainingResources)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+            <button onClick={wrapModal(onToggleTrainingResources)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineBookOpen className="w-5 h-5 mr-2" />{t('controlBar.training', 'Training')}
             </button>
-            <button onClick={wrapHandler(onOpenSettingsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+            <button onClick={wrapModal(onOpenSettingsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineDocumentArrowDown className="w-5 h-5 mr-2" />{t('controlBar.backupRestore', 'Backup & Restore')}
             </button>
           </div>
@@ -477,7 +490,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
             <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               {t('controlBar.menu.resources', 'Resources')}
             </h4>
-            <button onClick={wrapHandler(onToggleInstructionsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+            <button onClick={wrapModal(onToggleInstructionsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineQuestionMarkCircle className="w-5 h-5 mr-2" /> {t('controlBar.howItWorks')}
             </button>
             <a
@@ -495,7 +508,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
-              onClick={wrapHandler(() => {})}
+              onClick={wrapImmediate(() => {})}
             >
               <HiOutlineArrowTopRightOnSquare className="w-5 h-5 mr-2" />{t('controlBar.tasoLink', 'Taso')}
             </a>
@@ -504,7 +517,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors"
-              onClick={wrapHandler(() => {})}
+              onClick={wrapImmediate(() => {})}
             >
               <HiOutlineArrowTopRightOnSquare className="w-5 h-5 mr-2" />
               {t('controlBar.marketingSite', 'Docs & Features')}
@@ -516,7 +529,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
             <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               {t('controlBar.menu.settings', 'Settings')}
             </h4>
-            <button onClick={wrapHandler(onOpenSettingsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
+            <button onClick={wrapModal(onOpenSettingsModal)} className="w-full flex items-center px-3 py-2.5 text-sm text-slate-100 hover:bg-slate-700/75 rounded-lg transition-colors">
               <HiOutlineCog6Tooth className="w-5 h-5 mr-2" /> {t('controlBar.appSettings', 'App Settings')}
             </button>
           </div>
