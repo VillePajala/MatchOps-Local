@@ -2440,6 +2440,21 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   });
   // --- END Auto-Save ---
 
+  // --- Deterministic init fallback: auto-select latest real game if default or stale ---
+  useEffect(() => {
+    if (!initialLoadComplete) return;
+    const ids = Object.keys(savedGames || {}).filter(id => id !== DEFAULT_GAME_ID);
+    const isStale = !currentGameId || currentGameId === DEFAULT_GAME_ID || !savedGames[currentGameId];
+    if (isStale && ids.length > 0) {
+      const latestId = getLatestGameId(savedGames);
+      if (latestId) {
+        logger.log('[Init Fallback] Selecting latest game as current', { latestId });
+        setCurrentGameId(latestId);
+        utilSaveCurrentGameIdSetting(latestId).catch(() => {});
+      }
+    }
+  }, [initialLoadComplete, currentGameId, savedGames]);
+
   // --- NEW: Handlers for Game Settings Modal --- 
   const handleOpenGameSettingsModal = () => {
       setIsGameSettingsModalOpen(true); // Corrected State Setter
