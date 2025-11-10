@@ -13,6 +13,7 @@
  */
 
 import React from 'react';
+import ModalPortal from '@/components/ModalPortal';
 import { useTranslation } from 'react-i18next';
 
 // Modal Components
@@ -327,7 +328,9 @@ export function ModalManager(props: ModalManagerProps) {
   if (!gameSessionState) return null;
 
   return (
-    <>
+    <ModalPortal>
+      {/* All modals are rendered in a portal to ensure top-most stacking */}
+      <>
       {/* Training Resources Modal */}
       <TrainingResourcesModal
         isOpen={isTrainingResourcesOpen || false}
@@ -664,6 +667,7 @@ export function ModalManager(props: ModalManagerProps) {
         confirmLabel={t('common.startNew', 'Start New')}
         variant="danger"
       />
-    </>
+      </>
+    </ModalPortal>
   );
 }
