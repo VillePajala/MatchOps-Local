@@ -155,32 +155,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     event.target.value = '';
   };
 
-  const handleRestoreConfirmed = async () => {
-    if (!pendingRestoreContent) {
-      setShowRestoreConfirm(false);
-      return;
+  const handleRestoreConfirmed = () => {
+    if (pendingRestoreContent) {
+      importFullBackup(pendingRestoreContent, onDataImportSuccess, showToast, true);
     }
-
-    try {
-      if (onDataImportSuccess) {
-        await importFullBackup(pendingRestoreContent, {
-          onImportSuccess: onDataImportSuccess,
-          showToast,
-          confirmed: true,
-          queryClient,
-        });
-      } else {
-        await importFullBackup(pendingRestoreContent, {
-          showToast,
-          confirmed: true,
-        });
-      }
-    } catch (error) {
-      logger.error('[SettingsModal] Full backup restore failed:', error);
-    } finally {
-      setShowRestoreConfirm(false);
-      setPendingRestoreContent(null);
-    }
+    setShowRestoreConfirm(false);
+    setPendingRestoreContent(null);
   };
 
   const handleGameImportFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -192,7 +172,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       setShowImportResults(true);
 
       if (result.success && result.successful > 0) {
-        onDataImportSuccess?.();
+        // Success message is handled by the ImportResultsModal
       } else if (result.warnings.length > 0 || result.failed.length > 0) {
         logger.error('Game import issues:', { warnings: result.warnings, failed: result.failed });
       }

@@ -16,11 +16,12 @@ Before proceeding with new major features, these architectural issues MUST be re
 
 | Priority | Issue | Status | Time | Plan |
 |----------|-------|--------|------|------|
-| **P0** | HomePage.tsx Refactoring (3,725 lines) | ❌ Not Started | 2-3h | [Fix Plan](./05-development/fix-plans/P0-HomePage-Refactoring-Plan.md) |
-| **P1** | GameSettingsModal Refactoring (1,995 lines) | ❌ Not Started | 1h | [Fix Plan](./05-development/fix-plans/P1-GameSettingsModal-Refactoring-Plan.md) |
-| **P2** | Modal State Management | ❌ Not Started | 30m | [Fix Plan](./05-development/fix-plans/P2-Modal-State-Management-Fix.md) |
-| **P2** | Error Handling Improvements | ❌ Not Started | 1h | [Fix Plan](./05-development/fix-plans/P2-Error-Handling-Improvements.md) |
-| **P2** | Performance Optimization | ❌ Not Started | 30m | [Fix Plan](./05-development/fix-plans/P2-Performance-Optimization-Plan.md) |
+| **Active** | Micro Refactor Roadmap (3 layers) | ▶ In Progress | 1–3 days | [Micro Plan](./03-active-plans/MICRO-REFactor-ROADMAP.md) |
+| P0 | HomePage.tsx Refactor (monolithic) | ⏸ Superseded | - | [Legacy Plan](./05-development/fix-plans/P0-HomePage-Refactoring-Plan.md) |
+| P1 | GameSettingsModal Refactor (monolithic) | ⏸ Superseded | - | [Legacy Plan](./05-development/fix-plans/P1-GameSettingsModal-Refactoring-Plan.md) |
+| P2 | Modal State Management (monolithic) | ⏸ Layer 2 micro | - | [Legacy Plan](./05-development/fix-plans/P2-Modal-State-Management-Fix.md) |
+| P2 | Error Handling Improvements | Planned (Layer 3) | 1h | [Plan](./05-development/fix-plans/P2-Error-Handling-Improvements.md) |
+| P2 | Performance Optimization | Planned (Layer 3) | 30m | [Plan](./05-development/fix-plans/P2-Performance-Optimization-Plan.md) |
 
 **📋 Essential Reading:**
 - **[CRITICAL_FIXES_REQUIRED.md](./CRITICAL_FIXES_REQUIRED.md)** - Detailed analysis and impact assessment

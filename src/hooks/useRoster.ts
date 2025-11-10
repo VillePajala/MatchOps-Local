@@ -18,12 +18,10 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
   const [rosterError, setRosterError] = useState<string | null>(null);
   const [isRosterUpdating, setIsRosterUpdating] = useState(false);
 
-  const playersForCurrentGame = useMemo(() => {
-    if (!selectedPlayerIds || selectedPlayerIds.length === 0) {
-      return availablePlayers;
-    }
-    return availablePlayers.filter((p) => selectedPlayerIds.includes(p.id));
-  }, [availablePlayers, selectedPlayerIds]);
+  const playersForCurrentGame = useMemo(
+    () => availablePlayers.filter((p) => selectedPlayerIds.includes(p.id)),
+    [availablePlayers, selectedPlayerIds]
+  );
 
   const handleAddPlayer = async (
     data: Omit<Player, 'id' | 'isGoalie' | 'receivedFairPlayCard'>,
@@ -161,3 +159,4 @@ export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) 
 };
 
 export type UseRosterReturn = ReturnType<typeof useRoster>;
+
