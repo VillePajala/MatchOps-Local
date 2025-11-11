@@ -21,11 +21,12 @@ import type { PersonnelManagerReturn } from '@/hooks/usePersonnelManager';
 import type { UseMutationResult } from '@tanstack/react-query';
 
 // Stub a modal to make it easy to select in DOM
-const seasonModalStub = jest.fn(() => <div data-testid="season-modal-portal" />);
-
 jest.mock('@/components/SeasonTournamentManagementModal', () => ({
   __esModule: true,
-  default: () => seasonModalStub(),
+  default: () => {
+    const React = require('react');
+    return React.createElement('div', { 'data-testid': 'season-modal-portal' });
+  },
 }));
 
 jest.mock('@/contexts/ModalProvider', () => ({
@@ -109,9 +110,6 @@ const createProps = (): ModalManagerProps => ({
   appLanguage: 'en',
   isInstructionsModalOpen: false,
   personnel: [],
-  personnelManager: createPersonnelManager(),
-  isPersonnelManagerOpen: false,
-  onClosePersonnelManager: jest.fn(),
   handleToggleGoalLogModal: noop,
   handleAddGoalEvent: noop,
   handleLogOpponentGoal: noop,
@@ -127,6 +125,14 @@ const createProps = (): ModalManagerProps => ({
   handleDeleteGame: noop,
   handleExportOneJson: noop,
   setIsNewGameSetupModalOpen: noop,
+  // Team roster modal controls
+  isTeamRosterModalOpen: false,
+  selectedTeamForRoster: null,
+  setSelectedTeamForRoster: noop,
+  setIsTeamRosterModalOpen: noop,
+  handleManageTeamRoster: noop,
+  handleCloseTeamRosterModal: noop,
+  handleBackToTeamManager: noop,
   handleStartNewGameWithSetup: noopAsync,
   handleCancelNewGameSetup: noop,
   setNewGameDemandFactor: noop,

@@ -50,7 +50,7 @@ import { DEFAULT_GAME_ID } from '@/config/constants';
 
 const barStyle = "flex-shrink-0 bg-slate-800 border-b border-slate-700";
 
-interface GameContainerProps extends Partial<UseGameOrchestrationReturn> {
+export interface GameContainerProps extends Partial<UseGameOrchestrationReturn> {
   draggingPlayerFromBarInfo: Player | null;
   showLargeTimerOverlay: boolean;
   initialLoadComplete: boolean;
