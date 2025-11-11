@@ -35,7 +35,6 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   const [isTrainingResourcesOpen, setIsTrainingResourcesOpen] = useState(false);
   const [isGoalLogModalOpen, setIsGoalLogModalOpen] = useState(false);
   const [isGameStatsModalOpen, setIsGameStatsModalOpen] = useState(false);
-  const [isNewGameSetupModalOpen, _setIsNewGameSetupModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isPlayerAssessmentModalOpen, setIsPlayerAssessmentModalOpen] = useState(false);
 
@@ -43,66 +42,58 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   const ANTI_FLASH_MS = 200;
   const loadGameLastOpenRef = useRef<number>(0);
   const newGameLastOpenRef = useRef<number>(0);
-
-  const guardedSetter = (
-    baseSet: React.Dispatch<React.SetStateAction<boolean>>,
-    lastOpenRef: React.MutableRefObject<number>,
-  ): React.Dispatch<React.SetStateAction<boolean>> => {
-    return (valueOrUpdater) => {
-      const now = Date.now();
-      if (typeof valueOrUpdater === 'function') {
-        baseSet((prev) => {
-          const next = (valueOrUpdater as (prev: boolean) => boolean)(prev);
-          if (!next && prev) {
-            if (now - lastOpenRef.current < ANTI_FLASH_MS) {
-              return prev; // ignore premature close
-            }
-          }
-          if (next && !prev) {
-            lastOpenRef.current = now;
-          }
-          return next;
-        });
-      } else {
-        const next = valueOrUpdater;
-        if (!next) {
-          baseSet((prev) => {
-            if (prev && now - lastOpenRef.current < ANTI_FLASH_MS) {
-              return prev; // ignore premature close
-            }
-            return next;
-          });
-        } else {
-          lastOpenRef.current = now;
-          baseSet(next);
-        }
-      }
-    };
-  };
+  const loadGameOpenRef = useRef<boolean>(false);
+  const newGameSetupOpenRef = useRef<boolean>(false);
 
   // For reducer-backed Load Game modal, emulate React setState<boolean> API with anti-flash guard
   // Note: This intentionally duplicates guarded close timing with the local reducer-backed setter
   // until we consolidate via a shared createGuardedReducerSetter() in L2 step 2.4.
   const setIsLoadGameModalOpen: React.Dispatch<React.SetStateAction<boolean>> = (valueOrUpdater) => {
     const now = Date.now();
+    const prev = loadGameOpenRef.current;
     const next = typeof valueOrUpdater === 'function'
-      ? valueOrUpdater(modalState.loadGame)
+      ? (valueOrUpdater as (prev: boolean) => boolean)(prev)
       : valueOrUpdater;
 
-    if (next) {
+    if (next && !prev) {
       // Always dispatch OPEN to preserve setState-like semantics (last call wins)
       loadGameLastOpenRef.current = now;
+      loadGameOpenRef.current = true;
       dispatchModal({ type: 'OPEN_MODAL', id: 'loadGame', at: now });
       return;
     }
 
     // Close requested: honor anti-flash guard, otherwise dispatch CLOSE
-    if (now - loadGameLastOpenRef.current < ANTI_FLASH_MS) {
-      return; // ignore premature close
+    if (!next && prev) {
+      if (now - loadGameLastOpenRef.current < ANTI_FLASH_MS) {
+        return; // ignore premature close
+      }
+      loadGameOpenRef.current = false;
+      dispatchModal({ type: 'CLOSE_MODAL', id: 'loadGame' });
     }
-    dispatchModal({ type: 'CLOSE_MODAL', id: 'loadGame' });
   };
-  const setIsNewGameSetupModalOpen = guardedSetter(_setIsNewGameSetupModalOpen, newGameLastOpenRef);
+  // Reducer-backed setter for New Game Setup modal (preserves setState semantics and anti-flash close)
+  // NOTE: Intentional duplication with loadGame close guard until consolidation in L2 step 2.4.
+  const setIsNewGameSetupModalOpen: React.Dispatch<React.SetStateAction<boolean>> = (valueOrUpdater) => {
+    const now = Date.now();
+    const prev = newGameSetupOpenRef.current;
+    const next = typeof valueOrUpdater === 'function'
+      ? (valueOrUpdater as (prev: boolean) => boolean)(prev)
+      : valueOrUpdater;
+    if (next && !prev) {
+      newGameLastOpenRef.current = now;
+      newGameSetupOpenRef.current = true;
+      dispatchModal({ type: 'OPEN_MODAL', id: 'newGameSetup', at: now });
+      return;
+    }
+    if (!next && prev) {
+      if (now - newGameLastOpenRef.current < ANTI_FLASH_MS) {
+        return; // ignore premature close
+      }
+      newGameSetupOpenRef.current = false;
+      dispatchModal({ type: 'CLOSE_MODAL', id: 'newGameSetup' });
+    }
+  };
 
   const value: ModalContextValue = {
     isGameSettingsModalOpen,
@@ -119,7 +110,7 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     setIsGoalLogModalOpen,
     isGameStatsModalOpen,
     setIsGameStatsModalOpen,
-    isNewGameSetupModalOpen,
+    isNewGameSetupModalOpen: modalState.newGameSetup,
     setIsNewGameSetupModalOpen,
     isSettingsModalOpen,
     setIsSettingsModalOpen,
