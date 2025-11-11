@@ -4,15 +4,15 @@ import { ModalManager } from './ModalManager';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
 import type { Season, Tournament, Team, PlayerAssessment } from '@/types';
 import type { ModalManagerProps } from './ModalManager';
-import type { PersonnelManagerReturn } from '@/hooks/usePersonnelManager';
 import type { UseMutationResult } from '@tanstack/react-query';
+
+function SeasonModalMock() {
+  return <div data-testid="season-modal" />;
+}
 
 jest.mock('@/components/SeasonTournamentManagementModal', () => ({
   __esModule: true,
-  default: () => {
-    const React = require('react');
-    return React.createElement('div', { 'data-testid': 'season-modal' });
-  },
+  default: SeasonModalMock,
 }));
 
 jest.mock('@/contexts/ToastProvider', () => ({
@@ -53,14 +53,6 @@ jest.mock('@/contexts/ModalProvider', () => ({
 const noop = () => {};
 const noopAsync = async () => {};
 
-const createPersonnelManager = (): PersonnelManagerReturn => ({
-  personnel: [],
-  addPersonnel: jest.fn(),
-  updatePersonnel: jest.fn(),
-  removePersonnel: jest.fn(),
-  isLoading: false,
-  error: null,
-});
 
 const createMutation = <T, V>(): UseMutationResult<T, Error, V, unknown> =>
   ({

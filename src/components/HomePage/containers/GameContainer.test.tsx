@@ -3,7 +3,6 @@ import React from 'react';
 import { GameContainer } from './GameContainer';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
-import type { FieldContainerProps } from './FieldContainer';
 import type { GameContainerProps } from './GameContainer';
 
 const PlayerBarMock = jest.fn();
@@ -44,12 +43,6 @@ jest.mock('./FieldContainer', () => ({
 }));
 
 const mockPlayerBarModule = jest.requireMock('@/components/PlayerBar').default as jest.Mock;
-
-const createFieldProps = (overrides?: Partial<FieldContainerProps>): FieldContainerProps =>
-  ({
-    gameSessionState: initialGameSessionStatePlaceholder,
-    ...overrides,
-  } as FieldContainerProps);
 
 const createProps = (overrides?: Partial<GameContainerProps>): GameContainerProps => ({
   gameSessionState: initialGameSessionStatePlaceholder,

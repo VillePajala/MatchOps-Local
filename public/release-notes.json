@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: add Layer 1 manual regression checklist (L1-Manual-Regression-CHECKLIST.md)"
+  "notes": "feat: update release notes and improve ModalManager and GameContainer props for better type handling"
 }

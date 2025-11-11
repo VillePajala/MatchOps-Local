@@ -17,16 +17,16 @@ import { ModalManager } from '@/components/HomePage/containers/ModalManager';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
 import type { Season, Tournament, Team, PlayerAssessment } from '@/types';
 import type { ModalManagerProps } from '@/components/HomePage/containers/ModalManager';
-import type { PersonnelManagerReturn } from '@/hooks/usePersonnelManager';
 import type { UseMutationResult } from '@tanstack/react-query';
 
-// Stub a modal to make it easy to select in DOM
+// Stub a modal to make it easy to select in DOM without require()
+function SeasonModalPortalMock() {
+  return <div data-testid="season-modal-portal" />;
+}
+
 jest.mock('@/components/SeasonTournamentManagementModal', () => ({
   __esModule: true,
-  default: () => {
-    const React = require('react');
-    return React.createElement('div', { 'data-testid': 'season-modal-portal' });
-  },
+  default: SeasonModalPortalMock,
 }));
 
 jest.mock('@/contexts/ModalProvider', () => ({
@@ -59,15 +59,6 @@ jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, f?: 
 
 const noop = () => {};
 const noopAsync = async () => {};
-
-const createPersonnelManager = (): PersonnelManagerReturn => ({
-  personnel: [],
-  addPersonnel: jest.fn(),
-  updatePersonnel: jest.fn(),
-  removePersonnel: jest.fn(),
-  isLoading: false,
-  error: null,
-});
 
 const createMutation = <T, V>(): UseMutationResult<T, Error, V, unknown> =>
   ({ mutate: jest.fn(), mutateAsync: jest.fn(), reset: jest.fn(), status: 'idle' } as unknown as UseMutationResult<T, Error, V, unknown>);
