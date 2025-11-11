@@ -54,8 +54,8 @@ const DESIGN_TOKENS = {
   MENU_WIDTH_PX: 320,
 } as const;
 
-// Modal open deferral to avoid click-through from closing drawer
-const MODAL_OPEN_DEFERRAL_MS = 150;
+// Transition fallback in case 'transitionend' isn't fired (reduced motion, etc.)
+const PANEL_CLOSE_FALLBACK_MS = 300;
 
 // Helper to format time
 const formatTime = (totalSeconds: number): string => {
@@ -219,28 +219,88 @@ const ControlBar: React.FC<ControlBarProps> = ({
     setDragOffset(0);
   };
 
-  // Modal handler: close the drawer first, then open modal after a short deferral
-  // to avoid click-through and focus conflicts with the closing menu animation
-  const wrapModal = (handler: () => void) => () => {
+  // Track pending transition listener and fallback timeout for cleanup
+  const pendingTransitionRef = useRef<{ panel: HTMLDivElement | null; onEnd: (e: TransitionEvent) => void } | null>(null);
+  const pendingTimeoutIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup on unmount to avoid leaking listeners/timeouts
+      if (pendingTransitionRef.current?.panel && pendingTransitionRef.current.onEnd) {
+        pendingTransitionRef.current.panel.removeEventListener('transitionend', pendingTransitionRef.current.onEnd);
+      }
+      if (pendingTimeoutIdRef.current !== null) {
+        clearTimeout(pendingTimeoutIdRef.current);
+      }
+      pendingTransitionRef.current = null;
+      pendingTimeoutIdRef.current = null;
+    };
+  }, []);
+
+  // Close menu and open modal when the close transition finishes (best UX).
+  // Fallback timer ensures handler still fires if transitionend doesn't.
+  const closeMenuThen = (handler: () => void) => {
+    const panel = settingsMenuRef.current;
     setIsSettingsMenuOpen(false);
     setDragOffset(0);
-    setTimeout(() => {
-      handler();
-    }, MODAL_OPEN_DEFERRAL_MS);
+
+    // Clear any previous pending listener/timeout before setting new ones
+    if (pendingTransitionRef.current?.panel && pendingTransitionRef.current.onEnd) {
+      pendingTransitionRef.current.panel.removeEventListener('transitionend', pendingTransitionRef.current.onEnd);
+    }
+    if (pendingTimeoutIdRef.current !== null) {
+      clearTimeout(pendingTimeoutIdRef.current);
+      pendingTimeoutIdRef.current = null;
+    }
+    pendingTransitionRef.current = null;
+
+    if (!panel) {
+      // No panel ref — call on next tick
+      setTimeout(handler, 0);
+      return;
+    }
+
+    let done = false;
+    const cleanup = () => {
+      done = true;
+      if (pendingTransitionRef.current?.panel && pendingTransitionRef.current.onEnd) {
+        pendingTransitionRef.current.panel.removeEventListener('transitionend', pendingTransitionRef.current.onEnd);
+      }
+      if (pendingTimeoutIdRef.current !== null) {
+        clearTimeout(pendingTimeoutIdRef.current);
+        pendingTimeoutIdRef.current = null;
+      }
+      pendingTransitionRef.current = null;
+    };
+
+    const onEnd = (e: TransitionEvent) => {
+      if (e.target === panel) {
+        cleanup();
+        handler();
+      }
+    };
+
+    // Attach and track the listener
+    panel.addEventListener('transitionend', onEnd, { once: true });
+    pendingTransitionRef.current = { panel, onEnd };
+
+    // Fallback if transitionend doesn't fire
+    pendingTimeoutIdRef.current = window.setTimeout(() => {
+      if (!done) {
+        cleanup();
+        handler();
+      }
+    }, PANEL_CLOSE_FALLBACK_MS);
   };
+
+  const wrapModal = (handler: () => void) => () => closeMenuThen(handler);
 
   const handleOverlayClick = () => {
     setIsSettingsMenuOpen(false);
     setDragOffset(0);
   };
 
-  const handleStartNewGame = () => {
-    setIsSettingsMenuOpen(false);
-    setDragOffset(0);
-    setTimeout(() => {
-      onStartNewGame();
-    }, MODAL_OPEN_DEFERRAL_MS);
-  };
+  const handleStartNewGame = () => closeMenuThen(onStartNewGame);
 
   return (
     <>
@@ -395,6 +455,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
       {/* Settings Side Panel */}
       <div
         ref={settingsMenuRef}
+        data-testid="settings-side-panel"
         className={`fixed top-0 left-0 h-full ${DESIGN_TOKENS.MENU_WIDTH} z-50 flex flex-col bg-slate-800/98 backdrop-blur-sm shadow-xl border-r border-slate-600/50 overflow-hidden ${
           isDragging ? '' : 'transition-transform duration-300 ease-in-out'
         } ${isSettingsMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
