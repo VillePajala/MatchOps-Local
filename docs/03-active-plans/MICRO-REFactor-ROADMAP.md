@@ -101,6 +101,22 @@ Step 2.2 — Migrate NewGame setup modal
 Step 2.3 — Migrate remaining modals in pairs (small, safe increments)
 - Repeat until all are consolidated
 
+Step 2.4 — Parameter/props grouping (reduce coupling)
+- Change:
+  - Group `useNewGameFlow` options into cohesive objects: `gameState`, `actions`, `dependencies`, `config`
+  - Introduce view-models for `GameContainer` and `FieldContainer` (reduce >50 props to a few sub-objects)
+- Test:
+  - Focused unit tests for new groups; ensure existing behavior unchanged
+
+Step 2.5 — Edge-case tests
+- Add tests for:
+  - Backup restore → latest game fallback (stale `currentGameId`)
+  - `useGameState` availablePlayers → playersOnField sync
+
+Housekeeping
+- Remove redundant/skipped tests; if a test is needed, implement deterministically without relying on IndexedDB
+- Name magic numbers (e.g., modal deferral) and centralize in constants
+
 ---------------------------------------------------------------------
 LAYER 3 — Performance + Error Handling (targeted)
 ---------------------------------------------------------------------
@@ -129,4 +145,3 @@ Where to start
 
 Supersedes
 - These micro-steps replace the big-bang approach described in P0/P1/P2 plans. See notes added atop those files.
-

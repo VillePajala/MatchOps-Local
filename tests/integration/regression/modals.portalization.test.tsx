@@ -29,32 +29,40 @@ jest.mock('@/components/SeasonTournamentManagementModal', () => ({
   default: SeasonModalPortalMock,
 }));
 
-jest.mock('@/contexts/ModalProvider', () => ({
-  useModalContext: () => ({
-    isGoalLogModalOpen: false,
-    isGameStatsModalOpen: false,
-    isTrainingResourcesOpen: false,
-    isLoadGameModalOpen: false,
-    isNewGameSetupModalOpen: false,
-    isRosterModalOpen: false,
-    isSeasonTournamentModalOpen: true, // OPEN THIS MODAL
-    isGameSettingsModalOpen: false,
-    isSettingsModalOpen: false,
-    isPlayerAssessmentModalOpen: false,
-    setIsGoalLogModalOpen: jest.fn(),
-    setIsGameStatsModalOpen: jest.fn(),
-    setIsTrainingResourcesOpen: jest.fn(),
-    setIsLoadGameModalOpen: jest.fn(),
-    setIsNewGameSetupModalOpen: jest.fn(),
-    setIsRosterModalOpen: jest.fn(),
-    setIsSeasonTournamentModalOpen: jest.fn(),
-    setIsGameSettingsModalOpen: jest.fn(),
-    setIsSettingsModalOpen: jest.fn(),
-    setIsPlayerAssessmentModalOpen: jest.fn(),
-  }),
-}));
+jest.mock('@/contexts/ModalProvider', () => {
+  const actual = jest.requireActual('@/contexts/ModalProvider');
+  return {
+    __esModule: true,
+    ...actual,
+    useModalContext: () => ({
+      isGoalLogModalOpen: false,
+      isGameStatsModalOpen: false,
+      isTrainingResourcesOpen: false,
+      isLoadGameModalOpen: false,
+      isNewGameSetupModalOpen: false,
+      isRosterModalOpen: false,
+      isSeasonTournamentModalOpen: true, // OPEN THIS MODAL
+      isGameSettingsModalOpen: false,
+      isSettingsModalOpen: false,
+      isPlayerAssessmentModalOpen: false,
+      setIsGoalLogModalOpen: jest.fn(),
+      setIsGameStatsModalOpen: jest.fn(),
+      setIsTrainingResourcesOpen: jest.fn(),
+      setIsLoadGameModalOpen: jest.fn(),
+      setIsNewGameSetupModalOpen: jest.fn(),
+      setIsRosterModalOpen: jest.fn(),
+      setIsSeasonTournamentModalOpen: jest.fn(),
+      setIsGameSettingsModalOpen: jest.fn(),
+      setIsSettingsModalOpen: jest.fn(),
+      setIsPlayerAssessmentModalOpen: jest.fn(),
+    }),
+  };
+});
 
-jest.mock('@/contexts/ToastProvider', () => ({ useToast: () => ({ showToast: jest.fn() }) }));
+jest.mock('@/contexts/ToastProvider', () => {
+  const actual = jest.requireActual('@/contexts/ToastProvider');
+  return { __esModule: true, ...actual, useToast: () => ({ showToast: jest.fn() }) };
+});
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, f?: string) => f ?? k }) }));
 
 const noop = () => {};
@@ -181,10 +189,17 @@ const createProps = (): ModalManagerProps => ({
 
 // NOTE: Skipped in CI/jsdom due to occasional ESM interop issues when layering providers.
 // Manual verification and focused component tests cover portalization behavior.
-describe.skip('Modal portalization (renders to document.body)', () => {
+describe('Modal portalization (renders to document.body)', () => {
   it('renders season modal outside the RTL container (via portal)', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     const props = createProps();
+    // Provide all mutations so modal renders
+    props.addSeasonMutation = createMutation<Season | null, Partial<Season> & { name: string }>();
+    props.addTournamentMutation = createMutation<Tournament | null, Partial<Tournament> & { name: string }>();
+    props.updateSeasonMutation = createMutation<Season | null, Season>();
+    props.deleteSeasonMutation = createMutation<boolean, string>();
+    props.updateTournamentMutation = createMutation<Tournament | null, Tournament>();
+    props.deleteTournamentMutation = createMutation<boolean, string>();
 
     const { container } = render(
       <QueryClientProvider client={queryClient}>
