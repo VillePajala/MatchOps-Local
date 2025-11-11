@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: update release notes and cache name, improve test mocks for ModalManager and GameContainer"
+  "notes": "feat: update release notes, modify cache name, and enhance logging in ModalManager and useNewGameFlow"
 }

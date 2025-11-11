@@ -54,6 +54,9 @@ const DESIGN_TOKENS = {
   MENU_WIDTH_PX: 320,
 } as const;
 
+// Modal open deferral to avoid click-through from closing drawer
+const MODAL_OPEN_DEFERRAL_MS = 150;
+
 // Helper to format time
 const formatTime = (totalSeconds: number): string => {
   const minutes = Math.floor(totalSeconds / 60);
@@ -223,7 +226,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
     setDragOffset(0);
     setTimeout(() => {
       handler();
-    }, 150);
+    }, MODAL_OPEN_DEFERRAL_MS);
   };
 
   const handleOverlayClick = () => {
@@ -236,7 +239,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
     setDragOffset(0);
     setTimeout(() => {
       onStartNewGame();
-    }, 150);
+    }, MODAL_OPEN_DEFERRAL_MS);
   };
 
   return (
