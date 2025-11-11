@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix(l2-2.1): preserve setState semantics for reducer-backed Load Game setter; make reducer idempotent to avoid update loops"
+  "notes": "feat(l2-2.2): migrate New Game Setup modal to reducer; preserve API with anti-flash guard; extend reducer state and tests remain green"
 }
