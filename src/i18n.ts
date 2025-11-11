@@ -50,7 +50,8 @@ if (!i18n.isInitialized) {
     },
   }).then(() => {
     // After initialization, load the actual language preference asynchronously
-    if (typeof window !== 'undefined') {
+    // Skip in test environment to avoid storage errors
+    if (typeof window !== 'undefined' && !process.env.JEST_WORKER_ID) {
       loadLanguagePreference();
     }
   });
