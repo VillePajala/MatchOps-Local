@@ -79,8 +79,40 @@ describe('Menu → Modal deferral guard', () => {
     // Handler should not be called synchronously
     expect(onOpenLoadGameModal).not.toHaveBeenCalled();
 
-    // Advance past deferral window (matches ControlBar MODAL_OPEN_DEFERRAL_MS = 150ms)
-    act(() => { jest.advanceTimersByTime(160); });
+    // Simulate the side panel finishing its close transition
+    const panel = screen.getByTestId('settings-side-panel');
+    act(() => {
+      // Fire transitionend on the panel
+      fireEvent.transitionEnd(panel, { propertyName: 'transform' });
+    });
     expect(onOpenLoadGameModal).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not leak listeners when invoked twice before transitionend; calls handler exactly once per close', () => {
+    const onOpenLoadGameModal = jest.fn();
+    setup(onOpenLoadGameModal);
+
+    // First sequence: open menu and click Load Game (sets up listener + fallback)
+    fireEvent.click(screen.getByLabelText(/Settings/i));
+    fireEvent.click(screen.getByRole('button', { name: /Load Game/i }));
+
+    // Without firing transitionend, open menu again and click Load Game again
+    fireEvent.click(screen.getByLabelText(/Settings/i));
+    fireEvent.click(screen.getByRole('button', { name: /Load Game/i }));
+
+    // Fire a transitionend once — should only invoke the latest handler once
+    const panel = screen.getByTestId('settings-side-panel');
+    act(() => {
+      fireEvent.transitionEnd(panel, { propertyName: 'transform' });
+    });
+    expect(onOpenLoadGameModal).toHaveBeenCalledTimes(1);
+
+    // Repeat: open again and verify a second call occurs (no duplicate from prior)
+    fireEvent.click(screen.getByLabelText(/Settings/i));
+    fireEvent.click(screen.getByRole('button', { name: /Load Game/i }));
+    act(() => {
+      fireEvent.transitionEnd(panel, { propertyName: 'transform' });
+    });
+    expect(onOpenLoadGameModal).toHaveBeenCalledTimes(2);
   });
 });
