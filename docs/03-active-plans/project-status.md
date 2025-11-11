@@ -55,8 +55,9 @@ MatchOps-Local is in **active beta** with core functionality complete and stable
 - ✅ **Player Assessment System** - Performance rating with weighted difficulty
 - ✅ **Backup & Restore** - Complete data backup and recovery system
 - ✅ **Smart UI Flows** - Intelligent user guidance and error prevention
-- ✅ **IndexedDB Storage Foundation** - Complete IndexedDB-only architecture with 877-line async storage helper, comprehensive error handling, and zero localStorage fallbacks (completed September 30, 2025)
+- ✅ **IndexedDB Storage Foundation** - Complete IndexedDB-only architecture with 847-line async storage helper, comprehensive error handling, and zero localStorage fallbacks (completed September 30, 2025)
 - ✅ **Linked Entity Resolution** - Live entity name resolution for teams/seasons/tournaments (completed October 5, 2025)
+- ✅ **Personnel Management System** - Coach/trainer/staff directories with selection flows (completed January 2025)
 
 ### 🚧 **In Active Development**
 
@@ -68,7 +69,6 @@ MatchOps-Local is in **active beta** with core functionality complete and stable
 
 #### Planned Features (Ready for Implementation)
 - 📋 **Team Final Position Tracking** - Record tournament/season standings (6-8 hours)
-- 📋 **Personnel Management** - Coach and staff management system (8-10 hours)
 
 #### Enhanced User Experience (Backlog)
 - 📅 **Adaptive Start Screen** - Context-aware initial user experience

@@ -24,7 +24,7 @@
 
 ## 📋 FIX #1: HomePage Refactoring (CRITICAL)
 
-**Problem**: 3,602-line monolithic component
+**Problem**: 3,725-line monolithic component
 **Target**: Split into 12-15 components of <600 lines each
 **Why Critical**: Blocks all major feature development
 
@@ -56,7 +56,7 @@ src/components/HomePage/
 
 ## 📋 FIX #2: GameSettingsModal (HIGH)
 
-**Problem**: 1,707-line complex modal
+**Problem**: 1,995-line complex modal
 **Target**: Split into 5 focused sections
 
 **Implementation Summary**:

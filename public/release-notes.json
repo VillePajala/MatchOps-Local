@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: implement new game setup handlers and improve error handling in GameSettingsModal tests"
+  "notes": "feat: update critical fixes tracker and release notes; modify cache name and build timestamp in service worker"
 }

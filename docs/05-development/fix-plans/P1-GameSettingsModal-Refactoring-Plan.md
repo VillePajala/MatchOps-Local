@@ -2,7 +2,7 @@
 
 **Priority**: P1 - HIGH
 **File**: `/src/components/GameSettingsModal.tsx`
-**Current Size**: 1,707 lines
+**Current Size**: 1,995 lines
 **Target Size**: 200 lines (orchestrator only)
 **Estimated Effort**: 1 hour
 **Impact**: HIGH - Reduces complexity, improves maintainability
@@ -12,7 +12,7 @@
 
 ## 🎯 OBJECTIVE
 
-Decompose the 1,707-line GameSettingsModal into 5 focused sub-components, each responsible for one configuration section.
+Decompose the 1,995-line GameSettingsModal into 5 focused sub-components, each responsible for one configuration section.
 
 ---
 

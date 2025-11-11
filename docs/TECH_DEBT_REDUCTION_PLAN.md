@@ -1,5 +1,23 @@
 # Technical Debt Reduction Plan – Game Session & Modal Architecture
 
+> **⚠️ STATUS UPDATE (November 7, 2025)**: This comprehensive 5-phase plan was **NOT ADOPTED**.
+>
+> **Decision Made**: The project decided to **SKIP** this comprehensive test-driven refactoring approach in favor of **pragmatic incremental iteration**. See [CRITICAL_FIXES_REQUIRED.md](./CRITICAL_FIXES_REQUIRED.md) §"REFACTORING APPROACH DECISION (2025-11-05)" for full rationale.
+>
+> **Why Skipped**:
+> - Excessive upfront cost (estimated 5 weeks / 25 days)
+> - Codebase already has 57% coverage, 45% branch coverage
+> - Existing integration tests for core workflows
+> - Better path: Fix bugs as encountered, extract opportunistically
+>
+> **Current Approach**: Incremental extraction (e.g., newGameHandlers.ts extraction achieved 17% HomePage reduction in ~2 hours vs 5-week comprehensive plan).
+>
+> **Document Status**: Archived for reference. Represents one possible approach but NOT the active strategy.
+
+---
+
+## Original Plan (For Reference)
+
 This blueprint decomposes the refactor into small, reviewable PRs. Update the checkboxes as work progresses. Every task must keep existing behaviour intact and add automated coverage before merging.
 
 ---

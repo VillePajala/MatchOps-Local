@@ -6,8 +6,8 @@ import StartScreen from '@/components/StartScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import { useState, useEffect, useCallback } from 'react';
-import { getCurrentGameIdSetting } from '@/utils/appSettings';
-import { getSavedGames } from '@/utils/savedGames';
+import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
+import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import { runMigration } from '@/utils/migration';
 import logger from '@/utils/logger';
@@ -39,7 +39,19 @@ export default function Home() {
       if (lastId && games[lastId]) {
         setCanResume(true);
       } else {
-        setCanResume(false);
+        // Fallback: if currentGameId is missing or stale but there are games, select the latest game
+        const ids = Object.keys(games || {}).filter(id => id !== 'unsaved_game');
+        if (ids.length > 0) {
+          const latestId = getLatestGameId(games);
+          if (latestId) {
+            await utilSaveCurrentGameIdSetting(latestId);
+            setCanResume(true);
+          } else {
+            setCanResume(false);
+          }
+        } else {
+          setCanResume(false);
+        }
       }
 
       // Check if user has any saved games

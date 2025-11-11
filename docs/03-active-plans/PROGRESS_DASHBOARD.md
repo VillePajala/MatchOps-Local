@@ -1,11 +1,39 @@
 # 📊 Production Readiness Progress Dashboard
 
-**Last Updated**: January 11, 2025
-**Overall Progress**: 35% Complete (2 of 6 phases done)
+**Last Updated**: November 7, 2025
+**Overall Progress**: 35% Complete (2 of 6 phases done, P0 refactoring in progress)
 
 ---
 
 ## 🎉 **Recent Completions**
+
+### ✅ Bug Fixes & Incremental Refactoring (Nov 3-7, 2025)
+**Completion Date**: November 7, 2025
+**Time Spent**: ~2 hours
+**Impact**: 33.6% reduction in HomePage size, +315 tests, improved data consistency
+
+**What Was Accomplished**:
+- ✅ Event deletion storage-aware pattern (prevents data loss)
+- ✅ New game handlers extraction (180 lines to separate file)
+- ✅ Season/tournament type safety (non-nullable IDs)
+- ✅ React Query mutation race condition fixes
+- ✅ Comprehensive regression tests (+315 tests, 32% increase)
+- ✅ Tournament/season date prefill UX improvement
+- ✅ Team selection display fix
+
+**Metrics Improved**:
+- HomePage.tsx: 3,725 → 2,474 lines (-1,251 lines, -33.6%)
+- Test count: 991 → 1,306 (+315 tests, +32%)
+- Storage consistency: Event deletion now storage-first with rollback
+- Type safety: Season/tournament IDs non-nullable
+
+**Files Created**:
+- `src/components/HomePage/utils/newGameHandlers.ts`
+- `src/components/HomePage/utils/newGameHandlers.test.ts`
+
+**See**: [CRITICAL_FIXES_TRACKER.md](../../CRITICAL_FIXES_TRACKER.md#-recent-bug-fixes--improvements-nov-3-7-2025) for detailed breakdown
+
+---
 
 ### ✅ Personnel Management Feature (COMPLETED)
 **Completion Date**: January 2025
@@ -34,13 +62,20 @@
 
 ---
 
-## 🎯 **Current Phase: P1 - Security & Service Worker Hardening**
+## 🎯 **Current Phases (Parallel Work)**
 
+### Phase: P0 - HomePage Refactoring (In Progress)
+**Status**: 🟡 **IN PROGRESS** (another AI working on this)
+**Estimated Time**: 2-3 hours (1-1.5h remaining)
+**Progress**: ~33.6% complete (1,251 lines removed)
+**Owner**: Separate AI instance
+
+### Phase: P1 - Security & Service Worker Hardening
 **Status**: 🟡 **READY TO START**
 **Estimated Time**: 3-5 hours
 **Owner**: Unassigned
 
-**What's Next**: Implement security headers and harden Service Worker
+**What's Next**: Implement security headers and harden Service Worker (can proceed in parallel with P0)
 
 ---
 
@@ -99,7 +134,7 @@
 - [x] Comprehensive storage infrastructure (metrics, mutex, recovery, bootstrap, config)
 
 #### M1B: IndexedDB-Only Storage ✅
-- [x] Storage helper created (`src/utils/storage.ts` - 877 lines)
+- [x] Storage helper created (`src/utils/storage.ts` - 847 lines)
 - [x] localStorage elimination (removed all fallbacks from storageFactory)
 - [x] All 8 utility files converted (savedGames, masterRoster, appSettings, seasons, tournaments, teams, playerAdjustments, fullBackup)
 - [x] Component integration (i18n.ts, useGameTimer.ts, HomePage.tsx)
@@ -276,8 +311,8 @@ You have completed all major features but stand at a fork in the road. Choose yo
 **ROI**: 1000% over project lifetime
 
 **Why This Matters**:
-- HomePage.tsx: 3,602 lines (8.5x too large)
-- GameSettingsModal.tsx: 1,707 lines (4.3x too large)
+- HomePage.tsx: 3,725 lines (~9.3x too large)
+- GameSettingsModal.tsx: 1,995 lines (~5x too large)
 - Every new feature currently takes 3-5x longer than it should
 - Testing is extremely difficult
 - Onboarding new developers nearly impossible
@@ -337,6 +372,13 @@ You have completed all major features but stand at a fork in the road. Choose yo
 
 ## 📝 **Version History**
 
+- **2025-11-07**: Metrics refresh & bug fix documentation
+  - Added Recent Completions section for Nov 3-7 bug fixes
+  - Updated test count (991 → 1,306, +315 tests)
+  - Updated HomePage metrics (3,725 → 2,474 lines, -33.6%)
+  - Documented 7 bug fixes with detailed impact analysis
+  - Marked P0 as in progress (separate AI working on it)
+  - Updated current phase section to show parallel work
 - **2025-01-11**: Major status update
   - Added Personnel Management feature completion
   - Added NEXT STEPS decision point section

@@ -13,6 +13,8 @@
  */
 
 import React from 'react';
+import ModalPortal from '@/components/ModalPortal';
+import logger from '@/utils/logger';
 import { useTranslation } from 'react-i18next';
 
 // Modal Components
@@ -75,7 +77,7 @@ type MutationMetaBase = {
 
 type MutationMeta = MutationMetaBase & { sequence: number };
 
-interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
+export interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   // Modal-specific states
   selectedPlayerForStats: Player | null;
   isTeamManagerOpen: boolean;
@@ -324,10 +326,44 @@ export function ModalManager(props: ModalManagerProps) {
     handleTeamReassignment,
   } = props;
 
+  // Diagnostic: log when season/tournament modal is requested but mutations are not ready
+  const hasSeasonModalMutations = !!(
+    addSeasonMutation &&
+    addTournamentMutation &&
+    updateSeasonMutation &&
+    deleteSeasonMutation &&
+    updateTournamentMutation &&
+    deleteTournamentMutation
+  );
+
+  React.useEffect(() => {
+    if (isSeasonTournamentModalOpen && !hasSeasonModalMutations) {
+      logger.warn('[ModalManager] Season/Tournament mutations not ready', {
+        addSeason: !!addSeasonMutation,
+        addTournament: !!addTournamentMutation,
+        updateSeason: !!updateSeasonMutation,
+        deleteSeason: !!deleteSeasonMutation,
+        updateTournament: !!updateTournamentMutation,
+        deleteTournament: !!deleteTournamentMutation,
+      });
+    }
+  }, [
+    isSeasonTournamentModalOpen,
+    hasSeasonModalMutations,
+    addSeasonMutation,
+    addTournamentMutation,
+    updateSeasonMutation,
+    deleteSeasonMutation,
+    updateTournamentMutation,
+    deleteTournamentMutation,
+  ]);
+
   if (!gameSessionState) return null;
 
   return (
-    <>
+    <ModalPortal>
+      {/* All modals are rendered in a portal to ensure top-most stacking */}
+      <>
       {/* Training Resources Modal */}
       <TrainingResourcesModal
         isOpen={isTrainingResourcesOpen || false}
@@ -457,19 +493,21 @@ export function ModalManager(props: ModalManagerProps) {
       />
 
       {/* Season & Tournament Management Modal */}
-      <SeasonTournamentManagementModal
-        isOpen={isSeasonTournamentModalOpen || false}
-        onClose={handleCloseSeasonTournamentModal || (() => {})}
-        seasons={seasons || []}
-        tournaments={tournaments || []}
-        masterRoster={masterRosterQueryResultData || []}
-        addSeasonMutation={addSeasonMutation!}
-        addTournamentMutation={addTournamentMutation!}
-        updateSeasonMutation={updateSeasonMutation!}
-        deleteSeasonMutation={deleteSeasonMutation!}
-        updateTournamentMutation={updateTournamentMutation!}
-        deleteTournamentMutation={deleteTournamentMutation!}
-      />
+      {addSeasonMutation && addTournamentMutation && updateSeasonMutation && deleteSeasonMutation && updateTournamentMutation && deleteTournamentMutation && (
+        <SeasonTournamentManagementModal
+          isOpen={isSeasonTournamentModalOpen || false}
+          onClose={handleCloseSeasonTournamentModal || (() => {})}
+          seasons={seasons || []}
+          tournaments={tournaments || []}
+          masterRoster={masterRosterQueryResultData || []}
+          addSeasonMutation={addSeasonMutation}
+          addTournamentMutation={addTournamentMutation}
+          updateSeasonMutation={updateSeasonMutation}
+          deleteSeasonMutation={deleteSeasonMutation}
+          updateTournamentMutation={updateTournamentMutation}
+          deleteTournamentMutation={deleteTournamentMutation}
+        />
+      )}
 
       {/* Game Settings Modal */}
       <GameSettingsModal
@@ -664,6 +702,7 @@ export function ModalManager(props: ModalManagerProps) {
         confirmLabel={t('common.startNew', 'Start New')}
         variant="danger"
       />
-    </>
+      </>
+    </ModalPortal>
   );
 }

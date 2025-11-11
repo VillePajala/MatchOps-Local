@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MatchOps Debug - IndexedDB Inspector</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+        pre { background: #000; padding: 10px; overflow-x: auto; border: 1px solid #0f0; }
+        button { background: #0f0; color: #000; padding: 10px 20px; margin: 5px; border: none; cursor: pointer; }
+        button:hover { background: #0a0; }
+        h2 { color: #0ff; }
+    </style>
+    <meta name="robots" content="noindex,nofollow" />
+</head>
+<body>
+    <h1>MatchOps IndexedDB State Inspector</h1>
+    <button onclick="inspectDB()">Inspect IndexedDB</button>
+    <button onclick="setCurrentGameIdToLatest()">Set currentGameId to latest game</button>
+    <button onclick="markGuideSeen()">Mark guide as seen</button>
+    <button onclick="clearConsole()">Clear Console</button>
+    <pre id="output">Click "Inspect IndexedDB" to see app state...</pre>
+
+    <script>
+        function clearConsole() {
+            document.getElementById('output').textContent = 'Console cleared...';
+        }
+
+        async function inspectDB() {
+            const output = document.getElementById('output');
+            let result = '=== MATCHOPS STATE INSPECTION ===\n\n';
+
+            try {
+                const db = await new Promise((resolve, reject) => {
+                    const request = indexedDB.open('MatchOpsLocal', 1);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+
+                result += '✓ IndexedDB opened successfully\n\n';
+
+                result += 'Object Stores:\n';
+                for (let i = 0; i < db.objectStoreNames.length; i++) {
+                    result += `  - ${db.objectStoreNames[i]}\n`;
+                }
+                result += '\n';
+
+                const transaction = db.transaction(['keyValueStore'], 'readonly');
+                const store = transaction.objectStore('keyValueStore');
+
+                const allData = await new Promise((resolve, reject) => {
+                    const request = store.getAll();
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+
+                result += '=== KEY-VALUE PAIRS (MatchOpsLocal/keyValueStore) ===\n\n';
+
+                for (let i = 0; i < allData.length; i++) {
+                    const rec = allData[i];
+                    const key = rec && rec.key ? rec.key : 'unknown';
+                    const value = rec && typeof rec.value === 'string' ? rec.value : (rec && rec.value ? JSON.stringify(rec.value) : String(rec));
+
+                    result += `KEY: ${key}\n`;
+
+                    if (key === 'savedSoccerGames') {
+                        try {
+                            const games = JSON.parse(value);
+                            const gameIds = Object.keys(games);
+                            result += `  Saved Games Count: ${gameIds.length}\n`;
+                            result += `  Game IDs: ${gameIds.join(', ')}\n`;
+                        } catch (e) {
+                            result += `  Raw Value: ${String(value).substring(0, 200)}...\n`;
+                        }
+                    } else if (key === 'soccerAppSettings') {
+                        try {
+                            const settings = JSON.parse(value);
+                            result += `  Current Game ID: ${settings.currentGameId || 'null'}\n`;
+                            result += `  Language: ${settings.language || 'not set'}\n`;
+                            result += `  Has Seen App Guide: ${settings.hasSeenAppGuide || false}\n`;
+                        } catch (e) {
+                            result += `  Raw Value: ${String(value).substring(0, 200)}...\n`;
+                        }
+                    } else if (key === 'soccerMasterRoster') {
+                        try {
+                            const roster = JSON.parse(value);
+                            result += `  Players Count: ${roster.length}\n`;
+                        } catch (e) {
+                            result += `  Raw Value: ${String(value).substring(0, 200)}...\n`;
+                        }
+                    } else if (typeof value === 'string' && value.length > 200) {
+                        result += `  Value: ${value.substring(0, 200)}... (truncated)\n`;
+                    } else {
+                        result += `  Value: ${value}\n`;
+                    }
+                    result += '\n';
+                }
+
+                db.close();
+
+            } catch (error) {
+                result += `\n❌ ERROR: ${error.message}\n`;
+                result += error.stack || '';
+            }
+
+            output.textContent = result;
+        }
+
+        async function setCurrentGameIdToLatest() {
+            const output = document.getElementById('output');
+            try {
+                const db = await new Promise((resolve, reject) => {
+                    const request = indexedDB.open('MatchOpsLocal', 1);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+
+                const tx1 = db.transaction(['keyValueStore'], 'readonly');
+                const store1 = tx1.objectStore('keyValueStore');
+                const gamesRec = await new Promise((resolve, reject) => {
+                  const req = store1.get('savedSoccerGames');
+                  req.onsuccess = () => resolve(req.result);
+                  req.onerror = () => reject(req.error);
+                });
+                
+                if (!gamesRec || typeof gamesRec.value !== 'string') {
+                    output.textContent = 'No savedSoccerGames found.';
+                    db.close();
+                    return;
+                }
+
+                const games = JSON.parse(gamesRec.value);
+                const ids = Object.keys(games).filter(id => id !== 'unsaved_game');
+                if (ids.length === 0) {
+                    output.textContent = 'No real games found (only unsaved_game present).';
+                    db.close();
+                    return;
+                }
+                const chosen = ids[0];
+
+                const tx2 = db.transaction(['keyValueStore'], 'readwrite');
+                const store2 = tx2.objectStore('keyValueStore');
+                const settingsRec = await new Promise((resolve, reject) => {
+                  const req = store2.get('soccerAppSettings');
+                  req.onsuccess = () => resolve(req.result);
+                  req.onerror = () => reject(req.error);
+                });
+                let settings = {};
+                if (settingsRec && typeof settingsRec.value === 'string') {
+                    try { settings = JSON.parse(settingsRec.value); } catch {}
+                }
+                settings.currentGameId = chosen;
+                await new Promise((resolve, reject) => {
+                  const req = store2.put({ key: 'soccerAppSettings', value: JSON.stringify(settings) });
+                  req.onsuccess = () => resolve(true);
+                  req.onerror = () => reject(req.error);
+                });
+                db.close();
+                output.textContent = `Set currentGameId to ${chosen}. Reload the app.`;
+            } catch (err) {
+                output.textContent = `Failed to set currentGameId: ${err.message}`;
+            }
+        }
+
+        async function markGuideSeen() {
+            const output = document.getElementById('output');
+            try {
+                const db = await new Promise((resolve, reject) => {
+                    const request = indexedDB.open('MatchOpsLocal', 1);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+                const tx = db.transaction(['keyValueStore'], 'readwrite');
+                const store = tx.objectStore('keyValueStore');
+                const settingsRec = await new Promise((resolve, reject) => {
+                  const req = store.get('soccerAppSettings');
+                  req.onsuccess = () => resolve(req.result);
+                  req.onerror = () => reject(req.error);
+                });
+                let settings = {};
+                if (settingsRec && typeof settingsRec.value === 'string') {
+                    try { settings = JSON.parse(settingsRec.value); } catch {}
+                }
+                settings.hasSeenAppGuide = true;
+                await new Promise((resolve, reject) => {
+                  const req = store.put({ key: 'soccerAppSettings', value: JSON.stringify(settings) });
+                  req.onsuccess = () => resolve(true);
+                  req.onerror = () => reject(req.error);
+                });
+                db.close();
+                output.textContent = 'Marked hasSeenAppGuide=true. Reload the app.';
+            } catch (err) {
+                output.textContent = `Failed to update settings: ${err.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
+
