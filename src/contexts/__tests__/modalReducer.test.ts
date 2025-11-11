@@ -34,6 +34,15 @@ describe('modalReducer (skeleton)', () => {
     expect(reset).toEqual(initialModalState);
   });
 
+  it('opening newGameSetup does not affect loadGame state', () => {
+    const withLoadGameOpen = modalReducer(initialModalState, { type: 'OPEN_MODAL', id: 'loadGame', at: 100 });
+    const withBothOpen = modalReducer(withLoadGameOpen, { type: 'OPEN_MODAL', id: 'newGameSetup', at: 200 });
+    expect(withBothOpen.loadGame).toBe(true);
+    // Casting to the extended state that includes newGameSetup for this step
+    const extended = withBothOpen as unknown as { loadGame: boolean; newGameSetup: boolean };
+    expect(extended.newGameSetup).toBe(true);
+  });
+
   it('handles rapid toggles correctly', () => {
     let state = initialModalState;
     state = modalReducer(state, { type: 'TOGGLE_MODAL', id: 'loadGame', at: 1 }); // open
