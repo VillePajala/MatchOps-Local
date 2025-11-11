@@ -219,33 +219,73 @@ const ControlBar: React.FC<ControlBarProps> = ({
     setDragOffset(0);
   };
 
+  // Track pending transition listener and fallback timeout for cleanup
+  const pendingTransitionRef = useRef<{ panel: HTMLDivElement | null; onEnd: (e: TransitionEvent) => void } | null>(null);
+  const pendingTimeoutIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup on unmount to avoid leaking listeners/timeouts
+      if (pendingTransitionRef.current?.panel && pendingTransitionRef.current.onEnd) {
+        pendingTransitionRef.current.panel.removeEventListener('transitionend', pendingTransitionRef.current.onEnd);
+      }
+      if (pendingTimeoutIdRef.current !== null) {
+        clearTimeout(pendingTimeoutIdRef.current);
+      }
+      pendingTransitionRef.current = null;
+      pendingTimeoutIdRef.current = null;
+    };
+  }, []);
+
   // Close menu and open modal when the close transition finishes (best UX).
   // Fallback timer ensures handler still fires if transitionend doesn't.
   const closeMenuThen = (handler: () => void) => {
     const panel = settingsMenuRef.current;
     setIsSettingsMenuOpen(false);
     setDragOffset(0);
+
+    // Clear any previous pending listener/timeout before setting new ones
+    if (pendingTransitionRef.current?.panel && pendingTransitionRef.current.onEnd) {
+      pendingTransitionRef.current.panel.removeEventListener('transitionend', pendingTransitionRef.current.onEnd);
+    }
+    if (pendingTimeoutIdRef.current !== null) {
+      clearTimeout(pendingTimeoutIdRef.current);
+      pendingTimeoutIdRef.current = null;
+    }
+    pendingTransitionRef.current = null;
+
     if (!panel) {
       // No panel ref — call on next tick
       setTimeout(handler, 0);
       return;
     }
+
     let done = false;
-    const cleanup = (fallbackId?: number) => {
+    const cleanup = () => {
       done = true;
-      panel.removeEventListener('transitionend', onEnd);
-      if (fallbackId) clearTimeout(fallbackId);
+      if (pendingTransitionRef.current?.panel && pendingTransitionRef.current.onEnd) {
+        pendingTransitionRef.current.panel.removeEventListener('transitionend', pendingTransitionRef.current.onEnd);
+      }
+      if (pendingTimeoutIdRef.current !== null) {
+        clearTimeout(pendingTimeoutIdRef.current);
+        pendingTimeoutIdRef.current = null;
+      }
+      pendingTransitionRef.current = null;
     };
+
     const onEnd = (e: TransitionEvent) => {
       if (e.target === panel) {
-        const id = fallbackIdRef;
-        cleanup(id);
+        cleanup();
         handler();
       }
     };
+
+    // Attach and track the listener
     panel.addEventListener('transitionend', onEnd, { once: true });
+    pendingTransitionRef.current = { panel, onEnd };
+
     // Fallback if transitionend doesn't fire
-    const fallbackIdRef = window.setTimeout(() => {
+    pendingTimeoutIdRef.current = window.setTimeout(() => {
       if (!done) {
         cleanup();
         handler();
