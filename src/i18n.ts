@@ -33,6 +33,7 @@ const loadLanguagePreference = async (): Promise<void> => {
 };
 
 // Initialize i18n with synchronous default, then update asynchronously
+const IS_TEST_ENVIRONMENT = typeof process !== 'undefined' && process.env.JEST_WORKER_ID !== undefined;
 if (!i18n.isInitialized) {
   // Initialize with default language synchronously (no localStorage access)
   i18n.use(initReactI18next).init({
@@ -50,8 +51,7 @@ if (!i18n.isInitialized) {
     },
   }).then(() => {
     // After initialization, load the actual language preference asynchronously
-    // Skip in test environment to avoid storage errors
-    if (typeof window !== 'undefined' && !process.env.JEST_WORKER_ID) {
+    if (typeof window !== 'undefined' && !IS_TEST_ENVIRONMENT) {
       loadLanguagePreference();
     }
   });
