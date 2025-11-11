@@ -87,19 +87,18 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
       ? (valueOrUpdater as (prev: boolean) => boolean)(modalState.loadGame)
       : valueOrUpdater;
 
-    if (!next && modalState.loadGame) {
-      if (now - loadGameLastOpenRef.current < ANTI_FLASH_MS) {
-        return; // ignore premature close
-      }
-      dispatchModal({ type: 'CLOSE_MODAL', id: 'loadGame' });
-      return;
-    }
-    if (next && !modalState.loadGame) {
+    if (next) {
+      // Always dispatch OPEN to preserve setState-like semantics (last call wins)
       loadGameLastOpenRef.current = now;
       dispatchModal({ type: 'OPEN_MODAL', id: 'loadGame', at: now });
       return;
     }
-    // no-op if state unchanged
+
+    // Close requested: honor anti-flash guard, otherwise dispatch CLOSE
+    if (now - loadGameLastOpenRef.current < ANTI_FLASH_MS) {
+      return; // ignore premature close
+    }
+    dispatchModal({ type: 'CLOSE_MODAL', id: 'loadGame' });
   };
   const setIsNewGameSetupModalOpen = guardedSetter(_setIsNewGameSetupModalOpen, newGameLastOpenRef);
 
