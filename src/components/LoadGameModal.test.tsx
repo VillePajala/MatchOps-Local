@@ -96,6 +96,23 @@ describe('LoadGameModal', () => {
     });
     return result!;
   };
+
+  it('shows live session score for current game when provided', async () => {
+    const saved = createSampleGames();
+    // Explicitly set saved score to 0-0 to simulate stale persisted state
+    (saved['game_1659123456_abc'] as unknown as AppState).homeScore = 0;
+    (saved['game_1659123456_abc'] as unknown as AppState).awayScore = 0;
+
+    await renderModal({
+      savedGames: saved,
+      currentGameId: 'game_1659123456_abc',
+      currentSessionHomeScore: 2,
+      currentSessionAwayScore: 1,
+    });
+
+    const card = await screen.findByTestId('game-item-game_1659123456_abc');
+    expect(within(card).getByText('2 - 1')).toBeInTheDocument();
+  });
   
   it('renders correctly and displays games', async () => {
     await renderModal();

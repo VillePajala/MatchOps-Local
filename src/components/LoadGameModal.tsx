@@ -25,6 +25,13 @@ export interface LoadGameModalProps {
   onExportOneJson: (gameId: string) => void;
   onExportOneExcel: (gameId: string) => void;
   currentGameId?: string;
+  /**
+   * Optional live score override for the currently loaded game.
+   * This ensures the current game's card reflects unsaved in-memory score
+   * while autosave is paused for open modals.
+   */
+  currentSessionHomeScore?: number;
+  currentSessionAwayScore?: number;
 
   isLoadingGamesList?: boolean;
   loadGamesListError?: string | null;
@@ -52,6 +59,8 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   onExportOneJson,
   onExportOneExcel,
   currentGameId,
+  currentSessionHomeScore,
+  currentSessionAwayScore,
   isLoadingGamesList = false,
   loadGamesListError = null,
   isGameLoading = false,
@@ -284,11 +293,19 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             const isLoadActionActive = isGameLoading && isProcessingThisGame;
             const disableActions = isGameLoading || isGameDeleting || isGamesImporting;
 
-            // Calculate score display color
+            // Score display: use live session score for the current game if provided
+            const displayHomeScore = isCurrent && typeof currentSessionHomeScore === 'number'
+              ? currentSessionHomeScore
+              : (game.homeScore ?? 0);
+            const displayAwayScore = isCurrent && typeof currentSessionAwayScore === 'number'
+              ? currentSessionAwayScore
+              : (game.awayScore ?? 0);
+
+            // Calculate score display color using display scores
             const scoreColor = (() => {
-              if (game.homeScore === game.awayScore) return 'text-slate-300';
-              const isWin = (game.homeOrAway === 'home' && game.homeScore > game.awayScore) ||
-                           (game.homeOrAway === 'away' && game.awayScore > game.homeScore);
+              if (displayHomeScore === displayAwayScore) return 'text-slate-300';
+              const isWin = (game.homeOrAway === 'home' && displayHomeScore > displayAwayScore) ||
+                           (game.homeOrAway === 'away' && displayAwayScore > displayHomeScore);
               return isWin ? 'text-green-400' : 'text-red-400';
             })();
 
@@ -324,7 +341,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                       {/* Score */}
                       <div className="text-right">
                         <div className={`text-xl font-bold ${scoreColor}`}>
-                          {game.homeScore ?? 0} - {game.awayScore ?? 0}
+                          {displayHomeScore} - {displayAwayScore}
                         </div>
                       </div>
 

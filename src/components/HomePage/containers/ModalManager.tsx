@@ -442,6 +442,8 @@ export function ModalManager(props: ModalManagerProps) {
         onExportOneJson={handleExportOneJson || (() => {})}
         onExportOneExcel={handleExportOneExcel || (() => {})}
         currentGameId={currentGameId || undefined}
+        currentSessionHomeScore={gameSessionState.homeScore}
+        currentSessionAwayScore={gameSessionState.awayScore}
         isLoadingGamesList={isLoadingGamesList || false}
         loadGamesListError={loadGamesListError || null}
         isGameLoading={isGameLoading || false}
