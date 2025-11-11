@@ -6,7 +6,9 @@
 **Target**: Single useReducer with centralized state
 **Estimated Effort**: 30 minutes
 **Impact**: MEDIUM - Prevents race conditions, improves maintainability
-**Status**: ❌ Not Started
+**Status**: ⏸ Deferred to Layer 2 (micro-steps)
+
+Note: The modal reducer and centralization will be done incrementally per `docs/03-active-plans/MICRO-REFactor-ROADMAP.md` Layer 2. We will migrate one modal at a time after Layer 1 stabilization.
 **Dependency**: Should be done after P1 (GameSettingsModal refactoring)
 
 ---

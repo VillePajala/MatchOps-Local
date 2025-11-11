@@ -1,18 +1,18 @@
 # ⚠️ CRITICAL FIXES REQUIRED - DO NOT PROCEED TO NEXT PHASE
 
 **Status**: 🔴 **BLOCKING** - Must be resolved before major feature development
-**Last Updated**: October 16, 2025
+**Last Updated**: November 7, 2025 (metrics updated, P0 in progress)
 **Source**: [Comprehensive Code Review](./reviews/code-review-2025-10-16.md)
 
 ---
 
 ## 🚨 EXECUTIVE SUMMARY
 
-The MatchOps-Local codebase is **production-ready** but contains **critical technical debt** that will severely impact development velocity if not addressed. The codebase scored **8.5/10** overall, but the monolithic `HomePage.tsx` (3,602 lines) is a **maintenance disaster** that must be refactored before adding major features.
+The MatchOps-Local codebase is **production-ready** but contains **critical technical debt** that will severely impact development velocity if not addressed. The codebase scored **8.5/10** overall, but the monolithic `HomePage.tsx` (3,725 lines) is a **maintenance disaster** that must be refactored before adding major features.
 
 ### Critical Stats
-- **HomePage.tsx**: 3,602 lines (8.5x recommended maximum)
-- **GameSettingsModal.tsx**: 1,707 lines (4.3x recommended maximum)
+- **HomePage.tsx**: 2,474 lines (~7.7x recommended maximum, down from 3,725)
+- **GameSettingsModal.tsx**: 1,995 lines (~5.0x recommended maximum)
 - **Estimated Total Fix Time**: 4-5 hours
 - **Impact if Not Fixed**: Exponential increase in development time, bug introduction risk, impossible testing
 
@@ -67,6 +67,11 @@ If the monolithic structure becomes a genuine blocker (e.g., multiple developers
 
 **Bottom Line**: Pragmatic iteration beats perfect architecture every time.
 
+### Related Documentation
+
+- **[TECH_DEBT_REDUCTION_PLAN.md](./TECH_DEBT_REDUCTION_PLAN.md)**: Comprehensive 5-phase plan that was considered but NOT adopted. Archived for reference.
+- **Current Approach**: Incremental extraction as demonstrated by newGameHandlers.ts extraction (33.6% reduction in 2 hours).
+
 ---
 
 ## ⛔ DO NOT PROCEED WARNING
@@ -88,8 +93,8 @@ If the monolithic structure becomes a genuine blocker (e.g., multiple developers
 
 | Priority | Issue | File | Lines | Effort | Status | Fix Plan |
 |----------|-------|------|-------|--------|--------|----------|
-| **P0** 🔴 | Monolithic HomePage | `HomePage.tsx` | 3,602 | 2-3h | ❌ **CRITICAL** | [Detailed Plan](./05-development/fix-plans/P0-HomePage-Refactoring-Plan.md) |
-| **P1** 🟡 | Complex Modal | `GameSettingsModal.tsx` | 1,707 | 1h | ⚠️ **HIGH** | [Detailed Plan](./05-development/fix-plans/P1-GameSettingsModal-Refactoring-Plan.md) |
+| **P0** 🔴 | Monolithic HomePage | `HomePage.tsx` | 2,474 | 2-3h | 🟡 **IN PROGRESS** | [Detailed Plan](./05-development/fix-plans/P0-HomePage-Refactoring-Plan.md) |
+| **P1** 🟡 | Complex Modal | `GameSettingsModal.tsx` | 1,995 | 1h | ⚠️ **HIGH** | [Detailed Plan](./05-development/fix-plans/P1-GameSettingsModal-Refactoring-Plan.md) |
 | **P2** 🟡 | Modal State Races | `ModalProvider.tsx` | - | 30m | ⚠️ **MEDIUM** | [Detailed Plan](./05-development/fix-plans/P2-Modal-State-Management-Fix.md) |
 | **P2** 🟡 | Silent Error Swallowing | Multiple files | - | 1h | ⚠️ **MEDIUM** | [Detailed Plan](./05-development/fix-plans/P2-Error-Handling-Improvements.md) |
 | **P2** 🟡 | Performance (Re-renders) | `HomePage.tsx` | - | 30m | ⚠️ **MEDIUM** | [Detailed Plan](./05-development/fix-plans/P2-Performance-Optimization-Plan.md) |
@@ -143,7 +148,7 @@ P0: HomePage Refactoring
 
 ### P0: HomePage.tsx - Monolithic Component (CRITICAL)
 
-**Problem**: 3,602-line component that violates Single Responsibility Principle
+**Problem**: 3,725-line component that violates Single Responsibility Principle
 
 **Responsibilities Mixed Together**:
 - Game timer logic
@@ -159,7 +164,7 @@ P0: HomePage Refactoring
 
 **Real-World Impact**:
 ```typescript
-// Current: Change modal state = re-evaluate 3,602 lines
+// Current: Change modal state = re-evaluate 3,725 lines
 setIsGameStatsModalOpen(true); // 🐛 Causes full HomePage re-render
 
 // After Fix: Change modal state = re-evaluate 150 lines
@@ -167,7 +172,7 @@ setModalState({ type: 'OPEN_GAME_STATS' }); // ✅ Only ModalManager re-renders
 ```
 
 **Evidence from Code Review**:
-- 8.5x larger than industry standard (400 lines)
+- ~7.7x larger than industry standard (400 lines, down from ~9.3x)
 - Impossible to write comprehensive unit tests
 - State flows through 3,600 lines making debugging nightmare
 - Adding new features requires understanding entire file
@@ -178,7 +183,7 @@ setModalState({ type: 'OPEN_GAME_STATS' }); // ✅ Only ModalManager re-renders
 
 ### P1: GameSettingsModal.tsx - Overly Complex Modal (HIGH)
 
-**Problem**: 1,707-line component with too many responsibilities
+**Problem**: 1,995-line component with too many responsibilities
 
 **Issues**:
 - All configuration UI in single file
@@ -235,7 +240,7 @@ setIsLoadGameModalOpen(true);  // 🐛 Both modals open!
 **Problem**: HomePage's size causes unnecessary re-renders
 
 **Impact**:
-- Any state change triggers 3,602-line re-evaluation
+- Any state change triggers 3,725-line re-evaluation
 - Slower devices experience lag
 - Battery drain on mobile
 
@@ -351,6 +356,6 @@ The codebase has excellent fundamentals (testing, documentation, error handling)
 
 ---
 
-**Last Updated**: October 16, 2025
+**Last Updated**: November 7, 2025
 **Next Review**: After P0 and P1 completion
 **Document Owner**: Development Team Lead

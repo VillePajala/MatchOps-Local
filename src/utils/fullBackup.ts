@@ -20,6 +20,8 @@ import {
   setStorageJSON,
   removeStorageItem,
 } from "./storage";
+import { getLatestGameId } from './savedGames';
+import { DEFAULT_GAME_ID } from '@/config/constants';
 import type { PlayerAdjustmentsIndex } from './playerAdjustments';
 import type { TeamsIndex, TeamRostersIndex } from './teams';
 import type { AppSettings } from './appSettings';
@@ -234,6 +236,18 @@ export const importFullBackup = async (
       }
     }
 
+    // Normalize legacy keys (best-effort). Some old exports might use different names.
+    try {
+      // Legacy: 'savedGames' -> SAVED_GAMES_KEY
+      const anyLocal = backupData.localStorage as Record<string, unknown>;
+      if (!anyLocal[SAVED_GAMES_KEY] && anyLocal['savedGames']) {
+        anyLocal[SAVED_GAMES_KEY] = anyLocal['savedGames'] as unknown;
+        logger.log('Normalized legacy key: savedGames -> savedSoccerGames');
+      }
+    } catch (e) {
+      logger.warn('Legacy key normalization failed (non-fatal)', e);
+    }
+
     // --- Overwrite storage data ---
     const keysToRestore = Object.keys(backupData.localStorage) as Array<
       keyof FullBackupData["localStorage"]
@@ -281,6 +295,26 @@ export const importFullBackup = async (
           logger.warn(`Could not check/remove storage item for key ${key}:`, error);
         }
       }
+    }
+
+    // --- Ensure currentGameId points to a real game after restore ---
+    try {
+      const savedGames = await getStorageJSON<SavedGamesCollection | null>(SAVED_GAMES_KEY);
+      if (savedGames && typeof savedGames === 'object') {
+        const latestId = getLatestGameId(savedGames);
+        if (latestId) {
+          const currentSettings = await getStorageJSON<AppSettings | null>(APP_SETTINGS_KEY);
+          const currentId = currentSettings?.currentGameId ?? null;
+          const isStale = !currentId || currentId === DEFAULT_GAME_ID || !(currentId in savedGames);
+          if (isStale) {
+            const updated: AppSettings = { ...(currentSettings || {}), currentGameId: latestId } as AppSettings;
+            await setStorageJSON(APP_SETTINGS_KEY, updated);
+            logger.log('[Import] Set currentGameId to latest imported game', { latestId });
+          }
+        }
+      }
+    } catch (e) {
+      logger.warn('[Import] Unable to set currentGameId post-restore (non-fatal)', e);
     }
 
     // --- Final Step: Trigger app refresh ---

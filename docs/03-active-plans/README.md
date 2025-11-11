@@ -2,6 +2,10 @@
 
 ⭐ **START HERE for current execution plans and project status**
 
+Primary plan: `docs/03-active-plans/MICRO-REFactor-ROADMAP.md`
+
+This micro‑step roadmap replaces big‑bang refactors. We will execute Layers 1–3 in small, test‑gated steps. After each step, manually test before proceeding.
+
 This directory contains all active execution plans, current status, and roadmaps. These are the living documents that guide day-to-day development.
 
 ## 📊 **Current Progress**

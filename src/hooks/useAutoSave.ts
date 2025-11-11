@@ -108,8 +108,13 @@ export const useAutoSave = ({
 
       // Set new debounced timer
       shortTimerRef.current = setTimeout(() => {
-        logger.log(`[useAutoSave] Short-delay save triggered for game ${currentGameId}`);
-        saveFunction();
+        // Double-check enabled at fire time to avoid saving while temporarily disabled (e.g., modal open)
+        if (enabled) {
+          logger.log(`[useAutoSave] Short-delay save triggered for game ${currentGameId}`);
+          saveFunction();
+        } else {
+          logger.log('[useAutoSave] Short-delay skipped: disabled at fire time');
+        }
       }, short.delay);
     }
 
@@ -132,8 +137,13 @@ export const useAutoSave = ({
 
       // Set new debounced timer
       longTimerRef.current = setTimeout(() => {
-        logger.log(`[useAutoSave] Long-delay save triggered for game ${currentGameId}`);
-        saveFunction();
+        // Double-check enabled at fire time to avoid saving while temporarily disabled (e.g., modal open)
+        if (enabled) {
+          logger.log(`[useAutoSave] Long-delay save triggered for game ${currentGameId}`);
+          saveFunction();
+        } else {
+          logger.log('[useAutoSave] Long-delay skipped: disabled at fire time');
+        }
       }, long.delay);
     }
 
@@ -151,4 +161,18 @@ export const useAutoSave = ({
       }
     };
   }, []);
+
+  // --- Cancel any pending saves when disabled (e.g., when a modal opens) ---
+  useEffect(() => {
+    if (!enabled) {
+      if (shortTimerRef.current) {
+        clearTimeout(shortTimerRef.current);
+        shortTimerRef.current = null;
+      }
+      if (longTimerRef.current) {
+        clearTimeout(longTimerRef.current);
+        longTimerRef.current = null;
+      }
+    }
+  }, [enabled]);
 };
