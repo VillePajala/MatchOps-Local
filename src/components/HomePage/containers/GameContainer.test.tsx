@@ -51,12 +51,56 @@ const createFieldProps = (overrides?: Partial<FieldContainerProps>): FieldContai
     ...overrides,
   } as FieldContainerProps);
 
-const createProps = (): GameContainerProps => ({
-  gameInfoBarProps: { teamName: 'Team', opponentName: 'Opponent' } as unknown as GameContainerProps['gameInfoBarProps'],
-  playerBarProps: { players: [], gameEvents: [] } as unknown as GameContainerProps['playerBarProps'],
-  controlBarProps: { onSaveGame: jest.fn() } as unknown as GameContainerProps['controlBarProps'],
-  fieldProps: createFieldProps(),
+const createProps = (overrides?: Partial<GameContainerProps>): GameContainerProps => ({
+  gameSessionState: initialGameSessionStatePlaceholder,
   currentGameId: 'game_123',
+  draggingPlayerFromBarInfo: null,
+  showLargeTimerOverlay: false,
+  initialLoadComplete: true,
+  orphanedGameInfo: null,
+  showFirstGameGuide: false,
+  hasCheckedFirstGameGuide: false,
+  firstGameGuideStep: 0,
+  handlePlayerDragStartFromBar: jest.fn(),
+  handleDeselectPlayer: jest.fn(),
+  handlePlayerTapInBar: jest.fn(),
+  handleToggleGoalieForModal: jest.fn(),
+  handleTeamNameChange: jest.fn(),
+  handleOpponentNameChange: jest.fn(),
+  setIsTeamReassignModalOpen: jest.fn(),
+  handleToggleLargeTimerOverlay: jest.fn(),
+  handleToggleGoalLogModal: jest.fn(),
+  handleLogOpponentGoal: jest.fn(),
+  handlePlayerMove: jest.fn(),
+  handlePlayerMoveEnd: jest.fn(),
+  handlePlayerRemove: jest.fn(),
+  handleDropOnField: jest.fn(),
+  handlePlayerDropViaTouch: jest.fn(),
+  handlePlayerDragCancelViaTouch: jest.fn(),
+  setIsRosterModalOpen: jest.fn(),
+  setIsNewGameSetupModalOpen: jest.fn(),
+  handleOpenTeamManagerModal: jest.fn(),
+  setIsSeasonTournamentModalOpen: jest.fn(),
+  setShowFirstGameGuide: jest.fn(),
+  setFirstGameGuideStep: jest.fn(),
+  handleUndo: jest.fn(),
+  handleRedo: jest.fn(),
+  handleResetField: jest.fn(),
+  handleClearDrawingsForView: jest.fn(),
+  handlePlaceAllPlayers: jest.fn(),
+  handleToggleTrainingResources: jest.fn(),
+  handleToggleGameStatsModal: jest.fn(),
+  handleOpenLoadGameModal: jest.fn(),
+  handleStartNewGame: jest.fn(),
+  openRosterModal: jest.fn(),
+  handleQuickSaveGame: jest.fn(),
+  handleOpenGameSettingsModal: jest.fn(),
+  handleOpenSeasonTournamentModal: jest.fn(),
+  handleToggleInstructionsModal: jest.fn(),
+  handleOpenSettingsModal: jest.fn(),
+  openPlayerAssessmentModal: jest.fn(),
+  handleOpenPersonnelManager: jest.fn(),
+  ...overrides,
 });
 
 describe('GameContainer', () => {
@@ -69,9 +113,8 @@ describe('GameContainer', () => {
   });
 
   it('returns null when no game session state', () => {
-    const props = createProps();
-    props.fieldProps = createFieldProps({
-      gameSessionState: null as unknown as FieldContainerProps['gameSessionState'],
+    const props = createProps({
+      gameSessionState: null as unknown as GameContainerProps['gameSessionState'],
     });
 
     const { container } = render(<GameContainer {...props} />);
