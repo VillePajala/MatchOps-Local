@@ -81,10 +81,12 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   // For reducer-backed Load Game modal, emulate React setState<boolean> API with anti-flash guard
+  // Note: This intentionally duplicates guarded close timing with the local reducer-backed setter
+  // until we consolidate via a shared createGuardedReducerSetter() in L2 step 2.4.
   const setIsLoadGameModalOpen: React.Dispatch<React.SetStateAction<boolean>> = (valueOrUpdater) => {
     const now = Date.now();
     const next = typeof valueOrUpdater === 'function'
-      ? (valueOrUpdater as (prev: boolean) => boolean)(modalState.loadGame)
+      ? valueOrUpdater(modalState.loadGame)
       : valueOrUpdater;
 
     if (next) {
