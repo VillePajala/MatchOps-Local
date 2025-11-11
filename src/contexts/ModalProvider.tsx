@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useRef } from 'react';
+import React, { createContext, useContext, useState, useRef, useReducer } from 'react';
+import { initialModalState, modalReducer } from './modalReducer';
 
 interface ModalContextValue {
   isGameSettingsModalOpen: boolean;
@@ -27,7 +28,8 @@ const ModalContext = createContext<ModalContextValue | undefined>(undefined);
 
 export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   const [isGameSettingsModalOpen, setIsGameSettingsModalOpen] = useState(false);
-  const [isLoadGameModalOpen, _setIsLoadGameModalOpen] = useState(false);
+  // Layer 2 (2.1): Wire Load Game modal to reducer; keep API stable
+  const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
   const [isRosterModalOpen, setIsRosterModalOpen] = useState(false);
   const [isSeasonTournamentModalOpen, setIsSeasonTournamentModalOpen] = useState(false);
   const [isTrainingResourcesOpen, setIsTrainingResourcesOpen] = useState(false);
@@ -78,13 +80,33 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     };
   };
 
-  const setIsLoadGameModalOpen = guardedSetter(_setIsLoadGameModalOpen, loadGameLastOpenRef);
+  // For reducer-backed Load Game modal, emulate React setState<boolean> API with anti-flash guard
+  const setIsLoadGameModalOpen: React.Dispatch<React.SetStateAction<boolean>> = (valueOrUpdater) => {
+    const now = Date.now();
+    const next = typeof valueOrUpdater === 'function'
+      ? (valueOrUpdater as (prev: boolean) => boolean)(modalState.loadGame)
+      : valueOrUpdater;
+
+    if (!next && modalState.loadGame) {
+      if (now - loadGameLastOpenRef.current < ANTI_FLASH_MS) {
+        return; // ignore premature close
+      }
+      dispatchModal({ type: 'CLOSE_MODAL', id: 'loadGame' });
+      return;
+    }
+    if (next && !modalState.loadGame) {
+      loadGameLastOpenRef.current = now;
+      dispatchModal({ type: 'OPEN_MODAL', id: 'loadGame', at: now });
+      return;
+    }
+    // no-op if state unchanged
+  };
   const setIsNewGameSetupModalOpen = guardedSetter(_setIsNewGameSetupModalOpen, newGameLastOpenRef);
 
   const value: ModalContextValue = {
     isGameSettingsModalOpen,
     setIsGameSettingsModalOpen,
-    isLoadGameModalOpen,
+    isLoadGameModalOpen: modalState.loadGame,
     setIsLoadGameModalOpen,
     isRosterModalOpen,
     setIsRosterModalOpen,

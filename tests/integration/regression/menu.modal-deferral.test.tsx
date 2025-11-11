@@ -79,8 +79,12 @@ describe('Menu → Modal deferral guard', () => {
     // Handler should not be called synchronously
     expect(onOpenLoadGameModal).not.toHaveBeenCalled();
 
-    // Advance past deferral window (matches ControlBar MODAL_OPEN_DEFERRAL_MS = 150ms)
-    act(() => { jest.advanceTimersByTime(160); });
+    // Simulate the side panel finishing its close transition
+    const panel = screen.getByTestId('settings-side-panel');
+    act(() => {
+      // Fire transitionend on the panel
+      fireEvent.transitionEnd(panel, { propertyName: 'transform' });
+    });
     expect(onOpenLoadGameModal).toHaveBeenCalledTimes(1);
   });
 });
