@@ -15,7 +15,7 @@ describe('R0 Baseline: Core modals render and close', () => {
         onDelete={jest.fn()}
         onExportOneJson={jest.fn()}
         onExportOneExcel={jest.fn()}
-        currentGameId={null}
+        currentGameId={undefined}
         seasons={[]}
         tournaments={[]}
         teams={[]}
@@ -56,4 +56,3 @@ describe('R0 Baseline: Core modals render and close', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 });
-

@@ -35,7 +35,7 @@ const TestAutoSaveWithModal: React.FC<{ onSave: jest.Mock; startWithOpen?: boole
     if (startWithOpen) setIsLoadGameModalOpen(true);
   }, [startWithOpen, setIsLoadGameModalOpen]);
 
-  const currentGameId = 'game_test_enabled_guard'; // treat as a real saved game (not DEFAULT)
+  const currentGameId: string = 'game_test_enabled_guard'; // treat as a real saved game (not DEFAULT)
 
   useAutoSave({
     short: { states: { teamName: meta.teamName, opponentName: meta.opponentName, gameNotes: meta.gameNotes }, delay: 50 },

@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ModalManager } from './ModalManager';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
@@ -7,11 +7,12 @@ import type { ModalManagerProps } from './ModalManager';
 import type { PersonnelManagerReturn } from '@/hooks/usePersonnelManager';
 import type { UseMutationResult } from '@tanstack/react-query';
 
-const seasonModalMock = jest.fn(() => <div data-testid="season-modal" />);
-
 jest.mock('@/components/SeasonTournamentManagementModal', () => ({
   __esModule: true,
-  default: () => seasonModalMock(),
+  default: () => {
+    const React = require('react');
+    return React.createElement('div', { 'data-testid': 'season-modal' });
+  },
 }));
 
 jest.mock('@/contexts/ToastProvider', () => ({
@@ -93,7 +94,6 @@ const createProps = (): ModalManagerProps => ({
   isTeamReassignModalOpen: false,
   orphanedGameInfo: null,
   availableTeams: [],
-  teamLoadError: null,
   isLoadingGamesList: false,
   loadGamesListError: null,
   isGameLoading: false,
@@ -108,9 +108,7 @@ const createProps = (): ModalManagerProps => ({
   appLanguage: 'en',
   isInstructionsModalOpen: false,
   personnel: [],
-  personnelManager: createPersonnelManager(),
-  isPersonnelManagerOpen: false,
-  onClosePersonnelManager: jest.fn(),
+  // Personnel manager state is not part of ModalManagerProps; skip here
   handleToggleGoalLogModal: noop,
   handleAddGoalEvent: noop,
   handleLogOpponentGoal: noop,
@@ -126,6 +124,14 @@ const createProps = (): ModalManagerProps => ({
   handleDeleteGame: noop,
   handleExportOneJson: noop,
   setIsNewGameSetupModalOpen: noop,
+  // Team roster modal controls
+  isTeamRosterModalOpen: false,
+  selectedTeamForRoster: null,
+  setSelectedTeamForRoster: noop,
+  setIsTeamRosterModalOpen: noop,
+  handleManageTeamRoster: noop,
+  handleCloseTeamRosterModal: noop,
+  handleBackToTeamManager: noop,
   handleStartNewGameWithSetup: noopAsync,
   handleCancelNewGameSetup: noop,
   setNewGameDemandFactor: noop,
@@ -189,7 +195,6 @@ describe('ModalManager', () => {
   });
 
   beforeEach(() => {
-    seasonModalMock.mockClear();
     queryClient.clear();
   });
 
@@ -203,7 +208,7 @@ describe('ModalManager', () => {
 
   it('does not render season modal when mutations are missing', () => {
     renderWithProvider(<ModalManager {...createProps()} />);
-    expect(seasonModalMock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('season-modal')).toBeNull();
   });
 
   it('renders season modal when all mutations provided', () => {
@@ -217,6 +222,6 @@ describe('ModalManager', () => {
 
     renderWithProvider(<ModalManager {...props} />);
 
-    expect(seasonModalMock).toHaveBeenCalled();
+    expect(screen.getByTestId('season-modal')).toBeInTheDocument();
   });
 });

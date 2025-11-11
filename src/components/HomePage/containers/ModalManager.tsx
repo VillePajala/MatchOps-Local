@@ -76,7 +76,7 @@ type MutationMetaBase = {
 
 type MutationMeta = MutationMetaBase & { sequence: number };
 
-interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
+export interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   // Modal-specific states
   selectedPlayerForStats: Player | null;
   isTeamManagerOpen: boolean;
