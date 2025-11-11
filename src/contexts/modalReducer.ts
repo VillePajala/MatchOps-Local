@@ -26,6 +26,10 @@ export function modalReducer(state: ModalState, action: ModalAction): ModalState
     case 'OPEN_MODAL': {
       const at = action.at ?? Date.now();
       if (action.id === 'loadGame') {
+        if (state.loadGame) {
+          // Already open — return same object to avoid unnecessary re-render loops
+          return state;
+        }
         return {
           ...state,
           loadGame: true,
@@ -36,6 +40,9 @@ export function modalReducer(state: ModalState, action: ModalAction): ModalState
     }
     case 'CLOSE_MODAL': {
       if (action.id === 'loadGame') {
+        if (!state.loadGame) {
+          return state;
+        }
         return { ...state, loadGame: false };
       }
       return state;
