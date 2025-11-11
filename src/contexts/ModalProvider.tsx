@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef, useReducer } from 'react';
+import React, { createContext, useContext, useState, useRef, useReducer, useEffect } from 'react';
 import { initialModalState, modalReducer } from './modalReducer';
 
 interface ModalContextValue {
@@ -33,8 +33,8 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   const [isRosterModalOpen, setIsRosterModalOpen] = useState(false);
   const [isSeasonTournamentModalOpen, setIsSeasonTournamentModalOpen] = useState(false);
   const [isTrainingResourcesOpen, setIsTrainingResourcesOpen] = useState(false);
-  const [isGoalLogModalOpen, setIsGoalLogModalOpen] = useState(false);
-  const [isGameStatsModalOpen, setIsGameStatsModalOpen] = useState(false);
+  const goalLogOpenRef = useRef<boolean>(false);
+  const gameStatsOpenRef = useRef<boolean>(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isPlayerAssessmentModalOpen, setIsPlayerAssessmentModalOpen] = useState(false);
 
@@ -95,6 +95,40 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  useEffect(() => {
+    goalLogOpenRef.current = modalState.goalLog;
+  }, [modalState.goalLog]);
+
+  useEffect(() => {
+    gameStatsOpenRef.current = modalState.gameStats;
+  }, [modalState.gameStats]);
+
+  const setIsGoalLogModalOpen: React.Dispatch<React.SetStateAction<boolean>> = (valueOrUpdater) => {
+    const next = typeof valueOrUpdater === 'function'
+      ? (valueOrUpdater as (prev: boolean) => boolean)(goalLogOpenRef.current)
+      : valueOrUpdater;
+
+    if (next === goalLogOpenRef.current) {
+      return;
+    }
+
+    goalLogOpenRef.current = next;
+    dispatchModal({ type: next ? 'OPEN_MODAL' : 'CLOSE_MODAL', id: 'goalLog' });
+  };
+
+  const setIsGameStatsModalOpen: React.Dispatch<React.SetStateAction<boolean>> = (valueOrUpdater) => {
+    const next = typeof valueOrUpdater === 'function'
+      ? (valueOrUpdater as (prev: boolean) => boolean)(gameStatsOpenRef.current)
+      : valueOrUpdater;
+
+    if (next === gameStatsOpenRef.current) {
+      return;
+    }
+
+    gameStatsOpenRef.current = next;
+    dispatchModal({ type: next ? 'OPEN_MODAL' : 'CLOSE_MODAL', id: 'gameStats' });
+  };
+
   const value: ModalContextValue = {
     isGameSettingsModalOpen,
     setIsGameSettingsModalOpen,
@@ -106,9 +140,9 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     setIsSeasonTournamentModalOpen,
     isTrainingResourcesOpen,
     setIsTrainingResourcesOpen,
-    isGoalLogModalOpen,
+    isGoalLogModalOpen: modalState.goalLog,
     setIsGoalLogModalOpen,
-    isGameStatsModalOpen,
+    isGameStatsModalOpen: modalState.gameStats,
     setIsGameStatsModalOpen,
     isNewGameSetupModalOpen: modalState.newGameSetup,
     setIsNewGameSetupModalOpen,

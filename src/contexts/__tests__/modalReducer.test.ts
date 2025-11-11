@@ -43,6 +43,30 @@ describe('modalReducer (skeleton)', () => {
     expect(extended.newGameSetup).toBe(true);
   });
 
+  it('opens and closes goalLog modal independently', () => {
+    const opened = modalReducer(initialModalState, { type: 'OPEN_MODAL', id: 'goalLog', at: 777 });
+    const extended = opened as unknown as { goalLog: boolean; openTimestamps: Record<string, number> };
+    expect(extended.goalLog).toBe(true);
+    expect(extended.openTimestamps.goalLog).toBe(777);
+
+    const closed = modalReducer(opened, { type: 'CLOSE_MODAL', id: 'goalLog' });
+    const closedExtended = closed as unknown as { goalLog: boolean; openTimestamps: Record<string, number> };
+    expect(closedExtended.goalLog).toBe(false);
+    expect(closedExtended.openTimestamps.goalLog).toBe(777);
+  });
+
+  it('opens and closes gameStats modal independently', () => {
+    const opened = modalReducer(initialModalState, { type: 'OPEN_MODAL', id: 'gameStats', at: 888 });
+    const extended = opened as unknown as { gameStats: boolean; openTimestamps: Record<string, number> };
+    expect(extended.gameStats).toBe(true);
+    expect(extended.openTimestamps.gameStats).toBe(888);
+
+    const closed = modalReducer(opened, { type: 'CLOSE_MODAL', id: 'gameStats' });
+    const closedExtended = closed as unknown as { gameStats: boolean; openTimestamps: Record<string, number> };
+    expect(closedExtended.gameStats).toBe(false);
+    expect(closedExtended.openTimestamps.gameStats).toBe(888);
+  });
+
   it('handles rapid toggles correctly', () => {
     let state = initialModalState;
     state = modalReducer(state, { type: 'TOGGLE_MODAL', id: 'loadGame', at: 1 }); // open

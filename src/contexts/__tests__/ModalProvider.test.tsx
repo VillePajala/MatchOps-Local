@@ -64,3 +64,21 @@ test('supports function updater form for new game setup modal', () => {
   expect(result.current.isNewGameSetupModalOpen).toBe(false);
   jest.useRealTimers();
 });
+
+test('goal log modal toggles with reducer-backed setter', () => {
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <ModalProvider>{children}</ModalProvider>
+  );
+  const { result } = renderHook(() => useModalContext(), { wrapper });
+
+  act(() => {
+    result.current.setIsGoalLogModalOpen(true);
+  });
+  expect(result.current.isGoalLogModalOpen).toBe(true);
+
+  act(() => {
+    result.current.setIsGoalLogModalOpen(prev => !prev);
+  });
+  expect(result.current.isGoalLogModalOpen).toBe(false);
+  expect(result.current.isNewGameSetupModalOpen).toBe(false);
+});

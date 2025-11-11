@@ -1,6 +1,6 @@
 # MatchOps Local — Micro Refactor Roadmap (3-Layer Plan, Small Steps)
 
-Status: Active
+Status: Active — Layer 2 in progress (current step: **2.3 – migrate next modal pair**)
 
 Purpose: Replace the big-bang refactor plans (P0/P1/P2) with a safe, micro‑step roadmap that we execute one small change at a time and manually test after every step. This avoids regressions like we saw when attempting Layer 1 in one chunk.
 
@@ -85,21 +85,22 @@ Step 1.7 — Manual regression script (document)
 LAYER 2 — Modal State Reducer (Opt-in, incremental)
 ---------------------------------------------------------------------
 
-Step 2.0 — Add modal reducer skeleton (no switching yet)
+Step 2.0 — Add modal reducer skeleton (no switching yet) — ✅ **Completed (Nov 12, 2025)**
 - Change:
-  - Introduce `modalReducer` with one field (e.g., `loadGame`) and a no-op mapping in provider
-- Test: no behavior change
+  - Introduced `modalReducer` with tracked timestamps for reducer-backed modals
+- Test: `modalReducer` unit suite covers open/close/toggle semantics
 
-Step 2.1 — Migrate LoadGame modal to reducer
-- Change: wire `loadGame` open/close to reducer
-- Test: open/close works; others untouched
+Step 2.1 — Migrate LoadGame modal to reducer — ✅ **Completed (Nov 12, 2025)**
+- Change: wired `loadGame` open/close to reducer with anti-flash guard
+- Test: `ModalProvider` hook tests cover guarded close behavior
 
-Step 2.2 — Migrate NewGame setup modal
-- Change: move `newGameSetup` to reducer
-- Test: confirm flows still work (save-before-new → setup)
+Step 2.2 — Migrate NewGame setup modal — ✅ **Completed (Nov 12, 2025)**
+- Change: moved `newGameSetup` to reducer with shared anti-flash guard
+- Test: Hook test verifies function-updater + guard with fake timers
 
 Step 2.3 — Migrate remaining modals in pairs (small, safe increments)
-- Repeat until all are consolidated
+- **Current Focus (Nov 13, 2025)**: consolidate `goalLog` + `gameStats` modals into the reducer while preserving toggle semantics used by HomePage handlers.
+- Repeat with additional modal pairs until all are consolidated
 
 Step 2.4 — Parameter/props grouping (reduce coupling)
 - Change:

@@ -1,11 +1,33 @@
 # 📊 Production Readiness Progress Dashboard
 
-**Last Updated**: November 7, 2025
-**Overall Progress**: 35% Complete (2 of 6 phases done, P0 refactoring in progress)
+**Last Updated**: November 13, 2025
+**Overall Progress**: 38% Complete (Layer 2 kick-off completed; reducer migration underway)
 
 ---
 
 ## 🎉 **Recent Completions**
+
+### ✅ Layer 2 Kick-off — Modal Reducer Foundation (Nov 12-13, 2025)
+**Completion Date**: November 13, 2025
+**Time Spent**: ~45 minutes
+**Impact**: Centralized reducer now drives Load Game + New Game Setup modals with anti-flash safety; Goal Log & Game Stats queued next.
+
+**What Was Accomplished**:
+- ✅ Added reducer-backed wiring for Load Game and New Game Setup modals (with guarded close semantics)
+- ✅ Documented Layer 2 progress + next modal pair (Goal Log + Game Stats)
+- ✅ Expanded reducer unit tests covering timestamps + idempotent handling for new modal IDs
+
+**Metrics Improved**:
+- Reducer coverage: 1 → 2 tracked modals in production (Load Game + New Game Setup) with additional IDs staged
+- Documentation freshness: Active plan + tracker now aligned with implementation status
+
+**Files Updated**:
+- `src/contexts/modalReducer.ts`
+- `src/contexts/ModalProvider.tsx`
+- `docs/03-active-plans/MICRO-REFactor-ROADMAP.md`
+- `docs/CRITICAL_FIXES_TRACKER.md`
+
+---
 
 ### ✅ Bug Fixes & Incremental Refactoring (Nov 3-7, 2025)
 **Completion Date**: November 7, 2025
@@ -65,9 +87,9 @@
 ## 🎯 **Current Phases (Parallel Work)**
 
 ### Phase: P0 - HomePage Refactoring (In Progress)
-**Status**: 🟡 **IN PROGRESS** (another AI working on this)
-**Estimated Time**: 2-3 hours (1-1.5h remaining)
-**Progress**: ~33.6% complete (1,251 lines removed)
+**Status**: 🟡 **IN PROGRESS** (Layer 2 modal consolidation underway)
+**Estimated Time**: 2-3 hours (≈1 hour remaining after modal reducer consolidation)
+**Progress**: ~38% complete (1,251 lines removed + reducer-backed modal state)
 **Owner**: Separate AI instance
 
 ### Phase: P1 - Security & Service Worker Hardening

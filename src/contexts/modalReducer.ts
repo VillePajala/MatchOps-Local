@@ -1,12 +1,14 @@
-// Modal reducer (Layer 2 - Steps 2.0–2.2)
-// Currently managing: loadGame, newGameSetup modals
+// Modal reducer (Layer 2 - Steps 2.0–2.3)
+// Currently managing: loadGame, newGameSetup, goalLog, gameStats modals
 
-export type ModalId = 'loadGame' | 'newGameSetup';
+export type ModalId = 'loadGame' | 'newGameSetup' | 'goalLog' | 'gameStats';
 
 export interface ModalState {
   // Start with a single modal; we will add others in subsequent microsteps
   loadGame: boolean;
   newGameSetup: boolean;
+  goalLog: boolean;
+  gameStats: boolean;
   // Room for future timing/analytics (e.g., anti-flash timestamps)
   openTimestamps: Partial<Record<ModalId, number>>;
 }
@@ -14,6 +16,8 @@ export interface ModalState {
 export const initialModalState: ModalState = {
   loadGame: false,
   newGameSetup: false,
+  goalLog: false,
+  gameStats: false,
   openTimestamps: {},
 };
 
@@ -48,6 +52,26 @@ export function modalReducer(state: ModalState, action: ModalAction): ModalState
           openTimestamps: { ...state.openTimestamps, newGameSetup: at },
         };
       }
+      if (action.id === 'goalLog') {
+        if (state.goalLog) {
+          return state;
+        }
+        return {
+          ...state,
+          goalLog: true,
+          openTimestamps: { ...state.openTimestamps, goalLog: at },
+        };
+      }
+      if (action.id === 'gameStats') {
+        if (state.gameStats) {
+          return state;
+        }
+        return {
+          ...state,
+          gameStats: true,
+          openTimestamps: { ...state.openTimestamps, gameStats: at },
+        };
+      }
       return state;
     }
     case 'CLOSE_MODAL': {
@@ -64,6 +88,18 @@ export function modalReducer(state: ModalState, action: ModalAction): ModalState
           return state;
         }
         return { ...state, newGameSetup: false };
+      }
+      if (action.id === 'goalLog') {
+        if (!state.goalLog) {
+          return state;
+        }
+        return { ...state, goalLog: false };
+      }
+      if (action.id === 'gameStats') {
+        if (!state.gameStats) {
+          return state;
+        }
+        return { ...state, gameStats: false };
       }
       return state;
     }
@@ -86,6 +122,26 @@ export function modalReducer(state: ModalState, action: ModalAction): ModalState
           newGameSetup: next,
           openTimestamps: next
             ? { ...state.openTimestamps, newGameSetup: at }
+            : state.openTimestamps,
+        };
+      }
+      if (action.id === 'goalLog') {
+        const next = !state.goalLog;
+        return {
+          ...state,
+          goalLog: next,
+          openTimestamps: next
+            ? { ...state.openTimestamps, goalLog: at }
+            : state.openTimestamps,
+        };
+      }
+      if (action.id === 'gameStats') {
+        const next = !state.gameStats;
+        return {
+          ...state,
+          gameStats: next,
+          openTimestamps: next
+            ? { ...state.openTimestamps, gameStats: at }
             : state.openTimestamps,
         };
       }
