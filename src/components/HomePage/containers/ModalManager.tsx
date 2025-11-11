@@ -14,6 +14,7 @@
 
 import React from 'react';
 import ModalPortal from '@/components/ModalPortal';
+import logger from '@/utils/logger';
 import { useTranslation } from 'react-i18next';
 
 // Modal Components
@@ -324,6 +325,38 @@ export function ModalManager(props: ModalManagerProps) {
     setIsTeamReassignModalOpen,
     handleTeamReassignment,
   } = props;
+
+  // Diagnostic: log when season/tournament modal is requested but mutations are not ready
+  const hasSeasonModalMutations = !!(
+    addSeasonMutation &&
+    addTournamentMutation &&
+    updateSeasonMutation &&
+    deleteSeasonMutation &&
+    updateTournamentMutation &&
+    deleteTournamentMutation
+  );
+
+  React.useEffect(() => {
+    if (isSeasonTournamentModalOpen && !hasSeasonModalMutations) {
+      logger.warn('[ModalManager] Season/Tournament mutations not ready', {
+        addSeason: !!addSeasonMutation,
+        addTournament: !!addTournamentMutation,
+        updateSeason: !!updateSeasonMutation,
+        deleteSeason: !!deleteSeasonMutation,
+        updateTournament: !!updateTournamentMutation,
+        deleteTournament: !!deleteTournamentMutation,
+      });
+    }
+  }, [
+    isSeasonTournamentModalOpen,
+    hasSeasonModalMutations,
+    addSeasonMutation,
+    addTournamentMutation,
+    updateSeasonMutation,
+    deleteSeasonMutation,
+    updateTournamentMutation,
+    deleteTournamentMutation,
+  ]);
 
   if (!gameSessionState) return null;
 

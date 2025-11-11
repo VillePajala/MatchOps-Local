@@ -92,6 +92,9 @@ export function useNewGameFlow({
         const fallbackGame = savedGames[currentGameId];
         if (fallbackGame?.teamName) {
           identifier = `${fallbackGame.teamName} vs ${fallbackGame.opponentName || t('common.unknownOpponent', 'Opponent')}`;
+        } else {
+          // Missing both fresh and fallback snapshots – keep generic identifier and log once for diagnostics
+          logger.warn('[useNewGameFlow] No snapshot found for currentGameId; using generic identifier', { currentGameId, hasFallback: !!fallbackGame });
         }
       }
 
