@@ -1,8 +1,8 @@
 # Critical Fixes Progress Tracker
 
-**Last Updated**: November 7, 2025
-**Status**: 🟡 In Progress (P0 started)
-**Overall Progress**: 0/5 fixes completed, but ~33.6% reduction in HomePage achieved
+**Last Updated**: November 11, 2025
+**Status**: ✅ Layer 1 completed (stability). Preparing Layer 2 (structural).
+**Overall Progress**: L1 done; L2 scoped and queued; L3 planned
 
 ---
 
@@ -12,9 +12,11 @@
 |----------|-----|--------|----------|-----------|-------------|
 | **P0** | HomePage Refactoring | 🟡 In Progress | ~33.6% | 2-3h | ~2h |
 | **P1** | GameSettingsModal Refactoring | ❌ Not Started | 0% | 1h | - |
-| **P2** | Modal State Management | ❌ Not Started | 0% | 30m | - |
-| **P2** | Error Handling Improvements | ❌ Not Started | 0% | 1h | - |
-| **P2** | Performance Optimization | ❌ Not Started | 0% | 30m | - |
+| **P2/L2** | Modal State Management (Reducer) | ⏭ Next | Scoped | 45m | - |
+| **P2/L2** | useNewGameFlow Param Grouping | ⏭ Next | Scoped | 45m | - |
+| **P2/L2** | FieldContainer/View-Model Grouping | ⏭ Next | Scoped | 60m | - |
+| **P2** | Error Handling Improvements | ⏭ After L2 | 0% | 1h | - |
+| **P2** | Performance Optimization | ⏭ After L2 | 0% | 30m | - |
 
 **Total Estimated Time**: 4.5-5.5 hours
 **Total Actual Time**: ~2 hours (P0 in progress)
@@ -22,10 +24,28 @@
 ### Newly Logged Fix
 - **P1 – New Game autosave race** *(Nov 2025)*: `useNewGameFlow.handleStartNewGame` now fetches the latest saved game snapshot directly from storage (instead of relying on potentially stale React state) before prompting the “Save current game?” confirmation. This eliminates the documented race condition when autosave mutates state mid-flow.
 
-### Upcoming Layer: Modal & Flow Architecture (next PR chunk)
+### Scope Clarification: Layer 2 vs P2
+
+- Layer 1 (this branch) focused on stability hardening to prevent regressions:
+  - Autosave gating during modals; menu→modal deferral; anti-flash guard; portalization; deterministic init; import normalization.
+- Layer 2 (next): structural refactor that reduces coupling/props and centralizes modal state.
+  - This is separate from P2 “priority fixes” but overlaps in scope. We’ll track Layer 2 tasks under both L2/P2 where applicable.
+
+### Before Merge (housekeeping)
+- Update docs to reflect L1 completion and L2 scope (this file + MICRO-REFACTOR ROADMAP).
+- Consider splitting the QueryClient singleton fix (commit 284f1da) into its own PR for cleaner history (optional when rebasing).
+
+### Upcoming Layer 2: Modal & Flow Architecture (next PR chunk)
 - **Split ModalManager** into `GameModalsManager`, `SettingsModalsManager`, and `StatsModalsManager` so each container remains <200 lines and owns a coherent prop subset.
-- **Refactor `startNewGameWithSetup` / `useNewGameFlow`** to accept an `options` object instead of 18 positional arguments, keeping the API testable and self-documenting.
+- **useNewGameFlow parameter grouping**: accept cohesive `gameState`, `actions`, `config`, and `dependencies` objects instead of a wide options shape (31 fields today).
 - **Group FieldContainer props** into view-model objects (`gameState`, `fieldInteractions`, `modalTriggers`, `guideState`) to reduce prop drilling.
+- **Modal State Reducer**: migrate scattered modal booleans to a single reducer (start with Load/New, then iterate per modal).
+- **Add focused edge-case tests** for useGameState availablePlayers sync and backup-restore → latest-game fallback.
+
+### Layer 3 (Future)
+- Performance monitoring: add lightweight metrics for useEffect triggers (e.g., useGameState, heavy lists).
+- Error boundary refinement: ensure modal portals are wrapped and present helpful fallbacks.
+- Auto-save batching: tune delays based on real usage patterns; consider coalescing updates under sustained input.
 - **Normalize `useHomeModalControls`** by adding open/close helpers for Training Resources & Goal Log modals and implementing `resumeGame` / `explore` initial actions.
 
 ---
