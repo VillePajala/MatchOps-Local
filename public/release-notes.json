@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: update release notes and improve ModalManager and GameContainer props for better type handling"
+  "notes": "feat: update release notes and cache name, improve test mocks for ModalManager and GameContainer"
 }
