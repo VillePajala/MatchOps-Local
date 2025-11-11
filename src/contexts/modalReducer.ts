@@ -1,5 +1,6 @@
-// Modal reducer skeleton (Layer 2 - Step 2.0)
-// Note: Not wired into ModalProvider yet. No runtime behavior change.
+// Modal reducer (Layer 2 - Steps 2.0 & 2.1)
+// Currently managing: loadGame modal
+// Next: Migrate newGameSetup modal (Step 2.2)
 
 export type ModalId = 'loadGame';
 
@@ -41,8 +42,10 @@ export function modalReducer(state: ModalState, action: ModalAction): ModalState
     case 'CLOSE_MODAL': {
       if (action.id === 'loadGame') {
         if (!state.loadGame) {
+          // Already closed — return same object
           return state;
         }
+        // Keep openTimestamps for analytics; only toggle flag
         return { ...state, loadGame: false };
       }
       return state;
