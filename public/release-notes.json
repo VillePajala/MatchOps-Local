@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: update release notes, modify cache name, and enhance logging; refactor modal open deferral in ControlBar; improve i18n initialization for test environments"
+  "notes": "feat: update critical fixes tracker and release notes; modify cache name and build timestamp in service worker"
 }
