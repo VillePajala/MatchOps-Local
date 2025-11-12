@@ -220,6 +220,13 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     return Array.from(map.values());
   }, [masterRoster, availablePlayers]);
 
+  // Defensive: warn if player pool is empty while modal is open (likely missing data)
+  useEffect(() => {
+    if (isOpen && playerPool.length === 0) {
+      logger.warn('[GameStatsModal] playerPool is empty (no masterRoster or availablePlayers)');
+    }
+  }, [isOpen, playerPool.length]);
+
   // Filtered players for Player tab combobox (from the unified pool)
   const filteredPlayers = useMemo(() => {
     const search = playerQuery.toLowerCase();
