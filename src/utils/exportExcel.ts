@@ -315,8 +315,10 @@ export const exportAggregateExcel = (
     const workbook = XLSX.utils.book_new();
 
   // Sheet 1: Player Stats Summary
+  // Include zero rows when there are no games in the dataset (e.g., team filter with no games)
+  const includeZeroRows = Object.keys(games || {}).length === 0 || (aggregateStats.length > 0 && aggregateStats.every(p => (p.gamesPlayed || 0) === 0));
   const playerSummary = aggregateStats
-    .filter((player) => player.gamesPlayed > 0)
+    .filter((player) => includeZeroRows ? true : player.gamesPlayed > 0)
     .map((player) => ({
       Player: player.name,
       'Jersey #': player.jerseyNumber || '',
@@ -649,15 +651,32 @@ export const exportPlayerExcel = (
     const workbook = XLSX.utils.book_new();
 
   // Sheet 1: Player Summary
+  // Incorporate external adjustments (external games) to align with on-screen totals
+  const adjForPlayer = externalAdjustments.filter(a => a.playerId === playerId);
+  const adjTotals = adjForPlayer.reduce(
+    (acc, a) => {
+      acc.games += a.gamesPlayedDelta || 0;
+      acc.goals += a.goalsDelta || 0;
+      acc.assists += a.assistsDelta || 0;
+      return acc;
+    },
+    { games: 0, goals: 0, assists: 0 }
+  );
+  const totalGames = (playerData.gamesPlayed || 0) + adjTotals.games;
+  const totalGoals = (playerData.goals || 0) + adjTotals.goals;
+  const totalAssists = (playerData.assists || 0) + adjTotals.assists;
+  const totalPoints = totalGoals + totalAssists;
+  const avgPoints = totalGames > 0 ? (totalPoints / totalGames) : 0;
+
   const summary = [{
     'Player Name': playerData.name,
     'Jersey Number': playerData.jerseyNumber || '',
     Nickname: playerData.nickname || '',
-    'Total Games': playerData.gamesPlayed,
-    'Total Goals': playerData.goals,
-    'Total Assists': playerData.assists,
-    'Total Points': playerData.totalScore,
-    'Avg Points/Game': playerData.avgPoints.toFixed(2),
+    'Total Games': totalGames,
+    'Total Goals': totalGoals,
+    'Total Assists': totalAssists,
+    'Total Points': totalPoints,
+    'Avg Points/Game': avgPoints.toFixed(2),
     'Fair Play Awards': playerData.fpAwards ?? 0,
     'Is Goalie': playerData.isGoalie ? 'Yes' : 'No',
     Notes: playerData.notes || '',

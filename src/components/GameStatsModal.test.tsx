@@ -558,6 +558,28 @@ describe('GameStatsModal', () => {
     expect(charlieHeadings.length).toBeGreaterThan(0);
   });
 
+  test('player search uses master roster (not limited to available players)', async () => {
+    const props = getDefaultProps();
+    // Provide a master roster that includes a player not in availablePlayers
+    const diana = { id: 'p4', name: 'Diana' } as Player;
+    const withRoster = { ...props, masterRoster: [...props.availablePlayers, diana] };
+
+    await act(async () => {
+      renderComponent(withRoster);
+    });
+
+    // Go to Player tab and search for Diana
+    fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.player', 'Player') }));
+    const input = await screen.findByPlaceholderText(
+      i18n.t('playerStats.selectPlayerLabel', 'Select Player')
+    );
+    fireEvent.change(input, { target: { value: 'Diana' } });
+
+    // Option for Diana should be present even though not in availablePlayers
+    const option = await screen.findByRole('option', { name: 'Diana' });
+    expect(option).toBeInTheDocument();
+  });
+
   /**
    * Tournament Player Award Tests
    * @critical - Tests tournament MVP award display functionality

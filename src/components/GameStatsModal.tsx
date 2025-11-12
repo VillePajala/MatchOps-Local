@@ -207,17 +207,37 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const clubSeasonEndDate = settings?.clubSeasonEndDate ?? '2000-05-01';
   const hasConfiguredSeasonDates = settings?.hasConfiguredSeasonDates ?? false;
 
-  // Filtered players for Player tab combobox
+  // Player pool for Player tab search: prefer full master roster; fall back to current game's available players
+  const playerPool: Player[] = useMemo(() => {
+    // Merge and de-duplicate by id to be safe if both lists are provided
+    const map = new Map<string, Player>();
+    if (masterRoster && masterRoster.length > 0) {
+      masterRoster.forEach(p => map.set(p.id, p));
+    }
+    (availablePlayers || []).forEach(p => {
+      if (!map.has(p.id)) map.set(p.id, p);
+    });
+    return Array.from(map.values());
+  }, [masterRoster, availablePlayers]);
+
+  // Defensive: warn if player pool is empty while modal is open (likely missing data)
+  useEffect(() => {
+    if (isOpen && playerPool.length === 0) {
+      logger.warn('[GameStatsModal] playerPool is empty (no masterRoster or availablePlayers)');
+    }
+  }, [isOpen, playerPool.length]);
+
+  // Filtered players for Player tab combobox (from the unified pool)
   const filteredPlayers = useMemo(() => {
     const search = playerQuery.toLowerCase();
-    return availablePlayers.filter(p => {
+    return playerPool.filter(p => {
       if (!search) return true;
       return (
         p.name.toLowerCase().includes(search) ||
         (p.nickname && p.nickname.toLowerCase().includes(search))
       );
     });
-  }, [availablePlayers, playerQuery]);
+  }, [playerPool, playerQuery]);
 
   // Extract available club seasons from games
   const availableClubSeasons = useMemo(() => {
@@ -272,7 +292,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // Update selected player and active tab when initialSelectedPlayerId changes
   useEffect(() => {
     if (initialSelectedPlayerId) {
-      const player = availablePlayers.find(p => p.id === initialSelectedPlayerId);
+      const player = playerPool.find(p => p.id === initialSelectedPlayerId);
       if (player) {
         setSelectedPlayer(player);
         setActiveTab('player');
@@ -282,7 +302,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       setActiveTab('currentGame');
       setSelectedPlayer(null);
     }
-  }, [initialSelectedPlayerId, availablePlayers, isOpen]);
+  }, [initialSelectedPlayerId, playerPool, isOpen]);
 
   // Reset filters when tab changes
   useEffect(() => {
@@ -307,6 +327,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     filterText,
   });
 
+  // Empty state for season/tournament with specific team and zero matching games
+  const noGamesInContext = useMemo(() => {
+    const isSpecificSeason = activeTab === 'season' && selectedSeasonIdFilter !== 'all';
+    const isSpecificTournament = activeTab === 'tournament' && selectedTournamentIdFilter !== 'all';
+    const hasSpecificTeam = selectedTeamIdFilter !== 'all';
+    return (isSpecificSeason || isSpecificTournament) && hasSpecificTeam && processedGameIds.length === 0;
+  }, [activeTab, selectedSeasonIdFilter, selectedTournamentIdFilter, selectedTeamIdFilter, processedGameIds.length]);
+
   const tournamentSeasonStats = useTournamentSeasonStats({
     activeTab,
     savedGames,
@@ -314,6 +342,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     tournaments,
     selectedSeasonIdFilter,
     selectedTournamentIdFilter,
+    selectedTeamIdFilter,
   });
 
   const goalEditorHook = useGoalEditor({
@@ -820,32 +849,45 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     />
                   )}
 
-                  {/* Player Stats Table */}
+                  {/* Player Stats Table or Empty State */}
                   <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
                     <h3 className="text-xl font-semibold text-slate-200 mb-4">{t('gameStatsModal.playerStatsTitle', 'Player Statistics')}</h3>
-                    {/* Search Input */}
-                    <div className="relative mb-4">
-                      <input
-                        type="text"
-                        value={filterText}
-                        onChange={handleFilterChange}
-                        placeholder={t('common.filterByName', 'Filter by name...')}
-                        className="bg-slate-800 border border-slate-700 rounded-md text-white pl-8 pr-3 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-indigo-500 [&:-webkit-autofill]:bg-slate-800 [&:-webkit-autofill]:text-white [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_#1e293b_inset]"
-                      />
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <PlayerStatsTable
-                        playerStats={playerStats}
-                        sortColumn={sortColumn}
-                        sortDirection={sortDirection}
-                        totals={totals}
-                        onSort={handleSort}
-                        onPlayerRowClick={handlePlayerRowClick}
-                      />
-                    </div>
+                    {noGamesInContext ? (
+                      <div className="text-center text-slate-400 py-8">
+                        <div className="text-lg font-semibold mb-2">
+                          {t('gameStatsModal.noTeamGamesTitle', 'No games for the selected team in this context')}
+                        </div>
+                        <div className="text-sm">
+                          {t('gameStatsModal.noTeamGamesSubtitle', 'Choose another team or adjust filters to view player statistics.')}
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Search Input */}
+                        <div className="relative mb-4">
+                          <input
+                            type="text"
+                            value={filterText}
+                            onChange={handleFilterChange}
+                            placeholder={t('common.filterByName', 'Filter by name...')}
+                            className="bg-slate-800 border border-slate-700 rounded-md text-white pl-8 pr-3 py-1.5 text-sm w-full focus:outline-none focus:ring-1 focus:ring-indigo-500 [&:-webkit-autofill]:bg-slate-800 [&:-webkit-autofill]:text-white [&:-webkit-autofill]:[-webkit-text-fill-color:white] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_#1e293b_inset]"
+                          />
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <PlayerStatsTable
+                            playerStats={playerStats}
+                            sortColumn={sortColumn}
+                            sortDirection={sortDirection}
+                            totals={totals}
+                            onSort={handleSort}
+                            onPlayerRowClick={handlePlayerRowClick}
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -920,7 +962,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   {t('common.exportExcel', 'Export Excel')}
                 </button>
               )}
-              {activeTab !== 'currentGame' && activeTab !== 'player' && onExportAggregateExcel && (
+              {activeTab !== 'currentGame' && activeTab !== 'player' && onExportAggregateExcel && !noGamesInContext && processedGameIds.length > 0 && (
                 <button
                   onClick={() => onExportAggregateExcel(processedGameIds, playerStats)}
                   className="px-4 py-2 rounded-md font-medium transition-colors bg-slate-700 hover:bg-slate-600 text-slate-200"

@@ -117,6 +117,11 @@ Housekeeping
 - Remove redundant/skipped tests; if a test is needed, implement deterministically without relying on IndexedDB
 - Name magic numbers (e.g., modal deferral) and centralize in constants
 
+Design note (P2, plan later)
+- External games (player adjustments) may benefit from optional associations to `teamId`, `seasonId`, and `tournamentId` to enable season/tournament/team-filtered views and Excel exports to include validated external games.
+- Keep `includeInSeasonTournament` as an opt‑in flag to avoid polluting aggregates by default.
+- If adopted, update: Player tab totals, aggregate stats (view + Excel), and filtering utilities.
+
 ---------------------------------------------------------------------
 LAYER 3 — Performance + Error Handling (targeted)
 ---------------------------------------------------------------------

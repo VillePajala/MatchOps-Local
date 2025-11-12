@@ -34,8 +34,7 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   const [isSeasonTournamentModalOpen, setIsSeasonTournamentModalOpen] = useState(false);
   const [isTrainingResourcesOpen, setIsTrainingResourcesOpen] = useState(false);
   const [isGoalLogModalOpen, setIsGoalLogModalOpen] = useState(false);
-  const [isGameStatsModalOpen, setIsGameStatsModalOpen] = useState(false);
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  // Reducer-backed in L2 2.3
   const [isPlayerAssessmentModalOpen, setIsPlayerAssessmentModalOpen] = useState(false);
 
   // Anti-flash guard: ignore closes occurring too soon after opening for critical modals
@@ -44,6 +43,8 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   const newGameLastOpenRef = useRef<number>(0);
   const loadGameOpenRef = useRef<boolean>(false);
   const newGameSetupOpenRef = useRef<boolean>(false);
+  const settingsOpenRef = useRef<boolean>(false);
+  const gameStatsOpenRef = useRef<boolean>(false);
 
   // For reducer-backed Load Game modal, emulate React setState<boolean> API with anti-flash guard
   // Note: This intentionally duplicates guarded close timing with the local reducer-backed setter
@@ -95,6 +96,40 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Reducer-backed setter for Settings modal (no anti-flash needed)
+  const setIsSettingsModalOpen: React.Dispatch<React.SetStateAction<boolean>> = (valueOrUpdater) => {
+    const prev = settingsOpenRef.current;
+    const next = typeof valueOrUpdater === 'function'
+      ? (valueOrUpdater as (prev: boolean) => boolean)(prev)
+      : valueOrUpdater;
+    if (next && !prev) {
+      settingsOpenRef.current = true;
+      dispatchModal({ type: 'OPEN_MODAL', id: 'settings', at: Date.now() });
+      return;
+    }
+    if (!next && prev) {
+      settingsOpenRef.current = false;
+      dispatchModal({ type: 'CLOSE_MODAL', id: 'settings' });
+    }
+  };
+
+  // Reducer-backed setter for Game Stats modal (no anti-flash needed)
+  const setIsGameStatsModalOpen: React.Dispatch<React.SetStateAction<boolean>> = (valueOrUpdater) => {
+    const prev = gameStatsOpenRef.current;
+    const next = typeof valueOrUpdater === 'function'
+      ? (valueOrUpdater as (prev: boolean) => boolean)(prev)
+      : valueOrUpdater;
+    if (next && !prev) {
+      gameStatsOpenRef.current = true;
+      dispatchModal({ type: 'OPEN_MODAL', id: 'gameStats', at: Date.now() });
+      return;
+    }
+    if (!next && prev) {
+      gameStatsOpenRef.current = false;
+      dispatchModal({ type: 'CLOSE_MODAL', id: 'gameStats' });
+    }
+  };
+
   const value: ModalContextValue = {
     isGameSettingsModalOpen,
     setIsGameSettingsModalOpen,
@@ -108,11 +143,11 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     setIsTrainingResourcesOpen,
     isGoalLogModalOpen,
     setIsGoalLogModalOpen,
-    isGameStatsModalOpen,
+    isGameStatsModalOpen: modalState.gameStats,
     setIsGameStatsModalOpen,
     isNewGameSetupModalOpen: modalState.newGameSetup,
     setIsNewGameSetupModalOpen,
-    isSettingsModalOpen,
+    isSettingsModalOpen: modalState.settings,
     setIsSettingsModalOpen,
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
