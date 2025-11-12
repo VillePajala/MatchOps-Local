@@ -1,5 +1,5 @@
 // Caching strategy for PWA offline support
-const CACHE_NAME = 'matchops-2025-11-11T20-03-21';
+const CACHE_NAME = 'matchops-2025-11-12T13-36-17';
 const STATIC_RESOURCES = [
   '/',
   '/manifest.json',
@@ -121,4 +121,4 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(fetch(request));
   }
 });
-// Build Timestamp: 2025-11-11T20:03:21.302Z
+// Build Timestamp: 2025-11-12T13:36:17.291Z
