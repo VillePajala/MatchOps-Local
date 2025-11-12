@@ -320,6 +320,29 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     filterText,
   });
 
+  // When a specific team is selected but no games match, show zeroed stats for the roster
+  const useZeroFallback = useMemo(() => (
+    activeTab !== 'currentGame' && selectedTeamIdFilter !== 'all' && playerStats.length === 0
+  ), [activeTab, selectedTeamIdFilter, playerStats.length]);
+
+  const displayedPlayerStats = useMemo(() => {
+    if (!useZeroFallback) return playerStats;
+    // Create zero rows from the unified player pool
+    return playerPool.map((p) => ({
+      ...p,
+      goals: 0,
+      assists: 0,
+      totalScore: 0,
+      gamesPlayed: 0,
+      avgPoints: 0,
+    }));
+  }, [useZeroFallback, playerPool, playerStats]);
+
+  const displayedTotals = useMemo(() => {
+    if (!useZeroFallback) return totals;
+    return { gamesPlayed: 0, goals: 0, assists: 0, totalScore: 0 };
+  }, [useZeroFallback, totals]);
+
   const tournamentSeasonStats = useTournamentSeasonStats({
     activeTab,
     savedGames,
@@ -851,10 +874,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     </div>
                     <div>
                       <PlayerStatsTable
-                        playerStats={playerStats}
+                        playerStats={displayedPlayerStats}
                         sortColumn={sortColumn}
                         sortDirection={sortDirection}
-                        totals={totals}
+                        totals={displayedTotals}
                         onSort={handleSort}
                         onPlayerRowClick={handlePlayerRowClick}
                       />
@@ -935,7 +958,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               )}
               {activeTab !== 'currentGame' && activeTab !== 'player' && onExportAggregateExcel && (
                 <button
-                  onClick={() => onExportAggregateExcel(processedGameIds, playerStats)}
+                  onClick={() => onExportAggregateExcel(processedGameIds, displayedPlayerStats)}
                   className="px-4 py-2 rounded-md font-medium transition-colors bg-slate-700 hover:bg-slate-600 text-slate-200"
                 >
                   {t('common.exportExcel', 'Export Excel')}
