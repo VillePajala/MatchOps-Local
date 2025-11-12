@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "Layer 2 – Step 2.3: Settings + Game Stats → reducer; Stats modal search/zero‑rows; Excel parity"
+  "notes": "docs(L2-2.4): create HomePage reduction plan (view-models) and reference it from the micro-roadmap; start branch micro/l2-2.4-homepage-reduction-viewmodels"
 }
