@@ -134,6 +134,7 @@ describe('SoccerField', () => {
     onToggleTacticalDiscType: jest.fn(),
     tacticalBallPosition: null,
     onTacticalBallMove: jest.fn(),
+    isDrawingEnabled: false,
   };
 
   beforeEach(() => {

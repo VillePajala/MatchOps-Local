@@ -55,6 +55,7 @@ export interface GameContainerProps extends Partial<UseGameOrchestrationReturn> 
   // Optional view-model (introduced in L2-2.4.1). Not yet consumed.
   viewModel?: GameContainerViewModel;
   draggingPlayerFromBarInfo: Player | null;
+  isDrawingEnabled: boolean;
   showLargeTimerOverlay: boolean;
   initialLoadComplete: boolean;
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
@@ -102,6 +103,7 @@ export interface GameContainerProps extends Partial<UseGameOrchestrationReturn> 
   handleOpenSettingsModal: () => void;
   openPlayerAssessmentModal: () => void;
   handleOpenPersonnelManager: () => void;
+  handleToggleDrawingMode: () => void;
 }
 
 export function GameContainer(props: GameContainerProps) {
@@ -117,6 +119,7 @@ export function GameContainer(props: GameContainerProps) {
     tacticalDrawings,
     tacticalDiscs,
     tacticalBallPosition,
+    isDrawingEnabled,
     canUndo,
     canRedo,
     timeElapsedInSeconds,
@@ -196,6 +199,7 @@ export function GameContainer(props: GameContainerProps) {
     handleOpenSettingsModal,
     openPlayerAssessmentModal,
     handleOpenPersonnelManager,
+    handleToggleDrawingMode,
   } = props;
 
   if (!gameSessionState) return null;
@@ -329,6 +333,7 @@ export function GameContainer(props: GameContainerProps) {
             onToggleTacticalDiscType={handleToggleTacticalDiscType || (() => {})}
             tacticalBallPosition={tacticalBallPosition || { relX: 0.5, relY: 0.5 }}
             onTacticalBallMove={handleTacticalBallMove || (() => {})}
+            isDrawingEnabled={isDrawingEnabled || false}
           />
         </ErrorBoundary>
 
@@ -475,6 +480,8 @@ export function GameContainer(props: GameContainerProps) {
           onOpenPlayerAssessmentModal={openPlayerAssessmentModal || (() => {})}
           onOpenTeamManagerModal={handleOpenTeamManagerModal || (() => {})}
           onOpenPersonnelManager={handleOpenPersonnelManager || (() => {})}
+          isDrawingEnabled={isDrawingEnabled || false}
+          onToggleDrawingMode={handleToggleDrawingMode || (() => {})}
         />
       </div>
     </main>
