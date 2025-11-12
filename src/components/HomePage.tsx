@@ -1611,10 +1611,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setTacticalDrawings(state.tacticalDrawings || []);
     setTacticalBallPosition(state.tacticalBallPosition || null);
 
-    // Reset flag after React processes all state updates
-    queueMicrotask(() => {
+    // Reset flag after React processes all state updates and effects
+    // Use setTimeout (macrotask) instead of queueMicrotask to ensure it runs AFTER React effects
+    setTimeout(() => {
       isApplyingHistoryRef.current = false;
-    });
+    }, 0);
   };
 
   const handleUndo = () => {
