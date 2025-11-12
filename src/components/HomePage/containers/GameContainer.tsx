@@ -200,6 +200,18 @@ export function GameContainer(props: GameContainerProps) {
 
   if (!gameSessionState) return null;
 
+  // L2-2.4.2: Prefer view-model data for read-only subsets (parity fallback to props)
+  const vm = props.viewModel;
+  const playerBarPlayers = vm?.playerBar?.players ?? (playersForCurrentGame || []);
+  const playerBarSelectedId = vm?.playerBar?.selectedPlayerIdFromBar ?? draggingPlayerFromBarInfo?.id ?? null;
+  const playerBarGameEvents = vm?.playerBar?.gameEvents ?? gameSessionState.gameEvents;
+
+  const infoTeamName = vm?.gameInfo?.teamName ?? gameSessionState.teamName;
+  const infoOpponentName = vm?.gameInfo?.opponentName ?? gameSessionState.opponentName;
+  const infoHomeScore = vm?.gameInfo?.homeScore ?? gameSessionState.homeScore;
+  const infoAwayScore = vm?.gameInfo?.awayScore ?? gameSessionState.awayScore;
+  const infoHomeOrAway = vm?.gameInfo?.homeOrAway ?? gameSessionState.homeOrAway;
+
   return (
     <main className="flex flex-col h-[100dvh] bg-slate-900 text-slate-50" data-testid="home-page">
       {/* Top Section: Player Bar, Game Info */}
@@ -210,23 +222,23 @@ export function GameContainer(props: GameContainerProps) {
           </div>
         }>
           <PlayerBar
-            players={playersForCurrentGame || []}
+            players={playerBarPlayers}
             onPlayerDragStartFromBar={handlePlayerDragStartFromBar || (() => {})}
-            selectedPlayerIdFromBar={draggingPlayerFromBarInfo?.id}
+            selectedPlayerIdFromBar={playerBarSelectedId}
             onBarBackgroundClick={handleDeselectPlayer || (() => {})}
-            gameEvents={gameSessionState.gameEvents}
+            gameEvents={playerBarGameEvents}
             onPlayerTapInBar={handlePlayerTapInBar || (() => {})}
             onToggleGoalie={handleToggleGoalieForModal || (() => {})}
           />
         </ErrorBoundary>
         <GameInfoBar
-          teamName={gameSessionState.teamName}
-          opponentName={gameSessionState.opponentName}
-          homeScore={gameSessionState.homeScore}
-          awayScore={gameSessionState.awayScore}
+          teamName={infoTeamName}
+          opponentName={infoOpponentName}
+          homeScore={infoHomeScore}
+          awayScore={infoAwayScore}
           onTeamNameChange={handleTeamNameChange || (() => {})}
           onOpponentNameChange={handleOpponentNameChange || (() => {})}
-          homeOrAway={gameSessionState.homeOrAway}
+          homeOrAway={infoHomeOrAway}
         />
       </div>
 

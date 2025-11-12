@@ -4,6 +4,7 @@ import { GameContainer } from './GameContainer';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
 import type { GameContainerProps } from './GameContainer';
+import type { GameContainerViewModel } from '@/viewModels/gameContainer';
 
 const PlayerBarMock = jest.fn();
 const GameInfoBarMock = jest.fn();
@@ -146,5 +147,64 @@ describe('GameContainer', () => {
     ).toBeInTheDocument();
 
     consoleErrorSpy.mockRestore();
+  });
+
+  it('uses view-model data when provided (parity with props)', () => {
+    const props = createProps({
+      gameSessionState: {
+        ...initialGameSessionStatePlaceholder,
+        teamName: 'Team A',
+        opponentName: 'Team B',
+        homeScore: 2,
+        awayScore: 1,
+        gameEvents: [{ id: 'e1', type: 'goal', time: 10, scorerId: 'p1' }],
+      },
+      playersForCurrentGame: [
+        { id: 'p1', name: 'Alice' },
+        { id: 'p2', name: 'Bob' },
+      ],
+      draggingPlayerFromBarInfo: { id: 'p2', name: 'Bob' },
+    });
+
+    const vm: GameContainerViewModel = {
+      playerBar: {
+        players: [{ id: 'p3', name: 'VM-Player' }],
+        selectedPlayerIdFromBar: 'p3',
+        gameEvents: [{ id: 'e2', type: 'goal', time: 20, scorerId: 'p3' }],
+      },
+      gameInfo: {
+        teamName: 'VM Team',
+        opponentName: 'VM Opponent',
+        homeScore: 9,
+        awayScore: 8,
+        homeOrAway: 'home',
+      },
+      timer: {
+        timeElapsedInSeconds: 0,
+        isTimerRunning: false,
+        subAlertLevel: 'none',
+        lastSubConfirmationTimeSeconds: 0,
+        numberOfPeriods: 2,
+        periodDurationMinutes: 10,
+        currentPeriod: 1,
+        gameStatus: 'notStarted',
+      },
+    };
+
+    render(<GameContainer {...props} viewModel={vm} />);
+
+    // PlayerBar should receive VM values
+    const playerBarCall = PlayerBarMock.mock.calls[0][0];
+    expect(playerBarCall.players).toEqual([{ id: 'p3', name: 'VM-Player' }]);
+    expect(playerBarCall.selectedPlayerIdFromBar).toBe('p3');
+    expect(playerBarCall.gameEvents).toEqual([{ id: 'e2', type: 'goal', time: 20, scorerId: 'p3' }]);
+
+    // GameInfoBar should receive VM values
+    const gameInfoBarCall = GameInfoBarMock.mock.calls[0][0];
+    expect(gameInfoBarCall.teamName).toBe('VM Team');
+    expect(gameInfoBarCall.opponentName).toBe('VM Opponent');
+    expect(gameInfoBarCall.homeScore).toBe(9);
+    expect(gameInfoBarCall.awayScore).toBe(8);
+    expect(gameInfoBarCall.homeOrAway).toBe('home');
   });
 });
