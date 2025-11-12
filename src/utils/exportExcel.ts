@@ -649,15 +649,26 @@ export const exportPlayerExcel = (
     const workbook = XLSX.utils.book_new();
 
   // Sheet 1: Player Summary
+  // Incorporate external adjustments (external games) to align with on-screen totals
+  const adjForPlayer = externalAdjustments.filter(a => a.playerId === playerId);
+  const adjGames = adjForPlayer.reduce((s, a) => s + (a.gamesPlayedDelta || 0), 0);
+  const adjGoals = adjForPlayer.reduce((s, a) => s + (a.goalsDelta || 0), 0);
+  const adjAssists = adjForPlayer.reduce((s, a) => s + (a.assistsDelta || 0), 0);
+  const totalGames = (playerData.gamesPlayed || 0) + adjGames;
+  const totalGoals = (playerData.goals || 0) + adjGoals;
+  const totalAssists = (playerData.assists || 0) + adjAssists;
+  const totalPoints = totalGoals + totalAssists;
+  const avgPoints = totalGames > 0 ? (totalPoints / totalGames) : 0;
+
   const summary = [{
     'Player Name': playerData.name,
     'Jersey Number': playerData.jerseyNumber || '',
     Nickname: playerData.nickname || '',
-    'Total Games': playerData.gamesPlayed,
-    'Total Goals': playerData.goals,
-    'Total Assists': playerData.assists,
-    'Total Points': playerData.totalScore,
-    'Avg Points/Game': playerData.avgPoints.toFixed(2),
+    'Total Games': totalGames,
+    'Total Goals': totalGoals,
+    'Total Assists': totalAssists,
+    'Total Points': totalPoints,
+    'Avg Points/Game': avgPoints.toFixed(2),
     'Fair Play Awards': playerData.fpAwards ?? 0,
     'Is Goalie': playerData.isGoalie ? 'Yes' : 'No',
     Notes: playerData.notes || '',
