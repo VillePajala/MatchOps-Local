@@ -27,6 +27,7 @@ export interface AppSettings {
   language?: string;
   hasSeenAppGuide?: boolean;
   useDemandCorrection?: boolean;
+  isDrawingModeEnabled?: boolean;
   /** Club season start date (ISO format YYYY-MM-DD, default: "2000-10-01" = October 1st) */
   clubSeasonStartDate?: string;
   /** Club season end date (ISO format YYYY-MM-DD, default: "2000-05-01" = May 1st) */
@@ -253,6 +254,30 @@ export const saveHasSeenAppGuide = async (value: boolean): Promise<boolean> => {
     return true;
   } catch (error) {
     logger.warn('Failed to save hasSeenAppGuide setting', { value, error });
+    return false;
+  }
+};
+
+/**
+ * Gets the drawing mode enabled preference
+ * @returns A promise that resolves to whether drawing mode should be enabled (default: false)
+ */
+export const getDrawingModeEnabled = async (): Promise<boolean> => {
+  const settings = await getAppSettings();
+  return settings.isDrawingModeEnabled ?? false;
+};
+
+/**
+ * Saves the drawing mode enabled preference
+ * @param value - Whether drawing mode should be enabled
+ * @returns A promise that resolves to true if successful, false otherwise
+ */
+export const saveDrawingModeEnabled = async (value: boolean): Promise<boolean> => {
+  try {
+    await updateAppSettings({ isDrawingModeEnabled: value });
+    return true;
+  } catch (error) {
+    logger.warn('Failed to save drawing mode setting', { value, error });
     return false;
   }
 };
