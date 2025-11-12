@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat(l2-2.2): migrate New Game Setup modal to reducer; preserve API with anti-flash guard; extend reducer state and tests remain green"
+  "notes": "L2-2.4.0: add GameContainer view-model types + build adapter (no runtime changes); add unit tests for mapping"
 }
