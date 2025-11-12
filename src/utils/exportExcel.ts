@@ -316,7 +316,7 @@ export const exportAggregateExcel = (
 
   // Sheet 1: Player Stats Summary
   // Include zero rows when there are no games in the dataset (e.g., team filter with no games)
-  const includeZeroRows = Object.keys(games || {}).length === 0 || aggregateStats.every(p => (p.gamesPlayed || 0) === 0);
+  const includeZeroRows = Object.keys(games || {}).length === 0 || (aggregateStats.length > 0 && aggregateStats.every(p => (p.gamesPlayed || 0) === 0));
   const playerSummary = aggregateStats
     .filter((player) => includeZeroRows ? true : player.gamesPlayed > 0)
     .map((player) => ({
@@ -653,12 +653,18 @@ export const exportPlayerExcel = (
   // Sheet 1: Player Summary
   // Incorporate external adjustments (external games) to align with on-screen totals
   const adjForPlayer = externalAdjustments.filter(a => a.playerId === playerId);
-  const adjGames = adjForPlayer.reduce((s, a) => s + (a.gamesPlayedDelta || 0), 0);
-  const adjGoals = adjForPlayer.reduce((s, a) => s + (a.goalsDelta || 0), 0);
-  const adjAssists = adjForPlayer.reduce((s, a) => s + (a.assistsDelta || 0), 0);
-  const totalGames = (playerData.gamesPlayed || 0) + adjGames;
-  const totalGoals = (playerData.goals || 0) + adjGoals;
-  const totalAssists = (playerData.assists || 0) + adjAssists;
+  const adjTotals = adjForPlayer.reduce(
+    (acc, a) => {
+      acc.games += a.gamesPlayedDelta || 0;
+      acc.goals += a.goalsDelta || 0;
+      acc.assists += a.assistsDelta || 0;
+      return acc;
+    },
+    { games: 0, goals: 0, assists: 0 }
+  );
+  const totalGames = (playerData.gamesPlayed || 0) + adjTotals.games;
+  const totalGoals = (playerData.goals || 0) + adjTotals.goals;
+  const totalAssists = (playerData.assists || 0) + adjTotals.assists;
   const totalPoints = totalGoals + totalAssists;
   const avgPoints = totalGames > 0 ? (totalPoints / totalGames) : 0;
 
