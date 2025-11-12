@@ -46,11 +46,14 @@ import {
 // Types
 import type { Player } from '@/types';
 import type { UseGameOrchestrationReturn } from '../hooks/useGameOrchestration';
+import type { GameContainerViewModel } from '@/viewModels/gameContainer';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 
 const barStyle = "flex-shrink-0 bg-slate-800 border-b border-slate-700";
 
 export interface GameContainerProps extends Partial<UseGameOrchestrationReturn> {
+  // Optional view-model (introduced in L2-2.4.1). Not yet consumed.
+  viewModel?: GameContainerViewModel;
   draggingPlayerFromBarInfo: Player | null;
   showLargeTimerOverlay: boolean;
   initialLoadComplete: boolean;
