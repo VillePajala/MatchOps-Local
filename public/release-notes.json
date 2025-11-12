@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs(L2-2.4): create HomePage reduction plan (view-models) and reference it from the micro-roadmap; start branch micro/l2-2.4-homepage-reduction-viewmodels"
+  "notes": "L2-2.4.0: add GameContainer view-model types + build adapter (no runtime changes); add unit tests for mapping"
 }

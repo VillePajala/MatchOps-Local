@@ -1,33 +1,22 @@
-import { buildGameContainerViewModel } from '@/viewModels/gameContainer';
+import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
+import { sampleGameContainerVMInput, invalidGameContainerVMInput } from './fixtures/gameContainerVM.fixtures';
 
 describe('buildGameContainerViewModel (2.4.0)', () => {
   it('maps core session fields to view-model groups', () => {
     const source: BuildGameContainerVMInput = {
+      ...sampleGameContainerVMInput,
       gameSessionState: {
-        teamName: 'PePo Lila',
-        opponentName: 'Ilves',
+        ...sampleGameContainerVMInput.gameSessionState,
         homeScore: 3,
         awayScore: 1,
-        homeOrAway: 'home',
         gameEvents: [
           { id: 'g1', type: 'goal', time: 120, scorerId: 'p1' },
           { id: 'g2', type: 'opponentGoal', time: 240 },
         ],
         timeElapsedInSeconds: 245,
-        isTimerRunning: true,
-        subAlertLevel: 'warning',
         lastSubConfirmationTimeSeconds: 180,
-        numberOfPeriods: 2,
-        periodDurationMinutes: 25,
-        currentPeriod: 1,
-        gameStatus: 'inProgress',
       },
-      playersForCurrentGame: [
-        { id: 'p1', name: 'Elias', isGoalie: false },
-        { id: 'p2', name: 'Otto', isGoalie: true },
-      ],
-      draggingPlayerFromBarInfo: { id: 'p2', name: 'Otto', isGoalie: true },
     };
 
     const vm = buildGameContainerViewModel(source);
@@ -84,5 +73,9 @@ describe('buildGameContainerViewModel (2.4.0)', () => {
     const vm = buildGameContainerViewModel(source);
     expect(vm.playerBar.selectedPlayerIdFromBar).toBeNull();
   });
-});
 
+  it('type guard validates good and bad inputs', () => {
+    expect(isValidGameContainerVMInput(sampleGameContainerVMInput)).toBe(true);
+    expect(isValidGameContainerVMInput(invalidGameContainerVMInput)).toBe(false);
+  });
+});
