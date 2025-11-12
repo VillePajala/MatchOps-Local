@@ -27,6 +27,7 @@ import {
   HiOutlineSquares2X2,
   HiOutlineXMark,
   HiOutlineIdentification,
+  HiOutlinePencil,
 } from 'react-icons/hi2';
 import { FaFutbol } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
@@ -318,19 +319,26 @@ const ControlBar: React.FC<ControlBarProps> = ({
           <>
             {/* Field Tools Button - Square shape */}
             <button
-              onClick={() => {
-                setIsFieldToolsOpen(true);
-                onToggleDrawingMode();
-              }}
+              onClick={() => setIsFieldToolsOpen(true)}
+              className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
+              title={t('controlBar.fieldTools', 'Field Tools')}
+              aria-label={t('controlBar.fieldTools', 'Field Tools')}
+            >
+              <HiOutlineWrench className={iconSize} />
+            </button>
+
+            {/* Drawing Mode Toggle Button - Square shape */}
+            <button
+              onClick={onToggleDrawingMode}
               className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${
                 isDrawingEnabled
                   ? 'bg-indigo-600 hover:bg-indigo-500 border-indigo-500/50 focus:ring-indigo-400'
                   : 'bg-slate-700 hover:bg-slate-600 border-slate-600/30 focus:ring-slate-500'
               }`}
-              title={t('controlBar.fieldTools', 'Field Tools') + (isDrawingEnabled ? ' (Drawing Mode ON)' : '')}
-              aria-label={t('controlBar.fieldTools', 'Field Tools')}
+              title={t('controlBar.drawingMode', 'Drawing Mode') + (isDrawingEnabled ? ' (ON)' : ' (OFF)')}
+              aria-label={t('controlBar.drawingMode', 'Drawing Mode')}
             >
-              <HiOutlineWrench className={iconSize} />
+              <HiOutlinePencil className={iconSize} />
             </button>
 
             {/* Place All Players Button - Square shape */}
