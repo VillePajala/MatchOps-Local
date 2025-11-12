@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useReducer, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import SoccerField from '@/components/SoccerField';
 import PlayerBar from '@/components/PlayerBar';
 import ControlBar from '@/components/ControlBar';
@@ -28,12 +28,13 @@ import { useGameState, UseGameStateReturn } from '@/hooks/useGameState';
 import GameInfoBar from '@/components/GameInfoBar';
 import { useGameTimer } from '@/hooks/useGameTimer';
 import { useAutoSave } from '@/hooks/useAutoSave';
-// Import the new game session reducer and related types
+import { useFieldInteractions } from '@/hooks/useFieldInteractions';
+// Import game session types (reducer is used internally by useGameSessionWithHistory)
 import {
-  gameSessionReducer,
   GameSessionState,
   // initialGameSessionStatePlaceholder // We will derive initial state from page.tsx's initialState
 } from '@/hooks/useGameSessionReducer';
+import { useGameSessionWithHistory } from '@/hooks/useGameSessionWithHistory';
 // Import roster utility functions
 // roster mutations now managed inside useRoster hook
 
@@ -193,14 +194,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     startTimestamp: null,
   };
 
-  const [gameSessionState, dispatchGameSession] = useReducer(gameSessionReducer, initialGameSessionData);
-
-
-  useEffect(() => {
-  }, [gameSessionState]);
-
-  
-
   // --- History Management ---
   const {
     state: currentHistoryState,
@@ -211,9 +204,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     canUndo,
     canRedo,
   } = useUndoRedo<AppState>(initialState);
-
-  // Track when we're applying historical state (undo/redo) to prevent circular loop
-  const isApplyingHistoryRef = useRef(false);
 
   const saveStateToHistory = useCallback((newState: Partial<AppState>) => {
     if (!currentHistoryState) return; // Should not happen
@@ -296,22 +286,17 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     return slice;
   }, []);
 
-  // --- Effect to save gameSessionState changes to history ---
-  useEffect(() => {
-    // Skip saving when applying historical state (undo/redo) to prevent circular loop
-    if (isApplyingHistoryRef.current) {
-      return;
+  // --- Game Session State with Automatic History Management ---
+  // Uses useGameSessionWithHistory hook which handles history saving automatically
+  // for user actions while skipping system actions (undo/redo/load)
+  const [gameSessionState, dispatchGameSession] = useGameSessionWithHistory(
+    initialGameSessionData,
+    {
+      buildHistorySlice: buildGameSessionHistorySlice,
+      saveToHistory: saveStateToHistory,
     }
-
-    // This effect runs after gameSessionState has been updated by the reducer.
-    // It constructs the relevant slice of AppState from the new gameSessionState
-    // and saves it to the history.
-    const gameSessionHistorySlice = buildGameSessionHistorySlice(gameSessionState);
-    // saveStateToHistory will merge this with other non-gameSessionState parts of AppState
-    // (like playersOnField, opponents, drawings) that are handled elsewhere.
-    saveStateToHistory(gameSessionHistorySlice);
-  }, [gameSessionState, saveStateToHistory, buildGameSessionHistorySlice]);
-  // END --- Effect to save gameSessionState changes to history ---
+  );
+  // END --- Game Session State ---
 
   // --- Load game data via hook ---
   const {
@@ -486,7 +471,9 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState<boolean>(false);
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
-  const [isDrawingEnabled, setIsDrawingEnabled] = useState<boolean>(false); // Drawing mode controlled by wrench button
+
+  // Field interaction state (drawing mode, etc.) - extracted to dedicated hook
+  const { isDrawingEnabled, toggleDrawingMode: handleToggleDrawingMode } = useFieldInteractions();
 
   // L2-2.4.1: Build GameContainer view-model (not yet consumed)
   const gameContainerVM = React.useMemo(() => {
@@ -1149,7 +1136,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     t,
     initialLoadComplete,
     initialAction, // Used to determine if instructions modal should show automatically
-    savedGames // Used to check if user has any saved games for instructions modal logic
+    savedGames, // Used to check if user has any saved games for instructions modal logic
+    dispatchGameSession // Used for timer restoration
   ]);
 
   // Check if we should show first game interface guide
@@ -1568,8 +1556,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   };
 
   const applyHistoryState = (state: AppState) => {
-    // Set flag to prevent circular loop in history-saving effect
-    isApplyingHistoryRef.current = true;
+    // No flag needed! The useGameSessionWithHistory hook automatically skips
+    // history saving for LOAD_STATE_FROM_HISTORY action type.
 
     setPlayersOnField(state.playersOnField);
     setOpponents(state.opponents);
@@ -1610,12 +1598,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setTacticalDiscs(state.tacticalDiscs || []);
     setTacticalDrawings(state.tacticalDrawings || []);
     setTacticalBallPosition(state.tacticalBallPosition || null);
-
-    // Reset flag after React processes all state updates and effects
-    // Use setTimeout (macrotask) instead of queueMicrotask to ensure it runs AFTER React effects
-    setTimeout(() => {
-      isApplyingHistoryRef.current = false;
-    }, 0);
   };
 
   const handleUndo = () => {
@@ -1644,9 +1626,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setShowLargeTimerOverlay(!showLargeTimerOverlay);
   };
 
-  const handleToggleDrawingMode = () => {
-    setIsDrawingEnabled(!isDrawingEnabled);
-  };
+  // handleToggleDrawingMode is now provided by useFieldInteractions hook
 
   // Handler to specifically deselect player when bar background is clicked
   const handleDeselectPlayer = () => {
@@ -2578,14 +2558,14 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const handleSetSeasonId = useCallback((newSeasonId: string | undefined) => {
     const idToSet = newSeasonId || ''; // Ensure empty string instead of null
     logger.log('[page.tsx] handleSetSeasonId called with:', idToSet);
-    dispatchGameSession({ type: 'SET_SEASON_ID', payload: idToSet }); 
-  }, []); // No dependencies needed since we're only using dispatchGameSession which is stable
+    dispatchGameSession({ type: 'SET_SEASON_ID', payload: idToSet });
+  }, [dispatchGameSession]); // dispatchGameSession is stable from useGameSessionWithHistory
 
   const handleSetTournamentId = useCallback((newTournamentId: string | undefined) => {
     const idToSet = newTournamentId || ''; // Ensure empty string instead of null
     logger.log('[page.tsx] handleSetTournamentId called with:', idToSet);
     dispatchGameSession({ type: 'SET_TOURNAMENT_ID', payload: idToSet });
-  }, []); // No dependencies needed since we're only using dispatchGameSession which is stable
+  }, [dispatchGameSession]); // dispatchGameSession is stable from useGameSessionWithHistory
 
   // --- AGGREGATE EXPORT HANDLERS --- 
   
