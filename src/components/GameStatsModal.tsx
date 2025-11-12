@@ -207,17 +207,30 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const clubSeasonEndDate = settings?.clubSeasonEndDate ?? '2000-05-01';
   const hasConfiguredSeasonDates = settings?.hasConfiguredSeasonDates ?? false;
 
-  // Filtered players for Player tab combobox
+  // Player pool for Player tab search: prefer full master roster; fall back to current game's available players
+  const playerPool: Player[] = useMemo(() => {
+    // Merge and de-duplicate by id to be safe if both lists are provided
+    const map = new Map<string, Player>();
+    if (masterRoster && masterRoster.length > 0) {
+      masterRoster.forEach(p => map.set(p.id, p));
+    }
+    (availablePlayers || []).forEach(p => {
+      if (!map.has(p.id)) map.set(p.id, p);
+    });
+    return Array.from(map.values());
+  }, [masterRoster, availablePlayers]);
+
+  // Filtered players for Player tab combobox (from the unified pool)
   const filteredPlayers = useMemo(() => {
     const search = playerQuery.toLowerCase();
-    return availablePlayers.filter(p => {
+    return playerPool.filter(p => {
       if (!search) return true;
       return (
         p.name.toLowerCase().includes(search) ||
         (p.nickname && p.nickname.toLowerCase().includes(search))
       );
     });
-  }, [availablePlayers, playerQuery]);
+  }, [playerPool, playerQuery]);
 
   // Extract available club seasons from games
   const availableClubSeasons = useMemo(() => {
@@ -272,7 +285,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // Update selected player and active tab when initialSelectedPlayerId changes
   useEffect(() => {
     if (initialSelectedPlayerId) {
-      const player = availablePlayers.find(p => p.id === initialSelectedPlayerId);
+      const player = playerPool.find(p => p.id === initialSelectedPlayerId);
       if (player) {
         setSelectedPlayer(player);
         setActiveTab('player');
@@ -282,7 +295,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       setActiveTab('currentGame');
       setSelectedPlayer(null);
     }
-  }, [initialSelectedPlayerId, availablePlayers, isOpen]);
+  }, [initialSelectedPlayerId, playerPool, isOpen]);
 
   // Reset filters when tab changes
   useEffect(() => {
