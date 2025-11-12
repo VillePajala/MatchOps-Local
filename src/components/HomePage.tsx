@@ -97,6 +97,7 @@ import {
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { startNewGameWithSetup, cancelNewGameSetup } from './HomePage/utils/newGameHandlers';
+import { buildGameContainerViewModel } from '@/viewModels/gameContainer';
 
 
 // Empty initial data for clean app start
@@ -197,6 +198,8 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   useEffect(() => {
   }, [gameSessionState]);
+
+  
 
   // --- History Management ---
   const {
@@ -475,6 +478,48 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState<boolean>(false);
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
+
+  // L2-2.4.1: Build GameContainer view-model (not yet consumed)
+  const gameContainerVM = React.useMemo(() => {
+    return buildGameContainerViewModel({
+      gameSessionState: {
+        teamName: gameSessionState.teamName,
+        opponentName: gameSessionState.opponentName,
+        homeScore: gameSessionState.homeScore,
+        awayScore: gameSessionState.awayScore,
+        homeOrAway: gameSessionState.homeOrAway,
+        gameEvents: gameSessionState.gameEvents,
+        timeElapsedInSeconds: gameSessionState.timeElapsedInSeconds,
+        isTimerRunning: gameSessionState.isTimerRunning,
+        subAlertLevel: gameSessionState.subAlertLevel,
+        lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds,
+        numberOfPeriods: gameSessionState.numberOfPeriods,
+        periodDurationMinutes: gameSessionState.periodDurationMinutes,
+        currentPeriod: gameSessionState.currentPeriod,
+        gameStatus: gameSessionState.gameStatus,
+      },
+      playersForCurrentGame,
+      draggingPlayerFromBarInfo,
+    });
+  }, [
+    gameSessionState.teamName,
+    gameSessionState.opponentName,
+    gameSessionState.homeScore,
+    gameSessionState.awayScore,
+    gameSessionState.homeOrAway,
+    gameSessionState.gameEvents,
+    gameSessionState.timeElapsedInSeconds,
+    gameSessionState.isTimerRunning,
+    gameSessionState.subAlertLevel,
+    gameSessionState.lastSubConfirmationTimeSeconds,
+    gameSessionState.numberOfPeriods,
+    gameSessionState.periodDurationMinutes,
+    gameSessionState.currentPeriod,
+    gameSessionState.gameStatus,
+    playersForCurrentGame,
+    draggingPlayerFromBarInfo,
+  ]);
+  void gameContainerVM; // Keep referenced to avoid unused-var warnings; not wired yet by design
   const [firstGameGuideStep, setFirstGameGuideStep] = useState<number>(0);
   // Initialize as true for experienced users to prevent any flash
   const [hasCheckedFirstGameGuide, setHasCheckedFirstGameGuide] = useState<boolean>(!isFirstTimeUser);
