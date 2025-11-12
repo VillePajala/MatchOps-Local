@@ -74,6 +74,19 @@ export interface BuildGameContainerVMInput {
 
 // ——— Adapter ———
 
+/**
+ * Builds a view-model for GameContainer from HomePage state.
+ *
+ * @param input - Minimal required state from HomePage
+ * @returns Grouped view-model with playerBar, gameInfo, and timer data
+ *
+ * @example
+ * const vm = buildGameContainerViewModel({
+ *   gameSessionState: currentGameState,
+ *   playersForCurrentGame: rosterPlayers,
+ *   draggingPlayerFromBarInfo: selectedPlayer
+ * });
+ */
 export function buildGameContainerViewModel(
   input: BuildGameContainerVMInput
 ): GameContainerViewModel {
@@ -107,3 +120,40 @@ export function buildGameContainerViewModel(
   return { playerBar, gameInfo, timer };
 }
 
+/**
+ * Runtime type guard for BuildGameContainerVMInput.
+ * Lightweight validation to help callers before building the view-model.
+ */
+export function isValidGameContainerVMInput(
+  input: unknown
+): input is BuildGameContainerVMInput {
+  if (!input || typeof input !== 'object') return false;
+  const anyInput = input as Record<string, unknown>;
+
+  const gss = anyInput.gameSessionState as Record<string, unknown> | undefined;
+  const players = anyInput.playersForCurrentGame as unknown;
+
+  if (!gss || typeof gss !== 'object') return false;
+  if (!Array.isArray(players)) return false;
+
+  // Check a minimal set of required fields and their types
+  const requiredString = ['teamName', 'opponentName'] as const;
+  for (const key of requiredString) {
+    if (typeof gss[key] !== 'string') return false;
+  }
+
+  const requiredNumber = ['homeScore', 'awayScore', 'timeElapsedInSeconds', 'lastSubConfirmationTimeSeconds', 'periodDurationMinutes', 'currentPeriod'] as const;
+  for (const key of requiredNumber) {
+    if (typeof gss[key] !== 'number') return false;
+  }
+
+  if (gss['gameEvents'] && !Array.isArray(gss['gameEvents'])) return false;
+  if (typeof gss['isTimerRunning'] !== 'boolean') return false;
+
+  // Basic enum-ish checks (strings acceptable here)
+  if (typeof gss['homeOrAway'] !== 'string') return false;
+  if (typeof gss['gameStatus'] !== 'string') return false;
+  if (typeof gss['subAlertLevel'] !== 'string') return false;
+
+  return true;
+}
