@@ -2557,7 +2557,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
   }, [savedGames, seasons, tournaments, t, showToast]);
 
-  const handleExportPlayerExcel = useCallback((playerId: string, playerData: import('@/types').PlayerStatRow, gameIds: string[]) => {
+  const handleExportPlayerExcel = useCallback(async (playerId: string, playerData: import('@/types').PlayerStatRow, gameIds: string[]) => {
     const gamesData = gameIds.reduce((acc, id) => {
       const gameData = savedGames[id];
       if (gameData) {
@@ -2566,8 +2566,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       return acc;
     }, {} as SavedGamesCollection);
     try {
-      // TODO: Pass external adjustments for this player
-      exportPlayerExcel(playerId, playerData, gamesData, seasons, tournaments, []);
+      const { getAdjustmentsForPlayer } = await import('@/utils/playerAdjustments');
+      const adjustments = await getAdjustmentsForPlayer(playerId);
+      exportPlayerExcel(playerId, playerData, gamesData, seasons, tournaments, adjustments);
     } catch (error) {
       logger.error('[handleExportPlayerExcel] Export failed:', error);
       showToast(t('export.exportPlayerFailed'), 'error');
