@@ -337,8 +337,6 @@ export type TranslationKey =
   | 'gameStatsModal.noGoalsLogged'
   | 'gameStatsModal.noNotes'
   | 'gameStatsModal.noStatsAvailable'
-  | 'gameStatsModal.noTeamGamesSubtitle'
-  | 'gameStatsModal.noTeamGamesTitle'
   | 'gameStatsModal.notesPlaceholder'
   | 'gameStatsModal.notesTitle'
   | 'gameStatsModal.opponentPlaceholder'

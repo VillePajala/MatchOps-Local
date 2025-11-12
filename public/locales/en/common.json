@@ -151,6 +151,12 @@
     "reset": "Reset",
     "startNew": "Start New"
   },
+  "gameStatsModal": {
+    "noTeamGamesTitle": "No games for the selected team in this context",
+    "noTeamGamesSubtitle": "Choose another team or adjust filters to view player statistics.",
+    "filterAllSeasons": "All Seasons",
+    "filterAllTournaments": "All Tournaments"
+  },
   "importResults": {
     "title": "Import Results",
     "importing": "Importing Games",

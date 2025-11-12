@@ -152,6 +152,12 @@
     "reset": "Nollaa",
     "startNew": "Aloita uusi"
   },
+  "gameStatsModal": {
+    "noTeamGamesTitle": "Ei otteluita valitulle joukkueelle tässä näkymässä",
+    "noTeamGamesSubtitle": "Valitse toinen joukkue tai muuta suodattimia nähdäksesi pelaajatilastot.",
+    "filterAllSeasons": "Kaikki kaudet",
+    "filterAllTournaments": "Kaikki turnaukset"
+  },
   "importResults": {
     "title": "Tuontitulokset",
     "importing": "Tuodaan pelejä",
