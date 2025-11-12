@@ -315,8 +315,10 @@ export const exportAggregateExcel = (
     const workbook = XLSX.utils.book_new();
 
   // Sheet 1: Player Stats Summary
+  // Include zero rows when there are no games in the dataset (e.g., team filter with no games)
+  const includeZeroRows = Object.keys(games || {}).length === 0 || aggregateStats.every(p => (p.gamesPlayed || 0) === 0);
   const playerSummary = aggregateStats
-    .filter((player) => player.gamesPlayed > 0)
+    .filter((player) => includeZeroRows ? true : player.gamesPlayed > 0)
     .map((player) => ({
       Player: player.name,
       'Jersey #': player.jerseyNumber || '',
