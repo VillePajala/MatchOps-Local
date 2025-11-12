@@ -107,6 +107,7 @@ Step 2.4 — Parameter/props grouping (reduce coupling)
   - Introduce view-models for `GameContainer` and `FieldContainer` (reduce >50 props to a few sub-objects)
 - Test:
   - Focused unit tests for new groups; ensure existing behavior unchanged
+ - See: docs/03-active-plans/L2-2.4-HomePage-Reduction-PLAN.md
 
 Step 2.5 — Edge-case tests
 - Add tests for:
