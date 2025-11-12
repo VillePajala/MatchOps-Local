@@ -45,8 +45,9 @@ describe('Performance Testing Infrastructure', () => {
       
       const createTime = performance.now() - startTime;
       
-      // Creating 1000 mock players should be fast
-      expect(createTime).toBeLessThan(100);
+      // Creating 1000 mock players should be fast (allow slightly higher on CI runners)
+      const fastThreshold = process.env.CI ? 150 : 100;
+      expect(createTime).toBeLessThan(fastThreshold);
       expect(largePlayers).toHaveLength(1000);
       expect(largePlayers[0]).toHaveProperty('id');
       expect(largePlayers[0]).toHaveProperty('name');
@@ -59,8 +60,9 @@ describe('Performance Testing Infrastructure', () => {
       
       const createTime = performance.now() - startTime;
       
-      // Creating 100 field players should be fast
-      expect(createTime).toBeLessThan(50);
+      // Creating 100 field players should be fast (allow slightly higher on CI)
+      const fastThreshold = process.env.CI ? 75 : 50;
+      expect(createTime).toBeLessThan(fastThreshold);
       expect(fieldPlayers).toHaveLength(100);
       expect(fieldPlayers[0]).toHaveProperty('relX');
       expect(fieldPlayers[0]).toHaveProperty('relY');
@@ -116,7 +118,8 @@ describe('Performance Testing Infrastructure', () => {
       const duration = endTime - startTime;
       
       expect(duration).toBeGreaterThan(0);
-      expect(duration).toBeLessThan(100); // Should be fast
+      const opThreshold = process.env.CI ? 150 : 100; // Allow for slower CI runners
+      expect(duration).toBeLessThan(opThreshold); // Should be fast
       expect(sum).toBe(49995000); // Verify work was done
     });
 
