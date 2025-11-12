@@ -16,6 +16,7 @@ interface UseTournamentSeasonStatsParams {
   tournaments: Tournament[];
   selectedSeasonIdFilter: string | 'all';
   selectedTournamentIdFilter: string | 'all';
+  selectedTeamIdFilter?: string | 'all' | 'legacy';
 }
 
 export function useTournamentSeasonStats(
@@ -28,6 +29,7 @@ export function useTournamentSeasonStats(
     tournaments,
     selectedSeasonIdFilter,
     selectedTournamentIdFilter,
+    selectedTeamIdFilter = 'all',
   } = params;
 
   return useMemo(() => {
@@ -287,8 +289,14 @@ export function useTournamentSeasonStats(
       return [];
     };
 
-    // Use shared filtering utility
-    const playedGameIds = filterGameIds(savedGames, { playedOnly: true });
+    // Use shared filtering utility (apply team + context filters)
+    const playedGameIds = filterGameIds(savedGames, {
+      playedOnly: true,
+      teamFilter: selectedTeamIdFilter,
+      seasonFilter: activeTab === 'season' ? selectedSeasonIdFilter : undefined,
+      tournamentFilter: activeTab === 'tournament' ? selectedTournamentIdFilter : undefined,
+      activeTab,
+    });
     return calculateStats(playedGameIds);
-  }, [activeTab, savedGames, seasons, tournaments, selectedSeasonIdFilter, selectedTournamentIdFilter]);
+  }, [activeTab, savedGames, seasons, tournaments, selectedSeasonIdFilter, selectedTournamentIdFilter, selectedTeamIdFilter]);
 }
