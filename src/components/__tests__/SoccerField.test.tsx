@@ -57,6 +57,7 @@ describe('SoccerField Component - Interaction Testing', () => {
     onTacticalDrawingStart: jest.fn(),
     onTacticalDrawingAddPoint: jest.fn(),
     onTacticalDrawingEnd: jest.fn(),
+    isDrawingEnabled: false,
   };
 
   beforeEach(() => {

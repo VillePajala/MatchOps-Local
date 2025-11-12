@@ -212,6 +212,9 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     canRedo,
   } = useUndoRedo<AppState>(initialState);
 
+  // Track when we're applying historical state (undo/redo) to prevent circular loop
+  const isApplyingHistoryRef = useRef(false);
+
   const saveStateToHistory = useCallback((newState: Partial<AppState>) => {
     if (!currentHistoryState) return; // Should not happen
 
@@ -295,6 +298,11 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   // --- Effect to save gameSessionState changes to history ---
   useEffect(() => {
+    // Skip saving when applying historical state (undo/redo) to prevent circular loop
+    if (isApplyingHistoryRef.current) {
+      return;
+    }
+
     // This effect runs after gameSessionState has been updated by the reducer.
     // It constructs the relevant slice of AppState from the new gameSessionState
     // and saves it to the history.
@@ -478,6 +486,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState<boolean>(false);
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
+  const [isDrawingEnabled, setIsDrawingEnabled] = useState<boolean>(false); // Drawing mode controlled by wrench button
 
   // L2-2.4.1: Build GameContainer view-model (not yet consumed)
   const gameContainerVM = React.useMemo(() => {
@@ -1559,6 +1568,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   };
 
   const applyHistoryState = (state: AppState) => {
+    // Set flag to prevent circular loop in history-saving effect
+    isApplyingHistoryRef.current = true;
+
     setPlayersOnField(state.playersOnField);
     setOpponents(state.opponents);
     setDrawings(state.drawings);
@@ -1598,6 +1610,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setTacticalDiscs(state.tacticalDiscs || []);
     setTacticalDrawings(state.tacticalDrawings || []);
     setTacticalBallPosition(state.tacticalBallPosition || null);
+
+    // Reset flag after React processes all state updates
+    queueMicrotask(() => {
+      isApplyingHistoryRef.current = false;
+    });
   };
 
   const handleUndo = () => {
@@ -1626,6 +1643,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setShowLargeTimerOverlay(!showLargeTimerOverlay);
   };
 
+  const handleToggleDrawingMode = () => {
+    setIsDrawingEnabled(!isDrawingEnabled);
+  };
 
   // Handler to specifically deselect player when bar background is clicked
   const handleDeselectPlayer = () => {
@@ -3082,6 +3102,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
             onToggleTacticalDiscType={handleToggleTacticalDiscType}
             tacticalBallPosition={tacticalBallPosition}
             onTacticalBallMove={handleTacticalBallMove}
+            isDrawingEnabled={isDrawingEnabled}
           />
         </ErrorBoundary>
 
@@ -3404,6 +3425,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
           onToggleTacticsBoard={handleToggleTacticsBoard}
           onAddHomeDisc={() => handleAddTacticalDisc('home')}
           onAddOpponentDisc={() => handleAddTacticalDisc('opponent')}
+          isDrawingEnabled={isDrawingEnabled}
+          onToggleDrawingMode={handleToggleDrawingMode}
           // Goal props
           onToggleGoalLogModal={handleToggleGoalLogModal}
           // Menu props
