@@ -473,7 +473,15 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
 
   // Field interaction state (drawing mode, etc.) - extracted to dedicated hook
-  const { isDrawingEnabled, toggleDrawingMode: handleToggleDrawingMode } = useFieldInteractions();
+  const { isDrawingEnabled, toggleDrawingMode: handleToggleDrawingMode } = useFieldInteractions({
+    onPersistError: () => {
+      // Non-blocking notice; preference save failed, UI still toggled
+      showToast(
+        t('errors.failedToSaveDrawingMode', 'Failed to save drawing mode setting. Changes may not persist.'),
+        'info'
+      );
+    }
+  });
 
   // L2-2.4.1: Build GameContainer view-model (not yet consumed)
   const gameContainerVM = React.useMemo(() => {
