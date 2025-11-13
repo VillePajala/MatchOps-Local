@@ -25,6 +25,7 @@ import * as TournamentsFixtures from './tournaments';
 import * as SettingsFixtures from './settings';
 import * as ErrorsFixtures from './errors';
 import * as PersonnelFixtures from './personnel';
+import * as GameContainerFixtures from './gameContainer';
 
 // Use the same imported factories
 const players = PlayersFixtures;
@@ -34,6 +35,7 @@ const tournaments = TournamentsFixtures;
 const settings = SettingsFixtures;
 const errors = ErrorsFixtures;
 const personnel = PersonnelFixtures;
+const gameContainer = GameContainerFixtures;
 
 /**
  * Centralized test fixtures namespace providing organized access to all test data
@@ -87,6 +89,12 @@ export const TestFixtures = {
    * @example TestFixtures.personnel.headCoach({ name: 'John Coach' })
    */
   personnel,
+
+  /**
+   * GameContainer component props test data
+   * @example TestFixtures.gameContainer.createGameContainerProps({ isDrawingEnabled: true })
+   */
+  gameContainer,
 
   /**
    * Utility methods for common test scenarios

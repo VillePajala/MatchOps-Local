@@ -60,17 +60,38 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
     };
   }, []);
 
-  // Persist drawing mode preference to IndexedDB
+  // Track previous value for rollback on persistence failure
+  const previousValueRef = useRef<boolean>(isDrawingEnabled);
+
+  // Persist drawing mode preference to IndexedDB with rollback on failure
   // Skip initial mount to avoid redundant write (value just loaded)
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
+      previousValueRef.current = isDrawingEnabled;
       return;
     }
+
+    const previousValue = previousValueRef.current;
+    const newValue = isDrawingEnabled;
+
+    // Attempt to persist the change
     (async () => {
-      const ok = await saveDrawingModeEnabled(isDrawingEnabled);
-      if (!ok && onPersistErrorRef.current) {
-        onPersistErrorRef.current(new Error('Failed to persist drawing mode preference'));
+      const ok = await saveDrawingModeEnabled(newValue);
+
+      if (!ok) {
+        // Persistence failed - rollback to previous value
+        setIsDrawingEnabled(previousValue);
+
+        // Notify error handler with clearer feedback
+        if (onPersistErrorRef.current) {
+          onPersistErrorRef.current(
+            new Error('Failed to persist drawing mode preference. Change has been reverted.')
+          );
+        }
+      } else {
+        // Success - update previous value for next change
+        previousValueRef.current = newValue;
       }
     })();
   }, [isDrawingEnabled]);

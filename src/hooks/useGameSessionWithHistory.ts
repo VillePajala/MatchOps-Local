@@ -26,37 +26,63 @@ import {
 } from './useGameSessionReducer';
 import type { AppState } from '@/types';
 
-// Actions that should trigger history saves (user actions)
+// Actions that should trigger history saves (user-initiated changes)
 const HISTORY_SAVING_ACTIONS = new Set([
+  // Team and game info
   'SET_TEAM_NAME',
-  'SET_HOME_SCORE',
-  'SET_AWAY_SCORE',
   'SET_OPPONENT_NAME',
-  'INCREMENT_HOME_SCORE',
-  'DECREMENT_HOME_SCORE',
-  'INCREMENT_AWAY_SCORE',
-  'DECREMENT_AWAY_SCORE',
-  'ADD_GAME_EVENT',
-  'REMOVE_GAME_EVENT',
-  'START_GAME',
-  'PAUSE_GAME',
-  'RESUME_GAME',
-  'END_GAME',
-  'INCREMENT_PERIOD',
   'SET_GAME_DATE',
   'SET_GAME_NOTES',
+  'SET_HOME_OR_AWAY',
+  // Scores
+  'SET_HOME_SCORE',
+  'SET_AWAY_SCORE',
+  'ADJUST_SCORE_FOR_EVENT',
+  // Game structure
   'SET_NUMBER_OF_PERIODS',
   'SET_PERIOD_DURATION',
-  'SELECT_PLAYERS',
-  'DESELECT_PLAYERS',
-  'TOGGLE_PLAYER_GOALIE',
+  'SET_SUB_INTERVAL',
+  'SET_DEMAND_FACTOR',
+  // Game metadata
+  'SET_SEASON_ID',
+  'SET_TOURNAMENT_ID',
+  'SET_GAME_LOCATION',
+  'SET_GAME_TIME',
+  'SET_AGE_GROUP',
+  'SET_TOURNAMENT_LEVEL',
+  // Players and personnel
+  'SET_SELECTED_PLAYER_IDS',
+  'SET_GAME_PERSONNEL',
+  // Events
+  'ADD_GAME_EVENT',
+  'UPDATE_GAME_EVENT',
+  'DELETE_GAME_EVENT',
+  // Game flow (user-initiated)
+  'START_PERIOD',
+  'END_PERIOD_OR_GAME',
+  'CONFIRM_SUBSTITUTION',
 ]);
 
-// Actions that should NOT trigger history saves (state loads, system actions)
+// Actions that should NOT trigger history saves (state loads, system actions, timer)
 const NO_HISTORY_ACTIONS = new Set([
-  'LOAD_STATE_FROM_HISTORY', // Used by undo/redo
-  'LOAD_GAME', // Used when loading saved games
-  'RESET_STATE', // Used when starting new game
+  // State restoration (undo/redo, load game)
+  'LOAD_STATE_FROM_HISTORY',
+  'LOAD_GAME_SESSION_STATE',
+  'LOAD_PERSISTED_GAME_DATA',
+  'RESET_TO_INITIAL_STATE',
+  'RESET_GAME_SESSION_STATE',
+  // Timer system actions (automatic, not user-initiated)
+  'START_TIMER',
+  'PAUSE_TIMER',
+  'SET_TIMER_ELAPSED',
+  'SET_TIMER_RUNNING',
+  'PAUSE_TIMER_FOR_HIDDEN',
+  'RESTORE_TIMER_STATE',
+  // Resets (covered by other mechanisms)
+  'RESET_TIMER_AND_GAME_PROGRESS',
+  'RESET_TIMER_ONLY',
+  // Game status (system-managed)
+  'SET_GAME_STATUS',
 ]);
 
 export type GameSessionDispatch = (action: GameSessionAction) => void;
@@ -112,9 +138,25 @@ export function useGameSessionWithHistory(
   useEffect(() => {
     const lastAction = lastActionTypeRef.current;
 
-    // Skip if no action yet or if it's a non-history action
-    if (!lastAction || NO_HISTORY_ACTIONS.has(lastAction)) {
+    // Skip if no action yet
+    if (!lastAction) {
       return;
+    }
+
+    // Skip if it's a non-history action
+    if (NO_HISTORY_ACTIONS.has(lastAction)) {
+      return;
+    }
+
+    // Warn about uncategorized actions in development
+    if (process.env.NODE_ENV !== 'production' && !process.env.JEST_WORKER_ID) {
+      if (!HISTORY_SAVING_ACTIONS.has(lastAction)) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[useGameSessionWithHistory] Uncategorized action: "${lastAction}". ` +
+          `Add to HISTORY_SAVING_ACTIONS or NO_HISTORY_ACTIONS in useGameSessionWithHistory.ts`
+        );
+      }
     }
 
     // Only save for history-saving actions
