@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "Features: Separate persistent tactical history, improved drawing mode error handling with rollback. Quality: Action type validation, view-model fallback utility, shared test fixtures. Fixes: Symmetrical tactical view close behavior, context-aware undo/redo buttons."
+  "notes": "docs: update release notes with comprehensive PR summary"
 }

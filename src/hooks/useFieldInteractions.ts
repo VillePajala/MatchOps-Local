@@ -16,6 +16,7 @@ import { getDrawingModeEnabled, saveDrawingModeEnabled } from '@/utils/appSettin
 
 export interface UseFieldInteractionsReturn {
   isDrawingEnabled: boolean;
+  isPersisting: boolean;
   toggleDrawingMode: () => void;
   enableDrawingMode: () => void;
   disableDrawingMode: () => void;
@@ -38,6 +39,7 @@ export interface UseFieldInteractionsOptions {
  */
 export function useFieldInteractions(options?: UseFieldInteractionsOptions): UseFieldInteractionsReturn {
   const [isDrawingEnabled, setIsDrawingEnabled] = useState<boolean>(false);
+  const [isPersisting, setIsPersisting] = useState<boolean>(false);
   const isInitialMount = useRef(true);
   const onPersistErrorRef = useRef<UseFieldInteractionsOptions['onPersistError']>(options?.onPersistError);
 
@@ -75,9 +77,16 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
     const previousValue = previousValueRef.current;
     const newValue = isDrawingEnabled;
 
+    let isMounted = true;
     // Attempt to persist the change
     (async () => {
+      setIsPersisting(true);
       const ok = await saveDrawingModeEnabled(newValue);
+      if (!isMounted) {
+        return;
+      }
+
+      setIsPersisting(false);
 
       if (!ok) {
         // Persistence failed - rollback to previous value
@@ -94,6 +103,10 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
         previousValueRef.current = newValue;
       }
     })();
+
+    return () => {
+      isMounted = false;
+    };
   }, [isDrawingEnabled]);
 
   const toggleDrawingMode = useCallback(() => {
@@ -110,6 +123,7 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
 
   return {
     isDrawingEnabled,
+    isPersisting,
     toggleDrawingMode,
     enableDrawingMode,
     disableDrawingMode,

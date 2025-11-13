@@ -68,7 +68,9 @@
     "startNewMatchTitle": "Start New Match?",
     "startNewMatchConfirmation": "Are you sure you want to start a new match? Any unsaved progress will be lost.",
     "startNewMatchWarning": "Make sure you have saved your current game if you want to keep it.",
-    "drawingMode": "Drawing Mode"
+    "drawingMode": "Drawing Mode",
+    "resetFieldNormalTitle": "Reset Field?",
+    "resetFieldTacticsTitle": "Reset Tactics Board?"
   },
   "common": {
     "notSet": "Not Set",
