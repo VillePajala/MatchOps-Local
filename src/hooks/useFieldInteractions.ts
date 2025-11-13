@@ -21,6 +21,10 @@ export interface UseFieldInteractionsReturn {
   disableDrawingMode: () => void;
 }
 
+export interface UseFieldInteractionsOptions {
+  onPersistError?: (error: unknown) => void;
+}
+
 /**
  * Hook for managing soccer field interaction modes
  *
@@ -32,17 +36,23 @@ export interface UseFieldInteractionsReturn {
  * - Opponent placement mode
  * - Measurement mode
  */
-export function useFieldInteractions(): UseFieldInteractionsReturn {
+export function useFieldInteractions(options?: UseFieldInteractionsOptions): UseFieldInteractionsReturn {
   const [isDrawingEnabled, setIsDrawingEnabled] = useState<boolean>(false);
   const isInitialMount = useRef(true);
 
-  // Load saved drawing mode preference on mount
+  // Load saved drawing mode preference on mount (with unmount safety)
   useEffect(() => {
+    let isMounted = true;
     const loadPreference = async () => {
       const saved = await getDrawingModeEnabled();
-      setIsDrawingEnabled(saved);
+      if (isMounted) {
+        setIsDrawingEnabled(saved);
+      }
     };
     loadPreference();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Save preference when it changes
@@ -51,8 +61,13 @@ export function useFieldInteractions(): UseFieldInteractionsReturn {
       isInitialMount.current = false;
       return;
     }
-    saveDrawingModeEnabled(isDrawingEnabled);
-  }, [isDrawingEnabled]);
+    (async () => {
+      const ok = await saveDrawingModeEnabled(isDrawingEnabled);
+      if (!ok && options?.onPersistError) {
+        options.onPersistError(new Error('Failed to persist drawing mode preference'));
+      }
+    })();
+  }, [isDrawingEnabled, options]);
 
   const toggleDrawingMode = useCallback(() => {
     setIsDrawingEnabled(prev => !prev);

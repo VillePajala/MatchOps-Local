@@ -705,6 +705,10 @@
     "gameRulesLabel": "Game Rules",
     "gameConfigLabel": "Game Configuration"
   },
+  "errors": {
+    "failedToSaveDrawingMode": "Failed to save drawing mode setting. Changes may not persist.",
+    "failedToLoadData": "Failed to load data. Some features may not be available."
+  },
   "gameStats": {
     "personnelSectionTitle": "Game Personnel",
     "personnelEmpty": "No personnel assigned."

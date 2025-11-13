@@ -561,6 +561,10 @@
       "deleteFailedCatch": "Tallennetun pelin poistaminen epäonnistui: {gameId}. Virhe: {errorMessage}"
     }
   },
+  "errors": {
+    "failedToSaveDrawingMode": "Piirtotilan asetuksen tallennus epäonnistui. Muutokset eivät välttämättä pysy.",
+    "failedToLoadData": "Tietojen lataus epäonnistui. Osa toiminnoista ei välttämättä ole käytettävissä."
+  },
   "newGameSetupModal": {
     "title": "Uuden pelin asetukset",
     "opponentLabel": "Vastustajan nimi:",

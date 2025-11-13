@@ -98,6 +98,8 @@ export function useGameSessionWithHistory(
   }, [saveToHistory]);
 
   // Effect to save history after state changes (only for user actions)
+  // Note: buildHistorySliceRef/saveToHistoryRef are refs (stable),
+  // kept fresh by the effects above, so they are not included in deps.
   useEffect(() => {
     const lastAction = lastActionTypeRef.current;
 
