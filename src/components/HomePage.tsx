@@ -99,6 +99,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { startNewGameWithSetup, cancelNewGameSetup } from './HomePage/utils/newGameHandlers';
 import { buildGameContainerViewModel } from '@/viewModels/gameContainer';
+import { FieldContainer } from '@/components/HomePage/containers/FieldContainer';
 
 
 // Empty initial data for clean app start
@@ -3106,7 +3107,68 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         </div>
       )}
 
-      {/* Main Content: Soccer Field */}
+      <FieldContainer
+        gameSessionState={gameSessionState}
+        playersOnField={playersOnField}
+        opponents={opponents}
+        drawings={drawings}
+        isTacticsBoardView={isTacticsBoardView}
+        tacticalDrawings={tacticalDrawings}
+        tacticalDiscs={tacticalDiscs}
+        tacticalBallPosition={tacticalBallPosition}
+        draggingPlayerFromBarInfo={draggingPlayerFromBarInfo}
+        isDrawingEnabled={isDrawingEnabled}
+        timeElapsedInSeconds={timeElapsedInSeconds}
+        isTimerRunning={isTimerRunning}
+        subAlertLevel={subAlertLevel}
+        lastSubConfirmationTimeSeconds={lastSubConfirmationTimeSeconds}
+        showLargeTimerOverlay={showLargeTimerOverlay}
+        initialLoadComplete={initialLoadComplete}
+        currentGameId={currentGameId}
+        availablePlayers={availablePlayers}
+        teams={teams}
+        seasons={seasons}
+        tournaments={tournaments}
+        showFirstGameGuide={showFirstGameGuide}
+        hasCheckedFirstGameGuide={hasCheckedFirstGameGuide}
+        firstGameGuideStep={firstGameGuideStep}
+        orphanedGameInfo={orphanedGameInfo}
+        onOpenNewGameSetup={() => setIsNewGameSetupModalOpen(true)}
+        onOpenRosterModal={() => setIsRosterModalOpen(true)}
+        onOpenSeasonTournamentModal={() => setIsSeasonTournamentModalOpen(true)}
+        onOpenTeamManagerModal={() => setIsTeamManagerOpen(true)}
+        onGuideStepChange={setFirstGameGuideStep}
+        onGuideClose={() => setShowFirstGameGuide(false)}
+        onOpenTeamReassignModal={() => setIsTeamReassignModalOpen(true)}
+        handlePlayerMove={handlePlayerMove}
+        handlePlayerMoveEnd={handlePlayerMoveEnd}
+        handlePlayerRemove={handlePlayerRemove}
+        handleOpponentMove={handleOpponentMove}
+        handleOpponentMoveEnd={handleOpponentMoveEnd}
+        handleOpponentRemove={handleOpponentRemove}
+        handleDropOnField={handleDropOnField}
+        handleDrawingStart={handleDrawingStart}
+        handleDrawingAddPoint={handleDrawingAddPoint}
+        handleDrawingEnd={handleDrawingEnd}
+        handleTacticalDrawingStart={handleTacticalDrawingStart}
+        handleTacticalDrawingAddPoint={handleTacticalDrawingAddPoint}
+        handleTacticalDrawingEnd={handleTacticalDrawingEnd}
+        handleTacticalDiscMove={handleTacticalDiscMove}
+        handleTacticalDiscRemove={handleTacticalDiscRemove}
+        handleToggleTacticalDiscType={handleToggleTacticalDiscType}
+        handleTacticalBallMove={handleTacticalBallMove}
+        handlePlayerDropViaTouch={handlePlayerDropViaTouch}
+        handlePlayerDragCancelViaTouch={handlePlayerDragCancelViaTouch}
+        handleToggleLargeTimerOverlay={handleToggleLargeTimerOverlay}
+        handleToggleGoalLogModal={handleToggleGoalLogModal}
+        handleLogOpponentGoal={handleLogOpponentGoal}
+        handleSubstitutionMade={handleSubstitutionMade}
+        handleSetSubInterval={handleSetSubInterval}
+        handleStartPauseTimer={handleStartPauseTimer}
+        handleResetTimer={handleResetTimer}
+      />
+      {/* Main Content: Soccer Field (legacy, disabled) */}
+      {false && (
       <div className="flex-grow relative bg-black overflow-hidden">
         {/* Pass rel drawing handlers to SoccerField */}
 
@@ -3475,6 +3537,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         
         {/* Other components that might overlay or interact with the field */}
       </div>
+      )}
 
       {/* Bottom Section: Control Bar (always visible) */}
       <div className={barStyle}>
