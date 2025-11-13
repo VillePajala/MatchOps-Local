@@ -300,7 +300,21 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
     if (!hasChanges) return;
 
-    const nextState: TacticalState = { ...currentTacticalHistoryState, ...newState };
+    // Deep clone to avoid accidental aliasing of arrays/objects across history entries
+    const cloneDrawings = (d?: TacticalState['tacticalDrawings']) =>
+      d ? d.map(poly => poly.map(p => ({ ...p }))) : d;
+    const cloneDiscs = (d?: TacticalState['tacticalDiscs']) =>
+      d ? d.map(disc => ({ ...disc })) : d;
+    const clonePoint = (p?: TacticalState['tacticalBallPosition']) =>
+      p ? { ...p } : p;
+
+    const sanitized: Partial<TacticalState> = {
+      tacticalDrawings: cloneDrawings(newState.tacticalDrawings),
+      tacticalDiscs: cloneDiscs(newState.tacticalDiscs),
+      tacticalBallPosition: clonePoint(newState.tacticalBallPosition),
+    };
+
+    const nextState: TacticalState = { ...currentTacticalHistoryState, ...sanitized };
     pushTacticalHistoryState(nextState);
   }, [currentTacticalHistoryState, pushTacticalHistoryState]);
 
@@ -1567,8 +1581,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
   const handleClearDrawingsForView = () => {
     if (isTacticsBoardView) {
+      // Clear only tactical drawings and record it in tactical history (not main)
       setTacticalDrawings([]);
-      saveStateToHistory({ tacticalDrawings: [] });
+      saveTacticalStateToHistory({ tacticalDrawings: [] });
     } else {
       handleClearDrawings();
     }
