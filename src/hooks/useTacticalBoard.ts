@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Point, TacticalDisc, AppState } from '@/types';
 
 interface UseTacticalBoardArgs {
@@ -19,6 +19,23 @@ export const useTacticalBoard = ({
   const [tacticalDrawings, setTacticalDrawings] = useState<Point[][]>(initialDrawings);
   const [tacticalBallPosition, setTacticalBallPosition] = useState<Point | null>(initialBallPosition);
 
+  // Keep refs in sync with current state to avoid stale closures
+  const tacticalDrawingsRef = useRef(tacticalDrawings);
+  const tacticalDiscsRef = useRef(tacticalDiscs);
+  const tacticalBallPositionRef = useRef(tacticalBallPosition);
+
+  useEffect(() => {
+    tacticalDrawingsRef.current = tacticalDrawings;
+  }, [tacticalDrawings]);
+
+  useEffect(() => {
+    tacticalDiscsRef.current = tacticalDiscs;
+  }, [tacticalDiscs]);
+
+  useEffect(() => {
+    tacticalBallPositionRef.current = tacticalBallPosition;
+  }, [tacticalBallPosition]);
+
   const handleToggleTacticsBoard = useCallback(() => {
     setIsTacticsBoardView((prev) => !prev);
   }, []);
@@ -31,34 +48,34 @@ export const useTacticalBoard = ({
         relY: 0.5,
         type,
       };
-      const newDiscs = [...tacticalDiscs, newDisc];
+      const newDiscs = [...tacticalDiscsRef.current, newDisc];
       setTacticalDiscs(newDiscs);
       saveStateToHistory({ tacticalDiscs: newDiscs });
     },
-    [tacticalDiscs, saveStateToHistory]
+    [saveStateToHistory]
   );
 
   const handleTacticalDiscMove = useCallback(
     (discId: string, relX: number, relY: number) => {
-      const newDiscs = tacticalDiscs.map((d) => (d.id === discId ? { ...d, relX, relY } : d));
+      const newDiscs = tacticalDiscsRef.current.map((d) => (d.id === discId ? { ...d, relX, relY } : d));
       setTacticalDiscs(newDiscs);
       saveStateToHistory({ tacticalDiscs: newDiscs });
     },
-    [tacticalDiscs, saveStateToHistory]
+    [saveStateToHistory]
   );
 
   const handleTacticalDiscRemove = useCallback(
     (discId: string) => {
-      const newDiscs = tacticalDiscs.filter((d) => d.id !== discId);
+      const newDiscs = tacticalDiscsRef.current.filter((d) => d.id !== discId);
       setTacticalDiscs(newDiscs);
       saveStateToHistory({ tacticalDiscs: newDiscs });
     },
-    [tacticalDiscs, saveStateToHistory]
+    [saveStateToHistory]
   );
 
   const handleToggleTacticalDiscType = useCallback(
     (discId: string) => {
-      const newDiscs = tacticalDiscs.map((d) => {
+      const newDiscs = tacticalDiscsRef.current.map((d) => {
         if (d.id === discId) {
           const nextType =
             d.type === 'home' ? 'opponent' : d.type === 'opponent' ? 'goalie' : 'home';
@@ -69,7 +86,7 @@ export const useTacticalBoard = ({
       setTacticalDiscs(newDiscs);
       saveStateToHistory({ tacticalDiscs: newDiscs });
     },
-    [tacticalDiscs, saveStateToHistory]
+    [saveStateToHistory]
   );
 
   const handleTacticalBallMove = useCallback(
@@ -95,8 +112,9 @@ export const useTacticalBoard = ({
   }, []);
 
   const handleTacticalDrawingEnd = useCallback(() => {
-    saveStateToHistory({ tacticalDrawings });
-  }, [tacticalDrawings, saveStateToHistory]);
+    // Use ref to get current state, avoiding stale closure
+    saveStateToHistory({ tacticalDrawings: tacticalDrawingsRef.current });
+  }, [saveStateToHistory]);
 
   const clearTacticalElements = useCallback(() => {
     setTacticalDiscs([]);
