@@ -92,7 +92,7 @@ const GameInfoBar: React.FC<GameInfoBarProps> = ({
     }
   };
 
-  const inputClasses = "bg-transparent border-none outline-none text-slate-100 text-sm font-medium px-1 py-0 focus:bg-slate-700 rounded";
+  const inputClasses = "bg-transparent border-none outline-none text-slate-100 text-sm md:text-base font-medium px-1 py-0.5 focus:bg-slate-700 rounded";
 
   const leftTeamName = homeOrAway === 'home' ? teamName : opponentName;
   const rightTeamName = homeOrAway === 'home' ? opponentName : teamName;
@@ -101,14 +101,14 @@ const GameInfoBar: React.FC<GameInfoBarProps> = ({
 
   return (
     <div
-      className="relative bg-gradient-to-b from-slate-800 to-slate-800/85 px-4 py-1 text-slate-200 flex justify-center items-center text-sm shadow-md min-h-[2.5rem]"
+      className="relative bg-gradient-to-b from-slate-800 to-slate-800/85 px-3 md:px-4 py-1 text-slate-200 flex justify-center items-center text-sm md:text-base shadow-md min-h-[2.75rem] md:min-h-[3rem]"
       style={{ fontFamily: 'Rajdhani, sans-serif' }}
     >
       {/* Modal background effects for unified feel */}
       <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent pointer-events-none" />
       <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light pointer-events-none" />
       {/* Center Content: Teams and Score */}
-      <div className="relative flex items-center space-x-3 font-semibold z-10 max-w-full">
+      <div className="relative flex items-center space-x-3 md:space-x-4 font-semibold z-10 max-w-full">
         {/* Left Team Name */}
         <div className="text-right min-w-0 max-w-[140px] overflow-hidden" title={editingField !== 'left' ? "Double-click to edit" : undefined}>
           {editingField === 'left' ? (
@@ -123,7 +123,7 @@ const GameInfoBar: React.FC<GameInfoBarProps> = ({
             />
           ) : (
             <span
-              className="block truncate cursor-pointer hover:bg-slate-700/50 p-1 rounded"
+              className="block truncate cursor-pointer hover:bg-slate-700/50 px-1 py-0.5 rounded"
               onTouchEnd={() => handleTap('left')}
               onDoubleClick={() => handleStartEdit('left')}
               title={leftTeamName}
@@ -134,7 +134,7 @@ const GameInfoBar: React.FC<GameInfoBarProps> = ({
         </div>
 
         {/* Score */}
-        <span className="bg-slate-700 px-2 py-0.5 rounded text-yellow-300 text-sm font-bold flex-shrink-0">
+        <span className="bg-slate-700 px-2 py-0.5 rounded text-yellow-300 text-sm md:text-base font-bold flex-shrink-0">
           {leftScore} - {rightScore}
         </span>
 
@@ -152,7 +152,7 @@ const GameInfoBar: React.FC<GameInfoBarProps> = ({
             />
           ) : (
             <span
-              className="block truncate cursor-pointer hover:bg-slate-700/50 p-1 rounded"
+              className="block truncate cursor-pointer hover:bg-slate-700/50 px-1 py-0.5 rounded"
               onTouchEnd={() => handleTap('right')}
               onDoubleClick={() => handleStartEdit('right')}
               title={rightTeamName}

@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "L2-2.4.3: simplify GameContainer VM fallbacks (explicit nullish chains); prep for HomePage reduction wiring"
+  "notes": "L2-2.4.3: add dev logs for tactical undo/redo path and push events; verify correct stack used in mobile touch workflow"
 }
