@@ -39,6 +39,11 @@ export interface UseFieldInteractionsOptions {
 export function useFieldInteractions(options?: UseFieldInteractionsOptions): UseFieldInteractionsReturn {
   const [isDrawingEnabled, setIsDrawingEnabled] = useState<boolean>(false);
   const isInitialMount = useRef(true);
+  const onPersistErrorRef = useRef<UseFieldInteractionsOptions['onPersistError']>(options?.onPersistError);
+
+  useEffect(() => {
+    onPersistErrorRef.current = options?.onPersistError;
+  }, [options?.onPersistError]);
 
   // Load saved drawing mode preference on mount (with unmount safety)
   useEffect(() => {
@@ -63,11 +68,11 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
     }
     (async () => {
       const ok = await saveDrawingModeEnabled(isDrawingEnabled);
-      if (!ok && options?.onPersistError) {
-        options.onPersistError(new Error('Failed to persist drawing mode preference'));
+      if (!ok && onPersistErrorRef.current) {
+        onPersistErrorRef.current(new Error('Failed to persist drawing mode preference'));
       }
     })();
-  }, [isDrawingEnabled, options]);
+  }, [isDrawingEnabled]);
 
   const toggleDrawingMode = useCallback(() => {
     setIsDrawingEnabled(prev => !prev);
