@@ -67,7 +67,8 @@
     "discard": "Discard",
     "startNewMatchTitle": "Start New Match?",
     "startNewMatchConfirmation": "Are you sure you want to start a new match? Any unsaved progress will be lost.",
-    "startNewMatchWarning": "Make sure you have saved your current game if you want to keep it."
+    "startNewMatchWarning": "Make sure you have saved your current game if you want to keep it.",
+    "drawingMode": "Drawing Mode"
   },
   "common": {
     "notSet": "Not Set",

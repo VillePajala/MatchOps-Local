@@ -90,10 +90,19 @@ export function useGameSessionWithHistory(
   const saveToHistoryRef = useRef(saveToHistory);
 
   useEffect(() => {
+    if (process.env.NODE_ENV !== 'production' && !process.env.JEST_WORKER_ID) {
+      // Encourage memoization for performance
+      // eslint-disable-next-line no-console
+      console.warn('[useGameSessionWithHistory] buildHistorySlice identity changed; ensure it is memoized with useCallback');
+    }
     buildHistorySliceRef.current = buildHistorySlice;
   }, [buildHistorySlice]);
 
   useEffect(() => {
+    if (process.env.NODE_ENV !== 'production' && !process.env.JEST_WORKER_ID) {
+      // eslint-disable-next-line no-console
+      console.warn('[useGameSessionWithHistory] saveToHistory identity changed; ensure it is memoized with useCallback');
+    }
     saveToHistoryRef.current = saveToHistory;
   }, [saveToHistory]);
 

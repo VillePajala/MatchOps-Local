@@ -31,6 +31,7 @@ import {
 } from 'react-icons/hi2';
 import { FaFutbol } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
+import logger from '@/utils/logger';
 
 // Design tokens for consistent sizing and spacing
 const DESIGN_TOKENS = {
@@ -329,7 +330,13 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
             {/* Drawing Mode Toggle Button - Square shape */}
             <button
-              onClick={onToggleDrawingMode}
+              onClick={() => {
+                try {
+                  onToggleDrawingMode();
+                } catch (error) {
+                  logger.error('Failed to toggle drawing mode', { error });
+                }
+              }}
               className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${
                 isDrawingEnabled
                   ? 'bg-indigo-600 hover:bg-indigo-500 border-indigo-500/50 focus:ring-indigo-400'
