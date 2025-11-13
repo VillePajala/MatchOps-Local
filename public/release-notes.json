@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "field/drawing: end active drawing when mode toggled off; persist drawing mode without redundant first write; stabilize useGameSessionWithHistory by referencing latest callbacks via refs; add edge-case test"
+  "notes": "feat(controls): reorganize control bar with tactics workflow and context-specific reset"
 }
