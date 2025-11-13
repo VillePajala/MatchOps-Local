@@ -72,6 +72,11 @@ interface ControlBarProps {
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  // Tactical Tools (separate history)
+  onTacticalUndo: () => void;
+  onTacticalRedo: () => void;
+  canTacticalUndo: boolean;
+  canTacticalRedo: boolean;
   onResetField: () => void;
   onClearDrawings: () => void;
   onAddOpponent: () => void;
@@ -107,6 +112,10 @@ const ControlBar: React.FC<ControlBarProps> = ({
   onRedo,
   canUndo,
   canRedo,
+  onTacticalUndo,
+  onTacticalRedo,
+  canTacticalUndo,
+  canTacticalRedo,
   onResetField,
   onClearDrawings,
   onAddOpponent,
@@ -394,21 +403,21 @@ const ControlBar: React.FC<ControlBarProps> = ({
               <HiOutlineXMark className={iconSize} />
             </button>
 
-            {/* Undo */}
+            {/* Undo - Context-aware (tactical vs normal) */}
             <button
-              onClick={onUndo}
-              disabled={!canUndo}
-              className={`${buttonStyle} ${canUndo ? 'bg-slate-700 hover:bg-slate-600 focus:ring-slate-500' : 'bg-slate-800 opacity-50 cursor-not-allowed'}`}
+              onClick={isTacticsBoardView ? onTacticalUndo : onUndo}
+              disabled={isTacticsBoardView ? !canTacticalUndo : !canUndo}
+              className={`${buttonStyle} ${(isTacticsBoardView ? canTacticalUndo : canUndo) ? 'bg-slate-700 hover:bg-slate-600 focus:ring-slate-500' : 'bg-slate-800 opacity-50 cursor-not-allowed'}`}
               title={t('controlBar.undo', 'Undo')}
             >
               <HiOutlineArrowUturnLeft className={iconSize} />
             </button>
 
-            {/* Redo */}
+            {/* Redo - Context-aware (tactical vs normal) */}
             <button
-              onClick={onRedo}
-              disabled={!canRedo}
-              className={`${buttonStyle} ${canRedo ? 'bg-slate-700 hover:bg-slate-600 focus:ring-slate-500' : 'bg-slate-800 opacity-50 cursor-not-allowed'}`}
+              onClick={isTacticsBoardView ? onTacticalRedo : onRedo}
+              disabled={isTacticsBoardView ? !canTacticalRedo : !canRedo}
+              className={`${buttonStyle} ${(isTacticsBoardView ? canTacticalRedo : canRedo) ? 'bg-slate-700 hover:bg-slate-600 focus:ring-slate-500' : 'bg-slate-800 opacity-50 cursor-not-allowed'}`}
               title={t('controlBar.redo', 'Redo')}
             >
               <HiOutlineArrowUturnRight className={iconSize} />

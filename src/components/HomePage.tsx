@@ -205,6 +205,26 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     canRedo,
   } = useUndoRedo<AppState>(initialState);
 
+  // --- Tactical History Management (Separate Stack) ---
+  // Define tactical state type inline for clarity
+  type TacticalState = Pick<AppState, 'tacticalDiscs' | 'tacticalDrawings' | 'tacticalBallPosition'>;
+
+  const initialTacticalState: TacticalState = {
+    tacticalDiscs: initialState.tacticalDiscs,
+    tacticalDrawings: initialState.tacticalDrawings,
+    tacticalBallPosition: initialState.tacticalBallPosition,
+  };
+
+  const {
+    state: currentTacticalHistoryState,
+    set: pushTacticalHistoryState,
+    // reset not used yet (reserved for future tactical history clearing)
+    undo: undoTacticalHistory,
+    redo: redoTacticalHistory,
+    canUndo: canTacticalUndo,
+    canRedo: canTacticalRedo,
+  } = useUndoRedo<TacticalState>(initialTacticalState);
+
   const saveStateToHistory = useCallback((newState: Partial<AppState>) => {
     if (!currentHistoryState) return; // Should not happen
 
@@ -253,6 +273,35 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     pushHistoryState(nextState);
 
   }, [currentHistoryState, pushHistoryState]);
+
+  // Save tactical state to separate tactical history
+  const saveTacticalStateToHistory = useCallback((newState: Partial<TacticalState>) => {
+    if (!currentTacticalHistoryState) return;
+
+    // Check if anything actually changed
+    const hasChanges = Object.keys(newState).some((key) => {
+      const k = key as keyof TacticalState;
+      const prevVal = currentTacticalHistoryState[k];
+      const newVal = newState[k];
+
+      // For arrays/objects, do structural comparison
+      const isObjectLike = (val: unknown) => typeof val === 'object' && val !== null;
+      if (isObjectLike(prevVal) && isObjectLike(newVal)) {
+        try {
+          return JSON.stringify(prevVal) !== JSON.stringify(newVal);
+        } catch {
+          return true; // Assume changed if serialization fails
+        }
+      }
+
+      return prevVal !== newVal;
+    });
+
+    if (!hasChanges) return;
+
+    const nextState: TacticalState = { ...currentTacticalHistoryState, ...newState };
+    pushTacticalHistoryState(nextState);
+  }, [currentTacticalHistoryState, pushTacticalHistoryState]);
 
   const buildGameSessionHistorySlice = useCallback((state: GameSessionState) => {
     const slice = {
@@ -627,7 +676,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     initialDiscs: initialState.tacticalDiscs,
     initialDrawings: initialState.tacticalDrawings,
     initialBallPosition: initialState.tacticalBallPosition,
-    saveStateToHistory,
+    saveStateToHistory: saveTacticalStateToHistory,
   });
 
   // Load teams when orphaned game is detected
@@ -1631,6 +1680,33 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       applyHistoryState(nextState);
     } else {
       logger.log('Cannot redo: at end of history');
+    }
+  };
+
+  // Apply tactical history state (for tactical undo/redo)
+  const applyTacticalHistoryState = (state: TacticalState) => {
+    setTacticalDiscs(state.tacticalDiscs || []);
+    setTacticalDrawings(state.tacticalDrawings || []);
+    setTacticalBallPosition(state.tacticalBallPosition || null);
+  };
+
+  const handleTacticalUndo = () => {
+    const prevState = undoTacticalHistory();
+    if (prevState) {
+      logger.log('Undoing tactical action...');
+      applyTacticalHistoryState(prevState);
+    } else {
+      logger.log('Cannot undo: at beginning of tactical history');
+    }
+  };
+
+  const handleTacticalRedo = () => {
+    const nextState = redoTacticalHistory();
+    if (nextState) {
+      logger.log('Redoing tactical action...');
+      applyTacticalHistoryState(nextState);
+    } else {
+      logger.log('Cannot redo: at end of tactical history');
     }
   };
 
@@ -3412,6 +3488,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
           onRedo={handleRedo}
           canUndo={canUndo}
           canRedo={canRedo}
+          // Tactical tools props (separate history)
+          onTacticalUndo={handleTacticalUndo}
+          onTacticalRedo={handleTacticalRedo}
+          canTacticalUndo={canTacticalUndo}
+          canTacticalRedo={canTacticalRedo}
           onResetField={handleResetFieldClick}
           onClearDrawings={handleClearDrawingsForView}
           onAddOpponent={handleAddOpponent}

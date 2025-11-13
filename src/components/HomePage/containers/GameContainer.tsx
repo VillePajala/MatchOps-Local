@@ -88,6 +88,10 @@ export interface GameContainerProps extends Partial<UseGameOrchestrationReturn> 
   setFirstGameGuideStep: (step: number) => void;
   handleUndo: () => void;
   handleRedo: () => void;
+  handleTacticalUndo?: () => void;
+  handleTacticalRedo?: () => void;
+  canTacticalUndo?: boolean;
+  canTacticalRedo?: boolean;
   handleResetField: () => void;
   handleClearDrawingsForView: () => void;
   handlePlaceAllPlayers: () => void;
@@ -184,6 +188,10 @@ export function GameContainer(props: GameContainerProps) {
     setFirstGameGuideStep,
     handleUndo,
     handleRedo,
+    handleTacticalUndo,
+    handleTacticalRedo,
+    canTacticalUndo,
+    canTacticalRedo,
     handleResetField,
     handleClearDrawingsForView,
     handlePlaceAllPlayers,
@@ -457,6 +465,10 @@ export function GameContainer(props: GameContainerProps) {
           onRedo={handleRedo || (() => {})}
           canUndo={canUndo || false}
           canRedo={canRedo || false}
+          onTacticalUndo={handleTacticalUndo || (() => {})}
+          onTacticalRedo={handleTacticalRedo || (() => {})}
+          canTacticalUndo={canTacticalUndo || false}
+          canTacticalRedo={canTacticalRedo || false}
           onResetField={handleResetField || (() => {})}
           onClearDrawings={handleClearDrawingsForView || (() => {})}
           onAddOpponent={handleAddOpponent || (() => {})}
