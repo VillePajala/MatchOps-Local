@@ -315,6 +315,13 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     };
 
     const nextState: TacticalState = { ...currentTacticalHistoryState, ...sanitized };
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.debug('[TacticalHistory] push', {
+        prevLen: (currentTacticalHistoryState.tacticalDrawings || []).length,
+        nextLen: (nextState.tacticalDrawings || []).length,
+      });
+    }
     pushTacticalHistoryState(nextState);
   }, [currentTacticalHistoryState, pushTacticalHistoryState]);
 
@@ -1709,7 +1716,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const handleTacticalUndo = () => {
     const prevState = undoTacticalHistory();
     if (prevState) {
-      logger.log('Undoing tactical action...');
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.debug('[TacticalHistory] undo -> state', {
+          drawingsLen: (prevState.tacticalDrawings || []).length,
+        });
+      }
       applyTacticalHistoryState(prevState);
     } else {
       logger.log('Cannot undo: at beginning of tactical history');
@@ -1719,7 +1731,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const handleTacticalRedo = () => {
     const nextState = redoTacticalHistory();
     if (nextState) {
-      logger.log('Redoing tactical action...');
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.debug('[TacticalHistory] redo -> state', {
+          drawingsLen: (nextState.tacticalDrawings || []).length,
+        });
+      }
       applyTacticalHistoryState(nextState);
     } else {
       logger.log('Cannot redo: at end of tactical history');
