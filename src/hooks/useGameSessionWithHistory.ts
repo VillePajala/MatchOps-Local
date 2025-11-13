@@ -123,8 +123,9 @@ export function useGameSessionWithHistory(
       saveToHistoryRef.current(historySlice);
     }
 
-    // Clear the action type after processing
-    lastActionTypeRef.current = null;
+    // Don't clear the action type - it naturally gets overwritten by the next dispatch.
+    // Clearing it could cause race conditions with rapid successive actions where the
+    // ref gets cleared before the next effect runs, potentially missing history saves.
   }, [state]);
 
   return [state, enhancedDispatch];
