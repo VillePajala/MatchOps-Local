@@ -55,6 +55,7 @@ export interface GameContainerProps extends Partial<UseGameOrchestrationReturn> 
   // Optional view-model (introduced in L2-2.4.1). Not yet consumed.
   viewModel?: GameContainerViewModel;
   draggingPlayerFromBarInfo: Player | null;
+  isDrawingEnabled: boolean;
   showLargeTimerOverlay: boolean;
   initialLoadComplete: boolean;
   orphanedGameInfo: { teamId: string; teamName?: string } | null;
@@ -87,6 +88,10 @@ export interface GameContainerProps extends Partial<UseGameOrchestrationReturn> 
   setFirstGameGuideStep: (step: number) => void;
   handleUndo: () => void;
   handleRedo: () => void;
+  handleTacticalUndo?: () => void;
+  handleTacticalRedo?: () => void;
+  canTacticalUndo?: boolean;
+  canTacticalRedo?: boolean;
   handleResetField: () => void;
   handleClearDrawingsForView: () => void;
   handlePlaceAllPlayers: () => void;
@@ -102,6 +107,7 @@ export interface GameContainerProps extends Partial<UseGameOrchestrationReturn> 
   handleOpenSettingsModal: () => void;
   openPlayerAssessmentModal: () => void;
   handleOpenPersonnelManager: () => void;
+  handleToggleDrawingMode: () => void;
 }
 
 export function GameContainer(props: GameContainerProps) {
@@ -117,6 +123,7 @@ export function GameContainer(props: GameContainerProps) {
     tacticalDrawings,
     tacticalDiscs,
     tacticalBallPosition,
+    isDrawingEnabled,
     canUndo,
     canRedo,
     timeElapsedInSeconds,
@@ -181,6 +188,10 @@ export function GameContainer(props: GameContainerProps) {
     setFirstGameGuideStep,
     handleUndo,
     handleRedo,
+    handleTacticalUndo,
+    handleTacticalRedo,
+    canTacticalUndo,
+    canTacticalRedo,
     handleResetField,
     handleClearDrawingsForView,
     handlePlaceAllPlayers,
@@ -196,9 +207,25 @@ export function GameContainer(props: GameContainerProps) {
     handleOpenSettingsModal,
     openPlayerAssessmentModal,
     handleOpenPersonnelManager,
+    handleToggleDrawingMode,
   } = props;
 
   if (!gameSessionState) return null;
+
+  // L2-2.4.2: Prefer view-model data for read-only subsets (parity fallback to props)
+  // Helper to reduce fallback verbosity
+  const vmOr = <T,>(vmValue: T | undefined, fallback: T): T => vmValue ?? fallback;
+
+  const vm = props.viewModel;
+  const playerBarPlayers = vmOr(vm?.playerBar?.players, playersForCurrentGame || []);
+  const playerBarSelectedId = vmOr(vm?.playerBar?.selectedPlayerIdFromBar, draggingPlayerFromBarInfo?.id ?? null);
+  const playerBarGameEvents = vmOr(vm?.playerBar?.gameEvents, gameSessionState.gameEvents);
+
+  const infoTeamName = vmOr(vm?.gameInfo?.teamName, gameSessionState.teamName);
+  const infoOpponentName = vmOr(vm?.gameInfo?.opponentName, gameSessionState.opponentName);
+  const infoHomeScore = vmOr(vm?.gameInfo?.homeScore, gameSessionState.homeScore);
+  const infoAwayScore = vmOr(vm?.gameInfo?.awayScore, gameSessionState.awayScore);
+  const infoHomeOrAway = vmOr(vm?.gameInfo?.homeOrAway, gameSessionState.homeOrAway);
 
   return (
     <main className="flex flex-col h-[100dvh] bg-slate-900 text-slate-50" data-testid="home-page">
@@ -210,23 +237,23 @@ export function GameContainer(props: GameContainerProps) {
           </div>
         }>
           <PlayerBar
-            players={playersForCurrentGame || []}
+            players={playerBarPlayers}
             onPlayerDragStartFromBar={handlePlayerDragStartFromBar || (() => {})}
-            selectedPlayerIdFromBar={draggingPlayerFromBarInfo?.id}
+            selectedPlayerIdFromBar={playerBarSelectedId}
             onBarBackgroundClick={handleDeselectPlayer || (() => {})}
-            gameEvents={gameSessionState.gameEvents}
+            gameEvents={playerBarGameEvents}
             onPlayerTapInBar={handlePlayerTapInBar || (() => {})}
             onToggleGoalie={handleToggleGoalieForModal || (() => {})}
           />
         </ErrorBoundary>
         <GameInfoBar
-          teamName={gameSessionState.teamName}
-          opponentName={gameSessionState.opponentName}
-          homeScore={gameSessionState.homeScore}
-          awayScore={gameSessionState.awayScore}
+          teamName={infoTeamName}
+          opponentName={infoOpponentName}
+          homeScore={infoHomeScore}
+          awayScore={infoAwayScore}
           onTeamNameChange={handleTeamNameChange || (() => {})}
           onOpponentNameChange={handleOpponentNameChange || (() => {})}
-          homeOrAway={gameSessionState.homeOrAway}
+          homeOrAway={infoHomeOrAway}
         />
       </div>
 
@@ -317,6 +344,7 @@ export function GameContainer(props: GameContainerProps) {
             onToggleTacticalDiscType={handleToggleTacticalDiscType || (() => {})}
             tacticalBallPosition={tacticalBallPosition || { relX: 0.5, relY: 0.5 }}
             onTacticalBallMove={handleTacticalBallMove || (() => {})}
+            isDrawingEnabled={isDrawingEnabled || false}
           />
         </ErrorBoundary>
 
@@ -440,6 +468,10 @@ export function GameContainer(props: GameContainerProps) {
           onRedo={handleRedo || (() => {})}
           canUndo={canUndo || false}
           canRedo={canRedo || false}
+          onTacticalUndo={handleTacticalUndo || (() => {})}
+          onTacticalRedo={handleTacticalRedo || (() => {})}
+          canTacticalUndo={canTacticalUndo || false}
+          canTacticalRedo={canTacticalRedo || false}
           onResetField={handleResetField || (() => {})}
           onClearDrawings={handleClearDrawingsForView || (() => {})}
           onAddOpponent={handleAddOpponent || (() => {})}
@@ -448,7 +480,6 @@ export function GameContainer(props: GameContainerProps) {
           onToggleTacticsBoard={handleToggleTacticsBoard || (() => {})}
           onAddHomeDisc={() => handleAddTacticalDisc?.('home')}
           onAddOpponentDisc={() => handleAddTacticalDisc?.('opponent')}
-          onToggleGoalLogModal={handleToggleGoalLogModal || (() => {})}
           onToggleTrainingResources={handleToggleTrainingResources || (() => {})}
           onToggleGameStatsModal={handleToggleGameStatsModal || (() => {})}
           onOpenLoadGameModal={handleOpenLoadGameModal || (() => {})}
@@ -463,6 +494,8 @@ export function GameContainer(props: GameContainerProps) {
           onOpenPlayerAssessmentModal={openPlayerAssessmentModal || (() => {})}
           onOpenTeamManagerModal={handleOpenTeamManagerModal || (() => {})}
           onOpenPersonnelManager={handleOpenPersonnelManager || (() => {})}
+          isDrawingEnabled={isDrawingEnabled || false}
+          onToggleDrawingMode={handleToggleDrawingMode || (() => {})}
         />
       </div>
     </main>

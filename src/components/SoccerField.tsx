@@ -36,6 +36,7 @@ interface SoccerFieldProps {
   onToggleTacticalDiscType: (discId: string) => void;
   tacticalBallPosition: Point | null;
   onTacticalBallMove: (position: Point) => void;
+  isDrawingEnabled: boolean;
 }
 
 // Constants
@@ -272,7 +273,7 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
   onOpponentMove,
   onOpponentMoveEnd,
   onOpponentRemove,
-  draggingPlayerFromBarInfo, 
+  draggingPlayerFromBarInfo,
   onPlayerDropViaTouch,
   onPlayerDragCancelViaTouch,
   // Removed: timeElapsedInSeconds - unused prop (time display not implemented in SoccerField component)
@@ -282,7 +283,8 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
   onTacticalDiscRemove,
   onToggleTacticalDiscType,
   tacticalBallPosition,
-  onTacticalBallMove
+  onTacticalBallMove,
+  isDrawingEnabled
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDraggingPlayer, setIsDraggingPlayer] = useState<boolean>(false);
@@ -862,10 +864,12 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
         }
     }
 
-    // Start drawing
-    setIsDrawing(true);
-    onDrawingStart(relPos); // Pass relative pos
-    if (canvasRef.current) canvasRef.current.style.cursor = 'crosshair';
+    // Start drawing (only if drawing mode is enabled)
+    if (isDrawingEnabled) {
+      setIsDrawing(true);
+      onDrawingStart(relPos); // Pass relative pos
+      if (canvasRef.current) canvasRef.current.style.cursor = 'crosshair';
+    }
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -931,6 +935,15 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
   const handleMouseLeave = () => {
     handleMouseUp(); // Treat leave same as mouse up
   };
+
+  // If drawing mode is disabled while an active drawing is in progress, end it gracefully
+  useEffect(() => {
+    if (!isDrawingEnabled && isDrawing) {
+      onDrawingEnd();
+      setIsDrawing(false);
+      if (canvasRef.current) canvasRef.current.style.cursor = 'default';
+    }
+  }, [isDrawingEnabled, isDrawing, onDrawingEnd]);
 
   // --- Touch Handlers ---
   const handleTouchStart = useCallback((e: TouchEvent) => {
@@ -1034,7 +1047,7 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
       setIsDraggingTacticalDisc(true);
       setDraggingTacticalDiscId(tappedTargetId);
       e.preventDefault();
-    } else if (!draggingPlayerFromBarInfo) {
+    } else if (!draggingPlayerFromBarInfo && isDrawingEnabled) {
       setIsDrawing(true);
       onDrawingStart(relPos);
       e.preventDefault();
@@ -1043,7 +1056,7 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
     isPointInBall, isTacticsBoardView, tacticalDiscs, onToggleTacticalDiscType, onTacticalDiscRemove, isPointInTacticalDisc,
     players, onPlayerRemove, isPointInPlayer, opponents, onOpponentRemove, isPointInOpponent,
     draggingPlayerFromBarInfo, onPlayerDropViaTouch,
-    lastTapInfo, onDrawingStart
+    lastTapInfo, onDrawingStart, isDrawingEnabled
   ]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {

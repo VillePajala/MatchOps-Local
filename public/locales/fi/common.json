@@ -66,7 +66,10 @@
     "discard": "Hylkää",
     "startNewMatchTitle": "Aloita uusi ottelu?",
     "startNewMatchConfirmation": "Haluatko varmasti aloittaa uuden ottelun? Tallentamaton edistyminen menetetään.",
-    "startNewMatchWarning": "Varmista että olet tallentanut nykyisen pelin jos haluat säilyttää sen."
+    "startNewMatchWarning": "Varmista että olet tallentanut nykyisen pelin jos haluat säilyttää sen.",
+    "drawingMode": "Piirtotila",
+    "resetFieldNormalTitle": "Nollataanko kenttä?",
+    "resetFieldTacticsTitle": "Nollataanko taktiikkataulu?"
   },
   "common": {
     "notSet": "Ei asetettu",
@@ -148,6 +151,7 @@
     "gamePlural": "Ottelua",
     "confirmDeleteTitle": "Poista kohde",
     "confirmDelete": "Haluatko varmasti poistaa tämän kohteen?",
+    "cannotUndo": "Tätä toimintoa ei voi peruuttaa.",
     "addPlayers": "Lisää pelaajia",
     "reset": "Nollaa",
     "startNew": "Aloita uusi"
@@ -319,6 +323,8 @@
       "clearDrawings": "Poista kaikki piirretyt viivat.",
       "addOpponent": "Lisää vastustajamerkki kentän keskelle.",
       "resetField": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
+      "resetFieldNormal": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
+      "resetFieldTactics": "Tyhjennä kaikki taktiset kiekot, piirustukset ja pallon sijainti taktiselta taulusta.",
       "toggleTimerOverlay": "Näytä/piilota iso ottelukello ja vaihtonäkymä.",
       "timerControls": "Käynnistä/pysäytä/nollaa otteluajastin.",
       "help": "Näytä/piilota nämä ohjeet.",
@@ -560,6 +566,10 @@
       "deleteFailedNotFound": "Pelin poistaminen epäonnistui: {gameId}. Peliä ei löytynyt tai tunnus oli virheellinen.",
       "deleteFailedCatch": "Tallennetun pelin poistaminen epäonnistui: {gameId}. Virhe: {errorMessage}"
     }
+  },
+  "errors": {
+    "failedToSaveDrawingMode": "Piirtotilan asetuksen tallennus epäonnistui. Muutokset eivät välttämättä pysy.",
+    "failedToLoadData": "Tietojen lataus epäonnistui. Osa toiminnoista ei välttämättä ole käytettävissä."
   },
   "newGameSetupModal": {
     "title": "Uuden pelin asetukset",

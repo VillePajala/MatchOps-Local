@@ -67,7 +67,10 @@
     "discard": "Discard",
     "startNewMatchTitle": "Start New Match?",
     "startNewMatchConfirmation": "Are you sure you want to start a new match? Any unsaved progress will be lost.",
-    "startNewMatchWarning": "Make sure you have saved your current game if you want to keep it."
+    "startNewMatchWarning": "Make sure you have saved your current game if you want to keep it.",
+    "drawingMode": "Drawing Mode",
+    "resetFieldNormalTitle": "Reset Field?",
+    "resetFieldTacticsTitle": "Reset Tactics Board?"
   },
   "common": {
     "notSet": "Not Set",
@@ -147,6 +150,7 @@
     "gamePlural": "Games",
     "confirmDeleteTitle": "Delete Item",
     "confirmDelete": "Are you sure you want to delete this item?",
+    "cannotUndo": "This action cannot be undone.",
     "addPlayers": "Add Players",
     "reset": "Reset",
     "startNew": "Start New"
@@ -284,6 +288,8 @@
       "clearDrawings": "Remove all drawn lines.",
       "addOpponent": "Add an opponent marker to the center of the field.",
       "resetField": "Clear all players, opponents, and drawings from the field.",
+      "resetFieldNormal": "Clear all players, opponents, and drawings from the field.",
+      "resetFieldTactics": "Clear all tactical discs, drawings, and ball position from the tactics board.",
       "toggleTimerOverlay": "Show/hide the large timer/substitution overlay.",
       "timerControls": "Start/Pause/Reset the match timer.",
       "help": "Show/hide these instructions.",
@@ -704,6 +710,10 @@
     "gameDetailsLabel": "Game Details",
     "gameRulesLabel": "Game Rules",
     "gameConfigLabel": "Game Configuration"
+  },
+  "errors": {
+    "failedToSaveDrawingMode": "Failed to save drawing mode setting. Changes may not persist.",
+    "failedToLoadData": "Failed to load data. Some features may not be available."
   },
   "gameStats": {
     "personnelSectionTitle": "Game Personnel",

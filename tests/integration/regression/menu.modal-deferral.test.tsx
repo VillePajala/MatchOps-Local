@@ -39,6 +39,10 @@ describe('Menu → Modal deferral guard', () => {
         onRedo={noop}
         canUndo={false}
         canRedo={false}
+        onTacticalUndo={noop}
+        onTacticalRedo={noop}
+        canTacticalUndo={false}
+        canTacticalRedo={false}
         onResetField={noop}
         onClearDrawings={noop}
         onAddOpponent={noop}
@@ -47,7 +51,6 @@ describe('Menu → Modal deferral guard', () => {
         onAddHomeDisc={noop}
         onAddOpponentDisc={noop}
         onPlaceAllPlayers={noop}
-        onToggleGoalLogModal={noop}
         onToggleTrainingResources={noop}
         onToggleGameStatsModal={noop}
         onOpenLoadGameModal={onOpenLoadGameModal}
@@ -62,6 +65,8 @@ describe('Menu → Modal deferral guard', () => {
         onOpenPlayerAssessmentModal={noop}
         onOpenTeamManagerModal={noop}
         onOpenPersonnelManager={noop}
+        isDrawingEnabled={false}
+        onToggleDrawingMode={noop}
       />
     );
   }
