@@ -3883,7 +3883,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       {/* Reset Field Confirmation */}
       <ConfirmationModal
         isOpen={showResetFieldConfirm}
-        title={t('controlBar.resetField', 'Reset Field')}
+        title={isTacticsBoardView
+          ? t('controlBar.resetFieldTacticsTitle', 'Reset Tactics Board?')
+          : t('controlBar.resetFieldNormalTitle', 'Reset Field?')}
         message={isTacticsBoardView
           ? t('tooltips.resetFieldTactics', 'Clear all tactical discs, drawings, and ball position from the tactics board.')
           : t('tooltips.resetFieldNormal', 'Clear all players, opponents, and drawings from the field.')

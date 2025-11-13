@@ -148,13 +148,14 @@ export function useGameSessionWithHistory(
       return;
     }
 
-    // Warn about uncategorized actions in development
-    if (process.env.NODE_ENV !== 'production' && !process.env.JEST_WORKER_ID) {
-      if (!HISTORY_SAVING_ACTIONS.has(lastAction)) {
-        // eslint-disable-next-line no-console
-        console.warn(
+    // Enforce categorization for all non-production environments (dev + tests)
+    if (process.env.NODE_ENV !== 'production') {
+      const isCategorized =
+        HISTORY_SAVING_ACTIONS.has(lastAction) || NO_HISTORY_ACTIONS.has(lastAction);
+      if (!isCategorized) {
+        throw new Error(
           `[useGameSessionWithHistory] Uncategorized action: "${lastAction}". ` +
-          `Add to HISTORY_SAVING_ACTIONS or NO_HISTORY_ACTIONS in useGameSessionWithHistory.ts`
+            `Add to HISTORY_SAVING_ACTIONS or NO_HISTORY_ACTIONS in useGameSessionWithHistory.ts`
         );
       }
     }
