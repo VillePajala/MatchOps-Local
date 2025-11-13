@@ -28,7 +28,6 @@ import {
   HiOutlineIdentification,
 } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
-import logger from '@/utils/logger';
 
 // Design tokens for consistent sizing and spacing
 const DESIGN_TOKENS = {
@@ -320,11 +319,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
                   onToggleTacticsBoard();
                 }
                 if (!isDrawingEnabled) {
-                  try {
-                    onToggleDrawingMode();
-                  } catch (error) {
-                    logger.error('Failed to toggle drawing mode', { error });
-                  }
+                  onToggleDrawingMode(); // Safe - hook handles errors internally via callback
                 }
               }}
               className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
@@ -389,11 +384,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
                 }
                 // Disable drawing mode if currently enabled
                 if (isDrawingEnabled) {
-                  try {
-                    onToggleDrawingMode();
-                  } catch (error) {
-                    logger.error('Failed to toggle drawing mode', { error });
-                  }
+                  onToggleDrawingMode(); // Safe - hook handles errors internally via callback
                 }
               }}
               className={`${buttonStyle} bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}

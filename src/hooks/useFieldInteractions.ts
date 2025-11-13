@@ -60,7 +60,8 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
     };
   }, []);
 
-  // Save preference when it changes
+  // Persist drawing mode preference to IndexedDB
+  // Skip initial mount to avoid redundant write (value just loaded)
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
