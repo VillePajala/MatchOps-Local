@@ -14,6 +14,7 @@ This directory contains detailed specifications for individual features and plan
 - **[how-it-works-help.md](./how-it-works-help.md)** - In-app help system
 - **[robust-alert-system.md](./robust-alert-system.md)** - User notifications and alerts
 - **[external-matches.md](./external-matches.md)** - Import games from external sources
+- **[tactics-field-variations.md](./tactics-field-variations.md)** - Tactics view field layouts (full/half/quarter)
 
 ## Usage
 

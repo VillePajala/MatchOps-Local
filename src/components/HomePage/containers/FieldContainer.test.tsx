@@ -38,6 +38,7 @@ const baseProps = () => ({
   tacticalDiscs: [],
   tacticalBallPosition: { relX: 0.5, relY: 0.5 },
   draggingPlayerFromBarInfo: null,
+  isDrawingEnabled: false,
   timeElapsedInSeconds: 0,
   isTimerRunning: false,
   subAlertLevel: 'none' as const,

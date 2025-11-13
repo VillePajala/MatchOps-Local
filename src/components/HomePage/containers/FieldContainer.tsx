@@ -27,6 +27,7 @@ export interface FieldContainerProps {
   tacticalDiscs: TacticalDisc[];
   tacticalBallPosition: Point | null;
   draggingPlayerFromBarInfo: Player | null;
+  isDrawingEnabled: boolean;
   timeElapsedInSeconds: number;
   isTimerRunning: boolean;
   subAlertLevel: GameSessionState['subAlertLevel'];
@@ -87,6 +88,7 @@ export function FieldContainer({
   tacticalDiscs,
   tacticalBallPosition,
   draggingPlayerFromBarInfo,
+  isDrawingEnabled,
   timeElapsedInSeconds,
   isTimerRunning,
   subAlertLevel,
@@ -220,6 +222,7 @@ export function FieldContainer({
           onToggleTacticalDiscType={handleToggleTacticalDiscType || (() => {})}
           tacticalBallPosition={tacticalBallPosition || { relX: 0.5, relY: 0.5 }}
           onTacticalBallMove={handleTacticalBallMove || (() => {})}
+          isDrawingEnabled={isDrawingEnabled}
         />
       </ErrorBoundary>
 

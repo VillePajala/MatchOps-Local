@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useReducer, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import SoccerField from '@/components/SoccerField';
 import PlayerBar from '@/components/PlayerBar';
 import ControlBar from '@/components/ControlBar';
@@ -28,12 +28,13 @@ import { useGameState, UseGameStateReturn } from '@/hooks/useGameState';
 import GameInfoBar from '@/components/GameInfoBar';
 import { useGameTimer } from '@/hooks/useGameTimer';
 import { useAutoSave } from '@/hooks/useAutoSave';
-// Import the new game session reducer and related types
+import { useFieldInteractions } from '@/hooks/useFieldInteractions';
+// Import game session types (reducer is used internally by useGameSessionWithHistory)
 import {
-  gameSessionReducer,
   GameSessionState,
   // initialGameSessionStatePlaceholder // We will derive initial state from page.tsx's initialState
 } from '@/hooks/useGameSessionReducer';
+import { useGameSessionWithHistory } from '@/hooks/useGameSessionWithHistory';
 // Import roster utility functions
 // roster mutations now managed inside useRoster hook
 
@@ -193,14 +194,6 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     startTimestamp: null,
   };
 
-  const [gameSessionState, dispatchGameSession] = useReducer(gameSessionReducer, initialGameSessionData);
-
-
-  useEffect(() => {
-  }, [gameSessionState]);
-
-  
-
   // --- History Management ---
   const {
     state: currentHistoryState,
@@ -211,6 +204,26 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     canUndo,
     canRedo,
   } = useUndoRedo<AppState>(initialState);
+
+  // --- Tactical History Management (Separate Stack) ---
+  // Define tactical state type inline for clarity
+  type TacticalState = Pick<AppState, 'tacticalDiscs' | 'tacticalDrawings' | 'tacticalBallPosition'>;
+
+  const initialTacticalState: TacticalState = {
+    tacticalDiscs: initialState.tacticalDiscs,
+    tacticalDrawings: initialState.tacticalDrawings,
+    tacticalBallPosition: initialState.tacticalBallPosition,
+  };
+
+  const {
+    state: currentTacticalHistoryState,
+    set: pushTacticalHistoryState,
+    // reset not used yet (reserved for future tactical history clearing)
+    undo: undoTacticalHistory,
+    redo: redoTacticalHistory,
+    canUndo: canTacticalUndo,
+    canRedo: canTacticalRedo,
+  } = useUndoRedo<TacticalState>(initialTacticalState);
 
   const saveStateToHistory = useCallback((newState: Partial<AppState>) => {
     if (!currentHistoryState) return; // Should not happen
@@ -261,6 +274,35 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   }, [currentHistoryState, pushHistoryState]);
 
+  // Save tactical state to separate tactical history
+  const saveTacticalStateToHistory = useCallback((newState: Partial<TacticalState>) => {
+    if (!currentTacticalHistoryState) return;
+
+    // Check if anything actually changed
+    const hasChanges = Object.keys(newState).some((key) => {
+      const k = key as keyof TacticalState;
+      const prevVal = currentTacticalHistoryState[k];
+      const newVal = newState[k];
+
+      // For arrays/objects, do structural comparison
+      const isObjectLike = (val: unknown) => typeof val === 'object' && val !== null;
+      if (isObjectLike(prevVal) && isObjectLike(newVal)) {
+        try {
+          return JSON.stringify(prevVal) !== JSON.stringify(newVal);
+        } catch {
+          return true; // Assume changed if serialization fails
+        }
+      }
+
+      return prevVal !== newVal;
+    });
+
+    if (!hasChanges) return;
+
+    const nextState: TacticalState = { ...currentTacticalHistoryState, ...newState };
+    pushTacticalHistoryState(nextState);
+  }, [currentTacticalHistoryState, pushTacticalHistoryState]);
+
   const buildGameSessionHistorySlice = useCallback((state: GameSessionState) => {
     const slice = {
       teamName: state.teamName,
@@ -293,17 +335,17 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     return slice;
   }, []);
 
-  // --- Effect to save gameSessionState changes to history ---
-  useEffect(() => {
-    // This effect runs after gameSessionState has been updated by the reducer.
-    // It constructs the relevant slice of AppState from the new gameSessionState
-    // and saves it to the history.
-    const gameSessionHistorySlice = buildGameSessionHistorySlice(gameSessionState);
-    // saveStateToHistory will merge this with other non-gameSessionState parts of AppState
-    // (like playersOnField, opponents, drawings) that are handled elsewhere.
-    saveStateToHistory(gameSessionHistorySlice);
-  }, [gameSessionState, saveStateToHistory, buildGameSessionHistorySlice]);
-  // END --- Effect to save gameSessionState changes to history ---
+  // --- Game Session State with Automatic History Management ---
+  // Uses useGameSessionWithHistory hook which handles history saving automatically
+  // for user actions while skipping system actions (undo/redo/load)
+  const [gameSessionState, dispatchGameSession] = useGameSessionWithHistory(
+    initialGameSessionData,
+    {
+      buildHistorySlice: buildGameSessionHistorySlice,
+      saveToHistory: saveStateToHistory,
+    }
+  );
+  // END --- Game Session State ---
 
   // --- Load game data via hook ---
   const {
@@ -478,6 +520,18 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState<boolean>(false);
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
+  const [showResetFieldConfirm, setShowResetFieldConfirm] = useState<boolean>(false);
+
+  // Field interaction state (drawing mode, etc.) - extracted to dedicated hook
+  const { isDrawingEnabled, toggleDrawingMode: handleToggleDrawingMode } = useFieldInteractions({
+    onPersistError: () => {
+      // Non-blocking notice; preference save failed, UI still toggled
+      showToast(
+        t('errors.failedToSaveDrawingMode', 'Failed to save drawing mode setting. Changes may not persist.'),
+        'info'
+      );
+    }
+  });
 
   // L2-2.4.1: Build GameContainer view-model (not yet consumed)
   const gameContainerVM = React.useMemo(() => {
@@ -622,7 +676,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     initialDiscs: initialState.tacticalDiscs,
     initialDrawings: initialState.tacticalDrawings,
     initialBallPosition: initialState.tacticalBallPosition,
-    saveStateToHistory,
+    saveStateToHistory: saveTacticalStateToHistory,
   });
 
   // Load teams when orphaned game is detected
@@ -1140,7 +1194,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     t,
     initialLoadComplete,
     initialAction, // Used to determine if instructions modal should show automatically
-    savedGames // Used to check if user has any saved games for instructions modal logic
+    savedGames, // Used to check if user has any saved games for instructions modal logic
+    dispatchGameSession // Used for timer restoration
   ]);
 
   // Check if we should show first game interface guide
@@ -1490,8 +1545,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   
 
 
-  // --- Reset Handler ---
-  const handleResetField = useCallback(() => {
+  // --- Reset Handlers ---
+  const handleResetFieldConfirmed = useCallback(() => {
     if (isTacticsBoardView) {
       clearTacticalElements();
     } else {
@@ -1501,8 +1556,13 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       setDrawings([]);
       saveStateToHistory({ playersOnField: [], opponents: [], drawings: [] });
     }
+    setShowResetFieldConfirm(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isTacticsBoardView, saveStateToHistory, clearTacticalElements]);
+
+  const handleResetFieldClick = useCallback(() => {
+    setShowResetFieldConfirm(true);
+  }, []);
 
   const handleClearDrawingsForView = () => {
     if (isTacticsBoardView) {
@@ -1559,6 +1619,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   };
 
   const applyHistoryState = (state: AppState) => {
+    // No flag needed! The useGameSessionWithHistory hook automatically skips
+    // history saving for LOAD_STATE_FROM_HISTORY action type.
+
     setPlayersOnField(state.playersOnField);
     setOpponents(state.opponents);
     setDrawings(state.drawings);
@@ -1620,12 +1683,40 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
   };
 
+  // Apply tactical history state (for tactical undo/redo)
+  const applyTacticalHistoryState = (state: TacticalState) => {
+    setTacticalDiscs(state.tacticalDiscs || []);
+    setTacticalDrawings(state.tacticalDrawings || []);
+    setTacticalBallPosition(state.tacticalBallPosition || null);
+  };
+
+  const handleTacticalUndo = () => {
+    const prevState = undoTacticalHistory();
+    if (prevState) {
+      logger.log('Undoing tactical action...');
+      applyTacticalHistoryState(prevState);
+    } else {
+      logger.log('Cannot undo: at beginning of tactical history');
+    }
+  };
+
+  const handleTacticalRedo = () => {
+    const nextState = redoTacticalHistory();
+    if (nextState) {
+      logger.log('Redoing tactical action...');
+      applyTacticalHistoryState(nextState);
+    } else {
+      logger.log('Cannot redo: at end of tactical history');
+    }
+  };
+
   // --- Timer Handlers provided by useGameTimer ---
 
   const handleToggleLargeTimerOverlay = () => {
     setShowLargeTimerOverlay(!showLargeTimerOverlay);
   };
 
+  // handleToggleDrawingMode is now provided by useFieldInteractions hook
 
   // Handler to specifically deselect player when bar background is clicked
   const handleDeselectPlayer = () => {
@@ -2557,14 +2648,14 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const handleSetSeasonId = useCallback((newSeasonId: string | undefined) => {
     const idToSet = newSeasonId || ''; // Ensure empty string instead of null
     logger.log('[page.tsx] handleSetSeasonId called with:', idToSet);
-    dispatchGameSession({ type: 'SET_SEASON_ID', payload: idToSet }); 
-  }, []); // No dependencies needed since we're only using dispatchGameSession which is stable
+    dispatchGameSession({ type: 'SET_SEASON_ID', payload: idToSet });
+  }, [dispatchGameSession]); // dispatchGameSession is stable from useGameSessionWithHistory
 
   const handleSetTournamentId = useCallback((newTournamentId: string | undefined) => {
     const idToSet = newTournamentId || ''; // Ensure empty string instead of null
     logger.log('[page.tsx] handleSetTournamentId called with:', idToSet);
     dispatchGameSession({ type: 'SET_TOURNAMENT_ID', payload: idToSet });
-  }, []); // No dependencies needed since we're only using dispatchGameSession which is stable
+  }, [dispatchGameSession]); // dispatchGameSession is stable from useGameSessionWithHistory
 
   // --- AGGREGATE EXPORT HANDLERS --- 
   
@@ -3082,6 +3173,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
             onToggleTacticalDiscType={handleToggleTacticalDiscType}
             tacticalBallPosition={tacticalBallPosition}
             onTacticalBallMove={handleTacticalBallMove}
+            isDrawingEnabled={isDrawingEnabled}
           />
         </ErrorBoundary>
 
@@ -3396,7 +3488,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
           onRedo={handleRedo}
           canUndo={canUndo}
           canRedo={canRedo}
-          onResetField={handleResetField}
+          // Tactical tools props (separate history)
+          onTacticalUndo={handleTacticalUndo}
+          onTacticalRedo={handleTacticalRedo}
+          canTacticalUndo={canTacticalUndo}
+          canTacticalRedo={canTacticalRedo}
+          onResetField={handleResetFieldClick}
           onClearDrawings={handleClearDrawingsForView}
           onAddOpponent={handleAddOpponent}
           onPlaceAllPlayers={handlePlaceAllPlayers}
@@ -3404,8 +3501,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
           onToggleTacticsBoard={handleToggleTacticsBoard}
           onAddHomeDisc={() => handleAddTacticalDisc('home')}
           onAddOpponentDisc={() => handleAddTacticalDisc('opponent')}
-          // Goal props
-          onToggleGoalLogModal={handleToggleGoalLogModal}
+          isDrawingEnabled={isDrawingEnabled}
+          onToggleDrawingMode={handleToggleDrawingMode}
           // Menu props
           onToggleTrainingResources={handleToggleTrainingResources}
           onToggleGameStatsModal={handleToggleGameStatsModal}
@@ -3780,6 +3877,23 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         onConfirm={handleStartNewConfirmed}
         onCancel={() => setShowStartNewConfirm(false)}
         confirmLabel={t('common.startNew', 'Start New')}
+        variant="danger"
+      />
+
+      {/* Reset Field Confirmation */}
+      <ConfirmationModal
+        isOpen={showResetFieldConfirm}
+        title={isTacticsBoardView
+          ? t('controlBar.resetFieldTacticsTitle', 'Reset Tactics Board?')
+          : t('controlBar.resetFieldNormalTitle', 'Reset Field?')}
+        message={isTacticsBoardView
+          ? t('tooltips.resetFieldTactics', 'Clear all tactical discs, drawings, and ball position from the tactics board.')
+          : t('tooltips.resetFieldNormal', 'Clear all players, opponents, and drawings from the field.')
+        }
+        warningMessage={t('common.cannotUndo', 'This action cannot be undone.')}
+        onConfirm={handleResetFieldConfirmed}
+        onCancel={() => setShowResetFieldConfirm(false)}
+        confirmLabel={t('controlBar.resetField', 'Reset Field')}
         variant="danger"
       />
 
