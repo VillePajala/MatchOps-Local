@@ -135,6 +135,7 @@ describe('Edge Cases and Error Handling Tests', () => {
         onTacticalDrawingStart: jest.fn(),
         onTacticalDrawingAddPoint: jest.fn(),
         onTacticalDrawingEnd: jest.fn(),
+        isDrawingEnabled: false,
       };
 
       render(<SoccerField {...emptyProps} />);
@@ -195,6 +196,7 @@ describe('Edge Cases and Error Handling Tests', () => {
         onTacticalDrawingStart: jest.fn(),
         onTacticalDrawingAddPoint: jest.fn(),
         onTacticalDrawingEnd: jest.fn(),
+        isDrawingEnabled: false,
       };
 
       const startTime = performance.now();
@@ -246,6 +248,7 @@ describe('Edge Cases and Error Handling Tests', () => {
         onTacticalDrawingStart: jest.fn(),
         onTacticalDrawingAddPoint: jest.fn(),
         onTacticalDrawingEnd: jest.fn(),
+        isDrawingEnabled: false,
       };
 
       // Should handle invalid data without crashing
@@ -292,6 +295,7 @@ describe('Edge Cases and Error Handling Tests', () => {
         onTacticalDrawingStart: jest.fn(),
         onTacticalDrawingAddPoint: jest.fn(),
         onTacticalDrawingEnd: jest.fn(),
+        isDrawingEnabled: false,
       };
 
       render(<SoccerField {...props} />);
@@ -400,6 +404,7 @@ describe('Edge Cases and Error Handling Tests', () => {
         onTacticalDrawingStart: jest.fn(),
         onTacticalDrawingAddPoint: jest.fn(),
         onTacticalDrawingEnd: jest.fn(),
+        isDrawingEnabled: false,
       };
 
       render(<SoccerField {...props} />);

@@ -49,6 +49,7 @@ const createProps = (overrides?: Partial<GameContainerProps>): GameContainerProp
   gameSessionState: initialGameSessionStatePlaceholder,
   currentGameId: 'game_123',
   draggingPlayerFromBarInfo: null,
+  isDrawingEnabled: false,
   showLargeTimerOverlay: false,
   initialLoadComplete: true,
   orphanedGameInfo: null,
@@ -94,6 +95,7 @@ const createProps = (overrides?: Partial<GameContainerProps>): GameContainerProp
   handleOpenSettingsModal: jest.fn(),
   openPlayerAssessmentModal: jest.fn(),
   handleOpenPersonnelManager: jest.fn(),
+  handleToggleDrawingMode: jest.fn(),
   ...overrides,
 });
 

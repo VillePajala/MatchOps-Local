@@ -936,6 +936,15 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
     handleMouseUp(); // Treat leave same as mouse up
   };
 
+  // If drawing mode is disabled while an active drawing is in progress, end it gracefully
+  useEffect(() => {
+    if (!isDrawingEnabled && isDrawing) {
+      onDrawingEnd();
+      setIsDrawing(false);
+      if (canvasRef.current) canvasRef.current.style.cursor = 'default';
+    }
+  }, [isDrawingEnabled, isDrawing, onDrawingEnd]);
+
   // --- Touch Handlers ---
   const handleTouchStart = useCallback((e: TouchEvent) => {
     if (e.touches.length > 1) return;

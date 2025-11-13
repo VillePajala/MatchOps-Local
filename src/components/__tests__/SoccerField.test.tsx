@@ -264,6 +264,41 @@ describe('SoccerField Component - Interaction Testing', () => {
       const canvas = document.querySelector('canvas');
       expect(canvas).toBeInTheDocument();
     });
+
+    it('cancels active drawing when drawing mode is disabled', () => {
+      const props = { ...defaultProps, isDrawingEnabled: true };
+      const { rerender } = render(<SoccerField {...props} />);
+
+      const canvas = document.querySelector('canvas') as HTMLCanvasElement | null;
+      expect(canvas).toBeInTheDocument();
+      if (!canvas) return;
+
+      // Ensure canvas has measurable size for relative calculations
+      const rectMock: DOMRect = {
+        left: 0,
+        top: 0,
+        right: 300,
+        bottom: 150,
+        width: 300,
+        height: 150,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      } as DOMRect;
+      jest.spyOn(canvas, 'getBoundingClientRect').mockReturnValue(
+        rectMock
+      );
+
+      // Start drawing
+      fireEvent.mouseDown(canvas, { clientX: 100, clientY: 100 });
+      expect(props.onDrawingStart).toHaveBeenCalled();
+
+      // Disable drawing mode via rerender
+      rerender(<SoccerField {...props} isDrawingEnabled={false} />);
+
+      // Drawing should be ended
+      expect(props.onDrawingEnd).toHaveBeenCalled();
+    });
   });
 
   describe('Performance and Stability', () => {
