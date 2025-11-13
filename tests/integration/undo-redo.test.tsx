@@ -32,7 +32,7 @@ describe('Undo/Redo Integration', () => {
     expect(result.current.canRedo).toBe(false);
 
     // Undo once
-    let undoneState: number | undefined;
+    let undoneState: number | null = null;
     act(() => {
       undoneState = result.current.undo();
     });
@@ -43,11 +43,12 @@ describe('Undo/Redo Integration', () => {
     expect(result.current.canRedo).toBe(true);
 
     // Undo again
+    let undoneState2: number | null = null;
     act(() => {
-      undoneState = result.current.undo();
+      undoneState2 = result.current.undo();
     });
 
-    expect(undoneState).toBe(1);
+    expect(undoneState2).toBe(1);
     expect(result.current.state).toBe(1);
     expect(result.current.canUndo).toBe(true);
     expect(result.current.canRedo).toBe(true);
@@ -107,7 +108,7 @@ describe('Undo/Redo Integration', () => {
 
     expect(result.current.canUndo).toBe(false);
 
-    let undoneState: number | null | undefined;
+    let undoneState: number | null = null;
     act(() => {
       undoneState = result.current.undo();
     });
@@ -129,7 +130,7 @@ describe('Undo/Redo Integration', () => {
 
     expect(result.current.canRedo).toBe(false);
 
-    let redoneState: number | null | undefined;
+    let redoneState: number | null = null;
     act(() => {
       redoneState = result.current.redo();
     });

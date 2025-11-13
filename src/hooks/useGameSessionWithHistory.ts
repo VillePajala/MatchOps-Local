@@ -85,6 +85,18 @@ export function useGameSessionWithHistory(
     dispatch(action);
   }, [dispatch]);
 
+  // Keep latest function refs stable to avoid effect churn when identities change upstream
+  const buildHistorySliceRef = useRef(buildHistorySlice);
+  const saveToHistoryRef = useRef(saveToHistory);
+
+  useEffect(() => {
+    buildHistorySliceRef.current = buildHistorySlice;
+  }, [buildHistorySlice]);
+
+  useEffect(() => {
+    saveToHistoryRef.current = saveToHistory;
+  }, [saveToHistory]);
+
   // Effect to save history after state changes (only for user actions)
   useEffect(() => {
     const lastAction = lastActionTypeRef.current;
@@ -96,13 +108,13 @@ export function useGameSessionWithHistory(
 
     // Only save for history-saving actions
     if (HISTORY_SAVING_ACTIONS.has(lastAction)) {
-      const historySlice = buildHistorySlice(state);
-      saveToHistory(historySlice);
+      const historySlice = buildHistorySliceRef.current(state);
+      saveToHistoryRef.current(historySlice);
     }
 
     // Clear the action type after processing
     lastActionTypeRef.current = null;
-  }, [state, buildHistorySlice, saveToHistory]);
+  }, [state]);
 
   return [state, enhancedDispatch];
 }

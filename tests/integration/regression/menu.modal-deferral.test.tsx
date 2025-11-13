@@ -62,6 +62,8 @@ describe('Menu → Modal deferral guard', () => {
         onOpenPlayerAssessmentModal={noop}
         onOpenTeamManagerModal={noop}
         onOpenPersonnelManager={noop}
+        isDrawingEnabled={false}
+        onToggleDrawingMode={noop}
       />
     );
   }

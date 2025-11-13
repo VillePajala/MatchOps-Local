@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: extract drawing mode state and fix history management architecture"
+  "notes": "fix: address UX and persistence issues in drawing mode"
 }

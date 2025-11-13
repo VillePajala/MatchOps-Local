@@ -11,7 +11,7 @@
  * @returns Field interaction state and handlers
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { getDrawingModeEnabled, saveDrawingModeEnabled } from '@/utils/appSettings';
 
 export interface UseFieldInteractionsReturn {
@@ -34,6 +34,7 @@ export interface UseFieldInteractionsReturn {
  */
 export function useFieldInteractions(): UseFieldInteractionsReturn {
   const [isDrawingEnabled, setIsDrawingEnabled] = useState<boolean>(false);
+  const isInitialMount = useRef(true);
 
   // Load saved drawing mode preference on mount
   useEffect(() => {
@@ -46,6 +47,10 @@ export function useFieldInteractions(): UseFieldInteractionsReturn {
 
   // Save preference when it changes
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     saveDrawingModeEnabled(isDrawingEnabled);
   }, [isDrawingEnabled]);
 
