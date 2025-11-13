@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "UI: compact but accessible GameInfoBar (mobile-first)\\n\\n- Container: min-h ~44px on mobile, ~48px on md+\\n- text-sm on mobile, text-base on md+\\n- Slightly reduced paddings; score pill remains readable"
+  "notes": "UI: reduce GameInfoBar height below original (min-h ~36px), keep text-sm; compact spacing to free field space"
 }
