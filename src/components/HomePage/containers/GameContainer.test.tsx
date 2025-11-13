@@ -1,9 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { GameContainer } from './GameContainer';
+import type { GameContainerProps } from './GameContainer';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
-import type { GameContainerProps } from './GameContainer';
+import { TestFixtures } from '../../../../tests/fixtures';
 import type { GameContainerViewModel } from '@/viewModels/gameContainer';
 
 const PlayerBarMock = jest.fn();
@@ -45,59 +46,8 @@ jest.mock('./FieldContainer', () => ({
 
 const mockPlayerBarModule = jest.requireMock('@/components/PlayerBar').default as jest.Mock;
 
-const createProps = (overrides?: Partial<GameContainerProps>): GameContainerProps => ({
-  gameSessionState: initialGameSessionStatePlaceholder,
-  currentGameId: 'game_123',
-  draggingPlayerFromBarInfo: null,
-  isDrawingEnabled: false,
-  showLargeTimerOverlay: false,
-  initialLoadComplete: true,
-  orphanedGameInfo: null,
-  showFirstGameGuide: false,
-  hasCheckedFirstGameGuide: false,
-  firstGameGuideStep: 0,
-  handlePlayerDragStartFromBar: jest.fn(),
-  handleDeselectPlayer: jest.fn(),
-  handlePlayerTapInBar: jest.fn(),
-  handleToggleGoalieForModal: jest.fn(),
-  handleTeamNameChange: jest.fn(),
-  handleOpponentNameChange: jest.fn(),
-  setIsTeamReassignModalOpen: jest.fn(),
-  handleToggleLargeTimerOverlay: jest.fn(),
-  handleToggleGoalLogModal: jest.fn(),
-  handleLogOpponentGoal: jest.fn(),
-  handlePlayerMove: jest.fn(),
-  handlePlayerMoveEnd: jest.fn(),
-  handlePlayerRemove: jest.fn(),
-  handleDropOnField: jest.fn(),
-  handlePlayerDropViaTouch: jest.fn(),
-  handlePlayerDragCancelViaTouch: jest.fn(),
-  setIsRosterModalOpen: jest.fn(),
-  setIsNewGameSetupModalOpen: jest.fn(),
-  handleOpenTeamManagerModal: jest.fn(),
-  setIsSeasonTournamentModalOpen: jest.fn(),
-  setShowFirstGameGuide: jest.fn(),
-  setFirstGameGuideStep: jest.fn(),
-  handleUndo: jest.fn(),
-  handleRedo: jest.fn(),
-  handleResetField: jest.fn(),
-  handleClearDrawingsForView: jest.fn(),
-  handlePlaceAllPlayers: jest.fn(),
-  handleToggleTrainingResources: jest.fn(),
-  handleToggleGameStatsModal: jest.fn(),
-  handleOpenLoadGameModal: jest.fn(),
-  handleStartNewGame: jest.fn(),
-  openRosterModal: jest.fn(),
-  handleQuickSaveGame: jest.fn(),
-  handleOpenGameSettingsModal: jest.fn(),
-  handleOpenSeasonTournamentModal: jest.fn(),
-  handleToggleInstructionsModal: jest.fn(),
-  handleOpenSettingsModal: jest.fn(),
-  openPlayerAssessmentModal: jest.fn(),
-  handleOpenPersonnelManager: jest.fn(),
-  handleToggleDrawingMode: jest.fn(),
-  ...overrides,
-});
+// Use shared fixture instead of local createProps
+const { createGameContainerProps } = TestFixtures.gameContainer;
 
 describe('GameContainer', () => {
   beforeEach(() => {
@@ -109,7 +59,7 @@ describe('GameContainer', () => {
   });
 
   it('returns null when no game session state', () => {
-    const props = createProps({
+    const props = createGameContainerProps({
       gameSessionState: null as unknown as GameContainerProps['gameSessionState'],
     });
 
@@ -118,7 +68,7 @@ describe('GameContainer', () => {
   });
 
   it('computes isGameLoaded for control bar', () => {
-    const props = createProps();
+    const props = createGameContainerProps();
 
     render(<GameContainer {...props} />);
     expect(ControlBarMock).toHaveBeenCalled();
@@ -142,7 +92,7 @@ describe('GameContainer', () => {
       throw new Error('boom');
     });
 
-    render(<GameContainer {...createProps()} />);
+    render(<GameContainer {...createGameContainerProps()} />);
 
     expect(
       screen.getByText('Player bar crashed. Please refresh the page.')
@@ -152,7 +102,7 @@ describe('GameContainer', () => {
   });
 
   it('uses view-model data when provided (parity with props)', () => {
-    const props = createProps({
+    const props = createGameContainerProps({
       gameSessionState: {
         ...initialGameSessionStatePlaceholder,
         teamName: 'Team A',

@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat(tactics): add tactics view field variations documentation"
+  "notes": "feat(history): implement separate persistent tactical history"
 }
