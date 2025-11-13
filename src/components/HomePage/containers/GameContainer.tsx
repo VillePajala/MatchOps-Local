@@ -213,19 +213,16 @@ export function GameContainer(props: GameContainerProps) {
   if (!gameSessionState) return null;
 
   // L2-2.4.2: Prefer view-model data for read-only subsets (parity fallback to props)
-  // Helper to reduce fallback verbosity
-  const vmOr = <T,>(vmValue: T | undefined, fallback: T): T => vmValue ?? fallback;
-
   const vm = props.viewModel;
-  const playerBarPlayers = vmOr(vm?.playerBar?.players, playersForCurrentGame || []);
-  const playerBarSelectedId = vmOr(vm?.playerBar?.selectedPlayerIdFromBar, draggingPlayerFromBarInfo?.id ?? null);
-  const playerBarGameEvents = vmOr(vm?.playerBar?.gameEvents, gameSessionState.gameEvents);
+  const playerBarPlayers = vm?.playerBar?.players ?? playersForCurrentGame ?? [];
+  const playerBarSelectedId = vm?.playerBar?.selectedPlayerIdFromBar ?? draggingPlayerFromBarInfo?.id ?? null;
+  const playerBarGameEvents = vm?.playerBar?.gameEvents ?? gameSessionState.gameEvents;
 
-  const infoTeamName = vmOr(vm?.gameInfo?.teamName, gameSessionState.teamName);
-  const infoOpponentName = vmOr(vm?.gameInfo?.opponentName, gameSessionState.opponentName);
-  const infoHomeScore = vmOr(vm?.gameInfo?.homeScore, gameSessionState.homeScore);
-  const infoAwayScore = vmOr(vm?.gameInfo?.awayScore, gameSessionState.awayScore);
-  const infoHomeOrAway = vmOr(vm?.gameInfo?.homeOrAway, gameSessionState.homeOrAway);
+  const infoTeamName = vm?.gameInfo?.teamName ?? gameSessionState.teamName;
+  const infoOpponentName = vm?.gameInfo?.opponentName ?? gameSessionState.opponentName;
+  const infoHomeScore = vm?.gameInfo?.homeScore ?? gameSessionState.homeScore;
+  const infoAwayScore = vm?.gameInfo?.awayScore ?? gameSessionState.awayScore;
+  const infoHomeOrAway = vm?.gameInfo?.homeOrAway ?? gameSessionState.homeOrAway;
 
   return (
     <main className="flex flex-col h-[100dvh] bg-slate-900 text-slate-50" data-testid="home-page">
