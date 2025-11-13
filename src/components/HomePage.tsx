@@ -471,6 +471,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState<boolean>(false);
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
+  const [showResetFieldConfirm, setShowResetFieldConfirm] = useState<boolean>(false);
 
   // Field interaction state (drawing mode, etc.) - extracted to dedicated hook
   const { isDrawingEnabled, toggleDrawingMode: handleToggleDrawingMode } = useFieldInteractions({
@@ -1495,8 +1496,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   
 
 
-  // --- Reset Handler ---
-  const handleResetField = useCallback(() => {
+  // --- Reset Handlers ---
+  const handleResetFieldConfirmed = useCallback(() => {
     if (isTacticsBoardView) {
       clearTacticalElements();
     } else {
@@ -1506,8 +1507,13 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       setDrawings([]);
       saveStateToHistory({ playersOnField: [], opponents: [], drawings: [] });
     }
+    setShowResetFieldConfirm(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isTacticsBoardView, saveStateToHistory, clearTacticalElements]);
+
+  const handleResetFieldClick = useCallback(() => {
+    setShowResetFieldConfirm(true);
+  }, []);
 
   const handleClearDrawingsForView = () => {
     if (isTacticsBoardView) {
@@ -3406,7 +3412,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
           onRedo={handleRedo}
           canUndo={canUndo}
           canRedo={canRedo}
-          onResetField={handleResetField}
+          onResetField={handleResetFieldClick}
           onClearDrawings={handleClearDrawingsForView}
           onAddOpponent={handleAddOpponent}
           onPlaceAllPlayers={handlePlaceAllPlayers}
@@ -3416,8 +3422,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
           onAddOpponentDisc={() => handleAddTacticalDisc('opponent')}
           isDrawingEnabled={isDrawingEnabled}
           onToggleDrawingMode={handleToggleDrawingMode}
-          // Goal props
-          onToggleGoalLogModal={handleToggleGoalLogModal}
           // Menu props
           onToggleTrainingResources={handleToggleTrainingResources}
           onToggleGameStatsModal={handleToggleGameStatsModal}
@@ -3792,6 +3796,21 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         onConfirm={handleStartNewConfirmed}
         onCancel={() => setShowStartNewConfirm(false)}
         confirmLabel={t('common.startNew', 'Start New')}
+        variant="danger"
+      />
+
+      {/* Reset Field Confirmation */}
+      <ConfirmationModal
+        isOpen={showResetFieldConfirm}
+        title={t('controlBar.resetField', 'Reset Field')}
+        message={isTacticsBoardView
+          ? t('tooltips.resetFieldTactics', 'Clear all tactical discs, drawings, and ball position from the tactics board.')
+          : t('tooltips.resetFieldNormal', 'Clear all players, opponents, and drawings from the field.')
+        }
+        warningMessage={t('common.cannotUndo', 'This action cannot be undone.')}
+        onConfirm={handleResetFieldConfirmed}
+        onCancel={() => setShowResetFieldConfirm(false)}
+        confirmLabel={t('controlBar.resetField', 'Reset Field')}
         variant="danger"
       />
 

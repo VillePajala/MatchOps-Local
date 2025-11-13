@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  HiOutlineWrench,
   HiBars3,
   HiOutlineChevronLeft,
   HiOutlineArchiveBoxArrowDown,
@@ -27,9 +26,7 @@ import {
   HiOutlineSquares2X2,
   HiOutlineXMark,
   HiOutlineIdentification,
-  HiOutlinePencil,
 } from 'react-icons/hi2';
-import { FaFutbol } from 'react-icons/fa';
 import { useTranslation } from 'react-i18next';
 import logger from '@/utils/logger';
 
@@ -86,8 +83,6 @@ interface ControlBarProps {
   onPlaceAllPlayers: () => void;
   isDrawingEnabled: boolean;
   onToggleDrawingMode: () => void;
-  // Goal
-  onToggleGoalLogModal: () => void;
   // Menu (existing functionality)
   onToggleTrainingResources: () => void;
   onToggleGameStatsModal: () => void;
@@ -123,7 +118,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
   onPlaceAllPlayers,
   isDrawingEnabled,
   onToggleDrawingMode,
-  onToggleGoalLogModal,
   onToggleTrainingResources,
   onToggleGameStatsModal,
   onOpenLoadGameModal,
@@ -318,34 +312,26 @@ const ControlBar: React.FC<ControlBarProps> = ({
         {!isFieldToolsOpen ? (
           /* Collapsed State - Normal View */
           <>
-            {/* Field Tools Button - Square shape */}
-            <button
-              onClick={() => setIsFieldToolsOpen(true)}
-              className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
-              title={t('controlBar.fieldTools', 'Field Tools')}
-              aria-label={t('controlBar.fieldTools', 'Field Tools')}
-            >
-              <HiOutlineWrench className={iconSize} />
-            </button>
-
-            {/* Drawing Mode Toggle Button - Square shape */}
+            {/* Tactics Button - Opens field tools + enters tactics mode + enables drawing */}
             <button
               onClick={() => {
-                try {
-                  onToggleDrawingMode();
-                } catch (error) {
-                  logger.error('Failed to toggle drawing mode', { error });
+                setIsFieldToolsOpen(true);
+                if (!isTacticsBoardView) {
+                  onToggleTacticsBoard();
+                }
+                if (!isDrawingEnabled) {
+                  try {
+                    onToggleDrawingMode();
+                  } catch (error) {
+                    logger.error('Failed to toggle drawing mode', { error });
+                  }
                 }
               }}
-              className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 ${
-                isDrawingEnabled
-                  ? 'bg-indigo-600 hover:bg-indigo-500 border-indigo-500/50 focus:ring-indigo-400'
-                  : 'bg-slate-700 hover:bg-slate-600 border-slate-600/30 focus:ring-slate-500'
-              }`}
-              title={t('controlBar.drawingMode', 'Drawing Mode') + (isDrawingEnabled ? ' (ON)' : ' (OFF)')}
-              aria-label={t('controlBar.drawingMode', 'Drawing Mode')}
+              className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
+              title={t('controlBar.toggleTacticsBoardShow', 'Tactics Board')}
+              aria-label={t('controlBar.toggleTacticsBoardShow', 'Tactics Board')}
             >
-              <HiOutlinePencil className={iconSize} />
+              <HiOutlineClipboard className={iconSize} />
             </button>
 
             {/* Place All Players Button - Square shape */}
@@ -370,17 +356,17 @@ const ControlBar: React.FC<ControlBarProps> = ({
               </span>
             </button>
 
-            {/* Goal Button - Square shape */}
+            {/* Reset Field Button - Square shape (with confirmation) */}
             <button
-              onClick={onToggleGoalLogModal}
+              onClick={onResetField}
               className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
-              title={t('controlBar.logGoal', 'Log Goal')}
-              aria-label={t('controlBar.logGoal', 'Log Goal')}
+              title={t('controlBar.resetField', 'Reset Field')}
+              aria-label={t('controlBar.resetField', 'Reset Field')}
             >
-              <FaFutbol size={DESIGN_TOKENS.ICON_SIZE_PX} />
+              <HiOutlineTrash className={iconSize} />
             </button>
 
-            {/* Menu Button - Square shape */}
+            {/* Menu Button - Square shape (rightmost) */}
             <button
               onClick={handleSettingsButtonClick}
               className={`${DESIGN_TOKENS.BUTTON_SIZE} flex items-center justify-center rounded-md shadow-sm border border-slate-600/30 transition-all duration-200 active:scale-95 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
@@ -393,9 +379,23 @@ const ControlBar: React.FC<ControlBarProps> = ({
         ) : (
           /* Expanded State - Field Tools Mode */
           <>
-            {/* Close/Back Button */}
+            {/* Close/Back Button - Exits entire tactics workflow */}
             <button
-              onClick={() => setIsFieldToolsOpen(false)}
+              onClick={() => {
+                setIsFieldToolsOpen(false);
+                // Exit tactics mode if currently in it
+                if (isTacticsBoardView) {
+                  onToggleTacticsBoard();
+                }
+                // Disable drawing mode if currently enabled
+                if (isDrawingEnabled) {
+                  try {
+                    onToggleDrawingMode();
+                  } catch (error) {
+                    logger.error('Failed to toggle drawing mode', { error });
+                  }
+                }
+              }}
               className={`${buttonStyle} bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
               title={t('common.back', 'Back')}
               aria-label={t('common.back', 'Back')}
@@ -423,30 +423,21 @@ const ControlBar: React.FC<ControlBarProps> = ({
               <HiOutlineArrowUturnRight className={iconSize} />
             </button>
 
-            {/* Tactics Toggle */}
-            <button
-              onClick={onToggleTacticsBoard}
-              className={`${buttonStyle} ${isTacticsBoardView ? 'bg-slate-600 hover:bg-slate-500 focus:ring-slate-500' : 'bg-slate-700 hover:bg-slate-600 focus:ring-slate-500'}`}
-              title={t(isTacticsBoardView ? 'controlBar.toggleTacticsBoardHide' : 'controlBar.toggleTacticsBoardShow') ?? 'Tactics'}
-            >
-              <HiOutlineClipboard className={iconSize} />
-            </button>
-
-            {/* Add Home Disc (only visible in tactics board mode) */}
+            {/* Add Home Disc (only visible in tactics board mode) - Purple color */}
             {isTacticsBoardView && (
               <button
                 onClick={onAddHomeDisc}
-                className={`${buttonStyle} bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
+                className={`${buttonStyle} bg-purple-700/80 hover:bg-purple-600 focus:ring-purple-500 border-purple-500/30`}
                 title={t('controlBar.addHomeDisc', 'Add Home Disc')}
               >
                 <HiOutlinePlusCircle className={iconSize} />
               </button>
             )}
 
-            {/* Add Opponent / Add Opponent Disc */}
+            {/* Add Opponent / Add Opponent Disc - Red color */}
             <button
               onClick={isTacticsBoardView ? onAddOpponentDisc : onAddOpponent}
-              className={`${buttonStyle} bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
+              className={`${buttonStyle} bg-red-700/80 hover:bg-red-600 focus:ring-red-500 border-red-500/30`}
               title={isTacticsBoardView ? t('controlBar.addOpponentDisc', 'Add Opponent Disc') : t('controlBar.addOpponent', 'Add Opponent')}
             >
               <HiOutlinePlusCircle className={iconSize} />
@@ -464,7 +455,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
             {/* Reset Field */}
             <button
               onClick={onResetField}
-              className={`${buttonStyle} bg-red-700/40 hover:bg-red-700/60 focus:ring-red-600`}
+              className={`${buttonStyle} bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
               title={t('controlBar.resetField', 'Reset Field')}
             >
               <HiOutlineTrash className={iconSize} />

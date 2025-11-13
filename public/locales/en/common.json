@@ -148,6 +148,7 @@
     "gamePlural": "Games",
     "confirmDeleteTitle": "Delete Item",
     "confirmDelete": "Are you sure you want to delete this item?",
+    "cannotUndo": "This action cannot be undone.",
     "addPlayers": "Add Players",
     "reset": "Reset",
     "startNew": "Start New"
@@ -285,6 +286,8 @@
       "clearDrawings": "Remove all drawn lines.",
       "addOpponent": "Add an opponent marker to the center of the field.",
       "resetField": "Clear all players, opponents, and drawings from the field.",
+      "resetFieldNormal": "Clear all players, opponents, and drawings from the field.",
+      "resetFieldTactics": "Clear all tactical discs, drawings, and ball position from the tactics board.",
       "toggleTimerOverlay": "Show/hide the large timer/substitution overlay.",
       "timerControls": "Start/Pause/Reset the match timer.",
       "help": "Show/hide these instructions.",

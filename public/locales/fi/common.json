@@ -149,6 +149,7 @@
     "gamePlural": "Ottelua",
     "confirmDeleteTitle": "Poista kohde",
     "confirmDelete": "Haluatko varmasti poistaa tämän kohteen?",
+    "cannotUndo": "Tätä toimintoa ei voi peruuttaa.",
     "addPlayers": "Lisää pelaajia",
     "reset": "Nollaa",
     "startNew": "Aloita uusi"
@@ -320,6 +321,8 @@
       "clearDrawings": "Poista kaikki piirretyt viivat.",
       "addOpponent": "Lisää vastustajamerkki kentän keskelle.",
       "resetField": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
+      "resetFieldNormal": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
+      "resetFieldTactics": "Tyhjennä kaikki taktiset kiekot, piirustukset ja pallon sijainti taktiselta taulusta.",
       "toggleTimerOverlay": "Näytä/piilota iso ottelukello ja vaihtonäkymä.",
       "timerControls": "Käynnistä/pysäytä/nollaa otteluajastin.",
       "help": "Näytä/piilota nämä ohjeet.",

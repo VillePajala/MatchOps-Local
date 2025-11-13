@@ -465,7 +465,6 @@ export function GameContainer(props: GameContainerProps) {
           onToggleTacticsBoard={handleToggleTacticsBoard || (() => {})}
           onAddHomeDisc={() => handleAddTacticalDisc?.('home')}
           onAddOpponentDisc={() => handleAddTacticalDisc?.('opponent')}
-          onToggleGoalLogModal={handleToggleGoalLogModal || (() => {})}
           onToggleTrainingResources={handleToggleTrainingResources || (() => {})}
           onToggleGameStatsModal={handleToggleGameStatsModal || (() => {})}
           onOpenLoadGameModal={handleOpenLoadGameModal || (() => {})}
