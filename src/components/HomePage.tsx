@@ -3072,21 +3072,25 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
       <FieldContainer
         gameSessionState={gameSessionState}
-        playersOnField={playersOnField}
-        opponents={opponents}
-        drawings={drawings}
-        isTacticsBoardView={isTacticsBoardView}
-        tacticalDrawings={tacticalDrawings}
-        tacticalDiscs={tacticalDiscs}
-        tacticalBallPosition={tacticalBallPosition}
-        draggingPlayerFromBarInfo={draggingPlayerFromBarInfo}
-        isDrawingEnabled={isDrawingEnabled}
-        timeElapsedInSeconds={timeElapsedInSeconds}
-        isTimerRunning={isTimerRunning}
-        subAlertLevel={subAlertLevel}
-        lastSubConfirmationTimeSeconds={lastSubConfirmationTimeSeconds}
-        showLargeTimerOverlay={showLargeTimerOverlay}
-        initialLoadComplete={initialLoadComplete}
+        fieldVM={{
+          playersOnField,
+          opponents,
+          drawings,
+          isTacticsBoardView,
+          tacticalDrawings,
+          tacticalDiscs,
+          tacticalBallPosition,
+          draggingPlayerFromBarInfo,
+          isDrawingEnabled,
+        }}
+        timerVM={{
+          timeElapsedInSeconds,
+          isTimerRunning,
+          subAlertLevel,
+          lastSubConfirmationTimeSeconds,
+          showLargeTimerOverlay,
+          initialLoadComplete,
+        }}
         currentGameId={currentGameId}
         availablePlayers={availablePlayers}
         teams={teams}

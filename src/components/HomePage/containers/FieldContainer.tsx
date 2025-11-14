@@ -18,22 +18,43 @@ import type {
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 
 export interface FieldContainerProps {
+  // Optional grouped state to reduce prop count (2.4.4)
+  fieldVM?: {
+    playersOnField: AppState['playersOnField'];
+    opponents: AppState['opponents'];
+    drawings: AppState['drawings'];
+    isTacticsBoardView: boolean;
+    tacticalDrawings: Point[][];
+    tacticalDiscs: TacticalDisc[];
+    tacticalBallPosition: Point | null;
+    draggingPlayerFromBarInfo: Player | null;
+    isDrawingEnabled: boolean;
+  };
+  timerVM?: {
+    timeElapsedInSeconds: number;
+    isTimerRunning: boolean;
+    subAlertLevel: GameSessionState['subAlertLevel'];
+    lastSubConfirmationTimeSeconds: number;
+    showLargeTimerOverlay: boolean;
+    initialLoadComplete: boolean;
+  };
   gameSessionState: GameSessionState;
-  playersOnField: AppState['playersOnField'];
-  opponents: AppState['opponents'];
-  drawings: AppState['drawings'];
-  isTacticsBoardView: boolean;
-  tacticalDrawings: Point[][];
-  tacticalDiscs: TacticalDisc[];
-  tacticalBallPosition: Point | null;
-  draggingPlayerFromBarInfo: Player | null;
-  isDrawingEnabled: boolean;
-  timeElapsedInSeconds: number;
-  isTimerRunning: boolean;
-  subAlertLevel: GameSessionState['subAlertLevel'];
-  lastSubConfirmationTimeSeconds: number;
-  showLargeTimerOverlay: boolean;
-  initialLoadComplete: boolean;
+  // Individual props remain for backward compatibility during migration (now optional)
+  playersOnField?: AppState['playersOnField'];
+  opponents?: AppState['opponents'];
+  drawings?: AppState['drawings'];
+  isTacticsBoardView?: boolean;
+  tacticalDrawings?: Point[][];
+  tacticalDiscs?: TacticalDisc[];
+  tacticalBallPosition?: Point | null;
+  draggingPlayerFromBarInfo?: Player | null;
+  isDrawingEnabled?: boolean;
+  timeElapsedInSeconds?: number;
+  isTimerRunning?: boolean;
+  subAlertLevel?: GameSessionState['subAlertLevel'];
+  lastSubConfirmationTimeSeconds?: number;
+  showLargeTimerOverlay?: boolean;
+  initialLoadComplete?: boolean;
   currentGameId: string | null;
   availablePlayers: Player[];
   teams: Team[];
@@ -79,6 +100,8 @@ export interface FieldContainerProps {
 }
 
 export function FieldContainer({
+  fieldVM,
+  timerVM,
   gameSessionState,
   playersOnField,
   opponents,
@@ -150,22 +173,40 @@ export function FieldContainer({
     onGuideStepChange?.(step);
   };
 
+  // Consolidated locals (prefer VMs when provided)
+  const fcPlayersOnField = fieldVM?.playersOnField ?? playersOnField ?? [];
+  const fcOpponents = fieldVM?.opponents ?? opponents ?? [];
+  const fcDrawings = fieldVM?.drawings ?? drawings ?? [];
+  const fcIsTactics = fieldVM?.isTacticsBoardView ?? isTacticsBoardView ?? false;
+  const fcTacticalDrawings = fieldVM?.tacticalDrawings ?? tacticalDrawings ?? [];
+  const fcTacticalDiscs = fieldVM?.tacticalDiscs ?? tacticalDiscs ?? [];
+  const fcTacticalBall = fieldVM?.tacticalBallPosition ?? tacticalBallPosition ?? { relX: 0.5, relY: 0.5 };
+  const fcDraggingFromBar = fieldVM?.draggingPlayerFromBarInfo ?? draggingPlayerFromBarInfo ?? null;
+  const fcIsDrawingEnabled = fieldVM?.isDrawingEnabled ?? isDrawingEnabled ?? false;
+
+  const tmTime = timerVM?.timeElapsedInSeconds ?? timeElapsedInSeconds ?? 0;
+  const tmIsRunning = timerVM?.isTimerRunning ?? isTimerRunning ?? false;
+  const tmSubAlert = (timerVM?.subAlertLevel ?? subAlertLevel ?? 'none') as GameSessionState['subAlertLevel'];
+  const tmLastSub = timerVM?.lastSubConfirmationTimeSeconds ?? lastSubConfirmationTimeSeconds ?? 0;
+  const tmShowOverlay = timerVM?.showLargeTimerOverlay ?? showLargeTimerOverlay ?? false;
+  const tmInitialLoad = timerVM?.initialLoadComplete ?? initialLoadComplete ?? false;
+
   return (
     <div className="flex-grow relative bg-black overflow-hidden">
-      {showLargeTimerOverlay && (
+      {tmShowOverlay && (
         <TimerOverlay
-          timeElapsedInSeconds={timeElapsedInSeconds}
-          subAlertLevel={subAlertLevel}
+          timeElapsedInSeconds={tmTime}
+          subAlertLevel={tmSubAlert}
           onSubstitutionMade={handleSubstitutionMade || devWarnMissingHandler('handleSubstitutionMade')}
           completedIntervalDurations={gameSessionState.completedIntervalDurations || []}
           subIntervalMinutes={gameSessionState.subIntervalMinutes}
           onSetSubInterval={handleSetSubInterval || devWarnMissingHandler('handleSetSubInterval')}
-          isTimerRunning={isTimerRunning}
+          isTimerRunning={tmIsRunning}
           onStartPauseTimer={handleStartPauseTimer || devWarnMissingHandler('handleStartPauseTimer')}
           onResetTimer={handleResetTimer || devWarnMissingHandler('handleResetTimer')}
           onToggleGoalLogModal={handleToggleGoalLogModal || devWarnMissingHandler('handleToggleGoalLogModal')}
           onRecordOpponentGoal={() => {
-            if (handleLogOpponentGoal) return handleLogOpponentGoal(timeElapsedInSeconds);
+            if (handleLogOpponentGoal) return handleLogOpponentGoal(tmTime);
             if (process.env.NODE_ENV !== 'production') {
               logger.warn("FieldContainer: missing handler 'handleLogOpponentGoal'");
             }
@@ -175,14 +216,14 @@ export function FieldContainer({
           homeScore={gameSessionState.homeScore}
           awayScore={gameSessionState.awayScore}
           homeOrAway={gameSessionState.homeOrAway}
-          lastSubTime={lastSubConfirmationTimeSeconds}
+          lastSubTime={tmLastSub}
           numberOfPeriods={gameSessionState.numberOfPeriods}
           periodDurationMinutes={gameSessionState.periodDurationMinutes}
           currentPeriod={gameSessionState.currentPeriod}
           gameStatus={gameSessionState.gameStatus}
           onOpponentNameChange={() => {}}
           onClose={handleToggleLargeTimerOverlay || (() => {})}
-          isLoaded={initialLoadComplete}
+          isLoaded={tmInitialLoad}
         />
       )}
 
@@ -196,10 +237,10 @@ export function FieldContainer({
           </div>
         }
       >
-        <SoccerField
-          players={playersOnField}
-          opponents={opponents}
-          drawings={isTacticsBoardView ? tacticalDrawings : drawings}
+          <SoccerField
+          players={fcPlayersOnField}
+          opponents={fcOpponents}
+          drawings={fcIsTactics ? fcTacticalDrawings : fcDrawings}
           onPlayerMove={handlePlayerMove || (() => {})}
           onPlayerMoveEnd={handlePlayerMoveEnd || (() => {})}
           onPlayerRemove={handlePlayerRemove || (() => {})}
@@ -208,29 +249,29 @@ export function FieldContainer({
           onOpponentRemove={handleOpponentRemove || (() => {})}
           onPlayerDrop={handleDropOnField || (() => {})}
           showPlayerNames={gameSessionState.showPlayerNames}
-          onDrawingStart={isTacticsBoardView ? handleTacticalDrawingStart || (() => {}) : handleDrawingStart || (() => {})}
-          onDrawingAddPoint={isTacticsBoardView ? handleTacticalDrawingAddPoint || (() => {}) : handleDrawingAddPoint || (() => {})}
-          onDrawingEnd={isTacticsBoardView ? handleTacticalDrawingEnd || (() => {}) : handleDrawingEnd || (() => {})}
-          draggingPlayerFromBarInfo={draggingPlayerFromBarInfo}
+          onDrawingStart={fcIsTactics ? handleTacticalDrawingStart || (() => {}) : handleDrawingStart || (() => {})}
+          onDrawingAddPoint={fcIsTactics ? handleTacticalDrawingAddPoint || (() => {}) : handleDrawingAddPoint || (() => {})}
+          onDrawingEnd={fcIsTactics ? handleTacticalDrawingEnd || (() => {}) : handleDrawingEnd || (() => {})}
+          draggingPlayerFromBarInfo={fcDraggingFromBar}
           onPlayerDropViaTouch={handlePlayerDropViaTouch || (() => {})}
           onPlayerDragCancelViaTouch={handlePlayerDragCancelViaTouch || (() => {})}
-          timeElapsedInSeconds={timeElapsedInSeconds}
-          isTacticsBoardView={isTacticsBoardView}
-          tacticalDiscs={tacticalDiscs || []}
+          timeElapsedInSeconds={tmTime}
+          isTacticsBoardView={fcIsTactics}
+          tacticalDiscs={fcTacticalDiscs || []}
           onTacticalDiscMove={handleTacticalDiscMove || (() => {})}
           onTacticalDiscRemove={handleTacticalDiscRemove || (() => {})}
           onToggleTacticalDiscType={handleToggleTacticalDiscType || (() => {})}
-          tacticalBallPosition={tacticalBallPosition || { relX: 0.5, relY: 0.5 }}
+          tacticalBallPosition={fcTacticalBall || { relX: 0.5, relY: 0.5 }}
           onTacticalBallMove={handleTacticalBallMove || (() => {})}
-          isDrawingEnabled={isDrawingEnabled}
+          isDrawingEnabled={fcIsDrawingEnabled}
         />
       </ErrorBoundary>
 
       {/* First game setup guidance */}
-      {initialLoadComplete &&
+      {tmInitialLoad &&
         currentGameId === DEFAULT_GAME_ID &&
-        playersOnField.length === 0 &&
-        drawings.length === 0 && (
+        fcPlayersOnField.length === 0 &&
+        fcDrawings.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
             <div className="bg-slate-800/95 border border-indigo-500/50 rounded-xl p-10 max-w-lg mx-4 pointer-events-auto shadow-2xl backdrop-blur-sm">
               <div className="text-center">
@@ -306,9 +347,9 @@ export function FieldContainer({
           </div>
         )}
 
-      {initialLoadComplete &&
+      {tmInitialLoad &&
         currentGameId === DEFAULT_GAME_ID &&
-        (playersOnField.length > 0 || drawings.length > 0) && (
+        (fcPlayersOnField.length > 0 || fcDrawings.length > 0) && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-40">
             <div className="bg-amber-600/95 border border-amber-500/50 rounded-lg px-6 py-3 shadow-xl backdrop-blur-sm max-w-md">
               <div className="flex items-center gap-3 text-sm">
