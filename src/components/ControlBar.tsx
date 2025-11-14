@@ -406,11 +406,13 @@ const ControlBar: React.FC<ControlBarProps> = ({
             {/* Undo - Context-aware (tactical vs normal) */}
             <button
               onClick={() => {
-                // Log (non-blocking) then perform action
-                try {
-                  // eslint-disable-next-line no-console
-                  console.debug('[ControlBar] Undo clicked', { isTacticsBoardView });
-                } catch {}
+                // P3: Gate logging behind DEBUG flag (hot path performance)
+                if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+                  try {
+                    // eslint-disable-next-line no-console
+                    console.debug('[ControlBar] Undo clicked', { isTacticsBoardView });
+                  } catch {}
+                }
                 return isTacticsBoardView ? onTacticalUndo() : onUndo();
               }}
               disabled={isTacticsBoardView ? !canTacticalUndo : !canUndo}
@@ -423,10 +425,13 @@ const ControlBar: React.FC<ControlBarProps> = ({
             {/* Redo - Context-aware (tactical vs normal) */}
             <button
               onClick={() => {
-                try {
-                  // eslint-disable-next-line no-console
-                  console.debug('[ControlBar] Redo clicked', { isTacticsBoardView });
-                } catch {}
+                // P3: Gate logging behind DEBUG flag (hot path performance)
+                if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+                  try {
+                    // eslint-disable-next-line no-console
+                    console.debug('[ControlBar] Redo clicked', { isTacticsBoardView });
+                  } catch {}
+                }
                 return isTacticsBoardView ? onTacticalRedo() : onRedo();
               }}
               disabled={isTacticsBoardView ? !canTacticalRedo : !canRedo}

@@ -9,6 +9,17 @@ interface UseTacticalBoardArgs {
   saveStateToHistory: (partial: Partial<AppState>) => void;
 }
 
+/**
+ * TECHNICAL DEBT: Ref-based State Management
+ *
+ * This hook uses refs to avoid stale closures in callbacks, particularly for
+ * handleTacticalDrawingEnd which needs the latest state.
+ *
+ * - Risk: Potential state/UI desync if component unmounts during ref updates
+ * - Mitigation: Cleanup useEffect resets refs on unmount
+ * - Future: Consider migrating to useReducer pattern for better React integration
+ */
+
 export const useTacticalBoard = ({
   initialDiscs = [],
   initialDrawings = [],
@@ -39,6 +50,13 @@ export const useTacticalBoard = ({
 
   // Stroke lifecycle ref to ensure exactly one save per stroke
   const isStrokeActiveRef = useRef(false);
+
+  // P2 FIX: Reset stroke flag on unmount to prevent race conditions
+  useEffect(() => {
+    return () => {
+      isStrokeActiveRef.current = false;
+    };
+  }, []);
 
   const handleToggleTacticsBoard = useCallback(() => {
     setIsTacticsBoardView((prev) => !prev);
@@ -111,7 +129,10 @@ export const useTacticalBoard = ({
       const next = [...prev, [point]];
       // Keep the ref in sync synchronously so end handler always sees the latest value
       tacticalDrawingsRef.current = next;
-      try { logger.log('[TacticalDrawing] start', { prevLen: prev.length }); } catch {}
+      // P3: Gate logging behind DEBUG flag
+      if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+        try { logger.log('[TacticalDrawing] start', { prevLen: prev.length }); } catch {}
+      }
       return next;
     });
   }, []);
@@ -131,7 +152,10 @@ export const useTacticalBoard = ({
   const handleTacticalDrawingEnd = useCallback(() => {
     // Only save once per stroke end
     const lines = tacticalDrawingsRef.current.length;
-    try { logger.log('[TacticalDrawing] end', { lines }); } catch {}
+    // P3: Gate logging behind DEBUG flag
+    if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+      try { logger.log('[TacticalDrawing] end', { lines }); } catch {}
+    }
     if (!isStrokeActiveRef.current) {
       return; // duplicate end — ignore
     }

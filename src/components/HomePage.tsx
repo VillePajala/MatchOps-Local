@@ -254,9 +254,9 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   }, [currentHistoryState, pushHistoryState]);
 
   // Save tactical state via dedicated tactical history manager
-  const saveTacticalStateToHistory = useCallback((newState: Partial<typeof initialTacticalState>) => {
-    // Cast through the known TacticalState shape used by the history hook
-    tacticalHistory.save(newState as { tacticalDrawings?: AppState['tacticalDrawings']; tacticalDiscs?: AppState['tacticalDiscs']; tacticalBallPosition?: AppState['tacticalBallPosition'] });
+  // P3 FIX: Use proper TacticalHistoryState type instead of assertion
+  const saveTacticalStateToHistory = useCallback((newState: Partial<TacticalHistoryState>) => {
+    tacticalHistory.save(newState);
   }, [tacticalHistory]);
 
   const buildGameSessionHistorySlice = useCallback((state: GameSessionState) => {
