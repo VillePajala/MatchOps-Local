@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import logger from '@/utils/logger';
 import type { Point, TacticalDisc, AppState } from '@/types';
 
 interface UseTacticalBoardArgs {
@@ -7,6 +8,17 @@ interface UseTacticalBoardArgs {
   initialBallPosition?: Point | null;
   saveStateToHistory: (partial: Partial<AppState>) => void;
 }
+
+/**
+ * TECHNICAL DEBT: Ref-based State Management
+ *
+ * This hook uses refs to avoid stale closures in callbacks, particularly for
+ * handleTacticalDrawingEnd which needs the latest state.
+ *
+ * - Risk: Potential state/UI desync if component unmounts during ref updates
+ * - Mitigation: Cleanup useEffect resets refs on unmount
+ * - Future: Consider migrating to useReducer pattern for better React integration
+ */
 
 export const useTacticalBoard = ({
   initialDiscs = [],
@@ -18,6 +30,33 @@ export const useTacticalBoard = ({
   const [tacticalDiscs, setTacticalDiscs] = useState<TacticalDisc[]>(initialDiscs);
   const [tacticalDrawings, setTacticalDrawings] = useState<Point[][]>(initialDrawings);
   const [tacticalBallPosition, setTacticalBallPosition] = useState<Point | null>(initialBallPosition);
+
+  // Keep refs in sync with current state to avoid stale closures
+  const tacticalDrawingsRef = useRef(tacticalDrawings);
+  const tacticalDiscsRef = useRef(tacticalDiscs);
+  const tacticalBallPositionRef = useRef(tacticalBallPosition);
+
+  useEffect(() => {
+    tacticalDrawingsRef.current = tacticalDrawings;
+  }, [tacticalDrawings]);
+
+  useEffect(() => {
+    tacticalDiscsRef.current = tacticalDiscs;
+  }, [tacticalDiscs]);
+
+  useEffect(() => {
+    tacticalBallPositionRef.current = tacticalBallPosition;
+  }, [tacticalBallPosition]);
+
+  // Stroke lifecycle ref to ensure exactly one save per stroke
+  const isStrokeActiveRef = useRef(false);
+
+  // P2 FIX: Reset stroke flag on unmount to prevent race conditions
+  useEffect(() => {
+    return () => {
+      isStrokeActiveRef.current = false;
+    };
+  }, []);
 
   const handleToggleTacticsBoard = useCallback(() => {
     setIsTacticsBoardView((prev) => !prev);
@@ -31,34 +70,34 @@ export const useTacticalBoard = ({
         relY: 0.5,
         type,
       };
-      const newDiscs = [...tacticalDiscs, newDisc];
+      const newDiscs = [...tacticalDiscsRef.current, newDisc];
       setTacticalDiscs(newDiscs);
       saveStateToHistory({ tacticalDiscs: newDiscs });
     },
-    [tacticalDiscs, saveStateToHistory]
+    [saveStateToHistory]
   );
 
   const handleTacticalDiscMove = useCallback(
     (discId: string, relX: number, relY: number) => {
-      const newDiscs = tacticalDiscs.map((d) => (d.id === discId ? { ...d, relX, relY } : d));
+      const newDiscs = tacticalDiscsRef.current.map((d) => (d.id === discId ? { ...d, relX, relY } : d));
       setTacticalDiscs(newDiscs);
       saveStateToHistory({ tacticalDiscs: newDiscs });
     },
-    [tacticalDiscs, saveStateToHistory]
+    [saveStateToHistory]
   );
 
   const handleTacticalDiscRemove = useCallback(
     (discId: string) => {
-      const newDiscs = tacticalDiscs.filter((d) => d.id !== discId);
+      const newDiscs = tacticalDiscsRef.current.filter((d) => d.id !== discId);
       setTacticalDiscs(newDiscs);
       saveStateToHistory({ tacticalDiscs: newDiscs });
     },
-    [tacticalDiscs, saveStateToHistory]
+    [saveStateToHistory]
   );
 
   const handleToggleTacticalDiscType = useCallback(
     (discId: string) => {
-      const newDiscs = tacticalDiscs.map((d) => {
+      const newDiscs = tacticalDiscsRef.current.map((d) => {
         if (d.id === discId) {
           const nextType =
             d.type === 'home' ? 'opponent' : d.type === 'opponent' ? 'goalie' : 'home';
@@ -69,7 +108,7 @@ export const useTacticalBoard = ({
       setTacticalDiscs(newDiscs);
       saveStateToHistory({ tacticalDiscs: newDiscs });
     },
-    [tacticalDiscs, saveStateToHistory]
+    [saveStateToHistory]
   );
 
   const handleTacticalBallMove = useCallback(
@@ -81,7 +120,21 @@ export const useTacticalBoard = ({
   );
 
   const handleTacticalDrawingStart = useCallback((point: Point) => {
-    setTacticalDrawings((prev) => [...prev, [point]]);
+    // If a previous stroke didn't finalize for any reason, finalize it now without saving
+    if (isStrokeActiveRef.current) {
+      isStrokeActiveRef.current = false;
+    }
+    isStrokeActiveRef.current = true;
+    setTacticalDrawings((prev) => {
+      const next = [...prev, [point]];
+      // Keep the ref in sync synchronously so end handler always sees the latest value
+      tacticalDrawingsRef.current = next;
+      // P3: Gate logging behind DEBUG flag
+      if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+        try { logger.log('[TacticalDrawing] start', { prevLen: prev.length }); } catch {}
+      }
+      return next;
+    });
   }, []);
 
   const handleTacticalDrawingAddPoint = useCallback((point: Point) => {
@@ -90,13 +143,27 @@ export const useTacticalBoard = ({
       if (drawings.length > 0) {
         drawings[drawings.length - 1].push(point);
       }
+      // Sync ref eagerly to avoid race between effect update and end handler
+      tacticalDrawingsRef.current = drawings;
       return drawings;
     });
   }, []);
 
   const handleTacticalDrawingEnd = useCallback(() => {
-    saveStateToHistory({ tacticalDrawings });
-  }, [tacticalDrawings, saveStateToHistory]);
+    // Only save once per stroke end
+    const lines = tacticalDrawingsRef.current.length;
+    // P3: Gate logging behind DEBUG flag
+    if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+      try { logger.log('[TacticalDrawing] end', { lines }); } catch {}
+    }
+    if (!isStrokeActiveRef.current) {
+      return; // duplicate end — ignore
+    }
+    isStrokeActiveRef.current = false;
+    // Persist the exact snapshot we just drew.
+    // Duplicate touchend/mouseup calls are filtered by isStrokeActiveRef above.
+    saveStateToHistory({ tacticalDrawings: tacticalDrawingsRef.current });
+  }, [saveStateToHistory]);
 
   const clearTacticalElements = useCallback(() => {
     setTacticalDiscs([]);
@@ -127,4 +194,3 @@ export const useTacticalBoard = ({
     setTacticalBallPosition,
   };
 };
-
