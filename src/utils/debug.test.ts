@@ -34,7 +34,6 @@ describe('debug utility', () => {
       const debug = await loadDebug();
       expect(debug.enabled('home')).toBe(true);
       expect(debug.enabled('history')).toBe(true);
-      expect(debug.enabled('home')).toBe(true);
     });
 
     it('handles whitespace correctly', async () => {

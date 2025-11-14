@@ -10,6 +10,9 @@
  */
 export type DebugCategory = 'home' | 'history';
 
+// Note: NEXT_PUBLIC_* env vars are replaced at build time by Next.js,
+// so static module-level initialization is correct and intentional here.
+// The values are inlined during the build process, not read at runtime.
 const enabledCategories = new Set(
   (process.env.NEXT_PUBLIC_DEBUG || '')
     .split(',')
