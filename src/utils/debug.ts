@@ -34,5 +34,3 @@ export const debug = {
     return enabledCategories.has(category);
   },
 };
-
-export default debug;

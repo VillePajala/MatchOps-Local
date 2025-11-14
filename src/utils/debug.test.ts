@@ -4,7 +4,7 @@ import type { DebugCategory } from './debug';
 async function loadDebug() {
   jest.resetModules();
   const mod = await import('./debug');
-  return mod.default as { enabled: (category?: DebugCategory) => boolean };
+  return mod.debug as { enabled: (category?: DebugCategory) => boolean };
 }
 
 describe('debug utility', () => {
