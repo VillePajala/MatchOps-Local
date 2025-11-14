@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "UI: reduce GameInfoBar height below original (min-h ~36px), keep text-sm; compact spacing to free field space"
+  "notes": "L2-2.4.3: fix tactics undo on mobile"
 }
