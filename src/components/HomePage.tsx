@@ -1694,8 +1694,13 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
   // Handler to add a goal event
   const handleAddGoalEvent = (scorerId: string, assisterId?: string) => {
-    const scorer = (masterRosterQueryResultData || availablePlayers).find(p => p.id === scorerId);
-    const assister = assisterId ? (masterRosterQueryResultData || availablePlayers).find(p => p.id === assisterId) : undefined;
+    // Prefer current game's availablePlayers; fall back to master roster if empty
+    const playerPool = (availablePlayers && availablePlayers.length > 0)
+      ? availablePlayers
+      : (masterRosterQueryResultData || []);
+
+    const scorer = playerPool.find(p => p.id === scorerId);
+    const assister = assisterId ? playerPool.find(p => p.id === assisterId) : undefined;
 
     if (!scorer) {
       logger.error("Scorer not found!");
