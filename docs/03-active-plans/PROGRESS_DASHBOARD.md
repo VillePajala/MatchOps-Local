@@ -10,6 +10,21 @@
 ### ✅ Bug Fixes & Incremental Refactoring (Nov 3-7, 2025)
 **Completion Date**: November 7, 2025
 **Time Spent**: ~2 hours
+### ✅ Layer 2 — Step 2.4.3 (HomePage reduction + tactical history)
+**Completion Date**: November 14, 2025
+**Impact**: Safer undo/redo on mobile tactics view; smaller HomePage surface; clearer logs during manual verification
+
+**What Was Accomplished**:
+- Enforced field rendering via `FieldContainer` only (removed legacy inline render path in HomePage)
+- Compacted GameInfoBar to free vertical space on mobile
+- Introduced `useTacticalHistory` (ref‑backed snapshot stack) and synchronized drawing refs to fix “undo clears all lines” bug on touch devices
+- Stabilized native touchend listeners to avoid re‑register churn
+- Gated noisy HomePage render logs behind env flag (`NEXT_PUBLIC_DEBUG_HOME`)
+
+**Quality Gates**:
+- Lint + type‑check clean; Next build ok
+- Tests: +new tactical history unit tests; all suites passing
+
 **Impact**: 33.6% reduction in HomePage size, +315 tests, improved data consistency
 
 **What Was Accomplished**:
