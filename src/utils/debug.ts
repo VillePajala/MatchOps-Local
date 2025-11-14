@@ -2,13 +2,18 @@
  * Debug flag helper
  *
  * Usage:
- * - NEXT_PUBLIC_DEBUG: comma-separated categories (e.g., "home,history")
+ * - NEXT_PUBLIC_DEBUG: comma-separated categories (e.g., "home,history,tactical")
  * - NEXT_PUBLIC_DEBUG_ALL=1: enables all categories
+ *
+ * Categories:
+ * - 'home': HomePage render cycles and state updates
+ * - 'history': Undo/redo history operations (main field)
+ * - 'tactical': Tactical view undo/redo and drawing operations
  *
  * Example:
  *   if (debug.enabled('home')) { logger.log('...'); }
  */
-export type DebugCategory = 'home' | 'history';
+export type DebugCategory = 'home' | 'history' | 'tactical';
 
 // Note: NEXT_PUBLIC_* env vars are replaced at build time by Next.js,
 // so static module-level initialization is correct and intentional here.
