@@ -63,8 +63,7 @@ import { saveMasterRoster } from '@/utils/masterRoster';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useGameDataQueries } from '@/hooks/useGameDataQueries';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
-import { useTacticalHistory } from '@/hooks/useTacticalHistory';
-import type { TacticalState as TacticalHistoryState } from '@/hooks/useTacticalHistory';
+import { useTacticalHistory, type TacticalState } from '@/hooks/useTacticalHistory';
 import { useTacticalBoard } from '@/hooks/useTacticalBoard';
 import { useRoster } from '@/hooks/useRoster';
 import { useTeamsQuery } from '@/hooks/useTeamQueries';
@@ -254,8 +253,8 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   }, [currentHistoryState, pushHistoryState]);
 
   // Save tactical state via dedicated tactical history manager
-  // P3 FIX: Use proper TacticalHistoryState type instead of assertion
-  const saveTacticalStateToHistory = useCallback((newState: Partial<TacticalHistoryState>) => {
+  // Save tactical state via dedicated tactical history manager
+  const saveTacticalStateToHistory = useCallback((newState: Partial<TacticalState>) => {
     tacticalHistory.save(newState);
   }, [tacticalHistory]);
 
@@ -1641,7 +1640,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   };
 
   // Apply tactical history state (for tactical undo/redo)
-  const applyTacticalHistoryState = (state: TacticalHistoryState) => {
+  const applyTacticalHistoryState = (state: TacticalState) => {
     setTacticalDiscs(state.tacticalDiscs || []);
     setTacticalDrawings(state.tacticalDrawings || []);
     setTacticalBallPosition(state.tacticalBallPosition || null);
