@@ -1048,6 +1048,11 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
       setDraggingTacticalDiscId(tappedTargetId);
       e.preventDefault();
     } else if (!draggingPlayerFromBarInfo && isDrawingEnabled) {
+      // If a previous stroke didn't finalize (missed touchend), finalize it now
+      if (isDrawing) {
+        onDrawingEnd();
+        setIsDrawing(false);
+      }
       setIsDrawing(true);
       onDrawingStart(relPos);
       e.preventDefault();
@@ -1056,7 +1061,7 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
     isPointInBall, isTacticsBoardView, tacticalDiscs, onToggleTacticalDiscType, onTacticalDiscRemove, isPointInTacticalDisc,
     players, onPlayerRemove, isPointInPlayer, opponents, onOpponentRemove, isPointInOpponent,
     draggingPlayerFromBarInfo, onPlayerDropViaTouch,
-    lastTapInfo, onDrawingStart, isDrawingEnabled
+    lastTapInfo, onDrawingStart, isDrawingEnabled, isDrawing, onDrawingEnd
   ]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
@@ -1085,18 +1090,7 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
     }
   }, [activeTouchId, isDrawing, isDraggingPlayer, isDraggingOpponent, draggingPlayerId, draggingOpponentId, onPlayerMove, onOpponentMove, onDrawingAddPoint, isDraggingTacticalDisc, draggingTacticalDiscId, onTacticalDiscMove, isDraggingBall, onTacticalBallMove]);
 
-  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (activeTouchId !== null) {
-      let touchEnded = false;
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        if (e.changedTouches[i].identifier === activeTouchId) {
-          touchEnded = true;
-          break;
-        }
-      }
-      if (!touchEnded) return;
-    }
-
+  const finalizeTouchEnd = useCallback(() => {
     if (isDraggingBall) {
       setIsDraggingBall(false);
     } else if (isDraggingTacticalDisc) {
@@ -1123,9 +1117,19 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
     }
 
     setActiveTouchId(null);
-  };
-
-  // --- HTML Drag and Drop Handlers (Needs update for CSS size) ---
+  }, [
+    isDraggingBall,
+    isDraggingTacticalDisc,
+    isDraggingPlayer,
+    isDraggingOpponent,
+    draggingOpponentId,
+    isDrawing,
+    draggingPlayerFromBarInfo,
+    onPlayerMoveEnd,
+    onOpponentMoveEnd,
+    onDrawingEnd,
+    onPlayerDragCancelViaTouch,
+  ]);
   const handleDragOver = (e: React.DragEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
@@ -1157,16 +1161,32 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Add listeners manually with passive: false
+    // Add listeners manually with passive: false for start/move so we can preventDefault
     canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
     canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    // End/cancel: native listeners to reliably catch stroke ends even if finger leaves canvas
+    const nativeTouchEnd = (e: TouchEvent) => {
+      // If we track a specific touch, ensure its end is part of this event
+      if (activeTouchId !== null) {
+        let ended = false;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          if (e.changedTouches[i].identifier === activeTouchId) { ended = true; break; }
+        }
+        if (!ended) return;
+      }
+      finalizeTouchEnd();
+    };
+    canvas.addEventListener('touchend', nativeTouchEnd, { passive: true });
+    canvas.addEventListener('touchcancel', nativeTouchEnd, { passive: true });
 
     // Cleanup function to remove the listeners
     return () => {
       canvas.removeEventListener('touchstart', handleTouchStart);
       canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', nativeTouchEnd);
+      canvas.removeEventListener('touchcancel', nativeTouchEnd);
     };
-  }, [handleTouchStart, handleTouchMove]); // Re-run if the handler function instances change
+  }, [handleTouchStart, handleTouchMove, activeTouchId, finalizeTouchEnd]); // Re-run if the handler function instances change
 
   // --- Render Canvas ---
   return (
@@ -1178,7 +1198,6 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
-        onTouchEnd={handleTouchEnd}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       />
