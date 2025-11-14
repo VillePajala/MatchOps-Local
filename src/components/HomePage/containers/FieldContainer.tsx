@@ -19,7 +19,7 @@ import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 
 export interface FieldContainerProps {
   // Optional grouped state to reduce prop count (2.4.4)
-  fieldVM?: {
+  fieldVM: {
     playersOnField: AppState['playersOnField'];
     opponents: AppState['opponents'];
     drawings: AppState['drawings'];
@@ -30,7 +30,7 @@ export interface FieldContainerProps {
     draggingPlayerFromBarInfo: Player | null;
     isDrawingEnabled: boolean;
   };
-  timerVM?: {
+  timerVM: {
     timeElapsedInSeconds: number;
     isTimerRunning: boolean;
     subAlertLevel: GameSessionState['subAlertLevel'];
@@ -39,22 +39,6 @@ export interface FieldContainerProps {
     initialLoadComplete: boolean;
   };
   gameSessionState: GameSessionState;
-  // Individual props remain for backward compatibility during migration (now optional)
-  playersOnField?: AppState['playersOnField'];
-  opponents?: AppState['opponents'];
-  drawings?: AppState['drawings'];
-  isTacticsBoardView?: boolean;
-  tacticalDrawings?: Point[][];
-  tacticalDiscs?: TacticalDisc[];
-  tacticalBallPosition?: Point | null;
-  draggingPlayerFromBarInfo?: Player | null;
-  isDrawingEnabled?: boolean;
-  timeElapsedInSeconds?: number;
-  isTimerRunning?: boolean;
-  subAlertLevel?: GameSessionState['subAlertLevel'];
-  lastSubConfirmationTimeSeconds?: number;
-  showLargeTimerOverlay?: boolean;
-  initialLoadComplete?: boolean;
   currentGameId: string | null;
   availablePlayers: Player[];
   teams: Team[];
@@ -103,21 +87,6 @@ export function FieldContainer({
   fieldVM,
   timerVM,
   gameSessionState,
-  playersOnField,
-  opponents,
-  drawings,
-  isTacticsBoardView,
-  tacticalDrawings,
-  tacticalDiscs,
-  tacticalBallPosition,
-  draggingPlayerFromBarInfo,
-  isDrawingEnabled,
-  timeElapsedInSeconds,
-  isTimerRunning,
-  subAlertLevel,
-  lastSubConfirmationTimeSeconds,
-  showLargeTimerOverlay,
-  initialLoadComplete,
   currentGameId,
   availablePlayers,
   teams,
@@ -174,22 +143,22 @@ export function FieldContainer({
   };
 
   // Consolidated locals (prefer VMs when provided)
-  const fcPlayersOnField = fieldVM?.playersOnField ?? playersOnField ?? [];
-  const fcOpponents = fieldVM?.opponents ?? opponents ?? [];
-  const fcDrawings = fieldVM?.drawings ?? drawings ?? [];
-  const fcIsTactics = fieldVM?.isTacticsBoardView ?? isTacticsBoardView ?? false;
-  const fcTacticalDrawings = fieldVM?.tacticalDrawings ?? tacticalDrawings ?? [];
-  const fcTacticalDiscs = fieldVM?.tacticalDiscs ?? tacticalDiscs ?? [];
-  const fcTacticalBall = fieldVM?.tacticalBallPosition ?? tacticalBallPosition ?? { relX: 0.5, relY: 0.5 };
-  const fcDraggingFromBar = fieldVM?.draggingPlayerFromBarInfo ?? draggingPlayerFromBarInfo ?? null;
-  const fcIsDrawingEnabled = fieldVM?.isDrawingEnabled ?? isDrawingEnabled ?? false;
+  const fcPlayersOnField = fieldVM.playersOnField;
+  const fcOpponents = fieldVM.opponents;
+  const fcDrawings = fieldVM.drawings;
+  const fcIsTactics = fieldVM.isTacticsBoardView;
+  const fcTacticalDrawings = fieldVM.tacticalDrawings;
+  const fcTacticalDiscs = fieldVM.tacticalDiscs;
+  const fcTacticalBall = fieldVM.tacticalBallPosition ?? { relX: 0.5, relY: 0.5 };
+  const fcDraggingFromBar = fieldVM.draggingPlayerFromBarInfo;
+  const fcIsDrawingEnabled = fieldVM.isDrawingEnabled;
 
-  const tmTime = timerVM?.timeElapsedInSeconds ?? timeElapsedInSeconds ?? 0;
-  const tmIsRunning = timerVM?.isTimerRunning ?? isTimerRunning ?? false;
-  const tmSubAlert = (timerVM?.subAlertLevel ?? subAlertLevel ?? 'none') as GameSessionState['subAlertLevel'];
-  const tmLastSub = timerVM?.lastSubConfirmationTimeSeconds ?? lastSubConfirmationTimeSeconds ?? 0;
-  const tmShowOverlay = timerVM?.showLargeTimerOverlay ?? showLargeTimerOverlay ?? false;
-  const tmInitialLoad = timerVM?.initialLoadComplete ?? initialLoadComplete ?? false;
+  const tmTime = timerVM.timeElapsedInSeconds;
+  const tmIsRunning = timerVM.isTimerRunning;
+  const tmSubAlert = timerVM.subAlertLevel;
+  const tmLastSub = timerVM.lastSubConfirmationTimeSeconds;
+  const tmShowOverlay = timerVM.showLargeTimerOverlay;
+  const tmInitialLoad = timerVM.initialLoadComplete;
 
   return (
     <div className="flex-grow relative bg-black overflow-hidden">
