@@ -405,7 +405,16 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
             {/* Undo - Context-aware (tactical vs normal) */}
             <button
-              onClick={isTacticsBoardView ? onTacticalUndo : onUndo}
+              onClick={() => {
+                // P3: Gate logging behind DEBUG flag (hot path performance)
+                if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+                  try {
+                    // eslint-disable-next-line no-console
+                    console.debug('[ControlBar] Undo clicked', { isTacticsBoardView });
+                  } catch {}
+                }
+                return isTacticsBoardView ? onTacticalUndo() : onUndo();
+              }}
               disabled={isTacticsBoardView ? !canTacticalUndo : !canUndo}
               className={`${buttonStyle} ${(isTacticsBoardView ? canTacticalUndo : canUndo) ? 'bg-slate-700 hover:bg-slate-600 focus:ring-slate-500' : 'bg-slate-800 opacity-50 cursor-not-allowed'}`}
               title={t('controlBar.undo', 'Undo')}
@@ -415,7 +424,16 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
             {/* Redo - Context-aware (tactical vs normal) */}
             <button
-              onClick={isTacticsBoardView ? onTacticalRedo : onRedo}
+              onClick={() => {
+                // P3: Gate logging behind DEBUG flag (hot path performance)
+                if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+                  try {
+                    // eslint-disable-next-line no-console
+                    console.debug('[ControlBar] Redo clicked', { isTacticsBoardView });
+                  } catch {}
+                }
+                return isTacticsBoardView ? onTacticalRedo() : onRedo();
+              }}
               disabled={isTacticsBoardView ? !canTacticalRedo : !canRedo}
               className={`${buttonStyle} ${(isTacticsBoardView ? canTacticalRedo : canRedo) ? 'bg-slate-700 hover:bg-slate-600 focus:ring-slate-500' : 'bg-slate-800 opacity-50 cursor-not-allowed'}`}
               title={t('controlBar.redo', 'Redo')}
