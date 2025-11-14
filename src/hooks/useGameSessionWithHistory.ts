@@ -19,7 +19,7 @@
  */
 
 import { useReducer, useCallback, useEffect, useRef } from 'react';
-import debug from '@/utils/debug';
+import { debug } from '@/utils/debug';
 import {
   gameSessionReducer,
   GameSessionState,

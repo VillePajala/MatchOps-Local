@@ -89,7 +89,7 @@ import logger from '@/utils/logger';
 import { startNewGameWithSetup, cancelNewGameSetup } from './HomePage/utils/newGameHandlers';
 import { buildGameContainerViewModel } from '@/viewModels/gameContainer';
 import { FieldContainer } from '@/components/HomePage/containers/FieldContainer';
-import debug from '@/utils/debug';
+import { debug } from '@/utils/debug';
 
 
 // Empty initial data for clean app start
