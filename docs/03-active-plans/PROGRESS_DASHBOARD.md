@@ -19,7 +19,7 @@
 - Compacted GameInfoBar to free vertical space on mobile
 - Introduced `useTacticalHistory` (ref‑backed snapshot stack) and synchronized drawing refs to fix “undo clears all lines” bug on touch devices
 - Stabilized native touchend listeners to avoid re‑register churn
-- Gated noisy HomePage render logs behind env flag (`NEXT_PUBLIC_DEBUG_HOME`)
+- Gated noisy HomePage render logs behind unified debug flags (`NEXT_PUBLIC_DEBUG=home` or `NEXT_PUBLIC_DEBUG_ALL=1`)
 
 **Quality Gates**:
 - Lint + type‑check clean; Next build ok
