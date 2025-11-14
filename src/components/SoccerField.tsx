@@ -1130,6 +1130,10 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
     onDrawingEnd,
     onPlayerDragCancelViaTouch,
   ]);
+
+  // Keep a stable ref for active touch ID to avoid re-registering native listeners
+  const activeTouchIdRef = useRef<number | null>(null);
+  useEffect(() => { activeTouchIdRef.current = activeTouchId; }, [activeTouchId]);
   const handleDragOver = (e: React.DragEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
@@ -1167,10 +1171,11 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
     // End/cancel: native listeners to reliably catch stroke ends even if finger leaves canvas
     const nativeTouchEnd = (e: TouchEvent) => {
       // If we track a specific touch, ensure its end is part of this event
-      if (activeTouchId !== null) {
+      const trackedId = activeTouchIdRef.current;
+      if (trackedId !== null) {
         let ended = false;
         for (let i = 0; i < e.changedTouches.length; i++) {
-          if (e.changedTouches[i].identifier === activeTouchId) { ended = true; break; }
+          if (e.changedTouches[i].identifier === trackedId) { ended = true; break; }
         }
         if (!ended) return;
       }
@@ -1186,7 +1191,7 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
       canvas.removeEventListener('touchend', nativeTouchEnd);
       canvas.removeEventListener('touchcancel', nativeTouchEnd);
     };
-  }, [handleTouchStart, handleTouchMove, activeTouchId, finalizeTouchEnd]); // Re-run if the handler function instances change
+  }, [handleTouchStart, handleTouchMove, finalizeTouchEnd]); // Stable listener; uses refs for touch id
 
   // --- Render Canvas ---
   return (
