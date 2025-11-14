@@ -2945,7 +2945,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // Note: Console log added before the check itself
  
   // Final console log before returning the main JSX
-  if (process.env.NEXT_PUBLIC_DEBUG_HOME === '1') {
+  if (require('@/utils/debug').default.enabled('home')) {
     logger.log('[Home Render] highlightRosterButton:', highlightRosterButton);
   }
 
@@ -2954,7 +2954,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // should be removed as it's called conditionally and its correct version is at the top level.
 
   // Log gameEvents before PlayerBar is rendered
-  if (process.env.NEXT_PUBLIC_DEBUG_HOME === '1') {
+  if (require('@/utils/debug').default.enabled('home')) {
     logger.log('[page.tsx] About to render PlayerBar, gameEvents for PlayerBar:', JSON.stringify(gameSessionState.gameEvents));
   }
 
