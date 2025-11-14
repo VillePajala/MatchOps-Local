@@ -4,6 +4,20 @@ import logger from '@/utils/logger';
 
 export type TacticalState = Pick<AppState, 'tacticalDrawings' | 'tacticalDiscs' | 'tacticalBallPosition'>;
 
+/**
+ * TECHNICAL DEBT: Ref-based State Management
+ *
+ * This hook uses refs to bypass React's state batching, which allows precise control
+ * over when saves occur but introduces potential risks:
+ *
+ * - Risk: State/UI desync if component unmounts during microtask execution
+ * - Risk: Harder to debug state changes (bypasses React DevTools)
+ * - Mitigation: Cleanup useEffect resets guard flags on unmount
+ * - Future: Consider migrating to useReducer pattern for better React integration
+ *
+ * @see https://react.dev/learn/you-might-not-need-an-effect#chains-of-computations
+ */
+
 function cloneTactical(state: TacticalState): TacticalState {
   return {
     tacticalDrawings: (state.tacticalDrawings || []).map(poly => poly.map(p => ({ ...p } as Point))),
@@ -27,6 +41,13 @@ export function useTacticalHistory(initial: TacticalState) {
   useEffect(() => {
     currentRef.current = getState();
   }, [version]);
+
+  // P2 FIX: Reset guard flag on unmount to prevent race conditions
+  useEffect(() => {
+    return () => {
+      isApplyingRef.current = false;
+    };
+  }, []);
 
   const applySnapshot = useCallback((next: TacticalState) => {
     // Replace current top-of-stack with provided snapshot and advance index
@@ -53,7 +74,10 @@ export function useTacticalHistory(initial: TacticalState) {
 
     const snapshot = cloneTactical(merged);
     const prev = getState();
-    try { logger.log('[TacticalHistory] push', { prevLen: (prev.tacticalDrawings || []).length, nextLen: (snapshot.tacticalDrawings || []).length }); } catch {}
+    // P3: Gate logging behind DEBUG flag
+    if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+      try { logger.log('[TacticalHistory] push', { prevLen: (prev.tacticalDrawings || []).length, nextLen: (snapshot.tacticalDrawings || []).length }); } catch {}
+    }
     const cutAt = indexRef.current + 1; // drop any redo states
     const nextHistory = historyRef.current.slice(0, cutAt);
     nextHistory.push(snapshot);
@@ -65,21 +89,35 @@ export function useTacticalHistory(initial: TacticalState) {
 
   const safeUndo = useCallback(() => {
     if (indexRef.current === 0) return null;
+    // Set guard flag to block saves during undo application
+    isApplyingRef.current = true;
     indexRef.current = indexRef.current - 1;
     const prev = getState();
-    try { logger.log('[TacticalHistory] undo -> state', { drawingsLen: prev.tacticalDrawings?.length || 0 }); } catch {}
+    // P3: Gate logging behind DEBUG flag
+    if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+      try { logger.log('[TacticalHistory] undo -> state', { drawingsLen: prev.tacticalDrawings?.length || 0 }); } catch {}
+    }
     currentRef.current = prev;
     setVersion(v => v + 1);
+    // Clear guard flag after microtasks complete (after React processes state updates)
+    queueMicrotask(() => { isApplyingRef.current = false; });
     return prev;
   }, []);
 
   const safeRedo = useCallback(() => {
     if (indexRef.current >= historyRef.current.length - 1) return null;
+    // Set guard flag to block saves during redo application
+    isApplyingRef.current = true;
     indexRef.current = indexRef.current + 1;
     const next = getState();
-    try { logger.log('[TacticalHistory] redo -> state', { drawingsLen: next.tacticalDrawings?.length || 0 }); } catch {}
+    // P3: Gate logging behind DEBUG flag
+    if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+      try { logger.log('[TacticalHistory] redo -> state', { drawingsLen: next.tacticalDrawings?.length || 0 }); } catch {}
+    }
     currentRef.current = next;
     setVersion(v => v + 1);
+    // Clear guard flag after microtasks complete (after React processes state updates)
+    queueMicrotask(() => { isApplyingRef.current = false; });
     return next;
   }, []);
 
