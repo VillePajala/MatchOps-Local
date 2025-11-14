@@ -116,7 +116,11 @@ export function useGameSessionWithHistory(
   const saveToHistoryRef = useRef(saveToHistory);
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'production' && !process.env.JEST_WORKER_ID) {
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      !process.env.JEST_WORKER_ID &&
+      process.env.NEXT_PUBLIC_DEBUG_HISTORY === '1'
+    ) {
       // Encourage memoization for performance
       // eslint-disable-next-line no-console
       console.warn('[useGameSessionWithHistory] buildHistorySlice identity changed; ensure it is memoized with useCallback');
@@ -125,7 +129,11 @@ export function useGameSessionWithHistory(
   }, [buildHistorySlice]);
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'production' && !process.env.JEST_WORKER_ID) {
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      !process.env.JEST_WORKER_ID &&
+      process.env.NEXT_PUBLIC_DEBUG_HISTORY === '1'
+    ) {
       // eslint-disable-next-line no-console
       console.warn('[useGameSessionWithHistory] saveToHistory identity changed; ensure it is memoized with useCallback');
     }

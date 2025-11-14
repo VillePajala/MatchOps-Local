@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import logger from '@/utils/logger';
 import type { Point, TacticalDisc, AppState } from '@/types';
 
 interface UseTacticalBoardArgs {
@@ -35,6 +36,9 @@ export const useTacticalBoard = ({
   useEffect(() => {
     tacticalBallPositionRef.current = tacticalBallPosition;
   }, [tacticalBallPosition]);
+
+  // Stroke lifecycle ref to ensure exactly one save per stroke
+  const isStrokeActiveRef = useRef(false);
 
   const handleToggleTacticsBoard = useCallback(() => {
     setIsTacticsBoardView((prev) => !prev);
@@ -98,7 +102,18 @@ export const useTacticalBoard = ({
   );
 
   const handleTacticalDrawingStart = useCallback((point: Point) => {
-    setTacticalDrawings((prev) => [...prev, [point]]);
+    // If a previous stroke didn't finalize for any reason, finalize it now without saving
+    if (isStrokeActiveRef.current) {
+      isStrokeActiveRef.current = false;
+    }
+    isStrokeActiveRef.current = true;
+    setTacticalDrawings((prev) => {
+      const next = [...prev, [point]];
+      // Keep the ref in sync synchronously so end handler always sees the latest value
+      tacticalDrawingsRef.current = next;
+      try { logger.log('[TacticalDrawing] start', { prevLen: prev.length }); } catch {}
+      return next;
+    });
   }, []);
 
   const handleTacticalDrawingAddPoint = useCallback((point: Point) => {
@@ -107,12 +122,22 @@ export const useTacticalBoard = ({
       if (drawings.length > 0) {
         drawings[drawings.length - 1].push(point);
       }
+      // Sync ref eagerly to avoid race between effect update and end handler
+      tacticalDrawingsRef.current = drawings;
       return drawings;
     });
   }, []);
 
   const handleTacticalDrawingEnd = useCallback(() => {
-    // Use ref to get current state, avoiding stale closure
+    // Only save once per stroke end
+    const lines = tacticalDrawingsRef.current.length;
+    try { logger.log('[TacticalDrawing] end', { lines }); } catch {}
+    if (!isStrokeActiveRef.current) {
+      return; // duplicate end — ignore
+    }
+    isStrokeActiveRef.current = false;
+    // Persist the exact snapshot we just drew.
+    // Duplicate touchend/mouseup calls are filtered by isStrokeActiveRef above.
     saveStateToHistory({ tacticalDrawings: tacticalDrawingsRef.current });
   }, [saveStateToHistory]);
 
@@ -145,4 +170,3 @@ export const useTacticalBoard = ({
     setTacticalBallPosition,
   };
 };
-

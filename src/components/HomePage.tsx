@@ -63,6 +63,8 @@ import { saveMasterRoster } from '@/utils/masterRoster';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useGameDataQueries } from '@/hooks/useGameDataQueries';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
+import { useTacticalHistory } from '@/hooks/useTacticalHistory';
+import type { TacticalState as TacticalHistoryState } from '@/hooks/useTacticalHistory';
 import { useTacticalBoard } from '@/hooks/useTacticalBoard';
 import { useRoster } from '@/hooks/useRoster';
 import { useTeamsQuery } from '@/hooks/useTeamQueries';
@@ -195,27 +197,12 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   } = useUndoRedo<AppState>(initialState);
 
   // --- Tactical History Management (Separate Stack) ---
-  // Define tactical state type inline for clarity
-  type TacticalState = Pick<AppState, 'tacticalDiscs' | 'tacticalDrawings' | 'tacticalBallPosition'>;
-
-  const initialTacticalState: TacticalState = {
+  const initialTacticalState = {
     tacticalDiscs: initialState.tacticalDiscs,
     tacticalDrawings: initialState.tacticalDrawings,
     tacticalBallPosition: initialState.tacticalBallPosition,
   };
-
-  const {
-    state: currentTacticalHistoryState,
-    set: pushTacticalHistoryState,
-    // reset not used yet (reserved for future tactical history clearing)
-    undo: undoTacticalHistory,
-    redo: redoTacticalHistory,
-    canUndo: canTacticalUndo,
-    canRedo: canTacticalRedo,
-  } = useUndoRedo<TacticalState>(initialTacticalState);
-
-  // Guard flag to prevent saving to history during undo/redo operations
-  const isApplyingTacticalHistoryRef = useRef(false);
+  const tacticalHistory = useTacticalHistory(initialTacticalState);
 
   const saveStateToHistory = useCallback((newState: Partial<AppState>) => {
     if (!currentHistoryState) return; // Should not happen
@@ -266,58 +253,11 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   }, [currentHistoryState, pushHistoryState]);
 
-  // Save tactical state to separate tactical history
-  const saveTacticalStateToHistory = useCallback((newState: Partial<TacticalState>) => {
-    // Guard: Don't save during undo/redo operations to prevent circular overwrites
-    if (isApplyingTacticalHistoryRef.current) return;
-
-    if (!currentTacticalHistoryState) return;
-
-    // Check if anything actually changed
-    const hasChanges = Object.keys(newState).some((key) => {
-      const k = key as keyof TacticalState;
-      const prevVal = currentTacticalHistoryState[k];
-      const newVal = newState[k];
-
-      // For arrays/objects, do structural comparison
-      const isObjectLike = (val: unknown) => typeof val === 'object' && val !== null;
-      if (isObjectLike(prevVal) && isObjectLike(newVal)) {
-        try {
-          return JSON.stringify(prevVal) !== JSON.stringify(newVal);
-        } catch {
-          return true; // Assume changed if serialization fails
-        }
-      }
-
-      return prevVal !== newVal;
-    });
-
-    if (!hasChanges) return;
-
-    // Deep clone to avoid accidental aliasing of arrays/objects across history entries
-    const cloneDrawings = (d?: TacticalState['tacticalDrawings']) =>
-      d ? d.map(poly => poly.map(p => ({ ...p }))) : d;
-    const cloneDiscs = (d?: TacticalState['tacticalDiscs']) =>
-      d ? d.map(disc => ({ ...disc })) : d;
-    const clonePoint = (p?: TacticalState['tacticalBallPosition']) =>
-      p ? { ...p } : p;
-
-    const sanitized: Partial<TacticalState> = {
-      tacticalDrawings: cloneDrawings(newState.tacticalDrawings),
-      tacticalDiscs: cloneDiscs(newState.tacticalDiscs),
-      tacticalBallPosition: clonePoint(newState.tacticalBallPosition),
-    };
-
-    const nextState: TacticalState = { ...currentTacticalHistoryState, ...sanitized };
-    if (process.env.NODE_ENV !== 'production') {
-      // eslint-disable-next-line no-console
-      console.debug('[TacticalHistory] push', {
-        prevLen: (currentTacticalHistoryState.tacticalDrawings || []).length,
-        nextLen: (nextState.tacticalDrawings || []).length,
-      });
-    }
-    pushTacticalHistoryState(nextState);
-  }, [currentTacticalHistoryState, pushTacticalHistoryState]);
+  // Save tactical state via dedicated tactical history manager
+  const saveTacticalStateToHistory = useCallback((newState: Partial<typeof initialTacticalState>) => {
+    // Cast through the known TacticalState shape used by the history hook
+    tacticalHistory.save(newState as { tacticalDrawings?: AppState['tacticalDrawings']; tacticalDiscs?: AppState['tacticalDiscs']; tacticalBallPosition?: AppState['tacticalBallPosition'] });
+  }, [tacticalHistory]);
 
   const buildGameSessionHistorySlice = useCallback((state: GameSessionState) => {
     const slice = {
@@ -1701,53 +1641,31 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   };
 
   // Apply tactical history state (for tactical undo/redo)
-  const applyTacticalHistoryState = (state: TacticalState) => {
+  const applyTacticalHistoryState = (state: TacticalHistoryState) => {
     setTacticalDiscs(state.tacticalDiscs || []);
     setTacticalDrawings(state.tacticalDrawings || []);
     setTacticalBallPosition(state.tacticalBallPosition || null);
   };
 
   const handleTacticalUndo = () => {
-    const prevState = undoTacticalHistory();
+    const prevState = tacticalHistory.undo();
     if (prevState) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.debug('[TacticalHistory] undo -> state', {
-          drawingsLen: (prevState.tacticalDrawings || []).length,
-        });
-      }
-      // Set guard flag before applying state to prevent circular save
-      isApplyingTacticalHistoryRef.current = true;
-      applyTacticalHistoryState(prevState);
-      // Clear guard flag after React processes state updates (microtask runs after current task)
-      queueMicrotask(() => {
-        queueMicrotask(() => {
-          isApplyingTacticalHistoryRef.current = false;
-        });
+      logger.log('[TacticalHistory] undo -> state', {
+        drawingsLen: (prevState.tacticalDrawings || []).length,
       });
+      applyTacticalHistoryState(prevState);
     } else {
       logger.log('Cannot undo: at beginning of tactical history');
     }
   };
 
   const handleTacticalRedo = () => {
-    const nextState = redoTacticalHistory();
+    const nextState = tacticalHistory.redo();
     if (nextState) {
-      if (process.env.NODE_ENV !== 'production') {
-        // eslint-disable-next-line no-console
-        console.debug('[TacticalHistory] redo -> state', {
-          drawingsLen: (nextState.tacticalDrawings || []).length,
-        });
-      }
-      // Set guard flag before applying state to prevent circular save
-      isApplyingTacticalHistoryRef.current = true;
-      applyTacticalHistoryState(nextState);
-      // Clear guard flag after React processes state updates (microtask runs after current task)
-      queueMicrotask(() => {
-        queueMicrotask(() => {
-          isApplyingTacticalHistoryRef.current = false;
-        });
+      logger.log('[TacticalHistory] redo -> state', {
+        drawingsLen: (nextState.tacticalDrawings || []).length,
       });
+      applyTacticalHistoryState(nextState);
     } else {
       logger.log('Cannot redo: at end of tactical history');
     }
@@ -3023,14 +2941,18 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // Note: Console log added before the check itself
  
   // Final console log before returning the main JSX
-  logger.log('[Home Render] highlightRosterButton:', highlightRosterButton); // Log state on render
+  if (process.env.NEXT_PUBLIC_DEBUG_HOME === '1') {
+    logger.log('[Home Render] highlightRosterButton:', highlightRosterButton);
+  }
 
   // ATTEMPTING TO EXPLICITLY REMOVE THE CONDITIONAL HOOK
   // The useEffect for highlightRosterButton that was here (around lines 2977-2992)
   // should be removed as it's called conditionally and its correct version is at the top level.
 
   // Log gameEvents before PlayerBar is rendered
-  logger.log('[page.tsx] About to render PlayerBar, gameEvents for PlayerBar:', JSON.stringify(gameSessionState.gameEvents));
+  if (process.env.NEXT_PUBLIC_DEBUG_HOME === '1') {
+    logger.log('[page.tsx] About to render PlayerBar, gameEvents for PlayerBar:', JSON.stringify(gameSessionState.gameEvents));
+  }
 
 
   const handleOpenPlayerStats = (playerId: string) => {
@@ -3226,8 +3148,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
           // Tactical tools props (separate history)
           onTacticalUndo={handleTacticalUndo}
           onTacticalRedo={handleTacticalRedo}
-          canTacticalUndo={canTacticalUndo}
-          canTacticalRedo={canTacticalRedo}
+          canTacticalUndo={tacticalHistory.canUndo}
+          canTacticalRedo={tacticalHistory.canRedo}
           onResetField={handleResetFieldClick}
           onClearDrawings={handleClearDrawingsForView}
           onAddOpponent={handleAddOpponent}
