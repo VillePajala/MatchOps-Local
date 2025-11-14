@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import logger from '@/utils/logger';
+import { debug } from '@/utils/debug';
 import type { Point, TacticalDisc, AppState } from '@/types';
 
 interface UseTacticalBoardArgs {
@@ -130,7 +131,7 @@ export const useTacticalBoard = ({
       // Keep the ref in sync synchronously so end handler always sees the latest value
       tacticalDrawingsRef.current = next;
       // P3: Gate logging behind DEBUG flag
-      if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+      if (debug.enabled('tactical')) {
         try { logger.log('[TacticalDrawing] start', { prevLen: prev.length }); } catch {}
       }
       return next;
@@ -153,7 +154,7 @@ export const useTacticalBoard = ({
     // Only save once per stroke end
     const lines = tacticalDrawingsRef.current.length;
     // P3: Gate logging behind DEBUG flag
-    if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+    if (debug.enabled('tactical')) {
       try { logger.log('[TacticalDrawing] end', { lines }); } catch {}
     }
     if (!isStrokeActiveRef.current) {
