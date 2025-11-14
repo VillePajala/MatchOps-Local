@@ -1,14 +1,30 @@
+/**
+ * Debug flag helper
+ *
+ * Usage:
+ * - NEXT_PUBLIC_DEBUG: comma-separated categories (e.g., "home,history")
+ * - NEXT_PUBLIC_DEBUG_ALL=1: enables all categories
+ *
+ * Example:
+ *   if (debug.enabled('home')) { logger.log('...'); }
+ */
+export type DebugCategory = 'home' | 'history';
+
+const enabledCategories = new Set(
+  (process.env.NEXT_PUBLIC_DEBUG || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+);
+
+const debugAll = process.env.NEXT_PUBLIC_DEBUG_ALL === '1';
+
 export const debug = {
-  enabled(category?: string): boolean {
-    const all = process.env.NEXT_PUBLIC_DEBUG_ALL === '1';
-    if (all) return true;
-    const raw = process.env.NEXT_PUBLIC_DEBUG || '';
-    if (!raw) return false;
-    const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
-    if (!category) return parts.length > 0;
-    return parts.includes(category);
+  enabled(category?: DebugCategory): boolean {
+    if (debugAll) return true;
+    if (!category) return enabledCategories.size > 0;
+    return enabledCategories.has(category);
   },
 };
 
 export default debug;
-

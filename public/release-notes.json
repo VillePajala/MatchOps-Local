@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "L2-2.4.3: fix tactics undo on mobile"
+  "notes": "L2-2.4.5: Unify debug flags via NEXT_PUBLIC_DEBUG / NEXT_PUBLIC_DEBUG_ALL; gate HomePage and history warnings behind categories ('home','history')."
 }
