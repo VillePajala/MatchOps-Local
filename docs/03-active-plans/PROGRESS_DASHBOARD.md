@@ -1,11 +1,24 @@
 # 📊 Production Readiness Progress Dashboard
 
-**Last Updated**: November 15, 2025
-**Overall Progress**: 38% Complete (2 of 6 phases done, P0 refactoring in progress)
+**Last Updated**: November 16, 2025
+**Overall Progress**: 40% Complete (2 of 6 phases done, P0 refactoring in progress)
 
 ---
 
 ## 🎉 **Recent Completions**
+
+### ✅ Layer 2 — Step 2.4.6 (PlayerBar/GameInfo VM-only + new game flow grouping)
+**Completion Date**: November 16, 2025
+**Impact**: GameContainer’s view-model is now the single source of truth for PlayerBar/GameInfo rendering, and `useNewGameFlow` no longer takes 30+ primitive parameters.
+
+**What Was Accomplished**:
+- `HomePage` now renders `PlayerBar` and `GameInfoBar` exclusively from `buildGameContainerViewModel`, removing direct coupling to `playersForCurrentGame`/`gameSessionState` fields.
+- `GameContainer` requires a `viewModel` prop (no prop fallbacks); updated fixtures/tests keep parity and catch regressions if the VM is missing fields.
+- `useNewGameFlow` options were grouped into `gameState`, `ui`, `orchestration`, and `dependencies` contexts—matching the Layer 2 plan and eliminating the 31-parameter smell.
+
+**Quality Gates**:
+- Updated and re-ran targeted Jest suites (`useNewGameFlow`, `GameContainer`) with `--runInBand` to avoid worker crashes; both suites pass.
+- Manually verified PlayerBar/GameInfo behavior in dev (`NEXT_PUBLIC_DEBUG=home`) to ensure render logs still map to VM values.
 
 ### ✅ Layer 2 — Step 2.4.5 (Debug flag unification + tactical instrumentation)
 **Completion Date**: November 15, 2025
@@ -69,7 +82,7 @@
 - `src/components/HomePage/utils/newGameHandlers.ts`
 - `src/components/HomePage/utils/newGameHandlers.test.ts`
 
-**See**: [CRITICAL_FIXES_TRACKER.md](../../CRITICAL_FIXES_TRACKER.md#-recent-bug-fixes--improvements-nov-3-15-2025) for detailed breakdown
+**See**: [CRITICAL_FIXES_TRACKER.md](../../CRITICAL_FIXES_TRACKER.md#-recent-bug-fixes--improvements-nov-3-16-2025) for detailed breakdown
 
 ### ✅ Bug Fixes & Incremental Refactoring (Nov 3-7, 2025)
 **Completion Date**: November 7, 2025
@@ -109,7 +122,7 @@
 ### Phase: P0 - HomePage Refactoring (In Progress)
 **Status**: 🟡 **IN PROGRESS** (another AI working on this)
 **Estimated Time**: 2-3 hours (1-1.5h remaining)
-**Progress**: ~38% complete (1,251 lines removed + FieldContainer view-model grouping + unified debug instrumentation)
+**Progress**: ~40% complete (1,251 lines removed + FieldContainer/PlayerBar VM grouping + unified debug instrumentation)
 **Owner**: Separate AI instance
 
 ### Phase: P1 - Security & Service Worker Hardening
