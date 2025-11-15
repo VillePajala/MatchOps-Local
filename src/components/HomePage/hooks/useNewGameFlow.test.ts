@@ -1,7 +1,7 @@
 /**
  * @unit
  * @regression
- * Ensures useNewGameFlow contexts behave after parameter grouping refactor.
+ * Validates that the grouped gameState/ui/orchestration/dependencies contexts pass through to handlers after the parameter grouping refactor.
  */
 import { renderHook, act } from '@testing-library/react';
 import type { SetStateAction } from 'react';
