@@ -210,10 +210,6 @@ export function GameContainer(props: GameContainerProps) {
     handleToggleDrawingMode,
   } = props;
 
-  if (process.env.NODE_ENV !== 'production' && !viewModel) {
-    throw new Error('[GameContainer] viewModel is required in development builds.');
-  }
-
   if (!gameSessionState) return null;
 
   // L2-2.4.6: PlayerBar/GameInfo must render from the view-model to keep HomePage agnostic of individual fields.

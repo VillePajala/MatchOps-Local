@@ -491,34 +491,26 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   });
 
   // L2-2.4.1: Build GameContainer view-model (not yet consumed)
-  const gameContainerVM = React.useMemo(() => {
-    const vmInput: BuildGameContainerVMInput = {
-      gameSessionState: {
-        teamName: gameSessionState.teamName,
-        opponentName: gameSessionState.opponentName,
-        homeScore: gameSessionState.homeScore,
-        awayScore: gameSessionState.awayScore,
-        homeOrAway: gameSessionState.homeOrAway,
-        gameEvents: gameSessionState.gameEvents,
-        timeElapsedInSeconds: gameSessionState.timeElapsedInSeconds,
-        isTimerRunning: gameSessionState.isTimerRunning,
-        subAlertLevel: gameSessionState.subAlertLevel,
-        lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds,
-        numberOfPeriods: gameSessionState.numberOfPeriods,
-        periodDurationMinutes: gameSessionState.periodDurationMinutes,
-        currentPeriod: gameSessionState.currentPeriod,
-        gameStatus: gameSessionState.gameStatus,
-      },
-      playersForCurrentGame,
-      draggingPlayerFromBarInfo,
-    };
-
-    if (process.env.NODE_ENV !== 'production' && !isValidGameContainerVMInput(vmInput)) {
-      throw new Error('[HomePage] Invalid GameContainer view-model input detected.');
-    }
-
-    return buildGameContainerViewModel(vmInput);
-  }, [
+  const gameContainerVMInput = React.useMemo<BuildGameContainerVMInput>(() => ({
+    gameSessionState: {
+      teamName: gameSessionState.teamName,
+      opponentName: gameSessionState.opponentName,
+      homeScore: gameSessionState.homeScore,
+      awayScore: gameSessionState.awayScore,
+      homeOrAway: gameSessionState.homeOrAway,
+      gameEvents: gameSessionState.gameEvents,
+      timeElapsedInSeconds: gameSessionState.timeElapsedInSeconds,
+      isTimerRunning: gameSessionState.isTimerRunning,
+      subAlertLevel: gameSessionState.subAlertLevel,
+      lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds,
+      numberOfPeriods: gameSessionState.numberOfPeriods,
+      periodDurationMinutes: gameSessionState.periodDurationMinutes,
+      currentPeriod: gameSessionState.currentPeriod,
+      gameStatus: gameSessionState.gameStatus,
+    },
+    playersForCurrentGame,
+    draggingPlayerFromBarInfo,
+  }), [
     gameSessionState.teamName,
     gameSessionState.opponentName,
     gameSessionState.homeScore,
@@ -536,6 +528,12 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     playersForCurrentGame,
     draggingPlayerFromBarInfo,
   ]);
+
+  if (process.env.NODE_ENV !== 'production' && !isValidGameContainerVMInput(gameContainerVMInput)) {
+    throw new Error('[HomePage] Invalid GameContainer view-model input detected.');
+  }
+
+  const gameContainerVM = React.useMemo(() => buildGameContainerViewModel(gameContainerVMInput), [gameContainerVMInput]);
   const playerBarViewModel = gameContainerVM.playerBar;
   const gameInfoViewModel = gameContainerVM.gameInfo;
   const [firstGameGuideStep, setFirstGameGuideStep] = useState<number>(0);
