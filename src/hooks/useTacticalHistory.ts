@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AppState, Point, TacticalDisc } from '@/types';
 import logger from '@/utils/logger';
+import { debug } from '@/utils/debug';
 
 export type TacticalState = Pick<AppState, 'tacticalDrawings' | 'tacticalDiscs' | 'tacticalBallPosition'>;
 
@@ -75,7 +76,7 @@ export function useTacticalHistory(initial: TacticalState) {
     const snapshot = cloneTactical(merged);
     const prev = getState();
     // P3: Gate logging behind DEBUG flag
-    if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+    if (debug.enabled('tactical')) {
       try { logger.log('[TacticalHistory] push', { prevLen: (prev.tacticalDrawings || []).length, nextLen: (snapshot.tacticalDrawings || []).length }); } catch {}
     }
     const cutAt = indexRef.current + 1; // drop any redo states
@@ -94,7 +95,7 @@ export function useTacticalHistory(initial: TacticalState) {
     indexRef.current = indexRef.current - 1;
     const prev = getState();
     // P3: Gate logging behind DEBUG flag
-    if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+    if (debug.enabled('tactical')) {
       try { logger.log('[TacticalHistory] undo -> state', { drawingsLen: prev.tacticalDrawings?.length || 0 }); } catch {}
     }
     currentRef.current = prev;
@@ -111,7 +112,7 @@ export function useTacticalHistory(initial: TacticalState) {
     indexRef.current = indexRef.current + 1;
     const next = getState();
     // P3: Gate logging behind DEBUG flag
-    if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+    if (debug.enabled('tactical')) {
       try { logger.log('[TacticalHistory] redo -> state', { drawingsLen: next.tacticalDrawings?.length || 0 }); } catch {}
     }
     currentRef.current = next;
