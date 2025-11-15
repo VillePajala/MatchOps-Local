@@ -1,8 +1,8 @@
 # Critical Fixes Progress Tracker
 
-**Last Updated**: November 11, 2025
-**Status**: ✅ Layer 1 completed (stability). Preparing Layer 2 (structural).
-**Overall Progress**: L1 done; L2 scoped and queued; L3 planned
+**Last Updated**: November 15, 2025
+**Status**: ✅ Layer 1 completed (stability). Layer 2 micro-steps (2.4.0‑2.4.5) underway.
+**Overall Progress**: L1 done; L2 Step 2.4.5 shipped; L3 planned
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Priority | Fix | Status | Progress | Est. Time | Actual Time |
 |----------|-----|--------|----------|-----------|-------------|
-| **P0** | HomePage Refactoring | 🟡 In Progress | ~33.6% | 2-3h | ~2h |
+| **P0** | HomePage Refactoring | 🟡 In Progress | ~38% | 2-3h | ~3.5h |
 | **P1** | GameSettingsModal Refactoring | ❌ Not Started | 0% | 1h | - |
 | **P2/L2** | Modal State Management (Reducer) | ⏭ Next | Scoped | 45m | - |
 | **P2/L2** | useNewGameFlow Param Grouping | ⏭ Next | Scoped | 45m | - |
@@ -18,8 +18,8 @@
 | **P2** | Error Handling Improvements | ⏭ After L2 | 0% | 1h | - |
 | **P2** | Performance Optimization | ⏭ After L2 | 0% | 30m | - |
 
-**Total Estimated Time**: 4.5-5.5 hours
-**Total Actual Time**: ~2 hours (P0 in progress)
+**Total Estimated Time**: 4.5-5.5 hours  
+**Total Actual Time**: ~3.5 hours (P0 micro-steps 2.4.0‑2.4.5)
 
 ### Newly Logged Fix
 - **P1 – New Game autosave race** *(Nov 2025)*: `useNewGameFlow.handleStartNewGame` now fetches the latest saved game snapshot directly from storage (instead of relying on potentially stale React state) before prompting the “Save current game?” confirmation. This eliminates the documented race condition when autosave mutates state mid-flow.
@@ -56,7 +56,7 @@
 
 ---
 
-## 🔨 Recent Bug Fixes & Improvements (Nov 3-7, 2025)
+## 🔨 Recent Bug Fixes & Improvements (Nov 3-15, 2025)
 
 **Note**: These bug fixes and refactoring improvements were completed as part of ongoing maintenance, reducing technical debt incrementally while P0 comprehensive refactoring is in progress.
 
@@ -159,11 +159,32 @@ useEffect(() => {
 
 **Impact**: Correct team display on modal reopen
 
+### 8. FieldContainer Prop Grouping + Timer VM (Nov 14, 2025)
+**Issue**: FieldContainer consumed 20+ primitive props (players, tactics, timer), bloating HomePage signatures and blocking further reducer work.
+
+**Fix**: Introduced typed view-models so the entire field/timer state is passed via two cohesive objects:
+- Added `fieldVM` (players, opponents, drawings, tactical state) and `timerVM` (timer, alerts, overlays) to `FieldContainer` + tests, keeping fallback props temporarily for safety.
+- Updated HomePage to pass these view-models, reducing prop count and aligning with the `GameContainer` VM approach.
+- Ensured PlayerBar + timer overlays read through the new VMs, unlocking future memoization/migration of actions to reducers.
+
+**Impact**: Shrinks FieldContainer’s surface area, makes downstream prop-grouping possible, and matches the plan set out in PR-56 without regressions (tests + manual smoke verified).
+
+### 9. Debug Flag Unification + Tactical Instrumentation (Nov 14-15, 2025)
+**Issue**: Debug logging across HomePage, undo/redo history, and the tactical board relied on ad-hoc env checks (`NEXT_PUBLIC_DEBUG_*`), making manual verification noisy and inconsistent.
+
+**Fix**: Added a typed debug helper + documentation and migrated every call site to the centralized API:
+- `src/utils/debug.ts` (NEW) exposes `debug.enabled(category)` with typed categories (`home`, `history`, `tactical`) plus build-time notes.
+- `src/utils/debug.test.ts` (NEW) verifies whitespace handling, `DEBUG_ALL`, and default fallbacks.
+- `.env.example` documents how to toggle categories (single flag or `NEXT_PUBLIC_DEBUG_ALL=1`).
+- `src/components/HomePage.tsx`, `src/hooks/useGameSessionWithHistory.ts`, `src/hooks/useTacticalHistory.ts`, `src/hooks/useTacticalBoard.ts`, and `src/components/ControlBar.tsx` now import `{ debug }` and gate logs via the helper—no more inline `process.env` reads.
+
+**Impact**: A single `.env` flag controls render + undo/redo logging, reducing console spam during normal use while giving engineers predictable switches when diagnosing Layer 2 regressions.
+
 ### Summary Statistics
-- **Total commits**: 7 bug fixes
+- **Total commits**: 9 bug fixes/refactors
 - **Lines removed from HomePage**: ~639 lines (-33.6%)
 - **Test coverage increase**: +315 tests (+32%)
-- **Files created**: 2 new files (handlers + tests)
+- **Files created**: 4 new files (handlers/tests + debug helper/tests)
 - **Storage patterns improved**: Event deletion now storage-first
 - **Type safety enhanced**: Season/tournament IDs now non-nullable
 

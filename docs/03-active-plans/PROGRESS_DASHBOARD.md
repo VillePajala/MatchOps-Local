@@ -1,15 +1,38 @@
 # 📊 Production Readiness Progress Dashboard
 
-**Last Updated**: November 7, 2025
-**Overall Progress**: 35% Complete (2 of 6 phases done, P0 refactoring in progress)
+**Last Updated**: November 15, 2025
+**Overall Progress**: 38% Complete (2 of 6 phases done, P0 refactoring in progress)
 
 ---
 
 ## 🎉 **Recent Completions**
 
-### ✅ Bug Fixes & Incremental Refactoring (Nov 3-7, 2025)
-**Completion Date**: November 7, 2025
-**Time Spent**: ~2 hours
+### ✅ Layer 2 — Step 2.4.5 (Debug flag unification + tactical instrumentation)
+**Completion Date**: November 15, 2025
+**Impact**: Centralized debug configuration + clean HomePage/tactical instrumentation for predictable manual verification.
+
+**What Was Accomplished**:
+- Added `src/utils/debug.ts` helper (named export) with typed categories and `debug.enabled()` plus regression coverage in `src/utils/debug.test.ts`.
+- Documented `NEXT_PUBLIC_DEBUG` & `NEXT_PUBLIC_DEBUG_ALL` usage inside `.env.example`, outlining the `home`, `history`, and `tactical` categories.
+- Replaced all tactical/HomePage debug checks with the helper (`HomePage`, `useGameSessionWithHistory`, `useTacticalHistory`, `useTacticalBoard`, `ControlBar`) so undo/redo + render logs share the same switch.
+
+**Quality Gates**:
+- Added targeted tests for `debug.enabled()` parsing (whitespace, `DEBUG_ALL`, fallback cases); lint + type + build stay green.
+- Manually toggled each category to confirm logs appear only when expected (HomePage render traces, history undo/redo, tactical draw undo/redo).
+
+### ✅ Layer 2 — Step 2.4.4 (FieldContainer prop grouping + timer VM)
+**Completion Date**: November 14, 2025
+**Impact**: Reduced FieldContainer’s prop surface from 20+ primitive arguments to two cohesive view-models, accelerating future modal/task refactors and aligning with PR-56 guidance.
+
+**What Was Accomplished**:
+- Added `fieldVM` and `timerVM` groupings to `FieldContainer` (players, tactics, drawings, timer info) and updated all call sites/tests; optional fallbacks kept compatibility during rollout.
+- HomePage now passes typed view-model objects instead of 15+ individual props, mirroring the `buildGameContainerViewModel` pattern.
+- GameContainer + FieldContainer tests updated to assert the new grouped inputs and ensure renders stay identical.
+
+**Quality Gates**:
+- Unit tests updated (`FieldContainer.test.tsx`, `GameContainer.test.tsx`) and run locally (still green); manual smoke verified main field + timer overlay + PlayerBar interactions unchanged.
+- Verified `fieldVM` + `timerVM` objects remain serializable/pure for future memoization.
+
 ### ✅ Layer 2 — Step 2.4.3 (HomePage reduction + tactical history)
 **Completion Date**: November 14, 2025
 **Impact**: Safer undo/redo on mobile tactics view; smaller HomePage surface; clearer logs during manual verification
@@ -46,7 +69,11 @@
 - `src/components/HomePage/utils/newGameHandlers.ts`
 - `src/components/HomePage/utils/newGameHandlers.test.ts`
 
-**See**: [CRITICAL_FIXES_TRACKER.md](../../CRITICAL_FIXES_TRACKER.md#-recent-bug-fixes--improvements-nov-3-7-2025) for detailed breakdown
+**See**: [CRITICAL_FIXES_TRACKER.md](../../CRITICAL_FIXES_TRACKER.md#-recent-bug-fixes--improvements-nov-3-15-2025) for detailed breakdown
+
+### ✅ Bug Fixes & Incremental Refactoring (Nov 3-7, 2025)
+**Completion Date**: November 7, 2025
+**Time Spent**: ~2 hours
 
 ---
 
@@ -82,7 +109,7 @@
 ### Phase: P0 - HomePage Refactoring (In Progress)
 **Status**: 🟡 **IN PROGRESS** (another AI working on this)
 **Estimated Time**: 2-3 hours (1-1.5h remaining)
-**Progress**: ~33.6% complete (1,251 lines removed)
+**Progress**: ~38% complete (1,251 lines removed + FieldContainer view-model grouping + unified debug instrumentation)
 **Owner**: Separate AI instance
 
 ### Phase: P1 - Security & Service Worker Hardening

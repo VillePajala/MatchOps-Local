@@ -107,7 +107,11 @@ Step 2.4 — Parameter/props grouping (reduce coupling)
   - Introduce view-models for `GameContainer` and `FieldContainer` (reduce >50 props to a few sub-objects)
 - Test:
   - Focused unit tests for new groups; ensure existing behavior unchanged
- - See: docs/03-active-plans/L2-2.4-HomePage-Reduction-PLAN.md
+- See: docs/03-active-plans/L2-2.4-HomePage-Reduction-PLAN.md
+- Status:
+  - ✅ 2.4.0–2.4.4 shipped (view-model adapter + FieldContainer/timer VMs + first prop deletions)
+  - ✅ 2.4.5 Debug instrumentation unification (central `debug.enabled()`, `.env` docs, `HomePage`/history/tactical call-site migrations + tests) — executed early to keep manual verification predictable.
+  - 🔜 2.4.6 PlayerBar/GameInfo VM-only interfaces + `useNewGameFlow` param grouping (finish removing legacy prop plumbing before Modal reducer work).
 
 Step 2.5 — Edge-case tests
 - Add tests for:
