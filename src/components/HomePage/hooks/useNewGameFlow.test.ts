@@ -1,3 +1,8 @@
+/**
+ * @unit
+ * @regression
+ * Ensures useNewGameFlow contexts behave after parameter grouping refactor.
+ */
 import { renderHook, act } from '@testing-library/react';
 import type { SetStateAction } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
