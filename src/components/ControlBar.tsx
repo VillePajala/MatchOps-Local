@@ -28,6 +28,7 @@ import {
   HiOutlineIdentification,
 } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
+import { debug } from '@/utils/debug';
 
 // Design tokens for consistent sizing and spacing
 const DESIGN_TOKENS = {
@@ -407,7 +408,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
             <button
               onClick={() => {
                 // P3: Gate logging behind DEBUG flag (hot path performance)
-                if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+                if (debug.enabled('tactical')) {
                   try {
                     // eslint-disable-next-line no-console
                     console.debug('[ControlBar] Undo clicked', { isTacticsBoardView });
@@ -426,7 +427,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
             <button
               onClick={() => {
                 // P3: Gate logging behind DEBUG flag (hot path performance)
-                if (process.env.NEXT_PUBLIC_DEBUG_TACTICAL === '1') {
+                if (debug.enabled('tactical')) {
                   try {
                     // eslint-disable-next-line no-console
                     console.debug('[ControlBar] Redo clicked', { isTacticsBoardView });
