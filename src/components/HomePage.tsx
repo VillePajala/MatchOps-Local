@@ -1699,9 +1699,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
   // --- Timer Handlers provided by useGameTimer ---
 
-  const handleToggleLargeTimerOverlay = () => {
-    setShowLargeTimerOverlay(!showLargeTimerOverlay);
-  };
+  const handleToggleLargeTimerOverlay = useCallback(() => {
+    setShowLargeTimerOverlay((prev) => !prev);
+  }, []);
 
   // handleToggleDrawingMode is now provided by useFieldInteractions hook
 
@@ -1715,9 +1715,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
 
   // Handler to open/close the goal log modal
-  const handleToggleGoalLogModal = () => {
-    setIsGoalLogModalOpen(!isGoalLogModalOpen);
-  };
+  const handleToggleGoalLogModal = useCallback(() => {
+    setIsGoalLogModalOpen((prev) => !prev);
+  }, [setIsGoalLogModalOpen]);
 
   // Handler to add a goal event
   const handleAddGoalEvent = (scorerId: string, assisterId?: string) => {
@@ -1748,7 +1748,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   };
 
   // NEW Handler to log an opponent goal
-  const handleLogOpponentGoal = (time: number) => {
+  const handleLogOpponentGoal = useCallback((time: number) => {
     logger.log(`Logging opponent goal at time: ${time}`);
     const newEvent: GameEvent = {
       id: `oppGoal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -1760,7 +1760,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: newEvent });
     dispatchGameSession({ type: 'ADJUST_SCORE_FOR_EVENT', payload: { eventType: 'opponentGoal', action: 'add' } });
     setIsGoalLogModalOpen(false);
-  };
+  }, [dispatchGameSession, setIsGoalLogModalOpen]);
 
   // Handler to update an existing game event
   const handleUpdateGameEvent = (updatedEvent: GameEvent) => {
@@ -3005,23 +3005,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     handleToggleGameStatsModal();
   };
 
-  // --- Render Logic ---
-  const isLoading = isMasterRosterQueryLoading || areSeasonsQueryLoading || areTournamentsQueryLoading || isAllSavedGamesQueryLoading || isCurrentGameIdSettingQueryLoading;
-
-  if (isLoading && !initialLoadComplete) {
-    return (
-      <div className="flex items-center justify-center h-[100dvh] bg-slate-900 text-white">
-        {/* You can replace this with a more sophisticated loading spinner component */}
-        <p>Loading Game Data...</p>
-      </div>
-    );
-  }
-
-  // Define a consistent, premium style for the top and bottom bars
-  const barStyle = "bg-gradient-to-b from-slate-800 to-slate-900 shadow-lg";
-  // We can add a noise texture via pseudo-elements or a background image later if desired
-
-  const fieldInteractions: FieldInteractions = {
+  const fieldInteractions = React.useMemo<FieldInteractions>(() => ({
     playerMove: handlePlayerMove,
     playerMoveEnd: handlePlayerMoveEnd,
     playerRemove: handlePlayerRemove,
@@ -3041,9 +3025,29 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     tacticalBallMove: handleTacticalBallMove,
     playerDropViaTouch: handlePlayerDropViaTouch,
     playerDragCancelViaTouch: handlePlayerDragCancelViaTouch,
-  };
+  }), [
+    handlePlayerMove,
+    handlePlayerMoveEnd,
+    handlePlayerRemove,
+    handleDropOnField,
+    handleOpponentMove,
+    handleOpponentMoveEnd,
+    handleOpponentRemove,
+    handleDrawingStart,
+    handleDrawingAddPoint,
+    handleDrawingEnd,
+    handleTacticalDrawingStart,
+    handleTacticalDrawingAddPoint,
+    handleTacticalDrawingEnd,
+    handleTacticalDiscMove,
+    handleTacticalDiscRemove,
+    handleToggleTacticalDiscType,
+    handleTacticalBallMove,
+    handlePlayerDropViaTouch,
+    handlePlayerDragCancelViaTouch,
+  ]);
 
-  const timerInteractions: TimerInteractions = {
+  const timerInteractions = React.useMemo<TimerInteractions>(() => ({
     toggleLargeOverlay: handleToggleLargeTimerOverlay,
     toggleGoalLogModal: handleToggleGoalLogModal,
     logOpponentGoal: handleLogOpponentGoal,
@@ -3051,7 +3055,31 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setSubInterval: handleSetSubInterval,
     startPauseTimer: handleStartPauseTimer,
     resetTimer: handleResetTimer,
-  };
+  }), [
+    handleToggleLargeTimerOverlay,
+    handleToggleGoalLogModal,
+    handleLogOpponentGoal,
+    handleSubstitutionMade,
+    handleSetSubInterval,
+    handleStartPauseTimer,
+    handleResetTimer,
+  ]);
+
+  // --- Render Logic ---
+  const isLoading = isMasterRosterQueryLoading || areSeasonsQueryLoading || areTournamentsQueryLoading || isAllSavedGamesQueryLoading || isCurrentGameIdSettingQueryLoading;
+
+  if (isLoading && !initialLoadComplete) {
+    return (
+      <div className="flex items-center justify-center h-[100dvh] bg-slate-900 text-white">
+        {/* You can replace this with a more sophisticated loading spinner component */}
+        <p>Loading Game Data...</p>
+      </div>
+    );
+  }
+
+  // Define a consistent, premium style for the top and bottom bars
+  const barStyle = "bg-gradient-to-b from-slate-800 to-slate-900 shadow-lg";
+  // We can add a noise texture via pseudo-elements or a background image later if desired
 
   // Determine which players are available for the current game based on selected IDs
 
