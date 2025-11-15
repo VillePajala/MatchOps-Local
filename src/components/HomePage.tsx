@@ -529,7 +529,8 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     playersForCurrentGame,
     draggingPlayerFromBarInfo,
   ]);
-  void gameContainerVM; // Keep referenced to avoid unused-var warnings; not wired yet by design
+  const playerBarViewModel = gameContainerVM.playerBar;
+  const gameInfoViewModel = gameContainerVM.gameInfo;
   const [firstGameGuideStep, setFirstGameGuideStep] = useState<number>(0);
   // Initialize as true for experienced users to prevent any flash
   const [hasCheckedFirstGameGuide, setHasCheckedFirstGameGuide] = useState<boolean>(!isFirstTimeUser);
@@ -3033,23 +3034,23 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
           </div>
         }>
           <PlayerBar
-            players={playersForCurrentGame}
+            players={playerBarViewModel.players}
             onPlayerDragStartFromBar={handlePlayerDragStartFromBar}
-            selectedPlayerIdFromBar={draggingPlayerFromBarInfo?.id}
+            selectedPlayerIdFromBar={playerBarViewModel.selectedPlayerIdFromBar}
             onBarBackgroundClick={handleDeselectPlayer}
-            gameEvents={gameSessionState.gameEvents}
+            gameEvents={playerBarViewModel.gameEvents}
             onPlayerTapInBar={handlePlayerTapInBar}
             onToggleGoalie={handleToggleGoalieForModal}
           />
         </ErrorBoundary>
         <GameInfoBar
-          teamName={gameSessionState.teamName}
-          opponentName={gameSessionState.opponentName}
-          homeScore={gameSessionState.homeScore}
-          awayScore={gameSessionState.awayScore}
+          teamName={gameInfoViewModel.teamName}
+          opponentName={gameInfoViewModel.opponentName}
+          homeScore={gameInfoViewModel.homeScore}
+          awayScore={gameInfoViewModel.awayScore}
           onTeamNameChange={handleTeamNameChange}
           onOpponentNameChange={handleOpponentNameChange}
-          homeOrAway={gameSessionState.homeOrAway}
+          homeOrAway={gameInfoViewModel.homeOrAway}
         />
       </div>
 

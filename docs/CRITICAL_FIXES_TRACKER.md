@@ -10,16 +10,16 @@
 
 | Priority | Fix | Status | Progress | Est. Time | Actual Time |
 |----------|-----|--------|----------|-----------|-------------|
-| **P0** | HomePage Refactoring | 🟡 In Progress | ~38% | 2-3h | ~3.5h |
+| **P0** | HomePage Refactoring | 🟡 In Progress | ~40% | 2-3h | ~4h |
 | **P1** | GameSettingsModal Refactoring | ❌ Not Started | 0% | 1h | - |
 | **P2/L2** | Modal State Management (Reducer) | ⏭ Next | Scoped | 45m | - |
-| **P2/L2** | useNewGameFlow Param Grouping | ⏭ Next | Scoped | 45m | - |
+| **P2/L2** | useNewGameFlow Param Grouping | ✅ Completed | 100% | 45m | 45m |
 | **P2/L2** | FieldContainer/View-Model Grouping | ⏭ Next | Scoped | 60m | - |
 | **P2** | Error Handling Improvements | ⏭ After L2 | 0% | 1h | - |
 | **P2** | Performance Optimization | ⏭ After L2 | 0% | 30m | - |
 
 **Total Estimated Time**: 4.5-5.5 hours  
-**Total Actual Time**: ~3.5 hours (P0 micro-steps 2.4.0‑2.4.5)
+**Total Actual Time**: ~4 hours (P0 micro-steps 2.4.0‑2.4.6)
 
 ### Newly Logged Fix
 - **P1 – New Game autosave race** *(Nov 2025)*: `useNewGameFlow.handleStartNewGame` now fetches the latest saved game snapshot directly from storage (instead of relying on potentially stale React state) before prompting the “Save current game?” confirmation. This eliminates the documented race condition when autosave mutates state mid-flow.
@@ -37,7 +37,7 @@
 
 ### Upcoming Layer 2: Modal & Flow Architecture (next PR chunk)
 - **Split ModalManager** into `GameModalsManager`, `SettingsModalsManager`, and `StatsModalsManager` so each container remains <200 lines and owns a coherent prop subset.
-- **useNewGameFlow parameter grouping**: accept cohesive `gameState`, `actions`, `config`, and `dependencies` objects instead of a wide options shape (31 fields today).
+- **useNewGameFlow parameter grouping**: ✅ Completed in Step 2.4.6 – hook now accepts cohesive `gameState`, `ui`, `orchestration`, and `dependencies` contexts.
 - **Group FieldContainer props** into view-model objects (`gameState`, `fieldInteractions`, `modalTriggers`, `guideState`) to reduce prop drilling.
 - **Modal State Reducer**: migrate scattered modal booleans to a single reducer (start with Load/New, then iterate per modal).
 - **Add focused edge-case tests** for useGameState availablePlayers sync and backup-restore → latest-game fallback.
@@ -56,7 +56,7 @@
 
 ---
 
-## 🔨 Recent Bug Fixes & Improvements (Nov 3-15, 2025)
+## 🔨 Recent Bug Fixes & Improvements (Nov 3-16, 2025)
 
 **Note**: These bug fixes and refactoring improvements were completed as part of ongoing maintenance, reducing technical debt incrementally while P0 comprehensive refactoring is in progress.
 
@@ -180,8 +180,18 @@ useEffect(() => {
 
 **Impact**: A single `.env` flag controls render + undo/redo logging, reducing console spam during normal use while giving engineers predictable switches when diagnosing Layer 2 regressions.
 
+### 10. PlayerBar/GameInfo VM Adoption + useNewGameFlow Grouping (Nov 16, 2025)
+**Issue**: PlayerBar/GameInfo still read directly from HomePage state, and `useNewGameFlow` had 31 parameters, making future migrations fragile.
+
+**Fix**:
+- `HomePage` now renders `PlayerBar`/`GameInfoBar` from the `GameContainerViewModel`, ensuring the VM is authoritative before GameContainer extraction.
+- `GameContainer` requires a `viewModel` prop; test fixtures updated accordingly so missing data fails fast.
+- `useNewGameFlow` options were grouped into `{ gameState, ui, orchestration, dependencies }`, matching the Layer 2 plan; unit tests updated to reflect the new API.
+
+**Impact**: Eliminates redundant prop plumbing, locks the PlayerBar/GameInfo contract to the VM, and reduces hook coupling so future modal reducer work can accept cohesive contexts instead of dozens of primitives.
+
 ### Summary Statistics
-- **Total commits**: 9 bug fixes/refactors
+- **Total commits**: 10 bug fixes/refactors
 - **Lines removed from HomePage**: ~639 lines (-33.6%)
 - **Test coverage increase**: +315 tests (+32%)
 - **Files created**: 4 new files (handlers/tests + debug helper/tests)

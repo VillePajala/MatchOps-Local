@@ -13,43 +13,63 @@ import logger from '@/utils/logger';
 
 type ToastFn = (message: string, type?: 'success' | 'error' | 'info') => void;
 
-interface UseNewGameFlowOptions {
+interface GameFlowStateContext {
   availablePlayers: Player[];
   savedGames: SavedGamesCollection;
-  setSavedGames: Dispatch<SetStateAction<SavedGamesCollection>>;
   currentGameId: string | null;
+}
+
+interface GameFlowUiContext {
   setIsNewGameSetupModalOpen: (open: boolean) => void;
   setIsRosterModalOpen: (open: boolean) => void;
   setHasSkippedInitialSetup: Dispatch<SetStateAction<boolean>>;
   setHighlightRosterButton: Dispatch<SetStateAction<boolean>>;
   setIsPlayed: Dispatch<SetStateAction<boolean>>;
+}
+
+interface GameFlowOrchestrationContext {
   resetHistory: (state: AppState) => void;
   dispatchGameSession: Dispatch<GameSessionAction>;
   setCurrentGameId: (id: string | null) => void;
+  setSavedGames: Dispatch<SetStateAction<SavedGamesCollection>>;
+}
+
+interface GameFlowDependencies {
   queryClient: QueryClient;
   showToast: ToastFn;
   t: TFunction;
   defaultSubIntervalMinutes: number;
 }
 
+interface UseNewGameFlowOptions {
+  gameState: GameFlowStateContext;
+  ui: GameFlowUiContext;
+  orchestration: GameFlowOrchestrationContext;
+  dependencies: GameFlowDependencies;
+}
+
 export function useNewGameFlow({
-  availablePlayers,
-  savedGames,
-  setSavedGames,
-  currentGameId,
-  setIsNewGameSetupModalOpen,
-  setIsRosterModalOpen,
-  setHasSkippedInitialSetup,
-  setHighlightRosterButton,
-  setIsPlayed,
-  resetHistory,
-  dispatchGameSession,
-  setCurrentGameId,
-  queryClient,
-  showToast,
-  t,
-  defaultSubIntervalMinutes,
+  gameState,
+  ui,
+  orchestration,
+  dependencies,
 }: UseNewGameFlowOptions) {
+  const { availablePlayers, savedGames, currentGameId } = gameState;
+  const {
+    setIsNewGameSetupModalOpen,
+    setIsRosterModalOpen,
+    setHasSkippedInitialSetup,
+    setHighlightRosterButton,
+    setIsPlayed,
+  } = ui;
+  const {
+    setSavedGames,
+    resetHistory,
+    dispatchGameSession,
+    setCurrentGameId,
+  } = orchestration;
+  const { queryClient, showToast, t, defaultSubIntervalMinutes } = dependencies;
+
   const [playerIdsForNewGame, setPlayerIdsForNewGame] = useState<string[] | null>(null);
   const [newGameDemandFactor, setNewGameDemandFactor] = useState(1);
   const [showNoPlayersConfirm, setShowNoPlayersConfirm] = useState(false);
