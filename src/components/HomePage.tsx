@@ -144,14 +144,13 @@ interface HomePageProps {
   isFirstTimeUser?: boolean;
 }
 
-function useStableEventCallback<T extends (...args: any[]) => any>(callback: T): T {
+function useStableEventCallback<T extends (...args: unknown[]) => unknown>(callback: T): T {
   const callbackRef = useRef(callback);
 
   useEffect(() => {
     callbackRef.current = callback;
   }, [callback]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useCallback(((...args: Parameters<T>) => callbackRef.current(...args)) as T, []);
 }
 
