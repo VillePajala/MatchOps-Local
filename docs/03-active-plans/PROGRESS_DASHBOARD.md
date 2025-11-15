@@ -19,6 +19,7 @@
 **Quality Gates**:
 - Jest suites covering FieldContainer + modal reducer pass; lint/type/build all green.
 - Verified new grouping in dev with `NEXT_PUBLIC_DEBUG=home` to ensure no extra renders.
+- Remaining modals (roster/season/etc.) stay on legacy setters; tracked for Step 2.4.8 alongside reducer integration tests.
 
 ### ✅ Layer 2 — Step 2.4.6 (PlayerBar/GameInfo VM-only + new game flow grouping)
 **Completion Date**: November 16, 2025

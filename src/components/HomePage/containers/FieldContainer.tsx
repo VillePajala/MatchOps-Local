@@ -120,6 +120,17 @@ export function FieldContainer({
       logger.warn(`FieldContainer: missing required handler '${name}'`);
     }
   };
+  const requireHandler = <Args extends unknown[]>(
+    handler: ((...args: Args) => void) | undefined,
+    name: string
+  ): ((...args: Args) => void) => {
+    if (handler) return handler;
+    const warn = devWarnMissingHandler(name);
+    return (...args: Args) => {
+      void args;
+      warn();
+    };
+  };
   const { t } = useTranslation();
 
   const {
@@ -154,6 +165,34 @@ export function FieldContainer({
     resetTimer,
   } = timerInteractions;
 
+  const playerMoveHandler = requireHandler(playerMove, 'interactions.playerMove');
+  const playerMoveEndHandler = requireHandler(playerMoveEnd, 'interactions.playerMoveEnd');
+  const playerRemoveHandler = requireHandler(playerRemove, 'interactions.playerRemove');
+  const playerDropHandler = requireHandler(playerDrop, 'interactions.playerDrop');
+  const opponentMoveHandler = requireHandler(opponentMove, 'interactions.opponentMove');
+  const opponentMoveEndHandler = requireHandler(opponentMoveEnd, 'interactions.opponentMoveEnd');
+  const opponentRemoveHandler = requireHandler(opponentRemove, 'interactions.opponentRemove');
+  const drawingStartHandler = requireHandler(drawingStart, 'interactions.drawingStart');
+  const drawingAddPointHandler = requireHandler(drawingAddPoint, 'interactions.drawingAddPoint');
+  const drawingEndHandler = requireHandler(drawingEnd, 'interactions.drawingEnd');
+  const tacticalDrawingStartHandler = requireHandler(tacticalDrawingStart, 'interactions.tacticalDrawingStart');
+  const tacticalDrawingAddPointHandler = requireHandler(tacticalDrawingAddPoint, 'interactions.tacticalDrawingAddPoint');
+  const tacticalDrawingEndHandler = requireHandler(tacticalDrawingEnd, 'interactions.tacticalDrawingEnd');
+  const tacticalDiscMoveHandler = requireHandler(tacticalDiscMove, 'interactions.tacticalDiscMove');
+  const tacticalDiscRemoveHandler = requireHandler(tacticalDiscRemove, 'interactions.tacticalDiscRemove');
+  const tacticalDiscToggleTypeHandler = requireHandler(tacticalDiscToggleType, 'interactions.tacticalDiscToggleType');
+  const tacticalBallMoveHandler = requireHandler(tacticalBallMove, 'interactions.tacticalBallMove');
+  const playerDropViaTouchHandler = requireHandler(playerDropViaTouch, 'interactions.playerDropViaTouch');
+  const playerDragCancelViaTouchHandler = requireHandler(playerDragCancelViaTouch, 'interactions.playerDragCancelViaTouch');
+
+  const toggleLargeOverlayHandler = requireHandler(toggleLargeOverlay, 'timerInteractions.toggleLargeOverlay');
+  const toggleGoalLogModalHandler = requireHandler(toggleGoalLogModal, 'timerInteractions.toggleGoalLogModal');
+  const logOpponentGoalHandler = requireHandler(logOpponentGoal, 'timerInteractions.logOpponentGoal');
+  const substitutionMadeHandler = requireHandler(substitutionMade, 'timerInteractions.substitutionMade');
+  const setSubIntervalHandler = requireHandler(setSubInterval, 'timerInteractions.setSubInterval');
+  const startPauseTimerHandler = requireHandler(startPauseTimer, 'timerInteractions.startPauseTimer');
+  const resetTimerHandler = requireHandler(resetTimer, 'timerInteractions.resetTimer');
+
   const handleGuideStepChange = (step: number) => {
     onGuideStepChange?.(step);
   };
@@ -182,20 +221,15 @@ export function FieldContainer({
         <TimerOverlay
           timeElapsedInSeconds={tmTime}
           subAlertLevel={tmSubAlert}
-          onSubstitutionMade={substitutionMade || devWarnMissingHandler('timerInteractions.substitutionMade')}
+          onSubstitutionMade={substitutionMadeHandler}
           completedIntervalDurations={gameSessionState.completedIntervalDurations || []}
           subIntervalMinutes={gameSessionState.subIntervalMinutes}
-          onSetSubInterval={setSubInterval || devWarnMissingHandler('timerInteractions.setSubInterval')}
+          onSetSubInterval={setSubIntervalHandler}
           isTimerRunning={tmIsRunning}
-          onStartPauseTimer={startPauseTimer || devWarnMissingHandler('timerInteractions.startPauseTimer')}
-          onResetTimer={resetTimer || devWarnMissingHandler('timerInteractions.resetTimer')}
-          onToggleGoalLogModal={toggleGoalLogModal || devWarnMissingHandler('timerInteractions.toggleGoalLogModal')}
-          onRecordOpponentGoal={() => {
-            if (logOpponentGoal) return logOpponentGoal(tmTime);
-            if (process.env.NODE_ENV !== 'production') {
-              logger.warn("FieldContainer: missing handler 'timerInteractions.logOpponentGoal'");
-            }
-          }}
+          onStartPauseTimer={startPauseTimerHandler}
+          onResetTimer={resetTimerHandler}
+          onToggleGoalLogModal={toggleGoalLogModalHandler}
+          onRecordOpponentGoal={() => logOpponentGoalHandler(tmTime)}
           teamName={gameSessionState.teamName}
           opponentName={gameSessionState.opponentName}
           homeScore={gameSessionState.homeScore}
@@ -207,7 +241,7 @@ export function FieldContainer({
           currentPeriod={gameSessionState.currentPeriod}
           gameStatus={gameSessionState.gameStatus}
           onOpponentNameChange={() => {}}
-          onClose={toggleLargeOverlay || (() => {})}
+          onClose={toggleLargeOverlayHandler}
           isLoaded={tmInitialLoad}
         />
       )}
@@ -222,32 +256,32 @@ export function FieldContainer({
           </div>
         }
       >
-          <SoccerField
+        <SoccerField
           players={fcPlayersOnField}
           opponents={fcOpponents}
           drawings={fcIsTactics ? fcTacticalDrawings : fcDrawings}
-          onPlayerMove={playerMove || (() => {})}
-          onPlayerMoveEnd={playerMoveEnd || (() => {})}
-          onPlayerRemove={playerRemove || (() => {})}
-          onOpponentMove={opponentMove || (() => {})}
-          onOpponentMoveEnd={opponentMoveEnd || (() => {})}
-          onOpponentRemove={opponentRemove || (() => {})}
-          onPlayerDrop={playerDrop || (() => {})}
+          onPlayerMove={playerMoveHandler}
+          onPlayerMoveEnd={playerMoveEndHandler}
+          onPlayerRemove={playerRemoveHandler}
+          onOpponentMove={opponentMoveHandler}
+          onOpponentMoveEnd={opponentMoveEndHandler}
+          onOpponentRemove={opponentRemoveHandler}
+          onPlayerDrop={playerDropHandler}
           showPlayerNames={gameSessionState.showPlayerNames}
-          onDrawingStart={fcIsTactics ? tacticalDrawingStart || (() => {}) : drawingStart || (() => {})}
-          onDrawingAddPoint={fcIsTactics ? tacticalDrawingAddPoint || (() => {}) : drawingAddPoint || (() => {})}
-          onDrawingEnd={fcIsTactics ? tacticalDrawingEnd || (() => {}) : drawingEnd || (() => {})}
+          onDrawingStart={fcIsTactics ? tacticalDrawingStartHandler : drawingStartHandler}
+          onDrawingAddPoint={fcIsTactics ? tacticalDrawingAddPointHandler : drawingAddPointHandler}
+          onDrawingEnd={fcIsTactics ? tacticalDrawingEndHandler : drawingEndHandler}
           draggingPlayerFromBarInfo={fcDraggingFromBar}
-          onPlayerDropViaTouch={playerDropViaTouch || (() => {})}
-          onPlayerDragCancelViaTouch={playerDragCancelViaTouch || (() => {})}
+          onPlayerDropViaTouch={playerDropViaTouchHandler}
+          onPlayerDragCancelViaTouch={playerDragCancelViaTouchHandler}
           timeElapsedInSeconds={tmTime}
           isTacticsBoardView={fcIsTactics}
           tacticalDiscs={fcTacticalDiscs || []}
-          onTacticalDiscMove={tacticalDiscMove || (() => {})}
-          onTacticalDiscRemove={tacticalDiscRemove || (() => {})}
-          onToggleTacticalDiscType={tacticalDiscToggleType || (() => {})}
+          onTacticalDiscMove={tacticalDiscMoveHandler}
+          onTacticalDiscRemove={tacticalDiscRemoveHandler}
+          onToggleTacticalDiscType={tacticalDiscToggleTypeHandler}
           tacticalBallPosition={fcTacticalBall || { relX: 0.5, relY: 0.5 }}
-          onTacticalBallMove={tacticalBallMove || (() => {})}
+          onTacticalBallMove={tacticalBallMoveHandler}
           isDrawingEnabled={fcIsDrawingEnabled}
         />
       </ErrorBoundary>
