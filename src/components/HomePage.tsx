@@ -90,6 +90,7 @@ import { startNewGameWithSetup, cancelNewGameSetup } from './HomePage/utils/newG
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
 import { FieldContainer } from '@/components/HomePage/containers/FieldContainer';
+import type { FieldInteractions, TimerInteractions } from '@/components/HomePage/containers/FieldContainer';
 import { debug } from '@/utils/debug';
 
 
@@ -467,6 +468,25 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
   } = useModalContext();
+
+  const reducerDrivenModals = React.useMemo(() => ({
+    loadGame: {
+      isOpen: isLoadGameModalOpen,
+      open: () => setIsLoadGameModalOpen(true),
+      close: () => setIsLoadGameModalOpen(false),
+    },
+    newGameSetup: {
+      isOpen: isNewGameSetupModalOpen,
+      open: () => setIsNewGameSetupModalOpen(true),
+      close: () => setIsNewGameSetupModalOpen(false),
+    },
+  }), [
+    isLoadGameModalOpen,
+    setIsLoadGameModalOpen,
+    isNewGameSetupModalOpen,
+    setIsNewGameSetupModalOpen,
+  ]);
+
   const { showToast } = useToast();
   // const [isPlayerStatsModalOpen, setIsPlayerStatsModalOpen] = useState(false);
   const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<Player | null>(null);
@@ -555,7 +575,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           }
           break;
         case 'loadGame':
-          setIsLoadGameModalOpen(true);
+          reducerDrivenModals.loadGame.open();
           break;
         case 'season':
           setIsSeasonTournamentModalOpen(true);
@@ -1919,11 +1939,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
   const handleOpenLoadGameModal = () => {
     logger.log("Opening Load Game Modal...");
-    setIsLoadGameModalOpen(true);
+    reducerDrivenModals.loadGame.open();
   };
 
   const handleCloseLoadGameModal = () => {
-    setIsLoadGameModalOpen(false);
+    reducerDrivenModals.loadGame.close();
   };
 
   const handleOpenSeasonTournamentModal = () => {
@@ -3001,6 +3021,38 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const barStyle = "bg-gradient-to-b from-slate-800 to-slate-900 shadow-lg";
   // We can add a noise texture via pseudo-elements or a background image later if desired
 
+  const fieldInteractions: FieldInteractions = {
+    playerMove: handlePlayerMove,
+    playerMoveEnd: handlePlayerMoveEnd,
+    playerRemove: handlePlayerRemove,
+    playerDrop: handleDropOnField,
+    opponentMove: handleOpponentMove,
+    opponentMoveEnd: handleOpponentMoveEnd,
+    opponentRemove: handleOpponentRemove,
+    drawingStart: handleDrawingStart,
+    drawingAddPoint: handleDrawingAddPoint,
+    drawingEnd: handleDrawingEnd,
+    tacticalDrawingStart: handleTacticalDrawingStart,
+    tacticalDrawingAddPoint: handleTacticalDrawingAddPoint,
+    tacticalDrawingEnd: handleTacticalDrawingEnd,
+    tacticalDiscMove: handleTacticalDiscMove,
+    tacticalDiscRemove: handleTacticalDiscRemove,
+    tacticalDiscToggleType: handleToggleTacticalDiscType,
+    tacticalBallMove: handleTacticalBallMove,
+    playerDropViaTouch: handlePlayerDropViaTouch,
+    playerDragCancelViaTouch: handlePlayerDragCancelViaTouch,
+  };
+
+  const timerInteractions: TimerInteractions = {
+    toggleLargeOverlay: handleToggleLargeTimerOverlay,
+    toggleGoalLogModal: handleToggleGoalLogModal,
+    logOpponentGoal: handleLogOpponentGoal,
+    substitutionMade: handleSubstitutionMade,
+    setSubInterval: handleSetSubInterval,
+    startPauseTimer: handleStartPauseTimer,
+    resetTimer: handleResetTimer,
+  };
+
   // Determine which players are available for the current game based on selected IDs
 
 
@@ -3114,39 +3166,15 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         hasCheckedFirstGameGuide={hasCheckedFirstGameGuide}
         firstGameGuideStep={firstGameGuideStep}
         orphanedGameInfo={orphanedGameInfo}
-        onOpenNewGameSetup={() => setIsNewGameSetupModalOpen(true)}
+        onOpenNewGameSetup={reducerDrivenModals.newGameSetup.open}
         onOpenRosterModal={() => setIsRosterModalOpen(true)}
         onOpenSeasonTournamentModal={() => setIsSeasonTournamentModalOpen(true)}
         onOpenTeamManagerModal={() => setIsTeamManagerOpen(true)}
         onGuideStepChange={setFirstGameGuideStep}
         onGuideClose={() => setShowFirstGameGuide(false)}
         onOpenTeamReassignModal={() => setIsTeamReassignModalOpen(true)}
-        handlePlayerMove={handlePlayerMove}
-        handlePlayerMoveEnd={handlePlayerMoveEnd}
-        handlePlayerRemove={handlePlayerRemove}
-        handleOpponentMove={handleOpponentMove}
-        handleOpponentMoveEnd={handleOpponentMoveEnd}
-        handleOpponentRemove={handleOpponentRemove}
-        handleDropOnField={handleDropOnField}
-        handleDrawingStart={handleDrawingStart}
-        handleDrawingAddPoint={handleDrawingAddPoint}
-        handleDrawingEnd={handleDrawingEnd}
-        handleTacticalDrawingStart={handleTacticalDrawingStart}
-        handleTacticalDrawingAddPoint={handleTacticalDrawingAddPoint}
-        handleTacticalDrawingEnd={handleTacticalDrawingEnd}
-        handleTacticalDiscMove={handleTacticalDiscMove}
-        handleTacticalDiscRemove={handleTacticalDiscRemove}
-        handleToggleTacticalDiscType={handleToggleTacticalDiscType}
-        handleTacticalBallMove={handleTacticalBallMove}
-        handlePlayerDropViaTouch={handlePlayerDropViaTouch}
-        handlePlayerDragCancelViaTouch={handlePlayerDragCancelViaTouch}
-        handleToggleLargeTimerOverlay={handleToggleLargeTimerOverlay}
-        handleToggleGoalLogModal={handleToggleGoalLogModal}
-        handleLogOpponentGoal={handleLogOpponentGoal}
-        handleSubstitutionMade={handleSubstitutionMade}
-        handleSetSubInterval={handleSetSubInterval}
-        handleStartPauseTimer={handleStartPauseTimer}
-        handleResetTimer={handleResetTimer}
+        interactions={fieldInteractions}
+        timerInteractions={timerInteractions}
       />
 
 
