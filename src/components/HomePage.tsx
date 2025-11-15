@@ -144,6 +144,17 @@ interface HomePageProps {
   isFirstTimeUser?: boolean;
 }
 
+function useStableEventCallback<T extends (...args: any[]) => any>(callback: T): T {
+  const callbackRef = useRef(callback);
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useCallback(((...args: Parameters<T>) => callbackRef.current(...args)) as T, []);
+}
+
 function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess, isFirstTimeUser = false }: HomePageProps) {
   // Sync hasSkippedInitialSetup with prop to prevent flash
   const [hasSkippedInitialSetup, setHasSkippedInitialSetup] = useState<boolean>(skipInitialSetup);
@@ -366,6 +377,13 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     // masterRosterKey: MASTER_ROSTER_KEY, // Removed as no longer used by useGameState
   });
 
+  const stableHandleDrawingStart = useStableEventCallback(handleDrawingStart);
+  const stableHandleDrawingAddPoint = useStableEventCallback(handleDrawingAddPoint);
+  const stableHandleDrawingEnd = useStableEventCallback(handleDrawingEnd);
+  const stableHandleOpponentMove = useStableEventCallback(handleOpponentMove);
+  const stableHandleOpponentMoveEnd = useStableEventCallback(handleOpponentMoveEnd);
+  const stableHandleOpponentRemove = useStableEventCallback(handleOpponentRemove);
+
   const {
     availablePlayers,
     setAvailablePlayers,
@@ -469,22 +487,29 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     setIsPlayerAssessmentModalOpen,
   } = useModalContext();
 
+  const openLoadGameModal = useCallback(() => setIsLoadGameModalOpen(true), [setIsLoadGameModalOpen]);
+  const closeLoadGameModal = useCallback(() => setIsLoadGameModalOpen(false), [setIsLoadGameModalOpen]);
+  const openNewGameSetupModal = useCallback(() => setIsNewGameSetupModalOpen(true), [setIsNewGameSetupModalOpen]);
+  const closeNewGameSetupModal = useCallback(() => setIsNewGameSetupModalOpen(false), [setIsNewGameSetupModalOpen]);
+
   const reducerDrivenModals = React.useMemo(() => ({
     loadGame: {
       isOpen: isLoadGameModalOpen,
-      open: () => setIsLoadGameModalOpen(true),
-      close: () => setIsLoadGameModalOpen(false),
+      open: openLoadGameModal,
+      close: closeLoadGameModal,
     },
     newGameSetup: {
       isOpen: isNewGameSetupModalOpen,
-      open: () => setIsNewGameSetupModalOpen(true),
-      close: () => setIsNewGameSetupModalOpen(false),
+      open: openNewGameSetupModal,
+      close: closeNewGameSetupModal,
     },
   }), [
     isLoadGameModalOpen,
-    setIsLoadGameModalOpen,
     isNewGameSetupModalOpen,
-    setIsNewGameSetupModalOpen,
+    openLoadGameModal,
+    closeLoadGameModal,
+    openNewGameSetupModal,
+    closeNewGameSetupModal,
   ]);
 
   const { showToast } = useToast();
@@ -660,6 +685,14 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     initialBallPosition: initialState.tacticalBallPosition,
     saveStateToHistory: saveTacticalStateToHistory,
   });
+
+  const stableHandleTacticalDiscMove = useStableEventCallback(handleTacticalDiscMove);
+  const stableHandleTacticalDiscRemove = useStableEventCallback(handleTacticalDiscRemove);
+  const stableHandleToggleTacticalDiscType = useStableEventCallback(handleToggleTacticalDiscType);
+  const stableHandleTacticalBallMove = useStableEventCallback(handleTacticalBallMove);
+  const stableHandleTacticalDrawingStart = useStableEventCallback(handleTacticalDrawingStart);
+  const stableHandleTacticalDrawingAddPoint = useStableEventCallback(handleTacticalDrawingAddPoint);
+  const stableHandleTacticalDrawingEnd = useStableEventCallback(handleTacticalDrawingEnd);
 
   // Load teams when orphaned game is detected
   useEffect(() => {
@@ -3010,19 +3043,19 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     playerMoveEnd: handlePlayerMoveEnd,
     playerRemove: handlePlayerRemove,
     playerDrop: handleDropOnField,
-    opponentMove: handleOpponentMove,
-    opponentMoveEnd: handleOpponentMoveEnd,
-    opponentRemove: handleOpponentRemove,
-    drawingStart: handleDrawingStart,
-    drawingAddPoint: handleDrawingAddPoint,
-    drawingEnd: handleDrawingEnd,
-    tacticalDrawingStart: handleTacticalDrawingStart,
-    tacticalDrawingAddPoint: handleTacticalDrawingAddPoint,
-    tacticalDrawingEnd: handleTacticalDrawingEnd,
-    tacticalDiscMove: handleTacticalDiscMove,
-    tacticalDiscRemove: handleTacticalDiscRemove,
-    tacticalDiscToggleType: handleToggleTacticalDiscType,
-    tacticalBallMove: handleTacticalBallMove,
+    opponentMove: stableHandleOpponentMove,
+    opponentMoveEnd: stableHandleOpponentMoveEnd,
+    opponentRemove: stableHandleOpponentRemove,
+    drawingStart: stableHandleDrawingStart,
+    drawingAddPoint: stableHandleDrawingAddPoint,
+    drawingEnd: stableHandleDrawingEnd,
+    tacticalDrawingStart: stableHandleTacticalDrawingStart,
+    tacticalDrawingAddPoint: stableHandleTacticalDrawingAddPoint,
+    tacticalDrawingEnd: stableHandleTacticalDrawingEnd,
+    tacticalDiscMove: stableHandleTacticalDiscMove,
+    tacticalDiscRemove: stableHandleTacticalDiscRemove,
+    tacticalDiscToggleType: stableHandleToggleTacticalDiscType,
+    tacticalBallMove: stableHandleTacticalBallMove,
     playerDropViaTouch: handlePlayerDropViaTouch,
     playerDragCancelViaTouch: handlePlayerDragCancelViaTouch,
   }), [
@@ -3030,19 +3063,19 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     handlePlayerMoveEnd,
     handlePlayerRemove,
     handleDropOnField,
-    handleOpponentMove,
-    handleOpponentMoveEnd,
-    handleOpponentRemove,
-    handleDrawingStart,
-    handleDrawingAddPoint,
-    handleDrawingEnd,
-    handleTacticalDrawingStart,
-    handleTacticalDrawingAddPoint,
-    handleTacticalDrawingEnd,
-    handleTacticalDiscMove,
-    handleTacticalDiscRemove,
-    handleToggleTacticalDiscType,
-    handleTacticalBallMove,
+    stableHandleOpponentMove,
+    stableHandleOpponentMoveEnd,
+    stableHandleOpponentRemove,
+    stableHandleDrawingStart,
+    stableHandleDrawingAddPoint,
+    stableHandleDrawingEnd,
+    stableHandleTacticalDrawingStart,
+    stableHandleTacticalDrawingAddPoint,
+    stableHandleTacticalDrawingEnd,
+    stableHandleTacticalDiscMove,
+    stableHandleTacticalDiscRemove,
+    stableHandleToggleTacticalDiscType,
+    stableHandleTacticalBallMove,
     handlePlayerDropViaTouch,
     handlePlayerDragCancelViaTouch,
   ]);
