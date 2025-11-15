@@ -87,7 +87,8 @@ import { exportCurrentGameExcel, exportAggregateExcel, exportPlayerExcel } from 
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { startNewGameWithSetup, cancelNewGameSetup } from './HomePage/utils/newGameHandlers';
-import { buildGameContainerViewModel } from '@/viewModels/gameContainer';
+import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
+import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
 import { FieldContainer } from '@/components/HomePage/containers/FieldContainer';
 import { debug } from '@/utils/debug';
 
@@ -490,28 +491,26 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   });
 
   // L2-2.4.1: Build GameContainer view-model (not yet consumed)
-  const gameContainerVM = React.useMemo(() => {
-    return buildGameContainerViewModel({
-      gameSessionState: {
-        teamName: gameSessionState.teamName,
-        opponentName: gameSessionState.opponentName,
-        homeScore: gameSessionState.homeScore,
-        awayScore: gameSessionState.awayScore,
-        homeOrAway: gameSessionState.homeOrAway,
-        gameEvents: gameSessionState.gameEvents,
-        timeElapsedInSeconds: gameSessionState.timeElapsedInSeconds,
-        isTimerRunning: gameSessionState.isTimerRunning,
-        subAlertLevel: gameSessionState.subAlertLevel,
-        lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds,
-        numberOfPeriods: gameSessionState.numberOfPeriods,
-        periodDurationMinutes: gameSessionState.periodDurationMinutes,
-        currentPeriod: gameSessionState.currentPeriod,
-        gameStatus: gameSessionState.gameStatus,
-      },
-      playersForCurrentGame,
-      draggingPlayerFromBarInfo,
-    });
-  }, [
+  const gameContainerVMInput = React.useMemo<BuildGameContainerVMInput>(() => ({
+    gameSessionState: {
+      teamName: gameSessionState.teamName,
+      opponentName: gameSessionState.opponentName,
+      homeScore: gameSessionState.homeScore,
+      awayScore: gameSessionState.awayScore,
+      homeOrAway: gameSessionState.homeOrAway,
+      gameEvents: gameSessionState.gameEvents,
+      timeElapsedInSeconds: gameSessionState.timeElapsedInSeconds,
+      isTimerRunning: gameSessionState.isTimerRunning,
+      subAlertLevel: gameSessionState.subAlertLevel,
+      lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds,
+      numberOfPeriods: gameSessionState.numberOfPeriods,
+      periodDurationMinutes: gameSessionState.periodDurationMinutes,
+      currentPeriod: gameSessionState.currentPeriod,
+      gameStatus: gameSessionState.gameStatus,
+    },
+    playersForCurrentGame,
+    draggingPlayerFromBarInfo,
+  }), [
     gameSessionState.teamName,
     gameSessionState.opponentName,
     gameSessionState.homeScore,
@@ -529,7 +528,14 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     playersForCurrentGame,
     draggingPlayerFromBarInfo,
   ]);
-  void gameContainerVM; // Keep referenced to avoid unused-var warnings; not wired yet by design
+
+  if (process.env.NODE_ENV !== 'production' && !isValidGameContainerVMInput(gameContainerVMInput)) {
+    throw new Error('[HomePage] Invalid GameContainer view-model input detected.');
+  }
+
+  const gameContainerVM = React.useMemo(() => buildGameContainerViewModel(gameContainerVMInput), [gameContainerVMInput]);
+  const playerBarViewModel = gameContainerVM.playerBar;
+  const gameInfoViewModel = gameContainerVM.gameInfo;
   const [firstGameGuideStep, setFirstGameGuideStep] = useState<number>(0);
   // Initialize as true for experienced users to prevent any flash
   const [hasCheckedFirstGameGuide, setHasCheckedFirstGameGuide] = useState<boolean>(!isFirstTimeUser);
@@ -2720,24 +2726,26 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         utilSaveCurrentGameIdSetting,
         defaultSubIntervalMinutes: initialState.subIntervalMinutes ?? 5,
       },
-      initialSelectedPlayerIds,
-      homeTeamName,
-      opponentName,
-      gameDate,
-      gameLocation,
-      gameTime,
-      seasonId,
-      tournamentId,
-      numPeriods,
-      periodDuration,
-      homeOrAway,
-      demandFactor,
-      ageGroup,
-      tournamentLevel,
-      isPlayedParam,
-      teamId,
-      availablePlayersForGame,
-      selectedPersonnelIds
+      {
+        initialSelectedPlayerIds,
+        homeTeamName,
+        opponentName,
+        gameDate,
+        gameLocation,
+        gameTime,
+        seasonId,
+        tournamentId,
+        numPeriods,
+        periodDuration,
+        homeOrAway,
+        demandFactor,
+        ageGroup,
+        tournamentLevel,
+        isPlayed: isPlayedParam,
+        teamId,
+        availablePlayersForGame,
+        selectedPersonnelIds,
+      },
     );
   }, [
     availablePlayers,
@@ -3033,23 +3041,23 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
           </div>
         }>
           <PlayerBar
-            players={playersForCurrentGame}
+            players={playerBarViewModel.players}
             onPlayerDragStartFromBar={handlePlayerDragStartFromBar}
-            selectedPlayerIdFromBar={draggingPlayerFromBarInfo?.id}
+            selectedPlayerIdFromBar={playerBarViewModel.selectedPlayerIdFromBar}
             onBarBackgroundClick={handleDeselectPlayer}
-            gameEvents={gameSessionState.gameEvents}
+            gameEvents={playerBarViewModel.gameEvents}
             onPlayerTapInBar={handlePlayerTapInBar}
             onToggleGoalie={handleToggleGoalieForModal}
           />
         </ErrorBoundary>
         <GameInfoBar
-          teamName={gameSessionState.teamName}
-          opponentName={gameSessionState.opponentName}
-          homeScore={gameSessionState.homeScore}
-          awayScore={gameSessionState.awayScore}
+          teamName={gameInfoViewModel.teamName}
+          opponentName={gameInfoViewModel.opponentName}
+          homeScore={gameInfoViewModel.homeScore}
+          awayScore={gameInfoViewModel.awayScore}
           onTeamNameChange={handleTeamNameChange}
           onOpponentNameChange={handleOpponentNameChange}
-          homeOrAway={gameSessionState.homeOrAway}
+          homeOrAway={gameInfoViewModel.homeOrAway}
         />
       </div>
 

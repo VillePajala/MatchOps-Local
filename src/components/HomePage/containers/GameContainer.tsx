@@ -52,8 +52,8 @@ import { DEFAULT_GAME_ID } from '@/config/constants';
 const barStyle = "flex-shrink-0 bg-slate-800 border-b border-slate-700";
 
 export interface GameContainerProps extends Partial<UseGameOrchestrationReturn> {
-  // Optional view-model (introduced in L2-2.4.1). Not yet consumed.
-  viewModel?: GameContainerViewModel;
+  // View-model introduced in L2-2.4.x. Required for PlayerBar/GameInfo rendering.
+  viewModel: GameContainerViewModel;
   draggingPlayerFromBarInfo: Player | null;
   isDrawingEnabled: boolean;
   showLargeTimerOverlay: boolean;
@@ -114,8 +114,8 @@ export function GameContainer(props: GameContainerProps) {
   const { t } = useTranslation();
 
   const {
+    viewModel,
     gameSessionState,
-    playersForCurrentGame,
     playersOnField,
     opponents,
     drawings,
@@ -212,17 +212,16 @@ export function GameContainer(props: GameContainerProps) {
 
   if (!gameSessionState) return null;
 
-  // L2-2.4.2: Prefer view-model data for read-only subsets (parity fallback to props)
-  const vm = props.viewModel;
-  const playerBarPlayers = vm?.playerBar?.players ?? playersForCurrentGame ?? [];
-  const playerBarSelectedId = vm?.playerBar?.selectedPlayerIdFromBar ?? draggingPlayerFromBarInfo?.id ?? null;
-  const playerBarGameEvents = vm?.playerBar?.gameEvents ?? gameSessionState.gameEvents;
+  // L2-2.4.6: PlayerBar/GameInfo must render from the view-model to keep HomePage agnostic of individual fields.
+  const playerBarPlayers = viewModel.playerBar.players;
+  const playerBarSelectedId = viewModel.playerBar.selectedPlayerIdFromBar;
+  const playerBarGameEvents = viewModel.playerBar.gameEvents;
 
-  const infoTeamName = vm?.gameInfo?.teamName ?? gameSessionState.teamName;
-  const infoOpponentName = vm?.gameInfo?.opponentName ?? gameSessionState.opponentName;
-  const infoHomeScore = vm?.gameInfo?.homeScore ?? gameSessionState.homeScore;
-  const infoAwayScore = vm?.gameInfo?.awayScore ?? gameSessionState.awayScore;
-  const infoHomeOrAway = vm?.gameInfo?.homeOrAway ?? gameSessionState.homeOrAway;
+  const infoTeamName = viewModel.gameInfo.teamName;
+  const infoOpponentName = viewModel.gameInfo.opponentName;
+  const infoHomeScore = viewModel.gameInfo.homeScore;
+  const infoAwayScore = viewModel.gameInfo.awayScore;
+  const infoHomeOrAway = viewModel.gameInfo.homeOrAway;
 
   return (
     <main className="flex flex-col h-[100dvh] bg-slate-900 text-slate-50" data-testid="home-page">

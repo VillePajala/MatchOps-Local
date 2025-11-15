@@ -1,5 +1,11 @@
+/**
+ * @unit
+ * @regression
+ * Validates that the grouped gameState/ui/orchestration/dependencies contexts pass through to handlers after the parameter grouping refactor.
+ */
 import { renderHook, act } from '@testing-library/react';
 import type { SetStateAction } from 'react';
+import type { QueryClient } from '@tanstack/react-query';
 import type { SavedGamesCollection, Player, AppState } from '@/types';
 import { useNewGameFlow } from './useNewGameFlow';
 
@@ -67,17 +73,52 @@ const createSetState = <T,>(initial: T) => {
 };
 
 describe('useNewGameFlow', () => {
-  const baseOptions = () => {
-    const savedGames: SavedGamesCollection = { current: createAppState() };
+  const t = (_key: string, fallback?: string) => fallback ?? _key;
+  type UseNewGameFlowArgs = Parameters<typeof useNewGameFlow>[0];
+
+  const buildOptions = (
+    overrides: {
+      gameState?: Partial<UseNewGameFlowArgs['gameState']>;
+      ui?: Partial<UseNewGameFlowArgs['ui']>;
+      orchestration?: Partial<UseNewGameFlowArgs['orchestration']>;
+      dependencies?: Partial<UseNewGameFlowArgs['dependencies']>;
+    } = {},
+  ): { options: UseNewGameFlowArgs; savedGamesState: ReturnType<typeof createSetState<SavedGamesCollection>> } => {
+    const savedGames: SavedGamesCollection = overrides.gameState?.savedGames ?? { current: createAppState() };
     const savedGamesState = createSetState(savedGames);
 
-    return {
-      savedGames,
-      savedGamesState,
+    const options: UseNewGameFlowArgs = {
+      gameState: {
+        availablePlayers: overrides.gameState?.availablePlayers ?? players,
+        savedGames,
+        currentGameId: overrides.gameState?.currentGameId ?? 'current',
+        ...overrides.gameState,
+      },
+      ui: {
+        setIsNewGameSetupModalOpen: jest.fn(),
+        setIsRosterModalOpen: jest.fn(),
+        setHasSkippedInitialSetup: jest.fn(),
+        setHighlightRosterButton: jest.fn(),
+        setIsPlayed: jest.fn(),
+        ...overrides.ui,
+      },
+      orchestration: {
+        setSavedGames: overrides.orchestration?.setSavedGames ?? savedGamesState.setter,
+        resetHistory: jest.fn(),
+        dispatchGameSession: jest.fn(),
+        setCurrentGameId: jest.fn(),
+        ...overrides.orchestration,
+      },
+      dependencies: {
+        queryClient: overrides.dependencies?.queryClient ?? ({ invalidateQueries: jest.fn() } as unknown as QueryClient),
+        showToast: overrides.dependencies?.showToast ?? jest.fn(),
+        t: overrides.dependencies?.t ?? (t as UseNewGameFlowArgs['dependencies']['t']),
+        defaultSubIntervalMinutes: overrides.dependencies?.defaultSubIntervalMinutes ?? 5,
+      },
     };
-  };
 
-  const t = (_key: string, fallback?: string) => fallback ?? _key;
+    return { options, savedGamesState };
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -85,30 +126,13 @@ describe('useNewGameFlow', () => {
   });
 
   it('prefers fresh storage snapshot when prompting to save current game', async () => {
-    const { savedGames } = baseOptions();
+    const { options } = buildOptions();
     mockGetSavedGames.mockResolvedValue({
       current: createAppState({ teamName: 'Fresh Team', opponentName: 'Fresh Opponent' }),
     });
 
     const { result } = renderHook(() =>
-      useNewGameFlow({
-        availablePlayers: players,
-        savedGames,
-        setSavedGames: jest.fn(),
-        currentGameId: 'current',
-        setIsNewGameSetupModalOpen: jest.fn(),
-        setIsRosterModalOpen: jest.fn(),
-        setHasSkippedInitialSetup: jest.fn(),
-        setHighlightRosterButton: jest.fn(),
-        setIsPlayed: jest.fn(),
-        resetHistory: jest.fn(),
-        dispatchGameSession: jest.fn(),
-        setCurrentGameId: jest.fn(),
-        queryClient: { invalidateQueries: jest.fn() } as unknown as Parameters<typeof useNewGameFlow>[0]['queryClient'],
-        showToast: jest.fn(),
-        t: t as Parameters<typeof useNewGameFlow>[0]['t'],
-        defaultSubIntervalMinutes: 5,
-      }),
+      useNewGameFlow(options),
     );
 
     await act(async () => {
@@ -122,25 +146,12 @@ describe('useNewGameFlow', () => {
   it('surfaces roster modal when no players are available', async () => {
     mockGetSavedGames.mockResolvedValue({});
 
+    const { options } = buildOptions({
+      gameState: { availablePlayers: [], savedGames: {}, currentGameId: null },
+    });
+
     const { result } = renderHook(() =>
-      useNewGameFlow({
-        availablePlayers: [],
-        savedGames: {},
-        setSavedGames: jest.fn(),
-        currentGameId: null,
-        setIsNewGameSetupModalOpen: jest.fn(),
-        setIsRosterModalOpen: jest.fn(),
-        setHasSkippedInitialSetup: jest.fn(),
-        setHighlightRosterButton: jest.fn(),
-        setIsPlayed: jest.fn(),
-        resetHistory: jest.fn(),
-        dispatchGameSession: jest.fn(),
-        setCurrentGameId: jest.fn(),
-        queryClient: { invalidateQueries: jest.fn() } as unknown as Parameters<typeof useNewGameFlow>[0]['queryClient'],
-        showToast: jest.fn(),
-        t: t as Parameters<typeof useNewGameFlow>[0]['t'],
-        defaultSubIntervalMinutes: 5,
-      }),
+      useNewGameFlow(options),
     );
 
     await act(async () => {
