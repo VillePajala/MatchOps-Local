@@ -56,27 +56,26 @@ describe('newGameHandlers', () => {
       defaultSubIntervalMinutes: 5,
     };
 
-    await startNewGameWithSetup(
-      deps,
-      [],
-      'Home Team',
-      'Away Team',
-      '2024-10-01',
-      'Main Arena',
-      '15:00',
-      null,
-      null,
-      2,
-      25,
-      'home',
-      1,
-      'U12',
-      'regular',
-      true,
-      null,
-      mockPlayers,
-      []
-    );
+    await startNewGameWithSetup(deps, {
+      initialSelectedPlayerIds: [],
+      homeTeamName: 'Home Team',
+      opponentName: 'Away Team',
+      gameDate: '2024-10-01',
+      gameLocation: 'Main Arena',
+      gameTime: '15:00',
+      seasonId: null,
+      tournamentId: null,
+      numPeriods: 2,
+      periodDuration: 25,
+      homeOrAway: 'home',
+      demandFactor: 1,
+      ageGroup: 'U12',
+      tournamentLevel: 'regular',
+      isPlayed: true,
+      teamId: null,
+      availablePlayersForGame: mockPlayers,
+      selectedPersonnelIds: [],
+    });
 
     expect(setPlayerIdsForNewGame).toHaveBeenCalledWith(null);
     expect(setIsNewGameSetupModalOpen).toHaveBeenCalledWith(false);

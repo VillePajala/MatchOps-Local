@@ -7,6 +7,7 @@
 
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
 import type { GameContainerProps } from '@/components/HomePage/containers/GameContainer';
+import type { GameContainerViewModel } from '@/viewModels/gameContainer';
 
 /**
  * Create GameContainerProps for testing
@@ -25,7 +26,33 @@ import type { GameContainerProps } from '@/components/HomePage/containers/GameCo
 export function createGameContainerProps(
   overrides?: Partial<GameContainerProps>
 ): GameContainerProps {
+  const defaultViewModel: GameContainerViewModel = {
+    playerBar: {
+      players: [],
+      selectedPlayerIdFromBar: null,
+      gameEvents: [],
+    },
+    gameInfo: {
+      teamName: initialGameSessionStatePlaceholder.teamName,
+      opponentName: initialGameSessionStatePlaceholder.opponentName,
+      homeScore: initialGameSessionStatePlaceholder.homeScore,
+      awayScore: initialGameSessionStatePlaceholder.awayScore,
+      homeOrAway: initialGameSessionStatePlaceholder.homeOrAway,
+    },
+    timer: {
+      timeElapsedInSeconds: initialGameSessionStatePlaceholder.timeElapsedInSeconds ?? 0,
+      isTimerRunning: initialGameSessionStatePlaceholder.isTimerRunning ?? false,
+      subAlertLevel: initialGameSessionStatePlaceholder.subAlertLevel ?? 'none',
+      lastSubConfirmationTimeSeconds: initialGameSessionStatePlaceholder.lastSubConfirmationTimeSeconds ?? 0,
+      numberOfPeriods: initialGameSessionStatePlaceholder.numberOfPeriods ?? 2,
+      periodDurationMinutes: initialGameSessionStatePlaceholder.periodDurationMinutes ?? 10,
+      currentPeriod: initialGameSessionStatePlaceholder.currentPeriod ?? 1,
+      gameStatus: initialGameSessionStatePlaceholder.gameStatus ?? 'notStarted',
+    },
+  };
+
   return {
+    viewModel: defaultViewModel,
     gameSessionState: initialGameSessionStatePlaceholder,
     currentGameId: 'game_123',
     draggingPlayerFromBarInfo: null,

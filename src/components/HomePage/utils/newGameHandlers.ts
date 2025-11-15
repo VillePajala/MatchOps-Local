@@ -31,27 +31,51 @@ export interface StartNewGameDependencies {
   defaultSubIntervalMinutes: number;
 }
 
+export interface StartNewGameRequest {
+  initialSelectedPlayerIds: string[];
+  homeTeamName: string;
+  opponentName: string;
+  gameDate: string;
+  gameLocation: string;
+  gameTime: string;
+  seasonId: string | null;
+  tournamentId: string | null;
+  numPeriods: 1 | 2;
+  periodDuration: number;
+  homeOrAway: 'home' | 'away';
+  demandFactor: number;
+  ageGroup: string;
+  tournamentLevel: string;
+  isPlayed: boolean;
+  teamId: string | null;
+  availablePlayersForGame: Player[];
+  selectedPersonnelIds: string[];
+}
+
 export async function startNewGameWithSetup(
   deps: StartNewGameDependencies,
-  initialSelectedPlayerIds: string[],
-  homeTeamName: string,
-  opponentName: string,
-  gameDate: string,
-  gameLocation: string,
-  gameTime: string,
-  seasonId: string | null,
-  tournamentId: string | null,
-  numPeriods: 1 | 2,
-  periodDuration: number,
-  homeOrAway: 'home' | 'away',
-  demandFactor: number,
-  ageGroup: string,
-  tournamentLevel: string,
-  isPlayed: boolean,
-  teamId: string | null,
-  availablePlayersForGame: Player[],
-  selectedPersonnelIds: string[]
+  request: StartNewGameRequest
 ): Promise<void> {
+  const {
+    initialSelectedPlayerIds,
+    homeTeamName,
+    opponentName,
+    gameDate,
+    gameLocation,
+    gameTime,
+    seasonId,
+    tournamentId,
+    numPeriods,
+    periodDuration,
+    homeOrAway,
+    demandFactor,
+    ageGroup,
+    tournamentLevel,
+    isPlayed,
+    teamId,
+    availablePlayersForGame,
+    selectedPersonnelIds,
+  } = request;
   const {
     availablePlayers,
     savedGames,

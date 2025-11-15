@@ -1,3 +1,8 @@
+/**
+ * @unit
+ * @edge-case
+ * Validates GameContainer rendering paths and VM parity before extraction.
+ */
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { GameContainer } from './GameContainer';
