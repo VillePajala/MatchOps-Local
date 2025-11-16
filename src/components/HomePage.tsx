@@ -487,7 +487,8 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   // Wrapper around reducer-backed modals (load/new). This mirrors the old setState-style API
   // so consumers can migrate incrementally before ModalManager adopts reducer helpers in 2.4.8.
-  const reducerDrivenModals = React.useMemo<ReducerDrivenModals>(() => ({
+  // Note: callbacks are already memoized via useCallback, so no useMemo needed for the object itself
+  const reducerDrivenModals: ReducerDrivenModals = {
     loadGame: {
       isOpen: isLoadGameModalOpen,
       open: openLoadGameViaReducer,
@@ -508,20 +509,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       open: openSeasonTournamentViaReducer,
       close: closeSeasonTournamentViaReducer,
     },
-  }), [
-    isLoadGameModalOpen,
-    isNewGameSetupModalOpen,
-    isRosterModalOpen,
-    isSeasonTournamentModalOpen,
-    openLoadGameViaReducer,
-    closeLoadGameViaReducer,
-    openNewGameViaReducer,
-    closeNewGameViaReducer,
-    openRosterViaReducer,
-    closeRosterViaReducer,
-    openSeasonTournamentViaReducer,
-    closeSeasonTournamentViaReducer,
-  ]);
+  };
 
   const { showToast } = useToast();
   // const [isPlayerStatsModalOpen, setIsPlayerStatsModalOpen] = useState(false);

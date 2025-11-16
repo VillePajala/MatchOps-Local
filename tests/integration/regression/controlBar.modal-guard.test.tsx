@@ -4,15 +4,9 @@ jest.mock('@/utils/storage', () => {
   const actual = jest.requireActual('@/utils/storage');
   return {
     ...actual,
-    getStorageJSON: jest.fn(async (_key: string, opts?: any) => opts?.defaultValue ?? null),
+    getStorageJSON: jest.fn(async (_key: string, opts?: { defaultValue?: unknown }) => opts?.defaultValue ?? null),
   };
 });
-// eslint-disable-next-line no-console
-// @ts-ignore
-console.error = jest.fn();
-// eslint-disable-next-line no-console
-// @ts-ignore
-console.warn = jest.fn();
 
 import React from 'react';
 import { render, fireEvent, act, screen } from '../../utils/test-utils';
