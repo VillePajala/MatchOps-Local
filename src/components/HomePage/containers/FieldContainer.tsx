@@ -16,6 +16,9 @@ import type {
 } from '@/types';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 
+/**
+ * Player drag/drop handlers for moving roster members on the field.
+ */
 export interface PlayerInteractions {
   move: (playerId: string, relX: number, relY: number) => void;
   moveEnd: () => void;
@@ -23,18 +26,27 @@ export interface PlayerInteractions {
   drop: (playerId: string, relX: number, relY: number) => void;
 }
 
+/**
+ * Opponent drag/drop handlers used when editing opposition markers.
+ */
 export interface OpponentInteractions {
   move: (playerId: string, relX: number, relY: number) => void;
   moveEnd: () => void;
   remove: (playerId: string) => void;
 }
 
+/**
+ * Freehand drawing handlers for tactical scribbles in classic field view.
+ */
 export interface DrawingInteractions {
   start: (point: Point) => void;
   addPoint: (point: Point) => void;
   end: () => void;
 }
 
+/**
+ * Tactics board handlers for discs/ball drawing overlays.
+ */
 export interface TacticalInteractions {
   drawingStart: (point: Point) => void;
   drawingAddPoint: (point: Point) => void;
@@ -45,11 +57,18 @@ export interface TacticalInteractions {
   ballMove: (point: Point) => void;
 }
 
+/**
+ * Touch-specific fallbacks for drag/drop gestures (mobile long-press placement).
+ */
 export interface TouchInteractions {
   playerDrop: (relX: number, relY: number) => void;
   playerDragCancel: () => void;
 }
 
+/**
+ * Grouped interaction handlers consumed by SoccerField and Timer overlay.
+ * Each sub-object focuses on a distinct responsibility to simplify memoization.
+ */
 export interface FieldInteractions {
   players: PlayerInteractions;
   opponents: OpponentInteractions;
