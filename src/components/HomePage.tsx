@@ -469,22 +469,29 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     setIsPlayerAssessmentModalOpen,
   } = useModalContext();
 
+  const openLoadGameViaReducer = useCallback(() => setIsLoadGameModalOpen(true), [setIsLoadGameModalOpen]);
+  const closeLoadGameViaReducer = useCallback(() => setIsLoadGameModalOpen(false), [setIsLoadGameModalOpen]);
+  const openNewGameViaReducer = useCallback(() => setIsNewGameSetupModalOpen(true), [setIsNewGameSetupModalOpen]);
+  const closeNewGameViaReducer = useCallback(() => setIsNewGameSetupModalOpen(false), [setIsNewGameSetupModalOpen]);
+
   const reducerDrivenModals = React.useMemo(() => ({
     loadGame: {
       isOpen: isLoadGameModalOpen,
-      open: () => setIsLoadGameModalOpen(true),
-      close: () => setIsLoadGameModalOpen(false),
+      open: openLoadGameViaReducer,
+      close: closeLoadGameViaReducer,
     },
     newGameSetup: {
       isOpen: isNewGameSetupModalOpen,
-      open: () => setIsNewGameSetupModalOpen(true),
-      close: () => setIsNewGameSetupModalOpen(false),
+      open: openNewGameViaReducer,
+      close: closeNewGameViaReducer,
     },
   }), [
     isLoadGameModalOpen,
-    setIsLoadGameModalOpen,
     isNewGameSetupModalOpen,
-    setIsNewGameSetupModalOpen,
+    openLoadGameViaReducer,
+    closeLoadGameViaReducer,
+    openNewGameViaReducer,
+    closeNewGameViaReducer,
   ]);
 
   const { showToast } = useToast();
