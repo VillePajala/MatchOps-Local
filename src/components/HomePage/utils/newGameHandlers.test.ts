@@ -27,7 +27,7 @@ describe('newGameHandlers', () => {
     const setPlayerIdsForNewGame = jest.fn();
     const dispatchGameSession = jest.fn();
     const setCurrentGameId = jest.fn();
-    const setIsNewGameSetupModalOpen = jest.fn();
+    const closeNewGameSetupModal = jest.fn();
     const setNewGameDemandFactor = jest.fn();
     const setHighlightRosterButton = jest.fn();
     const setIsPlayed = jest.fn();
@@ -43,7 +43,7 @@ describe('newGameHandlers', () => {
       resetHistory,
       dispatchGameSession: dispatchGameSession as unknown as (action: GameSessionAction) => void,
       setCurrentGameId,
-      setIsNewGameSetupModalOpen,
+      closeNewGameSetupModal,
       setNewGameDemandFactor,
       setPlayerIdsForNewGame,
       setHighlightRosterButton,
@@ -78,20 +78,22 @@ describe('newGameHandlers', () => {
     });
 
     expect(setPlayerIdsForNewGame).toHaveBeenCalledWith(null);
-    expect(setIsNewGameSetupModalOpen).toHaveBeenCalledWith(false);
+    expect(closeNewGameSetupModal).toHaveBeenCalledTimes(1);
     expect(setHighlightRosterButton).toHaveBeenCalledWith(true);
   });
 
   it('clears playerIdsForNewGame when setup is cancelled', () => {
     const setPlayerIdsForNewGame = jest.fn();
+    const closeNewGameSetupModal = jest.fn();
 
     cancelNewGameSetup({
       setHasSkippedInitialSetup: jest.fn(),
-      setIsNewGameSetupModalOpen: jest.fn(),
+      closeNewGameSetupModal,
       setNewGameDemandFactor: jest.fn(),
       setPlayerIdsForNewGame,
     });
 
     expect(setPlayerIdsForNewGame).toHaveBeenCalledWith(null);
+    expect(closeNewGameSetupModal).toHaveBeenCalledTimes(1);
   });
 });

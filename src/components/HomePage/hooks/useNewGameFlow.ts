@@ -20,8 +20,9 @@ interface GameFlowStateContext {
 }
 
 interface GameFlowUiContext {
-  setIsNewGameSetupModalOpen: (open: boolean) => void;
-  setIsRosterModalOpen: (open: boolean) => void;
+  openNewGameSetupModal: () => void;
+  closeNewGameSetupModal: () => void;
+  openRosterModal: () => void;
   setHasSkippedInitialSetup: Dispatch<SetStateAction<boolean>>;
   setHighlightRosterButton: Dispatch<SetStateAction<boolean>>;
   setIsPlayed: Dispatch<SetStateAction<boolean>>;
@@ -56,8 +57,9 @@ export function useNewGameFlow({
 }: UseNewGameFlowOptions) {
   const { availablePlayers, savedGames, currentGameId } = gameState;
   const {
-    setIsNewGameSetupModalOpen,
-    setIsRosterModalOpen,
+    openNewGameSetupModal,
+    closeNewGameSetupModal,
+    openRosterModal,
     setHasSkippedInitialSetup,
     setHighlightRosterButton,
     setIsPlayed,
@@ -82,8 +84,8 @@ export function useNewGameFlow({
       setShowNoPlayersConfirm(true);
       return;
     }
-    setIsNewGameSetupModalOpen(true);
-  }, [availablePlayers, setIsNewGameSetupModalOpen]);
+    openNewGameSetupModal();
+  }, [availablePlayers, openNewGameSetupModal]);
 
   const handleStartNewGame = useCallback(async () => {
     if (availablePlayers.length === 0) {
@@ -128,8 +130,8 @@ export function useNewGameFlow({
 
   const handleNoPlayersConfirmed = useCallback(() => {
     setShowNoPlayersConfirm(false);
-    setIsRosterModalOpen(true);
-  }, [setIsRosterModalOpen]);
+    openRosterModal();
+  }, [openRosterModal]);
 
   const handleSaveBeforeNewCancelled = useCallback(() => {
     setShowSaveBeforeNewConfirm(false);
@@ -139,16 +141,16 @@ export function useNewGameFlow({
   const handleStartNewConfirmed = useCallback(() => {
     setPlayerIdsForNewGame(availablePlayers.map((player) => player.id));
     setShowStartNewConfirm(false);
-    setIsNewGameSetupModalOpen(true);
-  }, [availablePlayers, setIsNewGameSetupModalOpen]);
+    openNewGameSetupModal();
+  }, [availablePlayers, openNewGameSetupModal]);
 
   const openSetupAfterPreSave = useCallback(
     (selectedPlayerIds: string[]) => {
       setPlayerIdsForNewGame(selectedPlayerIds);
       setShowSaveBeforeNewConfirm(false);
-      setIsNewGameSetupModalOpen(true);
+      openNewGameSetupModal();
     },
-    [setIsNewGameSetupModalOpen],
+    [openNewGameSetupModal],
   );
 
   const handleStartNewGameWithSetup = useCallback(
@@ -180,7 +182,7 @@ export function useNewGameFlow({
           resetHistory,
           dispatchGameSession,
           setCurrentGameId,
-          setIsNewGameSetupModalOpen,
+          closeNewGameSetupModal,
           setNewGameDemandFactor,
           setPlayerIdsForNewGame,
           setHighlightRosterButton,
@@ -221,7 +223,7 @@ export function useNewGameFlow({
       resetHistory,
       dispatchGameSession,
       setCurrentGameId,
-      setIsNewGameSetupModalOpen,
+      closeNewGameSetupModal,
       setHighlightRosterButton,
       setIsPlayed,
       queryClient,
@@ -234,11 +236,11 @@ export function useNewGameFlow({
   const handleCancelNewGameSetup = useCallback(() => {
     cancelNewGameSetup({
       setHasSkippedInitialSetup,
-      setIsNewGameSetupModalOpen,
+      closeNewGameSetupModal,
       setNewGameDemandFactor,
       setPlayerIdsForNewGame,
     });
-  }, [setHasSkippedInitialSetup, setIsNewGameSetupModalOpen]);
+  }, [setHasSkippedInitialSetup, closeNewGameSetupModal]);
 
   return {
     playerIdsForNewGame,

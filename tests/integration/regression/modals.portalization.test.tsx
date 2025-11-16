@@ -123,12 +123,10 @@ const createProps = (): ModalManagerProps => ({
   handleLoadGame: noop,
   handleDeleteGame: noop,
   handleExportOneJson: noop,
-  setIsNewGameSetupModalOpen: noop,
   // Team roster modal controls
   isTeamRosterModalOpen: false,
   selectedTeamForRoster: null,
   setSelectedTeamForRoster: noop,
-  setIsTeamRosterModalOpen: noop,
   handleManageTeamRoster: noop,
   handleCloseTeamRosterModal: noop,
   handleBackToTeamManager: noop,

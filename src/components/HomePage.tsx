@@ -91,6 +91,7 @@ import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/view
 import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
 import { FieldContainer } from '@/components/HomePage/containers/FieldContainer';
 import type { FieldInteractions, TimerInteractions } from '@/components/HomePage/containers/FieldContainer';
+import type { ReducerDrivenModals } from '@/types';
 import { debug } from '@/utils/debug';
 
 
@@ -486,7 +487,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
 
   // Wrapper around reducer-backed modals (load/new). This mirrors the old setState-style API
   // so consumers can migrate incrementally before ModalManager adopts reducer helpers in 2.4.8.
-  const reducerDrivenModals = React.useMemo(() => ({
+  const reducerDrivenModals = React.useMemo<ReducerDrivenModals>(() => ({
     loadGame: {
       isOpen: isLoadGameModalOpen,
       open: openLoadGameViaReducer,
@@ -606,7 +607,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           if (availablePlayers.length === 0) {
             setShowNoPlayersConfirm(true);
           } else {
-            setIsNewGameSetupModalOpen(true);
+            openNewGameViaReducer();
           }
           break;
         case 'loadGame':
@@ -1518,14 +1519,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       // Check currentGameId *inside* the effect body
       if (currentGameId === DEFAULT_GAME_ID) {
         logger.log('Default game ID loaded, prompting for setup...');
-      setIsNewGameSetupModalOpen(true);
+        openNewGameViaReducer();
       } else {
         logger.log('Not prompting: Specific game loaded.');
     }
     }
-  // Depend only on load completion and skip status
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialLoadComplete, hasSkippedInitialSetup, currentGameId]);
+  }, [initialLoadComplete, hasSkippedInitialSetup, currentGameId, openNewGameViaReducer]);
 
   // --- Player Management Handlers (Updated for relative coords) ---
   // Wrapped handleDropOnField in useCallback as suggested
@@ -2771,7 +2770,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         resetHistory,
         dispatchGameSession,
         setCurrentGameId,
-        setIsNewGameSetupModalOpen,
+        closeNewGameSetupModal: closeNewGameViaReducer,
         setNewGameDemandFactor,
         setPlayerIdsForNewGame,
         setHighlightRosterButton,
@@ -2811,7 +2810,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     resetHistory,
     dispatchGameSession,
     setCurrentGameId,
-    setIsNewGameSetupModalOpen,
+    closeNewGameViaReducer,
     setNewGameDemandFactor,
     setPlayerIdsForNewGame,
     setHighlightRosterButton,
@@ -2825,11 +2824,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const handleCancelNewGameSetup = useCallback(() => {
     cancelNewGameSetup({
       setHasSkippedInitialSetup,
-      setIsNewGameSetupModalOpen,
+      closeNewGameSetupModal: closeNewGameViaReducer,
       setNewGameDemandFactor,
       setPlayerIdsForNewGame,
     });
-  }, [setHasSkippedInitialSetup, setIsNewGameSetupModalOpen, setNewGameDemandFactor, setPlayerIdsForNewGame]);
+  }, [setHasSkippedInitialSetup, closeNewGameViaReducer, setNewGameDemandFactor, setPlayerIdsForNewGame]);
 
   // --- Start New Game Handler (Uses Quick Save) ---
   const handleStartNewGame = useCallback(() => {
@@ -2866,8 +2865,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     handleQuickSaveGame(); // Call quick save directly
     setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds); // Use the current selection
     setShowSaveBeforeNewConfirm(false);
-    setIsNewGameSetupModalOpen(true); // Open setup modal immediately after
-  }, [handleQuickSaveGame, gameSessionState.selectedPlayerIds, setIsNewGameSetupModalOpen]);
+    openNewGameViaReducer(); // Open setup modal immediately after
+  }, [handleQuickSaveGame, gameSessionState.selectedPlayerIds, openNewGameViaReducer]);
 
   // Handler for "Save Before New" cancellation - user chooses to discard
   const handleSaveBeforeNewCancelled = useCallback(() => {
@@ -2880,8 +2879,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const handleStartNewConfirmed = useCallback(() => {
     setPlayerIdsForNewGame(availablePlayers.map(p => p.id)); // SET default player selection (all players)
     setShowStartNewConfirm(false);
-    setIsNewGameSetupModalOpen(true); // Open the setup modal
-  }, [availablePlayers, setIsNewGameSetupModalOpen]);
+    openNewGameViaReducer(); // Open the setup modal
+  }, [availablePlayers, openNewGameViaReducer]);
   // --- END Start New Game Handler ---
 
   // New handler to place all selected players on the field at once
@@ -3411,7 +3410,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
           onManageTeamRoster={() => {
             // Close new game modal and open team manager modal
             // Note: User will need to navigate to the specific team roster from team manager
-            setIsNewGameSetupModalOpen(false);
+            closeNewGameViaReducer();
             setPlayerIdsForNewGame(null); // Clear player selection when switching to team manager
             setIsTeamManagerOpen(true);
           }}
