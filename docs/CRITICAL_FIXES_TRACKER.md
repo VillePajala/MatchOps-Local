@@ -1,8 +1,8 @@
 # Critical Fixes Progress Tracker
 
-**Last Updated**: November 15, 2025
-**Status**: ✅ Layer 1 completed (stability). Layer 2 micro-steps (2.4.0‑2.4.5) underway.
-**Overall Progress**: L1 done; L2 Step 2.4.5 shipped; L3 planned
+**Last Updated**: November 16, 2025
+**Status**: ✅ Layer 1 completed (stability). Layer 2 micro-steps (2.4.0‑2.4.7) underway.
+**Overall Progress**: L1 done; L2 Step 2.4.7 shipped; L3 planned
 
 ---
 
@@ -10,16 +10,16 @@
 
 | Priority | Fix | Status | Progress | Est. Time | Actual Time |
 |----------|-----|--------|----------|-----------|-------------|
-| **P0** | HomePage Refactoring | 🟡 In Progress | ~40% | 2-3h | ~4h |
+| **P0** | HomePage Refactoring | 🟡 In Progress | ~42% | 2-3h | ~4.5h |
 | **P1** | GameSettingsModal Refactoring | ❌ Not Started | 0% | 1h | - |
 | **P2/L2** | Modal State Management (Reducer) | ⏭ Next | Scoped | 45m | - |
 | **P2/L2** | useNewGameFlow Param Grouping | ✅ Completed | 100% | 45m | 45m |
-| **P2/L2** | FieldContainer/View-Model Grouping | ⏭ Next | Scoped | 60m | - |
+| **P2/L2** | FieldContainer/View-Model Grouping | 🟡 In Progress | ~70% | 60m | 45m |
 | **P2** | Error Handling Improvements | ⏭ After L2 | 0% | 1h | - |
 | **P2** | Performance Optimization | ⏭ After L2 | 0% | 30m | - |
 
 **Total Estimated Time**: 4.5-5.5 hours  
-**Total Actual Time**: ~4 hours (P0 micro-steps 2.4.0‑2.4.6)
+**Total Actual Time**: ~4.5 hours (P0 micro-steps 2.4.0‑2.4.7)
 
 ### Newly Logged Fix
 - **P1 – New Game autosave race** *(Nov 2025)*: `useNewGameFlow.handleStartNewGame` now fetches the latest saved game snapshot directly from storage (instead of relying on potentially stale React state) before prompting the “Save current game?” confirmation. This eliminates the documented race condition when autosave mutates state mid-flow.
@@ -190,8 +190,18 @@ useEffect(() => {
 
 **Impact**: Eliminates redundant prop plumbing, locks the PlayerBar/GameInfo contract to the VM, and reduces hook coupling so future modal reducer work can accept cohesive contexts instead of dozens of primitives.
 
+### 11. Field Interactions VM + Reducer-Driven Modal Intents (Nov 16, 2025)
+**Issue**: FieldContainer still required 20+ ad-hoc handler props and direct modal setters, preventing clean orchestration of interactions.
+
+**Fix**:
+- Added `FieldInteractions`/`TimerInteractions` objects so FieldContainer consumers pass grouped view-model-like handlers rather than dozens of discrete props.
+- HomePage memoizes these interaction objects and now calls `reducerDrivenModals.newGameSetup.open()` (and the equivalent load game helpers) when the first-time guide or shortcuts open modals.
+- Control flows for Load/New modals share the reducer-backed anti-flash guard everywhere, ensuring consistent UX.
+
+**Impact**: Reduces prop surface, paves the way for FieldContainer extraction, and proves the modal reducer API before ModalManager refactors.
+
 ### Summary Statistics
-- **Total commits**: 10 bug fixes/refactors
+- **Total commits**: 11 bug fixes/refactors
 - **Lines removed from HomePage**: ~639 lines (-33.6%)
 - **Test coverage increase**: +315 tests (+32%)
 - **Files created**: 4 new files (handlers/tests + debug helper/tests)
