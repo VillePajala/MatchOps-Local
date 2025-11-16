@@ -80,7 +80,7 @@ export interface GameContainerProps extends Partial<UseGameOrchestrationReturn> 
   handleDropOnField: (playerId: string, relX: number, relY: number) => void;
   handlePlayerDropViaTouch: (relX: number, relY: number) => void;
   handlePlayerDragCancelViaTouch: () => void;
-  setIsNewGameSetupModalOpen: (open: boolean) => void;
+  openNewGameSetupModal: () => void;
   handleOpenTeamManagerModal: () => void;
   setShowFirstGameGuide: (show: boolean) => void;
   setFirstGameGuideStep: (step: number) => void;
@@ -178,7 +178,7 @@ export function GameContainer(props: GameContainerProps) {
     handleDropOnField,
     handlePlayerDropViaTouch,
     handlePlayerDragCancelViaTouch,
-    setIsNewGameSetupModalOpen,
+    openNewGameSetupModal,
     handleOpenTeamManagerModal,
     setShowFirstGameGuide,
     setFirstGameGuideStep,
@@ -376,7 +376,7 @@ export function GameContainer(props: GameContainerProps) {
                   ) : (
                     <>
                       <button
-                        onClick={() => setIsNewGameSetupModalOpen?.(true)}
+                        onClick={openNewGameSetupModal}
                         className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
                       >
                         {t('firstGame.createGame', 'Create Your First Match')}
@@ -424,8 +424,8 @@ export function GameContainer(props: GameContainerProps) {
               <div className="flex items-center gap-3 text-sm">
                 <div className="w-3 h-3 bg-amber-200 rounded-full animate-pulse flex-shrink-0"></div>
                 <span className="text-amber-100 font-medium flex-1">{t('firstGame.workspaceWarning', 'Temporary workspace - changes won\'t be saved')}</span>
-                <button
-                  onClick={() => setIsNewGameSetupModalOpen?.(true)}
+                      <button
+                        onClick={openNewGameSetupModal}
                   className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-amber-900 rounded-md text-xs font-semibold transition-colors shadow-sm flex-shrink-0"
                 >
                   {t('firstGame.createRealGame', 'Create real game')}

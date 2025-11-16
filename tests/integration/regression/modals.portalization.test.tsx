@@ -123,12 +123,10 @@ const createProps = (): ModalManagerProps => ({
   handleLoadGame: noop,
   handleDeleteGame: noop,
   handleExportOneJson: noop,
-  setIsNewGameSetupModalOpen: noop,
   // Team roster modal controls
   isTeamRosterModalOpen: false,
   selectedTeamForRoster: null,
   setSelectedTeamForRoster: noop,
-  setIsTeamRosterModalOpen: noop,
   handleManageTeamRoster: noop,
   handleCloseTeamRosterModal: noop,
   handleBackToTeamManager: noop,
@@ -167,6 +165,18 @@ const createProps = (): ModalManagerProps => ({
   handleTeamIdChange: noop,
   handleCloseSettingsModal: noop,
   handleShowAppGuide: noop,
+  reducerDrivenModals: {
+    newGameSetup: {
+      isOpen: false,
+      open: jest.fn(),
+      close: jest.fn(),
+    },
+    roster: {
+      isOpen: false,
+      open: jest.fn(),
+      close: jest.fn(),
+    },
+  },
   handleHardResetApp: noop,
   onDataImportSuccess: noop,
   closePlayerAssessmentModal: noop,

@@ -51,6 +51,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import { exportFullBackup } from '@/utils/fullBackup';
 import { saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
 import type { UseMutationResult } from '@tanstack/react-query';
+import type { ReducerDrivenModals } from '@/types';
 
 type MutationMetaBase = {
   source: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
@@ -121,9 +122,8 @@ export interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   handleLoadGame: (gameId: string) => void;
   handleDeleteGame: (gameId: string) => void;
   handleExportOneJson: (gameId: string) => void;
-  setIsNewGameSetupModalOpen: (open: boolean) => void;
+  reducerDrivenModals: Pick<ReducerDrivenModals, 'newGameSetup' | 'roster'>;
   setSelectedTeamForRoster: (teamId: string | null) => void;
-  setIsTeamRosterModalOpen: (open: boolean) => void;
   handleStartNewGameWithSetup: (data: unknown) => void;
   handleCancelNewGameSetup: () => void;
   setNewGameDemandFactor: (factor: number) => void;
@@ -260,9 +260,8 @@ export function ModalManager(props: ModalManagerProps) {
     handleLoadGame,
     handleDeleteGame,
     handleExportOneJson,
-    setIsNewGameSetupModalOpen,
+    reducerDrivenModals,
     setSelectedTeamForRoster,
-    setIsTeamRosterModalOpen,
     handleStartNewGameWithSetup,
     handleCancelNewGameSetup,
     setNewGameDemandFactor,
@@ -464,9 +463,9 @@ export function ModalManager(props: ModalManagerProps) {
           demandFactor={newGameDemandFactor || 1}
           onDemandFactorChange={setNewGameDemandFactor || (() => {})}
           onManageTeamRoster={(teamId) => {
-            if (setIsNewGameSetupModalOpen) setIsNewGameSetupModalOpen(false);
+            reducerDrivenModals.newGameSetup.close();
             if (setSelectedTeamForRoster) setSelectedTeamForRoster(teamId);
-            if (setIsTeamRosterModalOpen) setIsTeamRosterModalOpen(true);
+            reducerDrivenModals.roster.open();
           }}
           onStart={handleStartNewGameWithSetup || (() => {})}
           onCancel={handleCancelNewGameSetup || (() => {})}
