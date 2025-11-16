@@ -128,6 +128,9 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Roster modal setter (no anti-flash guard needed)
+  // Rationale: Triggered from static buttons (FirstGameGuide CTAs, ControlBar),
+  // not from closing menus/overlays. Lower risk of click-through timing issues.
   const setIsRosterModalOpen: React.Dispatch<React.SetStateAction<boolean>> = (valueOrUpdater) => {
     const prev = modalState.roster;
     const next = typeof valueOrUpdater === 'function'
@@ -137,6 +140,9 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     dispatchModal({ type: next ? 'OPEN_MODAL' : 'CLOSE_MODAL', id: 'roster', at: Date.now() });
   };
 
+  // Season/Tournament modal setter (no anti-flash guard needed)
+  // Rationale: Same as roster - triggered from persistent UI elements,
+  // not timing-sensitive menu/overlay contexts. Add guard if flash-close issues emerge.
   const setIsSeasonTournamentModalOpen: React.Dispatch<React.SetStateAction<boolean>> = (valueOrUpdater) => {
     const prev = modalState.seasonTournament;
     const next = typeof valueOrUpdater === 'function'

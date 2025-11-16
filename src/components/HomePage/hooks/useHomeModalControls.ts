@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useModalContext } from '@/contexts/ModalProvider';
 
 type InitialAction =
@@ -80,10 +80,27 @@ export function useHomeModalControls({
     [setIsPlayerAssessmentModalOpen],
   );
 
-  const openGameStatsModal = useCallback(() => setIsGameStatsModalOpen(true), [setIsGameStatsModalOpen]);
-  
-  // Ensure only one modal opens in response to initialAction
-  const closeAllModals = useCallback(() => {
+  // Track processed initialAction to prevent infinite loops
+  // (modal setters from ModalProvider are recreated on each render)
+  const processedActionRef = useRef<InitialAction | undefined>(undefined);
+
+  // Handle initialAction routing (close all modals first to ensure exclusivity)
+  useEffect(() => {
+    // Reset tracking if initialAction is cleared
+    if (!initialAction) {
+      processedActionRef.current = undefined;
+      return;
+    }
+
+    // Only process if initialAction changed
+    if (processedActionRef.current === initialAction) {
+      return;
+    }
+
+    // Mark this action as processed
+    processedActionRef.current = initialAction;
+
+    // Close all modals inline (avoids circular dependency through closeAllModals)
     setIsGameSettingsModalOpen(false);
     setIsLoadGameModalOpen(false);
     setIsRosterModalOpen(false);
@@ -94,63 +111,36 @@ export function useHomeModalControls({
     setIsNewGameSetupModalOpen(false);
     setIsSettingsModalOpen(false);
     setIsPlayerAssessmentModalOpen(false);
-  }, [
-    setIsGameSettingsModalOpen,
-    setIsLoadGameModalOpen,
-    setIsRosterModalOpen,
-    setIsSeasonTournamentModalOpen,
-    setIsTrainingResourcesOpen,
-    setIsGoalLogModalOpen,
-    setIsGameStatsModalOpen,
-    setIsNewGameSetupModalOpen,
-    setIsSettingsModalOpen,
-    setIsPlayerAssessmentModalOpen,
-  ]);
 
-  useEffect(() => {
-    if (!initialAction) {
-      return;
-    }
-
-    // Close any other open modals before opening the requested one
-    closeAllModals();
-
+    // Open the requested modal/action
     switch (initialAction) {
       case 'newGame':
         onRequestNewGameFromShortcut?.();
         break;
       case 'loadGame':
-        openLoadGameModal();
+        setIsLoadGameModalOpen(true);
         break;
       case 'season':
-        openSeasonTournamentModal();
+        setIsSeasonTournamentModalOpen(true);
         break;
       case 'stats':
-        openGameStatsModal();
+        setIsGameStatsModalOpen(true);
         break;
       case 'roster':
-        openRosterModal();
+        setIsRosterModalOpen(true);
         break;
       case 'teams':
         onOpenTeamManager?.();
         break;
       case 'settings':
-        openSettingsModal();
+        setIsSettingsModalOpen(true);
         break;
       default:
         break;
     }
-  }, [
-    initialAction,
-    onRequestNewGameFromShortcut,
-    onOpenTeamManager,
-    closeAllModals,
-    openLoadGameModal,
-    openSeasonTournamentModal,
-    openGameStatsModal,
-    openRosterModal,
-    openSettingsModal,
-  ]);
+    // Only depend on initialAction to avoid infinite loops from recreated setters
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialAction]);
 
   return {
     modalState: {

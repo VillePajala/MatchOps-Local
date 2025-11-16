@@ -1,5 +1,5 @@
 // Modal reducer (Layer 2 - Steps 2.0–2.3)
-// Currently managing: loadGame, newGameSetup, settings, gameStats modals
+// Currently managing: loadGame, newGameSetup, settings, gameStats, roster, seasonTournament modals
 
 export type ModalId =
   | 'loadGame'
@@ -10,14 +10,13 @@ export type ModalId =
   | 'seasonTournament';
 
 export interface ModalState {
-  // Start with a single modal; we will add others in subsequent microsteps
   loadGame: boolean;
   newGameSetup: boolean;
   settings: boolean;
   gameStats: boolean;
   roster: boolean;
   seasonTournament: boolean;
-  // Room for future timing/analytics (e.g., anti-flash timestamps)
+  // Timestamps for analytics and anti-flash guards
   openTimestamps: Partial<Record<ModalId, number>>;
 }
 
@@ -37,164 +36,92 @@ export type ModalAction =
   | { type: 'TOGGLE_MODAL'; id: ModalId; at?: number }
   | { type: 'RESET_MODALS' };
 
+/**
+ * Valid modal IDs that exist in ModalState
+ */
+const validModalIds: readonly ModalId[] = [
+  'loadGame',
+  'newGameSetup',
+  'settings',
+  'gameStats',
+  'roster',
+  'seasonTournament',
+];
+
+/**
+ * Helper: Check if a modal ID is valid (exists in ModalState)
+ */
+function isValidModalId(id: ModalId): boolean {
+  return validModalIds.includes(id);
+}
+
+/**
+ * Helper: Open a modal (idempotent - returns same state if already open)
+ */
+function openModal(state: ModalState, id: ModalId, at: number): ModalState {
+  // Unknown modal ID — return state unchanged (future-proof)
+  if (!isValidModalId(id)) {
+    return state;
+  }
+  // Already open — return same object to avoid unnecessary re-renders
+  if (state[id]) {
+    return state;
+  }
+  return {
+    ...state,
+    [id]: true,
+    openTimestamps: { ...state.openTimestamps, [id]: at },
+  };
+}
+
+/**
+ * Helper: Close a modal (idempotent - returns same state if already closed)
+ */
+function closeModal(state: ModalState, id: ModalId): ModalState {
+  // Unknown modal ID — return state unchanged (future-proof)
+  if (!isValidModalId(id)) {
+    return state;
+  }
+  // Already closed — return same object
+  if (!state[id]) {
+    return state;
+  }
+  // Keep openTimestamps for analytics; only toggle flag
+  return { ...state, [id]: false };
+}
+
+/**
+ * Helper: Toggle a modal (open → closed, closed → open)
+ */
+function toggleModal(state: ModalState, id: ModalId, at: number): ModalState {
+  // Unknown modal ID — return state unchanged (future-proof)
+  if (!isValidModalId(id)) {
+    return state;
+  }
+  const next = !state[id];
+  return {
+    ...state,
+    [id]: next,
+    openTimestamps: next
+      ? { ...state.openTimestamps, [id]: at }
+      : state.openTimestamps,
+  };
+}
+
 export function modalReducer(state: ModalState, action: ModalAction): ModalState {
   switch (action.type) {
-    case 'OPEN_MODAL': {
-      const at = action.at ?? Date.now();
-      if (action.id === 'loadGame') {
-        if (state.loadGame) {
-          // Already open — return same object to avoid unnecessary re-render loops
-          return state;
-        }
-        return {
-          ...state,
-          loadGame: true,
-          openTimestamps: { ...state.openTimestamps, loadGame: at },
-        };
-      }
-      if (action.id === 'newGameSetup') {
-        if (state.newGameSetup) {
-          return state;
-        }
-        return {
-          ...state,
-          newGameSetup: true,
-          openTimestamps: { ...state.openTimestamps, newGameSetup: at },
-        };
-      }
-      if (action.id === 'settings') {
-        if (state.settings) return state;
-        return {
-          ...state,
-          settings: true,
-          openTimestamps: { ...state.openTimestamps, settings: at },
-        };
-      }
-      if (action.id === 'gameStats') {
-        if (state.gameStats) return state;
-        return {
-          ...state,
-          gameStats: true,
-          openTimestamps: { ...state.openTimestamps, gameStats: at },
-        };
-      }
-      if (action.id === 'roster') {
-        if (state.roster) return state;
-        return {
-          ...state,
-          roster: true,
-          openTimestamps: { ...state.openTimestamps, roster: at },
-        };
-      }
-      if (action.id === 'seasonTournament') {
-        if (state.seasonTournament) return state;
-        return {
-          ...state,
-          seasonTournament: true,
-          openTimestamps: { ...state.openTimestamps, seasonTournament: at },
-        };
-      }
-      return state;
-    }
-    case 'CLOSE_MODAL': {
-      if (action.id === 'loadGame') {
-        if (!state.loadGame) {
-          // Already closed — return same object
-          return state;
-        }
-        // Keep openTimestamps for analytics; only toggle flag
-        return { ...state, loadGame: false };
-      }
-      if (action.id === 'newGameSetup') {
-        if (!state.newGameSetup) {
-          return state;
-        }
-        return { ...state, newGameSetup: false };
-      }
-      if (action.id === 'settings') {
-        if (!state.settings) return state;
-        return { ...state, settings: false };
-      }
-      if (action.id === 'gameStats') {
-        if (!state.gameStats) return state;
-        return { ...state, gameStats: false };
-      }
-      if (action.id === 'roster') {
-        if (!state.roster) return state;
-        return { ...state, roster: false };
-      }
-      if (action.id === 'seasonTournament') {
-        if (!state.seasonTournament) return state;
-        return { ...state, seasonTournament: false };
-      }
-      return state;
-    }
-    case 'TOGGLE_MODAL': {
-      const at = action.at ?? Date.now();
-      if (action.id === 'loadGame') {
-        const next = !state.loadGame;
-        return {
-          ...state,
-          loadGame: next,
-          openTimestamps: next
-            ? { ...state.openTimestamps, loadGame: at }
-            : state.openTimestamps,
-        };
-      }
-      if (action.id === 'newGameSetup') {
-        const next = !state.newGameSetup;
-        return {
-          ...state,
-          newGameSetup: next,
-          openTimestamps: next
-            ? { ...state.openTimestamps, newGameSetup: at }
-            : state.openTimestamps,
-        };
-      }
-      if (action.id === 'settings') {
-        const next = !state.settings;
-        return {
-          ...state,
-          settings: next,
-          openTimestamps: next
-            ? { ...state.openTimestamps, settings: at }
-            : state.openTimestamps,
-        };
-      }
-      if (action.id === 'gameStats') {
-        const next = !state.gameStats;
-        return {
-          ...state,
-          gameStats: next,
-          openTimestamps: next
-            ? { ...state.openTimestamps, gameStats: at }
-            : state.openTimestamps,
-        };
-      }
-      if (action.id === 'roster') {
-        const next = !state.roster;
-        return {
-          ...state,
-          roster: next,
-          openTimestamps: next
-            ? { ...state.openTimestamps, roster: at }
-            : state.openTimestamps,
-        };
-      }
-      if (action.id === 'seasonTournament') {
-        const next = !state.seasonTournament;
-        return {
-          ...state,
-          seasonTournament: next,
-          openTimestamps: next
-            ? { ...state.openTimestamps, seasonTournament: at }
-            : state.openTimestamps,
-        };
-      }
-      return state;
-    }
+    case 'OPEN_MODAL':
+      return openModal(state, action.id, action.at ?? Date.now());
+
+    case 'CLOSE_MODAL':
+      return closeModal(state, action.id);
+
+    case 'TOGGLE_MODAL':
+      return toggleModal(state, action.id, action.at ?? Date.now());
+
     case 'RESET_MODALS':
       return { ...initialModalState };
+
     default:
       return state;
   }
