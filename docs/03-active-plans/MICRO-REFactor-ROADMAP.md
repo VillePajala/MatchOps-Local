@@ -119,6 +119,9 @@ Step 2.5 — Edge-case tests
 - Add tests for:
   - Backup restore → latest game fallback (stale `currentGameId`)
   - `useGameState` availablePlayers → playersOnField sync
+- Status:
+  - ✅ Backup import now sets `currentGameId` to the latest imported game when the backup had a stale/default ID (see `src/utils/fullBackup.test.ts`).
+  - ✅ `useGameState` tests cover roster→field sync so field players drop when removed from the roster and inherit latest metadata without losing positions.
 
 Housekeeping
 - Remove redundant/skipped tests; if a test is needed, implement deterministically without relying on IndexedDB

@@ -46,6 +46,31 @@ export interface UseGameStateReturn {
     handleToggleGoalie: (playerId: string) => void;
 }
 
+function mergeRosterDetails(fieldPlayer: Player, rosterPlayer: Player): Player {
+    return {
+        ...fieldPlayer,
+        name: rosterPlayer.name,
+        nickname: rosterPlayer.nickname,
+        jerseyNumber: rosterPlayer.jerseyNumber,
+        notes: rosterPlayer.notes,
+        color: rosterPlayer.color,
+        isGoalie: rosterPlayer.isGoalie,
+        receivedFairPlayCard: rosterPlayer.receivedFairPlayCard,
+    };
+}
+
+function playerMetadataChanged(original: Player, updated: Player): boolean {
+    return (
+        original.name !== updated.name ||
+        original.nickname !== updated.nickname ||
+        original.jerseyNumber !== updated.jerseyNumber ||
+        original.notes !== updated.notes ||
+        original.color !== updated.color ||
+        original.isGoalie !== updated.isGoalie ||
+        original.receivedFairPlayCard !== updated.receivedFairPlayCard
+    );
+}
+
 export function useGameState({ initialState, saveStateToHistory }: UseGameStateArgs): UseGameStateReturn {
     // --- State Management ---
     const [playersOnField, setPlayersOnField] = useState<Player[]>(initialState.playersOnField);
@@ -58,6 +83,34 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     useEffect(() => {
         setAvailablePlayers(initialState.availablePlayers || []);
     }, [initialState.availablePlayers]);
+
+    // Ensure players on field reflect latest roster updates (names, goalie flags)
+    useEffect(() => {
+        if (playersOnField.length === 0) {
+            return;
+        }
+        const availableMap = new Map(availablePlayers.map(player => [player.id, player]));
+        let mutated = false;
+        const nextPlayers: Player[] = [];
+
+        playersOnField.forEach((fieldPlayer) => {
+            const rosterPlayer = availableMap.get(fieldPlayer.id);
+            if (!rosterPlayer) {
+                mutated = true;
+                return;
+            }
+            const mergedPlayer = mergeRosterDetails(fieldPlayer, rosterPlayer);
+            if (!mutated && playerMetadataChanged(fieldPlayer, mergedPlayer)) {
+                mutated = true;
+            }
+            nextPlayers.push(mergedPlayer);
+        });
+
+        if (mutated) {
+            setPlayersOnField(nextPlayers);
+            saveStateToHistory({ playersOnField: nextPlayers });
+        }
+    }, [availablePlayers, playersOnField, saveStateToHistory]);
 
     // --- Handlers ---
 
