@@ -2,7 +2,7 @@
 
 **Priority**: P0 - CRITICAL
 **File**: `/src/components/HomePage.tsx`
-**Current Size**: 3,725 lines
+**Current Size**: ~3,680 lines (down from 3,725 at plan kickoff)
 **Target Size**: 150 lines (orchestrator only)
 **Estimated Effort**: 2-3 hours
 **Impact**: HIGH - Blocks all major feature development
