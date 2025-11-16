@@ -90,6 +90,7 @@ import { startNewGameWithSetup, cancelNewGameSetup } from './HomePage/utils/newG
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
 import { FieldContainer } from '@/components/HomePage/containers/FieldContainer';
+import type { FieldInteractions, TimerInteractions } from '@/components/HomePage/containers/FieldContainer';
 import { debug } from '@/utils/debug';
 
 
@@ -467,6 +468,34 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
   } = useModalContext();
+
+  const openLoadGameViaReducer = useCallback(() => setIsLoadGameModalOpen(true), [setIsLoadGameModalOpen]);
+  const closeLoadGameViaReducer = useCallback(() => setIsLoadGameModalOpen(false), [setIsLoadGameModalOpen]);
+  const openNewGameViaReducer = useCallback(() => setIsNewGameSetupModalOpen(true), [setIsNewGameSetupModalOpen]);
+  const closeNewGameViaReducer = useCallback(() => setIsNewGameSetupModalOpen(false), [setIsNewGameSetupModalOpen]);
+
+  // Wrapper around reducer-backed modals (load/new). This mirrors the old setState-style API
+  // so consumers can migrate incrementally before ModalManager adopts reducer helpers in 2.4.8.
+  const reducerDrivenModals = React.useMemo(() => ({
+    loadGame: {
+      isOpen: isLoadGameModalOpen,
+      open: openLoadGameViaReducer,
+      close: closeLoadGameViaReducer,
+    },
+    newGameSetup: {
+      isOpen: isNewGameSetupModalOpen,
+      open: openNewGameViaReducer,
+      close: closeNewGameViaReducer,
+    },
+  }), [
+    isLoadGameModalOpen,
+    isNewGameSetupModalOpen,
+    openLoadGameViaReducer,
+    closeLoadGameViaReducer,
+    openNewGameViaReducer,
+    closeNewGameViaReducer,
+  ]);
+
   const { showToast } = useToast();
   // const [isPlayerStatsModalOpen, setIsPlayerStatsModalOpen] = useState(false);
   const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<Player | null>(null);
@@ -555,7 +584,7 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           }
           break;
         case 'loadGame':
-          setIsLoadGameModalOpen(true);
+          reducerDrivenModals.loadGame.open();
           break;
         case 'season':
           setIsSeasonTournamentModalOpen(true);
@@ -1679,9 +1708,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
   // --- Timer Handlers provided by useGameTimer ---
 
-  const handleToggleLargeTimerOverlay = () => {
-    setShowLargeTimerOverlay(!showLargeTimerOverlay);
-  };
+  const handleToggleLargeTimerOverlay = useCallback(() => {
+    setShowLargeTimerOverlay((prev) => !prev);
+  }, []);
 
   // handleToggleDrawingMode is now provided by useFieldInteractions hook
 
@@ -1695,9 +1724,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
 
   // Handler to open/close the goal log modal
-  const handleToggleGoalLogModal = () => {
-    setIsGoalLogModalOpen(!isGoalLogModalOpen);
-  };
+  const handleToggleGoalLogModal = useCallback(() => {
+    setIsGoalLogModalOpen((prev) => !prev);
+  }, [setIsGoalLogModalOpen]);
 
   // Handler to add a goal event
   const handleAddGoalEvent = (scorerId: string, assisterId?: string) => {
@@ -1728,7 +1757,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   };
 
   // NEW Handler to log an opponent goal
-  const handleLogOpponentGoal = (time: number) => {
+  const handleLogOpponentGoal = useCallback((time: number) => {
     logger.log(`Logging opponent goal at time: ${time}`);
     const newEvent: GameEvent = {
       id: `oppGoal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
@@ -1740,7 +1769,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: newEvent });
     dispatchGameSession({ type: 'ADJUST_SCORE_FOR_EVENT', payload: { eventType: 'opponentGoal', action: 'add' } });
     setIsGoalLogModalOpen(false);
-  };
+  }, [dispatchGameSession, setIsGoalLogModalOpen]);
 
   // Handler to update an existing game event
   const handleUpdateGameEvent = (updatedEvent: GameEvent) => {
@@ -1919,11 +1948,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
   const handleOpenLoadGameModal = () => {
     logger.log("Opening Load Game Modal...");
-    setIsLoadGameModalOpen(true);
+    reducerDrivenModals.loadGame.open();
   };
 
   const handleCloseLoadGameModal = () => {
-    setIsLoadGameModalOpen(false);
+    reducerDrivenModals.loadGame.close();
   };
 
   const handleOpenSeasonTournamentModal = () => {
@@ -2985,6 +3014,66 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     handleToggleGameStatsModal();
   };
 
+  const fieldInteractions = React.useMemo<FieldInteractions>(() => ({
+    playerMove: handlePlayerMove,
+    playerMoveEnd: handlePlayerMoveEnd,
+    playerRemove: handlePlayerRemove,
+    playerDrop: handleDropOnField,
+    opponentMove: handleOpponentMove,
+    opponentMoveEnd: handleOpponentMoveEnd,
+    opponentRemove: handleOpponentRemove,
+    drawingStart: handleDrawingStart,
+    drawingAddPoint: handleDrawingAddPoint,
+    drawingEnd: handleDrawingEnd,
+    tacticalDrawingStart: handleTacticalDrawingStart,
+    tacticalDrawingAddPoint: handleTacticalDrawingAddPoint,
+    tacticalDrawingEnd: handleTacticalDrawingEnd,
+    tacticalDiscMove: handleTacticalDiscMove,
+    tacticalDiscRemove: handleTacticalDiscRemove,
+    tacticalDiscToggleType: handleToggleTacticalDiscType,
+    tacticalBallMove: handleTacticalBallMove,
+    playerDropViaTouch: handlePlayerDropViaTouch,
+    playerDragCancelViaTouch: handlePlayerDragCancelViaTouch,
+  }), [
+    handlePlayerMove,
+    handlePlayerMoveEnd,
+    handlePlayerRemove,
+    handleDropOnField,
+    handleOpponentMove,
+    handleOpponentMoveEnd,
+    handleOpponentRemove,
+    handleDrawingStart,
+    handleDrawingAddPoint,
+    handleDrawingEnd,
+    handleTacticalDrawingStart,
+    handleTacticalDrawingAddPoint,
+    handleTacticalDrawingEnd,
+    handleTacticalDiscMove,
+    handleTacticalDiscRemove,
+    handleToggleTacticalDiscType,
+    handleTacticalBallMove,
+    handlePlayerDropViaTouch,
+    handlePlayerDragCancelViaTouch,
+  ]);
+
+  const timerInteractions = React.useMemo<TimerInteractions>(() => ({
+    toggleLargeOverlay: handleToggleLargeTimerOverlay,
+    toggleGoalLogModal: handleToggleGoalLogModal,
+    logOpponentGoal: handleLogOpponentGoal,
+    substitutionMade: handleSubstitutionMade,
+    setSubInterval: handleSetSubInterval,
+    startPauseTimer: handleStartPauseTimer,
+    resetTimer: handleResetTimer,
+  }), [
+    handleToggleLargeTimerOverlay,
+    handleToggleGoalLogModal,
+    handleLogOpponentGoal,
+    handleSubstitutionMade,
+    handleSetSubInterval,
+    handleStartPauseTimer,
+    handleResetTimer,
+  ]);
+
   // --- Render Logic ---
   const isLoading = isMasterRosterQueryLoading || areSeasonsQueryLoading || areTournamentsQueryLoading || isAllSavedGamesQueryLoading || isCurrentGameIdSettingQueryLoading;
 
@@ -3114,39 +3203,15 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         hasCheckedFirstGameGuide={hasCheckedFirstGameGuide}
         firstGameGuideStep={firstGameGuideStep}
         orphanedGameInfo={orphanedGameInfo}
-        onOpenNewGameSetup={() => setIsNewGameSetupModalOpen(true)}
+        onOpenNewGameSetup={reducerDrivenModals.newGameSetup.open}
         onOpenRosterModal={() => setIsRosterModalOpen(true)}
         onOpenSeasonTournamentModal={() => setIsSeasonTournamentModalOpen(true)}
         onOpenTeamManagerModal={() => setIsTeamManagerOpen(true)}
         onGuideStepChange={setFirstGameGuideStep}
         onGuideClose={() => setShowFirstGameGuide(false)}
         onOpenTeamReassignModal={() => setIsTeamReassignModalOpen(true)}
-        handlePlayerMove={handlePlayerMove}
-        handlePlayerMoveEnd={handlePlayerMoveEnd}
-        handlePlayerRemove={handlePlayerRemove}
-        handleOpponentMove={handleOpponentMove}
-        handleOpponentMoveEnd={handleOpponentMoveEnd}
-        handleOpponentRemove={handleOpponentRemove}
-        handleDropOnField={handleDropOnField}
-        handleDrawingStart={handleDrawingStart}
-        handleDrawingAddPoint={handleDrawingAddPoint}
-        handleDrawingEnd={handleDrawingEnd}
-        handleTacticalDrawingStart={handleTacticalDrawingStart}
-        handleTacticalDrawingAddPoint={handleTacticalDrawingAddPoint}
-        handleTacticalDrawingEnd={handleTacticalDrawingEnd}
-        handleTacticalDiscMove={handleTacticalDiscMove}
-        handleTacticalDiscRemove={handleTacticalDiscRemove}
-        handleToggleTacticalDiscType={handleToggleTacticalDiscType}
-        handleTacticalBallMove={handleTacticalBallMove}
-        handlePlayerDropViaTouch={handlePlayerDropViaTouch}
-        handlePlayerDragCancelViaTouch={handlePlayerDragCancelViaTouch}
-        handleToggleLargeTimerOverlay={handleToggleLargeTimerOverlay}
-        handleToggleGoalLogModal={handleToggleGoalLogModal}
-        handleLogOpponentGoal={handleLogOpponentGoal}
-        handleSubstitutionMade={handleSubstitutionMade}
-        handleSetSubInterval={handleSetSubInterval}
-        handleStartPauseTimer={handleStartPauseTimer}
-        handleResetTimer={handleResetTimer}
+        interactions={fieldInteractions}
+        timerInteractions={timerInteractions}
       />
 
 
