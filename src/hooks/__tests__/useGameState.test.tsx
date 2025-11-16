@@ -135,6 +135,29 @@ describe('useGameState', () => {
     expect(saveStateToHistory).toHaveBeenCalledWith({ playersOnField: [] });
   });
 
+  it('does not drop players on mount when roster data has not arrived yet', async () => {
+    const saveStateToHistory = jest.fn();
+    const fieldPlayer = { ...basePlayer, relX: 0.2, relY: 0.3 };
+    const initial = {
+      ...initialState,
+      availablePlayers: [],
+      playersOnField: [fieldPlayer],
+    };
+
+    const { result } = renderHook(() =>
+      useGameState({
+        initialState: initial,
+        saveStateToHistory,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.playersOnField).toEqual([fieldPlayer]);
+    });
+
+    expect(saveStateToHistory).not.toHaveBeenCalledWith({ playersOnField: [] });
+  });
+
   it('keeps player positions while syncing metadata from updated roster entries', async () => {
     const saveStateToHistory = jest.fn();
     const fieldPlayer = { ...basePlayer, name: 'Old Name', relX: 0.5, relY: 0.2 };
