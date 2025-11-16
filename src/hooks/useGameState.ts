@@ -1,5 +1,5 @@
 // src/hooks/useGameState.ts
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Player } from '@/types'; // Player type is from @/types
 import {
     Opponent,
@@ -77,6 +77,7 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     const [opponents, setOpponents] = useState<Opponent[]>(initialState.opponents);
     const [drawings, setDrawings] = useState<Point[][]>(initialState.drawings);
     const [availablePlayers, setAvailablePlayers] = useState<Player[]>(initialState.availablePlayers || []);
+    const rosterSyncReadyRef = useRef<boolean>((initialState.availablePlayers?.length ?? 0) > 0);
     // ... (more state will be moved here)
 
     // Sync availablePlayers when initialState changes
@@ -84,9 +85,22 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
         setAvailablePlayers(initialState.availablePlayers || []);
     }, [initialState.availablePlayers]);
 
+    // Track when we've actually received a roster snapshot so we do not
+    // prematurely wipe players when the hook was initialized with []
+    useEffect(() => {
+        if (!rosterSyncReadyRef.current && availablePlayers.length > 0) {
+            rosterSyncReadyRef.current = true;
+        }
+    }, [availablePlayers]);
+
     // Ensure players on field reflect latest roster updates (names, goalie flags)
     useEffect(() => {
         if (playersOnField.length === 0) {
+            return;
+        }
+        // If we have never received actual roster data, bail so the field
+        // doesn't immediately clear when availablePlayers defaults to []
+        if (!rosterSyncReadyRef.current && availablePlayers.length === 0) {
             return;
         }
         const availableMap = new Map(availablePlayers.map(player => [player.id, player]));
