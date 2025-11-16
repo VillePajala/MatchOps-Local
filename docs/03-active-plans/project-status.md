@@ -75,6 +75,11 @@ MatchOps-Local is in **active beta** with core functionality complete and stable
 - 📅 **First-Game Onboarding** - Guided setup for new users
 - 📅 **Advanced Help System** - Comprehensive in-app guidance
 
+### 🧱 HomePage Refactoring Progress (Layer 2)
+- ✅ Steps 2.4.0–2.4.8 completed (view-model adapter, VM-only data flow, FieldContainer/timer interactions, modal reducer coverage). See `docs/03-active-plans/L2-2.4-HomePage-Reduction-PLAN.md` for details.
+- ⏳ Remaining micro-steps: **2.4.9** (eliminate the last direct modal setters in ControlBar/ModalManager + add reducer integration tests) and **2.5** (edge-case parity + history regression tests) before moving to the Layer 3 perf/UX items.
+- 📏 File size progress: HomePage.tsx currently sits at ~3,680 lines, down ~45 lines from the original 3,725-line monolith documented at plan kickoff. Further reductions will come as we peel ControlBar/ModalManager out in Step 2.4.9.
+
 ### 📋 **Planned Features**
 
 #### Short-term (Next 3 months)
