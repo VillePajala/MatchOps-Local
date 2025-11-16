@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: update project status and refactoring plan with progress details"
+  "notes": "docs: add JSDoc tags to modal guard regression tests"
 }
