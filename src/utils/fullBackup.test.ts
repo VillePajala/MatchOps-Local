@@ -498,6 +498,42 @@ describe("importFullBackup", () => {
       expect(mockStore[APP_SETTINGS_KEY]).toEqual({ currentGameId: latestGameId });
       expect(window.alert).toHaveBeenCalledWith("Backup restored. Reloading app...");
     });
+
+    it('preserves currentGameId when backup points to an existing game', async () => {
+      const validGameId = 'game_1700000100000_valid';
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {
+            [validGameId]: { id: validGameId, teamName: 'Valid', opponentName: 'Match', gameDate: '2024-01-11' },
+          },
+          [APP_SETTINGS_KEY]: { currentGameId: validGameId },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      await importFullBackup(JSON.stringify(backupData));
+
+      expect(mockStore[APP_SETTINGS_KEY]).toEqual({ currentGameId: validGameId });
+    });
+
+    it('handles backups with no saved games without crashing', async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {},
+          [APP_SETTINGS_KEY]: { currentGameId: DEFAULT_GAME_ID },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      await importFullBackup(JSON.stringify(backupData));
+
+      expect(mockStore[APP_SETTINGS_KEY]).toEqual({ currentGameId: DEFAULT_GAME_ID });
+      expect(window.alert).toHaveBeenCalledWith("Backup restored. Reloading app...");
+    });
   });
 
   describe("Validation Errors", () => {
