@@ -103,6 +103,11 @@ describe('ControlBar reducer-driven modal guards', () => {
     });
   }
 
+  /**
+   * Tests critical modal guard behavior: prevents accidental closes during rapid interactions
+   * @critical
+   * @edge-case
+   */
   it('keeps Load Game modal open when a close is requested immediately after opening', () => {
     renderHarness();
     closeMenuAndEmit(/Load Game/i);
@@ -118,6 +123,11 @@ describe('ControlBar reducer-driven modal guards', () => {
     expect(screen.getByTestId('load-state').textContent).toBe('false');
   });
 
+  /**
+   * Tests anti-flash guard: prevents modal from closing when rapidly opened and closed
+   * @critical
+   * @edge-case
+   */
   it('keeps New Game modal open when ControlBar shortcut fires twice rapidly', () => {
     renderHarness();
     closeMenuAndEmit(/New Game/i);
