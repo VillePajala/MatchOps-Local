@@ -41,7 +41,6 @@ jest.mock('@/contexts/ModalProvider', () => ({
     setIsGameStatsModalOpen: jest.fn(),
     setIsTrainingResourcesOpen: jest.fn(),
     setIsLoadGameModalOpen: jest.fn(),
-    setIsNewGameSetupModalOpen: jest.fn(),
     setIsRosterModalOpen: jest.fn(),
     setIsSeasonTournamentModalOpen: jest.fn(),
     setIsGameSettingsModalOpen: jest.fn(),
@@ -115,12 +114,22 @@ const createProps = (): ModalManagerProps => ({
   handleLoadGame: noop,
   handleDeleteGame: noop,
   handleExportOneJson: noop,
-  setIsNewGameSetupModalOpen: noop,
+  reducerDrivenModals: {
+    newGameSetup: {
+      isOpen: false,
+      open: jest.fn(),
+      close: jest.fn(),
+    },
+    roster: {
+      isOpen: false,
+      open: jest.fn(),
+      close: jest.fn(),
+    },
+  },
   // Team roster modal controls
   isTeamRosterModalOpen: false,
   selectedTeamForRoster: null,
   setSelectedTeamForRoster: noop,
-  setIsTeamRosterModalOpen: noop,
   handleManageTeamRoster: noop,
   handleCloseTeamRosterModal: noop,
   handleBackToTeamManager: noop,

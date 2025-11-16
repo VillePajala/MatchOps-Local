@@ -28,6 +28,7 @@ function createGuardedModalSetter(
     }
 
     if (!next && prev) {
+      // TODO: Consider extracting this guard into a shared hook if/when additional modals need it.
       if (now - lastOpenRef.current < antiFlashMs) {
         return;
       }
