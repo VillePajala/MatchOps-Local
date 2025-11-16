@@ -66,3 +66,20 @@ test('supports function updater form for new game setup modal', () => {
   expect(result.current.isNewGameSetupModalOpen).toBe(false);
   jest.useRealTimers();
 });
+
+test('supports function updater form for roster modal', () => {
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <ModalProvider>{children}</ModalProvider>
+  );
+  const { result } = renderHook(() => useModalContext(), { wrapper });
+
+  act(() => {
+    result.current.setIsRosterModalOpen(prev => !prev);
+  });
+  expect(result.current.isRosterModalOpen).toBe(true);
+
+  act(() => {
+    result.current.setIsRosterModalOpen(prev => !prev);
+  });
+  expect(result.current.isRosterModalOpen).toBe(false);
+});

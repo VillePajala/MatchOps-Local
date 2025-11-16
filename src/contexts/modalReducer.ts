@@ -55,12 +55,20 @@ function isValidModalId(id: ModalId): boolean {
   return validModalIds.includes(id);
 }
 
+function warnUnknownModalId(id: ModalId, actionType: ModalAction['type']): void {
+  if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
+    // eslint-disable-next-line no-console
+    console.warn(`[modalReducer] Unknown modal id "${id}" for action "${actionType}"`);
+  }
+}
+
 /**
  * Helper: Open a modal (idempotent - returns same state if already open)
  */
 function openModal(state: ModalState, id: ModalId, at: number): ModalState {
   // Unknown modal ID — return state unchanged (future-proof)
   if (!isValidModalId(id)) {
+    warnUnknownModalId(id, 'OPEN_MODAL');
     return state;
   }
   // Already open — return same object to avoid unnecessary re-renders
@@ -80,6 +88,7 @@ function openModal(state: ModalState, id: ModalId, at: number): ModalState {
 function closeModal(state: ModalState, id: ModalId): ModalState {
   // Unknown modal ID — return state unchanged (future-proof)
   if (!isValidModalId(id)) {
+    warnUnknownModalId(id, 'CLOSE_MODAL');
     return state;
   }
   // Already closed — return same object
@@ -96,6 +105,7 @@ function closeModal(state: ModalState, id: ModalId): ModalState {
 function toggleModal(state: ModalState, id: ModalId, at: number): ModalState {
   // Unknown modal ID — return state unchanged (future-proof)
   if (!isValidModalId(id)) {
+    warnUnknownModalId(id, 'TOGGLE_MODAL');
     return state;
   }
   const next = !state[id];
