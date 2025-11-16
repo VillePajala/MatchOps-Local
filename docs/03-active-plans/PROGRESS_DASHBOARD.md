@@ -1,11 +1,25 @@
 # 📊 Production Readiness Progress Dashboard
 
 **Last Updated**: November 16, 2025
-**Overall Progress**: 40% Complete (2 of 6 phases done, P0 refactoring in progress)
+**Overall Progress**: 42% Complete (2 of 6 phases done, P0 refactoring in progress)
 
 ---
 
 ## 🎉 **Recent Completions**
+
+### ✅ Layer 2 — Step 2.4.7 (Field interactions VM + reducer-driven modal intents)
+**Completion Date**: November 16, 2025
+**Impact**: FieldContainer now consumes a cohesive `interactions` view-model (actions separated from state), and load/new modal triggers are routed through the reducer API for consistent anti-flash behavior.
+
+**What Was Accomplished**:
+- Introduced `FieldInteractions` + `TimerInteractions` objects on FieldContainer; HomePage builds them via `useMemo` so the component only receives grouped intents instead of 20+ discrete handler props.
+- First-time guide + reset banner now call `reducerDrivenModals.newGameSetup.open`, pulling directly from the modal reducer rather than raw setters.
+- Load Game shortcuts (initial action + keyboard) use the same reducer-backed controls, and tests/fixtures were updated to reflect the new props.
+
+**Quality Gates**:
+- Jest suites covering FieldContainer + modal reducer pass; lint/type/build all green.
+- Verified new grouping in dev with `NEXT_PUBLIC_DEBUG=home` to ensure no extra renders.
+- Remaining modals (roster/season/etc.) stay on legacy setters; tracked for Step 2.4.8 alongside reducer integration tests.
 
 ### ✅ Layer 2 — Step 2.4.6 (PlayerBar/GameInfo VM-only + new game flow grouping)
 **Completion Date**: November 16, 2025
