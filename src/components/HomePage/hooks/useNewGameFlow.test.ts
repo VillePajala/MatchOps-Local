@@ -95,8 +95,9 @@ describe('useNewGameFlow', () => {
         ...overrides.gameState,
       },
       ui: {
-        setIsNewGameSetupModalOpen: jest.fn(),
-        setIsRosterModalOpen: jest.fn(),
+        openNewGameSetupModal: jest.fn(),
+        closeNewGameSetupModal: jest.fn(),
+        openRosterModal: jest.fn(),
         setHasSkippedInitialSetup: jest.fn(),
         setHighlightRosterButton: jest.fn(),
         setIsPlayed: jest.fn(),

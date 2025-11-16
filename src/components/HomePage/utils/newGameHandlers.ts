@@ -18,7 +18,7 @@ export interface StartNewGameDependencies {
   resetHistory: (state: AppState) => void;
   dispatchGameSession: Dispatch<GameSessionAction>;
   setCurrentGameId: (gameId: string | null) => void;
-  setIsNewGameSetupModalOpen: (isOpen: boolean) => void;
+  closeNewGameSetupModal: () => void;
   setNewGameDemandFactor: (value: number) => void;
   setPlayerIdsForNewGame: (ids: string[] | null) => void;
   setHighlightRosterButton: (isHighlighted: boolean) => void;
@@ -83,7 +83,7 @@ export async function startNewGameWithSetup(
     resetHistory,
     dispatchGameSession,
     setCurrentGameId,
-    setIsNewGameSetupModalOpen,
+    closeNewGameSetupModal,
     setNewGameDemandFactor,
     setPlayerIdsForNewGame,
     setHighlightRosterButton,
@@ -179,7 +179,7 @@ export async function startNewGameWithSetup(
   setCurrentGameId(newGameId);
   logger.log(`Set current game ID to: ${newGameId}. Loading useEffect will sync component state.`);
 
-  setIsNewGameSetupModalOpen(false);
+  closeNewGameSetupModal();
   setNewGameDemandFactor(1);
   setPlayerIdsForNewGame(null);
   setHighlightRosterButton(true);
@@ -187,18 +187,18 @@ export async function startNewGameWithSetup(
 
 export interface CancelNewGameDependencies {
   setHasSkippedInitialSetup: (value: boolean) => void;
-  setIsNewGameSetupModalOpen: (isOpen: boolean) => void;
+  closeNewGameSetupModal: () => void;
   setNewGameDemandFactor: (value: number) => void;
   setPlayerIdsForNewGame: (ids: string[] | null) => void;
 }
 
 export function cancelNewGameSetup(deps: CancelNewGameDependencies): void {
-  const { setHasSkippedInitialSetup, setIsNewGameSetupModalOpen, setNewGameDemandFactor, setPlayerIdsForNewGame } =
+  const { setHasSkippedInitialSetup, closeNewGameSetupModal, setNewGameDemandFactor, setPlayerIdsForNewGame } =
     deps;
 
   logger.log('New game setup skipped/cancelled.');
   setHasSkippedInitialSetup(true);
-  setIsNewGameSetupModalOpen(false);
+  closeNewGameSetupModal();
   setNewGameDemandFactor(1);
   setPlayerIdsForNewGame(null);
 }

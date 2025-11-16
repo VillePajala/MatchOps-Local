@@ -80,7 +80,7 @@ export function createGameContainerProps(
     handleDropOnField: jest.fn(),
     handlePlayerDropViaTouch: jest.fn(),
     handlePlayerDragCancelViaTouch: jest.fn(),
-    setIsNewGameSetupModalOpen: jest.fn(),
+    openNewGameSetupModal: jest.fn(),
     handleOpenTeamManagerModal: jest.fn(),
     setShowFirstGameGuide: jest.fn(),
     setFirstGameGuideStep: jest.fn(),
