@@ -158,6 +158,56 @@ describe('useGameState', () => {
     expect(saveStateToHistory).not.toHaveBeenCalledWith({ playersOnField: [] });
   });
 
+  it('handles mixed roster removals and metadata updates in a single sync', async () => {
+    const saveStateToHistory = jest.fn();
+    const player1 = { ...basePlayer, id: 'p1', name: 'Player 1' };
+    const player2 = { ...basePlayer, id: 'p2', name: 'Player 2' };
+    const player3 = { ...basePlayer, id: 'p3', name: 'Player 3' };
+    const initial = {
+      ...initialState,
+      availablePlayers: [player1, player2, player3],
+      playersOnField: [
+        { ...player1, relX: 0.1, relY: 0.2 },
+        { ...player2, relX: 0.4, relY: 0.5 },
+        { ...player3, relX: 0.7, relY: 0.8 },
+      ],
+    };
+
+    const { result } = renderHook(() =>
+      useGameState({
+        initialState: initial,
+        saveStateToHistory,
+      })
+    );
+
+    const updatedRoster = [
+      { ...player1, name: 'Updated Player 1', jerseyNumber: '11' },
+      player3,
+    ];
+
+    act(() => {
+      result.current.setAvailablePlayers(updatedRoster);
+    });
+
+    await waitFor(() => {
+      expect(result.current.playersOnField).toHaveLength(2);
+      expect(result.current.playersOnField).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'p1', name: 'Updated Player 1', jerseyNumber: '11' }),
+          expect.objectContaining({ id: 'p3', name: 'Player 3' }),
+        ])
+      );
+    });
+
+    expect(result.current.playersOnField.find(p => p.id === 'p2')).toBeUndefined();
+    expect(saveStateToHistory).toHaveBeenCalledWith({
+      playersOnField: expect.arrayContaining([
+        expect.objectContaining({ id: 'p1', name: 'Updated Player 1', jerseyNumber: '11' }),
+        expect.objectContaining({ id: 'p3', name: 'Player 3' }),
+      ]),
+    });
+  });
+
   it('keeps player positions while syncing metadata from updated roster entries', async () => {
     const saveStateToHistory = jest.fn();
     const fieldPlayer = { ...basePlayer, name: 'Old Name', relX: 0.5, relY: 0.2 };
