@@ -7,6 +7,20 @@
 
 ## 🎉 **Recent Completions**
 
+### ✅ Layer 2 — Step 2.4.9 (ControlBar/ModalManager reducer adoption)
+**Completion Date**: November 18, 2025  
+**Impact**: All ControlBar shortcuts and ModalManager hops now drive the modal reducer helper API, so anti-flash guards stay consistent and direct `setState` setters are gone.
+
+**What Was Accomplished**:
+- Replaced the remaining ControlBar/ModalManager setState calls with reducer helpers and centralized intent helpers (`ReducerDrivenModals`).
+- Added `tests/integration/regression/controlBar.modal-guard.test.tsx` to prove the reducer-backed anti-flash guard ignores rapid close/open cycles.
+- Documented the reducer-driven modal helper contract so future migrations have a template.
+
+**Quality Gates**:
+- `npm run lint`, `npm run type-check`, and targeted Jest suites (new guard test + existing reducer suites) all green.
+- Manual smoke: ControlBar menu open → Load/New/Roster modals trigger once per click; "Manage roster" from New Game handoff behaves as expected.
+- Documentation and release notes updated to reflect Step 2.4.9 completion and point to Step 2.5 (edge-case regression tests).
+
 ### ✅ Layer 2 — Step 2.4.8 (Modal reducer expansion + FieldContainer sub-VMs)
 **Completion Date**: November 17, 2025  
 **Impact**: Interaction handlers are now grouped by domain (players/opponents/drawing/tactical/touch) and modal reducer coverage includes roster + season/tournament flows, eliminating the last direct setter leaks in First Game CTA and ControlBar paths.
@@ -19,7 +33,7 @@
 **Quality Gates**:
 - Jest suites updated (`FieldContainer`, `ModalProvider`, `modalReducer`) and run with `npm run test -- --runInBand`; `npm run lint`, `npm run type-check`, and `npm run build` all pass.
 - Manual smoke confirmed reducer-driven helpers reach FieldContainer + ControlBar with no double opens when spamming CTA buttons.
-- Documentation (L2 plan, micro roadmap, agents guidelines) now reflects Step 2.4.8 being complete and points to Step 2.4.9 (ControlBar/ModalManager consolidation).
+- Documentation (L2 plan, micro roadmap, agents guidelines) now reflects Step 2.4.8 being complete and points to Step 2.5 (edge-case regression tests).
 
 ### ✅ Layer 2 — Step 2.4.7 (Field interactions VM + reducer-driven modal intents)
 **Completion Date**: November 16, 2025

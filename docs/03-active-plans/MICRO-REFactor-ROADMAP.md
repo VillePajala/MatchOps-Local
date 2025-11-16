@@ -113,7 +113,7 @@ Step 2.4 — Parameter/props grouping (reduce coupling)
   - ✅ 2.4.5 Debug instrumentation unification (central `debug.enabled()`, `.env` docs, `HomePage`/history/tactical call-site migrations + tests) — executed early to keep manual verification predictable.
   - ✅ 2.4.7 Field interaction VM extraction + reducer-driven modal intents wired through HomePage/FieldContainer.
   - ✅ 2.4.8 FieldContainer interaction sub-VMs + roster/season reducer coverage (CTA + reducer regression tests added).
-  - 🔜 2.4.9 Remove remaining direct modal setters from ControlBar/ModalManager and drive all shortcuts through reducer helpers (with integration tests for anti-flash guards).
+  - ✅ 2.4.9 ControlBar/ModalManager reducer adoption (eliminated direct modal setters + added ControlBar anti-flash regression test).
 
 Step 2.5 — Edge-case tests
 - Add tests for:
