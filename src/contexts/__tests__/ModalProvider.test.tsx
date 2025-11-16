@@ -36,11 +36,13 @@ test('modals operate independently when opened sequentially', () => {
   act(() => {
     result.current.setIsGameSettingsModalOpen(false);
     result.current.setIsRosterModalOpen(true);
+    result.current.setIsSeasonTournamentModalOpen(true);
   });
 
   expect(result.current.isGameSettingsModalOpen).toBe(false);
   expect(result.current.isLoadGameModalOpen).toBe(true);
   expect(result.current.isRosterModalOpen).toBe(true);
+  expect(result.current.isSeasonTournamentModalOpen).toBe(true);
   expect(result.current.isPlayerAssessmentModalOpen).toBe(true);
 });
 

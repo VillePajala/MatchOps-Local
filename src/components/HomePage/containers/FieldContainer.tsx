@@ -16,26 +16,46 @@ import type {
 } from '@/types';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 
-export interface FieldInteractions {
-  playerMove: (playerId: string, relX: number, relY: number) => void;
-  playerMoveEnd: () => void;
-  playerRemove: (playerId: string) => void;
-  playerDrop: (playerId: string, relX: number, relY: number) => void;
-  opponentMove: (playerId: string, relX: number, relY: number) => void;
-  opponentMoveEnd: () => void;
-  opponentRemove: (playerId: string) => void;
+export interface PlayerInteractions {
+  move: (playerId: string, relX: number, relY: number) => void;
+  moveEnd: () => void;
+  remove: (playerId: string) => void;
+  drop: (playerId: string, relX: number, relY: number) => void;
+}
+
+export interface OpponentInteractions {
+  move: (playerId: string, relX: number, relY: number) => void;
+  moveEnd: () => void;
+  remove: (playerId: string) => void;
+}
+
+export interface DrawingInteractions {
+  start: (point: Point) => void;
+  addPoint: (point: Point) => void;
+  end: () => void;
+}
+
+export interface TacticalInteractions {
   drawingStart: (point: Point) => void;
   drawingAddPoint: (point: Point) => void;
   drawingEnd: () => void;
-  tacticalDrawingStart: (point: Point) => void;
-  tacticalDrawingAddPoint: (point: Point) => void;
-  tacticalDrawingEnd: () => void;
-  tacticalDiscMove: (discId: string, relX: number, relY: number) => void;
-  tacticalDiscRemove: (discId: string) => void;
-  tacticalDiscToggleType: (discId: string) => void;
-  tacticalBallMove: (point: Point) => void;
-  playerDropViaTouch: (relX: number, relY: number) => void;
-  playerDragCancelViaTouch: () => void;
+  discMove: (discId: string, relX: number, relY: number) => void;
+  discRemove: (discId: string) => void;
+  discToggleType: (discId: string) => void;
+  ballMove: (point: Point) => void;
+}
+
+export interface TouchInteractions {
+  playerDrop: (relX: number, relY: number) => void;
+  playerDragCancel: () => void;
+}
+
+export interface FieldInteractions {
+  players: PlayerInteractions;
+  opponents: OpponentInteractions;
+  drawing: DrawingInteractions;
+  tactical: TacticalInteractions;
+  touch: TouchInteractions;
 }
 
 export interface TimerInteractions {
@@ -115,27 +135,7 @@ export function FieldContainer({
 }: FieldContainerProps) {
   const { t } = useTranslation();
 
-  const {
-    playerMove,
-    playerMoveEnd,
-    playerRemove,
-    playerDrop,
-    opponentMove,
-    opponentMoveEnd,
-    opponentRemove,
-    drawingStart,
-    drawingAddPoint,
-    drawingEnd,
-    tacticalDrawingStart,
-    tacticalDrawingAddPoint,
-    tacticalDrawingEnd,
-    tacticalDiscMove,
-    tacticalDiscRemove,
-    tacticalDiscToggleType,
-    tacticalBallMove,
-    playerDropViaTouch,
-    playerDragCancelViaTouch,
-  } = interactions;
+  const { players, opponents, drawing, tactical, touch } = interactions;
 
   const {
     toggleLargeOverlay,
@@ -214,28 +214,28 @@ export function FieldContainer({
           players={fcPlayersOnField}
           opponents={fcOpponents}
           drawings={fcIsTactics ? fcTacticalDrawings : fcDrawings}
-          onPlayerMove={playerMove}
-          onPlayerMoveEnd={playerMoveEnd}
-          onPlayerRemove={playerRemove}
-          onOpponentMove={opponentMove}
-          onOpponentMoveEnd={opponentMoveEnd}
-          onOpponentRemove={opponentRemove}
-          onPlayerDrop={playerDrop}
+          onPlayerMove={players.move}
+          onPlayerMoveEnd={players.moveEnd}
+          onPlayerRemove={players.remove}
+          onOpponentMove={opponents.move}
+          onOpponentMoveEnd={opponents.moveEnd}
+          onOpponentRemove={opponents.remove}
+          onPlayerDrop={players.drop}
           showPlayerNames={gameSessionState.showPlayerNames}
-          onDrawingStart={fcIsTactics ? tacticalDrawingStart : drawingStart}
-          onDrawingAddPoint={fcIsTactics ? tacticalDrawingAddPoint : drawingAddPoint}
-          onDrawingEnd={fcIsTactics ? tacticalDrawingEnd : drawingEnd}
+          onDrawingStart={fcIsTactics ? tactical.drawingStart : drawing.start}
+          onDrawingAddPoint={fcIsTactics ? tactical.drawingAddPoint : drawing.addPoint}
+          onDrawingEnd={fcIsTactics ? tactical.drawingEnd : drawing.end}
           draggingPlayerFromBarInfo={fcDraggingFromBar}
-          onPlayerDropViaTouch={playerDropViaTouch}
-          onPlayerDragCancelViaTouch={playerDragCancelViaTouch}
+          onPlayerDropViaTouch={touch.playerDrop}
+          onPlayerDragCancelViaTouch={touch.playerDragCancel}
           timeElapsedInSeconds={tmTime}
           isTacticsBoardView={fcIsTactics}
           tacticalDiscs={fcTacticalDiscs || []}
-          onTacticalDiscMove={tacticalDiscMove}
-          onTacticalDiscRemove={tacticalDiscRemove}
-          onToggleTacticalDiscType={tacticalDiscToggleType}
+          onTacticalDiscMove={tactical.discMove}
+          onTacticalDiscRemove={tactical.discRemove}
+          onToggleTacticalDiscType={tactical.discToggleType}
           tacticalBallPosition={fcTacticalBall || { relX: 0.5, relY: 0.5 }}
-          onTacticalBallMove={tacticalBallMove}
+          onTacticalBallMove={tactical.ballMove}
           isDrawingEnabled={fcIsDrawingEnabled}
         />
       </ErrorBoundary>

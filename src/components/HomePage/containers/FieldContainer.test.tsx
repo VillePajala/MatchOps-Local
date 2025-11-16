@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { FieldContainer } from './FieldContainer';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
 import { DEFAULT_GAME_ID } from '@/config/constants';
+import { TestFixtures } from '../../../../tests/fixtures';
 
 jest.mock('@/components/TimerOverlay', () => {
   const TimerOverlay = () => <div data-testid="timer-overlay" />;
@@ -66,25 +67,35 @@ const baseProps = () => ({
   onGuideClose: jest.fn(),
   onOpenTeamReassignModal: jest.fn(),
   interactions: {
-    playerMove: jest.fn(),
-    playerMoveEnd: jest.fn(),
-    playerRemove: jest.fn(),
-    playerDrop: jest.fn(),
-    opponentMove: jest.fn(),
-    opponentMoveEnd: jest.fn(),
-    opponentRemove: jest.fn(),
-    drawingStart: jest.fn(),
-    drawingAddPoint: jest.fn(),
-    drawingEnd: jest.fn(),
-    tacticalDrawingStart: jest.fn(),
-    tacticalDrawingAddPoint: jest.fn(),
-    tacticalDrawingEnd: jest.fn(),
-    tacticalDiscMove: jest.fn(),
-    tacticalDiscRemove: jest.fn(),
-    tacticalDiscToggleType: jest.fn(),
-    tacticalBallMove: jest.fn(),
-    playerDropViaTouch: jest.fn(),
-    playerDragCancelViaTouch: jest.fn(),
+    players: {
+      move: jest.fn(),
+      moveEnd: jest.fn(),
+      remove: jest.fn(),
+      drop: jest.fn(),
+    },
+    opponents: {
+      move: jest.fn(),
+      moveEnd: jest.fn(),
+      remove: jest.fn(),
+    },
+    drawing: {
+      start: jest.fn(),
+      addPoint: jest.fn(),
+      end: jest.fn(),
+    },
+    tactical: {
+      drawingStart: jest.fn(),
+      drawingAddPoint: jest.fn(),
+      drawingEnd: jest.fn(),
+      discMove: jest.fn(),
+      discRemove: jest.fn(),
+      discToggleType: jest.fn(),
+      ballMove: jest.fn(),
+    },
+    touch: {
+      playerDrop: jest.fn(),
+      playerDragCancel: jest.fn(),
+    },
   },
   timerInteractions: {
     toggleLargeOverlay: jest.fn(),
@@ -114,5 +125,28 @@ describe('FieldContainer', () => {
     );
 
     expect(screen.getByTestId('first-game-guide')).toBeInTheDocument();
+  });
+
+  it('invokes roster callback when CTA is used without a roster', () => {
+    const props = baseProps();
+    render(<FieldContainer {...props} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /set up team roster/i }));
+    expect(props.onOpenRosterModal).toHaveBeenCalledTimes(1);
+  });
+
+  it('invokes new game and season callbacks when roster exists', () => {
+    const props = {
+      ...baseProps(),
+      availablePlayers: [TestFixtures.players.fieldPlayer()],
+      seasons: [TestFixtures.seasons.current()],
+    };
+    render(<FieldContainer {...props} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /create your first match/i }));
+    expect(props.onOpenNewGameSetup).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /manage seasons & tournaments/i }));
+    expect(props.onOpenSeasonTournamentModal).toHaveBeenCalledTimes(1);
   });
 });

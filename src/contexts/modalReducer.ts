@@ -1,7 +1,13 @@
 // Modal reducer (Layer 2 - Steps 2.0–2.3)
 // Currently managing: loadGame, newGameSetup, settings, gameStats modals
 
-export type ModalId = 'loadGame' | 'newGameSetup' | 'settings' | 'gameStats';
+export type ModalId =
+  | 'loadGame'
+  | 'newGameSetup'
+  | 'settings'
+  | 'gameStats'
+  | 'roster'
+  | 'seasonTournament';
 
 export interface ModalState {
   // Start with a single modal; we will add others in subsequent microsteps
@@ -9,6 +15,8 @@ export interface ModalState {
   newGameSetup: boolean;
   settings: boolean;
   gameStats: boolean;
+  roster: boolean;
+  seasonTournament: boolean;
   // Room for future timing/analytics (e.g., anti-flash timestamps)
   openTimestamps: Partial<Record<ModalId, number>>;
 }
@@ -18,6 +26,8 @@ export const initialModalState: ModalState = {
   newGameSetup: false,
   settings: false,
   gameStats: false,
+  roster: false,
+  seasonTournament: false,
   openTimestamps: {},
 };
 
@@ -68,6 +78,22 @@ export function modalReducer(state: ModalState, action: ModalAction): ModalState
           openTimestamps: { ...state.openTimestamps, gameStats: at },
         };
       }
+      if (action.id === 'roster') {
+        if (state.roster) return state;
+        return {
+          ...state,
+          roster: true,
+          openTimestamps: { ...state.openTimestamps, roster: at },
+        };
+      }
+      if (action.id === 'seasonTournament') {
+        if (state.seasonTournament) return state;
+        return {
+          ...state,
+          seasonTournament: true,
+          openTimestamps: { ...state.openTimestamps, seasonTournament: at },
+        };
+      }
       return state;
     }
     case 'CLOSE_MODAL': {
@@ -92,6 +118,14 @@ export function modalReducer(state: ModalState, action: ModalAction): ModalState
       if (action.id === 'gameStats') {
         if (!state.gameStats) return state;
         return { ...state, gameStats: false };
+      }
+      if (action.id === 'roster') {
+        if (!state.roster) return state;
+        return { ...state, roster: false };
+      }
+      if (action.id === 'seasonTournament') {
+        if (!state.seasonTournament) return state;
+        return { ...state, seasonTournament: false };
       }
       return state;
     }
@@ -134,6 +168,26 @@ export function modalReducer(state: ModalState, action: ModalAction): ModalState
           gameStats: next,
           openTimestamps: next
             ? { ...state.openTimestamps, gameStats: at }
+            : state.openTimestamps,
+        };
+      }
+      if (action.id === 'roster') {
+        const next = !state.roster;
+        return {
+          ...state,
+          roster: next,
+          openTimestamps: next
+            ? { ...state.openTimestamps, roster: at }
+            : state.openTimestamps,
+        };
+      }
+      if (action.id === 'seasonTournament') {
+        const next = !state.seasonTournament;
+        return {
+          ...state,
+          seasonTournament: next,
+          openTimestamps: next
+            ? { ...state.openTimestamps, seasonTournament: at }
             : state.openTimestamps,
         };
       }

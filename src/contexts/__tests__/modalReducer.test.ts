@@ -52,6 +52,24 @@ describe('modalReducer (skeleton)', () => {
     expect(state.openTimestamps.loadGame).toBe(2);
   });
 
+  it('manages roster modal independently', () => {
+    const opened = modalReducer(initialModalState, { type: 'OPEN_MODAL', id: 'roster', at: 50 });
+    expect(opened.roster).toBe(true);
+    expect(opened.openTimestamps.roster).toBe(50);
+
+    const toggled = modalReducer(opened, { type: 'TOGGLE_MODAL', id: 'roster' });
+    expect(toggled.roster).toBe(false);
+  });
+
+  it('manages seasonTournament modal independently', () => {
+    const opened = modalReducer(initialModalState, { type: 'OPEN_MODAL', id: 'seasonTournament', at: 75 });
+    expect(opened.seasonTournament).toBe(true);
+    expect(opened.openTimestamps.seasonTournament).toBe(75);
+
+    const closed = modalReducer(opened, { type: 'CLOSE_MODAL', id: 'seasonTournament' });
+    expect(closed.seasonTournament).toBe(false);
+  });
+
   it('is idempotent for repeated opens', () => {
     const state1 = modalReducer(initialModalState, { type: 'OPEN_MODAL', id: 'loadGame', at: 100 });
     const state2 = modalReducer(state1, { type: 'OPEN_MODAL', id: 'loadGame', at: 200 });
