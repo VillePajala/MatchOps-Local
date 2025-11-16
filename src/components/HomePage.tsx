@@ -474,6 +474,8 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const openNewGameViaReducer = useCallback(() => setIsNewGameSetupModalOpen(true), [setIsNewGameSetupModalOpen]);
   const closeNewGameViaReducer = useCallback(() => setIsNewGameSetupModalOpen(false), [setIsNewGameSetupModalOpen]);
 
+  // Wrapper around reducer-backed modals (load/new). This mirrors the old setState-style API
+  // so consumers can migrate incrementally before ModalManager adopts reducer helpers in 2.4.8.
   const reducerDrivenModals = React.useMemo(() => ({
     loadGame: {
       isOpen: isLoadGameModalOpen,
