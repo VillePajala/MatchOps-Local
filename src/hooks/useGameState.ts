@@ -64,6 +64,11 @@ function mergeRosterDetails(fieldPlayer: Player, rosterPlayer: Player): Player {
     };
 }
 
+/**
+ * Compare roster-sourced player metadata.
+ * Assumes all compared Player fields are primitives; if fields like `notes`
+ * or `color` become objects, update this helper to use deep equality.
+ */
 function playerMetadataChanged(original: Player, updated: Player): boolean {
     return (
         original.name !== updated.name ||
@@ -82,6 +87,7 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     const [opponents, setOpponents] = useState<Opponent[]>(initialState.opponents);
     const [drawings, setDrawings] = useState<Point[][]>(initialState.drawings);
     const [availablePlayers, setAvailablePlayers] = useState<Player[]>(initialState.availablePlayers || []);
+    const playersOnFieldRef = useRef<Player[]>(initialState.playersOnField);
     const rosterSyncReadyRef = useRef<boolean>((initialState.availablePlayers?.length ?? 0) > 0);
     // ... (more state will be moved here)
 
@@ -89,6 +95,10 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     useEffect(() => {
         setAvailablePlayers(initialState.availablePlayers || []);
     }, [initialState.availablePlayers]);
+
+    useEffect(() => {
+        playersOnFieldRef.current = playersOnField;
+    }, [playersOnField]);
 
     // Track when we've actually received a roster snapshot so we do not
     // prematurely wipe players when the hook was initialized with []
@@ -100,7 +110,8 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
 
     // Ensure players on field reflect latest roster updates (names, goalie flags)
     useEffect(() => {
-        if (playersOnField.length === 0) {
+        const currentPlayersOnField = playersOnFieldRef.current;
+        if (currentPlayersOnField.length === 0) {
             return;
         }
         // If we have never received actual roster data, bail so the field
@@ -110,26 +121,34 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
         }
         const availableMap = new Map(availablePlayers.map(player => [player.id, player]));
         let mutated = false;
-        const nextPlayers: Player[] = [];
-
-        playersOnField.forEach((fieldPlayer) => {
-            const rosterPlayer = availableMap.get(fieldPlayer.id);
-            if (!rosterPlayer) {
-                mutated = true;
-                return;
-            }
-            const mergedPlayer = mergeRosterDetails(fieldPlayer, rosterPlayer);
-            if (!mutated && playerMetadataChanged(fieldPlayer, mergedPlayer)) {
-                mutated = true;
-            }
-            nextPlayers.push(mergedPlayer);
-        });
+        const nextPlayers = currentPlayersOnField
+            .map((fieldPlayer) => {
+                const rosterPlayer = availableMap.get(fieldPlayer.id);
+                if (!rosterPlayer) {
+                    mutated = true;
+                    return null;
+                }
+                const mergedPlayer = mergeRosterDetails(fieldPlayer, rosterPlayer);
+                if (!mutated && playerMetadataChanged(fieldPlayer, mergedPlayer)) {
+                    mutated = true;
+                }
+                return mergedPlayer;
+            })
+            .filter((player): player is Player => Boolean(player));
 
         if (mutated) {
+            logger.log(
+                '[RosterSync] Updating playersOnField from latest roster snapshot',
+                {
+                    previousCount: currentPlayersOnField.length,
+                    nextCount: nextPlayers.length,
+                },
+            );
+            playersOnFieldRef.current = nextPlayers;
             setPlayersOnField(nextPlayers);
             saveStateToHistory({ playersOnField: nextPlayers });
         }
-    }, [availablePlayers, playersOnField, saveStateToHistory]);
+    }, [availablePlayers, saveStateToHistory]);
 
     // --- Handlers ---
 

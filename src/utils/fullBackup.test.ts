@@ -11,9 +11,18 @@ import {
   TEAM_ROSTERS_KEY,
 } from "@/config/storageKeys";
 import { DEFAULT_GAME_ID } from "@/config/constants";
+import { getLatestGameId } from "./savedGames";
 
 // Mock the storage module (not localStorage directly!)
 jest.mock("./storage");
+const actualSavedGames = jest.requireActual("./savedGames");
+jest.mock("./savedGames", () => {
+  const actual = jest.requireActual("./savedGames");
+  return {
+    ...actual,
+    getLatestGameId: jest.fn(actual.getLatestGameId),
+  };
+});
 
 import { getStorageJSON, setStorageJSON, removeStorageItem } from "./storage";
 
@@ -162,6 +171,8 @@ describe("importFullBackup", () => {
     // Clear mock store
     Object.keys(mockStore).forEach(key => delete mockStore[key]);
     jest.clearAllMocks();
+
+    (getLatestGameId as jest.Mock).mockImplementation(actualSavedGames.getLatestGameId);
 
     // Call the mockClear method we added to reset everything
     localStorageMock.mockClear();
@@ -533,6 +544,80 @@ describe("importFullBackup", () => {
 
       expect(mockStore[APP_SETTINGS_KEY]).toEqual({ currentGameId: DEFAULT_GAME_ID });
       expect(window.alert).toHaveBeenCalledWith("Backup restored. Reloading app...");
+    });
+
+    it('skips currentGameId update when no latest game is available', async () => {
+      (getLatestGameId as jest.Mock).mockReturnValue(null);
+
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {
+            game1: { id: 'game1', teamName: 'Alpha', opponentName: 'Beta', gameDate: '2024-01-01' },
+          },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      await importFullBackup(JSON.stringify(backupData));
+
+      expect(setStorageJSON).toHaveBeenCalledTimes(1);
+      expect(setStorageJSON).toHaveBeenCalledWith(
+        SAVED_GAMES_KEY,
+        backupData.localStorage[SAVED_GAMES_KEY],
+      );
+      expect((setStorageJSON as jest.Mock).mock.calls.find(([key]) => key === APP_SETTINGS_KEY)).toBeUndefined();
+    });
+
+    it('warns but completes when updating currentGameId fails', async () => {
+      const latestGameId = 'game_999';
+      (getLatestGameId as jest.Mock).mockReturnValue(latestGameId);
+
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {
+            [latestGameId]: { id: latestGameId, teamName: 'Alpha', opponentName: 'Beta', gameDate: '2024-01-02' },
+          },
+        },
+      };
+
+      (setStorageJSON as jest.Mock).mockImplementation(async (key: string, value: unknown) => {
+        if (key === APP_SETTINGS_KEY && (value as { currentGameId: string }).currentGameId === latestGameId) {
+          throw new Error('failed to persist settings');
+        }
+        mockStore[key] = value;
+      });
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      await expect(importFullBackup(JSON.stringify(backupData))).resolves.toBe(true);
+      expect(window.alert).toHaveBeenCalledWith("Backup restored. Reloading app...");
+      expect(setStorageJSON).toHaveBeenCalledWith(SAVED_GAMES_KEY, backupData.localStorage[SAVED_GAMES_KEY]);
+      expect(
+        (setStorageJSON as jest.Mock).mock.calls.filter(([key]) => key === APP_SETTINGS_KEY).length,
+      ).toBe(1);
+    });
+
+    it('does not attempt to update currentGameId when savedGames is not an object', async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: "corrupted" as unknown as Record<string, unknown>,
+          [APP_SETTINGS_KEY]: { currentGameId: 'existing-game' },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      await importFullBackup(JSON.stringify(backupData));
+
+      expect(setStorageJSON).toHaveBeenCalledWith(SAVED_GAMES_KEY, backupData.localStorage[SAVED_GAMES_KEY]);
+      expect(setStorageJSON).toHaveBeenCalledWith(APP_SETTINGS_KEY, backupData.localStorage[APP_SETTINGS_KEY]);
+      expect(
+        (setStorageJSON as jest.Mock).mock.calls.filter(([key]) => key === APP_SETTINGS_KEY).length,
+      ).toBe(1);
     });
   });
 

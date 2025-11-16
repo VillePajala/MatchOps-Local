@@ -300,7 +300,7 @@ export const importFullBackup = async (
     // --- Ensure currentGameId points to a real game after restore ---
     try {
       const savedGames = await getStorageJSON<SavedGamesCollection | null>(SAVED_GAMES_KEY);
-      if (savedGames && typeof savedGames === 'object') {
+      if (savedGames && typeof savedGames === 'object' && !Array.isArray(savedGames)) {
         const latestId = getLatestGameId(savedGames);
         if (latestId) {
           const currentSettings = await getStorageJSON<AppSettings | null>(APP_SETTINGS_KEY);
