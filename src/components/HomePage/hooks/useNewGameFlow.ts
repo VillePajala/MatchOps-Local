@@ -49,6 +49,13 @@ interface UseNewGameFlowOptions {
   dependencies: GameFlowDependencies;
 }
 
+/**
+ * Coordinates the user journey for creating a new game.
+ *
+ * Groups the game state, UI setters, orchestration hooks, and infra dependencies
+ * so all confirmation dialogs (no players, save-before-new, start-new) and the
+ * reducer-driven modal helpers stay in sync while Layer 2 refactoring proceeds.
+ */
 export function useNewGameFlow({
   gameState,
   ui,
