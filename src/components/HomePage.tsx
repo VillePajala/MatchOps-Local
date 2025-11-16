@@ -473,6 +473,16 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   const closeLoadGameViaReducer = useCallback(() => setIsLoadGameModalOpen(false), [setIsLoadGameModalOpen]);
   const openNewGameViaReducer = useCallback(() => setIsNewGameSetupModalOpen(true), [setIsNewGameSetupModalOpen]);
   const closeNewGameViaReducer = useCallback(() => setIsNewGameSetupModalOpen(false), [setIsNewGameSetupModalOpen]);
+  const openRosterViaReducer = useCallback(() => setIsRosterModalOpen(true), [setIsRosterModalOpen]);
+  const closeRosterViaReducer = useCallback(() => setIsRosterModalOpen(false), [setIsRosterModalOpen]);
+  const openSeasonTournamentViaReducer = useCallback(
+    () => setIsSeasonTournamentModalOpen(true),
+    [setIsSeasonTournamentModalOpen],
+  );
+  const closeSeasonTournamentViaReducer = useCallback(
+    () => setIsSeasonTournamentModalOpen(false),
+    [setIsSeasonTournamentModalOpen],
+  );
 
   // Wrapper around reducer-backed modals (load/new). This mirrors the old setState-style API
   // so consumers can migrate incrementally before ModalManager adopts reducer helpers in 2.4.8.
@@ -487,13 +497,29 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
       open: openNewGameViaReducer,
       close: closeNewGameViaReducer,
     },
+    roster: {
+      isOpen: isRosterModalOpen,
+      open: openRosterViaReducer,
+      close: closeRosterViaReducer,
+    },
+    seasonTournament: {
+      isOpen: isSeasonTournamentModalOpen,
+      open: openSeasonTournamentViaReducer,
+      close: closeSeasonTournamentViaReducer,
+    },
   }), [
     isLoadGameModalOpen,
     isNewGameSetupModalOpen,
+    isRosterModalOpen,
+    isSeasonTournamentModalOpen,
     openLoadGameViaReducer,
     closeLoadGameViaReducer,
     openNewGameViaReducer,
     closeNewGameViaReducer,
+    openRosterViaReducer,
+    closeRosterViaReducer,
+    openSeasonTournamentViaReducer,
+    closeSeasonTournamentViaReducer,
   ]);
 
   const { showToast } = useToast();
@@ -587,13 +613,13 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
           reducerDrivenModals.loadGame.open();
           break;
         case 'season':
-          setIsSeasonTournamentModalOpen(true);
+          openSeasonTournamentViaReducer();
           break;
         case 'stats':
           setIsGameStatsModalOpen(true);
           break;
         case 'roster':
-          setIsRosterModalOpen(true);
+          openRosterViaReducer();
           break;
         case 'teams':
           setIsTeamManagerOpen(true);
@@ -1956,11 +1982,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   };
 
   const handleOpenSeasonTournamentModal = () => {
-    setIsSeasonTournamentModalOpen(true);
+    openSeasonTournamentViaReducer();
   };
 
   const handleCloseSeasonTournamentModal = () => {
-    setIsSeasonTournamentModalOpen(false);
+    closeSeasonTournamentViaReducer();
   };
 
 
@@ -2102,7 +2128,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // --- Roster Management Handlers ---
   const openRosterModal = () => {
     logger.log('[openRosterModal] Called. Setting highlightRosterButton to false.'); // Log modal open
-    setIsRosterModalOpen(true);
+    openRosterViaReducer();
     setHighlightRosterButton(false); // <<< Remove highlight when modal is opened
   };
 
@@ -2137,7 +2163,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   
   // ... (other code in Home component) ...
 
-  const closeRosterModal = () => setIsRosterModalOpen(false);
+  const closeRosterModal = () => {
+    closeRosterViaReducer();
+  };
 
   // --- ASYNC Roster Management Handlers for RosterSettingsModal ---
   const handleRenamePlayerForModal = useCallback(async (playerId: string, playerData: { name: string; nickname?: string }) => {
@@ -2830,8 +2858,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // Handler for "No Players" confirmation
   const handleNoPlayersConfirmed = useCallback(() => {
     setShowNoPlayersConfirm(false);
-    setIsRosterModalOpen(true);
-  }, [setIsRosterModalOpen]);
+    openRosterViaReducer();
+  }, [openRosterViaReducer]);
 
   // Handler for "Save Before New" confirmation - user chooses to save
   const handleSaveBeforeNewConfirmed = useCallback(() => {
@@ -3002,7 +3030,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     if (player) {
       setSelectedPlayerForStats(player);
       setIsGameStatsModalOpen(true);
-      setIsRosterModalOpen(false); // Close the roster modal
+      closeRosterViaReducer(); // Close the roster modal
     }
   };
 
@@ -3015,25 +3043,35 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   };
 
   const fieldInteractions = React.useMemo<FieldInteractions>(() => ({
-    playerMove: handlePlayerMove,
-    playerMoveEnd: handlePlayerMoveEnd,
-    playerRemove: handlePlayerRemove,
-    playerDrop: handleDropOnField,
-    opponentMove: handleOpponentMove,
-    opponentMoveEnd: handleOpponentMoveEnd,
-    opponentRemove: handleOpponentRemove,
-    drawingStart: handleDrawingStart,
-    drawingAddPoint: handleDrawingAddPoint,
-    drawingEnd: handleDrawingEnd,
-    tacticalDrawingStart: handleTacticalDrawingStart,
-    tacticalDrawingAddPoint: handleTacticalDrawingAddPoint,
-    tacticalDrawingEnd: handleTacticalDrawingEnd,
-    tacticalDiscMove: handleTacticalDiscMove,
-    tacticalDiscRemove: handleTacticalDiscRemove,
-    tacticalDiscToggleType: handleToggleTacticalDiscType,
-    tacticalBallMove: handleTacticalBallMove,
-    playerDropViaTouch: handlePlayerDropViaTouch,
-    playerDragCancelViaTouch: handlePlayerDragCancelViaTouch,
+    players: {
+      move: handlePlayerMove,
+      moveEnd: handlePlayerMoveEnd,
+      remove: handlePlayerRemove,
+      drop: handleDropOnField,
+    },
+    opponents: {
+      move: handleOpponentMove,
+      moveEnd: handleOpponentMoveEnd,
+      remove: handleOpponentRemove,
+    },
+    drawing: {
+      start: handleDrawingStart,
+      addPoint: handleDrawingAddPoint,
+      end: handleDrawingEnd,
+    },
+    tactical: {
+      drawingStart: handleTacticalDrawingStart,
+      drawingAddPoint: handleTacticalDrawingAddPoint,
+      drawingEnd: handleTacticalDrawingEnd,
+      discMove: handleTacticalDiscMove,
+      discRemove: handleTacticalDiscRemove,
+      discToggleType: handleToggleTacticalDiscType,
+      ballMove: handleTacticalBallMove,
+    },
+    touch: {
+      playerDrop: handlePlayerDropViaTouch,
+      playerDragCancel: handlePlayerDragCancelViaTouch,
+    },
   }), [
     handlePlayerMove,
     handlePlayerMoveEnd,
@@ -3204,8 +3242,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         firstGameGuideStep={firstGameGuideStep}
         orphanedGameInfo={orphanedGameInfo}
         onOpenNewGameSetup={reducerDrivenModals.newGameSetup.open}
-        onOpenRosterModal={() => setIsRosterModalOpen(true)}
-        onOpenSeasonTournamentModal={() => setIsSeasonTournamentModalOpen(true)}
+        onOpenRosterModal={reducerDrivenModals.roster.open}
+        onOpenSeasonTournamentModal={reducerDrivenModals.seasonTournament.open}
         onOpenTeamManagerModal={() => setIsTeamManagerOpen(true)}
         onGuideStepChange={setFirstGameGuideStep}
         onGuideClose={() => setShowFirstGameGuide(false)}

@@ -1,11 +1,25 @@
 # 📊 Production Readiness Progress Dashboard
 
-**Last Updated**: November 16, 2025
+**Last Updated**: November 17, 2025
 **Overall Progress**: 42% Complete (2 of 6 phases done, P0 refactoring in progress)
 
 ---
 
 ## 🎉 **Recent Completions**
+
+### ✅ Layer 2 — Step 2.4.8 (Modal reducer expansion + FieldContainer sub-VMs)
+**Completion Date**: November 17, 2025  
+**Impact**: Interaction handlers are now grouped by domain (players/opponents/drawing/tactical/touch) and modal reducer coverage includes roster + season/tournament flows, eliminating the last direct setter leaks in First Game CTA and ControlBar paths.
+
+**What Was Accomplished**:
+- Rebuilt `FieldInteractions` as cohesive sub-VMs so SoccerField receives stable callbacks and memoization actually prevents re-renders; updated component + tests to reflect the new shape.
+- Extended `modalReducer` + `ModalProvider` to manage `roster` and `seasonTournament`, then routed the reducer helpers through HomePage/FieldContainer so CTA buttons, ControlBar shortcuts, and guide overlays use the same anti-flash guards as load/new modals.
+- Added regression coverage for the new reducer branches and CTA wiring (FieldContainer tests now verify the buttons fire the supplied callbacks).
+
+**Quality Gates**:
+- Jest suites updated (`FieldContainer`, `ModalProvider`, `modalReducer`) and run with `npm run test -- --runInBand`; `npm run lint`, `npm run type-check`, and `npm run build` all pass.
+- Manual smoke confirmed reducer-driven helpers reach FieldContainer + ControlBar with no double opens when spamming CTA buttons.
+- Documentation (L2 plan, micro roadmap, agents guidelines) now reflects Step 2.4.8 being complete and points to Step 2.4.9 (ControlBar/ModalManager consolidation).
 
 ### ✅ Layer 2 — Step 2.4.7 (Field interactions VM + reducer-driven modal intents)
 **Completion Date**: November 16, 2025
@@ -19,7 +33,7 @@
 **Quality Gates**:
 - Jest suites covering FieldContainer + modal reducer pass; lint/type/build all green.
 - Verified new grouping in dev with `NEXT_PUBLIC_DEBUG=home` to ensure no extra renders.
-- Remaining modals (roster/season/etc.) stay on legacy setters; tracked for Step 2.4.8 alongside reducer integration tests.
+- Reduced direct setter usage, paving the way for Step 2.4.8/2.4.9 to bring roster/season modals under the same reducer helpers.
 
 ### ✅ Layer 2 — Step 2.4.6 (PlayerBar/GameInfo VM-only + new game flow grouping)
 **Completion Date**: November 16, 2025

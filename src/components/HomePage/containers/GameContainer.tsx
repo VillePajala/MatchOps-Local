@@ -80,10 +80,8 @@ export interface GameContainerProps extends Partial<UseGameOrchestrationReturn> 
   handleDropOnField: (playerId: string, relX: number, relY: number) => void;
   handlePlayerDropViaTouch: (relX: number, relY: number) => void;
   handlePlayerDragCancelViaTouch: () => void;
-  setIsRosterModalOpen: (open: boolean) => void;
   setIsNewGameSetupModalOpen: (open: boolean) => void;
   handleOpenTeamManagerModal: () => void;
-  setIsSeasonTournamentModalOpen: (open: boolean) => void;
   setShowFirstGameGuide: (show: boolean) => void;
   setFirstGameGuideStep: (step: number) => void;
   handleUndo: () => void;
@@ -180,10 +178,8 @@ export function GameContainer(props: GameContainerProps) {
     handleDropOnField,
     handlePlayerDropViaTouch,
     handlePlayerDragCancelViaTouch,
-    setIsRosterModalOpen,
     setIsNewGameSetupModalOpen,
     handleOpenTeamManagerModal,
-    setIsSeasonTournamentModalOpen,
     setShowFirstGameGuide,
     setFirstGameGuideStep,
     handleUndo,
@@ -371,7 +367,7 @@ export function GameContainer(props: GameContainerProps) {
                   {(availablePlayers || []).length === 0 ? (
                     <>
                       <button
-                        onClick={() => setIsRosterModalOpen?.(true)}
+                        onClick={openRosterModal}
                         className="w-full px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition-colors shadow-lg"
                       >
                         {t('firstGame.setupRoster', 'Set Up Team Roster')}
@@ -401,7 +397,7 @@ export function GameContainer(props: GameContainerProps) {
                       </button>
 
                       <button
-                        onClick={() => setIsSeasonTournamentModalOpen?.(true)}
+                        onClick={handleOpenSeasonTournamentModal}
                         className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors border border-slate-600 ${
                           (seasonsQueryResultData && seasonsQueryResultData.length > 0) || (tournamentsQueryResultData && tournamentsQueryResultData.length > 0)
                             ? 'bg-slate-600 hover:bg-slate-500 text-slate-300'

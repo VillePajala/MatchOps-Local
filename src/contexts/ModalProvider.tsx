@@ -30,8 +30,6 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
   const [isGameSettingsModalOpen, setIsGameSettingsModalOpen] = useState(false);
   // Layer 2 (2.1): Wire Load Game modal to reducer; keep API stable
   const [modalState, dispatchModal] = useReducer(modalReducer, initialModalState);
-  const [isRosterModalOpen, setIsRosterModalOpen] = useState(false);
-  const [isSeasonTournamentModalOpen, setIsSeasonTournamentModalOpen] = useState(false);
   const [isTrainingResourcesOpen, setIsTrainingResourcesOpen] = useState(false);
   const [isGoalLogModalOpen, setIsGoalLogModalOpen] = useState(false);
   // Reducer-backed in L2 2.3
@@ -130,14 +128,32 @@ export const ModalProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const setIsRosterModalOpen: React.Dispatch<React.SetStateAction<boolean>> = (valueOrUpdater) => {
+    const prev = modalState.roster;
+    const next = typeof valueOrUpdater === 'function'
+      ? (valueOrUpdater as (prev: boolean) => boolean)(prev)
+      : valueOrUpdater;
+    if (next === prev) return;
+    dispatchModal({ type: next ? 'OPEN_MODAL' : 'CLOSE_MODAL', id: 'roster', at: Date.now() });
+  };
+
+  const setIsSeasonTournamentModalOpen: React.Dispatch<React.SetStateAction<boolean>> = (valueOrUpdater) => {
+    const prev = modalState.seasonTournament;
+    const next = typeof valueOrUpdater === 'function'
+      ? (valueOrUpdater as (prev: boolean) => boolean)(prev)
+      : valueOrUpdater;
+    if (next === prev) return;
+    dispatchModal({ type: next ? 'OPEN_MODAL' : 'CLOSE_MODAL', id: 'seasonTournament', at: Date.now() });
+  };
+
   const value: ModalContextValue = {
     isGameSettingsModalOpen,
     setIsGameSettingsModalOpen,
     isLoadGameModalOpen: modalState.loadGame,
     setIsLoadGameModalOpen,
-    isRosterModalOpen,
+    isRosterModalOpen: modalState.roster,
     setIsRosterModalOpen,
-    isSeasonTournamentModalOpen,
+    isSeasonTournamentModalOpen: modalState.seasonTournament,
     setIsSeasonTournamentModalOpen,
     isTrainingResourcesOpen,
     setIsTrainingResourcesOpen,
