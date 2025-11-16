@@ -10,6 +10,7 @@ import {
   TEAMS_INDEX_KEY,
   TEAM_ROSTERS_KEY,
 } from "@/config/storageKeys";
+import { DEFAULT_GAME_ID } from "@/config/constants";
 
 // Mock the storage module (not localStorage directly!)
 jest.mock("./storage");
@@ -474,6 +475,28 @@ describe("importFullBackup", () => {
       }
       expect(alertMock).not.toHaveBeenCalled();
       alertMock.mockRestore();
+    });
+
+    it('updates currentGameId to the latest imported game when backup settings are stale', async () => {
+      const latestGameId = 'game_1700000200000_latest';
+      const earlierGameId = 'game_1700000100000_old';
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {
+            [earlierGameId]: { id: earlierGameId, teamName: 'Old', opponentName: 'First', gameDate: '2024-01-10' },
+            [latestGameId]: { id: latestGameId, teamName: 'Latest', opponentName: 'Final', gameDate: '2024-01-12' },
+          },
+          [APP_SETTINGS_KEY]: { currentGameId: DEFAULT_GAME_ID },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      await importFullBackup(JSON.stringify(backupData));
+
+      expect(mockStore[APP_SETTINGS_KEY]).toEqual({ currentGameId: latestGameId });
+      expect(window.alert).toHaveBeenCalledWith("Backup restored. Reloading app...");
     });
   });
 
