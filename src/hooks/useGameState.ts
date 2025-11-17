@@ -64,22 +64,29 @@ function mergeRosterDetails(fieldPlayer: Player, rosterPlayer: Player): Player {
     };
 }
 
-/**
- * Compare roster metadata fields.
- * NOTE: All compared Player fields are assumed to be primitives—update this helper
- * if notes, color, or other properties ever become objects.
- */
-function playerMetadataChanged(original: Player, updated: Player): boolean {
-    return (
-        original.name !== updated.name ||
-        original.nickname !== updated.nickname ||
-        original.jerseyNumber !== updated.jerseyNumber ||
-        original.notes !== updated.notes ||
-        original.color !== updated.color ||
-        original.isGoalie !== updated.isGoalie ||
-        original.receivedFairPlayCard !== updated.receivedFairPlayCard
-    );
-}
+    /**
+     * Compare roster metadata fields. Falls back to JSON equality when values become objects.
+     */
+    function playerMetadataChanged(original: Player, updated: Player): boolean {
+        const compare = (a: unknown, b: unknown): boolean => {
+            const aIsObject = typeof a === 'object' && a !== null;
+            const bIsObject = typeof b === 'object' && b !== null;
+            if (aIsObject || bIsObject) {
+                return JSON.stringify(a ?? null) !== JSON.stringify(b ?? null);
+            }
+            return a !== b;
+        };
+
+        return (
+            original.name !== updated.name ||
+            original.nickname !== updated.nickname ||
+            original.jerseyNumber !== updated.jerseyNumber ||
+            compare(original.notes, updated.notes) ||
+            compare(original.color, updated.color) ||
+            original.isGoalie !== updated.isGoalie ||
+            original.receivedFairPlayCard !== updated.receivedFairPlayCard
+        );
+    }
 
 export function useGameState({ initialState, saveStateToHistory }: UseGameStateArgs): UseGameStateReturn {
     // --- State Management ---
@@ -108,6 +115,7 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     }, [availablePlayers]);
 
     const pendingHistoryRef = useRef<Player[] | null>(null);
+    const [historyVersion, setHistoryVersion] = useState(0);
 
     // Ensure players on field reflect latest roster updates (names, goalie flags)
     useEffect(() => {
@@ -142,16 +150,18 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
             }
 
             pendingHistoryRef.current = nextPlayers;
+            setHistoryVersion(version => version + 1);
             return nextPlayers;
         });
     }, [rosterLookup]);
 
     useEffect(() => {
-        if (pendingHistoryRef.current) {
-            saveStateToHistory({ playersOnField: pendingHistoryRef.current });
-            pendingHistoryRef.current = null;
+        if (historyVersion === 0 || !pendingHistoryRef.current) {
+            return;
         }
-    }, [playersOnField, saveStateToHistory]);
+        saveStateToHistory({ playersOnField: pendingHistoryRef.current });
+        pendingHistoryRef.current = null;
+    }, [historyVersion, saveStateToHistory]);
 
     // --- Handlers ---
 
