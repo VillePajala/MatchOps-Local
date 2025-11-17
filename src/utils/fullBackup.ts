@@ -315,6 +315,8 @@ export const importFullBackup = async (
         }
       }
     } catch (e) {
+      // This can happen if IndexedDB rejects writes (quota exceeded, storage corruption, or browser policies).
+      // Import is still considered successful, but we surface a warning so the user can manually pick a game.
       logger.warn('[Import] Unable to set currentGameId post-restore (non-fatal)', e);
       currentGameIdWarning = true;
     }

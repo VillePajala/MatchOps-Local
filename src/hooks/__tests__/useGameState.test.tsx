@@ -157,6 +157,7 @@ describe('useGameState', () => {
       availablePlayers: [],
       playersOnField: [fieldPlayer],
     };
+    // Scenario: game state rehydrates before roster query resolves; ensure field players stay put.
 
     const { result } = renderHook(() =>
       useGameState({
