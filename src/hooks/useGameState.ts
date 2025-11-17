@@ -14,6 +14,23 @@ import {
 import logger from '@/utils/logger';
 
 // Define arguments the hook will receive
+/**
+ * Arguments for the useGameState hook.
+ *
+ * @property initialState - The global application state
+ * @property saveStateToHistory - Callback to save state changes to history
+ *
+ * @critical saveStateToHistory MUST be memoized with useCallback to prevent
+ * infinite re-render loops. The hook depends on this function in a useEffect,
+ * so a new reference on every render will cause infinite updates.
+ *
+ * @example
+ * ```tsx
+ * const saveStateToHistory = useCallback((newState: Partial<AppState>) => {
+ *   pushHistoryState({ ...currentState, ...newState });
+ * }, [currentState, pushHistoryState]);
+ * ```
+ */
 interface UseGameStateArgs {
     initialState: AppState; // Pass the global initial state
     saveStateToHistory: (newState: Partial<AppState>) => void; // Callback to save changes
@@ -65,9 +82,20 @@ function mergeRosterDetails(fieldPlayer: Player, rosterPlayer: Player): Player {
 }
 
     /**
-     * Compare roster metadata fields. Falls back to JSON equality when values become objects.
+     * Compare roster metadata fields.
+     *
+     * Note: As of the current Player type definition (src/types/index.ts), all
+     * fields are primitives (string, boolean, number, undefined). The defensive
+     * object/array comparison below is future-proofing in case Player evolves.
+     *
+     * Current Player fields being compared:
+     * - name, nickname, jerseyNumber, notes, color: string | undefined
+     * - isGoalie, receivedFairPlayCard: boolean | undefined
      */
     function playerMetadataChanged(original: Player, updated: Player): boolean {
+        // Direct primitive comparison is sufficient for current Player type.
+        // The compare helper below handles edge cases if Player type evolves
+        // to include arrays or objects.
         const compare = (a: unknown, b: unknown): boolean => {
             const aIsObject = typeof a === 'object' && a !== null;
             const bIsObject = typeof b === 'object' && b !== null;
@@ -76,7 +104,10 @@ function mergeRosterDetails(fieldPlayer: Player, rosterPlayer: Player): Player {
                 if (Array.isArray(a) && Array.isArray(b)) {
                     return a.length !== b.length || a.some((v, i) => v !== b[i]);
                 }
-                // Fallback to JSON for unknown shapes (objects)
+                // Fallback to JSON for complex objects.
+                // NOTE: This has limitations (key order, circular refs, functions)
+                // but is acceptable for simple data objects. If Player type evolves
+                // to include complex nested structures, consider using lodash.isEqual.
                 return JSON.stringify(a ?? null) !== JSON.stringify(b ?? null);
             }
             return a !== b;
@@ -101,6 +132,23 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     const [availablePlayers, setAvailablePlayers] = useState<Player[]>(initialState.availablePlayers || []);
     const rosterSyncReadyRef = useRef<boolean>((initialState.availablePlayers?.length ?? 0) > 0);
     // ... (more state will be moved here)
+
+    // --- Development Mode: Runtime Safeguard for saveStateToHistory Memoization ---
+    // Detects if saveStateToHistory reference changes between renders, which indicates
+    // it's not properly memoized and will cause infinite re-render loops.
+    if (process.env.NODE_ENV === 'development') {
+        const saveStateToHistoryRef = useRef(saveStateToHistory);
+        useEffect(() => {
+            if (saveStateToHistoryRef.current !== saveStateToHistory) {
+                logger.warn(
+                    '[useGameState] saveStateToHistory reference changed! ' +
+                    'This function MUST be memoized with useCallback in the parent component ' +
+                    'to prevent infinite re-renders. See UseGameStateArgs interface documentation.'
+                );
+            }
+            saveStateToHistoryRef.current = saveStateToHistory;
+        }, [saveStateToHistory]);
+    }
 
     // Sync availablePlayers when initialState changes
     useEffect(() => {
