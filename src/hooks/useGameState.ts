@@ -72,6 +72,11 @@ function mergeRosterDetails(fieldPlayer: Player, rosterPlayer: Player): Player {
             const aIsObject = typeof a === 'object' && a !== null;
             const bIsObject = typeof b === 'object' && b !== null;
             if (aIsObject || bIsObject) {
+                // For arrays, use structural comparison for better performance
+                if (Array.isArray(a) && Array.isArray(b)) {
+                    return a.length !== b.length || a.some((v, i) => v !== b[i]);
+                }
+                // Fallback to JSON for unknown shapes (objects)
                 return JSON.stringify(a ?? null) !== JSON.stringify(b ?? null);
             }
             return a !== b;
@@ -155,6 +160,10 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
         });
     }, [rosterLookup]);
 
+    // Separate effect ensures saveStateToHistory is called AFTER the state
+    // update has been committed, preventing potential race conditions with
+    // React's batched updates. This two-phase pattern (set pending + increment
+    // version, then separate effect) ensures proper sequencing of history saves.
     useEffect(() => {
         if (historyVersion === 0 || !pendingHistoryRef.current) {
             return;
