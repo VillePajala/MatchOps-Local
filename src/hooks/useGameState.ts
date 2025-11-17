@@ -64,6 +64,11 @@ function mergeRosterDetails(fieldPlayer: Player, rosterPlayer: Player): Player {
     };
 }
 
+/**
+ * Compare roster metadata fields.
+ * NOTE: All compared Player fields are assumed to be primitives—update this helper
+ * if notes, color, or other properties ever become objects.
+ */
 function playerMetadataChanged(original: Player, updated: Player): boolean {
     return (
         original.name !== updated.name ||
@@ -100,36 +105,50 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
 
     // Ensure players on field reflect latest roster updates (names, goalie flags)
     useEffect(() => {
-        if (playersOnField.length === 0) {
-            return;
-        }
-        // If we have never received actual roster data, bail so the field
-        // doesn't immediately clear when availablePlayers defaults to []
-        if (!rosterSyncReadyRef.current && availablePlayers.length === 0) {
-            return;
-        }
-        const availableMap = new Map(availablePlayers.map(player => [player.id, player]));
-        let mutated = false;
-        const nextPlayers: Player[] = [];
+        let nextPlayersSnapshot: Player[] | null = null;
 
-        playersOnField.forEach((fieldPlayer) => {
-            const rosterPlayer = availableMap.get(fieldPlayer.id);
-            if (!rosterPlayer) {
-                mutated = true;
-                return;
+        setPlayersOnField(currentPlayers => {
+            if (currentPlayers.length === 0) {
+                return currentPlayers;
             }
-            const mergedPlayer = mergeRosterDetails(fieldPlayer, rosterPlayer);
-            if (!mutated && playerMetadataChanged(fieldPlayer, mergedPlayer)) {
-                mutated = true;
+            // If we have never received actual roster data, bail so the field
+            // doesn't immediately clear when availablePlayers defaults to []
+            if (!rosterSyncReadyRef.current && availablePlayers.length === 0) {
+                return currentPlayers;
             }
-            nextPlayers.push(mergedPlayer);
+
+            const availableMap = new Map(availablePlayers.map(player => [player.id, player]));
+            let mutated = false;
+
+            const mappedPlayers = currentPlayers.map((fieldPlayer) => {
+                const rosterPlayer = availableMap.get(fieldPlayer.id);
+                if (!rosterPlayer) {
+                    mutated = true;
+                    return null;
+                }
+                const mergedPlayer = mergeRosterDetails(fieldPlayer, rosterPlayer);
+                if (!mutated && playerMetadataChanged(fieldPlayer, mergedPlayer)) {
+                    mutated = true;
+                }
+                return mergedPlayer;
+            });
+
+            const nextPlayers = mappedPlayers.filter(
+                (player): player is Player => player !== null
+            );
+
+            if (!mutated) {
+                return currentPlayers;
+            }
+
+            nextPlayersSnapshot = nextPlayers;
+            return nextPlayers;
         });
 
-        if (mutated) {
-            setPlayersOnField(nextPlayers);
-            saveStateToHistory({ playersOnField: nextPlayers });
+        if (nextPlayersSnapshot) {
+            saveStateToHistory({ playersOnField: nextPlayersSnapshot });
         }
-    }, [availablePlayers, playersOnField, saveStateToHistory]);
+    }, [availablePlayers, saveStateToHistory]);
 
     // --- Handlers ---
 

@@ -536,6 +536,93 @@ describe("importFullBackup", () => {
     });
   });
 
+  describe("Current Game Sync", () => {
+    it("does not update currentGameId when no latest game id can be derived", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {
+            [DEFAULT_GAME_ID]: { id: DEFAULT_GAME_ID, teamName: 'Default', opponentName: 'Fallback' },
+          },
+          [APP_SETTINGS_KEY]: { currentGameId: DEFAULT_GAME_ID },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      const result = await importFullBackup(JSON.stringify(backupData));
+
+      expect(result).toBe(true);
+      const appSettingsWrites = (setStorageJSON as jest.Mock).mock.calls.filter(
+        ([key]) => key === APP_SETTINGS_KEY
+      );
+      expect(appSettingsWrites).toHaveLength(1);
+    });
+
+    it("continues import when setting currentGameId fails post-restore", async () => {
+      const latestGameId = 'game_1700000300000_new';
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {
+            [latestGameId]: { id: latestGameId, teamName: 'Next', opponentName: 'Opponent', gameDate: '2024-02-01' },
+            'game_1700000100000_old': { id: 'game_1700000100000_old', teamName: 'Old', opponentName: 'First', gameDate: '2024-01-01' },
+          },
+          [APP_SETTINGS_KEY]: { currentGameId: DEFAULT_GAME_ID },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      const originalSetStorageJSON = (setStorageJSON as jest.Mock).getMockImplementation();
+      let appSettingsWriteCount = 0;
+
+      (setStorageJSON as jest.Mock).mockImplementation(async (key: string, value: unknown) => {
+        if (key === APP_SETTINGS_KEY) {
+          appSettingsWriteCount += 1;
+          if (appSettingsWriteCount === 2) {
+            throw new Error('intentional settings failure');
+          }
+        }
+        mockStore[key] = value;
+      });
+
+      try {
+        const result = await importFullBackup(JSON.stringify(backupData));
+        expect(result).toBe(true);
+        expect(appSettingsWriteCount).toBe(2);
+        expect(window.alert).toHaveBeenCalledWith("Backup restored. Reloading app...");
+      } finally {
+        if (originalSetStorageJSON) {
+          (setStorageJSON as jest.Mock).mockImplementation(originalSetStorageJSON);
+        } else {
+          (setStorageJSON as jest.Mock).mockImplementation(async (key: string, value: unknown) => {
+            mockStore[key] = value;
+          });
+        }
+      }
+    });
+
+    it("skips currentGameId reconciliation when savedGames is not an object", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: "not-an-object",
+          [APP_SETTINGS_KEY]: { currentGameId: DEFAULT_GAME_ID },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      const result = await importFullBackup(JSON.stringify(backupData));
+      expect(result).toBe(true);
+      const appSettingsWrites = (setStorageJSON as jest.Mock).mock.calls.filter(
+        ([key]) => key === APP_SETTINGS_KEY
+      );
+      expect(appSettingsWrites).toHaveLength(1);
+    });
+  });
+
   describe("Validation Errors", () => {
     it("should return false and not modify localStorage for invalid JSON input", async () => {
       // Arrange
