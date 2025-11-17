@@ -11,6 +11,10 @@ import {
   TEAM_ROSTERS_KEY,
 } from "@/config/storageKeys";
 import { DEFAULT_GAME_ID } from "@/config/constants";
+import type { SavedGamesCollection } from "@/types/game";
+import type { AppSettings } from "./appSettings";
+import type { Season, Tournament, Player } from "@/types";
+import type { TeamsIndex, TeamRostersIndex } from "./teams";
 
 // Mock the storage module (not localStorage directly!)
 jest.mock("./storage");
@@ -156,15 +160,18 @@ interface RosterPlayer extends Record<string, unknown> {
 /**
  * Test factory to create backup data objects with consistent structure.
  * Reduces boilerplate in test cases by providing sensible defaults.
+ *
+ * @param overrides - Typed overrides for backup data fields
+ * @returns Properly structured backup data object for testing
  */
 function createBackupData(overrides: {
-  games?: Record<string, unknown>;
-  settings?: { currentGameId?: string };
-  seasons?: unknown;
-  tournaments?: unknown;
-  roster?: unknown;
-  teams?: unknown;
-  teamRosters?: unknown;
+  games?: SavedGamesCollection;
+  settings?: AppSettings;
+  seasons?: Season[];
+  tournaments?: Tournament[];
+  roster?: Player[];
+  teams?: TeamsIndex;
+  teamRosters?: TeamRostersIndex;
 } = {}) {
   return {
     meta: { schema: 1, exportedAt: new Date().toISOString() },
