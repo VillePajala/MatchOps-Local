@@ -115,13 +115,18 @@ Step 2.4 — Parameter/props grouping (reduce coupling)
   - ✅ 2.4.8 FieldContainer interaction sub-VMs + roster/season reducer coverage (CTA + reducer regression tests added).
   - ✅ 2.4.9 ControlBar/ModalManager reducer adoption (eliminated direct modal setters + added ControlBar anti-flash regression test).
 
-Step 2.5 — Edge-case tests
+Step 2.5 — Edge-case tests ✅ COMPLETED (Nov 18, 2025)
 - Add tests for:
   - Backup restore → latest game fallback (stale `currentGameId`)
   - `useGameState` availablePlayers → playersOnField sync
+  - Stable callback pattern to prevent re-render loops
 - Status:
   - ✅ Backup import now sets `currentGameId` to the latest imported game when the backup had a stale/default ID (see `src/utils/fullBackup.test.ts`).
   - ✅ `useGameState` tests cover roster→field sync so field players drop when removed from the roster and inherit latest metadata without losing positions.
+  - ✅ Implemented stable callback pattern in HomePage.tsx using ref-based indirection
+  - ✅ Added custom ESLint hooks plugin to enforce memoization
+  - ✅ Fixed TypeScript errors in fullBackup.test.ts
+  - ✅ All quality gates passing (lint, type-check, tests)
 
 Housekeeping
 - Remove redundant/skipped tests; if a test is needed, implement deterministically without relying on IndexedDB
