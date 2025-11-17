@@ -164,6 +164,10 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     // update has been committed, preventing potential race conditions with
     // React's batched updates. This two-phase pattern (set pending + increment
     // version, then separate effect) ensures proper sequencing of history saves.
+    //
+    // IMPORTANT: saveStateToHistory MUST be memoized with useCallback in the parent
+    // component to prevent infinite re-render loops. Current implementation in
+    // HomePage.tsx properly memoizes it with stable dependencies.
     useEffect(() => {
         if (historyVersion === 0 || !pendingHistoryRef.current) {
             return;
