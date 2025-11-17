@@ -11,7 +11,7 @@ import {
   TEAM_ROSTERS_KEY,
 } from "@/config/storageKeys";
 import { DEFAULT_GAME_ID } from "@/config/constants";
-import type { SavedGamesCollection } from "@/types/game";
+import type { SavedGamesCollection, AppState } from "@/types/game";
 import type { AppSettings } from "./appSettings";
 import type { Season, Tournament, Player } from "@/types";
 import type { TeamsIndex, TeamRostersIndex } from "./teams";
@@ -519,8 +519,8 @@ describe("importFullBackup", () => {
       const earlierGameId = 'game_1700000100000_old';
       const backupData = createBackupData({
         games: {
-          [earlierGameId]: { id: earlierGameId, teamName: 'Old', opponentName: 'First', gameDate: '2024-01-10' },
-          [latestGameId]: { id: latestGameId, teamName: 'Latest', opponentName: 'Final', gameDate: '2024-01-12' },
+          [earlierGameId]: { teamName: 'Old', opponentName: 'First', gameDate: '2024-01-10' } as AppState,
+          [latestGameId]: { teamName: 'Latest', opponentName: 'Final', gameDate: '2024-01-12' } as AppState,
         },
         settings: { currentGameId: DEFAULT_GAME_ID },
       });
@@ -537,7 +537,7 @@ describe("importFullBackup", () => {
       const validGameId = 'game_1700000100000_valid';
       const backupData = createBackupData({
         games: {
-          [validGameId]: { id: validGameId, teamName: 'Valid', opponentName: 'Match', gameDate: '2024-01-11' },
+          [validGameId]: { teamName: 'Valid', opponentName: 'Match', gameDate: '2024-01-11' } as AppState,
         },
         settings: { currentGameId: validGameId },
       });
