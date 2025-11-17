@@ -1,6 +1,7 @@
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 import { FlatCompat } from "@eslint/eslintrc";
+import customHooksPlugin from "./eslint/custom-hooks-plugin.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -12,6 +13,9 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
+    plugins: {
+      "custom-hooks": customHooksPlugin,
+    },
     rules: {
       "react-hooks/exhaustive-deps": "error",
       // Prevent direct console usage - use logger utility instead
@@ -41,6 +45,21 @@ const eslintConfig = [
           "name": "localStorage",
           "message": "Direct localStorage usage is not allowed. Use @/utils/storage helper instead for IndexedDB-only compliance."
         }
+      ],
+      "custom-hooks/require-memoized-function-props": [
+        "error",
+        {
+          "hooks": [
+            {
+              "name": "useGameState",
+              "functionProps": ["saveStateToHistory"]
+            },
+            {
+              "name": "useTacticalBoard",
+              "functionProps": ["saveStateToHistory"]
+            }
+          ]
+        }
       ]
     },
   },
@@ -64,7 +83,8 @@ const eslintConfig = [
     rules: {
       "no-console": "off",
       "no-restricted-imports": "off",
-      "no-restricted-globals": "off"
+      "no-restricted-globals": "off",
+      "custom-hooks/require-memoized-function-props": "off"
     }
   }
 ];

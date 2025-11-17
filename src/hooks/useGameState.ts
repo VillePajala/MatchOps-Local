@@ -37,7 +37,15 @@ interface UseGameStateArgs {
     // masterRosterKey: string; // Removed as no longer used directly in the hook for localStorage
 }
 
-// Define the structure of the object returned by the hook
+/**
+ * Structure returned by useGameState.
+ *
+ * @remarks
+ * Consumers **must** provide a `saveStateToHistory` function that is wrapped in
+ * `useCallback`. The hook calls that function from effects whenever it flushes
+ * staged state updates, so an unstable reference will trigger the runtime
+ * safeguard and can lead to infinite render loops.
+ */
 export interface UseGameStateReturn {
     // State values
     playersOnField: Player[];
@@ -81,48 +89,48 @@ function mergeRosterDetails(fieldPlayer: Player, rosterPlayer: Player): Player {
     };
 }
 
-    /**
-     * Compare roster metadata fields.
-     *
-     * Note: As of the current Player type definition (src/types/index.ts), all
-     * fields are primitives (string, boolean, number, undefined). The defensive
-     * object/array comparison below is future-proofing in case Player evolves.
-     *
-     * Current Player fields being compared:
-     * - name, nickname, jerseyNumber, notes, color: string | undefined
-     * - isGoalie, receivedFairPlayCard: boolean | undefined
-     */
-    function playerMetadataChanged(original: Player, updated: Player): boolean {
-        // Direct primitive comparison is sufficient for current Player type.
-        // The compare helper below handles edge cases if Player type evolves
-        // to include arrays or objects.
-        const compare = (a: unknown, b: unknown): boolean => {
-            const aIsObject = typeof a === 'object' && a !== null;
-            const bIsObject = typeof b === 'object' && b !== null;
-            if (aIsObject || bIsObject) {
-                // For arrays, use structural comparison for better performance
-                if (Array.isArray(a) && Array.isArray(b)) {
-                    return a.length !== b.length || a.some((v, i) => v !== b[i]);
-                }
-                // Fallback to JSON for complex objects.
-                // NOTE: This has limitations (key order, circular refs, functions)
-                // but is acceptable for simple data objects. If Player type evolves
-                // to include complex nested structures, consider using lodash.isEqual.
-                return JSON.stringify(a ?? null) !== JSON.stringify(b ?? null);
+/**
+ * Compare roster metadata fields.
+ *
+ * Note: As of the current Player type definition (src/types/index.ts), all
+ * fields are primitives (string, boolean, number, undefined). The defensive
+ * object/array comparison below is future-proofing in case Player evolves.
+ *
+ * Current Player fields being compared:
+ * - name, nickname, jerseyNumber, notes, color: string | undefined
+ * - isGoalie, receivedFairPlayCard: boolean | undefined
+ */
+function playerMetadataChanged(original: Player, updated: Player): boolean {
+    // Direct primitive comparison is sufficient for current Player type.
+    // The compare helper below handles edge cases if Player type evolves
+    // to include arrays or objects.
+    const compare = (a: unknown, b: unknown): boolean => {
+        const aIsObject = typeof a === 'object' && a !== null;
+        const bIsObject = typeof b === 'object' && b !== null;
+        if (aIsObject || bIsObject) {
+            // For arrays, use structural comparison for better performance
+            if (Array.isArray(a) && Array.isArray(b)) {
+                return a.length !== b.length || a.some((v, i) => v !== b[i]);
             }
-            return a !== b;
-        };
+            // Fallback to JSON for complex objects.
+            // NOTE: This has limitations (key order, circular refs, functions)
+            // but is acceptable for simple data objects. If Player type evolves
+            // to include complex nested structures, consider using lodash.isEqual.
+            return JSON.stringify(a ?? null) !== JSON.stringify(b ?? null);
+        }
+        return a !== b;
+    };
 
-        return (
-            original.name !== updated.name ||
-            original.nickname !== updated.nickname ||
-            original.jerseyNumber !== updated.jerseyNumber ||
-            compare(original.notes, updated.notes) ||
-            compare(original.color, updated.color) ||
-            original.isGoalie !== updated.isGoalie ||
-            original.receivedFairPlayCard !== updated.receivedFairPlayCard
-        );
-    }
+    return (
+        original.name !== updated.name ||
+        original.nickname !== updated.nickname ||
+        original.jerseyNumber !== updated.jerseyNumber ||
+        compare(original.notes, updated.notes) ||
+        compare(original.color, updated.color) ||
+        original.isGoalie !== updated.isGoalie ||
+        original.receivedFairPlayCard !== updated.receivedFairPlayCard
+    );
+}
 
 export function useGameState({ initialState, saveStateToHistory }: UseGameStateArgs): UseGameStateReturn {
     // --- State Management ---

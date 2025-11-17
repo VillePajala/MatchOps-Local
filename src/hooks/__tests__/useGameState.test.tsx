@@ -262,6 +262,7 @@ describe('useGameState', () => {
     });
 
     await waitFor(() => {
+      expect(result.current.playersOnField).toHaveLength(1);
       expect(result.current.playersOnField).toEqual([
         expect.objectContaining({
           id: basePlayer.id,
