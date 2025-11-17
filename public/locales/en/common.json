@@ -1284,7 +1284,8 @@
     "confirmRestoreWarning": "This action cannot be undone. Make sure you have a current backup before proceeding.",
     "restoreKeyError": "Failed to restore item {{key}}. Import canceled.",
     "restoreSuccess": "Backup restored. Reloading app...",
-    "restoreError": "Error importing backup: {{error}}"
+    "restoreError": "Error importing backup: {{error}}",
+    "currentGameWarning": "Backup restored, but we could not update the current game selection automatically. Please select a game manually."
   },
   "orphanedGame": {
     "noTeam": "No Team (Use Master Roster)",

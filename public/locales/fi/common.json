@@ -1305,7 +1305,8 @@
     "confirmRestoreWarning": "Tätä toimintoa ei voi perua. Varmista että sinulla on varmuuskopio nykyisistä tiedoistasi ennen jatkamista.",
     "restoreKeyError": "Kohteen {{key}} palautus epäonnistui. Tuonti peruttiin.",
     "restoreSuccess": "Varmuuskopio palautettu. Sovellus latautuu uudelleen...",
-    "restoreError": "Virhe varmuuskopion tuonnissa: {{error}}"
+    "restoreError": "Virhe varmuuskopion tuonnissa: {{error}}",
+    "currentGameWarning": "Varmuuskopio palautettu, mutta nykyisen pelin valintaa ei voitu päivittää automaattisesti. Valitse peli manuaalisesti."
   },
   "orphanedGame": {
     "noTeam": "Ei joukkuetta (Käytä pääkokoonpanoa)",
