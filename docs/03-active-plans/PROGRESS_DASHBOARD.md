@@ -7,6 +7,18 @@
 
 ## 🎉 **Recent Completions**
 
+### ✅ Layer 2 — Step 2.5 (Edge-case regression tests)
+**Completion Date**: November 18, 2025  
+**Impact**: Locked down two critical edge cases—backup imports with stale `currentGameId` values and roster-to-field synchronization—so we can move on to Layer 3 with confidence.
+
+**What Was Accomplished**:
+- Added a dedicated import test ensuring `importFullBackup` rewrites `currentGameId` to the latest real game whenever the backup carried `DEFAULT_GAME_ID` or a missing entry.
+- Extended `useGameState` tests to cover roster shrink/rename flows; players on the field now drop automatically when removed from the roster and inherit renamed/updated metadata without losing their coordinates.
+
+**Quality Gates**:
+- `npm run lint`, `npm run type-check`, and targeted Jest suites (`src/utils/fullBackup.test.ts`, `src/hooks/__tests__/useGameState.test.tsx`) all green.
+- Manual sanity pass confirmed backup imports finish with the expected toast and roster edits no longer leave ghost players on the field.
+
 ### ✅ Layer 2 — Step 2.4.9 (ControlBar/ModalManager reducer adoption)
 **Completion Date**: November 18, 2025  
 **Impact**: All ControlBar shortcuts and ModalManager hops now drive the modal reducer helper API, so anti-flash guards stay consistent and direct `setState` setters are gone.

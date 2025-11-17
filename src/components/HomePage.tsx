@@ -207,7 +207,8 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
   };
   const tacticalHistory = useTacticalHistory(initialTacticalState);
 
-  const saveStateToHistory = useCallback((newState: Partial<AppState>) => {
+  // Internal callback that contains the actual logic
+  const saveStateToHistoryImpl = useCallback((newState: Partial<AppState>) => {
     if (!currentHistoryState) return; // Should not happen
 
     // If newState includes seasonId, ensure tournamentId is cleared if seasonId is truthy
@@ -215,11 +216,11 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     // Similarly, if newState includes tournamentId, ensure seasonId is cleared if tournamentId is truthy.
     const adjustedNewState: Partial<AppState> = {
       ...newState,
-      ...(newState.seasonId && newState.tournamentId === undefined 
-          ? { tournamentId: '' } 
+      ...(newState.seasonId && newState.tournamentId === undefined
+          ? { tournamentId: '' }
           : {}),
-      ...(newState.tournamentId && newState.seasonId === undefined 
-          ? { seasonId: '' } 
+      ...(newState.tournamentId && newState.seasonId === undefined
+          ? { seasonId: '' }
           : {}),
     };
 
@@ -255,6 +256,18 @@ function HomePage({ initialAction, skipInitialSetup = false, onDataImportSuccess
     pushHistoryState(nextState);
 
   }, [currentHistoryState, pushHistoryState]);
+
+  // Keep ref always pointing to latest implementation
+  const saveStateToHistoryRef = useRef(saveStateToHistoryImpl);
+  useEffect(() => {
+    saveStateToHistoryRef.current = saveStateToHistoryImpl;
+  }, [saveStateToHistoryImpl]);
+
+  // Stable callback that never changes reference - prevents re-render loops in useGameState
+  // This calls the latest version via the ref, so it always has current closure values
+  const saveStateToHistory = useCallback((newState: Partial<AppState>) => {
+    saveStateToHistoryRef.current(newState);
+  }, []); // Empty deps - reference never changes
 
   // Save tactical state via dedicated tactical history manager
   // Save tactical state via dedicated tactical history manager
