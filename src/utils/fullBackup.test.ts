@@ -592,6 +592,9 @@ describe("importFullBackup", () => {
         expect(result).toBe(true);
         expect(appSettingsWriteCount).toBe(2);
         expect(window.alert).toHaveBeenCalledWith("Backup restored. Reloading app...");
+        expect(window.alert).toHaveBeenCalledWith(
+          "Backup restored, but we could not update the current game selection automatically. Please select a game manually."
+        );
       } finally {
         if (originalSetStorageJSON) {
           (setStorageJSON as jest.Mock).mockImplementation(originalSetStorageJSON);
@@ -620,6 +623,25 @@ describe("importFullBackup", () => {
         ([key]) => key === APP_SETTINGS_KEY
       );
       expect(appSettingsWrites).toHaveLength(1);
+    });
+
+    it("resets currentGameId when it points to a missing game", async () => {
+      const validGameId = 'game_1700000100000_valid';
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {
+            [validGameId]: { id: validGameId, teamName: 'Valid', opponentName: 'Match', gameDate: '2024-01-11' },
+          },
+          [APP_SETTINGS_KEY]: { currentGameId: 'game_orphaned' },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      await importFullBackup(JSON.stringify(backupData));
+
+      expect(mockStore[APP_SETTINGS_KEY]).toEqual({ currentGameId: validGameId });
     });
   });
 

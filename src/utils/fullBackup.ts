@@ -156,6 +156,7 @@ export const importFullBackup = async (
   confirmed?: boolean
 ): Promise<boolean> => {
   logger.log("Starting full backup import...");
+  let currentGameIdWarning = false;
   try {
     const backupData: FullBackupData = JSON.parse(jsonContent);
 
@@ -315,14 +316,27 @@ export const importFullBackup = async (
       }
     } catch (e) {
       logger.warn('[Import] Unable to set currentGameId post-restore (non-fatal)', e);
+      currentGameIdWarning = true;
     }
 
     // --- Final Step: Trigger app refresh ---
     logger.log("Data restored successfully. Triggering app state refresh...");
+    const successMessage = i18n.t("fullBackup.restoreSuccess");
     if (showToast) {
-      showToast(i18n.t("fullBackup.restoreSuccess"), 'success');
+      showToast(successMessage, 'success');
     } else {
-      alert(i18n.t("fullBackup.restoreSuccess"));
+      alert(successMessage);
+    }
+
+    if (currentGameIdWarning) {
+      const warningMessage = i18n.t("fullBackup.currentGameWarning", {
+        defaultValue: "Backup restored, but we could not update the current game selection automatically. Please select a game manually.",
+      });
+      if (showToast) {
+        showToast(warningMessage, 'info');
+      } else {
+        alert(warningMessage);
+      }
     }
 
     // Use callback to refresh app state without reload, or fallback to reload

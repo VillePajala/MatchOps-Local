@@ -1,5 +1,5 @@
 // src/hooks/useGameState.ts
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Player } from '@/types'; // Player type is from @/types
 import {
     Opponent,
@@ -103,52 +103,55 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
         }
     }, [availablePlayers]);
 
+    const rosterLookup = useMemo(() => {
+        return new Map(availablePlayers.map(player => [player.id, player]));
+    }, [availablePlayers]);
+
+    const pendingHistoryRef = useRef<Player[] | null>(null);
+
     // Ensure players on field reflect latest roster updates (names, goalie flags)
     useEffect(() => {
-        let nextPlayersSnapshot: Player[] | null = null;
-
         setPlayersOnField(currentPlayers => {
             if (currentPlayers.length === 0) {
                 return currentPlayers;
             }
             // If we have never received actual roster data, bail so the field
             // doesn't immediately clear when availablePlayers defaults to []
-            if (!rosterSyncReadyRef.current && availablePlayers.length === 0) {
+            if (!rosterSyncReadyRef.current && rosterLookup.size === 0) {
                 return currentPlayers;
             }
 
-            const availableMap = new Map(availablePlayers.map(player => [player.id, player]));
             let mutated = false;
+            const nextPlayers: Player[] = [];
 
-            const mappedPlayers = currentPlayers.map((fieldPlayer) => {
-                const rosterPlayer = availableMap.get(fieldPlayer.id);
+            currentPlayers.forEach((fieldPlayer) => {
+                const rosterPlayer = rosterLookup.get(fieldPlayer.id);
                 if (!rosterPlayer) {
                     mutated = true;
-                    return null;
+                    return;
                 }
                 const mergedPlayer = mergeRosterDetails(fieldPlayer, rosterPlayer);
                 if (!mutated && playerMetadataChanged(fieldPlayer, mergedPlayer)) {
                     mutated = true;
                 }
-                return mergedPlayer;
+                nextPlayers.push(mergedPlayer);
             });
-
-            const nextPlayers = mappedPlayers.filter(
-                (player): player is Player => player !== null
-            );
 
             if (!mutated) {
                 return currentPlayers;
             }
 
-            nextPlayersSnapshot = nextPlayers;
+            pendingHistoryRef.current = nextPlayers;
             return nextPlayers;
         });
+    }, [rosterLookup]);
 
-        if (nextPlayersSnapshot) {
-            saveStateToHistory({ playersOnField: nextPlayersSnapshot });
+    useEffect(() => {
+        if (pendingHistoryRef.current) {
+            saveStateToHistory({ playersOnField: pendingHistoryRef.current });
+            pendingHistoryRef.current = null;
         }
-    }, [availablePlayers, saveStateToHistory]);
+    }, [playersOnField, saveStateToHistory]);
 
     // --- Handlers ---
 
