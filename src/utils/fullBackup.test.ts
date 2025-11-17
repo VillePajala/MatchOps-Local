@@ -10,6 +10,11 @@ import {
   TEAMS_INDEX_KEY,
   TEAM_ROSTERS_KEY,
 } from "@/config/storageKeys";
+import { DEFAULT_GAME_ID } from "@/config/constants";
+import type { SavedGamesCollection, AppState } from "@/types/game";
+import type { AppSettings } from "./appSettings";
+import type { Season, Tournament, Player } from "@/types";
+import type { TeamsIndex, TeamRostersIndex } from "./teams";
 
 // Mock the storage module (not localStorage directly!)
 jest.mock("./storage");
@@ -151,6 +156,39 @@ interface RosterPlayer extends Record<string, unknown> {
 // REMOVE: type SeasonData = Array<SeasonObject>;
 // REMOVE: type TournamentData = Array<TournamentObject>;
 // REMOVE: type RosterData = Array<RosterPlayer>;
+
+/**
+ * Test factory to create backup data objects with consistent structure.
+ * Reduces boilerplate in test cases by providing sensible defaults.
+ *
+ * @param overrides - Typed overrides for backup data fields
+ * @returns Properly structured backup data object for testing
+ *
+ * @future If other test files need backup data, consider moving to
+ * tests/fixtures/backup.ts for centralized reuse.
+ */
+function createBackupData(overrides: {
+  games?: SavedGamesCollection;
+  settings?: AppSettings;
+  seasons?: Season[];
+  tournaments?: Tournament[];
+  roster?: Player[];
+  teams?: TeamsIndex;
+  teamRosters?: TeamRostersIndex;
+} = {}) {
+  return {
+    meta: { schema: 1, exportedAt: new Date().toISOString() },
+    localStorage: {
+      ...(overrides.games !== undefined && { [SAVED_GAMES_KEY]: overrides.games }),
+      ...(overrides.settings !== undefined && { [APP_SETTINGS_KEY]: overrides.settings }),
+      ...(overrides.seasons !== undefined && { [SEASONS_LIST_KEY]: overrides.seasons }),
+      ...(overrides.tournaments !== undefined && { [TOURNAMENTS_LIST_KEY]: overrides.tournaments }),
+      ...(overrides.roster !== undefined && { [MASTER_ROSTER_KEY]: overrides.roster }),
+      ...(overrides.teams !== undefined && { [TEAMS_INDEX_KEY]: overrides.teams }),
+      ...(overrides.teamRosters !== undefined && { [TEAM_ROSTERS_KEY]: overrides.teamRosters }),
+    },
+  };
+}
 
 describe("importFullBackup", () => {
   let consoleErrorSpy: jest.SpyInstance;
@@ -474,6 +512,166 @@ describe("importFullBackup", () => {
       }
       expect(alertMock).not.toHaveBeenCalled();
       alertMock.mockRestore();
+    });
+
+    it('updates currentGameId to the latest imported game when backup settings are stale', async () => {
+      const latestGameId = 'game_1700000200000_latest';
+      const earlierGameId = 'game_1700000100000_old';
+      const backupData = createBackupData({
+        games: {
+          [earlierGameId]: { teamName: 'Old', opponentName: 'First', gameDate: '2024-01-10' } as AppState,
+          [latestGameId]: { teamName: 'Latest', opponentName: 'Final', gameDate: '2024-01-12' } as AppState,
+        },
+        settings: { currentGameId: DEFAULT_GAME_ID },
+      });
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      await importFullBackup(JSON.stringify(backupData));
+
+      expect(mockStore[APP_SETTINGS_KEY]).toEqual({ currentGameId: latestGameId });
+      expect(window.alert).toHaveBeenCalledWith("Backup restored. Reloading app...");
+    });
+
+    it('preserves currentGameId when backup points to an existing game', async () => {
+      const validGameId = 'game_1700000100000_valid';
+      const backupData = createBackupData({
+        games: {
+          [validGameId]: { teamName: 'Valid', opponentName: 'Match', gameDate: '2024-01-11' } as AppState,
+        },
+        settings: { currentGameId: validGameId },
+      });
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      await importFullBackup(JSON.stringify(backupData));
+
+      expect(mockStore[APP_SETTINGS_KEY]).toEqual({ currentGameId: validGameId });
+    });
+
+    it('handles backups with no saved games without crashing', async () => {
+      const backupData = createBackupData({
+        games: {},
+        settings: { currentGameId: DEFAULT_GAME_ID },
+      });
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      await importFullBackup(JSON.stringify(backupData));
+
+      expect(mockStore[APP_SETTINGS_KEY]).toEqual({ currentGameId: DEFAULT_GAME_ID });
+      expect(window.alert).toHaveBeenCalledWith("Backup restored. Reloading app...");
+    });
+  });
+
+  describe("Current Game Sync", () => {
+    it("does not update currentGameId when no latest game id can be derived", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {
+            [DEFAULT_GAME_ID]: { id: DEFAULT_GAME_ID, teamName: 'Default', opponentName: 'Fallback' },
+          },
+          [APP_SETTINGS_KEY]: { currentGameId: DEFAULT_GAME_ID },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      const result = await importFullBackup(JSON.stringify(backupData));
+
+      expect(result).toBe(true);
+      const appSettingsWrites = (setStorageJSON as jest.Mock).mock.calls.filter(
+        ([key]) => key === APP_SETTINGS_KEY
+      );
+      expect(appSettingsWrites).toHaveLength(1);
+    });
+
+    it("continues import when setting currentGameId fails post-restore", async () => {
+      const latestGameId = 'game_1700000300000_new';
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {
+            [latestGameId]: { id: latestGameId, teamName: 'Next', opponentName: 'Opponent', gameDate: '2024-02-01' },
+            'game_1700000100000_old': { id: 'game_1700000100000_old', teamName: 'Old', opponentName: 'First', gameDate: '2024-01-01' },
+          },
+          [APP_SETTINGS_KEY]: { currentGameId: DEFAULT_GAME_ID },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      const originalSetStorageJSON = (setStorageJSON as jest.Mock).getMockImplementation();
+      let appSettingsWriteCount = 0;
+
+      (setStorageJSON as jest.Mock).mockImplementation(async (key: string, value: unknown) => {
+        if (key === APP_SETTINGS_KEY) {
+          appSettingsWriteCount += 1;
+          if (appSettingsWriteCount === 2) {
+            throw new Error('intentional settings failure');
+          }
+        }
+        mockStore[key] = value;
+      });
+
+      try {
+        const result = await importFullBackup(JSON.stringify(backupData));
+        expect(result).toBe(true);
+        expect(appSettingsWriteCount).toBe(2);
+        const combinedMessage = "Backup restored. Reloading app...\n\nBackup restored, but we could not update the current game selection automatically. Please select a game manually.";
+        expect(window.alert).toHaveBeenCalledWith(combinedMessage);
+        // Verify the specific warning message is shown to users
+        expect(window.alert).toHaveBeenCalledWith(
+          expect.stringContaining('could not update the current game selection')
+        );
+      } finally {
+        if (originalSetStorageJSON) {
+          (setStorageJSON as jest.Mock).mockImplementation(originalSetStorageJSON);
+        } else {
+          (setStorageJSON as jest.Mock).mockImplementation(async (key: string, value: unknown) => {
+            mockStore[key] = value;
+          });
+        }
+      }
+    });
+
+    it("skips currentGameId reconciliation when savedGames is not an object", async () => {
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: "not-an-object",
+          [APP_SETTINGS_KEY]: { currentGameId: DEFAULT_GAME_ID },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      const result = await importFullBackup(JSON.stringify(backupData));
+      expect(result).toBe(true);
+      const appSettingsWrites = (setStorageJSON as jest.Mock).mock.calls.filter(
+        ([key]) => key === APP_SETTINGS_KEY
+      );
+      expect(appSettingsWrites).toHaveLength(1);
+    });
+
+    it("resets currentGameId when it points to a missing game", async () => {
+      const validGameId = 'game_1700000100000_valid';
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {
+            [validGameId]: { id: validGameId, teamName: 'Valid', opponentName: 'Match', gameDate: '2024-01-11' },
+          },
+          [APP_SETTINGS_KEY]: { currentGameId: 'game_orphaned' },
+        },
+      };
+
+      (window.confirm as jest.Mock).mockReturnValue(true);
+
+      await importFullBackup(JSON.stringify(backupData));
+
+      expect(mockStore[APP_SETTINGS_KEY]).toEqual({ currentGameId: validGameId });
     });
   });
 

@@ -1,5 +1,5 @@
 // src/hooks/useGameState.ts
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Player } from '@/types'; // Player type is from @/types
 import {
     Opponent,
@@ -14,13 +14,38 @@ import {
 import logger from '@/utils/logger';
 
 // Define arguments the hook will receive
+/**
+ * Arguments for the useGameState hook.
+ *
+ * @property initialState - The global application state
+ * @property saveStateToHistory - Callback to save state changes to history
+ *
+ * @critical saveStateToHistory MUST be memoized with useCallback to prevent
+ * infinite re-render loops. The hook depends on this function in a useEffect,
+ * so a new reference on every render will cause infinite updates.
+ *
+ * @example
+ * ```tsx
+ * const saveStateToHistory = useCallback((newState: Partial<AppState>) => {
+ *   pushHistoryState({ ...currentState, ...newState });
+ * }, [currentState, pushHistoryState]);
+ * ```
+ */
 interface UseGameStateArgs {
     initialState: AppState; // Pass the global initial state
     saveStateToHistory: (newState: Partial<AppState>) => void; // Callback to save changes
     // masterRosterKey: string; // Removed as no longer used directly in the hook for localStorage
 }
 
-// Define the structure of the object returned by the hook
+/**
+ * Structure returned by useGameState.
+ *
+ * @remarks
+ * Consumers **must** provide a `saveStateToHistory` function that is wrapped in
+ * `useCallback`. The hook calls that function from effects whenever it flushes
+ * staged state updates, so an unstable reference will trigger the runtime
+ * safeguard and can lead to infinite render loops.
+ */
 export interface UseGameStateReturn {
     // State values
     playersOnField: Player[];
@@ -46,18 +71,166 @@ export interface UseGameStateReturn {
     handleToggleGoalie: (playerId: string) => void;
 }
 
+/**
+ * Merge roster metadata into a field player without touching positional data.
+ * When the Player type gains additional roster-sourced fields, update this helper
+ * so the sync effect stays comprehensive.
+ */
+function mergeRosterDetails(fieldPlayer: Player, rosterPlayer: Player): Player {
+    return {
+        ...fieldPlayer,
+        name: rosterPlayer.name,
+        nickname: rosterPlayer.nickname,
+        jerseyNumber: rosterPlayer.jerseyNumber,
+        notes: rosterPlayer.notes,
+        color: rosterPlayer.color,
+        isGoalie: rosterPlayer.isGoalie,
+        receivedFairPlayCard: rosterPlayer.receivedFairPlayCard,
+    };
+}
+
+/**
+ * Compare roster metadata fields.
+ *
+ * Note: As of the current Player type definition (src/types/index.ts), all
+ * fields are primitives (string, boolean, number, undefined). The defensive
+ * object/array comparison below is future-proofing in case Player evolves.
+ *
+ * Current Player fields being compared:
+ * - name, nickname, jerseyNumber, notes, color: string | undefined
+ * - isGoalie, receivedFairPlayCard: boolean | undefined
+ */
+function playerMetadataChanged(original: Player, updated: Player): boolean {
+    // Direct primitive comparison is sufficient for current Player type.
+    // The compare helper below handles edge cases if Player type evolves
+    // to include arrays or objects.
+    const compare = (a: unknown, b: unknown): boolean => {
+        const aIsObject = typeof a === 'object' && a !== null;
+        const bIsObject = typeof b === 'object' && b !== null;
+        if (aIsObject || bIsObject) {
+            // For arrays, use structural comparison for better performance
+            if (Array.isArray(a) && Array.isArray(b)) {
+                return a.length !== b.length || a.some((v, i) => v !== b[i]);
+            }
+            // Fallback to JSON for complex objects.
+            // NOTE: This has limitations (key order, circular refs, functions)
+            // but is acceptable for simple data objects. If Player type evolves
+            // to include complex nested structures, consider using lodash.isEqual.
+            return JSON.stringify(a ?? null) !== JSON.stringify(b ?? null);
+        }
+        return a !== b;
+    };
+
+    return (
+        original.name !== updated.name ||
+        original.nickname !== updated.nickname ||
+        original.jerseyNumber !== updated.jerseyNumber ||
+        compare(original.notes, updated.notes) ||
+        compare(original.color, updated.color) ||
+        original.isGoalie !== updated.isGoalie ||
+        original.receivedFairPlayCard !== updated.receivedFairPlayCard
+    );
+}
+
 export function useGameState({ initialState, saveStateToHistory }: UseGameStateArgs): UseGameStateReturn {
     // --- State Management ---
     const [playersOnField, setPlayersOnField] = useState<Player[]>(initialState.playersOnField);
     const [opponents, setOpponents] = useState<Opponent[]>(initialState.opponents);
     const [drawings, setDrawings] = useState<Point[][]>(initialState.drawings);
     const [availablePlayers, setAvailablePlayers] = useState<Player[]>(initialState.availablePlayers || []);
+    const rosterSyncReadyRef = useRef<boolean>((initialState.availablePlayers?.length ?? 0) > 0);
     // ... (more state will be moved here)
+
+    // --- Development Mode: Runtime Safeguard for saveStateToHistory Memoization ---
+    // Detects if saveStateToHistory reference changes between renders, which indicates
+    // it's not properly memoized and will cause infinite re-render loops.
+    const saveStateToHistoryRef = useRef(saveStateToHistory);
+    useEffect(() => {
+        if (process.env.NODE_ENV === 'development') {
+            if (saveStateToHistoryRef.current !== saveStateToHistory) {
+                logger.warn(
+                    '[useGameState] saveStateToHistory reference changed! ' +
+                    'This function MUST be memoized with useCallback in the parent component ' +
+                    'to prevent infinite re-renders. See UseGameStateArgs interface documentation.'
+                );
+            }
+        }
+        saveStateToHistoryRef.current = saveStateToHistory;
+    }, [saveStateToHistory]);
 
     // Sync availablePlayers when initialState changes
     useEffect(() => {
         setAvailablePlayers(initialState.availablePlayers || []);
     }, [initialState.availablePlayers]);
+
+    // Track when we've actually received a roster snapshot so we do not
+    // prematurely wipe players when the hook was initialized with []
+    useEffect(() => {
+        if (!rosterSyncReadyRef.current && availablePlayers.length > 0) {
+            rosterSyncReadyRef.current = true;
+        }
+    }, [availablePlayers]);
+
+    const rosterLookup = useMemo(() => {
+        return new Map(availablePlayers.map(player => [player.id, player]));
+    }, [availablePlayers]);
+
+    const pendingHistoryRef = useRef<Player[] | null>(null);
+    const [historyVersion, setHistoryVersion] = useState(0);
+
+    // Ensure players on field reflect latest roster updates (names, goalie flags)
+    useEffect(() => {
+        setPlayersOnField(currentPlayers => {
+            if (currentPlayers.length === 0) {
+                return currentPlayers;
+            }
+            // If we have never received actual roster data, bail so the field
+            // doesn't immediately clear when availablePlayers defaults to []
+            if (!rosterSyncReadyRef.current && rosterLookup.size === 0) {
+                return currentPlayers;
+            }
+
+            let mutated = false;
+            const nextPlayers: Player[] = [];
+
+            currentPlayers.forEach((fieldPlayer) => {
+                const rosterPlayer = rosterLookup.get(fieldPlayer.id);
+                if (!rosterPlayer) {
+                    mutated = true;
+                    return;
+                }
+                const mergedPlayer = mergeRosterDetails(fieldPlayer, rosterPlayer);
+                if (!mutated && playerMetadataChanged(fieldPlayer, mergedPlayer)) {
+                    mutated = true;
+                }
+                nextPlayers.push(mergedPlayer);
+            });
+
+            if (!mutated) {
+                return currentPlayers;
+            }
+
+            pendingHistoryRef.current = nextPlayers;
+            setHistoryVersion(version => version + 1);
+            return nextPlayers;
+        });
+    }, [rosterLookup]);
+
+    // Separate effect ensures saveStateToHistory is called AFTER the state
+    // update has been committed, preventing potential race conditions with
+    // React's batched updates. This two-phase pattern (set pending + increment
+    // version, then separate effect) ensures proper sequencing of history saves.
+    //
+    // IMPORTANT: saveStateToHistory MUST be memoized with useCallback in the parent
+    // component to prevent infinite re-render loops. Current implementation in
+    // HomePage.tsx properly memoizes it with stable dependencies.
+    useEffect(() => {
+        if (historyVersion === 0 || !pendingHistoryRef.current) {
+            return;
+        }
+        saveStateToHistory({ playersOnField: pendingHistoryRef.current });
+        pendingHistoryRef.current = null;
+    }, [historyVersion, saveStateToHistory]);
 
     // --- Handlers ---
 

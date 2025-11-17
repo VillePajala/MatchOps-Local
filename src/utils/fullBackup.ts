@@ -156,6 +156,7 @@ export const importFullBackup = async (
   confirmed?: boolean
 ): Promise<boolean> => {
   logger.log("Starting full backup import...");
+  let currentGameIdWarning = false;
   try {
     const backupData: FullBackupData = JSON.parse(jsonContent);
 
@@ -314,15 +315,31 @@ export const importFullBackup = async (
         }
       }
     } catch (e) {
+      // This can happen if IndexedDB rejects writes (quota exceeded, storage corruption, or browser policies).
+      // Import is still considered successful, but we surface a warning so the user can manually pick a game.
       logger.warn('[Import] Unable to set currentGameId post-restore (non-fatal)', e);
+      currentGameIdWarning = true;
     }
 
     // --- Final Step: Trigger app refresh ---
     logger.log("Data restored successfully. Triggering app state refresh...");
-    if (showToast) {
-      showToast(i18n.t("fullBackup.restoreSuccess"), 'success');
+    const successMessage = i18n.t("fullBackup.restoreSuccess");
+    if (currentGameIdWarning) {
+      const warningMessage = i18n.t("fullBackup.currentGameWarning", {
+        defaultValue: "Backup restored, but we could not update the current game selection automatically. Please select a game manually.",
+      });
+      const combined = `${successMessage}\n\n${warningMessage}`;
+      if (showToast) {
+        showToast(combined, 'info');
+      } else {
+        alert(combined);
+      }
     } else {
-      alert(i18n.t("fullBackup.restoreSuccess"));
+      if (showToast) {
+        showToast(successMessage, 'success');
+      } else {
+        alert(successMessage);
+      }
     }
 
     // Use callback to refresh app state without reload, or fallback to reload
