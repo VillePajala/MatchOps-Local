@@ -110,6 +110,11 @@ describe('useGameState', () => {
     });
   });
 
+  /**
+   * Validates roster deletions drop field players to avoid ghost entries.
+   * @critical
+   * @edge-case
+   */
   it('removes playersOnField entries when corresponding roster players disappear', async () => {
     const saveStateToHistory = jest.fn();
     const initial = {
@@ -124,6 +129,8 @@ describe('useGameState', () => {
       })
     );
 
+    saveStateToHistory.mockClear();
+
     act(() => {
       result.current.setAvailablePlayers([]); // simulate roster wipe
     });
@@ -132,9 +139,16 @@ describe('useGameState', () => {
       expect(result.current.playersOnField).toEqual([]);
     });
 
-    expect(saveStateToHistory).toHaveBeenCalledWith({ playersOnField: [] });
+    await waitFor(() => {
+      expect(saveStateToHistory).toHaveBeenLastCalledWith({ playersOnField: [] });
+    });
   });
 
+  /**
+   * Ensures initial field render waits for roster data before mutating state.
+   * @critical
+   * @edge-case
+   */
   it('does not drop players on mount when roster data has not arrived yet', async () => {
     const saveStateToHistory = jest.fn();
     const fieldPlayer = { ...basePlayer, relX: 0.2, relY: 0.3 };
@@ -158,6 +172,11 @@ describe('useGameState', () => {
     expect(saveStateToHistory).not.toHaveBeenCalledWith({ playersOnField: [] });
   });
 
+  /**
+   * Covers combined roster removals + metadata updates in one payload.
+   * @critical
+   * @edge-case
+   */
   it('handles mixed roster removals and metadata updates in a single sync', async () => {
     const saveStateToHistory = jest.fn();
     const player1 = { ...basePlayer, id: 'p1', name: 'Player 1' };
@@ -180,6 +199,8 @@ describe('useGameState', () => {
       })
     );
 
+    saveStateToHistory.mockClear();
+
     const updatedRoster = [
       { ...player1, name: 'Updated Player 1', jerseyNumber: '11' },
       player3,
@@ -200,14 +221,21 @@ describe('useGameState', () => {
     });
 
     expect(result.current.playersOnField.find(p => p.id === 'p2')).toBeUndefined();
-    expect(saveStateToHistory).toHaveBeenCalledWith({
-      playersOnField: expect.arrayContaining([
-        expect.objectContaining({ id: 'p1', name: 'Updated Player 1', jerseyNumber: '11' }),
-        expect.objectContaining({ id: 'p3', name: 'Player 3' }),
-      ]),
+    await waitFor(() => {
+      expect(saveStateToHistory).toHaveBeenLastCalledWith({
+        playersOnField: expect.arrayContaining([
+          expect.objectContaining({ id: 'p1', name: 'Updated Player 1', jerseyNumber: '11' }),
+          expect.objectContaining({ id: 'p3', name: 'Player 3' }),
+        ]),
+      });
     });
   });
 
+  /**
+   * Guards against position regressions during roster metadata merges.
+   * @critical
+   * @edge-case
+   */
   it('keeps player positions while syncing metadata from updated roster entries', async () => {
     const saveStateToHistory = jest.fn();
     const fieldPlayer = { ...basePlayer, name: 'Old Name', relX: 0.5, relY: 0.2 };
@@ -223,6 +251,8 @@ describe('useGameState', () => {
         saveStateToHistory,
       })
     );
+
+    saveStateToHistory.mockClear();
 
     const updatedRoster = [{ ...basePlayer, name: 'Updated Name', jerseyNumber: '10', nickname: 'Ace' }];
 
@@ -243,17 +273,19 @@ describe('useGameState', () => {
       ]);
     });
 
-    expect(saveStateToHistory).toHaveBeenCalledWith({
-      playersOnField: [
-        expect.objectContaining({
-          id: basePlayer.id,
-          name: 'Updated Name',
-          jerseyNumber: '10',
-          nickname: 'Ace',
-          relX: 0.5,
-          relY: 0.2,
-        }),
-      ],
+    await waitFor(() => {
+      expect(saveStateToHistory).toHaveBeenLastCalledWith({
+        playersOnField: [
+          expect.objectContaining({
+            id: basePlayer.id,
+            name: 'Updated Name',
+            jerseyNumber: '10',
+            nickname: 'Ace',
+            relX: 0.5,
+            relY: 0.2,
+          }),
+        ],
+      });
     });
   });
 });

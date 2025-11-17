@@ -591,10 +591,8 @@ describe("importFullBackup", () => {
         const result = await importFullBackup(JSON.stringify(backupData));
         expect(result).toBe(true);
         expect(appSettingsWriteCount).toBe(2);
-        expect(window.alert).toHaveBeenCalledWith("Backup restored. Reloading app...");
-        expect(window.alert).toHaveBeenCalledWith(
-          "Backup restored, but we could not update the current game selection automatically. Please select a game manually."
-        );
+        const combinedMessage = "Backup restored. Reloading app...\n\nBackup restored, but we could not update the current game selection automatically. Please select a game manually.";
+        expect(window.alert).toHaveBeenCalledWith(combinedMessage);
       } finally {
         if (originalSetStorageJSON) {
           (setStorageJSON as jest.Mock).mockImplementation(originalSetStorageJSON);

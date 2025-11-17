@@ -322,20 +322,21 @@ export const importFullBackup = async (
     // --- Final Step: Trigger app refresh ---
     logger.log("Data restored successfully. Triggering app state refresh...");
     const successMessage = i18n.t("fullBackup.restoreSuccess");
-    if (showToast) {
-      showToast(successMessage, 'success');
-    } else {
-      alert(successMessage);
-    }
-
     if (currentGameIdWarning) {
       const warningMessage = i18n.t("fullBackup.currentGameWarning", {
         defaultValue: "Backup restored, but we could not update the current game selection automatically. Please select a game manually.",
       });
+      const combined = `${successMessage}\n\n${warningMessage}`;
       if (showToast) {
-        showToast(warningMessage, 'info');
+        showToast(combined, 'info');
       } else {
-        alert(warningMessage);
+        alert(combined);
+      }
+    } else {
+      if (showToast) {
+        showToast(successMessage, 'success');
+      } else {
+        alert(successMessage);
       }
     }
 
