@@ -136,9 +136,9 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     // --- Development Mode: Runtime Safeguard for saveStateToHistory Memoization ---
     // Detects if saveStateToHistory reference changes between renders, which indicates
     // it's not properly memoized and will cause infinite re-render loops.
-    if (process.env.NODE_ENV === 'development') {
-        const saveStateToHistoryRef = useRef(saveStateToHistory);
-        useEffect(() => {
+    const saveStateToHistoryRef = useRef(saveStateToHistory);
+    useEffect(() => {
+        if (process.env.NODE_ENV === 'development') {
             if (saveStateToHistoryRef.current !== saveStateToHistory) {
                 logger.warn(
                     '[useGameState] saveStateToHistory reference changed! ' +
@@ -146,9 +146,9 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
                     'to prevent infinite re-renders. See UseGameStateArgs interface documentation.'
                 );
             }
-            saveStateToHistoryRef.current = saveStateToHistory;
-        }, [saveStateToHistory]);
-    }
+        }
+        saveStateToHistoryRef.current = saveStateToHistory;
+    }, [saveStateToHistory]);
 
     // Sync availablePlayers when initialState changes
     useEffect(() => {

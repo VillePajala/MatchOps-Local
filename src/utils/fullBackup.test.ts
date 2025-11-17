@@ -163,6 +163,9 @@ interface RosterPlayer extends Record<string, unknown> {
  *
  * @param overrides - Typed overrides for backup data fields
  * @returns Properly structured backup data object for testing
+ *
+ * @future If other test files need backup data, consider moving to
+ * tests/fixtures/backup.ts for centralized reuse.
  */
 function createBackupData(overrides: {
   games?: SavedGamesCollection;
