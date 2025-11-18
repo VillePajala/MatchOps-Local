@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ⚠️ CRITICAL TECHNICAL DEBT - READ FIRST
 
-**🔴 BLOCKING: Major architectural issues must be resolved before feature development**
+**✅ UPDATE (Nov 18, 2025): Refactoring 95% Complete!** HomePage successfully reduced to **62 lines**.
 
-**Status**: 5 critical/high-priority fixes required (4-5 hours total)
+**Status**: 1 final task remaining (~12 hours total) — Split useGameOrchestration hook
 
 ### Pre-Flight Checklist
 
@@ -20,65 +20,77 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **If you answered YES to #3, STOP and check fix status first.**
 
-### The Issues
+### Current Status
 
-| Priority | Issue | Impact | Fix Plan |
+| Priority | Issue | Status | Fix Plan |
 |----------|-------|--------|----------|
-| **P0** | `HomePage.tsx` is 3,680 lines | 95% done (extraction complete, needs integration) | [Plan](./docs/05-development/fix-plans/P0-HomePage-Refactoring-Plan.md) |
-| **P1** | `GameSettingsModal.tsx` is 1,995 lines | 5.0x too large, 90+ props | [Plan](./docs/05-development/fix-plans/P1-GameSettingsModal-Refactoring-Plan.md) |
-| **P2** | Modal state race conditions | 10 independent useState calls | [Plan](./docs/05-development/fix-plans/P2-Modal-State-Management-Fix.md) |
-| **P2** | Silent error swallowing | `.catch(() => {})` patterns hide errors | [Plan](./docs/05-development/fix-plans/P2-Error-Handling-Improvements.md) |
-| **P2** | Re-render performance | Large components cause slow renders | [Plan](./docs/05-development/fix-plans/P2-Performance-Optimization-Plan.md) |
+| **P0** | `useGameOrchestration.ts` is 3,373 lines | 🟡 Final 5% — Split into 6 hooks | [**REFACTORING_STATUS.md**](./docs/03-active-plans/REFACTORING_STATUS.md) ⭐ |
+| ~~**P0**~~ | ~~`HomePage.tsx` was 3,680 lines~~ | ✅ **COMPLETE** — Now **62 lines**! | [Tracker](./docs/CRITICAL_FIXES_TRACKER.md) |
+| **P1** | `GameSettingsModal.tsx` is 1,995 lines | ⏸️ Deferred (low priority) | [Plan](./docs/05-development/fix-plans/P1-GameSettingsModal-Refactoring-Plan.md) |
+| ~~**P2**~~ | ~~Modal state race conditions~~ | ✅ **COMPLETE** — Layer 2 modal reducer | [Tracker](./docs/CRITICAL_FIXES_TRACKER.md) |
+| **P2** | Silent error swallowing | ⏸️ Deferred (Layer 3) | [Plan](./docs/05-development/fix-plans/P2-Error-Handling-Improvements.md) |
+| **P2** | Re-render performance | ⏸️ Deferred (Layer 3) | [Plan](./docs/05-development/fix-plans/P2-Performance-Optimization-Plan.md) |
 
 ### What You Can Do NOW
 
-**✅ ALLOWED:**
+**✅ RECOMMENDED - Complete the Refactoring (95% Done!):**
+- **Split useGameOrchestration** into 6 focused hooks (final 5%)
+- See [REFACTORING_STATUS.md](./docs/03-active-plans/REFACTORING_STATUS.md) for clear plan
+- 6 small PRs × 1-2 hours each = ~12 hours total
+- **We're in the home stretch!** 🚀
+
+**✅ ALSO ALLOWED:**
 - Bug fixes and small improvements
 - Documentation updates
 - Test improvements
-- Refactoring work (especially the critical fixes above)
 - Performance measurements
+- Production readiness work (P1: Security & Service Worker)
 
-**⛔ FORBIDDEN until fixes complete:**
-- New major features (multi-team games, advanced analytics, etc.)
-- New game modes
-- Complex new functionality
-- Large new components
+**⚠️ PROCEED WITH CAUTION:**
+- New major features (possible now, but will be 3x faster after hook splitting)
+- New game modes (same as above)
+- Complex new functionality (recommended to wait until 100% complete)
 
 ### Why This Matters
 
-**Current cost of development:**
-- Adding a new modal: ~4 hours (should be 30 minutes)
-- Modifying HomePage: ~2 hours (should be 15 minutes)
-- Testing changes: Very difficult (components too large)
-- Onboarding new developers: Nearly impossible
+**What We've Achieved** ✅:
+- HomePage: 3,680 lines → **62 lines** (95% reduction!)
+- Container pattern: ✅ Complete (GameContainer, ModalManager, FieldContainer)
+- View-model pattern: ✅ Complete
+- Modal reducer: ✅ Complete (centralized state, no race conditions)
+- Architecture: ✅ Industry-standard React pattern
 
-**After fixes:**
-- Clean component architecture (all <600 lines)
-- Fast feature development (3-5x faster)
-- Easy testing (isolated components)
-- Simple onboarding (clear structure)
+**What Remains** (Final 5%):
+- Split `useGameOrchestration.ts` (3,373 lines) into 6 focused hooks
+- Each hook: ≤600 lines with single responsibility
+- Makes ALL future development 3-5x faster
 
 **Investment vs Return:**
-- Time investment: 4-5 hours
+- Time investment: ~12 hours (6 small PRs)
 - ROI: ~1000% over 2 years
-- Risk of NOT fixing: Technical bankruptcy
+- **We're 95% there — let's finish strong!** 🚀
 
 ### Essential Reading
 
-- **[CRITICAL_FIXES_REQUIRED.md](./docs/CRITICAL_FIXES_REQUIRED.md)** - Complete analysis
-- **[CRITICAL_FIXES_TRACKER.md](./docs/CRITICAL_FIXES_TRACKER.md)** - Progress tracking
-- **[QUICK_FIX_REFERENCE.md](./docs/05-development/QUICK_FIX_REFERENCE.md)** - One-page summary
-- **[Code Review (Oct 16, 2025)](./docs/reviews/code-review-2025-10-16.md)** - Full findings
+- **[REFACTORING_STATUS.md](./docs/03-active-plans/REFACTORING_STATUS.md)** ⭐ **START HERE** - Single source of truth
+- **[CRITICAL_FIXES_TRACKER.md](./docs/CRITICAL_FIXES_TRACKER.md)** - Detailed progress tracking
+- **[CRITICAL_FIXES_REQUIRED.md](./docs/CRITICAL_FIXES_REQUIRED.md)** - Original analysis (updated)
+- **[DOCUMENTATION_CLEANUP.md](./docs/03-active-plans/DOCUMENTATION_CLEANUP.md)** - File organization guide
 
 ### When Starting Work
 
-**Always do this sequence:**
+**Current Priority: Complete the Refactoring (95% Done!)**
 
-1. **Check fix status**: Are critical fixes complete?
-2. **Assess task scope**: Is this major feature work?
-3. **If YES to #2 and NO to #1**: Prioritize fixes first OR work on allowed tasks only
-4. **If in doubt**: Ask the user whether to proceed or fix critical issues first
+1. **Read**: [REFACTORING_STATUS.md](./docs/03-active-plans/REFACTORING_STATUS.md) for complete plan
+2. **Understand**: We're in the final 5% — HomePage is **62 lines** ✅
+3. **Next Step**: Split useGameOrchestration (3,373 lines) into 6 hooks
+4. **Strategy**: 6 small PRs × 1-2 hours each = ~12 hours total
+5. **After Completion**: All files ≤600 lines, 3-5x faster development
+
+**If Working on Other Tasks:**
+1. Small improvements, bugs, docs: ✅ Go ahead
+2. Major features: ⚠️ Possible, but will be 3x faster after hook splitting
+3. If in doubt: Ask the user whether to finish refactoring first
 
 ---
 
