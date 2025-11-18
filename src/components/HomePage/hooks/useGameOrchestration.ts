@@ -17,7 +17,6 @@ import {
   GameSessionState,
   // initialGameSessionStatePlaceholder // We will derive initial state from page.tsx's initialState
 } from '@/hooks/useGameSessionReducer';
-import { useGameSessionWithHistory } from '@/hooks/useGameSessionWithHistory';
 // Import roster utility functions
 // roster mutations now managed inside useRoster hook
 
@@ -41,12 +40,12 @@ import type { GameEvent, AppState, SavedGamesCollection, TimerState, PlayerAsses
 import { saveMasterRoster } from '@/utils/masterRoster';
 // Import useQuery, useMutation, useQueryClient
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useUndoRedo } from '@/hooks/useUndoRedo';
-import { useTacticalHistory, type TacticalState } from '@/hooks/useTacticalHistory';
 import { useTacticalBoard } from '@/hooks/useTacticalBoard';
+import type { TacticalState } from '@/hooks/useTacticalHistory';
 import { useRoster } from '@/hooks/useRoster';
 import { useModalContext } from '@/contexts/ModalProvider';
 import { useGameDataManagement } from './useGameDataManagement';
+import { useGameSessionCoordination } from './useGameSessionCoordination';
 // Import async storage utilities
 import {
   getStorageItem,
@@ -135,10 +134,30 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const { t } = useTranslation(); // Get translation function
   const queryClient = useQueryClient(); // Get query client instance
 
- 
-  
-  // --- Initialize Game Session Reducer ---
-  // Map necessary fields from page.tsx's initialState to GameSessionState
+  // --- Game Session Coordination (Step 2.6.2) ---
+  const sessionCoordination = useGameSessionCoordination({
+    initialState,
+  });
+
+  // Destructure commonly used values for convenience
+  const {
+    gameSessionState,
+    dispatchGameSession,
+    undo: undoHistory,
+    redo: redoHistory,
+    canUndo,
+    canRedo,
+    resetHistory,
+    saveStateToHistory: saveStateToHistoryFromSession,
+    saveTacticalStateToHistory: saveTacticalStateToHistoryFromSession,
+    tacticalHistory,
+  } = sessionCoordination;
+
+  // Wrap in useCallback to satisfy custom lint rule (already stable from hook)
+  const saveStateToHistory = useCallback(saveStateToHistoryFromSession, [saveStateToHistoryFromSession]);
+  const saveTacticalStateToHistory = useCallback(saveTacticalStateToHistoryFromSession, [saveTacticalStateToHistoryFromSession]);
+
+  // Initial game session data (for reset operations)
   const initialGameSessionData: GameSessionState = {
     teamName: initialState.teamName,
     opponentName: initialState.opponentName,
@@ -161,8 +180,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     gameLocation: initialState.gameLocation,
     gameTime: initialState.gameTime,
     gameEvents: initialState.gameEvents,
-    timeElapsedInSeconds: 0, // Initial timer state should be 0
-    isTimerRunning: false,    // Initial timer state
+    timeElapsedInSeconds: 0,
+    isTimerRunning: false,
     subIntervalMinutes: initialState.subIntervalMinutes ?? 5,
     nextSubDueTimeSeconds: (initialState.subIntervalMinutes ?? 5) * 60,
     subAlertLevel: 'none',
@@ -171,138 +190,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     showPlayerNames: initialState.showPlayerNames,
     startTimestamp: null,
   };
-
-  // --- History Management ---
-  const {
-    state: currentHistoryState,
-    set: pushHistoryState,
-    reset: resetHistory,
-    undo: undoHistory,
-    redo: redoHistory,
-    canUndo,
-    canRedo,
-  } = useUndoRedo<AppState>(initialState);
-
-  // --- Tactical History Management (Separate Stack) ---
-  const initialTacticalState = {
-    tacticalDiscs: initialState.tacticalDiscs,
-    tacticalDrawings: initialState.tacticalDrawings,
-    tacticalBallPosition: initialState.tacticalBallPosition,
-  };
-  const tacticalHistory = useTacticalHistory(initialTacticalState);
-
-  // Internal callback that contains the actual logic
-  const saveStateToHistoryImpl = useCallback((newState: Partial<AppState>) => {
-    if (!currentHistoryState) return; // Should not happen
-
-    // If newState includes seasonId, ensure tournamentId is cleared if seasonId is truthy
-    // This mirrors the reducer logic for SET_SEASON_ID.
-    // Similarly, if newState includes tournamentId, ensure seasonId is cleared if tournamentId is truthy.
-    const adjustedNewState: Partial<AppState> = {
-      ...newState,
-      ...(newState.seasonId && newState.tournamentId === undefined
-          ? { tournamentId: '' }
-          : {}),
-      ...(newState.tournamentId && newState.seasonId === undefined
-          ? { seasonId: '' }
-          : {}),
-    };
-
-    // Only compare the fields present in adjustedNewState to avoid
-    // expensive deep comparison of the full state tree.
-    const hasRelevantChanges = Object.keys(adjustedNewState).some((key) => {
-      const k = key as keyof AppState;
-      const prevVal = currentHistoryState[k];
-      // For primitives, strict equality is enough; for objects/arrays,
-      // fall back to a lightweight structural check via JSON serialization.
-      if (
-        prevVal === (adjustedNewState as AppState)[k]
-      ) {
-        return false;
-      }
-      // If both are objects/arrays, do a cheap structural compare per field
-      const isObjectLike = (val: unknown) => typeof val === 'object' && val !== null;
-      if (isObjectLike(prevVal) && isObjectLike((adjustedNewState as AppState)[k])) {
-        try {
-          return JSON.stringify(prevVal) !== JSON.stringify((adjustedNewState as AppState)[k]);
-        } catch {
-          // On serialization failure, assume changed to be safe
-          return true;
-        }
-      }
-      return true;
-    });
-
-    if (!hasRelevantChanges) return; // Don't save if nothing changed in provided fields
-
-    const nextState: AppState = { ...currentHistoryState, ...adjustedNewState };
-
-    pushHistoryState(nextState);
-
-  }, [currentHistoryState, pushHistoryState]);
-
-  // Keep ref always pointing to latest implementation
-  const saveStateToHistoryRef = useRef(saveStateToHistoryImpl);
-  useEffect(() => {
-    saveStateToHistoryRef.current = saveStateToHistoryImpl;
-  }, [saveStateToHistoryImpl]);
-
-  // Stable callback that never changes reference - prevents re-render loops in useGameState
-  // This calls the latest version via the ref, so it always has current closure values
-  const saveStateToHistory = useCallback((newState: Partial<AppState>) => {
-    saveStateToHistoryRef.current(newState);
-  }, []); // Empty deps - reference never changes
-
-  // Save tactical state via dedicated tactical history manager
-  // Save tactical state via dedicated tactical history manager
-  const saveTacticalStateToHistory = useCallback((newState: Partial<TacticalState>) => {
-    tacticalHistory.save(newState);
-  }, [tacticalHistory]);
-
-  const buildGameSessionHistorySlice = useCallback((state: GameSessionState) => {
-    const slice = {
-      teamName: state.teamName,
-      opponentName: state.opponentName,
-      gameDate: state.gameDate,
-      homeScore: state.homeScore,
-      awayScore: state.awayScore,
-      gameNotes: state.gameNotes,
-      homeOrAway: state.homeOrAway,
-      numberOfPeriods: state.numberOfPeriods,
-      periodDurationMinutes: state.periodDurationMinutes,
-      currentPeriod: state.currentPeriod,
-      gameStatus: state.gameStatus,
-      selectedPlayerIds: state.selectedPlayerIds,
-      gamePersonnel: state.gamePersonnel,
-      seasonId: state.seasonId,
-      tournamentId: state.tournamentId,
-      teamId: state.teamId,
-      ageGroup: state.ageGroup,
-      tournamentLevel: state.tournamentLevel,
-      gameLocation: state.gameLocation,
-      gameTime: state.gameTime,
-      gameEvents: state.gameEvents,
-      demandFactor: state.demandFactor,
-      subIntervalMinutes: state.subIntervalMinutes,
-      completedIntervalDurations: state.completedIntervalDurations,
-      lastSubConfirmationTimeSeconds: state.lastSubConfirmationTimeSeconds,
-      showPlayerNames: state.showPlayerNames,
-      timeElapsedInSeconds: state.timeElapsedInSeconds,
-    } satisfies Partial<AppState>;
-    return slice;
-  }, []);
-
-  // --- Game Session State with Automatic History Management ---
-  // Uses useGameSessionWithHistory hook which handles history saving automatically
-  // for user actions while skipping system actions (undo/redo/load)
-  const [gameSessionState, dispatchGameSession] = useGameSessionWithHistory(
-    initialGameSessionData,
-    {
-      buildHistorySlice: buildGameSessionHistorySlice,
-      saveToHistory: saveStateToHistory,
-    }
-  );
-  // END --- Game Session State ---
 
   // --- Core Game State (Managed by Hook) ---
   const {
@@ -1444,59 +1331,27 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
   
 
-  // --- Team Name Handler ---
-  const handleTeamNameChange = (newName: string) => {
-    const trimmedName = newName.trim();
-    if (trimmedName) {
-        logger.log("Updating team name to:", trimmedName);
-        dispatchGameSession({ type: 'SET_TEAM_NAME', payload: trimmedName });
-        // REMOVED: saveStateToHistory({ teamName: trimmedName }); 
-    }
-  };
-
+  // --- Apply History State Helper ---
+  // Wraps sessionCoordination.applyHistoryState and adds field state updates
   const applyHistoryState = (state: AppState) => {
-    // No flag needed! The useGameSessionWithHistory hook automatically skips
-    // history saving for LOAD_STATE_FROM_HISTORY action type.
-
+    // Update field state (not managed by session coordination)
     setPlayersOnField(state.playersOnField);
     setOpponents(state.opponents);
     setDrawings(state.drawings);
     setAvailablePlayers(state.availablePlayers);
-    dispatchGameSession({ type: 'SET_TEAM_NAME', payload: state.teamName });
-    dispatchGameSession({ type: 'SET_HOME_SCORE', payload: state.homeScore });
-    dispatchGameSession({ type: 'SET_AWAY_SCORE', payload: state.awayScore });
-    dispatchGameSession({ type: 'SET_OPPONENT_NAME', payload: state.opponentName });
-    dispatchGameSession({ type: 'SET_GAME_DATE', payload: state.gameDate });
-    dispatchGameSession({ type: 'SET_GAME_NOTES', payload: state.gameNotes });
-    dispatchGameSession({ type: 'SET_NUMBER_OF_PERIODS', payload: state.numberOfPeriods });
-    dispatchGameSession({ type: 'SET_PERIOD_DURATION', payload: state.periodDurationMinutes });
-    dispatchGameSession({
-      type: 'LOAD_STATE_FROM_HISTORY',
-      payload: {
-        currentPeriod: state.currentPeriod,
-        gameStatus: state.gameStatus,
-        completedIntervalDurations: state.completedIntervalDurations ?? [],
-        lastSubConfirmationTimeSeconds: state.lastSubConfirmationTimeSeconds ?? 0,
-        showPlayerNames: state.showPlayerNames,
-        gameEvents: state.gameEvents,
-        selectedPlayerIds: state.selectedPlayerIds,
-        seasonId: state.seasonId,
-        tournamentId: state.tournamentId,
-        gameLocation: state.gameLocation,
-        gameTime: state.gameTime,
-        // Include all GameSessionState properties for complete restoration
-        ageGroup: state.ageGroup,
-        tournamentLevel: state.tournamentLevel,
-        teamId: state.teamId,
-        gamePersonnel: state.gamePersonnel ?? [],
-        demandFactor: state.demandFactor ?? 1,
-        subIntervalMinutes: state.subIntervalMinutes ?? 5,
-        homeOrAway: state.homeOrAway,
-      },
-    });
+
+    // Update tactical state
     setTacticalDiscs(state.tacticalDiscs || []);
     setTacticalDrawings(state.tacticalDrawings || []);
     setTacticalBallPosition(state.tacticalBallPosition || null);
+
+    // Apply session state via the hook
+    sessionCoordination.applyHistoryState(state);
+  };
+
+  // Legacy handler - delegates to session coordination
+  const handleTeamNameChange = (newName: string) => {
+    sessionCoordination.handlers.setTeamName(newName);
   };
 
   const handleUndo = () => {
@@ -1700,43 +1555,14 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setIsTeamManagerOpen(false);
   };
 
-  // Placeholder handlers for updating game info (will be passed to modal)
-  const handleOpponentNameChange = (newName: string) => {
-    logger.log('[page.tsx] handleOpponentNameChange called with:', newName);
-    dispatchGameSession({ type: 'SET_OPPONENT_NAME', payload: newName });
-  };
-  const handleGameDateChange = (newDate: string) => {
-    dispatchGameSession({ type: 'SET_GAME_DATE', payload: newDate });
-  };
-  // const handleHomeScoreChange = (newScore: number) => {
-  //   dispatchGameSession({ type: 'SET_HOME_SCORE', payload: newScore });
-  // };
-  // const handleAwayScoreChange = (newScore: number) => {
-  //   dispatchGameSession({ type: 'SET_AWAY_SCORE', payload: newScore });
-  // };
-  const handleGameNotesChange = (notes: string) => {
-    dispatchGameSession({ type: 'SET_GAME_NOTES', payload: notes });
-  };
+  // Placeholder handlers - delegate to session coordination
+  const handleOpponentNameChange = sessionCoordination.handlers.setOpponentName;
+  const handleGameDateChange = sessionCoordination.handlers.setGameDate;
+  const handleGameNotesChange = sessionCoordination.handlers.setGameNotes;
 
   // --- Handlers for Game Structure ---
-  const handleSetNumberOfPeriods = (periods: number) => { 
-    // Keep the check inside
-    if (periods === 1 || periods === 2) {
-      // Keep the type assertion for the state setter
-      const validPeriods = periods as (1 | 2); 
-      dispatchGameSession({ type: 'SET_NUMBER_OF_PERIODS', payload: validPeriods });
-      logger.log(`Number of periods set to: ${validPeriods}`);
-    } else {
-      logger.warn(`Invalid number of periods attempted: ${periods}. Must be 1 or 2.`);
-    }
-  };
-
-  const handleSetPeriodDuration = (minutes: number) => {
-    const safeMinutes = Number.isFinite(minutes) ? minutes : 1;
-    const newMinutes = Math.max(1, safeMinutes);
-    dispatchGameSession({ type: 'SET_PERIOD_DURATION', payload: newMinutes });
-    logger.log(`Period duration set to: ${newMinutes} minutes`);
-  };
+  const handleSetNumberOfPeriods = sessionCoordination.handlers.setNumberOfPeriods;
+  const handleSetPeriodDuration = sessionCoordination.handlers.setPeriodDuration;
 
   // Training Resources Modal
   const handleToggleTrainingResources = () => {
@@ -2452,57 +2278,17 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setIsSettingsModalOpen(false);
   };
 
-  // --- Placeholder Handlers for GameSettingsModal (will be implemented properly later) ---
-  const handleGameLocationChange = (location: string) => {
-    dispatchGameSession({ type: 'SET_GAME_LOCATION', payload: location });
-    // REMOVED: saveStateToHistory({ gameLocation: location });
-  };
-  const handleGameTimeChange = (time: string) => {
-    dispatchGameSession({ type: 'SET_GAME_TIME', payload: time });
-    // REMOVED: saveStateToHistory({ gameTime: time });
-  };
-
-  const handleAgeGroupChange = (group: string) => {
-    dispatchGameSession({ type: 'SET_AGE_GROUP', payload: group });
-  };
-
-  const handleTournamentLevelChange = (level: string) => {
-    dispatchGameSession({ type: 'SET_TOURNAMENT_LEVEL', payload: level });
-  };
-
-  const handleTeamIdChange = useCallback((newTeamId: string | null) => {
-    logger.log('[HomePage] handleTeamIdChange called with:', newTeamId);
-    // TeamId is stored in AppState (saved game), not GameSessionState
-    // GameSettingsModal already handles calling updateGameDetailsMutation
-    // This handler is just for any additional HomePage-level logic if needed in the future
-  }, []);
-
-  const handleSetDemandFactor = (factor: number) => {
-    dispatchGameSession({ type: 'SET_DEMAND_FACTOR', payload: factor });
-  };
-
-  // Add handler for home/away status
-  const handleSetHomeOrAway = (status: 'home' | 'away') => {
-    dispatchGameSession({ type: 'SET_HOME_OR_AWAY', payload: status });
-    // REMOVED: saveStateToHistory({ homeOrAway: status });
-  };
-
-  // --- NEW Handlers for Setting Season/Tournament ID ---
-  const handleSetSeasonId = useCallback((newSeasonId: string | undefined) => {
-    const idToSet = newSeasonId || ''; // Ensure empty string instead of null
-    logger.log('[page.tsx] handleSetSeasonId called with:', idToSet);
-    dispatchGameSession({ type: 'SET_SEASON_ID', payload: idToSet });
-  }, [dispatchGameSession]); // dispatchGameSession is stable from useGameSessionWithHistory
-
-  const handleSetTournamentId = useCallback((newTournamentId: string | undefined) => {
-    const idToSet = newTournamentId || ''; // Ensure empty string instead of null
-    logger.log('[page.tsx] handleSetTournamentId called with:', idToSet);
-    dispatchGameSession({ type: 'SET_TOURNAMENT_ID', payload: idToSet });
-  }, [dispatchGameSession]); // dispatchGameSession is stable from useGameSessionWithHistory
-
-  const handleSetGamePersonnel = useCallback((personnelIds: string[]) => {
-    dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: personnelIds });
-  }, [dispatchGameSession]);
+  // --- Handlers for GameSettingsModal (delegate to session coordination) ---
+  const handleGameLocationChange = sessionCoordination.handlers.setGameLocation;
+  const handleGameTimeChange = sessionCoordination.handlers.setGameTime;
+  const handleAgeGroupChange = sessionCoordination.handlers.setAgeGroup;
+  const handleTournamentLevelChange = sessionCoordination.handlers.setTournamentLevel;
+  const handleTeamIdChange = sessionCoordination.handlers.setTeamId;
+  const handleSetDemandFactor = sessionCoordination.handlers.setDemandFactor;
+  const handleSetHomeOrAway = sessionCoordination.handlers.setHomeOrAway;
+  const handleSetSeasonId = sessionCoordination.handlers.setSeasonId;
+  const handleSetTournamentId = sessionCoordination.handlers.setTournamentId;
+  const handleSetGamePersonnel = sessionCoordination.handlers.setGamePersonnel;
 
   // --- AGGREGATE EXPORT HANDLERS --- 
   
