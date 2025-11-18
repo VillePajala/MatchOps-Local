@@ -6,11 +6,7 @@
 import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { GameContainer } from './GameContainer';
-import type { GameContainerProps } from './GameContainer';
-import { DEFAULT_GAME_ID } from '@/config/constants';
-import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
 import { TestFixtures } from '../../../../tests/fixtures';
-import type { GameContainerViewModel } from '@/viewModels/gameContainer';
 
 const PlayerBarMock = jest.fn();
 const GameInfoBarMock = jest.fn();
@@ -63,17 +59,20 @@ describe('GameContainer', () => {
     });
   });
 
-  it('returns null when no game session state', () => {
-    const props = createGameContainerProps({
-      gameSessionState: null as unknown as GameContainerProps['gameSessionState'],
-    });
+  it('renders even when no game session state (renders shell)', () => {
+    const props = createGameContainerProps();
+    // GameSessionState is now in fieldProps
+    props.fieldProps.gameSessionState = null as unknown as typeof props.fieldProps.gameSessionState;
 
     const { container } = render(<GameContainer {...props} />);
-    expect(container.firstChild).toBeNull();
+    // GameContainer always renders the shell, even with null state
+    expect(container.firstChild).not.toBeNull();
+    expect(container.querySelector('[data-testid="home-page"]')).toBeInTheDocument();
   });
 
   it('computes isGameLoaded for control bar', () => {
     const props = createGameContainerProps();
+    props.controlBarProps.isGameLoaded = true;
 
     render(<GameContainer {...props} />);
     expect(ControlBarMock).toHaveBeenCalled();
@@ -81,7 +80,8 @@ describe('GameContainer', () => {
 
     jest.clearAllMocks();
 
-    render(<GameContainer {...props} currentGameId={DEFAULT_GAME_ID} />);
+    props.controlBarProps.isGameLoaded = false;
+    render(<GameContainer {...props} />);
     expect(ControlBarMock.mock.calls[0][0].isGameLoaded).toBe(false);
   });
 
@@ -108,26 +108,10 @@ describe('GameContainer', () => {
 
   it('uses view-model data when provided (parity with props)', () => {
     const props = createGameContainerProps({
-      gameSessionState: {
-        ...initialGameSessionStatePlaceholder,
-        teamName: 'Team A',
-        opponentName: 'Team B',
-        homeScore: 2,
-        awayScore: 1,
-        gameEvents: [{ id: 'e1', type: 'goal', time: 10, scorerId: 'p1' }],
-      },
-      playersForCurrentGame: [
-        { id: 'p1', name: 'Alice' },
-        { id: 'p2', name: 'Bob' },
-      ],
-      draggingPlayerFromBarInfo: { id: 'p2', name: 'Bob' },
-    });
-
-    const vm: GameContainerViewModel = {
       playerBar: {
-        players: [{ id: 'p3', name: 'VM-Player' }],
+        players: [{ id: 'p3', name: 'VM-Player' } as unknown as (typeof props)['playerBar']['players'][0]],
         selectedPlayerIdFromBar: 'p3',
-        gameEvents: [{ id: 'e2', type: 'goal', time: 20, scorerId: 'p3' }],
+        gameEvents: [{ id: 'e2', type: 'goal', time: 20, scorerId: 'p3' } as unknown as (typeof props)['playerBar']['gameEvents'][0]],
       },
       gameInfo: {
         teamName: 'VM Team',
@@ -136,21 +120,11 @@ describe('GameContainer', () => {
         awayScore: 8,
         homeOrAway: 'home',
       },
-      timer: {
-        timeElapsedInSeconds: 0,
-        isTimerRunning: false,
-        subAlertLevel: 'none',
-        lastSubConfirmationTimeSeconds: 0,
-        numberOfPeriods: 2,
-        periodDurationMinutes: 10,
-        currentPeriod: 1,
-        gameStatus: 'notStarted',
-      },
-    };
+    });
 
-    render(<GameContainer {...props} viewModel={vm} />);
+    render(<GameContainer {...props} />);
 
-    // PlayerBar should receive VM values
+    // PlayerBar should receive the provided values
     const playerBarCall = PlayerBarMock.mock.calls[0][0];
     expect(playerBarCall.players).toEqual([{ id: 'p3', name: 'VM-Player' }]);
     expect(playerBarCall.selectedPlayerIdFromBar).toBe('p3');
