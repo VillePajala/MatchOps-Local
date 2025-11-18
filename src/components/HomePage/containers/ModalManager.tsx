@@ -1,97 +1,37 @@
-/**
- * ModalManager Container
- *
- * Manages all modal rendering for the HomePage.
- * Extracted from HomePage.tsx as part of P0 refactoring.
- *
- * This component is responsible for:
- * - Rendering all application modals
- * - Managing modal-specific state and handlers
- * - Coordinating between modals and the main application
- *
- * @param props - All modal-related props and handlers from useGameOrchestration
- */
-
 import React from 'react';
-import ModalPortal from '@/components/ModalPortal';
-import logger from '@/utils/logger';
 import { useTranslation } from 'react-i18next';
-
-// Modal Components
+import ModalPortal from '@/components/ModalPortal';
+import TrainingResourcesModal from '@/components/TrainingResourcesModal';
+import InstructionsModal from '@/components/InstructionsModal';
+import PersonnelManagerModal from '@/components/PersonnelManagerModal';
+import TeamManagerModal from '@/components/TeamManagerModal';
 import GoalLogModal from '@/components/GoalLogModal';
 import GameStatsModal from '@/components/GameStatsModal';
-import TrainingResourcesModal from '@/components/TrainingResourcesModal';
 import LoadGameModal from '@/components/LoadGameModal';
 import NewGameSetupModal from '@/components/NewGameSetupModal';
 import RosterSettingsModal from '@/components/RosterSettingsModal';
+import SeasonTournamentManagementModal from '@/components/SeasonTournamentManagementModal';
 import GameSettingsModal from '@/components/GameSettingsModal';
 import SettingsModal from '@/components/SettingsModal';
-import SeasonTournamentManagementModal from '@/components/SeasonTournamentManagementModal';
-import TeamManagerModal from '@/components/TeamManagerModal';
-import InstructionsModal from '@/components/InstructionsModal';
 import PlayerAssessmentModal from '@/components/PlayerAssessmentModal';
 import ConfirmationModal from '@/components/ConfirmationModal';
-import ErrorBoundary from '@/components/ErrorBoundary';
-
-// Types
 import type {
   Player,
-  Team,
   GameEvent,
-  PlayerAssessment,
+  PlayerStatRow,
+  SavedGamesCollection,
   Season,
   Tournament,
-  AppState,
+  Team,
   Personnel,
-  PlayerStatRow,
+  PlayerAssessment,
+  AppState,
 } from '@/types';
-import type { UseGameOrchestrationReturn } from '../hooks/useGameOrchestration';
-import { useModalContext } from '@/contexts/ModalProvider';
-import { useToast } from '@/contexts/ToastProvider';
-import { exportFullBackup } from '@/utils/fullBackup';
-import { saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
+import type { GameSessionState } from '@/hooks/useGameSessionReducer';
+import type { PersonnelManagerReturn } from '@/hooks/usePersonnelManager';
 import type { UseMutationResult } from '@tanstack/react-query';
-import type { ReducerDrivenModals } from '@/types';
 
-type MutationMetaBase = {
-  source: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
-  targetId?: string;
-  expectedState?: {
-    seasonId?: string;
-    tournamentId?: string;
-    gameLocation?: string;
-    ageGroup?: string;
-    tournamentLevel?: string;
-    selectedPlayerIds?: string[];
-    gamePersonnel?: string[];
-    gameTime?: string;
-    gameDate?: string;
-    teamName?: string;
-    opponentName?: string;
-    demandFactor?: number;
-    numberOfPeriods?: number;
-    periodDurationMinutes?: number;
-    homeOrAway?: 'home' | 'away';
-  };
-  expectedIsPlayed?: boolean;
-};
-
-type MutationMeta = MutationMetaBase & { sequence: number };
-
-export interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
-  // Modal-specific states
-  selectedPlayerForStats: Player | null;
-  isTeamManagerOpen: boolean;
-  isTeamRosterModalOpen: boolean;
-  selectedTeamForRoster: string | null;
-  showNoPlayersConfirm: boolean;
-  showHardResetConfirm: boolean;
-  showSaveBeforeNewConfirm: boolean;
-  showStartNewConfirm: boolean;
-  gameIdentifierForSave: string;
-  isTeamReassignModalOpen: boolean;
-  orphanedGameInfo: { teamId: string; teamName?: string } | null;
-  availableTeams: Team[];
+interface LoadGameState {
   isLoadingGamesList: boolean;
   loadGamesListError: string | null;
   isGameLoading: boolean;
@@ -99,610 +39,525 @@ export interface ModalManagerProps extends Partial<UseGameOrchestrationReturn> {
   isGameDeleting: boolean;
   gameDeleteError: string | null;
   processingGameId: string | null;
-  isPlayed: boolean;
-  playerIdsForNewGame: string[] | null;
-  newGameDemandFactor: number;
-  defaultTeamNameSetting: string;
-  appLanguage: string;
-  isInstructionsModalOpen: boolean;
-  personnel: Personnel[];
-
-  // Handlers
-  handleToggleGoalLogModal: () => void;
-  handleAddGoalEvent: (playerId: string, assistId?: string) => void;
-  handleLogOpponentGoal: (currentTime: number) => void;
-  handleUpdateGameEvent: (event: GameEvent) => void;
-  handleDeleteGameEvent: (eventId: string) => Promise<boolean>;
-  handleToggleGameStatsModal: () => void;
-  handleExportOneExcel: (gameId: string) => void;
-  handleExportAggregateExcel: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
-  handleExportPlayerExcel: (playerId: string, playerData: PlayerStatRow, gameIds: string[]) => void;
-  handleGameLogClick: (gameId: string) => void;
-  handleCloseLoadGameModal: () => void;
-  handleLoadGame: (gameId: string) => void;
-  handleDeleteGame: (gameId: string) => void;
-  handleExportOneJson: (gameId: string) => void;
-  reducerDrivenModals: Pick<ReducerDrivenModals, 'newGameSetup' | 'roster'>;
-  setSelectedTeamForRoster: (teamId: string | null) => void;
-  handleStartNewGameWithSetup: (data: unknown) => void;
-  handleCancelNewGameSetup: () => void;
-  setNewGameDemandFactor: (factor: number) => void;
-  closeRosterModal: () => void;
-  handleUpdatePlayerForModal: (playerId: string, updates: Partial<Omit<Player, 'id'>>) => Promise<void>;
-  handleRenamePlayerForModal: (playerId: string, playerData: { name: string; nickname?: string }) => void;
-  handleSetJerseyNumberForModal: (playerId: string, jerseyNumber: string) => void;
-  handleSetPlayerNotesForModal: (playerId: string, notes: string) => void;
-  handleToggleGoalieForModal?: (playerId: string) => void;
-  handleRemovePlayerForModal: (playerId: string) => void;
-  handleAddPlayerForModal: (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => void;
-  handleOpenPlayerStats: (playerId: string) => void;
-  handleCloseSeasonTournamentModal: () => void;
-  addSeasonMutation?: UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
-  addTournamentMutation?: UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>;
-  updateSeasonMutation?: UseMutationResult<Season | null, Error, Season, unknown>;
-  deleteSeasonMutation?: UseMutationResult<boolean, Error, string, unknown>;
-  updateTournamentMutation?: UseMutationResult<Tournament | null, Error, Tournament, unknown>;
-  deleteTournamentMutation?: UseMutationResult<boolean, Error, string, unknown>;
-  handleCloseGameSettingsModal: () => void;
-  handleTeamNameChange: (name: string) => void;
-  handleOpponentNameChange: (name: string) => void;
-  handleGameDateChange: (date: string) => void;
-  handleGameLocationChange: (location: string) => void;
-  handleGameTimeChange: (time: string) => void;
-  handleGameNotesChange: (notes: string) => void;
-  handleAgeGroupChange: (ageGroup: string) => void;
-  handleTournamentLevelChange: (level: string) => void;
-  handleAwardFairPlayCard: (playerId: string | null, time: number) => void;
-  handleSetNumberOfPeriods: (periods: number) => void;
-  handleSetPeriodDuration: (minutes: number) => void;
-  handleSetDemandFactor: (factor: number) => void;
-  handleSetSeasonId: (id: string | undefined) => void;
-  handleSetTournamentId: (id: string | undefined) => void;
-  handleSetHomeOrAway: (homeOrAway: 'home' | 'away') => void;
-  handleSetIsPlayed: (played: boolean) => void;
-  handleUpdateSelectedPlayers: (playerIds: string[]) => void;
-  handleSetGamePersonnel?: (personnelIds: string[]) => void;
-  updateGameDetailsMutation?: UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState>; meta?: MutationMeta }, unknown>;
-  handleTeamIdChange: (teamId: string | null) => void;
-  handleCloseSettingsModal: () => void;
-  handleShowAppGuide: () => void;
-  handleHardResetApp: () => void;
-  onDataImportSuccess?: () => void;
-  closePlayerAssessmentModal: () => void;
-  handleSavePlayerAssessment: (playerId: string, assessment: Partial<PlayerAssessment>) => void;
-  handleDeletePlayerAssessment: (playerId: string) => void;
-  handleCloseTeamManagerModal: () => void;
-  handleManageTeamRoster: (teamId: string) => void;
-  handleCloseTeamRosterModal: () => void;
-  handleBackToTeamManager: () => void;
-  handleToggleTrainingResources: () => void;
-  handleToggleInstructionsModal: () => void;
-  setShowNoPlayersConfirm: (show: boolean) => void;
-  handleNoPlayersConfirmed: () => void;
-  setShowHardResetConfirm: (show: boolean) => void;
-  handleHardResetConfirmed: () => void;
-  setShowSaveBeforeNewConfirm?: (show: boolean) => void;
-  handleSaveBeforeNewConfirmed: () => void;
-  handleSaveBeforeNewCancelled: () => void;
-  setShowStartNewConfirm: (show: boolean) => void;
-  handleStartNewConfirmed: () => void;
-  setIsTeamReassignModalOpen: (open: boolean) => void;
-  handleTeamReassignment: (teamId: string | null) => void;
 }
 
-export function ModalManager(props: ModalManagerProps) {
+interface SeasonTournamentMutations {
+  addSeason?: UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
+  addTournament?: UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>;
+  updateSeason?: UseMutationResult<Season | null, Error, Season, unknown>;
+  deleteSeason?: UseMutationResult<boolean, Error, string, unknown>;
+  updateTournament?: UseMutationResult<Tournament | null, Error, Tournament, unknown>;
+  deleteTournament?: UseMutationResult<boolean, Error, string, unknown>;
+}
+
+interface ModalManagerState {
+  isTrainingResourcesOpen: boolean;
+  isInstructionsModalOpen: boolean;
+  isPersonnelManagerOpen: boolean;
+  isTeamManagerOpen: boolean;
+  isGoalLogModalOpen: boolean;
+  isGameStatsModalOpen: boolean;
+  isLoadGameModalOpen: boolean;
+  isNewGameSetupModalOpen: boolean;
+  isRosterModalOpen: boolean;
+  isSeasonTournamentModalOpen: boolean;
+  isGameSettingsModalOpen: boolean;
+  isSettingsModalOpen: boolean;
+  isPlayerAssessmentModalOpen: boolean;
+  isTeamReassignModalOpen: boolean;
+  showNoPlayersConfirm: boolean;
+  showHardResetConfirm: boolean;
+  showSaveBeforeNewConfirm: boolean;
+  showStartNewConfirm: boolean;
+  showResetFieldConfirm: boolean;
+}
+
+interface ModalManagerData {
+  gameSessionState: GameSessionState;
+  availablePlayers: Player[];
+  playersForCurrentGame: Player[];
+  savedGames: SavedGamesCollection;
+  currentGameId: string | null;
+  teams: Team[];
+  seasons: Season[];
+  tournaments: Tournament[];
+  masterRoster: Player[];
+  personnel: Personnel[];
+  personnelManager: Pick<PersonnelManagerReturn, 'addPersonnel' | 'updatePersonnel' | 'removePersonnel' | 'isLoading'>;
+  playerAssessments: Record<string, PlayerAssessment>;
+  selectedPlayerForStats: Player | null;
+  playerIdsForNewGame: string[] | null;
+  newGameDemandFactor: number;
+  availableTeams: Team[];
+  orphanedGameInfo: { teamId: string; teamName?: string } | null;
+  appLanguage: string;
+  defaultTeamNameSetting: string;
+  gameIdentifierForSave: string;
+  isPlayed: boolean;
+  isRosterUpdating: boolean;
+  rosterError: string | null;
+  loadGameState: LoadGameState;
+  seasonTournamentMutations: SeasonTournamentMutations;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  updateGameDetailsMutation?: UseMutationResult<AppState | null, Error, any, unknown>;
+}
+
+interface ModalManagerHandlers {
+  toggleTrainingResources: () => void;
+  toggleInstructionsModal: () => void;
+  closePersonnelManager: () => void;
+  closeTeamManagerModal: () => void;
+  toggleGoalLogModal: () => void;
+  addGoalEvent: (playerId: string, assistId?: string) => void;
+  logOpponentGoal: (timeSeconds: number) => void;
+  updateGameEvent: (event: GameEvent) => void;
+  deleteGameEvent: (eventId: string) => Promise<boolean>;
+  toggleGameStatsModal: () => void;
+  exportOneExcel: (gameId: string) => void;
+  exportAggregateExcel: (gameIds: string[], aggregateStats: PlayerStatRow[]) => void;
+  exportPlayerExcel: (playerId: string, playerData: PlayerStatRow, gameIds: string[]) => void;
+  gameLogClick: (gameId: string) => void;
+  closeLoadGameModal: () => void;
+  loadGame: (gameId: string) => void;
+  deleteGame: (gameId: string) => void;
+  exportOneJson: (gameId: string) => void;
+  setSelectedTeamForRoster: (teamId: string | null) => void;
+  setNewGameDemandFactor: (factor: number) => void;
+  startNewGameWithSetup: (
+    initialSelectedPlayerIds: string[],
+    homeTeamName: string,
+    opponentName: string,
+    gameDate: string,
+    gameLocation: string,
+    gameTime: string,
+    seasonId: string | null,
+    tournamentId: string | null,
+    numPeriods: 1 | 2,
+    periodDuration: number,
+    homeOrAway: 'home' | 'away',
+    demandFactor: number,
+    ageGroup: string,
+    tournamentLevel: string,
+    isPlayedParam: boolean,
+    teamId: string | null,
+    availablePlayersForGame: Player[],
+    selectedPersonnelIds: string[]
+  ) => void;
+  cancelNewGameSetup: () => void;
+  closeRosterModal: () => void;
+  updatePlayerForModal: (playerId: string, updates: Partial<Omit<Player, 'id'>>) => Promise<void>;
+  renamePlayerForModal: (playerId: string, playerData: { name: string; nickname?: string }) => void;
+  setJerseyNumberForModal: (playerId: string, jerseyNumber: string) => void;
+  setPlayerNotesForModal: (playerId: string, notes: string) => void;
+  removePlayerForModal: (playerId: string) => void;
+  addPlayerForModal: (playerData: { name: string; jerseyNumber: string; notes: string; nickname: string }) => void;
+  openPlayerStats: (playerId: string) => void;
+  closeSeasonTournamentModal: () => void;
+  closeGameSettingsModal: () => void;
+  teamNameChange: (name: string) => void;
+  opponentNameChange: (name: string) => void;
+  gameDateChange: (date: string) => void;
+  gameLocationChange: (location: string) => void;
+  gameTimeChange: (time: string) => void;
+  gameNotesChange: (notes: string) => void;
+  ageGroupChange: (ageGroup: string) => void;
+  tournamentLevelChange: (level: string) => void;
+  awardFairPlayCard: (playerId: string | null, time: number) => void;
+  setNumberOfPeriods: (periods: number) => void;
+  setPeriodDuration: (minutes: number) => void;
+  setDemandFactor: (factor: number) => void;
+  setSeasonId: (id: string | undefined) => void;
+  setTournamentId: (id: string | undefined) => void;
+  setHomeOrAway: (value: 'home' | 'away') => void;
+  setIsPlayed: (played: boolean) => void;
+  updateSelectedPlayers: (playerIds: string[]) => void;
+  setGamePersonnel?: (personnelIds: string[]) => void;
+  teamIdChange: (teamId: string | null) => void;
+  closeSettingsModal: () => void;
+  setAppLanguage: (lang: string) => void;
+  setDefaultTeamName: (name: string) => void;
+  showAppGuide: () => void;
+  hardResetApp: () => void;
+  closePlayerAssessmentModal: () => void;
+  savePlayerAssessment: (playerId: string, assessment: Partial<PlayerAssessment>) => void;
+  deletePlayerAssessment: (playerId: string) => void;
+  teamReassignment: (teamId: string | null) => void;
+  setIsTeamReassignModalOpen: (open: boolean) => void;
+  confirmNoPlayers: () => void;
+  setShowNoPlayersConfirm: (open: boolean) => void;
+  confirmHardReset: () => void;
+  setShowHardResetConfirm: (open: boolean) => void;
+  saveBeforeNewConfirmed: () => void;
+  saveBeforeNewCancelled: () => void;
+  setShowStartNewConfirm: (open: boolean) => void;
+  startNewConfirmed: () => void;
+  setShowResetFieldConfirm: (open: boolean) => void;
+  resetFieldConfirmed: () => void;
+  openSettingsModal: () => void;
+  onCreateBackup: () => void;
+  onDataImportSuccess?: () => void;
+  manageTeamRosterFromNewGame: (teamId?: string) => void;
+}
+
+export interface ModalManagerProps {
+  state: ModalManagerState;
+  data: ModalManagerData;
+  handlers: ModalManagerHandlers;
+}
+
+export function ModalManager({ state, data, handlers }: ModalManagerProps) {
   const { t } = useTranslation();
-  const { showToast } = useToast();
-
-  const {
-    isGoalLogModalOpen,
-    isGameStatsModalOpen,
-    isTrainingResourcesOpen,
-    isLoadGameModalOpen,
-    isNewGameSetupModalOpen,
-    isRosterModalOpen,
-    isSeasonTournamentModalOpen,
-    isGameSettingsModalOpen,
-    isSettingsModalOpen,
-    isPlayerAssessmentModalOpen,
-  } = useModalContext();
-
-  const {
-    gameSessionState,
-    availablePlayers,
-    playersForCurrentGame,
-    isRosterUpdating,
-    rosterError,
-    savedGames,
-    currentGameId,
-    masterRosterQueryResultData,
-    seasons,
-    tournaments,
-    teams,
-    playerAssessments,
-    timeElapsedInSeconds,
-    selectedPlayerForStats,
-    isTeamManagerOpen,
-    showNoPlayersConfirm,
-    showHardResetConfirm,
-    showSaveBeforeNewConfirm,
-    showStartNewConfirm,
-    gameIdentifierForSave,
-    isTeamReassignModalOpen,
-    orphanedGameInfo,
-    availableTeams,
-    isLoadingGamesList,
-    loadGamesListError,
-    isGameLoading,
-    gameLoadError,
-    isGameDeleting,
-    gameDeleteError,
-    processingGameId,
-    isPlayed,
-    playerIdsForNewGame,
-    newGameDemandFactor,
-    defaultTeamNameSetting,
-    appLanguage,
-    isInstructionsModalOpen,
-    personnel,
-    // Handlers
-    handleToggleGoalLogModal,
-    handleAddGoalEvent,
-    handleLogOpponentGoal,
-    handleUpdateGameEvent,
-    handleDeleteGameEvent,
-    handleToggleGameStatsModal,
-    handleExportOneExcel,
-    handleExportAggregateExcel,
-    handleExportPlayerExcel,
-    handleGameLogClick,
-    handleCloseLoadGameModal,
-    handleLoadGame,
-    handleDeleteGame,
-    handleExportOneJson,
-    reducerDrivenModals,
-    setSelectedTeamForRoster,
-    handleStartNewGameWithSetup,
-    handleCancelNewGameSetup,
-    setNewGameDemandFactor,
-    closeRosterModal,
-    handleUpdatePlayerForModal,
-    handleRenamePlayerForModal,
-    handleSetJerseyNumberForModal,
-    handleSetPlayerNotesForModal,
-    handleRemovePlayerForModal,
-    handleAddPlayerForModal,
-    handleOpenPlayerStats,
-    handleCloseSeasonTournamentModal,
-    addSeasonMutation,
-    addTournamentMutation,
-    updateSeasonMutation,
-    deleteSeasonMutation,
-    updateTournamentMutation,
-    deleteTournamentMutation,
-    handleCloseGameSettingsModal,
-    handleTeamNameChange,
-    handleOpponentNameChange,
-    handleGameDateChange,
-    handleGameLocationChange,
-    handleGameTimeChange,
-    handleGameNotesChange,
-    handleAgeGroupChange,
-    handleTournamentLevelChange,
-    handleAwardFairPlayCard,
-    handleSetNumberOfPeriods,
-    handleSetPeriodDuration,
-    handleSetDemandFactor,
-    handleSetSeasonId,
-    handleSetTournamentId,
-    handleSetHomeOrAway,
-    handleSetIsPlayed,
-    handleUpdateSelectedPlayers,
-    handleSetGamePersonnel,
-    updateGameDetailsMutation,
-    handleTeamIdChange,
-    handleCloseSettingsModal,
-    setAppLanguage,
-    setDefaultTeamNameSetting,
-    handleShowAppGuide,
-    handleHardResetApp,
-    onDataImportSuccess,
-    closePlayerAssessmentModal,
-    handleSavePlayerAssessment,
-    handleDeletePlayerAssessment,
-    handleCloseTeamManagerModal,
-    handleToggleTrainingResources,
-    handleToggleInstructionsModal,
-    setShowNoPlayersConfirm,
-    handleNoPlayersConfirmed,
-    setShowHardResetConfirm,
-    handleHardResetConfirmed,
-    handleSaveBeforeNewConfirmed,
-    handleSaveBeforeNewCancelled,
-    setShowStartNewConfirm,
-    handleStartNewConfirmed,
-    setIsTeamReassignModalOpen,
-    handleTeamReassignment,
-  } = props;
-
-  // Diagnostic: log when season/tournament modal is requested but mutations are not ready
-  const hasSeasonModalMutations = !!(
-    addSeasonMutation &&
-    addTournamentMutation &&
-    updateSeasonMutation &&
-    deleteSeasonMutation &&
-    updateTournamentMutation &&
-    deleteTournamentMutation
-  );
-
-  React.useEffect(() => {
-    if (isSeasonTournamentModalOpen && !hasSeasonModalMutations) {
-      logger.warn('[ModalManager] Season/Tournament mutations not ready', {
-        addSeason: !!addSeasonMutation,
-        addTournament: !!addTournamentMutation,
-        updateSeason: !!updateSeasonMutation,
-        deleteSeason: !!deleteSeasonMutation,
-        updateTournament: !!updateTournamentMutation,
-        deleteTournament: !!deleteTournamentMutation,
-      });
-    }
-  }, [
-    isSeasonTournamentModalOpen,
-    hasSeasonModalMutations,
-    addSeasonMutation,
-    addTournamentMutation,
-    updateSeasonMutation,
-    deleteSeasonMutation,
-    updateTournamentMutation,
-    deleteTournamentMutation,
-  ]);
-
-  if (!gameSessionState) return null;
-
   return (
     <ModalPortal>
-      {/* All modals are rendered in a portal to ensure top-most stacking */}
       <>
-      {/* Training Resources Modal */}
-      <TrainingResourcesModal
-        isOpen={isTrainingResourcesOpen || false}
-        onClose={handleToggleTrainingResources || (() => {})}
-      />
+        <TrainingResourcesModal
+          isOpen={state.isTrainingResourcesOpen}
+          onClose={handlers.toggleTrainingResources}
+        />
 
-      {/* Instructions Modal */}
-      <InstructionsModal
-        isOpen={isInstructionsModalOpen || false}
-        onClose={handleToggleInstructionsModal || (() => {})}
-      />
+        <InstructionsModal
+          isOpen={state.isInstructionsModalOpen}
+          onClose={handlers.toggleInstructionsModal}
+        />
 
-      {/* Team Manager Modal */}
-      <ErrorBoundary>
+        <PersonnelManagerModal
+          isOpen={state.isPersonnelManagerOpen}
+          onClose={handlers.closePersonnelManager}
+          personnel={data.personnel}
+          onAddPersonnel={data.personnelManager.addPersonnel}
+          onUpdatePersonnel={data.personnelManager.updatePersonnel}
+          onRemovePersonnel={data.personnelManager.removePersonnel}
+          isUpdating={data.personnelManager.isLoading}
+        />
+
         <TeamManagerModal
-          isOpen={isTeamManagerOpen || false}
-          onClose={handleCloseTeamManagerModal || (() => {})}
-          teams={teams || []}
-          masterRoster={masterRosterQueryResultData || []}
+          isOpen={state.isTeamManagerOpen}
+          onClose={handlers.closeTeamManagerModal}
+          teams={data.teams}
+          masterRoster={data.masterRoster}
         />
-      </ErrorBoundary>
 
-      {/* Goal Log Modal */}
-      <GoalLogModal
-        isOpen={isGoalLogModalOpen || false}
-        onClose={handleToggleGoalLogModal || (() => {})}
-        onLogGoal={handleAddGoalEvent || (() => {})}
-        onLogOpponentGoal={handleLogOpponentGoal || (() => {})}
-        availablePlayers={playersForCurrentGame || []}
-        currentTime={gameSessionState.timeElapsedInSeconds}
-        currentGameId={currentGameId || null}
-        gameEvents={gameSessionState.gameEvents}
-        onUpdateGameEvent={handleUpdateGameEvent || (() => {})}
-        onDeleteGameEvent={handleDeleteGameEvent || (() => {})}
-      />
+        <GoalLogModal
+          isOpen={state.isGoalLogModalOpen}
+          onClose={handlers.toggleGoalLogModal}
+          onLogGoal={handlers.addGoalEvent}
+          onLogOpponentGoal={handlers.logOpponentGoal}
+          availablePlayers={data.playersForCurrentGame}
+          currentTime={data.gameSessionState.timeElapsedInSeconds}
+          currentGameId={data.currentGameId}
+          gameEvents={data.gameSessionState.gameEvents}
+          onUpdateGameEvent={handlers.updateGameEvent}
+          onDeleteGameEvent={handlers.deleteGameEvent}
+        />
 
-      {/* Game Stats Modal */}
-      {isGameStatsModalOpen && (
-        <GameStatsModal
-          isOpen={isGameStatsModalOpen}
-          onClose={handleToggleGameStatsModal || (() => {})}
-          teamName={gameSessionState.teamName}
-          opponentName={gameSessionState.opponentName}
-          gameDate={gameSessionState.gameDate}
-          homeScore={gameSessionState.homeScore}
-          awayScore={gameSessionState.awayScore}
-          homeOrAway={gameSessionState.homeOrAway}
-          gameLocation={gameSessionState.gameLocation}
-          gameTime={gameSessionState.gameTime}
-          numPeriods={gameSessionState.numberOfPeriods}
-          periodDurationMinutes={gameSessionState.periodDurationMinutes}
-          availablePlayers={availablePlayers || []}
-          gameEvents={gameSessionState.gameEvents}
-          gameNotes={gameSessionState.gameNotes}
-          onUpdateGameEvent={handleUpdateGameEvent || (() => {})}
-          selectedPlayerIds={gameSessionState.selectedPlayerIds}
-          savedGames={savedGames || {}}
-          currentGameId={currentGameId || null}
-          onDeleteGameEvent={handleDeleteGameEvent || (() => {})}
-          onExportOneExcel={handleExportOneExcel || (() => {})}
-          onExportAggregateExcel={handleExportAggregateExcel || (() => {})}
-          onExportPlayerExcel={handleExportPlayerExcel || (() => {})}
-          initialSelectedPlayerId={selectedPlayerForStats?.id}
-          onGameClick={handleGameLogClick || (() => {})}
-          masterRoster={masterRosterQueryResultData || []}
+        {state.isGameStatsModalOpen && (
+          <GameStatsModal
+            isOpen={state.isGameStatsModalOpen}
+            onClose={handlers.toggleGameStatsModal}
+            teamName={data.gameSessionState.teamName}
+            opponentName={data.gameSessionState.opponentName}
+            gameDate={data.gameSessionState.gameDate}
+            homeScore={data.gameSessionState.homeScore}
+            awayScore={data.gameSessionState.awayScore}
+            homeOrAway={data.gameSessionState.homeOrAway}
+            gameLocation={data.gameSessionState.gameLocation}
+            gameTime={data.gameSessionState.gameTime}
+            numPeriods={data.gameSessionState.numberOfPeriods}
+            periodDurationMinutes={data.gameSessionState.periodDurationMinutes}
+            availablePlayers={data.playersForCurrentGame}
+            gameEvents={data.gameSessionState.gameEvents}
+            gameNotes={data.gameSessionState.gameNotes}
+            gamePersonnel={data.gameSessionState.gamePersonnel}
+            personnelDirectory={data.personnel}
+            onUpdateGameEvent={handlers.updateGameEvent}
+            selectedPlayerIds={data.gameSessionState.selectedPlayerIds}
+            savedGames={data.savedGames}
+            currentGameId={data.currentGameId}
+            onDeleteGameEvent={handlers.deleteGameEvent}
+            onExportOneExcel={handlers.exportOneExcel}
+            onExportAggregateExcel={handlers.exportAggregateExcel}
+            onExportPlayerExcel={handlers.exportPlayerExcel}
+            initialSelectedPlayerId={data.selectedPlayerForStats?.id}
+            onGameClick={handlers.gameLogClick}
+            masterRoster={data.masterRoster}
+          onOpenSettings={handlers.openSettingsModal}
         />
       )}
 
-      {/* Load Game Modal */}
-      <LoadGameModal
-        isOpen={isLoadGameModalOpen || false}
-        onClose={handleCloseLoadGameModal || (() => {})}
-        savedGames={savedGames || {}}
-        onLoad={handleLoadGame || (() => {})}
-        onDelete={handleDeleteGame || (() => {})}
-        onExportOneJson={handleExportOneJson || (() => {})}
-        onExportOneExcel={handleExportOneExcel || (() => {})}
-        currentGameId={currentGameId || undefined}
-        currentSessionHomeScore={gameSessionState.homeScore}
-        currentSessionAwayScore={gameSessionState.awayScore}
-        isLoadingGamesList={isLoadingGamesList || false}
-        loadGamesListError={loadGamesListError || null}
-        isGameLoading={isGameLoading || false}
-        gameLoadError={gameLoadError || null}
-        isGameDeleting={isGameDeleting || false}
-        gameDeleteError={gameDeleteError || null}
-        processingGameId={processingGameId || null}
-        seasons={seasons || []}
-        tournaments={tournaments || []}
-        teams={teams || []}
-      />
+        <LoadGameModal
+          isOpen={state.isLoadGameModalOpen}
+          onClose={handlers.closeLoadGameModal}
+          savedGames={data.savedGames}
+          onLoad={handlers.loadGame}
+          onDelete={handlers.deleteGame}
+          onExportOneJson={handlers.exportOneJson}
+          onExportOneExcel={handlers.exportOneExcel}
+          currentGameId={data.currentGameId || undefined}
+          currentSessionHomeScore={data.gameSessionState.homeScore}
+          currentSessionAwayScore={data.gameSessionState.awayScore}
+          isLoadingGamesList={data.loadGameState.isLoadingGamesList}
+          loadGamesListError={data.loadGameState.loadGamesListError}
+          isGameLoading={data.loadGameState.isGameLoading}
+          gameLoadError={data.loadGameState.gameLoadError}
+          isGameDeleting={data.loadGameState.isGameDeleting}
+          gameDeleteError={data.loadGameState.gameDeleteError}
+          processingGameId={data.loadGameState.processingGameId}
+          seasons={data.seasons}
+          tournaments={data.tournaments}
+          teams={data.teams}
+        />
 
-      {/* New Game Setup Modal */}
-      {isNewGameSetupModalOpen && (
-        <NewGameSetupModal
-          isOpen={isNewGameSetupModalOpen}
-          initialPlayerSelection={playerIdsForNewGame || null}
-          demandFactor={newGameDemandFactor || 1}
-          onDemandFactorChange={setNewGameDemandFactor || (() => {})}
+        {state.isNewGameSetupModalOpen && (
+          <NewGameSetupModal
+            isOpen={state.isNewGameSetupModalOpen}
+            initialPlayerSelection={data.playerIdsForNewGame}
+            demandFactor={data.newGameDemandFactor}
+            onDemandFactorChange={handlers.setNewGameDemandFactor}
           onManageTeamRoster={(teamId) => {
-            reducerDrivenModals.newGameSetup.close();
-            if (setSelectedTeamForRoster) setSelectedTeamForRoster(teamId);
-            reducerDrivenModals.roster.open();
+            handlers.manageTeamRosterFromNewGame(teamId);
           }}
-          onStart={handleStartNewGameWithSetup || (() => {})}
-          onCancel={handleCancelNewGameSetup || (() => {})}
-          masterRoster={masterRosterQueryResultData || []}
-          seasons={seasons || []}
-          tournaments={tournaments || []}
-          teams={teams || []}
-          personnel={personnel || []}
+            onStart={handlers.startNewGameWithSetup}
+            onCancel={handlers.cancelNewGameSetup}
+            masterRoster={data.masterRoster}
+            seasons={data.seasons}
+            tournaments={data.tournaments}
+            teams={data.teams}
+            personnel={data.personnel}
+          />
+        )}
+
+        <RosterSettingsModal
+          isOpen={state.isRosterModalOpen}
+          onClose={handlers.closeRosterModal}
+          availablePlayers={data.availablePlayers}
+          onUpdatePlayer={handlers.updatePlayerForModal}
+          onRenamePlayer={handlers.renamePlayerForModal}
+          onSetJerseyNumber={handlers.setJerseyNumberForModal}
+          onSetPlayerNotes={handlers.setPlayerNotesForModal}
+          onRemovePlayer={handlers.removePlayerForModal}
+          onAddPlayer={handlers.addPlayerForModal}
+          isRosterUpdating={data.isRosterUpdating}
+          rosterError={data.rosterError}
+          onOpenPlayerStats={handlers.openPlayerStats}
         />
-      )}
 
-      {/* Roster Settings Modal */}
-      <RosterSettingsModal
-        isOpen={isRosterModalOpen || false}
-        onClose={closeRosterModal || (() => {})}
-        availablePlayers={availablePlayers || []}
-        onUpdatePlayer={handleUpdatePlayerForModal || (() => {})}
-        onRenamePlayer={handleRenamePlayerForModal || (() => {})}
-        onSetJerseyNumber={handleSetJerseyNumberForModal || (() => {})}
-        onSetPlayerNotes={handleSetPlayerNotesForModal || (() => {})}
-        onRemovePlayer={handleRemovePlayerForModal || (() => {})}
-        onAddPlayer={handleAddPlayerForModal || (() => {})}
-        isRosterUpdating={isRosterUpdating || false}
-        rosterError={rosterError || null}
-        onOpenPlayerStats={handleOpenPlayerStats || (() => {})}
-      />
+        {state.isSeasonTournamentModalOpen &&
+          data.seasonTournamentMutations.addSeason &&
+          data.seasonTournamentMutations.addTournament &&
+          data.seasonTournamentMutations.updateSeason &&
+          data.seasonTournamentMutations.deleteSeason &&
+          data.seasonTournamentMutations.updateTournament &&
+          data.seasonTournamentMutations.deleteTournament && (
+          <SeasonTournamentManagementModal
+            isOpen={state.isSeasonTournamentModalOpen}
+            onClose={handlers.closeSeasonTournamentModal}
+            seasons={data.seasons}
+            tournaments={data.tournaments}
+            masterRoster={data.masterRoster}
+            addSeasonMutation={data.seasonTournamentMutations.addSeason}
+            addTournamentMutation={data.seasonTournamentMutations.addTournament}
+            updateSeasonMutation={data.seasonTournamentMutations.updateSeason}
+            deleteSeasonMutation={data.seasonTournamentMutations.deleteSeason}
+            updateTournamentMutation={data.seasonTournamentMutations.updateTournament}
+            deleteTournamentMutation={data.seasonTournamentMutations.deleteTournament}
+          />
+        )}
 
-      {/* Season & Tournament Management Modal */}
-      {addSeasonMutation && addTournamentMutation && updateSeasonMutation && deleteSeasonMutation && updateTournamentMutation && deleteTournamentMutation && (
-        <SeasonTournamentManagementModal
-          isOpen={isSeasonTournamentModalOpen || false}
-          onClose={handleCloseSeasonTournamentModal || (() => {})}
-          seasons={seasons || []}
-          tournaments={tournaments || []}
-          masterRoster={masterRosterQueryResultData || []}
-          addSeasonMutation={addSeasonMutation}
-          addTournamentMutation={addTournamentMutation}
-          updateSeasonMutation={updateSeasonMutation}
-          deleteSeasonMutation={deleteSeasonMutation}
-          updateTournamentMutation={updateTournamentMutation}
-          deleteTournamentMutation={deleteTournamentMutation}
+        <GameSettingsModal
+          isOpen={state.isGameSettingsModalOpen}
+          onClose={handlers.closeGameSettingsModal}
+          currentGameId={data.currentGameId}
+          teamId={data.currentGameId ? data.savedGames[data.currentGameId]?.teamId : undefined}
+          teamName={data.gameSessionState.teamName}
+          opponentName={data.gameSessionState.opponentName}
+          gameDate={data.gameSessionState.gameDate}
+          gameLocation={data.gameSessionState.gameLocation}
+          gameTime={data.gameSessionState.gameTime}
+          gameNotes={data.gameSessionState.gameNotes}
+          ageGroup={data.gameSessionState.ageGroup}
+          tournamentLevel={data.gameSessionState.tournamentLevel}
+          gameEvents={data.gameSessionState.gameEvents}
+          availablePlayers={data.availablePlayers}
+          availablePersonnel={data.personnel}
+          selectedPlayerIds={data.gameSessionState.selectedPlayerIds}
+          selectedPersonnelIds={data.gameSessionState.gamePersonnel || []}
+          onSelectedPlayersChange={handlers.updateSelectedPlayers}
+          onSelectedPersonnelChange={handlers.setGamePersonnel || (() => {})}
+          numPeriods={data.gameSessionState.numberOfPeriods}
+          periodDurationMinutes={data.gameSessionState.periodDurationMinutes}
+          demandFactor={data.gameSessionState.demandFactor}
+          onTeamNameChange={handlers.teamNameChange}
+          onOpponentNameChange={handlers.opponentNameChange}
+          onGameDateChange={handlers.gameDateChange}
+          onGameLocationChange={handlers.gameLocationChange}
+          onGameTimeChange={handlers.gameTimeChange}
+          onGameNotesChange={handlers.gameNotesChange}
+          onAgeGroupChange={handlers.ageGroupChange}
+          onTournamentLevelChange={handlers.tournamentLevelChange}
+          onUpdateGameEvent={handlers.updateGameEvent}
+          onAwardFairPlayCard={handlers.awardFairPlayCard}
+          onDeleteGameEvent={handlers.deleteGameEvent}
+          onNumPeriodsChange={handlers.setNumberOfPeriods}
+          onPeriodDurationChange={handlers.setPeriodDuration}
+          onDemandFactorChange={handlers.setDemandFactor}
+          seasonId={data.gameSessionState.seasonId}
+          tournamentId={data.gameSessionState.tournamentId}
+          onSeasonIdChange={handlers.setSeasonId}
+          onTournamentIdChange={handlers.setTournamentId}
+          homeOrAway={data.gameSessionState.homeOrAway}
+          onSetHomeOrAway={handlers.setHomeOrAway}
+          isPlayed={data.isPlayed}
+          onIsPlayedChange={handlers.setIsPlayed}
+          timeElapsedInSeconds={data.gameSessionState.timeElapsedInSeconds}
+          updateGameDetailsMutation={data.updateGameDetailsMutation!}
+          seasons={data.seasons}
+          tournaments={data.tournaments}
+          masterRoster={data.masterRoster}
+          teams={data.teams}
+          onTeamIdChange={handlers.teamIdChange}
         />
-      )}
 
-      {/* Game Settings Modal */}
-      <GameSettingsModal
-        isOpen={isGameSettingsModalOpen || false}
-        onClose={handleCloseGameSettingsModal || (() => {})}
-        currentGameId={currentGameId || null}
-        teamId={savedGames?.[currentGameId || '']?.teamId}
-        teamName={gameSessionState.teamName}
-        opponentName={gameSessionState.opponentName}
-        gameDate={gameSessionState.gameDate}
-        gameLocation={gameSessionState.gameLocation}
-        gameTime={gameSessionState.gameTime}
-        gameNotes={gameSessionState.gameNotes}
-        ageGroup={gameSessionState.ageGroup}
-        tournamentLevel={gameSessionState.tournamentLevel}
-        gameEvents={gameSessionState.gameEvents}
-        availablePlayers={availablePlayers || []}
-        availablePersonnel={personnel || []}
-        selectedPlayerIds={gameSessionState.selectedPlayerIds}
-        selectedPersonnelIds={gameSessionState.gamePersonnel || []}
-        onSelectedPlayersChange={handleUpdateSelectedPlayers || (() => {})}
-        onSelectedPersonnelChange={personnelIds => {
-          if (handleSetGamePersonnel) {
-            handleSetGamePersonnel(personnelIds);
-          }
-        }}
-        numPeriods={gameSessionState.numberOfPeriods}
-        periodDurationMinutes={gameSessionState.periodDurationMinutes}
-        demandFactor={gameSessionState.demandFactor}
-        onTeamNameChange={handleTeamNameChange || (() => {})}
-        onOpponentNameChange={handleOpponentNameChange || (() => {})}
-        onGameDateChange={handleGameDateChange || (() => {})}
-        onGameLocationChange={handleGameLocationChange || (() => {})}
-        onGameTimeChange={handleGameTimeChange || (() => {})}
-        onGameNotesChange={handleGameNotesChange || (() => {})}
-        onAgeGroupChange={handleAgeGroupChange || (() => {})}
-        onTournamentLevelChange={handleTournamentLevelChange || (() => {})}
-        onUpdateGameEvent={handleUpdateGameEvent || (() => {})}
-        onAwardFairPlayCard={handleAwardFairPlayCard || (() => {})}
-        onDeleteGameEvent={handleDeleteGameEvent || (() => {})}
-        onNumPeriodsChange={handleSetNumberOfPeriods || (() => {})}
-        onPeriodDurationChange={handleSetPeriodDuration || (() => {})}
-        onDemandFactorChange={handleSetDemandFactor || (() => {})}
-        seasonId={gameSessionState.seasonId}
-        tournamentId={gameSessionState.tournamentId}
-        onSeasonIdChange={handleSetSeasonId || (() => {})}
-        onTournamentIdChange={handleSetTournamentId || (() => {})}
-        homeOrAway={gameSessionState.homeOrAway}
-        onSetHomeOrAway={handleSetHomeOrAway || (() => {})}
-        isPlayed={typeof isPlayed === 'boolean' ? isPlayed : true}
-        onIsPlayedChange={handleSetIsPlayed || (() => {})}
-        timeElapsedInSeconds={timeElapsedInSeconds || 0}
-        updateGameDetailsMutation={updateGameDetailsMutation!}
-        seasons={seasons || []}
-        tournaments={tournaments || []}
-        masterRoster={masterRosterQueryResultData || []}
-        teams={teams || []}
-        onTeamIdChange={handleTeamIdChange || (() => {})}
-      />
+        <SettingsModal
+          isOpen={state.isSettingsModalOpen}
+          onClose={handlers.closeSettingsModal}
+          language={data.appLanguage}
+          onLanguageChange={handlers.setAppLanguage}
+          defaultTeamName={data.defaultTeamNameSetting}
+          onDefaultTeamNameChange={handlers.setDefaultTeamName}
+          onResetGuide={handlers.showAppGuide}
+          onHardResetApp={handlers.hardResetApp}
+          onCreateBackup={handlers.onCreateBackup}
+          onDataImportSuccess={handlers.onDataImportSuccess}
+        />
 
-      {/* Settings Modal */}
-      <SettingsModal
-        isOpen={isSettingsModalOpen || false}
-        onClose={handleCloseSettingsModal || (() => {})}
-        language={appLanguage || 'en'}
-        onLanguageChange={setAppLanguage || (() => {})}
-        defaultTeamName={defaultTeamNameSetting || ''}
-        onDefaultTeamNameChange={(name) => {
-          if (setDefaultTeamNameSetting) setDefaultTeamNameSetting(name);
-          utilSaveLastHomeTeamName(name);
-        }}
-        onResetGuide={handleShowAppGuide || (() => {})}
-        onHardResetApp={handleHardResetApp || (() => {})}
-        onCreateBackup={() => exportFullBackup(showToast)}
-        onDataImportSuccess={onDataImportSuccess}
-      />
+        <PlayerAssessmentModal
+          isOpen={state.isPlayerAssessmentModalOpen}
+          onClose={handlers.closePlayerAssessmentModal}
+          selectedPlayerIds={data.gameSessionState.selectedPlayerIds}
+          availablePlayers={data.availablePlayers}
+          assessments={data.playerAssessments}
+          onSave={handlers.savePlayerAssessment}
+          onDelete={handlers.deletePlayerAssessment}
+          teamName={data.gameSessionState.teamName}
+          opponentName={data.gameSessionState.opponentName}
+          gameDate={data.gameSessionState.gameDate}
+          homeScore={data.gameSessionState.homeScore}
+          awayScore={data.gameSessionState.awayScore}
+          homeOrAway={data.gameSessionState.homeOrAway}
+          gameLocation={data.gameSessionState.gameLocation}
+          gameTime={data.gameSessionState.gameTime}
+          numberOfPeriods={data.gameSessionState.numberOfPeriods}
+          periodDurationMinutes={data.gameSessionState.periodDurationMinutes}
+        />
 
-      {/* Player Assessment Modal */}
-      <PlayerAssessmentModal
-        isOpen={isPlayerAssessmentModalOpen || false}
-        onClose={closePlayerAssessmentModal || (() => {})}
-        selectedPlayerIds={gameSessionState.selectedPlayerIds}
-        availablePlayers={availablePlayers || []}
-        assessments={playerAssessments || {}}
-        onSave={handleSavePlayerAssessment || (() => {})}
-        onDelete={handleDeletePlayerAssessment || (() => {})}
-        teamName={gameSessionState.teamName}
-        opponentName={gameSessionState.opponentName}
-        gameDate={gameSessionState.gameDate}
-        homeScore={gameSessionState.homeScore}
-        awayScore={gameSessionState.awayScore}
-        homeOrAway={gameSessionState.homeOrAway}
-        gameLocation={gameSessionState.gameLocation}
-        gameTime={gameSessionState.gameTime}
-        numberOfPeriods={gameSessionState.numberOfPeriods}
-        periodDurationMinutes={gameSessionState.periodDurationMinutes}
-      />
+        {state.isTeamReassignModalOpen && data.orphanedGameInfo && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <h2 className="text-xl font-bold text-yellow-400 mb-4">
+                {t('orphanedGame.reassignTitle', 'Reassign Game to Team')}
+              </h2>
+              <p className="text-slate-300 mb-4">
+                {t('orphanedGame.reassignDescription', 'Select a team to associate this game with, or choose "No Team" to use the master roster.')}
+              </p>
 
-      {/* Team Reassignment Modal for Orphaned Games */}
-      {isTeamReassignModalOpen && orphanedGameInfo && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4">
-            <h2 className="text-xl font-bold text-yellow-400 mb-4">
-              {t('orphanedGame.reassignTitle', 'Reassign Game to Team')}
-            </h2>
-            <p className="text-slate-300 mb-4">
-              {t('orphanedGame.reassignDescription', 'Select a team to associate this game with, or choose "No Team" to use the master roster.')}
-            </p>
-
-            <div className="space-y-2 mb-6 max-h-60 overflow-y-auto">
-              <button
-                onClick={() => handleTeamReassignment?.(null)}
-                className="w-full text-left px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-200 transition-colors"
-              >
-                {t('orphanedGame.noTeam', 'No Team (Use Master Roster)')}
-              </button>
-              {(availableTeams || []).map(team => (
+              <div className="space-y-2 mb-6 max-h-60 overflow-y-auto">
                 <button
-                  key={team.id}
-                  onClick={() => handleTeamReassignment?.(team.id)}
-                  className="w-full text-left px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-200 transition-colors flex items-center gap-2"
+                  onClick={() => handlers.teamReassignment(null)}
+                  className="w-full text-left px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-200 transition-colors"
                 >
-                  {team.color && (
-                    <span
-                      className="w-4 h-4 rounded-full border border-slate-500"
-                      style={{ backgroundColor: team.color }}
-                    />
-                  )}
-                  {team.name}
+                  {t('orphanedGame.noTeam', 'No Team (Use Master Roster)')}
                 </button>
-              ))}
-            </div>
+                {data.availableTeams.map(team => (
+                  <button
+                    key={team.id}
+                    onClick={() => handlers.teamReassignment(team.id)}
+                    className="w-full text-left px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-md text-slate-200 transition-colors flex items-center gap-2"
+                  >
+                    {team.color && (
+                      <span
+                        className="w-4 h-4 rounded-full border border-slate-500"
+                        style={{ backgroundColor: team.color }}
+                      />
+                    )}
+                    {team.name}
+                  </button>
+                ))}
+              </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setIsTeamReassignModalOpen?.(false)}
-                className="flex-1 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-md font-medium transition-colors"
-              >
-                {t('common.cancel', 'Cancel')}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handlers.setIsTeamReassignModalOpen(false)}
+                  className="flex-1 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-md font-medium transition-colors"
+                >
+                  {t('common.cancel', 'Cancel')}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Confirmation Modals */}
+        <ConfirmationModal
+          isOpen={state.showNoPlayersConfirm}
+          title={t('controlBar.noPlayersTitle', 'No Players in Roster')}
+          message={t('controlBar.noPlayersForNewGame', 'You need at least one player in your roster to create a game. Would you like to add players now?')}
+          onConfirm={handlers.confirmNoPlayers}
+          onCancel={() => handlers.setShowNoPlayersConfirm(false)}
+          confirmLabel={t('common.addPlayers', 'Add Players')}
+          variant="primary"
+        />
 
-      {/* No Players Confirmation */}
-      <ConfirmationModal
-        isOpen={showNoPlayersConfirm || false}
-        title={t('controlBar.noPlayersTitle', 'No Players in Roster')}
-        message={t('controlBar.noPlayersForNewGame', 'You need at least one player in your roster to create a game. Would you like to add players now?')}
-        onConfirm={handleNoPlayersConfirmed || (() => {})}
-        onCancel={() => setShowNoPlayersConfirm?.(false)}
-        confirmLabel={t('common.addPlayers', 'Add Players')}
-        variant="primary"
-      />
+        <ConfirmationModal
+          isOpen={state.showHardResetConfirm}
+          title={t('controlBar.hardResetTitle', 'Reset Application')}
+          message={t('controlBar.hardResetConfirmation', 'Are you sure you want to completely reset the application? All saved data (players, stats, positions) will be permanently lost.')}
+          warningMessage={t('controlBar.hardResetWarning', 'This action cannot be undone. All your data will be permanently deleted.')}
+          onConfirm={handlers.confirmHardReset}
+          onCancel={() => handlers.setShowHardResetConfirm(false)}
+          confirmLabel={t('common.reset', 'Reset')}
+          variant="danger"
+        />
 
-      {/* Hard Reset Confirmation */}
-      <ConfirmationModal
-        isOpen={showHardResetConfirm || false}
-        title={t('controlBar.hardResetTitle', 'Reset Application')}
-        message={t('controlBar.hardResetConfirmation', 'Are you sure you want to completely reset the application? All saved data (players, stats, positions) will be permanently lost.')}
-        warningMessage={t('controlBar.hardResetWarning', 'This action cannot be undone. All your data will be permanently deleted.')}
-        onConfirm={handleHardResetConfirmed || (() => {})}
-        onCancel={() => setShowHardResetConfirm?.(false)}
-        confirmLabel={t('common.reset', 'Reset')}
-        variant="danger"
-      />
+        <ConfirmationModal
+          isOpen={state.showSaveBeforeNewConfirm}
+          title={t('controlBar.saveBeforeNewTitle', 'Save Current Game?')}
+          message={t('controlBar.saveBeforeNewPrompt', `Save changes to the current game "${data.gameIdentifierForSave}" before starting a new one?`, { gameName: data.gameIdentifierForSave })}
+          warningMessage={t('controlBar.saveBeforeNewInfo', 'Click "Save & Continue" to save your progress, or "Discard" to start fresh without saving.')}
+          onConfirm={handlers.saveBeforeNewConfirmed}
+          onCancel={handlers.saveBeforeNewCancelled}
+          confirmLabel={t('controlBar.saveAndContinue', 'Save & Continue')}
+          cancelLabel={t('controlBar.discard', 'Discard')}
+          variant="primary"
+        />
 
-      {/* Save Before New Game Confirmation */}
-      <ConfirmationModal
-        isOpen={showSaveBeforeNewConfirm || false}
-        title={t('controlBar.saveBeforeNewTitle', 'Save Current Game?')}
-        message={t('controlBar.saveBeforeNewPrompt', `Save changes to the current game "${gameIdentifierForSave}" before starting a new one?`, { gameName: gameIdentifierForSave })}
-        warningMessage={t('controlBar.saveBeforeNewInfo', 'Click "Save & Continue" to save your progress, or "Discard" to start fresh without saving.')}
-        onConfirm={handleSaveBeforeNewConfirmed || (() => {})}
-        onCancel={handleSaveBeforeNewCancelled || (() => {})}
-        confirmLabel={t('controlBar.saveAndContinue', 'Save & Continue')}
-        cancelLabel={t('controlBar.discard', 'Discard')}
-        variant="primary"
-      />
+        <ConfirmationModal
+          isOpen={state.showStartNewConfirm}
+          title={t('controlBar.startNewMatchTitle', 'Start New Match?')}
+          message={t('controlBar.startNewMatchConfirmation', 'Are you sure you want to start a new match? Any unsaved progress will be lost.')}
+          warningMessage={t('controlBar.startNewMatchWarning', 'Make sure you have saved your current game if you want to keep it.')}
+          onConfirm={handlers.startNewConfirmed}
+          onCancel={() => handlers.setShowStartNewConfirm(false)}
+          confirmLabel={t('common.startNew', 'Start New')}
+          variant="danger"
+        />
 
-      {/* Start New Game Confirmation */}
-      <ConfirmationModal
-        isOpen={showStartNewConfirm || false}
-        title={t('controlBar.startNewMatchTitle', 'Start New Match?')}
-        message={t('controlBar.startNewMatchConfirmation', 'Are you sure you want to start a new match? Any unsaved progress will be lost.')}
-        warningMessage={t('controlBar.startNewMatchWarning', 'Make sure you have saved your current game if you want to keep it.')}
-        onConfirm={handleStartNewConfirmed || (() => {})}
-        onCancel={() => setShowStartNewConfirm?.(false)}
-        confirmLabel={t('common.startNew', 'Start New')}
-        variant="danger"
-      />
+        <ConfirmationModal
+          isOpen={state.showResetFieldConfirm}
+          title={
+            data.gameSessionState.isTimerRunning
+              ? t('controlBar.resetFieldTacticsTitle', 'Reset Tactics Board?')
+              : t('controlBar.resetFieldNormalTitle', 'Reset Field?')
+          }
+          message={
+            data.gameSessionState.isTimerRunning
+              ? t('tooltips.resetFieldTactics', 'Clear all tactical discs, drawings, and ball position from the tactics board.')
+              : t('tooltips.resetFieldNormal', 'Clear all players, opponents, and drawings from the field.')
+          }
+          warningMessage={t('common.cannotUndo', 'This action cannot be undone.')}
+          onConfirm={handlers.resetFieldConfirmed}
+          onCancel={() => handlers.setShowResetFieldConfirm(false)}
+          confirmLabel={t('controlBar.resetField', 'Reset Field')}
+          variant="danger"
+        />
       </>
     </ModalPortal>
   );

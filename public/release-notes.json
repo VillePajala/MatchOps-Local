@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: enhance useGameState documentation and add runtime safeguard for saveStateToHistory memoization"
+  "notes": "feat: update progress documentation and critical fixes tracker with latest status and metrics"
 }
