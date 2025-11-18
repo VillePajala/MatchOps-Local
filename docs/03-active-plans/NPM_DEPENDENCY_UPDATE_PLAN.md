@@ -157,7 +157,7 @@ npm test
 **Target:** Next.js 16.0.1
 **Release Date:** October 21, 2025
 
-**Why Defer?**
+**Why Defer?***
 - You're 95% done with useGameOrchestration refactoring (~12 hours remaining)
 - Next.js 16 has major architectural changes requiring extensive testing
 - Testing will be 3x easier with smaller, focused hooks (≤600 lines each)
