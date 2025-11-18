@@ -11,6 +11,7 @@
 | Priority | Fix | Status | Progress | Est. Time Remaining | Time Spent |
 |----------|-----|--------|----------|---------------------|------------|
 | **P0** | HomePage Refactoring | 🟡 95% (Step 2.6 Planned) | 95% | 16-20h (hook split) | ~10h |
+| **P1** | NPM Dependencies & Security | 🔴 Not Started | 0% | 4-8h (4 phases) | - |
 | **P1** | GameSettingsModal Refactoring | ❌ Not Started | 0% | 1h | - |
 | **P2/L2** | Modal State Management (Reducer) | ✅ COMPLETE | 100% | - | ~2h |
 | **P2/L2** | useNewGameFlow Param Grouping | ✅ COMPLETE | 100% | - | ~1h |
@@ -18,7 +19,7 @@
 | **P2** | Error Handling Improvements | ⏭ After L2 | 0% | 1h | - |
 | **P2** | Performance Optimization | ⏭ After L2 | 0% | 30m | - |
 
-**Remaining Work**: Step 2.6 hook splitting (16-20 hours over 2-3 weeks)
+**Remaining Work**: Step 2.6 hook splitting (16-20 hours over 2-3 weeks), NPM security fixes & updates (4-8 hours)
 **Work Completed**: HomePage reduced to 62 lines (98.3% reduction), all containers extracted, view-models implemented
 
 ### Newly Logged Fix
@@ -328,6 +329,64 @@ Next Steps:
 - 6 small PRs × 1-2 hours each
 - Estimated time: ~12 hours over 2-3 weeks
 See: docs/03-active-plans/REFACTORING_STATUS.md for complete plan
+```
+
+---
+
+## 🎯 P1: NPM Dependencies & Security (HIGH)
+
+**Fix Plan**: [NPM_DEPENDENCY_UPDATE_PLAN.md](../03-active-plans/NPM_DEPENDENCY_UPDATE_PLAN.md)
+
+### Status: 🔴 Not Started (P0 Critical Security Issue)
+
+### Current Situation
+- **xlsx package**: 🔴 Known security vulnerabilities (CVE-2023-30533)
+- **Sentry**: 10.17.0 → 10.25.0 (minor update available)
+- **React Query**: 5.90.2 → 5.90.10 (patch update available)
+- **Jest**: 29.7.0 → 30.0.5 (major update with 20% performance improvement)
+- **Next.js 16**: Available but DEFERRED until Step 2.6 refactoring complete
+
+### Progress Checklist
+
+#### Phase 1: Critical Security (P0 - Immediate)
+- [ ] Update xlsx package to latest secure version
+- [ ] Test Excel export functionality
+- [ ] Verify no security vulnerabilities remain
+
+#### Phase 2: Safe Updates (P1 - This Week)
+- [ ] Update @sentry/nextjs to latest
+- [ ] Update @tanstack/react-query to latest
+- [ ] Run full test suite
+- [ ] Verify production build
+
+#### Phase 3: Jest Upgrade (P2 - This Month)
+- [ ] Upgrade Jest ecosystem to v30
+- [ ] Update react-i18next to v16
+- [ ] Measure performance improvements
+- [ ] Verify all tests pass
+
+#### Phase 4: Next.js 16 (P3 - After Refactoring)
+- [ ] ⏸️ WAIT for Step 2.6 completion (useGameOrchestration split)
+- [ ] Read Next.js 16 upgrade guide
+- [ ] Update lint configuration
+- [ ] Migrate middleware → proxy.ts
+- [ ] Test extensively with smaller hooks
+
+### Acceptance Criteria
+- [ ] No security vulnerabilities in `npm audit`
+- [ ] All dependencies up to date (except Next.js 16)
+- [ ] All tests pass
+- [ ] Production build succeeds
+- [ ] Excel export functionality verified
+- [ ] Test performance improved by ~20% (Jest 30)
+
+### Notes
+```
+Created: November 18, 2025
+Status: P0 Critical - xlsx vulnerability must be fixed immediately
+Coordination: Next.js 16 upgrade deferred until refactoring complete
+Rationale: Testing major framework updates 3x easier with smaller hooks
+See: docs/03-active-plans/NPM_DEPENDENCY_UPDATE_PLAN.md for detailed plan
 ```
 
 ---

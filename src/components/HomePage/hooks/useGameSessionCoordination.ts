@@ -44,6 +44,9 @@ export interface UseGameSessionCoordinationReturn {
   gameSessionState: GameSessionState;
   dispatchGameSession: Dispatch<GameSessionAction>;
 
+  // Initial game session data (for reset operations and default values)
+  initialGameSessionData: GameSessionState;
+
   // History management
   historyState: AppState;
   undo: () => AppState | null;
@@ -367,15 +370,33 @@ export function useGameSessionCoordination({
   }, [dispatchGameSession]);
 
   // --- Apply History State Helper ---
-  // Used by undo/redo to restore full app state
-  // Accepts callbacks from caller to update field state (setPlayersOnField, etc.)
+  /**
+   * Applies history state to restore game session
+   *
+   * **IMPORTANT - Incomplete Abstraction (Step 2.6.2):**
+   * This function ONLY restores game session state (team names, scores, periods, etc.).
+   * It does NOT restore field state (player positions, opponents, drawings) or tactical state.
+   *
+   * **Why incomplete?**
+   * Field state management will be extracted to useFieldCoordination in Step 2.6.3.
+   * This hook should not have dependencies on field state setters (setPlayersOnField, etc.).
+   *
+   * **Current architecture:**
+   * - This hook: Restores game session state only
+   * - useGameOrchestration: Wraps this function and adds field state restoration
+   * - Step 2.6.3: Will extract field restoration to useFieldCoordination.applyFieldHistoryState
+   *
+   * **After Step 2.6.3:**
+   * The wrapper in useGameOrchestration will be removed, and field state restoration
+   * will be handled by useFieldCoordination independently.
+   *
+   * @param state - Complete AppState from history (undo/redo operation)
+   *
+   * @see useGameOrchestration.ts lines 1300-1337 for current wrapper implementation
+   * @see docs/03-active-plans/L2-2.6-useGameOrchestration-Splitting-PLAN.md for Step 2.6.3 details
+   */
   const applyHistoryState = useCallback((state: AppState) => {
-    // No flag needed! The useGameSessionWithHistory hook automatically skips
-    // history saving for LOAD_STATE_FROM_HISTORY action type.
-
-    // Note: This function is intentionally incomplete in the extracted hook.
-    // It will receive callbacks from the parent orchestrator to update field state.
-    // The game session state updates are dispatched here:
+    // Note: useGameSessionWithHistory automatically skips saving for LOAD_STATE_FROM_HISTORY actions
 
     dispatchGameSession({ type: 'SET_TEAM_NAME', payload: state.teamName });
     dispatchGameSession({ type: 'SET_HOME_SCORE', payload: state.homeScore });
@@ -415,6 +436,9 @@ export function useGameSessionCoordination({
     // Core session state
     gameSessionState,
     dispatchGameSession,
+
+    // Initial game session data (for reset operations and default values)
+    initialGameSessionData,
 
     // History management
     historyState: currentHistoryState,
