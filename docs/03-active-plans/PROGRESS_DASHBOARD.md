@@ -128,8 +128,8 @@
 - ✅ Team selection display fix
 
 **Metrics Improved**:
-- HomePage.tsx: **62 lines** ✅ (was 3,680 - refactoring 95% complete!)
-- useGameOrchestration.ts: 3,373 lines (needs splitting into 6 hooks)
+- HomePage.tsx: **62 lines** ✅ (was 3,725 - refactoring 95% complete!)
+- useGameOrchestration.ts: 3,378 lines (needs splitting into 6 hooks - Step 2.6)
 - Test count: 991 → 1,321+ (+330+ tests, +33%)
 - Storage consistency: Event deletion now storage-first with rollback
 - Type safety: Season/tournament IDs non-nullable
@@ -180,11 +180,11 @@
 **Status**: 🟡 **95% DONE - Hook Splitting Remaining**
 **Estimated Time**: 12 hours (6 PRs × 1-2 hours each)
 **Progress**: ~95% complete
-  - ✅ HomePage.tsx reduced from 3,680 lines → **62 lines** ✅
+  - ✅ HomePage.tsx reduced from 3,725 lines → **62 lines** ✅ (98.3% reduction)
   - ✅ Container pattern implemented (GameContainer, ModalManager, FieldContainer)
   - ✅ View-model pattern applied throughout
   - ✅ Layer 1 & 2 complete (Steps 2.4.0–2.5)
-  - ⏳ Final step: Split useGameOrchestration (3,373 lines) into 6 hooks
+  - ⏳ Final step: Split useGameOrchestration (3,378 lines) into 6 hooks (Step 2.6)
 **Owner**: Ready for hook splitting
 **Plan**: [REFACTORING_STATUS.md](./REFACTORING_STATUS.md)
 
@@ -430,14 +430,14 @@ You have completed all major features but stand at a fork in the road. Choose yo
 **Status**: 🟡 95% COMPLETE - HomePage is **62 lines**!
 
 **What's Done** ✅:
-- HomePage.tsx: **62 lines** (was 3,680 - 95% reduction!)
+- HomePage.tx: **62 lines** (was 3,725 - 98.3% reduction!)
 - Container pattern: ✅ Complete
 - View-model pattern: ✅ Complete
 - Layer 1 & 2: ✅ Complete
 
 **What Remains** (5%):
-- Split useGameOrchestration (3,373 lines) into 6 hooks
-- 6 small PRs × 1-2 hours each = ~12 hours
+- Split useGameOrchestration (3,378 lines) into 6 hooks (Step 2.6 - See L2-2.6 plan)
+- 6 PRs in dependency order = 16-20 hours over 2-3 weeks
 
 **Start Here**: [REFACTORING_STATUS.md](./REFACTORING_STATUS.md) - Clear, unambiguous plan
 
@@ -494,10 +494,15 @@ You have completed all major features but stand at a fork in the road. Choose yo
 
 ## 📝 **Version History**
 
+- **2025-11-18**: P0 HomePage Refactoring 95% Complete + Hook Splitting Plan
+  - HomePage.tsx reduced from 3,725 → 62 lines (98.3% reduction) ✅
+  - Steps 2.4.0-2.5 COMPLETE (container extraction, view-models, modal reducer)
+  - Created detailed Step 2.6 plan for splitting useGameOrchestration (3,378 lines) into 6 hooks
+  - Updated all documentation to reflect completed work
+  - Test count: 1,403 tests passing
 - **2025-11-07**: Metrics refresh & bug fix documentation
   - Added Recent Completions section for Nov 3-7 bug fixes
   - Updated test count (991 → 1,306, +315 tests)
-  - HomePage.tsx still 3,680 lines (P0 refactoring pending)
   - Documented 7 bug fixes with detailed impact analysis
   - Marked P0 as in progress (separate AI working on it)
   - Updated current phase section to show parallel work
