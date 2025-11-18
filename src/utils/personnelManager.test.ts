@@ -97,8 +97,8 @@ describe('Personnel Manager Utilities', () => {
 
       const personnel = await getAllPersonnel();
       // Newest should come first
-      const firstIndex = personnel.findIndex(p => p.id === first.id);
-      const secondIndex = personnel.findIndex(p => p.id === second.id);
+      const firstIndex = personnel.findIndex(p => p.id === first!.id);
+      const secondIndex = personnel.findIndex(p => p.id === second!.id);
       expect(secondIndex).toBeLessThan(firstIndex);
     });
   });
@@ -115,9 +115,9 @@ describe('Personnel Manager Utilities', () => {
 
       const collection = await getPersonnelCollection();
       expect(Object.keys(collection)).toHaveLength(2);
-      expect(collection[member1.id]).toBeDefined();
-      expect(collection[member2.id]).toBeDefined();
-      expect(collection[member1.id].name).toBe('Coach A');
+      expect(collection[member1!.id]).toBeDefined();
+      expect(collection[member2!.id]).toBeDefined();
+      expect(collection[member1!.id].name).toBe('Coach A');
     });
   });
 
@@ -130,7 +130,7 @@ describe('Personnel Manager Utilities', () => {
     it('should return personnel member by ID', async () => {
       const member = await addPersonnelMember(createTestPersonnel('Test Coach', 'head_coach'));
 
-      const result = await getPersonnelById(member.id);
+      const result = await getPersonnelById(member!.id);
       expect(result).not.toBeNull();
       expect(result?.name).toBe('Test Coach');
       expect(result?.role).toBe('head_coach');
@@ -142,11 +142,11 @@ describe('Personnel Manager Utilities', () => {
       const data = createTestPersonnel('New Coach', 'fitness_coach');
       const member = await addPersonnelMember(data);
 
-      expect(member.id).toMatch(/^personnel_\d+_[a-z0-9]+$/);
-      expect(member.name).toBe('New Coach');
-      expect(member.role).toBe('fitness_coach');
-      expect(member.createdAt).toBeDefined();
-      expect(member.updatedAt).toBeDefined();
+      expect(member!.id).toMatch(/^personnel_\d+_[a-z0-9]+$/);
+      expect(member!.name).toBe('New Coach');
+      expect(member!.role).toBe('fitness_coach');
+      expect(member!.createdAt).toBeDefined();
+      expect(member!.updatedAt).toBeDefined();
     });
 
     it('should add personnel with all optional fields', async () => {
@@ -158,17 +158,17 @@ describe('Personnel Manager Utilities', () => {
       });
 
       const member = await addPersonnelMember(data);
-      expect(member.phone).toBe('+1234567890');
-      expect(member.email).toBe('coach@example.com');
-      expect(member.certifications).toEqual(['First Aid', 'CPR']);
-      expect(member.notes).toBe('Available weekends');
+      expect(member!.phone).toBe('+1234567890');
+      expect(member!.email).toBe('coach@example.com');
+      expect(member!.certifications).toEqual(['First Aid', 'CPR']);
+      expect(member!.notes).toBe('Available weekends');
     });
 
     it('should persist personnel to storage', async () => {
       const member = await addPersonnelMember(createTestPersonnel('Persistent', 'head_coach'));
 
       // Verify persistence by fetching again
-      const fetched = await getPersonnelById(member.id);
+      const fetched = await getPersonnelById(member!.id);
       expect(fetched).not.toBeNull();
       expect(fetched?.name).toBe('Persistent');
     });
@@ -215,7 +215,7 @@ describe('Personnel Manager Utilities', () => {
       // Wait 10ms to ensure different timestamp
       await new Promise(resolve => setTimeout(resolve, 10));
 
-      const updated = await updatePersonnelMember(member.id, {
+      const updated = await updatePersonnelMember(member!.id, {
         name: 'Updated Name',
         role: 'assistant_coach',
       });
@@ -223,13 +223,13 @@ describe('Personnel Manager Utilities', () => {
       expect(updated).not.toBeNull();
       expect(updated?.name).toBe('Updated Name');
       expect(updated?.role).toBe('assistant_coach');
-      expect(updated?.updatedAt).not.toBe(member.updatedAt); // Should have new timestamp
+      expect(updated?.updatedAt).not.toBe(member!.updatedAt); // Should have new timestamp
     });
 
     it('should update optional fields', async () => {
       const member = await addPersonnelMember(createTestPersonnel('Test', 'physio'));
 
-      const updated = await updatePersonnelMember(member.id, {
+      const updated = await updatePersonnelMember(member!.id, {
         phone: '+9876543210',
         email: 'updated@example.com',
         notes: 'New notes',
@@ -242,11 +242,11 @@ describe('Personnel Manager Utilities', () => {
 
     it('should not modify createdAt timestamp', async () => {
       const member = await addPersonnelMember(createTestPersonnel('Test', 'head_coach'));
-      const originalCreatedAt = member.createdAt;
+      const originalCreatedAt = member!.createdAt;
 
-      await updatePersonnelMember(member.id, { name: 'Updated' });
+      await updatePersonnelMember(member!.id, { name: 'Updated' });
 
-      const fetched = await getPersonnelById(member.id);
+      const fetched = await getPersonnelById(member!.id);
       expect(fetched?.createdAt).toBe(originalCreatedAt);
     });
 
@@ -256,9 +256,9 @@ describe('Personnel Manager Utilities', () => {
         email: 'original@example.com',
       }));
 
-      await updatePersonnelMember(member.id, { phone: 'New Phone' });
+      await updatePersonnelMember(member!.id, { phone: 'New Phone' });
 
-      const updated = await getPersonnelById(member.id);
+      const updated = await getPersonnelById(member!.id);
       expect(updated?.phone).toBe('New Phone');
       expect(updated?.email).toBe('original@example.com'); // Should remain unchanged
     });
@@ -276,11 +276,11 @@ describe('Personnel Manager Utilities', () => {
     it('should remove personnel member', async () => {
       const member = await addPersonnelMember(createTestPersonnel('To Remove', 'head_coach'));
 
-      const removed = await removePersonnelMember(member.id);
+      const removed = await removePersonnelMember(member!.id);
       expect(removed).toBe(true);
 
       // Verify removal
-      const fetched = await getPersonnelById(member.id);
+      const fetched = await getPersonnelById(member!.id);
       expect(fetched).toBeNull();
     });
 
@@ -288,11 +288,11 @@ describe('Personnel Manager Utilities', () => {
       const member1 = await addPersonnelMember(createTestPersonnel('Keep', 'head_coach'));
       const member2 = await addPersonnelMember(createTestPersonnel('Remove', 'assistant_coach'));
 
-      await removePersonnelMember(member2.id);
+      await removePersonnelMember(member2!.id);
 
       const allPersonnel = await getAllPersonnel();
       expect(allPersonnel).toHaveLength(1);
-      expect(allPersonnel[0].id).toBe(member1.id);
+      expect(allPersonnel[0].id).toBe(member1!.id);
     });
   });
 
@@ -338,9 +338,9 @@ describe('Personnel Manager Utilities', () => {
         notes: '',
       }));
 
-      expect(member.phone).toBe('');
-      expect(member.email).toBe('');
-      expect(member.notes).toBe('');
+      expect(member!.phone).toBe('');
+      expect(member!.email).toBe('');
+      expect(member!.notes).toBe('');
     });
 
     it('should handle empty certifications array', async () => {
@@ -348,7 +348,7 @@ describe('Personnel Manager Utilities', () => {
         certifications: [],
       }));
 
-      expect(member.certifications).toEqual([]);
+      expect(member!.certifications).toEqual([]);
     });
 
     it('should maintain data integrity under high concurrency', async () => {
@@ -377,17 +377,17 @@ describe('Personnel Manager Utilities', () => {
 
       // Start concurrent operations: reads and writes
       const operations = [
-        getPersonnelById(member.id),
-        updatePersonnelMember(member.id, { name: 'Update 1' }),
-        getPersonnelById(member.id),
-        updatePersonnelMember(member.id, { name: 'Update 2' }),
+        getPersonnelById(member!.id),
+        updatePersonnelMember(member!.id, { name: 'Update 1' }),
+        getPersonnelById(member!.id),
+        updatePersonnelMember(member!.id, { name: 'Update 2' }),
         getAllPersonnel(),
       ];
 
       const results = await Promise.all(operations);
 
       // Final state should be Update 2 (last write wins)
-      const final = await getPersonnelById(member.id);
+      const final = await getPersonnelById(member!.id);
       expect(final?.name).toBe('Update 2');
 
       // All read operations should have returned valid data
@@ -412,7 +412,7 @@ describe('Personnel Manager Utilities', () => {
     it('should handle all defined personnel roles', async () => {
       for (const role of roles) {
         const member = await addPersonnelMember(createTestPersonnel(`${role} Test`, role));
-        expect(member.role).toBe(role);
+        expect(member!.role).toBe(role);
       }
 
       const allPersonnel = await getAllPersonnel();

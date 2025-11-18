@@ -59,9 +59,24 @@ export const getPersonnelById = async (personnelId: string): Promise<Personnel |
  */
 export const addPersonnelMember = async (
   personnelData: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>
-): Promise<Personnel> => {
+): Promise<Personnel | null> => {
+  const trimmedName = personnelData.name?.trim();
+  if (!trimmedName) {
+    logger.warn('[addPersonnelMember] Validation failed: Personnel name cannot be empty.');
+    return Promise.resolve(null);
+  }
+
   return withKeyLock(PERSONNEL_KEY, async () => {
     try {
+      const collection = await getPersonnelCollection();
+      const existingPersonnel = Object.values(collection);
+
+      // Check for duplicate name (case-insensitive)
+      if (existingPersonnel.some(p => p.name.toLowerCase() === trimmedName.toLowerCase())) {
+        logger.warn(`[addPersonnelMember] Validation failed: A personnel member with name "${trimmedName}" already exists.`);
+        return Promise.resolve(null);
+      }
+
       // Generate unique ID
       const timestamp = Date.now();
       let uuid: string;
@@ -77,12 +92,12 @@ export const addPersonnelMember = async (
 
       const newPersonnel: Personnel = {
         ...personnelData,
+        name: trimmedName,
         id: personnelId,
         createdAt: now,
         updatedAt: now,
       };
 
-      const collection = await getPersonnelCollection();
       collection[personnelId] = newPersonnel;
 
       await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
@@ -111,6 +126,25 @@ export const updatePersonnelMember = async (
       if (!existing) {
         logger.warn('Personnel member not found for update:', personnelId);
         return null;
+      }
+
+      // Check for duplicate name if name is being updated
+      if (updates.name) {
+        const trimmedName = updates.name.trim();
+        if (!trimmedName) {
+          logger.warn('[updatePersonnelMember] Validation failed: Personnel name cannot be empty.');
+          return Promise.resolve(null);
+        }
+
+        const existingPersonnel = Object.values(collection);
+        // Check if another personnel member has this name (excluding current one)
+        if (existingPersonnel.some(p => p.id !== personnelId && p.name.toLowerCase() === trimmedName.toLowerCase())) {
+          logger.warn(`[updatePersonnelMember] Validation failed: Another personnel member with name "${trimmedName}" already exists.`);
+          return Promise.resolve(null);
+        }
+
+        // Update name with trimmed version
+        updates.name = trimmedName;
       }
 
       const updated: Personnel = {

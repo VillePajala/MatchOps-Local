@@ -155,7 +155,7 @@ afterEach(async () => {
     it('should return null and log error if name is empty, without attempting to save', async () => {
       const result = await addTournament('');
       expect(result).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[addTournament] Validation failed: Tournament name cannot be empty.'));
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('[addTournament] Validation failed: Tournament name cannot be empty.'));
       expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
@@ -166,7 +166,7 @@ afterEach(async () => {
       const result = await addTournament(duplicateName);
 
       expect(result).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining(`[addTournament] Validation failed: A tournament with name "${duplicateName}" already exists.`));
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`[addTournament] Validation failed: A tournament with name "${duplicateName}" already exists.`));
     });
   });
 
@@ -275,7 +275,7 @@ afterEach(async () => {
       const result = await updateTournament(tournamentToUpdate);
 
       expect(result).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining(`[updateTournament] Validation failed: Another tournament with name "${conflictingName}" already exists.`));
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`[updateTournament] Validation failed: Another tournament with name "${conflictingName}" already exists.`));
     });
 
     it('should return null for invalid update data (e.g., empty name), without attempting to save', async () => {
@@ -283,7 +283,7 @@ afterEach(async () => {
       const result = await updateTournament(invalidTournament);
 
       expect(result).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[updateTournament] Invalid tournament data provided for update.'));
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('[updateTournament] Invalid tournament data provided for update.'));
       expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
   });

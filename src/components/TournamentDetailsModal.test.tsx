@@ -9,9 +9,9 @@ import i18n from '@/i18n';
 
 const mockMutation = () => ({
   mutate: jest.fn((data, options) => {
-    // Simulate successful mutation by calling onSuccess
+    // Simulate successful mutation by calling onSuccess with the data (non-null)
     if (options?.onSuccess) {
-      options.onSuccess();
+      options.onSuccess(data);
     }
   }),
   isPending: false,

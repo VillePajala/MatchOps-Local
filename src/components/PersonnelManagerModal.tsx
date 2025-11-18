@@ -31,8 +31,8 @@ interface PersonnelManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
   personnel: Personnel[];
-  onAddPersonnel: (data: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  onUpdatePersonnel: (personnelId: string, updates: Partial<Omit<Personnel, 'id' | 'createdAt'>>) => Promise<void>;
+  onAddPersonnel: (data: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Personnel | null>;
+  onUpdatePersonnel: (personnelId: string, updates: Partial<Omit<Personnel, 'id' | 'createdAt'>>) => Promise<Personnel | null>;
   onRemovePersonnel: (personnelId: string) => Promise<void>;
   isUpdating?: boolean;
 }
