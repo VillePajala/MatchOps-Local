@@ -1,25 +1,25 @@
 # Critical Fixes Progress Tracker
 
 **Last Updated**: November 18, 2025
-**Status**: ✅ Layer 1 completed (stability). ✅ Layer 2 completed (Steps 2.4.0‑2.5 shipped).
-**Overall Progress**: L1 done; L2 done (Step 2.5 completed); P0 HomePage **62 lines** ✅ (useGameOrchestration 3,373 lines needs splitting)
+**Status**: ✅ Layer 1 COMPLETE (stability). ✅ Layer 2 Steps 2.4.0-2.5 COMPLETE (HomePage orchestration).
+**Overall Progress**: L1 ✅ DONE; L2 Steps 2.4.0-2.5 ✅ DONE (HomePage **62 lines**, 98.3% reduction); Step 2.6 🔴 PLANNED (useGameOrchestration 3,378 lines needs splitting into 6 hooks)
 
 ---
 
 ## 📊 QUICK STATUS
 
-| Priority | Fix | Status | Progress | Est. Time | Actual Time |
-|----------|-----|--------|----------|-----------|-------------|
-| **P0** | HomePage Refactoring | 🟡 95% Done (Hook Split) | 95% | 12h | ~2.5h |
+| Priority | Fix | Status | Progress | Est. Time Remaining | Time Spent |
+|----------|-----|--------|----------|---------------------|------------|
+| **P0** | HomePage Refactoring | 🟡 95% (Step 2.6 Planned) | 95% | 16-20h (hook split) | ~10h |
 | **P1** | GameSettingsModal Refactoring | ❌ Not Started | 0% | 1h | - |
-| **P2/L2** | Modal State Management (Reducer) | ⏭ Next | Scoped | 45m | - |
-| **P2/L2** | useNewGameFlow Param Grouping | ✅ Completed | 100% | 45m | 45m |
-| **P2/L2** | FieldContainer/View-Model Grouping | 🟡 In Progress | ~70% | 60m | 45m |
+| **P2/L2** | Modal State Management (Reducer) | ✅ COMPLETE | 100% | - | ~2h |
+| **P2/L2** | useNewGameFlow Param Grouping | ✅ COMPLETE | 100% | - | ~1h |
+| **P2/L2** | FieldContainer/View-Model Grouping | ✅ COMPLETE | 100% | - | ~2h |
 | **P2** | Error Handling Improvements | ⏭ After L2 | 0% | 1h | - |
 | **P2** | Performance Optimization | ⏭ After L2 | 0% | 30m | - |
 
-**Total Estimated Time**: 4.5-5.5 hours
-**Total Actual Time**: ~3.0 hours (Step 2.5 + extraction work complete, integration pending)
+**Remaining Work**: Step 2.6 hook splitting (16-20 hours over 2-3 weeks)
+**Work Completed**: HomePage reduced to 62 lines (98.3% reduction), all containers extracted, view-models implemented
 
 ### Newly Logged Fix
 - **P1 – New Game autosave race** *(Nov 2025)*: `useNewGameFlow.handleStartNewGame` now fetches the latest saved game snapshot directly from storage (instead of relying on potentially stale React state) before prompting the “Save current game?” confirmation. This eliminates the documented race condition when autosave mutates state mid-flow.
@@ -89,7 +89,8 @@
 - `src/components/HomePage/utils/newGameHandlers.ts` (NEW)
 - `src/components/HomePage/utils/newGameHandlers.test.ts` (NEW)
 
-**Impact**: 33.6% reduction in HomePage size (3,725 → 2,474 lines = -1,251 lines)
+**Impact**: Initial reduction (3,725 → 2,474 lines = -1,251 lines, 33.6%)
+**Note**: Further refactoring (Steps 2.4.0-2.5) ultimately reduced HomePage to 62 lines (98.3% total reduction)
 
 ### 3. Season/Tournament Type Safety Enhancement (Nov 4, 2025)
 **Issue**: Season/tournament IDs typed as `string | null`, causing stale state bugs
