@@ -33,8 +33,6 @@ import {
   getLastHomeTeamName as utilGetLastHomeTeamName,
   updateAppSettings as utilUpdateAppSettings,
 } from '@/utils/appSettings';
-import { deleteSeason as utilDeleteSeason, updateSeason as utilUpdateSeason, addSeason as utilAddSeason } from '@/utils/seasons';
-import { deleteTournament as utilDeleteTournament, updateTournament as utilUpdateTournament, addTournament as utilAddTournament } from '@/utils/tournaments';
 import { getTeams, getTeam } from '@/utils/teams';
 // Import Player from types directory
 import { Player, Season, Tournament, Team } from '@/types';
@@ -43,14 +41,12 @@ import type { GameEvent, AppState, SavedGamesCollection, TimerState, PlayerAsses
 import { saveMasterRoster } from '@/utils/masterRoster';
 // Import useQuery, useMutation, useQueryClient
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useGameDataQueries } from '@/hooks/useGameDataQueries';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useTacticalHistory, type TacticalState } from '@/hooks/useTacticalHistory';
 import { useTacticalBoard } from '@/hooks/useTacticalBoard';
 import { useRoster } from '@/hooks/useRoster';
-import { useTeamsQuery } from '@/hooks/useTeamQueries';
-import { usePersonnelManager } from '@/hooks/usePersonnelManager';
 import { useModalContext } from '@/contexts/ModalProvider';
+import { useGameDataManagement } from './useGameDataManagement';
 // Import async storage utilities
 import {
   getStorageItem,
@@ -308,41 +304,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   );
   // END --- Game Session State ---
 
-  // --- Load game data via hook ---
-  const {
-    masterRoster: masterRosterQueryResultData,
-    seasons: seasonsQueryResultData,
-    tournaments: tournamentsQueryResultData,
-    savedGames: allSavedGamesQueryResultData,
-    currentGameId: currentGameIdSettingQueryResultData,
-    loading: isGameDataLoading,
-    error: gameDataError,
-  } = useGameDataQueries();
-
-  // Teams query for multi-team support
-  const { data: teams = [] } = useTeamsQuery();
-
-  // Personnel management with consolidated hook
-  const personnelManager = usePersonnelManager();
-
-  const isMasterRosterQueryLoading = isGameDataLoading;
-  const areSeasonsQueryLoading = isGameDataLoading;
-  const areTournamentsQueryLoading = isGameDataLoading;
-  const isAllSavedGamesQueryLoading = isGameDataLoading;
-  const isCurrentGameIdSettingQueryLoading = isGameDataLoading;
-
-  const isMasterRosterQueryError = !!gameDataError;
-  const isSeasonsQueryError = !!gameDataError;
-  const isTournamentsQueryError = !!gameDataError;
-  const isAllSavedGamesQueryError = !!gameDataError;
-  const isCurrentGameIdSettingQueryError = !!gameDataError;
-
-  const masterRosterQueryErrorData = gameDataError;
-  const seasonsQueryErrorData = gameDataError;
-  const tournamentsQueryErrorData = gameDataError;
-  const allSavedGamesQueryErrorData = gameDataError;
-  const currentGameIdSettingQueryErrorData = gameDataError;
-
   // --- Core Game State (Managed by Hook) ---
   const {
     playersOnField,
@@ -401,6 +362,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // ... UI/Interaction states ...
   const [draggingPlayerFromBarInfo, setDraggingPlayerFromBarInfo] = useState<Player | null>(null);
   // Persistence state
+  // TODO: Remove savedGames local state once all references are updated to use gameDataManagement.savedGames
   const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
   const [currentGameId, setCurrentGameId] = useState<string | null>(DEFAULT_GAME_ID);
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
@@ -430,9 +392,19 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setSubInterval: handleSetSubInterval,
   } = useGameTimer({ state: gameSessionState, dispatch: dispatchGameSession, currentGameId: currentGameId || '' });
 
-  // ADD State for seasons/tournaments lists
+  // Temporary state for backward compatibility during migration
+  // These will be removed once all references are updated to use gameDataManagement
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+
+  // --- Game Data Management Hook ---
+  const gameDataManagement = useGameDataManagement({
+    currentGameId,
+    setAvailablePlayers,
+    setSeasons,
+    setTournaments,
+  });
+
   // <<< ADD: State for home/away status >>>
   const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
   // hasSkippedInitialSetup moved to top of component to prevent flash
@@ -762,65 +734,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     }
   };
 
-  // --- Mutation for Adding a new Season ---
-  const addSeasonMutation = useMutation<
-    Season | null,
-    Error,
-    Partial<Season> & { name: string }
-  >({
-    mutationFn: async (data) => {
-      const { name, ...extra } = data;
-      return utilAddSeason(name, extra);
-    },
-    onSuccess: (newSeason, variables) => {
-      if (newSeason) {
-        logger.log('[Mutation Success] Season added:', newSeason.name, newSeason.id);
-        queryClient.invalidateQueries({ queryKey: queryKeys.seasons });
-        // Potentially set an optimistic update or directly update local 'seasons' state if needed
-        // For now, relying on query invalidation to refresh the seasons list
-      } else {
-        // This case might indicate a duplicate name or some other non-exception failure from utilAddSeason
-        logger.warn('[Mutation Non-Success] utilAddSeason returned null for season:', variables.name);
-        // Consider setting a specific error state for the NewGameSetupModal if it's a common issue
-        // alert(t('newGameSetupModal.errors.addSeasonFailed', 'Failed to add season: {seasonName}. It might already exist.', { seasonName: variables.name }));
-      }
-    },
-    onError: (error, variables) => {
-      logger.error(`[Mutation Error] Failed to add season ${variables.name}:`, error);
-      // alert(t('newGameSetupModal.errors.addSeasonFailedUnexpected', 'An unexpected error occurred while adding season: {seasonName}.', { seasonName: variables.name }));
-    },
-  });
+  // Mutations for seasons and tournaments are now managed by useGameDataManagement hook
 
-  const updateSeasonMutation = useMutation<Season | null, Error, Season>({
-    mutationFn: async (season) => utilUpdateSeason(season),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.seasons });
-    },
-  });
-
-  const deleteSeasonMutation = useMutation<boolean, Error, string>({
-    mutationFn: async (id) => utilDeleteSeason(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.seasons });
-    },
-  });
-
-  const updateTournamentMutation = useMutation<Tournament | null, Error, Tournament>({
-      mutationFn: async (tournament) => utilUpdateTournament(tournament),
-      onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
-      },
-  });
-
-  const deleteTournamentMutation = useMutation({
-    mutationFn: (id: string) => utilDeleteTournament(id),
-      onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
-      queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
-    },
-  });
-
-type UpdateGameDetailsMetaBase = {
+  type UpdateGameDetailsMetaBase = {
   source: 'seasonPrefill' | 'tournamentPrefill' | 'seasonSelection' | 'tournamentSelection' | 'stateSync';
   targetId?: string;
   expectedState?: {
@@ -956,93 +872,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
   }, [isGameSettingsModalOpen]);
 
-  // --- Mutation for Adding a new Tournament ---
-  const addTournamentMutation = useMutation<
-    Tournament | null,
-    Error,
-    Partial<Tournament> & { name: string }
-  >({
-    mutationFn: async (data) => {
-      const { name, ...extra } = data;
-      return utilAddTournament(name, extra);
-    },
-    onSuccess: (newTournament, variables) => {
-      if (newTournament) {
-        logger.log('[Mutation Success] Tournament added:', newTournament.name, newTournament.id);
-        queryClient.invalidateQueries({ queryKey: queryKeys.tournaments });
-        // Similar to seasons, could optimistically update or rely on invalidation
-      } else {
-        logger.warn('[Mutation Non-Success] utilAddTournament returned null for tournament:', variables.name);
-        // alert(t('newGameSetupModal.errors.addTournamentFailed', 'Failed to add tournament: {tournamentName}. It might already exist.', { tournamentName: variables.name }));
-      }
-    },
-    onError: (error, variables) => {
-      logger.error(`[Mutation Error] Failed to add tournament ${variables.name}:`, error);
-      // alert(t('newGameSetupModal.errors.addTournamentFailedUnexpected', 'An unexpected error occurred while adding tournament: {tournamentName}.', { tournamentName: variables.name }));
-    },
-  });
-  // Fixed: Sync master roster from React Query to local state
-  // Guard: Only update availablePlayers from master roster when NOT in an active game
-  // This prevents overwriting per-game goalie selections
-  useEffect(() => {
-    if (isMasterRosterQueryLoading) {
-      logger.log('[TanStack Query] Master Roster is loading...');
-      return;
-    }
-
-    if (isMasterRosterQueryError) {
-      logger.error('[TanStack Query] Error loading master roster:', masterRosterQueryErrorData);
-      setAvailablePlayers([]);
-      return;
-    }
-
-    if (masterRosterQueryResultData && Array.isArray(masterRosterQueryResultData)) {
-      // Only update if we're on the default game (not a saved/loaded game)
-      // This prevents overwriting per-game goalie status when master roster updates
-      if (!currentGameId || currentGameId === DEFAULT_GAME_ID) {
-        logger.log('[TanStack Query] Syncing master roster to availablePlayers (default game)');
-        setAvailablePlayers(masterRosterQueryResultData);
-      } else {
-        logger.log('[TanStack Query] Skipping master roster sync (active game with per-game state)');
-      }
-    }
-  }, [masterRosterQueryResultData, isMasterRosterQueryLoading, isMasterRosterQueryError, masterRosterQueryErrorData, setAvailablePlayers, currentGameId]);
-
-  // Fixed: Sync seasons from React Query to local state
-  useEffect(() => {
-    if (areSeasonsQueryLoading) {
-      logger.log('[TanStack Query] Seasons are loading...');
-      return;
-    }
-    
-    if (isSeasonsQueryError) {
-      logger.error('[TanStack Query] Error loading seasons:', seasonsQueryErrorData);
-      setSeasons([]);
-      return;
-    }
-    
-    if (seasonsQueryResultData && Array.isArray(seasonsQueryResultData)) {
-      setSeasons(seasonsQueryResultData);
-    }
-  }, [seasonsQueryResultData, areSeasonsQueryLoading, isSeasonsQueryError, seasonsQueryErrorData, setSeasons]);
-
-  // Fixed: Sync tournaments from React Query to local state  
-  useEffect(() => {
-    if (areTournamentsQueryLoading) {
-      logger.log('[TanStack Query] Tournaments are loading...');
-      return;
-    }
-    
-    if (isTournamentsQueryError) {
-      logger.error('[TanStack Query] Error loading tournaments:', tournamentsQueryErrorData);
-      setTournaments([]);
-      return;
-    }
-    
-    if (tournamentsQueryResultData && Array.isArray(tournamentsQueryResultData)) {
-      setTournaments(tournamentsQueryResultData);
-    }
-  }, [tournamentsQueryResultData, areTournamentsQueryLoading, isTournamentsQueryError, tournamentsQueryErrorData, setTournaments]);
+  // Data synchronization effects are now managed by useGameDataManagement hook
 
   // --- Effect to sync playersOnField details with availablePlayers changes ---
   useEffect(() => {
@@ -1118,25 +948,25 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       // Master Roster, Seasons, Tournaments are handled by their own useEffects reacting to useQuery.
 
       // 4. Update local savedGames state from useQuery for allSavedGames
-      if (isAllSavedGamesQueryLoading) {
+      if (gameDataManagement.isLoading) {
         setIsLoadingGamesList(true);
       }
-      if (allSavedGamesQueryResultData) {
-        setSavedGames(allSavedGamesQueryResultData || {});
+      if (gameDataManagement.savedGames) {
+        setSavedGames(gameDataManagement.savedGames || {});
         setIsLoadingGamesList(false);
       }
-      if (isAllSavedGamesQueryError) {
-        logger.error('[EFFECT init] Error loading all saved games via TanStack Query:', allSavedGamesQueryErrorData);
+      if (gameDataManagement.error) {
+        logger.error('[EFFECT init] Error loading all saved games via TanStack Query:', gameDataManagement.error);
         setLoadGamesListError(t('loadGameModal.errors.listLoadFailed', 'Failed to load saved games list.'));
       setSavedGames({});
         setIsLoadingGamesList(false);
       }
-      
+
       // 5. Determine and set current game ID and related state from useQuery data
-      if (isCurrentGameIdSettingQueryLoading || isAllSavedGamesQueryLoading) { 
+      if (gameDataManagement.isLoading) {
       } else {
-        const lastGameIdSetting = currentGameIdSettingQueryResultData;
-        const currentSavedGames = allSavedGamesQueryResultData || {}; 
+        const lastGameIdSetting = gameDataManagement.currentGameIdSetting;
+        const currentSavedGames = gameDataManagement.savedGames || {}; 
 
         if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID && currentSavedGames[lastGameIdSetting]) {
           setCurrentGameId(lastGameIdSetting);
@@ -1150,11 +980,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
     
       // Determine overall initial load completion
-      if (!isMasterRosterQueryLoading && !areSeasonsQueryLoading && !areTournamentsQueryLoading && !isAllSavedGamesQueryLoading && !isCurrentGameIdSettingQueryLoading) {
+      if (!gameDataManagement.isLoading) {
         // --- TIMER RESTORATION LOGIC ---
         try {
           const savedTimerStateJSON = await getStorageItem(TIMER_STATE_KEY).catch(() => null);
-          const lastGameId = currentGameIdSettingQueryResultData;
+          const lastGameId = gameDataManagement.currentGameIdSetting;
 
           if (savedTimerStateJSON) {
             const savedTimerState: TimerState = JSON.parse(savedTimerStateJSON);
@@ -1189,26 +1019,10 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
     loadInitialAppData();
   }, [
-    masterRosterQueryResultData,
-    isMasterRosterQueryLoading,
-    isMasterRosterQueryError,
-    masterRosterQueryErrorData,
-    seasonsQueryResultData,
-    areSeasonsQueryLoading,
-    isSeasonsQueryError,
-    seasonsQueryErrorData,
-    tournamentsQueryResultData,
-    areTournamentsQueryLoading,
-    isTournamentsQueryError,
-    tournamentsQueryErrorData,
-    allSavedGamesQueryResultData,
-    isAllSavedGamesQueryLoading,
-    isAllSavedGamesQueryError,
-    allSavedGamesQueryErrorData,
-    currentGameIdSettingQueryResultData,
-    isCurrentGameIdSettingQueryLoading,
-    isCurrentGameIdSettingQueryError,
-    currentGameIdSettingQueryErrorData,
+    gameDataManagement.savedGames,
+    gameDataManagement.currentGameIdSetting,
+    gameDataManagement.isLoading,
+    gameDataManagement.error,
     setSavedGames,
     setIsLoadingGamesList,
     setLoadGamesListError,
@@ -1353,7 +1167,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
     // Load per-game availablePlayers (with per-game goalie status)
     // Prioritize saved game data, fall back to master roster for new games
-    setAvailablePlayers(gameData?.availablePlayers || masterRosterQueryResultData || availablePlayers);
+    setAvailablePlayers(gameData?.availablePlayers || gameDataManagement.masterRoster || availablePlayers);
     
     // Update gameEvents from gameData if present, otherwise from initial state if it's an initial default load
     // setGameEvents(gameData?.events || (isInitialDefaultLoad ? initialState.gameEvents : [])); // REMOVE - Handled by LOAD_PERSISTED_GAME_DATA in reducer
@@ -1405,7 +1219,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       tacticalDiscs: gameData?.tacticalDiscs || [],
       tacticalDrawings: gameData?.tacticalDrawings || [],
       tacticalBallPosition: gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 },
-      availablePlayers: gameData?.availablePlayers || masterRosterQueryResultData || availablePlayers,
+      availablePlayers: gameData?.availablePlayers || gameDataManagement.masterRoster || availablePlayers,
     };
     resetHistory(newHistoryState);
     logger.log('[LOAD GAME STATE] Finished dispatching. Reducer will update gameSessionState.');
@@ -1502,7 +1316,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     autoSave();
     // Dependencies: Include all state variables that are part of the saved snapshot
   }, [initialLoadComplete, currentGameId,
-      playersOnField, opponents, drawings, availablePlayers, masterRosterQueryResultData,
+      playersOnField, opponents, drawings, availablePlayers, gameDataManagement.masterRoster,
       // showPlayerNames, // REMOVED - Covered by gameSessionState
       // Local states that are part of the snapshot but not yet in gameSessionState:
       // gameEvents, // REMOVE - Now from gameSessionState
@@ -1763,7 +1577,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     // Prefer current game's availablePlayers; fall back to master roster if empty
     const playerPool = (availablePlayers && availablePlayers.length > 0)
       ? availablePlayers
-      : (masterRosterQueryResultData || []);
+      : (gameDataManagement.masterRoster || []);
 
     const scorer = playerPool.find(p => p.id === scorerId);
     const assister = assisterId ? playerPool.find(p => p.id === assisterId) : undefined;
@@ -2238,7 +2052,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       logger.log('[Page.tsx] handleAddPlayerForModal attempting to add player:', playerData);
       setRosterError(null); // Clear previous specific errors first
 
-      const currentRoster = masterRosterQueryResultData || [];
+      const currentRoster = gameDataManagement.masterRoster || [];
       const newNameTrimmedLower = playerData.name.trim().toLowerCase();
       const newNumberTrimmed = playerData.jerseyNumber.trim();
 
@@ -2276,7 +2090,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         // Set a generic error message if rosterError hasn't been set by the mutation's onError callback.
         setRosterError(t('rosterSettingsModal.errors.addFailed', 'Error adding player {playerName}. Please try again.', { playerName: playerData.name }));
       }
-    }, [masterRosterQueryResultData, handleAddPlayer, t, setRosterError]);
+    }, [gameDataManagement.masterRoster, handleAddPlayer, t, setRosterError]);
 
     // ... (rest of the code remains unchanged)
 
@@ -3138,9 +2952,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     },
     currentGameId,
     availablePlayers,
-    teams,
-    seasons,
-    tournaments,
+    teams: gameDataManagement.teams,
+    seasons: gameDataManagement.seasons,
+    tournaments: gameDataManagement.tournaments,
     showFirstGameGuide,
     hasCheckedFirstGameGuide,
     firstGameGuideStep,
@@ -3194,12 +3008,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     onOpenPersonnelManager: () => setIsPersonnelManagerOpen(true),
   };
 
-  const isLoading =
-    isMasterRosterQueryLoading ||
-    areSeasonsQueryLoading ||
-    areTournamentsQueryLoading ||
-    isAllSavedGamesQueryLoading ||
-    isCurrentGameIdSettingQueryLoading;
+  const isLoading = gameDataManagement.isLoading;
 
   const isBootstrapping = isLoading && !initialLoadComplete;
 
@@ -3218,7 +3027,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     controlBarProps,
   };
 
-  const masterRoster = masterRosterQueryResultData || [];
+  const masterRoster = gameDataManagement.masterRoster;
 
   const modalManagerProps: ModalManagerProps = {
     state: {
@@ -3248,16 +3057,16 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       playersForCurrentGame,
       savedGames,
       currentGameId,
-      teams,
-      seasons,
-      tournaments,
+      teams: gameDataManagement.teams,
+      seasons: gameDataManagement.seasons,
+      tournaments: gameDataManagement.tournaments,
       masterRoster,
-      personnel: personnelManager.personnel,
+      personnel: gameDataManagement.personnel,
       personnelManager: {
-        addPersonnel: personnelManager.addPersonnel,
-        updatePersonnel: personnelManager.updatePersonnel,
-        removePersonnel: personnelManager.removePersonnel,
-        isLoading: personnelManager.isLoading,
+        addPersonnel: gameDataManagement.personnelManager.addPersonnel,
+        updatePersonnel: gameDataManagement.personnelManager.updatePersonnel,
+        removePersonnel: gameDataManagement.personnelManager.removePersonnel,
+        isLoading: gameDataManagement.personnelManager.isLoading,
       },
       playerAssessments,
       selectedPlayerForStats,
@@ -3281,12 +3090,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         processingGameId,
       },
       seasonTournamentMutations: {
-        addSeason: addSeasonMutation,
-        addTournament: addTournamentMutation,
-        updateSeason: updateSeasonMutation,
-        deleteSeason: deleteSeasonMutation,
-        updateTournament: updateTournamentMutation,
-        deleteTournament: deleteTournamentMutation,
+        addSeason: gameDataManagement.mutationResults.addSeason,
+        addTournament: gameDataManagement.mutationResults.addTournament,
+        updateSeason: gameDataManagement.mutationResults.updateSeason,
+        deleteSeason: gameDataManagement.mutationResults.deleteSeason,
+        updateTournament: gameDataManagement.mutationResults.updateTournament,
+        deleteTournament: gameDataManagement.mutationResults.deleteTournament,
       },
       updateGameDetailsMutation,
     },
