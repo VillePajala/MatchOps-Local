@@ -14,18 +14,23 @@
  *
  * @example
  * ```tsx
- * const dataManager = useGameDataManagement();
+ * const dataManager = useGameDataManagement({
+ *   currentGameId,
+ *   setAvailablePlayers,
+ *   setSeasons,
+ *   setTournaments
+ * });
  *
  * // Access data
  * <RosterModal roster={dataManager.masterRoster} />
  *
- * // Perform mutations
- * await dataManager.mutations.addSeason({ name: 'Spring 2024' });
- * await dataManager.mutations.updateTournament(tournament);
+ * // Perform mutations via mutationResults
+ * await dataManager.mutationResults.addSeason.mutateAsync({ name: 'Spring 2024' });
+ * await dataManager.mutationResults.updateTournament.mutateAsync(tournament);
  * ```
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useGameDataQueries } from '@/hooks/useGameDataQueries';
 import { useTeamsQuery } from '@/hooks/useTeamQueries';
@@ -71,29 +76,6 @@ export interface UseGameDataManagementParams {
 }
 
 /**
- * Mutation operations for seasons and tournaments
- */
-export interface DataMutations {
-  /** Add a new season */
-  addSeason: (data: Partial<Season> & { name: string }) => Promise<Season | null>;
-
-  /** Update an existing season */
-  updateSeason: (season: Season) => Promise<Season | null>;
-
-  /** Delete a season by ID */
-  deleteSeason: (id: string) => Promise<boolean>;
-
-  /** Add a new tournament */
-  addTournament: (data: Partial<Tournament> & { name: string }) => Promise<Tournament | null>;
-
-  /** Update an existing tournament */
-  updateTournament: (tournament: Tournament) => Promise<Tournament | null>;
-
-  /** Delete a tournament by ID */
-  deleteTournament: (id: string) => Promise<boolean>;
-}
-
-/**
  * Return type for useGameDataManagement hook
  */
 export interface UseGameDataManagementReturn {
@@ -127,10 +109,7 @@ export interface UseGameDataManagementReturn {
   /** Error from any failed query */
   error: Error | null;
 
-  /** Mutation operations for seasons and tournaments (legacy - use mutationResults instead) */
-  mutations: DataMutations;
-
-  /** Mutation result objects for direct use with React Query */
+  /** Mutation result objects for season and tournament CRUD operations */
   mutationResults: {
     addSeason: import('@tanstack/react-query').UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>;
     updateSeason: import('@tanstack/react-query').UseMutationResult<Season | null, Error, Season, unknown>;
@@ -352,50 +331,6 @@ export function useGameDataManagement(
     setTournaments,
   ]);
 
-  // --- Wrapped Mutation Operations ---
-
-  const addSeason = useCallback(
-    async (data: Partial<Season> & { name: string }) => {
-      return addSeasonMutation.mutateAsync(data);
-    },
-    [addSeasonMutation]
-  );
-
-  const updateSeason = useCallback(
-    async (season: Season) => {
-      return updateSeasonMutation.mutateAsync(season);
-    },
-    [updateSeasonMutation]
-  );
-
-  const deleteSeason = useCallback(
-    async (id: string) => {
-      return deleteSeasonMutation.mutateAsync(id);
-    },
-    [deleteSeasonMutation]
-  );
-
-  const addTournament = useCallback(
-    async (data: Partial<Tournament> & { name: string }) => {
-      return addTournamentMutation.mutateAsync(data);
-    },
-    [addTournamentMutation]
-  );
-
-  const updateTournament = useCallback(
-    async (tournament: Tournament) => {
-      return updateTournamentMutation.mutateAsync(tournament);
-    },
-    [updateTournamentMutation]
-  );
-
-  const deleteTournament = useCallback(
-    async (id: string) => {
-      return deleteTournamentMutation.mutateAsync(id);
-    },
-    [deleteTournamentMutation]
-  );
-
   // --- Return consolidated data and operations ---
 
   return {
@@ -413,17 +348,7 @@ export function useGameDataManagement(
     isLoading: isGameDataLoading || personnelManager.isLoading,
     error: gameDataError,
 
-    // Mutation operations (functions)
-    mutations: {
-      addSeason,
-      updateSeason,
-      deleteSeason,
-      addTournament,
-      updateTournament,
-      deleteTournament,
-    },
-
-    // Mutation results (for legacy compatibility with components expecting UseMutationResult)
+    // Mutation result objects for components requiring UseMutationResult
     mutationResults: {
       addSeason: addSeasonMutation,
       updateSeason: updateSeasonMutation,
