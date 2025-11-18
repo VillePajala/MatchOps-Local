@@ -172,7 +172,6 @@ interface ModalManagerHandlers {
   setIsPlayed: (played: boolean) => void;
   updateSelectedPlayers: (playerIds: string[]) => void;
   setGamePersonnel?: (personnelIds: string[]) => void;
-  teamIdChange: (teamId: string | null) => void;
   closeSettingsModal: () => void;
   setAppLanguage: (lang: string) => void;
   setDefaultTeamName: (name: string) => void;
@@ -414,7 +413,7 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           tournaments={data.tournaments}
           masterRoster={data.masterRoster}
           teams={data.teams}
-          onTeamIdChange={handlers.teamIdChange}
+          onTeamIdChange={() => {}} // No-op: teamId updates handled by updateGameDetailsMutation
         />
 
         <SettingsModal
