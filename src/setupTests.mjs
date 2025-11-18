@@ -3,6 +3,7 @@ import 'jest-canvas-mock';
 
 // Initialize i18n for tests with English language
 import i18n from './i18n.ts';
+// Immediately change to English synchronously if possible, or queue it
 if (i18n.isInitialized) {
   i18n.changeLanguage('en');
 } else {

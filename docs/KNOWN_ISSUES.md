@@ -52,6 +52,61 @@ This issue does NOT occur in production builds. Users will never see this error.
 
 ---
 
+## Timer State Issues
+
+### Timer State Not Preserved When Switching Games
+
+**Status:** Non-Critical - Deferred
+
+**Symptom:**
+When switching between games, the timer resets to 00:00 instead of preserving the elapsed time from when the game was paused.
+
+**Impact:**
+- ✅ **Timer pause works correctly** - no extra time added
+- ✅ **Timer saves on pause** - `timeElapsedInSeconds` included in history
+- ❌ **Timer doesn't restore** - value resets when loading a game
+
+**Root Cause:**
+The `LOAD_PERSISTED_GAME_DATA` action in `useGameSessionReducer.ts` (line 413) is supposed to restore the timer:
+```typescript
+const timeElapsedAtLoad = loadedData.timeElapsedInSeconds ?? fallbackTimeElapsed;
+```
+
+However, despite the fix to add `timeElapsedInSeconds` to:
+- `AppState` interface (`src/types/game.ts:95`)
+- `buildGameSessionHistorySlice` (`src/components/HomePage/hooks/useGameOrchestration.ts:294`)
+- `HISTORY_SAVING_ACTIONS` (includes `PAUSE_TIMER`)
+
+The value is still not being properly restored from IndexedDB.
+
+**Investigation Needed:**
+1. Verify that `timeElapsedInSeconds` is actually being written to IndexedDB
+2. Check if the value is being overwritten during the load process
+3. Verify the `LOAD_PERSISTED_GAME_DATA` payload contains the field
+4. Check for timing issues between game load and timer initialization
+
+**Workaround:**
+Users can manually note the elapsed time before switching games. The timer works correctly within a single game session.
+
+**Files Involved:**
+- `src/hooks/useGameSessionReducer.ts` (LOAD_PERSISTED_GAME_DATA action)
+- `src/types/game.ts` (AppState interface)
+- `src/components/HomePage/hooks/useGameOrchestration.ts` (buildGameSessionHistorySlice)
+- `src/hooks/useGameSessionWithHistory.ts` (HISTORY_SAVING_ACTIONS)
+
+**Related Fixes Applied:**
+- ✅ Fixed timer pause race condition (passes precise time to PAUSE_TIMER)
+- ✅ Added `timeElapsedInSeconds` to AppState and history slice
+- ✅ Moved PAUSE_TIMER to HISTORY_SAVING_ACTIONS
+
+**Next Steps:**
+- [ ] Debug actual IndexedDB writes to verify data is being saved
+- [ ] Add console logging to LOAD_PERSISTED_GAME_DATA to see payload
+- [ ] Check if any other code paths are overwriting the timer value
+- [ ] Verify the auto-save debouncing isn't preventing the save
+
+---
+
 ## Other Known Issues
 
 (None currently)

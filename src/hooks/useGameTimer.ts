@@ -19,6 +19,9 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const SAVE_DEBOUNCE_MS = 2000; // 2 second debounce
 
+  // Store precision timer reference for precise pause timing
+  const precisionTimerRef = useRef<{ getCurrentTime: () => number } | null>(null);
+
   const startPause = useCallback(() => {
     if (state.gameStatus === 'notStarted') {
       dispatch({
@@ -42,7 +45,9 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
       // Use proper START_TIMER/PAUSE_TIMER actions instead of SET_TIMER_RUNNING
       // to ensure startTimestamp is correctly managed
       if (state.isTimerRunning) {
-        dispatch({ type: 'PAUSE_TIMER' });
+        // Get precise current time from precision timer to prevent race conditions
+        const preciseTime = precisionTimerRef.current?.getCurrentTime();
+        dispatch({ type: 'PAUSE_TIMER', payload: preciseTime });
       } else {
         dispatch({ type: 'START_TIMER' });
       }
@@ -147,6 +152,9 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     startTime: stableStartTimeRef.current,
     interval: 50 // Check every 50ms (20fps) for smoother UI updates while maintaining precision
   });
+
+  // Store precision timer reference for use in startPause callback
+  precisionTimerRef.current = precisionTimer;
 
   useEffect(() => {
     syncWakeLock(state.isTimerRunning);

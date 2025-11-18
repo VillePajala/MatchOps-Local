@@ -291,6 +291,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       completedIntervalDurations: state.completedIntervalDurations,
       lastSubConfirmationTimeSeconds: state.lastSubConfirmationTimeSeconds,
       showPlayerNames: state.showPlayerNames,
+      timeElapsedInSeconds: state.timeElapsedInSeconds,
     } satisfies Partial<AppState>;
     return slice;
   }, []);

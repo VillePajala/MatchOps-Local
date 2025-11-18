@@ -85,6 +85,14 @@ export interface AppState {
    * Stores IDs only - names resolved from global personnel collection.
    */
   gamePersonnel?: string[];
+  /**
+   * Timer elapsed time in seconds
+   *
+   * @remarks
+   * Optional for backwards compatibility with old games.
+   * Tracks the exact elapsed time for the timer state preservation.
+   */
+  timeElapsedInSeconds?: number;
 }
 
 export interface SavedGamesCollection {
