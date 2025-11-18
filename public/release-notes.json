@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: extract useGameSessionCoordination hook (Step 2.6.2)"
+  "notes": "fix: add fallback defaults and cleanup code quality issues in useGameSessionCoordination"
 }

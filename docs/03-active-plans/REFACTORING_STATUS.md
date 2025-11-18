@@ -33,6 +33,21 @@ The HomePage refactoring is **nearly complete** with excellent architecture in p
 - **Target**: ALL hooks ≤600 lines each (largest: useFieldCoordination ~650 lines)
 - **Timeline**: 2-3 weeks (6 PRs, 16-20 hours total)
 
+### Coordination with NPM Dependencies
+
+**Next.js 16 Upgrade**: ⏸️ **DEFERRED** until Step 2.6 complete
+
+- Next.js 16.0.1 is available with major breaking changes
+- **Rationale**: Testing major framework updates 3x easier with smaller hooks (≤600 lines)
+- **Current Next.js 15.5.4** is stable and fully supported
+- **Action Plan**: Complete Step 2.6 hook splitting first, then upgrade to Next.js 16
+- **See**: [NPM_DEPENDENCY_UPDATE_PLAN.md](./NPM_DEPENDENCY_UPDATE_PLAN.md) for full dependency update strategy
+
+**Other NPM Updates**: Can proceed in parallel with refactoring
+- ✅ Security fixes (xlsx vulnerability) - Do immediately
+- ✅ Minor/patch updates (Sentry, React Query) - Safe to do now
+- ✅ Jest 30 upgrade - Helpful for refactoring (20% faster tests)
+
 ---
 
 ## 📊 CURRENT STATE (November 18, 2025)

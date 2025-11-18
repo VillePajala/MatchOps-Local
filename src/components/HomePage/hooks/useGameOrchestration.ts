@@ -143,6 +143,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const {
     gameSessionState,
     dispatchGameSession,
+    initialGameSessionData,
     undo: undoHistory,
     redo: redoHistory,
     canUndo,
@@ -156,40 +157,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // Wrap in useCallback to satisfy custom lint rule (already stable from hook)
   const saveStateToHistory = useCallback(saveStateToHistoryFromSession, [saveStateToHistoryFromSession]);
   const saveTacticalStateToHistory = useCallback(saveTacticalStateToHistoryFromSession, [saveTacticalStateToHistoryFromSession]);
-
-  // Initial game session data (for reset operations)
-  const initialGameSessionData: GameSessionState = {
-    teamName: initialState.teamName,
-    opponentName: initialState.opponentName,
-    gameDate: initialState.gameDate,
-    homeScore: initialState.homeScore,
-    awayScore: initialState.awayScore,
-    gameNotes: initialState.gameNotes,
-    homeOrAway: initialState.homeOrAway,
-    numberOfPeriods: initialState.numberOfPeriods,
-    periodDurationMinutes: initialState.periodDurationMinutes,
-    currentPeriod: initialState.currentPeriod,
-    gameStatus: initialState.gameStatus,
-    demandFactor: initialState.demandFactor ?? 1,
-    selectedPlayerIds: initialState.selectedPlayerIds,
-    gamePersonnel: initialState.gamePersonnel ?? [],
-    seasonId: initialState.seasonId,
-    tournamentId: initialState.tournamentId,
-    ageGroup: initialState.ageGroup,
-    tournamentLevel: initialState.tournamentLevel,
-    gameLocation: initialState.gameLocation,
-    gameTime: initialState.gameTime,
-    gameEvents: initialState.gameEvents,
-    timeElapsedInSeconds: 0,
-    isTimerRunning: false,
-    subIntervalMinutes: initialState.subIntervalMinutes ?? 5,
-    nextSubDueTimeSeconds: (initialState.subIntervalMinutes ?? 5) * 60,
-    subAlertLevel: 'none',
-    lastSubConfirmationTimeSeconds: 0,
-    completedIntervalDurations: initialState.completedIntervalDurations || [],
-    showPlayerNames: initialState.showPlayerNames,
-    startTimestamp: null,
-  };
 
   // --- Core Game State (Managed by Hook) ---
   const {
