@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: create unified refactoring status and fix TypeScript errors"
+  "notes": "Refactor personnel and season management to return null on validation failures"
 }

@@ -804,7 +804,13 @@
     "certificationsPlaceholder": "Yksi per rivi (esim. UEFA A -lisenssi)",
     "certificationsHint": "Syötä jokainen sertifikaatti uudelle riville",
     "notesLabel": "Muistiinpanot",
-    "notesPlaceholder": "Lisämuistiinpanot"
+    "notesPlaceholder": "Lisämuistiinpanot",
+    "errors": {
+      "nameRequired": "Henkilöstön nimi ei voi olla tyhjä.",
+      "duplicateName": "Henkilöstöjäsen tällä nimellä on jo olemassa. Valitse eri nimi.",
+      "createFailed": "Henkilöstön lisääminen epäonnistui. Yritä uudelleen.",
+      "updateFailed": "Henkilöstön päivittäminen epäonnistui. Yritä uudelleen."
+    }
   },
   "seasonDetailsModal": {
     "title": "Kauden tiedot",
@@ -829,7 +835,12 @@
     "badgePlaceholder": "esim. ⭐",
     "notesLabel": "Muistiinpanot",
     "notesPlaceholder": "Kirjoita muistiinpanoja",
-    "archivedLabel": "Arkistoitu"
+    "archivedLabel": "Arkistoitu",
+    "errors": {
+      "duplicateName": "Kausi tällä nimellä on jo olemassa. Valitse eri nimi.",
+      "createFailed": "Kauden luominen epäonnistui. Yritä uudelleen.",
+      "updateFailed": "Kauden päivittäminen epäonnistui. Yritä uudelleen."
+    }
   },
   "tournamentDetailsModal": {
     "title": "Turnauksen tiedot",
@@ -856,7 +867,12 @@
     "awardedPlayerLabel": "Turnauksen pelaaja",
     "notesLabel": "Muistiinpanot",
     "notesPlaceholder": "Kirjoita muistiinpanoja",
-    "archivedLabel": "Arkistoitu"
+    "archivedLabel": "Arkistoitu",
+    "errors": {
+      "duplicateName": "Turnaus tällä nimellä on jo olemassa. Valitse eri nimi.",
+      "createFailed": "Turnauksen luominen epäonnistui. Yritä uudelleen.",
+      "updateFailed": "Turnauksen päivittäminen epäonnistui. Yritä uudelleen."
+    }
   },
   "tournaments": {
     "selectAwardWinner": "-- Valitse turnauksen pelaaja --",
@@ -1327,28 +1343,6 @@
       "nameRequired": "Pelaajan nimi ei voi olla tyhjä.",
       "duplicateName": "Pelaaja tällä nimellä on jo olemassa. Käytä eri nimeä.",
       "duplicateNumber": "Pelaaja tällä pelinumerolla on jo olemassa. Käytä eri numeroa tai jätä tyhjäksi."
-    }
-  },
-  "seasonDetailsModal": {
-    "errors": {
-      "duplicateName": "Kausi tällä nimellä on jo olemassa. Valitse eri nimi.",
-      "createFailed": "Kauden luominen epäonnistui. Yritä uudelleen.",
-      "updateFailed": "Kauden päivittäminen epäonnistui. Yritä uudelleen."
-    }
-  },
-  "tournamentDetailsModal": {
-    "errors": {
-      "duplicateName": "Turnaus tällä nimellä on jo olemassa. Valitse eri nimi.",
-      "createFailed": "Turnauksen luominen epäonnistui. Yritä uudelleen.",
-      "updateFailed": "Turnauksen päivittäminen epäonnistui. Yritä uudelleen."
-    }
-  },
-  "personnelDetailsModal": {
-    "errors": {
-      "nameRequired": "Henkilöstön nimi ei voi olla tyhjä.",
-      "duplicateName": "Henkilöstöjäsen tällä nimellä on jo olemassa. Valitse eri nimi.",
-      "createFailed": "Henkilöstön lisääminen epäonnistui. Yritä uudelleen.",
-      "updateFailed": "Henkilöstön päivittäminen epäonnistui. Yritä uudelleen."
     }
   }
 }

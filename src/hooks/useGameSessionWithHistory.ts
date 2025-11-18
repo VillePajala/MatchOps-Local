@@ -62,6 +62,8 @@ const HISTORY_SAVING_ACTIONS = new Set([
   'START_PERIOD',
   'END_PERIOD_OR_GAME',
   'CONFIRM_SUBSTITUTION',
+  // Timer (pause is user-initiated and should save timer state)
+  'PAUSE_TIMER',
 ]);
 
 // Actions that should NOT trigger history saves (state loads, system actions, timer)
@@ -74,7 +76,6 @@ const NO_HISTORY_ACTIONS = new Set([
   'RESET_GAME_SESSION_STATE',
   // Timer system actions (automatic, not user-initiated)
   'START_TIMER',
-  'PAUSE_TIMER',
   'SET_TIMER_ELAPSED',
   'SET_TIMER_RUNNING',
   'PAUSE_TIMER_FOR_HIDDEN',

@@ -103,7 +103,7 @@ export type GameSessionAction =
   | { type: 'START_PERIOD'; payload: { nextPeriod: number, periodDurationMinutes: number, subIntervalMinutes: number } }
   | { type: 'END_PERIOD_OR_GAME'; payload: { newStatus: 'periodEnd' | 'gameEnd', finalTime?: number } }
   | { type: 'START_TIMER' }
-  | { type: 'PAUSE_TIMER' }
+  | { type: 'PAUSE_TIMER'; payload?: number } // Optional payload: precise current time from precision timer
   | { type: 'SET_SELECTED_PLAYER_IDS'; payload: string[] }
   | { type: 'SET_GAME_PERSONNEL'; payload: string[] }
   | { type: 'SET_SEASON_ID'; payload: string }
@@ -209,12 +209,16 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
     }
     case 'PAUSE_TIMER': {
       if (!state.isTimerRunning || !state.startTimestamp) return state;
-      const elapsedSinceStart = (Date.now() - state.startTimestamp) / 1000;
+      // Use precise time from precision timer if provided, otherwise calculate from Date.now()
+      const preciseTime = action.payload;
+      const timeElapsedAtPause = preciseTime !== undefined
+        ? preciseTime
+        : state.timeElapsedInSeconds + (Date.now() - state.startTimestamp) / 1000;
       return {
         ...state,
         isTimerRunning: false,
         startTimestamp: null,
-        timeElapsedInSeconds: state.timeElapsedInSeconds + elapsedSinceStart,
+        timeElapsedInSeconds: timeElapsedAtPause,
       };
     }
     case 'SET_SELECTED_PLAYER_IDS':
@@ -256,6 +260,10 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return { ...state, gameEvents: state.gameEvents.filter(e => e.id !== action.payload) };
     }
     case 'SET_TIMER_ELAPSED': {
+        // Ignore timer updates when timer is not running to prevent race conditions
+        // (e.g., a tick that was queued just before pause should not override the paused time)
+        if (!state.isTimerRunning) return state;
+
         const newTime = action.payload;
         let newAlertLevel: GameSessionState['subAlertLevel'] = 'none';
         const warningTime = state.nextSubDueTimeSeconds - 60;
@@ -401,12 +409,16 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const completedIntervalDurations = loadedData.completedIntervalDurations ?? [];
       const gamePersonnel = loadedData.gamePersonnel ?? [];
 
-      let timeElapsedAtLoad = 0;
+      // Calculate fallback time based on period (used if no saved time exists)
+      let fallbackTimeElapsed = 0;
       if (gameStatus === 'periodEnd' || gameStatus === 'gameEnd') {
-         timeElapsedAtLoad = currentPeriod * periodDurationMinutes * 60;
+         fallbackTimeElapsed = currentPeriod * periodDurationMinutes * 60;
       } else {
-         timeElapsedAtLoad = (currentPeriod - 1) * periodDurationMinutes * 60;
+         fallbackTimeElapsed = (currentPeriod - 1) * periodDurationMinutes * 60;
       }
+
+      // Use saved timeElapsedInSeconds if available, otherwise fall back to calculated value
+      const timeElapsedAtLoad = loadedData.timeElapsedInSeconds ?? fallbackTimeElapsed;
 
       const stateToBeReturned: GameSessionState = {
         teamName,
