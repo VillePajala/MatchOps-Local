@@ -25,7 +25,7 @@ const defaultProps: PersonnelDetailsModalProps = {
   onClose: jest.fn(),
   mode: 'edit',
   personnel: mockPersonnel,
-  onUpdatePersonnel: jest.fn().mockResolvedValue(undefined),
+  onUpdatePersonnel: jest.fn().mockResolvedValue(mockPersonnel),
   isUpdating: false,
 };
 
@@ -59,7 +59,7 @@ describe('PersonnelDetailsModal', () => {
         renderWithProviders({
           mode: 'create',
           personnel: undefined,
-          onAddPersonnel: jest.fn().mockResolvedValue(undefined),
+          onAddPersonnel: jest.fn().mockResolvedValue(mockPersonnel),
           onUpdatePersonnel: undefined,
         });
       });
@@ -210,7 +210,7 @@ describe('PersonnelDetailsModal', () => {
 
   describe('Save Functionality', () => {
     it('saves changes when Save button is clicked', async () => {
-      const onUpdatePersonnel = jest.fn().mockResolvedValue(undefined);
+      const onUpdatePersonnel = jest.fn().mockResolvedValue(mockPersonnel);
       const onClose = jest.fn();
       const user = userEvent.setup();
 
@@ -235,7 +235,7 @@ describe('PersonnelDetailsModal', () => {
     });
 
     it('saves multiple field changes', async () => {
-      const onUpdatePersonnel = jest.fn().mockResolvedValue(undefined);
+      const onUpdatePersonnel = jest.fn().mockResolvedValue(mockPersonnel);
       const onClose = jest.fn();
       const user = userEvent.setup();
 
@@ -269,7 +269,7 @@ describe('PersonnelDetailsModal', () => {
     });
 
     it('parses certifications from textarea correctly', async () => {
-      const onUpdatePersonnel = jest.fn().mockResolvedValue(undefined);
+      const onUpdatePersonnel = jest.fn().mockResolvedValue(mockPersonnel);
       const onClose = jest.fn();
       const user = userEvent.setup();
 
@@ -293,7 +293,7 @@ describe('PersonnelDetailsModal', () => {
     });
 
     it('filters out empty lines from certifications', async () => {
-      const onUpdatePersonnel = jest.fn().mockResolvedValue(undefined);
+      const onUpdatePersonnel = jest.fn().mockResolvedValue(mockPersonnel);
       const onClose = jest.fn();
       const user = userEvent.setup();
 
@@ -317,7 +317,7 @@ describe('PersonnelDetailsModal', () => {
     });
 
     it('sets certifications to undefined when textarea is empty', async () => {
-      const onUpdatePersonnel = jest.fn().mockResolvedValue(undefined);
+      const onUpdatePersonnel = jest.fn().mockResolvedValue(mockPersonnel);
       const onClose = jest.fn();
       const user = userEvent.setup();
 
@@ -340,7 +340,7 @@ describe('PersonnelDetailsModal', () => {
     });
 
     it('does not call onUpdatePersonnel when no changes are made', async () => {
-      const onUpdatePersonnel = jest.fn().mockResolvedValue(undefined);
+      const onUpdatePersonnel = jest.fn().mockResolvedValue(mockPersonnel);
       const onClose = jest.fn();
       const user = userEvent.setup();
 
@@ -359,7 +359,7 @@ describe('PersonnelDetailsModal', () => {
     });
 
     it('creates personnel when in create mode', async () => {
-      const onAddPersonnel = jest.fn().mockResolvedValue(undefined);
+      const onAddPersonnel = jest.fn().mockResolvedValue(mockPersonnel);
       const onClose = jest.fn();
       const user = userEvent.setup();
 
@@ -406,7 +406,7 @@ describe('PersonnelDetailsModal', () => {
     });
 
     it('trims whitespace from inputs when saving', async () => {
-      const onAddPersonnel = jest.fn().mockResolvedValue(undefined);
+      const onAddPersonnel = jest.fn().mockResolvedValue(mockPersonnel);
       const onClose = jest.fn();
       const user = userEvent.setup();
 
@@ -489,7 +489,7 @@ describe('PersonnelDetailsModal', () => {
         renderWithProviders({
           mode: 'create',
           personnel: undefined,
-          onAddPersonnel: jest.fn().mockResolvedValue(undefined),
+          onAddPersonnel: jest.fn().mockResolvedValue(mockPersonnel),
           onUpdatePersonnel: undefined,
         });
       });
@@ -546,7 +546,7 @@ describe('PersonnelDetailsModal', () => {
     });
 
     it('calls onClose without saving changes when cancelled', async () => {
-      const onUpdatePersonnel = jest.fn().mockResolvedValue(undefined);
+      const onUpdatePersonnel = jest.fn().mockResolvedValue(mockPersonnel);
       const onClose = jest.fn();
       const user = userEvent.setup();
 
@@ -673,7 +673,7 @@ describe('PersonnelDetailsModal', () => {
       const { rerender } = renderWithProviders({
         mode: 'create',
         personnel: undefined,
-        onAddPersonnel: jest.fn().mockResolvedValue(undefined),
+        onAddPersonnel: jest.fn().mockResolvedValue(mockPersonnel),
         onUpdatePersonnel: undefined,
       });
 

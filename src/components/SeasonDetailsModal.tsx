@@ -38,6 +38,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   const [endDate, setEndDate] = useState('');
   const [notes, setNotes] = useState('');
   const [archived, setArchived] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Initialize form when season changes or modal opens
   useEffect(() => {
@@ -52,6 +53,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
       setEndDate('');
       setNotes('');
       setArchived(false);
+      setErrorMessage(null);
     } else if (season) {
       // Load existing season data for edit mode
       setName(season.name || '');
@@ -63,6 +65,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
       setEndDate(season.endDate || '');
       setNotes(season.notes || '');
       setArchived(season.archived || false);
+      setErrorMessage(null);
     }
   }, [mode, season, isOpen]);
 
@@ -95,7 +98,18 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
       };
 
       addSeasonMutation.mutate(newSeason, {
-        onSuccess: () => onClose(),
+        onSuccess: (result) => {
+          if (result) {
+            onClose();
+          } else {
+            setErrorMessage(
+              t('seasonDetailsModal.errors.duplicateName', 'A season with this name already exists. Please choose a different name.')
+            );
+          }
+        },
+        onError: (error) => {
+          setErrorMessage(error.message || t('seasonDetailsModal.errors.createFailed', 'Failed to create season. Please try again.'));
+        }
       });
     } else {
       // Update existing season
@@ -115,7 +129,18 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
       };
 
       updateSeasonMutation.mutate(updatedSeason, {
-        onSuccess: () => onClose(),
+        onSuccess: (result) => {
+          if (result) {
+            onClose();
+          } else {
+            setErrorMessage(
+              t('seasonDetailsModal.errors.duplicateName', 'A season with this name already exists. Please choose a different name.')
+            );
+          }
+        },
+        onError: (error) => {
+          setErrorMessage(error.message || t('seasonDetailsModal.errors.updateFailed', 'Failed to update season. Please try again.'));
+        }
       });
     }
   };
@@ -174,6 +199,13 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
           <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
             <div className="space-y-3">
+              {/* Error Message */}
+              {errorMessage && (
+                <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-md text-sm">
+                  {errorMessage}
+                </div>
+              )}
+
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">
@@ -182,9 +214,15 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                 <input
                   type="text"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    // Clear error when user starts typing
+                    if (errorMessage) setErrorMessage(null);
+                  }}
                   placeholder={t('seasonDetailsModal.namePlaceholder', 'Enter season name')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 ${
+                    errorMessage ? 'border-red-500' : 'border-slate-600'
+                  }`}
                   required
                 />
               </div>

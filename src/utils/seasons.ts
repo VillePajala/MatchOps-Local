@@ -56,7 +56,7 @@ export const saveSeasons = async (seasons: Season[]): Promise<boolean> => {
 export const addSeason = async (newSeasonName: string, extra: Partial<Season> = {}): Promise<Season | null> => {
   const trimmedName = newSeasonName.trim();
   if (!trimmedName) {
-    logger.error('[addSeason] Validation failed: Season name cannot be empty.');
+    logger.warn('[addSeason] Validation failed: Season name cannot be empty.');
     return Promise.resolve(null);
   }
 
@@ -64,7 +64,7 @@ export const addSeason = async (newSeasonName: string, extra: Partial<Season> = 
     try {
       const currentSeasons = await getSeasons();
       if (currentSeasons.some(s => s.name.toLowerCase() === trimmedName.toLowerCase())) {
-        logger.error(`[addSeason] Validation failed: A season with name "${trimmedName}" already exists.`);
+        logger.warn(`[addSeason] Validation failed: A season with name "${trimmedName}" already exists.`);
         return Promise.resolve(null);
       }
       const newSeason: Season = {
@@ -105,7 +105,7 @@ export const updateSeason = async (updatedSeasonData: Season): Promise<Season | 
       }
 
       if (currentSeasons.some(s => s.id !== updatedSeasonData.id && s.name.toLowerCase() === trimmedName.toLowerCase())) {
-        logger.error(`[updateSeason] Validation failed: Another season with name "${trimmedName}" already exists.`);
+        logger.warn(`[updateSeason] Validation failed: Another season with name "${trimmedName}" already exists.`);
         return Promise.resolve(null);
       }
 

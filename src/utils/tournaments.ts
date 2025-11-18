@@ -62,7 +62,7 @@ export const saveTournaments = async (tournaments: Tournament[]): Promise<boolea
 export const addTournament = async (newTournamentName: string, extra: Partial<Tournament> = {}): Promise<Tournament | null> => {
   const trimmedName = newTournamentName.trim();
   if (!trimmedName) {
-    logger.error('[addTournament] Validation failed: Tournament name cannot be empty.');
+    logger.warn('[addTournament] Validation failed: Tournament name cannot be empty.');
     return Promise.resolve(null);
   }
 
@@ -70,7 +70,7 @@ export const addTournament = async (newTournamentName: string, extra: Partial<To
     try {
       const currentTournaments = await getTournaments();
       if (currentTournaments.some(t => t.name.toLowerCase() === trimmedName.toLowerCase())) {
-        logger.error(`[addTournament] Validation failed: A tournament with name "${trimmedName}" already exists.`);
+        logger.warn(`[addTournament] Validation failed: A tournament with name "${trimmedName}" already exists.`);
         return Promise.resolve(null);
       }
       const { level, ageGroup, ...rest } = extra;
@@ -98,7 +98,7 @@ export const addTournament = async (newTournamentName: string, extra: Partial<To
  */
 export const updateTournament = async (updatedTournamentData: Tournament): Promise<Tournament | null> => {
   if (!updatedTournamentData || !updatedTournamentData.id || !updatedTournamentData.name?.trim()) {
-    logger.error('[updateTournament] Invalid tournament data provided for update.');
+    logger.warn('[updateTournament] Invalid tournament data provided for update.');
     return Promise.resolve(null);
   }
   const trimmedName = updatedTournamentData.name.trim();
@@ -114,7 +114,7 @@ export const updateTournament = async (updatedTournamentData: Tournament): Promi
       }
 
       if (currentTournaments.some(t => t.id !== updatedTournamentData.id && t.name.toLowerCase() === trimmedName.toLowerCase())) {
-        logger.error(`[updateTournament] Validation failed: Another tournament with name "${trimmedName}" already exists.`);
+        logger.warn(`[updateTournament] Validation failed: Another tournament with name "${trimmedName}" already exists.`);
         return Promise.resolve(null);
       }
 

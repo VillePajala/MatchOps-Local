@@ -52,7 +52,7 @@ export const addPlayerToRoster = async (playerData: {
 }): Promise<Player | null> => {
   const trimmedName = playerData.name?.trim();
   if (!trimmedName) {
-    logger.error('[addPlayerToRoster] Validation Failed: Player name cannot be empty.');
+    logger.warn('[addPlayerToRoster] Validation Failed: Player name cannot be empty.');
     return Promise.resolve(null);
   }
 

@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: update progress documentation and critical fixes tracker with latest status and metrics"
+  "notes": "docs: create unified refactoring status and fix TypeScript errors"
 }

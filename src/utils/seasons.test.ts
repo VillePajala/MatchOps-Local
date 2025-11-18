@@ -111,15 +111,15 @@ describe('Season Management Utilities (storage)', () => {
 
     it('should return null and log error if the season name is empty', async () => {
       expect(await addSeason('')).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Season name cannot be empty'));
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Season name cannot be empty'));
       expect(await addSeason('   ')).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledTimes(2);
+      expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
     });
 
     it('should return null and log error if a season with the same name already exists', async () => {
       await saveSeasons([sampleSeasons[0]]); // 'Spring League 2023'
       expect(await addSeason('spring league 2023')).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[addSeason] Validation failed: A season with name "spring league 2023" already exists.'));
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('[addSeason] Validation failed: A season with name "spring league 2023" already exists.'));
     });
 
     it('should return null if saving fails during add', async () => {
@@ -160,9 +160,9 @@ describe('Season Management Utilities (storage)', () => {
     });
 
     it('should return null and log error if updated name conflicts with another season', async () => {
-      const seasonToUpdateData: Season = { ...sampleSeasons[0], name: sampleSeasons[1].name.toUpperCase() }; 
+      const seasonToUpdateData: Season = { ...sampleSeasons[0], name: sampleSeasons[1].name.toUpperCase() };
       expect(await updateSeason(seasonToUpdateData)).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining(`[updateSeason] Validation failed: Another season with name "${sampleSeasons[1].name.toUpperCase()}" already exists.`));
+      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`[updateSeason] Validation failed: Another season with name "${sampleSeasons[1].name.toUpperCase()}" already exists.`));
     });
 
     it('should return null if saving fails during update', async () => {
