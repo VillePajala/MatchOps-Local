@@ -79,7 +79,6 @@ export interface UseGameSessionCoordinationReturn {
     setSeasonId: (seasonId: string | undefined) => void;
     setTournamentId: (tournamentId: string | undefined) => void;
     setGamePersonnel: (personnelIds: string[]) => void;
-    setTeamId: (teamId: string | null) => void;
   };
 }
 
@@ -191,6 +190,9 @@ export function useGameSessionCoordination({
         return false;
       }
       // If both are objects/arrays, do a cheap structural compare per field
+      // Performance: Only compares fields in adjustedNewState (typically 1-3 fields),
+      // not the entire state tree. If issues arise with large arrays (100+ items),
+      // consider fast-deep-equal library.
       const isObjectLike = (val: unknown) => typeof val === 'object' && val !== null;
       if (isObjectLike(prevVal) && isObjectLike((adjustedNewState as AppState)[k])) {
         try {
@@ -274,6 +276,13 @@ export function useGameSessionCoordination({
 
   // --- Game Metadata Handlers ---
 
+  /**
+   * Updates team name with validation
+   *
+   * Note: Unlike other metadata handlers, this validates against empty/whitespace
+   * because team name is the primary game identifier in the UI. Empty names
+   * are silently ignored to prevent clearing this required field.
+   */
   const handleTeamNameChange = useCallback((newName: string) => {
     const trimmedName = newName.trim();
     if (trimmedName) {
@@ -357,13 +366,6 @@ export function useGameSessionCoordination({
     dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: personnelIds });
   }, [dispatchGameSession]);
 
-  const handleTeamIdChange = useCallback((newTeamId: string | null) => {
-    logger.log('[useGameSessionCoordination] handleTeamIdChange called with:', newTeamId);
-    // TeamId is stored in AppState (saved game), not GameSessionState
-    // GameSettingsModal already handles calling updateGameDetailsMutation
-    // This handler is just for any additional logic if needed in the future
-  }, []);
-
   // --- Apply History State Helper ---
   // Used by undo/redo to restore full app state
   // Accepts callbacks from caller to update field state (setPlayersOnField, etc.)
@@ -400,9 +402,9 @@ export function useGameSessionCoordination({
         gameEvents: state.gameEvents,
         gamePersonnel: state.gamePersonnel ?? [],
         teamId: state.teamId,
-        subIntervalMinutes: state.subIntervalMinutes,
-        completedIntervalDurations: state.completedIntervalDurations,
-        lastSubConfirmationTimeSeconds: state.lastSubConfirmationTimeSeconds,
+        subIntervalMinutes: state.subIntervalMinutes ?? 5,
+        completedIntervalDurations: state.completedIntervalDurations ?? [],
+        lastSubConfirmationTimeSeconds: state.lastSubConfirmationTimeSeconds ?? 0,
         showPlayerNames: state.showPlayerNames,
         timeElapsedInSeconds: state.timeElapsedInSeconds,
       }
@@ -449,7 +451,6 @@ export function useGameSessionCoordination({
       setSeasonId: handleSetSeasonId,
       setTournamentId: handleSetTournamentId,
       setGamePersonnel: handleSetGamePersonnel,
-      setTeamId: handleTeamIdChange,
     },
   };
 }

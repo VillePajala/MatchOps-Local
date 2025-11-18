@@ -1329,9 +1329,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setDraggingPlayerFromBarInfo(null);
   }, []);
 
-  
-
   // --- Apply History State Helper ---
+  // TODO(Step 2.6.3): Once useFieldCoordination is extracted, move field state
+  // restoration (playersOnField, opponents, drawings) into that hook's
+  // applyFieldHistoryState method. Tactical state should also move there.
+  // This wrapper will then simplify to only call sessionCoordination.applyHistoryState(state).
+  //
   // Wraps sessionCoordination.applyHistoryState and adds field state updates
   const applyHistoryState = (state: AppState) => {
     // Update field state (not managed by session coordination)
@@ -2283,7 +2286,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const handleGameTimeChange = sessionCoordination.handlers.setGameTime;
   const handleAgeGroupChange = sessionCoordination.handlers.setAgeGroup;
   const handleTournamentLevelChange = sessionCoordination.handlers.setTournamentLevel;
-  const handleTeamIdChange = sessionCoordination.handlers.setTeamId;
   const handleSetDemandFactor = sessionCoordination.handlers.setDemandFactor;
   const handleSetHomeOrAway = sessionCoordination.handlers.setHomeOrAway;
   const handleSetSeasonId = sessionCoordination.handlers.setSeasonId;
@@ -2936,7 +2938,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       setIsPlayed,
       updateSelectedPlayers: handleUpdateSelectedPlayers,
       setGamePersonnel: handleSetGamePersonnel,
-      teamIdChange: handleTeamIdChange,
       closeSettingsModal: handleCloseSettingsModal,
       setAppLanguage,
       setDefaultTeamName: setDefaultTeamNameSetting,
