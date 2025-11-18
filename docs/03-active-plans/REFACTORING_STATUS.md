@@ -1,8 +1,9 @@
 # MatchOps-Local Refactoring Status — Single Source of Truth
 
 **Last Updated**: November 18, 2025
-**Status**: 🟡 **95% Complete** — Final integration + hook splitting remaining
+**Status**: 🟡 **95% Complete** — Hook splitting remaining (Steps 2.4.0-2.5 COMPLETE)
 **Supersedes**: All P0/P1/P2 fix plans, MICRO-REFactor-ROADMAP Layer 2 completion
+**Detailed Plan**: See `L2-2.6-useGameOrchestration-Splitting-PLAN.md` for step-by-step extraction plan
 
 ---
 
@@ -12,23 +13,25 @@
 
 The HomePage refactoring is **nearly complete** with excellent architecture in place:
 
-- ✅ **HomePage.tsx**: Reduced from 3,680 lines → **62 lines** (orchestrator only)
+- ✅ **HomePage.tsx**: Reduced from 3,725 lines → **62 lines** (98.3% reduction, orchestrator only)
 - ✅ **Container Pattern**: GameContainer, ModalManager, FieldContainer extracted
 - ✅ **View-Model Pattern**: All components use typed view-models
-- ✅ **Layer 1 & 2**: Stability + architecture complete (Steps 2.4.0–2.5)
+- ✅ **Layer 1 & 2**: Stability + architecture complete (Steps 2.4.0–2.5 ✅ COMPLETE)
 - ✅ **Architecture**: Industry-standard React pattern ✅
+- ✅ **All Tests Passing**: 1403 tests, build succeeds, lint clean
 
 ### What Remains (5% — The Final Push)
 
-- 🔴 **useGameOrchestration.ts**: 3,373 lines (should be ≤600 lines)
+- 🔴 **useGameOrchestration.ts**: 3,378 lines (should be ≤600 lines)
   - Needs to be split into 6 smaller hooks
-  - Estimated time: **~12 hours** over 2 weeks (6 small PRs)
+  - **Detailed plan created**: `L2-2.6-useGameOrchestration-Splitting-PLAN.md`
+  - Estimated time: **16-20 hours** over 2-3 weeks (6 PRs)
 
 ### Success Metrics
 
-- **Current**: HomePage 62 lines, useGameOrchestration 3,373 lines
-- **Target**: HomePage 62 lines, ALL hooks ≤600 lines each
-- **Timeline**: 2-3 weeks (6 PRs × 1-2 hours each)
+- **Current**: HomePage 62 lines ✅, useGameOrchestration 3,378 lines 🔴
+- **Target**: ALL hooks ≤600 lines each (largest: useFieldCoordination ~650 lines)
+- **Timeline**: 2-3 weeks (6 PRs, 16-20 hours total)
 
 ---
 
@@ -38,29 +41,29 @@ The HomePage refactoring is **nearly complete** with excellent architecture in p
 
 | File | Current Lines | Target | Status |
 |------|--------------|--------|--------|
-| `HomePage.tsx` | **62** | ≤200 | ✅ **EXCELLENT** |
-| `useGameOrchestration.ts` | **3,373** | ≤600 | 🔴 **NEEDS SPLIT** |
+| `HomePage.tsx` | **62** | ≤200 | ✅ **EXCELLENT** (98.3% reduction) |
+| `useGameOrchestration.ts` | **3,378** | ≤600 | 🔴 **NEEDS SPLIT** (Step 2.6) |
 | `GameContainer.tsx` | 105 | ≤600 | ✅ Clean |
-| `ModalManager.tsx` | 549 | ≤600 | ✅ Clean |
+| `ModalManager.tsx` | 564 | ≤600 | ✅ Clean |
 | `FieldContainer.tsx` | 394 | ≤600 | ✅ Clean |
 
 ### Architecture (CORRECT ✅)
 
 ```
-HomePage.tsx (62 lines - UI orchestrator)
+HomePage.tsx (62 lines - UI orchestrator) ✅ COMPLETE
     ↓
-    ├─→ useGameOrchestration.ts (3,373 lines - logic orchestrator) ← SPLIT THIS
-    │       ↓
-    │       ├─→ useGameDataManagement (~500 lines) — TO CREATE
-    │       ├─→ useGamePersistence (~400 lines) — TO CREATE
-    │       ├─→ useGameSessionCoordination (~500 lines) — TO CREATE
-    │       ├─→ useModalOrchestration (~400 lines) — TO CREATE
-    │       ├─→ useFieldCoordination (~400 lines) — TO CREATE
-    │       └─→ useTimerManagement (~300 lines) — TO CREATE
+    ├─→ useGameOrchestration.ts (3,378 lines - logic orchestrator) 🔴 Step 2.6
+    │       ↓ (TO BE SPLIT INTO 6 HOOKS - See L2-2.6 plan)
+    │       ├─→ useGameDataManagement (~400 lines) — Step 2.6.1
+    │       ├─→ useGameSessionCoordination (~350 lines) — Step 2.6.2
+    │       ├─→ useFieldCoordination (~650 lines) — Step 2.6.3
+    │       ├─→ useGamePersistence (~550 lines) — Step 2.6.4
+    │       ├─→ useTimerManagement (~250 lines) — Step 2.6.5
+    │       └─→ useModalOrchestration (~500 lines) — Step 2.6.6
     │
-    ├─→ GameContainer (105 lines)
-    ├─→ ModalManager (549 lines)
-    └─→ FieldContainer (394 lines)
+    ├─→ GameContainer (105 lines) ✅ COMPLETE
+    ├─→ ModalManager (564 lines) ✅ COMPLETE
+    └─→ FieldContainer (394 lines) ✅ COMPLETE
 ```
 
 **This architecture is CORRECT**. It follows industry-standard React patterns:
@@ -83,7 +86,7 @@ All stability issues resolved:
 - ✅ Portalize all modals (top-most layer)
 - ✅ Anti-flash safety for specific modals (200ms guard)
 
-### Layer 2: Architecture (Complete — Steps 2.4.0–2.5)
+### Layer 2: Architecture (Steps 2.4.0–2.5 ✅ COMPLETE, Step 2.6 🔴 PLANNED)
 
 **Step 2.4.0–2.4.3**: View-Model Foundation
 - ✅ Created `GameContainerViewModel` with typed interfaces
@@ -122,11 +125,19 @@ All stability issues resolved:
 - ✅ All shortcuts drive centralized reducer helpers
 - ✅ Added regression test for anti-flash guard
 
-**Step 2.5**: Edge-Case Tests & Memoization
+**Step 2.5**: Edge-Case Tests & Memoization ✅ COMPLETE
 - ✅ Backup import test (stale currentGameId handling)
 - ✅ useGameState roster sync tests
 - ✅ Custom ESLint rule for useCallback enforcement
 - ✅ Fixed TypeScript errors in fullBackup.test.ts
+
+**Step 2.6**: Hook Splitting 🔴 PLANNED (See `L2-2.6-useGameOrchestration-Splitting-PLAN.md`)
+- 🔴 Step 2.6.1: Extract useGameDataManagement (~400 lines)
+- 🔴 Step 2.6.2: Extract useGameSessionCoordination (~350 lines)
+- 🔴 Step 2.6.3: Extract useFieldCoordination (~650 lines)
+- 🔴 Step 2.6.4: Extract useGamePersistence (~550 lines)
+- 🔴 Step 2.6.5: Extract useTimerManagement (~250 lines)
+- 🔴 Step 2.6.6: Extract useModalOrchestration (~500 lines)
 
 ---
 
@@ -134,11 +145,12 @@ All stability issues resolved:
 
 ### Overview
 
-Split `useGameOrchestration.ts` (3,373 lines) into 6 focused hooks.
+Split `useGameOrchestration.ts` (3,378 lines) into 6 focused hooks.
 
-**Strategy**: 6 small PRs (one hook at a time)
-**Effort**: ~12 hours total over 2-3 weeks
-**Approach**: Incremental, safe, easy to review
+**📋 Detailed Plan**: `L2-2.6-useGameOrchestration-Splitting-PLAN.md` (COMPLETE)
+**Strategy**: 6 small PRs (one hook at a time, in dependency order)
+**Effort**: 16-20 hours total over 2-3 weeks
+**Approach**: Incremental, tested, safe to rollback
 
 ### The 6 Hooks to Create
 
@@ -369,7 +381,7 @@ Run after EACH PR:
 
 1. **File Size**:
    - [ ] HomePage.tsx ≤200 lines (currently 62 ✅)
-   - [ ] useGameOrchestration.ts ≤600 lines (currently 3,373)
+   - [ ] useGameOrchestration.ts ≤600 lines (currently 3,378)
    - [ ] All extracted hooks ≤600 lines each
    - [ ] No single file exceeds 600 lines
 
