@@ -1,5 +1,5 @@
 // Caching strategy for PWA offline support
-const CACHE_NAME = 'matchops-2025-11-18T06-01-55';
+const CACHE_NAME = 'matchops-2025-11-18T08-27-18';
 const STATIC_RESOURCES = [
   '/',
   '/manifest.json',
@@ -77,11 +77,14 @@ self.addEventListener('fetch', (event) => {
       event.respondWith(
         fetch(request)
           .then((fetchResponse) => {
-            // Cache the new version
-            if (fetchResponse.status === 200) {
+            // Only cache GET/HEAD requests with successful responses
+            const isCacheable = request.method === 'GET' || request.method === 'HEAD';
+            if (isCacheable && fetchResponse.status === 200) {
               const responseClone = fetchResponse.clone();
               caches.open(CACHE_NAME).then((cache) => {
                 cache.put(request, responseClone);
+              }).catch(err => {
+                console.warn('[SW] Failed to cache document:', err);
               });
             }
             return fetchResponse;
@@ -104,11 +107,14 @@ self.addEventListener('fetch', (event) => {
 
           // Fetch from network and cache for next time
           return fetch(request).then((fetchResponse) => {
-            // Only cache successful responses
-            if (fetchResponse.status === 200) {
+            // Only cache GET/HEAD requests with successful responses
+            const isCacheable = request.method === 'GET' || request.method === 'HEAD';
+            if (isCacheable && fetchResponse.status === 200) {
               const responseClone = fetchResponse.clone();
               caches.open(CACHE_NAME).then((cache) => {
                 cache.put(request, responseClone);
+              }).catch(err => {
+                console.warn('[SW] Failed to cache response:', err);
               });
             }
             return fetchResponse;
@@ -121,4 +127,4 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(fetch(request));
   }
 });
-// Build Timestamp: 2025-11-18T06:01:55.006Z
+// Build Timestamp: 2025-11-18T08:27:18.813Z

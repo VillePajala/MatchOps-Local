@@ -121,10 +121,10 @@ describe('Master Roster Utilities', () => {
     });
 
     it('should return null and log error if player name is empty', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
       const playerData = { name: '   ' };
       const result = await addPlayerToRoster(playerData);
-      
+
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Player name cannot be empty'));
       expect(mockSetStorageItem).not.toHaveBeenCalled();

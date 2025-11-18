@@ -1321,5 +1321,34 @@
     "exportStatsFailed": "Tilastojen vienti epäonnistui. Yritä uudelleen.",
     "exportPlayerFailed": "Pelaajan tilastojen vienti epäonnistui. Yritä uudelleen.",
     "noGamesInSelection": "Yksikään peli ei täsmää valittuun suodattimeen."
+  },
+  "rosterSettingsModal": {
+    "errors": {
+      "nameRequired": "Pelaajan nimi ei voi olla tyhjä.",
+      "duplicateName": "Pelaaja tällä nimellä on jo olemassa. Käytä eri nimeä.",
+      "duplicateNumber": "Pelaaja tällä pelinumerolla on jo olemassa. Käytä eri numeroa tai jätä tyhjäksi."
+    }
+  },
+  "seasonDetailsModal": {
+    "errors": {
+      "duplicateName": "Kausi tällä nimellä on jo olemassa. Valitse eri nimi.",
+      "createFailed": "Kauden luominen epäonnistui. Yritä uudelleen.",
+      "updateFailed": "Kauden päivittäminen epäonnistui. Yritä uudelleen."
+    }
+  },
+  "tournamentDetailsModal": {
+    "errors": {
+      "duplicateName": "Turnaus tällä nimellä on jo olemassa. Valitse eri nimi.",
+      "createFailed": "Turnauksen luominen epäonnistui. Yritä uudelleen.",
+      "updateFailed": "Turnauksen päivittäminen epäonnistui. Yritä uudelleen."
+    }
+  },
+  "personnelDetailsModal": {
+    "errors": {
+      "nameRequired": "Henkilöstön nimi ei voi olla tyhjä.",
+      "duplicateName": "Henkilöstöjäsen tällä nimellä on jo olemassa. Valitse eri nimi.",
+      "createFailed": "Henkilöstön lisääminen epäonnistui. Yritä uudelleen.",
+      "updateFailed": "Henkilöstön päivittäminen epäonnistui. Yritä uudelleen."
+    }
   }
 }

@@ -11,8 +11,8 @@ interface PersonnelDetailsModalProps {
   onClose: () => void;
   mode: 'create' | 'edit';
   personnel?: Personnel | null;
-  onAddPersonnel?: (data: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  onUpdatePersonnel?: (personnelId: string, updates: Partial<Omit<Personnel, 'id' | 'createdAt'>>) => Promise<void>;
+  onAddPersonnel?: (data: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Personnel | null>;
+  onUpdatePersonnel?: (personnelId: string, updates: Partial<Omit<Personnel, 'id' | 'createdAt'>>) => Promise<Personnel | null>;
   isUpdating?: boolean;
 }
 
@@ -45,6 +45,7 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
   const [email, setEmail] = useState('');
   const [certificationsText, setCertificationsText] = useState(''); // For textarea
   const [notes, setNotes] = useState('');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Initialize form when personnel changes or modal opens
   useEffect(() => {
@@ -56,6 +57,7 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
       setEmail('');
       setCertificationsText('');
       setNotes('');
+      setErrorMessage(null);
     } else if (personnel) {
       // Load existing personnel data for edit mode
       setName(personnel.name || '');
@@ -64,6 +66,7 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
       setEmail(personnel.email || '');
       setCertificationsText((personnel.certifications || []).join('\n'));
       setNotes(personnel.notes || '');
+      setErrorMessage(null);
     }
   }, [mode, personnel, isOpen]);
 
@@ -90,10 +93,12 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
     };
 
     try {
+      let result: Personnel | null = null;
+
       if (mode === 'create') {
         // Create new personnel
         if (!onAddPersonnel) return;
-        await onAddPersonnel(data);
+        result = await onAddPersonnel(data);
       } else {
         // Update existing personnel
         if (!personnel || !onUpdatePersonnel) return;
@@ -113,14 +118,30 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
         if (data.notes !== (personnel.notes || undefined)) updates.notes = data.notes;
 
         if (Object.keys(updates).length > 0) {
-          await onUpdatePersonnel(personnel.id, updates);
+          result = await onUpdatePersonnel(personnel.id, updates);
+        } else {
+          // No changes, just close
+          onClose();
+          return;
         }
       }
 
-      onClose();
+      // Check if operation succeeded
+      if (result) {
+        onClose();
+      } else {
+        // Operation failed (duplicate name or validation error)
+        setErrorMessage(
+          t('personnelDetailsModal.errors.duplicateName', 'A personnel member with this name already exists. Please choose a different name.')
+        );
+      }
     } catch (error) {
       logger.error('Failed to save personnel:', error);
-      // Error displayed to user via parent component toast
+      setErrorMessage(
+        mode === 'create'
+          ? t('personnelDetailsModal.errors.createFailed', 'Failed to add personnel. Please try again.')
+          : t('personnelDetailsModal.errors.updateFailed', 'Failed to update personnel. Please try again.')
+      );
     }
   };
 
@@ -154,6 +175,13 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
         <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
           <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
             <div className="space-y-3">
+              {/* Error Message */}
+              {errorMessage && (
+                <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-md text-sm">
+                  {errorMessage}
+                </div>
+              )}
+
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">
@@ -162,9 +190,15 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
                 <input
                   type="text"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    // Clear error when user starts typing
+                    if (errorMessage) setErrorMessage(null);
+                  }}
                   placeholder={t('personnelDetailsModal.namePlaceholder', 'Enter name')}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  className={`w-full px-3 py-2 bg-slate-700 border rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 ${
+                    errorMessage ? 'border-red-500' : 'border-slate-600'
+                  }`}
                   required
                 />
               </div>

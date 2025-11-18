@@ -43,14 +43,14 @@ export interface PersonnelManagerReturn {
   /** Error from any failed operation */
   error: string | null;
 
-  /** Add new personnel member */
-  addPersonnel: (data: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  /** Add new personnel member - returns Personnel on success, null on validation failure */
+  addPersonnel: (data: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Personnel | null>;
 
-  /** Update existing personnel member */
+  /** Update existing personnel member - returns updated Personnel on success, null on validation failure */
   updatePersonnel: (
     personnelId: string,
     updates: Partial<Omit<Personnel, 'id' | 'createdAt'>>
-  ) => Promise<void>;
+  ) => Promise<Personnel | null>;
 
   /** Remove personnel member (cascades to games) */
   removePersonnel: (personnelId: string) => Promise<void>;
@@ -89,8 +89,13 @@ export const usePersonnelManager = (): PersonnelManagerReturn => {
     async (data: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>) => {
       logger.log('[usePersonnelManager] Adding personnel:', data.name);
       try {
-        await addMutation.mutateAsync(data);
-        logger.log('[usePersonnelManager] Personnel added successfully');
+        const result = await addMutation.mutateAsync(data);
+        if (result) {
+          logger.log('[usePersonnelManager] Personnel added successfully');
+        } else {
+          logger.log('[usePersonnelManager] Personnel addition failed validation');
+        }
+        return result;
       } catch (error) {
         logger.error('[usePersonnelManager] Error adding personnel:', error);
         throw error; // Re-throw to allow component-level handling
@@ -106,8 +111,13 @@ export const usePersonnelManager = (): PersonnelManagerReturn => {
     ) => {
       logger.log('[usePersonnelManager] Updating personnel:', personnelId, updates);
       try {
-        await updateMutation.mutateAsync({ personnelId, updates });
-        logger.log('[usePersonnelManager] Personnel updated successfully');
+        const result = await updateMutation.mutateAsync({ personnelId, updates });
+        if (result) {
+          logger.log('[usePersonnelManager] Personnel updated successfully');
+        } else {
+          logger.log('[usePersonnelManager] Personnel update failed validation');
+        }
+        return result;
       } catch (error) {
         logger.error('[usePersonnelManager] Error updating personnel:', error);
         throw error;

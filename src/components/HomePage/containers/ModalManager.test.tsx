@@ -104,8 +104,8 @@ const createProps = (): ModalManagerProps => ({
     masterRoster: [],
     personnel: [],
     personnelManager: {
-      addPersonnel: async () => {},
-      updatePersonnel: async () => {},
+      addPersonnel: async () => null,
+      updatePersonnel: async () => null,
       removePersonnel: async () => {},
       isLoading: false,
     },

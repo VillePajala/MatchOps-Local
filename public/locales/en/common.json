@@ -1300,5 +1300,34 @@
     "exportStatsFailed": "Failed to export stats. Please try again.",
     "exportPlayerFailed": "Failed to export player stats. Please try again.",
     "noGamesInSelection": "No games match the current filter."
+  },
+  "rosterSettingsModal": {
+    "errors": {
+      "nameRequired": "Player name cannot be empty.",
+      "duplicateName": "A player with this name already exists. Please use a different name.",
+      "duplicateNumber": "A player with this jersey number already exists. Please use a different number or leave it blank."
+    }
+  },
+  "seasonDetailsModal": {
+    "errors": {
+      "duplicateName": "A season with this name already exists. Please choose a different name.",
+      "createFailed": "Failed to create season. Please try again.",
+      "updateFailed": "Failed to update season. Please try again."
+    }
+  },
+  "tournamentDetailsModal": {
+    "errors": {
+      "duplicateName": "A tournament with this name already exists. Please choose a different name.",
+      "createFailed": "Failed to create tournament. Please try again.",
+      "updateFailed": "Failed to update tournament. Please try again."
+    }
+  },
+  "personnelDetailsModal": {
+    "errors": {
+      "nameRequired": "Personnel name cannot be empty.",
+      "duplicateName": "A personnel member with this name already exists. Please choose a different name.",
+      "createFailed": "Failed to add personnel. Please try again.",
+      "updateFailed": "Failed to update personnel. Please try again."
+    }
   }
 }
