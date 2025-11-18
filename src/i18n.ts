@@ -36,9 +36,11 @@ const loadLanguagePreference = async (): Promise<void> => {
 const IS_TEST_ENVIRONMENT = typeof process !== 'undefined' && process.env.JEST_WORKER_ID !== undefined;
 if (!i18n.isInitialized) {
   // Initialize with default language synchronously (no localStorage access)
+  // Use English for tests, Finnish for production
+  const defaultLang = IS_TEST_ENVIRONMENT ? 'en' : 'fi';
   i18n.use(initReactI18next).init({
-    lng: 'fi', // Always start with Finnish, then load preference async
-    fallbackLng: 'fi',
+    lng: defaultLang, // English for tests, Finnish for production
+    fallbackLng: defaultLang,
     resources,
     interpolation: { escapeValue: false },
     debug: false,
