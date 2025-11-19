@@ -85,7 +85,7 @@ describe('calculateFormationPositions', () => {
     it('all positions have relX between 0 and 1', () => {
       for (let playerCount = 1; playerCount <= 15; playerCount++) {
         const positions = calculateFormationPositions(playerCount);
-        positions.forEach((pos, idx) => {
+        positions.forEach(pos => {
           expect(pos.relX).toBeGreaterThanOrEqual(0);
           expect(pos.relX).toBeLessThanOrEqual(1);
         });
@@ -95,7 +95,7 @@ describe('calculateFormationPositions', () => {
     it('all positions have relY between 0 and 1', () => {
       for (let playerCount = 1; playerCount <= 15; playerCount++) {
         const positions = calculateFormationPositions(playerCount);
-        positions.forEach((pos, idx) => {
+        positions.forEach(pos => {
           expect(pos.relY).toBeGreaterThanOrEqual(0);
           expect(pos.relY).toBeLessThanOrEqual(1);
         });
