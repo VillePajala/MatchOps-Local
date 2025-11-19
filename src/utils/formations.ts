@@ -58,8 +58,8 @@ export interface FieldPosition {
  * ```
  */
 export function calculateFormationPositions(playerCount: number): FieldPosition[] {
-  // Handle edge cases
-  if (playerCount <= 0) {
+  // Handle edge cases - defensive programming for invalid inputs
+  if (!Number.isFinite(playerCount) || playerCount <= 0) {
     return [];
   }
 
