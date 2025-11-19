@@ -32,6 +32,7 @@ import type { TacticalState } from '@/hooks/useTacticalHistory';
 import type { Player, AppState, TacticalDisc, Point } from '@/types';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import logger from '@/utils/logger';
+import { calculateFormationPositions } from '@/utils/formations';
 
 /**
  * Parameters for useFieldCoordination hook
@@ -504,98 +505,9 @@ export function useFieldCoordination({
       });
     }
 
+    // Calculate formation positions using utility function
     const remainingCount = playersToPlace.length;
-    let positions: { relX: number, relY: number }[] = [];
-
-    // Formation logic based on number of players
-    if (remainingCount === 1) {
-      positions = [{ relX: 0.5, relY: 0.5 }];
-    } else if (remainingCount === 2) {
-      positions = [
-        { relX: 0.35, relY: 0.5 },
-        { relX: 0.65, relY: 0.5 }
-      ];
-    } else if (remainingCount === 3) {
-      positions = [
-        { relX: 0.25, relY: 0.5 },
-        { relX: 0.5, relY: 0.4 },
-        { relX: 0.75, relY: 0.5 }
-      ];
-    } else if (remainingCount === 4) {
-      positions = [
-        { relX: 0.25, relY: 0.6 },
-        { relX: 0.75, relY: 0.6 },
-        { relX: 0.35, relY: 0.35 },
-        { relX: 0.65, relY: 0.35 }
-      ];
-    } else if (remainingCount === 5) {
-      positions = [
-        { relX: 0.2, relY: 0.65 },
-        { relX: 0.8, relY: 0.65 },
-        { relX: 0.3, relY: 0.45 },
-        { relX: 0.7, relY: 0.45 },
-        { relX: 0.5, relY: 0.25 }
-      ];
-    } else if (remainingCount === 6) {
-      positions = [
-        { relX: 0.2, relY: 0.7 },
-        { relX: 0.8, relY: 0.7 },
-        { relX: 0.3, relY: 0.5 },
-        { relX: 0.7, relY: 0.5 },
-        { relX: 0.35, relY: 0.3 },
-        { relX: 0.65, relY: 0.3 }
-      ];
-    } else if (remainingCount === 7) {
-      positions = [
-        { relX: 0.15, relY: 0.75 },
-        { relX: 0.5, relY: 0.75 },
-        { relX: 0.85, relY: 0.75 },
-        { relX: 0.25, relY: 0.5 },
-        { relX: 0.75, relY: 0.5 },
-        { relX: 0.35, relY: 0.25 },
-        { relX: 0.65, relY: 0.25 }
-      ];
-    } else if (remainingCount === 8) {
-      positions = [
-        { relX: 0.15, relY: 0.75 },
-        { relX: 0.85, relY: 0.75 },
-        { relX: 0.25, relY: 0.55 },
-        { relX: 0.75, relY: 0.55 },
-        { relX: 0.35, relY: 0.35 },
-        { relX: 0.65, relY: 0.35 },
-        { relX: 0.4, relY: 0.15 },
-        { relX: 0.6, relY: 0.15 }
-      ];
-    } else if (remainingCount === 9) {
-      positions = [
-        { relX: 0.1, relY: 0.75 },
-        { relX: 0.5, relY: 0.75 },
-        { relX: 0.9, relY: 0.75 },
-        { relX: 0.25, relY: 0.5 },
-        { relX: 0.75, relY: 0.5 },
-        { relX: 0.15, relY: 0.3 },
-        { relX: 0.5, relY: 0.3 },
-        { relX: 0.85, relY: 0.3 },
-        { relX: 0.5, relY: 0.1 }
-      ];
-    } else {
-      // 10 or more players - 4-3-3 formation
-      positions = [
-        { relX: 0.1, relY: 0.75 },
-        { relX: 0.35, relY: 0.75 },
-        { relX: 0.65, relY: 0.75 },
-        { relX: 0.9, relY: 0.75 },
-        { relX: 0.25, relY: 0.5 },
-        { relX: 0.5, relY: 0.5 },
-        { relX: 0.75, relY: 0.5 },
-        { relX: 0.2, relY: 0.25 },
-        { relX: 0.5, relY: 0.25 },
-        { relX: 0.8, relY: 0.25 }
-      ];
-    }
-
-    // Limit positions to number of players
-    positions = positions.slice(0, remainingCount);
+    const positions = calculateFormationPositions(remainingCount);
 
     // Place players in positions
     playersToPlace.forEach((player, index) => {
