@@ -265,18 +265,24 @@ export function useFieldCoordination({
    * Handle player movement end (save to history)
    */
   const handlePlayerMoveEnd = useCallback(() => {
-    saveStateToHistory({ playersOnField });
-  }, [playersOnField, saveStateToHistory]);
+    // Use functional setter to get current state without dependency
+    setPlayersOnField(currentPlayers => {
+      saveStateToHistory({ playersOnField: currentPlayers });
+      return currentPlayers; // No change to state
+    });
+  }, [setPlayersOnField, saveStateToHistory]);
 
   /**
    * Handle player removal from field
    */
   const handlePlayerRemove = useCallback((playerId: string) => {
     logger.log(`Removing player ${playerId} from field`);
-    const updatedPlayersOnField = playersOnField.filter(p => p.id !== playerId);
-    setPlayersOnField(updatedPlayersOnField);
-    saveStateToHistory({ playersOnField: updatedPlayersOnField });
-  }, [playersOnField, setPlayersOnField, saveStateToHistory]);
+    setPlayersOnField(prevPlayers => {
+      const updatedPlayersOnField = prevPlayers.filter(p => p.id !== playerId);
+      saveStateToHistory({ playersOnField: updatedPlayersOnField });
+      return updatedPlayersOnField;
+    });
+  }, [setPlayersOnField, saveStateToHistory]);
 
   // --- Touch/Drag from Bar Handlers ---
 
@@ -292,31 +298,34 @@ export function useFieldCoordination({
    * Handle player tap in player bar (touch devices)
    */
   const handlePlayerTapInBar = useCallback((playerInfo: Player | null) => {
-    if (draggingPlayerFromBarInfo?.id === playerInfo?.id) {
-      logger.log("Tapped already selected player, deselecting:", playerInfo?.id);
-      setDraggingPlayerFromBarInfo(null);
-    } else {
-      logger.log("Setting draggingPlayerFromBarInfo (Tap):", playerInfo);
-      setDraggingPlayerFromBarInfo(playerInfo);
-    }
-  }, [draggingPlayerFromBarInfo]);
+    setDraggingPlayerFromBarInfo(currentDragging => {
+      if (currentDragging?.id === playerInfo?.id) {
+        logger.log("Tapped already selected player, deselecting:", playerInfo?.id);
+        return null;
+      } else {
+        logger.log("Setting draggingPlayerFromBarInfo (Tap):", playerInfo);
+        return playerInfo;
+      }
+    });
+  }, []);
 
   /**
    * Handle player drop via touch (place on field)
    */
   const handlePlayerDropViaTouch = useCallback((relX: number, relY: number) => {
-    if (draggingPlayerFromBarInfo) {
-      try {
-        logger.log("Player Drop Via Touch (field):", { id: draggingPlayerFromBarInfo.id, relX, relY });
-        handleDropOnField(draggingPlayerFromBarInfo.id, relX, relY);
-        setDraggingPlayerFromBarInfo(null);
-      } catch (error) {
-        logger.error('Failed to drop player on field:', error);
-        showToast(t('errors.playerDropFailed', 'Failed to place player on field'), 'error');
-        setDraggingPlayerFromBarInfo(null); // Clean up dragging state even on error
+    setDraggingPlayerFromBarInfo(currentDragging => {
+      if (currentDragging) {
+        try {
+          logger.log("Player Drop Via Touch (field):", { id: currentDragging.id, relX, relY });
+          handleDropOnField(currentDragging.id, relX, relY);
+        } catch (error) {
+          logger.error('Failed to drop player on field:', error);
+          showToast(t('errors.playerDropFailed', 'Failed to place player on field'), 'error');
+        }
       }
-    }
-  }, [draggingPlayerFromBarInfo, handleDropOnField, showToast, t]);
+      return null; // Always clear dragging state after drop
+    });
+  }, [handleDropOnField, showToast, t]);
 
   /**
    * Handle player drag cancel via touch
@@ -329,11 +338,13 @@ export function useFieldCoordination({
    * Handle deselect player (click on player bar background)
    */
   const handleDeselectPlayer = useCallback(() => {
-    if (draggingPlayerFromBarInfo) {
-      logger.log("Deselecting player by clicking bar background.");
-      setDraggingPlayerFromBarInfo(null);
-    }
-  }, [draggingPlayerFromBarInfo]);
+    setDraggingPlayerFromBarInfo(currentDragging => {
+      if (currentDragging) {
+        logger.log("Deselecting player by clicking bar background.");
+      }
+      return null;
+    });
+  }, []);
 
   // --- Field Reset Handlers ---
 
