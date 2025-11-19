@@ -24,6 +24,7 @@
 
 import { useState, useCallback } from 'react';
 import type { Dispatch } from 'react';
+import type { TFunction } from 'i18next';
 import { useFieldInteractions } from '@/hooks/useFieldInteractions';
 import { useGameState } from '@/hooks/useGameState';
 import type { UseGameStateReturn } from '@/hooks/useGameState';
@@ -52,8 +53,7 @@ export interface UseFieldCoordinationParams {
     canRedo: boolean;
   };
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Translation function from i18next has complex overloaded signature
-  t: any;
+  t: TFunction;
 }
 
 /**
