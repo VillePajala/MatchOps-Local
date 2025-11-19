@@ -91,7 +91,7 @@ const initialState: AppState = {
   homeOrAway: 'home', // <<< Step 1: Initialize field
   // Initialize game structure
   numberOfPeriods: 2,
-  periodDurationMinutes: 10, // Default to 10 minutes
+  periodDurationMinutes: 15, // Default to 15 minutes
   currentPeriod: 1,
   gameStatus: 'notStarted', // Initialize game status
   demandFactor: 1,
@@ -2721,6 +2721,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     onGuideStepChange: setFirstGameGuideStep,
     onGuideClose: () => setShowFirstGameGuide(false),
     onOpenTeamReassignModal: () => setIsTeamReassignModalOpen(true),
+    onTeamNameChange: handleTeamNameChange,
+    onOpponentNameChange: handleOpponentNameChange,
     interactions: fieldInteractions,
     timerInteractions,
   };

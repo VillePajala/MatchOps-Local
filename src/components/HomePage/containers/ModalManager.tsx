@@ -366,7 +366,7 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           isOpen={state.isGameSettingsModalOpen}
           onClose={handlers.closeGameSettingsModal}
           currentGameId={data.currentGameId}
-          teamId={data.currentGameId ? data.savedGames[data.currentGameId]?.teamId : undefined}
+          teamId={data.gameSessionState.teamId}
           teamName={data.gameSessionState.teamName}
           opponentName={data.gameSessionState.opponentName}
           gameDate={data.gameSessionState.gameDate}

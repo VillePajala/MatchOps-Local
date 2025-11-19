@@ -60,7 +60,7 @@ export const initialGameSessionStatePlaceholder: GameSessionState = {
   gameNotes: '',
   homeOrAway: 'home',
   numberOfPeriods: 2,
-  periodDurationMinutes: 10,
+  periodDurationMinutes: 15,
   currentPeriod: 1,
   gameStatus: 'notStarted',
   selectedPlayerIds: [],
@@ -163,8 +163,25 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
     }
     case 'SET_GAME_NOTES':
       return { ...state, gameNotes: action.payload };
-    case 'SET_HOME_OR_AWAY':
-      return { ...state, homeOrAway: action.payload };
+    case 'SET_HOME_OR_AWAY': {
+      // When switching home/away, swap the scores because homeScore/awayScore
+      // refer to the position (home team vs away team), not the user's team.
+      const newHomeOrAway = action.payload;
+      const isChanging = state.homeOrAway !== newHomeOrAway;
+
+      if (isChanging) {
+        // Swap scores when toggling
+        return {
+          ...state,
+          homeOrAway: newHomeOrAway,
+          homeScore: state.awayScore,
+          awayScore: state.homeScore,
+        };
+      }
+
+      // No change, return state as-is
+      return state;
+    }
     case 'SET_NUMBER_OF_PERIODS':
       return { ...state, numberOfPeriods: action.payload };
     case 'SET_PERIOD_DURATION':
