@@ -183,15 +183,51 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     saveTacticalStateToHistory,
     availablePlayers,
     gameSessionState,
-    undoHistory,
-    redoHistory,
     canUndo,
     canRedo,
     tacticalHistory,
     showToast,
     t,
-    sessionCoordinationApplyHistoryState: sessionCoordination.applyHistoryState,
   });
+
+  // --- History Orchestration (Undo/Redo) ---
+  /**
+   * Orchestrate undo across both field and session state
+   *
+   * Separates concerns: field coordination restores field state,
+   * session coordination restores game session state.
+   */
+  const handleUndo = useCallback(() => {
+    const prevState = undoHistory();
+    if (prevState) {
+      logger.log('Undoing...');
+      // Apply field state (players, opponents, drawings, tactical)
+      fieldCoordination.applyFieldHistoryState(prevState);
+      // Apply session state (score, timer, periods, etc.)
+      sessionCoordination.applyHistoryState(prevState);
+    } else {
+      logger.log('Cannot undo: at beginning of history');
+    }
+  }, [undoHistory, fieldCoordination, sessionCoordination]);
+
+  /**
+   * Orchestrate redo across both field and session state
+   *
+   * Separates concerns: field coordination restores field state,
+   * session coordination restores game session state.
+   */
+  const handleRedo = useCallback(() => {
+    const nextState = redoHistory();
+    if (nextState) {
+      logger.log('Redoing...');
+      // Apply field state (players, opponents, drawings, tactical)
+      fieldCoordination.applyFieldHistoryState(nextState);
+      // Apply session state (score, timer, periods, etc.)
+      sessionCoordination.applyHistoryState(nextState);
+    } else {
+      logger.log('Cannot redo: at end of history');
+    }
+  }, [redoHistory, fieldCoordination, sessionCoordination]);
 
   // --- State Management (Remaining in Home component) ---
   // const [showPlayerNames, setShowPlayerNames] = useState<boolean>(initialState.showPlayerNames); // REMOVE - Migrated to gameSessionState
@@ -2383,8 +2419,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     timeElapsedInSeconds,
     isTimerRunning,
     onToggleLargeTimerOverlay: handleToggleLargeTimerOverlay,
-    onUndo: fieldCoordination.handleUndo,
-    onRedo: fieldCoordination.handleRedo,
+    onUndo: handleUndo,
+    onRedo: handleRedo,
     canUndo: fieldCoordination.canUndoField,
     canRedo: fieldCoordination.canRedoField,
     onTacticalUndo: fieldCoordination.handleTacticalUndo,

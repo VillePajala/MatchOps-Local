@@ -43,8 +43,6 @@ export interface UseFieldCoordinationParams {
   saveTacticalStateToHistory: (newState: Partial<TacticalState>) => void;
   availablePlayers: Player[];
   gameSessionState: GameSessionState;
-  undoHistory: () => AppState | null;
-  redoHistory: () => AppState | null;
   canUndo: boolean;
   canRedo: boolean;
   tacticalHistory: {
@@ -56,7 +54,6 @@ export interface UseFieldCoordinationParams {
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Translation function from i18next has complex overloaded signature
   t: any;
-  sessionCoordinationApplyHistoryState: (state: AppState) => void;
 }
 
 /**
@@ -113,9 +110,7 @@ export interface UseFieldCoordinationReturn {
   handleTacticalDrawingEnd: () => void;
   clearTacticalElements: () => void;
 
-  // History/undo handlers
-  handleUndo: () => void;
-  handleRedo: () => void;
+  // History/undo handlers (tactical board only - field undo/redo handled by orchestrator)
   handleTacticalUndo: () => void;
   handleTacticalRedo: () => void;
   canUndoField: boolean;
@@ -126,13 +121,16 @@ export interface UseFieldCoordinationReturn {
   handleResetFieldConfirmed: () => void;
   setShowResetFieldConfirm: (value: boolean) => void;
 
-  // Internal state setters (needed by parent for history restoration)
+  // Internal state setters (needed by parent for special cases)
   setPlayersOnField: Dispatch<React.SetStateAction<Player[]>>;
   setOpponents: Dispatch<React.SetStateAction<Array<{ id: string; relX: number; relY: number }>>>;
   setDrawings: Dispatch<React.SetStateAction<Array<Array<{ relX: number; relY: number }>>>>;
   setTacticalDiscs: Dispatch<React.SetStateAction<TacticalDisc[]>>;
   setTacticalDrawings: Dispatch<React.SetStateAction<Point[][]>>;
   setTacticalBallPosition: Dispatch<React.SetStateAction<Point | null>>;
+
+  // History restoration (needed by parent orchestrator)
+  applyFieldHistoryState: (state: AppState) => void;
 }
 
 /**
@@ -146,14 +144,11 @@ export interface UseFieldCoordinationReturn {
  *   saveTacticalStateToHistory,
  *   availablePlayers,
  *   gameSessionState,
- *   undoHistory,
- *   redoHistory,
  *   canUndo,
  *   canRedo,
  *   tacticalHistory,
  *   showToast,
  *   t,
- *   sessionCoordinationApplyHistoryState,
  * });
  *
  * // Use field state
@@ -169,14 +164,11 @@ export function useFieldCoordination({
   saveTacticalStateToHistory,
   availablePlayers,
   gameSessionState,
-  undoHistory,
-  redoHistory,
   canUndo,
   canRedo,
   tacticalHistory,
   showToast,
   t,
-  sessionCoordinationApplyHistoryState,
 }: UseFieldCoordinationParams): UseFieldCoordinationReturn {
 
   // --- State for drag from player bar ---
@@ -377,20 +369,18 @@ export function useFieldCoordination({
   // --- History State Restoration Handlers ---
 
   /**
-   * Apply history state to field (for undo/redo)
+   * Apply field history state (for undo/redo)
    *
-   * Note: This also calls sessionCoordination.applyHistoryState to restore
-   * game session state. In future, this could be refactored to separate concerns.
+   * Restores only field-related state (players, opponents, drawings, tactical elements).
+   * Does NOT restore game session state - that's handled by the parent orchestrator.
    */
-  const applyHistoryState = useCallback((state: AppState) => {
+  const applyFieldHistoryState = useCallback((state: AppState) => {
     setPlayersOnField(state.playersOnField);
     setOpponents(state.opponents);
     setDrawings(state.drawings);
     setTacticalDiscs(state.tacticalDiscs || []);
     setTacticalDrawings(state.tacticalDrawings || []);
     setTacticalBallPosition(state.tacticalBallPosition || null);
-    // Also apply game session state
-    sessionCoordinationApplyHistoryState(state);
   }, [
     setPlayersOnField,
     setOpponents,
@@ -398,34 +388,8 @@ export function useFieldCoordination({
     setTacticalDiscs,
     setTacticalDrawings,
     setTacticalBallPosition,
-    sessionCoordinationApplyHistoryState,
   ]);
 
-  /**
-   * Handle undo for field state
-   */
-  const handleUndo = useCallback(() => {
-    const prevState = undoHistory();
-    if (prevState) {
-      logger.log('Undoing...');
-      applyHistoryState(prevState);
-    } else {
-      logger.log('Cannot undo: at beginning of history');
-    }
-  }, [undoHistory, applyHistoryState]);
-
-  /**
-   * Handle redo for field state
-   */
-  const handleRedo = useCallback(() => {
-    const nextState = redoHistory();
-    if (nextState) {
-      logger.log('Redoing...');
-      applyHistoryState(nextState);
-    } else {
-      logger.log('Cannot redo: at end of history');
-    }
-  }, [redoHistory, applyHistoryState]);
 
   /**
    * Apply tactical history state (for tactical board undo/redo)
@@ -584,9 +548,7 @@ export function useFieldCoordination({
     handleTacticalDrawingEnd,
     clearTacticalElements,
 
-    // History/undo handlers
-    handleUndo,
-    handleRedo,
+    // History/undo handlers (tactical board only - field undo/redo handled by orchestrator)
     handleTacticalUndo,
     handleTacticalRedo,
     canUndoField: canUndo,
@@ -604,5 +566,8 @@ export function useFieldCoordination({
     setTacticalDiscs,
     setTacticalDrawings,
     setTacticalBallPosition,
+
+    // History restoration (needed by parent orchestrator)
+    applyFieldHistoryState,
   };
 }
