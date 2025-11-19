@@ -306,11 +306,17 @@ export function useFieldCoordination({
    */
   const handlePlayerDropViaTouch = useCallback((relX: number, relY: number) => {
     if (draggingPlayerFromBarInfo) {
-      logger.log("Player Drop Via Touch (field):", { id: draggingPlayerFromBarInfo.id, relX, relY });
-      handleDropOnField(draggingPlayerFromBarInfo.id, relX, relY);
-      setDraggingPlayerFromBarInfo(null);
+      try {
+        logger.log("Player Drop Via Touch (field):", { id: draggingPlayerFromBarInfo.id, relX, relY });
+        handleDropOnField(draggingPlayerFromBarInfo.id, relX, relY);
+        setDraggingPlayerFromBarInfo(null);
+      } catch (error) {
+        logger.error('Failed to drop player on field:', error);
+        showToast(t('errors.playerDropFailed', 'Failed to place player on field'), 'error');
+        setDraggingPlayerFromBarInfo(null); // Clean up dragging state even on error
+      }
     }
-  }, [draggingPlayerFromBarInfo, handleDropOnField]);
+  }, [draggingPlayerFromBarInfo, handleDropOnField, showToast, t]);
 
   /**
    * Handle player drag cancel via touch
