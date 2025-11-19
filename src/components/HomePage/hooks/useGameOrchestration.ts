@@ -1726,9 +1726,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
   }, [
     // Data dependencies (values that change the function's behavior)
-    availablePlayers, fieldCoordination.playersOnField, currentGameId, gameSessionState, t,
+    availablePlayers, currentGameId, gameSessionState, t,
     // Setter dependencies (React guarantees these are stable but ESLint requires them)
-    setAvailablePlayers, fieldCoordination.setPlayersOnField, setRosterError, queryClient
+    setAvailablePlayers, setRosterError, queryClient,
+    // fieldCoordination provides playersOnField and setPlayersOnField
+    fieldCoordination
   ]);
 
   // --- END Roster Management Handlers ---
@@ -1808,7 +1810,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       saveStateToHistory({ playersOnField: updatedPlayersOnField });
 
       logger.log(`[page.tsx] Updated Fair Play card award. ${playerId ? `Awarded to ${playerId}` : 'Cleared'}`);
-    }, [availablePlayers, fieldCoordination.playersOnField, saveStateToHistory, currentGameId, setAvailablePlayers, fieldCoordination.setPlayersOnField]);
+    }, [availablePlayers, saveStateToHistory, currentGameId, setAvailablePlayers, fieldCoordination]);
 
 
   const handleUpdateSelectedPlayers = (playerIds: string[]) => {
