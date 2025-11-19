@@ -217,7 +217,19 @@ export function useGameSessionCoordination({
 
   }, [currentHistoryState, pushHistoryState]);
 
-  // Keep ref always pointing to latest implementation
+  /**
+   * Ref pattern for saveStateToHistory
+   *
+   * Why use a ref instead of direct useCallback?
+   * - useGameState subscribes to saveStateToHistory in useEffect
+   * - If saveStateToHistory changes reference, it triggers re-subscription
+   * - Re-subscription can cause infinite loops during state updates
+   *
+   * Solution: Keep stable reference via useCallback with empty deps
+   * - The ref always points to latest implementation (updated in useEffect)
+   * - The callback reference never changes (empty deps array)
+   * - This prevents re-render loops while ensuring latest closure values
+   */
   const saveStateToHistoryRef = useRef(saveStateToHistoryImpl);
   useEffect(() => {
     saveStateToHistoryRef.current = saveStateToHistoryImpl;
