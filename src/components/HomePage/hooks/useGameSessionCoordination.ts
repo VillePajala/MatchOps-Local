@@ -294,6 +294,14 @@ export function useGameSessionCoordination({
     }
   }, [dispatchGameSession]);
 
+  /**
+   * Updates opponent name without validation
+   *
+   * Note: Unlike handleTeamNameChange, this does NOT validate against empty strings
+   * because opponent name is an optional field. Users may want to clear it or leave
+   * it as "Opponent" (the default placeholder). The field is not required for game
+   * functionality.
+   */
   const handleOpponentNameChange = useCallback((newName: string) => {
     logger.log('[useGameSessionCoordination] handleOpponentNameChange called with:', newName);
     dispatchGameSession({ type: 'SET_OPPONENT_NAME', payload: newName });
