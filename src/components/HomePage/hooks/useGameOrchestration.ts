@@ -9,9 +9,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 import { useGameTimer } from '@/hooks/useGameTimer';
 import { useAutoSave } from '@/hooks/useAutoSave';
-import { useFieldInteractions } from '@/hooks/useFieldInteractions';
-import { useGameState } from '@/hooks/useGameState';
-import type { UseGameStateReturn } from '@/hooks/useGameState';
+import { useFieldCoordination } from './useFieldCoordination';
 // Import game session types (reducer is used internally by useGameSessionWithHistory)
 import {
   GameSessionState,
@@ -40,8 +38,6 @@ import type { GameEvent, AppState, SavedGamesCollection, TimerState, PlayerAsses
 import { saveMasterRoster } from '@/utils/masterRoster';
 // Import useQuery, useMutation, useQueryClient
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTacticalBoard } from '@/hooks/useTacticalBoard';
-import type { TacticalState } from '@/hooks/useTacticalHistory';
 import { useRoster } from '@/hooks/useRoster';
 import { useModalContext } from '@/contexts/ModalProvider';
 import { useGameDataManagement } from './useGameDataManagement';
@@ -158,32 +154,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const saveStateToHistory = useCallback(saveStateToHistoryFromSession, [saveStateToHistoryFromSession]);
   const saveTacticalStateToHistory = useCallback(saveTacticalStateToHistoryFromSession, [saveTacticalStateToHistoryFromSession]);
 
-  // --- Core Game State (Managed by Hook) ---
-  const {
-    playersOnField,
-    opponents,
-    drawings, // State from hook
-    setPlayersOnField,
-    setOpponents,
-    setDrawings,
-    handlePlayerDrop,
-    // Destructure drawing handlers from hook
-    handleDrawingStart,
-    handleDrawingAddPoint,
-    handleDrawingEnd,
-    handleClearDrawings,
-    // Get opponent handlers from hook
-    handleAddOpponent,
-    handleOpponentMove,
-    handleOpponentMoveEnd,
-    handleOpponentRemove,
-    // handleRenamePlayer, // This is the one from useGameState, will be passed to PlayerBar
-  }: UseGameStateReturn = useGameState({
-    initialState,
-    saveStateToHistory,
-    // masterRosterKey: MASTER_ROSTER_KEY, // Removed as no longer used by useGameState
-  });
+  // --- Get showToast early (needed by Field Coordination) ---
+  const { showToast } = useToast();
 
+  // --- Roster Management (Must come before Field Coordination) ---
   const {
     availablePlayers,
     setAvailablePlayers,
@@ -202,6 +176,23 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     selectedPlayerIds: gameSessionState.selectedPlayerIds,
   });
 
+  // --- Field Coordination (Extracted to Hook) ---
+  const fieldCoordination = useFieldCoordination({
+    initialState,
+    saveStateToHistory,
+    saveTacticalStateToHistory,
+    availablePlayers,
+    gameSessionState,
+    undoHistory,
+    redoHistory,
+    canUndo,
+    canRedo,
+    tacticalHistory,
+    showToast,
+    t,
+    sessionCoordinationApplyHistoryState: sessionCoordination.applyHistoryState,
+  });
+
   // --- State Management (Remaining in Home component) ---
   // const [showPlayerNames, setShowPlayerNames] = useState<boolean>(initialState.showPlayerNames); // REMOVE - Migrated to gameSessionState
   // const [gameEvents, setGameEvents] = useState<GameEvent[]>(initialState.gameEvents); // REMOVE - Migrated to gameSessionState
@@ -214,7 +205,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // ... Timer state ...
   // ... Modal states ...
   // ... UI/Interaction states ...
-  const [draggingPlayerFromBarInfo, setDraggingPlayerFromBarInfo] = useState<Player | null>(null);
+  // draggingPlayerFromBarInfo now managed by useFieldCoordination
   // Persistence state
   // TODO: Remove savedGames local state once all references are updated to use gameDataManagement.savedGames
   const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
@@ -339,7 +330,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     },
   };
 
-  const { showToast } = useToast();
+  // showToast already defined earlier (needed by useFieldCoordination)
   // const [isPlayerStatsModalOpen, setIsPlayerStatsModalOpen] = useState(false);
   const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<Player | null>(null);
   const [isTeamManagerOpen, setIsTeamManagerOpen] = useState<boolean>(false);
@@ -351,7 +342,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState<boolean>(false);
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
-  const [showResetFieldConfirm, setShowResetFieldConfirm] = useState<boolean>(false);
+  // showResetFieldConfirm now managed by useFieldCoordination
 
   const handleCreateBackup = useCallback(() => {
     exportFullBackup(showToast);
@@ -365,17 +356,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       setSelectedTeamForRoster(teamId);
     }
   };
-
-  // Field interaction state (drawing mode, etc.) - extracted to dedicated hook
-  const { isDrawingEnabled, toggleDrawingMode: handleToggleDrawingMode } = useFieldInteractions({
-    onPersistError: () => {
-      // Non-blocking notice; preference save failed, UI still toggled
-      showToast(
-        t('errors.failedToSaveDrawingMode', 'Failed to save drawing mode setting. Changes may not persist.'),
-        'info'
-      );
-    }
-  });
 
   // L2-2.4.1: Build GameContainer view-model (not yet consumed)
   const gameContainerVMInput = useMemo<BuildGameContainerVMInput>(() => ({
@@ -396,7 +376,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       gameStatus: gameSessionState.gameStatus,
     },
     playersForCurrentGame,
-    draggingPlayerFromBarInfo,
+    draggingPlayerFromBarInfo: fieldCoordination.draggingPlayerFromBarInfo,
   }), [
     gameSessionState.teamName,
     gameSessionState.opponentName,
@@ -413,7 +393,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     gameSessionState.currentPeriod,
     gameSessionState.gameStatus,
     playersForCurrentGame,
-    draggingPlayerFromBarInfo,
+    fieldCoordination.draggingPlayerFromBarInfo,
   ]);
 
   if (process.env.NODE_ENV !== 'production' && !isValidGameContainerVMInput(gameContainerVMInput)) {
@@ -503,30 +483,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [gameDeleteError, setGameDeleteError] = useState<string | null>(null);
   const [processingGameId, setProcessingGameId] = useState<string | null>(null); // To track which game item is being processed
   const [isResetting, setIsResetting] = useState(false); // For app reset operation
-  const {
-    isTacticsBoardView,
-    tacticalDiscs,
-    setTacticalDiscs,
-    tacticalDrawings,
-    setTacticalDrawings,
-    tacticalBallPosition,
-    setTacticalBallPosition,
-    handleToggleTacticsBoard,
-    handleAddTacticalDisc,
-    handleTacticalDiscMove,
-    handleTacticalDiscRemove,
-    handleToggleTacticalDiscType,
-    handleTacticalBallMove,
-    handleTacticalDrawingStart,
-    handleTacticalDrawingAddPoint,
-    handleTacticalDrawingEnd,
-    clearTacticalElements,
-  } = useTacticalBoard({
-    initialDiscs: initialState.tacticalDiscs,
-    initialDrawings: initialState.tacticalDrawings,
-    initialBallPosition: initialState.tacticalBallPosition,
-    saveStateToHistory: saveTacticalStateToHistory,
-  });
 
   // Load teams when orphaned game is detected
   useEffect(() => {
@@ -731,7 +687,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // --- Effect to sync playersOnField details with availablePlayers changes ---
   useEffect(() => {
     if (availablePlayers && availablePlayers.length > 0) {
-      setPlayersOnField(prevPlayersOnField => {
+      fieldCoordination.setPlayersOnField(prevPlayersOnField => {
         const nextPlayersOnField = prevPlayersOnField.map(fieldPlayer => {
           const rosterPlayer = availablePlayers.find(ap => ap.id === fieldPlayer.id);
           if (rosterPlayer) {
@@ -1011,12 +967,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     // Update non-reducer states (these will eventually be migrated or handled differently)
     // For fields not yet in gameSessionState but are in GameData, update their local states if needed.
     // This part will shrink as more state moves to the reducer.
-    setPlayersOnField(gameData?.playersOnField || (isInitialDefaultLoad ? initialState.playersOnField : []));
-    setOpponents(gameData?.opponents || (isInitialDefaultLoad ? initialState.opponents : []));
-    setDrawings(gameData?.drawings || (isInitialDefaultLoad ? initialState.drawings : []));
-    setTacticalDiscs(gameData?.tacticalDiscs || (isInitialDefaultLoad ? initialState.tacticalDiscs : []));
-    setTacticalDrawings(gameData?.tacticalDrawings || (isInitialDefaultLoad ? initialState.tacticalDrawings : []));
-    setTacticalBallPosition(gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 });
+    fieldCoordination.setPlayersOnField(gameData?.playersOnField || (isInitialDefaultLoad ? initialState.playersOnField : []));
+    fieldCoordination.setOpponents(gameData?.opponents || (isInitialDefaultLoad ? initialState.opponents : []));
+    fieldCoordination.setDrawings(gameData?.drawings || (isInitialDefaultLoad ? initialState.drawings : []));
+    fieldCoordination.setTacticalDiscs(gameData?.tacticalDiscs || (isInitialDefaultLoad ? initialState.tacticalDiscs : []));
+    fieldCoordination.setTacticalDrawings(gameData?.tacticalDrawings || (isInitialDefaultLoad ? initialState.tacticalDrawings : []));
+    fieldCoordination.setTacticalBallPosition(gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 });
     setIsPlayed(gameData?.isPlayed === false ? false : true);
 
     // Load per-game availablePlayers (with per-game goalie status)
@@ -1140,12 +1096,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
           assessments: playerAssessments,
 
           // Other states
-          playersOnField,
-          opponents,
-          drawings,
-          tacticalDiscs,
-          tacticalDrawings,
-          tacticalBallPosition,
+          playersOnField: fieldCoordination.playersOnField,
+          opponents: fieldCoordination.opponents,
+          drawings: fieldCoordination.drawings,
+          tacticalDiscs: fieldCoordination.tacticalDiscs,
+          tacticalDrawings: fieldCoordination.tacticalDrawings,
+          tacticalBallPosition: fieldCoordination.tacticalBallPosition,
           availablePlayers, // Per-game roster with per-game goalie status
           
           // Volatile timer states are intentionally EXCLUDED from the snapshot to be saved.
@@ -1170,15 +1126,15 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     autoSave();
     // Dependencies: Include all state variables that are part of the saved snapshot
   }, [initialLoadComplete, currentGameId,
-      playersOnField, opponents, drawings, availablePlayers, gameDataManagement.masterRoster,
+      fieldCoordination.playersOnField, fieldCoordination.opponents, fieldCoordination.drawings, availablePlayers, gameDataManagement.masterRoster,
       // showPlayerNames, // REMOVED - Covered by gameSessionState
       // Local states that are part of the snapshot but not yet in gameSessionState:
       // gameEvents, // REMOVE - Now from gameSessionState
       gameSessionState,
       playerAssessments,
-      tacticalDiscs,
-      tacticalDrawings,
-      tacticalBallPosition,
+      fieldCoordination.tacticalDiscs,
+      fieldCoordination.tacticalDrawings,
+      fieldCoordination.tacticalBallPosition,
       isPlayed,
       queryClient,
       showToast,
@@ -1199,180 +1155,17 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
   }, [initialLoadComplete, hasSkippedInitialSetup, currentGameId, openNewGameViaReducer]);
 
-  // --- Player Management Handlers (Updated for relative coords) ---
-  // Wrapped handleDropOnField in useCallback as suggested
-  const handleDropOnField = useCallback((playerId: string, relX: number, relY: number) => {
-    const droppedPlayer = availablePlayers.find(p => p.id === playerId);
-    if (droppedPlayer) {
-      handlePlayerDrop(droppedPlayer, { relX, relY }); // Call the handler from the hook
-    } else {
-      logger.error(`Dropped player with ID ${playerId} not found in availablePlayers.`);
-    }
-  }, [availablePlayers, handlePlayerDrop]); 
-
-  const handlePlayerMove = useCallback((playerId: string, relX: number, relY: number) => {
-    // Update visual state immediately
-    setPlayersOnField(prevPlayers => 
-      prevPlayers.map(p => 
-        p.id === playerId ? { ...p, relX, relY } : p
-      )
-    );
-    // State saved on move end
-  }, [setPlayersOnField]); // ADDED setPlayersOnField dependency
-
-  const handlePlayerMoveEnd = useCallback(() => {
-    saveStateToHistory({ playersOnField });
-  }, [playersOnField, saveStateToHistory]);
-
-  const handlePlayerRemove = useCallback((playerId: string) => {
-    logger.log(`Removing player ${playerId} from field`);
-    const updatedPlayersOnField = playersOnField.filter(p => p.id !== playerId);
-    setPlayersOnField(updatedPlayersOnField); 
-    saveStateToHistory({ playersOnField: updatedPlayersOnField });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playersOnField, saveStateToHistory]); 
-  
+  // --- Player Management Handlers - MOVED TO useFieldCoordination ---
 
 
-  // --- Reset Handlers ---
-  const handleResetFieldConfirmed = useCallback(() => {
-    if (isTacticsBoardView) {
-      clearTacticalElements();
-    } else {
-      // Only clear game elements in normal view
-      setPlayersOnField([]);
-      setOpponents([]);
-      setDrawings([]);
-      saveStateToHistory({ playersOnField: [], opponents: [], drawings: [] });
-    }
-    setShowResetFieldConfirm(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isTacticsBoardView, saveStateToHistory, clearTacticalElements]);
+  // --- Reset Handlers - MOVED TO useFieldCoordination ---
+  // --- Touch Drag from Bar Handlers - MOVED TO useFieldCoordination ---
 
-  const handleResetFieldClick = useCallback(() => {
-    setShowResetFieldConfirm(true);
-  }, []);
-
-  const handleClearDrawingsForView = () => {
-    if (isTacticsBoardView) {
-      // Clear only tactical drawings and record it in tactical history (not main)
-      setTacticalDrawings([]);
-      saveTacticalStateToHistory({ tacticalDrawings: [] });
-    } else {
-      handleClearDrawings();
-    }
-  };
-
-  // --- Touch Drag from Bar Handlers (Updated for relative coords) ---
-  const handlePlayerDragStartFromBar = useCallback((playerInfo: Player) => {
-    // This is now primarily for HTML Drag and Drop OR potential long-press drag
-    setDraggingPlayerFromBarInfo(playerInfo);
-    logger.log("Setting draggingPlayerFromBarInfo (Drag Start):", playerInfo);
-  }, []);
-
-  // NEW Handler for simple tap selection in the bar
-  const handlePlayerTapInBar = useCallback((playerInfo: Player | null) => {
-    // If the tapped player is already selected, deselect them
-    if (draggingPlayerFromBarInfo?.id === playerInfo?.id) {
-      logger.log("Tapped already selected player, deselecting:", playerInfo?.id);
-      setDraggingPlayerFromBarInfo(null);
-    } else {
-      // Otherwise, select the tapped player
-      logger.log("Setting draggingPlayerFromBarInfo (Tap):", playerInfo);
-      setDraggingPlayerFromBarInfo(playerInfo);
-    }
-  }, [draggingPlayerFromBarInfo]); // Dependency needed
-
-  const handlePlayerDropViaTouch = useCallback((relX: number, relY: number) => {
-    // This handler might be less relevant now if tap-on-field works
-    if (draggingPlayerFromBarInfo) {
-      logger.log("Player Drop Via Touch (field):", { id: draggingPlayerFromBarInfo.id, relX, relY });
-      handleDropOnField(draggingPlayerFromBarInfo.id, relX, relY); 
-      setDraggingPlayerFromBarInfo(null); // Deselect player after placing
-    }
-  }, [draggingPlayerFromBarInfo, handleDropOnField]);
-
-  const handlePlayerDragCancelViaTouch = useCallback(() => {
-    setDraggingPlayerFromBarInfo(null);
-  }, []);
-
-  // --- Apply History State Helper ---
-  // TODO(Step 2.6.3): Once useFieldCoordination is extracted, move field state
-  // restoration (playersOnField, opponents, drawings) into that hook's
-  // applyFieldHistoryState method. Tactical state should also move there.
-  // This wrapper will then simplify to only call sessionCoordination.applyHistoryState(state).
-  //
-  // Wraps sessionCoordination.applyHistoryState and adds field state updates
-  const applyHistoryState = (state: AppState) => {
-    // Update field state (not managed by session coordination)
-    setPlayersOnField(state.playersOnField);
-    setOpponents(state.opponents);
-    setDrawings(state.drawings);
-    setAvailablePlayers(state.availablePlayers);
-
-    // Update tactical state
-    setTacticalDiscs(state.tacticalDiscs || []);
-    setTacticalDrawings(state.tacticalDrawings || []);
-    setTacticalBallPosition(state.tacticalBallPosition || null);
-
-    // Apply session state via the hook
-    sessionCoordination.applyHistoryState(state);
-  };
+  // --- History Handlers - MOVED TO useFieldCoordination ---
 
   // Legacy handler - delegates to session coordination
   const handleTeamNameChange = (newName: string) => {
     sessionCoordination.handlers.setTeamName(newName);
-  };
-
-  const handleUndo = () => {
-    const prevState = undoHistory();
-    if (prevState) {
-      logger.log('Undoing...');
-      applyHistoryState(prevState);
-    } else {
-      logger.log('Cannot undo: at beginning of history');
-    }
-  };
-
-  const handleRedo = () => {
-    const nextState = redoHistory();
-    if (nextState) {
-      logger.log('Redoing...');
-      applyHistoryState(nextState);
-    } else {
-      logger.log('Cannot redo: at end of history');
-    }
-  };
-
-  // Apply tactical history state (for tactical undo/redo)
-  const applyTacticalHistoryState = (state: TacticalState) => {
-    setTacticalDiscs(state.tacticalDiscs || []);
-    setTacticalDrawings(state.tacticalDrawings || []);
-    setTacticalBallPosition(state.tacticalBallPosition || null);
-  };
-
-  const handleTacticalUndo = () => {
-    const prevState = tacticalHistory.undo();
-    if (prevState) {
-      logger.log('[TacticalHistory] undo -> state', {
-        drawingsLen: (prevState.tacticalDrawings || []).length,
-      });
-      applyTacticalHistoryState(prevState);
-    } else {
-      logger.log('Cannot undo: at beginning of tactical history');
-    }
-  };
-
-  const handleTacticalRedo = () => {
-    const nextState = tacticalHistory.redo();
-    if (nextState) {
-      logger.log('[TacticalHistory] redo -> state', {
-        drawingsLen: (nextState.tacticalDrawings || []).length,
-      });
-      applyTacticalHistoryState(nextState);
-    } else {
-      logger.log('Cannot redo: at end of tactical history');
-    }
   };
 
   // --- Timer Handlers provided by useGameTimer ---
@@ -1380,16 +1173,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const handleToggleLargeTimerOverlay = useCallback(() => {
     setShowLargeTimerOverlay((prev) => !prev);
   }, []);
-
-  // handleToggleDrawingMode is now provided by useFieldInteractions hook
-
-  // Handler to specifically deselect player when bar background is clicked
-  const handleDeselectPlayer = () => {
-    if (draggingPlayerFromBarInfo) { // Only log if there was a selection
-      logger.log("Deselecting player by clicking bar background.");
-      setDraggingPlayerFromBarInfo(null);
-    }
-  };
 
 
   // Handler to open/close the goal log modal
@@ -1683,9 +1466,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
           } else {
             logger.log("Currently loaded game was deleted with no other games remaining. Resetting to initial state.");
             dispatchGameSession({ type: 'RESET_TO_INITIAL_STATE', payload: initialGameSessionData });
-            setPlayersOnField(initialState.playersOnField || []);
-            setOpponents(initialState.opponents || []);
-            setDrawings(initialState.drawings || []);
+            fieldCoordination.setPlayersOnField(initialState.playersOnField || []);
+            fieldCoordination.setOpponents(initialState.opponents || []);
+            fieldCoordination.setDrawings(initialState.drawings || []);
             resetHistory(initialState as AppState);
             setCurrentGameId(DEFAULT_GAME_ID);
             await utilSaveCurrentGameIdSetting(DEFAULT_GAME_ID);
@@ -1919,11 +1702,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       setAvailablePlayers(updatedAvailablePlayers);
 
       // Update field players to reflect goalie status change
-      const updatedFieldPlayers = playersOnField.map(fieldPlayer => {
+      const updatedFieldPlayers = fieldCoordination.playersOnField.map(fieldPlayer => {
         const updatedAvailablePlayer = updatedAvailablePlayers.find(p => p.id === fieldPlayer.id);
         return updatedAvailablePlayer ? { ...fieldPlayer, isGoalie: updatedAvailablePlayer.isGoalie } : fieldPlayer;
       });
-      setPlayersOnField(updatedFieldPlayers);
+      fieldCoordination.setPlayersOnField(updatedFieldPlayers);
 
       // Save the updated state
       if (currentGameId) {
@@ -1943,9 +1726,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
   }, [
     // Data dependencies (values that change the function's behavior)
-    availablePlayers, playersOnField, currentGameId, gameSessionState, t,
+    availablePlayers, fieldCoordination.playersOnField, currentGameId, gameSessionState, t,
     // Setter dependencies (React guarantees these are stable but ESLint requires them)
-    setAvailablePlayers, setPlayersOnField, setRosterError, queryClient
+    setAvailablePlayers, fieldCoordination.setPlayersOnField, setRosterError, queryClient
   ]);
 
   // --- END Roster Management Handlers ---
@@ -1955,7 +1738,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       // <<< ADD LOG HERE >>>
       logger.log(`[page.tsx] handleAwardFairPlayCard called with playerId: ${playerId}`);
       logger.log(`[page.tsx] availablePlayers BEFORE update:`, JSON.stringify(availablePlayers.map(p => ({id: p.id, fp: p.receivedFairPlayCard}))));
-      logger.log(`[page.tsx] playersOnField BEFORE update:`, JSON.stringify(playersOnField.map(p => ({id: p.id, fp: p.receivedFairPlayCard}))));
+      logger.log(`[page.tsx] playersOnField BEFORE update:`, JSON.stringify(fieldCoordination.playersOnField.map(p => ({id: p.id, fp: p.receivedFairPlayCard}))));
 
       if (!currentGameId || currentGameId === DEFAULT_GAME_ID) {
           logger.warn("Cannot award fair play card in unsaved/default state.");
@@ -1963,7 +1746,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       }
 
       let updatedAvailablePlayers = availablePlayers;
-      let updatedPlayersOnField = playersOnField;
+      let updatedPlayersOnField = fieldCoordination.playersOnField;
 
       // Find the currently awarded player, if any
       const currentlyAwardedPlayerId = availablePlayers.find(p => p.receivedFairPlayCard)?.id;
@@ -2006,7 +1789,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       // <<< ADD LOG HERE >>>
       logger.log(`[page.tsx] Calling setAvailablePlayers and setPlayersOnField...`);
       setAvailablePlayers(updatedAvailablePlayers);
-      setPlayersOnField(updatedPlayersOnField);
+      fieldCoordination.setPlayersOnField(updatedPlayersOnField);
       // Save updated global roster
       // localStorage.setItem(MASTER_ROSTER_KEY, JSON.stringify(updatedAvailablePlayers));
       try {
@@ -2025,7 +1808,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       saveStateToHistory({ playersOnField: updatedPlayersOnField });
 
       logger.log(`[page.tsx] Updated Fair Play card award. ${playerId ? `Awarded to ${playerId}` : 'Cleared'}`);
-    }, [availablePlayers, playersOnField, saveStateToHistory, currentGameId, setAvailablePlayers, setPlayersOnField]);
+    }, [availablePlayers, fieldCoordination.playersOnField, saveStateToHistory, currentGameId, setAvailablePlayers, fieldCoordination.setPlayersOnField]);
 
 
   const handleUpdateSelectedPlayers = (playerIds: string[]) => {
@@ -2044,12 +1827,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       try {
         // 1. Create the current game state snapshot
         const currentSnapshot: AppState = {
-          playersOnField,
-          opponents,
-          drawings,
-          tacticalDiscs,
-          tacticalDrawings,
-          tacticalBallPosition,
+          playersOnField: fieldCoordination.playersOnField,
+          opponents: fieldCoordination.opponents,
+          drawings: fieldCoordination.drawings,
+          tacticalDiscs: fieldCoordination.tacticalDiscs,
+          tacticalDrawings: fieldCoordination.tacticalDrawings,
+          tacticalBallPosition: fieldCoordination.tacticalBallPosition,
           availablePlayers: availablePlayers, // <<< ADD BACK: Include roster available *at time of save*
           showPlayerNames: gameSessionState.showPlayerNames, // USE gameSessionState
           teamName: gameSessionState.teamName,
@@ -2109,12 +1892,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       // If no current game ID, create a new saved game entry
       try {
         const newSnapshot: AppState = {
-          playersOnField,
-          opponents,
-          drawings,
-          tacticalDiscs,
-          tacticalDrawings,
-          tacticalBallPosition,
+          playersOnField: fieldCoordination.playersOnField,
+          opponents: fieldCoordination.opponents,
+          drawings: fieldCoordination.drawings,
+          tacticalDiscs: fieldCoordination.tacticalDiscs,
+          tacticalDrawings: fieldCoordination.tacticalDrawings,
+          tacticalBallPosition: fieldCoordination.tacticalBallPosition,
           availablePlayers: availablePlayers,
           showPlayerNames: gameSessionState.showPlayerNames,
           teamName: gameSessionState.teamName,
@@ -2156,12 +1939,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   },    [
     currentGameId,
     savedGames,
-    playersOnField,
-    opponents,
-    drawings,
-    tacticalDiscs,
-    tacticalDrawings,
-    tacticalBallPosition,
+    fieldCoordination.playersOnField,
+    fieldCoordination.opponents,
+    fieldCoordination.drawings,
+    fieldCoordination.tacticalDiscs,
+    fieldCoordination.tacticalDrawings,
+    fieldCoordination.tacticalBallPosition,
     availablePlayers,
     setSavedGames,
     resetHistory,
@@ -2204,12 +1987,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     long: {
       // Tactical/position data - battery-friendly
       states: {
-        playersOnField,
-        opponents,
-        drawings,
-        tacticalDiscs,
-        tacticalDrawings,
-        tacticalBallPosition,
+        playersOnField: fieldCoordination.playersOnField,
+        opponents: fieldCoordination.opponents,
+        drawings: fieldCoordination.drawings,
+        tacticalDiscs: fieldCoordination.tacticalDiscs,
+        tacticalDrawings: fieldCoordination.tacticalDrawings,
+        tacticalBallPosition: fieldCoordination.tacticalBallPosition,
       },
       delay: 2000,
     },
@@ -2456,120 +2239,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   }, [availablePlayers, openNewGameViaReducer]);
   // --- END Start New Game Handler ---
 
-  // New handler to place all selected players on the field at once
-  const handlePlaceAllPlayers = useCallback(() => {
-    // Get the list of selected players who are not yet on the field
-           const selectedButNotOnField = gameSessionState.selectedPlayerIds.filter((id: string) => 
-      !playersOnField.some(fieldPlayer => fieldPlayer.id === id)
-    );
-    
-    if (selectedButNotOnField.length === 0) {
-      // All selected players are already on the field
-      logger.log('All selected players are already on the field');
-      return;
-    }
-
-    // Find the corresponding player objects from availablePlayers
-    const playersToPlace = selectedButNotOnField
-      .map(id => availablePlayers.find(p => p.id === id))
-      .filter((p): p is Player => p !== undefined);
-    
-    logger.log(`Placing ${playersToPlace.length} players on the field...`);
-
-    // Define a reasonable soccer formation based on number of players
-    // For simplicity, we'll use these common formations:
-    // 3-4 players: simple triangle or diamond
-    // 5-7 players: 2-3-1 or 2-3-2 formation
-    // 8+ players: 3-3-2 or 3-4-1 formation
-    
-    // Calculate positions for players in a reasonable soccer formation
-    const newFieldPlayers: Player[] = [...playersOnField]; // Start with existing players
-    
-    // Find if there's a goalie in the players to place
-    const goalieIndex = playersToPlace.findIndex(p => p.isGoalie);
-    let goalie: Player | null = null;
-    
-    if (goalieIndex !== -1) {
-      // Remove goalie from the array and handle separately
-      goalie = playersToPlace.splice(goalieIndex, 1)[0];
-    }
-    
-    // Place goalie first if one exists
-    if (goalie) {
-      // Place at the goal line, slightly offset from center
-      newFieldPlayers.push({
-        ...goalie,
-        relX: 0.5,
-        relY: 0.95 // Near our own goal line
-      });
-    }
-    
-    // Determine formation based on remaining players
-    const remainingCount = playersToPlace.length;
-    let positions: { relX: number, relY: number }[] = [];
-    
-    if (remainingCount <= 3) {
-      // Simple triangle/diamond formation for 1-3 players (not including goalie)
-      if (remainingCount >= 1) positions.push({ relX: 0.5, relY: 0.8 }); // Defender
-      if (remainingCount >= 2) positions.push({ relX: 0.5, relY: 0.5 }); // Midfielder
-      if (remainingCount >= 3) positions.push({ relX: 0.5, relY: 0.3 }); // Forward
-    } 
-    else if (remainingCount <= 7) {
-      // 2-3-1 or 2-3-2 formation for 6-7 players (not including goalie)
-      // Defenders
-      positions.push({ relX: 0.3, relY: 0.8 });
-      positions.push({ relX: 0.7, relY: 0.8 });
-      
-      // Midfielders
-      positions.push({ relX: 0.25, relY: 0.6 });
-      positions.push({ relX: 0.5, relY: 0.55 });
-      positions.push({ relX: 0.75, relY: 0.6 });
-      
-      // Forwards
-      positions.push({ relX: 0.35, relY: 0.3 });
-      if (remainingCount >= 7) positions.push({ relX: 0.65, relY: 0.3 });
-    }
-    else {
-      // 3-4-1 or 3-3-2 formation for 8+ players (not including goalie)
-      // Defenders
-      positions.push({ relX: 0.25, relY: 0.85 });
-      positions.push({ relX: 0.5, relY: 0.8 });
-      positions.push({ relX: 0.75, relY: 0.85 });
-      
-      // Midfielders
-      positions.push({ relX: 0.2, relY: 0.6 });
-      positions.push({ relX: 0.4, relY: 0.55 });
-      positions.push({ relX: 0.6, relY: 0.55 });
-      positions.push({ relX: 0.8, relY: 0.6 });
-      
-      // Forwards
-      positions.push({ relX: 0.5, relY: 0.3 });
-      if (remainingCount >= 9) positions.push({ relX: 0.35, relY: 0.3 });
-      if (remainingCount >= 10) positions.push({ relX: 0.65, relY: 0.3 });
-    }
-    
-    // Take only the positions we need for the remaining players
-    positions = positions.slice(0, remainingCount);
-    
-    // Add player in each position
-    playersToPlace.forEach((player, index) => {
-      if (index < positions.length) {
-        newFieldPlayers.push({
-          ...player,
-          relX: positions[index].relX,
-          relY: positions[index].relY
-        });
-      }
-    });
-    
-    // Update players on field
-    setPlayersOnField(newFieldPlayers);
-    saveStateToHistory({ playersOnField: newFieldPlayers });
-    
-    logger.log(`Successfully placed ${playersToPlace.length} players on the field`);
-         }, [playersOnField, gameSessionState.selectedPlayerIds, availablePlayers, saveStateToHistory, setPlayersOnField]);
-
-  // --- END Quick Save Handler ---
+  // --- handlePlaceAllPlayers - MOVED TO useFieldCoordination ---
 
   // --- Step 3: Handler for Importing Games ---
   // const handleImportGamesFromJson = useCallback(async (jsonContent: string) => { // This function is no longer used
@@ -2616,55 +2286,35 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
   const fieldInteractions = useMemo<FieldInteractions>(() => ({
     players: {
-      move: handlePlayerMove,
-      moveEnd: handlePlayerMoveEnd,
-      remove: handlePlayerRemove,
-      drop: handleDropOnField,
+      move: fieldCoordination.handlePlayerMove,
+      moveEnd: fieldCoordination.handlePlayerMoveEnd,
+      remove: fieldCoordination.handlePlayerRemove,
+      drop: fieldCoordination.handleDropOnField,
     },
     opponents: {
-      move: handleOpponentMove,
-      moveEnd: handleOpponentMoveEnd,
-      remove: handleOpponentRemove,
+      move: fieldCoordination.handleOpponentMove,
+      moveEnd: fieldCoordination.handleOpponentMoveEnd,
+      remove: fieldCoordination.handleOpponentRemove,
     },
     drawing: {
-      start: handleDrawingStart,
-      addPoint: handleDrawingAddPoint,
-      end: handleDrawingEnd,
+      start: fieldCoordination.handleDrawingStart,
+      addPoint: fieldCoordination.handleDrawingAddPoint,
+      end: fieldCoordination.handleDrawingEnd,
     },
     tactical: {
-      drawingStart: handleTacticalDrawingStart,
-      drawingAddPoint: handleTacticalDrawingAddPoint,
-      drawingEnd: handleTacticalDrawingEnd,
-      discMove: handleTacticalDiscMove,
-      discRemove: handleTacticalDiscRemove,
-      discToggleType: handleToggleTacticalDiscType,
-      ballMove: handleTacticalBallMove,
+      drawingStart: fieldCoordination.handleTacticalDrawingStart,
+      drawingAddPoint: fieldCoordination.handleTacticalDrawingAddPoint,
+      drawingEnd: fieldCoordination.handleTacticalDrawingEnd,
+      discMove: fieldCoordination.handleTacticalDiscMove,
+      discRemove: fieldCoordination.handleTacticalDiscRemove,
+      discToggleType: fieldCoordination.handleToggleTacticalDiscType,
+      ballMove: fieldCoordination.handleTacticalBallMove,
     },
     touch: {
-      playerDrop: handlePlayerDropViaTouch,
-      playerDragCancel: handlePlayerDragCancelViaTouch,
+      playerDrop: fieldCoordination.handlePlayerDropViaTouch,
+      playerDragCancel: fieldCoordination.handlePlayerDragCancelViaTouch,
     },
-  }), [
-    handlePlayerMove,
-    handlePlayerMoveEnd,
-    handlePlayerRemove,
-    handleDropOnField,
-    handleOpponentMove,
-    handleOpponentMoveEnd,
-    handleOpponentRemove,
-    handleDrawingStart,
-    handleDrawingAddPoint,
-    handleDrawingEnd,
-    handleTacticalDrawingStart,
-    handleTacticalDrawingAddPoint,
-    handleTacticalDrawingEnd,
-    handleTacticalDiscMove,
-    handleTacticalDiscRemove,
-    handleToggleTacticalDiscType,
-    handleTacticalBallMove,
-    handlePlayerDropViaTouch,
-    handlePlayerDragCancelViaTouch,
-  ]);
+  }), [fieldCoordination]);
 
   const timerInteractions = useMemo<TimerInteractions>(() => ({
     toggleLargeOverlay: handleToggleLargeTimerOverlay,
@@ -2687,15 +2337,15 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const fieldContainerProps: FieldContainerProps = {
     gameSessionState,
     fieldVM: {
-      playersOnField,
-      opponents,
-      drawings,
-      isTacticsBoardView,
-      tacticalDrawings,
-      tacticalDiscs,
-      tacticalBallPosition,
-      draggingPlayerFromBarInfo,
-      isDrawingEnabled,
+      playersOnField: fieldCoordination.playersOnField,
+      opponents: fieldCoordination.opponents,
+      drawings: fieldCoordination.drawings,
+      isTacticsBoardView: fieldCoordination.isTacticsBoardView,
+      tacticalDrawings: fieldCoordination.tacticalDrawings,
+      tacticalDiscs: fieldCoordination.tacticalDiscs,
+      tacticalBallPosition: fieldCoordination.tacticalBallPosition,
+      draggingPlayerFromBarInfo: fieldCoordination.draggingPlayerFromBarInfo,
+      isDrawingEnabled: fieldCoordination.isDrawingEnabled,
     },
     timerVM: {
       timeElapsedInSeconds,
@@ -2731,24 +2381,24 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     timeElapsedInSeconds,
     isTimerRunning,
     onToggleLargeTimerOverlay: handleToggleLargeTimerOverlay,
-    onUndo: handleUndo,
-    onRedo: handleRedo,
-    canUndo,
-    canRedo,
-    onTacticalUndo: handleTacticalUndo,
-    onTacticalRedo: handleTacticalRedo,
+    onUndo: fieldCoordination.handleUndo,
+    onRedo: fieldCoordination.handleRedo,
+    canUndo: fieldCoordination.canUndoField,
+    canRedo: fieldCoordination.canRedoField,
+    onTacticalUndo: fieldCoordination.handleTacticalUndo,
+    onTacticalRedo: fieldCoordination.handleTacticalRedo,
     canTacticalUndo: tacticalHistory.canUndo,
     canTacticalRedo: tacticalHistory.canRedo,
-    onResetField: handleResetFieldClick,
-    onClearDrawings: handleClearDrawingsForView,
-    onAddOpponent: handleAddOpponent,
-    onPlaceAllPlayers: handlePlaceAllPlayers,
-    isTacticsBoardView,
-    onToggleTacticsBoard: handleToggleTacticsBoard,
-    onAddHomeDisc: () => handleAddTacticalDisc('home'),
-    onAddOpponentDisc: () => handleAddTacticalDisc('opponent'),
-    isDrawingEnabled,
-    onToggleDrawingMode: handleToggleDrawingMode,
+    onResetField: fieldCoordination.handleResetFieldClick,
+    onClearDrawings: fieldCoordination.handleClearDrawingsForView,
+    onAddOpponent: fieldCoordination.handleAddOpponent,
+    onPlaceAllPlayers: fieldCoordination.handlePlaceAllPlayers,
+    isTacticsBoardView: fieldCoordination.isTacticsBoardView,
+    onToggleTacticsBoard: fieldCoordination.handleToggleTacticsBoard,
+    onAddHomeDisc: () => fieldCoordination.handleAddTacticalDisc('home'),
+    onAddOpponentDisc: () => fieldCoordination.handleAddTacticalDisc('opponent'),
+    isDrawingEnabled: fieldCoordination.isDrawingEnabled,
+    onToggleDrawingMode: fieldCoordination.handleToggleDrawingMode,
     onToggleTrainingResources: handleToggleTrainingResources,
     onToggleGameStatsModal: handleToggleGameStatsModal,
     onOpenLoadGameModal: handleOpenLoadGameModal,
@@ -2772,9 +2422,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const gameContainerProps = {
     playerBar: playerBarViewModel,
     gameInfo: gameInfoViewModel,
-    onPlayerDragStartFromBar: handlePlayerDragStartFromBar,
-    onBarBackgroundClick: handleDeselectPlayer,
-    onPlayerTapInBar: handlePlayerTapInBar,
+    onPlayerDragStartFromBar: fieldCoordination.handlePlayerDragStartFromBar,
+    onBarBackgroundClick: fieldCoordination.handleDeselectPlayer,
+    onPlayerTapInBar: fieldCoordination.handlePlayerTapInBar,
     onToggleGoalie: handleToggleGoalieForModal,
     onTeamNameChange: handleTeamNameChange,
     onOpponentNameChange: handleOpponentNameChange,
@@ -2806,7 +2456,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       showHardResetConfirm,
       showSaveBeforeNewConfirm,
       showStartNewConfirm,
-      showResetFieldConfirm,
+      showResetFieldConfirm: fieldCoordination.showResetFieldConfirm,
     },
     data: {
       gameSessionState,
@@ -2925,8 +2575,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       saveBeforeNewCancelled: handleSaveBeforeNewCancelled,
       setShowStartNewConfirm,
       startNewConfirmed: handleStartNewConfirmed,
-      setShowResetFieldConfirm,
-      resetFieldConfirmed: handleResetFieldConfirmed,
+      setShowResetFieldConfirm: fieldCoordination.setShowResetFieldConfirm,
+      resetFieldConfirmed: fieldCoordination.handleResetFieldConfirmed,
       openSettingsModal: handleOpenSettingsModal,
       onCreateBackup: handleCreateBackup,
       onDataImportSuccess,
