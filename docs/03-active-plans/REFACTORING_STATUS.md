@@ -279,56 +279,104 @@ export function useGameOrchestration(props) {
 
 ## 📋 PR STRATEGY
 
+### Integration Branch Strategy (NEW - November 19, 2025)
+
+**IMPORTANT**: To enable thorough testing before merging to master, we're using an **integration branch** for Steps 2.6.2-2.6.6.
+
+#### Why Integration Branch?
+- **Stable master**: Master remains stable with only Step 2.6.1
+- **Preview testing**: Can install PWA from Vercel preview URL for integration branch
+- **Cohesive testing**: Test all 6 hook extractions together before final merge
+- **Easy rollback**: If issues found, can fix on integration without affecting master
+
+#### Branch Structure
+```
+master (stable - includes Step 2.6.1 only)
+  │
+  └─→ refactor/2.6-integration (staging - Steps 2.6.2-2.6.6)
+       │
+       ├─→ refactor/2.6.2-extract-useGameSessionCoordination (PR #2)
+       ├─→ refactor/2.6.3-extract-useFieldCoordination (PR #3)
+       ├─→ refactor/2.6.4-extract-useGamePersistence (PR #4)
+       ├─→ refactor/2.6.5-extract-useTimerManagement (PR #5)
+       └─→ refactor/2.6.6-extract-useModalOrchestration (PR #6)
+```
+
+#### Workflow
+1. **Step 2.6.1**: ✅ Already merged directly to master
+2. **Step 2.6.2-2.6.6**: Merge to `refactor/2.6-integration` first
+3. **Testing**: Install PWA from integration branch preview URL
+4. **Final merge**: `refactor/2.6-integration` → `master` after all 6 complete
+
+#### Creating Feature Branches
+```bash
+# Always branch FROM integration (not master)
+git checkout refactor/2.6-integration
+git pull origin refactor/2.6-integration
+git checkout -b refactor/2.6.3-extract-useFieldCoordination
+```
+
+#### Vercel Preview Deployments
+- Vercel automatically creates preview deployments for all branches
+- Integration branch URL: `https://matchops-local-[hash]-integration.vercel.app`
+- Can install PWA from this URL for testing
+
 ### Current Branch Status
 
-**Branch**: `refactor/2.5` (merged to master)
-**Contains**: All Layer 1 & 2 work (Steps 2.4.0–2.5)
-**Status**: Ready for next phase
+**Master Branch**: Stable with Step 2.6.1 only
+**Integration Branch**: `refactor/2.6-integration` (created November 19, 2025)
+**Current PR**: Step 2.6.2 (targets integration branch, not master)
+**Status**: Ready for Steps 2.6.2-2.6.6
 
 ### Recommended PR Sequence
 
-#### PR 1: Merge Current Work (if not already merged)
-- **Branch**: `refactor/2.5` → `master`
-- **Time**: 30 minutes
-- **Content**: All Layer 1 & 2 work (HomePage integration complete)
+#### PR 1: Extract useGameDataManagement ✅ COMPLETE
+- **Branch**: `refactor/2.6.1-extract-useGameDataManagement` → `master`
+- **Status**: Merged to master
+- **Result**: 361-line hook for React Query data fetching
 
-#### PR 2: Extract useGameDataManagement
-- **Branch**: `refactor/split-data-management`
+#### PR 2: Extract useGameSessionCoordination 🟡 IN PROGRESS
+- **Branch**: `refactor/2.6.2-extract-useGameSessionCoordination` → `refactor/2.6-integration`
+- **Target**: Integration branch (NOT master)
+- **Status**: Ready for merge (awaiting user approval)
+- **Result**: 480-line hook for game session state
+
+#### PR 3: Extract useFieldCoordination 🔴 NOT STARTED
+- **Branch**: `refactor/2.6.3-extract-useFieldCoordination` → `refactor/2.6-integration`
+- **Source**: Branch FROM integration (not master)
 - **Time**: 1-2 hours
-- **Files**: Create `src/components/HomePage/hooks/useGameDataManagement.ts`
-- **Tests**: Verify React Query integration
+- **Files**: Create `src/components/HomePage/hooks/useFieldCoordination.ts`
+- **Tests**: Verify field interactions, drag & drop, tactical board
 
-#### PR 3: Extract useGamePersistence
-- **Branch**: `refactor/split-persistence`
+#### PR 4: Extract useGamePersistence 🔴 NOT STARTED
+- **Branch**: `refactor/2.6.4-extract-useGamePersistence` → `refactor/2.6-integration`
+- **Source**: Branch FROM integration
 - **Time**: 1-2 hours
 - **Files**: Create `src/components/HomePage/hooks/useGamePersistence.ts`
 - **Tests**: Verify auto-save and save/load
 
-#### PR 4: Extract useGameSessionCoordination
-- **Branch**: `refactor/split-session`
-- **Time**: 1-2 hours
-- **Files**: Create `src/components/HomePage/hooks/useGameSessionCoordination.ts`
-- **Tests**: Verify game timer and score
-
-#### PR 5: Extract useModalOrchestration
-- **Branch**: `refactor/split-modals`
-- **Time**: 1-2 hours
-- **Files**: Create `src/components/HomePage/hooks/useModalOrchestration.ts`
-- **Tests**: Verify all modals work
-
-#### PR 6: Extract useFieldCoordination
-- **Branch**: `refactor/split-field`
-- **Time**: 1-2 hours
-- **Files**: Create `src/components/HomePage/hooks/useFieldCoordination.ts`
-- **Tests**: Verify field interactions
-
-#### PR 7: Extract useTimerManagement
-- **Branch**: `refactor/split-timer`
+#### PR 5: Extract useTimerManagement 🔴 NOT STARTED
+- **Branch**: `refactor/2.6.5-extract-useTimerManagement` → `refactor/2.6-integration`
+- **Source**: Branch FROM integration
 - **Time**: 1-2 hours
 - **Files**: Create `src/components/HomePage/hooks/useTimerManagement.ts`
 - **Tests**: Verify timer functionality
 
-**Total**: 6-7 PRs × 1-2 hours = **~12 hours over 2-3 weeks**
+#### PR 6: Extract useModalOrchestration 🔴 NOT STARTED
+- **Branch**: `refactor/2.6.6-extract-useModalOrchestration` → `refactor/2.6-integration`
+- **Source**: Branch FROM integration
+- **Time**: 1-2 hours
+- **Files**: Create `src/components/HomePage/hooks/useModalOrchestration.ts`
+- **Tests**: Verify all modals work
+
+#### PR 7: Final Integration 🔴 NOT STARTED
+- **Branch**: `refactor/2.6-integration` → `master`
+- **Target**: Master branch (final merge)
+- **Time**: 1 hour (testing + merge)
+- **Testing**: Install PWA from integration preview, verify all functionality
+- **Action**: Merge integration → master after thorough testing
+
+**Total**: 7 PRs × 1-2 hours = **~14 hours over 2-3 weeks**
 
 ---
 
