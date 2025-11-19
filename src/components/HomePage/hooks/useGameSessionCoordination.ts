@@ -18,7 +18,8 @@
  * @category HomePage Hooks
  */
 
-import { useCallback, useEffect, useRef, Dispatch } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import type { Dispatch } from 'react';
 import { useUndoRedo } from '@/hooks/useUndoRedo';
 import { useGameSessionWithHistory } from '@/hooks/useGameSessionWithHistory';
 import { useTacticalHistory, type TacticalState } from '@/hooks/useTacticalHistory';
