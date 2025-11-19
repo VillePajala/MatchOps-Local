@@ -125,6 +125,8 @@ export interface FieldContainerProps {
   onGuideStepChange?: (step: number) => void;
   onGuideClose: () => void;
   onOpenTeamReassignModal?: () => void;
+  onTeamNameChange: (name: string) => void;
+  onOpponentNameChange: (name: string) => void;
   interactions: FieldInteractions;
   timerInteractions: TimerInteractions;
 }
@@ -149,6 +151,8 @@ export function FieldContainer({
   onGuideStepChange,
   onGuideClose,
   onOpenTeamReassignModal,
+  onTeamNameChange,
+  onOpponentNameChange,
   interactions,
   timerInteractions,
 }: FieldContainerProps) {
@@ -213,7 +217,8 @@ export function FieldContainer({
           periodDurationMinutes={gameSessionState.periodDurationMinutes}
           currentPeriod={gameSessionState.currentPeriod}
           gameStatus={gameSessionState.gameStatus}
-          onOpponentNameChange={() => {}}
+          onOpponentNameChange={onOpponentNameChange}
+          onTeamNameChange={onTeamNameChange}
           onClose={toggleLargeOverlay}
           isLoaded={tmInitialLoad}
         />

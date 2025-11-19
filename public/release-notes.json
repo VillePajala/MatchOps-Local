@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: add fallback defaults and cleanup code quality issues in useGameSessionCoordination"
+  "notes": "refactor: clarify reasons for deferring Next.js 16 update in dependency plan"
 }

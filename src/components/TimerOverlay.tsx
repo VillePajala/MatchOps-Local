@@ -33,6 +33,7 @@ interface TimerOverlayProps {
   gameStatus: 'notStarted' | 'inProgress' | 'periodEnd' | 'gameEnd';
   lastSubTime: number | null;
   onOpponentNameChange: (name: string) => void;
+  onTeamNameChange: (name: string) => void;
   onClose?: () => void;
   isLoaded: boolean;
 }
@@ -61,6 +62,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   gameStatus = 'notStarted',
   lastSubTime = null,
   onOpponentNameChange = () => { logger.warn('onOpponentNameChange handler not provided'); },
+  onTeamNameChange = () => { logger.warn('onTeamNameChange handler not provided'); },
   onClose,
   isLoaded,
 }) => {
@@ -77,14 +79,18 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   const [showOpponentGoalConfirm, setShowOpponentGoalConfirm] = useState(false);
   // --- End State ---
 
+  // Determine display names (must be before useEffect that depends on it)
+  const displayHomeTeamName = homeOrAway === 'home' ? teamName : opponentName;
+  const displayAwayTeamName = homeOrAway === 'home' ? opponentName : teamName;
+
   // --- Effects for Opponent Name Editing ---
   useEffect(() => {
-    setEditedOpponentName(opponentName);
+    // Sync edited name with currently displayed name (which changes based on homeOrAway)
+    setEditedOpponentName(displayAwayTeamName);
     if (isEditingOpponentName) {
       // Logic here (currently commented out or placeholder)
     }
-    // Add missing dependency
-  }, [opponentName, isEditingOpponentName]);
+  }, [displayAwayTeamName, isEditingOpponentName]);
 
   // Focus input when editing starts
   useEffect(() => {
@@ -147,7 +153,7 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
   
   // --- Handlers for Opponent Name Editing ---
   const handleStartEditingOpponent = () => {
-    setEditedOpponentName(opponentName); // Reset to current prop value on edit start
+    setEditedOpponentName(displayAwayTeamName); // Reset to currently displayed name on edit start
     setIsEditingOpponentName(true);
   };
 
@@ -157,15 +163,22 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
 
   const handleSaveOpponentName = () => {
     const trimmedName = editedOpponentName.trim();
-    if (trimmedName && trimmedName !== opponentName) {
-      onOpponentNameChange(trimmedName);
+    if (trimmedName && trimmedName !== displayAwayTeamName) {
+      // Determine which handler to call based on homeOrAway
+      // When homeOrAway === 'home': away team is opponent (use onOpponentNameChange)
+      // When homeOrAway === 'away': away team is user's team (use onTeamNameChange)
+      if (homeOrAway === 'home') {
+        onOpponentNameChange(trimmedName);
+      } else {
+        onTeamNameChange(trimmedName);
+      }
     }
     setIsEditingOpponentName(false);
   };
 
   const handleCancelEditOpponent = () => {
     setIsEditingOpponentName(false);
-    setEditedOpponentName(opponentName); // Reset to original prop value
+    setEditedOpponentName(displayAwayTeamName); // Reset to currently displayed name
   };
 
   const handleOpponentKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -176,10 +189,6 @@ const TimerOverlay: React.FC<TimerOverlayProps> = ({
     }
   };
   // --- End Handlers ---
-
-  // Determine display names
-  const displayHomeTeamName = homeOrAway === 'home' ? teamName : opponentName;
-  const displayAwayTeamName = homeOrAway === 'home' ? opponentName : teamName;
 
   // Determine score colors based on homeOrAway status
   const userTeamColor = 'text-green-400';
