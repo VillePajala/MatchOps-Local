@@ -33,7 +33,10 @@ jest.mock('@/hooks/useFieldInteractions', () => ({
   __esModule: true,
   useFieldInteractions: jest.fn(() => ({
     isDrawingEnabled: false,
+    isPersisting: false,
     toggleDrawingMode: jest.fn(),
+    enableDrawingMode: jest.fn(),
+    disableDrawingMode: jest.fn(),
   })),
 }));
 
@@ -43,9 +46,11 @@ jest.mock('@/hooks/useGameState', () => ({
     playersOnField: [],
     opponents: [],
     drawings: [],
+    availablePlayers: [],
     setPlayersOnField: jest.fn(),
     setOpponents: jest.fn(),
     setDrawings: jest.fn(),
+    setAvailablePlayers: jest.fn(),
     handlePlayerDrop: jest.fn(),
     handleDrawingStart: jest.fn(),
     handleDrawingAddPoint: jest.fn(),
@@ -55,6 +60,8 @@ jest.mock('@/hooks/useGameState', () => ({
     handleOpponentMove: jest.fn(),
     handleOpponentMoveEnd: jest.fn(),
     handleOpponentRemove: jest.fn(),
+    handleRenamePlayer: jest.fn(),
+    handleToggleGoalie: jest.fn(),
   })),
 }));
 
@@ -62,6 +69,7 @@ jest.mock('@/hooks/useTacticalBoard', () => ({
   __esModule: true,
   useTacticalBoard: jest.fn(() => ({
     isTacticsBoardView: false,
+    setIsTacticsBoardView: jest.fn(),
     tacticalDiscs: [],
     setTacticalDiscs: jest.fn(),
     tacticalDrawings: [],
@@ -84,7 +92,8 @@ jest.mock('@/hooks/useTacticalBoard', () => ({
 import { renderHook, act } from '@testing-library/react';
 import { useFieldCoordination } from '../useFieldCoordination';
 import type { UseFieldCoordinationParams } from '../useFieldCoordination';
-import type { AppState, Player, TacticalState } from '@/types';
+import type { AppState, Player } from '@/types';
+import type { TacticalState } from '@/hooks/useTacticalHistory';
 import { TestFixtures } from '../../../../../tests/fixtures';
 import { useFieldInteractions } from '@/hooks/useFieldInteractions';
 import { useGameState } from '@/hooks/useGameState';
@@ -95,6 +104,51 @@ const mockUseFieldInteractions = useFieldInteractions as jest.MockedFunction<typ
 const mockUseGameState = useGameState as jest.MockedFunction<typeof useGameState>;
 const mockUseTacticalBoard = useTacticalBoard as jest.MockedFunction<typeof useTacticalBoard>;
 const mockCalculateFormationPositions = calculateFormationPositions as jest.MockedFunction<typeof calculateFormationPositions>;
+
+// Helper to get default mock game state return value
+const getDefaultMockGameState = () => ({
+  playersOnField: [],
+  opponents: [],
+  drawings: [],
+  availablePlayers: [],
+  setPlayersOnField: jest.fn() as React.Dispatch<React.SetStateAction<Player[]>>,
+  setOpponents: jest.fn() as React.Dispatch<React.SetStateAction<Array<{ id: string; relX: number; relY: number }>>>,
+  setDrawings: jest.fn() as React.Dispatch<React.SetStateAction<Array<Array<{ relX: number; relY: number }>>>>,
+  setAvailablePlayers: jest.fn() as React.Dispatch<React.SetStateAction<Player[]>>,
+  handlePlayerDrop: jest.fn(),
+  handleDrawingStart: jest.fn(),
+  handleDrawingAddPoint: jest.fn(),
+  handleDrawingEnd: jest.fn(),
+  handleClearDrawings: jest.fn(),
+  handleAddOpponent: jest.fn(),
+  handleOpponentMove: jest.fn(),
+  handleOpponentMoveEnd: jest.fn(),
+  handleOpponentRemove: jest.fn(),
+  handleRenamePlayer: jest.fn(),
+  handleToggleGoalie: jest.fn(),
+});
+
+// Helper to get default mock tactical board return value
+const getDefaultMockTacticalBoard = () => ({
+  isTacticsBoardView: false,
+  setIsTacticsBoardView: jest.fn() as React.Dispatch<React.SetStateAction<boolean>>,
+  tacticalDiscs: [],
+  setTacticalDiscs: jest.fn() as React.Dispatch<React.SetStateAction<Array<{ id: string; type: 'home' | 'opponent' | 'goalie'; relX: number; relY: number }>>>,
+  tacticalDrawings: [],
+  setTacticalDrawings: jest.fn() as React.Dispatch<React.SetStateAction<Array<Array<{ relX: number; relY: number }>>>>,
+  tacticalBallPosition: null,
+  setTacticalBallPosition: jest.fn() as React.Dispatch<React.SetStateAction<{ relX: number; relY: number } | null>>,
+  handleToggleTacticsBoard: jest.fn(),
+  handleAddTacticalDisc: jest.fn(),
+  handleTacticalDiscMove: jest.fn(),
+  handleTacticalDiscRemove: jest.fn(),
+  handleToggleTacticalDiscType: jest.fn(),
+  handleTacticalBallMove: jest.fn(),
+  handleTacticalDrawingStart: jest.fn(),
+  handleTacticalDrawingAddPoint: jest.fn(),
+  handleTacticalDrawingEnd: jest.fn(),
+  clearTacticalElements: jest.fn(),
+});
 
 describe('useFieldCoordination', () => {
   let mockParams: UseFieldCoordinationParams;
@@ -129,34 +183,40 @@ describe('useFieldCoordination', () => {
         canRedo: false,
       },
       showToast: jest.fn(),
-      t: jest.fn((key) => key),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      t: jest.fn((key) => key) as any, // Type assertion to bypass TFunction brand
     };
 
     // Reset all mock implementations to defaults
     mockUseFieldInteractions.mockReturnValue({
       isDrawingEnabled: false,
+      isPersisting: false,
       toggleDrawingMode: jest.fn(),
+      enableDrawingMode: jest.fn(),
+      disableDrawingMode: jest.fn(),
     });
 
     mockUseGameState.mockReturnValue({
       playersOnField: [],
       opponents: [],
       drawings: [],
+      availablePlayers: [],
       setPlayersOnField: jest.fn((updater) => {
         if (typeof updater === 'function') {
           updater([]);
         }
-      }),
+      }) as React.Dispatch<React.SetStateAction<Player[]>>,
       setOpponents: jest.fn((updater) => {
         if (typeof updater === 'function') {
           updater([]);
         }
-      }),
+      }) as React.Dispatch<React.SetStateAction<Array<{ id: string; relX: number; relY: number }>>>,
       setDrawings: jest.fn((updater) => {
         if (typeof updater === 'function') {
           updater([]);
         }
-      }),
+      }) as React.Dispatch<React.SetStateAction<Array<Array<{ relX: number; relY: number }>>>>,
+      setAvailablePlayers: jest.fn() as React.Dispatch<React.SetStateAction<Player[]>>,
       handlePlayerDrop: jest.fn(),
       handleDrawingStart: jest.fn(),
       handleDrawingAddPoint: jest.fn(),
@@ -166,16 +226,19 @@ describe('useFieldCoordination', () => {
       handleOpponentMove: jest.fn(),
       handleOpponentMoveEnd: jest.fn(),
       handleOpponentRemove: jest.fn(),
+      handleRenamePlayer: jest.fn(),
+      handleToggleGoalie: jest.fn(),
     });
 
     mockUseTacticalBoard.mockReturnValue({
       isTacticsBoardView: false,
+      setIsTacticsBoardView: jest.fn() as React.Dispatch<React.SetStateAction<boolean>>,
       tacticalDiscs: [],
-      setTacticalDiscs: jest.fn(),
+      setTacticalDiscs: jest.fn() as React.Dispatch<React.SetStateAction<Array<{ id: string; type: 'home' | 'opponent' | 'goalie'; relX: number; relY: number }>>>,
       tacticalDrawings: [],
-      setTacticalDrawings: jest.fn(),
+      setTacticalDrawings: jest.fn() as React.Dispatch<React.SetStateAction<Array<Array<{ relX: number; relY: number }>>>>,
       tacticalBallPosition: null,
-      setTacticalBallPosition: jest.fn(),
+      setTacticalBallPosition: jest.fn() as React.Dispatch<React.SetStateAction<{ relX: number; relY: number } | null>>,
       handleToggleTacticsBoard: jest.fn(),
       handleAddTacticalDisc: jest.fn(),
       handleTacticalDiscMove: jest.fn(),
@@ -197,7 +260,7 @@ describe('useFieldCoordination', () => {
     it('should handle player drop from bar to field', () => {
       const mockHandlePlayerDrop = jest.fn();
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         handlePlayerDrop: mockHandlePlayerDrop,
       });
 
@@ -226,7 +289,7 @@ describe('useFieldCoordination', () => {
       });
 
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         playersOnField: [existingPlayer],
         setPlayersOnField: mockSetPlayersOnField,
       });
@@ -260,7 +323,7 @@ describe('useFieldCoordination', () => {
       const existingPlayers = [TestFixtures.players.goalkeeper()];
 
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         playersOnField: existingPlayers,
         setPlayersOnField: mockSetPlayersOnField,
       });
@@ -290,7 +353,7 @@ describe('useFieldCoordination', () => {
       const player2 = TestFixtures.players.fieldPlayer({ id: 'player-2' });
 
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         playersOnField: [player1, player2],
         setPlayersOnField: mockSetPlayersOnField,
       });
@@ -319,7 +382,7 @@ describe('useFieldCoordination', () => {
     it('should handle drop of non-existent player gracefully', () => {
       const mockHandlePlayerDrop = jest.fn();
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         handlePlayerDrop: mockHandlePlayerDrop,
       });
 
@@ -382,7 +445,7 @@ describe('useFieldCoordination', () => {
     it('should handle player drop via touch', () => {
       const mockHandlePlayerDrop = jest.fn();
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         handlePlayerDrop: mockHandlePlayerDrop,
       });
 
@@ -459,7 +522,7 @@ describe('useFieldCoordination', () => {
         throw new Error('Drop failed');
       });
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         handlePlayerDrop: mockHandlePlayerDrop,
       });
 
@@ -510,14 +573,14 @@ describe('useFieldCoordination', () => {
       const mockSetDrawings = jest.fn();
 
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         setPlayersOnField: mockSetPlayersOnField,
         setOpponents: mockSetOpponents,
         setDrawings: mockSetDrawings,
       });
 
       mockUseTacticalBoard.mockReturnValue({
-        ...mockUseTacticalBoard(),
+        ...getDefaultMockTacticalBoard(),
         isTacticsBoardView: false,
       });
 
@@ -550,7 +613,7 @@ describe('useFieldCoordination', () => {
       const mockClearTacticalElements = jest.fn();
 
       mockUseTacticalBoard.mockReturnValue({
-        ...mockUseTacticalBoard(),
+        ...getDefaultMockTacticalBoard(),
         isTacticsBoardView: true,
         clearTacticalElements: mockClearTacticalElements,
       });
@@ -579,12 +642,12 @@ describe('useFieldCoordination', () => {
       const mockHandleClearDrawings = jest.fn();
 
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         handleClearDrawings: mockHandleClearDrawings,
       });
 
       mockUseTacticalBoard.mockReturnValue({
-        ...mockUseTacticalBoard(),
+        ...getDefaultMockTacticalBoard(),
         isTacticsBoardView: false,
       });
 
@@ -605,7 +668,7 @@ describe('useFieldCoordination', () => {
       const mockSetTacticalDrawings = jest.fn();
 
       mockUseTacticalBoard.mockReturnValue({
-        ...mockUseTacticalBoard(),
+        ...getDefaultMockTacticalBoard(),
         isTacticsBoardView: true,
         setTacticalDrawings: mockSetTacticalDrawings,
       });
@@ -637,14 +700,14 @@ describe('useFieldCoordination', () => {
       const mockSetTacticalBallPosition = jest.fn();
 
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         setPlayersOnField: mockSetPlayersOnField,
         setOpponents: mockSetOpponents,
         setDrawings: mockSetDrawings,
       });
 
       mockUseTacticalBoard.mockReturnValue({
-        ...mockUseTacticalBoard(),
+        ...getDefaultMockTacticalBoard(),
         setTacticalDiscs: mockSetTacticalDiscs,
         setTacticalDrawings: mockSetTacticalDrawings,
         setTacticalBallPosition: mockSetTacticalBallPosition,
@@ -692,7 +755,7 @@ describe('useFieldCoordination', () => {
       mockParams.tacticalHistory.undo = jest.fn(() => previousState);
 
       mockUseTacticalBoard.mockReturnValue({
-        ...mockUseTacticalBoard(),
+        ...getDefaultMockTacticalBoard(),
         setTacticalDiscs: mockSetTacticalDiscs,
         setTacticalDrawings: mockSetTacticalDrawings,
         setTacticalBallPosition: mockSetTacticalBallPosition,
@@ -728,7 +791,7 @@ describe('useFieldCoordination', () => {
       mockParams.tacticalHistory.redo = jest.fn(() => nextState);
 
       mockUseTacticalBoard.mockReturnValue({
-        ...mockUseTacticalBoard(),
+        ...getDefaultMockTacticalBoard(),
         setTacticalDiscs: mockSetTacticalDiscs,
         setTacticalDrawings: mockSetTacticalDrawings,
         setTacticalBallPosition: mockSetTacticalBallPosition,
@@ -795,7 +858,7 @@ describe('useFieldCoordination', () => {
       mockParams.selectedPlayerIds = selectedIds;
 
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         playersOnField: [],
         setPlayersOnField: mockSetPlayersOnField,
       });
@@ -838,7 +901,7 @@ describe('useFieldCoordination', () => {
       mockParams.selectedPlayerIds = players.map(p => p.id);
 
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         playersOnField: alreadyOnField,
         setPlayersOnField: mockSetPlayersOnField,
       });
@@ -872,7 +935,7 @@ describe('useFieldCoordination', () => {
       mockParams.selectedPlayerIds = players.map(p => p.id);
 
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         playersOnField: playersOnField,
         setPlayersOnField: mockSetPlayersOnField,
       });
@@ -903,7 +966,7 @@ describe('useFieldCoordination', () => {
       mockParams.selectedPlayerIds = players.map(p => p.id);
 
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         playersOnField: [],
         setPlayersOnField: mockSetPlayersOnField,
       });
@@ -937,7 +1000,7 @@ describe('useFieldCoordination', () => {
       mockParams.selectedPlayerIds = selectedIds;
 
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         playersOnField: [],
         setPlayersOnField: jest.fn(),
       });
@@ -991,7 +1054,7 @@ describe('useFieldCoordination', () => {
       const mockHandleOpponentRemove = jest.fn();
 
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         handleAddOpponent: mockHandleAddOpponent,
         handleOpponentMove: mockHandleOpponentMove,
         handleOpponentMoveEnd: mockHandleOpponentMoveEnd,
@@ -1016,7 +1079,7 @@ describe('useFieldCoordination', () => {
       const mockHandleDrawingEnd = jest.fn();
 
       mockUseGameState.mockReturnValue({
-        ...mockUseGameState(),
+        ...getDefaultMockGameState(),
         handleDrawingStart: mockHandleDrawingStart,
         handleDrawingAddPoint: mockHandleDrawingAddPoint,
         handleDrawingEnd: mockHandleDrawingEnd,
@@ -1039,7 +1102,7 @@ describe('useFieldCoordination', () => {
       const mockHandleTacticalDiscMove = jest.fn();
 
       mockUseTacticalBoard.mockReturnValue({
-        ...mockUseTacticalBoard(),
+        ...getDefaultMockTacticalBoard(),
         handleToggleTacticsBoard: mockHandleToggleTacticsBoard,
         handleAddTacticalDisc: mockHandleAddTacticalDisc,
         handleTacticalDiscMove: mockHandleTacticalDiscMove,
