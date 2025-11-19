@@ -18,6 +18,21 @@ describe('calculateFormationPositions', () => {
       const positions = calculateFormationPositions(-1);
       expect(positions).toEqual([]);
     });
+
+    it('returns empty array for NaN', () => {
+      const positions = calculateFormationPositions(NaN);
+      expect(positions).toEqual([]);
+    });
+
+    it('returns empty array for Infinity', () => {
+      const positions = calculateFormationPositions(Infinity);
+      expect(positions).toEqual([]);
+    });
+
+    it('returns empty array for -Infinity', () => {
+      const positions = calculateFormationPositions(-Infinity);
+      expect(positions).toEqual([]);
+    });
   });
 
   describe('formation patterns', () => {
