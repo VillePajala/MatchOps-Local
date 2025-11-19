@@ -16,7 +16,7 @@
  * - saveStateToHistory (from parent)
  * - saveTacticalStateToHistory (from parent)
  * - availablePlayers (from parent)
- * - gameSessionState (from parent)
+ * - selectedPlayerIds (from parent)
  *
  * @module useFieldCoordination
  * @category HomePage Hooks
@@ -31,7 +31,6 @@ import type { UseGameStateReturn } from '@/hooks/useGameState';
 import { useTacticalBoard } from '@/hooks/useTacticalBoard';
 import type { TacticalState } from '@/hooks/useTacticalHistory';
 import type { Player, AppState, TacticalDisc, Point } from '@/types';
-import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import logger from '@/utils/logger';
 import { calculateFormationPositions } from '@/utils/formations';
 
@@ -43,7 +42,7 @@ export interface UseFieldCoordinationParams {
   saveStateToHistory: (newState: Partial<AppState>) => void;
   saveTacticalStateToHistory: (newState: Partial<TacticalState>) => void;
   availablePlayers: Player[];
-  gameSessionState: GameSessionState;
+  selectedPlayerIds: string[];
   canUndo: boolean;
   canRedo: boolean;
   tacticalHistory: {
@@ -143,7 +142,7 @@ export interface UseFieldCoordinationReturn {
  *   saveStateToHistory,
  *   saveTacticalStateToHistory,
  *   availablePlayers,
- *   gameSessionState,
+ *   selectedPlayerIds,
  *   canUndo,
  *   canRedo,
  *   tacticalHistory,
@@ -163,7 +162,7 @@ export function useFieldCoordination({
   saveStateToHistory,
   saveTacticalStateToHistory,
   availablePlayers,
-  gameSessionState,
+  selectedPlayerIds,
   canUndo,
   canRedo,
   tacticalHistory,
@@ -436,7 +435,7 @@ export function useFieldCoordination({
    * Place all selected players on the field in formation
    */
   const handlePlaceAllPlayers = useCallback(() => {
-    const selectedButNotOnField = gameSessionState.selectedPlayerIds.filter((id: string) =>
+    const selectedButNotOnField = selectedPlayerIds.filter((id: string) =>
       !playersOnField.some(fieldPlayer => fieldPlayer.id === id)
     );
 
@@ -490,7 +489,7 @@ export function useFieldCoordination({
     logger.log(`Successfully placed ${playersToPlace.length} players on the field`);
   }, [
     playersOnField,
-    gameSessionState.selectedPlayerIds,
+    selectedPlayerIds,
     availablePlayers,
     setPlayersOnField,
     saveStateToHistory,
