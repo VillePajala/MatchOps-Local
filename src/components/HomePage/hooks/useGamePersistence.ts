@@ -54,7 +54,7 @@ import type { TFunction } from 'i18next';
 import type { QueryClient } from '@tanstack/react-query';
 import * as Sentry from '@sentry/nextjs';
 import { useAutoSave } from '@/hooks/useAutoSave';
-import type { AppState, GameEvent, PlayerAssessment, Player } from '@/types';
+import type { AppState, GameEvent, PlayerAssessment, Player, SavedGamesCollection } from '@/types';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { UseFieldCoordinationReturn } from './useFieldCoordination';
 import {
@@ -536,12 +536,15 @@ export function useGamePersistence({
       if (deletedGameId) {
         const updatedSavedGames = { ...savedGames };
         delete updatedSavedGames[gameId];
+
+        // Update React Query cache immediately (optimistic update)
+        // This prevents flickering by updating the cache in a single render
+        queryClient.setQueryData<SavedGamesCollection>(queryKeys.savedGames, updatedSavedGames);
+
+        // Also update local state for consistency with non-query consumers
         setSavedGames(updatedSavedGames);
 
         logger.log(`Game ${gameId} deleted from state and persistence.`);
-
-        // Invalidate React Query cache
-        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
 
         // If deleted the currently loaded game, load latest or reset
         if (currentGameId === gameId) {

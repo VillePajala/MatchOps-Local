@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "perf: eliminate duplicate array lookup in handleDeleteGameEvent"
+  "notes": "fix: suppress expected console errors/warns in useGamePersistence tests"
 }
