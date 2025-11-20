@@ -26,7 +26,7 @@
  * @category HomePage Hooks
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import type { TFunction } from 'i18next';
 import type { QueryClient } from '@tanstack/react-query';
 import { useAutoSave } from '@/hooks/useAutoSave';
@@ -162,13 +162,6 @@ export function useGamePersistence({
   queryClient,
   handleCloseLoadGameModal,
 }: UseGamePersistenceParams): UseGamePersistenceReturn {
-
-  // Ref for stable reference to currentGameId in callbacks
-  const gameIdRef = useRef(currentGameId);
-
-  useEffect(() => {
-    gameIdRef.current = currentGameId;
-  }, [currentGameId]);
 
   // --- Load/Delete Game UI State ---
   const [isGameLoading, setIsGameLoading] = useState(false);
