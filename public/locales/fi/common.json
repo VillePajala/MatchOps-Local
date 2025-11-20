@@ -71,6 +71,10 @@
     "resetFieldNormalTitle": "Nollataanko kenttä?",
     "resetFieldTacticsTitle": "Nollataanko taktiikkataulu?"
   },
+  "tooltips": {
+    "resetFieldNormal": "Tyhjennä kaikki pelaajat, vastustajat ja piirrokset kentältä.",
+    "resetFieldTactics": "Tyhjennä kaikki taktiset kiekot, piirustukset ja pallon sijainti taktiselta taulusta."
+  },
   "common": {
     "notSet": "Ei asetettu",
     "actions": "Toiminnot",
