@@ -121,6 +121,175 @@ Consider refactoring when:
 
 ---
 
+### 🟡 MEDIUM: Auto-Save Error Handling - Missing Retry Logic
+
+**Discovered**: November 20, 2025 (during Step 2.6.4 code review)
+**Component**: `useGamePersistence` - auto-save error handling
+**Impact**: Medium - silent data loss possible on transient errors
+
+#### The Problem
+
+Auto-save currently has no retry mechanism for transient errors:
+
+```typescript
+// Current: Single attempt, no retry
+useAutoSave({
+  saveFunction: () => handleQuickSaveGame(true, true),
+  // If this fails, the data is lost
+});
+```
+
+**Transient Error Scenarios:**
+- Storage quota temporarily exceeded
+- IndexedDB locked by another tab
+- Brief network interruption (if syncing)
+- Device suspend/resume timing issues
+
+#### Why This Is Problematic
+
+1. **Silent Data Loss**:
+   - User makes changes → auto-save triggered → error occurs → changes lost
+   - No indication to user that save failed
+   - Only discoverable when loading game later
+
+2. **No Resilience**:
+   - Transient errors (90% of failures) treated same as permanent errors
+   - Single point of failure for all auto-saves
+   - No exponential backoff or circuit breaker
+
+3. **Limited Observability**:
+   - ✅ FIXED: Errors now logged to Sentry
+   - ✅ FIXED: Error toasts suppressed for auto-save
+   - ❌ TODO: No retry metrics or success rate tracking
+
+#### Current State (Partial Fix)
+
+**✅ Completed (November 20, 2025)**:
+- Errors logged to Sentry with context (gameId, operation, teamId)
+- Error toasts suppressed for auto-save (no UX disruption)
+- Manual saves still show error toasts for immediate feedback
+
+**❌ Not Yet Implemented**:
+- Retry logic with exponential backoff
+- Differentiation between transient and permanent errors
+- Circuit breaker to prevent retry storms
+- Success rate metrics
+
+#### Refactoring Options
+
+**Option A: Exponential Backoff Retry (RECOMMENDED)**
+```typescript
+async function saveWithRetry(saveFn, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      await saveFn();
+      return { success: true };
+    } catch (error) {
+      if (!isTransientError(error) || attempt === maxRetries - 1) {
+        throw error;
+      }
+      const delay = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
+
+// Benefits:
+// - Handles transient errors gracefully
+// - Exponential backoff prevents retry storms
+// - Configurable max retries
+// - Preserves user data
+
+// Downside:
+// - Adds complexity
+// - Delayed feedback on permanent failures
+```
+
+**Option B: Circuit Breaker Pattern**
+```typescript
+class SaveCircuitBreaker {
+  private failures = 0;
+  private threshold = 5;
+  private state: 'closed' | 'open' | 'half-open' = 'closed';
+
+  async execute(saveFn) {
+    if (this.state === 'open') {
+      throw new Error('Circuit breaker open');
+    }
+    try {
+      await saveFn();
+      this.onSuccess();
+    } catch (error) {
+      this.onFailure();
+      throw error;
+    }
+  }
+}
+
+// Benefits:
+// - Prevents cascading failures
+// - Automatic recovery (half-open state)
+// - Protects storage layer
+
+// Downside:
+// - More complex than retry
+// - Needs threshold tuning
+```
+
+**Option C: Status Quo + Monitoring**
+```typescript
+// Keep current error handling, add metrics
+Sentry.captureException(error, {
+  tags: { operation: 'auto_save', attempt: 1 },
+});
+
+// Show non-intrusive indicator
+setAutoSaveStatus('failed'); // Visual indicator in UI
+
+// Benefits:
+// - Simple, minimal changes
+// - User awareness of failures
+// - Sentry monitoring enabled
+
+// Downside:
+// - No automatic recovery
+// - Still loses data on transient errors
+```
+
+#### Recommended Approach
+
+**Phase 1: Immediate (Current)**
+- ✅ Log to Sentry with context
+- ✅ Suppress error toasts for auto-save
+
+**Phase 2: Short-term (Next PR)**
+- Add simple retry (3 attempts, exponential backoff)
+- Detect transient errors vs permanent errors
+- Add auto-save status indicator in UI
+
+**Phase 3: Long-term (Future)**
+- Circuit breaker for storage protection
+- Metrics dashboard for save success rates
+- User notification for repeated failures
+
+#### When to Address
+
+**Priority: MEDIUM** - Address in next 1-2 sprints
+
+Triggers:
+- User reports of lost data
+- Sentry shows high auto-save error rate (>5%)
+- Adding offline mode or sync features
+- Storage layer changes
+
+#### Related Files
+
+- `src/components/HomePage/hooks/useGamePersistence.ts` - Auto-save implementation
+- `src/hooks/useAutoSave.ts` - Auto-save hook with debouncing
+- `src/utils/savedGames.ts` - Storage operations
+
+---
+
 ## Resolved Debt Items
 
 _(Items that have been refactored and resolved)_
