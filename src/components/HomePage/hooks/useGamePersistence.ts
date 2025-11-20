@@ -388,6 +388,9 @@ export function useGamePersistence({
     logger.log(`[handleLoadGame] Attempting to load game: ${gameId}`);
 
     // Clear any existing timer state before loading a new game
+    // Note: We await this to ensure cleanup completes before proceeding, but if it fails,
+    // it's safe to continue because loadGameStateFromData() will overwrite with the loaded
+    // game's timer state, and the timer component will re-initialize from that state.
     try {
       await removeStorageItem(TIMER_STATE_KEY);
     } catch (error) {
