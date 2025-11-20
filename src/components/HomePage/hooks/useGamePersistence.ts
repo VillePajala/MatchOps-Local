@@ -537,21 +537,30 @@ export function useGamePersistence({
       // Remove from storage
       const updatedGame = await removeGameEvent(currentGameId, eventIndex);
 
-      if (updatedGame) {
-        logger.log("Game event removed from storage, cache will sync");
-
-        // Invalidate cache to trigger re-fetch
-        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
-
-        return true;
+      if (!updatedGame) {
+        logger.error("Failed to remove event from storage:", goalId);
+        return false; // Storage failed
       }
 
-      return false;
+      // State update SECOND (only if storage succeeded)
+      dispatchGameSession({ type: 'DELETE_GAME_EVENT', payload: goalId });
+      if (eventToDelete.type === 'goal' || eventToDelete.type === 'opponentGoal') {
+        dispatchGameSession({
+          type: 'ADJUST_SCORE_FOR_EVENT',
+          payload: { eventType: eventToDelete.type, action: 'delete' }
+        });
+      }
+
+      // Invalidate cache to trigger re-fetch
+      queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+
+      logger.log("Deleted game event successfully (storage then state):", goalId);
+      return true;
     } catch (error) {
       logger.error("Failed to delete game event:", error);
       return false;
     }
-  }, [gameSessionState.gameEvents, currentGameId, queryClient]);
+  }, [gameSessionState.gameEvents, currentGameId, queryClient, dispatchGameSession]);
 
   return {
     // Load game state
