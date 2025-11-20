@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: eliminate 'any' type in test by using proper TFunction type"
+  "notes": "WIP: create useGamePersistence hook (Step 2.6.4)"
 }
