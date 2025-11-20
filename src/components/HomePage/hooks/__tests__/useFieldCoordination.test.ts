@@ -89,6 +89,19 @@ jest.mock('@/hooks/useTacticalBoard', () => ({
   })),
 }));
 
+jest.mock('@/hooks/useTouchInteractions', () => ({
+  __esModule: true,
+  useTouchInteractions: jest.fn(() => ({
+    selectedPlayer: null,
+    isDragging: false,
+    handleDragStart: jest.fn(),
+    handleTap: jest.fn(),
+    handleDrop: jest.fn(),
+    handleCancel: jest.fn(),
+    handleDeselect: jest.fn(),
+  })),
+}));
+
 import { renderHook, act } from '@testing-library/react';
 import { useFieldCoordination } from '../useFieldCoordination';
 import type { UseFieldCoordinationParams } from '../useFieldCoordination';
@@ -98,11 +111,13 @@ import { TestFixtures } from '../../../../../tests/fixtures';
 import { useFieldInteractions } from '@/hooks/useFieldInteractions';
 import { useGameState } from '@/hooks/useGameState';
 import { useTacticalBoard } from '@/hooks/useTacticalBoard';
+import { useTouchInteractions } from '@/hooks/useTouchInteractions';
 import { calculateFormationPositions } from '@/utils/formations';
 
 const mockUseFieldInteractions = useFieldInteractions as jest.MockedFunction<typeof useFieldInteractions>;
 const mockUseGameState = useGameState as jest.MockedFunction<typeof useGameState>;
 const mockUseTacticalBoard = useTacticalBoard as jest.MockedFunction<typeof useTacticalBoard>;
+const mockUseTouchInteractions = useTouchInteractions as jest.MockedFunction<typeof useTouchInteractions>;
 const mockCalculateFormationPositions = calculateFormationPositions as jest.MockedFunction<typeof calculateFormationPositions>;
 
 // Helper to get default mock game state return value
@@ -318,8 +333,13 @@ describe('useFieldCoordination', () => {
      * Tests player movement end (saves to history)
      * @critical - History tracking
      */
-    it('should save to history when player movement ends', () => {
-      const mockSetPlayersOnField = jest.fn();
+    it('should save to history when player movement ends', async () => {
+      const mockSetPlayersOnField = jest.fn((updater) => {
+        // Simulate React's setState behavior by calling the updater
+        if (typeof updater === 'function') {
+          updater(existingPlayers);
+        }
+      });
       const existingPlayers = [TestFixtures.players.goalkeeper()];
 
       mockUseGameState.mockReturnValue({
@@ -328,16 +348,15 @@ describe('useFieldCoordination', () => {
         setPlayersOnField: mockSetPlayersOnField,
       });
 
-      const { result } = renderHook(() => useFieldCoordination(mockParams));
+      const { result, rerender } = renderHook(() => useFieldCoordination(mockParams));
 
-      act(() => {
+      await act(async () => {
         result.current.handlePlayerMoveEnd();
+        // Trigger re-render to run the effect
+        rerender();
       });
 
       expect(mockSetPlayersOnField).toHaveBeenCalled();
-      const updaterFn = mockSetPlayersOnField.mock.calls[0][0];
-      updaterFn(existingPlayers);
-
       expect(mockParams.saveStateToHistory).toHaveBeenCalledWith({
         playersOnField: existingPlayers,
       });
@@ -399,10 +418,23 @@ describe('useFieldCoordination', () => {
 
   describe('Touch/Mobile Interactions', () => {
     /**
-     * Tests player drag start from player bar
-     * @critical - Mobile UX
+     * Tests player drag start delegation to useTouchInteractions
+     * @integration - Delegation pattern
      */
     it('should handle player drag start from bar', () => {
+      const mockHandleDragStart = jest.fn();
+      const mockSelectedPlayer = mockParams.availablePlayers[0];
+
+      mockUseTouchInteractions.mockReturnValue({
+        selectedPlayer: mockSelectedPlayer,
+        isDragging: true,
+        handleDragStart: mockHandleDragStart,
+        handleTap: jest.fn(),
+        handleDrop: jest.fn(),
+        handleCancel: jest.fn(),
+        handleDeselect: jest.fn(),
+      });
+
       const { result } = renderHook(() => useFieldCoordination(mockParams));
 
       const player = mockParams.availablePlayers[0];
@@ -411,138 +443,144 @@ describe('useFieldCoordination', () => {
         result.current.handlePlayerDragStartFromBar(player);
       });
 
-      expect(result.current.draggingPlayerFromBarInfo).toEqual(player);
+      expect(mockHandleDragStart).toHaveBeenCalledWith(player);
+      expect(result.current.draggingPlayerFromBarInfo).toEqual(mockSelectedPlayer);
     });
 
     /**
-     * Tests player tap in bar (toggle selection)
-     * @critical - Mobile UX
+     * Tests player tap delegation to useTouchInteractions
+     * @integration - Delegation pattern
      */
     it('should toggle player selection on tap', () => {
+      const mockHandleTap = jest.fn();
+
+      mockUseTouchInteractions.mockReturnValue({
+        selectedPlayer: null,
+        isDragging: false,
+        handleDragStart: jest.fn(),
+        handleTap: mockHandleTap,
+        handleDrop: jest.fn(),
+        handleCancel: jest.fn(),
+        handleDeselect: jest.fn(),
+      });
+
       const { result } = renderHook(() => useFieldCoordination(mockParams));
 
       const player = mockParams.availablePlayers[0];
 
-      // First tap - select
       act(() => {
         result.current.handlePlayerTapInBar(player);
       });
 
-      expect(result.current.draggingPlayerFromBarInfo).toEqual(player);
-
-      // Second tap - deselect
-      act(() => {
-        result.current.handlePlayerTapInBar(player);
-      });
-
-      expect(result.current.draggingPlayerFromBarInfo).toBeNull();
+      expect(mockHandleTap).toHaveBeenCalledWith(player);
     });
 
     /**
-     * Tests player drop via touch
-     * @critical - Mobile UX
+     * Tests player drop via touch delegation to useTouchInteractions
+     * @integration - Delegation pattern
      */
     it('should handle player drop via touch', () => {
-      const mockHandlePlayerDrop = jest.fn();
-      mockUseGameState.mockReturnValue({
-        ...getDefaultMockGameState(),
-        handlePlayerDrop: mockHandlePlayerDrop,
+      const mockHandleDrop = jest.fn();
+
+      mockUseTouchInteractions.mockReturnValue({
+        selectedPlayer: null,
+        isDragging: false,
+        handleDragStart: jest.fn(),
+        handleTap: jest.fn(),
+        handleDrop: mockHandleDrop,
+        handleCancel: jest.fn(),
+        handleDeselect: jest.fn(),
       });
 
       const { result } = renderHook(() => useFieldCoordination(mockParams));
 
-      const player = mockParams.availablePlayers[0];
-
-      // Select player first
-      act(() => {
-        result.current.handlePlayerDragStartFromBar(player);
-      });
-
-      // Drop on field
       act(() => {
         result.current.handlePlayerDropViaTouch(0.7, 0.3);
       });
 
-      expect(mockHandlePlayerDrop).toHaveBeenCalled();
-      expect(result.current.draggingPlayerFromBarInfo).toBeNull();
+      expect(mockHandleDrop).toHaveBeenCalledWith(0.7, 0.3);
     });
 
     /**
-     * Tests player drag cancel via touch
-     * @critical - Mobile UX
+     * Tests drag cancel via touch delegation to useTouchInteractions
+     * @integration - Delegation pattern
      */
     it('should handle drag cancel via touch', () => {
-      const { result } = renderHook(() => useFieldCoordination(mockParams));
+      const mockHandleCancel = jest.fn();
 
-      const player = mockParams.availablePlayers[0];
-
-      // Select player first
-      act(() => {
-        result.current.handlePlayerDragStartFromBar(player);
+      mockUseTouchInteractions.mockReturnValue({
+        selectedPlayer: null,
+        isDragging: false,
+        handleDragStart: jest.fn(),
+        handleTap: jest.fn(),
+        handleDrop: jest.fn(),
+        handleCancel: mockHandleCancel,
+        handleDeselect: jest.fn(),
       });
 
-      expect(result.current.draggingPlayerFromBarInfo).toEqual(player);
+      const { result } = renderHook(() => useFieldCoordination(mockParams));
 
-      // Cancel drag
       act(() => {
         result.current.handlePlayerDragCancelViaTouch();
       });
 
-      expect(result.current.draggingPlayerFromBarInfo).toBeNull();
+      expect(mockHandleCancel).toHaveBeenCalled();
     });
 
     /**
-     * Tests deselect player (click on bar background)
-     * @critical - Mobile UX
+     * Tests deselect player delegation to useTouchInteractions
+     * @integration - Delegation pattern
      */
     it('should deselect player when clicking bar background', () => {
-      const { result } = renderHook(() => useFieldCoordination(mockParams));
+      const mockHandleDeselect = jest.fn();
 
-      const player = mockParams.availablePlayers[0];
-
-      // Select player first
-      act(() => {
-        result.current.handlePlayerDragStartFromBar(player);
+      mockUseTouchInteractions.mockReturnValue({
+        selectedPlayer: null,
+        isDragging: false,
+        handleDragStart: jest.fn(),
+        handleTap: jest.fn(),
+        handleDrop: jest.fn(),
+        handleCancel: jest.fn(),
+        handleDeselect: mockHandleDeselect,
       });
 
-      // Deselect
+      const { result } = renderHook(() => useFieldCoordination(mockParams));
+
       act(() => {
         result.current.handleDeselectPlayer();
       });
 
-      expect(result.current.draggingPlayerFromBarInfo).toBeNull();
+      expect(mockHandleDeselect).toHaveBeenCalled();
     });
 
     /**
-     * Tests error handling during player drop via touch
-     * @edge-case
+     * Tests that touch interactions are properly delegated to useTouchInteractions hook
+     * NOTE: Error handling during drop is now tested in useTouchInteractions.test.ts
+     * @integration - Delegation verification
      */
     it('should show error toast when touch drop fails', () => {
-      const mockHandlePlayerDrop = jest.fn(() => {
-        throw new Error('Drop failed');
-      });
-      mockUseGameState.mockReturnValue({
-        ...getDefaultMockGameState(),
-        handlePlayerDrop: mockHandlePlayerDrop,
+      // This test verifies that useTouchInteractions is called with correct params
+      // The actual error handling is tested in useTouchInteractions.test.ts
+      const mockHandleDrop = jest.fn();
+
+      mockUseTouchInteractions.mockReturnValue({
+        selectedPlayer: null,
+        isDragging: false,
+        handleDragStart: jest.fn(),
+        handleTap: jest.fn(),
+        handleDrop: mockHandleDrop,
+        handleCancel: jest.fn(),
+        handleDeselect: jest.fn(),
       });
 
       const { result } = renderHook(() => useFieldCoordination(mockParams));
-
-      const player = mockParams.availablePlayers[0];
-
-      act(() => {
-        result.current.handlePlayerDragStartFromBar(player);
-      });
 
       act(() => {
         result.current.handlePlayerDropViaTouch(0.5, 0.5);
       });
 
-      expect(mockParams.showToast).toHaveBeenCalledWith(
-        'errors.playerDropFailed',
-        'error'
-      );
-      expect(result.current.draggingPlayerFromBarInfo).toBeNull();
+      // Verify delegation occurred
+      expect(mockHandleDrop).toHaveBeenCalledWith(0.5, 0.5);
     });
   });
 

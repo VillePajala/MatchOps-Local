@@ -234,7 +234,16 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
 
     // --- Handlers ---
 
-    // Handler for dropping a player onto the field
+    /**
+     * Handler for dropping a player onto the field
+     *
+     * Uses functional setState pattern to avoid dependency on playersOnField,
+     * keeping this callback stable and preventing cascading re-renders in
+     * dependent hooks like useFieldCoordination.
+     *
+     * @param player - The player to drop on the field
+     * @param position - The position where the player is dropped (relX, relY)
+     */
     const handlePlayerDrop = useCallback((player: Player, position: { relX: number; relY: number }) => {
         logger.log(`Player ${player.name} dropped at`, position);
         const newPlayerOnField: Player = {
@@ -243,22 +252,21 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
             relY: position.relY,
         };
 
-        // Avoid duplicates - update position if player already on field, otherwise add
-        const existingPlayerIndex = playersOnField.findIndex(p => p.id === player.id);
-        let updatedPlayersOnField;
-        if (existingPlayerIndex > -1) {
-            // Update existing player's position
-            updatedPlayersOnField = playersOnField.map((p, index) =>
-                index === existingPlayerIndex ? newPlayerOnField : p
-            );
-        } else {
-            // Add new player to the field
-            updatedPlayersOnField = [...playersOnField, newPlayerOnField];
-        }
+        // Use functional setState to avoid dependency on playersOnField
+        // This keeps the callback stable and prevents unnecessary re-creation
+        setPlayersOnField(currentPlayersOnField => {
+            // Avoid duplicates - update position if player already on field, otherwise add
+            const existingPlayerIndex = currentPlayersOnField.findIndex(p => p.id === player.id);
+            const updatedPlayersOnField = existingPlayerIndex > -1
+                ? currentPlayersOnField.map((p, index) =>
+                    index === existingPlayerIndex ? newPlayerOnField : p
+                  )
+                : [...currentPlayersOnField, newPlayerOnField];
 
-        setPlayersOnField(updatedPlayersOnField);
-        saveStateToHistory({ playersOnField: updatedPlayersOnField }); // Save history
-    }, [playersOnField, saveStateToHistory]);
+            saveStateToHistory({ playersOnField: updatedPlayersOnField });
+            return updatedPlayersOnField;
+        });
+    }, [saveStateToHistory]);
 
     // Drawing Handlers (Moved here)
     const handleDrawingStart = useCallback((point: Point) => {
