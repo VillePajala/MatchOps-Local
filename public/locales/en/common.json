@@ -541,13 +541,17 @@
     "loadingGames": "Loading games...",
     "noGamesMatchFilter": "No saved games match your filter.",
     "noGamesSaved": "No games have been saved yet.",
+    "gameSaved": "Game saved!",
+    "newGameSaved": "New game saved!",
     "errors": {
       "listLoadFailed": "Failed to load saved games list.",
       "loadFailed": "Error loading game state. Please try again.",
       "notFound": "Could not find saved game: {gameId}",
       "cannotDeleteDefault": "Cannot delete the current unsaved game progress.",
       "deleteFailedNotFound": "Error deleting game: {gameId}. Game not found or ID was invalid.",
-      "deleteFailedCatch": "Error deleting saved game: {gameId}. Details: {errorMessage}"
+      "deleteFailedCatch": "Error deleting saved game: {gameId}. Details: {errorMessage}",
+      "quickSaveFailed": "Error quick saving game.",
+      "createGameFailed": "Error creating new saved game."
     }
   },
   "newGameSetupModal": {

@@ -562,13 +562,17 @@
     "loadingGames": "Ladataan pelejä...",
     "noGamesMatchFilter": "Yhtään peliä ei vastaa suodatinta",
     "noGamesSaved": "Yhtään peliä ei ole tallennettu",
+    "gameSaved": "Peli tallennettu!",
+    "newGameSaved": "Uusi peli tallennettu!",
     "errors": {
       "listLoadFailed": "Tallennettujen pelien listan lataus epäonnistui.",
       "loadFailed": "Pelin lataaminen epäonnistui. Yritä uudelleen.",
       "notFound": "Tallennettua peliä ei löytynyt: {gameId}",
       "cannotDeleteDefault": "Et voi poistaa nykyistä tallentamatonta peliä.",
       "deleteFailedNotFound": "Pelin poistaminen epäonnistui: {gameId}. Peliä ei löytynyt tai tunnus oli virheellinen.",
-      "deleteFailedCatch": "Tallennetun pelin poistaminen epäonnistui: {gameId}. Virhe: {errorMessage}"
+      "deleteFailedCatch": "Tallennetun pelin poistaminen epäonnistui: {gameId}. Virhe: {errorMessage}",
+      "quickSaveFailed": "Pelin pikallennus epäonnistui.",
+      "createGameFailed": "Uuden pelin luominen epäonnistui."
     }
   },
   "errors": {

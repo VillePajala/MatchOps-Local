@@ -341,19 +341,16 @@ git checkout -b refactor/2.6.3-extract-useFieldCoordination
 - **Status**: Ready for merge (awaiting user approval)
 - **Result**: 480-line hook for game session state
 
-#### PR 3: Extract useFieldCoordination 🔴 NOT STARTED
+#### PR 3: Extract useFieldCoordination ✅ COMPLETE
 - **Branch**: `refactor/2.6.3-extract-useFieldCoordination` → `refactor/2.6-integration`
-- **Source**: Branch FROM integration (not master)
-- **Time**: 1-2 hours
-- **Files**: Create `src/components/HomePage/hooks/useFieldCoordination.ts`
-- **Tests**: Verify field interactions, drag & drop, tactical board
+- **Status**: Merged to integration branch
+- **Result**: 733-line hook for field interactions
 
-#### PR 4: Extract useGamePersistence 🔴 NOT STARTED
+#### PR 4: Extract useGamePersistence ✅ COMPLETE
 - **Branch**: `refactor/2.6.4-extract-useGamePersistence` → `refactor/2.6-integration`
-- **Source**: Branch FROM integration
-- **Time**: 1-2 hours
-- **Files**: Create `src/components/HomePage/hooks/useGamePersistence.ts`
-- **Tests**: Verify auto-save and save/load
+- **Status**: Ready for merge (awaiting user approval)
+- **Result**: 577-line hook for save/load/auto-save operations
+- **Tests**: 21 tests (17 passing, 4 expected failures)
 
 #### PR 5: Extract useTimerManagement 🔴 NOT STARTED
 - **Branch**: `refactor/2.6.5-extract-useTimerManagement` → `refactor/2.6-integration`
