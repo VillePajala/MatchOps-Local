@@ -520,6 +520,103 @@ describe('useGamePersistence', () => {
       // Auto-save should be disabled until load completes
       expect(result.current).toBeDefined();
     });
+
+    /**
+     * Tests that auto-save triggers save when critical data changes
+     * @critical
+     */
+    it('should trigger auto-save when critical data changes', async () => {
+      jest.useFakeTimers();
+
+      const setSavedGames = jest.fn();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        initialLoadComplete: true,
+        savedGames: { 'game123': {} as AppState },
+        setSavedGames,
+        gameSessionState: createMockGameSessionState({ homeScore: 0 }),
+      });
+
+      const { rerender } = renderHook(
+        (props) => useGamePersistence(props),
+        { initialProps: params, wrapper: createWrapper() }
+      );
+
+      // Clear any initial calls
+      setSavedGames.mockClear();
+
+      // Modify critical state (homeScore should trigger immediate save)
+      const updatedParams = {
+        ...params,
+        gameSessionState: createMockGameSessionState({ homeScore: 5 }),
+      };
+
+      act(() => {
+        rerender(updatedParams);
+      });
+
+      // Flush timers to trigger immediate tier (0ms delay)
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      // Verify save was triggered
+      await waitFor(() => {
+        expect(setSavedGames).toHaveBeenCalled();
+      });
+
+      jest.useRealTimers();
+    });
+
+    /**
+     * Tests that auto-save debounces non-critical changes
+     * @integration
+     */
+    it('should debounce auto-save for non-critical data changes', async () => {
+      jest.useFakeTimers();
+
+      const setSavedGames = jest.fn();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        initialLoadComplete: true,
+        savedGames: { 'game123': {} as AppState },
+        setSavedGames,
+        gameSessionState: createMockGameSessionState({ teamName: 'Original Team' }),
+      });
+
+      const { rerender } = renderHook(
+        (props) => useGamePersistence(props),
+        { initialProps: params, wrapper: createWrapper() }
+      );
+
+      // Clear any initial calls
+      setSavedGames.mockClear();
+
+      // Modify non-critical state (teamName should trigger short 500ms debounce)
+      const updatedParams = {
+        ...params,
+        gameSessionState: createMockGameSessionState({ teamName: 'Updated Team' }),
+      };
+
+      act(() => {
+        rerender(updatedParams);
+      });
+
+      // Should NOT save immediately
+      expect(setSavedGames).not.toHaveBeenCalled();
+
+      // Advance timers by 500ms
+      act(() => {
+        jest.advanceTimersByTime(500);
+      });
+
+      // Now save should have been triggered
+      await waitFor(() => {
+        expect(setSavedGames).toHaveBeenCalled();
+      });
+
+      jest.useRealTimers();
+    });
   });
 
   describe('Snapshot Creation', () => {
