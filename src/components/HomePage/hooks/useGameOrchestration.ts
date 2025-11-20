@@ -42,6 +42,7 @@ import { useRoster } from '@/hooks/useRoster';
 import { useModalContext } from '@/contexts/ModalProvider';
 import { useGameDataManagement } from './useGameDataManagement';
 import { useGameSessionCoordination } from './useGameSessionCoordination';
+import { useGamePersistence } from './useGamePersistence';
 // Import async storage utilities
 import {
   getStorageItem,
@@ -285,6 +286,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setSeasons,
     setTournaments,
   });
+
+  // TODO: Add useGamePersistence hook call here after reordering dependencies
 
   // <<< ADD: State for home/away status >>>
   const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
