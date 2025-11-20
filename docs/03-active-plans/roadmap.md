@@ -196,18 +196,29 @@ Extend capabilities to support professional club environments while maintaining 
 These enhancements have been identified during development but are not yet scheduled for a specific release. They are documented here for future evaluation and planning.
 
 #### 🎨 **Configurable Formation System**
-*Suggested during useFieldCoordination code review*
+*Requested by user - "Place All Players" enhancement*
 
-**Current State**: Formation logic is hardcoded for specific player counts in `src/utils/formations.ts`
+**Current State**:
+- ✅ Fixed: "Place All Players" now places ALL players (not just selected ones)
+- Formation logic is hardcoded for specific player counts in `src/utils/formations.ts`
+- Extra players beyond formation size need better handling
 
-**Enhancement Opportunity**: Make formations user-configurable with flexible positioning system
+**Enhancement Opportunity**: Make formations user-configurable with intelligent overflow handling
 
 **Potential Features**:
-- **User-Defined Formations**
+- **Formation Selection & Management**
+  - Dropdown/picker to select active formation (e.g., "4-3-3", "4-4-2", "3-5-2")
+  - Parse standard formation notation into player positions
   - Visual formation editor for creating custom layouts
   - Save and name custom formations per team or season
-  - Share formations between games or teams
-  - Import/export formation definitions
+  - Goalkeeper position automatically determined
+
+- **Smart Player Overflow Handling** ⭐ *USER PRIORITY*
+  - Players within formation size: Placed in formation positions
+  - Players beyond formation size: Neatly arranged on field sideline
+  - Visual distinction between formation players and bench/overflow
+  - Easy drag-and-drop to swap formation vs. sideline players
+  - Maintains all players visible on field for easy access
 
 - **Formation String Support**
   - Parse standard formation notation (e.g., "4-3-3", "4-4-2", "3-5-2")

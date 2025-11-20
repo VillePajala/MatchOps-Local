@@ -200,6 +200,8 @@ export function useFieldCoordination({
   saveStateToHistory,
   saveTacticalStateToHistory,
   availablePlayers,
+  // selectedPlayerIds is intentionally unused after "Place All Players" fix
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   selectedPlayerIds,
   canUndo,
   canRedo,
@@ -459,21 +461,28 @@ export function useFieldCoordination({
   // --- Place All Players Handler (Formation Logic) ---
 
   /**
-   * Place all selected players on the field in formation
+   * Place ALL available players on the field in formation
+   *
+   * Places ALL players from the player bar, not just selected ones.
+   * This ensures the "Place All Players" button actually places all players.
+   *
+   * TODO: Future enhancement - Use configurable formations:
+   * - Selected formation (e.g., 4-3-3, 3-4-3) determines positions
+   * - Extra players beyond formation size placed neatly on field side
+   * - See roadmap.md for detailed implementation plan
    */
   const handlePlaceAllPlayers = useCallback(() => {
-    const selectedButNotOnField = selectedPlayerIds.filter((id: string) =>
-      !playersOnField.some(fieldPlayer => fieldPlayer.id === id)
+    // Get ALL players not currently on field (not just selected ones)
+    const playersNotOnField = availablePlayers.filter(player =>
+      !playersOnField.some(fieldPlayer => fieldPlayer.id === player.id)
     );
 
-    if (selectedButNotOnField.length === 0) {
-      logger.log('All selected players are already on the field');
+    if (playersNotOnField.length === 0) {
+      logger.log('All available players are already on the field');
       return;
     }
 
-    const playersToPlace = selectedButNotOnField
-      .map(id => availablePlayers.find(p => p.id === id))
-      .filter((p): p is Player => p !== undefined);
+    const playersToPlace = [...playersNotOnField];
 
     logger.log(`Placing ${playersToPlace.length} players on the field...`);
 
@@ -516,7 +525,6 @@ export function useFieldCoordination({
     logger.log(`Successfully placed ${playersToPlace.length} players on the field`);
   }, [
     playersOnField,
-    selectedPlayerIds,
     availablePlayers,
     setPlayersOnField,
     saveStateToHistory,
