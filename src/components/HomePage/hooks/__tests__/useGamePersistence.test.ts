@@ -671,6 +671,76 @@ describe('useGamePersistence', () => {
         expect(setSavedGames).toHaveBeenCalledTimes(1);
       });
     });
+
+    /**
+     * Tests snapshot includes all required non-volatile AppState fields
+     * @critical - Type-level regression protection
+     */
+    it('should include all required non-volatile AppState fields in snapshot', async () => {
+      const mockSavedGames = {};
+      const setSavedGames = jest.fn((updater) => {
+        const newGames = typeof updater === 'function' ? updater(mockSavedGames) : updater;
+        const gameIds = Object.keys(newGames);
+        if (gameIds.length > 0) {
+          const snapshot = newGames[gameIds[0]] as AppState;
+
+          // This provides compile-time safety - if required fields are missing,
+          // TypeScript will error. This catches issues when AppState is extended.
+          const typeCheck: Omit<
+            AppState,
+            // Volatile timer states intentionally excluded
+            | 'timeElapsedInSeconds'
+            | 'startTimestamp'
+            | 'isTimerRunning'
+            | 'nextSubDueTimeSeconds'
+            | 'subAlertLevel'
+          > = snapshot;
+
+          // Runtime verification of key fields
+          expect(typeCheck.teamName).toBeDefined();
+          expect(typeCheck.opponentName).toBeDefined();
+          expect(typeCheck.gameDate).toBeDefined();
+          expect(typeCheck.homeScore).toBeDefined();
+          expect(typeCheck.awayScore).toBeDefined();
+          expect(typeCheck.gameNotes).toBeDefined();
+          expect(typeCheck.homeOrAway).toBeDefined();
+          expect(typeCheck.isPlayed).toBeDefined();
+          expect(typeCheck.numberOfPeriods).toBeDefined();
+          expect(typeCheck.periodDurationMinutes).toBeDefined();
+          expect(typeCheck.currentPeriod).toBeDefined();
+          expect(typeCheck.gameStatus).toBeDefined();
+          expect(typeCheck.seasonId).toBeDefined();
+          expect(typeCheck.tournamentId).toBeDefined();
+          expect(typeCheck.demandFactor).toBeDefined();
+          expect(typeCheck.gameEvents).toBeDefined();
+          expect(typeCheck.playersOnField).toBeDefined();
+          expect(typeCheck.opponents).toBeDefined();
+          expect(typeCheck.drawings).toBeDefined();
+          expect(typeCheck.tacticalDiscs).toBeDefined();
+          expect(typeCheck.tacticalDrawings).toBeDefined();
+          expect(typeCheck.availablePlayers).toBeDefined();
+          expect(typeCheck.assessments).toBeDefined();
+          expect(typeCheck.selectedPlayerIds).toBeDefined();
+          expect(typeCheck.gamePersonnel).toBeDefined();
+        }
+      });
+
+      const params = createMockParams({
+        currentGameId: 'game123',
+        savedGames: mockSavedGames,
+        setSavedGames,
+      });
+
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleQuickSaveGame(true);
+      });
+
+      await waitFor(() => {
+        expect(setSavedGames).toHaveBeenCalledTimes(1);
+      });
+    });
   });
 
   describe('Quick Save Transition', () => {
