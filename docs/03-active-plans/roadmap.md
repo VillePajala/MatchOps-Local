@@ -257,6 +257,98 @@ These enhancements have been identified during development but are not yet sched
 
 ---
 
+#### ⏱️ **Goal Event Management in Timer Overlay**
+*User question: "Should we have a way to access from timer modal to a view where we can edit or remove goal events?"*
+
+**Current State**:
+- Goal events can be logged during game via timer overlay (big clock view)
+- Goal events can be edited/removed via Game Stats modal (hamburger menu → Stats)
+- No direct link from timer overlay to edit goal events
+
+**Problem**:
+- During active gameplay, coaches use the timer overlay extensively
+- If a goal is logged incorrectly (wrong scorer, wrong time), coach must:
+  1. Exit timer overlay
+  2. Open hamburger menu
+  3. Navigate to Game Stats modal
+  4. Switch to appropriate tab
+  5. Find and edit the goal event
+- This workflow interrupts the flow of the game
+
+**Enhancement Opportunity**: Add quick access to goal event management from timer overlay
+
+**Potential Solutions**:
+
+**Option A: Inline Edit in Timer Overlay** ⭐ *RECOMMENDED*
+- Show recent goal events directly in timer overlay (last 3-5 goals)
+- Tap goal event to quickly edit scorer/assister
+- Long-press or swipe to delete goal event
+- Minimal UI disruption, keeps coach in the flow
+
+**Option B: Quick Link to Stats Modal**
+- Add button/link in timer overlay: "View/Edit Goals"
+- Opens Game Stats modal directly to Goal Log tab
+- Returns to timer overlay after edit
+- Simple implementation, reuses existing UI
+
+**Option C: Contextual Action Menu**
+- Show notification after goal is logged: "Goal logged ✓ [Undo] [Edit]"
+- Provides immediate correction opportunity
+- Disappears after 10 seconds or when dismissed
+- Covers both immediate mistakes and later corrections
+
+**Potential Features**:
+- **Quick Goal Review Panel** (Option A)
+  - Collapsible section in timer overlay showing recent goals
+  - Inline edit: tap to change scorer/assister
+  - Quick delete: swipe or long-press to remove
+  - Compact display: "12:34 - Player Name (Assister Name)"
+
+- **Undo Last Goal** (All Options)
+  - Quick undo button after goal is logged
+  - Appears for 10-15 seconds after logging
+  - One-tap revert for immediate mistakes
+
+- **Goal Event Validation** (All Options)
+  - Confirm dialog for opponent goals (prevent accidents)
+  - Highlight missing assister (optional, but good to track)
+  - Time validation (warn if goal logged at unusual time)
+
+**Implementation Considerations**:
+- Timer overlay is already feature-rich; avoid overcrowding
+- Touch targets must be large enough for game-time use (gloves, stress)
+- Consider two-phase approach: Undo button first, then full edit
+- Maintain separation between timer controls and goal management
+
+**Technical Complexity**: Low-Medium (3/10) - Mostly UI/UX work, logic already exists
+
+**Estimated Effort**:
+- Option A (Inline Edit): 8-12 hours
+- Option B (Quick Link): 2-4 hours
+- Option C (Contextual Menu): 4-6 hours
+- Undo Last Goal: 2-3 hours
+
+**Potential Release Target**: Version 1.0 (Foundation Complete) or Version 1.5 (Enhanced Analytics)
+
+**Related Code**:
+- `src/components/TimerOverlay.tsx` - Timer overlay UI
+- `src/components/GoalLogModal.tsx` - Goal logging form
+- `src/components/GameStatsModal.tsx` - Goal event editing interface
+- `src/hooks/useGameSessionReducer.ts` - Goal event management logic
+
+**User Value**:
+- Faster correction of mistakes during live gameplay
+- Reduces interruption to game flow
+- More accurate game statistics (easier to fix = more likely to fix)
+- Better user experience during high-stress game situations
+
+**Decision Needed**:
+- Which option best balances functionality with UI simplicity?
+- Should this be implemented before or after Version 1.0?
+- Start with simple "Undo Last Goal" and iterate?
+
+---
+
 ## Technology Roadmap
 
 ### Frontend Evolution
