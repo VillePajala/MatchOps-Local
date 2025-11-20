@@ -272,7 +272,9 @@ describe('useGamePersistence', () => {
       });
 
       await waitFor(() => {
+        expect(loadGameStateFromData).toHaveBeenCalledTimes(1);
         expect(loadGameStateFromData).toHaveBeenCalledWith(mockGameData);
+        expect(setCurrentGameId).toHaveBeenCalledTimes(1);
         expect(setCurrentGameId).toHaveBeenCalledWith('game456');
       });
     });
@@ -315,8 +317,8 @@ describe('useGamePersistence', () => {
 
       // Should attempt to update saved games
       await waitFor(() => {
-        expect(setSavedGames).toHaveBeenCalled();
-      }, { timeout: 3000 });
+        expect(setSavedGames).toHaveBeenCalledTimes(1);
+      }, { timeout: 1000 });
     });
 
     /**
@@ -476,7 +478,7 @@ describe('useGamePersistence', () => {
 
       // setSavedGames should have been called with snapshot excluding timer states
       await waitFor(() => {
-        expect(setSavedGames).toHaveBeenCalled();
+        expect(setSavedGames).toHaveBeenCalledTimes(1);
       });
     });
   });
@@ -505,10 +507,10 @@ describe('useGamePersistence', () => {
 
       // Should create a new game ID and set it
       await waitFor(() => {
-        expect(setCurrentGameId).toHaveBeenCalled();
+        expect(setCurrentGameId).toHaveBeenCalledTimes(1);
         const newGameId = setCurrentGameId.mock.calls[0][0];
         expect(newGameId).toMatch(/^game-\d+$/); // Format: game-{timestamp}
-      }, { timeout: 3000 });
+      }, { timeout: 1000 });
     });
 
     /**
@@ -534,7 +536,7 @@ describe('useGamePersistence', () => {
 
       // Should update existing game, not change ID
       await waitFor(() => {
-        expect(setSavedGames).toHaveBeenCalled();
+        expect(setSavedGames).toHaveBeenCalledTimes(1);
       });
 
       // setCurrentGameId should NOT be called (ID already set)
