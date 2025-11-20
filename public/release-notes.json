@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: update Step 2.6.4 completion status"
+  "notes": "refactor: extract useModalOrchestration hook (Step 2.6.6 - FINAL)"
 }
