@@ -884,10 +884,10 @@ describe('useFieldCoordination', () => {
 
   describe('Formation Logic (Place All Players)', () => {
     /**
-     * Tests placing all selected players in formation
+     * Tests placing ALL available players in formation (not just selected ones)
      * @critical - Formation placement
      */
-    it('should place all selected players in formation', () => {
+    it('should place ALL available players in formation', () => {
       const mockSetPlayersOnField = jest.fn();
       const players = TestFixtures.players.fullTeam({ count: 6 });
       const selectedIds = players.slice(0, 5).map(p => p.id);
@@ -961,10 +961,10 @@ describe('useFieldCoordination', () => {
     });
 
     /**
-     * Tests handling when all players are already on field
+     * Tests handling when all available players are already on field
      * @edge-case
      */
-    it('should do nothing when all selected players already on field', () => {
+    it('should do nothing when all available players already on field', () => {
       const mockSetPlayersOnField = jest.fn();
       const players = TestFixtures.players.fullTeam({ count: 2 });
       const playersOnField = players.map(p => ({ ...p, relX: 0.5, relY: 0.5 }));
@@ -986,6 +986,45 @@ describe('useFieldCoordination', () => {
 
       expect(mockSetPlayersOnField).not.toHaveBeenCalled();
       expect(mockParams.saveStateToHistory).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Tests that ALL players are placed regardless of selection status
+     * @critical - Ensures "Place All Players" actually places ALL players
+     */
+    it('should place players regardless of selection status', () => {
+      const mockSetPlayersOnField = jest.fn();
+      const players = TestFixtures.players.fullTeam({ count: 5 });
+
+      // Only 2 players are "selected", but ALL 5 should be placed
+      const selectedIds = players.slice(0, 2).map(p => p.id);
+
+      mockParams.availablePlayers = players;
+      mockParams.selectedPlayerIds = selectedIds;
+
+      mockUseGameState.mockReturnValue({
+        ...getDefaultMockGameState(),
+        playersOnField: [],
+        setPlayersOnField: mockSetPlayersOnField,
+      });
+
+      mockCalculateFormationPositions.mockReturnValue([
+        { relX: 0.25, relY: 0.6 },
+        { relX: 0.75, relY: 0.6 },
+        { relX: 0.35, relY: 0.35 },
+        { relX: 0.65, relY: 0.35 },
+      ]);
+
+      const { result } = renderHook(() => useFieldCoordination(mockParams));
+
+      act(() => {
+        result.current.handlePlaceAllPlayers();
+      });
+
+      // Should place ALL 5 players (not just the 2 selected ones)
+      const placedPlayers = mockSetPlayersOnField.mock.calls[0][0];
+      expect(placedPlayers).toHaveLength(5);
+      expect(mockParams.saveStateToHistory).toHaveBeenCalled();
     });
 
     /**
