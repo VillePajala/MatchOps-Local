@@ -9,6 +9,7 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useGamePersistence } from '../useGamePersistence';
 import type { UseGamePersistenceParams } from '../useGamePersistence';
+import type { UseFieldCoordinationReturn } from '../useFieldCoordination';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import type { AppState, Player, PlayerAssessment } from '@/types';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
@@ -46,43 +47,48 @@ const createMockGameSessionState = (overrides?: Partial<GameSessionState>): Game
   ...overrides,
 });
 
-const createMockFieldCoordination = () => ({
+const createMockFieldCoordination = (): UseFieldCoordinationReturn => ({
   playersOnField: [],
-  setPlayersOnField: jest.fn(),
   opponents: [],
-  setOpponents: jest.fn(),
   drawings: [],
-  setDrawings: jest.fn(),
-  tacticalDiscs: [],
-  setTacticalDiscs: jest.fn(),
-  tacticalDrawings: [],
-  setTacticalDrawings: jest.fn(),
-  tacticalBallPosition: null,
-  setTacticalBallPosition: jest.fn(),
   draggingPlayerFromBarInfo: null,
-  setDraggingPlayerFromBarInfo: jest.fn(),
-  handlePlayerDrop: jest.fn(),
+  isDrawingEnabled: false,
+  isTacticsBoardView: false,
+  tacticalDiscs: [],
+  tacticalDrawings: [],
+  tacticalBallPosition: null,
+  showResetFieldConfirm: false,
+  handlePlayerMove: jest.fn(),
+  handlePlayerMoveEnd: jest.fn(),
   handlePlayerRemove: jest.fn(),
+  handleDropOnField: jest.fn(),
+  handlePlayerDragStartFromBar: jest.fn(),
+  handlePlayerTapInBar: jest.fn(),
   handleOpponentAdd: jest.fn(),
   handleOpponentRemove: jest.fn(),
-  handleOpponentPositionUpdate: jest.fn(),
-  handleDrawingAdd: jest.fn(),
+  handleOpponentMove: jest.fn(),
+  handleOpponentMoveEnd: jest.fn(),
+  handleDrawingStart: jest.fn(),
+  handleDrawingMove: jest.fn(),
+  handleDrawingEnd: jest.fn(),
   handleDrawingRemove: jest.fn(),
-  handleDrawingUpdate: jest.fn(),
+  handleDrawingModeToggle: jest.fn(),
+  handleFieldReset: jest.fn(),
+  handleResetFieldCancel: jest.fn(),
+  handleResetFieldConfirm: jest.fn(),
   handleTacticalDiscAdd: jest.fn(),
   handleTacticalDiscRemove: jest.fn(),
-  handleTacticalDiscUpdate: jest.fn(),
-  handleTacticalDrawingAdd: jest.fn(),
-  handleTacticalDrawingRemove: jest.fn(),
-  handleTacticalDrawingUpdate: jest.fn(),
+  handleTacticalDiscMove: jest.fn(),
+  handleTacticalDiscMoveEnd: jest.fn(),
   handleTacticalBallPositionUpdate: jest.fn(),
-  handleResetField: jest.fn(),
-  handleResetTactical: jest.fn(),
-  handleToggleDrawingMode: jest.fn(),
-  isDrawingEnabled: false,
-  handlePlayerBarDragStart: jest.fn(),
-  handlePlayerBarDragEnd: jest.fn(),
-});
+  handleTacticalDrawingStart: jest.fn(),
+  handleTacticalDrawingMove: jest.fn(),
+  handleTacticalDrawingEnd: jest.fn(),
+  handleTacticalDrawingRemove: jest.fn(),
+  handleTacticalReset: jest.fn(),
+  handleTacticalFormationApply: jest.fn(),
+  handleTacticsBoardToggle: jest.fn(),
+} as unknown as UseFieldCoordinationReturn);
 
 const createMockParams = (overrides?: Partial<UseGamePersistenceParams>): UseGamePersistenceParams => {
   const queryClient = new QueryClient({
@@ -100,14 +106,13 @@ const createMockParams = (overrides?: Partial<UseGamePersistenceParams>): UseGam
     initialLoadComplete: true,
     savedGames: {},
     setSavedGames: jest.fn(),
-    masterRoster: [] as Player[],
     resetHistory: jest.fn(),
     initialState: {} as AppState,
     initialGameSessionData: createMockGameSessionState(),
     dispatchGameSession: jest.fn(),
     loadGameStateFromData: jest.fn(),
     showToast: jest.fn(),
-    t: jest.fn((key: string) => key),
+    t: jest.fn((key: string) => key) as unknown as UseGamePersistenceParams['t'],
     queryClient,
     handleCloseLoadGameModal: jest.fn(),
     ...overrides,
@@ -118,8 +123,10 @@ const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
-  return ({ children }: { children: React.ReactNode }) =>
+  const Wrapper = ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client: queryClient }, children);
+  Wrapper.displayName = 'TestWrapper';
+  return Wrapper;
 };
 
 describe('useGamePersistence', () => {
@@ -340,7 +347,7 @@ describe('useGamePersistence', () => {
       const params = createMockParams({
         currentGameId: null,
         gameSessionState: createMockGameSessionState({
-          gameEvents: [{ id: 'event1', type: 'goal', timestamp: Date.now(), period: 1 }],
+          gameEvents: [{ id: 'event1', type: 'goal', time: 0 }],
         }),
       });
       const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });

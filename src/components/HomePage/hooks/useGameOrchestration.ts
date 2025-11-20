@@ -1137,7 +1137,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     // From useGameDataManagement
     savedGames: gameDataManagement.savedGames || {},
     setSavedGames,
-    masterRoster: gameDataManagement.masterRoster,
 
     // History management
     resetHistory,

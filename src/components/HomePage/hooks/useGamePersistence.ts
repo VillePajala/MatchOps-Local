@@ -38,6 +38,7 @@ import {
   deleteGame as utilDeleteGame,
   removeGameEvent,
   getLatestGameId,
+  createGame as utilCreateGame,
 } from '@/utils/savedGames';
 import { saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
 import { removeStorageItem } from '@/utils/storage';
@@ -65,7 +66,6 @@ export interface UseGamePersistenceParams {
   // From useGameDataManagement
   savedGames: Record<string, AppState>;
   setSavedGames: React.Dispatch<React.SetStateAction<Record<string, AppState>>>;
-  masterRoster: Player[];
 
   // History management
   resetHistory: (state: AppState) => void;
@@ -116,6 +116,8 @@ export interface UseGamePersistenceReturn {
  * @example
  * ```tsx
  * const persistence = useGamePersistence({
+ *   currentGameId,
+ *   setCurrentGameId,
  *   gameSessionState,
  *   fieldCoordination,
  *   availablePlayers,
@@ -124,8 +126,6 @@ export interface UseGamePersistenceReturn {
  *   initialLoadComplete,
  *   savedGames,
  *   setSavedGames,
- *   masterRoster,
- *   currentGameIdSetting,
  *   resetHistory,
  *   initialState,
  *   initialGameSessionData,
@@ -142,6 +142,8 @@ export interface UseGamePersistenceReturn {
  * ```
  */
 export function useGamePersistence({
+  currentGameId,
+  setCurrentGameId,
   gameSessionState,
   fieldCoordination,
   availablePlayers,
@@ -150,7 +152,6 @@ export function useGamePersistence({
   initialLoadComplete,
   savedGames,
   setSavedGames,
-  masterRoster,
   resetHistory,
   initialState,
   initialGameSessionData,
@@ -160,10 +161,6 @@ export function useGamePersistence({
   t,
   queryClient,
   handleCloseLoadGameModal,
-
-  // Current game ID (managed externally)
-  currentGameId,
-  setCurrentGameId,
 }: UseGamePersistenceParams): UseGamePersistenceReturn {
 
   // Ref for stable reference to currentGameId in callbacks
@@ -328,24 +325,23 @@ export function useGamePersistence({
         showToast("Error quick saving game.", 'error');
       }
     } else {
-      // No current game ID - create new saved game entry
+      // No current game ID - create new saved game entry using utility
       try {
         const newSnapshot = createGameSnapshot();
 
-        const newGameId = `game-${Date.now()}`;
-        const updatedSavedGames = { ...savedGames, [newGameId]: newSnapshot };
+        // Use createGame utility (DRY principle)
+        const { gameId: newGameId, gameData } = await utilCreateGame(newSnapshot);
 
-        setSavedGames(updatedSavedGames);
-        await utilSaveGame(newGameId, newSnapshot);
-
+        // Update local state
+        setSavedGames(prev => ({ ...prev, [newGameId]: gameData }));
         setCurrentGameId(newGameId);
         await utilSaveCurrentGameIdSetting(newGameId);
 
         // Invalidate React Query cache
         queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
 
-        // Reset history
-        resetHistory(newSnapshot);
+        // Reset history to new game state
+        resetHistory(gameData);
 
         if (!silent) {
           showToast('New game saved!');
