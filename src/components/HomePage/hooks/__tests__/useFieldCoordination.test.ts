@@ -103,6 +103,7 @@ jest.mock('@/hooks/useTouchInteractions', () => ({
 }));
 
 import { renderHook, act } from '@testing-library/react';
+import type { TFunction } from 'i18next';
 import { useFieldCoordination } from '../useFieldCoordination';
 import type { UseFieldCoordinationParams } from '../useFieldCoordination';
 import type { AppState, Player } from '@/types';
@@ -198,8 +199,7 @@ describe('useFieldCoordination', () => {
         canRedo: false,
       },
       showToast: jest.fn(),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      t: jest.fn((key) => key) as any, // Type assertion to bypass TFunction brand
+      t: jest.fn((key) => key) as unknown as TFunction, // Type assertion to bypass TFunction brand
     };
 
     // Reset all mock implementations to defaults
