@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: add future enhancement for goal event management in timer overlay"
+  "notes": "refactor: use functional approach for player placement (avoid mutation)"
 }
