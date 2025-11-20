@@ -72,6 +72,10 @@
     "resetFieldNormalTitle": "Reset Field?",
     "resetFieldTacticsTitle": "Reset Tactics Board?"
   },
+  "tooltips": {
+    "resetFieldNormal": "Clear all players, opponents, and drawings from the field.",
+    "resetFieldTactics": "Clear all tactical discs, drawings, and ball position from the tactics board."
+  },
   "common": {
     "notSet": "Not Set",
     "actions": "Actions",
