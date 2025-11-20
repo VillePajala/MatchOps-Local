@@ -52,6 +52,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { TFunction } from 'i18next';
 import type { QueryClient } from '@tanstack/react-query';
+import * as Sentry from '@sentry/nextjs';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import type { AppState, GameEvent, PlayerAssessment, Player } from '@/types';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
@@ -258,8 +259,9 @@ export function useGamePersistence({
    * Resets undo/redo history after save to reflect saved state.
    *
    * @param silent - If true, suppresses success toast (for auto-save)
+   * @param suppressErrorToast - If true, suppresses error toast (for auto-save retry logic)
    */
-  const handleQuickSaveGame = useCallback(async (silent = false) => {
+  const handleQuickSaveGame = useCallback(async (silent = false, suppressErrorToast = false) => {
     if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
       logger.log(`Quick saving game with ID: ${currentGameId}${silent ? ' (silent)' : ''}`, {
         teamId: gameSessionState.teamId,
@@ -287,7 +289,24 @@ export function useGamePersistence({
 
       } catch (error) {
         logger.error("Failed to quick save game state:", error);
-        showToast(t('loadGameModal.errors.quickSaveFailed', 'Error quick saving game.'), 'error');
+
+        // Always report to Sentry for monitoring, even for silent auto-saves
+        Sentry.captureException(error, {
+          tags: {
+            operation: 'quick_save_game',
+            silent,
+            gameId: currentGameId,
+          },
+          extra: {
+            teamId: gameSessionState.teamId,
+            tournamentId: gameSessionState.tournamentId,
+          },
+        });
+
+        // Show error toast unless explicitly suppressed (for retry logic)
+        if (!suppressErrorToast) {
+          showToast(t('loadGameModal.errors.quickSaveFailed', 'Error quick saving game.'), 'error');
+        }
       }
     } else {
       // No current game ID - create new saved game entry using utility
@@ -316,7 +335,23 @@ export function useGamePersistence({
 
       } catch (error) {
         logger.error("Failed to create new saved game:", error);
-        showToast(t('loadGameModal.errors.createGameFailed', 'Error creating new saved game.'), 'error');
+
+        // Always report to Sentry for monitoring
+        Sentry.captureException(error, {
+          tags: {
+            operation: 'create_new_game',
+            silent,
+          },
+          extra: {
+            teamId: gameSessionState.teamId,
+            tournamentId: gameSessionState.tournamentId,
+          },
+        });
+
+        // Show error toast unless explicitly suppressed
+        if (!suppressErrorToast) {
+          showToast(t('loadGameModal.errors.createGameFailed', 'Error creating new saved game.'), 'error');
+        }
       }
     }
   }, [
@@ -343,7 +378,9 @@ export function useGamePersistence({
   const autoSaveFnRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   useEffect(() => {
-    autoSaveFnRef.current = () => handleQuickSaveGame(true);
+    // Auto-save with silent=true (no success toast) and suppressErrorToast=true
+    // Errors are logged to Sentry but don't show intrusive toasts during auto-save
+    autoSaveFnRef.current = () => handleQuickSaveGame(true, true);
   }, [handleQuickSaveGame]);
 
   // --- 3-Tier Debounced Auto-Save ---
@@ -352,6 +389,14 @@ export function useGamePersistence({
    * - Immediate: Goals, scores (critical statistics)
    * - Short (500ms): Names, notes (user-visible metadata)
    * - Long (2000ms): Field positions, drawings (tactical data)
+   *
+   * Error Handling:
+   * - Auto-save errors are logged to Sentry for monitoring
+   * - Error toasts are suppressed to avoid disrupting user workflow
+   * - Manual saves (Ctrl+S) show error toasts for immediate feedback
+   *
+   * Future Enhancement: Consider adding retry logic with exponential backoff
+   * for transient errors (network, storage quota). See ARCHITECTURAL_DEBT.md.
    */
   useAutoSave({
     immediate: {
