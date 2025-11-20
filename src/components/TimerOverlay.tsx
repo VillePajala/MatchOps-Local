@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FaPlay, FaPause, FaUndo } from 'react-icons/fa'; // Import icons
 import { useTranslation } from 'react-i18next'; // Import translation hook
-import { IntervalLog } from '@/types'; // Import the IntervalLog interface
+import { IntervalLog, SubAlertLevel } from '@/types'; // Import types
 import { formatTime } from '@/utils/time';
 import logger from '@/utils/logger';
 import ConfirmationModal from './ConfirmationModal';
@@ -11,7 +11,7 @@ import ConfirmationModal from './ConfirmationModal';
 
 interface TimerOverlayProps {
   timeElapsedInSeconds: number;
-  subAlertLevel: 'none' | 'warning' | 'due';
+  subAlertLevel: SubAlertLevel;
   onSubstitutionMade: () => void;
   completedIntervalDurations: IntervalLog[];
   subIntervalMinutes: number;

@@ -434,14 +434,16 @@ describe('useTimerManagement', () => {
         result.current.handleLogOpponentGoal(725.456);
       });
 
-      expect((mockDispatch.mock.calls[0][0] as any).payload.time).toBe(725.46);
+      const firstAction = mockDispatch.mock.calls[0][0] as Extract<GameSessionAction, { type: 'ADD_GAME_EVENT' }>;
+      expect(firstAction.payload.time).toBe(725.46);
 
       // Log second goal at 800.123 seconds
       act(() => {
         result.current.handleLogOpponentGoal(800.123);
       });
 
-      expect((mockDispatch.mock.calls[2][0] as any).payload.time).toBe(800.12);
+      const secondAction = mockDispatch.mock.calls[2][0] as Extract<GameSessionAction, { type: 'ADD_GAME_EVENT' }>;
+      expect(secondAction.payload.time).toBe(800.12);
     });
   });
 

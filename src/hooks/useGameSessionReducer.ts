@@ -1,4 +1,4 @@
-import { GameEvent } from '@/types';
+import { GameEvent, SubAlertLevel } from '@/types';
 import logger from '@/utils/logger';
 
 // --- State Definition ---
@@ -31,7 +31,7 @@ export interface GameSessionState {
   isTimerRunning: boolean;
   subIntervalMinutes: number;
   nextSubDueTimeSeconds: number;
-  subAlertLevel: 'none' | 'warning' | 'due';
+  subAlertLevel: SubAlertLevel;
   lastSubConfirmationTimeSeconds: number;
   completedIntervalDurations?: IntervalLog[]; // Made optional to align with AppState
   showPlayerNames: boolean;
