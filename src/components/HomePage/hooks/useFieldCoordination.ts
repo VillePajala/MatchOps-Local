@@ -482,20 +482,15 @@ export function useFieldCoordination({
       return;
     }
 
-    const playersToPlace = [...playersNotOnField];
-
-    logger.log(`Placing ${playersToPlace.length} players on the field...`);
+    logger.log(`Placing ${playersNotOnField.length} players on the field...`);
 
     const newFieldPlayers: Player[] = [...playersOnField];
 
-    // Find and place goalie first
-    const goalieIndex = playersToPlace.findIndex(p => p.isGoalie);
-    let goalie: Player | null = null;
+    // Separate goalkeeper from field players (functional approach, no mutation)
+    const goalie = playersNotOnField.find(p => p.isGoalie);
+    const fieldPlayers = playersNotOnField.filter(p => !p.isGoalie);
 
-    if (goalieIndex !== -1) {
-      goalie = playersToPlace.splice(goalieIndex, 1)[0];
-    }
-
+    // Place goalkeeper first at goalie position
     if (goalie) {
       newFieldPlayers.push({
         ...goalie,
@@ -504,12 +499,11 @@ export function useFieldCoordination({
       });
     }
 
-    // Calculate formation positions using utility function
-    const remainingCount = playersToPlace.length;
-    const positions = calculateFormationPositions(remainingCount);
+    // Calculate formation positions for field players
+    const positions = calculateFormationPositions(fieldPlayers.length);
 
-    // Place players in positions
-    playersToPlace.forEach((player, index) => {
+    // Place field players in formation positions
+    fieldPlayers.forEach((player, index) => {
       if (index < positions.length) {
         newFieldPlayers.push({
           ...player,
@@ -522,7 +516,7 @@ export function useFieldCoordination({
     setPlayersOnField(newFieldPlayers);
     saveStateToHistory({ playersOnField: newFieldPlayers });
 
-    logger.log(`Successfully placed ${playersToPlace.length} players on the field`);
+    logger.log(`Successfully placed ${playersNotOnField.length} players on the field`);
   }, [
     playersOnField,
     availablePlayers,
