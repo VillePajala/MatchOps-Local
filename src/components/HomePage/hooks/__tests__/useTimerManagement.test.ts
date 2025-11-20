@@ -14,8 +14,8 @@
 
 import { renderHook, act } from '@testing-library/react';
 import { useTimerManagement } from '../useTimerManagement';
-import type { Player, GameSessionState } from '@/types';
-import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
+import type { Player } from '@/types';
+import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
 
 // Mock dependencies
 jest.mock('@/hooks/useGameTimer');
@@ -33,41 +33,51 @@ describe('useTimerManagement', () => {
       name: 'John Doe',
       jerseyNumber: '10',
       nickname: 'Johnny',
-      isGoalkeeper: false,
+      isGoalie: false,
     },
     {
       id: 'player2',
       name: 'Jane Smith',
       jerseyNumber: '7',
       nickname: 'Janey',
-      isGoalkeeper: false,
+      isGoalie: false,
     },
     {
       id: 'player3',
       name: 'Bob Keeper',
       jerseyNumber: '1',
       nickname: 'Bobby',
-      isGoalkeeper: true,
+      isGoalie: true,
     },
   ];
 
   const mockGameSessionState: GameSessionState = {
-    currentGameId: 'game1',
+    teamName: 'My Team',
+    opponentName: 'Opponent Team',
+    gameDate: '2025-01-01',
     homeScore: 2,
     awayScore: 1,
+    gameNotes: '',
+    homeOrAway: 'home',
+    numberOfPeriods: 2,
+    periodDurationMinutes: 20,
     currentPeriod: 1,
+    gameStatus: 'inProgress',
+    selectedPlayerIds: ['player1', 'player2'],
+    gamePersonnel: [],
+    seasonId: 'season1',
+    tournamentId: '',
+    teamId: 'team1',
+    demandFactor: 3,
+    gameEvents: [],
     timeElapsedInSeconds: 725.456, // 12:05.456 (will be rounded to 725.46)
+    startTimestamp: Date.now(),
     isTimerRunning: true,
-    events: [],
-    startedAt: null,
-    opponent: 'Opponent Team',
-    isNewGame: false,
-    metadata: {
-      seasonId: 'season1',
-      tournamentId: '',
-      teamId: 'team1',
-    },
-    playerIdsForNewGame: [],
+    subIntervalMinutes: 5,
+    nextSubDueTimeSeconds: 300,
+    subAlertLevel: 'none',
+    lastSubConfirmationTimeSeconds: 0,
+    showPlayerNames: true,
   };
 
   const mockDispatch = jest.fn<void, [GameSessionAction]>();
@@ -77,6 +87,7 @@ describe('useTimerManagement', () => {
   const mockGameTimerReturn = {
     timeElapsedInSeconds: 725.456,
     isTimerRunning: true,
+    nextSubDueTimeSeconds: 0,
     subAlertLevel: 'none' as const,
     lastSubConfirmationTimeSeconds: 0,
     startPause: jest.fn(),
@@ -479,7 +490,7 @@ describe('useTimerManagement', () => {
         id: 'limited1',
         name: 'Limited Player',
         jerseyNumber: '99',
-        isGoalkeeper: false,
+        isGoalie: false,
       }];
 
       const { result } = renderHook(() =>
