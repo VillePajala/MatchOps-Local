@@ -5,12 +5,18 @@
  *
  * **Responsibilities**:
  * - Field state management (players, opponents, drawings)
- * - Player drag/drop interactions
+ * - Player drag/drop interactions (delegates to useTouchInteractions for touch/mobile)
  * - Opponent management
  * - Drawing mode and handlers
  * - Tactical board (separate history stack)
  * - Field reset logic
  * - History/undo for both field and tactical board
+ *
+ * **Delegation Pattern**:
+ * - Touch/mobile interactions → useTouchInteractions hook
+ * - Field state management → useGameState hook
+ * - Tactical board state → useTacticalBoard hook
+ * - Drawing mode toggle → useFieldInteractions hook
  *
  * **Dependencies**:
  * - saveStateToHistory (from parent)
@@ -22,13 +28,14 @@
  * @category HomePage Hooks
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { Dispatch } from 'react';
 import type { TFunction } from 'i18next';
 import { useFieldInteractions } from '@/hooks/useFieldInteractions';
 import { useGameState } from '@/hooks/useGameState';
 import type { UseGameStateReturn } from '@/hooks/useGameState';
 import { useTacticalBoard } from '@/hooks/useTacticalBoard';
+import { useTouchInteractions } from '@/hooks/useTouchInteractions';
 import type { TacticalState } from '@/hooks/useTacticalHistory';
 import type { Player, AppState, TacticalDisc, Point } from '@/types';
 import logger from '@/utils/logger';
@@ -36,6 +43,22 @@ import { calculateFormationPositions } from '@/utils/formations';
 
 /**
  * Parameters for useFieldCoordination hook
+ *
+ * @property {AppState} initialState - Initial app state
+ * @property {function} saveStateToHistory - Save field state to main history stack
+ *   **MUST be memoized with useCallback and stable reference** (empty deps or ref pattern)
+ *   to prevent infinite re-render loops in useGameState.
+ *   Provided by useGameSessionCoordination using ref pattern for stability.
+ * @property {function} saveTacticalStateToHistory - Save tactical state to separate history stack
+ *   **MUST be memoized with useCallback** to prevent re-renders.
+ *   Provided by useGameSessionCoordination with stable dependency (tacticalHistory).
+ * @property {Player[]} availablePlayers - All players available for placement
+ * @property {string[]} selectedPlayerIds - IDs of players selected for this game
+ * @property {boolean} canUndo - Whether main history can undo
+ * @property {boolean} canRedo - Whether main history can redo
+ * @property {object} tacticalHistory - Tactical board history manager (separate from main history)
+ * @property {function} showToast - Toast notification function
+ * @property {TFunction} t - i18next translation function
  */
 export interface UseFieldCoordinationParams {
   initialState: AppState;
@@ -135,12 +158,27 @@ export interface UseFieldCoordinationReturn {
 /**
  * Custom hook for managing soccer field interactions and tactical board
  *
+ * **IMPORTANT - Memoization Requirements:**
+ * This hook requires stable function references to prevent infinite re-render loops:
+ * - `saveStateToHistory`: MUST use ref pattern (empty deps) for complete stability
+ * - `saveTacticalStateToHistory`: MUST be wrapped in useCallback with stable deps
+ *
+ * The parent hook (useGameSessionCoordination) provides these functions with proper
+ * memoization using the ref pattern, so they are safe to pass through even though
+ * the custom ESLint rule may flag them. The eslint-disable comments below document
+ * that the parent has already handled memoization correctly.
+ *
+ * **Why this matters:**
+ * - useGameState internally uses these callbacks in useCallback/useEffect dependencies
+ * - Unstable references cause infinite loops: state change → re-render → new callback → state change
+ * - The ref pattern breaks this cycle by ensuring callbacks never change identity
+ *
  * @example
  * ```tsx
  * const fieldCoordination = useFieldCoordination({
  *   initialState: appState,
- *   saveStateToHistory,
- *   saveTacticalStateToHistory,
+ *   saveStateToHistory,          // From useGameSessionCoordination (stable via ref)
+ *   saveTacticalStateToHistory,  // From useGameSessionCoordination (stable deps)
  *   availablePlayers,
  *   selectedPlayerIds,
  *   canUndo,
@@ -170,11 +208,24 @@ export function useFieldCoordination({
   t,
 }: UseFieldCoordinationParams): UseFieldCoordinationReturn {
 
-  // --- State for drag from player bar ---
-  const [draggingPlayerFromBarInfo, setDraggingPlayerFromBarInfo] = useState<Player | null>(null);
-
   // --- State for reset field confirmation modal ---
   const [showResetFieldConfirm, setShowResetFieldConfirm] = useState<boolean>(false);
+
+  // --- Ref to track pending history save after player move end ---
+  // This avoids calling saveStateToHistory inside setState (React anti-pattern)
+  // Uses a version counter to trigger the effect without changing state
+  const [playerMoveEndVersion, setPlayerMoveEndVersion] = useState(0);
+  const pendingPlayerMoveEndRef = useRef<Player[] | null>(null);
+
+  // --- Effect: Save to history after player move ends ---
+  // This runs AFTER the state update has fully committed, avoiding race conditions
+  // with React's batching and ensuring the history sees the final state.
+  useEffect(() => {
+    if (playerMoveEndVersion > 0 && pendingPlayerMoveEndRef.current) {
+      saveStateToHistory({ playersOnField: pendingPlayerMoveEndRef.current });
+      pendingPlayerMoveEndRef.current = null;
+    }
+  }, [playerMoveEndVersion, saveStateToHistory]);
 
   // --- Hook: useGameState (field state and basic handlers) ---
   const {
@@ -195,7 +246,7 @@ export function useFieldCoordination({
     handleOpponentRemove,
   }: UseGameStateReturn = useGameState({
     initialState,
-    // eslint-disable-next-line custom-hooks/require-memoized-function-props -- Already memoized in parent
+    // eslint-disable-next-line custom-hooks/require-memoized-function-props -- Verified stable: useGameSessionCoordination provides this via ref pattern (empty deps)
     saveStateToHistory,
   });
 
@@ -232,7 +283,7 @@ export function useFieldCoordination({
     initialDiscs: initialState.tacticalDiscs,
     initialDrawings: initialState.tacticalDrawings,
     initialBallPosition: initialState.tacticalBallPosition,
-    // eslint-disable-next-line custom-hooks/require-memoized-function-props -- Already memoized in parent
+    // eslint-disable-next-line custom-hooks/require-memoized-function-props -- Verified stable: useGameSessionCoordination wraps with useCallback([tacticalHistory])
     saveStateToHistory: saveTacticalStateToHistory,
   });
 
@@ -240,6 +291,10 @@ export function useFieldCoordination({
 
   /**
    * Handle player drop from player bar onto field
+   *
+   * Stable callback that only recreates when roster changes (infrequent).
+   * handlePlayerDrop is stable because useGameState uses functional setState
+   * pattern, avoiding dependency on playersOnField.
    */
   const handleDropOnField = useCallback((playerId: string, relX: number, relY: number) => {
     const droppedPlayer = availablePlayers.find(p => p.id === playerId);
@@ -263,14 +318,23 @@ export function useFieldCoordination({
 
   /**
    * Handle player movement end (save to history)
+   *
+   * Uses ref + version counter pattern to trigger history save in a separate effect.
+   * This avoids calling saveStateToHistory during setState, which is a React
+   * anti-pattern that can cause race conditions with batching and concurrent features.
+   *
+   * Pattern: Get current state via functional setter, store in ref, increment version.
+   * The effect then saves to history after state has fully committed.
    */
   const handlePlayerMoveEnd = useCallback(() => {
-    // Use functional setter to get current state without dependency
     setPlayersOnField(currentPlayers => {
-      saveStateToHistory({ playersOnField: currentPlayers });
+      // Store current state in ref for the effect to use
+      pendingPlayerMoveEndRef.current = currentPlayers;
+      // Increment version to trigger the save effect
+      setPlayerMoveEndVersion(v => v + 1);
       return currentPlayers; // No change to state
     });
-  }, [setPlayersOnField, saveStateToHistory]);
+  }, [setPlayersOnField]);
 
   /**
    * Handle player removal from field
@@ -284,67 +348,13 @@ export function useFieldCoordination({
     });
   }, [setPlayersOnField, saveStateToHistory]);
 
-  // --- Touch/Drag from Bar Handlers ---
-
-  /**
-   * Handle player drag start from player bar
-   */
-  const handlePlayerDragStartFromBar = useCallback((playerInfo: Player) => {
-    setDraggingPlayerFromBarInfo(playerInfo);
-    logger.log("Setting draggingPlayerFromBarInfo (Drag Start):", playerInfo);
-  }, []);
-
-  /**
-   * Handle player tap in player bar (touch devices)
-   */
-  const handlePlayerTapInBar = useCallback((playerInfo: Player | null) => {
-    setDraggingPlayerFromBarInfo(currentDragging => {
-      if (currentDragging?.id === playerInfo?.id) {
-        logger.log("Tapped already selected player, deselecting:", playerInfo?.id);
-        return null;
-      } else {
-        logger.log("Setting draggingPlayerFromBarInfo (Tap):", playerInfo);
-        return playerInfo;
-      }
-    });
-  }, []);
-
-  /**
-   * Handle player drop via touch (place on field)
-   */
-  const handlePlayerDropViaTouch = useCallback((relX: number, relY: number) => {
-    setDraggingPlayerFromBarInfo(currentDragging => {
-      if (currentDragging) {
-        try {
-          logger.log("Player Drop Via Touch (field):", { id: currentDragging.id, relX, relY });
-          handleDropOnField(currentDragging.id, relX, relY);
-        } catch (error) {
-          logger.error('Failed to drop player on field:', error);
-          showToast(t('errors.playerDropFailed', 'Failed to place player on field'), 'error');
-        }
-      }
-      return null; // Always clear dragging state after drop
-    });
-  }, [handleDropOnField, showToast, t]);
-
-  /**
-   * Handle player drag cancel via touch
-   */
-  const handlePlayerDragCancelViaTouch = useCallback(() => {
-    setDraggingPlayerFromBarInfo(null);
-  }, []);
-
-  /**
-   * Handle deselect player (click on player bar background)
-   */
-  const handleDeselectPlayer = useCallback(() => {
-    setDraggingPlayerFromBarInfo(currentDragging => {
-      if (currentDragging) {
-        logger.log("Deselecting player by clicking bar background.");
-      }
-      return null;
-    });
-  }, []);
+  // --- Hook: useTouchInteractions (touch/mobile drag-and-drop) ---
+  // Delegated to separate hook for better separation and testability
+  const touchInteractions = useTouchInteractions({
+    onDrop: handleDropOnField, // handleDropOnField handles player validation
+    showToast,
+    t,
+  });
 
   // --- Field Reset Handlers ---
 
@@ -518,7 +528,7 @@ export function useFieldCoordination({
     playersOnField,
     opponents,
     drawings,
-    draggingPlayerFromBarInfo,
+    draggingPlayerFromBarInfo: touchInteractions.selectedPlayer, // Delegated to useTouchInteractions
     isDrawingEnabled,
     isTacticsBoardView,
     tacticalDiscs,
@@ -531,11 +541,11 @@ export function useFieldCoordination({
     handlePlayerMoveEnd,
     handlePlayerRemove,
     handleDropOnField,
-    handlePlayerDragStartFromBar,
-    handlePlayerTapInBar,
-    handlePlayerDropViaTouch,
-    handlePlayerDragCancelViaTouch,
-    handleDeselectPlayer,
+    handlePlayerDragStartFromBar: touchInteractions.handleDragStart, // Delegated to useTouchInteractions
+    handlePlayerTapInBar: touchInteractions.handleTap, // Delegated to useTouchInteractions
+    handlePlayerDropViaTouch: touchInteractions.handleDrop, // Delegated to useTouchInteractions
+    handlePlayerDragCancelViaTouch: touchInteractions.handleCancel, // Delegated to useTouchInteractions
+    handleDeselectPlayer: touchInteractions.handleDeselect, // Delegated to useTouchInteractions
     handlePlaceAllPlayers,
 
     // Opponent handlers (from useGameState)

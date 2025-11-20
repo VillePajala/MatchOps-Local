@@ -189,6 +189,63 @@ Extend capabilities to support professional club environments while maintaining 
 
 ---
 
+## Future Enhancement Backlog
+
+### Feature Ideas Under Consideration
+
+These enhancements have been identified during development but are not yet scheduled for a specific release. They are documented here for future evaluation and planning.
+
+#### 🎨 **Configurable Formation System**
+*Suggested during useFieldCoordination code review*
+
+**Current State**: Formation logic is hardcoded for specific player counts in `src/utils/formations.ts`
+
+**Enhancement Opportunity**: Make formations user-configurable with flexible positioning system
+
+**Potential Features**:
+- **User-Defined Formations**
+  - Visual formation editor for creating custom layouts
+  - Save and name custom formations per team or season
+  - Share formations between games or teams
+  - Import/export formation definitions
+
+- **Formation String Support**
+  - Parse standard formation notation (e.g., "4-3-3", "4-4-2", "3-5-2")
+  - Auto-calculate player positions based on formation string
+  - Support for diamond, triangle, and other tactical variations
+  - Goalkeeper position automatically determined
+
+- **Advanced Positioning**
+  - Fine-tune individual positions within formation zones
+  - Support for asymmetric formations (e.g., 4-2-3-1 with wide wingers)
+  - Position roles/labels (CDM, CAM, ST, LW, RW, etc.)
+  - Tactical variations (compact, wide, high press, etc.)
+
+**Implementation Considerations**:
+- Maintain backward compatibility with current hardcoded formations
+- Store formations in IndexedDB as JSON definitions
+- Keep UI simple for coaches unfamiliar with tactical notation
+- Provide library of common formations as starting templates
+
+**Technical Complexity**: Medium (5/10) - Requires UI design, storage schema, and algorithm updates
+
+**Estimated Effort**: 16-24 hours
+
+**Potential Release Target**: Version 1.5 (Enhanced Analytics) or Version 2.0 (Global Platform)
+
+**Related Code**:
+- `src/utils/formations.ts` - Current formation calculation logic
+- `src/components/HomePage/hooks/useFieldCoordination.ts` - Player placement handler
+- `src/types/index.ts` - Would need FormationDefinition type
+
+**User Value**:
+- Professional coaches can implement their exact tactical systems
+- Recreational coaches can experiment with different formations
+- Consistent formation usage across multiple games
+- Better tactical preparation and analysis
+
+---
+
 ## Technology Roadmap
 
 ### Frontend Evolution
