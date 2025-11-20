@@ -30,18 +30,18 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { TFunction } from 'i18next';
 import type { QueryClient } from '@tanstack/react-query';
 import { useAutoSave } from '@/hooks/useAutoSave';
-import type { AppState, GameEvent } from '@/types';
-import type { GameSessionState } from '@/hooks/useGameSessionReducer';
+import type { AppState, GameEvent, PlayerAssessment, Player } from '@/types';
+import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { UseFieldCoordinationReturn } from './useFieldCoordination';
 import {
   saveGame as utilSaveGame,
   deleteGame as utilDeleteGame,
-  saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
   removeGameEvent,
+  getLatestGameId,
 } from '@/utils/savedGames';
-import { removeStorageItem } from '@/utils/localStorage';
-import { TIMER_STATE_KEY } from '@/hooks/useGameTimer';
-import { getLatestGameId } from '@/utils/helpers';
+import { saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
+import { removeStorageItem } from '@/utils/storage';
+import { TIMER_STATE_KEY } from '@/config/storageKeys';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
 import logger from '@/utils/logger';
@@ -50,29 +50,32 @@ import logger from '@/utils/logger';
  * Parameters for useGamePersistence hook
  */
 export interface UseGamePersistenceParams {
+  // Current game ID (managed externally for usePlayerAssessments dependency)
+  currentGameId: string | null;
+  setCurrentGameId: React.Dispatch<React.SetStateAction<string | null>>;
+
   // State from other hooks
   gameSessionState: GameSessionState;
   fieldCoordination: UseFieldCoordinationReturn;
-  availablePlayers: any[]; // TODO: Type properly
-  playerAssessments: Record<string, any>; // TODO: Type properly
+  availablePlayers: Player[];
+  playerAssessments: Record<string, PlayerAssessment>;
   isPlayed: boolean;
   initialLoadComplete: boolean;
 
   // From useGameDataManagement
   savedGames: Record<string, AppState>;
   setSavedGames: React.Dispatch<React.SetStateAction<Record<string, AppState>>>;
-  masterRoster: any[]; // For dependency tracking
-  currentGameIdSetting: string | null;
+  masterRoster: Player[];
 
   // History management
   resetHistory: (state: AppState) => void;
 
   // Initial state for resets
   initialState: AppState;
-  initialGameSessionData: any; // TODO: Type properly
+  initialGameSessionData: GameSessionState;
 
   // Callbacks
-  dispatchGameSession: (action: any) => void;
+  dispatchGameSession: React.Dispatch<GameSessionAction>;
   loadGameStateFromData: (data: AppState) => Promise<void>;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   t: TFunction;
@@ -88,11 +91,6 @@ export interface UseGamePersistenceParams {
  * Return type for useGamePersistence hook
  */
 export interface UseGamePersistenceReturn {
-  // Current game ID
-  currentGameId: string | null;
-  setCurrentGameId: React.Dispatch<React.SetStateAction<string | null>>;
-  gameIdRef: React.MutableRefObject<string | null>;
-
   // Load game state
   isGameLoading: boolean;
   gameLoadError: string | null;
@@ -153,7 +151,6 @@ export function useGamePersistence({
   savedGames,
   setSavedGames,
   masterRoster,
-  currentGameIdSetting,
   resetHistory,
   initialState,
   initialGameSessionData,
@@ -163,12 +160,13 @@ export function useGamePersistence({
   t,
   queryClient,
   handleCloseLoadGameModal,
+
+  // Current game ID (managed externally)
+  currentGameId,
+  setCurrentGameId,
 }: UseGamePersistenceParams): UseGamePersistenceReturn {
 
-  // --- Current Game ID State ---
-  const [currentGameId, setCurrentGameId] = useState<string | null>(DEFAULT_GAME_ID);
-
-  // This ref needs to be declared after currentGameId
+  // Ref for stable reference to currentGameId in callbacks
   const gameIdRef = useRef(currentGameId);
 
   useEffect(() => {
@@ -416,6 +414,7 @@ export function useGamePersistence({
     }
   }, [
     currentGameId,
+    setCurrentGameId,
     gameSessionState.teamId,
     gameSessionState.tournamentId,
     createGameSnapshot,
@@ -479,6 +478,7 @@ export function useGamePersistence({
     }
   }, [
     savedGames,
+    setCurrentGameId,
     loadGameStateFromData,
     handleCloseLoadGameModal,
     t,
@@ -553,6 +553,7 @@ export function useGamePersistence({
     savedGames,
     setSavedGames,
     currentGameId,
+    setCurrentGameId,
     dispatchGameSession,
     initialGameSessionData,
     fieldCoordination,
@@ -611,11 +612,6 @@ export function useGamePersistence({
   }, [gameSessionState.gameEvents, currentGameId, queryClient]);
 
   return {
-    // Current game ID
-    currentGameId,
-    setCurrentGameId,
-    gameIdRef,
-
     // Load game state
     isGameLoading,
     gameLoadError,
