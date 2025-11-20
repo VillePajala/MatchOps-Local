@@ -73,6 +73,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Essential Reading
 
 - **[REFACTORING_STATUS.md](./docs/03-active-plans/REFACTORING_STATUS.md)** ⭐ **START HERE** - Single source of truth
+- **[POST-REFACTORING-ROADMAP.md](./docs/03-active-plans/POST-REFACTORING-ROADMAP.md)** 🔜 **AFTER COMPLETION** - Week-by-week plan for tasks after refactoring
 - **[CRITICAL_FIXES_TRACKER.md](./docs/CRITICAL_FIXES_TRACKER.md)** - Detailed progress tracking
 - **[CRITICAL_FIXES_REQUIRED.md](./docs/CRITICAL_FIXES_REQUIRED.md)** - Original analysis (updated)
 - **[DOCUMENTATION_CLEANUP.md](./docs/03-active-plans/DOCUMENTATION_CLEANUP.md)** - File organization guide
@@ -91,6 +92,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 1. Small improvements, bugs, docs: ✅ Go ahead
 2. Major features: ⚠️ Possible, but will be 3x faster after hook splitting
 3. If in doubt: Ask the user whether to finish refactoring first
+
+**After 100% Refactoring Complete:**
+1. **Follow**: [POST-REFACTORING-ROADMAP.md](./docs/03-active-plans/POST-REFACTORING-ROADMAP.md) for next steps
+2. **Priorities**: Security fixes → NPM updates → Layer 3 polish → Next.js 16
+3. **Total effort**: 15-20 hours over 4-5 weeks
 
 ---
 
