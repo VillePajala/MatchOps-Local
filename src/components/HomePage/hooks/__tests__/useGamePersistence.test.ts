@@ -378,6 +378,99 @@ describe('useGamePersistence', () => {
 
       expect(deleteResult).toBe(false);
     });
+
+    /**
+     * Tests that delete updates both state and storage
+     * @critical
+     */
+    it('should dispatch DELETE_GAME_EVENT and ADJUST_SCORE_FOR_EVENT when deleting goal', async () => {
+      const dispatchGameSession = jest.fn();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        gameSessionState: createMockGameSessionState({
+          gameEvents: [{ id: 'event1', type: 'goal', time: 60 }],
+        }),
+        dispatchGameSession,
+      });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleDeleteGameEvent('event1');
+      });
+
+      await waitFor(() => {
+        // Verify DELETE_GAME_EVENT dispatch
+        expect(dispatchGameSession).toHaveBeenCalledWith({
+          type: 'DELETE_GAME_EVENT',
+          payload: 'event1'
+        });
+
+        // Verify ADJUST_SCORE_FOR_EVENT dispatch for goal
+        expect(dispatchGameSession).toHaveBeenCalledWith({
+          type: 'ADJUST_SCORE_FOR_EVENT',
+          payload: { eventType: 'goal', action: 'delete' }
+        });
+
+        // Should be called exactly twice (once for each dispatch)
+        expect(dispatchGameSession).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    /**
+     * Tests that opponentGoal also triggers score adjustment
+     * @critical
+     */
+    it('should dispatch ADJUST_SCORE_FOR_EVENT when deleting opponent goal', async () => {
+      const dispatchGameSession = jest.fn();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        gameSessionState: createMockGameSessionState({
+          gameEvents: [{ id: 'event2', type: 'opponentGoal', time: 30 }],
+        }),
+        dispatchGameSession,
+      });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleDeleteGameEvent('event2');
+      });
+
+      await waitFor(() => {
+        expect(dispatchGameSession).toHaveBeenCalledWith({
+          type: 'ADJUST_SCORE_FOR_EVENT',
+          payload: { eventType: 'opponentGoal', action: 'delete' }
+        });
+      });
+    });
+
+    /**
+     * Tests that non-goal events don't trigger score adjustment
+     * @integration
+     */
+    it('should NOT dispatch ADJUST_SCORE_FOR_EVENT for non-goal events', async () => {
+      const dispatchGameSession = jest.fn();
+      const params = createMockParams({
+        currentGameId: 'game123',
+        gameSessionState: createMockGameSessionState({
+          gameEvents: [{ id: 'event3', type: 'substitution', time: 45 }],
+        }),
+        dispatchGameSession,
+      });
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleDeleteGameEvent('event3');
+      });
+
+      await waitFor(() => {
+        // Should only call DELETE_GAME_EVENT, not ADJUST_SCORE_FOR_EVENT
+        expect(dispatchGameSession).toHaveBeenCalledTimes(1);
+        expect(dispatchGameSession).toHaveBeenCalledWith({
+          type: 'DELETE_GAME_EVENT',
+          payload: 'event3'
+        });
+      });
+    });
   });
 
   describe('Auto-Save Behavior', () => {

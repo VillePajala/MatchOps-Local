@@ -26,7 +26,7 @@
  * @category HomePage Hooks
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { TFunction } from 'i18next';
 import type { QueryClient } from '@tanstack/react-query';
 import { useAutoSave } from '@/hooks/useAutoSave';
@@ -317,6 +317,19 @@ export function useGamePersistence({
     showToast,
   ]);
 
+  // --- Auto-Save Function Ref ---
+  /**
+   * Ref-based save function to prevent stale closure race conditions
+   *
+   * This ensures useAutoSave always calls the latest version of handleQuickSaveGame,
+   * even if dependencies change during the debounce period.
+   */
+  const autoSaveFnRef = useRef<() => Promise<void>>(() => Promise.resolve());
+
+  useEffect(() => {
+    autoSaveFnRef.current = () => handleQuickSaveGame(true);
+  }, [handleQuickSaveGame]);
+
   // --- 3-Tier Debounced Auto-Save ---
   /**
    * Smart auto-save with tiered debouncing:
@@ -356,7 +369,7 @@ export function useGamePersistence({
       },
       delay: 2000,
     },
-    saveFunction: () => handleQuickSaveGame(true), // Silent auto-save
+    saveFunction: () => autoSaveFnRef.current(), // Ref-based to prevent stale closures
     enabled: initialLoadComplete && currentGameId !== DEFAULT_GAME_ID,
     currentGameId,
   });
