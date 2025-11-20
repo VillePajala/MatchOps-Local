@@ -7,8 +7,8 @@ import usePlayerAssessments from '@/hooks/usePlayerAssessments';
 import { exportFullBackup } from '@/utils/fullBackup';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
-import { useGameTimer } from '@/hooks/useGameTimer';
 import { useFieldCoordination } from './useFieldCoordination';
+import { useTimerManagement } from './useTimerManagement';
 // Import game session types (reducer is used internally by useGameSessionWithHistory)
 import {
   GameSessionState,
@@ -62,7 +62,7 @@ import logger from '@/utils/logger';
 import { startNewGameWithSetup, cancelNewGameSetup } from '../utils/newGameHandlers';
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
-import type { FieldContainerProps, FieldInteractions, TimerInteractions } from '@/components/HomePage/containers/FieldContainer';
+import type { FieldContainerProps, FieldInteractions } from '@/components/HomePage/containers/FieldContainer';
 import type { ReducerDrivenModals } from '@/types';
 import { debug } from '@/utils/debug';
 
@@ -262,17 +262,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     gameSessionState.completedIntervalDurations,
   );
 
-  const {
-    timeElapsedInSeconds,
-    isTimerRunning,
-    subAlertLevel,
-    lastSubConfirmationTimeSeconds,
-    startPause: handleStartPauseTimer,
-    reset: handleResetTimer,
-    ackSubstitution: handleSubstitutionMade,
-    setSubInterval: handleSetSubInterval,
-  } = useGameTimer({ state: gameSessionState, dispatch: dispatchGameSession, currentGameId: currentGameId || '' });
-
   // Temporary state for backward compatibility during migration
   // These will be removed once all references are updated to use gameDataManagement
   const [seasons, setSeasons] = useState<Season[]>([]);
@@ -376,8 +365,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [_selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
   const [isPersonnelManagerOpen, setIsPersonnelManagerOpen] = useState<boolean>(false);
 
-  // --- Timer State (Still needed here) ---
-  const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
+  // --- Timer State now managed by useTimerManagement (Step 2.6.5) ---
+  // showLargeTimerOverlay, isGoalLogModalOpen, timer handlers moved to useTimerManagement
   const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState<boolean>(false);
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
   // showResetFieldConfirm now managed by useFieldCoordination
@@ -394,6 +383,31 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       setSelectedTeamForRoster(teamId);
     }
   };
+
+  // --- Timer Management Hook (Step 2.6.5) ---
+  const timerManagement = useTimerManagement({
+    gameSessionState,
+    dispatchGameSession,
+    currentGameId,
+    availablePlayers,
+    masterRoster: gameDataManagement.masterRoster || [],
+    isGoalLogModalOpen,
+    setIsGoalLogModalOpen,
+  });
+
+  // Destructure timer state and handlers for backward compatibility
+  const {
+    timeElapsedInSeconds,
+    isTimerRunning,
+    subAlertLevel,
+    lastSubConfirmationTimeSeconds,
+    showLargeTimerOverlay,
+    handleToggleLargeTimerOverlay,
+    handleToggleGoalLogModal,
+    handleAddGoalEvent,
+    handleLogOpponentGoal,
+    timerInteractions,
+  } = timerManagement;
 
   // L2-2.4.1: Build GameContainer view-model (not yet consumed)
   const gameContainerVMInput = useMemo<BuildGameContainerVMInput>(() => ({
@@ -1163,60 +1177,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     sessionCoordination.handlers.setTeamName(newName);
   };
 
-  // --- Timer Handlers provided by useGameTimer ---
-
-  const handleToggleLargeTimerOverlay = useCallback(() => {
-    setShowLargeTimerOverlay((prev) => !prev);
-  }, []);
-
-
-  // Handler to open/close the goal log modal
-  const handleToggleGoalLogModal = useCallback(() => {
-    setIsGoalLogModalOpen((prev) => !prev);
-  }, [setIsGoalLogModalOpen]);
-
-  // Handler to add a goal event
-  const handleAddGoalEvent = (scorerId: string, assisterId?: string) => {
-    // Prefer current game's availablePlayers; fall back to master roster if empty
-    const playerPool = (availablePlayers && availablePlayers.length > 0)
-      ? availablePlayers
-      : (gameDataManagement.masterRoster || []);
-
-    const scorer = playerPool.find(p => p.id === scorerId);
-    const assister = assisterId ? playerPool.find(p => p.id === assisterId) : undefined;
-
-    if (!scorer) {
-      logger.error("Scorer not found!");
-      return;
-    }
-
-    const newEvent: GameEvent = {
-      id: `goal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      type: 'goal',
-      time: gameSessionState.timeElapsedInSeconds, // Use from gameSessionState
-      scorerId: scorer.id,
-      assisterId: assister?.id,
-    };
-    
-    // Dispatch actions to update game state via reducer
-    dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: newEvent });
-    dispatchGameSession({ type: 'ADJUST_SCORE_FOR_EVENT', payload: { eventType: 'goal', action: 'add' } });
-  };
-
-  // NEW Handler to log an opponent goal
-  const handleLogOpponentGoal = useCallback((time: number) => {
-    logger.log(`Logging opponent goal at time: ${time}`);
-    const newEvent: GameEvent = {
-      id: `oppGoal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      type: 'opponentGoal',
-      time: time, // Use provided time
-      scorerId: 'opponent', 
-    };
-
-    dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: newEvent });
-    dispatchGameSession({ type: 'ADJUST_SCORE_FOR_EVENT', payload: { eventType: 'opponentGoal', action: 'add' } });
-    setIsGoalLogModalOpen(false);
-  }, [dispatchGameSession, setIsGoalLogModalOpen]);
+  // --- Timer Handlers now provided by useTimerManagement (Step 2.6.5) ---
+  // handleToggleLargeTimerOverlay, handleToggleGoalLogModal, handleAddGoalEvent, handleLogOpponentGoal
+  // moved to useTimerManagement hook
 
   // Handler to update an existing game event
   const handleUpdateGameEvent = (updatedEvent: GameEvent) => {
@@ -1989,23 +1952,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     },
   }), [fieldCoordination]);
 
-  const timerInteractions = useMemo<TimerInteractions>(() => ({
-    toggleLargeOverlay: handleToggleLargeTimerOverlay,
-    toggleGoalLogModal: handleToggleGoalLogModal,
-    logOpponentGoal: handleLogOpponentGoal,
-    substitutionMade: handleSubstitutionMade,
-    setSubInterval: handleSetSubInterval,
-    startPauseTimer: handleStartPauseTimer,
-    resetTimer: handleResetTimer,
-  }), [
-    handleToggleLargeTimerOverlay,
-    handleToggleGoalLogModal,
-    handleLogOpponentGoal,
-    handleSubstitutionMade,
-    handleSetSubInterval,
-    handleStartPauseTimer,
-    handleResetTimer,
-  ]);
+  // timerInteractions now provided by useTimerManagement (Step 2.6.5)
 
   const fieldContainerProps: FieldContainerProps = {
     gameSessionState,

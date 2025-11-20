@@ -658,6 +658,21 @@ npm run dev
 
 ---
 
+## 🔜 WHAT'S NEXT?
+
+**After 100% completion of Step 2.6**, see:
+- **[POST-REFACTORING-ROADMAP.md](./POST-REFACTORING-ROADMAP.md)** - Week-by-week plan for tasks after refactoring
+
+This includes:
+- Critical security fixes (xlsx vulnerability)
+- NPM dependency updates (Sentry, React Query, Jest 30, Next.js 16)
+- Layer 3 polish (performance, error handling, auto-save, cache hygiene)
+- Documentation updates
+
+**Total estimated effort**: 15-20 hours over 4-5 weeks
+
+---
+
 **Document Owner**: Development Team
-**Last Updated**: November 18, 2025
+**Last Updated**: November 20, 2025
 **Next Review**: After hook splitting complete (December 2025)
