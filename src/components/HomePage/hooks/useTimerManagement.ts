@@ -152,7 +152,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     const newEvent: GameEvent = {
       id: `goal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       type: 'goal',
-      time: gameSessionState.timeElapsedInSeconds,
+      time: Math.round(gameSessionState.timeElapsedInSeconds * 100) / 100, // Round to 2 decimal places
       scorerId: scorer.id,
       assisterId: assister?.id,
     };
@@ -177,7 +177,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     const newEvent: GameEvent = {
       id: `oppGoal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       type: 'opponentGoal',
-      time: time,
+      time: Math.round(time * 100) / 100, // Round to 2 decimal places
       scorerId: 'opponent',
     };
 
