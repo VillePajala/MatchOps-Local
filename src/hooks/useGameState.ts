@@ -137,6 +137,15 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     const [playersOnField, setPlayersOnField] = useState<Player[]>(initialState.playersOnField);
     const [opponents, setOpponents] = useState<Opponent[]>(initialState.opponents);
     const [drawings, setDrawings] = useState<Point[][]>(initialState.drawings);
+
+    // --- Refs and version counters for race-condition-free history saving ---
+    // Avoids calling saveStateToHistory inside setState (React anti-pattern)
+    // Pattern: Store state in ref during move end, increment version to trigger effect
+    const [opponentMoveEndVersion, setOpponentMoveEndVersion] = useState(0);
+    const pendingOpponentMoveEndRef = useRef<Opponent[] | null>(null);
+
+    const [drawingEndVersion, setDrawingEndVersion] = useState(0);
+    const pendingDrawingEndRef = useRef<Point[][] | null>(null);
     const [availablePlayers, setAvailablePlayers] = useState<Player[]>(initialState.availablePlayers || []);
     const rosterSyncReadyRef = useRef<boolean>((initialState.availablePlayers?.length ?? 0) > 0);
     // ... (more state will be moved here)
@@ -232,6 +241,24 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
         pendingHistoryRef.current = null;
     }, [historyVersion, saveStateToHistory]);
 
+    // Effect: Save opponent state to history after move end
+    // This runs AFTER the state update has fully committed, avoiding race conditions
+    useEffect(() => {
+        if (opponentMoveEndVersion > 0 && pendingOpponentMoveEndRef.current) {
+            saveStateToHistory({ opponents: pendingOpponentMoveEndRef.current });
+            pendingOpponentMoveEndRef.current = null;
+        }
+    }, [opponentMoveEndVersion, saveStateToHistory]);
+
+    // Effect: Save drawing state to history after drawing end
+    // This runs AFTER the state update has fully committed, avoiding race conditions
+    useEffect(() => {
+        if (drawingEndVersion > 0 && pendingDrawingEndRef.current) {
+            saveStateToHistory({ drawings: pendingDrawingEndRef.current });
+            pendingDrawingEndRef.current = null;
+        }
+    }, [drawingEndVersion, saveStateToHistory]);
+
     // --- Handlers ---
 
     /**
@@ -286,9 +313,14 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     }, []); // No dependencies needed as it only uses the setter's previous state
 
     const handleDrawingEnd = useCallback(() => {
-        // Final state is already set by handleDrawingAddPoint, just save to history
-        saveStateToHistory({ drawings }); // Save final path state to history
-    }, [drawings, saveStateToHistory]);
+        // Use ref + version counter pattern to avoid race conditions
+        // Get current state via functional setter, store in ref, increment version
+        setDrawings(currentDrawings => {
+            pendingDrawingEndRef.current = currentDrawings;
+            setDrawingEndVersion(v => v + 1);
+            return currentDrawings; // No change to state
+        });
+    }, []);
 
     const handleClearDrawings = useCallback(() => {
         setDrawings([]); // Use setter from this hook
@@ -318,8 +350,14 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     }, []); // No dependency on opponents needed for setter callback
 
     const handleOpponentMoveEnd = useCallback(() => {
-        saveStateToHistory({ opponents }); // Just save the current opponents state
-    }, [opponents, saveStateToHistory]);
+        // Use ref + version counter pattern to avoid race conditions
+        // Get current state via functional setter, store in ref, increment version
+        setOpponents(currentOpponents => {
+            pendingOpponentMoveEndRef.current = currentOpponents;
+            setOpponentMoveEndVersion(v => v + 1);
+            return currentOpponents; // No change to state
+        });
+    }, []);
 
     const handleOpponentRemove = useCallback((opponentId: string) => {
         const updatedOpponents = opponents.filter(opp => opp.id !== opponentId);

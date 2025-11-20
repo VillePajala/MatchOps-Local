@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: use functional approach for player placement (avoid mutation)"
+  "notes": "refactor: eliminate 'any' type in test by using proper TFunction type"
 }
