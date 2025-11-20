@@ -22,6 +22,29 @@
  * - useFieldCoordination: Provides field state (players, opponents, drawings)
  * - useHistory: Provides history management (reset after save/load)
  *
+ * **Architectural Note - playerAssessments Dependency**:
+ *
+ * This hook requires `playerAssessments` as a parameter, which creates a dependency chain:
+ * - usePlayerAssessments(currentGameId) → playerAssessments
+ * - useGamePersistence(..., playerAssessments) → includes in snapshot
+ *
+ * **Why This Is A Code Smell**:
+ * Player assessments are stored per-game (keyed by gameId) but treated as external
+ * state passed into persistence. This split-brain architecture causes:
+ * - Tight coupling between hooks
+ * - Harder testing (must mock assessments)
+ * - Inconsistency (scores are in gameSessionState, assessments are separate)
+ *
+ * **Better Architecture (Future Refactoring)**:
+ * Option A: Move assessments into GameSessionState (single source of truth)
+ * Option B: Don't include assessments in game snapshot (fully independent)
+ *
+ * **Current State**: Accepting assessments as parameter (Option C) works fine with no
+ * bugs, but creates architectural debt. Consider refactoring when modifying assessment
+ * or persistence logic.
+ *
+ * See: src/hooks/usePlayerAssessments.ts for assessment storage implementation
+ *
  * @module useGamePersistence
  * @category HomePage Hooks
  */
@@ -174,37 +197,32 @@ export function useGamePersistence({
   /**
    * Creates a snapshot of current game state for persistence
    *
-   * Excludes volatile timer states (timeElapsedInSeconds, isTimerRunning, etc.)
-   * which are re-initialized on load by the reducer.
+   * Uses destructuring to automatically include all GameSessionState fields
+   * except volatile timer states, which are explicitly excluded and re-initialized
+   * on load by the reducer.
+   *
+   * Benefits:
+   * - Automatically includes new fields added to GameSessionState
+   * - Explicitly documents excluded volatile fields
+   * - Reduces maintenance burden and error risk
    */
   const createGameSnapshot = useCallback((): AppState => {
+    // Exclude volatile timer states that should not be persisted
+    const {
+      timeElapsedInSeconds, // eslint-disable-line @typescript-eslint/no-unused-vars
+      startTimestamp, // eslint-disable-line @typescript-eslint/no-unused-vars
+      isTimerRunning, // eslint-disable-line @typescript-eslint/no-unused-vars
+      nextSubDueTimeSeconds, // eslint-disable-line @typescript-eslint/no-unused-vars
+      subAlertLevel, // eslint-disable-line @typescript-eslint/no-unused-vars
+      ...persistedGameSessionState
+    } = gameSessionState;
+
     return {
-      // From gameSessionState (persisted fields)
-      teamName: gameSessionState.teamName,
-      opponentName: gameSessionState.opponentName,
-      gameDate: gameSessionState.gameDate,
-      homeScore: gameSessionState.homeScore,
-      awayScore: gameSessionState.awayScore,
-      gameNotes: gameSessionState.gameNotes,
-      homeOrAway: gameSessionState.homeOrAway,
+      // Spread all persisted GameSessionState fields
+      ...persistedGameSessionState,
+
+      // Override/add additional fields not in gameSessionState
       isPlayed,
-      numberOfPeriods: gameSessionState.numberOfPeriods,
-      periodDurationMinutes: gameSessionState.periodDurationMinutes,
-      currentPeriod: gameSessionState.currentPeriod,
-      gameStatus: gameSessionState.gameStatus,
-      seasonId: gameSessionState.seasonId,
-      tournamentId: gameSessionState.tournamentId,
-      teamId: gameSessionState.teamId,
-      gameLocation: gameSessionState.gameLocation,
-      gameTime: gameSessionState.gameTime,
-      demandFactor: gameSessionState.demandFactor,
-      subIntervalMinutes: gameSessionState.subIntervalMinutes,
-      completedIntervalDurations: gameSessionState.completedIntervalDurations,
-      lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds,
-      showPlayerNames: gameSessionState.showPlayerNames,
-      selectedPlayerIds: gameSessionState.selectedPlayerIds,
-      gamePersonnel: gameSessionState.gamePersonnel ?? [],
-      gameEvents: gameSessionState.gameEvents,
       assessments: playerAssessments,
 
       // From fieldCoordination
@@ -217,12 +235,11 @@ export function useGamePersistence({
 
       // Per-game roster
       availablePlayers,
-
-      // Volatile timer states are intentionally EXCLUDED from the snapshot
-      // They are re-initialized on load by the reducer
     };
   }, [
     gameSessionState,
+    isPlayed,
+    playerAssessments,
     fieldCoordination.playersOnField,
     fieldCoordination.opponents,
     fieldCoordination.drawings,
@@ -230,8 +247,6 @@ export function useGamePersistence({
     fieldCoordination.tacticalDrawings,
     fieldCoordination.tacticalBallPosition,
     availablePlayers,
-    playerAssessments,
-    isPlayed,
   ]);
 
   // --- Quick Save Handler ---
