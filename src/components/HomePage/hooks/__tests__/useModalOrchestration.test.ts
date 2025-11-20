@@ -15,7 +15,8 @@ import type { UseFieldCoordinationReturn } from '../useFieldCoordination';
 import type { UseGamePersistenceReturn } from '../useGamePersistence';
 import type { UseTimerManagementReturn } from '../useTimerManagement';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
-import type { Team, Season, Tournament, Player, Personnel } from '@/types';
+import type { Team, Season, Tournament, Player, Personnel, AppState } from '@/types';
+import type { UseMutationResult } from '@tanstack/react-query';
 
 // Wrapper component that provides ModalContext
 const createWrapper = () => {
@@ -28,6 +29,8 @@ const createWrapper = () => {
 const createMockTeam = (overrides?: Partial<Team>): Team => ({
   id: 'team-1',
   name: 'Test Team',
+  createdAt: '2024-01-01',
+  updatedAt: '2024-01-01',
   ...overrides,
 });
 
@@ -59,7 +62,9 @@ const createMockPlayer = (overrides?: Partial<Player>): Player => ({
 const createMockPersonnel = (overrides?: Partial<Personnel>): Personnel => ({
   id: 'personnel-1',
   name: 'Test Coach',
-  role: 'Head Coach',
+  role: 'head_coach',
+  createdAt: '2024-01-01',
+  updatedAt: '2024-01-01',
   ...overrides,
 });
 
@@ -71,23 +76,29 @@ const createMockProps = (overrides?: Partial<UseModalOrchestrationProps>): UseMo
     tournaments: [createMockTournament()],
     masterRoster: [createMockPlayer()],
     personnel: [createMockPersonnel()],
+    savedGames: {},
+    currentGameIdSetting: null,
+    isLoading: false,
+    error: null,
     personnelManager: {
       addPersonnel: jest.fn(),
       updatePersonnel: jest.fn(),
       removePersonnel: jest.fn(),
       isLoading: false,
+      personnel: [],
+      error: null,
     },
     mutationResults: {
-      addSeason: { mutate: jest.fn() } as unknown as UseMutationResult<Season, Error, Season, unknown>,
-      addTournament: { mutate: jest.fn() } as unknown as UseMutationResult<Tournament, Error, Tournament, unknown>,
-      updateSeason: { mutate: jest.fn() } as unknown as UseMutationResult<Season, Error, Season, unknown>,
-      deleteSeason: { mutate: jest.fn() } as unknown as UseMutationResult<void, Error, string, unknown>,
-      updateTournament: { mutate: jest.fn() } as unknown as UseMutationResult<Tournament, Error, Tournament, unknown>,
-      deleteTournament: { mutate: jest.fn() } as unknown as UseMutationResult<void, Error, string, unknown>,
+      addSeason: { mutate: jest.fn() } as unknown as UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>,
+      addTournament: { mutate: jest.fn() } as unknown as UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>,
+      updateSeason: { mutate: jest.fn() } as unknown as UseMutationResult<Season | null, Error, Season, unknown>,
+      deleteSeason: { mutate: jest.fn() } as unknown as UseMutationResult<boolean, Error, string, unknown>,
+      updateTournament: { mutate: jest.fn() } as unknown as UseMutationResult<Tournament | null, Error, Tournament, unknown>,
+      deleteTournament: { mutate: jest.fn() } as unknown as UseMutationResult<boolean, Error, string, unknown>,
     },
   };
 
-  const mockFieldCoordination: UseFieldCoordinationReturn = {
+  const mockFieldCoordination = {
     playersOnField: [],
     opponents: [],
     drawings: [],
@@ -105,34 +116,23 @@ const createMockProps = (overrides?: Partial<UseModalOrchestrationProps>): UseMo
     handleDropOnField: jest.fn(),
     handlePlayerDragStartFromBar: jest.fn(),
     handlePlayerTapInBar: jest.fn(),
-    handleOpponentAdd: jest.fn(),
+    handleAddOpponent: jest.fn(),
     handleOpponentRemove: jest.fn(),
     handleOpponentMove: jest.fn(),
     handleOpponentMoveEnd: jest.fn(),
     handleDrawingStart: jest.fn(),
-    handleDrawingMove: jest.fn(),
     handleDrawingEnd: jest.fn(),
-    handleDrawingRemove: jest.fn(),
-    handleDrawingModeToggle: jest.fn(),
-    handleFieldReset: jest.fn(),
-    handleResetFieldCancel: jest.fn(),
-    handleResetFieldConfirmed: jest.fn(),
-    handleTacticalDiscAdd: jest.fn(),
-    handleTacticalDiscRemove: jest.fn(),
-    handleTacticalDiscMove: jest.fn(),
-    handleTacticalDiscMoveEnd: jest.fn(),
-    handleTacticalBallPositionUpdate: jest.fn(),
-    handleTacticalDrawingStart: jest.fn(),
-    handleTacticalDrawingMove: jest.fn(),
-    handleTacticalDrawingEnd: jest.fn(),
-    handleTacticalDrawingRemove: jest.fn(),
-    toggleTacticsBoard: jest.fn(),
-  };
+    handleToggleDrawingMode: jest.fn(),
+    handleResetFieldClick: jest.fn(),
+    handleAddTacticalDisc: jest.fn(),
+    handleToggleTacticsBoard: jest.fn(),
+  } as unknown as UseFieldCoordinationReturn;
 
   const mockPersistence: UseGamePersistenceReturn = {
     handleLoadGame: jest.fn(),
     handleDeleteGame: jest.fn(),
     handleDeleteGameEvent: jest.fn(),
+    handleQuickSaveGame: jest.fn(),
     isGameLoading: false,
     gameLoadError: null,
     isGameDeleting: false,
@@ -141,9 +141,28 @@ const createMockProps = (overrides?: Partial<UseModalOrchestrationProps>): UseMo
   };
 
   const mockTimerManagement: UseTimerManagementReturn = {
+    timeElapsedInSeconds: 0,
+    isTimerRunning: false,
+    subAlertLevel: 'none' as const,
+    lastSubConfirmationTimeSeconds: 0,
+    showLargeTimerOverlay: false,
+    handleStartPauseTimer: jest.fn(),
+    handleResetTimer: jest.fn(),
+    handleSubstitutionMade: jest.fn(),
+    handleSetSubInterval: jest.fn(),
+    handleToggleLargeTimerOverlay: jest.fn(),
     handleToggleGoalLogModal: jest.fn(),
     handleAddGoalEvent: jest.fn(),
     handleLogOpponentGoal: jest.fn(),
+    timerInteractions: {
+      toggleLargeOverlay: jest.fn(),
+      toggleGoalLogModal: jest.fn(),
+      logOpponentGoal: jest.fn(),
+      substitutionMade: jest.fn(),
+      setSubInterval: jest.fn(),
+      startPauseTimer: jest.fn(),
+      resetTimer: jest.fn(),
+    },
   };
 
   const mockGameSessionState: GameSessionState = {
@@ -160,8 +179,8 @@ const createMockProps = (overrides?: Partial<UseModalOrchestrationProps>): UseMo
     gameStatus: 'notStarted',
     selectedPlayerIds: [],
     gamePersonnel: [],
-    seasonId: null,
-    tournamentId: null,
+    seasonId: '',
+    tournamentId: '',
     demandFactor: 5,
     gameEvents: [],
     timeElapsedInSeconds: 0,
@@ -547,6 +566,7 @@ describe('useModalOrchestration', () => {
           handleLoadGame: jest.fn(),
           handleDeleteGame: jest.fn(),
           handleDeleteGameEvent: jest.fn(),
+          handleQuickSaveGame: jest.fn(),
           isGameLoading: true,
           gameLoadError: 'Load error',
           isGameDeleting: false,
@@ -676,19 +696,25 @@ describe('useModalOrchestration', () => {
         tournaments: [],
         masterRoster: [],
         personnel: [],
+        savedGames: {},
+        currentGameIdSetting: null,
+        isLoading: false,
+        error: null,
         personnelManager: {
           addPersonnel: jest.fn(),
           updatePersonnel: jest.fn(),
           removePersonnel: jest.fn(),
           isLoading: false,
+          personnel: [],
+          error: null,
         },
         mutationResults: {
-          addSeason: { mutate: jest.fn() } as unknown as UseMutationResult<Season, Error, Season, unknown>,
-          addTournament: { mutate: jest.fn() } as unknown as UseMutationResult<Tournament, Error, Tournament, unknown>,
-          updateSeason: { mutate: jest.fn() } as unknown as UseMutationResult<Season, Error, Season, unknown>,
-          deleteSeason: { mutate: jest.fn() } as unknown as UseMutationResult<void, Error, string, unknown>,
-          updateTournament: { mutate: jest.fn() } as unknown as UseMutationResult<Tournament, Error, Tournament, unknown>,
-          deleteTournament: { mutate: jest.fn() } as unknown as UseMutationResult<void, Error, string, unknown>,
+          addSeason: { mutate: jest.fn() } as unknown as UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>,
+          addTournament: { mutate: jest.fn() } as unknown as UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>,
+          updateSeason: { mutate: jest.fn() } as unknown as UseMutationResult<Season | null, Error, Season, unknown>,
+          deleteSeason: { mutate: jest.fn() } as unknown as UseMutationResult<boolean, Error, string, unknown>,
+          updateTournament: { mutate: jest.fn() } as unknown as UseMutationResult<Tournament | null, Error, Tournament, unknown>,
+          deleteTournament: { mutate: jest.fn() } as unknown as UseMutationResult<boolean, Error, string, unknown>,
         },
       };
 
@@ -749,9 +775,28 @@ describe('useModalOrchestration', () => {
      */
     it('should include timer management handlers in modalManagerProps', () => {
       const mockTimerManagement: UseTimerManagementReturn = {
+        timeElapsedInSeconds: 0,
+        isTimerRunning: false,
+        subAlertLevel: 'none' as const,
+        lastSubConfirmationTimeSeconds: 0,
+        showLargeTimerOverlay: false,
+        handleStartPauseTimer: jest.fn(),
+        handleResetTimer: jest.fn(),
+        handleSubstitutionMade: jest.fn(),
+        handleSetSubInterval: jest.fn(),
+        handleToggleLargeTimerOverlay: jest.fn(),
         handleToggleGoalLogModal: jest.fn(),
         handleAddGoalEvent: jest.fn(),
         handleLogOpponentGoal: jest.fn(),
+        timerInteractions: {
+          toggleLargeOverlay: jest.fn(),
+          toggleGoalLogModal: jest.fn(),
+          logOpponentGoal: jest.fn(),
+          substitutionMade: jest.fn(),
+          setSubInterval: jest.fn(),
+          startPauseTimer: jest.fn(),
+          resetTimer: jest.fn(),
+        },
       };
 
       const props = createMockProps({
