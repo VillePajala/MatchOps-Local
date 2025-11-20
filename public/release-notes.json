@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: remove duplicate auto-save and add tests for useGamePersistence"
+  "notes": "fix: remove duplicate auto-save, add tests, and fix DRY violations in useGamePersistence"
 }
