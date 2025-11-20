@@ -260,6 +260,9 @@ describe('useGamePersistence', () => {
       const loadGameStateFromData = jest.fn().mockResolvedValue(undefined);
       const setCurrentGameId = jest.fn();
 
+      // Suppress console.error for storage cleanup failures (non-critical)
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
       const params = createMockParams({
         savedGames: { 'game456': mockGameData },
         loadGameStateFromData,
@@ -277,6 +280,8 @@ describe('useGamePersistence', () => {
         expect(setCurrentGameId).toHaveBeenCalledTimes(1);
         expect(setCurrentGameId).toHaveBeenCalledWith('game456');
       });
+
+      consoleErrorSpy.mockRestore();
     });
 
     /**
@@ -284,6 +289,9 @@ describe('useGamePersistence', () => {
      * @edge-case
      */
     it('should set error when game not found', async () => {
+      // Suppress console.error for this test as we expect an error
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
       const params = createMockParams({ savedGames: {} });
       const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
 
@@ -294,6 +302,8 @@ describe('useGamePersistence', () => {
       await waitFor(() => {
         expect(result.current.gameLoadError).toBeTruthy();
       });
+
+      consoleErrorSpy.mockRestore();
     });
   });
 
@@ -326,6 +336,9 @@ describe('useGamePersistence', () => {
      * @edge-case
      */
     it('should not call setSavedGames for DEFAULT_GAME_ID', async () => {
+      // Suppress console.warn for this test as we expect a warning
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
       const setSavedGames = jest.fn();
       const params = createMockParams({ setSavedGames });
       const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
@@ -336,6 +349,7 @@ describe('useGamePersistence', () => {
 
       // Should not attempt to delete default game
       expect(setSavedGames).not.toHaveBeenCalled();
+      consoleWarnSpy.mockRestore();
     });
   });
 
@@ -345,6 +359,9 @@ describe('useGamePersistence', () => {
      * @edge-case
      */
     it('should return false when event not found', async () => {
+      // Suppress console.error for this test as we expect an error
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
       const params = createMockParams({
         gameSessionState: createMockGameSessionState({ gameEvents: [] }),
       });
@@ -356,6 +373,7 @@ describe('useGamePersistence', () => {
       });
 
       expect(deleteResult).toBe(false);
+      consoleErrorSpy.mockRestore();
     });
 
     /**
@@ -363,6 +381,9 @@ describe('useGamePersistence', () => {
      * @edge-case
      */
     it('should return false when currentGameId is null', async () => {
+      // Suppress console.error for this test as we expect an error
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
       const params = createMockParams({
         currentGameId: null,
         gameSessionState: createMockGameSessionState({
@@ -377,6 +398,7 @@ describe('useGamePersistence', () => {
       });
 
       expect(deleteResult).toBe(false);
+      consoleErrorSpy.mockRestore();
     });
 
     /**
