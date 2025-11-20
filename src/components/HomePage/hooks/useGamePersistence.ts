@@ -597,11 +597,14 @@ export function useGamePersistence({
    * @returns true if successful, false otherwise
    */
   const handleDeleteGameEvent = useCallback(async (goalId: string): Promise<boolean> => {
-    const eventToDelete = gameSessionState.gameEvents.find((e: GameEvent) => e.id === goalId);
-    if (!eventToDelete) {
+    // Find event index (single lookup for both validation and storage deletion)
+    const eventIndex = gameSessionState.gameEvents.findIndex((e: GameEvent) => e.id === goalId);
+    if (eventIndex === -1) {
       logger.error("Event to delete not found in gameSessionState.gameEvents:", goalId);
       return false;
     }
+
+    const eventToDelete = gameSessionState.gameEvents[eventIndex];
 
     if (!currentGameId) {
       logger.error("No current game ID for event deletion");
@@ -609,12 +612,7 @@ export function useGamePersistence({
     }
 
     try {
-      // Storage FIRST - find event index and remove from storage
-      const eventIndex = gameSessionState.gameEvents.findIndex((e: GameEvent) => e.id === goalId);
-      if (eventIndex === -1) {
-        logger.error("Event index not found for deletion:", goalId);
-        return false;
-      }
+      // Storage FIRST - remove from storage using the index we already found
 
       // Remove from storage
       const updatedGame = await removeGameEvent(currentGameId, eventIndex);
