@@ -241,53 +241,10 @@ export function useGamePersistence({
     isPlayed,
   ]);
 
-  // --- 3-Tier Debounced Auto-Save ---
-  /**
-   * Smart auto-save with tiered debouncing:
-   * - Immediate: Goals, scores (critical statistics)
-   * - Short (500ms): Names, notes (user-visible metadata)
-   * - Long (2000ms): Field positions, drawings (tactical data)
-   */
-  useAutoSave({
-    immediate: {
-      // Critical for statistics - save instantly
-      states: {
-        gameEvents: gameSessionState.gameEvents,
-        homeScore: gameSessionState.homeScore,
-        awayScore: gameSessionState.awayScore,
-      },
-      delay: 0,
-    },
-    short: {
-      // User-visible metadata - feels instant
-      states: {
-        teamName: gameSessionState.teamName,
-        opponentName: gameSessionState.opponentName,
-        gameNotes: gameSessionState.gameNotes,
-        assessments: playerAssessments,
-      },
-      delay: 500,
-    },
-    long: {
-      // Tactical data - debounce for performance
-      states: {
-        playersOnField: fieldCoordination.playersOnField,
-        opponents: fieldCoordination.opponents,
-        drawings: fieldCoordination.drawings,
-        tacticalDiscs: fieldCoordination.tacticalDiscs,
-        tacticalDrawings: fieldCoordination.tacticalDrawings,
-        tacticalBallPosition: fieldCoordination.tacticalBallPosition,
-      },
-      delay: 2000,
-    },
-    saveFunction: () => handleQuickSaveGame(true), // Silent auto-save
-    enabled: initialLoadComplete && currentGameId !== DEFAULT_GAME_ID,
-    currentGameId: currentGameId || '',
-  });
-
   // --- Quick Save Handler ---
   /**
    * Manual save triggered by user action (Ctrl+S, Save button)
+   * Also used by auto-save (with silent=true)
    *
    * Creates new game if currentGameId is default, otherwise updates existing game.
    * Resets undo/redo history after save to reflect saved state.
@@ -366,6 +323,50 @@ export function useGamePersistence({
     resetHistory,
     showToast,
   ]);
+
+  // --- 3-Tier Debounced Auto-Save ---
+  /**
+   * Smart auto-save with tiered debouncing:
+   * - Immediate: Goals, scores (critical statistics)
+   * - Short (500ms): Names, notes (user-visible metadata)
+   * - Long (2000ms): Field positions, drawings (tactical data)
+   */
+  useAutoSave({
+    immediate: {
+      // Critical for statistics - save instantly
+      states: {
+        gameEvents: gameSessionState.gameEvents,
+        homeScore: gameSessionState.homeScore,
+        awayScore: gameSessionState.awayScore,
+      },
+      delay: 0,
+    },
+    short: {
+      // User-visible metadata - feels instant
+      states: {
+        teamName: gameSessionState.teamName,
+        opponentName: gameSessionState.opponentName,
+        gameNotes: gameSessionState.gameNotes,
+        assessments: playerAssessments,
+      },
+      delay: 500,
+    },
+    long: {
+      // Tactical data - debounce for performance
+      states: {
+        playersOnField: fieldCoordination.playersOnField,
+        opponents: fieldCoordination.opponents,
+        drawings: fieldCoordination.drawings,
+        tacticalDiscs: fieldCoordination.tacticalDiscs,
+        tacticalDrawings: fieldCoordination.tacticalDrawings,
+        tacticalBallPosition: fieldCoordination.tacticalBallPosition,
+      },
+      delay: 2000,
+    },
+    saveFunction: () => handleQuickSaveGame(true), // Silent auto-save
+    enabled: initialLoadComplete && currentGameId !== DEFAULT_GAME_ID,
+    currentGameId: currentGameId || '',
+  });
 
   // --- Load Game Handler ---
   /**
