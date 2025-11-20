@@ -365,7 +365,7 @@ export function useGamePersistence({
     },
     saveFunction: () => handleQuickSaveGame(true), // Silent auto-save
     enabled: initialLoadComplete && currentGameId !== DEFAULT_GAME_ID,
-    currentGameId: currentGameId || '',
+    currentGameId,
   });
 
   // --- Load Game Handler ---
