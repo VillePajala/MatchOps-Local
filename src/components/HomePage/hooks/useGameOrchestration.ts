@@ -38,10 +38,11 @@ import { saveMasterRoster } from '@/utils/masterRoster';
 // Import useQuery, useMutation, useQueryClient
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRoster } from '@/hooks/useRoster';
-import { useModalContext } from '@/contexts/ModalProvider';
 import { useGameDataManagement } from './useGameDataManagement';
 import { useGameSessionCoordination } from './useGameSessionCoordination';
 import { useGamePersistence } from './useGamePersistence';
+import { useModalOrchestration } from './useModalOrchestration';
+import { useModalContext } from '@/contexts/ModalProvider';
 // Import async storage utilities
 import {
   getStorageItem,
@@ -247,7 +248,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
   const [currentGameId, setCurrentGameId] = useState<string | null>(DEFAULT_GAME_ID);
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
-  
+  const [hasCheckedInstructionsModal, setHasCheckedInstructionsModal] = useState<boolean>(false);
+
   // This ref needs to be declared after currentGameId
   const gameIdRef = useRef(currentGameId);
 
@@ -293,6 +295,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     i18n.changeLanguage(appLanguage);
     utilUpdateAppSettings({ language: appLanguage }).catch(() => {});
   }, [appLanguage]);
+
+  // Modal state from context (needed for modal control within useGameOrchestration and reducerDrivenModals)
   const {
     isGameSettingsModalOpen,
     setIsGameSettingsModalOpen,
@@ -304,14 +308,18 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setIsSeasonTournamentModalOpen,
     isTrainingResourcesOpen,
     setIsTrainingResourcesOpen,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isGoalLogModalOpen,
     setIsGoalLogModalOpen,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used here
     isGameStatsModalOpen,
     setIsGameStatsModalOpen,
     isNewGameSetupModalOpen,
     setIsNewGameSetupModalOpen,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isSettingsModalOpen,
     setIsSettingsModalOpen,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
   } = useModalContext();
@@ -360,14 +368,15 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // showToast already defined earlier (needed by useFieldCoordination)
   // const [isPlayerStatsModalOpen, setIsPlayerStatsModalOpen] = useState(false);
   const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<Player | null>(null);
-  const [isTeamManagerOpen, setIsTeamManagerOpen] = useState<boolean>(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
-  const [isPersonnelManagerOpen, setIsPersonnelManagerOpen] = useState<boolean>(false);
+
+  // --- Modal State now managed by useModalOrchestration (Step 2.6.6) ---
+  // isTeamManagerOpen, isPersonnelManagerOpen, isInstructionsModalOpen moved to useModalOrchestration
+  // Setters returned from useModalOrchestration and used by control bar handlers
 
   // --- Timer State now managed by useTimerManagement (Step 2.6.5) ---
   // showLargeTimerOverlay, isGoalLogModalOpen, timer handlers moved to useTimerManagement
-  const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState<boolean>(false);
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
   // showResetFieldConfirm now managed by useFieldCoordination
 
@@ -402,9 +411,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     lastSubConfirmationTimeSeconds,
     showLargeTimerOverlay,
     handleToggleLargeTimerOverlay,
-    handleToggleGoalLogModal,
-    handleAddGoalEvent,
-    handleLogOpponentGoal,
+    // handleToggleGoalLogModal, handleAddGoalEvent, handleLogOpponentGoal moved to useModalOrchestration
     timerInteractions,
   } = timerManagement;
 
@@ -518,11 +525,14 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // NEW: States for LoadGameModal operations
   const [isLoadingGamesList, setIsLoadingGamesList] = useState(false);
 
-  // Confirmation modal states
+  // Confirmation modal states - Passed to useModalOrchestration
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State value passed to useModalOrchestration, setter used in handlers
   const [showNoPlayersConfirm, setShowNoPlayersConfirm] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State value passed to useModalOrchestration, setter used in handlers
   const [showHardResetConfirm, setShowHardResetConfirm] = useState(false);
   const [showSaveBeforeNewConfirm, setShowSaveBeforeNewConfirm] = useState(false);
   const [gameIdentifierForSave, setGameIdentifierForSave] = useState<string>('');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State value passed to useModalOrchestration, setter used in handlers
   const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
   const [loadGamesListError, setLoadGamesListError] = useState<string | null>(null);
   // Load/delete game state moved to useGamePersistence hook
@@ -863,13 +873,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         }
         // --- END TIMER RESTORATION LOGIC ---
 
-        // Only show automatic instructions for experienced users with specific actions, not first-time users
-        const seenGuide = await getHasSeenAppGuide();
-        const hasAnyData = Object.keys(savedGames).length > 0; // Check if user has any saved games
-        if (!seenGuide && initialAction !== null && hasAnyData) {
-          setIsInstructionsModalOpen(true);
-        }
-
         // This is now the single source of truth for loading completion.
         setInitialLoadComplete(true);
       }
@@ -890,7 +893,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     initialLoadComplete,
     initialAction, // Used to determine if instructions modal should show automatically
     savedGames, // Used to check if user has any saved games for instructions modal logic
-    dispatchGameSession // Used for timer restoration
+    dispatchGameSession, // Used for timer restoration
+    // setIsInstructionsModalOpen intentionally excluded - useState setter is stable (from useModalOrchestration)
   ]);
 
   // Check if we should show first game interface guide
@@ -1171,6 +1175,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     handleCloseLoadGameModal: closeLoadGameViaReducer,
   });
 
+  // useModalOrchestration hook call moved to line 2138 (after all handlers are defined)
+
   // Legacy handler - delegates to session coordination
   const handleTeamNameChange = (newName: string) => {
     sessionCoordination.handlers.setTeamName(newName);
@@ -1205,22 +1211,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   //   setIsNewGameSetupModalOpen(false);
   // }, []);
 
-  // Handler to open/close the stats modal
-  const handleToggleGameStatsModal = () => {
-    // If the modal is currently open, we are about to close it.
-    if (isGameStatsModalOpen) {
-      // Clear the selected player so it doesn't open to the same player next time.
-      setSelectedPlayerForStats(null);
-    }
-    setIsGameStatsModalOpen(!isGameStatsModalOpen);
-  };
-
-  const handleOpenTeamManagerModal = () => {
-    setIsTeamManagerOpen(true);
-  };
-  const handleCloseTeamManagerModal = () => {
-    setIsTeamManagerOpen(false);
-  };
+  // handleToggleGameStatsModal moved to useModalOrchestration
+  // handleOpenTeamManagerModal and handleCloseTeamManagerModal moved to useModalOrchestration
 
   // Placeholder handlers - delegate to session coordination
   const handleOpponentNameChange = sessionCoordination.handlers.setOpponentName;
@@ -1236,12 +1228,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setIsTrainingResourcesOpen(!isTrainingResourcesOpen);
   };
 
-  const handleToggleInstructionsModal = () => {
-    if (isInstructionsModalOpen) {
-      saveHasSeenAppGuide(true);
-    }
-    setIsInstructionsModalOpen(!isInstructionsModalOpen);
-  };
+  // handleToggleInstructionsModal moved to useModalOrchestration
 
   const handleShowAppGuide = () => {
     saveHasSeenAppGuide(false);
@@ -1283,22 +1270,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   
   // Placeholder handlers for Save/Load Modals
 
-  const handleOpenLoadGameModal = () => {
-    logger.log("Opening Load Game Modal...");
-    reducerDrivenModals.loadGame.open();
-  };
-
-  const handleCloseLoadGameModal = () => {
-    reducerDrivenModals.loadGame.close();
-  };
-
-  const handleOpenSeasonTournamentModal = () => {
-    openSeasonTournamentViaReducer();
-  };
-
-  const handleCloseSeasonTournamentModal = () => {
-    closeSeasonTournamentViaReducer();
-  };
+  // Modal open/close handlers moved to useModalOrchestration
 
 
   // Function to handle loading a selected game
@@ -1345,7 +1317,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   };
 
   const openPlayerAssessmentModal = () => setIsPlayerAssessmentModalOpen(true);
-  const closePlayerAssessmentModal = () => setIsPlayerAssessmentModalOpen(false);
+  // closePlayerAssessmentModal moved to useModalOrchestration
 
   const handleSavePlayerAssessment = async (
     playerId: string,
@@ -1372,12 +1344,10 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
   };
   
-  
+
   // ... (other code in Home component) ...
 
-  const closeRosterModal = () => {
-    closeRosterViaReducer();
-  };
+  // closeRosterModal moved to useModalOrchestration
 
   // --- ASYNC Roster Management Handlers for RosterSettingsModal ---
   const handleRenamePlayerForModal = useCallback(async (playerId: string, playerData: { name: string; nickname?: string }) => {
@@ -1652,19 +1622,15 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
   }, [initialLoadComplete, currentGameId, savedGames]);
 
-  // --- NEW: Handlers for Game Settings Modal --- 
+  // --- NEW: Handlers for Game Settings Modal ---
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in controlBarProps
   const handleOpenGameSettingsModal = () => {
       setIsGameSettingsModalOpen(true); // Corrected State Setter
   };
-  const handleCloseGameSettingsModal = () => {
-    setIsGameSettingsModalOpen(false); // Corrected State Setter
-  };
-  const handleOpenSettingsModal = () => {
-    setIsSettingsModalOpen(true);
-  };
-  const handleCloseSettingsModal = () => {
-    setIsSettingsModalOpen(false);
-  };
+  // handleCloseGameSettingsModal moved to useModalOrchestration
+  // handleOpenSettingsModal moved to useModalOrchestration
+  // handleCloseSettingsModal moved to useModalOrchestration
+  // handleCloseSeasonTournamentModal moved to useModalOrchestration
 
   // --- Handlers for GameSettingsModal (delegate to session coordination) ---
   const handleGameLocationChange = sessionCoordination.handlers.setGameLocation;
@@ -1916,7 +1882,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const handleGameLogClick = (gameId: string) => {
     setCurrentGameId(gameId);
     // handleClosePlayerStats(); // This function no longer exists
-    handleToggleGameStatsModal();
+    setIsGameStatsModalOpen(prev => !prev); // handleToggleGameStatsModal moved to useModalOrchestration
   };
 
   const fieldInteractions = useMemo<FieldInteractions>(() => ({
@@ -2019,18 +1985,18 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     isDrawingEnabled: fieldCoordination.isDrawingEnabled,
     onToggleDrawingMode: fieldCoordination.handleToggleDrawingMode,
     onToggleTrainingResources: handleToggleTrainingResources,
-    onToggleGameStatsModal: handleToggleGameStatsModal,
-    onOpenLoadGameModal: handleOpenLoadGameModal,
+    onToggleGameStatsModal: () => setIsGameStatsModalOpen(prev => !prev), // handleToggleGameStatsModal moved to useModalOrchestration
+    onOpenLoadGameModal: () => setIsLoadGameModalOpen(true),
     onStartNewGame: handleStartNewGame,
     onOpenRosterModal: openRosterModal,
     onQuickSave: persistence.handleQuickSaveGame,
-    onOpenGameSettingsModal: handleOpenGameSettingsModal,
+    onOpenGameSettingsModal: () => setIsGameSettingsModalOpen(true),
     isGameLoaded: Boolean(currentGameId && currentGameId !== DEFAULT_GAME_ID),
-    onOpenSeasonTournamentModal: handleOpenSeasonTournamentModal,
-    onToggleInstructionsModal: handleToggleInstructionsModal,
-    onOpenSettingsModal: handleOpenSettingsModal,
+    onOpenSeasonTournamentModal: () => setIsSeasonTournamentModalOpen(true),
+    onToggleInstructionsModal: () => setIsInstructionsModalOpen(prev => !prev), // handleToggleInstructionsModal moved to useModalOrchestration
+    onOpenSettingsModal: () => setIsSettingsModalOpen(true), // handleOpenSettingsModal moved to useModalOrchestration
     onOpenPlayerAssessmentModal: openPlayerAssessmentModal,
-    onOpenTeamManagerModal: handleOpenTeamManagerModal,
+    onOpenTeamManagerModal: () => setIsTeamManagerOpen(true),
     onOpenPersonnelManager: () => setIsPersonnelManagerOpen(true),
   };
 
@@ -2053,155 +2019,126 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     controlBarProps,
   };
 
-  const masterRoster = gameDataManagement.masterRoster;
+  // --- Modal Orchestration Hook (Step 2.6.6 - FINAL) ---
+  const modalOrchestration = useModalOrchestration({
+    // Hook dependencies
+    gameDataManagement,
+    fieldCoordination,
+    persistence,
+    timerManagement,
 
-  const modalManagerProps: ModalManagerProps = {
-    state: {
-      isTrainingResourcesOpen,
-      isInstructionsModalOpen,
-      isPersonnelManagerOpen,
-      isTeamManagerOpen,
-      isGoalLogModalOpen,
-      isGameStatsModalOpen,
-      isLoadGameModalOpen,
-      isNewGameSetupModalOpen,
-      isRosterModalOpen,
-      isSeasonTournamentModalOpen,
-      isGameSettingsModalOpen,
-      isSettingsModalOpen,
-      isPlayerAssessmentModalOpen,
-      isTeamReassignModalOpen,
-      showNoPlayersConfirm,
-      showHardResetConfirm,
-      showSaveBeforeNewConfirm,
-      showStartNewConfirm,
-      showResetFieldConfirm: fieldCoordination.showResetFieldConfirm,
-    },
-    data: {
-      gameSessionState,
-      availablePlayers,
-      playersForCurrentGame,
-      savedGames,
-      currentGameId,
-      teams: gameDataManagement.teams,
-      seasons: gameDataManagement.seasons,
-      tournaments: gameDataManagement.tournaments,
-      masterRoster,
-      personnel: gameDataManagement.personnel,
-      personnelManager: {
-        addPersonnel: gameDataManagement.personnelManager.addPersonnel,
-        updatePersonnel: gameDataManagement.personnelManager.updatePersonnel,
-        removePersonnel: gameDataManagement.personnelManager.removePersonnel,
-        isLoading: gameDataManagement.personnelManager.isLoading,
-      },
-      playerAssessments,
-      selectedPlayerForStats,
-      playerIdsForNewGame,
-      newGameDemandFactor,
-      availableTeams,
-      orphanedGameInfo,
-      appLanguage,
-      defaultTeamNameSetting,
-      gameIdentifierForSave,
-      isPlayed,
-      isRosterUpdating,
-      rosterError,
-      loadGameState: {
-        isLoadingGamesList,
-        loadGamesListError,
-        isGameLoading: persistence.isGameLoading,
-        gameLoadError: persistence.gameLoadError,
-        isGameDeleting: persistence.isGameDeleting,
-        gameDeleteError: persistence.gameDeleteError,
-        processingGameId: persistence.processingGameId,
-      },
-      seasonTournamentMutations: {
-        addSeason: gameDataManagement.mutationResults.addSeason,
-        addTournament: gameDataManagement.mutationResults.addTournament,
-        updateSeason: gameDataManagement.mutationResults.updateSeason,
-        deleteSeason: gameDataManagement.mutationResults.deleteSeason,
-        updateTournament: gameDataManagement.mutationResults.updateTournament,
-        deleteTournament: gameDataManagement.mutationResults.deleteTournament,
-      },
-      updateGameDetailsMutation,
-    },
-    handlers: {
-      toggleTrainingResources: handleToggleTrainingResources,
-      toggleInstructionsModal: handleToggleInstructionsModal,
-      closePersonnelManager: () => setIsPersonnelManagerOpen(false),
-      closeTeamManagerModal: handleCloseTeamManagerModal,
-      toggleGoalLogModal: handleToggleGoalLogModal,
-      addGoalEvent: handleAddGoalEvent,
-      logOpponentGoal: handleLogOpponentGoal,
-      updateGameEvent: handleUpdateGameEvent,
-      deleteGameEvent: persistence.handleDeleteGameEvent,
-      toggleGameStatsModal: handleToggleGameStatsModal,
-      exportOneExcel: handleExportOneExcel,
-      exportAggregateExcel: handleExportAggregateExcel,
-      exportPlayerExcel: handleExportPlayerExcel,
-      gameLogClick: handleGameLogClick,
-      closeLoadGameModal: handleCloseLoadGameModal,
-      loadGame: persistence.handleLoadGame,
-      deleteGame: persistence.handleDeleteGame,
-      exportOneJson: handleExportOneJson,
-      setSelectedTeamForRoster,
-      setNewGameDemandFactor,
-      startNewGameWithSetup: handleStartNewGameWithSetup,
-      cancelNewGameSetup: handleCancelNewGameSetup,
-      closeRosterModal,
-      updatePlayerForModal: handleUpdatePlayerForModal,
-      renamePlayerForModal: handleRenamePlayerForModal,
-      setJerseyNumberForModal: handleSetJerseyNumberForModal,
-      setPlayerNotesForModal: handleSetPlayerNotesForModal,
-      removePlayerForModal: handleRemovePlayerForModal,
-      addPlayerForModal: handleAddPlayerForModal,
-      openPlayerStats: handleOpenPlayerStats,
-      closeSeasonTournamentModal: handleCloseSeasonTournamentModal,
-      closeGameSettingsModal: handleCloseGameSettingsModal,
-      teamNameChange: handleTeamNameChange,
-      opponentNameChange: handleOpponentNameChange,
-      gameDateChange: handleGameDateChange,
-      gameLocationChange: handleGameLocationChange,
-      gameTimeChange: handleGameTimeChange,
-      gameNotesChange: handleGameNotesChange,
-      ageGroupChange: handleAgeGroupChange,
-      tournamentLevelChange: handleTournamentLevelChange,
-      awardFairPlayCard: handleAwardFairPlayCard,
-      setNumberOfPeriods: handleSetNumberOfPeriods,
-      setPeriodDuration: handleSetPeriodDuration,
-      setDemandFactor: handleSetDemandFactor,
-      setSeasonId: handleSetSeasonId,
-      setTournamentId: handleSetTournamentId,
-      setHomeOrAway: handleSetHomeOrAway,
-      setIsPlayed,
-      updateSelectedPlayers: handleUpdateSelectedPlayers,
-      setGamePersonnel: handleSetGamePersonnel,
-      closeSettingsModal: handleCloseSettingsModal,
-      setAppLanguage,
-      setDefaultTeamName: setDefaultTeamNameSetting,
-      showAppGuide: handleShowAppGuide,
-      hardResetApp: handleHardResetApp,
-      closePlayerAssessmentModal,
-      savePlayerAssessment: handleSavePlayerAssessment,
-      deletePlayerAssessment: handleDeletePlayerAssessment,
-      teamReassignment: handleTeamReassignment,
-      setIsTeamReassignModalOpen,
-      confirmNoPlayers: handleNoPlayersConfirmed,
-      setShowNoPlayersConfirm,
-      confirmHardReset: handleHardResetConfirmed,
-      setShowHardResetConfirm,
-      saveBeforeNewConfirmed: handleSaveBeforeNewConfirmed,
-      saveBeforeNewCancelled: handleSaveBeforeNewCancelled,
-      setShowStartNewConfirm,
-      startNewConfirmed: handleStartNewConfirmed,
-      setShowResetFieldConfirm: fieldCoordination.setShowResetFieldConfirm,
-      resetFieldConfirmed: fieldCoordination.handleResetFieldConfirmed,
-      openSettingsModal: handleOpenSettingsModal,
-      onCreateBackup: handleCreateBackup,
-      onDataImportSuccess,
-      manageTeamRosterFromNewGame: handleManageTeamRosterFromNewGame,
-    },
-  };
+    // Data from useGameOrchestration
+    gameSessionState,
+    dispatchGameSession,
+    availablePlayers,
+    playersForCurrentGame,
+    savedGames,
+    currentGameId,
+    playerAssessments,
+    selectedPlayerForStats,
+    setSelectedPlayerForStats,
+    playerIdsForNewGame,
+    newGameDemandFactor,
+    setNewGameDemandFactor,
+    availableTeams,
+    orphanedGameInfo,
+    appLanguage,
+    setAppLanguage,
+    defaultTeamNameSetting,
+    setDefaultTeamNameSetting,
+    gameIdentifierForSave,
+    isPlayed,
+    setIsPlayed,
+    isRosterUpdating,
+    rosterError,
+    isLoadingGamesList,
+    loadGamesListError,
+    updateGameDetailsMutation,
+    isTeamReassignModalOpen,
+    setIsTeamReassignModalOpen,
+    setSelectedTeamForRoster,
+    showSaveBeforeNewConfirm,
+
+    // Handlers from useGameOrchestration
+    handleUpdateGameEvent,
+    handleExportOneExcel,
+    handleExportAggregateExcel,
+    handleExportPlayerExcel,
+    handleGameLogClick,
+    handleExportOneJson,
+    handleStartNewGameWithSetup,
+    handleCancelNewGameSetup,
+    handleUpdatePlayerForModal,
+    handleRenamePlayerForModal,
+    handleSetJerseyNumberForModal,
+    handleSetPlayerNotesForModal,
+    handleRemovePlayerForModal,
+    handleAddPlayerForModal,
+    handleOpenPlayerStats,
+    handleTeamNameChange,
+    handleOpponentNameChange,
+    handleGameDateChange,
+    handleGameLocationChange,
+    handleGameTimeChange,
+    handleGameNotesChange,
+    handleAgeGroupChange,
+    handleTournamentLevelChange,
+    handleAwardFairPlayCard,
+    handleSetNumberOfPeriods,
+    handleSetPeriodDuration,
+    handleSetDemandFactor,
+    handleSetSeasonId,
+    handleSetTournamentId,
+    handleSetHomeOrAway,
+    handleUpdateSelectedPlayers,
+    handleSetGamePersonnel,
+    handleShowAppGuide,
+    handleHardResetApp,
+    handleSavePlayerAssessment,
+    handleDeletePlayerAssessment,
+    handleTeamReassignment,
+    handleCreateBackup,
+    onDataImportSuccess,
+    handleManageTeamRosterFromNewGame,
+    handleNoPlayersConfirmed,
+    handleHardResetConfirmed,
+    handleSaveBeforeNewConfirmed,
+    handleSaveBeforeNewCancelled,
+    handleStartNewConfirmed,
+  });
+
+  // Get modalManagerProps, modal state, setters, and handlers from useModalOrchestration hook
+  const {
+    modalManagerProps,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used in useEffect below
+    isInstructionsModalOpen,
+    setIsInstructionsModalOpen,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used in controlBarProps
+    isPersonnelManagerOpen,
+    setIsPersonnelManagerOpen,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used in controlBarProps
+    isTeamManagerOpen,
+    setIsTeamManagerOpen,
+    // handleToggleGameStatsModal, handleToggleInstructionsModal, handleOpenSettingsModal
+    // removed - these are no longer returned from useModalOrchestration
+  } = modalOrchestration;
+
+  // Show automatic instructions for experienced users with specific actions, not first-time users
+  // Guard prevents multiple triggers when savedGames changes
+  useEffect(() => {
+    if (!initialLoadComplete || hasCheckedInstructionsModal) return;
+
+    const checkInstructionsModal = async () => {
+      const seenGuide = await getHasSeenAppGuide();
+      const hasAnyData = Object.keys(savedGames).length > 0; // Check if user has any saved games
+      if (!seenGuide && initialAction !== null && hasAnyData) {
+        setIsInstructionsModalOpen(true);
+      }
+      setHasCheckedInstructionsModal(true); // Mark as checked to prevent re-triggering
+    };
+
+    checkInstructionsModal();
+  }, [initialLoadComplete, initialAction, savedGames, setIsInstructionsModalOpen, hasCheckedInstructionsModal]);
 
   return {
     gameContainerProps,
