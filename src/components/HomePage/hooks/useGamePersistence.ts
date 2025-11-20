@@ -267,12 +267,12 @@ export function useGamePersistence({
         resetHistory(currentSnapshot);
 
         if (!silent) {
-          showToast('Game saved!');
+          showToast(t('loadGameModal.gameSaved', 'Game saved!'));
         }
 
       } catch (error) {
         logger.error("Failed to quick save game state:", error);
-        showToast("Error quick saving game.", 'error');
+        showToast(t('loadGameModal.errors.quickSaveFailed', 'Error quick saving game.'), 'error');
       }
     } else {
       // No current game ID - create new saved game entry using utility
@@ -294,14 +294,14 @@ export function useGamePersistence({
         resetHistory(gameData);
 
         if (!silent) {
-          showToast('New game saved!');
+          showToast(t('loadGameModal.newGameSaved', 'New game saved!'));
         }
 
         logger.log(`New game created with ID: ${newGameId}`);
 
       } catch (error) {
         logger.error("Failed to create new saved game:", error);
-        showToast("Error creating new saved game.", 'error');
+        showToast(t('loadGameModal.errors.createGameFailed', 'Error creating new saved game.'), 'error');
       }
     }
   }, [
@@ -315,6 +315,7 @@ export function useGamePersistence({
     queryClient,
     resetHistory,
     showToast,
+    t,
   ]);
 
   // --- Auto-Save Function Ref ---
@@ -390,7 +391,8 @@ export function useGamePersistence({
     try {
       await removeStorageItem(TIMER_STATE_KEY);
     } catch (error) {
-      // Silent fail - timer cleanup is not critical for game loading
+      // Safe to ignore: Timer state will be overwritten by the loaded game's state.
+      // Cleanup failure doesn't block game loading or affect UX.
       logger.debug('Failed to clear timer state before loading game (non-critical)', { error });
     }
 
