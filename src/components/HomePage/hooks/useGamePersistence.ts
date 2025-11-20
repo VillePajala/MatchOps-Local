@@ -244,61 +244,7 @@ export function useGamePersistence({
     isPlayed,
   ]);
 
-  // --- Auto-Save Logic ---
-  /**
-   * Auto-save effect with 3-tier debouncing
-   *
-   * Only triggers if:
-   * - Initial load is complete (roster loaded)
-   * - Current game ID is set and not default
-   *
-   * Uses legacy useEffect pattern for maximum compatibility
-   * Will be replaced by useAutoSave hook below
-   */
-  useEffect(() => {
-    const autoSave = async () => {
-      if (initialLoadComplete && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-        try {
-          const currentSnapshot = createGameSnapshot();
-
-          // Save game snapshot
-          await utilSaveGame(currentGameId, currentSnapshot);
-
-          // Save current game ID setting
-          await utilSaveCurrentGameIdSetting(currentGameId);
-
-          // Invalidate React Query cache to update LoadGameModal
-          queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
-
-        } catch (error) {
-          logger.error("Failed to auto-save game state:", error);
-          showToast("Error saving game.", 'error');
-        }
-      }
-    };
-
-    autoSave();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    initialLoadComplete,
-    currentGameId,
-    // All state that goes into the snapshot
-    fieldCoordination.playersOnField,
-    fieldCoordination.opponents,
-    fieldCoordination.drawings,
-    availablePlayers,
-    masterRoster,
-    gameSessionState,
-    playerAssessments,
-    fieldCoordination.tacticalDiscs,
-    fieldCoordination.tacticalDrawings,
-    fieldCoordination.tacticalBallPosition,
-    isPlayed,
-    queryClient,
-    showToast,
-  ]);
-
-  // --- 3-Tier Debounced Auto-Save (using useAutoSave hook) ---
+  // --- 3-Tier Debounced Auto-Save ---
   /**
    * Smart auto-save with tiered debouncing:
    * - Immediate: Goals, scores (critical statistics)
