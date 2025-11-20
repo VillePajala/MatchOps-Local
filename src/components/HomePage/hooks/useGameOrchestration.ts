@@ -391,7 +391,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     currentGameId,
     availablePlayers,
     masterRoster: gameDataManagement.masterRoster || [],
-    isGoalLogModalOpen,
     setIsGoalLogModalOpen,
   });
 
