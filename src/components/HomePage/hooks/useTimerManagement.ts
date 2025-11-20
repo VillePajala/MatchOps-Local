@@ -25,7 +25,7 @@
 import { useState, useCallback, useMemo, Dispatch } from 'react';
 import { useGameTimer } from '@/hooks/useGameTimer';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
-import type { GameEvent, Player } from '@/types';
+import type { GameEvent, Player, SubAlertLevel } from '@/types';
 import type { TimerInteractions } from '@/components/HomePage/containers/FieldContainer';
 import logger from '@/utils/logger';
 
@@ -43,10 +43,8 @@ export interface UseTimerManagementProps {
   availablePlayers: Player[];
   /** Fallback master roster if available players empty */
   masterRoster: Player[];
-  /** Goal log modal open state (controlled externally) */
-  isGoalLogModalOpen: boolean;
-  /** Setter for goal log modal state */
-  setIsGoalLogModalOpen: (open: boolean) => void;
+  /** Setter for goal log modal state (uses functional update pattern) */
+  setIsGoalLogModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 /**
@@ -56,7 +54,7 @@ export interface UseTimerManagementReturn {
   // Timer state
   timeElapsedInSeconds: number;
   isTimerRunning: boolean;
-  subAlertLevel: 'none' | 'warning' | 'due';
+  subAlertLevel: SubAlertLevel;
   lastSubConfirmationTimeSeconds: number;
 
   // Timer UI state
@@ -95,7 +93,6 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     currentGameId,
     availablePlayers,
     masterRoster,
-    isGoalLogModalOpen,
     setIsGoalLogModalOpen,
   } = props;
 
@@ -124,8 +121,8 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
   }, []);
 
   const handleToggleGoalLogModal = useCallback(() => {
-    setIsGoalLogModalOpen(!isGoalLogModalOpen);
-  }, [isGoalLogModalOpen, setIsGoalLogModalOpen]);
+    setIsGoalLogModalOpen((prev) => !prev);
+  }, [setIsGoalLogModalOpen]);
 
   // --- Goal Event Handlers ---
 
@@ -160,11 +157,14 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     // Dispatch actions to update game state via reducer
     dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: newEvent });
     dispatchGameSession({ type: 'ADJUST_SCORE_FOR_EVENT', payload: { eventType: 'goal', action: 'add' } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     availablePlayers,
     masterRoster,
-    gameSessionState.timeElapsedInSeconds,
     dispatchGameSession,
+    // Note: gameSessionState.timeElapsedInSeconds is intentionally omitted
+    // It's read from gameSessionState when the function executes, not closed over
+    // Including it would cause callback recreation every second when timer is running
   ]);
 
   /**
