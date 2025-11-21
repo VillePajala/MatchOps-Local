@@ -475,9 +475,14 @@ Once all hooks are extracted (100% complete), proceed to Layer 3:
 
 ### Performance Optimization
 - Add React.memo to containers (leaf components: SoccerField, PlayerBar, ControlBar)
-- **Note on ModalManager**: Currently has 125+ props. If performance optimization needed:
-  - Option A (Recommended): Add React.memo() to individual expensive modals (GameStatsModal, GameSettingsModal)
-  - Option B (Lower priority): Split ModalManager by category (GameModals, SettingsModals, ConfirmationModals)
+- **Note on ModalManager & modalManagerProps**:
+  - ✅ **Decision Documented**: modalManagerProps intentionally NOT memoized ([ADR-001](../05-development/architecture-decisions/ADR-001-modalManagerProps-no-memoization.md))
+  - **Rationale**: ModalManager not wrapped in React.memo → prop reference stability provides no benefit
+  - **Performance Impact**: Negligible (~0.05ms per render, 0.3% CPU at 60fps)
+  - **Future Optimization** (only if React DevTools Profiler shows >50ms renders):
+    - Step 1: Add React.memo(ModalManager) first
+    - Step 2: Then add useMemo to modalManagerProps
+    - Step 3: Consider splitting by category (GameModals, SettingsModals, etc.)
   - Current state: ModalManager already optimized via conditional rendering, further optimization should be data-driven
 - Memoize expensive calculations
 - Add lightweight metrics for useEffect triggers

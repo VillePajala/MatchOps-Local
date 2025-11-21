@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "Merge branch 'refactor/2.6.6-extract-useModalOrchestration' into refactor/2.6-integration"
+  "notes": "fix(P1): eliminate race condition in handleDeleteGameEvent with atomic action"
 }
