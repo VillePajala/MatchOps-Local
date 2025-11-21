@@ -525,10 +525,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // NEW: States for LoadGameModal operations
   const [isLoadingGamesList, setIsLoadingGamesList] = useState(false);
 
-  // Confirmation modal states - Passed to useModalOrchestration
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State value passed to useModalOrchestration, setter used in handlers
+  // Confirmation modal states
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration
   const [showNoPlayersConfirm, setShowNoPlayersConfirm] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State value passed to useModalOrchestration, setter used in handlers
+  // Passed to useModalOrchestration
   const [showHardResetConfirm, setShowHardResetConfirm] = useState(false);
   const [showSaveBeforeNewConfirm, setShowSaveBeforeNewConfirm] = useState(false);
   const [gameIdentifierForSave, setGameIdentifierForSave] = useState<string>('');
@@ -1238,12 +1238,13 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
   // NEW: Handler for Hard Reset
   const handleHardResetApp = useCallback(async () => {
+    logger.log('[useGameOrchestration] handleHardResetApp called, setting showHardResetConfirm to true');
     setShowHardResetConfirm(true);
   }, []);
 
   const handleHardResetConfirmed = useCallback(async () => {
     try {
-      logger.log("Performing hard reset using utility...");
+      logger.log("[useGameOrchestration] handleHardResetConfirmed called - performing hard reset using utility...");
 
       // Show full-screen overlay to unmount all components
       setIsResetting(true);
@@ -1797,19 +1798,94 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
     // Check if the current game is potentially unsaved (not the default ID and not null)
     if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-      // Prompt to save first
       const gameData = savedGames[currentGameId]; // Safe to access due to check above
-      const gameIdentifier = gameData?.teamName
-                             ? `${gameData.teamName} vs ${gameData.opponentName}`
-                             : `ID: ${currentGameId}`;
 
-      setGameIdentifierForSave(gameIdentifier);
-      setShowSaveBeforeNewConfirm(true);
+      // Check if there are actual unsaved changes by comparing current state with saved state
+      // We exclude volatile timer fields (same as createGameSnapshot in useGamePersistence)
+      const hasUnsavedChanges = (() => {
+        if (!gameData) return true; // No saved data means changes exist
+
+        // Compare key fields that would indicate unsaved changes
+        // Using a simple comparison of critical fields
+        const currentSnapshot = {
+          teamName: gameSessionState.teamName,
+          opponentName: gameSessionState.opponentName,
+          gameDate: gameSessionState.gameDate,
+          homeScore: gameSessionState.homeScore,
+          awayScore: gameSessionState.awayScore,
+          gameNotes: gameSessionState.gameNotes,
+          homeOrAway: gameSessionState.homeOrAway,
+          numberOfPeriods: gameSessionState.numberOfPeriods,
+          periodDurationMinutes: gameSessionState.periodDurationMinutes,
+          currentPeriod: gameSessionState.currentPeriod,
+          gameStatus: gameSessionState.gameStatus,
+          selectedPlayerIds: JSON.stringify(gameSessionState.selectedPlayerIds),
+          gamePersonnel: JSON.stringify(gameSessionState.gamePersonnel),
+          seasonId: gameSessionState.seasonId,
+          tournamentId: gameSessionState.tournamentId,
+          demandFactor: gameSessionState.demandFactor,
+          gameEvents: JSON.stringify(gameSessionState.gameEvents),
+          playersOnField: JSON.stringify(fieldCoordination.playersOnField),
+          opponents: JSON.stringify(fieldCoordination.opponents),
+          drawings: JSON.stringify(fieldCoordination.drawings),
+          tacticalDiscs: JSON.stringify(fieldCoordination.tacticalDiscs),
+          tacticalDrawings: JSON.stringify(fieldCoordination.tacticalDrawings),
+          tacticalBallPosition: JSON.stringify(fieldCoordination.tacticalBallPosition),
+          assessments: JSON.stringify(playerAssessments),
+          isPlayed,
+        };
+
+        const savedSnapshot = {
+          teamName: gameData.teamName,
+          opponentName: gameData.opponentName,
+          gameDate: gameData.gameDate,
+          homeScore: gameData.homeScore,
+          awayScore: gameData.awayScore,
+          gameNotes: gameData.gameNotes,
+          homeOrAway: gameData.homeOrAway,
+          numberOfPeriods: gameData.numberOfPeriods,
+          periodDurationMinutes: gameData.periodDurationMinutes,
+          currentPeriod: gameData.currentPeriod,
+          gameStatus: gameData.gameStatus,
+          selectedPlayerIds: JSON.stringify(gameData.selectedPlayerIds || []),
+          gamePersonnel: JSON.stringify(gameData.gamePersonnel || []),
+          seasonId: gameData.seasonId,
+          tournamentId: gameData.tournamentId,
+          demandFactor: gameData.demandFactor,
+          gameEvents: JSON.stringify(gameData.gameEvents || []),
+          playersOnField: JSON.stringify(gameData.playersOnField || []),
+          opponents: JSON.stringify(gameData.opponents || []),
+          drawings: JSON.stringify(gameData.drawings || []),
+          tacticalDiscs: JSON.stringify(gameData.tacticalDiscs || []),
+          tacticalDrawings: JSON.stringify(gameData.tacticalDrawings || []),
+          tacticalBallPosition: JSON.stringify(gameData.tacticalBallPosition),
+          assessments: JSON.stringify(gameData.assessments || {}),
+          isPlayed: gameData.isPlayed,
+        };
+
+        // Compare all fields
+        return JSON.stringify(currentSnapshot) !== JSON.stringify(savedSnapshot);
+      })();
+
+      // Only show save dialog if there are actual unsaved changes
+      if (hasUnsavedChanges) {
+        const gameIdentifier = gameData?.teamName
+                               ? `${gameData.teamName} vs ${gameData.opponentName}`
+                               : `ID: ${currentGameId}`;
+
+        setGameIdentifierForSave(gameIdentifier);
+        setShowSaveBeforeNewConfirm(true);
+      } else {
+        // No unsaved changes, open new game setup modal directly
+        setPlayerIdsForNewGame(availablePlayers.map(p => p.id));
+        openNewGameViaReducer();
+      }
     } else {
-      // If no real game is loaded, proceed directly to the main confirmation
-      setShowStartNewConfirm(true);
+      // If no real game is loaded, open new game setup modal directly
+      setPlayerIdsForNewGame(availablePlayers.map(p => p.id));
+      openNewGameViaReducer();
     }
-  }, [currentGameId, savedGames, availablePlayers]);
+  }, [currentGameId, savedGames, availablePlayers, gameSessionState, fieldCoordination, playerAssessments, isPlayed, openNewGameViaReducer]);
 
   // Handler for "No Players" confirmation
   const handleNoPlayersConfirmed = useCallback(() => {
@@ -2058,6 +2134,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setIsTeamReassignModalOpen,
     setSelectedTeamForRoster,
     showSaveBeforeNewConfirm,
+    showHardResetConfirm,
+    setShowHardResetConfirm,
 
     // Handlers from useGameOrchestration
     handleUpdateGameEvent,
