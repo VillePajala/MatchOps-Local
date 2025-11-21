@@ -100,31 +100,34 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
               {/* Games */}
               <div className="bg-slate-800/60 border border-slate-700 rounded p-3 text-center">
                 <div className="text-2xl font-bold text-indigo-400">{statistics.gamesImported}</div>
-                <div className="text-sm text-slate-400">{t('backupRestore.gamesImported', 'Games')}</div>
+                <div className="text-sm text-slate-400">{t('backupRestore.gamesImported', { count: statistics.gamesImported, defaultValue_one: 'Game', defaultValue_other: 'Games' })}</div>
               </div>
 
               {/* Players */}
               <div className="bg-slate-800/60 border border-slate-700 rounded p-3 text-center">
                 <div className="text-2xl font-bold text-emerald-400">{statistics.playersImported}</div>
-                <div className="text-sm text-slate-400">{t('backupRestore.playersImported', 'Players')}</div>
+                <div className="text-sm text-slate-400">{t('backupRestore.playersImported', { count: statistics.playersImported, defaultValue_one: 'Player', defaultValue_other: 'Players' })}</div>
               </div>
 
               {/* Teams */}
               <div className="bg-slate-800/60 border border-slate-700 rounded p-3 text-center">
                 <div className="text-2xl font-bold text-amber-400">{statistics.teamsImported}</div>
-                <div className="text-sm text-slate-400">{t('backupRestore.teamsImported', 'Teams')}</div>
+                <div className="text-sm text-slate-400">{t('backupRestore.teamsImported', { count: statistics.teamsImported, defaultValue_one: 'Team', defaultValue_other: 'Teams' })}</div>
               </div>
 
               {/* Competitions */}
               <div className="bg-slate-800/60 border border-slate-700 rounded p-3 text-center">
                 <div className="text-2xl font-bold text-purple-400">{totalCompetitions}</div>
-                <div className="text-sm text-slate-400">{t('backupRestore.competitionsImported', 'Competitions')}</div>
+                <div className="text-sm text-slate-400">{t('backupRestore.competitionsImported', { count: totalCompetitions, defaultValue_one: 'Competition', defaultValue_other: 'Competitions' })}</div>
               </div>
 
               {/* Personnel */}
               <div className="bg-slate-800/60 border border-slate-700 rounded p-3 text-center">
                 <div className="text-2xl font-bold text-cyan-400">{statistics.personnelImported}</div>
-                <div className="text-sm text-slate-400">{t('backupRestore.personnelImported', 'Personnel')}</div>
+                <div className="text-sm text-slate-400 leading-tight">
+                  <div>{t('backupRestore.personnelImported', 'Personnel')}</div>
+                  <div className="text-xs text-slate-500 mt-0.5">{t('backupRestore.personnelImportedCount', { count: statistics.personnelImported, defaultValue_one: '{{count}} person', defaultValue_other: '{{count}} people' })}</div>
+                </div>
               </div>
 
               {/* Settings */}
@@ -145,11 +148,11 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
               </h4>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">{t('backupRestore.seasonsImported', 'Seasons')}:</span>
+                  <span className="text-slate-400">{t('backupRestore.seasonsImported', { count: statistics.seasonsImported, defaultValue_one: 'Season', defaultValue_other: 'Seasons' })}:</span>
                   <span className="text-slate-200 font-medium">{statistics.seasonsImported}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">{t('backupRestore.tournamentsImported', 'Tournaments')}:</span>
+                  <span className="text-slate-400">{t('backupRestore.tournamentsImported', { count: statistics.tournamentsImported, defaultValue_one: 'Tournament', defaultValue_other: 'Tournaments' })}:</span>
                   <span className="text-slate-200 font-medium">{statistics.tournamentsImported}</span>
                 </div>
               </div>
