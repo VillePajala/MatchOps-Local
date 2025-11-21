@@ -124,10 +124,7 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
               {/* Personnel */}
               <div className="bg-slate-800/60 border border-slate-700 rounded p-3 text-center">
                 <div className="text-2xl font-bold text-cyan-400">{statistics.personnelImported}</div>
-                <div className="text-sm text-slate-400 leading-tight">
-                  <div>{t('backupRestore.personnelImported', 'Personnel')}</div>
-                  <div className="text-xs text-slate-500 mt-0.5">{t('backupRestore.personnelImportedCount', { count: statistics.personnelImported, defaultValue_one: '{{count}} person', defaultValue_other: '{{count}} people' })}</div>
-                </div>
+                <div className="text-sm text-slate-400">{t('backupRestore.personnelImported', { count: statistics.personnelImported, defaultValue_one: 'Personnel', defaultValue_other: 'Personnel' })}</div>
               </div>
 
               {/* Settings */}
