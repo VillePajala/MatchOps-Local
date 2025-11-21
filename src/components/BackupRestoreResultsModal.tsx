@@ -1,14 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { primaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import {
   HiOutlineCheckCircle,
   HiOutlineExclamationTriangle,
-  HiOutlineXMark,
-  HiChevronDown,
-  HiChevronUp
+  HiOutlineXMark
 } from 'react-icons/hi2';
 
 export interface BackupRestoreResult {
@@ -45,7 +43,6 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
   result,
 }) => {
   const { t } = useTranslation();
-  const [showMappingDetails, setShowMappingDetails] = useState(false);
 
   if (!isOpen || !result) return null;
 
@@ -55,8 +52,7 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
     }
   };
 
-  const { statistics, mappingReport, warnings } = result;
-  const totalCompetitions = statistics.seasonsImported + statistics.tournamentsImported;
+  const { statistics, warnings } = result;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" onClick={handleBackdropClick}>
@@ -115,10 +111,16 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
                 <div className="text-sm text-slate-400">{t('backupRestore.teamsImported', { count: statistics.teamsImported, defaultValue_one: 'Team', defaultValue_other: 'Teams' })}</div>
               </div>
 
-              {/* Competitions */}
+              {/* Seasons */}
               <div className="bg-slate-800/60 border border-slate-700 rounded p-3 text-center">
-                <div className="text-2xl font-bold text-purple-400">{totalCompetitions}</div>
-                <div className="text-sm text-slate-400">{t('backupRestore.competitionsImported', { count: totalCompetitions, defaultValue_one: 'Competition', defaultValue_other: 'Competitions' })}</div>
+                <div className="text-2xl font-bold text-blue-400">{statistics.seasonsImported}</div>
+                <div className="text-sm text-slate-400">{t('backupRestore.seasonsImported', { count: statistics.seasonsImported, defaultValue_one: 'Season', defaultValue_other: 'Seasons' })}</div>
+              </div>
+
+              {/* Tournaments */}
+              <div className="bg-slate-800/60 border border-slate-700 rounded p-3 text-center">
+                <div className="text-2xl font-bold text-rose-400">{statistics.tournamentsImported}</div>
+                <div className="text-sm text-slate-400">{t('backupRestore.tournamentsImported', { count: statistics.tournamentsImported, defaultValue_one: 'Tournament', defaultValue_other: 'Tournaments' })}</div>
               </div>
 
               {/* Personnel */}
@@ -136,67 +138,6 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
               </div>
             </div>
           </div>
-
-          {/* Competition Details (if any) */}
-          {totalCompetitions > 0 && (
-            <div className="bg-slate-900/40 border border-slate-700/50 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-slate-300 mb-2">
-                {t('backupRestore.competitionBreakdown', 'Competition Breakdown')}
-              </h4>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">{t('backupRestore.seasonsImported', { count: statistics.seasonsImported, defaultValue_one: 'Season', defaultValue_other: 'Seasons' })}:</span>
-                  <span className="text-slate-200 font-medium">{statistics.seasonsImported}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">{t('backupRestore.tournamentsImported', { count: statistics.tournamentsImported, defaultValue_one: 'Tournament', defaultValue_other: 'Tournaments' })}:</span>
-                  <span className="text-slate-200 font-medium">{statistics.tournamentsImported}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Player Mapping Details (collapsible) */}
-          {mappingReport && mappingReport.totalGames > 0 && (
-            <div className="bg-slate-900/40 border border-slate-700/50 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setShowMappingDetails(!showMappingDetails)}
-                className="w-full flex items-center justify-between p-4 hover:bg-slate-800/40 transition-colors"
-              >
-                <h4 className="text-sm font-medium text-slate-300">
-                  {t('backupRestore.playerMapping', 'Player Mapping Details')}
-                </h4>
-                {showMappingDetails ? (
-                  <HiChevronUp className="w-5 h-5 text-slate-400" />
-                ) : (
-                  <HiChevronDown className="w-5 h-5 text-slate-400" />
-                )}
-              </button>
-
-              {showMappingDetails && (
-                <div className="px-4 pb-4 space-y-2 text-sm border-t border-slate-700/50 pt-3">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">{t('backupRestore.mappedGames', 'Games with Mapped Players')}:</span>
-                    <span className="text-slate-200 font-medium">{mappingReport.gamesWithMappedPlayers} / {mappingReport.totalGames}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">{t('backupRestore.exactMatches', 'Exact ID Matches')}:</span>
-                    <span className="text-green-400 font-medium">{mappingReport.exactMatches}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">{t('backupRestore.nameMatches', 'Name Matches')}:</span>
-                    <span className="text-yellow-400 font-medium">{mappingReport.nameMatches}</span>
-                  </div>
-                  {mappingReport.noMatches > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">{t('backupRestore.noMatches', 'Unmapped Players')}:</span>
-                      <span className="text-red-400 font-medium">{mappingReport.noMatches}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Warnings */}
           {warnings.length > 0 && (
