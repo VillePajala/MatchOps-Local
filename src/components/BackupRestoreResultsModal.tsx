@@ -18,8 +18,6 @@ export interface BackupRestoreResult {
     seasonsImported: number;
     tournamentsImported: number;
     personnelImported: number;
-    adjustmentsImported: number;
-    settingsRestored: boolean;
   };
   mappingReport?: {
     totalGames: number;
@@ -113,20 +111,6 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
               <div className="bg-slate-800/60 border border-slate-700 rounded p-3 text-center">
                 <div className="text-2xl font-bold text-cyan-400">{statistics.personnelImported}</div>
                 <div className="text-sm text-slate-400">{t('backupRestore.personnelImported', { count: statistics.personnelImported, defaultValue_one: 'Personnel', defaultValue_other: 'Personnel' })}</div>
-              </div>
-
-              {/* Adjustments */}
-              <div className="bg-slate-800/60 border border-slate-700 rounded p-3 text-center">
-                <div className="text-2xl font-bold text-purple-400">{statistics.adjustmentsImported}</div>
-                <div className="text-sm text-slate-400">{t('backupRestore.adjustmentsImported', { count: statistics.adjustmentsImported, defaultValue_one: 'Adjustment', defaultValue_other: 'Adjustments' })}</div>
-              </div>
-
-              {/* Settings */}
-              <div className="bg-slate-800/60 border border-slate-700 rounded p-3 text-center">
-                <div className="text-2xl font-bold text-slate-300">
-                  {statistics.settingsRestored ? '✓' : '—'}
-                </div>
-                <div className="text-sm text-slate-400">{t('backupRestore.settingsRestored', 'Settings')}</div>
               </div>
             </div>
           </div>
