@@ -33,6 +33,7 @@
     "startNewGame": "Aloita uusi ottelu",
     "startNewGameConfirm": "Haluatko varmasti aloittaa uuden ottelun? Nykyisen ottelun tallentamattomat tiedot menetetään.",
     "hardReset": "Nollaa Sovellus",
+    "hardResetConfirmation": "Haluatko varmasti nollata koko sovelluksen? Kaikki tallennetut tiedot (pelaajat, tilastot, sijainnit) menetetään pysyvästi.",
     "resetCurrentStats": "Nollaa Pelin Tilastot",
     "menu": {
       "title": "Valikko",
@@ -158,7 +159,28 @@
     "cannotUndo": "Tätä toimintoa ei voi peruuttaa.",
     "addPlayers": "Lisää pelaajia",
     "reset": "Nollaa",
-    "startNew": "Aloita uusi"
+    "startNew": "Aloita uusi",
+    "continue": "Jatka"
+  },
+  "backupRestore": {
+    "resultsTitle": "Varmuuskopion palautus valmis",
+    "statistics": "Tuonnin tilastot",
+    "gamesImported": "Pelit",
+    "playersImported": "Pelaajat",
+    "teamsImported": "Joukkueet",
+    "competitionsImported": "Kilpailut",
+    "seasonsImported": "Kaudet",
+    "tournamentsImported": "Turnaukset",
+    "personnelImported": "Henkilöstö",
+    "settingsRestored": "Asetukset",
+    "competitionBreakdown": "Kilpailujen erittely",
+    "playerMapping": "Pelaajien linkitys",
+    "mappedGames": "Pelit joissa pelaajat linkitetty",
+    "exactMatches": "Tarkat ID-vastaavuudet",
+    "nameMatches": "Nimivastaavuudet",
+    "noMatches": "Linkittämättömät pelaajat",
+    "warnings": "Varoitukset",
+    "successMessage": "Palautettiin onnistuneesti {{games}} peliä, {{players}} pelaajaa ja {{teams}} joukkuetta."
   },
   "gameStatsModal": {
     "noTeamGamesTitle": "Ei otteluita valitulle joukkueelle tässä näkymässä",
