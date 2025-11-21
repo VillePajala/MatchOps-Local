@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { primaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import {
   HiOutlineCheckCircle,
@@ -60,9 +60,9 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" onClick={handleBackdropClick}>
-      <div className="bg-slate-800 rounded-lg border border-slate-600 shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto text-slate-100" role="dialog" aria-modal="true">
+      <div className="bg-slate-800 rounded-lg border border-slate-600 shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto text-slate-100" role="dialog" aria-modal="true">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700/50 bg-slate-900/20 backdrop-blur-sm">
+        <div className="flex items-center justify-between p-4 border-b border-slate-700/50 bg-slate-900/20 backdrop-blur-sm">
           <div className="flex items-center space-x-3">
             <HiOutlineCheckCircle className="w-8 h-8 text-green-500" />
             <h2 className="text-xl font-semibold text-green-600">
@@ -77,7 +77,7 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 space-y-4">
           {/* Summary Message */}
           <div className="bg-green-900/20 border border-green-600/30 rounded-lg p-4">
             <div className="flex items-center space-x-2">
@@ -218,11 +218,11 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
           )}
         </div>
 
-        <ModalFooter>
+        <div className="px-4 py-2 border-t border-slate-700/50 bg-slate-900/20 backdrop-blur-sm">
           <button onClick={onClose} className={primaryButtonStyle}>
             {t('common.continue', 'Continue')}
           </button>
-        </ModalFooter>
+        </div>
       </div>
     </div>
   );
