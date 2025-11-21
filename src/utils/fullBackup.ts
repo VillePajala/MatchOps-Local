@@ -27,6 +27,7 @@ import type { TeamsIndex, TeamRostersIndex } from './teams';
 import type { AppSettings } from './appSettings';
 import type { PersonnelCollection } from '@/types/personnel';
 import { processImportedGames } from './gameImportHelper';
+import type { BackupRestoreResult } from '@/components/BackupRestoreResultsModal';
 
 // Define the structure of the backup file
 interface FullBackupData {
@@ -136,8 +137,10 @@ export const exportFullBackup = async (
  *                    React components should show ConfirmationModal first, then pass confirmed=true.
  *                    The window.confirm fallback (lines 156-161) is intentional for CLI/utility-only usage
  *                    and maintains backward compatibility with direct function calls outside React context.
+ * @param delayReload - When true, skips automatic reload/refresh. Caller is responsible for triggering reload.
+ *                      Used when showing results modal before reload.
  *
- * @returns Promise<boolean> - true if import succeeded, false if user cancelled or import failed
+ * @returns Promise<BackupRestoreResult | null> - Result object with statistics, or null if cancelled/failed
  *
  * @example
  * // From React component (preferred)
@@ -148,15 +151,33 @@ export const exportFullBackup = async (
  * @example
  * // Direct usage (CLI/utility scripts) - uses window.confirm fallback
  * await importFullBackup(jsonContent); // confirmed=undefined, triggers window.confirm
+ *
+ * @example
+ * // With delayed reload (for results modal)
+ * const result = await importFullBackup(jsonContent, undefined, showToast, true, true); // delayReload=true
+ * // Show results modal, then manually trigger reload when user closes modal
  */
 export const importFullBackup = async (
   jsonContent: string,
   onImportSuccess?: () => void,
   showToast?: (message: string, type?: 'success' | 'error' | 'info') => void,
-  confirmed?: boolean
-): Promise<boolean> => {
+  confirmed?: boolean,
+  delayReload?: boolean
+): Promise<BackupRestoreResult | null> => {
   logger.log("Starting full backup import...");
-  let currentGameIdWarning = false;
+  let mappingReportData: BackupRestoreResult['mappingReport'] | undefined;
+
+  // Initialize statistics
+  const statistics: BackupRestoreResult['statistics'] = {
+    gamesImported: 0,
+    playersImported: 0,
+    teamsImported: 0,
+    seasonsImported: 0,
+    tournamentsImported: 0,
+    personnelImported: 0,
+  };
+  const warnings: string[] = [];
+
   try {
     const backupData: FullBackupData = JSON.parse(jsonContent);
 
@@ -186,7 +207,7 @@ export const importFullBackup = async (
     if (!confirmed) {
       if (!window.confirm(i18n.t("fullBackup.confirmRestore"))) {
         logger.log("User cancelled the import process.");
-        return false; // User cancelled
+        return null; // User cancelled
       }
     }
 
@@ -217,19 +238,13 @@ export const importFullBackup = async (
           );
           
           processedSavedGames = processedGames;
-          
+
           logger.log('Game import processing completed:', mappingReport);
-          
-          // Show user-friendly summary
-          if (mappingReport.gamesWithMappedPlayers > 0) {
-            const message = `Successfully processed ${mappingReport.totalGames} games. ${mappingReport.gamesWithMappedPlayers} games had players mapped to your current roster. This ensures imported games appear in player statistics.`;
-            // We'll show this after the main success message
-            if (showToast) {
-              setTimeout(() => showToast(message, 'info'), 1000);
-            } else {
-              setTimeout(() => alert(message), 1000);
-            }
-          }
+
+          // Store mapping report for result modal
+          mappingReportData = mappingReport;
+
+          // Note: We'll show detailed results in the modal instead of toast
         }
       } catch (error) {
         logger.error('Error processing imported games for player mapping:', error);
@@ -266,6 +281,21 @@ export const importFullBackup = async (
         try {
           await setStorageJSON(key as string, dataToRestore);
           logger.log(`Restored data for key: ${key}`);
+
+          // Track statistics based on key
+          if (key === SAVED_GAMES_KEY && typeof dataToRestore === 'object') {
+            statistics.gamesImported = Object.keys(dataToRestore).length;
+          } else if (key === MASTER_ROSTER_KEY && Array.isArray(dataToRestore)) {
+            statistics.playersImported = dataToRestore.length;
+          } else if (key === TEAMS_INDEX_KEY && typeof dataToRestore === 'object') {
+            statistics.teamsImported = Object.keys(dataToRestore).length;
+          } else if (key === SEASONS_LIST_KEY && Array.isArray(dataToRestore)) {
+            statistics.seasonsImported = dataToRestore.length;
+          } else if (key === TOURNAMENTS_LIST_KEY && Array.isArray(dataToRestore)) {
+            statistics.tournamentsImported = dataToRestore.length;
+          } else if (key === PERSONNEL_KEY && typeof dataToRestore === 'object') {
+            statistics.personnelImported = Object.keys(dataToRestore).length;
+          }
         } catch (innerError) {
           logger.error(
             `Error setting storage item for key ${key}:`,
@@ -318,36 +348,33 @@ export const importFullBackup = async (
       // This can happen if IndexedDB rejects writes (quota exceeded, storage corruption, or browser policies).
       // Import is still considered successful, but we surface a warning so the user can manually pick a game.
       logger.warn('[Import] Unable to set currentGameId post-restore (non-fatal)', e);
-      currentGameIdWarning = true;
+      warnings.push(i18n.t("fullBackup.currentGameWarning", {
+        defaultValue: "Could not update the current game selection automatically. Please select a game manually.",
+      }));
     }
 
-    // --- Final Step: Trigger app refresh ---
-    logger.log("Data restored successfully. Triggering app state refresh...");
-    const successMessage = i18n.t("fullBackup.restoreSuccess");
-    if (currentGameIdWarning) {
-      const warningMessage = i18n.t("fullBackup.currentGameWarning", {
-        defaultValue: "Backup restored, but we could not update the current game selection automatically. Please select a game manually.",
-      });
-      const combined = `${successMessage}\n\n${warningMessage}`;
-      if (showToast) {
-        showToast(combined, 'info');
-      } else {
-        alert(combined);
-      }
-    } else {
-      if (showToast) {
-        showToast(successMessage, 'success');
-      } else {
-        alert(successMessage);
-      }
+    // --- Final Step: Create result object and trigger app refresh ---
+    logger.log("Data restored successfully. Creating result report...");
+
+    const result: BackupRestoreResult = {
+      success: true,
+      statistics,
+      mappingReport: mappingReportData,
+      warnings,
+    };
+
+    // Skip automatic reload/refresh if caller wants to handle it manually (e.g., after showing results modal)
+    if (delayReload) {
+      logger.log("Skipping automatic reload - caller will handle it manually");
+      return result;
     }
 
     // Use callback to refresh app state without reload, or fallback to reload
     if (onImportSuccess) {
-      // Use setTimeout to ensure the alert is seen before refresh
+      // Use setTimeout to allow the caller to process the result
       setTimeout(() => {
         onImportSuccess();
-      }, 500);
+      }, 100);
     } else {
       // Fallback to reload for backward compatibility
       setTimeout(() => {
@@ -355,7 +382,7 @@ export const importFullBackup = async (
       }, 500);
     }
 
-    return true; // Indicate success
+    return result;
   } catch (error) {
     logger.error("Failed to import full backup:", error);
     // Type check for error before accessing message
@@ -365,6 +392,6 @@ export const importFullBackup = async (
     } else {
       alert(i18n.t("fullBackup.restoreError", { error: errorMessage }));
     }
-    return false; // Indicate failure
+    return null; // Indicate failure
   }
 };

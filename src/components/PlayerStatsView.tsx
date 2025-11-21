@@ -266,7 +266,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             className="text-left w-full bg-slate-800/60 p-3 rounded-lg flex justify-between items-center hover:bg-slate-800/80 transition-colors"
             aria-expanded={showExternalGames}
           >
-            <span className="font-semibold">{t('playerStats.externalGames', 'External Games')}</span>
+            <span className="font-semibold text-slate-100">{t('playerStats.externalGames', 'External Games')}</span>
             <span className="text-sm text-slate-400">{showExternalGames ? '-' : '+'}</span>
           </button>
           {showExternalGames && (
@@ -796,7 +796,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
         {/* Game by Game Stats - Title and Chart */}
         <div className="mt-6">
-          <h3 className="text-lg font-semibold mb-2">{t('playerStats.gameLog', 'Game Log')}</h3>
+          <h3 className="text-lg font-semibold text-slate-100 mb-2">{t('playerStats.gameLog', 'Game Log')}</h3>
           <div className="mb-2">
             <label htmlFor="metric-select" className="block text-sm font-medium text-slate-300 mb-1">{t('playerStats.metricSelect', 'Select Metric')}</label>
             <select
@@ -835,10 +835,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           <button
             type="button"
             onClick={() => setShowRatings(v => !v)}
-            className="text-left w-full bg-slate-800/60 p-3 rounded-lg flex justify-between items-center"
+            className="text-left w-full bg-slate-800/60 p-3 rounded-lg flex justify-between items-center hover:bg-slate-800/80 transition-colors"
             aria-expanded={showRatings}
           >
-            <span className="font-semibold">{t('playerStats.performanceRatings', 'Performance Ratings')}</span>
+            <span className="font-semibold text-slate-100">{t('playerStats.performanceRatings', 'Performance Ratings')}</span>
             <span className="text-sm text-slate-400">{showRatings ? '-' : '+'}</span>
           </button>
           {showRatings && (
@@ -855,21 +855,21 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   title={t('playerStats.useDemandCorrectionTooltip', 'When enabled, ratings from harder games count more')}
                   className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-600 border-slate-500 rounded focus:ring-indigo-500"
                 />
-                <span>{t('playerStats.useDemandCorrection', 'Weight by Difficulty')}</span>
+                <span className="text-slate-100">{t('playerStats.useDemandCorrection', 'Weight by Difficulty')}</span>
               </label>
               <div className="space-y-2">
                 {Object.entries(assessmentAverages.averages).map(([metric, avg]) => (
                   <div key={metric} className="flex items-center space-x-2 px-2">
-                    <span className="w-28 shrink-0">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</span>
+                    <span className="w-28 shrink-0 text-slate-100">{t(`assessmentMetrics.${metric}` as TranslationKey, metric)}</span>
                     <RatingBar value={avg} />
                   </div>
                 ))}
                 <div className="flex items-center space-x-2 px-2 mt-2">
-                  <span className="w-28 shrink-0">{t('playerAssessmentModal.overallLabel', 'Overall')}</span>
+                  <span className="w-28 shrink-0 text-slate-100">{t('playerAssessmentModal.overallLabel', 'Overall')}</span>
                   <RatingBar value={assessmentAverages.overall} />
                 </div>
                 <div className="flex items-center space-x-2 px-2">
-                  <span className="w-28 shrink-0">{t('playerStats.avgRating', 'Avg Rating')}</span>
+                  <span className="w-28 shrink-0 text-slate-100">{t('playerStats.avgRating', 'Avg Rating')}</span>
                   <RatingBar value={assessmentAverages.finalScore} />
                 </div>
                 <div className="text-xs text-slate-400 text-right">
@@ -965,7 +965,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   <span className={`absolute inset-y-0 left-0 w-1 rounded-l-md ${getResultClass(game.result)}`}></span>
                   <div className="flex items-center pl-2">
                     <div>
-                      <p className="font-semibold drop-shadow-lg">{t('playerStats.vs', 'vs')} {game.opponentName}</p>
+                      <p className="font-semibold text-slate-100 drop-shadow-lg">{t('playerStats.vs', 'vs')} {game.opponentName}</p>
                       <p className="text-xs text-slate-400">{format(new Date(game.date), i18n.language === 'fi' ? 'd.M.yyyy' : 'PP', { locale: i18n.language === 'fi' ? fi : enUS })}</p>
                     </div>
                   </div>
