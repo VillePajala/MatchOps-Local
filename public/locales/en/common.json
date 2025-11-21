@@ -162,7 +162,7 @@
   },
   "backupRestore": {
     "resultsTitle": "Backup Restore Complete",
-    "statistics": "Import Statistics",
+    "statistics": "Imported Data",
     "gamesImported_one": "Game",
     "gamesImported_other": "Games",
     "playersImported_one": "Player",
@@ -184,8 +184,7 @@
     "exactMatches": "Exact ID Matches",
     "nameMatches": "Name Matches",
     "noMatches": "Unmapped Players",
-    "warnings": "Warnings",
-    "successMessage": "Successfully restored {{games}} games, {{players}} players, and {{teams}} teams."
+    "warnings": "Warnings"
   },
   "gameStatsModal": {
     "noTeamGamesTitle": "No games for the selected team in this context",

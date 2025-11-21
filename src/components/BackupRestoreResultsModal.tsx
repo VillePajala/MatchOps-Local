@@ -74,24 +74,9 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
         </div>
 
         <div className="p-4 space-y-4">
-          {/* Summary Message */}
-          <div className="bg-green-900/20 border border-green-600/30 rounded-lg p-4">
-            <div className="flex items-center space-x-2">
-              <HiOutlineCheckCircle className="w-5 h-5 text-green-400" />
-              <p className="text-green-200">
-                {t('backupRestore.successMessage', {
-                  games: statistics.gamesImported,
-                  players: statistics.playersImported,
-                  teams: statistics.teamsImported,
-                  defaultValue: 'Successfully restored {{games}} games, {{players}} players, and {{teams}} teams.'
-                })}
-              </p>
-            </div>
-          </div>
-
           {/* Statistics Grid */}
           <div className="bg-slate-900/40 border border-slate-700/50 rounded-lg p-4">
-            <h3 className="text-lg font-medium mb-3">{t('backupRestore.statistics', 'Import Statistics')}</h3>
+            <h3 className="text-lg font-medium mb-3">{t('backupRestore.statistics', 'Imported Data')}</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {/* Games */}
               <div className="bg-slate-800/60 border border-slate-700 rounded p-3 text-center">
