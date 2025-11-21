@@ -626,13 +626,11 @@ export function useGamePersistence({
       }
 
       // State update SECOND (only if storage succeeded)
-      dispatchGameSession({ type: 'DELETE_GAME_EVENT', payload: goalId });
-      if (eventToDelete.type === 'goal' || eventToDelete.type === 'opponentGoal') {
-        dispatchGameSession({
-          type: 'ADJUST_SCORE_FOR_EVENT',
-          payload: { eventType: eventToDelete.type, action: 'delete' }
-        });
-      }
+      // Use atomic action to prevent race condition between event deletion and score adjustment
+      dispatchGameSession({
+        type: 'DELETE_GAME_EVENT_WITH_SCORE',
+        payload: eventToDelete
+      });
 
       // Invalidate cache to trigger re-fetch
       queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });

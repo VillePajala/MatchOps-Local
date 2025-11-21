@@ -405,12 +405,13 @@ describe('useGamePersistence', () => {
      * Tests that delete updates both state and storage
      * @critical
      */
-    it('should dispatch DELETE_GAME_EVENT and ADJUST_SCORE_FOR_EVENT when deleting goal', async () => {
+    it('should dispatch DELETE_GAME_EVENT_WITH_SCORE atomically when deleting goal', async () => {
       const dispatchGameSession = jest.fn();
+      const goalEvent = { id: 'event1', type: 'goal' as const, time: 60 };
       const params = createMockParams({
         currentGameId: 'game123',
         gameSessionState: createMockGameSessionState({
-          gameEvents: [{ id: 'event1', type: 'goal', time: 60 }],
+          gameEvents: [goalEvent],
         }),
         dispatchGameSession,
       });
@@ -421,33 +422,28 @@ describe('useGamePersistence', () => {
       });
 
       await waitFor(() => {
-        // Verify DELETE_GAME_EVENT dispatch
+        // Verify atomic DELETE_GAME_EVENT_WITH_SCORE dispatch
         expect(dispatchGameSession).toHaveBeenCalledWith({
-          type: 'DELETE_GAME_EVENT',
-          payload: 'event1'
+          type: 'DELETE_GAME_EVENT_WITH_SCORE',
+          payload: goalEvent
         });
 
-        // Verify ADJUST_SCORE_FOR_EVENT dispatch for goal
-        expect(dispatchGameSession).toHaveBeenCalledWith({
-          type: 'ADJUST_SCORE_FOR_EVENT',
-          payload: { eventType: 'goal', action: 'delete' }
-        });
-
-        // Should be called exactly twice (once for each dispatch)
-        expect(dispatchGameSession).toHaveBeenCalledTimes(2);
+        // Should be called exactly once (atomic operation)
+        expect(dispatchGameSession).toHaveBeenCalledTimes(1);
       });
     });
 
     /**
-     * Tests that opponentGoal also triggers score adjustment
+     * Tests that opponentGoal also triggers atomic delete with score adjustment
      * @critical
      */
-    it('should dispatch ADJUST_SCORE_FOR_EVENT when deleting opponent goal', async () => {
+    it('should dispatch DELETE_GAME_EVENT_WITH_SCORE atomically when deleting opponent goal', async () => {
       const dispatchGameSession = jest.fn();
+      const opponentGoalEvent = { id: 'event2', type: 'opponentGoal' as const, time: 30 };
       const params = createMockParams({
         currentGameId: 'game123',
         gameSessionState: createMockGameSessionState({
-          gameEvents: [{ id: 'event2', type: 'opponentGoal', time: 30 }],
+          gameEvents: [opponentGoalEvent],
         }),
         dispatchGameSession,
       });
@@ -459,22 +455,26 @@ describe('useGamePersistence', () => {
 
       await waitFor(() => {
         expect(dispatchGameSession).toHaveBeenCalledWith({
-          type: 'ADJUST_SCORE_FOR_EVENT',
-          payload: { eventType: 'opponentGoal', action: 'delete' }
+          type: 'DELETE_GAME_EVENT_WITH_SCORE',
+          payload: opponentGoalEvent
         });
+
+        // Should be called exactly once (atomic operation)
+        expect(dispatchGameSession).toHaveBeenCalledTimes(1);
       });
     });
 
     /**
-     * Tests that non-goal events don't trigger score adjustment
+     * Tests that non-goal events use atomic action but don't adjust score
      * @integration
      */
-    it('should NOT dispatch ADJUST_SCORE_FOR_EVENT for non-goal events', async () => {
+    it('should dispatch DELETE_GAME_EVENT_WITH_SCORE for non-goal events (no score change)', async () => {
       const dispatchGameSession = jest.fn();
+      const substitutionEvent = { id: 'event3', type: 'substitution' as const, time: 45 };
       const params = createMockParams({
         currentGameId: 'game123',
         gameSessionState: createMockGameSessionState({
-          gameEvents: [{ id: 'event3', type: 'substitution', time: 45 }],
+          gameEvents: [substitutionEvent],
         }),
         dispatchGameSession,
       });
@@ -485,11 +485,11 @@ describe('useGamePersistence', () => {
       });
 
       await waitFor(() => {
-        // Should only call DELETE_GAME_EVENT, not ADJUST_SCORE_FOR_EVENT
+        // Should call atomic action once (score remains unchanged for non-goal events)
         expect(dispatchGameSession).toHaveBeenCalledTimes(1);
         expect(dispatchGameSession).toHaveBeenCalledWith({
-          type: 'DELETE_GAME_EVENT',
-          payload: 'event3'
+          type: 'DELETE_GAME_EVENT_WITH_SCORE',
+          payload: substitutionEvent
         });
       });
     });

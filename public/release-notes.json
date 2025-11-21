@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: extract useModalOrchestration hook (Step 2.6.6 - FINAL)"
+  "notes": "Merge branch 'refactor/2.6.6-extract-useModalOrchestration' into refactor/2.6-integration"
 }
