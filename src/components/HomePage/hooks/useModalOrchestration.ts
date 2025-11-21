@@ -79,6 +79,7 @@ export interface UseModalOrchestrationProps {
   setIsTeamReassignModalOpen: (open: boolean) => void;
   setSelectedTeamForRoster: (teamId: string | null) => void;
   showSaveBeforeNewConfirm: boolean;
+  showHardResetConfirm: boolean;
 
   // Handlers from useGameOrchestration (matching ModalManagerHandlers signatures)
   handleUpdateGameEvent: (event: import('@/types').GameEvent) => void;
@@ -208,6 +209,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     setIsTeamReassignModalOpen,
     setSelectedTeamForRoster,
     showSaveBeforeNewConfirm,
+    showHardResetConfirm,
     handleUpdateGameEvent,
     handleExportOneExcel,
     handleExportAggregateExcel,
@@ -286,7 +288,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
 
   // --- Confirmation Dialog State ---
   const [showNoPlayersConfirm, setShowNoPlayersConfirm] = useState(false);
-  const [showHardResetConfirm, setShowHardResetConfirm] = useState(false);
+  // showHardResetConfirm: Passed as prop from useGameOrchestration (managed there)
   // showSaveBeforeNewConfirm: Passed as prop from useGameOrchestration (managed there)
   const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
 

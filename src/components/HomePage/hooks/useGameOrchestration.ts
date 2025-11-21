@@ -2058,6 +2058,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setIsTeamReassignModalOpen,
     setSelectedTeamForRoster,
     showSaveBeforeNewConfirm,
+    showHardResetConfirm,
 
     // Handlers from useGameOrchestration
     handleUpdateGameEvent,
