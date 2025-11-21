@@ -1,8 +1,8 @@
 # Critical Fixes Progress Tracker
 
-**Last Updated**: November 18, 2025
-**Status**: ✅ Layer 1 COMPLETE (stability). ✅ Layer 2 Steps 2.4.0-2.5 COMPLETE (HomePage orchestration).
-**Overall Progress**: L1 ✅ DONE; L2 Steps 2.4.0-2.5 ✅ DONE (HomePage **62 lines**, 98.3% reduction); Step 2.6 🔴 PLANNED (useGameOrchestration 3,378 lines needs splitting into 6 hooks)
+**Last Updated**: January 21, 2025
+**Status**: ✅ Layer 1 COMPLETE (stability). ✅ Layer 2 Step 2.6.6 COMPLETE (useModalOrchestration extracted). ✅ P1 High-Priority Fixes COMPLETE.
+**Overall Progress**: L1 ✅ DONE; L2 Step 2.6.6 ✅ DONE (HomePage **62 lines**, useModalOrchestration **510 lines**); Remaining: Step 2.6.7-2.6.12 (split useGameOrchestration into 6 hooks)
 
 ---
 
@@ -10,17 +10,20 @@
 
 | Priority | Fix | Status | Progress | Est. Time Remaining | Time Spent |
 |----------|-----|--------|----------|---------------------|------------|
-| **P0** | HomePage Refactoring | 🟡 95% (Step 2.6 Planned) | 95% | 16-20h (hook split) | ~10h |
+| **P0** | HomePage Refactoring | 🟡 97% (Step 2.6.6 Done) | 97% | 12-15h (5 hooks) | ~12h |
+| **P1** | useAutoSave Stale Closure | ✅ COMPLETE | 100% | - | ~2h |
+| **P1** | handleDeleteGameEvent Race | ✅ COMPLETE | 100% | - | ~1h |
+| **P1** | modalManagerProps Documentation | ✅ COMPLETE | 100% | - | ~0.5h |
 | **P1** | NPM Dependencies & Security | 🔴 Not Started | 0% | 4-8h (4 phases) | - |
-| **P1** | GameSettingsModal Refactoring | ❌ Not Started | 0% | 1h | - |
+| **P1** | GameSettingsModal Refactoring | ⏸️ Deferred | 0% | 1h | - |
 | **P2/L2** | Modal State Management (Reducer) | ✅ COMPLETE | 100% | - | ~2h |
 | **P2/L2** | useNewGameFlow Param Grouping | ✅ COMPLETE | 100% | - | ~1h |
 | **P2/L2** | FieldContainer/View-Model Grouping | ✅ COMPLETE | 100% | - | ~2h |
-| **P2** | Error Handling Improvements | ⏭ After L2 | 0% | 1h | - |
-| **P2** | Performance Optimization | ⏭ After L2 | 0% | 30m | - |
+| **P2** | Error Handling Improvements | ⏭ Layer 3 | 0% | 1h | - |
+| **P2** | Performance Optimization | ⏭ Layer 3 | 0% | 30m | - |
 
-**Remaining Work**: Step 2.6 hook splitting (16-20 hours over 2-3 weeks), NPM security fixes & updates (4-8 hours)
-**Work Completed**: HomePage reduced to 62 lines (98.3% reduction), all containers extracted, view-models implemented
+**Remaining Work**: Step 2.6.7-2.6.12 hook splitting (12-15 hours over 2 weeks), NPM security fixes & updates (4-8 hours)
+**Work Completed**: HomePage 62 lines, useModalOrchestration extracted (510 lines), P1 fixes complete, comprehensive documentation added
 
 ### Newly Logged Fix
 - **P1 – New Game autosave race** *(Nov 2025)*: `useNewGameFlow.handleStartNewGame` now fetches the latest saved game snapshot directly from storage (instead of relying on potentially stale React state) before prompting the “Save current game?” confirmation. This eliminates the documented race condition when autosave mutates state mid-flow.
@@ -57,7 +60,42 @@
 
 ---
 
-## 🔨 Recent Bug Fixes & Improvements (Nov 3-16, 2025)
+## 🔨 Recent Bug Fixes & Improvements
+
+### January 21, 2025: P1 High-Priority Fixes
+
+**P1-1: useAutoSave Stale Closure Risk** ✅ COMPLETE
+- **Issue**: `saveFunction` in dependency arrays caused effects to re-run on every change, potentially losing debounced saves
+- **Fix**: Implemented ref pattern (same as useGamePersistence)
+  - Created `saveFunctionRef` to store latest saveFunction
+  - Update ref when saveFunction changes (doesn't trigger effect re-runs)
+  - Use `saveFunctionRef.current()` in all effects
+  - Removed `saveFunction` from dependency arrays
+- **Benefits**: Effects only re-run when states change, debounced saves protected, no stale closures
+- **Commit**: `a6e4e70`
+- **Testing**: All 13 useAutoSave tests pass
+
+**P1-2: handleDeleteGameEvent Race Condition** ✅ COMPLETE
+- **Issue**: Dispatched 2 sequential actions (DELETE_GAME_EVENT, ADJUST_SCORE_FOR_EVENT) without atomicity
+- **Fix**: Created atomic `DELETE_GAME_EVENT_WITH_SCORE` action
+  - Single state update: deletes event + adjusts score
+  - Prevents race conditions between dispatches
+  - Guarantees event/score consistency
+- **Benefits**: Impossible for events and scores to become out of sync, single state update = better performance
+- **Commit**: `698556e`
+- **Testing**: All 21 useGamePersistence tests pass, action validation tests pass
+
+**P1-3: modalManagerProps Documentation** ✅ COMPLETE (Non-Issue)
+- **Finding**: modalManagerProps intentionally NOT memoized - correct architectural decision
+- **Documentation**: Created comprehensive ADR-001 and enhanced code comments
+  - Explained React rendering behavior (no automatic bailouts without React.memo)
+  - Performance measurements (0.05ms per render, 0.3% CPU at 60fps)
+  - Future optimization path (data-driven approach)
+- **Benefits**: Prevents future code review confusion, validates architectural decision
+- **Commit**: `387867f`
+- **Reference**: docs/05-development/architecture-decisions/ADR-001-modalManagerProps-no-memoization.md
+
+### November 3-18, 2025: Refactoring Progress
 
 **Note**: These bug fixes and refactoring improvements were completed as part of ongoing maintenance, reducing technical debt incrementally while P0 comprehensive refactoring is in progress.
 
