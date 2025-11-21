@@ -175,6 +175,7 @@ export const importFullBackup = async (
     seasonsImported: 0,
     tournamentsImported: 0,
     personnelImported: 0,
+    adjustmentsImported: 0,
     settingsRestored: false,
   };
   const warnings: string[] = [];
@@ -296,6 +297,8 @@ export const importFullBackup = async (
             statistics.tournamentsImported = dataToRestore.length;
           } else if (key === PERSONNEL_KEY && typeof dataToRestore === 'object') {
             statistics.personnelImported = Object.keys(dataToRestore).length;
+          } else if (key === PLAYER_ADJUSTMENTS_KEY && typeof dataToRestore === 'object') {
+            statistics.adjustmentsImported = Object.keys(dataToRestore).length;
           } else if (key === APP_SETTINGS_KEY) {
             statistics.settingsRestored = true;
           }

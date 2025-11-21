@@ -177,6 +177,8 @@
     "tournamentsImported_other": "Tournaments",
     "personnelImported_one": "Personnel",
     "personnelImported_other": "Personnel",
+    "adjustmentsImported_one": "Adjustment",
+    "adjustmentsImported_other": "Adjustments",
     "settingsRestored": "Settings",
     "competitionBreakdown": "Competition Breakdown",
     "playerMapping": "Player Mapping Details",

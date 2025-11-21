@@ -179,6 +179,8 @@
     "tournamentsImported_other": "Turnausta",
     "personnelImported_one": "Taustahenkilö",
     "personnelImported_other": "Taustahenkilöä",
+    "adjustmentsImported_one": "Säätö",
+    "adjustmentsImported_other": "Säätöjä",
     "settingsRestored": "Asetukset",
     "competitionBreakdown": "Kilpailujen erittely",
     "playerMapping": "Pelaajien linkitys",
