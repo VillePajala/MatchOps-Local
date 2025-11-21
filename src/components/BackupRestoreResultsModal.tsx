@@ -144,7 +144,7 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
           )}
         </div>
 
-        <div className="px-4 py-2 border-t border-slate-700/50 bg-slate-900/20 backdrop-blur-sm">
+        <div className="px-4 py-2 border-t border-slate-700/50 bg-slate-900/20 backdrop-blur-sm flex justify-end">
           <button onClick={onClose} className={primaryButtonStyle}>
             {t('common.continue', 'Continue')}
           </button>
