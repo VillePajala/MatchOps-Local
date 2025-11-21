@@ -157,7 +157,28 @@
     "cannotUndo": "This action cannot be undone.",
     "addPlayers": "Add Players",
     "reset": "Reset",
-    "startNew": "Start New"
+    "startNew": "Start New",
+    "continue": "Continue"
+  },
+  "backupRestore": {
+    "resultsTitle": "Backup Restore Complete",
+    "statistics": "Import Statistics",
+    "gamesImported": "Games",
+    "playersImported": "Players",
+    "teamsImported": "Teams",
+    "competitionsImported": "Competitions",
+    "seasonsImported": "Seasons",
+    "tournamentsImported": "Tournaments",
+    "personnelImported": "Personnel",
+    "settingsRestored": "Settings",
+    "competitionBreakdown": "Competition Breakdown",
+    "playerMapping": "Player Mapping Details",
+    "mappedGames": "Games with Mapped Players",
+    "exactMatches": "Exact ID Matches",
+    "nameMatches": "Name Matches",
+    "noMatches": "Unmapped Players",
+    "warnings": "Warnings",
+    "successMessage": "Successfully restored {{games}} games, {{players}} players, and {{teams}} teams."
   },
   "gameStatsModal": {
     "noTeamGamesTitle": "No games for the selected team in this context",

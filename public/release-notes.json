@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: extract useModalOrchestration hook (Step 2.6.6 - FINAL)"
+  "notes": "refactor: update service worker cache name and build timestamp"
 }
