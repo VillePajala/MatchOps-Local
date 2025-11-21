@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "chore: trigger CI verification for PR #86"
+  "notes": "feat: update player selection and field interaction instructions in English and Finnish locales"
 }

@@ -190,12 +190,6 @@
     "noMatches": "Linkittämättömät pelaajat",
     "warnings": "Varoitukset"
   },
-  "gameStatsModal": {
-    "noTeamGamesTitle": "Ei otteluita valitulle joukkueelle tässä näkymässä",
-    "noTeamGamesSubtitle": "Valitse toinen joukkue tai muuta suodattimia nähdäksesi pelaajatilastot.",
-    "filterAllSeasons": "Kaikki kaudet",
-    "filterAllTournaments": "Kaikki turnaukset"
-  },
   "importResults": {
     "title": "Tuontitulokset",
     "importing": "Tuodaan pelejä",
@@ -542,7 +536,13 @@
     "tournamentStats": "Turnaustilastot",
     "noStatsAvailable": "Ei tilastoja saatavilla.",
     "notesPlaceholder": "Lisää muistiinpanot tähän...",
-    "noNotes": "Ei muistiinpanoja"
+    "noNotes": "Ei muistiinpanoja",
+    "noTeamGamesTitle": "Ei otteluita valitulle joukkueelle tässä näkymässä",
+    "noTeamGamesSubtitle": "Valitse toinen joukkue tai muuta suodattimia nähdäksesi pelaajatilastot.",
+    "noSeasonGames": "Ei otteluita tälle kaudelle.",
+    "noTournamentGames": "Ei otteluita tälle turnaukselle.",
+    "game": "Ottelu",
+    "games": "Ottelut"
   },
   "loadGameModal": {
     "title": "Tallennetut pelit",

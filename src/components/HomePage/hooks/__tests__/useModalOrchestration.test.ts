@@ -228,6 +228,8 @@ const createMockProps = (overrides?: Partial<UseModalOrchestrationProps>): UseMo
     setIsTeamReassignModalOpen: jest.fn(),
     setSelectedTeamForRoster: jest.fn(),
     showSaveBeforeNewConfirm: false,
+    showHardResetConfirm: false,
+    setShowHardResetConfirm: jest.fn(),
     handleUpdateGameEvent: jest.fn(),
     handleExportOneExcel: jest.fn(),
     handleExportAggregateExcel: jest.fn(),
