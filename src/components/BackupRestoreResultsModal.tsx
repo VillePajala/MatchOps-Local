@@ -54,8 +54,8 @@ const BackupRestoreResultsModal: React.FC<BackupRestoreResultsModalProps> = ({
   const { statistics, warnings } = result;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display" onClick={handleBackdropClick}>
-      <div className="bg-slate-800 rounded-lg border border-slate-600 shadow-2xl max-w-2xl w-full m-4 max-h-[calc(100vh-2rem)] overflow-y-auto text-slate-100" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display p-4" onClick={handleBackdropClick}>
+      <div className="bg-slate-800 rounded-lg border border-slate-600 shadow-2xl max-w-2xl w-full h-full overflow-y-auto text-slate-100" role="dialog" aria-modal="true">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-slate-700/50 bg-slate-900/20 backdrop-blur-sm">
           <div className="flex items-center space-x-3">
