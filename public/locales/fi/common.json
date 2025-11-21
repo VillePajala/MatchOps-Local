@@ -1382,5 +1382,9 @@
       "duplicateName": "Pelaaja tällä nimellä on jo olemassa. Käytä eri nimeä.",
       "duplicateNumber": "Pelaaja tällä pelinumerolla on jo olemassa. Käytä eri numeroa tai jätä tyhjäksi."
     }
+  },
+  "reset": {
+    "resetting": "Nollataan sovellusta...",
+    "description": "Kaikki tiedot poistetaan ja sovellus käynnistetään uudelleen."
   }
 }

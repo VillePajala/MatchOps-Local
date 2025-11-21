@@ -1366,5 +1366,9 @@
       "createFailed": "Failed to add personnel. Please try again.",
       "updateFailed": "Failed to update personnel. Please try again."
     }
+  },
+  "reset": {
+    "resetting": "Resetting Application...",
+    "description": "All data will be cleared and the application will restart."
   }
 }
