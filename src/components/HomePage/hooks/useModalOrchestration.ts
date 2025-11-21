@@ -80,6 +80,7 @@ export interface UseModalOrchestrationProps {
   setSelectedTeamForRoster: (teamId: string | null) => void;
   showSaveBeforeNewConfirm: boolean;
   showHardResetConfirm: boolean;
+  setShowHardResetConfirm: (open: boolean) => void;
 
   // Handlers from useGameOrchestration (matching ModalManagerHandlers signatures)
   handleUpdateGameEvent: (event: import('@/types').GameEvent) => void;
@@ -210,6 +211,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     setSelectedTeamForRoster,
     showSaveBeforeNewConfirm,
     showHardResetConfirm,
+    setShowHardResetConfirm,
     handleUpdateGameEvent,
     handleExportOneExcel,
     handleExportAggregateExcel,
