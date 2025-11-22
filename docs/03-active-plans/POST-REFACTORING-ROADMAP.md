@@ -1,7 +1,20 @@
+# ⚠️ SUPERSEDED DOCUMENT
+
+**This roadmap has been superseded by a more comprehensive plan.**
+
+**Superseded By**: `/docs/03-active-plans/PROFESSIONAL_ARCHITECTURE_ROADMAP.md` (November 22, 2025)
+**Reason**: Professional Architecture Roadmap provides a more comprehensive 8-week plan to achieve 9-10/10 quality
+
+This document outlined post-refactoring work but has been replaced by a more ambitious and detailed roadmap that includes architectural improvements beyond basic cleanup.
+
+**Keep for reference** if you want to see the original post-refactoring plan.
+
+---
+
 # Post-Refactoring Roadmap
 
 **Created**: November 20, 2025
-**Status**: 🔴 PENDING - Activate when Step 2.6 is 100% complete
+**Status**: 🔴 SUPERSEDED - See PROFESSIONAL_ARCHITECTURE_ROADMAP.md instead
 **Purpose**: Master checklist for work after useGameOrchestration hook splitting is finished
 
 ---

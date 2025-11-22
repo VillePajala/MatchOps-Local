@@ -1,3 +1,14 @@
+# ⚠️ ARCHIVED DOCUMENT
+
+**This project status document from October 2025 has been archived.**
+
+**Reason**: Outdated metrics and status information (pre-refactoring completion)
+**Current Status**: See `/docs/03-active-plans/REFACTORING_STATUS.md` and `/docs/03-active-plans/PROFESSIONAL_ARCHITECTURE_ROADMAP.md`
+
+This document contains outdated information about the refactoring status. The actual status as of November 2025 is that the P0 refactoring is 100% complete.
+
+---
+
 # MatchOps-Local: Project Status
 
 **Current state, maturity level, and implementation status as of October 2025**
