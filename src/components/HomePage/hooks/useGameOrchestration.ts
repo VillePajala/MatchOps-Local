@@ -4,11 +4,11 @@ import type ControlBar from '@/components/ControlBar';
 import type { GameContainerProps } from '@/components/HomePage/containers/GameContainer';
 import type { ModalManagerProps } from '@/components/HomePage/containers/ModalManager';
 import usePlayerAssessments from '@/hooks/usePlayerAssessments';
-import { exportFullBackup } from '@/utils/fullBackup';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 import { useFieldCoordination } from './useFieldCoordination';
 import { useTimerManagement } from './useTimerManagement';
+import { useGameExport } from './useGameExport';
 // Import game session types (reducer is used internally by useGameSessionWithHistory)
 import {
   GameSessionState,
@@ -55,8 +55,7 @@ import { queryKeys } from '@/config/queryKeys';
 import { updateGameDetails as utilUpdateGameDetails } from '@/utils/savedGames';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { MASTER_ROSTER_KEY, TIMER_STATE_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
-import { exportJson } from '@/utils/exportGames';
-import { exportCurrentGameExcel, exportAggregateExcel, exportPlayerExcel } from '@/utils/exportExcel';
+// Export utilities moved to useGameExport hook (Step 2.1)
 // Icons imported where used; remove unused here to satisfy lint
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
@@ -277,6 +276,14 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setTournaments,
   });
 
+  // --- Game Export Hook (Step 2.1) ---
+  const gameExport = useGameExport({
+    savedGames,
+    availablePlayers,
+    seasons,
+    tournaments,
+  });
+
   // TODO: Add useGamePersistence hook call here after reordering dependencies
 
   // <<< ADD: State for home/away status >>>
@@ -380,9 +387,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
   // showResetFieldConfirm now managed by useFieldCoordination
 
-  const handleCreateBackup = useCallback(() => {
-    exportFullBackup(showToast);
-  }, [showToast]);
+  // handleCreateBackup moved to useGameExport hook (Step 2.1)
 
   const handleManageTeamRosterFromNewGame = (teamId?: string) => {
     closeNewGameViaReducer();
@@ -1214,14 +1219,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // handleToggleGameStatsModal moved to useModalOrchestration
   // handleOpenTeamManagerModal and handleCloseTeamManagerModal moved to useModalOrchestration
 
-  // Placeholder handlers - delegate to session coordination
-  const handleOpponentNameChange = sessionCoordination.handlers.setOpponentName;
-  const handleGameDateChange = sessionCoordination.handlers.setGameDate;
-  const handleGameNotesChange = sessionCoordination.handlers.setGameNotes;
-
-  // --- Handlers for Game Structure ---
-  const handleSetNumberOfPeriods = sessionCoordination.handlers.setNumberOfPeriods;
-  const handleSetPeriodDuration = sessionCoordination.handlers.setPeriodDuration;
+  // Handler wrappers removed (Step 2.2) - use sessionCoordination.handlers directly in return object
 
   // Training Resources Modal
   const handleToggleTrainingResources = () => {
@@ -1276,38 +1274,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // Function to handle loading a selected game
   // handleLoadGame and handleDeleteGame moved to useGamePersistence hook
 
-  // Function to export all saved games as a single JSON file (RENAMED & PARAMETERIZED)
-  // const handleExportAllGamesJson = () => { // This function is no longer used
-  //   // ...
-  // };
-
-  // Helper functions moved to exportGames util
-  
-  // --- INDIVIDUAL GAME EXPORT HANDLERS ---
-  const handleExportOneJson = (gameId: string) => {
-    const gameData = savedGames[gameId];
-    if (!gameData) {
-      showToast(`Error: Could not find game data for ${gameId}`, 'error');
-      return;
-    }
-    exportJson(gameId, gameData, seasons, tournaments);
-  };
-
-  const handleExportOneExcel = (gameId: string) => {
-    const gameData = savedGames[gameId];
-    if (!gameData) {
-      showToast(`Error: Could not find game data for ${gameId}`, 'error');
-      return;
-    }
-    try {
-      exportCurrentGameExcel(gameId, gameData, availablePlayers, seasons, tournaments);
-    } catch (error) {
-      logger.error('[handleExportOneExcel] Export failed:', error);
-      showToast(t('export.exportGameFailed'), 'error');
-    }
-  };
-
-  // --- END INDIVIDUAL GAME EXPORT HANDLERS ---
+  // Export handlers moved to useGameExport hook (Step 2.1):
+  // - handleExportOneJson
+  // - handleExportOneExcel
+  // - handleExportAggregateExcel
+  // - handleExportPlayerExcel
+  // - handleCreateBackup
 
   // --- Roster Management Handlers ---
   const openRosterModal = () => {
@@ -1632,16 +1604,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // handleCloseSettingsModal moved to useModalOrchestration
   // handleCloseSeasonTournamentModal moved to useModalOrchestration
 
-  // --- Handlers for GameSettingsModal (delegate to session coordination) ---
-  const handleGameLocationChange = sessionCoordination.handlers.setGameLocation;
-  const handleGameTimeChange = sessionCoordination.handlers.setGameTime;
-  const handleAgeGroupChange = sessionCoordination.handlers.setAgeGroup;
-  const handleTournamentLevelChange = sessionCoordination.handlers.setTournamentLevel;
-  const handleSetDemandFactor = sessionCoordination.handlers.setDemandFactor;
-  const handleSetHomeOrAway = sessionCoordination.handlers.setHomeOrAway;
-  const handleSetSeasonId = sessionCoordination.handlers.setSeasonId;
-  const handleSetTournamentId = sessionCoordination.handlers.setTournamentId;
-  const handleSetGamePersonnel = sessionCoordination.handlers.setGamePersonnel;
+  // GameSettingsModal handler wrappers removed (Step 2.2) - use sessionCoordination.handlers directly
 
   // --- AGGREGATE EXPORT HANDLERS --- 
   
@@ -1658,45 +1621,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   //   return 'Unknown Filter'; // Fallback
   // };
 
-  const handleExportAggregateExcel = useCallback((gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) => {
-    if (gameIds.length === 0) {
-      showToast(t('export.noGamesInSelection', 'No games match the current filter.'), 'error');
-      return;
-    }
-    const gamesData = gameIds.reduce((acc, id) => {
-      const gameData = savedGames[id];
-      if (gameData) {
-        acc[id] = gameData;
-      }
-      return acc;
-    }, {} as SavedGamesCollection);
-    try {
-      exportAggregateExcel(gamesData, aggregateStats, seasons, tournaments, []);
-    } catch (error) {
-      logger.error('[handleExportAggregateExcel] Export failed:', error);
-      showToast(t('export.exportStatsFailed'), 'error');
-    }
-  }, [savedGames, seasons, tournaments, t, showToast]);
-
-  const handleExportPlayerExcel = useCallback(async (playerId: string, playerData: import('@/types').PlayerStatRow, gameIds: string[]) => {
-    const gamesData = gameIds.reduce((acc, id) => {
-      const gameData = savedGames[id];
-      if (gameData) {
-        acc[id] = gameData;
-      }
-      return acc;
-    }, {} as SavedGamesCollection);
-    try {
-      const { getAdjustmentsForPlayer } = await import('@/utils/playerAdjustments');
-      const adjustments = await getAdjustmentsForPlayer(playerId);
-      exportPlayerExcel(playerId, playerData, gamesData, seasons, tournaments, adjustments);
-    } catch (error) {
-      logger.error('[handleExportPlayerExcel] Export failed:', error);
-      showToast(t('export.exportPlayerFailed'), 'error');
-    }
-  }, [savedGames, seasons, tournaments, t, showToast]);
-
-  // --- END AGGREGATE EXPORT HANDLERS ---
+  // Aggregate export handlers moved to useGameExport hook (Step 2.1)
 
   // --- Handler that is called when setup modal is confirmed ---
   const handleStartNewGameWithSetup = useCallback(async (
@@ -1957,7 +1882,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     onGuideClose: () => setShowFirstGameGuide(false),
     onOpenTeamReassignModal: () => setIsTeamReassignModalOpen(true),
     onTeamNameChange: handleTeamNameChange,
-    onOpponentNameChange: handleOpponentNameChange,
+    onOpponentNameChange: sessionCoordination.handlers.setOpponentName,
     interactions: fieldInteractions,
     timerInteractions,
   };
@@ -2012,7 +1937,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     onPlayerTapInBar: fieldCoordination.handlePlayerTapInBar,
     onToggleGoalie: handleToggleGoalieForModal,
     onTeamNameChange: handleTeamNameChange,
-    onOpponentNameChange: handleOpponentNameChange,
+    onOpponentNameChange: sessionCoordination.handlers.setOpponentName,
     orphanedGameInfo,
     onOpenTeamReassignModal: () => setIsTeamReassignModalOpen(true),
     fieldProps: fieldContainerProps,
@@ -2063,11 +1988,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
     // Handlers from useGameOrchestration
     handleUpdateGameEvent,
-    handleExportOneExcel,
-    handleExportAggregateExcel,
-    handleExportPlayerExcel,
+    handleExportOneExcel: gameExport.handleExportOneExcel,
+    handleExportAggregateExcel: gameExport.handleExportAggregateExcel,
+    handleExportPlayerExcel: gameExport.handleExportPlayerExcel,
     handleGameLogClick,
-    handleExportOneJson,
+    handleExportOneJson: gameExport.handleExportOneJson,
     handleStartNewGameWithSetup,
     handleCancelNewGameSetup,
     handleUpdatePlayerForModal,
@@ -2078,28 +2003,28 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     handleAddPlayerForModal,
     handleOpenPlayerStats,
     handleTeamNameChange,
-    handleOpponentNameChange,
-    handleGameDateChange,
-    handleGameLocationChange,
-    handleGameTimeChange,
-    handleGameNotesChange,
-    handleAgeGroupChange,
-    handleTournamentLevelChange,
+    handleOpponentNameChange: sessionCoordination.handlers.setOpponentName,
+    handleGameDateChange: sessionCoordination.handlers.setGameDate,
+    handleGameLocationChange: sessionCoordination.handlers.setGameLocation,
+    handleGameTimeChange: sessionCoordination.handlers.setGameTime,
+    handleGameNotesChange: sessionCoordination.handlers.setGameNotes,
+    handleAgeGroupChange: sessionCoordination.handlers.setAgeGroup,
+    handleTournamentLevelChange: sessionCoordination.handlers.setTournamentLevel,
     handleAwardFairPlayCard,
-    handleSetNumberOfPeriods,
-    handleSetPeriodDuration,
-    handleSetDemandFactor,
-    handleSetSeasonId,
-    handleSetTournamentId,
-    handleSetHomeOrAway,
+    handleSetNumberOfPeriods: sessionCoordination.handlers.setNumberOfPeriods,
+    handleSetPeriodDuration: sessionCoordination.handlers.setPeriodDuration,
+    handleSetDemandFactor: sessionCoordination.handlers.setDemandFactor,
+    handleSetSeasonId: sessionCoordination.handlers.setSeasonId,
+    handleSetTournamentId: sessionCoordination.handlers.setTournamentId,
+    handleSetHomeOrAway: sessionCoordination.handlers.setHomeOrAway,
     handleUpdateSelectedPlayers,
-    handleSetGamePersonnel,
+    handleSetGamePersonnel: sessionCoordination.handlers.setGamePersonnel,
     handleShowAppGuide,
     handleHardResetApp,
     handleSavePlayerAssessment,
     handleDeletePlayerAssessment,
     handleTeamReassignment,
-    handleCreateBackup,
+    handleCreateBackup: gameExport.handleCreateBackup,
     onDataImportSuccess,
     handleManageTeamRosterFromNewGame,
     handleNoPlayersConfirmed,
