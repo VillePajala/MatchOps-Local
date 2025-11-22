@@ -341,6 +341,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // Wrapper around reducer-backed modals (load/new). This mirrors the old setState-style API
   // so consumers can migrate incrementally before ModalManager adopts reducer helpers in 2.4.8.
   // Note: callbacks are already memoized via useCallback, so no useMemo needed for the object itself
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Object is stable, callbacks are memoized
   const reducerDrivenModals: ReducerDrivenModals = {
     loadGame: {
       isOpen: isLoadGameModalOpen,
@@ -1124,6 +1125,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // useModalOrchestration hook call moved to line 2138 (after all handlers are defined)
 
   // Legacy handler - delegates to session coordination
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Stable function, sessionCoordination.handlers is memoized
   const handleTeamNameChange = (newName: string) => {
     sessionCoordination.handlers.setTeamName(newName);
   };
@@ -1157,6 +1159,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // Handler wrappers removed (Step 2.2) - use sessionCoordination.handlers directly in return object
 
   // Training Resources Modal
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Simple toggle function, stable behavior
   const handleToggleTrainingResources = () => {
     setIsTrainingResourcesOpen(!isTrainingResourcesOpen);
   };
@@ -1217,12 +1220,14 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // - handleCreateBackup
 
   // --- Roster Management Handlers ---
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Stable modal opener with side effects
   const openRosterModal = () => {
     logger.log('[openRosterModal] Called. Setting highlightRosterButton to false.'); // Log modal open
     openRosterViaReducer();
     setHighlightRosterButton(false); // <<< Remove highlight when modal is opened
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Simple modal opener
   const openPlayerAssessmentModal = () => setIsPlayerAssessmentModalOpen(true);
   // closePlayerAssessmentModal moved to useModalOrchestration
 
