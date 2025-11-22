@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: use full AppState in GameStateContext test"
+  "notes": "test: add comprehensive unit tests for view-model builders"
 }
