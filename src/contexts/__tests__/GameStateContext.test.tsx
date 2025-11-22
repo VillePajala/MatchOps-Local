@@ -49,8 +49,39 @@ describe('GameStateContext', () => {
     });
 
     it('should accept custom initial state', () => {
-      const customInitialState = {
-        teamName: 'Custom Team',
+      const customInitialState: import('@/types').AppState = {
+        playersOnField: [],
+        opponents: [],
+        drawings: [],
+        availablePlayers: [],
+        showPlayerNames: true,
+        teamName: 'Custom Team', // Custom value
+        gameEvents: [],
+        opponentName: 'Opponent',
+        gameDate: new Date().toISOString().split('T')[0],
+        homeScore: 0,
+        awayScore: 0,
+        gameNotes: '',
+        homeOrAway: 'home',
+        numberOfPeriods: 2,
+        periodDurationMinutes: 15,
+        currentPeriod: 1,
+        gameStatus: 'notStarted',
+        demandFactor: 1,
+        selectedPlayerIds: [],
+        gamePersonnel: [],
+        seasonId: '',
+        tournamentId: '',
+        ageGroup: '',
+        tournamentLevel: '',
+        gameLocation: '',
+        gameTime: '',
+        subIntervalMinutes: 5,
+        completedIntervalDurations: [],
+        lastSubConfirmationTimeSeconds: 0,
+        tacticalDiscs: [],
+        tacticalDrawings: [],
+        tacticalBallPosition: { relX: 0.5, relY: 0.5 },
       };
 
       render(
