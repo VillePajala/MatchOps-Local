@@ -334,5 +334,43 @@ describe('GameStateContext', () => {
       expect(result.current.gameSessionState).toBeDefined();
       expect(result.current.currentGameId).toBe(DEFAULT_GAME_ID);
     });
+
+    /**
+     * Performance test: Ensures handlers are memoized and don't cause re-renders
+     * @performance
+     */
+    it('should maintain handler references across re-renders', () => {
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <GameStateProvider>{children}</GameStateProvider>
+      );
+
+      const { result, rerender } = renderHook(() => useGameState(), { wrapper });
+
+      // Capture initial handler references
+      const handlers1 = result.current.handlers;
+
+      // Force re-render
+      rerender();
+
+      // Get handlers after re-render
+      const handlers2 = result.current.handlers;
+
+      // Verify all 15 handlers maintain same reference (memoization)
+      expect(handlers1.setTeamName).toBe(handlers2.setTeamName);
+      expect(handlers1.setOpponentName).toBe(handlers2.setOpponentName);
+      expect(handlers1.setGameDate).toBe(handlers2.setGameDate);
+      expect(handlers1.setGameLocation).toBe(handlers2.setGameLocation);
+      expect(handlers1.setGameTime).toBe(handlers2.setGameTime);
+      expect(handlers1.setGameNotes).toBe(handlers2.setGameNotes);
+      expect(handlers1.setAgeGroup).toBe(handlers2.setAgeGroup);
+      expect(handlers1.setTournamentLevel).toBe(handlers2.setTournamentLevel);
+      expect(handlers1.setNumberOfPeriods).toBe(handlers2.setNumberOfPeriods);
+      expect(handlers1.setPeriodDuration).toBe(handlers2.setPeriodDuration);
+      expect(handlers1.setDemandFactor).toBe(handlers2.setDemandFactor);
+      expect(handlers1.setHomeOrAway).toBe(handlers2.setHomeOrAway);
+      expect(handlers1.setSeasonId).toBe(handlers2.setSeasonId);
+      expect(handlers1.setTournamentId).toBe(handlers2.setTournamentId);
+      expect(handlers1.setGamePersonnel).toBe(handlers2.setGamePersonnel);
+    });
   });
 });
