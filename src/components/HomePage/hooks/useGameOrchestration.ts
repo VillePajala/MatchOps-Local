@@ -65,6 +65,11 @@ import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { FieldContainerProps, FieldInteractions } from '@/components/HomePage/containers/FieldContainer';
 import type { ReducerDrivenModals } from '@/types';
 import { debug } from '@/utils/debug';
+import {
+  buildFieldInteractions,
+  buildFieldContainerProps,
+  buildControlBarProps,
+} from '@/viewModels/orchestratorViewModels';
 
 
 // Empty initial data for clean app start
@@ -1769,139 +1774,14 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setIsGameStatsModalOpen(prev => !prev); // handleToggleGameStatsModal moved to useModalOrchestration
   };
 
-  const fieldInteractions = useMemo<FieldInteractions>(() => ({
-    players: {
-      move: fieldCoordination.handlePlayerMove,
-      moveEnd: fieldCoordination.handlePlayerMoveEnd,
-      remove: fieldCoordination.handlePlayerRemove,
-      drop: fieldCoordination.handleDropOnField,
-    },
-    opponents: {
-      move: fieldCoordination.handleOpponentMove,
-      moveEnd: fieldCoordination.handleOpponentMoveEnd,
-      remove: fieldCoordination.handleOpponentRemove,
-    },
-    drawing: {
-      start: fieldCoordination.handleDrawingStart,
-      addPoint: fieldCoordination.handleDrawingAddPoint,
-      end: fieldCoordination.handleDrawingEnd,
-    },
-    tactical: {
-      drawingStart: fieldCoordination.handleTacticalDrawingStart,
-      drawingAddPoint: fieldCoordination.handleTacticalDrawingAddPoint,
-      drawingEnd: fieldCoordination.handleTacticalDrawingEnd,
-      discMove: fieldCoordination.handleTacticalDiscMove,
-      discRemove: fieldCoordination.handleTacticalDiscRemove,
-      discToggleType: fieldCoordination.handleToggleTacticalDiscType,
-      ballMove: fieldCoordination.handleTacticalBallMove,
-    },
-    touch: {
-      playerDrop: fieldCoordination.handlePlayerDropViaTouch,
-      playerDragCancel: fieldCoordination.handlePlayerDragCancelViaTouch,
-    },
-  }), [fieldCoordination]);
-
-  // timerInteractions now provided by useTimerManagement (Step 2.6.5)
-
-  const fieldContainerProps: FieldContainerProps = {
-    gameSessionState,
-    fieldVM: {
-      playersOnField: fieldCoordination.playersOnField,
-      opponents: fieldCoordination.opponents,
-      drawings: fieldCoordination.drawings,
-      isTacticsBoardView: fieldCoordination.isTacticsBoardView,
-      tacticalDrawings: fieldCoordination.tacticalDrawings,
-      tacticalDiscs: fieldCoordination.tacticalDiscs,
-      tacticalBallPosition: fieldCoordination.tacticalBallPosition,
-      draggingPlayerFromBarInfo: fieldCoordination.draggingPlayerFromBarInfo,
-      isDrawingEnabled: fieldCoordination.isDrawingEnabled,
-    },
-    timerVM: {
-      timeElapsedInSeconds,
-      isTimerRunning,
-      subAlertLevel,
-      lastSubConfirmationTimeSeconds,
-      showLargeTimerOverlay,
-      initialLoadComplete,
-    },
-    currentGameId,
-    availablePlayers,
-    teams: gameDataManagement.teams,
-    seasons: gameDataManagement.seasons,
-    tournaments: gameDataManagement.tournaments,
-    showFirstGameGuide,
-    hasCheckedFirstGameGuide,
-    firstGameGuideStep,
-    orphanedGameInfo,
-    onOpenNewGameSetup: reducerDrivenModals.newGameSetup.open,
-    onOpenRosterModal: reducerDrivenModals.roster.open,
-    onOpenSeasonTournamentModal: reducerDrivenModals.seasonTournament.open,
-    onOpenTeamManagerModal: () => setIsTeamManagerOpen(true),
-    onGuideStepChange: setFirstGameGuideStep,
-    onGuideClose: () => setShowFirstGameGuide(false),
-    onOpenTeamReassignModal: () => setIsTeamReassignModalOpen(true),
-    onTeamNameChange: handleTeamNameChange,
-    onOpponentNameChange: sessionCoordination.handlers.setOpponentName,
-    interactions: fieldInteractions,
-    timerInteractions,
-  };
-
-  const controlBarProps: ComponentProps<typeof ControlBar> = {
-    timeElapsedInSeconds,
-    isTimerRunning,
-    onToggleLargeTimerOverlay: handleToggleLargeTimerOverlay,
-    onUndo: handleUndo,
-    onRedo: handleRedo,
-    canUndo: fieldCoordination.canUndoField,
-    canRedo: fieldCoordination.canRedoField,
-    onTacticalUndo: fieldCoordination.handleTacticalUndo,
-    onTacticalRedo: fieldCoordination.handleTacticalRedo,
-    canTacticalUndo: tacticalHistory.canUndo,
-    canTacticalRedo: tacticalHistory.canRedo,
-    onResetField: fieldCoordination.handleResetFieldClick,
-    onClearDrawings: fieldCoordination.handleClearDrawingsForView,
-    onAddOpponent: fieldCoordination.handleAddOpponent,
-    onPlaceAllPlayers: fieldCoordination.handlePlaceAllPlayers,
-    isTacticsBoardView: fieldCoordination.isTacticsBoardView,
-    onToggleTacticsBoard: fieldCoordination.handleToggleTacticsBoard,
-    onAddHomeDisc: () => fieldCoordination.handleAddTacticalDisc('home'),
-    onAddOpponentDisc: () => fieldCoordination.handleAddTacticalDisc('opponent'),
-    isDrawingEnabled: fieldCoordination.isDrawingEnabled,
-    onToggleDrawingMode: fieldCoordination.handleToggleDrawingMode,
-    onToggleTrainingResources: handleToggleTrainingResources,
-    onToggleGameStatsModal: () => setIsGameStatsModalOpen(prev => !prev), // handleToggleGameStatsModal moved to useModalOrchestration
-    onOpenLoadGameModal: () => setIsLoadGameModalOpen(true),
-    onStartNewGame: handleStartNewGame,
-    onOpenRosterModal: openRosterModal,
-    onQuickSave: persistence.handleQuickSaveGame,
-    onOpenGameSettingsModal: () => setIsGameSettingsModalOpen(true),
-    isGameLoaded: Boolean(currentGameId && currentGameId !== DEFAULT_GAME_ID),
-    onOpenSeasonTournamentModal: () => setIsSeasonTournamentModalOpen(true),
-    onToggleInstructionsModal: () => setIsInstructionsModalOpen(prev => !prev), // handleToggleInstructionsModal moved to useModalOrchestration
-    onOpenSettingsModal: () => setIsSettingsModalOpen(true), // handleOpenSettingsModal moved to useModalOrchestration
-    onOpenPlayerAssessmentModal: openPlayerAssessmentModal,
-    onOpenTeamManagerModal: () => setIsTeamManagerOpen(true),
-    onOpenPersonnelManager: () => setIsPersonnelManagerOpen(true),
-  };
+  const fieldInteractions = useMemo<FieldInteractions>(
+    () => buildFieldInteractions({ fieldCoordination }),
+    [fieldCoordination]
+  );
 
   const isLoading = gameDataManagement.isLoading;
 
   const isBootstrapping = isLoading && !initialLoadComplete;
-
-  const gameContainerProps = {
-    playerBar: playerBarViewModel,
-    gameInfo: gameInfoViewModel,
-    onPlayerDragStartFromBar: fieldCoordination.handlePlayerDragStartFromBar,
-    onBarBackgroundClick: fieldCoordination.handleDeselectPlayer,
-    onPlayerTapInBar: fieldCoordination.handlePlayerTapInBar,
-    onToggleGoalie: handleToggleGoalieForModal,
-    onTeamNameChange: handleTeamNameChange,
-    onOpponentNameChange: sessionCoordination.handlers.setOpponentName,
-    orphanedGameInfo,
-    onOpenTeamReassignModal: () => setIsTeamReassignModalOpen(true),
-    fieldProps: fieldContainerProps,
-    controlBarProps,
-  };
 
   // --- Modal Orchestration Hook (Step 2.6.6 - FINAL) ---
   const modalOrchestration = useModalOrchestration({
@@ -2008,6 +1888,118 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     // handleToggleGameStatsModal, handleToggleInstructionsModal, handleOpenSettingsModal
     // removed - these are no longer returned from useModalOrchestration
   } = modalOrchestration;
+
+  // Build field and control bar props (Step 2.4 - extracted to view-model builders)
+  const fieldContainerProps = useMemo<FieldContainerProps>(
+    () => buildFieldContainerProps({
+      gameSessionState,
+      fieldCoordination,
+      timerManagement,
+      currentGameId,
+      availablePlayers,
+      teams: gameDataManagement.teams,
+      seasons: gameDataManagement.seasons,
+      tournaments: gameDataManagement.tournaments,
+      showFirstGameGuide,
+      hasCheckedFirstGameGuide,
+      firstGameGuideStep,
+      orphanedGameInfo,
+      initialLoadComplete,
+      reducerDrivenModals,
+      setIsTeamManagerOpen,
+      setFirstGameGuideStep,
+      setShowFirstGameGuide,
+      setIsTeamReassignModalOpen,
+      handleTeamNameChange,
+      setOpponentName: sessionCoordination.handlers.setOpponentName,
+      fieldInteractions,
+    }),
+    [
+      gameSessionState,
+      fieldCoordination,
+      timerManagement,
+      currentGameId,
+      availablePlayers,
+      gameDataManagement.teams,
+      gameDataManagement.seasons,
+      gameDataManagement.tournaments,
+      showFirstGameGuide,
+      hasCheckedFirstGameGuide,
+      firstGameGuideStep,
+      orphanedGameInfo,
+      initialLoadComplete,
+      reducerDrivenModals,
+      setIsTeamManagerOpen,
+      setFirstGameGuideStep,
+      setShowFirstGameGuide,
+      setIsTeamReassignModalOpen,
+      handleTeamNameChange,
+      sessionCoordination.handlers.setOpponentName,
+      fieldInteractions,
+    ]
+  );
+
+  const controlBarProps = useMemo<ComponentProps<typeof ControlBar>>(
+    () => buildControlBarProps({
+      timerManagement,
+      fieldCoordination,
+      tacticalHistory,
+      currentGameId,
+      handleToggleLargeTimerOverlay,
+      handleUndo,
+      handleRedo,
+      handleToggleTrainingResources,
+      setIsGameStatsModalOpen,
+      setIsLoadGameModalOpen,
+      handleStartNewGame,
+      openRosterModal,
+      quickSave: persistence.handleQuickSaveGame,
+      setIsGameSettingsModalOpen,
+      setIsSeasonTournamentModalOpen,
+      setIsInstructionsModalOpen,
+      setIsSettingsModalOpen,
+      openPlayerAssessmentModal,
+      setIsTeamManagerOpen,
+      setIsPersonnelManagerOpen,
+    }),
+    [
+      timerManagement,
+      fieldCoordination,
+      tacticalHistory,
+      currentGameId,
+      handleToggleLargeTimerOverlay,
+      handleUndo,
+      handleRedo,
+      handleToggleTrainingResources,
+      setIsGameStatsModalOpen,
+      setIsLoadGameModalOpen,
+      handleStartNewGame,
+      openRosterModal,
+      persistence.handleQuickSaveGame,
+      setIsGameSettingsModalOpen,
+      setIsSeasonTournamentModalOpen,
+      setIsInstructionsModalOpen,
+      setIsSettingsModalOpen,
+      openPlayerAssessmentModal,
+      setIsTeamManagerOpen,
+      setIsPersonnelManagerOpen,
+    ]
+  );
+
+  const gameContainerProps = {
+    playerBar: playerBarViewModel,
+    gameInfo: gameInfoViewModel,
+    onPlayerDragStartFromBar: fieldCoordination.handlePlayerDragStartFromBar,
+    onBarBackgroundClick: fieldCoordination.handleDeselectPlayer,
+    onPlayerTapInBar: fieldCoordination.handlePlayerTapInBar,
+    onToggleGoalie: handleToggleGoalieForModal,
+    onTeamNameChange: handleTeamNameChange,
+    onOpponentNameChange: sessionCoordination.handlers.setOpponentName,
+    orphanedGameInfo,
+    onOpenTeamReassignModal: () => setIsTeamReassignModalOpen(true),
+    fieldProps: fieldContainerProps,
+    controlBarProps,
+  };
 
   // Show automatic instructions for experienced users with specific actions, not first-time users
   // Guard prevents multiple triggers when savedGames changes
