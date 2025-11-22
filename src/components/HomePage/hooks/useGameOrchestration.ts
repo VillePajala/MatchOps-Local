@@ -792,95 +792,59 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   
   useEffect(() => {
     const loadInitialAppData = async () => {
-      if (initialLoadComplete) {
-        return;
-      }
-      // This useEffect now primarily ensures that dependent state updates happen
-      // after the core data (masterRoster, seasons, tournaments, savedGames, currentGameIdSetting)
-      // has been fetched by their respective useQuery hooks.
+      if (initialLoadComplete || gameDataManagement.isLoading) return;
 
-      // Simple migration for old data keys (if any) - Run once
-      // NOTE: This is legacy migration code - consider removing after main migration system is stable
-      try {
-        const oldRosterJson = await getStorageItem('availablePlayers').catch(() => null);
-        if (oldRosterJson) {
-          await setStorageItem(MASTER_ROSTER_KEY, oldRosterJson);
-          await removeStorageItem('availablePlayers');
-          // Consider invalidating and refetching masterRoster query here if migration happens
-          // queryClient.invalidateQueries(queryKeys.masterRoster);
-        }
-        const oldSeasonsJson = await getStorageItem('soccerSeasonsList').catch(() => null); // Another old key
-      if (oldSeasonsJson) {
-          await setStorageItem(SEASONS_LIST_KEY, oldSeasonsJson); // New key
-          // queryClient.invalidateQueries(queryKeys.seasons);
-      }
-    } catch (migrationError) {
-        logger.error('[EFFECT init] Error during data migration:', migrationError);
-      }
+      // Migrate legacy storage keys (Step 2.3 - extracted to utility)
+      const { migrateLegacyStorageKeys } = await import('@/utils/legacyDataMigration');
+      await migrateLegacyStorageKeys();
 
-      // Master Roster, Seasons, Tournaments are handled by their own useEffects reacting to useQuery.
-
-      // 4. Update local savedGames state from useQuery for allSavedGames
-      if (gameDataManagement.isLoading) {
-        setIsLoadingGamesList(true);
-      }
+      // Update savedGames state from useQuery
       if (gameDataManagement.savedGames) {
-        setSavedGames(gameDataManagement.savedGames || {});
+        setSavedGames(gameDataManagement.savedGames);
         setIsLoadingGamesList(false);
       }
+
       if (gameDataManagement.error) {
-        logger.error('[EFFECT init] Error loading all saved games via TanStack Query:', gameDataManagement.error);
+        logger.error('[EFFECT init] Error loading saved games:', gameDataManagement.error);
         setLoadGamesListError(t('loadGameModal.errors.listLoadFailed', 'Failed to load saved games list.'));
-      setSavedGames({});
+        setSavedGames({});
         setIsLoadingGamesList(false);
       }
 
-      // 5. Determine and set current game ID and related state from useQuery data
-      if (gameDataManagement.isLoading) {
-      } else {
-        const lastGameIdSetting = gameDataManagement.currentGameIdSetting;
-        const currentSavedGames = gameDataManagement.savedGames || {}; 
+      // Set current game ID from settings
+      const lastGameIdSetting = gameDataManagement.currentGameIdSetting;
+      const currentSavedGames = gameDataManagement.savedGames || {};
 
-        if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID && currentSavedGames[lastGameIdSetting]) {
-          setCurrentGameId(lastGameIdSetting);
-          setHasSkippedInitialSetup(true);
-        } else {
-          if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID) {
-            logger.warn(`[EFFECT init] Last game ID ${lastGameIdSetting} not found in saved games (from TanStack Query). Loading default.`);
-          }
+      if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID && currentSavedGames[lastGameIdSetting]) {
+        setCurrentGameId(lastGameIdSetting);
+        setHasSkippedInitialSetup(true);
+      } else {
+        if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID) {
+          logger.warn(`[EFFECT init] Last game ID ${lastGameIdSetting} not found. Loading default.`);
+        }
         setCurrentGameId(DEFAULT_GAME_ID);
       }
-    }
-    
-      // Determine overall initial load completion
-      if (!gameDataManagement.isLoading) {
-        // --- TIMER RESTORATION LOGIC ---
-        try {
-          const savedTimerStateJSON = await getStorageItem(TIMER_STATE_KEY).catch(() => null);
-          const lastGameId = gameDataManagement.currentGameIdSetting;
 
-          if (savedTimerStateJSON) {
-            const savedTimerState: TimerState = JSON.parse(savedTimerStateJSON);
-            if (savedTimerState && savedTimerState.gameId === lastGameId) {
-              const elapsedOfflineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
-              const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
-
-              dispatchGameSession({ type: 'SET_TIMER_ELAPSED', payload: correctedElapsedSeconds });
-              // Use START_TIMER instead of SET_TIMER_RUNNING to properly set startTimestamp
-              dispatchGameSession({ type: 'START_TIMER' });
-            } else {
-              await removeStorageItem(TIMER_STATE_KEY).catch(() => {});
-            }
+      // Restore timer state if present
+      try {
+        const savedTimerStateJSON = await getStorageItem(TIMER_STATE_KEY).catch(() => null);
+        if (savedTimerStateJSON) {
+          const savedTimerState: TimerState = JSON.parse(savedTimerStateJSON);
+          if (savedTimerState?.gameId === lastGameIdSetting) {
+            const elapsedOfflineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
+            const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
+            dispatchGameSession({ type: 'SET_TIMER_ELAPSED', payload: correctedElapsedSeconds });
+            dispatchGameSession({ type: 'START_TIMER' });
+          } else {
+            await removeStorageItem(TIMER_STATE_KEY).catch(() => {});
           }
-        } catch (error) {
-          logger.error('[EFFECT init] Error restoring timer state:', error);
-          await removeStorageItem(TIMER_STATE_KEY).catch(() => {});
         }
-        // --- END TIMER RESTORATION LOGIC ---
-
-        // This is now the single source of truth for loading completion.
-        setInitialLoadComplete(true);
+      } catch (error) {
+        logger.error('[EFFECT init] Error restoring timer:', error);
+        await removeStorageItem(TIMER_STATE_KEY).catch(() => {});
       }
+
+      setInitialLoadComplete(true);
     };
 
     loadInitialAppData();
@@ -890,16 +854,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     gameDataManagement.isLoading,
     gameDataManagement.error,
     setSavedGames,
-    setIsLoadingGamesList,
-    setLoadGamesListError,
     setCurrentGameId,
     setHasSkippedInitialSetup,
     t,
     initialLoadComplete,
-    initialAction, // Used to determine if instructions modal should show automatically
-    savedGames, // Used to check if user has any saved games for instructions modal logic
-    dispatchGameSession, // Used for timer restoration
-    // setIsInstructionsModalOpen intentionally excluded - useState setter is stable (from useModalOrchestration)
+    dispatchGameSession,
   ]);
 
   // Check if we should show first game interface guide
