@@ -21,11 +21,11 @@ export const createPlayerMapping = (
 ): PlayerMapping[] => {
   const mappings: PlayerMapping[] = [];
   
-  // Get all unique players from the imported game
+  // Get all unique players from the imported game (selected players only, not entire roster)
   const importedPlayerIds = new Set([
     ...importedGame.playersOnField.map(p => p.id),
-    ...importedGame.availablePlayers.map(p => p.id),
-    ...importedGame.selectedPlayerIds
+    ...importedGame.selectedPlayerIds,
+    ...(importedGame.gamePersonnel || [])
   ]);
   
   // Get player names from the imported game
@@ -80,13 +80,11 @@ export const processImportedGame = (
   
   // Update selectedPlayerIds to include current roster player IDs
   processedGame.selectedPlayerIds = [
-    ...new Set([
-      ...processedGame.selectedPlayerIds.map(id => playerIdMap.get(id) || id).filter(id => 
-        currentRoster.some(p => p.id === id)
-      ),
-      // Also include any players that were mapped from the game rosters
-      ...mapping.filter(m => m.currentPlayerId).map(m => m.currentPlayerId!)
-    ])
+    ...new Set(
+      processedGame.selectedPlayerIds
+        .map(id => playerIdMap.get(id) || id)
+        .filter(id => currentRoster.some(p => p.id === id))
+    )
   ];
   
   // Update game events to use current roster player IDs
