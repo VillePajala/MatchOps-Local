@@ -65,7 +65,8 @@ describe('gameImportHelper', () => {
     it('should create correct player mappings', () => {
       const mappings = createPlayerMapping(mockImportedGame, mockCurrentRoster);
 
-      expect(mappings).toHaveLength(4);
+      // Should only map players from playersOnField and selectedPlayerIds (not entire availablePlayers)
+      expect(mappings).toHaveLength(3);
       
       // Check exact name matches
       const johnMapping = mappings.find(m => m.importedPlayerName === 'John Smith');
@@ -84,13 +85,12 @@ describe('gameImportHelper', () => {
         matchConfidence: 'name'
       });
 
-      // Check no match
-      const unknownMapping = mappings.find(m => m.importedPlayerName === 'Unknown Player');
-      expect(unknownMapping).toEqual({
-        importedPlayerId: 'imported_player4',
-        importedPlayerName: 'Unknown Player',
-        currentPlayerId: null,
-        matchConfidence: 'none'
+      const bobMapping = mappings.find(m => m.importedPlayerName === 'Bob Wilson');
+      expect(bobMapping).toEqual({
+        importedPlayerId: 'imported_player3',
+        importedPlayerName: 'Bob Wilson',
+        currentPlayerId: 'player3',
+        matchConfidence: 'name'
       });
     });
   });
