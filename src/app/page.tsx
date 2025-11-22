@@ -1,6 +1,7 @@
 'use client';
 
 import ModalProvider from '@/contexts/ModalProvider';
+import { GameStateProvider } from '@/contexts/GameStateContext';
 import HomePage from '@/components/HomePage';
 import StartScreen from '@/components/StartScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
@@ -124,12 +125,14 @@ export default function Home() {
           </ErrorBoundary>
         ) : (
           <ErrorBoundary>
-            <HomePage
-              initialAction={initialAction ?? undefined}
-              skipInitialSetup
-              onDataImportSuccess={handleDataImportSuccess}
-              isFirstTimeUser={isFirstTimeUser}
-            />
+            <GameStateProvider>
+              <HomePage
+                initialAction={initialAction ?? undefined}
+                skipInitialSetup
+                onDataImportSuccess={handleDataImportSuccess}
+                isFirstTimeUser={isFirstTimeUser}
+              />
+            </GameStateProvider>
           </ErrorBoundary>
         )}
 
