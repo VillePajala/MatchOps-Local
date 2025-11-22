@@ -14,9 +14,8 @@
  *
  * @example
  * ```tsx
+ * // Week 2-3 PR2: Uses GameStateContext for currentGameId and setAvailablePlayers
  * const dataManager = useGameDataManagement({
- *   currentGameId,
- *   setAvailablePlayers,
  *   setSeasons,
  *   setTournaments
  * });
@@ -36,6 +35,7 @@ import { useGameDataQueries } from '@/hooks/useGameDataQueries';
 import { useTeamsQuery } from '@/hooks/useTeamQueries';
 import { usePersonnelManager } from '@/hooks/usePersonnelManager';
 import type { PersonnelManagerReturn } from '@/hooks/usePersonnelManager';
+import { useGameState } from '@/contexts/GameStateContext';
 import { queryKeys } from '@/config/queryKeys';
 import {
   addSeason as utilAddSeason,
@@ -60,14 +60,12 @@ import logger from '@/utils/logger';
 
 /**
  * Parameters for useGameDataManagement hook
+ *
+ * @remarks
+ * Week 2-3 PR2: Migrated to use GameStateContext for currentGameId and setAvailablePlayers.
+ * Seasons and tournaments remain as parameters (local state in useGameOrchestration).
  */
 export interface UseGameDataManagementParams {
-  /** Current game ID - used to determine when to sync master roster */
-  currentGameId: string | null;
-
-  /** Setter for available players - called when master roster syncs */
-  setAvailablePlayers: (players: Player[]) => void;
-
   /** Setter for seasons list - called when seasons data loads */
   setSeasons: (seasons: Season[]) => void;
 
@@ -123,13 +121,20 @@ export interface UseGameDataManagementReturn {
 /**
  * Hook for managing all game data fetching and synchronization
  *
- * @param params - Configuration parameters
+ * @remarks
+ * Week 2-3 PR2: Uses GameStateContext for currentGameId and setAvailablePlayers,
+ * reducing prop drilling in useGameOrchestration.
+ *
+ * @param params - Configuration parameters (seasons and tournaments setters)
  * @returns Data and mutation operations
  */
 export function useGameDataManagement(
   params: UseGameDataManagementParams
 ): UseGameDataManagementReturn {
-  const { currentGameId, setAvailablePlayers, setSeasons, setTournaments } = params;
+  const { setSeasons, setTournaments } = params;
+
+  // Access shared state from context (Week 2-3 PR2)
+  const { currentGameId, setAvailablePlayers } = useGameState();
 
   // --- Initialize React Query client ---
   const queryClient = useQueryClient();
