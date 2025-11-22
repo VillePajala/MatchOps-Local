@@ -260,10 +260,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
 
-  // --- Game Data Management Hook ---
+  // --- Game Data Management Hook (Week 2-3 PR2: Uses GameStateContext) ---
   const gameDataManagement = useGameDataManagement({
-    currentGameId,
-    setAvailablePlayers,
     setSeasons,
     setTournaments,
   });
