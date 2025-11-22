@@ -6,6 +6,7 @@ import type { UseTimerManagementReturn } from '@/components/HomePage/hooks/useTi
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import type { Player, Season, Tournament, Team } from '@/types';
 import type { ReducerDrivenModals } from '@/types';
+import { DEFAULT_GAME_ID } from '@/config/constants';
 
 /**
  * View-Model Builders for useGameOrchestration
@@ -211,8 +212,6 @@ export function buildControlBarProps(input: BuildControlBarPropsInput): Componen
     setIsTeamManagerOpen,
     setIsPersonnelManagerOpen,
   } = input;
-
-  const DEFAULT_GAME_ID = 'game_000000000000_XXXXXX';
 
   return {
     timeElapsedInSeconds: timerManagement.timeElapsedInSeconds,

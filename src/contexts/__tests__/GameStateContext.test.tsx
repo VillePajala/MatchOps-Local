@@ -1,6 +1,7 @@
 import React from 'react';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, renderHook } from '@testing-library/react';
 import { GameStateProvider, useGameState } from '../GameStateContext';
+import { DEFAULT_GAME_ID } from '@/config/constants';
 
 /**
  * Tests for GameStateContext (Week 2-3 PR1)
@@ -219,6 +220,119 @@ describe('GameStateContext', () => {
       });
 
       expect(screen.getByTestId('players-count')).toHaveTextContent('1');
+    });
+
+    it('should provide handlers object with all session coordination handlers', () => {
+      function HandlersTestConsumer() {
+        const { handlers } = useGameState();
+
+        return (
+          <div>
+            <div data-testid="has-team-name">{typeof handlers.setTeamName === 'function' ? 'yes' : 'no'}</div>
+            <div data-testid="has-opponent-name">{typeof handlers.setOpponentName === 'function' ? 'yes' : 'no'}</div>
+            <div data-testid="has-game-date">{typeof handlers.setGameDate === 'function' ? 'yes' : 'no'}</div>
+            <div data-testid="has-game-location">{typeof handlers.setGameLocation === 'function' ? 'yes' : 'no'}</div>
+            <div data-testid="has-game-time">{typeof handlers.setGameTime === 'function' ? 'yes' : 'no'}</div>
+            <div data-testid="has-game-notes">{typeof handlers.setGameNotes === 'function' ? 'yes' : 'no'}</div>
+            <div data-testid="has-age-group">{typeof handlers.setAgeGroup === 'function' ? 'yes' : 'no'}</div>
+            <div data-testid="has-tournament-level">{typeof handlers.setTournamentLevel === 'function' ? 'yes' : 'no'}</div>
+            <div data-testid="has-periods">{typeof handlers.setNumberOfPeriods === 'function' ? 'yes' : 'no'}</div>
+            <div data-testid="has-duration">{typeof handlers.setPeriodDuration === 'function' ? 'yes' : 'no'}</div>
+            <div data-testid="has-demand">{typeof handlers.setDemandFactor === 'function' ? 'yes' : 'no'}</div>
+            <div data-testid="has-home-away">{typeof handlers.setHomeOrAway === 'function' ? 'yes' : 'no'}</div>
+            <div data-testid="has-season">{typeof handlers.setSeasonId === 'function' ? 'yes' : 'no'}</div>
+            <div data-testid="has-tournament">{typeof handlers.setTournamentId === 'function' ? 'yes' : 'no'}</div>
+            <div data-testid="has-personnel">{typeof handlers.setGamePersonnel === 'function' ? 'yes' : 'no'}</div>
+          </div>
+        );
+      }
+
+      render(
+        <GameStateProvider>
+          <HandlersTestConsumer />
+        </GameStateProvider>
+      );
+
+      // Verify all 15 handlers are present and are functions
+      expect(screen.getByTestId('has-team-name')).toHaveTextContent('yes');
+      expect(screen.getByTestId('has-opponent-name')).toHaveTextContent('yes');
+      expect(screen.getByTestId('has-game-date')).toHaveTextContent('yes');
+      expect(screen.getByTestId('has-game-location')).toHaveTextContent('yes');
+      expect(screen.getByTestId('has-game-time')).toHaveTextContent('yes');
+      expect(screen.getByTestId('has-game-notes')).toHaveTextContent('yes');
+      expect(screen.getByTestId('has-age-group')).toHaveTextContent('yes');
+      expect(screen.getByTestId('has-tournament-level')).toHaveTextContent('yes');
+      expect(screen.getByTestId('has-periods')).toHaveTextContent('yes');
+      expect(screen.getByTestId('has-duration')).toHaveTextContent('yes');
+      expect(screen.getByTestId('has-demand')).toHaveTextContent('yes');
+      expect(screen.getByTestId('has-home-away')).toHaveTextContent('yes');
+      expect(screen.getByTestId('has-season')).toHaveTextContent('yes');
+      expect(screen.getByTestId('has-tournament')).toHaveTextContent('yes');
+      expect(screen.getByTestId('has-personnel')).toHaveTextContent('yes');
+    });
+
+    it('should allow handlers to update game session state', () => {
+      function HandlerUpdateConsumer() {
+        const { gameSessionState, handlers } = useGameState();
+
+        return (
+          <div>
+            <div data-testid="team-name">{gameSessionState.teamName}</div>
+            <div data-testid="opponent-name">{gameSessionState.opponentName}</div>
+            <button
+              data-testid="update-team-button"
+              onClick={() => handlers.setTeamName('New Team Name')}
+            >
+              Update Team
+            </button>
+            <button
+              data-testid="update-opponent-button"
+              onClick={() => handlers.setOpponentName('New Opponent')}
+            >
+              Update Opponent
+            </button>
+          </div>
+        );
+      }
+
+      render(
+        <GameStateProvider>
+          <HandlerUpdateConsumer />
+        </GameStateProvider>
+      );
+
+      // Check initial values
+      expect(screen.getByTestId('team-name')).toHaveTextContent('My Team');
+      expect(screen.getByTestId('opponent-name')).toHaveTextContent('Opponent');
+
+      // Update team name
+      act(() => {
+        screen.getByTestId('update-team-button').click();
+      });
+
+      expect(screen.getByTestId('team-name')).toHaveTextContent('New Team Name');
+
+      // Update opponent name
+      act(() => {
+        screen.getByTestId('update-opponent-button').click();
+      });
+
+      expect(screen.getByTestId('opponent-name')).toHaveTextContent('New Opponent');
+    });
+
+    /**
+     * Integration test: Verifies GameStateProvider properly wires up context
+     * @integration
+     */
+    it('should provide context to HomePage component', () => {
+      const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <GameStateProvider>{children}</GameStateProvider>
+      );
+
+      const { result } = renderHook(() => useGameState(), { wrapper });
+
+      expect(result.current.gameSessionState).toBeDefined();
+      expect(result.current.currentGameId).toBe(DEFAULT_GAME_ID);
     });
   });
 });

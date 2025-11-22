@@ -66,8 +66,24 @@ export interface GameStateContextValue {
   setCurrentGameId: (id: string | null) => void;
   setAvailablePlayers: (players: Player[]) => void;
 
-  // Session coordination handlers (for backward compatibility)
-  sessionCoordination: ReturnType<typeof useGameSessionCoordination>;
+  // Session coordination handlers (clear, type-safe API)
+  handlers: {
+    setTeamName: (name: string) => void;
+    setOpponentName: (name: string) => void;
+    setGameDate: (date: string) => void;
+    setGameLocation: (location: string) => void;
+    setGameTime: (time: string) => void;
+    setGameNotes: (notes: string) => void;
+    setAgeGroup: (group: string) => void;
+    setTournamentLevel: (level: string) => void;
+    setNumberOfPeriods: (periods: number) => void;
+    setPeriodDuration: (minutes: number) => void;
+    setDemandFactor: (factor: number) => void;
+    setHomeOrAway: (status: 'home' | 'away') => void;
+    setSeasonId: (seasonId: string | undefined) => void;
+    setTournamentId: (tournamentId: string | undefined) => void;
+    setGamePersonnel: (personnelIds: string[]) => void;
+  };
 }
 
 const GameStateContext = createContext<GameStateContextValue | undefined>(undefined);
@@ -114,8 +130,24 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({
     setCurrentGameId,
     setAvailablePlayers,
 
-    // Session coordination (includes handlers)
-    sessionCoordination,
+    // Session coordination handlers (type-safe API)
+    handlers: {
+      setTeamName: sessionCoordination.handlers.setTeamName,
+      setOpponentName: sessionCoordination.handlers.setOpponentName,
+      setGameDate: sessionCoordination.handlers.setGameDate,
+      setGameLocation: sessionCoordination.handlers.setGameLocation,
+      setGameTime: sessionCoordination.handlers.setGameTime,
+      setGameNotes: sessionCoordination.handlers.setGameNotes,
+      setAgeGroup: sessionCoordination.handlers.setAgeGroup,
+      setTournamentLevel: sessionCoordination.handlers.setTournamentLevel,
+      setNumberOfPeriods: sessionCoordination.handlers.setNumberOfPeriods,
+      setPeriodDuration: sessionCoordination.handlers.setPeriodDuration,
+      setDemandFactor: sessionCoordination.handlers.setDemandFactor,
+      setHomeOrAway: sessionCoordination.handlers.setHomeOrAway,
+      setSeasonId: sessionCoordination.handlers.setSeasonId,
+      setTournamentId: sessionCoordination.handlers.setTournamentId,
+      setGamePersonnel: sessionCoordination.handlers.setGamePersonnel,
+    },
   };
 
   return (

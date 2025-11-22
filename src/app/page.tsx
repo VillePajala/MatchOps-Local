@@ -11,6 +11,7 @@ import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGam
 import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import { runMigration } from '@/utils/migration';
+import { DEFAULT_GAME_ID } from '@/config/constants';
 import logger from '@/utils/logger';
 
 export default function Home() {
@@ -41,7 +42,7 @@ export default function Home() {
         setCanResume(true);
       } else {
         // Fallback: if currentGameId is missing or stale but there are games, select the latest game
-        const ids = Object.keys(games || {}).filter(id => id !== 'unsaved_game');
+        const ids = Object.keys(games || {}).filter(id => id !== DEFAULT_GAME_ID);
         if (ids.length > 0) {
           const latestId = getLatestGameId(games);
           if (latestId) {
