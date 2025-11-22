@@ -215,7 +215,11 @@ Hooks receive state as props from parent, creating ~500 lines of scaffolding in 
 ### Solution
 Introduce lightweight context for shared state.
 
-### ✅ PR 1: Create GameStateContext (COMPLETE - Commit: `104004a`, `dbda9d3`)
+### ✅ PR 1: Create GameStateContext (COMPLETE - MERGED TO INTEGRATION)
+
+**PR**: #87 (`refactor/final-useGameOrchestration-cleanup` → `refactor/architecture-improvement`)
+**Status**: ✅ MERGED (November 22, 2025)
+**Commits**: `104004a`, `dbda9d3`, `a2f7eff`, `c7c0c9d`, `b9eda52`, `f54d274`
 
 **Create**: `/src/contexts/GameStateContext.tsx`
 
@@ -249,14 +253,20 @@ export const useGameState = () => useContext(GameStateContext);
 ```
 
 **Completed**:
-- ✅ Created `/src/contexts/GameStateContext.tsx` (182 lines)
-- ✅ Created comprehensive test suite (11 tests, 339 lines)
+- ✅ Created `/src/contexts/GameStateContext.tsx` (181 lines)
+- ✅ Created comprehensive test suite `/src/contexts/__tests__/GameStateContext.test.tsx` (376 lines)
 - ✅ Wired up in `page.tsx` with GameStateProvider wrapper
-- ✅ All 1,604 tests passing (11 new context tests added)
+- ✅ Created view-model builders in `/src/viewModels/orchestratorViewModels.ts` (254 lines)
+- ✅ Created view-model tests `/src/viewModels/__tests__/orchestratorViewModels.test.ts` (489 lines)
+- ✅ Fixed backup/restore bug (preventing all roster players from being added to games)
+- ✅ Fixed DEFAULT_GAME_ID detection bug in isGameLoaded logic
+- ✅ All 1,593 tests passing
+- ✅ All validations passing (TypeScript, ESLint, Build)
 
 **Lines saved from orchestrator**: ~0 (context created, hooks not yet migrated)
+**Files changed**: 26 files (+2,732, -478)
 
-### PR 2: Migrate useGameDataManagement to Context (2 hours)
+### 🔜 PR 2: Migrate useGameDataManagement to Context (NEXT - 2 hours)
 
 **Before**:
 ```typescript
@@ -327,18 +337,20 @@ const persistence = useGamePersistence({
 
 **Lines saved from orchestrator**: ~150
 
-### Phase 1 Success Criteria
+### Phase 1 Success Criteria (Weeks 2-3)
 
-- ✅ GameStateContext created and tested (PR1 complete)
-- [ ] All hooks migrated to use context (PRs 2-4)
+- ✅ **PR 1**: GameStateContext created and tested ✅ MERGED
+- [ ] **PR 2**: useGameDataManagement migrated to context 🔜 NEXT
+- [ ] **PR 3**: useGamePersistence migrated to context
+- [ ] **PR 4**: Remaining hooks migrated to context
 - [ ] useGameOrchestration: ~1,400 lines (from 1,983)
 - [ ] All tests passing
 - [ ] No functionality regression
 - [ ] Context well-documented
 
+**Progress**: 1/4 PRs complete (25%)
 **Total Lines Target**: ~583 lines saved
 **Effort**: 10 hours over 2 weeks
-**Progress**: 1/4 PRs complete (25%)
 
 ---
 
