@@ -1,3 +1,12 @@
+# ⚠️ ARCHIVED DOCUMENT
+
+**This dashboard was last updated November 2025 and has been archived (contains outdated metrics).**
+
+**Current Status**: See `/docs/03-active-plans/REFACTORING_STATUS.md` for up-to-date information.
+**Professional Roadmap**: See `/docs/03-active-plans/PROFESSIONAL_ARCHITECTURE_ROADMAP.md` for future work.
+
+---
+
 # 📊 Production Readiness Progress Dashboard
 
 **Last Updated**: November 18, 2025

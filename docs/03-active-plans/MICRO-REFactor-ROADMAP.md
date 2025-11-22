@@ -1,6 +1,20 @@
+# ⚠️ HISTORICAL REFERENCE
+
+**This micro-refactor roadmap is now complete (Layers 1-2).**
+
+**Status**: Layers 1-2 complete ✅, Layer 3 deferred
+**Current Work**: See `/docs/03-active-plans/PROFESSIONAL_ARCHITECTURE_ROADMAP.md` for ongoing architecture improvements
+**Created**: 2024-2025 refactoring effort
+
+This document shows the original Layer 1-3 micro-step plan that was successfully executed. Layer 3 (performance/error handling) has been incorporated into the Professional Architecture Roadmap.
+
+**Keep for reference** to understand the incremental refactoring approach used.
+
+---
+
 # MatchOps Local — Micro Refactor Roadmap (3-Layer Plan, Small Steps)
 
-Status: Active
+Status: Layers 1-2 Complete ✅
 
 Purpose: Replace the big-bang refactor plans (P0/P1/P2) with a safe, micro‑step roadmap that we execute one small change at a time and manually test after every step. This avoids regressions like we saw when attempting Layer 1 in one chunk.
 
