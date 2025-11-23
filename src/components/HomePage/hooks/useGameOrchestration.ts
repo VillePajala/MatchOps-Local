@@ -1056,15 +1056,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // --- History Handlers - MOVED TO useFieldCoordination ---
 
   // --- Game Persistence Hook ---
+  // Week 2-3 PR3: Now uses GameStateContext for currentGameId, gameSessionState,
+  // dispatchGameSession, and availablePlayers (reduced from 18 props to 13)
   const persistence = useGamePersistence({
-    // Current game ID (managed externally)
-    currentGameId,
-    setCurrentGameId,
-
     // State from other hooks
-    gameSessionState,
     fieldCoordination,
-    availablePlayers,
     playerAssessments,
     isPlayed,
     initialLoadComplete,
@@ -1081,7 +1077,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     initialGameSessionData,
 
     // Callbacks
-    dispatchGameSession,
     loadGameStateFromData,
     showToast,
     t,
