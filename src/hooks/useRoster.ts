@@ -3,16 +3,22 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { Player } from '@/types';
 import { addPlayer, updatePlayer, removePlayer, setGoalieStatus } from '@/utils/masterRosterManager';
 import { queryKeys } from '@/config/queryKeys';
+import { useGameState } from '@/contexts/GameStateContext';
 import logger from '@/utils/logger';
 
+/**
+ * Arguments for useRoster hook
+ */
 interface UseRosterArgs {
-  initialPlayers: Player[];
   selectedPlayerIds: string[];
 }
 
-export const useRoster = ({ initialPlayers, selectedPlayerIds }: UseRosterArgs) => {
+export const useRoster = ({ selectedPlayerIds }: UseRosterArgs) => {
   const queryClient = useQueryClient();
-  const [availablePlayers, setAvailablePlayers] = useState<Player[]>(initialPlayers);
+
+  // Week 2-3 PR2: Use GameStateContext instead of local state
+  const { availablePlayers, setAvailablePlayers } = useGameState();
+
   const [highlightRosterButton, setHighlightRosterButton] = useState(false);
   const [showRosterPrompt, setShowRosterPrompt] = useState(false);
   const [rosterError, setRosterError] = useState<string | null>(null);
