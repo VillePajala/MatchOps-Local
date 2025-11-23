@@ -42,7 +42,7 @@ export interface BuildFieldContainerPropsInput {
   reducerDrivenModals: ReducerDrivenModals;
   setIsTeamManagerOpen: (open: boolean) => void;
   setFirstGameGuideStep: (step: number) => void;
-  setShowFirstGameGuide: (show: boolean) => void;
+  handleFirstGameGuideClose: () => void;
   setIsTeamReassignModalOpen: (open: boolean) => void;
   handleTeamNameChange: (name: string) => void;
   setOpponentName: (name: string) => void;
@@ -135,7 +135,7 @@ export function buildFieldContainerProps(input: BuildFieldContainerPropsInput): 
     reducerDrivenModals,
     setIsTeamManagerOpen,
     setFirstGameGuideStep,
-    setShowFirstGameGuide,
+    handleFirstGameGuideClose,
     setIsTeamReassignModalOpen,
     handleTeamNameChange,
     setOpponentName,
@@ -177,7 +177,7 @@ export function buildFieldContainerProps(input: BuildFieldContainerPropsInput): 
     onOpenSeasonTournamentModal: reducerDrivenModals.seasonTournament.open,
     onOpenTeamManagerModal: () => setIsTeamManagerOpen(true),
     onGuideStepChange: setFirstGameGuideStep,
-    onGuideClose: () => setShowFirstGameGuide(false),
+    onGuideClose: handleFirstGameGuideClose,
     onOpenTeamReassignModal: () => setIsTeamReassignModalOpen(true),
     onTeamNameChange: handleTeamNameChange,
     onOpponentNameChange: setOpponentName,
