@@ -43,6 +43,7 @@ import { useGameSessionCoordination } from './useGameSessionCoordination';
 import { useGamePersistence } from './useGamePersistence';
 import { useModalOrchestration } from './useModalOrchestration';
 import { useModalContext } from '@/contexts/ModalProvider';
+import { useGameState } from '@/contexts/GameStateContext';
 // Import async storage utilities
 import {
   getStorageItem,
@@ -161,10 +162,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // --- Get showToast early (needed by Field Coordination) ---
   const { showToast } = useToast();
 
+  // --- Access shared state from context (Week 2-3 PR2 Fix) ---
+  const { availablePlayers, setAvailablePlayers } = useGameState();
+
   // --- Roster Management (Must come before Field Coordination) ---
   const {
-    availablePlayers,
-    setAvailablePlayers,
     highlightRosterButton,
     setHighlightRosterButton,
     isRosterUpdating,
@@ -176,7 +178,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     handleRemovePlayer,
     // handleSetGoalieStatus, // No longer used - using per-game implementation
   } = useRoster({
-    initialPlayers: initialState.availablePlayers,
     selectedPlayerIds: gameSessionState.selectedPlayerIds,
   });
 
@@ -260,10 +261,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
 
-  // --- Game Data Management Hook ---
+  // --- Game Data Management Hook (Week 2-3 PR2: Uses GameStateContext) ---
   const gameDataManagement = useGameDataManagement({
-    currentGameId,
-    setAvailablePlayers,
     setSeasons,
     setTournaments,
   });

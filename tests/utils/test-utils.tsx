@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppState, Player, Season, Tournament, GameEvent } from '@/types';
 import ModalProvider from '@/contexts/ModalProvider';
 import ToastProvider from '@/contexts/ToastProvider';
+import { GameStateProvider } from '@/contexts/GameStateContext';
 
 /**
  * Creates a fresh QueryClient instance optimized for testing
@@ -41,6 +42,7 @@ let currentQueryClient: QueryClient | null = null;
  *
  * @description Wraps components with essential providers:
  * - QueryClientProvider for React Query
+ * - GameStateProvider for shared game state (Week 2-3 PR2)
  * - ToastProvider for notifications
  * - ModalProvider for modal management
  *
@@ -59,11 +61,13 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <ModalProvider>
-          {children}
-        </ModalProvider>
-      </ToastProvider>
+      <GameStateProvider>
+        <ToastProvider>
+          <ModalProvider>
+            {children}
+          </ModalProvider>
+        </ToastProvider>
+      </GameStateProvider>
     </QueryClientProvider>
   );
 };
