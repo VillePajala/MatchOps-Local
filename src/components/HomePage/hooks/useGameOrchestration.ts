@@ -20,7 +20,7 @@ import {
 // Removed unused import of utilGetMasterRoster
 
 // Import utility functions for seasons and tournaments
-import { saveGame as utilSaveGame, getLatestGameId, getSavedGames as utilGetSavedGames } from '@/utils/savedGames';
+import { saveGame as utilSaveGame, getLatestGameId } from '@/utils/savedGames';
 import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
   resetAppSettings as utilResetAppSettings,
@@ -843,55 +843,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     dispatchGameSession,
   ]);
 
-  // Check if we should show first game interface guide
+  // FirstGameGuide is now ONLY shown when user explicitly opens it from the menu
+  // No automatic showing on page load or game creation
   useEffect(() => {
-    // If not a first-time user (experienced user), mark as checked and don't show guide
-    if (!isFirstTimeUser) {
-      setHasCheckedFirstGameGuide(true);
-      return;
-    }
-
-    if (!initialLoadComplete) return;
-
-    const checkFirstGameGuide = async () => {
-      try {
-        const firstGameGuideShown = await getStorageItem('hasSeenFirstGameGuide').catch(() => null);
-
-        // Also check if user has any saved games (imported or created)
-        const savedGames = await utilGetSavedGames();
-        const hasMultipleGames = Object.keys(savedGames).length > 1; // More than just default game
-
-        logger.log('[FirstGameGuide] Checking conditions:', {
-          isFirstTimeUser,
-          firstGameGuideShown,
-          currentGameId,
-          hasMultipleGames,
-          isNotDefaultGame: currentGameId !== DEFAULT_GAME_ID,
-          shouldShow: isFirstTimeUser && !firstGameGuideShown && !hasMultipleGames && currentGameId && currentGameId !== DEFAULT_GAME_ID
-        });
-
-        // Only show guide for first-time users who:
-        // 1. Haven't seen it before, AND
-        // 2. Don't have multiple games (imported or created), AND
-        // 3. Have a current game that's not the default game
-        if (!firstGameGuideShown && !hasMultipleGames && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-          // Show immediately without delay to prevent flash
-          logger.log('[FirstGameGuide] Showing first game guide');
-          setShowFirstGameGuide(true);
-        }
-
-        // Mark that we've completed the check
-        setHasCheckedFirstGameGuide(true);
-      } catch (error) {
-        // Silent fail - guide check is not critical
-        logger.error('[FirstGameGuide] Error checking first game guide:', error);
-        // Still mark as checked even on error to prevent blocking
-        setHasCheckedFirstGameGuide(true);
-      }
-    };
-
-    checkFirstGameGuide();
-  }, [initialLoadComplete, currentGameId, isFirstTimeUser]);
+    // Always mark as checked immediately - guide only opens from menu
+    setHasCheckedFirstGameGuide(true);
+  }, []);
 
   // --- NEW: Robust Visibility Change Handling ---
   // --- Wake Lock Effect ---

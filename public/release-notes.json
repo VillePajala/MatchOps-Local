@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: migrate useGameDataManagement to use GameStateContext (Phase 1 PR2)"
+  "notes": "docs: add JSDoc comment to UseRosterArgs interface"
 }

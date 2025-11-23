@@ -98,7 +98,7 @@ export function FirstGameGuideOverlay({
       )
     },
     {
-      title: t('firstGameGuide.quickActions', 'Quick Actions (Bottom Bar)'),
+      title: t('firstGameGuide.quickActions', 'Quick Actions (Bottom Bar) 1/2'),
       content: (
         <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
           <li>
@@ -122,6 +122,13 @@ export function FirstGameGuideOverlay({
             <span className="text-slate-200">{t('firstGameGuide.gameSettingsTip', 'Open game settings:')}</span>
             <HiOutlineAdjustmentsHorizontal aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
           </li>
+        </ul>
+      )
+    },
+    {
+      title: t('firstGameGuide.quickActions2', 'Quick Actions (Bottom Bar) 2/2'),
+      content: (
+        <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
           <li>
             <span className="text-slate-200">{t('firstGameGuide.statsTip', 'Show stats:')}</span>
             <HiOutlineClipboardDocumentList aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
@@ -138,6 +145,33 @@ export function FirstGameGuideOverlay({
             <span className="text-slate-200">{t('firstGameGuide.menuTip', 'Open the menu for more:')}</span>
             <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
           </li>
+        </ul>
+      )
+    },
+    {
+      title: t('firstGameGuide.menuActions', 'Menu Actions 1/2'),
+      content: (
+        <div className="space-y-3">
+          <p className="text-sm text-slate-300">{t('firstGameGuide.menuActionsNote', 'Click the Menu button to access:')}</p>
+          <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
+            <li>{t('firstGameGuide.startNewGameTip', 'Start a new game')}</li>
+            <li>{t('firstGameGuide.loadGameTip', 'Load a saved game')}</li>
+            <li>{t('firstGameGuide.quickSaveTip', 'Quick save your game (Ctrl/Cmd+S)')}</li>
+            <li>{t('firstGameGuide.goalLogTip', 'Log goals and events')}</li>
+            <li>{t('firstGameGuide.rosterManageTip', 'Manage your roster')}</li>
+          </ul>
+        </div>
+      )
+    },
+    {
+      title: t('firstGameGuide.menuActions2', 'Menu Actions 2/2'),
+      content: (
+        <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
+          <li>{t('firstGameGuide.gameSettingsTip', 'Edit game settings')}</li>
+          <li>{t('firstGameGuide.statsReportsTip', 'View stats and reports')}</li>
+          <li>{t('firstGameGuide.seasonsTeamsTip', 'Manage seasons, teams, and personnel')}</li>
+          <li>{t('firstGameGuide.helpTip', 'Get help and instructions')}</li>
+          <li>{t('firstGameGuide.appSettingsTip', 'Access app settings')}</li>
         </ul>
       )
     }
@@ -174,7 +208,7 @@ export function FirstGameGuideOverlay({
             {t('common.previous', 'Previous')}
           </button>
           <div className="flex-1 flex justify-center gap-2">
-            {[0, 1, 2, 3].map((indicator) => (
+            {[0, 1, 2, 3, 4, 5, 6].map((indicator) => (
               <button
                 key={indicator}
                 onClick={() => onStepChange(indicator)}
@@ -186,10 +220,10 @@ export function FirstGameGuideOverlay({
             ))}
           </div>
           <button
-            onClick={step === 3 ? onClose : () => onStepChange(Math.min(3, step + 1))}
+            onClick={step === 6 ? onClose : () => onStepChange(Math.min(6, step + 1))}
             className="px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
           >
-            {step === 3 ? t('firstGameGuide.finish', 'Finish') : t('common.next', 'Next')}
+            {step === 6 ? t('firstGameGuide.finish', 'Finish') : t('common.next', 'Next')}
           </button>
         </footer>
       </div>
