@@ -6,6 +6,9 @@ import { queryKeys } from '@/config/queryKeys';
 import { useGameState } from '@/contexts/GameStateContext';
 import logger from '@/utils/logger';
 
+/**
+ * Arguments for useRoster hook
+ */
 interface UseRosterArgs {
   selectedPlayerIds: string[];
 }
