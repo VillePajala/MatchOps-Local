@@ -266,7 +266,11 @@ export const useGameState = () => useContext(GameStateContext);
 **Lines saved from orchestrator**: ~0 (context created, hooks not yet migrated)
 **Files changed**: 26 files (+2,732, -478)
 
-### 🔜 PR 2: Migrate useGameDataManagement to Context (NEXT - 2 hours)
+### ✅ PR 2: Migrate useGameDataManagement to Context (COMPLETE - MERGED)
+
+**PR**: #88 (`refactor/phase1-pr2-migrate-useGameDataManagement` → `refactor/architecture-improvement`)
+**Status**: ✅ MERGED (November 23, 2025)
+**Commits**: `7e9153b`, `97e6c95`, `766dac8`, `3302ad6`, `9d43120`, `9e234d0`
 
 **Before**:
 ```typescript
@@ -281,20 +285,30 @@ const gameDataManagement = useGameDataManagement({
 **After**:
 ```typescript
 // Inside useGameDataManagement
-const { currentGameId } = useGameState();
+const { currentGameId, setAvailablePlayers } = useGameState();
 
 // Inside useGameOrchestration
-const gameDataManagement = useGameDataManagement();
-// No props needed!
+const gameDataManagement = useGameDataManagement({
+  setSeasons,
+  setTournaments,
+});
+// Reduced from 4 params to 2!
 ```
 
-**Update**: useGameDataManagement to use context instead of props
+**Completed**:
+- ✅ Updated useGameDataManagement to use GameStateContext for currentGameId and setAvailablePlayers
+- ✅ Fixed critical state synchronization bug in useRoster (moved to context)
+- ✅ Updated GameStateContext setter types to React.Dispatch<SetStateAction<T>>
+- ✅ Fixed FirstGameGuide auto-show logic with proper persistence
+- ✅ Split FirstGameGuideOverlay into 5 steps (improved mobile UX)
+- ✅ Updated test-utils.tsx to include GameStateProvider
+- ✅ All 1,623 tests passing
+- ✅ All validations passing (TypeScript, ESLint, Build)
 
-**Tests**: Hook still works, data fetching unchanged
+**Lines saved from orchestrator**: ~50 (prop passing reduced)
+**Files changed**: 13 files (+206, -133)
 
-**Lines saved from orchestrator**: ~50 (prop passing)
-
-### PR 3: Migrate useGamePersistence to Context (3 hours)
+### 🔜 PR 3: Migrate useGamePersistence to Context (NEXT - 3 hours)
 
 **Before**:
 ```typescript
@@ -340,16 +354,16 @@ const persistence = useGamePersistence({
 ### Phase 1 Success Criteria (Weeks 2-3)
 
 - ✅ **PR 1**: GameStateContext created and tested ✅ MERGED
-- [ ] **PR 2**: useGameDataManagement migrated to context 🔜 NEXT
-- [ ] **PR 3**: useGamePersistence migrated to context
+- ✅ **PR 2**: useGameDataManagement migrated to context ✅ MERGED
+- [ ] **PR 3**: useGamePersistence migrated to context 🔜 NEXT
 - [ ] **PR 4**: Remaining hooks migrated to context
 - [ ] useGameOrchestration: ~1,400 lines (from 1,983)
 - [ ] All tests passing
 - [ ] No functionality regression
 - [ ] Context well-documented
 
-**Progress**: 1/4 PRs complete (25%)
-**Total Lines Target**: ~583 lines saved
+**Progress**: 2/4 PRs complete (50%)
+**Total Lines Target**: ~583 lines saved (50 lines saved so far)
 **Effort**: 10 hours over 2 weeks
 
 ---
