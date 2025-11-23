@@ -10,8 +10,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useGamePersistence } from '../useGamePersistence';
 import type { UseGamePersistenceParams } from '../useGamePersistence';
 import type { UseFieldCoordinationReturn } from '../useFieldCoordination';
+import { GameStateProvider } from '@/contexts/GameStateContext';
 import { DEFAULT_GAME_ID } from '@/config/constants';
-import type { AppState, Player, PlayerAssessment } from '@/types';
+import type { AppState, PlayerAssessment } from '@/types';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import React from 'react';
 
@@ -30,6 +31,13 @@ jest.mock('@/utils/savedGames', () => ({
 // Mock appSettings utilities
 jest.mock('@/utils/appSettings', () => ({
   saveCurrentGameIdSetting: jest.fn().mockResolvedValue(undefined),
+}));
+
+// Week 2-3 PR3: Mock useGameState hook for tests that need specific context values
+const mockUseGameState = jest.fn();
+jest.mock('@/contexts/GameStateContext', () => ({
+  ...jest.requireActual('@/contexts/GameStateContext'),
+  useGameState: () => mockUseGameState(),
 }));
 
 // Simple integration tests that verify behavior without extensive mocking
@@ -107,17 +115,15 @@ const createMockFieldCoordination = (): UseFieldCoordinationReturn => ({
   handleTacticsBoardToggle: jest.fn(),
 } as unknown as UseFieldCoordinationReturn);
 
+// Week 2-3 PR3: Updated to remove context-provided props
+// (currentGameId, setCurrentGameId, gameSessionState, dispatchGameSession, availablePlayers)
 const createMockParams = (overrides?: Partial<UseGamePersistenceParams>): UseGamePersistenceParams => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
   return {
-    currentGameId: 'game123',
-    setCurrentGameId: jest.fn(),
-    gameSessionState: createMockGameSessionState(),
     fieldCoordination: createMockFieldCoordination(),
-    availablePlayers: [] as Player[],
     playerAssessments: {} as Record<string, PlayerAssessment>,
     isPlayed: true,
     initialLoadComplete: true,
@@ -126,7 +132,6 @@ const createMockParams = (overrides?: Partial<UseGamePersistenceParams>): UseGam
     resetHistory: jest.fn(),
     initialState: {} as AppState,
     initialGameSessionData: createMockGameSessionState(),
-    dispatchGameSession: jest.fn(),
     loadGameStateFromData: jest.fn(),
     showToast: jest.fn(),
     t: jest.fn((key: string) => key) as unknown as UseGamePersistenceParams['t'],
@@ -136,17 +141,46 @@ const createMockParams = (overrides?: Partial<UseGamePersistenceParams>): UseGam
   };
 };
 
+// Week 2-3 PR3: Updated wrapper to include GameStateProvider
 const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   const Wrapper = ({ children }: { children: React.ReactNode }) =>
-    React.createElement(QueryClientProvider, { client: queryClient }, children);
+    React.createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      React.createElement(GameStateProvider, null, children)
+    );
   Wrapper.displayName = 'TestWrapper';
   return Wrapper;
 };
 
+// Week 2-3 PR3: Helper to configure mock context values for specific test scenarios
+const setupMockContext = (overrides?: {
+  currentGameId?: string | null;
+  setCurrentGameId?: jest.Mock;
+  gameSessionState?: GameSessionState;
+  dispatchGameSession?: jest.Mock;
+  availablePlayers?: never[];
+}) => {
+  mockUseGameState.mockReturnValue({
+    currentGameId: overrides?.hasOwnProperty('currentGameId') ? overrides.currentGameId : 'game123',
+    setCurrentGameId: overrides?.setCurrentGameId ?? jest.fn(),
+    gameSessionState: overrides?.gameSessionState ?? createMockGameSessionState(),
+    dispatchGameSession: overrides?.dispatchGameSession ?? jest.fn(),
+    availablePlayers: overrides?.availablePlayers ?? [],
+    setAvailablePlayers: jest.fn(),
+    resetToInitialState: jest.fn(),
+    updateGameSessionState: jest.fn(),
+  });
+};
+
 describe('useGamePersistence', () => {
+  beforeEach(() => {
+    // Week 2-3 PR3: Set up default mock context values before each test
+    setupMockContext();
+  });
   describe('Hook Interface', () => {
     /**
      * Tests that hook returns all required exports
@@ -260,13 +294,15 @@ describe('useGamePersistence', () => {
       const loadGameStateFromData = jest.fn().mockResolvedValue(undefined);
       const setCurrentGameId = jest.fn();
 
+      // Week 2-3 PR3: Setup mock context with spy for setCurrentGameId
+      setupMockContext({ setCurrentGameId });
+
       // Suppress console.error for storage cleanup failures (non-critical)
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       const params = createMockParams({
         savedGames: { 'game456': mockGameData },
         loadGameStateFromData,
-        setCurrentGameId,
       });
       const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
 
@@ -314,8 +350,8 @@ describe('useGamePersistence', () => {
      */
     it('should call setSavedGames when deleting game', async () => {
       const setSavedGames = jest.fn();
+      // Week 2-3 PR3: currentGameId comes from context (default 'game123')
       const params = createMockParams({
-        currentGameId: 'game123',
         savedGames: { 'game123': {} as AppState, 'game456': {} as AppState },
         setSavedGames,
       });
@@ -362,9 +398,12 @@ describe('useGamePersistence', () => {
       // Suppress console.error for this test as we expect an error
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      const params = createMockParams({
+      // Week 2-3 PR3: Setup mock context with empty game events
+      setupMockContext({
         gameSessionState: createMockGameSessionState({ gameEvents: [] }),
       });
+
+      const params = createMockParams({});
       const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
 
       let deleteResult: boolean = true;
@@ -384,12 +423,15 @@ describe('useGamePersistence', () => {
       // Suppress console.error for this test as we expect an error
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      const params = createMockParams({
+      // Week 2-3 PR3: Setup mock context with null currentGameId
+      setupMockContext({
         currentGameId: null,
         gameSessionState: createMockGameSessionState({
           gameEvents: [{ id: 'event1', type: 'goal', time: 0 }],
         }),
       });
+
+      const params = createMockParams({});
       const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
 
       let deleteResult: boolean = true;
@@ -408,13 +450,17 @@ describe('useGamePersistence', () => {
     it('should dispatch DELETE_GAME_EVENT_WITH_SCORE atomically when deleting goal', async () => {
       const dispatchGameSession = jest.fn();
       const goalEvent = { id: 'event1', type: 'goal' as const, time: 60 };
-      const params = createMockParams({
+
+      // Week 2-3 PR3: Setup mock context with spy for dispatchGameSession
+      setupMockContext({
         currentGameId: 'game123',
         gameSessionState: createMockGameSessionState({
           gameEvents: [goalEvent],
         }),
         dispatchGameSession,
       });
+
+      const params = createMockParams({});
       const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
 
       await act(async () => {
@@ -440,13 +486,17 @@ describe('useGamePersistence', () => {
     it('should dispatch DELETE_GAME_EVENT_WITH_SCORE atomically when deleting opponent goal', async () => {
       const dispatchGameSession = jest.fn();
       const opponentGoalEvent = { id: 'event2', type: 'opponentGoal' as const, time: 30 };
-      const params = createMockParams({
+
+      // Week 2-3 PR3: Setup mock context with spy for dispatchGameSession
+      setupMockContext({
         currentGameId: 'game123',
         gameSessionState: createMockGameSessionState({
           gameEvents: [opponentGoalEvent],
         }),
         dispatchGameSession,
       });
+
+      const params = createMockParams({});
       const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
 
       await act(async () => {
@@ -471,13 +521,17 @@ describe('useGamePersistence', () => {
     it('should dispatch DELETE_GAME_EVENT_WITH_SCORE for non-goal events (no score change)', async () => {
       const dispatchGameSession = jest.fn();
       const substitutionEvent = { id: 'event3', type: 'substitution' as const, time: 45 };
-      const params = createMockParams({
+
+      // Week 2-3 PR3: Setup mock context with spy for dispatchGameSession
+      setupMockContext({
         currentGameId: 'game123',
         gameSessionState: createMockGameSessionState({
           gameEvents: [substitutionEvent],
         }),
         dispatchGameSession,
       });
+
+      const params = createMockParams({});
       const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
 
       await act(async () => {
@@ -501,8 +555,10 @@ describe('useGamePersistence', () => {
      * @integration
      */
     it('should enable auto-save for non-default game IDs', () => {
+      // Week 2-3 PR3: Setup mock context with non-default game ID
+      setupMockContext({ currentGameId: 'game123' });
+
       const params = createMockParams({
-        currentGameId: 'game123',
         initialLoadComplete: true,
       });
       const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
@@ -517,8 +573,10 @@ describe('useGamePersistence', () => {
      * @integration
      */
     it('should disable auto-save for DEFAULT_GAME_ID', () => {
+      // Week 2-3 PR3: Setup mock context with DEFAULT_GAME_ID
+      setupMockContext({ currentGameId: DEFAULT_GAME_ID });
+
       const params = createMockParams({
-        currentGameId: DEFAULT_GAME_ID,
         initialLoadComplete: true,
       });
       const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
@@ -533,8 +591,8 @@ describe('useGamePersistence', () => {
      * @integration
      */
     it('should disable auto-save until initial load completes', () => {
+      // Week 2-3 PR3: Context uses default currentGameId ('game123')
       const params = createMockParams({
-        currentGameId: 'game123',
         initialLoadComplete: false,
       });
       const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
@@ -551,12 +609,17 @@ describe('useGamePersistence', () => {
       jest.useFakeTimers();
 
       const setSavedGames = jest.fn();
-      const params = createMockParams({
+
+      // Week 2-3 PR3: Setup mock context with initial game state
+      setupMockContext({
         currentGameId: 'game123',
+        gameSessionState: createMockGameSessionState({ homeScore: 0 }),
+      });
+
+      const params = createMockParams({
         initialLoadComplete: true,
         savedGames: { 'game123': {} as AppState },
         setSavedGames,
-        gameSessionState: createMockGameSessionState({ homeScore: 0 }),
       });
 
       const { rerender } = renderHook(
@@ -567,14 +630,14 @@ describe('useGamePersistence', () => {
       // Clear any initial calls
       setSavedGames.mockClear();
 
-      // Modify critical state (homeScore should trigger immediate save)
-      const updatedParams = {
-        ...params,
+      // Week 2-3 PR3: Update mock context with modified game state (homeScore should trigger immediate save)
+      setupMockContext({
+        currentGameId: 'game123',
         gameSessionState: createMockGameSessionState({ homeScore: 5 }),
-      };
+      });
 
       act(() => {
-        rerender(updatedParams);
+        rerender(params);
       });
 
       // Flush timers to trigger immediate tier (0ms delay)
@@ -598,12 +661,17 @@ describe('useGamePersistence', () => {
       jest.useFakeTimers();
 
       const setSavedGames = jest.fn();
-      const params = createMockParams({
+
+      // Week 2-3 PR3: Setup mock context with initial game state
+      setupMockContext({
         currentGameId: 'game123',
+        gameSessionState: createMockGameSessionState({ teamName: 'Original Team' }),
+      });
+
+      const params = createMockParams({
         initialLoadComplete: true,
         savedGames: { 'game123': {} as AppState },
         setSavedGames,
-        gameSessionState: createMockGameSessionState({ teamName: 'Original Team' }),
       });
 
       const { rerender } = renderHook(
@@ -614,14 +682,14 @@ describe('useGamePersistence', () => {
       // Clear any initial calls
       setSavedGames.mockClear();
 
-      // Modify non-critical state (teamName should trigger short 500ms debounce)
-      const updatedParams = {
-        ...params,
+      // Week 2-3 PR3: Update mock context with modified game state (teamName should trigger short 500ms debounce)
+      setupMockContext({
+        currentGameId: 'game123',
         gameSessionState: createMockGameSessionState({ teamName: 'Updated Team' }),
-      };
+      });
 
       act(() => {
-        rerender(updatedParams);
+        rerender(params);
       });
 
       // Should NOT save immediately
@@ -671,15 +739,19 @@ describe('useGamePersistence', () => {
         }
       });
 
-      const params = createMockParams({
+      // Week 2-3 PR3: Setup mock context with timer states
+      setupMockContext({
         currentGameId: 'game123',
-        savedGames: mockSavedGames,
-        setSavedGames,
         gameSessionState: createMockGameSessionState({
           timeElapsedInSeconds: 1234,
           startTimestamp: Date.now(),
           isTimerRunning: true,
         }),
+      });
+
+      const params = createMockParams({
+        savedGames: mockSavedGames,
+        setSavedGames,
       });
 
       const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
@@ -747,8 +819,10 @@ describe('useGamePersistence', () => {
         }
       });
 
+      // Week 2-3 PR3: Setup mock context with game ID
+      setupMockContext({ currentGameId: 'game123' });
+
       const params = createMockParams({
-        currentGameId: 'game123',
         savedGames: mockSavedGames,
         setSavedGames,
       });
@@ -774,9 +848,13 @@ describe('useGamePersistence', () => {
       const setCurrentGameId = jest.fn();
       const setSavedGames = jest.fn();
 
-      const params = createMockParams({
+      // Week 2-3 PR3: Setup mock context with DEFAULT_GAME_ID and spy for setCurrentGameId
+      setupMockContext({
         currentGameId: DEFAULT_GAME_ID,
         setCurrentGameId,
+      });
+
+      const params = createMockParams({
         setSavedGames,
         savedGames: {},
       });
@@ -803,9 +881,13 @@ describe('useGamePersistence', () => {
       const setCurrentGameId = jest.fn();
       const setSavedGames = jest.fn();
 
-      const params = createMockParams({
+      // Week 2-3 PR3: Setup mock context with existing game ID and spy for setCurrentGameId
+      setupMockContext({
         currentGameId: 'game123',
         setCurrentGameId,
+      });
+
+      const params = createMockParams({
         setSavedGames,
         savedGames: { 'game123': {} as AppState },
       });
