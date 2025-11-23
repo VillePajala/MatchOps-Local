@@ -54,9 +54,10 @@ import type { TFunction } from 'i18next';
 import type { QueryClient } from '@tanstack/react-query';
 import * as Sentry from '@sentry/nextjs';
 import { useAutoSave } from '@/hooks/useAutoSave';
-import type { AppState, GameEvent, PlayerAssessment, Player, SavedGamesCollection } from '@/types';
-import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
+import type { AppState, GameEvent, PlayerAssessment, SavedGamesCollection } from '@/types';
+import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import type { UseFieldCoordinationReturn } from './useFieldCoordination';
+import { useGameState } from '@/contexts/GameStateContext';
 import {
   saveGame as utilSaveGame,
   deleteGame as utilDeleteGame,
@@ -73,16 +74,14 @@ import logger from '@/utils/logger';
 
 /**
  * Parameters for useGamePersistence hook
+ *
+ * Week 2-3 PR3: Migrated to use GameStateContext for shared state
+ * - currentGameId, setCurrentGameId, gameSessionState, dispatchGameSession, availablePlayers
+ *   now accessed via useGameState() hook instead of props
  */
 export interface UseGamePersistenceParams {
-  // Current game ID (managed externally for usePlayerAssessments dependency)
-  currentGameId: string | null;
-  setCurrentGameId: React.Dispatch<React.SetStateAction<string | null>>;
-
   // State from other hooks
-  gameSessionState: GameSessionState;
   fieldCoordination: UseFieldCoordinationReturn;
-  availablePlayers: Player[];
   playerAssessments: Record<string, PlayerAssessment>;
   isPlayed: boolean;
   initialLoadComplete: boolean;
@@ -99,7 +98,6 @@ export interface UseGamePersistenceParams {
   initialGameSessionData: GameSessionState;
 
   // Callbacks
-  dispatchGameSession: React.Dispatch<GameSessionAction>;
   loadGameStateFromData: (data: AppState) => Promise<void>;
   showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
   t: TFunction;
@@ -137,14 +135,14 @@ export interface UseGamePersistenceReturn {
  * Manages all game save/load/delete operations, auto-save with 3-tier debouncing,
  * and current game ID tracking.
  *
+ * Week 2-3 PR3: Now uses GameStateContext for shared state (currentGameId,
+ * gameSessionState, dispatchGameSession, availablePlayers) - these are no longer
+ * passed as props.
+ *
  * @example
  * ```tsx
  * const persistence = useGamePersistence({
- *   currentGameId,
- *   setCurrentGameId,
- *   gameSessionState,
  *   fieldCoordination,
- *   availablePlayers,
  *   playerAssessments,
  *   isPlayed,
  *   initialLoadComplete,
@@ -153,7 +151,6 @@ export interface UseGamePersistenceReturn {
  *   resetHistory,
  *   initialState,
  *   initialGameSessionData,
- *   dispatchGameSession,
  *   loadGameStateFromData,
  *   showToast,
  *   t,
@@ -166,11 +163,7 @@ export interface UseGamePersistenceReturn {
  * ```
  */
 export function useGamePersistence({
-  currentGameId,
-  setCurrentGameId,
-  gameSessionState,
   fieldCoordination,
-  availablePlayers,
   playerAssessments,
   isPlayed,
   initialLoadComplete,
@@ -179,13 +172,21 @@ export function useGamePersistence({
   resetHistory,
   initialState,
   initialGameSessionData,
-  dispatchGameSession,
   loadGameStateFromData,
   showToast,
   t,
   queryClient,
   handleCloseLoadGameModal,
 }: UseGamePersistenceParams): UseGamePersistenceReturn {
+
+  // Week 2-3 PR3: Access shared state from context instead of props
+  const {
+    currentGameId,
+    setCurrentGameId,
+    gameSessionState,
+    dispatchGameSession,
+    availablePlayers
+  } = useGameState();
 
   // --- Load/Delete Game UI State ---
   const [isGameLoading, setIsGameLoading] = useState(false);
