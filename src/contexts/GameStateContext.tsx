@@ -63,8 +63,8 @@ export interface GameStateContextValue {
 
   // Dispatch/setters
   dispatchGameSession: React.Dispatch<GameSessionAction>;
-  setCurrentGameId: (id: string | null) => void;
-  setAvailablePlayers: (players: Player[]) => void;
+  setCurrentGameId: React.Dispatch<React.SetStateAction<string | null>>;
+  setAvailablePlayers: React.Dispatch<React.SetStateAction<Player[]>>;
 
   // Session coordination handlers (clear, type-safe API)
   handlers: {
