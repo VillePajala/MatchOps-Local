@@ -47,6 +47,7 @@ import { useGameState } from '@/contexts/GameStateContext';
 // Import async storage utilities
 import {
   getStorageItem,
+  setStorageItem,
   removeStorageItem,
 } from '@/utils/storage';
 // Import query keys
@@ -843,12 +844,26 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     dispatchGameSession,
   ]);
 
-  // FirstGameGuide is now ONLY shown when user explicitly opens it from the menu
-  // No automatic showing on page load or game creation
+  // FirstGameGuide auto-shows for first-time users after creating their first real game
   useEffect(() => {
-    // Always mark as checked immediately - guide only opens from menu
-    setHasCheckedFirstGameGuide(true);
-  }, []);
+    if (!initialLoadComplete) return;
+
+    const checkAndShowFirstGameGuide = async () => {
+      // Only for first-time users with a real game loaded (not the default placeholder)
+      if (isFirstTimeUser && currentGameId !== DEFAULT_GAME_ID) {
+        const hasSeenGuide = await getStorageItem('hasSeenFirstGameGuide');
+
+        if (!hasSeenGuide) {
+          // Show the guide and mark as seen
+          setShowFirstGameGuide(true);
+          await setStorageItem('hasSeenFirstGameGuide', 'true');
+        }
+      }
+      setHasCheckedFirstGameGuide(true);
+    };
+
+    checkAndShowFirstGameGuide();
+  }, [initialLoadComplete, isFirstTimeUser, currentGameId]);
 
   // --- NEW: Robust Visibility Change Handling ---
   // --- Wake Lock Effect ---
@@ -1127,6 +1142,13 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setIsSettingsModalOpen(false);
     setIsInstructionsModalOpen(true);
   };
+
+  // Handler for closing the First Game Guide and persisting seen status
+  const handleFirstGameGuideClose = useCallback(async () => {
+    setShowFirstGameGuide(false);
+    setFirstGameGuideStep(0);
+    await setStorageItem('hasSeenFirstGameGuide', 'true');
+  }, []);
 
   // NEW: Handler for Hard Reset
   const handleHardResetApp = useCallback(async () => {
@@ -1820,7 +1842,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       reducerDrivenModals,
       setIsTeamManagerOpen,
       setFirstGameGuideStep,
-      setShowFirstGameGuide,
+      handleFirstGameGuideClose,
       setIsTeamReassignModalOpen,
       handleTeamNameChange,
       setOpponentName: sessionCoordination.handlers.setOpponentName,
@@ -1843,7 +1865,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       reducerDrivenModals,
       setIsTeamManagerOpen,
       setFirstGameGuideStep,
-      setShowFirstGameGuide,
+      handleFirstGameGuideClose,
       setIsTeamReassignModalOpen,
       handleTeamNameChange,
       sessionCoordination.handlers.setOpponentName,

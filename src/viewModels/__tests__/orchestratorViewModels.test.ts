@@ -319,7 +319,7 @@ describe('orchestratorViewModels', () => {
       } as unknown as ReducerDrivenModals,
       setIsTeamManagerOpen: jest.fn(),
       setFirstGameGuideStep: jest.fn(),
-      setShowFirstGameGuide: jest.fn(),
+      handleFirstGameGuideClose: jest.fn(),
       setIsTeamReassignModalOpen: jest.fn(),
       handleTeamNameChange: jest.fn(),
       setOpponentName: jest.fn(),
