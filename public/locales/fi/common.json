@@ -482,7 +482,12 @@
     "confirmAddPlayer": "Lisää Pelaaja",
     "confirmDeletePlayer": "Haluatko varmasti poistaa tämän pelaajan?",
     "confirmDeletePlayerTitle": "Poista pelaaja",
-    "searchPlaceholder": "Etsi pelaajaa..."
+    "searchPlaceholder": "Etsi pelaajaa...",
+    "errors": {
+      "nameRequired": "Pelaajan nimi ei voi olla tyhjä.",
+      "duplicateName": "Pelaaja tällä nimellä on jo olemassa. Valitse eri nimi.",
+      "duplicateNumber": "Pelaaja tällä pelinumerolla on jo olemassa. Valitse eri numero tai jätä tyhjäksi."
+    }
   },
   "gameStatsModal": {
     "title": "Ottelutilastot",
@@ -751,7 +756,10 @@
     "drawLinesTip": "Piirrä viivoja ja nuolia sormellasi",
     "clearDrawingsTip": "Poista piirrokset:",
     "closeToolsTip": "Poistu työkaluista:",
-    "menuActions": "Valikko-toiminnot",
+    "quickActions": "Pika-toiminnot (alapalkki) 1/2",
+    "quickActions2": "Pika-toiminnot (alapalkki) 2/2",
+    "menuActions": "Valikko-toiminnot 1/2",
+    "menuActions2": "Valikko-toiminnot 2/2",
     "menuActionsNote": "Paina Valikko-painiketta päästäksesi:",
     "startNewGameTip": "Aloita uusi ottelu",
     "loadGameTip": "Lataa tallennettu ottelu",
@@ -1371,13 +1379,6 @@
     "exportStatsFailed": "Tilastojen vienti epäonnistui. Yritä uudelleen.",
     "exportPlayerFailed": "Pelaajan tilastojen vienti epäonnistui. Yritä uudelleen.",
     "noGamesInSelection": "Yksikään peli ei täsmää valittuun suodattimeen."
-  },
-  "rosterSettingsModal": {
-    "errors": {
-      "nameRequired": "Pelaajan nimi ei voi olla tyhjä.",
-      "duplicateName": "Pelaaja tällä nimellä on jo olemassa. Käytä eri nimeä.",
-      "duplicateNumber": "Pelaaja tällä pelinumerolla on jo olemassa. Käytä eri numeroa tai jätä tyhjäksi."
-    }
   },
   "reset": {
     "resetting": "Nollataan sovellusta...",

@@ -466,7 +466,12 @@
     "confirmAddPlayer": "Add Player",
     "confirmDeletePlayer": "Are you sure you want to remove this player?",
     "confirmDeletePlayerTitle": "Remove Player",
-    "searchPlaceholder": "Search players..."
+    "searchPlaceholder": "Search players...",
+    "errors": {
+      "nameRequired": "Player name cannot be empty.",
+      "duplicateName": "A player with this name already exists. Please use a different name.",
+      "duplicateNumber": "A player with this jersey number already exists. Please use a different number or leave it blank."
+    }
   },
   "gameStatsModal": {
     "title": "Game Statistics",
@@ -825,7 +830,10 @@
     "drawLinesTip": "Draw lines and arrows with your finger",
     "clearDrawingsTip": "Clear drawings:",
     "closeToolsTip": "Exit tools:",
-    "menuActions": "Menu Actions",
+    "quickActions": "Quick Actions (Bottom Bar) 1/2",
+    "quickActions2": "Quick Actions (Bottom Bar) 2/2",
+    "menuActions": "Menu Actions 1/2",
+    "menuActions2": "Menu Actions 2/2",
     "menuActionsNote": "Click the Menu button to access:",
     "startNewGameTip": "Start a new game",
     "loadGameTip": "Load a saved game",
@@ -1333,13 +1341,6 @@
     "exportStatsFailed": "Failed to export stats. Please try again.",
     "exportPlayerFailed": "Failed to export player stats. Please try again.",
     "noGamesInSelection": "No games match the current filter."
-  },
-  "rosterSettingsModal": {
-    "errors": {
-      "nameRequired": "Player name cannot be empty.",
-      "duplicateName": "A player with this name already exists. Please use a different name.",
-      "duplicateNumber": "A player with this jersey number already exists. Please use a different number or leave it blank."
-    }
   },
   "seasonDetailsModal": {
     "errors": {

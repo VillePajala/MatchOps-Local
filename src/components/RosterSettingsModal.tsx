@@ -146,10 +146,10 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
         <div className="absolute -inset-[50px] bg-sky-400/5 blur-2xl top-0 opacity-50" />
         <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
 
-        {/* Content wrapper */}
-        <div className="relative z-10 flex flex-col min-h-0">
+        {/* Content wrapper - Now takes flex-1 and contains header + scrollable */}
+        <div className="relative z-10 flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex flex-col">
+          <div className="flex flex-col flex-shrink-0">
             {/* Title Section */}
             <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
               <h2 className={`${titleStyle} drop-shadow-lg`}>{t('rosterSettingsModal.title', 'Manage Roster')}</h2>
@@ -258,14 +258,14 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
               {rosterError && <div className="mt-3 text-sm text-red-400">{rosterError}</div>}
             </div>
           </div>
-
-          {/* Footer */}
-          <ModalFooter>
-            <button onClick={onClose} className={secondaryButtonStyle}>
-              {t('common.doneButton', 'Done')}
-            </button>
-          </ModalFooter>
         </div>
+
+        {/* Footer - Moved to root level for proper positioning */}
+        <ModalFooter>
+          <button onClick={onClose} className={secondaryButtonStyle}>
+            {t('common.doneButton', 'Done')}
+          </button>
+        </ModalFooter>
       </div>
 
       {/* Confirmation Modal */}
