@@ -12,7 +12,7 @@ import type { UseGamePersistenceParams } from '../useGamePersistence';
 import type { UseFieldCoordinationReturn } from '../useFieldCoordination';
 import { GameStateProvider } from '@/contexts/GameStateContext';
 import { DEFAULT_GAME_ID } from '@/config/constants';
-import type { AppState, PlayerAssessment } from '@/types';
+import type { AppState, Player, PlayerAssessment } from '@/types';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import React from 'react';
 
@@ -162,7 +162,7 @@ const setupMockContext = (overrides?: {
   setCurrentGameId?: jest.Mock;
   gameSessionState?: GameSessionState;
   dispatchGameSession?: jest.Mock;
-  availablePlayers?: never[];
+  availablePlayers?: Player[];
 }) => {
   mockUseGameState.mockReturnValue({
     currentGameId: overrides?.hasOwnProperty('currentGameId') ? overrides.currentGameId : 'game123',
