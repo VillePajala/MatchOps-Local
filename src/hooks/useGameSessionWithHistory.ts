@@ -20,6 +20,7 @@
 
 import { useReducer, useCallback, useEffect, useRef } from 'react';
 import { debug } from '@/utils/debug';
+import { createLogger } from '@/utils/logger';
 import {
   gameSessionReducer,
   GameSessionState,
@@ -65,6 +66,8 @@ const HISTORY_SAVING_ACTIONS = new Set([
   // Timer (pause is user-initiated and should save timer state)
   'PAUSE_TIMER',
 ]);
+
+const logger = createLogger('useGameSessionWithHistory');
 
 // Actions that should NOT trigger history saves (state loads, system actions, timer)
 const NO_HISTORY_ACTIONS = new Set([
@@ -119,16 +122,14 @@ export function useGameSessionWithHistory(
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production' && !process.env.JEST_WORKER_ID && debug.enabled('history')) {
-      // eslint-disable-next-line no-console
-      console.warn('[useGameSessionWithHistory] buildHistorySlice identity changed; ensure it is memoized with useCallback');
+      logger.warn('buildHistorySlice identity changed; ensure it is memoized with useCallback');
     }
     buildHistorySliceRef.current = buildHistorySlice;
   }, [buildHistorySlice]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production' && !process.env.JEST_WORKER_ID && debug.enabled('history')) {
-      // eslint-disable-next-line no-console
-      console.warn('[useGameSessionWithHistory] saveToHistory identity changed; ensure it is memoized with useCallback');
+      logger.warn('saveToHistory identity changed; ensure it is memoized with useCallback');
     }
     saveToHistoryRef.current = saveToHistory;
   }, [saveToHistory]);
