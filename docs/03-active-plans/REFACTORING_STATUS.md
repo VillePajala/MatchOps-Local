@@ -1,7 +1,7 @@
 # MatchOps-Local Refactoring Status — Single Source of Truth
 
 **Last Updated**: November 24, 2025
-**Status**: 🟡 **95% Complete** — Phase 1 (shared state context) Week 2 of 8; PR3 merged and optimization continuing
+**Status**: 🟡 **95% Complete** — Phase 1 (shared state context) complete; preparing Phase 2 decoupling (Week 2 of 8)
 **Supersedes**: All P0/P1/P2 fix plans, MICRO-REFactor-ROADMAP Layer 2 completion
 **Archived Plans**: See `/docs/08-archived/refactoring-2024-2025/` for completed refactoring documentation
 **Professional Quality Roadmap**: See `PROFESSIONAL_ARCHITECTURE_ROADMAP.md` for 8-week plan to 9-10/10 quality
@@ -18,7 +18,7 @@ The HomePage refactoring is **95% complete** with good architecture in place:
 - ✅ **Container Pattern**: GameContainer, ModalManager, FieldContainer extracted
 - ✅ **View-Model Pattern**: All components use typed view-models
 - ✅ **Layer 1 & 2**: Stability + architecture complete (Steps 2.4.0–2.5 ✅ COMPLETE)
-- ✅ **Hook Extractions**: ALL 6 hooks complete:
+- ✅ **Hook Extractions**: ALL 6 hooks complete (PR4 merged to `refactor/architecture-improvement`):
   - ✅ useGameDataManagement (Step 2.6.1)
   - ✅ useGameSessionCoordination (Step 2.6.2)
   - ✅ useFieldCoordination (Step 2.6.3)
@@ -31,10 +31,9 @@ The HomePage refactoring is **95% complete** with good architecture in place:
 
 ### What Remains (Final Optimization)
 
-- 🔴 **Current State**: useGameOrchestration at 1,956 lines (Phase 1 target: ~1,400 → final ~350)
-- 🟡 **Week 2 (In Progress)**: Shared state context rollout (PR3 merged, PR4 queued)
-- 🟡 **Weeks 2-8**: Systematic refactoring to achieve 9-10/10 professional quality
-  - Introduce shared state context
+- 🔴 **Current State**: useGameOrchestration at 1,956 lines (next target: ~1,400 → final ~350)
+- 🟡 **Week 2 (Complete)**: Shared state context rollout (PR1-PR4 merged)
+- 🟡 **Weeks 3-8**: Systematic refactoring to achieve 9-10/10 professional quality
   - Decouple modal orchestration
   - Simplify field coordination
   - Final orchestrator minimization (~350 lines)
@@ -43,13 +42,13 @@ The HomePage refactoring is **95% complete** with good architecture in place:
 ### Success Metrics — Current State
 
 - ✅ **HomePage**: 62 lines (Target: ≤200 lines) — **EXCELLENT** (98.3% reduction)
-- ✅ **Individual hooks**: All ≤733 lines (Target: ≤600 lines)
+- ✅ **Individual hooks**: All ≤665 lines (Target: ≤600 lines)
   - useGameDataManagement: 361 lines ✅
   - useGameSessionCoordination: 501 lines ✅
-  - useFieldCoordination: 601 lines ✅
-  - useGamePersistence: 665 lines ✅ (now uses GameStateContext)
-  - useTimerManagement: 235 lines ✅
-  - useModalOrchestration: 581 lines ✅
+  - useFieldCoordination: 612 lines ✅ (context-aware)
+  - useGamePersistence: 665 lines ✅ (context-aware)
+  - useTimerManagement: 247 lines ✅ (context-aware)
+  - useModalOrchestration: 593 lines ✅ (context-aware)
 - 🔴 **useGameOrchestration**: 1,956 lines (Phase 1 target: ~1,400 → Final target: ~350)
 - 🟡 **Architecture Quality**: **6/10** → Target: **9-10/10** (professional portfolio quality)
 
@@ -77,13 +76,13 @@ The HomePage refactoring is **95% complete** with good architecture in place:
 | File | Current Lines | Week 1 Target | Final Target | Status |
 |------|--------------|---------------|--------------|--------|
 | `HomePage.tsx` | **62** | - | ≤200 | ✅ **EXCELLENT** (98.3% reduction) |
-| `useGameOrchestration.ts` | **1,956** | ~1,400 | ~350 | 🟡 **IN PROGRESS** (Phase 1) |
+| `useGameOrchestration.ts` | **1,956** | ~1,400 | ~350 | 🟡 **IN PROGRESS** (Phase 2 prep) |
 | `useGameDataManagement.ts` | 361 | - | ≤400 | ✅ Clean |
 | `useGameSessionCoordination.ts` | 501 | - | ≤500 | ✅ Clean |
-| `useFieldCoordination.ts` | 601 | - | ≤600 | ✅ Clean |
+| `useFieldCoordination.ts` | 612 | - | ≤600 | ✅ Clean (context-enabled) |
 | `useGamePersistence.ts` | 665 | - | ≤700 | ✅ Clean (context-enabled) |
-| `useTimerManagement.ts` | 235 | - | ≤300 | ✅ Clean |
-| `useModalOrchestration.ts` | 581 | - | ≤600 | ✅ Clean |
+| `useTimerManagement.ts` | 247 | - | ≤300 | ✅ Clean (context-enabled) |
+| `useModalOrchestration.ts` | 593 | - | ≤600 | ✅ Clean (context-enabled) |
 | `GameContainer.tsx` | 105 | - | ≤200 | ✅ Clean |
 | `ModalManager.tsx` | 564 | - | ≤600 | ✅ Clean |
 | `FieldContainer.tsx` | 394 | - | ≤400 | ✅ Clean |
@@ -97,7 +96,7 @@ HomePage.tsx (62 lines - UI orchestrator) ✅ EXCELLENT
     │       ↓ (Calls 6 extracted hooks but still has ~1,000 lines of scaffolding)
     │       ├─→ useGameDataManagement (361 lines) ✅
     │       ├─→ useGameSessionCoordination (501 lines) ✅
-    │       ├─→ useFieldCoordination (601 lines) ✅
+    │       ├─→ useFieldCoordination (612 lines) ✅
     │       ├─→ useGamePersistence (662 lines) ✅
     │       ├─→ useTimerManagement (235 lines) ✅
     │       └─→ useModalOrchestration (581 lines) ✅
@@ -114,6 +113,32 @@ HomePage.tsx (62 lines - UI orchestrator) ✅ EXCELLENT
 - Custom hooks for state management
 - View-model pattern for prop assembly
 - Container/Presenter pattern
+
+## 🚧 NEXT EXECUTION PLAN (Branch/PR Structure)
+
+**Base branch**: `refactor/architecture-improvement`
+
+- **Phase 2: Modal Decoupling (Weeks 3-4)**
+  - Umbrella (no direct PR): `refactor/phase2-modal-decoupling`
+  - PR 5: `refactor/phase2-pr1-modal-hooks` — Add focused modal hooks + tests
+  - PR 6: `refactor/phase2-pr2-modal-aggregator` — Add aggregator and rewire `useModalOrchestration` internals
+  - PR 7: `refactor/phase2-pr3-orchestrator-pruning` — Remove modal prop plumbing in `useGameOrchestration`, update props/docs
+
+- **Phase 3: Field/Timer/Persistence Cleanup (Weeks 4-5)**
+  - Umbrella (no direct PR): `refactor/phase3-field-timer`
+  - PR 8: `refactor/phase2-pr4-field-context-prune` — Drop legacy props, tighten deps, update tests
+  - PR 9: `refactor/phase2-pr5-timer-context-prune` — Same for timer hook
+  - PR 10: `refactor/phase2-pr6-persistence-prop-trim` — Context-only persistence, remove obsolete guards
+  - PR 11: `refactor/phase2-pr7-state-sync-fixes` — Tackle P1/P2 state-sync items (roster/tournament/GoalLog), add tests
+
+- **Phase 4/5: Validation & Polish (Weeks 5-6)**
+  - PR 12: `refactor/phase2-pr8-metrics-docs` — Refresh metrics/targets/docs post-Phase 2/3
+  - PR 13: `refactor/phase2-pr9-regression-pass` — Full Jest + lint + type-check + L1 manual notes (report-only)
+  - PR 14: `refactor/phase2-pr10-performance-check` — Profile ModalManager/render hotspots, confirm ADR-001 stance on memoization
+
+**Testing expectations**:
+- Code-changing PRs (5–11): run Jest (full or targeted), lint, type-check; add/adjust tests as needed.
+- Doc/report PRs (12–14): include validation summaries; no code changes unless noted.
 
 ### State Sync Issues Tracker (active)
 - ✅ P0 fixed: ControlBar field tools close now batches close/tactics/drawing toggles to prevent the black-field/blank-screen regression when stacking modals.

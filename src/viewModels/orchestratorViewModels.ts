@@ -15,6 +15,12 @@ import { DEFAULT_GAME_ID } from '@/config/constants';
  * These builders transform hook data into props objects for presentation components.
  */
 
+const assertPresent = <T>(value: T, name: string): asserts value is NonNullable<T> => {
+  if (value === null || value === undefined) {
+    throw new Error(`${name} is required`);
+  }
+};
+
 /**
  * Input parameters for building FieldInteractions
  */
@@ -77,9 +83,14 @@ export interface BuildControlBarPropsInput {
 
 /**
  * Builds the FieldInteractions object from fieldCoordination hook
+ *
+ * @example
+ * const interactions = buildFieldInteractions({ fieldCoordination });
+ * // Pass to FieldContainer.interactions
  */
 export function buildFieldInteractions(input: BuildFieldInteractionsInput): FieldInteractions {
   const { fieldCoordination } = input;
+  assertPresent(fieldCoordination, 'fieldCoordination');
 
   return {
     players: {
@@ -116,6 +127,31 @@ export function buildFieldInteractions(input: BuildFieldInteractionsInput): Fiel
 
 /**
  * Builds FieldContainerProps from game state and hooks
+ *
+ * @example
+ * const fieldContainerProps = buildFieldContainerProps({
+ *   gameSessionState,
+ *   fieldCoordination,
+ *   timerManagement,
+ *   currentGameId,
+ *   availablePlayers,
+ *   teams,
+ *   seasons,
+ *   tournaments,
+ *   showFirstGameGuide,
+ *   hasCheckedFirstGameGuide,
+ *   firstGameGuideStep,
+ *   orphanedGameInfo,
+ *   initialLoadComplete,
+ *   reducerDrivenModals,
+ *   setIsTeamManagerOpen,
+ *   setFirstGameGuideStep,
+ *   handleFirstGameGuideClose,
+ *   setIsTeamReassignModalOpen,
+ *   handleTeamNameChange,
+ *   setOpponentName,
+ *   fieldInteractions,
+ * });
  */
 export function buildFieldContainerProps(input: BuildFieldContainerPropsInput): FieldContainerProps {
   const {
@@ -141,6 +177,9 @@ export function buildFieldContainerProps(input: BuildFieldContainerPropsInput): 
     setOpponentName,
     fieldInteractions,
   } = input;
+
+  assertPresent(fieldCoordination, 'fieldCoordination');
+  assertPresent(timerManagement, 'timerManagement');
 
   return {
     gameSessionState,
@@ -188,6 +227,30 @@ export function buildFieldContainerProps(input: BuildFieldContainerPropsInput): 
 
 /**
  * Builds ControlBarProps from hooks and handlers
+ *
+ * @example
+ * const controlBarProps = buildControlBarProps({
+ *   timerManagement,
+ *   fieldCoordination,
+ *   tacticalHistory,
+ *   currentGameId,
+ *   handleToggleLargeTimerOverlay,
+ *   handleUndo,
+ *   handleRedo,
+ *   handleToggleTrainingResources,
+ *   setIsGameStatsModalOpen,
+ *   setIsLoadGameModalOpen,
+ *   handleStartNewGame,
+ *   openRosterModal,
+ *   quickSave,
+ *   setIsGameSettingsModalOpen,
+ *   setIsSeasonTournamentModalOpen,
+ *   setIsInstructionsModalOpen,
+ *   setIsSettingsModalOpen,
+ *   openPlayerAssessmentModal,
+ *   setIsTeamManagerOpen,
+ *   setIsPersonnelManagerOpen,
+ * });
  */
 export function buildControlBarProps(input: BuildControlBarPropsInput): ComponentProps<typeof ControlBar> {
   const {
@@ -212,6 +275,9 @@ export function buildControlBarProps(input: BuildControlBarPropsInput): Componen
     setIsTeamManagerOpen,
     setIsPersonnelManagerOpen,
   } = input;
+
+  assertPresent(timerManagement, 'timerManagement');
+  assertPresent(fieldCoordination, 'fieldCoordination');
 
   return {
     timeElapsedInSeconds: timerManagement.timeElapsedInSeconds,

@@ -6,11 +6,11 @@
 
 ---
 
-## 🎯 Current Focus: Weeks 2-3 of 8-Week Professional Architecture Plan
+## 🎯 Current Focus: Transition to Phase 2 (Weeks 3-4) of 8-Week Professional Architecture Plan
 
-**Status**: Week 1 ✅ complete, Phase 1 (Shared State Context) in progress (Week 2)
+**Status**: Week 2 ✅ complete, Phase 1 (Shared State Context) delivered; preparing Phase 2 (Modal decoupling)
 
-**Current**: PR 1 ✅ GameStateContext, PR 2 ✅ useGameDataManagement, PR 3 ✅ useGamePersistence; PR 4 (remaining hooks to context) 🔜 next
+**Current**: PR 1-4 ✅ (GameStateContext + all hooks context-migrated). Next: Phase 2 PR5-6 (modal decoupling & aggregation)
 
 **Goal**: Transform codebase to 9-10/10 professional quality for portfolio
 
@@ -30,13 +30,18 @@
   - Links to all relevant plans
 
 ### 📚 Reference Documents
-- **[MICRO-REFactor-ROADMAP.md](./MICRO-REFactor-ROADMAP.md)** - Historical reference
-  - Original Layer 1-3 micro-step plan (completed)
-  - Shows incremental refactoring approach used
+- Historical references (archived):
+  - `../08-archived/MICRO-REFactor-ROADMAP.md`
+  - `../08-archived/POST-REFACTORING-ROADMAP.md`
+  - `../08-archived/PROJECT_STATUS_SUMMARY.md`
+  - `../08-archived/storage-concurrency-assessment.md`
 
-- **[POST-REFACTORING-ROADMAP.md](./POST-REFACTORING-ROADMAP.md)** - Superseded
-  - Original post-refactoring plan (November 20)
-  - Replaced by Professional Architecture Roadmap
+### 🚀 Production & Publication (Still Active)
+- **[production-readiness.md](./production-readiness.md)** - Canonical production readiness checklist
+- **[release-checklist.md](./release-checklist.md)** - Final go/no-go checklist
+- **[master-execution-guide.md](./master-execution-guide.md)** - Play Store readiness execution guide
+- **[publication-roadmap.md](./publication-roadmap.md)** - Publication phases overview
+- **[play-store-deployment.md](./play-store-deployment.md)** - Play Store/TWA specifics
 
 ---
 
