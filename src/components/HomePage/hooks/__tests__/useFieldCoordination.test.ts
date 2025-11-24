@@ -281,7 +281,7 @@ describe('useFieldCoordination', () => {
 
       const { result } = renderHook(() => useFieldCoordination(mockParams));
 
-      const player = mockParams.availablePlayers[0];
+      const player = mockParams.availablePlayers![0];
       act(() => {
         result.current.handleDropOnField(player.id, 0.5, 0.5);
       });
@@ -423,7 +423,7 @@ describe('useFieldCoordination', () => {
      */
     it('should handle player drag start from bar', () => {
       const mockHandleDragStart = jest.fn();
-      const mockSelectedPlayer = mockParams.availablePlayers[0];
+      const mockSelectedPlayer = mockParams.availablePlayers![0];
 
       mockUseTouchInteractions.mockReturnValue({
         selectedPlayer: mockSelectedPlayer,
@@ -437,7 +437,7 @@ describe('useFieldCoordination', () => {
 
       const { result } = renderHook(() => useFieldCoordination(mockParams));
 
-      const player = mockParams.availablePlayers[0];
+      const player = mockParams.availablePlayers![0];
 
       act(() => {
         result.current.handlePlayerDragStartFromBar(player);
@@ -466,7 +466,7 @@ describe('useFieldCoordination', () => {
 
       const { result } = renderHook(() => useFieldCoordination(mockParams));
 
-      const player = mockParams.availablePlayers[0];
+      const player = mockParams.availablePlayers![0];
 
       act(() => {
         result.current.handlePlayerTapInBar(player);
