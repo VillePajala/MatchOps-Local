@@ -179,3 +179,14 @@ export const useGameState = (): GameStateContextValue => {
 
   return context;
 };
+
+/**
+ * useOptionalGameState
+ *
+ * Safe accessor that returns undefined when GameStateProvider is not present.
+ * Useful for hooks that can fall back to props for backward compatibility
+ * during the migration to shared context.
+ */
+export const useOptionalGameState = (): GameStateContextValue | undefined => {
+  return useContext(GameStateContext);
+};

@@ -40,6 +40,7 @@ import type { TacticalState } from '@/hooks/useTacticalHistory';
 import type { Player, AppState, TacticalDisc, Point } from '@/types';
 import logger from '@/utils/logger';
 import { calculateFormationPositions } from '@/utils/formations';
+import { useOptionalGameState } from '@/contexts/GameStateContext';
 
 /**
  * Parameters for useFieldCoordination hook
@@ -64,8 +65,8 @@ export interface UseFieldCoordinationParams {
   initialState: AppState;
   saveStateToHistory: (newState: Partial<AppState>) => void;
   saveTacticalStateToHistory: (newState: Partial<TacticalState>) => void;
-  availablePlayers: Player[];
-  selectedPlayerIds: string[];
+  availablePlayers?: Player[];
+  selectedPlayerIds?: string[];
   canUndo: boolean;
   canRedo: boolean;
   tacticalHistory: {
@@ -199,16 +200,22 @@ export function useFieldCoordination({
   initialState,
   saveStateToHistory,
   saveTacticalStateToHistory,
-  availablePlayers,
+  availablePlayers: providedAvailablePlayers,
   // selectedPlayerIds is intentionally unused after "Place All Players" fix
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  selectedPlayerIds,
+  selectedPlayerIds: providedSelectedPlayerIds,
   canUndo,
   canRedo,
   tacticalHistory,
   showToast,
   t,
 }: UseFieldCoordinationParams): UseFieldCoordinationReturn {
+
+  // Prefer shared GameStateContext for roster/selection; fall back to props for legacy callers/tests
+  const optionalGameState = useOptionalGameState();
+  const availablePlayers = providedAvailablePlayers ?? optionalGameState?.availablePlayers ?? [];
+  // Currently not used after "Place All Players" fix; kept for forward compatibility
+  const _selectedPlayerIds = providedSelectedPlayerIds ?? optionalGameState?.gameSessionState?.selectedPlayerIds ?? [];
 
   // --- State for reset field confirmation modal ---
   const [showResetFieldConfirm, setShowResetFieldConfirm] = useState<boolean>(false);
