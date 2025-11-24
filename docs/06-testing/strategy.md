@@ -83,6 +83,15 @@ src/components/
 
 ---
 
+## Low-Priority Coverage Enhancements (Phase 2/3)
+
+- Integration: Add a full `useGameOrchestration` flow test (`tests/integration/useGameOrchestration.integration.test.tsx`) that mounts the hook in a harness with all six extracted hooks wired, asserts no errors across load/new game, timer start/stop, field interactions, and save/restore.
+- Context edges: Add focused tests for `GameStateContext` state transitions (`src/contexts/__tests__/GameStateContext.transitions.test.tsx`) covering rapid timer ticks, roster swaps while the timer runs, and gameId changes during pending saves.
+- Performance regression: Add render-count/timing assertions using React Profiler around common consumers (e.g., ModalManager + FieldContainer) to flag >50–100ms render spikes when timer ticks; gate as regression tests (skip in CI if too flaky).
+- Concurrency: Cover concurrent updates (timer tick + field drag) to ensure no dropped dispatches or stale closures in the orchestrator layer.
+
+---
+
 ## Testing Strategy Framework
 
 ### **Phase 1: Critical Safety Net** (Weeks 1-2)
