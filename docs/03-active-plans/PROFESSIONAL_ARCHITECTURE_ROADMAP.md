@@ -110,6 +110,7 @@ Analysis of useGameOrchestration.ts (after Phase 1 context migration):
   - **PR 5**: `refactor/phase2-pr1-modal-hooks` – Add four focused modal hooks (`useGameModals`, `useRosterModals`, `useStatsModals`, `useSystemModals`) with tests; no wiring changes yet.
   - **PR 6**: `refactor/phase2-pr2-modal-aggregator` – Introduce a small aggregator hook and rewire `useModalOrchestration` internals to consume it; keep external API stable.
   - **PR 7**: `refactor/phase2-pr3-orchestrator-pruning` – Remove redundant modal prop plumbing from `useGameOrchestration`, adjust `ModalManagerProps`, and update metrics/docs.
+  - **Testing hygiene (pull forward)**: Split the 376-test `GameStateContext.test.tsx` into focused files during Phase 2 (instead of Phase 5) to keep context test maintenance manageable as we add coverage.
 
 ### Week 6: Phase 3 - Simplify Field Coordination
 **Goal**: Consolidate field logic
@@ -504,6 +505,10 @@ const { modalManagerProps } = useModalAggregator();
 - [ ] useGameOrchestration: ~900 lines (from ~1,400)
 - [ ] All modals working correctly
 - [ ] All tests passing
+
+#### Phase 2 PR Checklist (PR5–PR7)
+
+- [ ] Run React DevTools Profiler with the game timer running to measure GameStateContext re-render cost on low-frequency consumers; note results in the PR using the ✅ <50ms / ⚠️ 50–100ms / 🔴 >100ms thresholds and flag if a context split/memoization follow-up is needed.
 
 **Total Lines Target**: ~500 lines saved
 **Effort**: 6-8 hours over 2 weeks
