@@ -99,6 +99,11 @@ Analysis of useGameOrchestration.ts (after Phase 1 context migration):
 **Effort**: 10 hours
 **Target**: useGameOrchestration → ~1,400 lines (from 1,956)
 
+**TODO Cleanup** (~1 hour):
+- [ ] Delete obsolete TODO at `useGameOrchestration.ts:278` (hook already called at line 1060)
+- [ ] Verify and remove duplicate `savedGames` local state at line 240 if context migration eliminated need
+- [ ] Test: Verify all save/load functionality after cleanup
+
 ### Weeks 4-5: Phase 2 - Decouple Modal Orchestration
 **Goal**: Make modal hooks self-contained
 **Effort**: 8 hours
@@ -110,6 +115,10 @@ Analysis of useGameOrchestration.ts (after Phase 1 context migration):
   - **PR 5**: `refactor/phase2-pr1-modal-hooks` – Add four focused modal hooks (`useGameModals`, `useRosterModals`, `useStatsModals`, `useSystemModals`) with tests; no wiring changes yet.
   - **PR 6**: `refactor/phase2-pr2-modal-aggregator` – Introduce a small aggregator hook and rewire `useModalOrchestration` internals to consume it; keep external API stable.
   - **PR 7**: `refactor/phase2-pr3-orchestrator-pruning` – Remove redundant modal prop plumbing from `useGameOrchestration`, adjust `ModalManagerProps`, and update metrics/docs.
+    - **TODO Integration** (`ModalProvider.tsx:31`): Evaluate anti-flash guard extraction
+      - [ ] Count modals using anti-flash guard after decoupling
+      - [ ] If ≥3 modals need it → Extract to `useAntiFlashGuard` hook (+1-2 hours)
+      - [ ] If <3 modals → Keep inline, document decision in comment
   - **Testing hygiene (pull forward)**: Split the 376-test `GameStateContext.test.tsx` into focused files during Phase 2 (instead of Phase 5) to keep context test maintenance manageable as we add coverage.
 
 ### Week 6: Phase 3 - Simplify Field Coordination
@@ -138,6 +147,7 @@ Analysis of useGameOrchestration.ts (after Phase 1 context migration):
 **Execution Plan (branch/PR layout)**  
 - Base branch: `refactor/architecture-improvement`
   - **PR 12**: `refactor/phase2-pr8-metrics-docs` – Update metrics (line counts/targets) and documentation after Phase 2/3 changes.
+    - **TODO Update**: Update formation TODO comment in `useFieldCoordination.ts:480` to reference v1.5-2.0 target and roadmap.md
   - **PR 13**: `refactor/phase2-pr9-regression-pass` – Full Jest + lint + type-check; record manual L1 regression outcomes (report-only).
   - **PR 14**: `refactor/phase2-pr10-performance-check` – Profile ModalManager/render hotspots post-decoupling; document whether memoization remains deferred per ADR-001.
 
