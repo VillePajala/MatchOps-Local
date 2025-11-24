@@ -366,6 +366,8 @@ export function useGamePersistence({
       }
     }
   }, [
+    // Context values included because GameStateProvider can update independently
+    // of this hook; keep the callback aligned with context changes.
     currentGameId,
     setCurrentGameId,
     gameSessionState.teamId,
