@@ -107,6 +107,16 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({
   children,
   initialState = defaultInitialState
 }) => {
+  /**
+   * Performance note (Phase 2 monitoring):
+   * This context carries both high-frequency state (gameSessionState updates every second while the timer runs)
+   * and low-frequency state (currentGameId, availablePlayers). Before adding memoization or splitting contexts,
+   * profile with React DevTools during an active game. If re-render cost is >50–100ms in consumers that only
+   * need low-frequency data, consider splitting into two contexts:
+   *   - GameSessionContext: timer/score/high-frequency session state
+   *   - GameDataContext: currentGameId, availablePlayers, handlers (low-frequency)
+   * Until profiling shows a real issue, keep a single context to avoid premature complexity (see ADR-001 philosophy).
+   */
   // Game session state managed by coordination hook
   const sessionCoordination = useGameSessionCoordination({
     initialState,
