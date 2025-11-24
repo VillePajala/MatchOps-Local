@@ -2,7 +2,7 @@
 
 **Created**: November 22, 2025
 **Timeline**: 8 weeks (part-time, professional quality)
-**Current Status**: Week 1 in progress
+**Current Status**: Week 2 in progress (Phase 1 - Shared State Context)
 **Goal**: Transform MatchOps from "good enough" to professional portfolio quality
 
 ---
@@ -14,7 +14,7 @@
 **Strengths** ✅:
 - HomePage: 62 lines (excellent)
 - 6 extracted hooks: All focused and well-sized
-- All 1,604 tests passing
+- All 1,623 tests passing
 - Production ready, no bugs
 
 **Weaknesses** 🔴:
@@ -50,7 +50,7 @@
 | Component | Current Lines | Status | Notes |
 |-----------|--------------|--------|-------|
 | HomePage.tsx | 62 | ✅ Excellent | Perfect orchestrator component |
-| useGameOrchestration.ts | **1,983** | 🔴 Still too large | Needs reduction to ~350 |
+| useGameOrchestration.ts | **1,956** | 🔴 Still too large | Needs reduction to ~350 |
 | useGameDataManagement | 361 | ✅ Good | Well-focused |
 | useGameSessionCoordination | 501 | ✅ Good | Well-focused |
 | useFieldCoordination | 601 | ✅ Good | Well-focused |
@@ -70,9 +70,9 @@
 
 **Overall**: **6/10** - Good foundation, but architectural debt limits it
 
-### Why 1,983 Lines?
+### Why 1,956 Lines? (post PR3)
 
-Analysis of useGameOrchestration.ts (after Week 1 cleanup):
+Analysis of useGameOrchestration.ts (after PR3 context migration):
 - **~400 lines**: Hook calls and coordination (NECESSARY)
 - **~500 lines**: State scaffolding for hook dependencies (CAN BE ELIMINATED via context)
 - **~250 lines**: Handler wrappers and delegation (CAN BE SIMPLIFIED)
@@ -81,7 +81,8 @@ Analysis of useGameOrchestration.ts (after Week 1 cleanup):
 - **~383 lines**: Remaining complexity to be addressed
 
 **Week 1 Progress**: Reduced from 2,151 → 1,983 lines (-168 lines, 7.8%)
-**Remaining Potential**: ~1,633 lines can be eliminated → Target: ~350 lines
+**Current (Post PR3)**: 1,956 lines (-27 additional, Phase 1 in progress)
+**Remaining Potential**: ~1,606 lines can be eliminated → Target: ~350 lines
 
 ---
 
@@ -308,7 +309,10 @@ const gameDataManagement = useGameDataManagement({
 **Lines saved from orchestrator**: ~50 (prop passing reduced)
 **Files changed**: 13 files (+206, -133)
 
-### 🔜 PR 3: Migrate useGamePersistence to Context (NEXT - 3 hours)
+### ✅ PR 3: Migrate useGamePersistence to Context (COMPLETE - MERGED)
+
+**Branch**: `refactor/phase1-pr3-migrate-useGamePersistence` → `refactor/architecture-improvement`  
+**Status**: ✅ merged (November 24, 2025)
 
 **Before**:
 ```typescript
@@ -341,7 +345,13 @@ const persistence = useGamePersistence({
 // Much simpler!
 ```
 
-**Lines saved from orchestrator**: ~200 (state scaffolding)
+**Completed**:
+- useGamePersistence consumes GameStateContext for shared state (currentGameId, setCurrentGameId, availablePlayers, dispatch)
+- Tests reset mocked context between cases; full suite passing (1,623 tests)
+- Added dependency docs around context updates; ControlBar batched close/startTransition comment shipped with this scope
+- useGameOrchestration now **1,956 lines** (from 1,983) ahead of PR4 consolidation
+
+**Lines saved from orchestrator**: ~27 so far (larger reduction expected in PR4)
 
 ### PR 4: Migrate Remaining Hooks (2 hours)
 
@@ -355,15 +365,15 @@ const persistence = useGamePersistence({
 
 - ✅ **PR 1**: GameStateContext created and tested ✅ MERGED
 - ✅ **PR 2**: useGameDataManagement migrated to context ✅ MERGED
-- [ ] **PR 3**: useGamePersistence migrated to context 🔜 NEXT
-- [ ] **PR 4**: Remaining hooks migrated to context
-- [ ] useGameOrchestration: ~1,400 lines (from 1,983)
+- ✅ **PR 3**: useGamePersistence migrated to context ✅ MERGED
+- [ ] **PR 4**: Remaining hooks migrated to context (IN PROGRESS)
+- [ ] useGameOrchestration: ~1,400 lines (from 1,956)
 - [ ] All tests passing
 - [ ] No functionality regression
 - [ ] Context well-documented
 
-**Progress**: 2/4 PRs complete (50%)
-**Total Lines Target**: ~583 lines saved (50 lines saved so far)
+**Progress**: 3/4 PRs complete (75%)
+**Total Lines Target**: ~583 lines saved (≈27 lines saved so far; bulk comes in PR4)
 **Effort**: 10 hours over 2 weeks
 
 **State Sync Fixes (tracking)**:
