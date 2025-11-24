@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { startTransition, useEffect, useRef, useState } from 'react';
 import {
   HiBars3,
   HiOutlineChevronLeft,
@@ -386,17 +386,18 @@ const ControlBar: React.FC<ControlBarProps> = ({
           <>
             {/* Close/Back Button - Exits entire tactics workflow */}
             <button
-              onClick={() => {
-                setIsFieldToolsOpen(false);
-                // Exit tactics mode if currently in it
-                if (isTacticsBoardView) {
-                  onToggleTacticsBoard();
-                }
-                // Disable drawing mode if currently enabled
-                if (isDrawingEnabled) {
-                  onToggleDrawingMode(); // Safe - hook handles errors internally via callback
-                }
-              }}
+              onClick={() =>
+                // Batch the close + cleanup so we don't render an intermediate blank field
+                startTransition(() => {
+                  setIsFieldToolsOpen(false);
+                  if (isTacticsBoardView) {
+                    onToggleTacticsBoard();
+                  }
+                  if (isDrawingEnabled) {
+                    onToggleDrawingMode(); // Safe - hook handles errors internally via callback
+                  }
+                })
+              }
               className={`${buttonStyle} bg-slate-700 hover:bg-slate-600 focus:ring-slate-500`}
               title={t('common.back', 'Back')}
               aria-label={t('common.back', 'Back')}
