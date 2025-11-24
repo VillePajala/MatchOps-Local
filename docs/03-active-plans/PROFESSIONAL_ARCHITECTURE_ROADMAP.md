@@ -394,6 +394,11 @@ const persistence = useGamePersistence({
 
 **Lines saved from orchestrator**: Minimal in PR4 (structural prep for Phase 2 prop-pruning).
 
+**Performance Monitoring (carry into Phase 2)**:
+- Profile React re-renders with DevTools during an active game (timer running) to validate the single GameStateContext (mixing high-frequency timer state with low-frequency gameId/roster).
+- Thresholds: ✅ <50ms, ⚠️ 50–100ms, 🔴 >100ms for consumers that only need low-frequency data.
+- If problematic, split contexts: high-frequency (session/timer) vs low-frequency (gameId/roster/handlers), and memoize only where it helps.
+
 ### Phase 1 Success Criteria (Weeks 2-3)
 
 - ✅ **PR 1**: GameStateContext created and tested ✅ MERGED
