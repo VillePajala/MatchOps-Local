@@ -195,6 +195,11 @@ Extend capabilities to support professional club environments while maintaining 
 
 These enhancements have been identified during development but are not yet scheduled for a specific release. They are documented here for future evaluation and planning.
 
+#### 🛡️ **Context Guard Inconsistency** *(Priority: LOW)*
+- **Issue**: Some hooks still use `useOptionalGameState()` (e.g., `src/components/HomePage/hooks/useFieldCoordination.ts:43`), which allows mounting without a provider.
+- **Impact**: Missing `GameStateProvider` won’t fail fast, risking stale or absent shared state.
+- **Plan (Phase 2+)**: Swap remaining optional calls to required `useGameState()` and update call sites to enforce provider presence once the migration completes.
+
 #### 🎨 **Configurable Formation System**
 *Requested by user - "Place All Players" enhancement*
 
