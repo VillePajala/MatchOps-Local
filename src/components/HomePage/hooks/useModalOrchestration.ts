@@ -31,6 +31,7 @@ import type { UseTimerManagementReturn } from './useTimerManagement';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { Player, SavedGamesCollection, Team, PlayerAssessment, AppState } from '@/types';
 import type { UseMutationResult } from '@tanstack/react-query';
+import { useOptionalGameState } from '@/contexts/GameStateContext';
 
 /**
  * Props for useModalOrchestration hook
@@ -47,12 +48,12 @@ export interface UseModalOrchestrationProps {
   timerManagement: UseTimerManagementReturn;
 
   // Data from useGameOrchestration
-  gameSessionState: GameSessionState;
-  dispatchGameSession: React.Dispatch<GameSessionAction>;
-  availablePlayers: Player[];
+  gameSessionState?: GameSessionState;
+  dispatchGameSession?: React.Dispatch<GameSessionAction>;
+  availablePlayers?: Player[];
   playersForCurrentGame: Player[];
   savedGames: SavedGamesCollection;
-  currentGameId: string | null;
+  currentGameId?: string | null;
   playerAssessments: Record<string, PlayerAssessment>;
   selectedPlayerForStats: Player | null;
   setSelectedPlayerForStats: (player: Player | null) => void;
@@ -180,12 +181,13 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     fieldCoordination,
     persistence,
     timerManagement,
-    gameSessionState,
+    gameSessionState: providedGameSessionState,
     // dispatchGameSession not used locally - passed through to modalManagerProps
-    availablePlayers,
+    dispatchGameSession: providedDispatch,
+    availablePlayers: providedAvailablePlayers,
     playersForCurrentGame,
     savedGames,
-    currentGameId,
+    currentGameId: providedCurrentGameId,
     playerAssessments,
     selectedPlayerForStats,
     // setSelectedPlayerForStats not used locally - passed through to modalManagerProps
@@ -258,6 +260,16 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleSaveBeforeNewCancelled,
     handleStartNewConfirmed,
   } = props;
+
+  const optionalGameState = useOptionalGameState();
+  const gameSessionState = providedGameSessionState ?? optionalGameState?.gameSessionState;
+  const dispatchGameSession = providedDispatch ?? optionalGameState?.dispatchGameSession;
+  const availablePlayers = providedAvailablePlayers ?? optionalGameState?.availablePlayers ?? [];
+  const currentGameId = providedCurrentGameId ?? optionalGameState?.currentGameId ?? null;
+
+  if (!gameSessionState || !dispatchGameSession) {
+    throw new Error('useModalOrchestration requires gameSessionState and dispatchGameSession via props or GameStateContext');
+  }
 
   // --- Modal State from Context ---
   const {

@@ -28,19 +28,20 @@ import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSession
 import type { GameEvent, Player, SubAlertLevel } from '@/types';
 import type { TimerInteractions } from '@/components/HomePage/containers/FieldContainer';
 import logger from '@/utils/logger';
+import { useOptionalGameState } from '@/contexts/GameStateContext';
 
 /**
  * Props for useTimerManagement hook
  */
 export interface UseTimerManagementProps {
   /** Current game session state */
-  gameSessionState: GameSessionState;
+  gameSessionState?: GameSessionState;
   /** Reducer dispatch for game state updates */
-  dispatchGameSession: Dispatch<GameSessionAction>;
+  dispatchGameSession?: Dispatch<GameSessionAction>;
   /** Current game ID (for timer persistence) */
-  currentGameId: string | null;
+  currentGameId?: string | null;
   /** Available players for goal scorer lookup */
-  availablePlayers: Player[];
+  availablePlayers?: Player[];
   /** Fallback master roster if available players empty */
   masterRoster: Player[];
   /** Setter for goal log modal state (uses functional update pattern) */
@@ -88,13 +89,24 @@ export interface UseTimerManagementReturn {
  */
 export function useTimerManagement(props: UseTimerManagementProps): UseTimerManagementReturn {
   const {
-    gameSessionState,
-    dispatchGameSession,
-    currentGameId,
-    availablePlayers,
+    gameSessionState: providedGameSessionState,
+    dispatchGameSession: providedDispatch,
+    currentGameId: providedCurrentGameId,
+    availablePlayers: providedAvailablePlayers,
     masterRoster,
     setIsGoalLogModalOpen,
   } = props;
+
+  // Prefer shared context; fall back to explicitly provided values for tests/legacy callers
+  const optionalGameState = useOptionalGameState();
+  const gameSessionState = providedGameSessionState ?? optionalGameState?.gameSessionState;
+  const dispatchGameSession = providedDispatch ?? optionalGameState?.dispatchGameSession;
+  const currentGameId = providedCurrentGameId ?? optionalGameState?.currentGameId ?? null;
+  const availablePlayers = providedAvailablePlayers ?? optionalGameState?.availablePlayers ?? [];
+
+  if (!gameSessionState || !dispatchGameSession) {
+    throw new Error('useTimerManagement requires gameSessionState and dispatchGameSession via props or GameStateContext');
+  }
 
   // --- Core Timer State (from useGameTimer) ---
   const {
