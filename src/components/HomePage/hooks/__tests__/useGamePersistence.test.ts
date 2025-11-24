@@ -164,12 +164,15 @@ const setupMockContext = (overrides?: {
   dispatchGameSession?: jest.Mock;
   availablePlayers?: Player[];
 }) => {
+  const hasOverride = <K extends keyof NonNullable<typeof overrides>>(key: K) =>
+    overrides !== undefined && Object.prototype.hasOwnProperty.call(overrides, key);
+
   mockUseGameState.mockReturnValue({
-    currentGameId: overrides?.hasOwnProperty('currentGameId') ? overrides.currentGameId : 'game123',
-    setCurrentGameId: overrides?.setCurrentGameId ?? jest.fn(),
-    gameSessionState: overrides?.gameSessionState ?? createMockGameSessionState(),
-    dispatchGameSession: overrides?.dispatchGameSession ?? jest.fn(),
-    availablePlayers: overrides?.availablePlayers ?? [],
+    currentGameId: hasOverride('currentGameId') ? overrides!.currentGameId : 'game123',
+    setCurrentGameId: hasOverride('setCurrentGameId') ? overrides!.setCurrentGameId ?? jest.fn() : jest.fn(),
+    gameSessionState: hasOverride('gameSessionState') ? overrides!.gameSessionState ?? createMockGameSessionState() : createMockGameSessionState(),
+    dispatchGameSession: hasOverride('dispatchGameSession') ? overrides!.dispatchGameSession ?? jest.fn() : jest.fn(),
+    availablePlayers: hasOverride('availablePlayers') ? overrides!.availablePlayers ?? [] : [],
     setAvailablePlayers: jest.fn(),
     resetToInitialState: jest.fn(),
     updateGameSessionState: jest.fn(),
@@ -179,6 +182,7 @@ const setupMockContext = (overrides?: {
 describe('useGamePersistence', () => {
   beforeEach(() => {
     // Week 2-3 PR3: Set up default mock context values before each test
+    mockUseGameState.mockClear();
     setupMockContext();
   });
   describe('Hook Interface', () => {
@@ -908,4 +912,3 @@ describe('useGamePersistence', () => {
     });
   });
 });
-
