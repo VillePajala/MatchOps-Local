@@ -30,6 +30,7 @@ import {
 } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 import { debug } from '@/utils/debug';
+import { createLogger } from '@/utils/logger';
 
 // Design tokens for consistent sizing and spacing
 const DESIGN_TOKENS = {
@@ -56,6 +57,8 @@ const DESIGN_TOKENS = {
 
 // Transition fallback in case 'transitionend' isn't fired (reduced motion, etc.)
 const PANEL_CLOSE_FALLBACK_MS = 300;
+
+const logger = createLogger('ControlBar');
 
 // Helper to format time
 const formatTime = (totalSeconds: number): string => {
@@ -411,10 +414,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
               onClick={() => {
                 // P3: Gate logging behind DEBUG flag (hot path performance)
                 if (debug.enabled('tactical')) {
-                  try {
-                    // eslint-disable-next-line no-console
-                    console.debug('[ControlBar] Undo clicked', { isTacticsBoardView });
-                  } catch {}
+                  logger.debug('Undo clicked', { isTacticsBoardView });
                 }
                 return isTacticsBoardView ? onTacticalUndo() : onUndo();
               }}
@@ -430,10 +430,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
               onClick={() => {
                 // P3: Gate logging behind DEBUG flag (hot path performance)
                 if (debug.enabled('tactical')) {
-                  try {
-                    // eslint-disable-next-line no-console
-                    console.debug('[ControlBar] Redo clicked', { isTacticsBoardView });
-                  } catch {}
+                  logger.debug('Redo clicked', { isTacticsBoardView });
                 }
                 return isTacticsBoardView ? onTacticalRedo() : onRedo();
               }}
