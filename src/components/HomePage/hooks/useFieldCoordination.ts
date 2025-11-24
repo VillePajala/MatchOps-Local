@@ -28,7 +28,7 @@
  * @category HomePage Hooks
  */
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import type { Dispatch } from 'react';
 import type { TFunction } from 'i18next';
 import { useFieldInteractions } from '@/hooks/useFieldInteractions';
@@ -203,7 +203,7 @@ export function useFieldCoordination({
   availablePlayers: providedAvailablePlayers,
   // selectedPlayerIds is intentionally unused after "Place All Players" fix
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  selectedPlayerIds: providedSelectedPlayerIds,
+  selectedPlayerIds,
   canUndo,
   canRedo,
   tacticalHistory,
@@ -213,9 +213,10 @@ export function useFieldCoordination({
 
   // Prefer shared GameStateContext for roster/selection; fall back to props for legacy callers/tests
   const optionalGameState = useOptionalGameState();
-  const availablePlayers = providedAvailablePlayers ?? optionalGameState?.availablePlayers ?? [];
-  // Currently not used after "Place All Players" fix; kept for forward compatibility
-  const _selectedPlayerIds = providedSelectedPlayerIds ?? optionalGameState?.gameSessionState?.selectedPlayerIds ?? [];
+  const availablePlayers = useMemo(
+    () => providedAvailablePlayers ?? optionalGameState?.availablePlayers ?? [],
+    [providedAvailablePlayers, optionalGameState?.availablePlayers]
+  );
 
   // --- State for reset field confirmation modal ---
   const [showResetFieldConfirm, setShowResetFieldConfirm] = useState<boolean>(false);
@@ -306,7 +307,7 @@ export function useFieldCoordination({
    * pattern, avoiding dependency on playersOnField.
    */
   const handleDropOnField = useCallback((playerId: string, relX: number, relY: number) => {
-    const droppedPlayer = availablePlayers.find(p => p.id === playerId);
+    const droppedPlayer = availablePlayers.find((p: Player) => p.id === playerId);
     if (droppedPlayer) {
       handlePlayerDrop(droppedPlayer, { relX, relY });
     } else {
@@ -480,7 +481,7 @@ export function useFieldCoordination({
    */
   const handlePlaceAllPlayers = useCallback(() => {
     // Get ALL players not currently on field (not just selected ones)
-    const playersNotOnField = availablePlayers.filter(player =>
+    const playersNotOnField = availablePlayers.filter((player: Player) =>
       !playersOnField.some(fieldPlayer => fieldPlayer.id === player.id)
     );
 
@@ -494,8 +495,8 @@ export function useFieldCoordination({
     const newFieldPlayers: Player[] = [...playersOnField];
 
     // Separate goalkeeper from field players (functional approach, no mutation)
-    const goalie = playersNotOnField.find(p => p.isGoalie);
-    const fieldPlayers = playersNotOnField.filter(p => !p.isGoalie);
+    const goalie = playersNotOnField.find((p: Player) => p.isGoalie);
+    const fieldPlayers = playersNotOnField.filter((p: Player) => !p.isGoalie);
 
     // Place goalkeeper first at goalie position
     if (goalie) {
@@ -510,7 +511,7 @@ export function useFieldCoordination({
     const positions = calculateFormationPositions(fieldPlayers.length);
 
     // Place field players in formation positions
-    fieldPlayers.forEach((player, index) => {
+    fieldPlayers.forEach((player: Player, index: number) => {
       if (index < positions.length) {
         newFieldPlayers.push({
           ...player,
