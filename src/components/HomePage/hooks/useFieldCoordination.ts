@@ -53,8 +53,8 @@ import { useOptionalGameState } from '@/contexts/GameStateContext';
  * @property {function} saveTacticalStateToHistory - Save tactical state to separate history stack
  *   **MUST be memoized with useCallback** to prevent re-renders.
  *   Provided by useGameSessionCoordination with stable dependency (tacticalHistory).
- * @property {Player[]} availablePlayers - All players available for placement
- * @property {string[]} selectedPlayerIds - IDs of players selected for this game
+ * @property {Player[]} availablePlayers - All players available for placement (required when no GameStateContext)
+ * @property {string[]} selectedPlayerIds - IDs of players selected for this game (optional; context fallback)
  * @property {boolean} canUndo - Whether main history can undo
  * @property {boolean} canRedo - Whether main history can redo
  * @property {object} tacticalHistory - Tactical board history manager (separate from main history)
@@ -213,6 +213,9 @@ export function useFieldCoordination({
 
   // Prefer shared GameStateContext for roster/selection; fall back to props for legacy callers/tests
   const optionalGameState = useOptionalGameState();
+  if (!optionalGameState && providedAvailablePlayers === undefined) {
+    throw new Error('useFieldCoordination requires availablePlayers when GameStateContext is not provided');
+  }
   const availablePlayers = useMemo(
     () => providedAvailablePlayers ?? optionalGameState?.availablePlayers ?? [],
     [providedAvailablePlayers, optionalGameState?.availablePlayers]
