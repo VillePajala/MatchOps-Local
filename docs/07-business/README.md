@@ -6,6 +6,9 @@ This directory contains business strategy and monetization documentation.
 
 - **[monetization-strategies.md](./monetization-strategies.md)** - Detailed monetization approach and options
 - **[paywall-implementation.md](./paywall-implementation.md)** - Technical paywall implementation guide
+- **[PRIVACY_FIRST_MONETIZATION.md](./PRIVACY_FIRST_MONETIZATION.md)** - Privacy-first business models
+- **[LINKEDIN_CONTENT_STRATEGY.md](./LINKEDIN_CONTENT_STRATEGY.md)** - Messaging/branding for LinkedIn
+- **[SOCIAL_MEDIA_LAUNCH_STRATEGY.md](./SOCIAL_MEDIA_LAUNCH_STRATEGY.md)** - Social launch plan
 
 ## Quick Start
 
