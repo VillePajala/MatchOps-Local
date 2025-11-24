@@ -15,12 +15,6 @@ import { DEFAULT_GAME_ID } from '@/config/constants';
  * These builders transform hook data into props objects for presentation components.
  */
 
-function assertPresent<T>(value: T, name: string): asserts value is NonNullable<T> {
-  if (value === null || value === undefined) {
-    throw new Error(`${name} is required`);
-  }
-}
-
 /**
  * Input parameters for building FieldInteractions
  */
@@ -90,7 +84,9 @@ export interface BuildControlBarPropsInput {
  */
 export function buildFieldInteractions(input: BuildFieldInteractionsInput): FieldInteractions {
   const { fieldCoordination }: { fieldCoordination: UseFieldCoordinationReturn } = input;
-  assertPresent(fieldCoordination, 'fieldCoordination');
+  if (!fieldCoordination) {
+    throw new Error('fieldCoordination is required');
+  }
 
   return {
     players: {
@@ -200,8 +196,12 @@ export function buildFieldContainerProps(input: BuildFieldContainerPropsInput): 
     fieldInteractions: FieldInteractions;
   } = input;
 
-  assertPresent(fieldCoordination, 'fieldCoordination');
-  assertPresent(timerManagement, 'timerManagement');
+  if (!fieldCoordination) {
+    throw new Error('fieldCoordination is required');
+  }
+  if (!timerManagement) {
+    throw new Error('timerManagement is required');
+  }
 
   return {
     gameSessionState,
@@ -319,8 +319,12 @@ export function buildControlBarProps(input: BuildControlBarPropsInput): Componen
     setIsPersonnelManagerOpen: (open: boolean) => void;
   } = input;
 
-  assertPresent(timerManagement, 'timerManagement');
-  assertPresent(fieldCoordination, 'fieldCoordination');
+  if (!timerManagement) {
+    throw new Error('timerManagement is required');
+  }
+  if (!fieldCoordination) {
+    throw new Error('fieldCoordination is required');
+  }
 
   return {
     timeElapsedInSeconds: timerManagement.timeElapsedInSeconds,

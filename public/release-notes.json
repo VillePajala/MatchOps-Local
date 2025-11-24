@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: migrate remaining hooks to use GameStateContext (PR #4)"
+  "notes": "refactor: reorganize GameStateContext test suite for improved maintainability"
 }

@@ -1504,7 +1504,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         utilSaveCurrentGameIdSetting(latestId).catch(() => {});
       }
     }
-  }, [initialLoadComplete, currentGameId, savedGames]);
+  }, [initialLoadComplete, currentGameId, savedGames, setCurrentGameId]);
 
   // --- NEW: Handlers for Game Settings Modal ---
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in controlBarProps
