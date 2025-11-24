@@ -15,11 +15,11 @@ import { DEFAULT_GAME_ID } from '@/config/constants';
  * These builders transform hook data into props objects for presentation components.
  */
 
-const assertPresent = <T>(value: T, name: string): asserts value is NonNullable<T> => {
+function assertPresent<T>(value: T, name: string): asserts value is NonNullable<T> {
   if (value === null || value === undefined) {
     throw new Error(`${name} is required`);
   }
-};
+}
 
 /**
  * Input parameters for building FieldInteractions
@@ -89,7 +89,7 @@ export interface BuildControlBarPropsInput {
  * // Pass to FieldContainer.interactions
  */
 export function buildFieldInteractions(input: BuildFieldInteractionsInput): FieldInteractions {
-  const { fieldCoordination } = input;
+  const { fieldCoordination }: { fieldCoordination: UseFieldCoordinationReturn } = input;
   assertPresent(fieldCoordination, 'fieldCoordination');
 
   return {
@@ -176,6 +176,28 @@ export function buildFieldContainerProps(input: BuildFieldContainerPropsInput): 
     handleTeamNameChange,
     setOpponentName,
     fieldInteractions,
+  }: {
+    gameSessionState: GameSessionState;
+    fieldCoordination: UseFieldCoordinationReturn;
+    timerManagement: UseTimerManagementReturn;
+    currentGameId: string | null;
+    availablePlayers: Player[];
+    teams: Team[];
+    seasons: Season[];
+    tournaments: Tournament[];
+    showFirstGameGuide: boolean;
+    hasCheckedFirstGameGuide: boolean;
+    firstGameGuideStep: number;
+    orphanedGameInfo: { teamId: string; teamName?: string } | null;
+    initialLoadComplete: boolean;
+    reducerDrivenModals: ReducerDrivenModals;
+    setIsTeamManagerOpen: (open: boolean) => void;
+    setFirstGameGuideStep: (step: number) => void;
+    handleFirstGameGuideClose: () => void;
+    setIsTeamReassignModalOpen: (open: boolean) => void;
+    handleTeamNameChange: (name: string) => void;
+    setOpponentName: (name: string) => void;
+    fieldInteractions: FieldInteractions;
   } = input;
 
   assertPresent(fieldCoordination, 'fieldCoordination');
@@ -274,6 +296,27 @@ export function buildControlBarProps(input: BuildControlBarPropsInput): Componen
     openPlayerAssessmentModal,
     setIsTeamManagerOpen,
     setIsPersonnelManagerOpen,
+  }: {
+    timerManagement: UseTimerManagementReturn;
+    fieldCoordination: UseFieldCoordinationReturn;
+    tacticalHistory: { canUndo: boolean; canRedo: boolean };
+    currentGameId: string | null;
+    handleToggleLargeTimerOverlay: () => void;
+    handleUndo: () => void;
+    handleRedo: () => void;
+    handleToggleTrainingResources: () => void;
+    setIsGameStatsModalOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
+    setIsLoadGameModalOpen: (open: boolean) => void;
+    handleStartNewGame: () => void;
+    openRosterModal: () => void;
+    quickSave: () => void;
+    setIsGameSettingsModalOpen: (open: boolean) => void;
+    setIsSeasonTournamentModalOpen: (open: boolean) => void;
+    setIsInstructionsModalOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
+    setIsSettingsModalOpen: (open: boolean) => void;
+    openPlayerAssessmentModal: () => void;
+    setIsTeamManagerOpen: (open: boolean) => void;
+    setIsPersonnelManagerOpen: (open: boolean) => void;
   } = input;
 
   assertPresent(timerManagement, 'timerManagement');
