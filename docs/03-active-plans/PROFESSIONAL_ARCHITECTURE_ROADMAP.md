@@ -398,6 +398,7 @@ const persistence = useGamePersistence({
 - Profile React re-renders with DevTools during an active game (timer running) to validate the single GameStateContext (mixing high-frequency timer state with low-frequency gameId/roster).
 - Thresholds: ✅ <50ms, ⚠️ 50–100ms, 🔴 >100ms for consumers that only need low-frequency data.
 - If problematic, split contexts: high-frequency (session/timer) vs low-frequency (gameId/roster/handlers), and memoize only where it helps.
+- Track for Phase 3/4: Context value is not memoized; if profiling shows cost, useMemo/useCallback around the value or split contexts to avoid re-renders on low-frequency consumers.
 
 ### Phase 1 Success Criteria (Weeks 2-3)
 
@@ -650,6 +651,36 @@ Prepare for portfolio presentation.
 
 **Create**: `/docs/10-analysis/PERFORMANCE_BENCHMARKS.md`
 
+### PR 13: Test Organization (1-2 hours)
+
+**Goal**: Reorganize GameStateContext test suite for better maintainability
+
+**Current State**: 376 tests in single file `/src/contexts/__tests__/GameStateContext.test.tsx`
+
+**Target Structure**:
+```
+src/contexts/__tests__/
+  GameStateContext/
+    provider.test.tsx        # Provider rendering tests
+    hooks.test.tsx           # useGameState, useOptionalGameState
+    handlers.test.tsx        # Session coordination handlers
+    integration.test.tsx     # Integration with hooks
+```
+
+**Tasks**:
+- [ ] Split 376-test monolithic file into 4 focused test modules
+- [ ] Maintain 100% test coverage
+- [ ] Ensure all tests continue passing
+- [ ] Update test documentation
+
+**Benefits**:
+- Easier to locate specific test scenarios
+- Better test file organization
+- Improved maintainability
+- Follows established project patterns
+
+**Lines**: No net change (reorganization only)
+
 ### Portfolio Preparation
 
 **Create**:
@@ -662,11 +693,12 @@ Prepare for portfolio presentation.
 
 - [ ] Architecture documentation complete
 - [ ] Performance benchmarks documented
+- [ ] Test organization improved (GameStateContext split into 4 files)
 - [ ] Portfolio materials ready
 - [ ] Professional README
 - [ ] Ready for interviews
 
-**Effort**: 3 hours
+**Effort**: 4-5 hours
 
 ---
 
