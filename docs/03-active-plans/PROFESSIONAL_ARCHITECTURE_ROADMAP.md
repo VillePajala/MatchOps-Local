@@ -418,6 +418,9 @@ const persistence = useGamePersistence({
 - P0: ControlBar blank-field/black-screen when stacking modals **fixed** (batched field tools close + tactics/drawing toggle).
 - Remaining 14 candidates: tracked in `REFACTORING_STATUS.md` (State Sync Issues Tracker) for post-Phase-1 triage; prioritize data-integrity items (Roster delete, Season/Tournament delete gating, GoalLog async flows) before UX batching tweaks.
 
+**Error Boundary Integration (future, P2)**:
+- Observation: Context hooks throw when providers are missing (e.g., `useGameState` guard). Page-level ErrorBoundary exists; consider a fallback UI for context initialization failures to improve resilience. Not urgent; schedule post-Phase-1.
+
 ---
 
 ## 📅 Weeks 4-5: Phase 2 - Decouple Modal Orchestration
