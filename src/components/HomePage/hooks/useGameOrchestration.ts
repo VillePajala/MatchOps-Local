@@ -164,7 +164,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const { showToast } = useToast();
 
   // --- Access shared state from context (Week 2-3 PR2 Fix) ---
-  const { availablePlayers, setAvailablePlayers } = useGameState();
+  const { availablePlayers, setAvailablePlayers, currentGameId, setCurrentGameId } = useGameState();
 
   // --- Roster Management (Must come before Field Coordination) ---
   const {
@@ -239,7 +239,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // Persistence state
   // TODO: Remove savedGames local state once all references are updated to use gameDataManagement.savedGames
   const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
-  const [currentGameId, setCurrentGameId] = useState<string | null>(DEFAULT_GAME_ID);
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
   const [hasCheckedInstructionsModal, setHasCheckedInstructionsModal] = useState<boolean>(false);
 
