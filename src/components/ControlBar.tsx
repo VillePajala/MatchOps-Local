@@ -1,5 +1,6 @@
 'use client';
 
+// Week 2-3 PR3: Added startTransition for batched modal cleanup (prevents blank field flicker)
 import React, { startTransition, useEffect, useRef, useState } from 'react';
 import {
   HiBars3,

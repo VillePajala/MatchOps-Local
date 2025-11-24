@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: add JSDoc comment to UseRosterArgs interface"
+  "notes": "fix: batch close actions in ControlBar to prevent blank screen regression and update State Sync Issues Tracker"
 }
