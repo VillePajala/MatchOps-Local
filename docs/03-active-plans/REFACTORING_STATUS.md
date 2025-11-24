@@ -144,6 +144,7 @@ HomePage.tsx (62 lines - UI orchestrator) ✅ EXCELLENT
 - ✅ P0 fixed: ControlBar field tools close now batches close/tactics/drawing toggles to prevent the black-field/blank-screen regression when stacking modals.
 - 🔜 P1 candidates to triage and schedule: RosterSettingsModal async delete/error handling; SeasonTournamentManagementModal delete gating on mutation success; GoalLogModal edit/delete async sequencing; ControlBar settings menu batching (non-critical UX).
 - 🔧 P2 candidate: PlayerStatsView form reset consolidation (reduce multi-setState reset chain).
+- 🔮 P2 future: ErrorBoundary integration for context initialization failures (e.g., `useGameState` guard) — optional fallback UI leveraging the existing page-level ErrorBoundary.
 
 ---
 
