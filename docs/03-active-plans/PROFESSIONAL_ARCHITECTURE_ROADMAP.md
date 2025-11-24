@@ -366,6 +366,10 @@ const persistence = useGamePersistence({
 **Total Lines Target**: ~583 lines saved (50 lines saved so far)
 **Effort**: 10 hours over 2 weeks
 
+**State Sync Fixes (tracking)**:
+- P0: ControlBar blank-field/black-screen when stacking modals **fixed** (batched field tools close + tactics/drawing toggle).
+- Remaining 14 candidates: tracked in `REFACTORING_STATUS.md` (State Sync Issues Tracker) for post-Phase-1 triage; prioritize data-integrity items (Roster delete, Season/Tournament delete gating, GoalLog async flows) before UX batching tweaks.
+
 ---
 
 ## 📅 Weeks 4-5: Phase 2 - Decouple Modal Orchestration
