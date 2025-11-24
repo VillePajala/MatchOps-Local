@@ -102,6 +102,11 @@ jest.mock('@/hooks/useTouchInteractions', () => ({
   })),
 }));
 
+jest.mock('@/contexts/GameStateContext', () => ({
+  __esModule: true,
+  useOptionalGameState: jest.fn(() => undefined),
+}));
+
 import { renderHook, act } from '@testing-library/react';
 import type { TFunction } from 'i18next';
 import { useFieldCoordination } from '../useFieldCoordination';
@@ -114,12 +119,15 @@ import { useGameState } from '@/hooks/useGameState';
 import { useTacticalBoard } from '@/hooks/useTacticalBoard';
 import { useTouchInteractions } from '@/hooks/useTouchInteractions';
 import { calculateFormationPositions } from '@/utils/formations';
+import { useOptionalGameState } from '@/contexts/GameStateContext';
+import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
 
 const mockUseFieldInteractions = useFieldInteractions as jest.MockedFunction<typeof useFieldInteractions>;
 const mockUseGameState = useGameState as jest.MockedFunction<typeof useGameState>;
 const mockUseTacticalBoard = useTacticalBoard as jest.MockedFunction<typeof useTacticalBoard>;
 const mockUseTouchInteractions = useTouchInteractions as jest.MockedFunction<typeof useTouchInteractions>;
 const mockCalculateFormationPositions = calculateFormationPositions as jest.MockedFunction<typeof calculateFormationPositions>;
+const mockUseOptionalGameState = useOptionalGameState as jest.MockedFunction<typeof useOptionalGameState>;
 
 // Helper to get default mock game state return value
 const getDefaultMockGameState = () => ({
@@ -1190,6 +1198,351 @@ describe('useFieldCoordination', () => {
       expect(result.current.handleToggleTacticsBoard).toBe(mockHandleToggleTacticsBoard);
       expect(result.current.handleAddTacticalDisc).toBe(mockHandleAddTacticalDisc);
       expect(result.current.handleTacticalDiscMove).toBe(mockHandleTacticalDiscMove);
+    });
+  });
+
+  /**
+   * Context Integration Tests
+   *
+   * Tests the fallback chain for availablePlayers:
+   * 1. Props (providedAvailablePlayers) - highest priority
+   * 2. Context (optionalGameState?.availablePlayers) - fallback
+   * 3. Empty array [] - default fallback
+   *
+   * @integration - Context consumption patterns
+   */
+  describe('Context Integration', () => {
+    /**
+     * Tests that hook uses props when provided (ignores context)
+     * @integration - Props take precedence over context
+     */
+    it('should prefer props over context when both are provided', () => {
+      const propsPlayers = TestFixtures.players.fullTeam({ count: 3 });
+      const contextPlayers = TestFixtures.players.fullTeam({ count: 5 });
+
+      // Mock context to return players
+      mockUseOptionalGameState.mockReturnValue({
+        availablePlayers: contextPlayers,
+        gameSessionState: initialGameSessionStatePlaceholder,
+        currentGameId: null,
+        dispatchGameSession: jest.fn(),
+        setCurrentGameId: jest.fn(),
+        setAvailablePlayers: jest.fn(),
+        handlers: {
+          setTeamName: jest.fn(),
+          setOpponentName: jest.fn(),
+          setGameDate: jest.fn(),
+          setGameLocation: jest.fn(),
+          setGameTime: jest.fn(),
+          setGameNotes: jest.fn(),
+          setAgeGroup: jest.fn(),
+          setTournamentLevel: jest.fn(),
+          setNumberOfPeriods: jest.fn(),
+          setPeriodDuration: jest.fn(),
+          setDemandFactor: jest.fn(),
+          setHomeOrAway: jest.fn(),
+          setSeasonId: jest.fn(),
+          setTournamentId: jest.fn(),
+          setGamePersonnel: jest.fn(),
+        },
+      });
+
+      // Provide props players
+      const paramsWithProps = {
+        ...mockParams,
+        availablePlayers: propsPlayers,
+      };
+
+      const { result } = renderHook(() => useFieldCoordination(paramsWithProps));
+
+      // Should use props players (count: 3), not context players (count: 5)
+      const player = propsPlayers[0];
+      act(() => {
+        result.current.handleDropOnField(player.id, 0.5, 0.5);
+      });
+
+      // Verify the props player was used
+      const gameStateReturn = mockUseGameState.mock.results[0]?.value || getDefaultMockGameState();
+      const mockHandlePlayerDrop = gameStateReturn.handlePlayerDrop;
+      expect(mockHandlePlayerDrop).toHaveBeenCalledWith(
+        expect.objectContaining({ id: player.id }),
+        { relX: 0.5, relY: 0.5 }
+      );
+    });
+
+    /**
+     * Tests that hook uses context when props are omitted
+     * @integration - Context fallback when props undefined
+     */
+    it('should use context when props are omitted', () => {
+      const contextPlayers = TestFixtures.players.fullTeam({ count: 4 });
+
+      // Mock context to return players
+      mockUseOptionalGameState.mockReturnValue({
+        availablePlayers: contextPlayers,
+        gameSessionState: initialGameSessionStatePlaceholder,
+        currentGameId: null,
+        dispatchGameSession: jest.fn(),
+        setCurrentGameId: jest.fn(),
+        setAvailablePlayers: jest.fn(),
+        handlers: {
+          setTeamName: jest.fn(),
+          setOpponentName: jest.fn(),
+          setGameDate: jest.fn(),
+          setGameLocation: jest.fn(),
+          setGameTime: jest.fn(),
+          setGameNotes: jest.fn(),
+          setAgeGroup: jest.fn(),
+          setTournamentLevel: jest.fn(),
+          setNumberOfPeriods: jest.fn(),
+          setPeriodDuration: jest.fn(),
+          setDemandFactor: jest.fn(),
+          setHomeOrAway: jest.fn(),
+          setSeasonId: jest.fn(),
+          setTournamentId: jest.fn(),
+          setGamePersonnel: jest.fn(),
+        },
+      });
+
+      // Omit availablePlayers from props (set to undefined)
+      const paramsWithoutProps = {
+        ...mockParams,
+        availablePlayers: undefined,
+      };
+
+      const { result } = renderHook(() => useFieldCoordination(paramsWithoutProps));
+
+      // Should use context players
+      const contextPlayer = contextPlayers[0];
+      act(() => {
+        result.current.handleDropOnField(contextPlayer.id, 0.3, 0.7);
+      });
+
+      // Verify the context player was used
+      const gameStateReturn = mockUseGameState.mock.results[0]?.value || getDefaultMockGameState();
+      const mockHandlePlayerDrop = gameStateReturn.handlePlayerDrop;
+      expect(mockHandlePlayerDrop).toHaveBeenCalledWith(
+        expect.objectContaining({ id: contextPlayer.id }),
+        { relX: 0.3, relY: 0.7 }
+      );
+    });
+
+    /**
+     * Tests that hook throws error when neither props nor context available
+     * @integration - Error handling for missing data
+     */
+    it('should throw error when neither props nor context available', () => {
+      // Mock context to return undefined (no provider)
+      mockUseOptionalGameState.mockReturnValue(undefined);
+
+      // Omit availablePlayers from props
+      const paramsWithoutProps = {
+        ...mockParams,
+        availablePlayers: undefined,
+      };
+
+      // Should throw error when rendering without context or props
+      expect(() => {
+        renderHook(() => useFieldCoordination(paramsWithoutProps));
+      }).toThrow('useFieldCoordination requires availablePlayers when GameStateContext is not provided');
+    });
+
+    /**
+     * Tests that availablePlayers updates when context changes
+     * @integration - Reactive context consumption
+     */
+    it('should update availablePlayers when context changes', () => {
+      const initialContextPlayers = TestFixtures.players.fullTeam({ count: 2 });
+      const updatedContextPlayers = TestFixtures.players.fullTeam({ count: 6 });
+
+      // Initially mock context with 2 players
+      mockUseOptionalGameState.mockReturnValue({
+        availablePlayers: initialContextPlayers,
+        gameSessionState: initialGameSessionStatePlaceholder,
+        currentGameId: null,
+        dispatchGameSession: jest.fn(),
+        setCurrentGameId: jest.fn(),
+        setAvailablePlayers: jest.fn(),
+        handlers: {
+          setTeamName: jest.fn(),
+          setOpponentName: jest.fn(),
+          setGameDate: jest.fn(),
+          setGameLocation: jest.fn(),
+          setGameTime: jest.fn(),
+          setGameNotes: jest.fn(),
+          setAgeGroup: jest.fn(),
+          setTournamentLevel: jest.fn(),
+          setNumberOfPeriods: jest.fn(),
+          setPeriodDuration: jest.fn(),
+          setDemandFactor: jest.fn(),
+          setHomeOrAway: jest.fn(),
+          setSeasonId: jest.fn(),
+          setTournamentId: jest.fn(),
+          setGamePersonnel: jest.fn(),
+        },
+      });
+
+      const paramsWithoutProps = {
+        ...mockParams,
+        availablePlayers: undefined,
+      };
+
+      const { result, rerender } = renderHook(() => useFieldCoordination(paramsWithoutProps));
+
+      // Initially should have 2 players from context
+      const initialPlayer = initialContextPlayers[0];
+      act(() => {
+        result.current.handleDropOnField(initialPlayer.id, 0.2, 0.2);
+      });
+
+      let gameStateReturn = mockUseGameState.mock.results[0]?.value || getDefaultMockGameState();
+      let mockHandlePlayerDrop = gameStateReturn.handlePlayerDrop;
+      expect(mockHandlePlayerDrop).toHaveBeenCalledWith(
+        expect.objectContaining({ id: initialPlayer.id }),
+        { relX: 0.2, relY: 0.2 }
+      );
+
+      // Update context with 6 players
+      mockUseOptionalGameState.mockReturnValue({
+        availablePlayers: updatedContextPlayers,
+        gameSessionState: initialGameSessionStatePlaceholder,
+        currentGameId: null,
+        dispatchGameSession: jest.fn(),
+        setCurrentGameId: jest.fn(),
+        setAvailablePlayers: jest.fn(),
+        handlers: {
+          setTeamName: jest.fn(),
+          setOpponentName: jest.fn(),
+          setGameDate: jest.fn(),
+          setGameLocation: jest.fn(),
+          setGameTime: jest.fn(),
+          setGameNotes: jest.fn(),
+          setAgeGroup: jest.fn(),
+          setTournamentLevel: jest.fn(),
+          setNumberOfPeriods: jest.fn(),
+          setPeriodDuration: jest.fn(),
+          setDemandFactor: jest.fn(),
+          setHomeOrAway: jest.fn(),
+          setSeasonId: jest.fn(),
+          setTournamentId: jest.fn(),
+          setGamePersonnel: jest.fn(),
+        },
+      });
+      jest.clearAllMocks();
+
+      // Rerender to trigger context update
+      rerender();
+
+      // Should now have access to new players from context
+      const newPlayer = updatedContextPlayers[5]; // 6th player (index 5)
+      act(() => {
+        result.current.handleDropOnField(newPlayer.id, 0.8, 0.8);
+      });
+
+      gameStateReturn = mockUseGameState.mock.results[0]?.value || getDefaultMockGameState();
+      mockHandlePlayerDrop = gameStateReturn.handlePlayerDrop;
+      expect(mockHandlePlayerDrop).toHaveBeenCalledWith(
+        expect.objectContaining({ id: newPlayer.id }),
+        { relX: 0.8, relY: 0.8 }
+      );
+    });
+
+    /**
+     * Tests fallback chain validation (props → context → error)
+     * @integration - Complete fallback chain with error handling
+     */
+    it('should follow complete fallback chain: props → context → error', () => {
+      const scenarios = [
+        {
+          name: 'Props provided',
+          props: TestFixtures.players.fullTeam({ count: 2 }),
+          context: TestFixtures.players.fullTeam({ count: 3 }),
+          expected: 'props',
+        },
+        {
+          name: 'Only context provided',
+          props: undefined,
+          context: TestFixtures.players.fullTeam({ count: 4 }),
+          expected: 'context',
+        },
+        {
+          name: 'Neither props nor context (should throw)',
+          props: undefined,
+          context: undefined,
+          expected: 'error',
+        },
+      ];
+
+      scenarios.forEach((scenario) => {
+        // Mock context
+        mockUseOptionalGameState.mockReturnValue(
+          scenario.context ? {
+            availablePlayers: scenario.context,
+            gameSessionState: initialGameSessionStatePlaceholder,
+            currentGameId: null,
+            dispatchGameSession: jest.fn(),
+            setCurrentGameId: jest.fn(),
+            setAvailablePlayers: jest.fn(),
+            handlers: {
+          setTeamName: jest.fn(),
+          setOpponentName: jest.fn(),
+          setGameDate: jest.fn(),
+          setGameLocation: jest.fn(),
+          setGameTime: jest.fn(),
+          setGameNotes: jest.fn(),
+          setAgeGroup: jest.fn(),
+          setTournamentLevel: jest.fn(),
+          setNumberOfPeriods: jest.fn(),
+          setPeriodDuration: jest.fn(),
+          setDemandFactor: jest.fn(),
+          setHomeOrAway: jest.fn(),
+          setSeasonId: jest.fn(),
+          setTournamentId: jest.fn(),
+          setGamePersonnel: jest.fn(),
+        },
+          } : undefined
+        );
+
+        const params = {
+          ...mockParams,
+          availablePlayers: scenario.props,
+        };
+
+        if (scenario.expected === 'error') {
+          // Should throw error
+          expect(() => {
+            renderHook(() => useFieldCoordination(params));
+          }).toThrow('useFieldCoordination requires availablePlayers when GameStateContext is not provided');
+        } else {
+          const { result } = renderHook(() => useFieldCoordination(params));
+
+          if (scenario.expected === 'props' && scenario.props) {
+            const player = scenario.props[0];
+            act(() => {
+              result.current.handleDropOnField(player.id, 0.5, 0.5);
+            });
+            const gameStateReturn = mockUseGameState.mock.results[0]?.value || getDefaultMockGameState();
+      const mockHandlePlayerDrop = gameStateReturn.handlePlayerDrop;
+            expect(mockHandlePlayerDrop).toHaveBeenCalledWith(
+              expect.objectContaining({ id: player.id }),
+              expect.any(Object)
+            );
+          } else if (scenario.expected === 'context' && scenario.context) {
+            const player = scenario.context[0];
+            act(() => {
+              result.current.handleDropOnField(player.id, 0.5, 0.5);
+            });
+            const gameStateReturn = mockUseGameState.mock.results[0]?.value || getDefaultMockGameState();
+      const mockHandlePlayerDrop = gameStateReturn.handlePlayerDrop;
+            expect(mockHandlePlayerDrop).toHaveBeenCalledWith(
+              expect.objectContaining({ id: player.id }),
+              expect.any(Object)
+            );
+          }
+        }
+
+        jest.clearAllMocks();
+      });
     });
   });
 });
