@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import type { ComponentProps } from 'react';
 import type ControlBar from '@/components/ControlBar';
 import type { GameContainerProps } from '@/components/HomePage/containers/GameContainer';
@@ -244,8 +245,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // ... UI/Interaction states ...
   // draggingPlayerFromBarInfo now managed by useFieldCoordination
   // Persistence state
-  // TODO: Remove savedGames local state once all references are updated to use gameDataManagement.savedGames
-  const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
   const [currentGameId, setCurrentGameId] = useState<string | null>(DEFAULT_GAME_ID);
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
   const [hasCheckedInstructionsModal, setHasCheckedInstructionsModal] = useState<boolean>(false);
@@ -276,6 +275,23 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setSeasons,
     setTournaments,
   });
+
+  const savedGames = useMemo(
+    () => gameDataManagement.savedGames || {},
+    [gameDataManagement.savedGames],
+  );
+  const setSavedGames: Dispatch<SetStateAction<SavedGamesCollection>> = useCallback(
+    (update) => {
+      queryClient.setQueryData<SavedGamesCollection>(queryKeys.savedGames, (prev) => {
+        const current = prev ?? {};
+        const next = typeof update === 'function'
+          ? (update as (prev: SavedGamesCollection) => SavedGamesCollection)(current)
+          : update ?? {};
+        return next;
+      });
+    },
+    [queryClient],
+  );
 
   // TODO: Add useGamePersistence hook call here after reordering dependencies
 
