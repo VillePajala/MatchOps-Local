@@ -50,6 +50,7 @@
 - **[master-execution-guide.md](./master-execution-guide.md)** - Play Store readiness execution guide
 - **[publication-roadmap.md](./publication-roadmap.md)** - Publication phases overview
 - **[play-store-deployment.md](./play-store-deployment.md)** - Play Store/TWA specifics
+- **[saved-games-integrity-plan.md](./saved-games-integrity-plan.md)** - Import/cache/new-game hardening plan
 
 ---
 

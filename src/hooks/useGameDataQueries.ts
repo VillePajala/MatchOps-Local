@@ -58,7 +58,6 @@ export function useGameDataQueries(): GameDataQueriesResult {
   const savedGames = useQuery<SavedGamesCollection | null, Error>({
     queryKey: queryKeys.savedGames,
     queryFn: getSavedGames,
-    initialData: {},
   });
 
   const currentGameId = useQuery<string | null, Error>({

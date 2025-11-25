@@ -194,6 +194,7 @@ export function useGamePersistence({
   const [isGameDeleting, setIsGameDeleting] = useState(false);
   const [gameDeleteError, setGameDeleteError] = useState<string | null>(null);
   const [processingGameId, setProcessingGameId] = useState<string | null>(null);
+  const createInFlightRef = useRef<boolean>(false);
 
   // --- Helper: Create AppState Snapshot ---
   /**
@@ -273,6 +274,11 @@ export function useGamePersistence({
    * @param suppressErrorToast - If true, suppresses error toast (for auto-save retry logic)
    */
   const handleQuickSaveGame = useCallback(async (silent = false, suppressErrorToast = false) => {
+    if (!initialLoadComplete) {
+      logger.warn('[Quick Save] Skipping save because initial load/import not complete');
+      return;
+    }
+
     if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
       logger.log(`Quick saving game with ID: ${currentGameId}${silent ? ' (silent)' : ''}`, {
         teamId: gameSessionState.teamId,
@@ -283,13 +289,9 @@ export function useGamePersistence({
         const currentSnapshot = createGameSnapshot();
 
         // Update savedGames state and storage
-        const updatedSavedGames = { ...savedGames, [currentGameId]: currentSnapshot };
-        setSavedGames(updatedSavedGames);
+        setSavedGames(prev => ({ ...prev, [currentGameId]: currentSnapshot }));
         await utilSaveGame(currentGameId, currentSnapshot);
         await utilSaveCurrentGameIdSetting(currentGameId);
-
-        // Invalidate React Query cache
-        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
 
         // Reset history to reflect saved state (clears undo/redo)
         resetHistory(currentSnapshot);
@@ -321,6 +323,12 @@ export function useGamePersistence({
       }
     } else {
       // No current game ID - create new saved game entry using utility
+      if (createInFlightRef.current) {
+        logger.warn('[Quick Save] Create game ignored because a creation is already in flight');
+        return;
+      }
+
+      createInFlightRef.current = true;
       try {
         const newSnapshot = createGameSnapshot();
 
@@ -331,9 +339,6 @@ export function useGamePersistence({
         setSavedGames(prev => ({ ...prev, [newGameId]: gameData }));
         setCurrentGameId(newGameId);
         await utilSaveCurrentGameIdSetting(newGameId);
-
-        // Invalidate React Query cache
-        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
 
         // Reset history to new game state
         resetHistory(gameData);
@@ -364,6 +369,9 @@ export function useGamePersistence({
           showToast(t('loadGameModal.errors.createGameFailed', 'Error creating new saved game.'), 'error');
         }
       }
+      finally {
+        createInFlightRef.current = false;
+      }
     }
   }, [
     // Context values included because GameStateProvider can update independently
@@ -373,12 +381,11 @@ export function useGamePersistence({
     gameSessionState.teamId,
     gameSessionState.tournamentId,
     createGameSnapshot,
-    savedGames,
     setSavedGames,
-    queryClient,
     resetHistory,
     showToast,
     t,
+    initialLoadComplete,
   ]);
 
   // --- Auto-Save Function Ref ---
@@ -525,53 +532,62 @@ export function useGamePersistence({
 
     if (gameId === DEFAULT_GAME_ID) {
       logger.warn("Cannot delete the default unsaved state.");
-      setGameDeleteError(t('loadGameModal.errors.cannotDeleteDefault', 'Cannot delete the current unsaved game progress.'));
-      return;
-    }
+    setGameDeleteError(t('loadGameModal.errors.cannotDeleteDefault', 'Cannot delete the current unsaved game progress.'));
+    return;
+  }
 
-    setGameDeleteError(null);
-    setIsGameDeleting(true);
-    setProcessingGameId(gameId);
+  setGameDeleteError(null);
+  setIsGameDeleting(true);
+  setProcessingGameId(gameId);
 
-    try {
-      const deletedGameId = await utilDeleteGame(gameId);
+  try {
+    const deletedGameId = await utilDeleteGame(gameId);
 
-      if (deletedGameId) {
-        const updatedSavedGames = { ...savedGames };
-        delete updatedSavedGames[gameId];
+    if (deletedGameId) {
+      let updatedSavedGames: SavedGamesCollection = {};
 
-        // Update React Query cache immediately (optimistic update)
-        // This prevents flickering by updating the cache in a single render
-        queryClient.setQueryData<SavedGamesCollection>(queryKeys.savedGames, updatedSavedGames);
+      // Update React Query cache immediately (optimistic update)
+      queryClient.setQueryData<SavedGamesCollection>(queryKeys.savedGames, (prev) => {
+        const current = prev ?? {};
+        const next = { ...current };
+        delete next[gameId];
+        updatedSavedGames = next;
+        return next;
+      });
 
-        // Also update local state for consistency with non-query consumers
-        setSavedGames(updatedSavedGames);
+      // Also update local state for consistency with non-query consumers
+      setSavedGames(prev => {
+        const next = { ...(prev ?? {}) };
+        delete next[gameId];
+        updatedSavedGames = next;
+        return next;
+      });
 
-        logger.log(`Game ${gameId} deleted from state and persistence.`);
+      logger.log(`Game ${gameId} deleted from state and persistence.`);
 
-        // If deleted the currently loaded game, load latest or reset
-        if (currentGameId === gameId) {
-          const latestId = getLatestGameId(updatedSavedGames);
+      // If deleted the currently loaded game, load latest or reset
+      if (currentGameId === gameId) {
+        const latestId = getLatestGameId(updatedSavedGames);
 
-          if (latestId) {
-            logger.log(`Deleted active game. Loading latest game ${latestId}.`);
-            setCurrentGameId(latestId);
-            await utilSaveCurrentGameIdSetting(latestId);
-          } else {
-            logger.log("Currently loaded game was deleted with no other games remaining. Resetting to initial state.");
-            dispatchGameSession({ type: 'RESET_TO_INITIAL_STATE', payload: initialGameSessionData });
-            fieldCoordination.setPlayersOnField(initialState.playersOnField || []);
-            fieldCoordination.setOpponents(initialState.opponents || []);
-            fieldCoordination.setDrawings(initialState.drawings || []);
-            resetHistory(initialState as AppState);
-            setCurrentGameId(DEFAULT_GAME_ID);
-            await utilSaveCurrentGameIdSetting(DEFAULT_GAME_ID);
-          }
+        if (latestId) {
+          logger.log(`Deleted active game. Loading latest game ${latestId}.`);
+          setCurrentGameId(latestId);
+          await utilSaveCurrentGameIdSetting(latestId);
+        } else {
+          logger.log("Currently loaded game was deleted with no other games remaining. Resetting to initial state.");
+          dispatchGameSession({ type: 'RESET_TO_INITIAL_STATE', payload: initialGameSessionData });
+          fieldCoordination.setPlayersOnField(initialState.playersOnField || []);
+          fieldCoordination.setOpponents(initialState.opponents || []);
+          fieldCoordination.setDrawings(initialState.drawings || []);
+          resetHistory(initialState as AppState);
+          setCurrentGameId(DEFAULT_GAME_ID);
+          await utilSaveCurrentGameIdSetting(DEFAULT_GAME_ID);
         }
-      } else {
-        logger.warn(`handleDeleteGame: utilDeleteGame returned null for gameId: ${gameId}. Game might not have been found or ID was invalid.`);
-        setGameDeleteError(t('loadGameModal.errors.deleteFailedNotFound', 'Error deleting game: {gameId}. Game not found or ID was invalid.', { gameId }));
       }
+    } else {
+      logger.warn(`handleDeleteGame: utilDeleteGame returned null for gameId: ${gameId}. Game might not have been found or ID was invalid.`);
+      setGameDeleteError(t('loadGameModal.errors.deleteFailedNotFound', 'Error deleting game: {gameId}. Game not found or ID was invalid.', { gameId }));
+    }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       setGameDeleteError(t('loadGameModal.errors.deleteFailedCatch', 'Error deleting saved game: {gameId}. Details: {errorMessage}', { gameId, errorMessage }));
@@ -580,7 +596,6 @@ export function useGamePersistence({
       setProcessingGameId(null);
     }
   }, [
-    savedGames,
     setSavedGames,
     currentGameId,
     setCurrentGameId,

@@ -59,6 +59,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>('2000-05-01');
   const [backupRestoreResult, setBackupRestoreResult] = useState<BackupRestoreResult | null>(null);
   const [showRestoreResults, setShowRestoreResults] = useState(false);
+  const [isRestoreApplying, setIsRestoreApplying] = useState(false);
 
   // Helper to get maximum day for a given month
   const getMaxDayForMonth = (month: number): number => {
@@ -164,17 +165,38 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleRestoreConfirmed = async () => {
-    if (pendingRestoreContent) {
+    if (!pendingRestoreContent) {
+      return;
+    }
+
+    setIsRestoreApplying(true);
+    try {
       // Pass delayReload=true to prevent automatic reload - we'll reload after showing results modal
       const result = await importFullBackup(pendingRestoreContent, undefined, showToast, true, true);
       if (result) {
+        // Refresh caches so in-memory state matches storage while we wait for reload/results
+        const keysToRefresh = [
+          queryKeys.masterRoster,
+          queryKeys.savedGames,
+          queryKeys.appSettingsCurrentGameId,
+          queryKeys.seasons,
+          queryKeys.tournaments,
+          queryKeys.teams,
+          queryKeys.personnel,
+        ];
+        await Promise.all(
+          keysToRefresh.map(key => queryClient.invalidateQueries({ queryKey: key }))
+        );
+
         // Show results modal
         setBackupRestoreResult(result);
         setShowRestoreResults(true);
       }
+    } finally {
+      setShowRestoreConfirm(false);
+      setPendingRestoreContent(null);
+      setIsRestoreApplying(false);
     }
-    setShowRestoreConfirm(false);
-    setPendingRestoreContent(null);
   };
 
   const handleRestoreResultsClose = () => {
@@ -596,10 +618,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </button>
                 <button
                   onClick={handleRestore}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-md text-sm font-medium shadow-sm transition-colors"
+                  disabled={isRestoreApplying}
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-600 hover:bg-slate-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-slate-200 rounded-md text-sm font-medium shadow-sm transition-colors"
                 >
                   <HiOutlineDocumentArrowUp className="h-5 w-5" />
-                  {t('settingsModal.restoreButton', 'Restore from Backup')}
+                  {isRestoreApplying ? t('settingsModal.restoring', 'Restoring...') : t('settingsModal.restoreButton', 'Restore from Backup')}
                 </button>
                 <button
                   onClick={() => gameImportFileInputRef.current?.click()}
@@ -758,6 +781,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         confirmLabel={t('common.restore', 'Restore')}
         cancelLabel={t('common.cancel', 'Cancel')}
         variant="danger"
+        isConfirming={isRestoreApplying}
       />
 
       {/* Backup Restore Results Modal */}
