@@ -22,7 +22,7 @@
  * @category HomePage Hooks
  */
 
-import { useState, useCallback, useMemo, Dispatch } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect, Dispatch } from 'react';
 import { useGameTimer } from '@/hooks/useGameTimer';
 import type { GameSessionState, GameSessionAction } from '@/hooks/useGameSessionReducer';
 import type { GameEvent, Player, SubAlertLevel } from '@/types';
@@ -114,6 +114,10 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
 
   // --- Timer UI State ---
   const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false);
+  const elapsedRef = useRef(gameSessionState.timeElapsedInSeconds);
+  useEffect(() => {
+    elapsedRef.current = gameSessionState.timeElapsedInSeconds;
+  }, [gameSessionState.timeElapsedInSeconds]);
 
   // --- Timer UI Handlers ---
   const handleToggleLargeTimerOverlay = useCallback(() => {
@@ -149,7 +153,7 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     const newEvent: GameEvent = {
       id: `goal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       type: 'goal',
-      time: Math.round(gameSessionState.timeElapsedInSeconds * 100) / 100, // Round to 2 decimal places
+      time: Math.round(elapsedRef.current * 100) / 100, // Round to 2 decimal places
       scorerId: scorer.id,
       assisterId: assister?.id,
     };
@@ -157,14 +161,10 @@ export function useTimerManagement(props: UseTimerManagementProps): UseTimerMana
     // Dispatch actions to update game state via reducer
     dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: newEvent });
     dispatchGameSession({ type: 'ADJUST_SCORE_FOR_EVENT', payload: { eventType: 'goal', action: 'add' } });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     availablePlayers,
     masterRoster,
     dispatchGameSession,
-    // Note: gameSessionState.timeElapsedInSeconds is intentionally omitted
-    // It's read from gameSessionState when the function executes, not closed over
-    // Including it would cause callback recreation every second when timer is running
   ]);
 
   /**
