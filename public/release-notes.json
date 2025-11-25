@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "Refactor personnel and season management to return null on validation failures"
+  "notes": ""
 }
