@@ -584,9 +584,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
         [currentGameId]: updatedGame
       }));
 
-      // Invalidate React Query cache to update LoadGameModal
-      queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
-
       // Clear orphaned state if team was assigned
       if (newTeamId) {
         setOrphanedGameInfo(null);
@@ -774,6 +771,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // saveStateToHistory is also a dependency as it's used inside.
   
   useEffect(() => {
+    // Defensive cleanup: clear stale restore flag on mount so guards don't block saves/deletes
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem('restoreInProgress');
+    }
+
     const loadInitialAppData = async () => {
       if (initialLoadComplete || gameDataManagement.isLoading) return;
 
@@ -1383,9 +1385,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
           availablePlayers: updatedAvailablePlayers,
           playersOnField: updatedFieldPlayers,
         });
-
-        // Invalidate React Query cache to update LoadGameModal
-        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
       }
 
       logger.log(`[Page.tsx] per-game goalie toggle success for ${playerId}.`);
