@@ -303,7 +303,8 @@ describe("importFullBackup", () => {
       const result = await importFullBackup(backupJson);
 
       // Assert: Check results
-      expect(result).toBe(true); // Function should indicate success (before reload)
+      expect(result).not.toBeNull();
+      expect(result?.success).toBe(true); // Function should indicate success (before reload)
 
       // Verify mockStore content matches the backup data (storage module writes to mockStore)
       expect(mockStore[SAVED_GAMES_KEY]).toEqual(
@@ -327,9 +328,8 @@ describe("importFullBackup", () => {
 
       // Verify confirmation was called
       expect(window.confirm).toHaveBeenCalledTimes(1);
-      expect(window.alert).toHaveBeenCalledWith(
-        "Backup restored. Reloading app...",
-      );
+      // Note: Alert is no longer shown on success when showToast is not provided
+      // Success is indicated via the returned result object
 
       // Verify reload was scheduled via setTimeout
       expect(setTimeoutSpy).toHaveBeenCalledTimes(1);
@@ -377,7 +377,8 @@ describe("importFullBackup", () => {
       const result = await importFullBackup(backupJson);
 
       // Assert: Check results
-      expect(result).toBe(true); // Function should indicate success
+      expect(result).not.toBeNull();
+      expect(result?.success).toBe(true); // Function should indicate success
 
       // Verify backup keys were imported to mockStore
       expect(mockStore[SAVED_GAMES_KEY]).toEqual(
@@ -392,10 +393,8 @@ describe("importFullBackup", () => {
         existingRoster,
       );
 
-      // Verify alert and reload were called
-      expect(window.alert).toHaveBeenCalledWith(
-        "Backup restored. Reloading app...",
-      );
+      // Note: Alert is no longer shown on success when showToast is not provided
+      // Success is indicated via the returned result object
 
       // Advance timers to see if reload would have been called
       jest.advanceTimersByTime(500);
@@ -460,7 +459,8 @@ describe("importFullBackup", () => {
       const result = await importFullBackup(backupJson);
 
       // Assert: Verify teams were restored
-      expect(result).toBe(true);
+      expect(result).not.toBeNull();
+      expect(result?.success).toBe(true);
       expect(mockStore[TEAMS_INDEX_KEY]).toEqual(teamsData);
       expect(mockStore[TEAM_ROSTERS_KEY]).toEqual(teamRostersData);
       expect(mockStore[SAVED_GAMES_KEY]).toEqual(gamesData);
@@ -471,7 +471,7 @@ describe("importFullBackup", () => {
       expect(restoredGames.game2.teamId).toBe("team_2");
 
       // Verify restore success message
-      expect(window.alert).toHaveBeenCalledWith("Backup restored. Reloading app...");
+      // Note: Alert no longer shown on success - result object indicates success
     });
   });
 
@@ -499,7 +499,7 @@ describe("importFullBackup", () => {
       const result = await importFullBackup(backupJson);
 
       // Assert
-      expect(result).toBe(false);
+      expect(result).toBeNull();
       expect(window.confirm).toHaveBeenCalledTimes(1);
       // Assert that no modification methods were called beyond the initial setup
       expect(localStorageMock.setItem).toHaveBeenCalledTimes(1); // Only the initial setup call
@@ -530,7 +530,7 @@ describe("importFullBackup", () => {
       await importFullBackup(JSON.stringify(backupData));
 
       expect(mockStore[APP_SETTINGS_KEY]).toEqual({ currentGameId: latestGameId });
-      expect(window.alert).toHaveBeenCalledWith("Backup restored. Reloading app...");
+      // Note: Alert no longer shown on success - result object indicates success
     });
 
     it('preserves currentGameId when backup points to an existing game', async () => {
@@ -560,7 +560,7 @@ describe("importFullBackup", () => {
       await importFullBackup(JSON.stringify(backupData));
 
       expect(mockStore[APP_SETTINGS_KEY]).toEqual({ currentGameId: DEFAULT_GAME_ID });
-      expect(window.alert).toHaveBeenCalledWith("Backup restored. Reloading app...");
+      // Note: Alert no longer shown on success - result object indicates success
     });
   });
 
@@ -580,7 +580,8 @@ describe("importFullBackup", () => {
 
       const result = await importFullBackup(JSON.stringify(backupData));
 
-      expect(result).toBe(true);
+      expect(result).not.toBeNull();
+      expect(result?.success).toBe(true);
       const appSettingsWrites = (setStorageJSON as jest.Mock).mock.calls.filter(
         ([key]) => key === APP_SETTINGS_KEY
       );
@@ -617,14 +618,13 @@ describe("importFullBackup", () => {
 
       try {
         const result = await importFullBackup(JSON.stringify(backupData));
-        expect(result).toBe(true);
+        expect(result).not.toBeNull();
+        expect(result?.success).toBe(true);
         expect(appSettingsWriteCount).toBe(2);
-        const combinedMessage = "Backup restored. Reloading app...\n\nBackup restored, but we could not update the current game selection automatically. Please select a game manually.";
-        expect(window.alert).toHaveBeenCalledWith(combinedMessage);
-        // Verify the specific warning message is shown to users
-        expect(window.alert).toHaveBeenCalledWith(
-          expect.stringContaining('could not update the current game selection')
-        );
+        // Verify warnings are included in the result object
+        expect(result?.warnings).toBeDefined();
+        expect(result?.warnings?.length).toBeGreaterThan(0);
+        expect(result?.warnings?.[0]).toContain('could not update the current game selection');
       } finally {
         if (originalSetStorageJSON) {
           (setStorageJSON as jest.Mock).mockImplementation(originalSetStorageJSON);
@@ -648,7 +648,8 @@ describe("importFullBackup", () => {
       (window.confirm as jest.Mock).mockReturnValue(true);
 
       const result = await importFullBackup(JSON.stringify(backupData));
-      expect(result).toBe(true);
+      expect(result).not.toBeNull();
+      expect(result?.success).toBe(true);
       const appSettingsWrites = (setStorageJSON as jest.Mock).mock.calls.filter(
         ([key]) => key === APP_SETTINGS_KEY
       );
@@ -689,7 +690,7 @@ describe("importFullBackup", () => {
       const result = await importFullBackup(invalidJson);
 
       // Assert
-      expect(result).toBe(false);
+      expect(result).toBeNull();
       expect(localStorageMock.getAll()).toEqual({}); // Storage unchanged
       expect(window.confirm).not.toHaveBeenCalled(); // Confirmation shouldn't be reached
       expect(alertMock).toHaveBeenCalledWith(
@@ -719,7 +720,7 @@ describe("importFullBackup", () => {
       const result = await importFullBackup(backupJson);
 
       // Assert
-      expect(result).toBe(false);
+      expect(result).toBeNull();
       expect(localStorageMock.getAll()).toEqual({});
       expect(window.confirm).not.toHaveBeenCalled();
       expect(alertMock).toHaveBeenCalledWith(
@@ -747,7 +748,7 @@ describe("importFullBackup", () => {
       const result = await importFullBackup(backupJson);
 
       // Assert
-      expect(result).toBe(false);
+      expect(result).toBeNull();
       expect(localStorageMock.getAll()).toEqual({});
       expect(window.confirm).not.toHaveBeenCalled();
       expect(alertMock).toHaveBeenCalledWith(
@@ -775,7 +776,7 @@ describe("importFullBackup", () => {
       const result = await importFullBackup(backupJson);
 
       // Assert
-      expect(result).toBe(false);
+      expect(result).toBeNull();
       expect(localStorageMock.getAll()).toEqual({});
       expect(window.confirm).not.toHaveBeenCalled();
       expect(alertMock).toHaveBeenCalledWith(
@@ -826,7 +827,7 @@ describe("importFullBackup", () => {
         const result = await importFullBackup(backupJson);
 
         // Assert: Check results
-        expect(result).toBe(false); // Function should indicate failure
+        expect(result).toBeNull(); // Function should indicate failure
         expect(setStorageJSON).toHaveBeenCalled();
         // The actual error message from the implementation contains a different text
         expect(alertMock).toHaveBeenCalledWith(

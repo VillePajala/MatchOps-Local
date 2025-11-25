@@ -5,9 +5,14 @@ describe('useWakeLock', () => {
   it('does nothing when not supported', async () => {
     Object.defineProperty(navigator, 'wakeLock', { value: undefined, configurable: true });
     const { result } = renderHook(() => useWakeLock());
+
+    // Suppress expected error for unsupported wake lock API
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation();
     await act(async () => {
       await result.current.syncWakeLock(true);
     });
+    errorSpy.mockRestore();
+
     expect(result.current.isWakeLockActive).toBe(false);
   });
 

@@ -88,7 +88,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   // state for periods and duration
   const [localNumPeriods, setLocalNumPeriods] = useState<1 | 2>(2);
-  const [localPeriodDurationString, setLocalPeriodDurationString] = useState<string>('10');
+  const [localPeriodDurationString, setLocalPeriodDurationString] = useState<string>('15');
 
   // <<< Step 4a: State for Home/Away >>>
   const [localHomeOrAway, setLocalHomeOrAway] = useState<'home' | 'away'>('home');
@@ -121,7 +121,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       setSelectedTournamentId(null);
       setSelectedTeamId(null);
       setLocalNumPeriods(2);
-      setLocalPeriodDurationString('10');
+      setLocalPeriodDurationString('15');
       setLocalHomeOrAway('home');
 
       // Use master roster from props
@@ -253,10 +253,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         setGameLocation(s.location || '');
         setAgeGroup(s.ageGroup || '');
         setLocalNumPeriods((s.periodCount as 1 | 2) || 2);
-        setLocalPeriodDurationString(s.periodDuration ? String(s.periodDuration) : '10');
-        if (s.startDate) {
-          setGameDate(s.startDate);
-        }
+        setLocalPeriodDurationString(s.periodDuration ? String(s.periodDuration) : '15');
+        // Always set gameDate (fallback to today if season doesn't have one)
+        setGameDate(s.startDate || new Date().toISOString().split('T')[0]);
       }
     }
   }, [selectedSeasonId, seasons, availablePlayersForSetup]);
@@ -279,10 +278,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         setAgeGroup(t.ageGroup || '');
         setTournamentLevel(t.level || '');
         setLocalNumPeriods((t.periodCount as 1 | 2) || 2);
-        setLocalPeriodDurationString(t.periodDuration ? String(t.periodDuration) : '10');
-        if (t.startDate) {
-          setGameDate(t.startDate);
-        }
+        setLocalPeriodDurationString(t.periodDuration ? String(t.periodDuration) : '15');
+        // Always set gameDate (fallback to today if tournament doesn't have one)
+        setGameDate(t.startDate || new Date().toISOString().split('T')[0]);
       }
     }
   }, [selectedTournamentId, tournaments, availablePlayersForSetup]);

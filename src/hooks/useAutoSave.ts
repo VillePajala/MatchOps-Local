@@ -65,6 +65,15 @@ export const useAutoSave = ({
   const shortTimerRef = useRef<NodeJS.Timeout | null>(null);
   const longTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Ref to store the latest saveFunction to prevent stale closures
+  // This ensures we always call the latest version even if it changes during debounce
+  const saveFunctionRef = useRef(saveFunction);
+
+  // Update ref when saveFunction changes (doesn't trigger effect re-runs)
+  useEffect(() => {
+    saveFunctionRef.current = saveFunction;
+  }, [saveFunction]);
+
   // Serialize states for comparison (deep equality check via JSON)
   const serializeStates = (states: Record<string, unknown> | undefined): string | null => {
     if (!states) return null;
@@ -86,11 +95,11 @@ export const useAutoSave = ({
     // Check if states changed
     if (prevImmediateRef.current !== null && prevImmediateRef.current !== currentSerialized) {
       logger.log(`[useAutoSave] Immediate save triggered for game ${currentGameId}`);
-      saveFunction();
+      saveFunctionRef.current();
     }
 
     prevImmediateRef.current = currentSerialized;
-  }, [enabled, immediate, saveFunction, currentGameId]);
+  }, [enabled, immediate, currentGameId]);
 
   // --- Short Delay Save (500ms) ---
   useEffect(() => {
@@ -111,7 +120,7 @@ export const useAutoSave = ({
         // Double-check enabled at fire time to avoid saving while temporarily disabled (e.g., modal open)
         if (enabled) {
           logger.log(`[useAutoSave] Short-delay save triggered for game ${currentGameId}`);
-          saveFunction();
+          saveFunctionRef.current();
         } else {
           logger.log('[useAutoSave] Short-delay skipped: disabled at fire time');
         }
@@ -119,7 +128,7 @@ export const useAutoSave = ({
     }
 
     prevShortRef.current = currentSerialized;
-  }, [enabled, short, saveFunction, currentGameId]);
+  }, [enabled, short, currentGameId]);
 
   // --- Long Delay Save (2000ms) ---
   useEffect(() => {
@@ -140,7 +149,7 @@ export const useAutoSave = ({
         // Double-check enabled at fire time to avoid saving while temporarily disabled (e.g., modal open)
         if (enabled) {
           logger.log(`[useAutoSave] Long-delay save triggered for game ${currentGameId}`);
-          saveFunction();
+          saveFunctionRef.current();
         } else {
           logger.log('[useAutoSave] Long-delay skipped: disabled at fire time');
         }
@@ -148,7 +157,7 @@ export const useAutoSave = ({
     }
 
     prevLongRef.current = currentSerialized;
-  }, [enabled, long, saveFunction, currentGameId]);
+  }, [enabled, long, currentGameId]);
 
   // --- Cleanup on unmount ---
   useEffect(() => {

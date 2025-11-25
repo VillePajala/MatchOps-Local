@@ -222,7 +222,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   updateGameDetailsMutation,
   seasons,
   tournaments,
-  masterRoster = [],
+  // masterRoster removed - was only used in sync useEffect which is now removed
   teams,
   onTeamIdChange,
 }) => {
@@ -244,6 +244,16 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       isMountedRef.current = false;
     };
   }, []);
+
+  // Debug logging for period settings
+  useEffect(() => {
+    if (isOpen) {
+      logger.log('[GameSettingsModal] Modal opened with period settings:', {
+        numPeriods,
+        periodDurationMinutes,
+      });
+    }
+  }, [isOpen, numPeriods, periodDurationMinutes]);
 
   /**
    * Get next mutation sequence number for race condition prevention.
@@ -379,7 +389,6 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
 
   // State for team roster integration
   const [, setTeamRoster] = useState<Player[]>([]);
-  const [adjustedSelectedPlayerIds, setAdjustedSelectedPlayerIds] = useState<string[]>(selectedPlayerIds);
 
   // State for team selection
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(teamId || null);
@@ -399,41 +408,15 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         try {
           const roster = await getTeamRoster(teamId);
           setTeamRoster(roster || []);
-          
-          if (roster && roster.length > 0) {
-            // Create a set of team player names for comparison (since IDs differ)
-            const teamPlayerNames = new Set(
-              roster.map(p => p.name.toLowerCase().trim())
-            );
-
-            // Select master roster players that match team roster names
-            const rosterSource = (masterRoster && masterRoster.length > 0)
-              ? masterRoster
-              : roster;
-
-            const selectedIds = rosterSource
-              .filter(p => teamPlayerNames.has(p.name.toLowerCase().trim()))
-              .map(p => p.id);
-
-            setAdjustedSelectedPlayerIds(selectedIds);
-          } else {
-            // No team roster - clear selections
-            setAdjustedSelectedPlayerIds([]);
-          }
         } catch (error) {
           logger.error('[GameSettingsModal] Error loading team roster:', error);
           setTeamRoster([]);
-          // Preserve existing selection so the modal doesn't suddenly clear choices
-          setAdjustedSelectedPlayerIds(selectedPlayerIds);
         }
-      } else {
-        // No teamId - use original selection
-        setAdjustedSelectedPlayerIds(selectedPlayerIds);
       }
     };
-    
+
     loadTeamRoster();
-  }, [isOpen, teamId, availablePlayers, selectedPlayerIds, masterRoster]);
+  }, [isOpen, teamId]);
 
   // Initialize game time state from prop
   useEffect(() => {
@@ -581,16 +564,17 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         batchedUpdates.gameLocation = location;
         hasUpdates = true;
       }
-      if (season.ageGroup) {
-        onAgeGroupChange(season.ageGroup);
-        batchedUpdates.ageGroup = season.ageGroup;
-        hasUpdates = true;
-      }
-      if (season.startDate) {
-        onGameDateChange(season.startDate);
-        batchedUpdates.gameDate = season.startDate;
-        hasUpdates = true;
-      }
+      // Always set ageGroup (empty string if season doesn't have one)
+      const seasonAgeGroup = season.ageGroup || '';
+      onAgeGroupChange(seasonAgeGroup);
+      batchedUpdates.ageGroup = seasonAgeGroup;
+      hasUpdates = true;
+
+      // Always set gameDate (keep current if season doesn't have one)
+      const seasonDate = season.startDate || gameDate;
+      onGameDateChange(seasonDate);
+      batchedUpdates.gameDate = seasonDate;
+      hasUpdates = true;
       const parsedCount = Number(season.periodCount);
       if (parsedCount === 1 || parsedCount === 2) {
         const count = parsedCount as 1 | 2;
@@ -697,21 +681,23 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         batchedUpdates.gameLocation = location;
         hasUpdates = true;
       }
-      if (tournament.ageGroup) {
-        onAgeGroupChange(tournament.ageGroup);
-        batchedUpdates.ageGroup = tournament.ageGroup;
-        hasUpdates = true;
-      }
-      if (tournament.level) {
-        onTournamentLevelChange(tournament.level);
-        batchedUpdates.tournamentLevel = tournament.level;
-        hasUpdates = true;
-      }
-      if (tournament.startDate) {
-        onGameDateChange(tournament.startDate);
-        batchedUpdates.gameDate = tournament.startDate;
-        hasUpdates = true;
-      }
+      // Always set ageGroup (empty string if tournament doesn't have one)
+      const tournamentAgeGroup = tournament.ageGroup || '';
+      onAgeGroupChange(tournamentAgeGroup);
+      batchedUpdates.ageGroup = tournamentAgeGroup;
+      hasUpdates = true;
+
+      // Always set tournamentLevel (empty string if tournament doesn't have one)
+      const tournamentLvl = tournament.level || '';
+      onTournamentLevelChange(tournamentLvl);
+      batchedUpdates.tournamentLevel = tournamentLvl;
+      hasUpdates = true;
+
+      // Always set gameDate (keep current if tournament doesn't have one)
+      const tournamentDate = tournament.startDate || gameDate;
+      onGameDateChange(tournamentDate);
+      batchedUpdates.gameDate = tournamentDate;
+      hasUpdates = true;
       const parsedCount = Number(tournament.periodCount);
       if (parsedCount === 1 || parsedCount === 2) {
         const count = parsedCount as 1 | 2;
@@ -887,11 +873,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             .filter((p: Player) => teamPlayerNames.has(p.name.toLowerCase().trim()))
             .map((p: Player) => p.id);
 
-          setAdjustedSelectedPlayerIds(selectedIds);
           onSelectedPlayersChange(selectedIds);
         } else {
           // Team roster is empty - no players pre-selected
-          setAdjustedSelectedPlayerIds([]);
           onSelectedPlayersChange([]);
         }
       } catch (error) {
@@ -1255,7 +1239,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
             <div className="mb-5 text-center text-sm">
               <div className="flex justify-center items-center text-slate-300">
                 <span>
-                  <span className="text-yellow-400 font-semibold">{adjustedSelectedPlayerIds.length}</span>
+                  <span className="text-yellow-400 font-semibold">{selectedPlayerIds.length}</span>
                   {" / "}
                   <span className="text-yellow-400 font-semibold">{availablePlayers.length}</span>
                   {" "}{t('gameSettingsModal.playersSelected', 'selected')}
@@ -1340,9 +1324,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
               {/* Player Selection Section */}
               <PlayerSelectionSection
                 availablePlayers={availablePlayers}
-                selectedPlayerIds={adjustedSelectedPlayerIds}
+                selectedPlayerIds={selectedPlayerIds}
                 onSelectedPlayersChange={(playerIds: string[]) => {
-                  setAdjustedSelectedPlayerIds(playerIds);
                   onSelectedPlayersChange(playerIds);
                   mutateGameDetails(
                     { selectedPlayerIds: playerIds },
@@ -1699,6 +1682,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   value={numPeriods}
                   onChange={(e) => {
                     const periods = parseInt(e.target.value) as 1 | 2;
+                      logger.log('[GameSettingsModal] Changing numberOfPeriods to:', periods);
                       onNumPeriodsChange(periods);
                       mutateGameDetails(
                         { numberOfPeriods: periods },
@@ -1953,7 +1937,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                 </div>
               ) : (
                 <div
-                  className="cursor-pointer hover:text-yellow-400 transition-colors min-h-[8rem] p-3 rounded-md border border-slate-700/50 bg-slate-700/50"
+                  className="cursor-pointer text-slate-300 hover:text-yellow-400 transition-colors min-h-[8rem] p-3 rounded-md border border-slate-700/50 bg-slate-700/50"
                   onClick={() => handleStartInlineEdit('notes')}
                 >
                   {gameNotes || t('gameSettingsModal.noNotes', 'No notes yet. Click to add.')}
