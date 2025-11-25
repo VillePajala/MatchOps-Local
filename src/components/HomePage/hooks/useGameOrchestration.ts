@@ -526,13 +526,12 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [isLoadingGamesList, setIsLoadingGamesList] = useState(false);
 
   // Confirmation modal states - Passed to useModalOrchestration
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State value passed to useModalOrchestration, setter used in handlers
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State passed to useModalOrchestration, setter used in handlers
   const [showNoPlayersConfirm, setShowNoPlayersConfirm] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State value passed to useModalOrchestration, setter used in handlers
   const [showHardResetConfirm, setShowHardResetConfirm] = useState(false);
   const [showSaveBeforeNewConfirm, setShowSaveBeforeNewConfirm] = useState(false);
   const [gameIdentifierForSave, setGameIdentifierForSave] = useState<string>('');
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State value passed to useModalOrchestration, setter used in handlers
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State passed to useModalOrchestration, setter used in handlers
   const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
   const [loadGamesListError, setLoadGamesListError] = useState<string | null>(null);
   // Load/delete game state moved to useGamePersistence hook
@@ -1096,20 +1095,25 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         return; 
       }
 
-      let gameToLoad: AppState | null = null; // Ensure this is AppState
-      if (currentGameId && currentGameId !== DEFAULT_GAME_ID && savedGames[currentGameId]) {
+      if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
+        const gameToLoad = savedGames[currentGameId] as AppState | undefined;
+        if (!gameToLoad) {
+          logger.warn('[EFFECT game load] Saved game not yet available for currentGameId, skipping to avoid clobbering with defaults', { currentGameId });
+          return;
+        }
         logger.log(`[EFFECT game load] Found game data for ${currentGameId}`);
-        gameToLoad = savedGames[currentGameId] as AppState; // Cast to AppState
-      } else {
-        logger.log('[EFFECT game load] No specific game to load or ID is default. Applying default game state.');
+        await loadGameStateFromData(gameToLoad); 
+        return;
       }
-      await loadGameStateFromData(gameToLoad); 
+
+      // Only apply defaults if not transitioning to a specific game
+      logger.log('[EFFECT game load] No specific game to load or ID is default. Skipping default load to avoid overwriting state.');
     };
     
     loadGame();
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentGameId, initialLoadComplete]); // IMPORTANT: initialLoadComplete ensures this runs after master roster is loaded. savedGames removed to prevent auto-save from triggering reload and resetting timer.
+  }, [currentGameId, initialLoadComplete, savedGames]); // Ensure data is present before loading to avoid defaults clobbering new game.
 
   // --- Save state to localStorage ---
   // Legacy auto-save effect moved to useGamePersistence hook (with 3-tier debouncing)
