@@ -279,6 +279,14 @@ export function useGamePersistence({
       return;
     }
 
+    const restoreInProgress = typeof window !== 'undefined'
+      ? window.sessionStorage.getItem('restoreInProgress') === 'true'
+      : false;
+    if (restoreInProgress) {
+      logger.warn('[Quick Save] Skipping save because a restore is in progress');
+      return;
+    }
+
     if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
       logger.log(`Quick saving game with ID: ${currentGameId}${silent ? ' (silent)' : ''}`, {
         teamId: gameSessionState.teamId,
@@ -528,6 +536,18 @@ export function useGamePersistence({
    * @param gameId - ID of game to delete
    */
   const handleDeleteGame = useCallback(async (gameId: string) => {
+    if (!initialLoadComplete) {
+      logger.warn('[Delete Game] Skipping delete because initial load/import not complete');
+      return;
+    }
+    const restoreInProgress = typeof window !== 'undefined'
+      ? window.sessionStorage.getItem('restoreInProgress') === 'true'
+      : false;
+    if (restoreInProgress) {
+      logger.warn('[Delete Game] Skipping delete because a restore is in progress');
+      return;
+    }
+
     logger.log(`Deleting game with ID: ${gameId}`);
 
     if (gameId === DEFAULT_GAME_ID) {
@@ -550,14 +570,6 @@ export function useGamePersistence({
       queryClient.setQueryData<SavedGamesCollection>(queryKeys.savedGames, (prev) => {
         const current = prev ?? {};
         const next = { ...current };
-        delete next[gameId];
-        updatedSavedGames = next;
-        return next;
-      });
-
-      // Also update local state for consistency with non-query consumers
-      setSavedGames(prev => {
-        const next = { ...(prev ?? {}) };
         delete next[gameId];
         updatedSavedGames = next;
         return next;

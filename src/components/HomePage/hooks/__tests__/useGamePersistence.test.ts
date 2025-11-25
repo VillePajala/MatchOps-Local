@@ -15,6 +15,7 @@ import { DEFAULT_GAME_ID } from '@/config/constants';
 import type { AppState, Player, PlayerAssessment } from '@/types';
 import type { GameSessionState } from '@/hooks/useGameSessionReducer';
 import React from 'react';
+import * as savedGamesUtils from '@/utils/savedGames';
 
 // Mock savedGames utilities
 jest.mock('@/utils/savedGames', () => ({
@@ -909,6 +910,73 @@ describe('useGamePersistence', () => {
 
       // setCurrentGameId should NOT be called (ID already set)
       expect(setCurrentGameId).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Guards and cache synchronization', () => {
+    it('should prevent duplicate game creation via createInFlight guard', async () => {
+      const createGameSpy = jest.spyOn(savedGamesUtils, 'createGame');
+      const setSavedGames = jest.fn();
+
+      setupMockContext({ currentGameId: DEFAULT_GAME_ID });
+      const params = createMockParams({
+        initialLoadComplete: true,
+        setSavedGames,
+      });
+
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await Promise.all([
+          result.current.handleQuickSaveGame(false, true),
+          result.current.handleQuickSaveGame(false, true),
+        ]);
+      });
+
+      expect(createGameSpy).toHaveBeenCalledTimes(1);
+      expect(setSavedGames).toHaveBeenCalledTimes(1);
+    });
+
+    it('should block saves when initial load is incomplete', async () => {
+      const saveGameSpy = jest.spyOn(savedGamesUtils, 'saveGame');
+      const createGameSpy = jest.spyOn(savedGamesUtils, 'createGame');
+      const setSavedGames = jest.fn();
+
+      setupMockContext({ currentGameId: 'game123' });
+      const params = createMockParams({
+        initialLoadComplete: false,
+        setSavedGames,
+      });
+
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleQuickSaveGame();
+      });
+
+      expect(saveGameSpy).not.toHaveBeenCalled();
+      expect(createGameSpy).not.toHaveBeenCalled();
+      expect(setSavedGames).not.toHaveBeenCalled();
+    });
+
+    it('should block deletes when initial load is incomplete', async () => {
+      const deleteGameSpy = jest.spyOn(savedGamesUtils, 'deleteGame');
+      const setSavedGames = jest.fn();
+
+      setupMockContext({ currentGameId: 'game123' });
+      const params = createMockParams({
+        initialLoadComplete: false,
+        setSavedGames,
+      });
+
+      const { result } = renderHook(() => useGamePersistence(params), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.handleDeleteGame('game123');
+      });
+
+      expect(deleteGameSpy).not.toHaveBeenCalled();
+      expect(setSavedGames).not.toHaveBeenCalled();
     });
   });
 });

@@ -171,6 +171,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
     setIsRestoreApplying(true);
     try {
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem('restoreInProgress', 'true');
+      }
       // Pass delayReload=true to prevent automatic reload - we'll reload after showing results modal
       const result = await importFullBackup(pendingRestoreContent, undefined, showToast, true, true);
       if (result) {
@@ -196,12 +199,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       setShowRestoreConfirm(false);
       setPendingRestoreContent(null);
       setIsRestoreApplying(false);
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.removeItem('restoreInProgress');
+      }
     }
   };
 
   const handleRestoreResultsClose = () => {
     setShowRestoreResults(false);
     setBackupRestoreResult(null);
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.removeItem('restoreInProgress');
+    }
     // Trigger full page reload after user has seen the results
     // This ensures all state (React Query caches, component state, etc.) is fresh
     setTimeout(() => {

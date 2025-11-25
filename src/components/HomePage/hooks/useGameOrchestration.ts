@@ -702,20 +702,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         lastAppliedMutationSequenceRef.current = meta.sequence;
       }
 
-      // After a successful update, invalidate the savedGames query to refetch
-      queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
-
-      // Optimistically update the query cache
-      queryClient.setQueryData(queryKeys.savedGames, (oldData: SavedGamesCollection | undefined) => {
-        if (!oldData) return oldData;
-        const existing = oldData[variables.gameId];
-        return {
-          ...oldData,
-          [variables.gameId]: { ...existing, ...variables.updates },
-        };
-      });
-
-      // Keep local state in sync so components using savedGames see the update
+      // Keep local state in sync so components using savedGames see the update.
+      // Rely on this optimistic merge; avoid redundant invalidations/refetches here.
       setSavedGames(prev => {
         const existing = prev[variables.gameId];
         return {
@@ -801,7 +789,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       if (gameDataManagement.error) {
         logger.error('[EFFECT init] Error loading saved games:', gameDataManagement.error);
         setLoadGamesListError(t('loadGameModal.errors.listLoadFailed', 'Failed to load saved games list.'));
-        setSavedGames({});
         setIsLoadingGamesList(false);
       }
 

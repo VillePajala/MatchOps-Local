@@ -15,6 +15,7 @@ This directory contains guides and resources for developers working on MatchOps-
 ## Reference
 
 - **[production-roadmap.md](./production-roadmap.md)** - Production readiness background and context (see [../03-active-plans/](../03-active-plans/) for current execution plans)
+- **[CACHE_GUIDELINES.md](./CACHE_GUIDELINES.md)** - React Query cache update patterns and audit checklist
 
 ## Quick Start
 
