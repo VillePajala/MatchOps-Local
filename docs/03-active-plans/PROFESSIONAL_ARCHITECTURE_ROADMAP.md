@@ -103,6 +103,7 @@ Analysis of useGameOrchestration.ts (after Phase 1 context migration):
 - [ ] Delete obsolete TODO at `useGameOrchestration.ts:278` (hook already called at line 1060)
 - [ ] Verify and remove duplicate `savedGames` local state at line 240 if context migration eliminated need
 - [ ] Test: Verify all save/load functionality after cleanup
+  - Note: savedGames deduplication is a standalone small PR (not a blocker for Phase 2 modal work). Treat React Query’s savedGames as the single source of truth and replace local state/setters accordingly.
 
 ### Weeks 4-5: Phase 2 - Decouple Modal Orchestration
 **Goal**: Make modal hooks self-contained

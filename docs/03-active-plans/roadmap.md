@@ -2,6 +2,8 @@
 
 **Strategic direction and planned development for the local-first soccer coaching PWA**
 
+> Note: Release dates are pending re-baselining after the ongoing 8-week architecture refactor. Align feature work with the backend-evolution plan (`docs/03-active-plans/backend-evolution/phased-implementation-roadmap.md`) to avoid rework during the Supabase transition.
+
 ## Vision Statement
 
 To establish MatchOps-Local as the premier local-first solution for soccer coaching worldwide, demonstrating that privacy-focused, offline-capable applications can deliver superior performance and user experience while maintaining complete data ownership.
@@ -88,6 +90,8 @@ To establish MatchOps-Local as the premier local-first solution for soccer coach
 *Target: Q2 2026 (6 months)*
 
 **Theme**: Advanced data insights and coach decision support
+
+**Backend Alignment**: All new analytics/storage features should be designed against the planned `DataStore` abstraction and dual-backend architecture. Refer to `docs/03-active-plans/backend-evolution/phased-implementation-roadmap.md` and `docs/02-technical/architecture/datastore-interface.md` before adding persistence-heavy work to avoid rework during the Supabase transition.
 
 #### Strategic Focus
 Expand beyond basic statistics to provide actionable insights that improve coaching decisions and player development tracking.

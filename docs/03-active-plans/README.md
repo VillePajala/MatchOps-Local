@@ -14,6 +14,14 @@
 
 **Goal**: Transform codebase to 9-10/10 professional quality for portfolio
 
+**Alignment Note (dec 2025)**:
+- Dates in `roadmap.md` (v1.0 Q4 2025, v1.5 Q2 2026) are out of sync with current work. Re-baseline after the 8-week refactor finishes.
+- Default execution sequence to avoid rework:
+  1) Finish 8-week refactor (Professional Architecture Roadmap)
+  2) Do production readiness essentials (security headers, SW hardening, staging/E2E from `production-readiness.md`)
+  3) Start backend evolution Phase F1.1 (DataStore/AuthService + LocalDataStore wrapper) per `backend-evolution/phased-implementation-roadmap.md`
+- For any persistence-heavy feature, design against the DataStore abstraction before implementation.
+
 ---
 
 ## 📋 PRIMARY DOCUMENTS (Start Here)

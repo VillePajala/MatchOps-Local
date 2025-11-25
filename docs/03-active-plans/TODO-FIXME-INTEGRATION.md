@@ -35,10 +35,10 @@ This document tracks the integration of 5 TODO/FIXME comments found in the codeb
 **Status**: Likely obsolete after Phase 1 PR 2 context migration
 **Action**:
 - Verify if GameStateContext eliminates need for local `savedGames` state
-- If yes: Remove local state, delete comment, update tests
+- If yes: Remove local state, delete comment, update tests (treat React Query `savedGames` as single source of truth and replace local setSavedGames calls with queryClient.setQueryData/invalidations)
 - If no: Update comment with reason still needed
-**Effort**: 30-60 minutes
-**Integration**: Week 2 cleanup
+**Effort**: 30-60 minutes (small standalone PR)
+**Integration**: Run as its own PR (not a blocker for Phase 2)
 
 ---
 

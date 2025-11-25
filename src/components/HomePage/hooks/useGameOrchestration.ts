@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, Dispatch, SetStateAction } from 'react';
 import type ControlBar from '@/components/ControlBar';
 import type { GameContainerProps } from '@/components/HomePage/containers/GameContainer';
 import type { ModalManagerProps } from '@/components/HomePage/containers/ModalManager';
@@ -237,8 +237,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // --- State Management (Remaining in Home component) ---
   // Persistence state
-  // TODO: Remove savedGames local state once all references are updated to use gameDataManagement.savedGames
-  const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
   const [hasCheckedInstructionsModal, setHasCheckedInstructionsModal] = useState<boolean>(false);
 
@@ -267,6 +265,23 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setTournaments,
   });
 
+  const savedGames = useMemo(
+    () => gameDataManagement.savedGames || {},
+    [gameDataManagement.savedGames],
+  );
+  const setSavedGames: Dispatch<SetStateAction<SavedGamesCollection>> = useCallback(
+    (update) => {
+      queryClient.setQueryData<SavedGamesCollection>(queryKeys.savedGames, (prev) => {
+        const current = prev ?? {};
+        const next = typeof update === 'function'
+          ? (update as (prev: SavedGamesCollection) => SavedGamesCollection)(current)
+          : update ?? {};
+        return next;
+      });
+    },
+    [queryClient],
+  );
+
   // --- Game Export Hook (Step 2.1) ---
   const gameExport = useGameExport({
     savedGames,
@@ -274,8 +289,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     seasons,
     tournaments,
   });
-
-  // TODO: Add useGamePersistence hook call here after reordering dependencies
 
   // <<< ADD: State for home/away status >>>
   const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
@@ -781,8 +794,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       await migrateLegacyStorageKeys();
 
       // Update savedGames state from useQuery
-      if (gameDataManagement.savedGames) {
-        setSavedGames(gameDataManagement.savedGames);
+      if (!gameDataManagement.isLoading) {
         setIsLoadingGamesList(false);
       }
 
@@ -795,7 +807,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
       // Set current game ID from settings
       const lastGameIdSetting = gameDataManagement.currentGameIdSetting;
-      const currentSavedGames = gameDataManagement.savedGames || {};
+      const currentSavedGames = savedGames;
 
       if (lastGameIdSetting && lastGameIdSetting !== DEFAULT_GAME_ID && currentSavedGames[lastGameIdSetting]) {
         setCurrentGameId(lastGameIdSetting);
@@ -831,7 +843,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
     loadInitialAppData();
   }, [
-    gameDataManagement.savedGames,
+    savedGames,
     gameDataManagement.currentGameIdSetting,
     gameDataManagement.isLoading,
     gameDataManagement.error,
@@ -1065,7 +1077,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     initialLoadComplete,
 
     // From useGameDataManagement
-    savedGames: gameDataManagement.savedGames || {},
+    savedGames,
     setSavedGames,
 
     // History management
