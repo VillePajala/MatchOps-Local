@@ -32,6 +32,11 @@ export interface IntervalLog {
   timestamp: number;
 }
 
+/**
+ * Substitution alert level for timer-based substitution reminders
+ */
+export type SubAlertLevel = 'none' | 'warning' | 'due';
+
 export interface TacticalDisc {
   id: string;
   relX: number;

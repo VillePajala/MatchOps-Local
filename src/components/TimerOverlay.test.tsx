@@ -27,6 +27,7 @@ describe('TimerOverlay', () => {
     gameStatus: 'notStarted' as const,
     lastSubTime: 0,
     onOpponentNameChange: jest.fn(),
+    onTeamNameChange: jest.fn(),
     isLoaded: true,
   };
 

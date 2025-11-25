@@ -11,6 +11,7 @@ import { importFullBackup } from '@/utils/fullBackup';
 import { useGameImport } from '@/hooks/useGameImport';
 import ImportResultsModal from './ImportResultsModal';
 import ConfirmationModal from './ConfirmationModal';
+import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRestoreResultsModal';
 import { ModalFooter, primaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
 import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
@@ -27,6 +28,8 @@ interface SettingsModalProps {
   onResetGuide: () => void;
   onHardResetApp: () => void;
   onCreateBackup: () => void;
+  // onDataImportSuccess prop kept for interface compatibility but not used
+  // Backup restore now uses full page reload instead of state refresh
   onDataImportSuccess?: () => void;
 }
 
@@ -40,7 +43,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onResetGuide,
   onHardResetApp,
   onCreateBackup,
-  onDataImportSuccess,
+  // onDataImportSuccess not destructured - backup restore uses full page reload
 }) => {
   const { t } = useTranslation();
   const { showToast } = useToast();
@@ -54,6 +57,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const { importFromFile, isImporting, lastResult } = useGameImport();
   const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>('2000-10-01');
   const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>('2000-05-01');
+  const [backupRestoreResult, setBackupRestoreResult] = useState<BackupRestoreResult | null>(null);
+  const [showRestoreResults, setShowRestoreResults] = useState(false);
 
   // Helper to get maximum day for a given month
   const getMaxDayForMonth = (month: number): number => {
@@ -129,6 +134,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       } else {
         setStorageEstimate(null);
       }
+    } else {
+      // Clear reset confirmation when modal closes
+      setResetConfirm('');
     }
   }, [isOpen]);
 
@@ -155,12 +163,28 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     event.target.value = '';
   };
 
-  const handleRestoreConfirmed = () => {
+  const handleRestoreConfirmed = async () => {
     if (pendingRestoreContent) {
-      importFullBackup(pendingRestoreContent, onDataImportSuccess, showToast, true);
+      // Pass delayReload=true to prevent automatic reload - we'll reload after showing results modal
+      const result = await importFullBackup(pendingRestoreContent, undefined, showToast, true, true);
+      if (result) {
+        // Show results modal
+        setBackupRestoreResult(result);
+        setShowRestoreResults(true);
+      }
     }
     setShowRestoreConfirm(false);
     setPendingRestoreContent(null);
+  };
+
+  const handleRestoreResultsClose = () => {
+    setShowRestoreResults(false);
+    setBackupRestoreResult(null);
+    // Trigger full page reload after user has seen the results
+    // This ensures all state (React Query caches, component state, etc.) is fresh
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   };
 
   const handleGameImportFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -666,12 +690,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 className={inputStyle}
               />
               <button
-                onClick={() => {
-                  onHardResetApp();
-                  setResetConfirm('');
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  logger.log('[SettingsModal] Hard Reset button clicked', {
+                    resetConfirm,
+                    matches: resetConfirm === 'RESET',
+                    length: resetConfirm.length,
+                    trimmed: resetConfirm.trim()
+                  });
+                  if (resetConfirm.trim() === 'RESET') {
+                    logger.log('[SettingsModal] Calling onHardResetApp');
+                    onHardResetApp();
+                    setResetConfirm('');
+                  }
                 }}
                 className={dangerButtonStyle}
-                disabled={resetConfirm !== 'RESET'}
+                disabled={resetConfirm.trim() !== 'RESET'}
               >
                 {t('settingsModal.hardResetButton', 'Hard Reset App')}
               </button>
@@ -722,6 +758,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         confirmLabel={t('common.restore', 'Restore')}
         cancelLabel={t('common.cancel', 'Cancel')}
         variant="danger"
+      />
+
+      {/* Backup Restore Results Modal */}
+      <BackupRestoreResultsModal
+        isOpen={showRestoreResults}
+        onClose={handleRestoreResultsClose}
+        result={backupRestoreResult}
       />
     </div>
   );

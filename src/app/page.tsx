@@ -73,8 +73,7 @@ export default function Home() {
   const handleDataImportSuccess = useCallback(() => {
     // Trigger app state refresh after data import
     setRefreshTrigger(prev => prev + 1);
-    // Reset to start screen to let user see the updated state
-    setScreen('start');
+    // Stay in current screen - modal will close naturally after user clicks Continue
   }, []);
 
   useEffect(() => {

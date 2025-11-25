@@ -106,26 +106,26 @@ export function TeamPerformanceCard({
       </div>
       {teamAssessmentAverages && (
         <div className="mt-4">
-          <h4 className="text-md font-semibold mb-2">
+          <h4 className="text-md font-semibold text-slate-100 mb-2">
             {t('playerStats.performanceRatings', 'Performance Ratings')}
           </h4>
           <div className="space-y-2 text-sm">
             {Object.entries(teamAssessmentAverages.averages).map(([metric, avg]) => (
               <div key={metric} className="flex items-center space-x-2 px-2">
-                <span className="w-28 shrink-0">
+                <span className="w-28 shrink-0 text-slate-100">
                   {t(`assessmentMetrics.${metric}` as TranslationKey, metric)}
                 </span>
                 <RatingBar value={avg} />
               </div>
             ))}
             <div className="flex items-center space-x-2 px-2 mt-2">
-              <span className="w-28 shrink-0">
+              <span className="w-28 shrink-0 text-slate-100">
                 {t('playerAssessmentModal.overallLabel', 'Overall')}
               </span>
               <RatingBar value={teamAssessmentAverages.overall} />
             </div>
             <div className="flex items-center space-x-2 px-2">
-              <span className="w-28 shrink-0">
+              <span className="w-28 shrink-0 text-slate-100">
                 {t('playerStats.avgRating', 'Avg Rating')}
               </span>
               <RatingBar value={teamAssessmentAverages.finalScore} />

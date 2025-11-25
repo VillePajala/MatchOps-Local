@@ -185,7 +185,6 @@ const createProps = (): ModalManagerProps => ({
     setIsPlayed: noop,
     updateSelectedPlayers: noop,
     setGamePersonnel: noop,
-    teamIdChange: noop,
     closeSettingsModal: noop,
     setAppLanguage: noop,
     setDefaultTeamName: noop,
