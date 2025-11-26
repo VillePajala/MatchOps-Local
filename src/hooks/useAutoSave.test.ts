@@ -604,5 +604,82 @@ describe('useAutoSave', () => {
       // Should not have saved due to serialization error
       expect(mockSaveFunction).not.toHaveBeenCalled();
     });
+
+    /**
+     * Regression test for stale closure fix
+     *
+     * The hook uses saveFunctionRef to prevent stale closures. This test
+     * verifies that when saveFunction changes during a debounce period,
+     * the hook calls the LATEST version (from ref), not the stale version
+     * (from effect closure).
+     *
+     * Without the ref pattern, the debounced timer would call the old
+     * saveFunction that was captured when the effect first ran.
+     *
+     * @critical
+     * @regression P1 fix for auto-save stale closure bug
+     */
+    it('should call latest saveFunction even if it changes during debounce', () => {
+      const mockSaveV1 = jest.fn();
+      const mockSaveV2 = jest.fn();
+
+      const { rerender } = renderHook(
+        ({ teamName, saveFunction }) =>
+          useAutoSave({
+            short: {
+              states: { teamName },
+              delay: 500,
+            },
+            saveFunction,
+            enabled: true,
+            currentGameId: 'test-game-1',
+          }),
+        {
+          initialProps: {
+            teamName: 'Team A',
+            saveFunction: mockSaveV1,
+          },
+        }
+      );
+
+      // 1. Trigger short-delay save (500ms debounce)
+      act(() => {
+        rerender({
+          teamName: 'Team B',
+          saveFunction: mockSaveV1,
+        });
+      });
+
+      // Timer started, no save yet
+      expect(mockSaveV1).not.toHaveBeenCalled();
+      expect(mockSaveV2).not.toHaveBeenCalled();
+
+      // 2. DURING DEBOUNCE: Change saveFunction to v2
+      act(() => {
+        jest.advanceTimersByTime(250); // Halfway through debounce
+      });
+
+      act(() => {
+        rerender({
+          teamName: 'Team B',
+          saveFunction: mockSaveV2, // Switch to v2 during debounce
+        });
+      });
+
+      // Still no save yet
+      expect(mockSaveV1).not.toHaveBeenCalled();
+      expect(mockSaveV2).not.toHaveBeenCalled();
+
+      // 3. Complete the debounce timer
+      act(() => {
+        jest.advanceTimersByTime(250); // Total 500ms
+      });
+
+      // 4. CRITICAL: Should call v2 (latest), NOT v1 (stale)
+      expect(mockSaveV2).toHaveBeenCalledTimes(1); // ✅ Latest version called
+      expect(mockSaveV1).not.toHaveBeenCalled();   // ✅ Stale version NOT called
+
+      // This proves the saveFunctionRef prevents stale closures!
+    });
   });
 });
