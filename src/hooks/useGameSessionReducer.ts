@@ -442,6 +442,9 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const numberOfPeriods = loadedData.numberOfPeriods ?? initialGameSessionStatePlaceholder.numberOfPeriods;
       const periodDurationMinutes = loadedData.periodDurationMinutes ?? initialGameSessionStatePlaceholder.periodDurationMinutes;
       const currentPeriod = loadedData.currentPeriod ?? 1;
+
+      // Never restore 'inProgress' status - timer must be manually restarted by user.
+      // This prevents auto-starting timers on app reload (better UX and safety).
       const gameStatus = loadedData.gameStatus && ['notStarted', 'periodEnd', 'gameEnd'].includes(loadedData.gameStatus)
         ? loadedData.gameStatus
         : 'notStarted';
