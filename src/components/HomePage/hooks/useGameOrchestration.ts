@@ -250,6 +250,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   // This ref needs to be declared after currentGameId
   const gameIdRef = useRef(currentGameId);
+  // Track which game has been successfully loaded to prevent reload on auto-save
+  const loadedGameIdRef = useRef<string | null>(null);
 
   useEffect(() => { gameIdRef.current = currentGameId; }, [currentGameId]);
 
@@ -1093,31 +1095,39 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // --- Effect to load game state when currentGameId changes or savedGames updates ---
   useEffect(() => {
     const loadGame = async () => {
-      logger.log('[EFFECT game load] currentGameId or savedGames changed:', { currentGameId });
+      logger.log('[EFFECT game load] currentGameId or savedGames changed:', { currentGameId, loadedGameId: loadedGameIdRef.current });
       if (!initialLoadComplete) {
         logger.log('[EFFECT game load] Initial load not complete, skipping game state application.');
-        return; 
+        return;
       }
 
       if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
+        // Skip if we've already loaded this game (prevents timer reset on auto-save)
+        if (loadedGameIdRef.current === currentGameId) {
+          logger.log('[EFFECT game load] Game already loaded, skipping to prevent state clobbering (e.g., timer reset)');
+          return;
+        }
+
         const gameToLoad = savedGames[currentGameId] as AppState | undefined;
         if (!gameToLoad) {
           logger.warn('[EFFECT game load] Saved game not yet available for currentGameId, skipping to avoid clobbering with defaults', { currentGameId });
           return;
         }
         logger.log(`[EFFECT game load] Found game data for ${currentGameId}`);
-        await loadGameStateFromData(gameToLoad); 
+        await loadGameStateFromData(gameToLoad);
+        loadedGameIdRef.current = currentGameId; // Mark as loaded
         return;
       }
 
-      // Only apply defaults if not transitioning to a specific game
+      // Default game or no game - reset the loaded game tracker
+      loadedGameIdRef.current = null;
       logger.log('[EFFECT game load] No specific game to load or ID is default. Skipping default load to avoid overwriting state.');
     };
-    
+
     loadGame();
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentGameId, initialLoadComplete, savedGames]); // Ensure data is present before loading to avoid defaults clobbering new game.
+  }, [currentGameId, initialLoadComplete, savedGames]); // savedGames needed for when data becomes available after game switch
 
   // --- Save state to localStorage ---
   // Legacy auto-save effect moved to useGamePersistence hook (with 3-tier debouncing)
