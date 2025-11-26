@@ -75,7 +75,23 @@ export const useAutoSave = ({
     saveFunctionRef.current = saveFunction;
   }, [saveFunction]);
 
-  // Serialize states for comparison (deep equality check via JSON)
+  /**
+   * Serializes state for deep equality comparison via JSON.stringify
+   *
+   * Typical state sizes per tier:
+   * - Immediate: ~5KB (30 game events + scores)
+   * - Short: ~10KB (team names + 15 player assessments)
+   * - Long: ~5KB (15 field positions + tactical drawings)
+   *
+   * Performance: JSON.stringify on 20KB is ~0.1-0.5ms (acceptable)
+   *
+   * Note: Only current game state is serialized, NOT entire database.
+   * The 100+ players and 50+ saved games live in IndexedDB, not here.
+   *
+   * @param states - State object to serialize
+   * @returns Serialized JSON string, or null if serialization fails
+   * @throws Circular reference errors (caught and logged)
+   */
   const serializeStates = (states: Record<string, unknown> | undefined): string | null => {
     if (!states) return null;
     try {
