@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import logger from '@/utils/logger';
+import * as Sentry from '@sentry/nextjs';
 
 /**
  * State group configuration for auto-save
@@ -95,7 +96,22 @@ export const useAutoSave = ({
     // Check if states changed
     if (prevImmediateRef.current !== null && prevImmediateRef.current !== currentSerialized) {
       logger.log(`[useAutoSave] Immediate save triggered for game ${currentGameId}`);
-      saveFunctionRef.current();
+
+      // Defensive try-catch: Assume saveFunction handles errors internally,
+      // but catch any unexpected errors to prevent app crashes
+      // Use async IIFE since useEffect callbacks can't be async
+      (async () => {
+        try {
+          await saveFunctionRef.current();
+        } catch (error) {
+          logger.error('[useAutoSave] Unexpected error from saveFunction (immediate):', error);
+          Sentry.captureException(error, {
+            tags: { operation: 'auto_save_immediate', gameId: currentGameId || 'unknown' },
+            extra: { trigger: 'immediate_state_change' },
+          });
+          // Don't re-throw - let app continue running
+        }
+      })();
     }
 
     prevImmediateRef.current = currentSerialized;
@@ -116,11 +132,23 @@ export const useAutoSave = ({
       }
 
       // Set new debounced timer
-      shortTimerRef.current = setTimeout(() => {
+      shortTimerRef.current = setTimeout(async () => {
         // Double-check enabled at fire time to avoid saving while temporarily disabled (e.g., modal open)
         if (enabled) {
           logger.log(`[useAutoSave] Short-delay save triggered for game ${currentGameId}`);
-          saveFunctionRef.current();
+
+          // Defensive try-catch: Assume saveFunction handles errors internally,
+          // but catch any unexpected errors to prevent app crashes
+          try {
+            await saveFunctionRef.current();
+          } catch (error) {
+            logger.error('[useAutoSave] Unexpected error from saveFunction (short-delay):', error);
+            Sentry.captureException(error, {
+              tags: { operation: 'auto_save_short_delay', gameId: currentGameId || 'unknown' },
+              extra: { trigger: 'short_delay_state_change', delay: short.delay },
+            });
+            // Don't re-throw - let app continue running
+          }
         } else {
           logger.log('[useAutoSave] Short-delay skipped: disabled at fire time');
         }
@@ -145,11 +173,23 @@ export const useAutoSave = ({
       }
 
       // Set new debounced timer
-      longTimerRef.current = setTimeout(() => {
+      longTimerRef.current = setTimeout(async () => {
         // Double-check enabled at fire time to avoid saving while temporarily disabled (e.g., modal open)
         if (enabled) {
           logger.log(`[useAutoSave] Long-delay save triggered for game ${currentGameId}`);
-          saveFunctionRef.current();
+
+          // Defensive try-catch: Assume saveFunction handles errors internally,
+          // but catch any unexpected errors to prevent app crashes
+          try {
+            await saveFunctionRef.current();
+          } catch (error) {
+            logger.error('[useAutoSave] Unexpected error from saveFunction (long-delay):', error);
+            Sentry.captureException(error, {
+              tags: { operation: 'auto_save_long_delay', gameId: currentGameId || 'unknown' },
+              extra: { trigger: 'long_delay_state_change', delay: long.delay },
+            });
+            // Don't re-throw - let app continue running
+          }
         } else {
           logger.log('[useAutoSave] Long-delay skipped: disabled at fire time');
         }
