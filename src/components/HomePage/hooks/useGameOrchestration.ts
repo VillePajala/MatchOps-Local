@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import type { Dispatch, SetStateAction } from 'react';
 import type { ComponentProps } from 'react';
 import type ControlBar from '@/components/ControlBar';
 import type { GameContainerProps } from '@/components/HomePage/containers/GameContainer';
@@ -276,22 +275,11 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setTournaments,
   });
 
-  const savedGames = useMemo(
-    () => gameDataManagement.savedGames || {},
-    [gameDataManagement.savedGames],
-  );
-  const setSavedGames: Dispatch<SetStateAction<SavedGamesCollection>> = useCallback(
-    (update) => {
-      queryClient.setQueryData<SavedGamesCollection>(queryKeys.savedGames, (prev) => {
-        const current = prev ?? {};
-        const next = typeof update === 'function'
-          ? (update as (prev: SavedGamesCollection) => SavedGamesCollection)(current)
-          : update ?? {};
-        return next;
-      });
-    },
-    [queryClient],
-  );
+  // Local state for savedGames - DO NOT replace with React Query cache directly!
+  // The useState ensures local state persists across renders and isn't affected by
+  // query cache invalidations. Previous attempt to use useMemo + queryClient.setQueryData
+  // caused game data to reset to defaults when navigating between games.
+  const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
 
   // TODO: Add useGamePersistence hook call here after reordering dependencies
 
