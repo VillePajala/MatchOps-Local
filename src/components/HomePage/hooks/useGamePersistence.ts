@@ -537,23 +537,19 @@ export function useGamePersistence({
         const updatedSavedGames = { ...savedGames };
         delete updatedSavedGames[gameId];
 
-        // Update React Query cache immediately (optimistic update)
-        // This prevents flickering by updating the cache in a single render
-        queryClient.setQueryData<SavedGamesCollection>(queryKeys.savedGames, updatedSavedGames);
+        // Calculate next game ID BEFORE any state updates to enable batching
+        const needsNewCurrentGame = currentGameId === gameId;
+        const nextGameId = needsNewCurrentGame ? getLatestGameId(updatedSavedGames) : null;
 
-        // Also update local state for consistency with non-query consumers
+        // Batch all state updates together to prevent flicker
+        // React 18+ batches synchronous setState calls in the same event handler
+        queryClient.setQueryData<SavedGamesCollection>(queryKeys.savedGames, updatedSavedGames);
         setSavedGames(updatedSavedGames);
 
-        logger.log(`Game ${gameId} deleted from state and persistence.`);
-
-        // If deleted the currently loaded game, load latest or reset
-        if (currentGameId === gameId) {
-          const latestId = getLatestGameId(updatedSavedGames);
-
-          if (latestId) {
-            logger.log(`Deleted active game. Loading latest game ${latestId}.`);
-            setCurrentGameId(latestId);
-            await utilSaveCurrentGameIdSetting(latestId);
+        if (needsNewCurrentGame) {
+          if (nextGameId) {
+            logger.log(`Deleted active game. Loading latest game ${nextGameId}.`);
+            setCurrentGameId(nextGameId);
           } else {
             logger.log("Currently loaded game was deleted with no other games remaining. Resetting to initial state.");
             dispatchGameSession({ type: 'RESET_TO_INITIAL_STATE', payload: initialGameSessionData });
@@ -562,8 +558,14 @@ export function useGamePersistence({
             fieldCoordination.setDrawings(initialState.drawings || []);
             resetHistory(initialState as AppState);
             setCurrentGameId(DEFAULT_GAME_ID);
-            await utilSaveCurrentGameIdSetting(DEFAULT_GAME_ID);
           }
+        }
+
+        logger.log(`Game ${gameId} deleted from state and persistence.`);
+
+        // Persist currentGameId setting AFTER state updates (async, non-blocking)
+        if (needsNewCurrentGame) {
+          await utilSaveCurrentGameIdSetting(nextGameId || DEFAULT_GAME_ID);
         }
       } else {
         logger.warn(`handleDeleteGame: utilDeleteGame returned null for gameId: ${gameId}. Game might not have been found or ID was invalid.`);
