@@ -258,6 +258,14 @@
     },
     "duringGame": {
       "title": "Pelin aikana",
+      "fieldTitle": "Kentän hallinta",
+      "dragPlayers": "Vedä pelaajalaattoja yläpalkista kentälle näyttämään sijainnit",
+      "drawTactics": "Piirrä nuolia ja viivoja taktiikan ja liikkeiden tallentamiseksi",
+      "trackSubs": "Käytä ajastinnäkymää vaihtojen seurantaan",
+      "scoringTitle": "Tapahtumien kirjaus",
+      "logGoals": "Klikkaa maalipainikkeita kirjataksesi tekijän ja syöttäjän",
+      "timer": "Käynnistä/pysäytä peliajastin seurataksesi todellista peliaikaa",
+      "periods": "Etene erien/puoliaikojen läpi pelin edetessä",
       "step6Title": "6. Suunnittele / piirrä taktisia kuvioita",
       "step6Desc": "Käytä taktiikka-tilaa piirtääksesi nuolia ja viivoja. Tallenna taktisia suunnitelmia, juoksureittejä ja pelitilanteita kentälle.",
       "step7Title": "7. Käynnistä pelikello ja kirjaa tapahtumia",
@@ -376,7 +384,8 @@
       "setInterval": "Säädä vaihtointervallia: Käytä +/- -painikkeita.",
       "subAlerts": "Vaihtohälytykset: Keltainen = 1 min varoitus, Punainen = Aika.",
       "confirmSub": "Vahvista vaihto: Paina \"Vaihto tehty\".",
-      "playTimeHistory": "Näytä peliaika: Listaa suoritetut intervallit ja viimeisen vahvistusajan."
+      "playTimeHistory": "Näytä peliaika: Listaa suoritetut intervallit ja viimeisen vahvistusajan.",
+      "editOpponentNameTitle": "Klikkaa muokataksesi vastustajan nimeä"
     },
     "generalTitle": "Yleistä",
     "general": {

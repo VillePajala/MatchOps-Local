@@ -1,119 +1,53 @@
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
-// import HttpApi from 'i18next-http-backend'; // Remove unused import
+import fs from 'fs';
+import path from 'path';
 
-// Define minimal resources inline for tests
-const testResources = {
-  en: {
-    translation: {
-      "gameStatsModal.title": "Game Statistics",
-      "gameStatsModal.gameInfoTitle": "Game Info",
-      "gameStatsModal.playerStatsTitle": "Player Statistics",
-      "gameStatsModal.eventLogTitle": "Event Log",
-      "gameStatsModal.notesTitle": "Game Notes",
-      "gameStatsModal.tabs.currentGame": "Current Game",
-      "gameStatsModal.tabs.season": "Season",
-      "gameStatsModal.tabs.tournament": "Tournament",
-      "gameStatsModal.tabs.overall": "Overall",
-      "gameStatsModal.filterPlaceholder": "Filter...",
-      "gameStatsModal.editGoalTooltip": "Edit Goal",
-      "gameStatsModal.deleteGoalTooltip": "Delete Goal",
-      "gameStatsModal.saveGoalTooltip": "Save Goal",
-      "gameStatsModal.cancelEditGoalTooltip": "Cancel Edit", "gameStatsModal.confirmDeleteEvent": "Are you sure you want to delete this event? This cannot be undone.",
-      "gameStatsModal.noTeamGamesTitle": "No games for the selected team in this context",
-      "gameStatsModal.noTeamGamesSubtitle": "Choose another team or adjust filters to view player statistics.",
-      "common.opponent": "Opponent",
-      "common.date": "Date",
-      "common.location": "Location",
-      "common.time": "Time",
-      "common.home": "Home",
-      "common.away": "Away",
-      "common.score": "Score",
-      "common.edit": "Edit",
-      "common.save": "Save",
-      "common.cancel": "Cancel",
-      "common.close": "Close",
-      "common.exportJson": "Export JSON",
-      "common.exportCsv": "Export CSV",
-      "common.player": "Player",
-      "common.gp": "GP",
-      "common.g": "G",
-      "common.a": "A",
-      "common.p": "P",
-      "common.fp": "FP",
-      "common.goal": "Goal",
-      "common.opponentGoal": "Opponent Goal",
-      "common.assist": "Assist: {{player}}",
-      "common.notSet": "Not Set",
-      "playerStats.totalsRow": "Totals"
-      // Add any other keys used in GameStatsModal or its tests
-    }
-  },
-  fi: {
-    translation: {
-      "gameStatsModal.title": "Ottelutilastot",
-      "gameStatsModal.gameInfoTitle": "Ottelun Tiedot",
-      "gameStatsModal.playerStatsTitle": "Pelaajatilastot",
-      "gameStatsModal.eventLogTitle": "Maaliloki",
-      "gameStatsModal.notesTitle": "Muistiinpanot",
-      "gameStatsModal.tabs.currentGame": "Nykyinen",
-      "gameStatsModal.tabs.season": "Kausi",
-      "gameStatsModal.tabs.tournament": "Turnaus",
-      "gameStatsModal.tabs.overall": "Kaikki",
-      "gameStatsModal.filterPlaceholder": "Suodata...",
-      "gameStatsModal.editGoalTooltip": "Muokkaa Maalia",
-      "gameStatsModal.deleteGoalTooltip": "Poista Maali",
-      "gameStatsModal.saveGoalTooltip": "Tallenna Maali",
-      "gameStatsModal.cancelEditGoalTooltip": "Peruuta Muokkaus", "gameStatsModal.confirmDeleteEvent": "Haluatko varmasti poistaa tämän tapahtuman?",
-      "gameStatsModal.noTeamGamesTitle": "Ei otteluita valitulle joukkueelle tässä näkymässä",
-      "gameStatsModal.noTeamGamesSubtitle": "Valitse toinen joukkue tai muuta suodattimia nähdäksesi pelaajatilastot.",
-      "common.opponent": "Vastustaja",
-      "common.date": "PÃ¤ivÃ¤mÃ¤Ã¤rÃ¤",
-      "common.location": "Paikka",
-      "common.time": "Aika",
-      "common.home": "Koti",
-      "common.away": "Vieras",
-      "common.score": "Tulos",
-      "common.edit": "Muokkaa",
-      "common.save": "Tallenna",
-      "common.cancel": "Peruuta",
-      "common.close": "Sulje",
-      "common.exportJson": "Vie JSON",
-      "common.exportCsv": "Vie CSV",
-      "common.player": "Pelaaja",
-      "common.gp": "OP",
-      "common.g": "M",
-      "common.a": "S",
-      "common.p": "P",
-      "common.fp": "FP",
-      "common.goal": "Maali",
-      "common.opponentGoal": "Vastustajan Maali",
-      "common.assist": "SyÃ¶ttÃ¤jÃ¤: {{player}}",
-      "common.notSet": "Ei asetettu",
-      "playerStats.totalsRow": "Yhteensä",
-    }
-  },
-  // Add other languages if needed for specific tests
-};
+function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
+  const entries: string[] = [];
 
-i18n
-  .use(initReactI18next)
-  .init({
-    resources: testResources,
-    lng: 'fi', // Set default language to Finnish for tests
-    fallbackLng: 'en', // Keep English as fallback
-    interpolation: {
-      escapeValue: false, // react already safes from xss
-    },
-    react: {
-      useSuspense: false,
-    },
+  for (const [key, value] of Object.entries(obj)) {
+    const newKey = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      entries.push(...flattenKeys(value as Record<string, unknown>, newKey));
+    } else {
+      entries.push(newKey);
+    }
+  }
+
+  return entries;
+}
+
+function loadLocale(lang: string) {
+  const localePath = path.resolve(__dirname, '..', 'public', 'locales', lang, 'common.json');
+  return JSON.parse(fs.readFileSync(localePath, 'utf8')) as Record<string, unknown>;
+}
+
+function extractTypeKeys() {
+  const typeDefinition = fs.readFileSync(path.resolve(__dirname, 'i18n-types.ts'), 'utf8');
+  return [...typeDefinition.matchAll(/\|\s*'([^']+)'/g)].map((match) => match[1]);
+}
+
+describe('i18n translation coverage', () => {
+  const enTranslations = loadLocale('en');
+  const fiTranslations = loadLocale('fi');
+
+  const enKeys = new Set(flattenKeys(enTranslations));
+  const fiKeys = new Set(flattenKeys(fiTranslations));
+
+  it('keeps English and Finnish locale keys in sync', () => {
+    const missingInFi = [...enKeys].filter((key) => !fiKeys.has(key));
+    const missingInEn = [...fiKeys].filter((key) => !enKeys.has(key));
+
+    expect(missingInFi).toEqual([]);
+    expect(missingInEn).toEqual([]);
   });
 
-export default i18n;
+  it('keeps type definitions aligned with locale keys', () => {
+    const typeKeys = new Set(extractTypeKeys());
 
-describe('i18n initialization', () => {
-  it('should initialize without errors', () => {
-    expect(i18n).toBeDefined();
+    const missingInTypes = [...enKeys].filter((key) => !typeKeys.has(key));
+    const missingInLocales = [...typeKeys].filter((key) => !enKeys.has(key));
+
+    expect(missingInTypes).toEqual([]);
+    expect(missingInLocales).toEqual([]);
   });
-}); 
+});

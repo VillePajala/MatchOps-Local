@@ -95,6 +95,7 @@
     "away": "Away",
     "cancel": "Cancel",
     "cancelButton": "Cancel",
+    "backButton": "Back",
     "clear": "Clear",
     "close": "Close",
     "confirm": "Confirm",
@@ -158,7 +159,8 @@
     "addPlayers": "Add Players",
     "reset": "Reset",
     "startNew": "Start New",
-    "continue": "Continue"
+    "continue": "Continue",
+    "next": "Next"
   },
   "backupRestore": {
     "resultsTitle": "Backup Restore Complete",
@@ -231,6 +233,7 @@
     "periodInProgress": "Period {currentPeriod}/{numberOfPeriods}",
     "periodEnded": "End of Period {currentPeriod}",
     "gameEnded": "Game Ended",
+    "editOpponentNameTitle": "Click to edit opponent name",
     "subIntervalLabel": "Sub Interval:",
     "disabledWhenPaused": "Disabled while paused",
     "periodShort": "P",
@@ -254,6 +257,21 @@
       "step5Desc": "Drag players from top bar onto field in your desired formation. Set goalkeeper, move players around, and plan positions."
     },
     "duringGame": {
+      "title": "During the Game",
+      "fieldTitle": "Managing the Field",
+      "dragPlayers": "Drag player discs from the top bar onto the field to show positions",
+      "drawTactics": "Draw arrows and lines to capture tactics and movements",
+      "trackSubs": "Use the timer overlay to track substitution intervals",
+      "scoringTitle": "Recording Events",
+      "logGoals": "Click goal buttons to record who scored and assisted",
+      "timer": "Start/stop the game timer to track actual playing time",
+      "periods": "Advance through periods/halves as the game progresses",
+      "step6Title": "6. Plan and draw tactical patterns",
+      "step6Desc": "Use tactics mode to draw arrows and lines. Capture tactical plans, runs, and plays on the field.",
+      "step7Title": "7. Start the match clock and log events",
+      "step7Desc": "Start the timer and log goals, substitutions, and other events in real time. Track playing time and substitution intervals automatically."
+    },
+    "legacyDuringGame": {
       "title": "During the Game",
       "fieldTitle": "Managing the Field",
       "dragPlayers": "Drag player discs from the top bar onto the field to show positions",
@@ -306,6 +324,19 @@
       "tip1": "Double-tap players on the field to remove them quickly",
       "tip2": "Use the hamburger menu for quick access to all features",
       "tip3": "Games auto-save to browser storage - no account needed"
+    },
+    "playerBarTitle": "Player Bar (Top)",
+    "playerBar": {
+      "selectPlayer": "Select player: Tap a player disc to choose it for placement.",
+      "deselectPlayer": "Deselect player: Tap the selected player disc again or tap the bar background.",
+      "scrollBar": "Scroll the bar: If players exceed the space, scroll horizontally."
+    },
+    "fieldAreaTitle": "Field Area",
+    "fieldArea": {
+      "movePlayer": "Move player/opponent: Drag a disc already placed on the field.",
+      "addPlacePlayer": "Add/Place player: Select a player from the top bar, tap or drag onto the field.",
+      "removePlayer": "Remove player/opponent: Double-tap/click a disc on the field.",
+      "drawLines": "Draw lines: Drag on empty field space."
     },
     "controlBarTitle": "Control Bar (Bottom)",
     "controlBar": {
@@ -521,7 +552,11 @@
     "notesPlaceholder": "Add notes here...",
     "noNotes": "No notes added",
     "noTeamGamesTitle": "No games for the selected team in this context",
-    "noTeamGamesSubtitle": "Choose another team or adjust filters to view player statistics."
+    "noTeamGamesSubtitle": "Choose another team or adjust filters to view player statistics.",
+    "noSeasonGames": "No games for this season.",
+    "noTournamentGames": "No games for this tournament.",
+    "game": "Game",
+    "games": "Games"
   },
   "loadGameModal": {
     "title": "Load Game",
