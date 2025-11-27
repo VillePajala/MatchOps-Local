@@ -200,8 +200,6 @@ export function useFieldCoordination({
   saveStateToHistory,
   saveTacticalStateToHistory,
   availablePlayers,
-  // selectedPlayerIds is intentionally unused after "Place All Players" fix
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   selectedPlayerIds,
   canUndo,
   canRedo,
@@ -472,8 +470,9 @@ export function useFieldCoordination({
    * - See roadmap.md for detailed implementation plan
    */
   const handlePlaceAllPlayers = useCallback(() => {
-    // Get ALL players not currently on field (not just selected ones)
+    // Get players selected for this game that are not currently on field
     const playersNotOnField = availablePlayers.filter(player =>
+      selectedPlayerIds.includes(player.id) &&
       !playersOnField.some(fieldPlayer => fieldPlayer.id === player.id)
     );
 
@@ -486,20 +485,21 @@ export function useFieldCoordination({
 
     const newFieldPlayers: Player[] = [...playersOnField];
 
-    // Separate goalkeeper from field players (functional approach, no mutation)
-    const goalie = playersNotOnField.find(p => p.isGoalie);
-    const fieldPlayers = playersNotOnField.filter(p => !p.isGoalie);
+    // Find designated goalie or use first player as goalkeeper
+    const designatedGoalie = playersNotOnField.find(p => p.isGoalie);
+    const goalie = designatedGoalie || playersNotOnField[0];
 
-    // Place goalkeeper first at goalie position
-    if (goalie) {
-      newFieldPlayers.push({
-        ...goalie,
-        relX: 0.5,
-        relY: 0.95
-      });
-    }
+    // Get remaining field players (exclude whoever is being placed as goalie)
+    const fieldPlayers = playersNotOnField.filter(p => p.id !== goalie.id);
 
-    // Calculate formation positions for field players
+    // Always place a goalkeeper at the goal position
+    newFieldPlayers.push({
+      ...goalie,
+      relX: 0.5,
+      relY: 0.95
+    });
+
+    // Calculate formation positions for remaining field players
     const positions = calculateFormationPositions(fieldPlayers.length);
 
     // Place field players in formation positions
@@ -520,6 +520,7 @@ export function useFieldCoordination({
   }, [
     playersOnField,
     availablePlayers,
+    selectedPlayerIds,
     setPlayersOnField,
     saveStateToHistory,
   ]);

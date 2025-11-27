@@ -20,6 +20,29 @@ export interface FieldPosition {
 }
 
 /**
+ * Generate positions for a single row of players
+ * @param count - Number of players in this row
+ * @param relY - The Y position for this row
+ * @param margin - Edge margin (default 0.1 means 10% from each edge)
+ */
+function generateRow(count: number, relY: number, margin: number = 0.1): FieldPosition[] {
+  if (count <= 0) return [];
+  if (count === 1) return [{ relX: 0.5, relY }];
+
+  const positions: FieldPosition[] = [];
+  const usableWidth = 1 - 2 * margin;
+  const spacing = usableWidth / (count - 1);
+
+  for (let i = 0; i < count; i++) {
+    positions.push({
+      relX: margin + i * spacing,
+      relY
+    });
+  }
+  return positions;
+}
+
+/**
  * Calculate optimal player positions based on team size
  *
  * Returns an array of field positions arranged in a tactical formation
@@ -27,16 +50,10 @@ export interface FieldPosition {
  * coordinates where (0, 0) is top-left and (1, 1) is bottom-right.
  *
  * **Formation Patterns:**
- * - 1 player: Single central position
- * - 2 players: Side-by-side
- * - 3 players: Triangle formation
- * - 4 players: Diamond (2-2)
- * - 5 players: 2-2-1 formation
- * - 6 players: 2-2-2 formation
- * - 7 players: 3-2-2 formation
- * - 8 players: 2-2-2-2 formation
- * - 9 players: 3-2-3-1 formation
- * - 10+ players: 4-3-3 formation
+ * - 1-4 players: Simple layouts (line or 2x2)
+ * - 5-6 players: 2-2-1 or 2-2-2 formations
+ * - 7-10 players: Classic formations (3-3-1, 3-2-2, 4-3-3)
+ * - 11+ players: Dynamic generation in balanced rows
  *
  * **Note:** Does NOT include goalkeeper position - caller should handle
  * goalkeeper placement separately (typically at relY: 0.95)
@@ -48,13 +65,7 @@ export interface FieldPosition {
  * ```typescript
  * // Get positions for 5 field players
  * const positions = calculateFormationPositions(5);
- * // Returns: [
- * //   { relX: 0.2, relY: 0.65 },  // Left back
- * //   { relX: 0.8, relY: 0.65 },  // Right back
- * //   { relX: 0.3, relY: 0.45 },  // Left mid
- * //   { relX: 0.7, relY: 0.45 },  // Right mid
- * //   { relX: 0.5, relY: 0.25 }   // Forward
- * // ]
+ * // Returns positions for a 2-2-1 formation
  * ```
  */
 export function calculateFormationPositions(playerCount: number): FieldPosition[] {
@@ -63,104 +74,142 @@ export function calculateFormationPositions(playerCount: number): FieldPosition[
     return [];
   }
 
-  let positions: FieldPosition[];
-
-  // Formation logic based on number of players
-  if (playerCount === 1) {
-    // Single player - central position
-    positions = [{ relX: 0.5, relY: 0.5 }];
-  } else if (playerCount === 2) {
-    // Two players - side by side
-    positions = [
-      { relX: 0.35, relY: 0.5 },
-      { relX: 0.65, relY: 0.5 }
-    ];
-  } else if (playerCount === 3) {
-    // Triangle formation - 1 mid, 2 wide
-    positions = [
-      { relX: 0.25, relY: 0.5 },
-      { relX: 0.5, relY: 0.4 },
-      { relX: 0.75, relY: 0.5 }
-    ];
-  } else if (playerCount === 4) {
-    // Diamond formation - 2 back, 2 forward
-    positions = [
-      { relX: 0.25, relY: 0.6 },
-      { relX: 0.75, relY: 0.6 },
-      { relX: 0.35, relY: 0.35 },
-      { relX: 0.65, relY: 0.35 }
-    ];
-  } else if (playerCount === 5) {
-    // 2-2-1 formation - 2 backs, 2 mids, 1 forward
-    positions = [
-      { relX: 0.2, relY: 0.65 },
-      { relX: 0.8, relY: 0.65 },
-      { relX: 0.3, relY: 0.45 },
-      { relX: 0.7, relY: 0.45 },
-      { relX: 0.5, relY: 0.25 }
-    ];
-  } else if (playerCount === 6) {
-    // 2-2-2 formation - balanced lines
-    positions = [
-      { relX: 0.2, relY: 0.7 },
-      { relX: 0.8, relY: 0.7 },
-      { relX: 0.3, relY: 0.5 },
-      { relX: 0.7, relY: 0.5 },
-      { relX: 0.35, relY: 0.3 },
-      { relX: 0.65, relY: 0.3 }
-    ];
-  } else if (playerCount === 7) {
-    // 3-2-2 formation - strong defense
-    positions = [
-      { relX: 0.15, relY: 0.75 },
-      { relX: 0.5, relY: 0.75 },
-      { relX: 0.85, relY: 0.75 },
-      { relX: 0.25, relY: 0.5 },
-      { relX: 0.75, relY: 0.5 },
-      { relX: 0.35, relY: 0.25 },
-      { relX: 0.65, relY: 0.25 }
-    ];
-  } else if (playerCount === 8) {
-    // 2-2-2-2 formation - 4 lines of 2
-    positions = [
-      { relX: 0.15, relY: 0.75 },
-      { relX: 0.85, relY: 0.75 },
-      { relX: 0.25, relY: 0.55 },
-      { relX: 0.75, relY: 0.55 },
-      { relX: 0.35, relY: 0.35 },
-      { relX: 0.65, relY: 0.35 },
-      { relX: 0.4, relY: 0.15 },
-      { relX: 0.6, relY: 0.15 }
-    ];
-  } else if (playerCount === 9) {
-    // 3-2-3-1 formation - wide coverage
-    positions = [
-      { relX: 0.1, relY: 0.75 },
-      { relX: 0.5, relY: 0.75 },
-      { relX: 0.9, relY: 0.75 },
-      { relX: 0.25, relY: 0.5 },
-      { relX: 0.75, relY: 0.5 },
-      { relX: 0.15, relY: 0.3 },
-      { relX: 0.5, relY: 0.3 },
-      { relX: 0.85, relY: 0.3 },
-      { relX: 0.5, relY: 0.1 }
-    ];
-  } else {
-    // 10+ players - 4-3-3 formation (classic)
-    positions = [
-      { relX: 0.1, relY: 0.75 },
-      { relX: 0.35, relY: 0.75 },
-      { relX: 0.65, relY: 0.75 },
-      { relX: 0.9, relY: 0.75 },
-      { relX: 0.25, relY: 0.5 },
-      { relX: 0.5, relY: 0.5 },
-      { relX: 0.75, relY: 0.5 },
-      { relX: 0.2, relY: 0.25 },
-      { relX: 0.5, relY: 0.25 },
-      { relX: 0.8, relY: 0.25 }
-    ];
+  // For small teams, use predefined formations
+  if (playerCount <= 10) {
+    return getSmallTeamFormation(playerCount);
   }
 
-  // Return only the positions needed (in case we have more positions than players)
-  return positions.slice(0, playerCount);
+  // For larger teams (11+), dynamically generate positions
+  return generateDynamicFormation(playerCount);
+}
+
+/**
+ * Get predefined formation for teams with 1-10 field players
+ * Uses clean horizontal rows with consistent spacing
+ * Players positioned in defensive half with forward line around midfield
+ */
+function getSmallTeamFormation(playerCount: number): FieldPosition[] {
+  // Use consistent margin for all rows to create clean horizontal lines
+  const MARGIN = 0.15;
+
+  switch (playerCount) {
+    case 1:
+      // Single player - midfield position
+      return [{ relX: 0.5, relY: 0.45 }];
+
+    case 2:
+      // 2 players in a row - midfield line
+      return generateRow(2, 0.50, MARGIN);
+
+    case 3:
+      // 3 players in a row - spread across midfield
+      return generateRow(3, 0.55, MARGIN);
+
+    case 4:
+      // 2-2 formation - defense and midfield
+      return [
+        ...generateRow(2, 0.75, MARGIN),
+        ...generateRow(2, 0.45, MARGIN)
+      ];
+
+    case 5:
+      // 3-2 formation - three defenders, two midfielders
+      return [
+        ...generateRow(3, 0.75, MARGIN),
+        ...generateRow(2, 0.45, MARGIN)
+      ];
+
+    case 6:
+      // 3-3 formation - defense and midfield rows
+      return [
+        ...generateRow(3, 0.75, MARGIN),
+        ...generateRow(3, 0.45, MARGIN)
+      ];
+
+    case 7:
+      // 3-3-1 formation with forward
+      return [
+        ...generateRow(3, 0.78, MARGIN),
+        ...generateRow(3, 0.55, MARGIN),
+        { relX: 0.5, relY: 0.30 }
+      ];
+
+    case 8:
+      // 3-3-2 formation
+      return [
+        ...generateRow(3, 0.78, MARGIN),
+        ...generateRow(3, 0.55, MARGIN),
+        ...generateRow(2, 0.30, 0.25)
+      ];
+
+    case 9:
+      // 3-3-3 formation - three clean rows
+      return [
+        ...generateRow(3, 0.78, MARGIN),
+        ...generateRow(3, 0.55, MARGIN),
+        ...generateRow(3, 0.30, MARGIN)
+      ];
+
+    case 10:
+      // 4-3-3 formation (classic)
+      return [
+        ...generateRow(4, 0.78, 0.10),
+        ...generateRow(3, 0.55, MARGIN),
+        ...generateRow(3, 0.30, MARGIN)
+      ];
+
+    default:
+      return [];
+  }
+}
+
+/**
+ * Generate positions dynamically for large teams (11+ field players)
+ * Distributes players across 3-4 rows from defense to attack
+ * Players positioned lower on field (defensive orientation)
+ */
+function generateDynamicFormation(playerCount: number): FieldPosition[] {
+  const positions: FieldPosition[] = [];
+
+  // Define row structure based on player count
+  // Use 4 rows: defense (back), def-mid, att-mid, attack (front)
+  // Positions are lower on the field (higher relY = closer to own goal)
+  const rowYPositions = [0.80, 0.60, 0.42, 0.25];
+
+  // Distribute players across rows
+  // More players in defense, balanced mid, fewer in attack
+  let remaining = playerCount;
+  const rowCounts: number[] = [];
+
+  if (playerCount <= 12) {
+    // 4-4-2-2 style
+    rowCounts.push(Math.min(4, remaining)); remaining -= rowCounts[0];
+    rowCounts.push(Math.min(4, remaining)); remaining -= rowCounts[1];
+    rowCounts.push(Math.min(2, remaining)); remaining -= rowCounts[2];
+    rowCounts.push(remaining);
+  } else if (playerCount <= 16) {
+    // 4-4-4-rest style
+    rowCounts.push(Math.min(4, remaining)); remaining -= rowCounts[0];
+    rowCounts.push(Math.min(4, remaining)); remaining -= rowCounts[1];
+    rowCounts.push(Math.min(4, remaining)); remaining -= rowCounts[2];
+    rowCounts.push(remaining);
+  } else {
+    // Very large teams - distribute more evenly
+    const perRow = Math.ceil(playerCount / 4);
+    rowCounts.push(Math.min(perRow, remaining)); remaining -= rowCounts[0];
+    rowCounts.push(Math.min(perRow, remaining)); remaining -= rowCounts[1];
+    rowCounts.push(Math.min(perRow, remaining)); remaining -= rowCounts[2];
+    rowCounts.push(remaining);
+  }
+
+  // Generate positions for each row
+  for (let i = 0; i < 4; i++) {
+    if (rowCounts[i] > 0) {
+      // Use tighter margins for rows with more players
+      const margin = Math.max(0.05, 0.15 - (rowCounts[i] - 3) * 0.02);
+      positions.push(...generateRow(rowCounts[i], rowYPositions[i], margin));
+    }
+  }
+
+  return positions;
 }

@@ -1737,6 +1737,15 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     availablePlayersForGame: Player[],
     selectedPersonnelIds: string[]
   ) => {
+    // Clear field state before creating new game to prevent stale data
+    fieldCoordination.setPlayersOnField([]);
+    fieldCoordination.setOpponents([]);
+    fieldCoordination.setDrawings([]);
+    fieldCoordination.setTacticalDiscs([]);
+    fieldCoordination.setTacticalDrawings([]);
+    // Reset loaded game tracker so the effect will load the new game
+    loadedGameIdRef.current = null;
+
     await startNewGameWithSetup(
       {
         availablePlayers,
@@ -1793,6 +1802,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     queryClient,
     showToast,
     t,
+    fieldCoordination,
   ]);
 
   // ** REVERT handleCancelNewGameSetup TO ORIGINAL **

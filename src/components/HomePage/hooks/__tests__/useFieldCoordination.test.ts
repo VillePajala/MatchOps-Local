@@ -989,14 +989,14 @@ describe('useFieldCoordination', () => {
     });
 
     /**
-     * Tests that ALL players are placed regardless of selection status
-     * @critical - Ensures "Place All Players" actually places ALL players
+     * Tests that only SELECTED players are placed on the field
+     * @critical - Ensures "Place All Players" respects per-game player selection
      */
-    it('should place players regardless of selection status', () => {
+    it('should place only selected players, not all available players', () => {
       const mockSetPlayersOnField = jest.fn();
       const players = TestFixtures.players.fullTeam({ count: 5 });
 
-      // Only 2 players are "selected", but ALL 5 should be placed
+      // Only 2 players are "selected" for this game - only they should be placed
       const selectedIds = players.slice(0, 2).map(p => p.id);
 
       mockParams.availablePlayers = players;
@@ -1011,8 +1011,6 @@ describe('useFieldCoordination', () => {
       mockCalculateFormationPositions.mockReturnValue([
         { relX: 0.25, relY: 0.6 },
         { relX: 0.75, relY: 0.6 },
-        { relX: 0.35, relY: 0.35 },
-        { relX: 0.65, relY: 0.35 },
       ]);
 
       const { result } = renderHook(() => useFieldCoordination(mockParams));
@@ -1021,9 +1019,12 @@ describe('useFieldCoordination', () => {
         result.current.handlePlaceAllPlayers();
       });
 
-      // Should place ALL 5 players (not just the 2 selected ones)
+      // Should place ONLY the 2 selected players (not all 5 available)
       const placedPlayers = mockSetPlayersOnField.mock.calls[0][0];
-      expect(placedPlayers).toHaveLength(5);
+      expect(placedPlayers).toHaveLength(2);
+      // Verify the placed players are the selected ones
+      const placedIds = placedPlayers.map((p: { id: string }) => p.id);
+      expect(placedIds).toEqual(expect.arrayContaining(selectedIds));
       expect(mockParams.saveStateToHistory).toHaveBeenCalled();
     });
 

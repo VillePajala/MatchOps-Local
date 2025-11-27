@@ -36,10 +36,10 @@ describe('calculateFormationPositions', () => {
   });
 
   describe('formation patterns', () => {
-    it('returns 1 position for 1 player (central)', () => {
+    it('returns 1 position for 1 player (midfield position)', () => {
       const positions = calculateFormationPositions(1);
       expect(positions).toHaveLength(1);
-      expect(positions[0]).toEqual({ relX: 0.5, relY: 0.5 });
+      expect(positions[0]).toEqual({ relX: 0.5, relY: 0.45 });
     });
 
     it('returns 2 positions for 2 players (side by side)', () => {
@@ -83,16 +83,21 @@ describe('calculateFormationPositions', () => {
       expect(positions).toHaveLength(9);
     });
 
-    it('returns 10 positions for 10+ players (4-3-3, max 10)', () => {
+    it('returns 10 positions for 10 players (4-3-3)', () => {
       const positions10 = calculateFormationPositions(10);
       expect(positions10).toHaveLength(10);
+    });
 
-      // Formation maxes out at 10 positions (4-3-3)
+    it('returns positions for all players even with 11+ field players', () => {
+      // Dynamic formation now handles any number of players
       const positions11 = calculateFormationPositions(11);
-      expect(positions11).toHaveLength(10);
+      expect(positions11).toHaveLength(11);
 
       const positions15 = calculateFormationPositions(15);
-      expect(positions15).toHaveLength(10);
+      expect(positions15).toHaveLength(15);
+
+      const positions20 = calculateFormationPositions(20);
+      expect(positions20).toHaveLength(20);
     });
   });
 
