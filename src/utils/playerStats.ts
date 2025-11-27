@@ -22,6 +22,7 @@ export interface GameStats {
   assists: number;
   points: number;
   result: 'W' | 'L' | 'D' | 'N/A';
+  receivedFairPlayCard: boolean;
 }
 
 /**
@@ -124,6 +125,7 @@ export const calculatePlayerStats = (
         assists,
         points,
         result,
+        receivedFairPlayCard: fairPlayCards > 0,
       });
     }
   });

@@ -1370,23 +1370,13 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                     >
                       <option value="">{t('gameSettingsModal.selectPlayerForFairPlay', '-- Select Player --')}</option>
-                      {availablePlayers.map((player) => (
+                      {availablePlayers.filter(p => selectedPlayerIds.includes(p.id)).map((player) => (
                         <option key={player.id} value={player.id}>
                           {player.name}
                           {player.receivedFairPlayCard ? ` (${t('gameSettingsModal.currentFairPlayHolder', 'Current')})` : ''}
                         </option>
                       ))}
                     </select>
-
-                    {availablePlayers.some(p => p.receivedFairPlayCard) && (
-                      <button
-                        onClick={() => handleFairPlayCardClick(null)}
-                        className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-md text-sm font-medium transition-colors shadow-sm"
-                        title={t('gameSettingsModal.clearFairPlayCard', 'Clear Fair Play Card')}
-                      >
-                        {t('common.clear', 'Clear')}
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>

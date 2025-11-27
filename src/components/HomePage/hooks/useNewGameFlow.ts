@@ -116,9 +116,10 @@ export function useNewGameFlow({
       return;
     }
 
-    // For saved games (auto-saved), skip directly to new game confirmation
-    setShowStartNewConfirm(true);
-  }, [availablePlayers, currentGameId, t]);
+    // For saved games (auto-saved), go directly to new game setup modal
+    setPlayerIdsForNewGame(availablePlayers.map(p => p.id));
+    openNewGameSetupModal();
+  }, [availablePlayers, currentGameId, t, openNewGameSetupModal]);
 
   const handleNoPlayersConfirmed = useCallback(() => {
     setShowNoPlayersConfirm(false);
