@@ -748,16 +748,22 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // Data synchronization effects are now managed by useGameDataManagement hook
 
   // --- Effect to sync playersOnField details with availablePlayers changes ---
+  // Also removes players that were deleted from the roster
   useEffect(() => {
     if (availablePlayers && availablePlayers.length > 0) {
       fieldCoordination.setPlayersOnField(prevPlayersOnField => {
-        const nextPlayersOnField = prevPlayersOnField.map(fieldPlayer => {
-          const rosterPlayer = availablePlayers.find(ap => ap.id === fieldPlayer.id);
-          if (rosterPlayer) {
+        // Build a lookup map for O(1) access
+        const rosterLookup = new Map(availablePlayers.map(p => [p.id, p]));
+
+        // Filter out deleted players and update details for existing ones
+        const nextPlayersOnField = prevPlayersOnField
+          .filter(fieldPlayer => rosterLookup.has(fieldPlayer.id)) // Remove deleted players
+          .map(fieldPlayer => {
+            const rosterPlayer = rosterLookup.get(fieldPlayer.id)!;
             // Sync relevant properties from rosterPlayer to fieldPlayer
             // Only update if there's a difference to avoid unnecessary re-renders / history saves
-            if (fieldPlayer.name !== rosterPlayer.name || 
-                fieldPlayer.jerseyNumber !== rosterPlayer.jerseyNumber || 
+            if (fieldPlayer.name !== rosterPlayer.name ||
+                fieldPlayer.jerseyNumber !== rosterPlayer.jerseyNumber ||
                 fieldPlayer.isGoalie !== rosterPlayer.isGoalie ||
                 fieldPlayer.nickname !== rosterPlayer.nickname ||
                 fieldPlayer.notes !== rosterPlayer.notes
@@ -774,9 +780,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
                 receivedFairPlayCard: rosterPlayer.receivedFairPlayCard !== undefined ? rosterPlayer.receivedFairPlayCard : fieldPlayer.receivedFairPlayCard
               };
             }
-          }
-          return fieldPlayer; // Return original if no corresponding roster player or no changes
-        });
+            return fieldPlayer;
+          });
 
         // Only save to history if actual changes were made to playersOnField
         if (JSON.stringify(prevPlayersOnField) !== JSON.stringify(nextPlayersOnField)) {
