@@ -425,6 +425,7 @@ export function useGamePersistence({
         opponentName: gameSessionState.opponentName,
         gameNotes: gameSessionState.gameNotes,
         assessments: playerAssessments,
+        availablePlayers, // For fair play card and per-game player data
       },
       delay: 500,
     },

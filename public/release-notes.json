@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: add ADR-002 documenting React Query cache strategy"
+  "notes": "fix: only prompt to save for unsaved scratch games"
 }

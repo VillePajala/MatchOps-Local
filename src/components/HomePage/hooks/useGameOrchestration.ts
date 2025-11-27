@@ -1613,9 +1613,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         // Optionally, set an error state
       }
       // <<< ADD LOG HERE >>>
-      logger.log(`[page.tsx] Calling saveStateToHistory... ONLY for playersOnField`);
-      // Save ONLY the playersOnField change to the game history, not the global roster
-      saveStateToHistory({ playersOnField: updatedPlayersOnField });
+      logger.log(`[page.tsx] Calling saveStateToHistory for playersOnField and availablePlayers`);
+      // Save both playersOnField and availablePlayers to game history for fair play card persistence
+      saveStateToHistory({ playersOnField: updatedPlayersOnField, availablePlayers: updatedAvailablePlayers });
 
       logger.log(`[page.tsx] Updated Fair Play card award. ${playerId ? `Awarded to ${playerId}` : 'Cleared'}`);
     }, [availablePlayers, saveStateToHistory, currentGameId, setAvailablePlayers, fieldCoordination]);
@@ -1834,10 +1834,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       setGameIdentifierForSave(t('controlBar.unsavedGame', 'Unsaved game'));
       setShowSaveBeforeNewConfirm(true);
     } else {
-      // For saved games (auto-saved), skip directly to new game confirmation
-      setShowStartNewConfirm(true);
+      // For saved games (auto-saved), go directly to new game setup modal
+      setPlayerIdsForNewGame(availablePlayers.map(p => p.id));
+      openNewGameViaReducer();
     }
-  }, [currentGameId, availablePlayers, t]);
+  }, [currentGameId, availablePlayers, t, openNewGameViaReducer]);
 
   // Handler for "No Players" confirmation
   const handleNoPlayersConfirmed = useCallback(() => {

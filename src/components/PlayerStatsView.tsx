@@ -917,7 +917,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       <div><p className="font-bold text-yellow-400">{stats.goals}</p><p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.assists}</p><p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.points}</p><p className="text-xs text-slate-400">{t('playerStats.points', 'Points')}</p></div>
-                      <div><p className="font-bold text-green-400">{stats.fairPlayCards || 0}</p><p className="text-xs text-slate-400">⚽ {t('playerStats.fairPlayCardsShort', 'FP')}</p></div>
+                      <div><p className="font-bold text-green-400">{stats.fairPlayCards || 0}</p><p className="text-xs text-slate-400"><span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span></p></div>
                     </div>
                   </div>
                 ))}
@@ -943,7 +943,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       <div><p className="font-bold text-yellow-400">{stats.goals}</p><p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.assists}</p><p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p></div>
                       <div><p className="font-bold text-yellow-400">{stats.points}</p><p className="text-xs text-slate-400">{t('playerStats.points', 'Points')}</p></div>
-                      <div><p className="font-bold text-green-400">{stats.fairPlayCards || 0}</p><p className="text-xs text-slate-400">⚽ {t('playerStats.fairPlayCardsShort', 'FP')}</p></div>
+                      <div><p className="font-bold text-green-400">{stats.fairPlayCards || 0}</p><p className="text-xs text-slate-400"><span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span></p></div>
                     </div>
                   </div>
                 ))}
@@ -965,7 +965,12 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   <span className={`absolute inset-y-0 left-0 w-1 rounded-l-md ${getResultClass(game.result)}`}></span>
                   <div className="flex items-center pl-2">
                     <div>
-                      <p className="font-semibold text-slate-100 drop-shadow-lg">{t('playerStats.vs', 'vs')} {game.opponentName}</p>
+                      <p className="font-semibold text-slate-100 drop-shadow-lg">
+                        {t('playerStats.vs', 'vs')} {game.opponentName}
+                        {game.receivedFairPlayCard && (
+                          <span className="ml-2 inline-block bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.fairPlayCard', 'Fair Play Card')}>FP</span>
+                        )}
+                      </p>
                       <p className="text-xs text-slate-400">{format(new Date(game.date), i18n.language === 'fi' ? 'd.M.yyyy' : 'PP', { locale: i18n.language === 'fi' ? fi : enUS })}</p>
                     </div>
                   </div>

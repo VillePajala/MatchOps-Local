@@ -126,7 +126,7 @@ describe('useNewGameFlow', () => {
     mockGetSavedGames.mockReset();
   });
 
-  it('skips save prompt for saved games (auto-save handles them)', async () => {
+  it('skips save prompt and opens setup modal directly for saved games (auto-save handles them)', async () => {
     // Saved game (currentGameId is not DEFAULT_GAME_ID)
     const { options } = buildOptions({
       gameState: { currentGameId: 'saved_game_123' },
@@ -142,8 +142,12 @@ describe('useNewGameFlow', () => {
 
     // Should NOT show save prompt - auto-save handles saved games
     expect(result.current.showSaveBeforeNewConfirm).toBe(false);
-    // Should go directly to start new confirmation
-    expect(result.current.showStartNewConfirm).toBe(true);
+    // Should NOT show start new confirmation either - go straight to setup modal
+    expect(result.current.showStartNewConfirm).toBe(false);
+    // Should open new game setup modal directly
+    expect(options.ui.openNewGameSetupModal).toHaveBeenCalled();
+    // Should pre-select all available players
+    expect(result.current.playerIdsForNewGame).toEqual(['p1']);
   });
 
   it('prompts to save for unsaved scratch games (DEFAULT_GAME_ID)', async () => {
