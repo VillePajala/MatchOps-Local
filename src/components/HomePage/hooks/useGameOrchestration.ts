@@ -1828,21 +1828,16 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       return; // Exit early
     }
 
-    // Check if the current game is potentially unsaved (not the default ID and not null)
-    if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-      // Prompt to save first
-      const gameData = savedGames[currentGameId]; // Safe to access due to check above
-      const gameIdentifier = gameData?.teamName
-                             ? `${gameData.teamName} vs ${gameData.opponentName}`
-                             : `ID: ${currentGameId}`;
-
-      setGameIdentifierForSave(gameIdentifier);
+    // Only prompt to save for unsaved scratch games (DEFAULT_GAME_ID)
+    // Saved games are auto-saved, so no prompt needed
+    if (currentGameId === DEFAULT_GAME_ID) {
+      setGameIdentifierForSave(t('controlBar.unsavedGame', 'Unsaved game'));
       setShowSaveBeforeNewConfirm(true);
     } else {
-      // If no real game is loaded, proceed directly to the main confirmation
+      // For saved games (auto-saved), skip directly to new game confirmation
       setShowStartNewConfirm(true);
     }
-  }, [currentGameId, savedGames, availablePlayers]);
+  }, [currentGameId, availablePlayers, t]);
 
   // Handler for "No Players" confirmation
   const handleNoPlayersConfirmed = useCallback(() => {

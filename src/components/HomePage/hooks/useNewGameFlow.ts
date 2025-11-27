@@ -1,3 +1,12 @@
+/**
+ * @deprecated DEAD CODE - This hook is not used anywhere in the application.
+ * The actual new game flow logic lives in useGameOrchestration.ts (handleStartNewGame).
+ * This was created for extraction but never wired up.
+ *
+ * TODO: Either delete this file and its tests, or complete the extraction by:
+ * 1. Using this hook in useGameOrchestration
+ * 2. Removing the duplicate handleStartNewGame from useGameOrchestration
+ */
 import { useCallback, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
@@ -6,10 +15,9 @@ import type { TFunction } from 'i18next';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import type { AppState, Player, SavedGamesCollection } from '@/types';
 import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
-import { saveGame as utilSaveGame, getSavedGames as utilGetSavedGames } from '@/utils/savedGames';
+import { saveGame as utilSaveGame } from '@/utils/savedGames';
 import { saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
 import { startNewGameWithSetup, cancelNewGameSetup } from '../utils/newGameHandlers';
-import logger from '@/utils/logger';
 
 type ToastFn = (message: string, type?: 'success' | 'error' | 'info') => void;
 
@@ -100,40 +108,17 @@ export function useNewGameFlow({
       return;
     }
 
-    if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-      let identifier = `ID: ${currentGameId}`;
-
-      try {
-        const freshGames = await utilGetSavedGames();
-        const snapshotGame = freshGames?.[currentGameId] ?? savedGames[currentGameId];
-        if (snapshotGame?.teamName) {
-          identifier = `${snapshotGame.teamName} vs ${snapshotGame.opponentName || t('common.unknownOpponent', 'Opponent')}`;
-        }
-      } catch (error) {
-        logger.warn('[useNewGameFlow] Failed to refresh latest saved game snapshot before starting new game', error);
-        showToast(
-          t(
-            'newGameSetupModal.snapshotFallback',
-            'Unable to refresh latest save info. Using last stored names.'
-          ),
-          'info'
-        );
-        const fallbackGame = savedGames[currentGameId];
-        if (fallbackGame?.teamName) {
-          identifier = `${fallbackGame.teamName} vs ${fallbackGame.opponentName || t('common.unknownOpponent', 'Opponent')}`;
-        } else {
-          // Missing both fresh and fallback snapshots – keep generic identifier and log once for diagnostics
-          logger.warn('[useNewGameFlow] No snapshot found for currentGameId; using generic identifier', { currentGameId, hasFallback: !!fallbackGame });
-        }
-      }
-
-      setGameIdentifierForSave(identifier);
+    // Only prompt to save for unsaved scratch games (DEFAULT_GAME_ID)
+    // Saved games are auto-saved, so no prompt needed
+    if (currentGameId === DEFAULT_GAME_ID) {
+      setGameIdentifierForSave(t('controlBar.unsavedGame', 'Unsaved game'));
       setShowSaveBeforeNewConfirm(true);
       return;
     }
 
+    // For saved games (auto-saved), skip directly to new game confirmation
     setShowStartNewConfirm(true);
-  }, [availablePlayers, currentGameId, savedGames, showToast, t]);
+  }, [availablePlayers, currentGameId, t]);
 
   const handleNoPlayersConfirmed = useCallback(() => {
     setShowNoPlayersConfirm(false);

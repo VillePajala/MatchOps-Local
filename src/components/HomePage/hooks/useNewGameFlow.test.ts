@@ -126,10 +126,10 @@ describe('useNewGameFlow', () => {
     mockGetSavedGames.mockReset();
   });
 
-  it('prefers fresh storage snapshot when prompting to save current game', async () => {
-    const { options } = buildOptions();
-    mockGetSavedGames.mockResolvedValue({
-      current: createAppState({ teamName: 'Fresh Team', opponentName: 'Fresh Opponent' }),
+  it('skips save prompt for saved games (auto-save handles them)', async () => {
+    // Saved game (currentGameId is not DEFAULT_GAME_ID)
+    const { options } = buildOptions({
+      gameState: { currentGameId: 'saved_game_123' },
     });
 
     const { result } = renderHook(() =>
@@ -140,8 +140,29 @@ describe('useNewGameFlow', () => {
       await result.current.handleStartNewGame();
     });
 
+    // Should NOT show save prompt - auto-save handles saved games
+    expect(result.current.showSaveBeforeNewConfirm).toBe(false);
+    // Should go directly to start new confirmation
+    expect(result.current.showStartNewConfirm).toBe(true);
+  });
+
+  it('prompts to save for unsaved scratch games (DEFAULT_GAME_ID)', async () => {
+    // Unsaved scratch game (DEFAULT_GAME_ID)
+    const { options } = buildOptions({
+      gameState: { currentGameId: 'unsaved_game' }, // DEFAULT_GAME_ID
+    });
+
+    const { result } = renderHook(() =>
+      useNewGameFlow(options),
+    );
+
+    await act(async () => {
+      await result.current.handleStartNewGame();
+    });
+
+    // Should show save prompt for unsaved scratch games
     expect(result.current.showSaveBeforeNewConfirm).toBe(true);
-    expect(result.current.gameIdentifierForSave).toBe('Fresh Team vs Fresh Opponent');
+    expect(result.current.gameIdentifierForSave).toBe('Unsaved game');
   });
 
   it('surfaces roster modal when no players are available', async () => {
