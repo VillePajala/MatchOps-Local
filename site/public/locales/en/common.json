@@ -4,7 +4,7 @@
   },
   "seo": {
     "home": {
-      "title": "MatchOps Local - Soccer Coaching App for Local Data Privacy",
+      "title": "MatchOps Local - Local-First Soccer Coaching App",
       "description": "Free mobile soccer coaching app. Manage teams, track games in real-time, build statistics. No signup required. Your data stays private on your device."
     },
     "technical": {
@@ -91,18 +91,23 @@
   "info": {
     "whatIsThis": {
       "title": "What is MatchOps Local?",
-      "description": "MatchOps Local is a mobile app for soccer coaches. It helps you manage teams, track and document games in real-time, and build statistics—all from your phone or tablet.",
+      "description": "MatchOps Local replaces your clipboard, stopwatch, and notebook with one app. Plan your lineup and positions before the game. During the match, track substitution intervals, log goals and assists with a tap. Your statistics build automatically—game results, scoring leaders, season trends.",
       "oneLine": "No signup required. Install once and your data stays private on your device. Works anywhere, even without internet."
+    },
+    "whoIsThisFor": {
+      "title": "Who Is This For?",
+      "description": "MatchOps Local is for soccer coaches at any level—from recreational to competitive—who want a simple way to organize games without complex team management software or monthly subscriptions.",
+      "item1": "Youth team coaches (U8–U19)",
+      "item2": "Recreational and competitive team coaches",
+      "item3": "Coaches who value privacy and own their data"
     },
     "challenges": {
       "title": "Common Challenges for Coaches",
-      "challenge1": "Planning positions ahead of time practically requires using grid notebooks and loose papers, which can be cumbersome to use",
-      "challenge2": "Multiple tools needed on game day: clipboard, stopwatch, notebook",
-      "challenge3": "Coach needs to focus on the match and doesn't have time to easily document field events besides substitution moments",
-      "challenge4": "Most things on match day remain undocumented and eventually get completely forgotten",
-      "challenge5": "No easy way to track development and trends over longer periods like seasons or tournaments",
-      "challenge6": "Risk that decisions and assessments over the long term are based on intuition rather than data",
-      "challenge7": "Justifying gut-feeling decisions can be challenging"
+      "challenge1": "Juggling multiple tools on game day: clipboard, stopwatch, notebook, lineup sheet",
+      "challenge2": "Tracking substitution intervals is tricky—you can't substitute until the game allows it, intervals stretch, and counting in your head takes focus away from what matters",
+      "challenge3": "Coach must focus on the game, so most events go undocumented and are soon forgotten",
+      "challenge4": "No easy way to track trends, player development, or build statistics across a season",
+      "challenge5": "Long-term decisions end up based on memory rather than actual data"
     },
     "whatYouCanDo": {
       "title": "What You Can Do With It",
@@ -147,7 +152,7 @@
       "q4": "How do I back up my data?",
       "a4": "Open the Settings menu and use the Export function. This creates a JSON file with all your data that you can save and import later.",
       "q5": "Can I edit game data after it's recorded?",
-      "a5": "Yes. You can edit, add or delete goal events, and edit match details. Just open the game from your history and make corrections.",
+      "a5": "Yes. You can edit, add, or delete goal events and modify match details. Just open the game from your history and make corrections.",
       "q6": "What happens if I lose my phone or it breaks?",
       "a6": "If you've made regular exports (backups), you can import your data on a new device. Without backups, data is lost with the device.",
       "q7": "Can I manage multiple teams?",

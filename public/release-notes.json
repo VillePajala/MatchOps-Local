@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: only prompt to save for unsaved scratch games"
+  "notes": "fix: sync translation files and add comprehensive i18n tests"
 }

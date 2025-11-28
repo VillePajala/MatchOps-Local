@@ -34,15 +34,16 @@ export function FirstGameGuide({ step, onStepChange, onClose }: FirstGameGuidePr
           <div className="h-px bg-indigo-400/20 mt-3" />
         </div>
 
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
           {step === 0 && <GuideStepOne />}
           {step === 1 && <GuideStepTwo />}
           {step === 2 && <GuideStepThree />}
           {step === 3 && <GuideStepFour />}
+          {step === 4 && <GuideStepFive />}
         </div>
 
         <div className="flex items-center justify-center gap-3 mt-4">
-          {[0, 1, 2, 3].map((i) => (
+          {[0, 1, 2, 3, 4].map((i) => (
             <button
               key={i}
               onClick={() => onStepChange(i)}
@@ -66,9 +67,9 @@ export function FirstGameGuide({ step, onStepChange, onClose }: FirstGameGuidePr
             </svg>
             {t('common.backButton', 'Back')}
           </button>
-          {step < 3 ? (
+          {step < 4 ? (
             <button
-              onClick={() => onStepChange(Math.min(3, step + 1))}
+              onClick={() => onStepChange(Math.min(4, step + 1))}
               className="flex-1 inline-flex items-center justify-center gap-2 px-4 h-10 rounded-lg font-semibold text-white transition-colors text-sm bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400 shadow-md shadow-indigo-900/30 ring-1 ring-white/10"
             >
               {t('common.next', 'Next')}
@@ -200,7 +201,7 @@ function GuideStepFour() {
   return (
     <div className="space-y-3">
       <h3 className="font-semibold text-indigo-200 text-base">
-        {t('firstGameGuide.menuActions', 'Menu Actions')}
+        {t('firstGameGuide.gameManagement', 'Game Management')}
       </h3>
       <p className="text-sm text-slate-300 -mt-1">
         {t('firstGameGuide.menuActionsNote', 'Click the Menu button to access:')}
@@ -211,8 +212,25 @@ function GuideStepFour() {
         <li>{t('firstGameGuide.loadGameTip', 'Load a saved game')}</li>
         <li>{t('firstGameGuide.quickSaveTip', 'Quick save your game (Ctrl/Cmd+S)')}</li>
         <li>{t('firstGameGuide.goalLogTip', 'Log goals and events')}</li>
-        <li>{t('firstGameGuide.rosterManageTip', 'Manage your roster')}</li>
         <li>{t('firstGameGuide.gameSettingsTip', 'Edit game settings')}</li>
+      </ul>
+    </div>
+  );
+}
+
+function GuideStepFive() {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-3">
+      <h3 className="font-semibold text-indigo-200 text-base">
+        {t('firstGameGuide.otherFeatures', 'Other Features')}
+      </h3>
+      <p className="text-sm text-slate-300 -mt-1">
+        {t('firstGameGuide.otherFeaturesNote', 'Also available from the Menu:')}
+        <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-indigo-300" size={18} />
+      </p>
+      <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
+        <li>{t('firstGameGuide.rosterManageTip', 'Manage your roster')}</li>
         <li>{t('firstGameGuide.statsReportsTip', 'View stats and reports')}</li>
         <li>{t('firstGameGuide.seasonsTeamsTip', 'Manage seasons, teams, and personnel')}</li>
         <li>{t('firstGameGuide.helpTip', 'Get help and instructions')}</li>

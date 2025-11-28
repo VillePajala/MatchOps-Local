@@ -4,7 +4,7 @@
   },
   "seo": {
     "home": {
-      "title": "MatchOps Local - Jalkapallovalmentajan sovellus paikallisella tietosuojalla",
+      "title": "MatchOps Local - Jalkapallovalmentajan sovellus, tietosi pysyvät laitteellasi",
       "description": "Ilmainen mobiilisovellus jalkapallovalmentajille. Hallitse joukkueita, seuraa pelejä reaaliaikaisesti, kerää tilastoja. Ei rekisteröitymistä. Tietosi pysyvät yksityisinä laitteellasi."
     },
     "technical": {
@@ -91,18 +91,23 @@
   "info": {
     "whatIsThis": {
       "title": "Mikä on MatchOps Local?",
-      "description": "MatchOps Local on mobiilisovellus jalkapallovalmentajille. Sen avulla hallitset joukkueita, seuraat ja dokumentoit pelejä reaaliaikaisesti, sekä keräät tilastoja—kaikki puhelimesta tai tabletista.",
+      "description": "MatchOps Local korvaa piirtolevysi, sekuntikellosi ja muistivihkosi yhdellä sovelluksella. Suunnittele kokoonpano ja pelipaikat ennen peliä. Pelin aikana seuraa vaihtovälejä, kirjaa maalit ja syötöt napautuksella. Tilastosi kertyvät automaattisesti—ottelutulokset, pistepörssi, kauden trendit.",
       "oneLine": "Ei rekisteröitymistä. Asenna kerran ja tietosi pysyvät yksityisinä laitteellasi. Toimii kaikkialla, jopa ilman nettiä."
+    },
+    "whoIsThisFor": {
+      "title": "Kenelle tämä on tarkoitettu?",
+      "description": "MatchOps Local on jalkapallovalmentajille kaikilla tasoilla—harrastejoukkueista kilpajoukkueisiin—jotka haluavat yksinkertaisen tavan järjestää pelejä ilman monimutkaisia joukkueenhallintaohjelmistoja tai kuukausimaksuja.",
+      "item1": "Juniorijoukkueiden valmentajat (U8–U19)",
+      "item2": "Harraste- ja kilpajoukkueiden valmentajat",
+      "item3": "Valmentajat, jotka arvostavat yksityisyyttä ja omistavat datansa"
     },
     "challenges": {
       "title": "Yleisiä haasteita valmentajille",
-      "challenge1": "Useita eri työkaluja pelipäivänä: piirtolevy, sekuntikello, muistivihko",
-      "challenge2": "Valmentajan täytyy keskittyä otteluun, eikä ehdi vaihtohetkien lisäksi dokumentoida kentän tapahtumia helposti",
-      "challenge3": "Ei helppoa tapaa seurata kehitystä ja trendejä pidemmällä aikavälillä kuten kaudella tai turnauksissa",
-      "challenge4": "Suunnittelu käyttäen vihkoja ja papereita voi olla sotkuista ja vaivalloista",
-      "challenge5": "Useimmat ottelupäivän asiat jäävät dokumentoimatta ja unohtuvat lopulta kokonaan",
-      "challenge6": "On riski, että päätökset ja arviot pitkällä aikavälillä perustuvat intuitioon eivätkä dataan",
-      "challenge7": "Mututiedon perustelu voi olla haastavaa"
+      "challenge1": "Useiden työkalujen kanssa säätäminen pelipäivänä: piirtolevy, sekuntikello, muistivihko, kokoonpanolista",
+      "challenge2": "Vaihtovälien seuraaminen on hankalaa—et voi vaihtaa ennen kuin peli sen sallii, välit venyvät, ja päässälaskeminen on turhaa työtä pois tärkeämmästä",
+      "challenge3": "Valmentajan täytyy keskittyä peliin, joten useimmat tapahtumat jäävät kirjaamatta ja unohtuvat pian",
+      "challenge4": "Ei helppoa tapaa seurata trendejä, pelaajien kehitystä tai kerätä tilastoja kauden aikana",
+      "challenge5": "Pitkän aikavälin päätökset perustuvat lopulta muistiin eikä oikeaan dataan"
     },
     "whatYouCanDo": {
       "title": "Mitä voit tehdä sovelluksella",
@@ -124,10 +129,10 @@
       "afterGame": {
         "title": "Pelin jälkeen",
         "item1": "Käy läpi pelin tilastot ja tapahtumat",
-        "item2": "Katso joukkueen statistiikka",
-        "item3": "Katso pelaajien statistiikka",
+        "item2": "Katso joukkueen tilastot",
+        "item3": "Katso pelaajien tilastot",
         "item4": "Vertaa tilastoja pelien, kausien ja turnausten välillä",
-        "item5": "Halutessasi voi arvioida yksittäisten pelaajien suoritukset 10 eri mittarilla"
+        "item5": "Halutessasi voit arvioida yksittäisten pelaajien suoritukset 10 eri mittarilla"
       }
     },
     "technical": {
