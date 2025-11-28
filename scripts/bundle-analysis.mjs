@@ -19,9 +19,9 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-function analyzeBundleSize() {
+async function analyzeBundleSize() {
   const buildStatsPath = join(BUILD_DIR, 'trace');
-  
+
   if (!existsSync(BUILD_DIR)) {
     console.log('❌ Build directory not found');
     process.exit(1);
@@ -58,4 +58,4 @@ function analyzeBundleSize() {
   }
 }
 
-analyzeBundleSize();
+await analyzeBundleSize();

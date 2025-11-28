@@ -1,6 +1,13 @@
 import '@testing-library/jest-dom';
 import 'jest-canvas-mock';
 
+// Mock Sentry to avoid import errors in tests
+jest.mock('@sentry/nextjs', () => ({
+  captureException: jest.fn(),
+  captureMessage: jest.fn(),
+  withScope: jest.fn((callback) => callback({ setTag: jest.fn(), setContext: jest.fn() })),
+}));
+
 // Initialize i18n for tests with English language
 import i18n from './i18n.ts';
 // Immediately change to English synchronously if possible, or queue it

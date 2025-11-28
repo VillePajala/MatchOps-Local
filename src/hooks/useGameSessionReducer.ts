@@ -1,4 +1,4 @@
-import { GameEvent } from '@/types';
+import { GameEvent, SubAlertLevel } from '@/types';
 import logger from '@/utils/logger';
 
 // --- State Definition ---
@@ -31,7 +31,7 @@ export interface GameSessionState {
   isTimerRunning: boolean;
   subIntervalMinutes: number;
   nextSubDueTimeSeconds: number;
-  subAlertLevel: 'none' | 'warning' | 'due';
+  subAlertLevel: SubAlertLevel;
   lastSubConfirmationTimeSeconds: number;
   completedIntervalDurations?: IntervalLog[]; // Made optional to align with AppState
   showPlayerNames: boolean;
@@ -60,7 +60,7 @@ export const initialGameSessionStatePlaceholder: GameSessionState = {
   gameNotes: '',
   homeOrAway: 'home',
   numberOfPeriods: 2,
-  periodDurationMinutes: 10,
+  periodDurationMinutes: 15,
   currentPeriod: 1,
   gameStatus: 'notStarted',
   selectedPlayerIds: [],
@@ -115,7 +115,8 @@ export type GameSessionAction =
   | { type: 'SET_DEMAND_FACTOR'; payload: number }
   | { type: 'ADD_GAME_EVENT'; payload: GameEvent }
   | { type: 'UPDATE_GAME_EVENT'; payload: GameEvent }
-  | { type: 'DELETE_GAME_EVENT'; payload: string } // eventId
+  | { type: 'DELETE_GAME_EVENT'; payload: string } // eventId (legacy - kept for tests)
+  | { type: 'DELETE_GAME_EVENT_WITH_SCORE'; payload: GameEvent } // Atomic delete + score adjustment
   | { type: 'SET_TIMER_ELAPSED'; payload: number }
   | { type: 'SET_TIMER_RUNNING'; payload: boolean }
   | { type: 'SET_SUB_INTERVAL'; payload: number } // subIntervalMinutes
@@ -163,8 +164,25 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
     }
     case 'SET_GAME_NOTES':
       return { ...state, gameNotes: action.payload };
-    case 'SET_HOME_OR_AWAY':
-      return { ...state, homeOrAway: action.payload };
+    case 'SET_HOME_OR_AWAY': {
+      // When switching home/away, swap the scores because homeScore/awayScore
+      // refer to the position (home team vs away team), not the user's team.
+      const newHomeOrAway = action.payload;
+      const isChanging = state.homeOrAway !== newHomeOrAway;
+
+      if (isChanging) {
+        // Swap scores when toggling
+        return {
+          ...state,
+          homeOrAway: newHomeOrAway,
+          homeScore: state.awayScore,
+          awayScore: state.homeScore,
+        };
+      }
+
+      // No change, return state as-is
+      return state;
+    }
     case 'SET_NUMBER_OF_PERIODS':
       return { ...state, numberOfPeriods: action.payload };
     case 'SET_PERIOD_DURATION':
@@ -258,6 +276,37 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
     }
     case 'DELETE_GAME_EVENT': {
       return { ...state, gameEvents: state.gameEvents.filter(e => e.id !== action.payload) };
+    }
+    case 'DELETE_GAME_EVENT_WITH_SCORE': {
+      // Atomic operation: Delete event + adjust score in single state update
+      // This prevents race conditions where event and score could become out of sync
+      const eventToDelete = action.payload;
+      const newGameEvents = state.gameEvents.filter(e => e.id !== eventToDelete.id);
+
+      // Calculate score adjustment if it's a goal event
+      let newHomeScore = state.homeScore;
+      let newAwayScore = state.awayScore;
+
+      if (eventToDelete.type === 'goal') {
+        if (state.homeOrAway === 'home') {
+          newHomeScore = Math.max(0, state.homeScore - 1);
+        } else {
+          newAwayScore = Math.max(0, state.awayScore - 1);
+        }
+      } else if (eventToDelete.type === 'opponentGoal') {
+        if (state.homeOrAway === 'home') {
+          newAwayScore = Math.max(0, state.awayScore - 1);
+        } else {
+          newHomeScore = Math.max(0, state.homeScore - 1);
+        }
+      }
+
+      return {
+        ...state,
+        gameEvents: newGameEvents,
+        homeScore: newHomeScore,
+        awayScore: newAwayScore
+      };
     }
     case 'SET_TIMER_ELAPSED': {
         // Ignore timer updates when timer is not running to prevent race conditions
@@ -393,6 +442,9 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const numberOfPeriods = loadedData.numberOfPeriods ?? initialGameSessionStatePlaceholder.numberOfPeriods;
       const periodDurationMinutes = loadedData.periodDurationMinutes ?? initialGameSessionStatePlaceholder.periodDurationMinutes;
       const currentPeriod = loadedData.currentPeriod ?? 1;
+
+      // Never restore 'inProgress' status - timer must be manually restarted by user.
+      // This prevents auto-starting timers on app reload (better UX and safety).
       const gameStatus = loadedData.gameStatus && ['notStarted', 'periodEnd', 'gameEnd'].includes(loadedData.gameStatus)
         ? loadedData.gameStatus
         : 'notStarted';
