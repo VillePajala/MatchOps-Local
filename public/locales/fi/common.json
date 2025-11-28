@@ -249,19 +249,15 @@
       "step1Desc": "Lisää kaikki käytettävissä olevat pelaajat nimillä. Tämä on perusrekisteri josta valitset pelaajat peleihin. Voit lisätä pelaajia milloin tahansa.",
       "step2Title": "2. Luo joukkue (valinnainen)",
       "step2Desc": "Järjestä pelaajat joukkueisiin jos sinulla on useita kokoonpanoja (esim. A-joukkue, B-joukkue, ikäluokat). Joukkueita voi käyttää useissa peleissä.",
-      "step3Title": "3. Luo turnaus / kausi (valinnainen)", 
+      "step3Title": "3. Luo turnaus / kausi (valinnainen)",
       "step3Desc": "Luo kausi pitkäaikaiselle seurannalle tai turnaus tietylle kilpailulle. Saat erilliset tilastot jokaiselle turnaukselle/kaudelle.",
       "step4Title": "4. Aloita uusi peli",
       "step4Desc": "Aseta vastustaja, päivämäärä, aika ja peliformaatti. Liitä peli joukkueeseen ja turnaukseen/kauteen jos haluat järjestää tilastoja.",
-      "step5Title": "5. Suunnittele kokoonpano", 
+      "step5Title": "5. Suunnittele kokoonpano",
       "step5Desc": "Vedä pelaajat yläpalkista kentälle haluamaasi muodostelmaan. Voit asettaa maalivahdin, siirtää pelaajia ja suunnitella sijoitukset."
     },
     "duringGame": {
-      "title": "Pelin aikana",
-      "step6Title": "6. Suunnittele / piirrä taktisia kuvioita",
-      "step6Desc": "Käytä taktiikka-tilaa piirtääksesi nuolia ja viivoja. Tallenna taktisia suunnitelmia, juoksureittejä ja pelitilanteita kentälle.",
-      "step7Title": "7. Käynnistä pelikello ja kirjaa tapahtumia",
-      "step7Desc": "Käynnistä ajastin ja kirjaa maalit, vaihdot ja muut tapahtumat reaaliaikaisesti. Seuraa peliaikaa ja vaihtovälejä automaattisesti."
+      "title": "Pelin aikana"
     },
     "afterGameSection": {
       "title": "Pelin jälkeen",
@@ -270,17 +266,6 @@
       "viewStats": "Tarkastele yksityiskohtaisia tilastoja: maalit, syötöt, peliajat, arvosanat",
       "exportData": "Vie kaikki datasi CSV-muodossa jatkoanalyysiä tai varmuuskopiointia varten",
       "reviewGame": "Käy läpi pelin tapahtumat, taktisia piirroksia ja kokoonpanoja"
-    },
-    "legacyDuringGame": {
-      "title": "Pelin aikana",
-      "fieldTitle": "Kentän hallinta",
-      "dragPlayers": "Vedä pelaajalaattoja yläpalkista kentälle näyttämään sijainnit",
-      "drawTactics": "Piirrä nuolia ja viivoja taktiikan ja liikkeiden tallentamiseksi",
-      "trackSubs": "Käytä ajastinnäkymää vaihtojen seurantaan",
-      "scoringTitle": "Tapahtumien kirjaus",
-      "logGoals": "Klikkaa maalipainikkeita kirjataksesi tekijän ja syöttäjän",
-      "timer": "Käynnistä/pysäytä peliajastin seurataksesi todellista peliaikaa",
-      "periods": "Etene erien/puoliaikojen läpi pelin edetessä"
     },
     "afterGame": {
       "title": "Pelin jälkeen",
@@ -329,19 +314,6 @@
       "language": "Vaihda kieltä lennossa",
       "fullscreen": "Siirry koko näyttöön parempaa näkyvyyttä varten",
       "settings": "Säädä sovelluksen asetuksia tarpeidesi mukaan"
-    },
-    "playerBarTitle": "Pelaajapalkki (Yläosa)",
-    "playerBar": {
-      "selectPlayer": "Valitse pelaaja: Napauta pelaajakiekkoa valitaksesi sen sijoittamista varten.",
-      "deselectPlayer": "Poista valinta: Napauta valittua pelaajakiekkoa uudelleen tai napauta palkin taustaa.",
-      "scrollBar": "Vieritä palkkia: Jos pelaajat ylittävät tilan, vieritä vaakasuunnassa."
-    },
-    "fieldAreaTitle": "Kenttäalue",
-    "fieldArea": {
-      "movePlayer": "Siirrä pelaajaa/vastustajaa: Vedä kentälle asetettua kiekkoa.",
-      "addPlacePlayer": "Lisää/Sijoita pelaaja: Valitse pelaaja yläpalkista, napauta tai vedä kentälle.",
-      "removePlayer": "Poista pelaaja/vastustaja: Kaksoisnapauta/napsauta kiekkoa kentällä.",
-      "drawLines": "Piirrä viivoja: Vedä kentän tyhjällä alueella."
     },
     "controlBarTitle": "Ohjauspalkki (Alaosa)",
     "controlBar": {
@@ -462,6 +434,11 @@
     }
   },
   "rosterSettingsModal": {
+    "errors": {
+      "nameRequired": "Pelaajan nimi ei voi olla tyhjä.",
+      "duplicateName": "Pelaaja tällä nimellä on jo olemassa. Käytä eri nimeä.",
+      "duplicateNumber": "Pelaaja tällä pelinumerolla on jo olemassa. Käytä eri numeroa tai jätä tyhjäksi."
+    },
     "title": "Kaikki pelaajat",
     "unsetGoalie": "Poista maalivahdin merkintä",
     "setGoalie": "Aseta maalivahdiksi",
@@ -1371,13 +1348,6 @@
     "exportStatsFailed": "Tilastojen vienti epäonnistui. Yritä uudelleen.",
     "exportPlayerFailed": "Pelaajan tilastojen vienti epäonnistui. Yritä uudelleen.",
     "noGamesInSelection": "Yksikään peli ei täsmää valittuun suodattimeen."
-  },
-  "rosterSettingsModal": {
-    "errors": {
-      "nameRequired": "Pelaajan nimi ei voi olla tyhjä.",
-      "duplicateName": "Pelaaja tällä nimellä on jo olemassa. Käytä eri nimeä.",
-      "duplicateNumber": "Pelaaja tällä pelinumerolla on jo olemassa. Käytä eri numeroa tai jätä tyhjäksi."
-    }
   },
   "reset": {
     "resetting": "Nollataan sovellusta...",
