@@ -798,6 +798,18 @@ This includes:
 
 ---
 
+## 📚 HISTORICAL REFERENCE POINTS
+
+Key commits preserved for rollback reference (branches deleted after documentation):
+
+| Date | Commit | Description |
+|------|--------|-------------|
+| Sep 19, 2025 | `385c834` | **Pre-M1 Snapshot** — State after M0 completion (logger, Sentry, analytics gating, PWA dedup), before architecture refactoring began |
+
+To access any historical point: `git checkout <commit-hash>`
+
+---
+
 **Document Owner**: Development Team
-**Last Updated**: January 21, 2025
-**Next Review**: After hook splitting complete (December 2025)
+**Last Updated**: November 28, 2025
+**Next Review**: As needed
