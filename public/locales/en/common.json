@@ -158,7 +158,9 @@
     "addPlayers": "Add Players",
     "reset": "Reset",
     "startNew": "Start New",
-    "continue": "Continue"
+    "continue": "Continue",
+    "backButton": "Back",
+    "next": "Next"
   },
   "backupRestore": {
     "resultsTitle": "Backup Restore Complete",
@@ -189,10 +191,64 @@
     "warnings": "Warnings"
   },
   "gameStatsModal": {
+    "title": "Game Statistics",
+    "closeButton": "Close",
+    "editButton": "Edit",
+    "saveButton": "Save",
+    "cancelButton": "Cancel",
+    "gameInfoTitle": "Game Information",
+    "opponentPlaceholder": "Opponent Name",
+    "playerStatsTitle": "Player Stats",
+    "playerHeader": "Player",
+    "goalsHeader": "G",
+    "assistsHeader": "A",
+    "goalLogTitle": "Goal Log",
+    "assistPrefix": "A:",
+    "noGoalsLogged": "No goals logged yet.",
+    "tapToEdit": "Tap to edit",
+    "tapToEditScore": "Tap to edit score",
+    "resetStatsButton": "Reset",
+    "editNotesButton": "Edit Notes",
+    "notesTitle": "Game Notes",
+    "resetConfirmation": "Are you sure you want to reset all game statistics?",
+    "winning": "Winning",
+    "losing": "Losing",
+    "draw": "Draw",
+    "tasoLink": "Log data to Taso",
+    "exportJsonButton": "Export JSON",
+    "exportExcelButton": "Export Excel",
+    "tabs": {
+      "currentGame": "Current",
+      "season": "Season",
+      "tournament": "Tournament",
+      "overall": "Overall",
+      "player": "Player"
+    },
+    "filterAllSeasons": "All Seasons",
+    "filterAllTournaments": "All Tournaments",
+    "titleSeason": "Season Stats",
+    "titleTournament": "Tournament Stats",
+    "titleOverall": "Overall Stats",
+    "titleCurrentGame": "Current Game Stats",
+    "invalidTimeFormat": "Invalid time format. MM:SS",
+    "scorerRequired": "Scorer must be selected.",
+    "confirmDeleteEvent": "Are you sure you want to delete this event? This cannot be undone.",
+    "confirmDeleteEventTitle": "Delete Event",
+    "deleteWarning": "This action is permanent.",
+    "overallSummary": "Overall Summary",
+    "allSeasonsStats": "All Seasons Stats",
+    "allTournamentsStats": "All Tournaments Stats",
+    "seasonStats": "Season Statistics",
+    "tournamentStats": "Tournament Statistics",
+    "noStatsAvailable": "No statistics available.",
+    "notesPlaceholder": "Add notes here...",
+    "noNotes": "No notes added",
     "noTeamGamesTitle": "No games for the selected team in this context",
     "noTeamGamesSubtitle": "Choose another team or adjust filters to view player statistics.",
-    "filterAllSeasons": "All Seasons",
-    "filterAllTournaments": "All Tournaments"
+    "game": "Game",
+    "games": "Games",
+    "noSeasonGames": "No games found for this season.",
+    "noTournamentGames": "No games found for this tournament."
   },
   "importResults": {
     "title": "Import Results",
@@ -240,7 +296,8 @@
     "subIntervalLabel": "Sub Interval:",
     "disabledWhenPaused": "Disabled while paused",
     "periodShort": "P",
-    "fullTime": "FT"
+    "fullTime": "FT",
+    "editOpponentNameTitle": "Click to edit opponent name"
   },
   "instructionsModal": {
     "title": "How It Works",
@@ -260,15 +317,7 @@
       "step5Desc": "Drag players from top bar onto field in your desired formation. Set goalkeeper, move players around, and plan positions."
     },
     "duringGame": {
-      "title": "During the Game",
-      "fieldTitle": "Managing the Field",
-      "dragPlayers": "Drag player discs from the top bar onto the field to show positions",
-      "drawTactics": "Draw arrows and lines to capture tactics and movements",
-      "trackSubs": "Use the timer overlay to track substitution intervals",
-      "scoringTitle": "Recording Events",
-      "logGoals": "Click goal buttons to record who scored and assisted",
-      "timer": "Start/stop the game timer to track actual playing time",
-      "periods": "Advance through periods/halves as the game progresses"
+      "title": "During the Game"
     },
     "afterGameSection": {
       "title": "After the Game",
@@ -346,8 +395,7 @@
       "setInterval": "Adjust Sub Interval: Use +/- buttons.",
       "subAlerts": "Sub Alerts: Yellow = 1 min warning, Red = Due.",
       "confirmSub": "Confirm Substitution: Press \"Substitution Made\".",
-      "playTimeHistory": "View Play Time: Lists completed intervals and last confirmation time.",
-      "editOpponentNameTitle": "Click to edit opponent name"
+      "playTimeHistory": "View Play Time: Lists completed intervals and last confirmation time."
     },
     "generalTitle": "General",
     "general": {
@@ -446,6 +494,11 @@
     }
   },
   "rosterSettingsModal": {
+    "errors": {
+      "nameRequired": "Player name cannot be empty.",
+      "duplicateName": "A player with this name already exists. Please use a different name.",
+      "duplicateNumber": "A player with this jersey number already exists. Please use a different number or leave it blank."
+    },
     "title": "All Players",
     "unsetGoalie": "Unset Goalie",
     "setGoalie": "Set Goalie",
@@ -467,60 +520,6 @@
     "confirmDeletePlayer": "Are you sure you want to remove this player?",
     "confirmDeletePlayerTitle": "Remove Player",
     "searchPlaceholder": "Search players..."
-  },
-  "gameStatsModal": {
-    "title": "Game Statistics",
-    "closeButton": "Close",
-    "editButton": "Edit",
-    "saveButton": "Save",
-    "cancelButton": "Cancel",
-    "gameInfoTitle": "Game Information",
-    "opponentPlaceholder": "Opponent Name",
-    "playerStatsTitle": "Player Stats",
-    "playerHeader": "Player",
-    "goalsHeader": "G",
-    "assistsHeader": "A",
-    "goalLogTitle": "Goal Log",
-    "assistPrefix": "A:",
-    "noGoalsLogged": "No goals logged yet.",
-    "tapToEdit": "Tap to edit",
-    "tapToEditScore": "Tap to edit score",
-    "resetStatsButton": "Reset",
-    "editNotesButton": "Edit Notes",
-    "notesTitle": "Game Notes",
-    "resetConfirmation": "Are you sure you want to reset all game statistics?",
-    "winning": "Winning",
-    "losing": "Losing",
-    "draw": "Draw",
-    "tasoLink": "Log data to Taso",
-    "exportJsonButton": "Export JSON",
-    "exportExcelButton": "Export Excel",
-    "tabs": {
-      "currentGame": "Current",
-      "season": "Season",
-      "tournament": "Tournament",
-      "overall": "Overall",
-      "player": "Player"
-    },
-    "filterAllSeasons": "All Seasons",
-    "filterAllTournaments": "All Tournaments",
-    "titleSeason": "Season Stats",
-    "titleTournament": "Tournament Stats",
-    "titleOverall": "Overall Stats",
-    "titleCurrentGame": "Current Game Stats",
-    "invalidTimeFormat": "Invalid time format. MM:SS",
-    "scorerRequired": "Scorer must be selected.",
-    "confirmDeleteEvent": "Are you sure you want to delete this event? This cannot be undone.",
-    "confirmDeleteEventTitle": "Delete Event",
-    "deleteWarning": "This action is permanent.",
-    "overallSummary": "Overall Summary",
-    "allSeasonsStats": "All Seasons Stats",
-    "allTournamentsStats": "All Tournaments Stats",
-    "seasonStats": "Season Statistics",
-    "tournamentStats": "Tournament Statistics",
-    "noStatsAvailable": "No statistics available.",
-    "notesPlaceholder": "Add notes here...",
-    "noNotes": "No notes added"
   },
   "loadGameModal": {
     "title": "Load Game",
@@ -899,6 +898,12 @@
     "goalieLabel": "Goalkeeper"
   },
   "personnelDetailsModal": {
+    "errors": {
+      "nameRequired": "Personnel name cannot be empty.",
+      "duplicateName": "A personnel member with this name already exists. Please choose a different name.",
+      "createFailed": "Failed to add personnel. Please try again.",
+      "updateFailed": "Failed to update personnel. Please try again."
+    },
     "createTitle": "Add Personnel",
     "editTitle": "Personnel Details",
     "nameLabel": "Name",
@@ -915,6 +920,11 @@
     "notesPlaceholder": "Additional notes"
   },
   "seasonDetailsModal": {
+    "errors": {
+      "duplicateName": "A season with this name already exists. Please choose a different name.",
+      "createFailed": "Failed to create season. Please try again.",
+      "updateFailed": "Failed to update season. Please try again."
+    },
     "title": "Season Details",
     "gameSingular": "Game",
     "games": "Games",
@@ -940,6 +950,11 @@
     "archivedLabel": "Archived"
   },
   "tournamentDetailsModal": {
+    "errors": {
+      "duplicateName": "A tournament with this name already exists. Please choose a different name.",
+      "createFailed": "Failed to create tournament. Please try again.",
+      "updateFailed": "Failed to update tournament. Please try again."
+    },
     "title": "Tournament Details",
     "gameSingular": "Game",
     "games": "Games",
@@ -1333,35 +1348,6 @@
     "exportStatsFailed": "Failed to export stats. Please try again.",
     "exportPlayerFailed": "Failed to export player stats. Please try again.",
     "noGamesInSelection": "No games match the current filter."
-  },
-  "rosterSettingsModal": {
-    "errors": {
-      "nameRequired": "Player name cannot be empty.",
-      "duplicateName": "A player with this name already exists. Please use a different name.",
-      "duplicateNumber": "A player with this jersey number already exists. Please use a different number or leave it blank."
-    }
-  },
-  "seasonDetailsModal": {
-    "errors": {
-      "duplicateName": "A season with this name already exists. Please choose a different name.",
-      "createFailed": "Failed to create season. Please try again.",
-      "updateFailed": "Failed to update season. Please try again."
-    }
-  },
-  "tournamentDetailsModal": {
-    "errors": {
-      "duplicateName": "A tournament with this name already exists. Please choose a different name.",
-      "createFailed": "Failed to create tournament. Please try again.",
-      "updateFailed": "Failed to update tournament. Please try again."
-    }
-  },
-  "personnelDetailsModal": {
-    "errors": {
-      "nameRequired": "Personnel name cannot be empty.",
-      "duplicateName": "A personnel member with this name already exists. Please choose a different name.",
-      "createFailed": "Failed to add personnel. Please try again.",
-      "updateFailed": "Failed to update personnel. Please try again."
-    }
   },
   "reset": {
     "resetting": "Resetting Application...",
