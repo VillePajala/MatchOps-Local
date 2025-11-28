@@ -255,6 +255,7 @@
 - [x] Storage helper created (`src/utils/storage.ts` - 847 lines)
 - [x] localStorage elimination (removed all fallbacks from storageFactory)
 - [x] All 8 utility files converted (savedGames, masterRoster, appSettings, seasons, tournaments, teams, playerAdjustments, fullBackup)
+- [x] Saved games deduped to React Query cache (useGameOrchestration)
 - [x] Component integration (i18n.ts, useGameTimer.ts, HomePage.tsx)
 - [x] Error logging added to all empty catch blocks
 - [x] 144+ tests passing with async patterns

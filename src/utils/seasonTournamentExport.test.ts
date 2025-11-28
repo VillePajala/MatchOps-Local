@@ -46,7 +46,11 @@ describe('season/tournament export utilities', () => {
   it('imports seasons from JSON', () => {
     const seasons: Season[] = [{ id: 's1', name: 'Season 1' }];
     expect(importSeasonsJson(JSON.stringify(seasons))).toEqual(seasons);
+
+    // Suppress expected warning for error case
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
     expect(importSeasonsJson('bad json')).toBeNull();
+    warnSpy.mockRestore();
   });
 
   it('exports tournaments as JSON', async () => {
@@ -62,7 +66,11 @@ describe('season/tournament export utilities', () => {
   it('imports tournaments from JSON', () => {
     const tournaments: Tournament[] = [{ id: 't1', name: 'Tournament 1' }];
     expect(importTournamentsJson(JSON.stringify(tournaments))).toEqual(tournaments);
+
+    // Suppress expected warning for error case
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
     expect(importTournamentsJson('bad')).toBeNull();
+    warnSpy.mockRestore();
   });
 
 });

@@ -7,24 +7,20 @@ import usePlayerAssessments from '@/hooks/usePlayerAssessments';
 import { exportFullBackup } from '@/utils/fullBackup';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
-import { useGameTimer } from '@/hooks/useGameTimer';
-import { useAutoSave } from '@/hooks/useAutoSave';
-import { useFieldInteractions } from '@/hooks/useFieldInteractions';
-import { useGameState } from '@/hooks/useGameState';
-import type { UseGameStateReturn } from '@/hooks/useGameState';
+import { useFieldCoordination } from './useFieldCoordination';
+import { useTimerManagement } from './useTimerManagement';
 // Import game session types (reducer is used internally by useGameSessionWithHistory)
 import {
   GameSessionState,
   // initialGameSessionStatePlaceholder // We will derive initial state from page.tsx's initialState
 } from '@/hooks/useGameSessionReducer';
-import { useGameSessionWithHistory } from '@/hooks/useGameSessionWithHistory';
 // Import roster utility functions
 // roster mutations now managed inside useRoster hook
 
 // Removed unused import of utilGetMasterRoster
 
 // Import utility functions for seasons and tournaments
-import { saveGame as utilSaveGame, deleteGame as utilDeleteGame, getLatestGameId, createGame, getSavedGames as utilGetSavedGames, removeGameEvent } from '@/utils/savedGames';
+import { saveGame as utilSaveGame, getLatestGameId, getSavedGames as utilGetSavedGames } from '@/utils/savedGames';
 import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
   resetAppSettings as utilResetAppSettings,
@@ -41,12 +37,12 @@ import type { GameEvent, AppState, SavedGamesCollection, TimerState, PlayerAsses
 import { saveMasterRoster } from '@/utils/masterRoster';
 // Import useQuery, useMutation, useQueryClient
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useUndoRedo } from '@/hooks/useUndoRedo';
-import { useTacticalHistory, type TacticalState } from '@/hooks/useTacticalHistory';
-import { useTacticalBoard } from '@/hooks/useTacticalBoard';
 import { useRoster } from '@/hooks/useRoster';
-import { useModalContext } from '@/contexts/ModalProvider';
 import { useGameDataManagement } from './useGameDataManagement';
+import { useGameSessionCoordination } from './useGameSessionCoordination';
+import { useGamePersistence } from './useGamePersistence';
+import { useModalOrchestration } from './useModalOrchestration';
+import { useModalContext } from '@/contexts/ModalProvider';
 // Import async storage utilities
 import {
   getStorageItem,
@@ -67,7 +63,7 @@ import logger from '@/utils/logger';
 import { startNewGameWithSetup, cancelNewGameSetup } from '../utils/newGameHandlers';
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
-import type { FieldContainerProps, FieldInteractions, TimerInteractions } from '@/components/HomePage/containers/FieldContainer';
+import type { FieldContainerProps, FieldInteractions } from '@/components/HomePage/containers/FieldContainer';
 import type { ReducerDrivenModals } from '@/types';
 import { debug } from '@/utils/debug';
 
@@ -92,7 +88,7 @@ const initialState: AppState = {
   homeOrAway: 'home', // <<< Step 1: Initialize field
   // Initialize game structure
   numberOfPeriods: 2,
-  periodDurationMinutes: 10, // Default to 10 minutes
+  periodDurationMinutes: 15, // Default to 15 minutes
   currentPeriod: 1,
   gameStatus: 'notStarted', // Initialize game status
   demandFactor: 1,
@@ -135,201 +131,34 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const { t } = useTranslation(); // Get translation function
   const queryClient = useQueryClient(); // Get query client instance
 
- 
-  
-  // --- Initialize Game Session Reducer ---
-  // Map necessary fields from page.tsx's initialState to GameSessionState
-  const initialGameSessionData: GameSessionState = {
-    teamName: initialState.teamName,
-    opponentName: initialState.opponentName,
-    gameDate: initialState.gameDate,
-    homeScore: initialState.homeScore,
-    awayScore: initialState.awayScore,
-    gameNotes: initialState.gameNotes,
-    homeOrAway: initialState.homeOrAway,
-    numberOfPeriods: initialState.numberOfPeriods,
-    periodDurationMinutes: initialState.periodDurationMinutes,
-    currentPeriod: initialState.currentPeriod,
-    gameStatus: initialState.gameStatus,
-    demandFactor: initialState.demandFactor ?? 1,
-    selectedPlayerIds: initialState.selectedPlayerIds,
-    gamePersonnel: initialState.gamePersonnel ?? [],
-    seasonId: initialState.seasonId,
-    tournamentId: initialState.tournamentId,
-    ageGroup: initialState.ageGroup,
-    tournamentLevel: initialState.tournamentLevel,
-    gameLocation: initialState.gameLocation,
-    gameTime: initialState.gameTime,
-    gameEvents: initialState.gameEvents,
-    timeElapsedInSeconds: 0, // Initial timer state should be 0
-    isTimerRunning: false,    // Initial timer state
-    subIntervalMinutes: initialState.subIntervalMinutes ?? 5,
-    nextSubDueTimeSeconds: (initialState.subIntervalMinutes ?? 5) * 60,
-    subAlertLevel: 'none',
-    lastSubConfirmationTimeSeconds: 0,
-    completedIntervalDurations: initialState.completedIntervalDurations || [],
-    showPlayerNames: initialState.showPlayerNames,
-    startTimestamp: null,
-  };
+  // --- Game Session Coordination (Step 2.6.2) ---
+  const sessionCoordination = useGameSessionCoordination({
+    initialState,
+  });
 
-  // --- History Management ---
+  // Destructure commonly used values for convenience
   const {
-    state: currentHistoryState,
-    set: pushHistoryState,
-    reset: resetHistory,
+    gameSessionState,
+    dispatchGameSession,
+    initialGameSessionData,
     undo: undoHistory,
     redo: redoHistory,
     canUndo,
     canRedo,
-  } = useUndoRedo<AppState>(initialState);
+    resetHistory,
+    saveStateToHistory: saveStateToHistoryFromSession,
+    saveTacticalStateToHistory: saveTacticalStateToHistoryFromSession,
+    tacticalHistory,
+  } = sessionCoordination;
 
-  // --- Tactical History Management (Separate Stack) ---
-  const initialTacticalState = {
-    tacticalDiscs: initialState.tacticalDiscs,
-    tacticalDrawings: initialState.tacticalDrawings,
-    tacticalBallPosition: initialState.tacticalBallPosition,
-  };
-  const tacticalHistory = useTacticalHistory(initialTacticalState);
+  // Wrap in useCallback to satisfy custom lint rule (already stable from hook)
+  const saveStateToHistory = useCallback(saveStateToHistoryFromSession, [saveStateToHistoryFromSession]);
+  const saveTacticalStateToHistory = useCallback(saveTacticalStateToHistoryFromSession, [saveTacticalStateToHistoryFromSession]);
 
-  // Internal callback that contains the actual logic
-  const saveStateToHistoryImpl = useCallback((newState: Partial<AppState>) => {
-    if (!currentHistoryState) return; // Should not happen
+  // --- Get showToast early (needed by Field Coordination) ---
+  const { showToast } = useToast();
 
-    // If newState includes seasonId, ensure tournamentId is cleared if seasonId is truthy
-    // This mirrors the reducer logic for SET_SEASON_ID.
-    // Similarly, if newState includes tournamentId, ensure seasonId is cleared if tournamentId is truthy.
-    const adjustedNewState: Partial<AppState> = {
-      ...newState,
-      ...(newState.seasonId && newState.tournamentId === undefined
-          ? { tournamentId: '' }
-          : {}),
-      ...(newState.tournamentId && newState.seasonId === undefined
-          ? { seasonId: '' }
-          : {}),
-    };
-
-    // Only compare the fields present in adjustedNewState to avoid
-    // expensive deep comparison of the full state tree.
-    const hasRelevantChanges = Object.keys(adjustedNewState).some((key) => {
-      const k = key as keyof AppState;
-      const prevVal = currentHistoryState[k];
-      // For primitives, strict equality is enough; for objects/arrays,
-      // fall back to a lightweight structural check via JSON serialization.
-      if (
-        prevVal === (adjustedNewState as AppState)[k]
-      ) {
-        return false;
-      }
-      // If both are objects/arrays, do a cheap structural compare per field
-      const isObjectLike = (val: unknown) => typeof val === 'object' && val !== null;
-      if (isObjectLike(prevVal) && isObjectLike((adjustedNewState as AppState)[k])) {
-        try {
-          return JSON.stringify(prevVal) !== JSON.stringify((adjustedNewState as AppState)[k]);
-        } catch {
-          // On serialization failure, assume changed to be safe
-          return true;
-        }
-      }
-      return true;
-    });
-
-    if (!hasRelevantChanges) return; // Don't save if nothing changed in provided fields
-
-    const nextState: AppState = { ...currentHistoryState, ...adjustedNewState };
-
-    pushHistoryState(nextState);
-
-  }, [currentHistoryState, pushHistoryState]);
-
-  // Keep ref always pointing to latest implementation
-  const saveStateToHistoryRef = useRef(saveStateToHistoryImpl);
-  useEffect(() => {
-    saveStateToHistoryRef.current = saveStateToHistoryImpl;
-  }, [saveStateToHistoryImpl]);
-
-  // Stable callback that never changes reference - prevents re-render loops in useGameState
-  // This calls the latest version via the ref, so it always has current closure values
-  const saveStateToHistory = useCallback((newState: Partial<AppState>) => {
-    saveStateToHistoryRef.current(newState);
-  }, []); // Empty deps - reference never changes
-
-  // Save tactical state via dedicated tactical history manager
-  // Save tactical state via dedicated tactical history manager
-  const saveTacticalStateToHistory = useCallback((newState: Partial<TacticalState>) => {
-    tacticalHistory.save(newState);
-  }, [tacticalHistory]);
-
-  const buildGameSessionHistorySlice = useCallback((state: GameSessionState) => {
-    const slice = {
-      teamName: state.teamName,
-      opponentName: state.opponentName,
-      gameDate: state.gameDate,
-      homeScore: state.homeScore,
-      awayScore: state.awayScore,
-      gameNotes: state.gameNotes,
-      homeOrAway: state.homeOrAway,
-      numberOfPeriods: state.numberOfPeriods,
-      periodDurationMinutes: state.periodDurationMinutes,
-      currentPeriod: state.currentPeriod,
-      gameStatus: state.gameStatus,
-      selectedPlayerIds: state.selectedPlayerIds,
-      gamePersonnel: state.gamePersonnel,
-      seasonId: state.seasonId,
-      tournamentId: state.tournamentId,
-      teamId: state.teamId,
-      ageGroup: state.ageGroup,
-      tournamentLevel: state.tournamentLevel,
-      gameLocation: state.gameLocation,
-      gameTime: state.gameTime,
-      gameEvents: state.gameEvents,
-      demandFactor: state.demandFactor,
-      subIntervalMinutes: state.subIntervalMinutes,
-      completedIntervalDurations: state.completedIntervalDurations,
-      lastSubConfirmationTimeSeconds: state.lastSubConfirmationTimeSeconds,
-      showPlayerNames: state.showPlayerNames,
-      timeElapsedInSeconds: state.timeElapsedInSeconds,
-    } satisfies Partial<AppState>;
-    return slice;
-  }, []);
-
-  // --- Game Session State with Automatic History Management ---
-  // Uses useGameSessionWithHistory hook which handles history saving automatically
-  // for user actions while skipping system actions (undo/redo/load)
-  const [gameSessionState, dispatchGameSession] = useGameSessionWithHistory(
-    initialGameSessionData,
-    {
-      buildHistorySlice: buildGameSessionHistorySlice,
-      saveToHistory: saveStateToHistory,
-    }
-  );
-  // END --- Game Session State ---
-
-  // --- Core Game State (Managed by Hook) ---
-  const {
-    playersOnField,
-    opponents,
-    drawings, // State from hook
-    setPlayersOnField,
-    setOpponents,
-    setDrawings,
-    handlePlayerDrop,
-    // Destructure drawing handlers from hook
-    handleDrawingStart,
-    handleDrawingAddPoint,
-    handleDrawingEnd,
-    handleClearDrawings,
-    // Get opponent handlers from hook
-    handleAddOpponent,
-    handleOpponentMove,
-    handleOpponentMoveEnd,
-    handleOpponentRemove,
-    // handleRenamePlayer, // This is the one from useGameState, will be passed to PlayerBar
-  }: UseGameStateReturn = useGameState({
-    initialState,
-    saveStateToHistory,
-    // masterRosterKey: MASTER_ROSTER_KEY, // Removed as no longer used by useGameState
-  });
-
+  // --- Roster Management (Must come before Field Coordination) ---
   const {
     availablePlayers,
     setAvailablePlayers,
@@ -348,6 +177,59 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     selectedPlayerIds: gameSessionState.selectedPlayerIds,
   });
 
+  // --- Field Coordination (Extracted to Hook) ---
+  const fieldCoordination = useFieldCoordination({
+    initialState,
+    saveStateToHistory,
+    saveTacticalStateToHistory,
+    availablePlayers,
+    selectedPlayerIds: gameSessionState.selectedPlayerIds,
+    canUndo,
+    canRedo,
+    tacticalHistory,
+    showToast,
+    t,
+  });
+
+  // --- History Orchestration (Undo/Redo) ---
+  /**
+   * Orchestrate undo across both field and session state
+   *
+   * Separates concerns: field coordination restores field state,
+   * session coordination restores game session state.
+   */
+  const handleUndo = useCallback(() => {
+    const prevState = undoHistory();
+    if (prevState) {
+      logger.log('Undoing...');
+      // Apply field state (players, opponents, drawings, tactical)
+      fieldCoordination.applyFieldHistoryState(prevState);
+      // Apply session state (score, timer, periods, etc.)
+      sessionCoordination.applyHistoryState(prevState);
+    } else {
+      logger.log('Cannot undo: at beginning of history');
+    }
+  }, [undoHistory, fieldCoordination, sessionCoordination]);
+
+  /**
+   * Orchestrate redo across both field and session state
+   *
+   * Separates concerns: field coordination restores field state,
+   * session coordination restores game session state.
+   */
+  const handleRedo = useCallback(() => {
+    const nextState = redoHistory();
+    if (nextState) {
+      logger.log('Redoing...');
+      // Apply field state (players, opponents, drawings, tactical)
+      fieldCoordination.applyFieldHistoryState(nextState);
+      // Apply session state (score, timer, periods, etc.)
+      sessionCoordination.applyHistoryState(nextState);
+    } else {
+      logger.log('Cannot redo: at end of history');
+    }
+  }, [redoHistory, fieldCoordination, sessionCoordination]);
+
   // --- State Management (Remaining in Home component) ---
   // const [showPlayerNames, setShowPlayerNames] = useState<boolean>(initialState.showPlayerNames); // REMOVE - Migrated to gameSessionState
   // const [gameEvents, setGameEvents] = useState<GameEvent[]>(initialState.gameEvents); // REMOVE - Migrated to gameSessionState
@@ -360,15 +242,16 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // ... Timer state ...
   // ... Modal states ...
   // ... UI/Interaction states ...
-  const [draggingPlayerFromBarInfo, setDraggingPlayerFromBarInfo] = useState<Player | null>(null);
+  // draggingPlayerFromBarInfo now managed by useFieldCoordination
   // Persistence state
-  // TODO: Remove savedGames local state once all references are updated to use gameDataManagement.savedGames
-  const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
   const [currentGameId, setCurrentGameId] = useState<string | null>(DEFAULT_GAME_ID);
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
-  
+  const [hasCheckedInstructionsModal, setHasCheckedInstructionsModal] = useState<boolean>(false);
+
   // This ref needs to be declared after currentGameId
   const gameIdRef = useRef(currentGameId);
+  // Track which game has been successfully loaded to prevent reload on auto-save
+  const loadedGameIdRef = useRef<string | null>(null);
 
   useEffect(() => { gameIdRef.current = currentGameId; }, [currentGameId]);
 
@@ -380,17 +263,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     currentGameId || '',
     gameSessionState.completedIntervalDurations,
   );
-
-  const {
-    timeElapsedInSeconds,
-    isTimerRunning,
-    subAlertLevel,
-    lastSubConfirmationTimeSeconds,
-    startPause: handleStartPauseTimer,
-    reset: handleResetTimer,
-    ackSubstitution: handleSubstitutionMade,
-    setSubInterval: handleSetSubInterval,
-  } = useGameTimer({ state: gameSessionState, dispatch: dispatchGameSession, currentGameId: currentGameId || '' });
 
   // Temporary state for backward compatibility during migration
   // These will be removed once all references are updated to use gameDataManagement
@@ -404,6 +276,14 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setSeasons,
     setTournaments,
   });
+
+  // Local state for savedGames - DO NOT replace with React Query cache directly!
+  // The useState ensures local state persists across renders and isn't affected by
+  // query cache invalidations. Previous attempt to use useMemo + queryClient.setQueryData
+  // caused game data to reset to defaults when navigating between games.
+  const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
+
+  // TODO: Add useGamePersistence hook call here after reordering dependencies
 
   // <<< ADD: State for home/away status >>>
   const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
@@ -421,6 +301,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     i18n.changeLanguage(appLanguage);
     utilUpdateAppSettings({ language: appLanguage }).catch(() => {});
   }, [appLanguage]);
+
+  // Modal state from context (needed for modal control within useGameOrchestration and reducerDrivenModals)
   const {
     isGameSettingsModalOpen,
     setIsGameSettingsModalOpen,
@@ -432,14 +314,18 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setIsSeasonTournamentModalOpen,
     isTrainingResourcesOpen,
     setIsTrainingResourcesOpen,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isGoalLogModalOpen,
     setIsGoalLogModalOpen,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used here
     isGameStatsModalOpen,
     setIsGameStatsModalOpen,
     isNewGameSetupModalOpen,
     setIsNewGameSetupModalOpen,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isSettingsModalOpen,
     setIsSettingsModalOpen,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in reducerDrivenModals
     isPlayerAssessmentModalOpen,
     setIsPlayerAssessmentModalOpen,
   } = useModalContext();
@@ -485,19 +371,20 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     },
   };
 
-  const { showToast } = useToast();
+  // showToast already defined earlier (needed by useFieldCoordination)
   // const [isPlayerStatsModalOpen, setIsPlayerStatsModalOpen] = useState(false);
   const [selectedPlayerForStats, setSelectedPlayerForStats] = useState<Player | null>(null);
-  const [isTeamManagerOpen, setIsTeamManagerOpen] = useState<boolean>(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
-  const [isPersonnelManagerOpen, setIsPersonnelManagerOpen] = useState<boolean>(false);
 
-  // --- Timer State (Still needed here) ---
-  const [showLargeTimerOverlay, setShowLargeTimerOverlay] = useState<boolean>(false); // State for overlay visibility
-  const [isInstructionsModalOpen, setIsInstructionsModalOpen] = useState<boolean>(false);
+  // --- Modal State now managed by useModalOrchestration (Step 2.6.6) ---
+  // isTeamManagerOpen, isPersonnelManagerOpen, isInstructionsModalOpen moved to useModalOrchestration
+  // Setters returned from useModalOrchestration and used by control bar handlers
+
+  // --- Timer State now managed by useTimerManagement (Step 2.6.5) ---
+  // showLargeTimerOverlay, isGoalLogModalOpen, timer handlers moved to useTimerManagement
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
-  const [showResetFieldConfirm, setShowResetFieldConfirm] = useState<boolean>(false);
+  // showResetFieldConfirm now managed by useFieldCoordination
 
   const handleCreateBackup = useCallback(() => {
     exportFullBackup(showToast);
@@ -512,16 +399,27 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     }
   };
 
-  // Field interaction state (drawing mode, etc.) - extracted to dedicated hook
-  const { isDrawingEnabled, toggleDrawingMode: handleToggleDrawingMode } = useFieldInteractions({
-    onPersistError: () => {
-      // Non-blocking notice; preference save failed, UI still toggled
-      showToast(
-        t('errors.failedToSaveDrawingMode', 'Failed to save drawing mode setting. Changes may not persist.'),
-        'info'
-      );
-    }
+  // --- Timer Management Hook (Step 2.6.5) ---
+  const timerManagement = useTimerManagement({
+    gameSessionState,
+    dispatchGameSession,
+    currentGameId,
+    availablePlayers,
+    masterRoster: gameDataManagement.masterRoster || [],
+    setIsGoalLogModalOpen,
   });
+
+  // Destructure timer state and handlers for backward compatibility
+  const {
+    timeElapsedInSeconds,
+    isTimerRunning,
+    subAlertLevel,
+    lastSubConfirmationTimeSeconds,
+    showLargeTimerOverlay,
+    handleToggleLargeTimerOverlay,
+    // handleToggleGoalLogModal, handleAddGoalEvent, handleLogOpponentGoal moved to useModalOrchestration
+    timerInteractions,
+  } = timerManagement;
 
   // L2-2.4.1: Build GameContainer view-model (not yet consumed)
   const gameContainerVMInput = useMemo<BuildGameContainerVMInput>(() => ({
@@ -542,7 +440,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
       gameStatus: gameSessionState.gameStatus,
     },
     playersForCurrentGame,
-    draggingPlayerFromBarInfo,
+    draggingPlayerFromBarInfo: fieldCoordination.draggingPlayerFromBarInfo,
   }), [
     gameSessionState.teamName,
     gameSessionState.opponentName,
@@ -559,7 +457,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     gameSessionState.currentPeriod,
     gameSessionState.gameStatus,
     playersForCurrentGame,
-    draggingPlayerFromBarInfo,
+    fieldCoordination.draggingPlayerFromBarInfo,
   ]);
 
   if (process.env.NODE_ENV !== 'production' && !isValidGameContainerVMInput(gameContainerVMInput)) {
@@ -633,46 +531,21 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // NEW: States for LoadGameModal operations
   const [isLoadingGamesList, setIsLoadingGamesList] = useState(false);
 
-  // Confirmation modal states
+  // Confirmation modal states - Passed to useModalOrchestration
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State passed to useModalOrchestration, setter used in handlers
   const [showNoPlayersConfirm, setShowNoPlayersConfirm] = useState(false);
   const [showHardResetConfirm, setShowHardResetConfirm] = useState(false);
   const [showSaveBeforeNewConfirm, setShowSaveBeforeNewConfirm] = useState(false);
   const [gameIdentifierForSave, setGameIdentifierForSave] = useState<string>('');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State passed to useModalOrchestration, setter used in handlers
   const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
   const [loadGamesListError, setLoadGamesListError] = useState<string | null>(null);
-  const [isGameLoading, setIsGameLoading] = useState(false); // For loading a specific game
-  const [gameLoadError, setGameLoadError] = useState<string | null>(null);
+  // Load/delete game state moved to useGamePersistence hook
   const [orphanedGameInfo, setOrphanedGameInfo] = useState<{ teamId: string; teamName?: string } | null>(null);
   const [isTeamReassignModalOpen, setIsTeamReassignModalOpen] = useState(false);
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
-  const [isGameDeleting, setIsGameDeleting] = useState(false); // For deleting a specific game
-  const [gameDeleteError, setGameDeleteError] = useState<string | null>(null);
-  const [processingGameId, setProcessingGameId] = useState<string | null>(null); // To track which game item is being processed
+  // processingGameId moved to useGamePersistence hook
   const [isResetting, setIsResetting] = useState(false); // For app reset operation
-  const {
-    isTacticsBoardView,
-    tacticalDiscs,
-    setTacticalDiscs,
-    tacticalDrawings,
-    setTacticalDrawings,
-    tacticalBallPosition,
-    setTacticalBallPosition,
-    handleToggleTacticsBoard,
-    handleAddTacticalDisc,
-    handleTacticalDiscMove,
-    handleTacticalDiscRemove,
-    handleToggleTacticalDiscType,
-    handleTacticalBallMove,
-    handleTacticalDrawingStart,
-    handleTacticalDrawingAddPoint,
-    handleTacticalDrawingEnd,
-    clearTacticalElements,
-  } = useTacticalBoard({
-    initialDiscs: initialState.tacticalDiscs,
-    initialDrawings: initialState.tacticalDrawings,
-    initialBallPosition: initialState.tacticalBallPosition,
-    saveStateToHistory: saveTacticalStateToHistory,
-  });
 
   // Load teams when orphaned game is detected
   useEffect(() => {
@@ -875,16 +748,22 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // Data synchronization effects are now managed by useGameDataManagement hook
 
   // --- Effect to sync playersOnField details with availablePlayers changes ---
+  // Also removes players that were deleted from the roster
   useEffect(() => {
     if (availablePlayers && availablePlayers.length > 0) {
-      setPlayersOnField(prevPlayersOnField => {
-        const nextPlayersOnField = prevPlayersOnField.map(fieldPlayer => {
-          const rosterPlayer = availablePlayers.find(ap => ap.id === fieldPlayer.id);
-          if (rosterPlayer) {
+      fieldCoordination.setPlayersOnField(prevPlayersOnField => {
+        // Build a lookup map for O(1) access
+        const rosterLookup = new Map(availablePlayers.map(p => [p.id, p]));
+
+        // Filter out deleted players and update details for existing ones
+        const nextPlayersOnField = prevPlayersOnField
+          .filter(fieldPlayer => rosterLookup.has(fieldPlayer.id)) // Remove deleted players
+          .map(fieldPlayer => {
+            const rosterPlayer = rosterLookup.get(fieldPlayer.id)!;
             // Sync relevant properties from rosterPlayer to fieldPlayer
             // Only update if there's a difference to avoid unnecessary re-renders / history saves
-            if (fieldPlayer.name !== rosterPlayer.name || 
-                fieldPlayer.jerseyNumber !== rosterPlayer.jerseyNumber || 
+            if (fieldPlayer.name !== rosterPlayer.name ||
+                fieldPlayer.jerseyNumber !== rosterPlayer.jerseyNumber ||
                 fieldPlayer.isGoalie !== rosterPlayer.isGoalie ||
                 fieldPlayer.nickname !== rosterPlayer.nickname ||
                 fieldPlayer.notes !== rosterPlayer.notes
@@ -901,9 +780,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
                 receivedFairPlayCard: rosterPlayer.receivedFairPlayCard !== undefined ? rosterPlayer.receivedFairPlayCard : fieldPlayer.receivedFairPlayCard
               };
             }
-          }
-          return fieldPlayer; // Return original if no corresponding roster player or no changes
-        });
+            return fieldPlayer;
+          });
 
         // Only save to history if actual changes were made to playersOnField
         if (JSON.stringify(prevPlayersOnField) !== JSON.stringify(nextPlayersOnField)) {
@@ -1005,13 +883,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         }
         // --- END TIMER RESTORATION LOGIC ---
 
-        // Only show automatic instructions for experienced users with specific actions, not first-time users
-        const seenGuide = await getHasSeenAppGuide();
-        const hasAnyData = Object.keys(savedGames).length > 0; // Check if user has any saved games
-        if (!seenGuide && initialAction !== null && hasAnyData) {
-          setIsInstructionsModalOpen(true);
-        }
-
         // This is now the single source of truth for loading completion.
         setInitialLoadComplete(true);
       }
@@ -1032,7 +903,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     initialLoadComplete,
     initialAction, // Used to determine if instructions modal should show automatically
     savedGames, // Used to check if user has any saved games for instructions modal logic
-    dispatchGameSession // Used for timer restoration
+    dispatchGameSession, // Used for timer restoration
+    // setIsInstructionsModalOpen intentionally excluded - useState setter is stable (from useModalOrchestration)
   ]);
 
   // Check if we should show first game interface guide
@@ -1157,12 +1029,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     // Update non-reducer states (these will eventually be migrated or handled differently)
     // For fields not yet in gameSessionState but are in GameData, update their local states if needed.
     // This part will shrink as more state moves to the reducer.
-    setPlayersOnField(gameData?.playersOnField || (isInitialDefaultLoad ? initialState.playersOnField : []));
-    setOpponents(gameData?.opponents || (isInitialDefaultLoad ? initialState.opponents : []));
-    setDrawings(gameData?.drawings || (isInitialDefaultLoad ? initialState.drawings : []));
-    setTacticalDiscs(gameData?.tacticalDiscs || (isInitialDefaultLoad ? initialState.tacticalDiscs : []));
-    setTacticalDrawings(gameData?.tacticalDrawings || (isInitialDefaultLoad ? initialState.tacticalDrawings : []));
-    setTacticalBallPosition(gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 });
+    fieldCoordination.setPlayersOnField(gameData?.playersOnField || (isInitialDefaultLoad ? initialState.playersOnField : []));
+    fieldCoordination.setOpponents(gameData?.opponents || (isInitialDefaultLoad ? initialState.opponents : []));
+    fieldCoordination.setDrawings(gameData?.drawings || (isInitialDefaultLoad ? initialState.drawings : []));
+    fieldCoordination.setTacticalDiscs(gameData?.tacticalDiscs || (isInitialDefaultLoad ? initialState.tacticalDiscs : []));
+    fieldCoordination.setTacticalDrawings(gameData?.tacticalDrawings || (isInitialDefaultLoad ? initialState.tacticalDrawings : []));
+    fieldCoordination.setTacticalBallPosition(gameData?.tacticalBallPosition || { relX: 0.5, relY: 0.5 });
     setIsPlayed(gameData?.isPlayed === false ? false : true);
 
     // Load per-game availablePlayers (with per-game goalie status)
@@ -1228,107 +1100,42 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // --- Effect to load game state when currentGameId changes or savedGames updates ---
   useEffect(() => {
     const loadGame = async () => {
-      logger.log('[EFFECT game load] currentGameId or savedGames changed:', { currentGameId });
+      logger.log('[EFFECT game load] currentGameId or savedGames changed:', { currentGameId, loadedGameId: loadedGameIdRef.current });
       if (!initialLoadComplete) {
         logger.log('[EFFECT game load] Initial load not complete, skipping game state application.');
-        return; 
+        return;
       }
 
-      let gameToLoad: AppState | null = null; // Ensure this is AppState
-      if (currentGameId && currentGameId !== DEFAULT_GAME_ID && savedGames[currentGameId]) {
+      if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
+        // Skip if we've already loaded this game (prevents timer reset on auto-save)
+        if (loadedGameIdRef.current === currentGameId) {
+          logger.log('[EFFECT game load] Game already loaded, skipping to prevent state clobbering (e.g., timer reset)');
+          return;
+        }
+
+        const gameToLoad = savedGames[currentGameId] as AppState | undefined;
+        if (!gameToLoad) {
+          logger.warn('[EFFECT game load] Saved game not yet available for currentGameId, skipping to avoid clobbering with defaults', { currentGameId });
+          return;
+        }
         logger.log(`[EFFECT game load] Found game data for ${currentGameId}`);
-        gameToLoad = savedGames[currentGameId] as AppState; // Cast to AppState
-      } else {
-        logger.log('[EFFECT game load] No specific game to load or ID is default. Applying default game state.');
+        await loadGameStateFromData(gameToLoad);
+        loadedGameIdRef.current = currentGameId; // Mark as loaded
+        return;
       }
-      await loadGameStateFromData(gameToLoad); 
+
+      // Default game or no game - reset the loaded game tracker
+      loadedGameIdRef.current = null;
+      logger.log('[EFFECT game load] No specific game to load or ID is default. Skipping default load to avoid overwriting state.');
     };
-    
+
     loadGame();
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentGameId, initialLoadComplete]); // IMPORTANT: initialLoadComplete ensures this runs after master roster is loaded. savedGames removed to prevent auto-save from triggering reload and resetting timer.
+  }, [currentGameId, initialLoadComplete, savedGames]); // savedGames needed for when data becomes available after game switch
 
   // --- Save state to localStorage ---
-  useEffect(() => {
-    // Only auto-save if loaded AND we have a proper game ID (not the default unsaved one)
-    const autoSave = async () => {
-    if (initialLoadComplete && currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-      try {
-        // 1. Create the current game state snapshot (excluding history and volatile timer states)
-        const currentSnapshot: AppState = {
-          // Fields from gameSessionState (persisted ones)
-          teamName: gameSessionState.teamName,
-          opponentName: gameSessionState.opponentName,
-          gameDate: gameSessionState.gameDate,
-          homeScore: gameSessionState.homeScore,
-          awayScore: gameSessionState.awayScore,
-          gameNotes: gameSessionState.gameNotes,
-          homeOrAway: gameSessionState.homeOrAway,
-          isPlayed,
-          numberOfPeriods: gameSessionState.numberOfPeriods,
-          periodDurationMinutes: gameSessionState.periodDurationMinutes,
-          currentPeriod: gameSessionState.currentPeriod, // Persisted
-          gameStatus: gameSessionState.gameStatus, // Persisted
-          seasonId: gameSessionState.seasonId, // USE gameSessionState
-          tournamentId: gameSessionState.tournamentId, // USE gameSessionState
-          teamId: gameSessionState.teamId, // USE gameSessionState
-          gameLocation: gameSessionState.gameLocation,
-          gameTime: gameSessionState.gameTime,
-          demandFactor: gameSessionState.demandFactor,
-          subIntervalMinutes: gameSessionState.subIntervalMinutes,
-          completedIntervalDurations: gameSessionState.completedIntervalDurations,
-          lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds,
-          showPlayerNames: gameSessionState.showPlayerNames, // from gameSessionState
-          selectedPlayerIds: gameSessionState.selectedPlayerIds, // from gameSessionState
-          gamePersonnel: gameSessionState.gamePersonnel ?? [],
-          gameEvents: gameSessionState.gameEvents, // from gameSessionState
-          assessments: playerAssessments,
-
-          // Other states
-          playersOnField,
-          opponents,
-          drawings,
-          tacticalDiscs,
-          tacticalDrawings,
-          tacticalBallPosition,
-          availablePlayers, // Per-game roster with per-game goalie status
-          
-          // Volatile timer states are intentionally EXCLUDED from the snapshot to be saved.
-          // They are not part of GameData and should be re-initialized on load by the reducer.
-        };
-
-        // 2. Save the game snapshot using utility
-          await utilSaveGame(currentGameId, currentSnapshot as AppState); // Cast to AppState for the util
-
-        // 3. Save App Settings (only the current game ID) using utility
-          await utilSaveCurrentGameIdSetting(currentGameId);
-
-        // Invalidate React Query cache to update LoadGameModal
-        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
-
-      } catch (error) {
-        logger.error("Failed to auto-save game state:", error);
-        showToast("Error saving game.", 'error');
-      }
-    }
-    };
-    autoSave();
-    // Dependencies: Include all state variables that are part of the saved snapshot
-  }, [initialLoadComplete, currentGameId,
-      playersOnField, opponents, drawings, availablePlayers, gameDataManagement.masterRoster,
-      // showPlayerNames, // REMOVED - Covered by gameSessionState
-      // Local states that are part of the snapshot but not yet in gameSessionState:
-      // gameEvents, // REMOVE - Now from gameSessionState
-      gameSessionState,
-      playerAssessments,
-      tacticalDiscs,
-      tacticalDrawings,
-      tacticalBallPosition,
-      isPlayed,
-      queryClient,
-      showToast,
-    ]);
+  // Legacy auto-save effect moved to useGamePersistence hook (with 3-tier debouncing)
 
   // **** ADDED: Effect to prompt for setup if default game ID is loaded ****
   useEffect(() => {
@@ -1345,275 +1152,62 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
   }, [initialLoadComplete, hasSkippedInitialSetup, currentGameId, openNewGameViaReducer]);
 
-  // --- Player Management Handlers (Updated for relative coords) ---
-  // Wrapped handleDropOnField in useCallback as suggested
-  const handleDropOnField = useCallback((playerId: string, relX: number, relY: number) => {
-    const droppedPlayer = availablePlayers.find(p => p.id === playerId);
-    if (droppedPlayer) {
-      handlePlayerDrop(droppedPlayer, { relX, relY }); // Call the handler from the hook
-    } else {
-      logger.error(`Dropped player with ID ${playerId} not found in availablePlayers.`);
-    }
-  }, [availablePlayers, handlePlayerDrop]); 
-
-  const handlePlayerMove = useCallback((playerId: string, relX: number, relY: number) => {
-    // Update visual state immediately
-    setPlayersOnField(prevPlayers => 
-      prevPlayers.map(p => 
-        p.id === playerId ? { ...p, relX, relY } : p
-      )
-    );
-    // State saved on move end
-  }, [setPlayersOnField]); // ADDED setPlayersOnField dependency
-
-  const handlePlayerMoveEnd = useCallback(() => {
-    saveStateToHistory({ playersOnField });
-  }, [playersOnField, saveStateToHistory]);
-
-  const handlePlayerRemove = useCallback((playerId: string) => {
-    logger.log(`Removing player ${playerId} from field`);
-    const updatedPlayersOnField = playersOnField.filter(p => p.id !== playerId);
-    setPlayersOnField(updatedPlayersOnField); 
-    saveStateToHistory({ playersOnField: updatedPlayersOnField });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playersOnField, saveStateToHistory]); 
-  
+  // --- Player Management Handlers - MOVED TO useFieldCoordination ---
 
 
-  // --- Reset Handlers ---
-  const handleResetFieldConfirmed = useCallback(() => {
-    if (isTacticsBoardView) {
-      clearTacticalElements();
-    } else {
-      // Only clear game elements in normal view
-      setPlayersOnField([]);
-      setOpponents([]);
-      setDrawings([]);
-      saveStateToHistory({ playersOnField: [], opponents: [], drawings: [] });
-    }
-    setShowResetFieldConfirm(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isTacticsBoardView, saveStateToHistory, clearTacticalElements]);
+  // --- Reset Handlers - MOVED TO useFieldCoordination ---
+  // --- Touch Drag from Bar Handlers - MOVED TO useFieldCoordination ---
 
-  const handleResetFieldClick = useCallback(() => {
-    setShowResetFieldConfirm(true);
-  }, []);
+  // --- History Handlers - MOVED TO useFieldCoordination ---
 
-  const handleClearDrawingsForView = () => {
-    if (isTacticsBoardView) {
-      // Clear only tactical drawings and record it in tactical history (not main)
-      setTacticalDrawings([]);
-      saveTacticalStateToHistory({ tacticalDrawings: [] });
-    } else {
-      handleClearDrawings();
-    }
-  };
+  // --- Game Persistence Hook ---
+  const persistence = useGamePersistence({
+    // Current game ID (managed externally)
+    currentGameId,
+    setCurrentGameId,
 
-  // --- Touch Drag from Bar Handlers (Updated for relative coords) ---
-  const handlePlayerDragStartFromBar = useCallback((playerInfo: Player) => {
-    // This is now primarily for HTML Drag and Drop OR potential long-press drag
-    setDraggingPlayerFromBarInfo(playerInfo);
-    logger.log("Setting draggingPlayerFromBarInfo (Drag Start):", playerInfo);
-  }, []);
+    // State from other hooks
+    gameSessionState,
+    fieldCoordination,
+    availablePlayers,
+    playerAssessments,
+    isPlayed,
+    initialLoadComplete,
 
-  // NEW Handler for simple tap selection in the bar
-  const handlePlayerTapInBar = useCallback((playerInfo: Player | null) => {
-    // If the tapped player is already selected, deselect them
-    if (draggingPlayerFromBarInfo?.id === playerInfo?.id) {
-      logger.log("Tapped already selected player, deselecting:", playerInfo?.id);
-      setDraggingPlayerFromBarInfo(null);
-    } else {
-      // Otherwise, select the tapped player
-      logger.log("Setting draggingPlayerFromBarInfo (Tap):", playerInfo);
-      setDraggingPlayerFromBarInfo(playerInfo);
-    }
-  }, [draggingPlayerFromBarInfo]); // Dependency needed
+    // From useGameDataManagement
+    savedGames: gameDataManagement.savedGames || {},
+    setSavedGames,
 
-  const handlePlayerDropViaTouch = useCallback((relX: number, relY: number) => {
-    // This handler might be less relevant now if tap-on-field works
-    if (draggingPlayerFromBarInfo) {
-      logger.log("Player Drop Via Touch (field):", { id: draggingPlayerFromBarInfo.id, relX, relY });
-      handleDropOnField(draggingPlayerFromBarInfo.id, relX, relY); 
-      setDraggingPlayerFromBarInfo(null); // Deselect player after placing
-    }
-  }, [draggingPlayerFromBarInfo, handleDropOnField]);
+    // History management
+    resetHistory,
 
-  const handlePlayerDragCancelViaTouch = useCallback(() => {
-    setDraggingPlayerFromBarInfo(null);
-  }, []);
+    // Initial state for resets
+    initialState,
+    initialGameSessionData,
 
-  
+    // Callbacks
+    dispatchGameSession,
+    loadGameStateFromData,
+    showToast,
+    t,
 
-  // --- Team Name Handler ---
+    // Query client for cache invalidation
+    queryClient,
+
+    // Modal control
+    handleCloseLoadGameModal: closeLoadGameViaReducer,
+  });
+
+  // useModalOrchestration hook call moved to line 2138 (after all handlers are defined)
+
+  // Legacy handler - delegates to session coordination
   const handleTeamNameChange = (newName: string) => {
-    const trimmedName = newName.trim();
-    if (trimmedName) {
-        logger.log("Updating team name to:", trimmedName);
-        dispatchGameSession({ type: 'SET_TEAM_NAME', payload: trimmedName });
-        // REMOVED: saveStateToHistory({ teamName: trimmedName }); 
-    }
+    sessionCoordination.handlers.setTeamName(newName);
   };
 
-  const applyHistoryState = (state: AppState) => {
-    // No flag needed! The useGameSessionWithHistory hook automatically skips
-    // history saving for LOAD_STATE_FROM_HISTORY action type.
-
-    setPlayersOnField(state.playersOnField);
-    setOpponents(state.opponents);
-    setDrawings(state.drawings);
-    setAvailablePlayers(state.availablePlayers);
-    dispatchGameSession({ type: 'SET_TEAM_NAME', payload: state.teamName });
-    dispatchGameSession({ type: 'SET_HOME_SCORE', payload: state.homeScore });
-    dispatchGameSession({ type: 'SET_AWAY_SCORE', payload: state.awayScore });
-    dispatchGameSession({ type: 'SET_OPPONENT_NAME', payload: state.opponentName });
-    dispatchGameSession({ type: 'SET_GAME_DATE', payload: state.gameDate });
-    dispatchGameSession({ type: 'SET_GAME_NOTES', payload: state.gameNotes });
-    dispatchGameSession({ type: 'SET_NUMBER_OF_PERIODS', payload: state.numberOfPeriods });
-    dispatchGameSession({ type: 'SET_PERIOD_DURATION', payload: state.periodDurationMinutes });
-    dispatchGameSession({
-      type: 'LOAD_STATE_FROM_HISTORY',
-      payload: {
-        currentPeriod: state.currentPeriod,
-        gameStatus: state.gameStatus,
-        completedIntervalDurations: state.completedIntervalDurations ?? [],
-        lastSubConfirmationTimeSeconds: state.lastSubConfirmationTimeSeconds ?? 0,
-        showPlayerNames: state.showPlayerNames,
-        gameEvents: state.gameEvents,
-        selectedPlayerIds: state.selectedPlayerIds,
-        seasonId: state.seasonId,
-        tournamentId: state.tournamentId,
-        gameLocation: state.gameLocation,
-        gameTime: state.gameTime,
-        // Include all GameSessionState properties for complete restoration
-        ageGroup: state.ageGroup,
-        tournamentLevel: state.tournamentLevel,
-        teamId: state.teamId,
-        gamePersonnel: state.gamePersonnel ?? [],
-        demandFactor: state.demandFactor ?? 1,
-        subIntervalMinutes: state.subIntervalMinutes ?? 5,
-        homeOrAway: state.homeOrAway,
-      },
-    });
-    setTacticalDiscs(state.tacticalDiscs || []);
-    setTacticalDrawings(state.tacticalDrawings || []);
-    setTacticalBallPosition(state.tacticalBallPosition || null);
-  };
-
-  const handleUndo = () => {
-    const prevState = undoHistory();
-    if (prevState) {
-      logger.log('Undoing...');
-      applyHistoryState(prevState);
-    } else {
-      logger.log('Cannot undo: at beginning of history');
-    }
-  };
-
-  const handleRedo = () => {
-    const nextState = redoHistory();
-    if (nextState) {
-      logger.log('Redoing...');
-      applyHistoryState(nextState);
-    } else {
-      logger.log('Cannot redo: at end of history');
-    }
-  };
-
-  // Apply tactical history state (for tactical undo/redo)
-  const applyTacticalHistoryState = (state: TacticalState) => {
-    setTacticalDiscs(state.tacticalDiscs || []);
-    setTacticalDrawings(state.tacticalDrawings || []);
-    setTacticalBallPosition(state.tacticalBallPosition || null);
-  };
-
-  const handleTacticalUndo = () => {
-    const prevState = tacticalHistory.undo();
-    if (prevState) {
-      logger.log('[TacticalHistory] undo -> state', {
-        drawingsLen: (prevState.tacticalDrawings || []).length,
-      });
-      applyTacticalHistoryState(prevState);
-    } else {
-      logger.log('Cannot undo: at beginning of tactical history');
-    }
-  };
-
-  const handleTacticalRedo = () => {
-    const nextState = tacticalHistory.redo();
-    if (nextState) {
-      logger.log('[TacticalHistory] redo -> state', {
-        drawingsLen: (nextState.tacticalDrawings || []).length,
-      });
-      applyTacticalHistoryState(nextState);
-    } else {
-      logger.log('Cannot redo: at end of tactical history');
-    }
-  };
-
-  // --- Timer Handlers provided by useGameTimer ---
-
-  const handleToggleLargeTimerOverlay = useCallback(() => {
-    setShowLargeTimerOverlay((prev) => !prev);
-  }, []);
-
-  // handleToggleDrawingMode is now provided by useFieldInteractions hook
-
-  // Handler to specifically deselect player when bar background is clicked
-  const handleDeselectPlayer = () => {
-    if (draggingPlayerFromBarInfo) { // Only log if there was a selection
-      logger.log("Deselecting player by clicking bar background.");
-      setDraggingPlayerFromBarInfo(null);
-    }
-  };
-
-
-  // Handler to open/close the goal log modal
-  const handleToggleGoalLogModal = useCallback(() => {
-    setIsGoalLogModalOpen((prev) => !prev);
-  }, [setIsGoalLogModalOpen]);
-
-  // Handler to add a goal event
-  const handleAddGoalEvent = (scorerId: string, assisterId?: string) => {
-    // Prefer current game's availablePlayers; fall back to master roster if empty
-    const playerPool = (availablePlayers && availablePlayers.length > 0)
-      ? availablePlayers
-      : (gameDataManagement.masterRoster || []);
-
-    const scorer = playerPool.find(p => p.id === scorerId);
-    const assister = assisterId ? playerPool.find(p => p.id === assisterId) : undefined;
-
-    if (!scorer) {
-      logger.error("Scorer not found!");
-      return;
-    }
-
-    const newEvent: GameEvent = {
-      id: `goal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      type: 'goal',
-      time: gameSessionState.timeElapsedInSeconds, // Use from gameSessionState
-      scorerId: scorer.id,
-      assisterId: assister?.id,
-    };
-    
-    // Dispatch actions to update game state via reducer
-    dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: newEvent });
-    dispatchGameSession({ type: 'ADJUST_SCORE_FOR_EVENT', payload: { eventType: 'goal', action: 'add' } });
-  };
-
-  // NEW Handler to log an opponent goal
-  const handleLogOpponentGoal = useCallback((time: number) => {
-    logger.log(`Logging opponent goal at time: ${time}`);
-    const newEvent: GameEvent = {
-      id: `oppGoal-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      type: 'opponentGoal',
-      time: time, // Use provided time
-      scorerId: 'opponent', 
-    };
-
-    dispatchGameSession({ type: 'ADD_GAME_EVENT', payload: newEvent });
-    dispatchGameSession({ type: 'ADJUST_SCORE_FOR_EVENT', payload: { eventType: 'opponentGoal', action: 'add' } });
-    setIsGoalLogModalOpen(false);
-  }, [dispatchGameSession, setIsGoalLogModalOpen]);
+  // --- Timer Handlers now provided by useTimerManagement (Step 2.6.5) ---
+  // handleToggleLargeTimerOverlay, handleToggleGoalLogModal, handleAddGoalEvent, handleLogOpponentGoal
+  // moved to useTimerManagement hook
 
   // Handler to update an existing game event
   const handleUpdateGameEvent = (updatedEvent: GameEvent) => {
@@ -1624,50 +1218,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     logger.log("Updated game event via dispatch:", updatedEvent.id);
   };
 
-  // Handler to delete a game event
-  const handleDeleteGameEvent = async (goalId: string): Promise<boolean> => {
-    const eventToDelete = gameSessionState.gameEvents.find(e => e.id === goalId);
-    if (!eventToDelete) {
-      logger.error("Event to delete not found in gameSessionState.gameEvents:", goalId);
-      return false;
-    }
-
-    if (!currentGameId) {
-      logger.error("No current game ID for event deletion");
-      return false;
-    }
-
-    try {
-      // Storage FIRST - find event index and remove from storage
-      const eventIndex = gameSessionState.gameEvents.findIndex(e => e.id === goalId);
-      if (eventIndex === -1) {
-        logger.error("Event index not found for deletion:", goalId);
-        return false;
-      }
-
-      const updatedGame = await removeGameEvent(currentGameId, eventIndex);
-
-      if (!updatedGame) {
-        logger.error("Failed to remove event from storage:", goalId);
-        return false; // Storage failed
-      }
-
-      // State update SECOND (only if storage succeeded)
-      dispatchGameSession({ type: 'DELETE_GAME_EVENT', payload: goalId });
-      if (eventToDelete.type === 'goal' || eventToDelete.type === 'opponentGoal') {
-        dispatchGameSession({
-          type: 'ADJUST_SCORE_FOR_EVENT',
-          payload: { eventType: eventToDelete.type, action: 'delete' }
-        });
-      }
-
-      logger.log("Deleted game event successfully (storage then state):", goalId);
-      return true; // Success
-    } catch (error) {
-      logger.error("Error deleting game event:", error);
-      return false; // Error
-    }
-  };
+  // handleDeleteGameEvent moved to useGamePersistence hook
   // --- Button/Action Handlers ---
   
   // RENAMED & UPDATED Handler: Just opens the setup modal after confirmation
@@ -1683,72 +1234,24 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   //   setIsNewGameSetupModalOpen(false);
   // }, []);
 
-  // Handler to open/close the stats modal
-  const handleToggleGameStatsModal = () => {
-    // If the modal is currently open, we are about to close it.
-    if (isGameStatsModalOpen) {
-      // Clear the selected player so it doesn't open to the same player next time.
-      setSelectedPlayerForStats(null);
-    }
-    setIsGameStatsModalOpen(!isGameStatsModalOpen);
-  };
+  // handleToggleGameStatsModal moved to useModalOrchestration
+  // handleOpenTeamManagerModal and handleCloseTeamManagerModal moved to useModalOrchestration
 
-  const handleOpenTeamManagerModal = () => {
-    setIsTeamManagerOpen(true);
-  };
-  const handleCloseTeamManagerModal = () => {
-    setIsTeamManagerOpen(false);
-  };
-
-  // Placeholder handlers for updating game info (will be passed to modal)
-  const handleOpponentNameChange = (newName: string) => {
-    logger.log('[page.tsx] handleOpponentNameChange called with:', newName);
-    dispatchGameSession({ type: 'SET_OPPONENT_NAME', payload: newName });
-  };
-  const handleGameDateChange = (newDate: string) => {
-    dispatchGameSession({ type: 'SET_GAME_DATE', payload: newDate });
-  };
-  // const handleHomeScoreChange = (newScore: number) => {
-  //   dispatchGameSession({ type: 'SET_HOME_SCORE', payload: newScore });
-  // };
-  // const handleAwayScoreChange = (newScore: number) => {
-  //   dispatchGameSession({ type: 'SET_AWAY_SCORE', payload: newScore });
-  // };
-  const handleGameNotesChange = (notes: string) => {
-    dispatchGameSession({ type: 'SET_GAME_NOTES', payload: notes });
-  };
+  // Placeholder handlers - delegate to session coordination
+  const handleOpponentNameChange = sessionCoordination.handlers.setOpponentName;
+  const handleGameDateChange = sessionCoordination.handlers.setGameDate;
+  const handleGameNotesChange = sessionCoordination.handlers.setGameNotes;
 
   // --- Handlers for Game Structure ---
-  const handleSetNumberOfPeriods = (periods: number) => { 
-    // Keep the check inside
-    if (periods === 1 || periods === 2) {
-      // Keep the type assertion for the state setter
-      const validPeriods = periods as (1 | 2); 
-      dispatchGameSession({ type: 'SET_NUMBER_OF_PERIODS', payload: validPeriods });
-      logger.log(`Number of periods set to: ${validPeriods}`);
-    } else {
-      logger.warn(`Invalid number of periods attempted: ${periods}. Must be 1 or 2.`);
-    }
-  };
-
-  const handleSetPeriodDuration = (minutes: number) => {
-    const safeMinutes = Number.isFinite(minutes) ? minutes : 1;
-    const newMinutes = Math.max(1, safeMinutes);
-    dispatchGameSession({ type: 'SET_PERIOD_DURATION', payload: newMinutes });
-    logger.log(`Period duration set to: ${newMinutes} minutes`);
-  };
+  const handleSetNumberOfPeriods = sessionCoordination.handlers.setNumberOfPeriods;
+  const handleSetPeriodDuration = sessionCoordination.handlers.setPeriodDuration;
 
   // Training Resources Modal
   const handleToggleTrainingResources = () => {
     setIsTrainingResourcesOpen(!isTrainingResourcesOpen);
   };
 
-  const handleToggleInstructionsModal = () => {
-    if (isInstructionsModalOpen) {
-      saveHasSeenAppGuide(true);
-    }
-    setIsInstructionsModalOpen(!isInstructionsModalOpen);
-  };
+  // handleToggleInstructionsModal moved to useModalOrchestration
 
   const handleShowAppGuide = () => {
     saveHasSeenAppGuide(false);
@@ -1790,125 +1293,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   
   // Placeholder handlers for Save/Load Modals
 
-  const handleOpenLoadGameModal = () => {
-    logger.log("Opening Load Game Modal...");
-    reducerDrivenModals.loadGame.open();
-  };
-
-  const handleCloseLoadGameModal = () => {
-    reducerDrivenModals.loadGame.close();
-  };
-
-  const handleOpenSeasonTournamentModal = () => {
-    openSeasonTournamentViaReducer();
-  };
-
-  const handleCloseSeasonTournamentModal = () => {
-    closeSeasonTournamentViaReducer();
-  };
+  // Modal open/close handlers moved to useModalOrchestration
 
 
   // Function to handle loading a selected game
-  const handleLoadGame = async (gameId: string) => {
-    logger.log(`[handleLoadGame] Attempting to load game: ${gameId}`);
-    
-    // Clear any existing timer state before loading a new game
-    try {
-      await removeStorageItem(TIMER_STATE_KEY);
-    } catch (error) {
-      // Silent fail - timer cleanup is not critical for game loading
-      logger.debug('Failed to clear timer state before loading game (non-critical)', { error });
-    }
-    
-    setProcessingGameId(gameId);
-    setIsGameLoading(true);
-    setGameLoadError(null);
-
-    const gameDataToLoad = savedGames[gameId] as AppState | undefined; // Ensure this is AppState
-
-    if (gameDataToLoad) {
-      try {
-        // Dispatch to reducer to load the game state
-        await loadGameStateFromData(gameDataToLoad); // This now primarily uses the reducer
-
-        // Update current game ID and save settings
-        setCurrentGameId(gameId);
-        await utilSaveCurrentGameIdSetting(gameId);
-
-        logger.log(`Game ${gameId} load dispatched to reducer.`);
-        handleCloseLoadGameModal();
-
-      } catch(error) {
-          logger.error("Error processing game load:", error);
-          setGameLoadError(t('loadGameModal.errors.loadFailed', 'Error loading game state. Please try again.'));
-      } finally {
-        setIsGameLoading(false);
-        setProcessingGameId(null);
-      }
-    } else {
-      logger.error(`Game state not found for ID: ${gameId}`);
-      setGameLoadError(t('loadGameModal.errors.notFound', 'Could not find saved game: {gameId}', { gameId }));
-      setIsGameLoading(false);
-      setProcessingGameId(null);
-    }
-  };
-
-  // Function to handle deleting a saved game
-  const handleDeleteGame = async (gameId: string) => {
-    logger.log(`Deleting game with ID: ${gameId}`);
-    if (gameId === DEFAULT_GAME_ID) {
-      logger.warn("Cannot delete the default unsaved state.");
-      setGameDeleteError(t('loadGameModal.errors.cannotDeleteDefault', 'Cannot delete the current unsaved game progress.'));
-      return; // Prevent deleting the default placeholder
-    }
-
-    setGameDeleteError(null);
-    setIsGameDeleting(true);
-    setProcessingGameId(gameId);
-
-    try {
-      const deletedGameId = await utilDeleteGame(gameId);
-
-      if (deletedGameId) {
-      const updatedSavedGames = { ...savedGames };
-        delete updatedSavedGames[gameId];
-      setSavedGames(updatedSavedGames);
-        logger.log(`Game ${gameId} deleted from state and persistence.`);
-
-        // Invalidate React Query cache to update LoadGameModal
-        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
-
-        if (currentGameId === gameId) {
-          const latestId = getLatestGameId(updatedSavedGames);
-          if (latestId) {
-            logger.log(`Deleted active game. Loading latest game ${latestId}.`);
-            setCurrentGameId(latestId);
-            await utilSaveCurrentGameIdSetting(latestId);
-          } else {
-            logger.log("Currently loaded game was deleted with no other games remaining. Resetting to initial state.");
-            dispatchGameSession({ type: 'RESET_TO_INITIAL_STATE', payload: initialGameSessionData });
-            setPlayersOnField(initialState.playersOnField || []);
-            setOpponents(initialState.opponents || []);
-            setDrawings(initialState.drawings || []);
-            resetHistory(initialState as AppState);
-            setCurrentGameId(DEFAULT_GAME_ID);
-            await utilSaveCurrentGameIdSetting(DEFAULT_GAME_ID);
-          }
-        }
-      } else {
-        // ... (existing error handling)
-        logger.warn(`handleDeleteGame: utilDeleteGame returned null for gameId: ${gameId}. Game might not have been found or ID was invalid.`);
-        setGameDeleteError(t('loadGameModal.errors.deleteFailedNotFound', 'Error deleting game: {gameId}. Game not found or ID was invalid.', { gameId }));
-      }
-    } catch (error) {
-      // ... (existing error handling)
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      setGameDeleteError(t('loadGameModal.errors.deleteFailedCatch', 'Error deleting saved game: {gameId}. Details: {errorMessage}', { gameId, errorMessage }));
-    } finally {
-      setIsGameDeleting(false);
-      setProcessingGameId(null);
-    }
-  };
+  // handleLoadGame and handleDeleteGame moved to useGamePersistence hook
 
   // Function to export all saved games as a single JSON file (RENAMED & PARAMETERIZED)
   // const handleExportAllGamesJson = () => { // This function is no longer used
@@ -1951,7 +1340,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   };
 
   const openPlayerAssessmentModal = () => setIsPlayerAssessmentModalOpen(true);
-  const closePlayerAssessmentModal = () => setIsPlayerAssessmentModalOpen(false);
+  // closePlayerAssessmentModal moved to useModalOrchestration
 
   const handleSavePlayerAssessment = async (
     playerId: string,
@@ -1978,12 +1367,10 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
   };
   
-  
+
   // ... (other code in Home component) ...
 
-  const closeRosterModal = () => {
-    closeRosterViaReducer();
-  };
+  // closeRosterModal moved to useModalOrchestration
 
   // --- ASYNC Roster Management Handlers for RosterSettingsModal ---
   const handleRenamePlayerForModal = useCallback(async (playerId: string, playerData: { name: string; nickname?: string }) => {
@@ -2123,11 +1510,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       setAvailablePlayers(updatedAvailablePlayers);
 
       // Update field players to reflect goalie status change
-      const updatedFieldPlayers = playersOnField.map(fieldPlayer => {
+      const updatedFieldPlayers = fieldCoordination.playersOnField.map(fieldPlayer => {
         const updatedAvailablePlayer = updatedAvailablePlayers.find(p => p.id === fieldPlayer.id);
         return updatedAvailablePlayer ? { ...fieldPlayer, isGoalie: updatedAvailablePlayer.isGoalie } : fieldPlayer;
       });
-      setPlayersOnField(updatedFieldPlayers);
+      fieldCoordination.setPlayersOnField(updatedFieldPlayers);
 
       // Save the updated state
       if (currentGameId) {
@@ -2147,9 +1534,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
   }, [
     // Data dependencies (values that change the function's behavior)
-    availablePlayers, playersOnField, currentGameId, gameSessionState, t,
+    availablePlayers, currentGameId, gameSessionState, t,
     // Setter dependencies (React guarantees these are stable but ESLint requires them)
-    setAvailablePlayers, setPlayersOnField, setRosterError, queryClient
+    setAvailablePlayers, setRosterError, queryClient,
+    // fieldCoordination provides playersOnField and setPlayersOnField
+    fieldCoordination
   ]);
 
   // --- END Roster Management Handlers ---
@@ -2159,7 +1548,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       // <<< ADD LOG HERE >>>
       logger.log(`[page.tsx] handleAwardFairPlayCard called with playerId: ${playerId}`);
       logger.log(`[page.tsx] availablePlayers BEFORE update:`, JSON.stringify(availablePlayers.map(p => ({id: p.id, fp: p.receivedFairPlayCard}))));
-      logger.log(`[page.tsx] playersOnField BEFORE update:`, JSON.stringify(playersOnField.map(p => ({id: p.id, fp: p.receivedFairPlayCard}))));
+      logger.log(`[page.tsx] playersOnField BEFORE update:`, JSON.stringify(fieldCoordination.playersOnField.map(p => ({id: p.id, fp: p.receivedFairPlayCard}))));
 
       if (!currentGameId || currentGameId === DEFAULT_GAME_ID) {
           logger.warn("Cannot award fair play card in unsaved/default state.");
@@ -2167,7 +1556,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       }
 
       let updatedAvailablePlayers = availablePlayers;
-      let updatedPlayersOnField = playersOnField;
+      let updatedPlayersOnField = fieldCoordination.playersOnField;
 
       // Find the currently awarded player, if any
       const currentlyAwardedPlayerId = availablePlayers.find(p => p.receivedFairPlayCard)?.id;
@@ -2210,7 +1599,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       // <<< ADD LOG HERE >>>
       logger.log(`[page.tsx] Calling setAvailablePlayers and setPlayersOnField...`);
       setAvailablePlayers(updatedAvailablePlayers);
-      setPlayersOnField(updatedPlayersOnField);
+      fieldCoordination.setPlayersOnField(updatedPlayersOnField);
       // Save updated global roster
       // localStorage.setItem(MASTER_ROSTER_KEY, JSON.stringify(updatedAvailablePlayers));
       try {
@@ -2224,12 +1613,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         // Optionally, set an error state
       }
       // <<< ADD LOG HERE >>>
-      logger.log(`[page.tsx] Calling saveStateToHistory... ONLY for playersOnField`);
-      // Save ONLY the playersOnField change to the game history, not the global roster
-      saveStateToHistory({ playersOnField: updatedPlayersOnField });
+      logger.log(`[page.tsx] Calling saveStateToHistory for playersOnField and availablePlayers`);
+      // Save both playersOnField and availablePlayers to game history for fair play card persistence
+      saveStateToHistory({ playersOnField: updatedPlayersOnField, availablePlayers: updatedAvailablePlayers });
 
       logger.log(`[page.tsx] Updated Fair Play card award. ${playerId ? `Awarded to ${playerId}` : 'Cleared'}`);
-    }, [availablePlayers, playersOnField, saveStateToHistory, currentGameId, setAvailablePlayers, setPlayersOnField]);
+    }, [availablePlayers, saveStateToHistory, currentGameId, setAvailablePlayers, fieldCoordination]);
 
 
   const handleUpdateSelectedPlayers = (playerIds: string[]) => {
@@ -2239,189 +1628,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   };
 
   // --- NEW: Quick Save Handler ---
-  const handleQuickSaveGame = useCallback(async (silent = false) => {
-    if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-      logger.log(`Quick saving game with ID: ${currentGameId}${silent ? ' (silent)' : ''}`, {
-        teamId: gameSessionState.teamId,
-        tournamentId: gameSessionState.tournamentId,
-      });
-      try {
-        // 1. Create the current game state snapshot
-        const currentSnapshot: AppState = {
-          playersOnField,
-          opponents,
-          drawings,
-          tacticalDiscs,
-          tacticalDrawings,
-          tacticalBallPosition,
-          availablePlayers: availablePlayers, // <<< ADD BACK: Include roster available *at time of save*
-          showPlayerNames: gameSessionState.showPlayerNames, // USE gameSessionState
-          teamName: gameSessionState.teamName,
-          gameEvents: gameSessionState.gameEvents, // USE gameSessionState
-          assessments: playerAssessments,
-          opponentName: gameSessionState.opponentName,
-          gameDate: gameSessionState.gameDate,
-          homeScore: gameSessionState.homeScore,
-          awayScore: gameSessionState.awayScore,
-          gameNotes: gameSessionState.gameNotes,
-          numberOfPeriods: gameSessionState.numberOfPeriods, // Use gameSessionState
-          periodDurationMinutes: gameSessionState.periodDurationMinutes, // Use gameSessionState
-          currentPeriod: gameSessionState.currentPeriod, // Use gameSessionState
-          gameStatus: gameSessionState.gameStatus, // Use gameSessionState
-          selectedPlayerIds: gameSessionState.selectedPlayerIds, // CORRECTED
-          seasonId: gameSessionState.seasonId,                // CORRECTED (anticipating migration)
-          tournamentId: gameSessionState.tournamentId,          // CORRECTED (anticipating migration)
-          gameLocation: gameSessionState.gameLocation,          // CORRECTED (anticipating migration)
-          gameTime: gameSessionState.gameTime, 
-          // Add timer related state (persisted ones)
-          subIntervalMinutes: gameSessionState.subIntervalMinutes, // Use gameSessionState for subIntervalMinutes
-          completedIntervalDurations: gameSessionState.completedIntervalDurations, // Use gameSessionState for completedIntervalDurations
-          lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds, // Use gameSessionState for lastSubConfirmationTimeSeconds
-          homeOrAway: gameSessionState.homeOrAway,
-          teamId: gameSessionState.teamId, // Use teamId from gameSessionState
-          isPlayed,
-          // VOLATILE TIMER STATES ARE EXCLUDED:
-          // timeElapsedInSeconds: gameSessionState.timeElapsedInSeconds, // REMOVE from AppState snapshot
-          // isTimerRunning: gameSessionState.isTimerRunning, // REMOVE from AppState snapshot
-          // nextSubDueTimeSeconds: gameSessionState.nextSubDueTimeSeconds, // REMOVE from AppState snapshot
-          // subAlertLevel: gameSessionState.subAlertLevel, // REMOVE from AppState snapshot
-        };
-
-        // 2. Update the savedGames state and localStorage
-        const updatedSavedGames = { ...savedGames, [currentGameId]: currentSnapshot };
-        setSavedGames(updatedSavedGames);
-        // localStorage.setItem(SAVED_GAMES_KEY, JSON.stringify(updatedSavedGames));
-        await utilSaveGame(currentGameId, currentSnapshot); // Use utility function
-        await utilSaveCurrentGameIdSetting(currentGameId); // Save current game ID setting
-
-        // Invalidate React Query cache to update LoadGameModal
-        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
-
-        // 3. Update history to reflect the saved state
-        // This makes the quick save behave like loading a game, resetting undo/redo
-        resetHistory(currentSnapshot);
-
-        if (!silent) {
-          showToast('Game saved!');
-        }
-
-      } catch (error) {
-        logger.error("Failed to quick save game state:", error);
-        showToast("Error quick saving game.", 'error');
-      }
-    } else {
-      // If no current game ID, create a new saved game entry
-      try {
-        const newSnapshot: AppState = {
-          playersOnField,
-          opponents,
-          drawings,
-          tacticalDiscs,
-          tacticalDrawings,
-          tacticalBallPosition,
-          availablePlayers: availablePlayers,
-          showPlayerNames: gameSessionState.showPlayerNames,
-          teamName: gameSessionState.teamName,
-          gameEvents: gameSessionState.gameEvents,
-          opponentName: gameSessionState.opponentName,
-          gameDate: gameSessionState.gameDate,
-          homeScore: gameSessionState.homeScore,
-          awayScore: gameSessionState.awayScore,
-          gameNotes: gameSessionState.gameNotes,
-          numberOfPeriods: gameSessionState.numberOfPeriods,
-          periodDurationMinutes: gameSessionState.periodDurationMinutes,
-          currentPeriod: gameSessionState.currentPeriod,
-          gameStatus: gameSessionState.gameStatus,
-          selectedPlayerIds: gameSessionState.selectedPlayerIds,
-          seasonId: gameSessionState.seasonId,
-          tournamentId: gameSessionState.tournamentId,
-          gameLocation: gameSessionState.gameLocation,
-          gameTime: gameSessionState.gameTime,
-          subIntervalMinutes: gameSessionState.subIntervalMinutes,
-          completedIntervalDurations: gameSessionState.completedIntervalDurations,
-          lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds,
-          homeOrAway: gameSessionState.homeOrAway,
-          isPlayed,
-        };
-
-        const { gameId, gameData } = await createGame(newSnapshot);
-        setSavedGames(prev => ({ ...prev, [gameId]: gameData }));
-        setCurrentGameId(gameId);
-        await utilSaveCurrentGameIdSetting(gameId);
-        resetHistory(gameData);
-        if (!silent) {
-          showToast('Game saved!');
-        }
-      } catch (error) {
-        logger.error('Failed to save new game:', error);
-        showToast('Error quick saving game.', 'error');
-      }
-    }
-  },    [
-    currentGameId,
-    savedGames,
-    playersOnField,
-    opponents,
-    drawings,
-    tacticalDiscs,
-    tacticalDrawings,
-    tacticalBallPosition,
-    availablePlayers,
-    setSavedGames,
-    resetHistory,
-    showToast,
-    gameSessionState, // This now covers all migrated game session fields
-    playerAssessments,
-    isPlayed,
-    queryClient
-  ]);
-  // --- END Quick Save Handler ---
-
-  // --- Auto-Save with Smart Debouncing ---
-  // Different delays based on user impact:
-  // - Immediate (0ms): Goals, assists, scores → Statistics update instantly
-  // - Short (500ms): Game metadata → Near-instant feel
-  // - Long (2000ms): Tactical data → Battery-friendly
-  // Determine if any blocking modal is open to pause auto-save
-  const isAutoSaveBlockedByModal = isLoadGameModalOpen || isNewGameSetupModalOpen;
-
-  useAutoSave({
-    immediate: {
-      // Critical for statistics - save instantly
-      states: {
-        gameEvents: gameSessionState.gameEvents,
-        homeScore: gameSessionState.homeScore,
-        awayScore: gameSessionState.awayScore,
-      },
-      delay: 0,
-    },
-    short: {
-      // User-visible metadata - feels instant
-      states: {
-        teamName: gameSessionState.teamName,
-        opponentName: gameSessionState.opponentName,
-        gameNotes: gameSessionState.gameNotes,
-        assessments: playerAssessments,
-      },
-      delay: 500,
-    },
-    long: {
-      // Tactical/position data - battery-friendly
-      states: {
-        playersOnField,
-        opponents,
-        drawings,
-        tacticalDiscs,
-        tacticalDrawings,
-        tacticalBallPosition,
-      },
-      delay: 2000,
-    },
-    saveFunction: () => handleQuickSaveGame(true), // Silent auto-save
-    enabled: currentGameId !== DEFAULT_GAME_ID && !isAutoSaveBlockedByModal,
-    currentGameId,
-  });
-  // --- END Auto-Save ---
+  // --- Quick Save and Auto-Save handlers moved to useGamePersistence hook ---
 
   // --- Deterministic init fallback: auto-select latest real game if default or stale ---
   useEffect(() => {
@@ -2438,71 +1645,26 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
   }, [initialLoadComplete, currentGameId, savedGames]);
 
-  // --- NEW: Handlers for Game Settings Modal --- 
+  // --- NEW: Handlers for Game Settings Modal ---
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in controlBarProps
   const handleOpenGameSettingsModal = () => {
       setIsGameSettingsModalOpen(true); // Corrected State Setter
   };
-  const handleCloseGameSettingsModal = () => {
-    setIsGameSettingsModalOpen(false); // Corrected State Setter
-  };
-  const handleOpenSettingsModal = () => {
-    setIsSettingsModalOpen(true);
-  };
-  const handleCloseSettingsModal = () => {
-    setIsSettingsModalOpen(false);
-  };
+  // handleCloseGameSettingsModal moved to useModalOrchestration
+  // handleOpenSettingsModal moved to useModalOrchestration
+  // handleCloseSettingsModal moved to useModalOrchestration
+  // handleCloseSeasonTournamentModal moved to useModalOrchestration
 
-  // --- Placeholder Handlers for GameSettingsModal (will be implemented properly later) ---
-  const handleGameLocationChange = (location: string) => {
-    dispatchGameSession({ type: 'SET_GAME_LOCATION', payload: location });
-    // REMOVED: saveStateToHistory({ gameLocation: location });
-  };
-  const handleGameTimeChange = (time: string) => {
-    dispatchGameSession({ type: 'SET_GAME_TIME', payload: time });
-    // REMOVED: saveStateToHistory({ gameTime: time });
-  };
-
-  const handleAgeGroupChange = (group: string) => {
-    dispatchGameSession({ type: 'SET_AGE_GROUP', payload: group });
-  };
-
-  const handleTournamentLevelChange = (level: string) => {
-    dispatchGameSession({ type: 'SET_TOURNAMENT_LEVEL', payload: level });
-  };
-
-  const handleTeamIdChange = useCallback((newTeamId: string | null) => {
-    logger.log('[HomePage] handleTeamIdChange called with:', newTeamId);
-    // TeamId is stored in AppState (saved game), not GameSessionState
-    // GameSettingsModal already handles calling updateGameDetailsMutation
-    // This handler is just for any additional HomePage-level logic if needed in the future
-  }, []);
-
-  const handleSetDemandFactor = (factor: number) => {
-    dispatchGameSession({ type: 'SET_DEMAND_FACTOR', payload: factor });
-  };
-
-  // Add handler for home/away status
-  const handleSetHomeOrAway = (status: 'home' | 'away') => {
-    dispatchGameSession({ type: 'SET_HOME_OR_AWAY', payload: status });
-    // REMOVED: saveStateToHistory({ homeOrAway: status });
-  };
-
-  // --- NEW Handlers for Setting Season/Tournament ID ---
-  const handleSetSeasonId = useCallback((newSeasonId: string | undefined) => {
-    const idToSet = newSeasonId || ''; // Ensure empty string instead of null
-    logger.log('[page.tsx] handleSetSeasonId called with:', idToSet);
-    dispatchGameSession({ type: 'SET_SEASON_ID', payload: idToSet });
-  }, [dispatchGameSession]); // dispatchGameSession is stable from useGameSessionWithHistory
-
-  const handleSetTournamentId = useCallback((newTournamentId: string | undefined) => {
-    const idToSet = newTournamentId || ''; // Ensure empty string instead of null
-    logger.log('[page.tsx] handleSetTournamentId called with:', idToSet);
-    dispatchGameSession({ type: 'SET_TOURNAMENT_ID', payload: idToSet });
-  }, [dispatchGameSession]); // dispatchGameSession is stable from useGameSessionWithHistory
-
-  const handleSetGamePersonnel = useCallback((personnelIds: string[]) => {
-    dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: personnelIds });
-  }, [dispatchGameSession]);
+  // --- Handlers for GameSettingsModal (delegate to session coordination) ---
+  const handleGameLocationChange = sessionCoordination.handlers.setGameLocation;
+  const handleGameTimeChange = sessionCoordination.handlers.setGameTime;
+  const handleAgeGroupChange = sessionCoordination.handlers.setAgeGroup;
+  const handleTournamentLevelChange = sessionCoordination.handlers.setTournamentLevel;
+  const handleSetDemandFactor = sessionCoordination.handlers.setDemandFactor;
+  const handleSetHomeOrAway = sessionCoordination.handlers.setHomeOrAway;
+  const handleSetSeasonId = sessionCoordination.handlers.setSeasonId;
+  const handleSetTournamentId = sessionCoordination.handlers.setTournamentId;
+  const handleSetGamePersonnel = sessionCoordination.handlers.setGamePersonnel;
 
   // --- AGGREGATE EXPORT HANDLERS --- 
   
@@ -2580,6 +1742,15 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     availablePlayersForGame: Player[],
     selectedPersonnelIds: string[]
   ) => {
+    // Clear field state before creating new game to prevent stale data
+    fieldCoordination.setPlayersOnField([]);
+    fieldCoordination.setOpponents([]);
+    fieldCoordination.setDrawings([]);
+    fieldCoordination.setTacticalDiscs([]);
+    fieldCoordination.setTacticalDrawings([]);
+    // Reset loaded game tracker so the effect will load the new game
+    loadedGameIdRef.current = null;
+
     await startNewGameWithSetup(
       {
         availablePlayers,
@@ -2636,6 +1807,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     queryClient,
     showToast,
     t,
+    fieldCoordination,
   ]);
 
   // ** REVERT handleCancelNewGameSetup TO ORIGINAL **
@@ -2656,21 +1828,17 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       return; // Exit early
     }
 
-    // Check if the current game is potentially unsaved (not the default ID and not null)
-    if (currentGameId && currentGameId !== DEFAULT_GAME_ID) {
-      // Prompt to save first
-      const gameData = savedGames[currentGameId]; // Safe to access due to check above
-      const gameIdentifier = gameData?.teamName
-                             ? `${gameData.teamName} vs ${gameData.opponentName}`
-                             : `ID: ${currentGameId}`;
-
-      setGameIdentifierForSave(gameIdentifier);
+    // Only prompt to save for unsaved scratch games (DEFAULT_GAME_ID)
+    // Saved games are auto-saved, so no prompt needed
+    if (currentGameId === DEFAULT_GAME_ID) {
+      setGameIdentifierForSave(t('controlBar.unsavedGame', 'Unsaved game'));
       setShowSaveBeforeNewConfirm(true);
     } else {
-      // If no real game is loaded, proceed directly to the main confirmation
-      setShowStartNewConfirm(true);
+      // For saved games (auto-saved), go directly to new game setup modal
+      setPlayerIdsForNewGame(availablePlayers.map(p => p.id));
+      openNewGameViaReducer();
     }
-  }, [currentGameId, savedGames, availablePlayers]);
+  }, [currentGameId, availablePlayers, t, openNewGameViaReducer]);
 
   // Handler for "No Players" confirmation
   const handleNoPlayersConfirmed = useCallback(() => {
@@ -2680,11 +1848,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
   // Handler for "Save Before New" confirmation - user chooses to save
   const handleSaveBeforeNewConfirmed = useCallback(() => {
-    handleQuickSaveGame(); // Call quick save directly
+    persistence.handleQuickSaveGame(); // Call quick save directly
     setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds); // Use the current selection
     setShowSaveBeforeNewConfirm(false);
     openNewGameViaReducer(); // Open setup modal immediately after
-  }, [handleQuickSaveGame, gameSessionState.selectedPlayerIds, openNewGameViaReducer]);
+  }, [persistence, gameSessionState.selectedPlayerIds, openNewGameViaReducer]);
 
   // Handler for "Save Before New" cancellation - user chooses to discard
   const handleSaveBeforeNewCancelled = useCallback(() => {
@@ -2701,120 +1869,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   }, [availablePlayers, openNewGameViaReducer]);
   // --- END Start New Game Handler ---
 
-  // New handler to place all selected players on the field at once
-  const handlePlaceAllPlayers = useCallback(() => {
-    // Get the list of selected players who are not yet on the field
-           const selectedButNotOnField = gameSessionState.selectedPlayerIds.filter((id: string) => 
-      !playersOnField.some(fieldPlayer => fieldPlayer.id === id)
-    );
-    
-    if (selectedButNotOnField.length === 0) {
-      // All selected players are already on the field
-      logger.log('All selected players are already on the field');
-      return;
-    }
-
-    // Find the corresponding player objects from availablePlayers
-    const playersToPlace = selectedButNotOnField
-      .map(id => availablePlayers.find(p => p.id === id))
-      .filter((p): p is Player => p !== undefined);
-    
-    logger.log(`Placing ${playersToPlace.length} players on the field...`);
-
-    // Define a reasonable soccer formation based on number of players
-    // For simplicity, we'll use these common formations:
-    // 3-4 players: simple triangle or diamond
-    // 5-7 players: 2-3-1 or 2-3-2 formation
-    // 8+ players: 3-3-2 or 3-4-1 formation
-    
-    // Calculate positions for players in a reasonable soccer formation
-    const newFieldPlayers: Player[] = [...playersOnField]; // Start with existing players
-    
-    // Find if there's a goalie in the players to place
-    const goalieIndex = playersToPlace.findIndex(p => p.isGoalie);
-    let goalie: Player | null = null;
-    
-    if (goalieIndex !== -1) {
-      // Remove goalie from the array and handle separately
-      goalie = playersToPlace.splice(goalieIndex, 1)[0];
-    }
-    
-    // Place goalie first if one exists
-    if (goalie) {
-      // Place at the goal line, slightly offset from center
-      newFieldPlayers.push({
-        ...goalie,
-        relX: 0.5,
-        relY: 0.95 // Near our own goal line
-      });
-    }
-    
-    // Determine formation based on remaining players
-    const remainingCount = playersToPlace.length;
-    let positions: { relX: number, relY: number }[] = [];
-    
-    if (remainingCount <= 3) {
-      // Simple triangle/diamond formation for 1-3 players (not including goalie)
-      if (remainingCount >= 1) positions.push({ relX: 0.5, relY: 0.8 }); // Defender
-      if (remainingCount >= 2) positions.push({ relX: 0.5, relY: 0.5 }); // Midfielder
-      if (remainingCount >= 3) positions.push({ relX: 0.5, relY: 0.3 }); // Forward
-    } 
-    else if (remainingCount <= 7) {
-      // 2-3-1 or 2-3-2 formation for 6-7 players (not including goalie)
-      // Defenders
-      positions.push({ relX: 0.3, relY: 0.8 });
-      positions.push({ relX: 0.7, relY: 0.8 });
-      
-      // Midfielders
-      positions.push({ relX: 0.25, relY: 0.6 });
-      positions.push({ relX: 0.5, relY: 0.55 });
-      positions.push({ relX: 0.75, relY: 0.6 });
-      
-      // Forwards
-      positions.push({ relX: 0.35, relY: 0.3 });
-      if (remainingCount >= 7) positions.push({ relX: 0.65, relY: 0.3 });
-    }
-    else {
-      // 3-4-1 or 3-3-2 formation for 8+ players (not including goalie)
-      // Defenders
-      positions.push({ relX: 0.25, relY: 0.85 });
-      positions.push({ relX: 0.5, relY: 0.8 });
-      positions.push({ relX: 0.75, relY: 0.85 });
-      
-      // Midfielders
-      positions.push({ relX: 0.2, relY: 0.6 });
-      positions.push({ relX: 0.4, relY: 0.55 });
-      positions.push({ relX: 0.6, relY: 0.55 });
-      positions.push({ relX: 0.8, relY: 0.6 });
-      
-      // Forwards
-      positions.push({ relX: 0.5, relY: 0.3 });
-      if (remainingCount >= 9) positions.push({ relX: 0.35, relY: 0.3 });
-      if (remainingCount >= 10) positions.push({ relX: 0.65, relY: 0.3 });
-    }
-    
-    // Take only the positions we need for the remaining players
-    positions = positions.slice(0, remainingCount);
-    
-    // Add player in each position
-    playersToPlace.forEach((player, index) => {
-      if (index < positions.length) {
-        newFieldPlayers.push({
-          ...player,
-          relX: positions[index].relX,
-          relY: positions[index].relY
-        });
-      }
-    });
-    
-    // Update players on field
-    setPlayersOnField(newFieldPlayers);
-    saveStateToHistory({ playersOnField: newFieldPlayers });
-    
-    logger.log(`Successfully placed ${playersToPlace.length} players on the field`);
-         }, [playersOnField, gameSessionState.selectedPlayerIds, availablePlayers, saveStateToHistory, setPlayersOnField]);
-
-  // --- END Quick Save Handler ---
+  // --- handlePlaceAllPlayers - MOVED TO useFieldCoordination ---
 
   // --- Step 3: Handler for Importing Games ---
   // const handleImportGamesFromJson = useCallback(async (jsonContent: string) => { // This function is no longer used
@@ -2856,91 +1911,55 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const handleGameLogClick = (gameId: string) => {
     setCurrentGameId(gameId);
     // handleClosePlayerStats(); // This function no longer exists
-    handleToggleGameStatsModal();
+    setIsGameStatsModalOpen(prev => !prev); // handleToggleGameStatsModal moved to useModalOrchestration
   };
 
   const fieldInteractions = useMemo<FieldInteractions>(() => ({
     players: {
-      move: handlePlayerMove,
-      moveEnd: handlePlayerMoveEnd,
-      remove: handlePlayerRemove,
-      drop: handleDropOnField,
+      move: fieldCoordination.handlePlayerMove,
+      moveEnd: fieldCoordination.handlePlayerMoveEnd,
+      remove: fieldCoordination.handlePlayerRemove,
+      drop: fieldCoordination.handleDropOnField,
     },
     opponents: {
-      move: handleOpponentMove,
-      moveEnd: handleOpponentMoveEnd,
-      remove: handleOpponentRemove,
+      move: fieldCoordination.handleOpponentMove,
+      moveEnd: fieldCoordination.handleOpponentMoveEnd,
+      remove: fieldCoordination.handleOpponentRemove,
     },
     drawing: {
-      start: handleDrawingStart,
-      addPoint: handleDrawingAddPoint,
-      end: handleDrawingEnd,
+      start: fieldCoordination.handleDrawingStart,
+      addPoint: fieldCoordination.handleDrawingAddPoint,
+      end: fieldCoordination.handleDrawingEnd,
     },
     tactical: {
-      drawingStart: handleTacticalDrawingStart,
-      drawingAddPoint: handleTacticalDrawingAddPoint,
-      drawingEnd: handleTacticalDrawingEnd,
-      discMove: handleTacticalDiscMove,
-      discRemove: handleTacticalDiscRemove,
-      discToggleType: handleToggleTacticalDiscType,
-      ballMove: handleTacticalBallMove,
+      drawingStart: fieldCoordination.handleTacticalDrawingStart,
+      drawingAddPoint: fieldCoordination.handleTacticalDrawingAddPoint,
+      drawingEnd: fieldCoordination.handleTacticalDrawingEnd,
+      discMove: fieldCoordination.handleTacticalDiscMove,
+      discRemove: fieldCoordination.handleTacticalDiscRemove,
+      discToggleType: fieldCoordination.handleToggleTacticalDiscType,
+      ballMove: fieldCoordination.handleTacticalBallMove,
     },
     touch: {
-      playerDrop: handlePlayerDropViaTouch,
-      playerDragCancel: handlePlayerDragCancelViaTouch,
+      playerDrop: fieldCoordination.handlePlayerDropViaTouch,
+      playerDragCancel: fieldCoordination.handlePlayerDragCancelViaTouch,
     },
-  }), [
-    handlePlayerMove,
-    handlePlayerMoveEnd,
-    handlePlayerRemove,
-    handleDropOnField,
-    handleOpponentMove,
-    handleOpponentMoveEnd,
-    handleOpponentRemove,
-    handleDrawingStart,
-    handleDrawingAddPoint,
-    handleDrawingEnd,
-    handleTacticalDrawingStart,
-    handleTacticalDrawingAddPoint,
-    handleTacticalDrawingEnd,
-    handleTacticalDiscMove,
-    handleTacticalDiscRemove,
-    handleToggleTacticalDiscType,
-    handleTacticalBallMove,
-    handlePlayerDropViaTouch,
-    handlePlayerDragCancelViaTouch,
-  ]);
+  }), [fieldCoordination]);
 
-  const timerInteractions = useMemo<TimerInteractions>(() => ({
-    toggleLargeOverlay: handleToggleLargeTimerOverlay,
-    toggleGoalLogModal: handleToggleGoalLogModal,
-    logOpponentGoal: handleLogOpponentGoal,
-    substitutionMade: handleSubstitutionMade,
-    setSubInterval: handleSetSubInterval,
-    startPauseTimer: handleStartPauseTimer,
-    resetTimer: handleResetTimer,
-  }), [
-    handleToggleLargeTimerOverlay,
-    handleToggleGoalLogModal,
-    handleLogOpponentGoal,
-    handleSubstitutionMade,
-    handleSetSubInterval,
-    handleStartPauseTimer,
-    handleResetTimer,
-  ]);
+  // timerInteractions now provided by useTimerManagement (Step 2.6.5)
 
   const fieldContainerProps: FieldContainerProps = {
     gameSessionState,
     fieldVM: {
-      playersOnField,
-      opponents,
-      drawings,
-      isTacticsBoardView,
-      tacticalDrawings,
-      tacticalDiscs,
-      tacticalBallPosition,
-      draggingPlayerFromBarInfo,
-      isDrawingEnabled,
+      playersOnField: fieldCoordination.playersOnField,
+      opponents: fieldCoordination.opponents,
+      drawings: fieldCoordination.drawings,
+      isTacticsBoardView: fieldCoordination.isTacticsBoardView,
+      tacticalDrawings: fieldCoordination.tacticalDrawings,
+      tacticalDiscs: fieldCoordination.tacticalDiscs,
+      tacticalBallPosition: fieldCoordination.tacticalBallPosition,
+      draggingPlayerFromBarInfo: fieldCoordination.draggingPlayerFromBarInfo,
+      isDrawingEnabled: fieldCoordination.isDrawingEnabled,
     },
     timerVM: {
       timeElapsedInSeconds,
@@ -2966,6 +1985,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     onGuideStepChange: setFirstGameGuideStep,
     onGuideClose: () => setShowFirstGameGuide(false),
     onOpenTeamReassignModal: () => setIsTeamReassignModalOpen(true),
+    onTeamNameChange: handleTeamNameChange,
+    onOpponentNameChange: handleOpponentNameChange,
     interactions: fieldInteractions,
     timerInteractions,
   };
@@ -2976,35 +1997,35 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     onToggleLargeTimerOverlay: handleToggleLargeTimerOverlay,
     onUndo: handleUndo,
     onRedo: handleRedo,
-    canUndo,
-    canRedo,
-    onTacticalUndo: handleTacticalUndo,
-    onTacticalRedo: handleTacticalRedo,
+    canUndo: fieldCoordination.canUndoField,
+    canRedo: fieldCoordination.canRedoField,
+    onTacticalUndo: fieldCoordination.handleTacticalUndo,
+    onTacticalRedo: fieldCoordination.handleTacticalRedo,
     canTacticalUndo: tacticalHistory.canUndo,
     canTacticalRedo: tacticalHistory.canRedo,
-    onResetField: handleResetFieldClick,
-    onClearDrawings: handleClearDrawingsForView,
-    onAddOpponent: handleAddOpponent,
-    onPlaceAllPlayers: handlePlaceAllPlayers,
-    isTacticsBoardView,
-    onToggleTacticsBoard: handleToggleTacticsBoard,
-    onAddHomeDisc: () => handleAddTacticalDisc('home'),
-    onAddOpponentDisc: () => handleAddTacticalDisc('opponent'),
-    isDrawingEnabled,
-    onToggleDrawingMode: handleToggleDrawingMode,
+    onResetField: fieldCoordination.handleResetFieldClick,
+    onClearDrawings: fieldCoordination.handleClearDrawingsForView,
+    onAddOpponent: fieldCoordination.handleAddOpponent,
+    onPlaceAllPlayers: fieldCoordination.handlePlaceAllPlayers,
+    isTacticsBoardView: fieldCoordination.isTacticsBoardView,
+    onToggleTacticsBoard: fieldCoordination.handleToggleTacticsBoard,
+    onAddHomeDisc: () => fieldCoordination.handleAddTacticalDisc('home'),
+    onAddOpponentDisc: () => fieldCoordination.handleAddTacticalDisc('opponent'),
+    isDrawingEnabled: fieldCoordination.isDrawingEnabled,
+    onToggleDrawingMode: fieldCoordination.handleToggleDrawingMode,
     onToggleTrainingResources: handleToggleTrainingResources,
-    onToggleGameStatsModal: handleToggleGameStatsModal,
-    onOpenLoadGameModal: handleOpenLoadGameModal,
+    onToggleGameStatsModal: () => setIsGameStatsModalOpen(prev => !prev), // handleToggleGameStatsModal moved to useModalOrchestration
+    onOpenLoadGameModal: () => setIsLoadGameModalOpen(true),
     onStartNewGame: handleStartNewGame,
     onOpenRosterModal: openRosterModal,
-    onQuickSave: handleQuickSaveGame,
-    onOpenGameSettingsModal: handleOpenGameSettingsModal,
+    onQuickSave: persistence.handleQuickSaveGame,
+    onOpenGameSettingsModal: () => setIsGameSettingsModalOpen(true),
     isGameLoaded: Boolean(currentGameId && currentGameId !== DEFAULT_GAME_ID),
-    onOpenSeasonTournamentModal: handleOpenSeasonTournamentModal,
-    onToggleInstructionsModal: handleToggleInstructionsModal,
-    onOpenSettingsModal: handleOpenSettingsModal,
+    onOpenSeasonTournamentModal: () => setIsSeasonTournamentModalOpen(true),
+    onToggleInstructionsModal: () => setIsInstructionsModalOpen(prev => !prev), // handleToggleInstructionsModal moved to useModalOrchestration
+    onOpenSettingsModal: () => setIsSettingsModalOpen(true), // handleOpenSettingsModal moved to useModalOrchestration
     onOpenPlayerAssessmentModal: openPlayerAssessmentModal,
-    onOpenTeamManagerModal: handleOpenTeamManagerModal,
+    onOpenTeamManagerModal: () => setIsTeamManagerOpen(true),
     onOpenPersonnelManager: () => setIsPersonnelManagerOpen(true),
   };
 
@@ -3015,9 +2036,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const gameContainerProps = {
     playerBar: playerBarViewModel,
     gameInfo: gameInfoViewModel,
-    onPlayerDragStartFromBar: handlePlayerDragStartFromBar,
-    onBarBackgroundClick: handleDeselectPlayer,
-    onPlayerTapInBar: handlePlayerTapInBar,
+    onPlayerDragStartFromBar: fieldCoordination.handlePlayerDragStartFromBar,
+    onBarBackgroundClick: fieldCoordination.handleDeselectPlayer,
+    onPlayerTapInBar: fieldCoordination.handlePlayerTapInBar,
     onToggleGoalie: handleToggleGoalieForModal,
     onTeamNameChange: handleTeamNameChange,
     onOpponentNameChange: handleOpponentNameChange,
@@ -3027,156 +2048,128 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     controlBarProps,
   };
 
-  const masterRoster = gameDataManagement.masterRoster;
+  // --- Modal Orchestration Hook (Step 2.6.6 - FINAL) ---
+  const modalOrchestration = useModalOrchestration({
+    // Hook dependencies
+    gameDataManagement,
+    fieldCoordination,
+    persistence,
+    timerManagement,
 
-  const modalManagerProps: ModalManagerProps = {
-    state: {
-      isTrainingResourcesOpen,
-      isInstructionsModalOpen,
-      isPersonnelManagerOpen,
-      isTeamManagerOpen,
-      isGoalLogModalOpen,
-      isGameStatsModalOpen,
-      isLoadGameModalOpen,
-      isNewGameSetupModalOpen,
-      isRosterModalOpen,
-      isSeasonTournamentModalOpen,
-      isGameSettingsModalOpen,
-      isSettingsModalOpen,
-      isPlayerAssessmentModalOpen,
-      isTeamReassignModalOpen,
-      showNoPlayersConfirm,
-      showHardResetConfirm,
-      showSaveBeforeNewConfirm,
-      showStartNewConfirm,
-      showResetFieldConfirm,
-    },
-    data: {
-      gameSessionState,
-      availablePlayers,
-      playersForCurrentGame,
-      savedGames,
-      currentGameId,
-      teams: gameDataManagement.teams,
-      seasons: gameDataManagement.seasons,
-      tournaments: gameDataManagement.tournaments,
-      masterRoster,
-      personnel: gameDataManagement.personnel,
-      personnelManager: {
-        addPersonnel: gameDataManagement.personnelManager.addPersonnel,
-        updatePersonnel: gameDataManagement.personnelManager.updatePersonnel,
-        removePersonnel: gameDataManagement.personnelManager.removePersonnel,
-        isLoading: gameDataManagement.personnelManager.isLoading,
-      },
-      playerAssessments,
-      selectedPlayerForStats,
-      playerIdsForNewGame,
-      newGameDemandFactor,
-      availableTeams,
-      orphanedGameInfo,
-      appLanguage,
-      defaultTeamNameSetting,
-      gameIdentifierForSave,
-      isPlayed,
-      isRosterUpdating,
-      rosterError,
-      loadGameState: {
-        isLoadingGamesList,
-        loadGamesListError,
-        isGameLoading,
-        gameLoadError,
-        isGameDeleting,
-        gameDeleteError,
-        processingGameId,
-      },
-      seasonTournamentMutations: {
-        addSeason: gameDataManagement.mutationResults.addSeason,
-        addTournament: gameDataManagement.mutationResults.addTournament,
-        updateSeason: gameDataManagement.mutationResults.updateSeason,
-        deleteSeason: gameDataManagement.mutationResults.deleteSeason,
-        updateTournament: gameDataManagement.mutationResults.updateTournament,
-        deleteTournament: gameDataManagement.mutationResults.deleteTournament,
-      },
-      updateGameDetailsMutation,
-    },
-    handlers: {
-      toggleTrainingResources: handleToggleTrainingResources,
-      toggleInstructionsModal: handleToggleInstructionsModal,
-      closePersonnelManager: () => setIsPersonnelManagerOpen(false),
-      closeTeamManagerModal: handleCloseTeamManagerModal,
-      toggleGoalLogModal: handleToggleGoalLogModal,
-      addGoalEvent: handleAddGoalEvent,
-      logOpponentGoal: handleLogOpponentGoal,
-      updateGameEvent: handleUpdateGameEvent,
-      deleteGameEvent: handleDeleteGameEvent,
-      toggleGameStatsModal: handleToggleGameStatsModal,
-      exportOneExcel: handleExportOneExcel,
-      exportAggregateExcel: handleExportAggregateExcel,
-      exportPlayerExcel: handleExportPlayerExcel,
-      gameLogClick: handleGameLogClick,
-      closeLoadGameModal: handleCloseLoadGameModal,
-      loadGame: handleLoadGame,
-      deleteGame: handleDeleteGame,
-      exportOneJson: handleExportOneJson,
-      setSelectedTeamForRoster,
-      setNewGameDemandFactor,
-      startNewGameWithSetup: handleStartNewGameWithSetup,
-      cancelNewGameSetup: handleCancelNewGameSetup,
-      closeRosterModal,
-      updatePlayerForModal: handleUpdatePlayerForModal,
-      renamePlayerForModal: handleRenamePlayerForModal,
-      setJerseyNumberForModal: handleSetJerseyNumberForModal,
-      setPlayerNotesForModal: handleSetPlayerNotesForModal,
-      removePlayerForModal: handleRemovePlayerForModal,
-      addPlayerForModal: handleAddPlayerForModal,
-      openPlayerStats: handleOpenPlayerStats,
-      closeSeasonTournamentModal: handleCloseSeasonTournamentModal,
-      closeGameSettingsModal: handleCloseGameSettingsModal,
-      teamNameChange: handleTeamNameChange,
-      opponentNameChange: handleOpponentNameChange,
-      gameDateChange: handleGameDateChange,
-      gameLocationChange: handleGameLocationChange,
-      gameTimeChange: handleGameTimeChange,
-      gameNotesChange: handleGameNotesChange,
-      ageGroupChange: handleAgeGroupChange,
-      tournamentLevelChange: handleTournamentLevelChange,
-      awardFairPlayCard: handleAwardFairPlayCard,
-      setNumberOfPeriods: handleSetNumberOfPeriods,
-      setPeriodDuration: handleSetPeriodDuration,
-      setDemandFactor: handleSetDemandFactor,
-      setSeasonId: handleSetSeasonId,
-      setTournamentId: handleSetTournamentId,
-      setHomeOrAway: handleSetHomeOrAway,
-      setIsPlayed,
-      updateSelectedPlayers: handleUpdateSelectedPlayers,
-      setGamePersonnel: handleSetGamePersonnel,
-      teamIdChange: handleTeamIdChange,
-      closeSettingsModal: handleCloseSettingsModal,
-      setAppLanguage,
-      setDefaultTeamName: setDefaultTeamNameSetting,
-      showAppGuide: handleShowAppGuide,
-      hardResetApp: handleHardResetApp,
-      closePlayerAssessmentModal,
-      savePlayerAssessment: handleSavePlayerAssessment,
-      deletePlayerAssessment: handleDeletePlayerAssessment,
-      teamReassignment: handleTeamReassignment,
-      setIsTeamReassignModalOpen,
-      confirmNoPlayers: handleNoPlayersConfirmed,
-      setShowNoPlayersConfirm,
-      confirmHardReset: handleHardResetConfirmed,
-      setShowHardResetConfirm,
-      saveBeforeNewConfirmed: handleSaveBeforeNewConfirmed,
-      saveBeforeNewCancelled: handleSaveBeforeNewCancelled,
-      setShowStartNewConfirm,
-      startNewConfirmed: handleStartNewConfirmed,
-      setShowResetFieldConfirm,
-      resetFieldConfirmed: handleResetFieldConfirmed,
-      openSettingsModal: handleOpenSettingsModal,
-      onCreateBackup: handleCreateBackup,
-      onDataImportSuccess,
-      manageTeamRosterFromNewGame: handleManageTeamRosterFromNewGame,
-    },
-  };
+    // Data from useGameOrchestration
+    gameSessionState,
+    dispatchGameSession,
+    availablePlayers,
+    playersForCurrentGame,
+    savedGames,
+    currentGameId,
+    playerAssessments,
+    selectedPlayerForStats,
+    setSelectedPlayerForStats,
+    playerIdsForNewGame,
+    newGameDemandFactor,
+    setNewGameDemandFactor,
+    availableTeams,
+    orphanedGameInfo,
+    appLanguage,
+    setAppLanguage,
+    defaultTeamNameSetting,
+    setDefaultTeamNameSetting,
+    gameIdentifierForSave,
+    isPlayed,
+    setIsPlayed,
+    isRosterUpdating,
+    rosterError,
+    isLoadingGamesList,
+    loadGamesListError,
+    updateGameDetailsMutation,
+    isTeamReassignModalOpen,
+    setIsTeamReassignModalOpen,
+    setSelectedTeamForRoster,
+    showSaveBeforeNewConfirm,
+    showHardResetConfirm,
+    setShowHardResetConfirm,
+
+    // Handlers from useGameOrchestration
+    handleUpdateGameEvent,
+    handleExportOneExcel,
+    handleExportAggregateExcel,
+    handleExportPlayerExcel,
+    handleGameLogClick,
+    handleExportOneJson,
+    handleStartNewGameWithSetup,
+    handleCancelNewGameSetup,
+    handleUpdatePlayerForModal,
+    handleRenamePlayerForModal,
+    handleSetJerseyNumberForModal,
+    handleSetPlayerNotesForModal,
+    handleRemovePlayerForModal,
+    handleAddPlayerForModal,
+    handleOpenPlayerStats,
+    handleTeamNameChange,
+    handleOpponentNameChange,
+    handleGameDateChange,
+    handleGameLocationChange,
+    handleGameTimeChange,
+    handleGameNotesChange,
+    handleAgeGroupChange,
+    handleTournamentLevelChange,
+    handleAwardFairPlayCard,
+    handleSetNumberOfPeriods,
+    handleSetPeriodDuration,
+    handleSetDemandFactor,
+    handleSetSeasonId,
+    handleSetTournamentId,
+    handleSetHomeOrAway,
+    handleUpdateSelectedPlayers,
+    handleSetGamePersonnel,
+    handleShowAppGuide,
+    handleHardResetApp,
+    handleSavePlayerAssessment,
+    handleDeletePlayerAssessment,
+    handleTeamReassignment,
+    handleCreateBackup,
+    onDataImportSuccess,
+    handleManageTeamRosterFromNewGame,
+    handleNoPlayersConfirmed,
+    handleHardResetConfirmed,
+    handleSaveBeforeNewConfirmed,
+    handleSaveBeforeNewCancelled,
+    handleStartNewConfirmed,
+  });
+
+  // Get modalManagerProps, modal state, setters, and handlers from useModalOrchestration hook
+  const {
+    modalManagerProps,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used in useEffect below
+    isInstructionsModalOpen,
+    setIsInstructionsModalOpen,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used in controlBarProps
+    isPersonnelManagerOpen,
+    setIsPersonnelManagerOpen,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State managed by useModalOrchestration, setter used in controlBarProps
+    isTeamManagerOpen,
+    setIsTeamManagerOpen,
+    // handleToggleGameStatsModal, handleToggleInstructionsModal, handleOpenSettingsModal
+    // removed - these are no longer returned from useModalOrchestration
+  } = modalOrchestration;
+
+  // Show automatic instructions for experienced users with specific actions, not first-time users
+  // Guard prevents multiple triggers when savedGames changes
+  useEffect(() => {
+    if (!initialLoadComplete || hasCheckedInstructionsModal) return;
+
+    const checkInstructionsModal = async () => {
+      const seenGuide = await getHasSeenAppGuide();
+      const hasAnyData = Object.keys(savedGames).length > 0; // Check if user has any saved games
+      if (!seenGuide && initialAction !== null && hasAnyData) {
+        setIsInstructionsModalOpen(true);
+      }
+      setHasCheckedInstructionsModal(true); // Mark as checked to prevent re-triggering
+    };
+
+    checkInstructionsModal();
+  }, [initialLoadComplete, initialAction, savedGames, setIsInstructionsModalOpen, hasCheckedInstructionsModal]);
 
   return {
     gameContainerProps,

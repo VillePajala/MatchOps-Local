@@ -635,7 +635,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                             key={p.id}
                             value={p}
                             className={({ active }) =>
-                              `p-2 rounded-md border border-slate-700/50 ${
+                              `p-2 rounded-md border border-slate-700/50 text-slate-100 cursor-pointer ${
                                 active ? 'bg-slate-800/60' : 'bg-slate-800/40 hover:bg-slate-800/60'
                               }`
                             }

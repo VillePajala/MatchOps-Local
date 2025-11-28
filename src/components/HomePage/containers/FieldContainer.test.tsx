@@ -66,6 +66,8 @@ const baseProps = () => ({
   onGuideStepChange: jest.fn(),
   onGuideClose: jest.fn(),
   onOpenTeamReassignModal: jest.fn(),
+  onTeamNameChange: jest.fn(),
+  onOpponentNameChange: jest.fn(),
   interactions: {
     players: {
       move: jest.fn(),

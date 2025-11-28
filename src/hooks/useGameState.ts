@@ -137,6 +137,15 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     const [playersOnField, setPlayersOnField] = useState<Player[]>(initialState.playersOnField);
     const [opponents, setOpponents] = useState<Opponent[]>(initialState.opponents);
     const [drawings, setDrawings] = useState<Point[][]>(initialState.drawings);
+
+    // --- Refs and version counters for race-condition-free history saving ---
+    // Avoids calling saveStateToHistory inside setState (React anti-pattern)
+    // Pattern: Store state in ref during move end, increment version to trigger effect
+    const [opponentMoveEndVersion, setOpponentMoveEndVersion] = useState(0);
+    const pendingOpponentMoveEndRef = useRef<Opponent[] | null>(null);
+
+    const [drawingEndVersion, setDrawingEndVersion] = useState(0);
+    const pendingDrawingEndRef = useRef<Point[][] | null>(null);
     const [availablePlayers, setAvailablePlayers] = useState<Player[]>(initialState.availablePlayers || []);
     const rosterSyncReadyRef = useRef<boolean>((initialState.availablePlayers?.length ?? 0) > 0);
     // ... (more state will be moved here)
@@ -232,9 +241,36 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
         pendingHistoryRef.current = null;
     }, [historyVersion, saveStateToHistory]);
 
+    // Effect: Save opponent state to history after move end
+    // This runs AFTER the state update has fully committed, avoiding race conditions
+    useEffect(() => {
+        if (opponentMoveEndVersion > 0 && pendingOpponentMoveEndRef.current) {
+            saveStateToHistory({ opponents: pendingOpponentMoveEndRef.current });
+            pendingOpponentMoveEndRef.current = null;
+        }
+    }, [opponentMoveEndVersion, saveStateToHistory]);
+
+    // Effect: Save drawing state to history after drawing end
+    // This runs AFTER the state update has fully committed, avoiding race conditions
+    useEffect(() => {
+        if (drawingEndVersion > 0 && pendingDrawingEndRef.current) {
+            saveStateToHistory({ drawings: pendingDrawingEndRef.current });
+            pendingDrawingEndRef.current = null;
+        }
+    }, [drawingEndVersion, saveStateToHistory]);
+
     // --- Handlers ---
 
-    // Handler for dropping a player onto the field
+    /**
+     * Handler for dropping a player onto the field
+     *
+     * Uses functional setState pattern to avoid dependency on playersOnField,
+     * keeping this callback stable and preventing cascading re-renders in
+     * dependent hooks like useFieldCoordination.
+     *
+     * @param player - The player to drop on the field
+     * @param position - The position where the player is dropped (relX, relY)
+     */
     const handlePlayerDrop = useCallback((player: Player, position: { relX: number; relY: number }) => {
         logger.log(`Player ${player.name} dropped at`, position);
         const newPlayerOnField: Player = {
@@ -243,22 +279,21 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
             relY: position.relY,
         };
 
-        // Avoid duplicates - update position if player already on field, otherwise add
-        const existingPlayerIndex = playersOnField.findIndex(p => p.id === player.id);
-        let updatedPlayersOnField;
-        if (existingPlayerIndex > -1) {
-            // Update existing player's position
-            updatedPlayersOnField = playersOnField.map((p, index) =>
-                index === existingPlayerIndex ? newPlayerOnField : p
-            );
-        } else {
-            // Add new player to the field
-            updatedPlayersOnField = [...playersOnField, newPlayerOnField];
-        }
+        // Use functional setState to avoid dependency on playersOnField
+        // This keeps the callback stable and prevents unnecessary re-creation
+        setPlayersOnField(currentPlayersOnField => {
+            // Avoid duplicates - update position if player already on field, otherwise add
+            const existingPlayerIndex = currentPlayersOnField.findIndex(p => p.id === player.id);
+            const updatedPlayersOnField = existingPlayerIndex > -1
+                ? currentPlayersOnField.map((p, index) =>
+                    index === existingPlayerIndex ? newPlayerOnField : p
+                  )
+                : [...currentPlayersOnField, newPlayerOnField];
 
-        setPlayersOnField(updatedPlayersOnField);
-        saveStateToHistory({ playersOnField: updatedPlayersOnField }); // Save history
-    }, [playersOnField, saveStateToHistory]);
+            saveStateToHistory({ playersOnField: updatedPlayersOnField });
+            return updatedPlayersOnField;
+        });
+    }, [saveStateToHistory]);
 
     // Drawing Handlers (Moved here)
     const handleDrawingStart = useCallback((point: Point) => {
@@ -278,9 +313,14 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     }, []); // No dependencies needed as it only uses the setter's previous state
 
     const handleDrawingEnd = useCallback(() => {
-        // Final state is already set by handleDrawingAddPoint, just save to history
-        saveStateToHistory({ drawings }); // Save final path state to history
-    }, [drawings, saveStateToHistory]);
+        // Use ref + version counter pattern to avoid race conditions
+        // Get current state via functional setter, store in ref, increment version
+        setDrawings(currentDrawings => {
+            pendingDrawingEndRef.current = currentDrawings;
+            setDrawingEndVersion(v => v + 1);
+            return currentDrawings; // No change to state
+        });
+    }, []);
 
     const handleClearDrawings = useCallback(() => {
         setDrawings([]); // Use setter from this hook
@@ -310,8 +350,14 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     }, []); // No dependency on opponents needed for setter callback
 
     const handleOpponentMoveEnd = useCallback(() => {
-        saveStateToHistory({ opponents }); // Just save the current opponents state
-    }, [opponents, saveStateToHistory]);
+        // Use ref + version counter pattern to avoid race conditions
+        // Get current state via functional setter, store in ref, increment version
+        setOpponents(currentOpponents => {
+            pendingOpponentMoveEndRef.current = currentOpponents;
+            setOpponentMoveEndVersion(v => v + 1);
+            return currentOpponents; // No change to state
+        });
+    }, []);
 
     const handleOpponentRemove = useCallback((opponentId: string) => {
         const updatedOpponents = opponents.filter(opp => opp.id !== opponentId);

@@ -117,14 +117,14 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
           {/* Header */}
           <div className="flex flex-col">
             {/* Title Section */}
-            <div className="flex justify-center items-center pt-10 pb-4 backdrop-blur-sm bg-slate-900/20">
+            <div className="flex justify-center items-center pt-10 pb-4 px-4 sm:px-6 backdrop-blur-sm bg-slate-900/20">
               <h2 className={`${titleStyle} drop-shadow-lg`}>
                 {t('playerAssessmentModal.title', 'Arvioi pelaajat')}
               </h2>
             </div>
 
             {/* Fixed Section (Assessment Progress) */}
-            <div className="px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
+            <div className="px-4 sm:px-6 pt-1 pb-4 backdrop-blur-sm bg-slate-900/20">
               {/* Assessment Progress */}
               <div className="mb-5 text-center text-sm">
                 <div className="flex justify-center items-center text-slate-300">
@@ -138,7 +138,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
           </div>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0 p-6">
+          <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6">
             {/* Game Information Section */}
             {(teamName || opponentName) && (
               <div className={`${cardStyle} mb-4`}>

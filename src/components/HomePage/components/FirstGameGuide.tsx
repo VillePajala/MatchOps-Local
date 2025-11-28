@@ -6,11 +6,9 @@ import {
   HiOutlineBackspace,
   HiOutlineTrash,
   HiOutlineClipboard,
-  HiOutlineUsers,
-  HiOutlineAdjustmentsHorizontal,
-  HiOutlineClipboardDocumentList,
-  HiOutlineClock,
-  HiOutlineQuestionMarkCircle,
+  HiOutlineArrowUturnLeft,
+  HiOutlineArrowUturnRight,
+  HiOutlineXMark,
   HiBars3,
 } from 'react-icons/hi2';
 
@@ -112,8 +110,10 @@ function GuideStepOne() {
       </h3>
       <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
         <li>{t('firstGameGuide.tapToSelect', 'Tap player disc to select')}</li>
-        <li>{t('firstGameGuide.goalieInstructions', 'When player is on field, tap shield icon to set as goalie')}</li>
         <li>{t('firstGameGuide.tapFieldPlace', 'Tap field to place player')}</li>
+        <li>{t('firstGameGuide.dragToAdjust', 'Drag players to reposition them')}</li>
+        <li>{t('firstGameGuide.doubleTapRemove', 'Double-tap to remove a player from the field')}</li>
+        <li>{t('firstGameGuide.goalieInstructions', 'Set goalies via Menu → Roster')}</li>
       </ul>
     </div>
   );
@@ -124,27 +124,27 @@ function GuideStepTwo() {
   return (
     <div className="space-y-3">
       <h3 className="font-semibold text-indigo-200 text-base">
-        {t('firstGameGuide.theField', 'The Field')}
+        {t('firstGameGuide.controlBar', 'Control Bar (Bottom)')}
       </h3>
       <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
-        <li>{t('firstGameGuide.dragToAdjust', 'Drag players by dragging')}</li>
-        <li>{t('firstGameGuide.doubleTapRemove', 'Double-tap to remove a player from the field')}</li>
         <li>
-          <span className="text-slate-200">{t('firstGameGuide.placeAllTip', 'Place all players at once with:')}</span>
+          <span className="text-slate-200">{t('firstGameGuide.tacticsButtonTip', 'Click Tactics Board to access drawing tools:')}</span>
+          <HiOutlineClipboard aria-hidden className="inline-block align-[-2px] ml-2 text-indigo-300" size={18} />
+        </li>
+        <li>
+          <span className="text-slate-200">{t('firstGameGuide.placeAllTip', 'Place all players at once:')}</span>
           <HiOutlineSquares2X2 aria-hidden className="inline-block align-[-2px] ml-2 text-purple-300" size={18} />
         </li>
-        <li>{t('firstGameGuide.drawTactics', 'You can draw on the field with your finger')}</li>
         <li>
-          <span className="text-slate-200">{t('firstGameGuide.addOpponentTip', 'Add opponents with:')}</span>
-          <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-red-300" size={18} />
+          <span className="text-slate-200">{t('firstGameGuide.timerTip', 'Click timer to show/hide large overlay')}</span>
         </li>
         <li>
-          <span className="text-slate-200">{t('firstGameGuide.clearDrawingsTip', 'Clear drawings with:')}</span>
-          <HiOutlineBackspace aria-hidden className="inline-block align-[-2px] ml-2 text-amber-300" size={18} />
-        </li>
-        <li>
-          <span className="text-slate-200">{t('firstGameGuide.resetFieldTip', 'Reset field with:')}</span>
+          <span className="text-slate-200">{t('firstGameGuide.resetFieldTip', 'Reset field:')}</span>
           <HiOutlineTrash aria-hidden className="inline-block align-[-2px] ml-2 text-red-400" size={18} />
+        </li>
+        <li>
+          <span className="text-slate-200">{t('firstGameGuide.menuTip', 'Open menu for more options:')}</span>
+          <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
         </li>
       </ul>
     </div>
@@ -156,29 +156,39 @@ function GuideStepThree() {
   return (
     <div className="space-y-3">
       <h3 className="font-semibold text-indigo-200 text-base">
-        {t('firstGameGuide.tacticalView', 'Tactical View')}
+        {t('firstGameGuide.drawingTools', 'Drawing & Tactical Tools')}
       </h3>
+      <p className="text-sm text-slate-300 -mt-1">
+        {t('firstGameGuide.drawingToolsNote', 'After clicking Tactics Board, you can:')}
+      </p>
       <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
         <li>
-          <span className="text-slate-200">{t('firstGameGuide.tacticalSwitchTip', 'Switch to tactical mode by pressing:')}</span>
-          <HiOutlineClipboard aria-hidden className="inline-block align-[-2px] ml-2 text-indigo-300" size={18} />
+          <span className="text-slate-200">{t('firstGameGuide.undoRedoTip', 'Undo/Redo actions:')}</span>
+          <span className="inline-flex items-center ml-2 gap-1 align-[-2px]">
+            <HiOutlineArrowUturnLeft aria-hidden className="text-slate-300" size={16} />
+            <HiOutlineArrowUturnRight aria-hidden className="text-slate-300" size={16} />
+          </span>
         </li>
         <li>
-          <span className="text-slate-200">{t('firstGameGuide.addHomeDiscTip', 'Add a home disc with:')}</span>
+          <span className="text-slate-200">{t('firstGameGuide.addHomeDiscTip', 'Add home disc (tactics mode):')}</span>
           <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-purple-300" size={18} />
         </li>
         <li>
-          <span className="text-slate-200">{t('firstGameGuide.addOpponentDiscTip', 'Add an opponent disc with:')}</span>
+          <span className="text-slate-200">{t('firstGameGuide.addOpponentTip', 'Add opponents/discs:')}</span>
           <HiOutlinePlusCircle aria-hidden className="inline-block align-[-2px] ml-2 text-red-300" size={18} />
         </li>
-        <li>{t('firstGameGuide.drawLinesTip', 'Draw lines on the field with your finger')}</li>
+        <li>{t('firstGameGuide.drawLinesTip', 'Draw lines and arrows with your finger')}</li>
         <li>
-          <span className="text-slate-200">{t('firstGameGuide.clearDrawingsTip', 'Clear drawings with:')}</span>
+          <span className="text-slate-200">{t('firstGameGuide.clearDrawingsTip', 'Clear drawings:')}</span>
           <HiOutlineBackspace aria-hidden className="inline-block align-[-2px] ml-2 text-amber-300" size={18} />
         </li>
         <li>
-          <span className="text-slate-200">{t('firstGameGuide.resetFieldTip', 'Reset field with:')}</span>
+          <span className="text-slate-200">{t('firstGameGuide.resetFieldTip', 'Reset field:')}</span>
           <HiOutlineTrash aria-hidden className="inline-block align-[-2px] ml-2 text-red-400" size={18} />
+        </li>
+        <li>
+          <span className="text-slate-200">{t('firstGameGuide.closeToolsTip', 'Exit tools:')}</span>
+          <HiOutlineXMark aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
         </li>
       </ul>
     </div>
@@ -190,54 +200,23 @@ function GuideStepFour() {
   return (
     <div className="space-y-3">
       <h3 className="font-semibold text-indigo-200 text-base">
-        {t('firstGameGuide.quickActions', 'Quick Actions (Bottom Bar)')}
+        {t('firstGameGuide.menuActions', 'Menu Actions')}
       </h3>
+      <p className="text-sm text-slate-300 -mt-1">
+        {t('firstGameGuide.menuActionsNote', 'Click the Menu button to access:')}
+        <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-indigo-300" size={18} />
+      </p>
       <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
-        <li>
-          <span className="text-slate-200">{t('firstGameGuide.undoRedoTip', 'Undo/Redo your last actions:')}</span>
-          <span className="inline-flex items-center ml-2 gap-1 align-[-2px]">
-            <svg className="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M9 14l-4-4 4-4" />
-              <path d="M5 10h11a4 4 0 010 8h-1" />
-            </svg>
-            <svg className="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M15 10l4 4-4 4" />
-              <path d="M19 14H8a4 4 0 010-8h1" />
-            </svg>
-          </span>
-        </li>
-        <li>
-          <span className="text-slate-200">{t('firstGameGuide.logGoalTip', 'Log a goal:')}</span>
-          <span className="inline-block align-[-2px] ml-2 text-blue-300">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-            </svg>
-          </span>
-        </li>
-        <li>
-          <span className="text-slate-200">{t('firstGameGuide.rosterTip', 'Open roster settings:')}</span>
-          <HiOutlineUsers aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
-        </li>
-        <li>
-          <span className="text-slate-200">{t('firstGameGuide.gameSettingsTip', 'Open game settings:')}</span>
-          <HiOutlineAdjustmentsHorizontal aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
-        </li>
-        <li>
-          <span className="text-slate-200">{t('firstGameGuide.statsTip', 'Show stats:')}</span>
-          <HiOutlineClipboardDocumentList aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
-        </li>
-        <li>
-          <span className="text-slate-200">{t('firstGameGuide.timerOverlayTip', 'Show/hide large timer:')}</span>
-          <HiOutlineClock aria-hidden className="inline-block align-[-2px] ml-2 text-green-300" size={18} />
-        </li>
-        <li>
-          <span className="text-slate-200">{t('firstGameGuide.helpTip', 'Open help:')}</span>
-          <HiOutlineQuestionMarkCircle aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
-        </li>
-        <li>
-          <span className="text-slate-200">{t('firstGameGuide.menuTip', 'Open the menu for more:')}</span>
-          <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-slate-300" size={18} />
-        </li>
+        <li>{t('firstGameGuide.startNewGameTip', 'Start a new game')}</li>
+        <li>{t('firstGameGuide.loadGameTip', 'Load a saved game')}</li>
+        <li>{t('firstGameGuide.quickSaveTip', 'Quick save your game (Ctrl/Cmd+S)')}</li>
+        <li>{t('firstGameGuide.goalLogTip', 'Log goals and events')}</li>
+        <li>{t('firstGameGuide.rosterManageTip', 'Manage your roster')}</li>
+        <li>{t('firstGameGuide.gameSettingsTip', 'Edit game settings')}</li>
+        <li>{t('firstGameGuide.statsReportsTip', 'View stats and reports')}</li>
+        <li>{t('firstGameGuide.seasonsTeamsTip', 'Manage seasons, teams, and personnel')}</li>
+        <li>{t('firstGameGuide.helpTip', 'Get help and instructions')}</li>
+        <li>{t('firstGameGuide.appSettingsTip', 'Access app settings')}</li>
       </ul>
     </div>
   );

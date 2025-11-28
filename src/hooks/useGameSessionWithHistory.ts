@@ -58,6 +58,7 @@ const HISTORY_SAVING_ACTIONS = new Set([
   'ADD_GAME_EVENT',
   'UPDATE_GAME_EVENT',
   'DELETE_GAME_EVENT',
+  'DELETE_GAME_EVENT_WITH_SCORE',
   // Game flow (user-initiated)
   'START_PERIOD',
   'END_PERIOD_OR_GAME',
