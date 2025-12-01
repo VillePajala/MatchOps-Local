@@ -957,6 +957,7 @@ export type TranslationKey =
   | 'settingsModal.resetGuideButton'
   | 'settingsModal.resetGuideDescription'
   | 'settingsModal.restoreButton'
+  | 'settingsModal.sameStartEndDateError'
   | 'settingsModal.savePeriodDateError'
   | 'settingsModal.seasonPeriodDescription'
   | 'settingsModal.seasonPeriodTitle'

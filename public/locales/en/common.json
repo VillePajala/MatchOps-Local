@@ -1199,7 +1199,8 @@
     "monthLabel": "Month",
     "dayLabel": "Day",
     "invalidPeriodDateError": "Invalid period date. Please enter a valid date.",
-    "savePeriodDateError": "Failed to save period date. Please try again."
+    "savePeriodDateError": "Failed to save period date. Please try again.",
+    "sameStartEndDateError": "Season start and end cannot be the same date."
   },
   "playerAssessmentModal": {
     "title": "Assess Game Performance",

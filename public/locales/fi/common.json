@@ -1199,7 +1199,8 @@
     "monthLabel": "Kuukausi",
     "dayLabel": "Päivä",
     "invalidPeriodDateError": "Virheellinen jakson päivämäärä. Anna kelvollinen päivämäärä.",
-    "savePeriodDateError": "Jakson päivämäärän tallennus epäonnistui. Yritä uudelleen."
+    "savePeriodDateError": "Jakson päivämäärän tallennus epäonnistui. Yritä uudelleen.",
+    "sameStartEndDateError": "Jakson alku ja loppu eivät voi olla sama päivämäärä."
   },
   "playerAssessmentModal": {
     "title": "Arvioi ottelusuoritukset",
