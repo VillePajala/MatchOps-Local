@@ -10,6 +10,7 @@ import {
   getAppSettings,
 } from '@/utils/appSettings';
 import InstructionsModal from '@/components/InstructionsModal';
+import logger from '@/utils/logger';
 
 interface StartScreenProps {
   onLoadGame: () => void;
@@ -49,7 +50,9 @@ const StartScreen: React.FC<StartScreenProps> = ({
 
   useEffect(() => {
     i18n.changeLanguage(language);
-    updateAppSettings({ language }).catch(() => {});
+    updateAppSettings({ language }).catch((error) => {
+      logger.warn('[StartScreen] Failed to save language preference (non-critical)', { language, error });
+    });
   }, [language]);
 
   // (Reverted) No last game meta fetching here.

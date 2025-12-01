@@ -44,8 +44,46 @@ const PLAYER_RADIUS = 20;
 const DOUBLE_TAP_TIME_THRESHOLD = 300; // ms
 const DOUBLE_TAP_POS_THRESHOLD = 15; // pixels
 
-// Background cache for performance optimization
+/**
+ * LRU (Least Recently Used) cache for background canvases.
+ * Prevents memory leak from unbounded cache growth during window resizing.
+ * Max size of 10 entries should cover typical use (normal + tactics for 5 resolutions).
+ */
+const MAX_CACHE_SIZE = 10;
 const backgroundCache: Map<string, HTMLCanvasElement> = new Map();
+
+/**
+ * Gets an item from the LRU cache, moving it to "most recently used" position.
+ */
+const getFromCache = (key: string): HTMLCanvasElement | undefined => {
+  if (!backgroundCache.has(key)) return undefined;
+
+  // Move to end (most recently used) by deleting and re-adding
+  const value = backgroundCache.get(key)!;
+  backgroundCache.delete(key);
+  backgroundCache.set(key, value);
+  return value;
+};
+
+/**
+ * Adds an item to the LRU cache, evicting oldest entry if at max size.
+ */
+const addToCache = (key: string, value: HTMLCanvasElement): void => {
+  // If key exists, delete it first (will be re-added at end)
+  if (backgroundCache.has(key)) {
+    backgroundCache.delete(key);
+  }
+
+  // Evict oldest entry if at max size
+  if (backgroundCache.size >= MAX_CACHE_SIZE) {
+    const oldestKey = backgroundCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      backgroundCache.delete(oldestKey);
+    }
+  }
+
+  backgroundCache.set(key, value);
+};
 
 // Helper function to generate a noise pattern on an off-screen canvas
 const createNoisePattern = (
@@ -90,10 +128,11 @@ const createFieldBackground = (
   isTacticsView: boolean
 ): HTMLCanvasElement => {
   const cacheKey = `${W}x${H}-${isTacticsView ? 'tactics' : 'normal'}`;
-  
-  // Check if we have a cached version
-  if (backgroundCache.has(cacheKey)) {
-    return backgroundCache.get(cacheKey)!;
+
+  // Check if we have a cached version (uses LRU cache)
+  const cached = getFromCache(cacheKey);
+  if (cached) {
+    return cached;
   }
 
   // Create offscreen canvas for background
@@ -253,8 +292,8 @@ const createFieldBackground = (
   offscreenCtx.fillRect((W - goalWidth) / 2, lineMargin, goalWidth, goalHeight);
   offscreenCtx.fillRect((W - goalWidth) / 2, H - lineMargin - goalHeight, goalWidth, goalHeight);
 
-  // Cache the result
-  backgroundCache.set(cacheKey, offscreenCanvas);
+  // Cache the result using LRU cache (prevents memory leak from unbounded growth)
+  addToCache(cacheKey, offscreenCanvas);
   return offscreenCanvas;
 };
 
