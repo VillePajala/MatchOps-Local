@@ -192,36 +192,42 @@ npm run build
 
 **See**: [REFACTORING_STATUS.md - Layer 3](./REFACTORING_STATUS.md#-layer-3-future-polish-after-completion)
 
-#### Error Handling Improvements (1 hour)
-- [ ] **Find all silent error catches**
-  - Search for `.catch(() => {})`
-  - Document all instances
-  - Prioritize by severity
+#### Error Handling Improvements ✅ COMPLETE (December 2025)
+- [x] **Find all silent error catches** ✅
+  - Searched for `.catch(() => {})`
+  - Documented all instances in CRITICAL_FIXES_REQUIRED.md
+  - Fixed by severity
 
-- [ ] **Fix each instance**
-  - InstallPrompt.tsx
-  - StartScreen.tsx
-  - PlayerStatsView.tsx
-  - Other files discovered
+- [x] **Fix each instance** ✅
+  - useGameOrchestration.ts - Added logger.error calls
+  - StartScreen.tsx - Added logger.error calls
+  - PlayerStatsView.tsx - Added logger.error calls
 
-- [ ] **Ensure modal portals wrapped in ErrorBoundary**
+- [x] **JSON parsing graceful degradation** ✅ (bonus fix)
+  - savedGames.ts, seasons.ts, tournaments.ts
+  - Returns empty data on corruption instead of crashing
+  - Errors logged for debugging
+
+- [x] **Memory leak fix** ✅ (bonus fix)
+  - SoccerField.tsx - LRU cache with 10 entry limit
+
+- [ ] **Ensure modal portals wrapped in ErrorBoundary** (deferred)
   - Add friendly fallback UI
   - Add logging tags
   - Test synthetic errors
 
-**Pattern to fix**:
+**Pattern applied**:
 ```typescript
 // ❌ BEFORE: Silent error swallowing
 .catch(() => {})
 
-// ✅ AFTER: Proper error handling
+// ✅ AFTER: Proper error handling (IMPLEMENTED)
 .catch((error) => {
   logger.error('Operation failed', { error, context: 'ComponentName' });
-  // Show user-friendly message if critical
 })
 ```
 
-**See**: [REFACTORING_STATUS.md - Layer 3](./REFACTORING_STATUS.md#-layer-3-future-polish-after-completion)
+**See**: [CRITICAL_FIXES_REQUIRED.md](../CRITICAL_FIXES_REQUIRED.md) for full details
 
 #### Auto-Save Refinement (30 minutes)
 - [ ] **Tune delays per state cluster**
