@@ -47,6 +47,9 @@ export interface GameData {
 /**
  * Gets all saved games from storage (IndexedDB)
  * @returns Promise resolving to an Object containing saved games mapped by ID
+ *
+ * @note Implements graceful degradation - if JSON is corrupted, returns empty
+ * collection and logs the error rather than crashing the app.
  */
 export const getSavedGames = async (): Promise<SavedGamesCollection> => {
   try {
@@ -54,10 +57,35 @@ export const getSavedGames = async (): Promise<SavedGamesCollection> => {
     if (!gamesJson) {
       return {};
     }
-    return JSON.parse(gamesJson) as SavedGamesCollection;
+
+    // Safe JSON parsing with graceful degradation
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(gamesJson);
+    } catch (parseError) {
+      logger.error('[getSavedGames] JSON parse failed - data may be corrupted. Returning empty collection.', {
+        error: parseError,
+        dataLength: gamesJson.length,
+        dataPreview: gamesJson.substring(0, 100),
+      });
+      // Return empty collection instead of crashing - user can restore from backup
+      return {};
+    }
+
+    // Basic type validation - must be an object
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      logger.error('[getSavedGames] Parsed data is not a valid object. Returning empty collection.', {
+        type: typeof parsed,
+        isArray: Array.isArray(parsed),
+      });
+      return {};
+    }
+
+    return parsed as SavedGamesCollection;
   } catch (error) {
     logger.error('Error getting saved games from storage:', error);
-    throw error;
+    // Return empty collection for graceful degradation instead of throwing
+    return {};
   }
 };
 

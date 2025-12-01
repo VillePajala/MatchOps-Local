@@ -66,7 +66,8 @@ afterEach(async () => {
     it('should return an empty array and log an error if storage data is malformed', async () => {
       mockGetStorageItem.mockResolvedValueOnce('invalid-json-format');
       expect(await getTournaments()).toEqual([]);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[getTournaments] Error getting tournaments from storage:'), expect.any(SyntaxError));
+      // With graceful degradation, the error message has changed to be more descriptive
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[getTournaments] JSON parse failed'), expect.objectContaining({ error: expect.any(SyntaxError) }));
     });
   });
 
