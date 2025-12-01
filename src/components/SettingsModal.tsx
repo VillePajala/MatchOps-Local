@@ -293,11 +293,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
     // Validate date before saving
     if (!validateSeasonDates(date, clubSeasonEndDate)) {
-      logger.error('Invalid season start date:', date);
-      showToast(
-        t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
-        'error'
-      );
+      // Check if it's a zero-length season (start = end)
+      const { month: endMonth, day: endDay } = parseMonthDay(clubSeasonEndDate);
+      if (month === endMonth && day === endDay) {
+        logger.warn('Cannot set season start same as end:', { start: date, end: clubSeasonEndDate });
+        showToast(
+          t('settingsModal.sameStartEndDateError', 'Season start and end cannot be the same date. Please change the end date first.'),
+          'error'
+        );
+      } else {
+        logger.error('Invalid season start date:', date);
+        showToast(
+          t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
+          'error'
+        );
+      }
       return;
     }
 
@@ -324,11 +334,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
     // Validate date before saving
     if (!validateSeasonDates(date, clubSeasonEndDate)) {
-      logger.error('Invalid season start date:', date);
-      showToast(
-        t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
-        'error'
-      );
+      // Check if it's a zero-length season (start = end)
+      const { month: endMonth, day: endDay } = parseMonthDay(clubSeasonEndDate);
+      if (month === endMonth && day === endDay) {
+        logger.warn('Cannot set season start same as end:', { start: date, end: clubSeasonEndDate });
+        showToast(
+          t('settingsModal.sameStartEndDateError', 'Season start and end cannot be the same date. Please change the end date first.'),
+          'error'
+        );
+      } else {
+        logger.error('Invalid season start date:', date);
+        showToast(
+          t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
+          'error'
+        );
+      }
       return;
     }
 
@@ -363,11 +383,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
     // Validate date before saving
     if (!validateSeasonDates(clubSeasonStartDate, date)) {
-      logger.error('Invalid season end date:', date);
-      showToast(
-        t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
-        'error'
-      );
+      // Check if it's a zero-length season (start = end)
+      const { month: startMonth, day: startDay } = parseMonthDay(clubSeasonStartDate);
+      if (month === startMonth && day === startDay) {
+        logger.warn('Cannot set season end same as start:', { start: clubSeasonStartDate, end: date });
+        showToast(
+          t('settingsModal.sameStartEndDateError', 'Season start and end cannot be the same date. Please change the start date first.'),
+          'error'
+        );
+      } else {
+        logger.error('Invalid season end date:', date);
+        showToast(
+          t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
+          'error'
+        );
+      }
       return;
     }
 
@@ -394,11 +424,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
     // Validate date before saving
     if (!validateSeasonDates(clubSeasonStartDate, date)) {
-      logger.error('Invalid season end date:', date);
-      showToast(
-        t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
-        'error'
-      );
+      // Check if it's a zero-length season (start = end)
+      const { month: startMonth, day: startDay } = parseMonthDay(clubSeasonStartDate);
+      if (month === startMonth && day === startDay) {
+        logger.warn('Cannot set season end same as start:', { start: clubSeasonStartDate, end: date });
+        showToast(
+          t('settingsModal.sameStartEndDateError', 'Season start and end cannot be the same date. Please change the start date first.'),
+          'error'
+        );
+      } else {
+        logger.error('Invalid season end date:', date);
+        showToast(
+          t('settingsModal.invalidPeriodDateError', 'Invalid period date. Please enter a valid date.'),
+          'error'
+        );
+      }
       return;
     }
 

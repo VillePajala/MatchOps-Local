@@ -91,7 +91,7 @@
   "info": {
     "whatIsThis": {
       "title": "Mikä on MatchOps Local?",
-      "description": "MatchOps Local korvaa piirtolevysi, sekuntikellosi ja muistivihkosi yhdellä sovelluksella. Suunnittele kokoonpano ja pelipaikat ennen peliä. Pelin aikana seuraa vaihtovälejä, kirjaa maalit ja syötöt napautuksella. Tilastosi kertyvät automaattisesti—ottelutulokset, pistepörssi, kauden trendit.",
+      "description": "MatchOps Local on mobiilisovellus jalkapallon ottelutapahtumien hallinnoimiseen. Suunnittele kokoonpano ja pelipaikat ennen peliä. Pelin aikana seuraa vaihtovälejä, kirjaa maalit ja syötöt napautuksella. Tilastosi kertyvät automaattisesti—ottelutulokset, pistepörssi, kauden trendit.",
       "oneLine": "Ei rekisteröitymistä. Asenna kerran ja tietosi pysyvät yksityisinä laitteellasi. Toimii kaikkialla, jopa ilman nettiä."
     },
     "whoIsThisFor": {
