@@ -8,11 +8,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **✅ UPDATE (Jan 21, 2025): P0 Refactoring 100% COMPLETE!** HomePage successfully reduced to **62 lines** and ALL hooks extracted.
 
-**Status**: ✅ **P0 COMPLETE** — Critical refactoring done, some P1/P2 items deferred
+**Status**: ✅ **P0 COMPLETE** — Critical refactoring done, December 2025 code review fixes applied
 
 **Remaining Technical Debt**:
 - **P1**: GameSettingsModal.tsx (1,995 lines) — Deferred (low priority, doesn't block development)
-- **P2**: Silent error swallowing — Deferred to Layer 3
+- ~~**P2**: Silent error swallowing~~ — ✅ FIXED (December 2025)
 - **P2**: Re-render performance optimization — Deferred to Layer 3
 
 ### What Was Accomplished
@@ -26,7 +26,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | ~~**P1**~~ | ~~modalManagerProps documentation~~ | ✅ **COMPLETE** | ADR-001 created |
 | **P1** | `GameSettingsModal.tsx` is 1,995 lines | ⏸️ Deferred | Low priority, can address later |
 | ~~**P2**~~ | ~~Modal state race conditions~~ | ✅ **COMPLETE** | Layer 2 modal reducer |
-| **P2** | Silent error swallowing | ⏸️ Deferred | Layer 3 polish |
+| ~~**P2**~~ | ~~Silent error swallowing~~ | ✅ **COMPLETE** | December 2025 code review fix |
+| ~~**P2**~~ | ~~Memory leak (SoccerField cache)~~ | ✅ **COMPLETE** | LRU cache implemented |
+| ~~**P2**~~ | ~~JSON parsing validation~~ | ✅ **COMPLETE** | Graceful degradation pattern |
 | **P2** | Re-render performance | ⏸️ Deferred | Layer 3 polish |
 
 ### What You Can Do NOW
@@ -39,12 +41,13 @@ The **critical** P0 refactoring is **COMPLETE**. You can now work on most tasks 
 - ✅ **New game modes**: Ready to implement
 - ✅ **Complex functionality**: Core codebase is maintainable and testable
 - ✅ **Bug fixes**: Easy to locate and fix
-- ✅ **Tests**: All 1593 passing
+- ✅ **Tests**: All 1615 passing
 - ✅ **Production readiness**: Ready for security & service worker work
 
 **Remaining Considerations**:
 - 🟡 **GameSettingsModal** (1,995 lines): Still large but doesn't block development
-- 🟡 **Layer 3 Polish**: Error handling and performance optimization deferred but not blocking
+- 🟡 **Layer 3 Polish**: Performance optimization deferred but not blocking
+- ✅ **December 2025 Fixes**: Data integrity, error logging, memory leak all resolved
 
 ### Why This Matters
 

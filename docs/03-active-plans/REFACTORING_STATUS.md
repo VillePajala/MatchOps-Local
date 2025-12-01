@@ -543,10 +543,14 @@ Once all hooks are extracted (100% complete), proceed to Layer 3:
 - Memoize expensive calculations
 - Add lightweight metrics for useEffect triggers
 
-### Error Handling
-- Ensure modal portals wrapped in ErrorBoundary
-- Add friendly fallback + logging tags
-- Test synthetic errors
+### Error Handling ✅ PARTIALLY COMPLETE (December 2025)
+- ✅ **Silent error swallowing fixed** - Added logger.error to all empty .catch() blocks
+- ✅ **JSON parsing graceful degradation** - savedGames.ts, seasons.ts, tournaments.ts return empty on corruption
+- ✅ **Memory leak fixed** - SoccerField LRU cache with 10 entry limit
+- ⏸️ Ensure modal portals wrapped in ErrorBoundary (deferred)
+- ⏸️ Add friendly fallback + logging tags (deferred)
+
+**See**: [CRITICAL_FIXES_REQUIRED.md](../CRITICAL_FIXES_REQUIRED.md) for full details
 
 ### Auto-Save Refinement
 - Tune delays per state cluster
