@@ -299,7 +299,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
 
   useEffect(() => {
     i18n.changeLanguage(appLanguage);
-    utilUpdateAppSettings({ language: appLanguage }).catch(() => {});
+    utilUpdateAppSettings({ language: appLanguage }).catch((error) => {
+      logger.warn('[useGameOrchestration] Failed to save language preference (non-critical)', { language: appLanguage, error });
+    });
   }, [appLanguage]);
 
   // Modal state from context (needed for modal control within useGameOrchestration and reducerDrivenModals)
@@ -548,15 +550,26 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const [isResetting, setIsResetting] = useState(false); // For app reset operation
 
   // Load teams when orphaned game is detected
+  // Uses mounted flag to prevent setState on unmounted component
   useEffect(() => {
+    let isMounted = true;
+
     if (orphanedGameInfo) {
       getTeams().then(teams => {
-        setAvailableTeams(teams);
+        if (isMounted) {
+          setAvailableTeams(teams);
+        }
       }).catch(error => {
         logger.error('[ORPHANED GAME] Error loading teams:', error);
-        setAvailableTeams([]);
+        if (isMounted) {
+          setAvailableTeams([]);
+        }
       });
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [orphanedGameInfo]);
 
   // Handle team reassignment for orphaned games
@@ -874,12 +887,16 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
               // Use START_TIMER instead of SET_TIMER_RUNNING to properly set startTimestamp
               dispatchGameSession({ type: 'START_TIMER' });
             } else {
-              await removeStorageItem(TIMER_STATE_KEY).catch(() => {});
+              await removeStorageItem(TIMER_STATE_KEY).catch((err) => {
+                logger.debug('[EFFECT init] Failed to clear stale timer state (non-critical)', { error: err });
+              });
             }
           }
         } catch (error) {
           logger.error('[EFFECT init] Error restoring timer state:', error);
-          await removeStorageItem(TIMER_STATE_KEY).catch(() => {});
+          await removeStorageItem(TIMER_STATE_KEY).catch((err) => {
+            logger.debug('[EFFECT init] Failed to clear timer state after error (non-critical)', { error: err });
+          });
         }
         // --- END TIMER RESTORATION LOGIC ---
 
@@ -1640,7 +1657,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       if (latestId) {
         logger.log('[Init Fallback] Selecting latest game as current', { latestId });
         setCurrentGameId(latestId);
-        utilSaveCurrentGameIdSetting(latestId).catch(() => {});
+        utilSaveCurrentGameIdSetting(latestId).catch((error) => {
+          logger.warn('[Init Fallback] Failed to persist current game ID (non-critical)', { latestId, error });
+        });
       }
     }
   }, [initialLoadComplete, currentGameId, savedGames]);

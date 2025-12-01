@@ -15,24 +15,40 @@ import { withKeyLock } from './storageKeyLock';
 /**
  * Retrieves all tournaments from storage.
  * @returns A promise that resolves to an array of Tournament objects.
+ *
+ * @note Implements graceful degradation - if JSON is corrupted or invalid,
+ * returns empty array and logs error rather than crashing.
  */
 export const getTournaments = async (): Promise<Tournament[]> => {
   try {
     const tournamentsJson = await getStorageItem(TOURNAMENTS_LIST_KEY);
     if (!tournamentsJson) {
-      return Promise.resolve([]);
+      return [];
     }
-    const tournaments = JSON.parse(tournamentsJson) as Tournament[];
-    return Promise.resolve(
-      tournaments.map(t => ({
-        ...t,
-        level: t.level ?? undefined,
-        ageGroup: t.ageGroup ?? undefined,
-      }))
-    );
+
+    // Safe JSON parsing
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(tournamentsJson);
+    } catch (parseError) {
+      logger.error('[getTournaments] JSON parse failed - data may be corrupted.', { error: parseError });
+      return [];
+    }
+
+    // Validate parsed data is an array
+    if (!Array.isArray(parsed)) {
+      logger.error('[getTournaments] Parsed data is not an array. Returning empty.', { type: typeof parsed });
+      return [];
+    }
+
+    return parsed.map(t => ({
+      ...t,
+      level: t.level ?? undefined,
+      ageGroup: t.ageGroup ?? undefined,
+    })) as Tournament[];
   } catch (error) {
     logger.error('[getTournaments] Error getting tournaments from storage:', error);
-    return Promise.resolve([]);
+    return [];
   }
 };
 

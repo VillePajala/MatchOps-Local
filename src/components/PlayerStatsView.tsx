@@ -850,7 +850,9 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   onChange={(e) => {
                     const val = e.target.checked;
                     setUseDemandCorrection(val);
-                    updateAppSettings({ useDemandCorrection: val }).catch(() => {});
+                    updateAppSettings({ useDemandCorrection: val }).catch((error) => {
+                      logger.warn('[PlayerStatsView] Failed to save demand correction preference (non-critical)', { val, error });
+                    });
                   }}
                   title={t('playerStats.useDemandCorrectionTooltip', 'When enabled, ratings from harder games count more')}
                   className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-600 border-slate-500 rounded focus:ring-indigo-500"

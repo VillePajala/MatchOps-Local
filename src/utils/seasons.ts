@@ -15,18 +15,36 @@ import { withKeyLock } from './storageKeyLock';
 /**
  * Retrieves all seasons from storage.
  * @returns A promise that resolves to an array of Season objects.
+ *
+ * @note Implements graceful degradation - if JSON is corrupted or invalid,
+ * returns empty array and logs error rather than crashing.
  */
 export const getSeasons = async (): Promise<Season[]> => {
   try {
     const seasonsJson = await getStorageItem(SEASONS_LIST_KEY);
     if (!seasonsJson) {
-      return Promise.resolve([]);
+      return [];
     }
-    const seasons = JSON.parse(seasonsJson) as Season[];
-    return Promise.resolve(seasons.map(s => ({ ...s, ageGroup: s.ageGroup ?? undefined })));
+
+    // Safe JSON parsing
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(seasonsJson);
+    } catch (parseError) {
+      logger.error('[getSeasons] JSON parse failed - data may be corrupted.', { error: parseError });
+      return [];
+    }
+
+    // Validate parsed data is an array
+    if (!Array.isArray(parsed)) {
+      logger.error('[getSeasons] Parsed data is not an array. Returning empty.', { type: typeof parsed });
+      return [];
+    }
+
+    return parsed.map(s => ({ ...s, ageGroup: s.ageGroup ?? undefined })) as Season[];
   } catch (error) {
     logger.error('[getSeasons] Error reading seasons from storage:', error);
-    return Promise.resolve([]); // Resolve with empty array on error
+    return []; // Resolve with empty array on error
   }
 };
 

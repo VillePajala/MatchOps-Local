@@ -119,10 +119,12 @@ describe('Saved Games Utilities', () => {
       await expect(getSavedGames()).resolves.toEqual(mockSavedGamesCollection);
     });
 
-    it('should handle invalid JSON and reject with an error', async () => {
+    it('should gracefully return empty object when JSON is invalid (graceful degradation)', async () => {
       mockGetStorageItem.mockResolvedValue('invalid json');
-      // Expect the promise to reject
-      await expect(getSavedGames()).rejects.toThrow(); 
+      // With graceful degradation, getSavedGames returns {} on parse failure
+      // This prevents app crash when data is corrupted
+      const result = await getSavedGames();
+      expect(result).toEqual({});
     });
   });
 
@@ -141,12 +143,13 @@ describe('Saved Games Utilities', () => {
     it('should return null if gameId is empty', async () => {
       await expect(getGame('')).resolves.toBeNull();
     });
-    // Test for storage error propagation if getSavedGames within getGame fails
-    it('should reject if internal getSavedGames fails', async () => {
-      mockGetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage failure'); 
-      });
-      await expect(getGame('game_123')).rejects.toThrow('LocalStorage failure');
+    // Test for graceful degradation if getSavedGames returns corrupted data
+    it('should gracefully return null if internal getSavedGames returns corrupted data', async () => {
+      // With graceful degradation, getSavedGames returns {} on parse failure
+      // getGame returns null since game is not found in empty collection
+      mockGetStorageItem.mockResolvedValue('invalid json data');
+      const result = await getGame('game_123');
+      expect(result).toBeNull();
     });
   });
 
@@ -212,11 +215,14 @@ describe('Saved Games Utilities', () => {
       await expect(saveGame('', mockGame1_AppState)).rejects.toThrow('Game ID is required');
     });
 
-    it('should reject if internal getSavedGames fails', async () => {
-      mockGetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage failure'); 
-      });
-      await expect(saveGame('game_123', mockGame1_AppState)).rejects.toThrow('LocalStorage failure');
+    it('should gracefully merge with empty collection if internal getSavedGames returns corrupted data', async () => {
+      // With graceful degradation, getSavedGames returns {} on parse failure
+      // saveGame should still succeed by saving to an empty collection
+      mockGetStorageItem.mockResolvedValue('invalid json data');
+      mockSetStorageItem.mockReset();
+      const result = await saveGame('game_123', mockGame1_AppState);
+      expect(result).toEqual(mockGame1_AppState);
+      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
     });
 
     it('should reject if internal saveGames fails', async () => {
@@ -254,11 +260,12 @@ describe('Saved Games Utilities', () => {
       expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
-    it('should reject if internal getSavedGames fails', async () => {
-      mockGetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage failure'); 
-      });
-      await expect(deleteGame('game_123')).rejects.toThrow('LocalStorage failure');
+    it('should gracefully return null if internal getSavedGames returns corrupted data', async () => {
+      // With graceful degradation, getSavedGames returns {} on parse failure
+      // deleteGame returns null since game is not found in empty collection
+      mockGetStorageItem.mockResolvedValue('invalid json data');
+      const result = await deleteGame('game_123');
+      expect(result).toBeNull();
     });
 
     it('should reject if internal saveGames (after delete) fails', async () => {
@@ -363,11 +370,12 @@ describe('Saved Games Utilities', () => {
       expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
-    it('should reject if internal getGame fails', async () => {
-      mockGetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage get failure'); 
-      });
-      await expect(addGameEvent('game_123', mockEvent1)).rejects.toThrow('LocalStorage get failure');
+    it('should gracefully return null if internal getSavedGames returns corrupted data', async () => {
+      // With graceful degradation, getSavedGames returns {} on parse failure
+      // getGame returns null, and addGameEvent returns null
+      mockGetStorageItem.mockResolvedValue('invalid json data');
+      const result = await addGameEvent('game_123', mockEvent1);
+      expect(result).toBeNull();
     });
 
     it('should reject if internal saveGame fails', async () => {
@@ -420,11 +428,12 @@ describe('Saved Games Utilities', () => {
       expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
-    it('should reject if internal getGame fails', async () => {
-      mockGetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage get failure'); 
-      });
-      await expect(updateGameEvent('game_123', 0, mockEvent1)).rejects.toThrow('LocalStorage get failure');
+    it('should gracefully return null if internal getSavedGames returns corrupted data', async () => {
+      // With graceful degradation, getSavedGames returns {} on parse failure
+      // This means getGame returns null, and updateGameEvent returns null
+      mockGetStorageItem.mockResolvedValue('invalid json data');
+      const result = await updateGameEvent('game_123', 0, mockEvent1);
+      expect(result).toBeNull();
     });
 
     it('should reject if internal saveGame fails', async () => {
@@ -477,11 +486,12 @@ describe('Saved Games Utilities', () => {
       expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
-    it('should reject if internal getGame fails', async () => {
-      mockGetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage get failure'); 
-      });
-      await expect(removeGameEvent('game_123', 0)).rejects.toThrow('LocalStorage get failure');
+    it('should gracefully return null if internal getSavedGames returns corrupted data', async () => {
+      // With graceful degradation, getSavedGames returns {} on parse failure
+      // This means getGame returns null, and removeGameEvent returns null
+      mockGetStorageItem.mockResolvedValue('invalid json data');
+      const result = await removeGameEvent('game_123', 0);
+      expect(result).toBeNull();
     });
 
     it('should reject if internal saveGame fails', async () => {
@@ -517,16 +527,12 @@ describe('Saved Games Utilities', () => {
       await expect(exportGamesAsJson()).resolves.toBeNull();
     });
 
-    it('should reject if internal getSavedGames fails', async () => {
-      // Suppress console.error for this test since we expect an error to be logged
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-      mockGetStorageItem.mockImplementation(() => {
-        throw new Error('LocalStorage failure');
-      });
-      await expect(exportGamesAsJson()).rejects.toThrow('LocalStorage failure');
-
-      consoleErrorSpy.mockRestore();
+    it('should gracefully return null if internal getSavedGames returns corrupted data', async () => {
+      // With graceful degradation, getSavedGames returns {} on parse failure
+      // exportGamesAsJson returns null when collection is empty
+      mockGetStorageItem.mockResolvedValue('invalid json data');
+      const result = await exportGamesAsJson();
+      expect(result).toBeNull();
     });
   });
 
@@ -607,13 +613,16 @@ describe('Saved Games Utilities', () => {
       expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
-    it('should reject if internal getSavedGames fails', async () => {
-      mockGetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage get failure'); 
-      });
+    it('should gracefully import games even if existing getSavedGames returns corrupted data', async () => {
+      // With graceful degradation, getSavedGames returns {} on parse failure
+      // Import should succeed by merging with empty existing collection
+      mockGetStorageItem.mockResolvedValue('invalid json data');
+      mockSetStorageItem.mockReset();
       const gamesToImport: SavedGamesCollection = { 'new_game': mockGame2_AppState };
       const jsonData = JSON.stringify(gamesToImport);
-      await expect(importGamesFromJson(jsonData, false)).rejects.toThrow('LocalStorage get failure');
+      const result = await importGamesFromJson(jsonData, false);
+      expect(result.successful).toBe(1);
+      expect(result.failed).toHaveLength(0);
     });
 
     it('should reject if internal saveGames fails during import', async () => {
@@ -649,16 +658,12 @@ describe('Saved Games Utilities', () => {
       await expect(getAllGameIds()).resolves.toEqual([]);
     });
 
-    it('should reject if internal getSavedGames fails', async () => {
-      // Suppress console.error for this test since we expect an error to be logged
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-      mockGetStorageItem.mockImplementation(() => {
-        throw new Error('LocalStorage failure');
-      });
-      await expect(getAllGameIds()).rejects.toThrow('LocalStorage failure');
-
-      consoleErrorSpy.mockRestore();
+    it('should gracefully return empty array if internal getSavedGames returns corrupted data', async () => {
+      // With graceful degradation, getSavedGames returns {} on parse failure
+      // getAllGameIds returns [] for empty collection
+      mockGetStorageItem.mockResolvedValue('invalid json data');
+      const result = await getAllGameIds();
+      expect(result).toEqual([]);
     });
   });
 
@@ -727,11 +732,12 @@ describe('Saved Games Utilities', () => {
       expect(result.length).toBe(0);
     });
 
-    it('should reject if internal getSavedGames fails', async () => {
-      mockGetStorageItem.mockImplementation(() => {
-        throw new Error('LocalStorage get failure for filter');
-      });
-      await expect(getFilteredGames({ seasonId: 'season_1' })).rejects.toThrow('LocalStorage get failure for filter');
+    it('should gracefully return empty array if internal getSavedGames returns corrupted data', async () => {
+      // With graceful degradation, getSavedGames returns {} on parse failure
+      // getFilteredGames returns [] for empty collection
+      mockGetStorageItem.mockResolvedValue('invalid json data');
+      const result = await getFilteredGames({ seasonId: 'season_1' });
+      expect(result).toEqual([]);
     });
   });
 
@@ -787,12 +793,13 @@ describe('Saved Games Utilities', () => {
       expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
-    it('should reject if internal getGame fails', async () => {
-      mockGetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage get failure for update'); 
-      });
+    it('should gracefully return null if internal getSavedGames returns corrupted data', async () => {
+      // With graceful degradation, getSavedGames returns {} on parse failure
+      // getGame returns null, and updateGameDetails returns null
+      mockGetStorageItem.mockResolvedValue('invalid json data');
       const updates: Partial<AppState> = { teamName: 'Still Matters Not' };
-      await expect(updateGameDetails('game_123', updates)).rejects.toThrow('LocalStorage get failure for update');
+      const result = await updateGameDetails('game_123', updates);
+      expect(result).toBeNull();
     });
 
     it('should reject if internal saveGame (after update) fails', async () => {
