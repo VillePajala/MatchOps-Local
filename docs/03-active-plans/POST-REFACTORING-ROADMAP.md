@@ -493,12 +493,43 @@ npm run build
 
 ---
 
+## 🆕 Future Features (Designed, Pending Implementation)
+
+### Tournament Series & Season Leagues
+
+**Status**: 📋 Design complete, pending scheduling
+**Design Document**: [TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md](./TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md)
+**Created**: December 2025
+
+Two related features to improve how competition levels are tracked in Finnish youth soccer:
+
+#### Feature 1: Tournament Series
+- **Problem**: Tournaments currently have a single `level` field, but tournaments have multiple series (Elite, Kilpa, Haaste, Harraste)
+- **Solution**: Tournaments can define multiple series; games belong to a specific series
+- **Effort**: ~4-6 hours
+- **Files**: types, tournaments.ts, TournamentDetailsModal, NewGameSetupModal, GameSettingsModal
+
+#### Feature 2: Season Leagues
+- **Problem**: Seasons lack formal league association (currently embedded in season name)
+- **Solution**: Predefined Finnish youth league list (29 leagues + custom option)
+- **Effort**: ~2-3 hours
+- **Files**: types, leagues.ts (new), seasons.ts, SeasonDetailsModal
+
+#### Deferred Considerations
+- **Gender handling**: Needs separate discussion on where gender should live
+- **Age group filtering**: Needs investigation on which leagues apply to which age groups
+
+**See design document for full details including data models, user flows, and file changes.**
+
+---
+
 ## 🔗 Related Documentation
 
 **Core Planning Documents:**
 - [REFACTORING_STATUS.md](./REFACTORING_STATUS.md) - Current refactoring status
 - [NPM_DEPENDENCY_UPDATE_PLAN.md](./NPM_DEPENDENCY_UPDATE_PLAN.md) - Detailed NPM update strategy
 - [CRITICAL_FIXES_TRACKER.md](../CRITICAL_FIXES_TRACKER.md) - Overall fix tracking
+- [TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md](./TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md) - Future feature design
 
 **Fix Plans:**
 - [P1-GameSettingsModal-Refactoring-Plan.md](../05-development/fix-plans/P1-GameSettingsModal-Refactoring-Plan.md)

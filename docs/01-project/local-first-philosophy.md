@@ -126,6 +126,37 @@ Local-First Response Time: <50ms (consistent)
 - **Screen Sharing**: Use device screen sharing for live collaboration
 - **Future Development**: Privacy-preserving collaboration features
 
+### Data Aggregation & Multi-Coach Analysis
+
+**Challenge**: Combining data from multiple coaches for team-wide statistics (e.g., after tournaments where different coaches tracked different games).
+
+**Why This Is Hard**:
+- **Identity Matching**: When coaches enter data independently, the same player might appear as "Matti Virtanen", "Virtanen Matti", or "M. Virtanen"
+- **Naming Conventions**: Teams may be recorded as "FC Honka U12", "Honka", or "Honka Boys"
+- **Pre-coordination Fails**: Volunteer coaches won't maintain shared naming standards consistently
+- **Cloud Doesn't Solve It**: Even with a shared backend, someone must still maintain canonical entity names
+
+**Solution: External Analyzer Tool**
+
+MatchOps-Local is intentionally scoped as a **data capture tool** for individual coaches. Multi-coach data aggregation is handled by a separate analyzer tool:
+
+1. **Coaches use the app normally** - no extra work or coordination required
+2. **Coaches export their data** - JSON/Excel export functionality already exists
+3. **Dedicated analyst imports multiple exports** - typically the head coach or team manager
+4. **Analyst performs reconciliation** - fuzzy matching + manual confirmation of entity mappings
+5. **Analyzer generates combined reports** - team-wide statistics and visualizations
+
+This separation respects that:
+- Volunteers should focus on coaching, not data standardization
+- The person wanting aggregated data has context to resolve ambiguities
+- MatchOps-Local stays focused and simple
+
+**Future: Palloliitto TASO Integration**
+
+When/if the Finnish Football Association's TASO system provides an API, it could serve as an authoritative source for player and team identities, reducing reconciliation burden. This would be the appropriate path for standardized data rather than building custom cloud infrastructure.
+
+See [ADR-003: Data Aggregation External Tooling](../05-development/architecture-decisions/ADR-003-data-aggregation-external-tooling.md) for the full architectural decision.
+
 ## Philosophical Impact
 
 ### Redefining User-Software Relationships

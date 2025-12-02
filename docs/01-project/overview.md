@@ -119,3 +119,7 @@ MatchOps-Local combines the best of modern web technology with local data storag
 MatchOps-Local represents more than just another coaching app—it's a statement about data ownership, privacy, and the future of web applications. In an era of increasing data privacy concerns and cloud dependency, this project demonstrates that powerful, modern applications can run entirely on user devices while providing superior performance and user experience.
 
 By choosing local-first architecture, we're not just solving technical challenges—we're empowering coaches and protecting young athletes' privacy while advancing the state of the art in modern web development.
+
+### Scope & Boundaries
+
+MatchOps-Local is intentionally focused as a **data capture tool** for individual coaches. Multi-coach data aggregation (combining statistics from multiple coaches after tournaments) is handled by external tooling, not within the app itself. This separation keeps the app simple and respects volunteer coaches' time. See [ADR-003](../05-development/architecture-decisions/ADR-003-data-aggregation-external-tooling.md) for details on this architectural decision.
