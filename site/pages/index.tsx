@@ -81,16 +81,40 @@ export default function HomePage() {
       <section className="section bg-slate-900">
         <div className="container-custom">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-6">
-              {t('info.whatIsThis.title')}
+            {/* Title with highlight */}
+            <h1 className="text-3xl md:text-5xl font-bold text-white mb-6">
+              {router.locale === 'fi' ? (
+                <>Mikä on <span className="text-primary">MatchOps Local</span>?</>
+              ) : (
+                <>What is <span className="text-primary">MatchOps Local</span>?</>
+              )}
             </h1>
-            <div className="prose prose-invert max-w-none">
-              <p>
-                {t('info.whatIsThis.description')}
-              </p>
-              <p>
-                {t('info.whatIsThis.oneLine')}
-              </p>
+
+            {/* Main description */}
+            <p className="text-slate-200 text-lg md:text-xl leading-relaxed mb-6">
+              {t('info.whatIsThis.description')}
+            </p>
+
+            {/* Badge-style highlights */}
+            <div className="flex flex-wrap justify-center gap-3 mt-8 mb-10">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700/50">
+                <FaShieldAlt className="text-primary text-sm flex-shrink-0" />
+                <span className="text-slate-300 text-sm md:text-base">
+                  {router.locale === 'fi' ? 'Ei rekisteröitymistä' : 'No signup required'}
+                </span>
+              </div>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700/50">
+                <FaDatabase className="text-primary text-sm flex-shrink-0" />
+                <span className="text-slate-300 text-sm md:text-base">
+                  {router.locale === 'fi' ? 'Tietosi pysyvät laitteellasi' : 'Your data stays on your device'}
+                </span>
+              </div>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700/50">
+                <FaBolt className="text-primary text-sm flex-shrink-0" />
+                <span className="text-slate-300 text-sm md:text-base">
+                  {router.locale === 'fi' ? 'Toimii ilman nettiä' : 'Works offline'}
+                </span>
+              </div>
             </div>
 
             {/* Hero Screenshots: mobile carousel + desktop grid */}
@@ -103,35 +127,35 @@ export default function HomePage() {
                 aria-label={t('screenshots.aria.carousel')}
                 aria-roledescription="carousel"
               >
-                <div className="screenshot-frame relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start">
+                <div className="screenshot-frame relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center">
                   <Image
                     src="/screenshots/Screenshot 2025-08-01 213624.png"
                     alt="App view screenshot"
                     width={1024}
                     height={1536}
                     sizes="(max-width: 768px) 100vw, 288px"
-                    className="w-full h-auto"
+                    className="w-auto h-auto max-h-[70vh] object-contain"
                     priority
                   />
                 </div>
-                <div className="screenshot-frame relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start">
+                <div className="screenshot-frame relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center">
                   <Image
                     src="/screenshots/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png"
                     alt="Detail view screenshot"
                     width={1024}
                     height={1536}
                     sizes="(max-width: 768px) 100vw, 288px"
-                    className="w-full h-auto"
+                    className="w-auto h-auto max-h-[70vh] object-contain"
                   />
                 </div>
-                <div className="screenshot-frame relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start">
+                <div className="screenshot-frame relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center">
                   <Image
                     src="/screenshots/StatsModalappInHandAtSoccerField.png"
                     alt="MatchOps Local in use at the field"
                     width={1024}
                     height={1536}
                     sizes="(max-width: 768px) 100vw, 288px"
-                    className="w-full h-auto"
+                    className="w-auto h-auto max-h-[70vh] object-contain"
                   />
                 </div>
               </div>
@@ -173,19 +197,22 @@ export default function HomePage() {
                   </button>
                 ))}
               </div>
-              <div className="text-center mt-4">
-                <Link href="/gallery" className="text-primary hover:text-primary/80 text-sm font-medium transition-colors">
+              <div className="text-center mt-6">
+                <Link
+                  href="/gallery"
+                  className="inline-block px-6 py-3 bg-primary hover:bg-primary/90 text-slate-900 font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
+                >
                   {t('screenshots.viewMore')} →
                 </Link>
               </div>
             </div>
 
             {/* Desktop/Tablet: compact 3-up grid */}
-            <div className="hidden md:grid grid-cols-3 gap-6 mt-8 mx-auto max-w-4xl lg:max-w-5xl">
+            <div className="hidden md:grid grid-cols-3 gap-6 mt-8 mx-auto max-w-4xl lg:max-w-5xl items-end">
               <div>
                 <button
                   type="button"
-                  className="screenshot-frame relative group cursor-zoom-in w-full text-left"
+                  className="screenshot-frame relative group cursor-zoom-in w-full text-left overflow-hidden aspect-[2/3] bg-slate-800/40 flex items-center justify-center"
                   onClick={() => setLightbox({ src: '/screenshots/Screenshot 2025-08-01 213624.png', alt: 'App view screenshot' })}
                   aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.plan') })}
                 >
@@ -195,7 +222,7 @@ export default function HomePage() {
                     width={1024}
                     height={1536}
                     sizes="(min-width: 1024px) 320px, 30vw"
-                    className="w-full h-auto"
+                    className="h-full w-full object-contain"
                     priority
                   />
                   <span className="pointer-events-none absolute inset-0 rounded-xl bg-black/0 group-hover:bg-black/10 transition" />
@@ -205,7 +232,7 @@ export default function HomePage() {
               <div>
                 <button
                   type="button"
-                  className="screenshot-frame relative group cursor-zoom-in w-full text-left"
+                  className="screenshot-frame relative group cursor-zoom-in w-full text-left overflow-hidden aspect-[2/3] bg-slate-800/40 flex items-center justify-center"
                   onClick={() => setLightbox({ src: '/screenshots/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png', alt: 'Detail view screenshot' })}
                   aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.track') })}
                 >
@@ -215,7 +242,7 @@ export default function HomePage() {
                     width={1024}
                     height={1536}
                     sizes="(min-width: 1024px) 320px, 30vw"
-                    className="w-full h-auto"
+                    className="h-full w-full object-contain"
                   />
                   <span className="pointer-events-none absolute inset-0 rounded-xl bg-black/0 group-hover:bg-black/10 transition" />
                 </button>
@@ -224,7 +251,7 @@ export default function HomePage() {
               <div>
                 <button
                   type="button"
-                  className="screenshot-frame relative group cursor-zoom-in w-full text-left"
+                  className="screenshot-frame relative group cursor-zoom-in w-full text-left overflow-hidden aspect-[2/3] bg-slate-800/40 flex items-center justify-center"
                   onClick={() => setLightbox({ src: '/screenshots/StatsModalappInHandAtSoccerField.png', alt: 'MatchOps Local in use at the field' })}
                   aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.review') })}
                 >
@@ -234,7 +261,7 @@ export default function HomePage() {
                     width={1024}
                     height={1536}
                     sizes="(min-width: 1024px) 320px, 30vw"
-                    className="w-full h-auto"
+                    className="h-full w-full object-contain"
                   />
                   <span className="pointer-events-none absolute inset-0 rounded-xl bg-black/0 group-hover:bg-black/10 transition" />
                 </button>
@@ -242,9 +269,12 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* View more link */}
-            <div className="hidden md:block text-center mt-6">
-              <Link href="/gallery" className="text-primary hover:text-primary/80 text-sm font-medium transition-colors">
+            {/* View more button */}
+            <div className="hidden md:block text-center mt-8">
+              <Link
+                href="/gallery"
+                className="inline-block px-8 py-3 bg-primary hover:bg-primary/90 text-slate-900 font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
+              >
                 {t('screenshots.viewMore')} →
               </Link>
             </div>
