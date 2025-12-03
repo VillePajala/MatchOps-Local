@@ -126,41 +126,41 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
             </p>
 
             <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Game Management</h4>
+              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{t('instructionsModal.menuActionsSection.gameManagement')}</h4>
               <ul className="text-sm leading-6 text-slate-200 space-y-1 list-disc pl-5 marker:text-slate-400 mb-3">
-                <li>Save - Quick save current game</li>
-                <li>Load Game - Open a saved game</li>
-                <li>New Game - Start a new match</li>
+                <li>{t('instructionsModal.menuActionsSection.save')}</li>
+                <li>{t('instructionsModal.menuActionsSection.loadGame')}</li>
+                <li>{t('instructionsModal.menuActionsSection.newGame')}</li>
               </ul>
 
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Setup & Configuration</h4>
+              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{t('instructionsModal.menuActionsSection.setupConfig')}</h4>
               <ul className="text-sm leading-6 text-slate-200 space-y-1 list-disc pl-5 marker:text-slate-400 mb-3">
-                <li>Game Settings - Edit match details</li>
-                <li>Manage Roster - Add/edit players</li>
-                <li>Manage Teams - Organize teams</li>
-                <li>Personnel Manager - Manage staff</li>
-                <li>Manage Seasons & Tournaments</li>
+                <li>{t('instructionsModal.menuActionsSection.gameSettings')}</li>
+                <li>{t('instructionsModal.menuActionsSection.manageRoster')}</li>
+                <li>{t('instructionsModal.menuActionsSection.manageTeams')}</li>
+                <li>{t('instructionsModal.menuActionsSection.personnelManager')}</li>
+                <li>{t('instructionsModal.menuActionsSection.manageSeasonsAndTournaments')}</li>
               </ul>
 
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Analysis & Tools</h4>
+              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{t('instructionsModal.menuActionsSection.analysisTools')}</h4>
               <ul className="text-sm leading-6 text-slate-200 space-y-1 list-disc pl-5 marker:text-slate-400 mb-3">
-                <li>Stats - View game statistics</li>
-                <li>Assess Players - Rate performance</li>
-                <li>Training - Access drills & resources</li>
-                <li>Backup & Restore - Save/load data</li>
+                <li>{t('instructionsModal.menuActionsSection.stats')}</li>
+                <li>{t('instructionsModal.menuActionsSection.assessPlayers')}</li>
+                <li>{t('instructionsModal.menuActionsSection.training')}</li>
+                <li>{t('instructionsModal.menuActionsSection.backupRestore')}</li>
               </ul>
 
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Resources</h4>
+              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{t('instructionsModal.menuActionsSection.resources')}</h4>
               <ul className="text-sm leading-6 text-slate-200 space-y-1 list-disc pl-5 marker:text-slate-400 mb-3">
-                <li>How It Works - This help guide</li>
-                <li>Coaching Materials - External link</li>
-                <li>Taso - External link</li>
-                <li>Docs & Features - External link</li>
+                <li>{t('instructionsModal.menuActionsSection.howItWorks')}</li>
+                <li>{t('instructionsModal.menuActionsSection.coachingMaterials')}</li>
+                <li>{t('instructionsModal.menuActionsSection.taso')}</li>
+                <li>{t('instructionsModal.menuActionsSection.docsFeatures')}</li>
               </ul>
 
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Settings</h4>
+              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{t('instructionsModal.menuActionsSection.settings')}</h4>
               <ul className="text-sm leading-6 text-slate-200 space-y-1 list-disc pl-5 marker:text-slate-400">
-                <li>App Settings - Language, backup, etc.</li>
+                <li>{t('instructionsModal.menuActionsSection.appSettings')}</li>
               </ul>
             </div>
           </section>

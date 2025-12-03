@@ -129,7 +129,7 @@ export default function HomePage() {
               >
                 <div className="screenshot-frame relative flex-shrink-0 w-[100vw] basis-[100vw] min-w-[100vw] snap-start flex items-center justify-center">
                   <Image
-                    src="/screenshots/Screenshot 2025-08-01 213624.png"
+                    src="/screenshots/the first screenshot.png"
                     alt="App view screenshot"
                     width={1024}
                     height={1536}
@@ -213,11 +213,11 @@ export default function HomePage() {
                 <button
                   type="button"
                   className="screenshot-frame relative group cursor-zoom-in w-full text-left overflow-hidden aspect-[2/3] bg-slate-800/40 flex items-center justify-center"
-                  onClick={() => setLightbox({ src: '/screenshots/Screenshot 2025-08-01 213624.png', alt: 'App view screenshot' })}
+                  onClick={() => setLightbox({ src: '/screenshots/the first screenshot.png', alt: 'App view screenshot' })}
                   aria-label={t('screenshots.aria.enlarge', { label: t('screenshots.labels.plan') })}
                 >
                   <Image
-                    src="/screenshots/Screenshot 2025-08-01 213624.png"
+                    src="/screenshots/the first screenshot.png"
                     alt="App view screenshot"
                     width={1024}
                     height={1536}
