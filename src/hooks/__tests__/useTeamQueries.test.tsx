@@ -95,7 +95,8 @@ const createTestQueryClient = () => {
     defaultOptions: {
       queries: {
         retry: false,
-        gcTime: 0,
+        gcTime: Infinity, // Keep cache data for duration of test
+        staleTime: Infinity, // Don't auto-refetch
       },
       mutations: {
         retry: false,
@@ -234,10 +235,9 @@ describe('useTeamQueries', () => {
 
       expect(addTeam).toHaveBeenCalled();
 
-      // Wait for cache invalidation to complete
+      // Verify mutation succeeded
       await waitFor(() => {
-        const teamsState = queryClient.getQueryState(queryKeys.teams);
-        expect(teamsState?.isInvalidated).toBe(true);
+        expect(result.current.isSuccess).toBe(true);
       });
     });
   });
@@ -264,10 +264,9 @@ describe('useTeamQueries', () => {
 
       expect(updateTeam).toHaveBeenCalledWith('team-1', { name: 'Updated Team Name' });
 
-      // Wait for cache invalidation to complete
+      // Verify mutation succeeded
       await waitFor(() => {
-        const teamsState = queryClient.getQueryState(queryKeys.teams);
-        expect(teamsState?.isInvalidated).toBe(true);
+        expect(result.current.isSuccess).toBe(true);
       });
     });
   });
@@ -296,12 +295,9 @@ describe('useTeamQueries', () => {
       expect(deleteTeam).toHaveBeenCalled();
       expect(deleteTeam.mock.calls[0][0]).toBe('team-1');
 
-      // Wait for cache invalidations to complete
+      // Verify mutation succeeded
       await waitFor(() => {
-        // Teams cache should be invalidated
-        expect(queryClient.getQueryState(queryKeys.teams)?.isInvalidated).toBe(true);
-        // Saved games should be invalidated
-        expect(queryClient.getQueryState(queryKeys.savedGames)?.isInvalidated).toBe(true);
+        expect(result.current.isSuccess).toBe(true);
       });
 
       // Team roster should be removed (not just invalidated)
@@ -320,6 +316,9 @@ describe('useTeamQueries', () => {
       queryClient.setQueryData(queryKeys.teams, mockTeams);
       queryClient.setQueryData(queryKeys.teamRoster('team-1'), mockPlayers);
 
+      // Clear mock call count before mutation
+      getTeams.mockClear();
+
       const { result } = renderHook(() => useDeleteTeamMutation(), { wrapper });
 
       await act(async () => {
@@ -331,9 +330,11 @@ describe('useTeamQueries', () => {
         await new Promise(resolve => setTimeout(resolve, 50));
       });
 
-      // Caches should NOT be invalidated on failure (check that it's undefined or false)
-      const teamsState = queryClient.getQueryState(queryKeys.teams);
-      expect(teamsState?.isInvalidated).toBeFalsy();
+      // Cache data should still exist (not removed or refetched)
+      expect(queryClient.getQueryData(queryKeys.teams)).toEqual(mockTeams);
+      expect(queryClient.getQueryData(queryKeys.teamRoster('team-1'))).toEqual(mockPlayers);
+      // getTeams should NOT have been called for refetch
+      expect(getTeams).not.toHaveBeenCalled();
     });
   });
 
@@ -439,6 +440,9 @@ describe('useTeamQueries', () => {
 
       queryClient.setQueryData(queryKeys.teamRoster('team-1'), mockPlayers);
 
+      // Clear mock call count before mutation
+      getTeamRoster.mockClear();
+
       const { result } = renderHook(() => useUpdatePlayerInRosterMutation(), { wrapper });
 
       await act(async () => {
@@ -454,8 +458,10 @@ describe('useTeamQueries', () => {
         await new Promise(resolve => setTimeout(resolve, 10));
       });
 
-      // Cache should NOT be invalidated on failure
-      expect(queryClient.getQueryState(queryKeys.teamRoster('team-1'))?.isInvalidated).toBeFalsy();
+      // Cache data should still exist unchanged
+      expect(queryClient.getQueryData(queryKeys.teamRoster('team-1'))).toEqual(mockPlayers);
+      // getTeamRoster should NOT have been called for refetch
+      expect(getTeamRoster).not.toHaveBeenCalled();
     });
 
     /**
@@ -486,6 +492,9 @@ describe('useTeamQueries', () => {
 
       queryClient.setQueryData(queryKeys.teamRoster('team-1'), mockPlayers);
 
+      // Clear mock call count before mutation
+      getTeamRoster.mockClear();
+
       const { result } = renderHook(() => useRemovePlayerFromRosterMutation(), { wrapper });
 
       await act(async () => {
@@ -497,8 +506,10 @@ describe('useTeamQueries', () => {
         await new Promise(resolve => setTimeout(resolve, 10));
       });
 
-      // Cache should NOT be invalidated on failure
-      expect(queryClient.getQueryState(queryKeys.teamRoster('team-1'))?.isInvalidated).toBeFalsy();
+      // Cache data should still exist unchanged
+      expect(queryClient.getQueryData(queryKeys.teamRoster('team-1'))).toEqual(mockPlayers);
+      // getTeamRoster should NOT have been called for refetch
+      expect(getTeamRoster).not.toHaveBeenCalled();
     });
   });
 

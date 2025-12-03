@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "test: add comprehensive React Query v5.90 integration tests"
+  "notes": "chore: update Sentry to version 10.28.0 and improve test coverage plan"
 }
