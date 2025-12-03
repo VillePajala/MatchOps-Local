@@ -147,6 +147,81 @@ npm run build
 
 ---
 
+### Week 3-4: Test Coverage Improvement (8-12 hours)
+
+**Priority**: 🟡 P2 - Critical for safety before Layer 3 and Next.js 16
+
+**Why Now?**
+- Jest 30 installed → 20% faster test runs make this less painful
+- Before Layer 3 → Tests verify behavior before optimization changes
+- Before Next.js 16 → Major framework upgrade needs solid safety net
+- Before new features → Tournament Series & Season Leagues safer to implement
+
+#### Current vs Target Coverage
+
+| Metric | Current | Target | Gap |
+|--------|---------|--------|-----|
+| Statements | 62% | 85% | +23% |
+| Branches | 48% | 80% | +32% |
+| Functions | 59% | 85% | +26% |
+| Lines | 63% | 85% | +22% |
+
+#### Priority Areas (Highest ROI)
+
+**1. Data Persistence Layer (3-4 hours)** - Most critical for data integrity
+- [ ] `src/utils/storage.ts` - Core IndexedDB operations
+- [ ] `src/utils/savedGames.ts` - Game save/load/delete
+- [ ] `src/utils/masterRosterManager.ts` - Player CRUD operations
+- [ ] `src/utils/seasons.ts` - Season management
+- [ ] `src/utils/tournaments.ts` - Tournament management
+
+**2. Core Game Logic (2-3 hours)** - Critical user flows
+- [ ] `src/hooks/useGameSessionReducer.ts` - Scoring, timer, periods
+- [ ] `src/hooks/useGameState.ts` - Field state management
+- [ ] `src/hooks/useAutoSave.ts` - Auto-save logic
+
+**3. Extracted Hooks (2-3 hours)** - New, well-isolated, testable
+- [ ] `useGameDataManagement` - React Query data fetching
+- [ ] `useGameSessionCoordination` - Game session lifecycle
+- [ ] `useFieldCoordination` - Field interactions
+- [ ] `useGamePersistence` - Save/load operations
+- [ ] `useTimerManagement` - Timer logic
+- [ ] `useModalOrchestration` - Modal state
+
+**4. Backup/Restore (1-2 hours)** - Data loss prevention
+- [ ] `src/utils/fullBackup.ts` - Full backup operations
+- [ ] Import/export edge cases
+- [ ] Corruption recovery paths
+
+#### Testing Commands
+
+```bash
+# Run with coverage report
+npm test -- --coverage
+
+# Check specific file coverage
+npm test -- --coverage --collectCoverageFrom='src/utils/storage.ts'
+
+# Generate HTML report for detailed analysis
+npm test -- --coverage --coverageReporters=html
+# Open coverage/lcov-report/index.html
+```
+
+#### Success Criteria
+
+- [ ] `npm test -- --coverage` shows:
+  - Statements ≥85%
+  - Branches ≥80%
+  - Functions ≥85%
+  - Lines ≥85%
+- [ ] All critical paths have explicit tests
+- [ ] Edge cases documented and tested
+- [ ] No decrease in existing coverage
+
+**Estimated Time**: 8-12 hours over 1-2 weeks
+
+---
+
 ### Week 4-5: Layer 3 Polish (3-4 hours)
 
 **Priority**: 🟢 P2 - Improves quality and performance
@@ -419,9 +494,10 @@ npm test
 | Week | Focus | Priority | Hours | Status |
 |------|-------|----------|-------|--------|
 | Week 1 | Security & Safe Updates | 🔴 P0 | 2-3h | ✅ Complete (PR #96) |
-| Week 2-3 | Jest & i18n | 🟡 P2 | 3-6h | 🔴 Not Started |
-| Week 4-5 | Layer 3 Polish | 🟢 P2 | 3-4h | 🔴 Not Started |
-| Week 6+ | Next.js 16 | 🔵 P3 | 2-3d | 🔴 Not Started |
+| Week 2-3 | Jest 30 & i18n | 🟡 P2 | 3-6h | 🔴 Not Started |
+| Week 3-4 | **Test Coverage → 85%** | 🟡 P2 | 8-12h | 🔴 Not Started |
+| Week 5-6 | Layer 3 Polish | 🟢 P2 | 3-4h | 🔴 Not Started |
+| Week 7+ | Next.js 16 | 🔵 P3 | 2-3d | 🔴 Not Started |
 
 **Update this table as you progress!**
 

@@ -379,7 +379,7 @@ See: docs/03-active-plans/REFACTORING_STATUS.md for complete plan
 
 ### Current Situation
 - **xlsx package**: 🔴 Known security vulnerabilities (CVE-2023-30533)
-- **Sentry**: 10.17.0 → 10.25.0 (minor update available)
+- **Sentry**: 10.12.0 → 10.28.0 ✅ UPDATED
 - **React Query**: 5.90.2 → 5.90.10 (patch update available)
 - **Jest**: 29.7.0 → 30.0.5 (major update with 20% performance improvement)
 - **Next.js 16**: Available but DEFERRED until Step 2.6 refactoring complete

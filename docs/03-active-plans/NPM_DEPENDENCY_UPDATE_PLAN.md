@@ -51,7 +51,7 @@ npm run build  # Verify production build
 **Estimated Time:** 1.5 hours
 **Risk:** 🟢 LOW - Minor/patch versions only
 
-### 1. Update Sentry (10.17.0 → 10.25.0)
+### 1. Update Sentry (10.12.0 → 10.28.0) ✅ DONE
 
 Latest features and bug fixes for error monitoring.
 
@@ -373,7 +373,7 @@ npm run dev
 ### Update Order (Lowest Risk First)
 
 1. ✅ Patch versions (5.90.2 → 5.90.10)
-2. ⚠️ Minor versions (10.17.0 → 10.25.0)
+2. ✅ Minor versions - Sentry (10.12.0 → 10.28.0) DONE
 3. 🔴 Major versions (29.7.0 → 30.0.5)
 
 ### Batch Related Updates
