@@ -75,7 +75,8 @@ export default function HomePage() {
         <meta name="description" content={t('seo.home.description')} />
         <meta property="og:title" content={t('seo.home.title')} />
         <meta property="og:description" content={t('seo.home.description')} />
-        <meta property="og:url" content={`https://matchops-local.vercel.app${router.locale === 'en' ? '/en' : ''}`} />
+        <meta property="og:url" content={`https://www.match-ops.com${router.locale === 'en' ? '/en' : ''}`} />
+        <meta property="og:image" content="https://www.match-ops.com/screenshots/OG.png" />
       </Head>
       {/* What Is This? */}
       <section className="section bg-slate-900">
