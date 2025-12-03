@@ -46,46 +46,30 @@ This document provides a **prioritized, week-by-week roadmap** for all work that
 
 **Priority**: 🔴 P0 - Must be done immediately
 
-#### Day 1: Security Fix (30 minutes)
-- [ ] **Fix xlsx security vulnerability** (CVE-2023-30533)
-  - Update to latest secure version from SheetJS CDN
-  - Test Excel export functionality
-  - Verify production build passes
-  - Run `npm audit` to confirm zero vulnerabilities
-
-**Commands**:
-```bash
-npm install https://cdn.sheetjs.com/xlsx-latest/xlsx-latest.tgz
-npm test
-npm run build
-npm audit
-```
+#### Day 1: Security Fix (30 minutes) ✅ DONE (2025-12-03, PR #96)
+- [x] **Fix xlsx security vulnerability** (CVE-2023-30533)
+  - Updated and pinned to 0.20.3 from SheetJS CDN
+  - Excel export functionality verified (24 tests passing)
+  - Production build passes
+  - `npm audit` shows zero vulnerabilities
 
 **See**: [NPM_DEPENDENCY_UPDATE_PLAN.md - Phase 1](./NPM_DEPENDENCY_UPDATE_PLAN.md#phase-1-critical-security-fix-p0---do-immediately)
 
-#### Day 2-3: Safe NPM Updates (1.5 hours)
-- [ ] **Update Sentry** (10.17.0 → 10.25.0)
+#### Day 2-3: Safe NPM Updates (1.5 hours) ✅ DONE (2025-12-03, PR #96)
+- [x] **Update Sentry** (10.12.0 → 10.28.0)
   - Better React 19 compatibility
   - Latest error tracking improvements
 
-- [ ] **Update React Query** (5.90.2 → 5.90.10)
+- [x] **Update React Query** (5.80.10 → 5.90.11)
   - Bug fixes for data fetching
   - Performance improvements
 
-**Commands**:
-```bash
-npm install @sentry/nextjs@latest @tanstack/react-query@latest
-npm test
-npm run build
-npm run lint
-```
-
 **Testing Checklist**:
-- [ ] Master roster queries work correctly
-- [ ] Saved games queries function properly
-- [ ] Season/tournament data fetching works
-- [ ] All tests pass
-- [ ] Production build succeeds
+- [x] Master roster queries work correctly
+- [x] Saved games queries function properly
+- [x] Season/tournament data fetching works
+- [x] All tests pass (1615 tests)
+- [x] Production build succeeds
 
 **See**: [NPM_DEPENDENCY_UPDATE_PLAN.md - Phase 2](./NPM_DEPENDENCY_UPDATE_PLAN.md#phase-2-safe-minorpatch-updates-p1---this-week)
 
@@ -434,7 +418,7 @@ npm test
 
 | Week | Focus | Priority | Hours | Status |
 |------|-------|----------|-------|--------|
-| Week 1 | Security & Safe Updates | 🔴 P0 | 2-3h | 🔴 Not Started |
+| Week 1 | Security & Safe Updates | 🔴 P0 | 2-3h | ✅ Complete (PR #96) |
 | Week 2-3 | Jest & i18n | 🟡 P2 | 3-6h | 🔴 Not Started |
 | Week 4-5 | Layer 3 Polish | 🟢 P2 | 3-4h | 🔴 Not Started |
 | Week 6+ | Next.js 16 | 🔵 P3 | 2-3d | 🔴 Not Started |

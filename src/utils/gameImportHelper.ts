@@ -78,15 +78,14 @@ export const processImportedGame = (
     }
   });
   
-  // Update selectedPlayerIds to include current roster player IDs
+  // Update selectedPlayerIds - only map the original selected players, don't add extras
+  // Bug fix: Previously this was adding ALL mapped players, not just originally selected ones
   processedGame.selectedPlayerIds = [
-    ...new Set([
-      ...processedGame.selectedPlayerIds.map(id => playerIdMap.get(id) || id).filter(id => 
-        currentRoster.some(p => p.id === id)
-      ),
-      // Also include any players that were mapped from the game rosters
-      ...mapping.filter(m => m.currentPlayerId).map(m => m.currentPlayerId!)
-    ])
+    ...new Set(
+      processedGame.selectedPlayerIds
+        .map(id => playerIdMap.get(id) || id)
+        .filter(id => currentRoster.some(p => p.id === id))
+    )
   ];
   
   // Update game events to use current roster player IDs
