@@ -1,12 +1,15 @@
 import Layout from '@/components/Layout';
+import FeatureCard from '@/components/FeatureCard';
 import Head from 'next/head';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 // Polished lists now use CSS-based checkmarks via .list-checked
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
+import { FaFutbol, FaClock, FaPencilAlt, FaChartLine, FaTrophy, FaUsers, FaBolt, FaShieldAlt, FaDatabase, FaGlobe } from 'react-icons/fa';
 
 export default function HomePage() {
   const { t } = useTranslation('common');
@@ -170,6 +173,11 @@ export default function HomePage() {
                   </button>
                 ))}
               </div>
+              <div className="text-center mt-4">
+                <Link href="/gallery" className="text-primary hover:text-primary/80 text-sm font-medium transition-colors">
+                  {t('screenshots.viewMore')} →
+                </Link>
+              </div>
             </div>
 
             {/* Desktop/Tablet: compact 3-up grid */}
@@ -234,6 +242,13 @@ export default function HomePage() {
               </div>
             </div>
 
+            {/* View more link */}
+            <div className="hidden md:block text-center mt-6">
+              <Link href="/gallery" className="text-primary hover:text-primary/80 text-sm font-medium transition-colors">
+                {t('screenshots.viewMore')} →
+              </Link>
+            </div>
+
             {/* Desktop Lightbox Modal */}
             {lightbox && (
               <div
@@ -276,7 +291,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* The Coach's Challenge */}
+      {/* The Coach's Challenge - HIDDEN */}
+      {false && (
       <section className="section section-divider bg-slate-800/50">
         <div className="container-custom">
           <div className="max-w-4xl mx-auto">
@@ -316,70 +332,108 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      )}
 
-      {/* What You Can Do */}
+      {/* Section 1: Your Game Day Toolkit */}
       <section className="section section-divider bg-slate-900">
         <div className="container-custom">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-12">
-              {t('info.whatYouCanDo.title')}
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
+              {t('features.gameDay.title')}
             </h2>
-
-            {/* Before the Game */}
-            <div className="mb-12">
-              <h3 className="text-xl font-bold text-primary mb-4">
-                {t('info.whatYouCanDo.beforeGame.title')}
-              </h3>
-              <ul className="list-checked space-y-3 text-slate-200">
-                <li><span>{t('info.whatYouCanDo.beforeGame.item1')}</span></li>
-                <li><span>{t('info.whatYouCanDo.beforeGame.item2')}</span></li>
-                <li><span>{t('info.whatYouCanDo.beforeGame.item3')}</span></li>
-                <li><span>{t('info.whatYouCanDo.beforeGame.item4')}</span></li>
-              </ul>
-            </div>
-
-            {/* During the Game */}
-            <div className="mb-12">
-              <h3 className="text-xl font-bold text-indigo-400 mb-4">
-                {t('info.whatYouCanDo.duringGame.title')}
-              </h3>
-              <ul className="list-checked space-y-3 text-slate-200">
-                <li><span>{t('info.whatYouCanDo.duringGame.item1')}</span></li>
-                <li><span>{t('info.whatYouCanDo.duringGame.item2')}</span></li>
-                <li><span>{t('info.whatYouCanDo.duringGame.item3')}</span></li>
-                <li><span>{t('info.whatYouCanDo.duringGame.item4')}</span></li>
-                <li><span>{t('info.whatYouCanDo.duringGame.item5')}</span></li>
-              </ul>
-            </div>
-
-            {/* After the Game */}
-            <div>
-              <h3 className="text-xl font-bold text-green-400 mb-4">
-                {t('info.whatYouCanDo.afterGame.title')}
-              </h3>
-              <ul className="list-checked space-y-3 text-slate-200">
-                <li><span>{t('info.whatYouCanDo.afterGame.item1')}</span></li>
-                <li><span>{t('info.whatYouCanDo.afterGame.item2')}</span></li>
-                <li><span>{t('info.whatYouCanDo.afterGame.item3')}</span></li>
-                <li><span>{t('info.whatYouCanDo.afterGame.item4')}</span></li>
-                <li><span>{t('info.whatYouCanDo.afterGame.item5')}</span></li>
-              </ul>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <FeatureCard
+                icon={<FaFutbol />}
+                title={t('features.gameDay.field.title')}
+                description={t('features.gameDay.field.desc')}
+              />
+              <FeatureCard
+                icon={<FaClock />}
+                title={t('features.gameDay.timer.title')}
+                description={t('features.gameDay.timer.desc')}
+              />
+              <FeatureCard
+                icon={<FaPencilAlt />}
+                title={t('features.gameDay.tactics.title')}
+                description={t('features.gameDay.tactics.desc')}
+              />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Technical Details */}
+      {/* Section 2: Beyond the Match */}
       <section className="section section-divider bg-slate-800/50">
         <div className="container-custom">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-6">
-              {t('info.technical.title')}
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
+              {t('features.management.title')}
             </h2>
-            <div className="prose prose-invert max-w-none">
-              <p className="text-lg text-slate-200 mb-4">{t('info.technical.desc1')}</p>
-              <p className="text-lg text-slate-200 mb-4">{t('info.technical.desc2')}</p>
-              <p className="text-lg text-slate-200">{t('info.technical.desc3')}</p>
+            <div className="mb-6">
+              <FeatureCard
+                icon={<FaChartLine />}
+                title={t('features.management.analytics.title')}
+                description={t('features.management.analytics.desc')}
+                variant="wide"
+                highlights={[
+                  t('features.management.analytics.h1'),
+                  t('features.management.analytics.h2'),
+                  t('features.management.analytics.h3'),
+                  t('features.management.analytics.h4'),
+                  t('features.management.analytics.h5'),
+                  t('features.management.analytics.h6'),
+                ]}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <FeatureCard
+                icon={<FaTrophy />}
+                title={t('features.management.seasons.title')}
+                description={t('features.management.seasons.desc')}
+              />
+              <FeatureCard
+                icon={<FaUsers />}
+                title={t('features.management.team.title')}
+                description={t('features.management.team.desc')}
+              />
+              <FeatureCard
+                icon={<FaDatabase />}
+                title={t('features.management.data.title')}
+                description={t('features.management.data.desc')}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 3: Built Different */}
+      <section className="section section-divider bg-slate-900">
+        <div className="container-custom">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center">
+              {t('features.foundation.title')}
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              <FeatureCard
+                icon={<FaBolt />}
+                title={t('features.foundation.offline.title')}
+                description={t('features.foundation.offline.desc')}
+              />
+              <FeatureCard
+                icon={<FaShieldAlt />}
+                title={t('features.foundation.private.title')}
+                description={t('features.foundation.private.desc')}
+              />
+              <FeatureCard
+                icon={<FaDatabase />}
+                title={t('features.foundation.backup.title')}
+                description={t('features.foundation.backup.desc')}
+              />
+              <FeatureCard
+                icon={<FaGlobe />}
+                title={t('features.foundation.i18n.title')}
+                description={t('features.foundation.i18n.desc')}
+              />
             </div>
           </div>
         </div>
@@ -393,7 +447,7 @@ export default function HomePage() {
               {t('info.faq.title')}
             </h2>
             <div className="space-y-4 prose prose-invert max-w-none">
-              {(['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8'] as const).map((key) => (
+              {(['q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10'] as const).map((key) => (
                 <details key={key} className="group rounded-lg border border-slate-700 bg-slate-800/40 p-4">
                   <summary className="cursor-pointer list-none text-white font-semibold">
                     {t(`info.faq.${key}`)}
