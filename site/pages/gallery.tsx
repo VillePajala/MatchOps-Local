@@ -7,20 +7,22 @@ import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
 
 const screenshots = [
-  // Prioritized images first
-  { src: '/screenshots/Screenshot 2025-12-01 142839.png', alt: '1. Screenshot' },
-  { src: '/screenshots/Screenshot 2025-12-01 230546.png', alt: '2. Screenshot' },
-  { src: '/screenshots/Screenshot 2025-10-27 190449.png', alt: '3. Screenshot' },
-  { src: '/screenshots/Gemini_Generated_Image_yygjmoyygjmoyygj.png', alt: '4. Generated image' },
-  // App screenshots
-  { src: '/screenshots/Screenshot 2025-08-01 213624.png', alt: '5. App main view' },
-  { src: '/screenshots/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png', alt: '6. App in use' },
-  { src: '/screenshots/StatsModalappInHandAtSoccerField.png', alt: '7. Stats view at the field' },
-  { src: '/screenshots/ChatGPT Image Oct 27, 2025, 06_56_55 PM.png', alt: '8. App view' },
-  { src: '/screenshots/ChatGPT Image Oct 27, 2025, 07_12_08 PM.png', alt: '9. App detail view' },
-  // October screenshots
-  { src: '/screenshots/Screenshot 2025-10-27 185158.png', alt: '10. Screenshot' },
-  { src: '/screenshots/Screenshot 2025-10-27 185632.png', alt: '11. Screenshot' },
+  // Shorter aspect ratio (~1.5)
+  { src: '/screenshots/the first screenshot.png', alt: '1. Hero screenshot' },
+  { src: '/screenshots/Screenshot 2025-08-01 213624.png', alt: '2. Screenshot' },
+  { src: '/screenshots/StatsModalappInHandAtSoccerField.png', alt: '3. Stats view' },
+  { src: '/screenshots/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png', alt: '4. Generated image' },
+  { src: '/screenshots/ChatGPT Image Oct 27, 2025, 06_56_55 PM.png', alt: '5. Generated image' },
+  // Medium aspect ratio (~2.0-2.2)
+  { src: '/screenshots/Screenshot 2025-12-01 230546.png', alt: '6. Screenshot' },
+  { src: '/screenshots/Screenshot 2025-12-01 142839.png', alt: '7. Screenshot' },
+  { src: '/screenshots/Screenshot 2025-10-27 190449.png', alt: '8. Screenshot' },
+  { src: '/screenshots/Screenshot 2025-12-03 114244.png', alt: '9. Screenshot' },
+  { src: '/screenshots/Screenshot 2025-12-01 231924.png', alt: '10. Screenshot' },
+  // Taller aspect ratio (~2.2+)
+  { src: '/screenshots/Gemini_Generated_Image_yygjmoyygjmoyygj.png', alt: '11. Generated image' },
+  { src: '/screenshots/Gemini_Generated_Image_sguqf5sguqf5sguq.png', alt: '12. Generated image' },
+  { src: '/screenshots/Gemini_Generated_Image_5zqp3v5zqp3v5zqp.png', alt: '13. Generated image' },
 ];
 
 export default function GalleryPage() {
