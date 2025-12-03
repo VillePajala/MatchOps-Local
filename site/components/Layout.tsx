@@ -69,17 +69,6 @@ export default function Layout({ children }: LayoutProps) {
             {/* Navigation Links (desktop) */}
             <div className="hidden md:flex items-center space-x-8">
               <Link
-                href="/technical"
-                aria-current={router.pathname === '/technical' ? 'page' : undefined}
-                className={`nav-link transition-colors ${
-                  router.pathname === '/technical'
-                    ? 'text-primary font-semibold nav-link--active'
-                    : 'text-slate-300 hover:text-primary'
-                }`}
-              >
-                {t('nav.technical')}
-              </Link>
-              <Link
                 href="/gallery"
                 aria-current={router.pathname === '/gallery' ? 'page' : undefined}
                 className={`nav-link transition-colors ${
@@ -122,19 +111,8 @@ export default function Layout({ children }: LayoutProps) {
               </div>
             </div>
 
-            {/* Mobile: inline links + quick language toggle */}
-            <div className="md:hidden flex items-center gap-2">
-              <Link
-                href="/technical"
-                aria-current={router.pathname === '/technical' ? 'page' : undefined}
-                className={`text-sm nav-link transition-colors ${
-                  router.pathname === '/technical'
-                    ? 'text-primary font-semibold nav-link--active'
-                    : 'text-slate-300 hover:text-primary'
-                }`}
-              >
-                {t('nav.technical')}
-              </Link>
+            {/* Mobile: Gallery link + language toggle */}
+            <div className="md:hidden flex items-center gap-3">
               <Link
                 href="/gallery"
                 aria-current={router.pathname === '/gallery' ? 'page' : undefined}
