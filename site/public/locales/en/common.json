@@ -1,6 +1,68 @@
 {
   "nav": {
-    "technical": "Technical"
+    "technical": "Technical",
+    "gallery": "Gallery"
+  },
+  "features": {
+    "gameDay": {
+      "title": "Your Game Day Toolkit",
+      "field": {
+        "title": "Interactive Soccer Field",
+        "desc": "Plan your match lineup visually and illustrate positions to your team."
+      },
+      "timer": {
+        "title": "Game Timer",
+        "desc": "Track game time and substitution intervals. Log match events in real-time with a few taps."
+      },
+      "tactics": {
+        "title": "Tactical Drawing Board",
+        "desc": "Illustrate tactical themes, instructions, and observations to players before the game and at halftime."
+      }
+    },
+    "management": {
+      "title": "Beyond the Match",
+      "analytics": {
+        "title": "Analytics",
+        "desc": "Comprehensive statistics to support player development observation, enabling a long-term overview.",
+        "h1": "Leaderboards (games, goals, assists) in different contexts",
+        "h2": "Advanced team statistics",
+        "h3": "Match, tournament, and season statistics",
+        "h4": "Advanced player statistics as numbers and graphs",
+        "h5": "Player performance ratings and trends",
+        "h6": "Statistics export (Excel & JSON)"
+      },
+      "seasons": {
+        "title": "Seasons & Tournaments",
+        "desc": "Create and track competitive events."
+      },
+      "team": {
+        "title": "Team Management",
+        "desc": "Maintain your player registry and create team lineups."
+      },
+      "data": {
+        "title": "Data Management",
+        "desc": "Create a backup of your data and restore the app state from a file when needed."
+      }
+    },
+    "foundation": {
+      "title": "Built Different",
+      "offline": {
+        "title": "Works Without Internet",
+        "desc": ""
+      },
+      "private": {
+        "title": "Data Stored Only on Your Device",
+        "desc": ""
+      },
+      "backup": {
+        "title": "Back Up Your Data",
+        "desc": ""
+      },
+      "i18n": {
+        "title": "English & Finnish Language Support",
+        "desc": ""
+      }
+    }
   },
   "seo": {
     "home": {
@@ -24,7 +86,71 @@
   "technical": {
     "hero": {
       "title": "Technical Specifications",
-      "subtitle": "Architecture, technology stack, and system requirements"
+      "subtitle": "Architecture, technology stack, and developer information"
+    },
+    "codeQuality": {
+      "title": "Code Quality",
+      "typescript": "TypeScript Strict Mode",
+      "typescriptDesc": "Full strict mode enabled with no-explicit-any rule",
+      "testing": "Test Coverage",
+      "testingDesc": "1600+ tests with Jest and React Testing Library",
+      "linting": "Linting & Formatting",
+      "lintingDesc": "ESLint with strict rules, Prettier for formatting",
+      "cicd": "CI/CD",
+      "cicdDesc": "Automated builds, tests, and deployments via Vercel"
+    },
+    "architectureDetails": {
+      "title": "Architecture Deep Dive",
+      "componentPattern": "Component Pattern",
+      "componentPatternDesc": "Container/Presentational pattern with custom hooks for logic separation",
+      "stateFlow": "State Management",
+      "stateFlowDesc": "useReducer for complex game state, React Query for async data, useState for UI state",
+      "dataLayer": "Data Layer",
+      "dataLayerDesc": "Async storage adapters with IndexedDB backend, automatic migration from localStorage",
+      "errorHandling": "Error Handling",
+      "errorHandlingDesc": "Sentry integration for production monitoring, graceful degradation patterns"
+    },
+    "devSetup": {
+      "title": "Developer Setup",
+      "install": "Install Dependencies",
+      "installCmd": "npm install",
+      "dev": "Development Server",
+      "devCmd": "npm run dev",
+      "test": "Run Tests",
+      "testCmd": "npm test",
+      "build": "Production Build",
+      "buildCmd": "npm run build",
+      "lint": "Lint & Type Check",
+      "lintCmd": "npm run lint && npx tsc --noEmit"
+    },
+    "pwaFeatures": {
+      "title": "PWA Capabilities",
+      "installable": "Installable",
+      "installableDesc": "Install to home screen on mobile and desktop devices",
+      "offline": "Offline First",
+      "offlineDesc": "Full functionality without internet via Service Worker caching",
+      "autoUpdate": "Auto Updates",
+      "autoUpdateDesc": "Automatic update detection with user-controlled reload",
+      "wakeLock": "Wake Lock",
+      "wakeLockDesc": "Screen stays on during active games using Wake Lock API"
+    },
+    "dataFeatures": {
+      "title": "Data Management",
+      "migration": "IndexedDB Migration",
+      "migrationDesc": "Enterprise-grade migration with pause/resume/cancel, progress persistence, and tab coordination",
+      "backup": "Backup & Restore",
+      "backupDesc": "One-click full backup export with checksums and integrity verification",
+      "memory": "Memory Management",
+      "memoryDesc": "Intelligent memory pressure detection and batch size optimization"
+    },
+    "accessibility": {
+      "title": "Accessibility & UX",
+      "wcag": "WCAG 2.1 AA",
+      "wcagDesc": "Full keyboard navigation, ARIA attributes, and focus management",
+      "i18n": "Bilingual",
+      "i18nDesc": "Complete English and Finnish translations with context-aware pluralization",
+      "mobile": "Mobile Optimized",
+      "mobileDesc": "Touch-friendly controls, responsive design, drag-to-close modals"
     },
     "architecture": {
       "title": "Architecture",
@@ -158,10 +284,14 @@
       "q7": "Can I manage multiple teams?",
       "a7": "Yes. You can create and manage multiple teams (U12, U14, etc.) from the same app and switch between them easily.",
       "q8": "How much storage space does the app use?",
-      "a8": "The app uses your device's free storage space through IndexedDB. Available space depends on your device and can be tens or even hundreds of gigabytes. Typical usage with 100+ games and full statistics is under 50MB."
+      "a8": "The app uses your device's free storage space through IndexedDB. Available space depends on your device and can be tens or even hundreds of gigabytes. Typical usage with 100+ games and full statistics is under 50MB.",
+      "q9": "How do I update the app?",
+      "a9": "The app updates automatically when you open it and have an internet connection. After an update, the app will notify you of the new version and ask you to reload the page.",
+      "q10": "Can I share statistics with other coaches?",
+      "a10": "Yes. You can export statistics in Excel or JSON format and share the files with other coaches via email or messaging apps."
     },
     "cta": {
-      "title": "Currently in Limited Testing"
+      "title": "Currently in Limited Testing. Contact: valoraami@gmail.com"
     }
   },
   "screenshots": {
@@ -183,6 +313,11 @@
       "preview": "Screenshot preview",
       "goTo": "Go to {{label}}",
       "enlarge": "Enlarge {{label}} screenshot"
+    },
+    "viewMore": "View more screenshots",
+    "gallery": {
+      "title": "Screenshot Gallery",
+      "subtitle": "Explore the app views"
     }
   }
 }

@@ -1,6 +1,68 @@
 {
   "nav": {
-    "technical": "Tekniset tiedot"
+    "technical": "Tekniset tiedot",
+    "gallery": "Galleria"
+  },
+  "features": {
+    "gameDay": {
+      "title": "Pelipäivän työkalut",
+      "field": {
+        "title": "Interaktiivinen kenttänäkymä",
+        "desc": "Suunnittele ottelun kokoonpano visuaalisesti ja havainnollista pelipaikat joukkueellesi."
+      },
+      "timer": {
+        "title": "Pelikello",
+        "desc": "Seuraa peliaikaa ja vaihtovälejä. Kirjaa ottelutapahtumat reaaliajassa muutamalla kosketuksella."
+      },
+      "tactics": {
+        "title": "Taktinen piirtotaulu",
+        "desc": "Havainnollista ottelun taktiset teemat, ohjeesi ja huomiosi pelaajille ennen peliä ja puoliajalla."
+      }
+    },
+    "management": {
+      "title": "Ottelun jälkeen",
+      "analytics": {
+        "title": "Analytiikka",
+        "desc": "Kattava tilastointi pelaajakehityksen havainnoinnin tukena mahdollistaa pitkän aikavälin kokonaiskuvan hahmottamisen.",
+        "h1": "\"Pistepörssit\" (ottelut, maalit ja syötöt) eri konteksteissa",
+        "h2": "Edistyneet joukkuetilastot",
+        "h3": "Ottelu-, turnaus- ja kausitilastot",
+        "h4": "Pelaajan edistyneet tilastot numeroina ja graafeina",
+        "h5": "Pelaajien ottelusuoritusten arviointi ja trendit",
+        "h6": "Tilastojen vienti (Excel & JSON)"
+      },
+      "seasons": {
+        "title": "Kaudet ja turnaukset",
+        "desc": "Kilpailutapahtumien luominen ja seuranta."
+      },
+      "team": {
+        "title": "Joukkueiden hallinta",
+        "desc": "Pidä yllä pelaajarekisteriä ja luo joukkuekokoonpanoja."
+      },
+      "data": {
+        "title": "Datan hallinta",
+        "desc": "Luo varmuuskopio datastasi ja palauta sovelluksen tila tiedostosta tarvittaessa."
+      }
+    },
+    "foundation": {
+      "title": "Erilainen lähestymistapa",
+      "offline": {
+        "title": "Toimii ilman nettiyhteyttä",
+        "desc": ""
+      },
+      "private": {
+        "title": "Data tallentuu vain laitteellesi",
+        "desc": ""
+      },
+      "backup": {
+        "title": "Varmuuskopioi tietosi",
+        "desc": ""
+      },
+      "i18n": {
+        "title": "Englannin ja suomen kielen tuki",
+        "desc": ""
+      }
+    }
   },
   "seo": {
     "home": {
@@ -24,7 +86,71 @@
   "technical": {
     "hero": {
       "title": "Tekniset tiedot",
-      "subtitle": "Arkkitehtuuri, teknologiat ja järjestelmävaatimukset"
+      "subtitle": "Arkkitehtuuri, teknologiat ja kehittäjätiedot"
+    },
+    "codeQuality": {
+      "title": "Koodin laatu",
+      "typescript": "TypeScript Strict Mode",
+      "typescriptDesc": "Täysi strict-tila käytössä no-explicit-any-säännöllä",
+      "testing": "Testikattavuus",
+      "testingDesc": "1600+ testiä Jest- ja React Testing Library -kirjastoilla",
+      "linting": "Linttaus ja muotoilu",
+      "lintingDesc": "ESLint tiukoilla säännöillä, Prettier muotoiluun",
+      "cicd": "CI/CD",
+      "cicdDesc": "Automatisoidut buildaukset, testit ja julkaisut Vercelin kautta"
+    },
+    "architectureDetails": {
+      "title": "Arkkitehtuurin syvempi tarkastelu",
+      "componentPattern": "Komponenttimalli",
+      "componentPatternDesc": "Container/Presentational-malli custom hookeilla logiikan erottamiseen",
+      "stateFlow": "Tilanhallinta",
+      "stateFlowDesc": "useReducer monimutkaiselle pelitilalle, React Query asynkroniselle datalle, useState UI-tilalle",
+      "dataLayer": "Datakerros",
+      "dataLayerDesc": "Asynkroniset tallennusadapterit IndexedDB-taustalla, automaattinen migraatio localStoragesta",
+      "errorHandling": "Virheenkäsittely",
+      "errorHandlingDesc": "Sentry-integraatio tuotantomonitorointiin, graceful degradation -mallit"
+    },
+    "devSetup": {
+      "title": "Kehitysympäristön pystytys",
+      "install": "Asenna riippuvuudet",
+      "installCmd": "npm install",
+      "dev": "Kehityspalvelin",
+      "devCmd": "npm run dev",
+      "test": "Testien ajo",
+      "testCmd": "npm test",
+      "build": "Tuotantobuildi",
+      "buildCmd": "npm run build",
+      "lint": "Linttaus ja tyyppitarkistus",
+      "lintCmd": "npm run lint && npx tsc --noEmit"
+    },
+    "pwaFeatures": {
+      "title": "PWA-ominaisuudet",
+      "installable": "Asennettavissa",
+      "installableDesc": "Asenna kotinäytölle mobiili- ja työpöytälaitteilla",
+      "offline": "Offline-ensin",
+      "offlineDesc": "Täysi toiminnallisuus ilman nettiä Service Worker -välimuistin avulla",
+      "autoUpdate": "Automaattiset päivitykset",
+      "autoUpdateDesc": "Automaattinen päivitysten tunnistus käyttäjän hallitsemalla uudelleenlatauksella",
+      "wakeLock": "Wake Lock",
+      "wakeLockDesc": "Näyttö pysyy päällä aktiivisen pelin aikana Wake Lock API:n avulla"
+    },
+    "dataFeatures": {
+      "title": "Tiedonhallinta",
+      "migration": "IndexedDB-migraatio",
+      "migrationDesc": "Yritystason migraatio pause/resume/cancel-tuella, edistymisen tallennuksella ja välilehtien koordinoinnilla",
+      "backup": "Varmuuskopiointi ja palautus",
+      "backupDesc": "Yhden napin täysi varmuuskopiointi tarkistussummilla ja eheyden varmennuksella",
+      "memory": "Muistinhallinta",
+      "memoryDesc": "Älykäs muistipaineen tunnistus ja eräkoon optimointi"
+    },
+    "accessibility": {
+      "title": "Saavutettavuus ja UX",
+      "wcag": "WCAG 2.1 AA",
+      "wcagDesc": "Täysi näppäimistönavigaatio, ARIA-attribuutit ja fokuksen hallinta",
+      "i18n": "Kaksikielinen",
+      "i18nDesc": "Täydelliset englannin ja suomen käännökset kontekstitietoisella monikkomuodolla",
+      "mobile": "Mobiilioptimoitu",
+      "mobileDesc": "Kosketusystävälliset kontrollit, responsiivinen suunnittelu, raahaa-sulkeaksesi-modaalit"
     },
     "architecture": {
       "title": "Arkkitehtuuri",
@@ -158,10 +284,14 @@
       "q7": "Voinko hallita useita joukkueita?",
       "a7": "Kyllä. Voit luoda ja hallita useita joukkueita (U12, U14, jne.) samassa sovelluksessa ja vaihtaa niiden välillä helposti.",
       "q8": "Kuinka paljon tallennustilaa sovellus käyttää?",
-      "a8": "Sovellus käyttää laitteesi vapaata tallennustilaa IndexedDB:n kautta. Käytettävissä oleva tila riippuu laitteestasi ja voi olla kymmeniä tai jopa satoja gigatavuja. Tyypillinen käyttö 100+ pelin ja täysien tilastojen kanssa on alle 50MB."
+      "a8": "Sovellus käyttää laitteesi vapaata tallennustilaa IndexedDB:n kautta. Käytettävissä oleva tila riippuu laitteestasi ja voi olla kymmeniä tai jopa satoja gigatavuja. Tyypillinen käyttö 100+ pelin ja täysien tilastojen kanssa on alle 50MB.",
+      "q9": "Miten päivitän sovelluksen?",
+      "a9": "Sovellus päivittyy automaattisesti kun avaat sen ja sinulla on nettiyhteys. Päivityksen jälkeen sovellus ilmoittaa uudesta versiosta ja pyytää lataamaan sivun uudelleen.",
+      "q10": "Voinko jakaa tilastoja muille valmentajille?",
+      "a10": "Kyllä. Voit viedä tilastoja Excel- tai JSON-muodossa ja jakaa tiedostot muille valmentajille esimerkiksi sähköpostilla tai viestipalveluissa."
     },
     "cta": {
-      "title": "Rajoitettu testaus käynnissä"
+      "title": "Rajoitettu testaus käynnissä. Yhteydenotot: valoraami@gmail.com"
     }
   },
   "screenshots": {
@@ -183,6 +313,11 @@
       "preview": "Kuvan esikatselu",
       "goTo": "Siirry: {{label}}",
       "enlarge": "Suurenna kuva: {{label}}"
+    },
+    "viewMore": "Katso lisää kuvia",
+    "gallery": {
+      "title": "Kuvagalleria",
+      "subtitle": "Tutustu sovelluksen näkymiin"
     }
   }
 }

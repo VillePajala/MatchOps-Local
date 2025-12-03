@@ -79,6 +79,17 @@ export default function Layout({ children }: LayoutProps) {
               >
                 {t('nav.technical')}
               </Link>
+              <Link
+                href="/gallery"
+                aria-current={router.pathname === '/gallery' ? 'page' : undefined}
+                className={`nav-link transition-colors ${
+                  router.pathname === '/gallery'
+                    ? 'text-primary font-semibold nav-link--active'
+                    : 'text-slate-300 hover:text-primary'
+                }`}
+              >
+                {t('nav.gallery')}
+              </Link>
 
               {/* Language Toggle */}
               <div className="flex items-center space-x-2 text-slate-300" role="group" aria-label="Language selector">
@@ -111,8 +122,8 @@ export default function Layout({ children }: LayoutProps) {
               </div>
             </div>
 
-            {/* Mobile: inline link + quick language toggle (no hamburger) */}
-            <div className="md:hidden flex items-center gap-3">
+            {/* Mobile: inline links + quick language toggle */}
+            <div className="md:hidden flex items-center gap-2">
               <Link
                 href="/technical"
                 aria-current={router.pathname === '/technical' ? 'page' : undefined}
@@ -123,6 +134,17 @@ export default function Layout({ children }: LayoutProps) {
                 }`}
               >
                 {t('nav.technical')}
+              </Link>
+              <Link
+                href="/gallery"
+                aria-current={router.pathname === '/gallery' ? 'page' : undefined}
+                className={`text-sm nav-link transition-colors ${
+                  router.pathname === '/gallery'
+                    ? 'text-primary font-semibold nav-link--active'
+                    : 'text-slate-300 hover:text-primary'
+                }`}
+              >
+                {t('nav.gallery')}
               </Link>
               <button
                 onClick={() => changeLanguage(router.locale === 'fi' ? 'en' : 'fi')}
@@ -144,53 +166,13 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Footer */}
       <footer className="mt-20 border-t border-slate-700/20 bg-slate-900/40 backdrop-blur-sm relative z-10">
-        <div className="container-custom py-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* About */}
-            <div>
-              <h3 className="font-bold text-white mb-4">MatchOps-Local</h3>
-              <p className="text-sm text-slate-300">
-                {t('footer.tagline')}
-              </p>
-            </div>
-
-            {/* Navigation */}
-            <div>
-              <h4 className="font-semibold text-white mb-4">{t('footer.navigation')}</h4>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href="/" className="text-slate-300 hover:text-primary">
-                    {t('footer.home')}
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/technical" className="text-slate-300 hover:text-primary">
-                    {t('nav.technical')}
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            {/* Legal */}
-            <div>
-              <h4 className="font-semibold text-white mb-4">{t('footer.legal')}</h4>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <span className="text-slate-300">{t('footer.license')}</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Copyright */}
-          <div className="border-t border-slate-700/20 mt-8 pt-8 text-center">
-            <p className="text-sm text-slate-300">
-              {t('footer.copyright', { year: new Date().getFullYear() })}
-            </p>
-            <p className="text-xs text-slate-400 mt-2">
-              {t('footer.dataStays')}
-            </p>
-          </div>
+        <div className="container-custom py-8 text-center">
+          <p className="text-sm text-slate-300">
+            {t('footer.copyright', { year: new Date().getFullYear() })}
+          </p>
+          <p className="text-xs text-slate-400 mt-2">
+            {t('footer.dataStays')}
+          </p>
         </div>
       </footer>
     </div>
