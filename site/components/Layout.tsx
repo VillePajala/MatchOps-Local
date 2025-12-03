@@ -29,7 +29,7 @@ export default function Layout({ children }: LayoutProps) {
         <meta property="og:title" content="MatchOps-Local" />
         <meta property="og:description" content={t('footer.tagline')} />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="/favicon.png" />
+        <meta property="og:image" content="https://www.match-ops.com/screenshots/OG.png" />
         <meta property="og:locale" content={router.locale === 'en' ? 'en_US' : 'fi_FI'} />
         <meta property="og:locale:alternate" content={router.locale === 'en' ? 'fi_FI' : 'en_US'} />
         <meta name="twitter:card" content="summary_large_image" />
