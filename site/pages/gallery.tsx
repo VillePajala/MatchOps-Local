@@ -155,7 +155,7 @@ export default function GalleryPage() {
 
           {/* Image */}
           <div
-            className="relative max-w-screen-lg w-full px-16 md:px-20"
+            className="relative max-w-screen-lg w-full px-4 md:px-20"
             onClick={(e) => e.stopPropagation()}
           >
             <Image
@@ -163,8 +163,8 @@ export default function GalleryPage() {
               alt={currentImage.alt}
               width={1024}
               height={1536}
-              sizes="(min-width: 1024px) 70vw, 90vw"
-              className="block mx-auto h-auto w-auto max-w-full max-h-[85vh] rounded-lg"
+              sizes="(min-width: 1024px) 70vw, 95vw"
+              className="block mx-auto w-full md:w-auto md:max-w-full h-auto max-h-[90vh] md:max-h-[85vh] object-contain rounded-lg"
             />
           </div>
         </div>
