@@ -1,33 +1,63 @@
 import Layout from '@/components/Layout';
 import Head from 'next/head';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
 
 const screenshots = [
-  // Original (Oct 27)
-  { src: '/screenshots/Screenshot 2025-08-01 213624.png', alt: '1. App main view' },
-  { src: '/screenshots/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png', alt: '2. App in use' },
-  { src: '/screenshots/StatsModalappInHandAtSoccerField.png', alt: '3. Stats view at the field' },
-  { src: '/screenshots/ChatGPT Image Oct 27, 2025, 06_56_55 PM.png', alt: '4. App view' },
-  { src: '/screenshots/Screenshot 2025-10-27 190449.png', alt: '5. Screenshot' },
-  // New (Dec 1)
-  { src: '/screenshots/Screenshot 2025-12-01 142839.png', alt: '6. Screenshot' },
-  { src: '/screenshots/Screenshot 2025-12-01 230546.png', alt: '7. Screenshot' },
-  { src: '/screenshots/Screenshot 2025-12-01 231924.png', alt: '8. Screenshot' },
-  // New (Dec 3)
-  { src: '/screenshots/Screenshot 2025-12-03 114244.png', alt: '9. Screenshot' },
-  // Gemini generated (Dec 3)
-  { src: '/screenshots/Gemini_Generated_Image_sguqf5sguqf5sguq.png', alt: '10. Generated image' },
-  { src: '/screenshots/Gemini_Generated_Image_yygjmoyygjmoyygj.png', alt: '11. Generated image' },
+  // Reordered: 6, 7, 5, 11 first, then remaining
+  { src: '/screenshots/Screenshot 2025-12-01 142839.png', alt: '1. Screenshot' },
+  { src: '/screenshots/Screenshot 2025-12-01 230546.png', alt: '2. Screenshot' },
+  { src: '/screenshots/Screenshot 2025-10-27 190449.png', alt: '3. Screenshot' },
+  { src: '/screenshots/Gemini_Generated_Image_yygjmoyygjmoyygj.png', alt: '4. Generated image' },
+  // Remaining images
+  { src: '/screenshots/Screenshot 2025-08-01 213624.png', alt: '5. App main view' },
+  { src: '/screenshots/ChatGPT Image Oct 27, 2025, 07_15_53 PM.png', alt: '6. App in use' },
+  { src: '/screenshots/StatsModalappInHandAtSoccerField.png', alt: '7. Stats view at the field' },
+  { src: '/screenshots/ChatGPT Image Oct 27, 2025, 06_56_55 PM.png', alt: '8. App view' },
+  { src: '/screenshots/Screenshot 2025-12-01 231924.png', alt: '9. Screenshot' },
+  { src: '/screenshots/Screenshot 2025-12-03 114244.png', alt: '10. Screenshot' },
+  { src: '/screenshots/Gemini_Generated_Image_sguqf5sguqf5sguq.png', alt: '11. Generated image' },
   { src: '/screenshots/Gemini_Generated_Image_5zqp3v5zqp3v5zqp.png', alt: '12. Generated image' },
 ];
 
 export default function GalleryPage() {
   const { t } = useTranslation('common');
-  const [lightbox, setLightbox] = useState<null | { src: string; alt: string }>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const goNext = useCallback(() => {
+    if (lightboxIndex !== null) {
+      setLightboxIndex((lightboxIndex + 1) % screenshots.length);
+    }
+  }, [lightboxIndex]);
+
+  const goPrev = useCallback(() => {
+    if (lightboxIndex !== null) {
+      setLightboxIndex((lightboxIndex - 1 + screenshots.length) % screenshots.length);
+    }
+  }, [lightboxIndex]);
+
+  const closeLightbox = useCallback(() => {
+    setLightboxIndex(null);
+  }, []);
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') goNext();
+      if (e.key === 'ArrowLeft') goPrev();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxIndex, goNext, goPrev, closeLightbox]);
+
+  const currentImage = lightboxIndex !== null ? screenshots[lightboxIndex] : null;
 
   return (
     <Layout>
@@ -51,7 +81,7 @@ export default function GalleryPage() {
                   key={index}
                   type="button"
                   className="screenshot-frame relative group cursor-zoom-in rounded-lg overflow-hidden border border-slate-700/40 bg-slate-800/40"
-                  onClick={() => setLightbox(screenshot)}
+                  onClick={() => setLightboxIndex(index)}
                   aria-label={t('screenshots.aria.enlarge', { label: screenshot.alt })}
                 >
                   <Image
@@ -73,39 +103,69 @@ export default function GalleryPage() {
         </div>
       </section>
 
-      {/* Lightbox Modal */}
-      {lightbox && (
+      {/* Lightbox Modal with Navigation */}
+      {currentImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center"
           role="dialog"
           aria-modal="true"
           aria-label={t('screenshots.aria.preview')}
-          onClick={() => setLightbox(null)}
+          onClick={closeLightbox}
         >
-          <div className="relative max-w-screen-lg w-full" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="absolute -top-3 -right-3 h-10 w-10 rounded-full bg-slate-900 border border-slate-700 text-white shadow hover:bg-slate-800 z-10"
-              aria-label={t('screenshots.aria.close')}
-              onClick={() => setLightbox(null)}
-            >
-              ×
-            </button>
-            <button
-              type="button"
-              aria-label={t('screenshots.aria.close')}
-              onClick={() => setLightbox(null)}
-              className="max-h-[85vh] w-full overflow-hidden rounded-lg border border-slate-700 bg-slate-900/40 cursor-zoom-out"
-            >
-              <Image
-                src={lightbox.src}
-                alt={lightbox.alt}
-                width={1024}
-                height={1536}
-                sizes="(min-width: 1024px) 70vw, 90vw"
-                className="block mx-auto h-auto w-auto max-w-full max-h-[85vh]"
-              />
-            </button>
+          {/* Previous button */}
+          <button
+            type="button"
+            className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-slate-800/80 border border-slate-600 text-white text-2xl hover:bg-slate-700 transition-colors z-20"
+            aria-label="Previous image"
+            onClick={(e) => {
+              e.stopPropagation();
+              goPrev();
+            }}
+          >
+            ‹
+          </button>
+
+          {/* Next button */}
+          <button
+            type="button"
+            className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-slate-800/80 border border-slate-600 text-white text-2xl hover:bg-slate-700 transition-colors z-20"
+            aria-label="Next image"
+            onClick={(e) => {
+              e.stopPropagation();
+              goNext();
+            }}
+          >
+            ›
+          </button>
+
+          {/* Close button */}
+          <button
+            type="button"
+            className="absolute top-4 right-4 h-10 w-10 rounded-full bg-slate-800/80 border border-slate-600 text-white text-xl hover:bg-slate-700 transition-colors z-20"
+            aria-label={t('screenshots.aria.close')}
+            onClick={closeLightbox}
+          >
+            ×
+          </button>
+
+          {/* Image counter */}
+          <div className="absolute top-4 left-4 bg-slate-800/80 border border-slate-600 text-white text-sm px-3 py-1 rounded-full z-20">
+            {lightboxIndex !== null ? lightboxIndex + 1 : 0} / {screenshots.length}
+          </div>
+
+          {/* Image */}
+          <div
+            className="relative max-w-screen-lg w-full px-16 md:px-20"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Image
+              src={currentImage.src}
+              alt={currentImage.alt}
+              width={1024}
+              height={1536}
+              sizes="(min-width: 1024px) 70vw, 90vw"
+              className="block mx-auto h-auto w-auto max-w-full max-h-[85vh] rounded-lg"
+            />
           </div>
         </div>
       )}
