@@ -4,14 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
-## ✅ P0 REFACTORING COMPLETE! 🎉
+## 🔄 P0 REFACTORING 90% COMPLETE
 
-**✅ UPDATE (Jan 21, 2025): P0 Refactoring 100% COMPLETE!** HomePage successfully reduced to **62 lines** and ALL hooks extracted.
+**Status**: 🟡 **90% COMPLETE** — Step 2.7 (useGameOrchestration cleanup) remaining
 
-**Status**: ✅ **P0 COMPLETE** — Critical refactoring done, December 2025 code review fixes applied
+**Current State**:
+- ✅ HomePage.tsx reduced to **62 lines** (98.3% reduction!)
+- ✅ 6 hooks extracted and tested (61-100% coverage)
+- 🔴 **useGameOrchestration.ts still 2,199 lines** — needs cleanup (Step 2.7)
+- The hooks ARE being called, but duplicate code was never deleted
+
+**Next Step**: [L2-2.7-useGameOrchestration-Cleanup-PLAN.md](./docs/03-active-plans/L2-2.7-useGameOrchestration-Cleanup-PLAN.md)
 
 **Remaining Technical Debt**:
-- **P1**: GameSettingsModal.tsx (1,995 lines) — Deferred (low priority, doesn't block development)
+- 🔴 **Step 2.7**: useGameOrchestration.ts cleanup (2,199 → ~200 lines) — **IN PROGRESS**
+- **P1**: GameSettingsModal.tsx (1,995 lines) — Deferred (after Step 2.7)
 - ~~**P2**: Silent error swallowing~~ — ✅ FIXED (December 2025)
 - **P2**: Re-render performance optimization — Deferred to Layer 3
 
@@ -20,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | Priority | Issue | Status | Result |
 |----------|-------|--------|--------|
 | ~~**P0**~~ | ~~`HomePage.tsx` was 3,725 lines~~ | ✅ **COMPLETE** | Now **62 lines** (98.3% reduction!) |
-| ~~**P0**~~ | ~~`useGameOrchestration.ts` was 3,373 lines~~ | ✅ **COMPLETE** | Split into 6 focused hooks (all ≤733 lines) |
+| **P0** | `useGameOrchestration.ts` still 2,199 lines | 🔴 **Step 2.7** | 6 hooks extracted but duplicates not deleted |
 | ~~**P1**~~ | ~~useAutoSave stale closure~~ | ✅ **COMPLETE** | Ref pattern implemented |
 | ~~**P1**~~ | ~~handleDeleteGameEvent race condition~~ | ✅ **COMPLETE** | Atomic action created |
 | ~~**P1**~~ | ~~modalManagerProps documentation~~ | ✅ **COMPLETE** | ADR-001 created |
@@ -41,7 +48,7 @@ The **critical** P0 refactoring is **COMPLETE**. You can now work on most tasks 
 - ✅ **New game modes**: Ready to implement
 - ✅ **Complex functionality**: Core codebase is maintainable and testable
 - ✅ **Bug fixes**: Easy to locate and fix
-- ✅ **Tests**: All 1615 passing
+- ✅ **Tests**: All 2,025 passing
 - ✅ **Production readiness**: Ready for security & service worker work
 
 **Remaining Considerations**:
@@ -259,6 +266,20 @@ See `docs/PROJECT_OVERVIEW.md` and `docs/LOCAL_FIRST_PHILOSOPHY.md` for details.
 - `src/utils/logger.ts` - Centralized logging utility
 
 ## Testing Rules and Principles
+
+### Test-First Verification for Deletion/Refactoring Tasks
+
+When **deleting or refactoring code** (not creating new features), use **Test-First Verification**:
+
+1. **Before ANY deletion**: Run full test suite, record baseline (e.g., "2,025 tests passing")
+2. **After EACH deletion block**: Run tests immediately
+3. **If tests fail**: The deleted code was still needed - restore and investigate
+4. **If tests pass**: Safe to continue
+
+This is NOT traditional TDD (which writes tests first for new code). Instead:
+- Existing tests ARE the safety net
+- "Green tests after deletion" = deletion was safe
+- Run `npm test -- --no-coverage` frequently during refactoring
 
 ### Critical Testing Guidelines
 
