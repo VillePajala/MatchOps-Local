@@ -31,7 +31,7 @@ import {
 } from '@/utils/appSettings';
 import { getTeams, getTeam } from '@/utils/teams';
 // Import Player from types directory
-import { Player, Season, Tournament, Team } from '@/types';
+import { Player, Team } from '@/types';
 // Import saveMasterRoster utility
 import type { GameEvent, AppState, SavedGamesCollection, TimerState, PlayerAssessment } from "@/types";
 import { saveMasterRoster } from '@/utils/masterRoster';
@@ -264,17 +264,13 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     gameSessionState.completedIntervalDurations,
   );
 
-  // Temporary state for backward compatibility during migration
-  // These will be removed once all references are updated to use gameDataManagement
-  const [seasons, setSeasons] = useState<Season[]>([]);
-  const [tournaments, setTournaments] = useState<Tournament[]>([]);
-
   // --- Game Data Management Hook ---
+  // NOTE: seasons and tournaments are now accessed via gameDataManagement.seasons/tournaments
+  // Local state was removed as part of Step 2.7.1 cleanup
   const gameDataManagement = useGameDataManagement({
     currentGameId,
     setAvailablePlayers,
-    setSeasons,
-    setTournaments,
+    // setSeasons and setTournaments removed - using gameDataManagement.seasons/tournaments directly
   });
 
   // Local state for savedGames - DO NOT replace with React Query cache directly!
@@ -1330,7 +1326,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       showToast(`Error: Could not find game data for ${gameId}`, 'error');
       return;
     }
-    exportJson(gameId, gameData, seasons, tournaments);
+    exportJson(gameId, gameData, gameDataManagement.seasons, gameDataManagement.tournaments);
   };
 
   const handleExportOneExcel = (gameId: string) => {
@@ -1340,7 +1336,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       return;
     }
     try {
-      exportCurrentGameExcel(gameId, gameData, availablePlayers, seasons, tournaments);
+      exportCurrentGameExcel(gameId, gameData, availablePlayers, gameDataManagement.seasons, gameDataManagement.tournaments);
     } catch (error) {
       logger.error('[handleExportOneExcel] Export failed:', error);
       showToast(t('export.exportGameFailed'), 'error');
@@ -1713,12 +1709,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       return acc;
     }, {} as SavedGamesCollection);
     try {
-      exportAggregateExcel(gamesData, aggregateStats, seasons, tournaments, []);
+      exportAggregateExcel(gamesData, aggregateStats, gameDataManagement.seasons, gameDataManagement.tournaments, []);
     } catch (error) {
       logger.error('[handleExportAggregateExcel] Export failed:', error);
       showToast(t('export.exportStatsFailed'), 'error');
     }
-  }, [savedGames, seasons, tournaments, t, showToast]);
+  }, [savedGames, gameDataManagement.seasons, gameDataManagement.tournaments, t, showToast]);
 
   const handleExportPlayerExcel = useCallback(async (playerId: string, playerData: import('@/types').PlayerStatRow, gameIds: string[]) => {
     const gamesData = gameIds.reduce((acc, id) => {
@@ -1731,12 +1727,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     try {
       const { getAdjustmentsForPlayer } = await import('@/utils/playerAdjustments');
       const adjustments = await getAdjustmentsForPlayer(playerId);
-      exportPlayerExcel(playerId, playerData, gamesData, seasons, tournaments, adjustments);
+      exportPlayerExcel(playerId, playerData, gamesData, gameDataManagement.seasons, gameDataManagement.tournaments, adjustments);
     } catch (error) {
       logger.error('[handleExportPlayerExcel] Export failed:', error);
       showToast(t('export.exportPlayerFailed'), 'error');
     }
-  }, [savedGames, seasons, tournaments, t, showToast]);
+  }, [savedGames, gameDataManagement.seasons, gameDataManagement.tournaments, t, showToast]);
 
   // --- END AGGREGATE EXPORT HANDLERS ---
 

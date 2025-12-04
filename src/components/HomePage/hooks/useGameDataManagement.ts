@@ -68,11 +68,17 @@ export interface UseGameDataManagementParams {
   /** Setter for available players - called when master roster syncs */
   setAvailablePlayers: (players: Player[]) => void;
 
-  /** Setter for seasons list - called when seasons data loads */
-  setSeasons: (seasons: Season[]) => void;
+  /**
+   * Setter for seasons list - called when seasons data loads
+   * @deprecated Use gameDataManagement.seasons directly instead of local state
+   */
+  setSeasons?: (seasons: Season[]) => void;
 
-  /** Setter for tournaments list - called when tournaments data loads */
-  setTournaments: (tournaments: Tournament[]) => void;
+  /**
+   * Setter for tournaments list - called when tournaments data loads
+   * @deprecated Use gameDataManagement.tournaments directly instead of local state
+   */
+  setTournaments?: (tournaments: Tournament[]) => void;
 }
 
 /**
@@ -281,8 +287,11 @@ export function useGameDataManagement(
 
   /**
    * Sync seasons from React Query to local state
+   * @deprecated This effect only runs if setSeasons is provided for backward compatibility
    */
   useEffect(() => {
+    if (!setSeasons) return; // Skip if no setter provided (using hook's seasons directly)
+
     if (areSeasonsQueryLoading) {
       logger.log('[TanStack Query] Seasons are loading...');
       return;
@@ -307,8 +316,11 @@ export function useGameDataManagement(
 
   /**
    * Sync tournaments from React Query to local state
+   * @deprecated This effect only runs if setTournaments is provided for backward compatibility
    */
   useEffect(() => {
+    if (!setTournaments) return; // Skip if no setter provided (using hook's tournaments directly)
+
     if (areTournamentsQueryLoading) {
       logger.log('[TanStack Query] Tournaments are loading...');
       return;
