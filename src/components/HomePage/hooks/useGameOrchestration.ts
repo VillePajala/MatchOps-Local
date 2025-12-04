@@ -95,7 +95,6 @@ const initialState: AppState = {
   // Initialize selectedPlayerIds as empty for clean app start
   selectedPlayerIds: [],
   gamePersonnel: [],
-  // gameType: 'season', // REMOVED
   seasonId: '', // Initialize season ID
   tournamentId: '', // Initialize tournament ID
   ageGroup: '',
@@ -230,20 +229,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     }
   }, [redoHistory, fieldCoordination, sessionCoordination]);
 
-  // --- State Management (Remaining in Home component) ---
-  // const [showPlayerNames, setShowPlayerNames] = useState<boolean>(initialState.showPlayerNames); // REMOVE - Migrated to gameSessionState
-  // const [gameEvents, setGameEvents] = useState<GameEvent[]>(initialState.gameEvents); // REMOVE - Migrated to gameSessionState
-  // const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>(initialState.selectedPlayerIds); // REMOVE - Migrated to gameSessionState
-  // const [seasonId, setSeasonId] = useState<string>(initialState.seasonId); // REMOVE - Migrate to gameSessionState
-  // const [tournamentId, setTournamentId] = useState<string>(initialState.tournamentId); // REMOVE - Migrate to gameSessionState
-  // Add state for location and time
-  // const [gameLocation, setGameLocation] = useState<string>(initialState.gameLocation || ''); // REMOVE - Migrate to gameSessionState
-  // const [gameTime, setGameTime] = useState<string>(initialState.gameTime || ''); // REMOVE - Migrate to gameSessionState
-  // ... Timer state ...
-  // ... Modal states ...
-  // ... UI/Interaction states ...
-  // draggingPlayerFromBarInfo now managed by useFieldCoordination
-  // Persistence state
+  // --- Persistence State ---
   const [currentGameId, setCurrentGameId] = useState<string | null>(DEFAULT_GAME_ID);
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
   const [hasCheckedInstructionsModal, setHasCheckedInstructionsModal] = useState<boolean>(false);
@@ -375,14 +361,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_selectedTeamForRoster, setSelectedTeamForRoster] = useState<string | null>(null);
 
-  // --- Modal State now managed by useModalOrchestration (Step 2.6.6) ---
-  // isTeamManagerOpen, isPersonnelManagerOpen, isInstructionsModalOpen moved to useModalOrchestration
-  // Setters returned from useModalOrchestration and used by control bar handlers
-
-  // --- Timer State now managed by useTimerManagement (Step 2.6.5) ---
-  // showLargeTimerOverlay, isGoalLogModalOpen, timer handlers moved to useTimerManagement
   const [showFirstGameGuide, setShowFirstGameGuide] = useState<boolean>(false);
-  // showResetFieldConfirm now managed by useFieldCoordination
 
   const handleCreateBackup = useCallback(() => {
     exportFullBackup(showToast);
@@ -407,7 +386,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     setIsGoalLogModalOpen,
   });
 
-  // Destructure timer state and handlers for backward compatibility
   const {
     timeElapsedInSeconds,
     isTimerRunning,
@@ -415,7 +393,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     lastSubConfirmationTimeSeconds,
     showLargeTimerOverlay,
     handleToggleLargeTimerOverlay,
-    // handleToggleGoalLogModal, handleAddGoalEvent, handleLogOpponentGoal moved to useModalOrchestration
     timerInteractions,
   } = timerManagement;
 
@@ -538,12 +515,10 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- State passed to useModalOrchestration, setter used in handlers
   const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
   const [loadGamesListError, setLoadGamesListError] = useState<string | null>(null);
-  // Load/delete game state moved to useGamePersistence hook
   const [orphanedGameInfo, setOrphanedGameInfo] = useState<{ teamId: string; teamName?: string } | null>(null);
   const [isTeamReassignModalOpen, setIsTeamReassignModalOpen] = useState(false);
   const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
-  // processingGameId moved to useGamePersistence hook
-  const [isResetting, setIsResetting] = useState(false); // For app reset operation
+  const [isResetting, setIsResetting] = useState(false);
 
   // Load teams when orphaned game is detected
   // Uses mounted flag to prevent setState on unmounted component
@@ -1054,18 +1029,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     // Prioritize saved game data, fall back to master roster for new games
     setAvailablePlayers(gameData?.availablePlayers || gameDataManagement.masterRoster || availablePlayers);
     
-    // Update gameEvents from gameData if present, otherwise from initial state if it's an initial default load
-    // setGameEvents(gameData?.events || (isInitialDefaultLoad ? initialState.gameEvents : [])); // REMOVE - Handled by LOAD_PERSISTED_GAME_DATA in reducer
-
-    // Update selectedPlayerIds, seasonId, tournamentId, gameLocation, gameTime from gameData
-    // These are also part of gameSessionState now, but local states might still be used by some components directly.
-    // Prefer sourcing from gameSessionState once components are updated.
-    // setSelectedPlayerIds(gameData?.selectedPlayerIds || (isInitialDefaultLoad ? initialState.selectedPlayerIds : [])); // REMOVE - Handled by LOAD_PERSISTED_GAME_DATA
-    // setSeasonId(gameData?.seasonId || (isInitialDefaultLoad ? initialState.seasonId : '')); // REMOVE - Handled by LOAD_PERSISTED_GAME_DATA
-    // setTournamentId(gameData?.tournamentId || (isInitialDefaultLoad ? initialState.tournamentId : '')); // REMOVE - Handled by LOAD_PERSISTED_GAME_DATA
-    // setShowPlayerNames(gameData?.showPlayerNames === undefined ? (isInitialDefaultLoad ? initialState.showPlayerNames : true) : gameData.showPlayerNames); // REMOVE - Handled by LOAD_PERSISTED_GAME_DATA in reducer
-
-
     // History state should be based on the new gameSessionState + other states
     // For simplicity, we'll form history state AFTER the reducer has processed the load.
     // This requires a slight delay or a way to access the state post-dispatch if saveStateToHistory is called immediately.
@@ -1147,10 +1110,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentGameId, initialLoadComplete, savedGames]); // savedGames needed for when data becomes available after game switch
 
-  // --- Save state to localStorage ---
-  // Legacy auto-save effect moved to useGamePersistence hook (with 3-tier debouncing)
-
-  // **** ADDED: Effect to prompt for setup if default game ID is loaded ****
+  // Effect to prompt for setup if default game ID is loaded
   useEffect(() => {
     logger.log('[Modal Trigger Effect] Running. initialLoadComplete:', initialLoadComplete, 'hasSkipped:', hasSkippedInitialSetup);
     // Only run the check *after* initial load is fully complete and setup hasn't been skipped
@@ -1164,14 +1124,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
     }
   }, [initialLoadComplete, hasSkippedInitialSetup, currentGameId, openNewGameViaReducer]);
-
-  // --- Player Management Handlers - MOVED TO useFieldCoordination ---
-
-
-  // --- Reset Handlers - MOVED TO useFieldCoordination ---
-  // --- Touch Drag from Bar Handlers - MOVED TO useFieldCoordination ---
-
-  // --- History Handlers - MOVED TO useFieldCoordination ---
 
   // --- Game Persistence Hook ---
   const persistence = useGamePersistence({
@@ -1218,10 +1170,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     sessionCoordination.handlers.setTeamName(newName);
   };
 
-  // --- Timer Handlers now provided by useTimerManagement (Step 2.6.5) ---
-  // handleToggleLargeTimerOverlay, handleToggleGoalLogModal, handleAddGoalEvent, handleLogOpponentGoal
-  // moved to useTimerManagement hook
-
   // Handler to update an existing game event
   const handleUpdateGameEvent = (updatedEvent: GameEvent) => {
     const cleanUpdatedEvent: GameEvent = { id: updatedEvent.id, type: updatedEvent.type, time: updatedEvent.time, scorerId: updatedEvent.scorerId, assisterId: updatedEvent.assisterId }; // Keep cleaning
@@ -1231,26 +1179,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     logger.log("Updated game event via dispatch:", updatedEvent.id);
   };
 
-  // handleDeleteGameEvent moved to useGamePersistence hook
-  // --- Button/Action Handlers ---
-  
-  // RENAMED & UPDATED Handler: Just opens the setup modal after confirmation
-  
-  
-  // NEW: Handler to actually reset state and set opponent/date/type from modal
-  // Update signature to accept seasonId/tournamentId from the modal
-    // Update signature to accept seasonId/tournamentId from the modal
-  
-  // NEW: Handler to cancel the new game setup
-  // const handleCancelNewGameSetup = useCallback(() => { // REMOVED this line
-  //   logger.log("Cancelling new game setup.");
-  //   setIsNewGameSetupModalOpen(false);
-  // }, []);
-
-  // handleToggleGameStatsModal moved to useModalOrchestration
-  // handleOpenTeamManagerModal and handleCloseTeamManagerModal moved to useModalOrchestration
-
-  // Placeholder handlers - delegate to session coordination
+  // Session coordination handlers
   const handleOpponentNameChange = sessionCoordination.handlers.setOpponentName;
   const handleGameDateChange = sessionCoordination.handlers.setGameDate;
   const handleGameNotesChange = sessionCoordination.handlers.setGameNotes;
@@ -1259,12 +1188,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const handleSetNumberOfPeriods = sessionCoordination.handlers.setNumberOfPeriods;
   const handleSetPeriodDuration = sessionCoordination.handlers.setPeriodDuration;
 
-  // Training Resources Modal
   const handleToggleTrainingResources = () => {
     setIsTrainingResourcesOpen(!isTrainingResourcesOpen);
   };
-
-  // handleToggleInstructionsModal moved to useModalOrchestration
 
   const handleShowAppGuide = () => {
     saveHasSeenAppGuide(false);
@@ -1353,7 +1279,6 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   };
 
   const openPlayerAssessmentModal = () => setIsPlayerAssessmentModalOpen(true);
-  // closePlayerAssessmentModal moved to useModalOrchestration
 
   const handleSavePlayerAssessment = async (
     playerId: string,
@@ -1379,13 +1304,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       setSavedGames(prev => ({ ...prev, [currentGameId]: updated }));
     }
   };
-  
 
-  // ... (other code in Home component) ...
-
-  // closeRosterModal moved to useModalOrchestration
-
-  // --- ASYNC Roster Management Handlers for RosterSettingsModal ---
+  // --- Roster Management Handlers for RosterSettingsModal ---
   const handleRenamePlayerForModal = useCallback(async (playerId: string, playerData: { name: string; nickname?: string }) => {
     logger.log(`[Page.tsx] handleRenamePlayerForModal attempting mutation for ID: ${playerId}, new name: ${playerData.name}`);
     setRosterError(null); // Clear previous specific errors
@@ -1635,15 +1555,10 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
 
   const handleUpdateSelectedPlayers = (playerIds: string[]) => {
-    // This function is used by GameSettingsModal to set the roster for that specific game.
-    // It replaces the entire selection.
     dispatchGameSession({ type: 'SET_SELECTED_PLAYER_IDS', payload: playerIds });
   };
 
-  // --- NEW: Quick Save Handler ---
-  // --- Quick Save and Auto-Save handlers moved to useGamePersistence hook ---
-
-  // --- Deterministic init fallback: auto-select latest real game if default or stale ---
+  // Deterministic init fallback: auto-select latest real game if default or stale
   useEffect(() => {
     if (!initialLoadComplete) return;
     const ids = Object.keys(savedGames || {}).filter(id => id !== DEFAULT_GAME_ID);
@@ -1660,17 +1575,12 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
   }, [initialLoadComplete, currentGameId, savedGames]);
 
-  // --- NEW: Handlers for Game Settings Modal ---
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Used in controlBarProps
   const handleOpenGameSettingsModal = () => {
-      setIsGameSettingsModalOpen(true); // Corrected State Setter
+    setIsGameSettingsModalOpen(true);
   };
-  // handleCloseGameSettingsModal moved to useModalOrchestration
-  // handleOpenSettingsModal moved to useModalOrchestration
-  // handleCloseSettingsModal moved to useModalOrchestration
-  // handleCloseSeasonTournamentModal moved to useModalOrchestration
 
-  // --- Handlers for GameSettingsModal (delegate to session coordination) ---
+  // Handlers for GameSettingsModal (delegate to session coordination)
   const handleGameLocationChange = sessionCoordination.handlers.setGameLocation;
   const handleGameTimeChange = sessionCoordination.handlers.setGameTime;
   const handleAgeGroupChange = sessionCoordination.handlers.setAgeGroup;
@@ -1681,20 +1591,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const handleSetTournamentId = sessionCoordination.handlers.setTournamentId;
   const handleSetGamePersonnel = sessionCoordination.handlers.setGamePersonnel;
 
-  // --- AGGREGATE EXPORT HANDLERS --- 
-  
-  // ENSURE this function is commented out
-  // Helper to get Filter Name (Season/Tournament)
-  // const getFilterContextName = (tab: string, filterId: string, seasons: Season[], tournaments: Tournament[]): string => {
-  //   if (tab === 'season' && filterId !== 'all') {
-  //       return seasons.find(s => s.id === filterId)?.name || filterId;
-  //   }
-  //   if (tab === 'tournament' && filterId !== 'all') {
-  //       return tournaments.find(t => t.id === filterId)?.name || filterId;
-  //   }
-  //   if (tab === 'overall') return 'Overall';
-  //   return 'Unknown Filter'; // Fallback
-  // };
+  // --- AGGREGATE EXPORT HANDLERS ---
 
   const handleExportAggregateExcel = useCallback((gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) => {
     if (gameIds.length === 0) {
