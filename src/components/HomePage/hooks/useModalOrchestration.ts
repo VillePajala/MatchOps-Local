@@ -33,22 +33,27 @@ import type { Player, SavedGamesCollection, Team, PlayerAssessment, AppState } f
 import type { UseMutationResult } from '@tanstack/react-query';
 
 /**
- * Props for useModalOrchestration hook
+ * Grouped hooks for modal orchestration
  */
-export interface UseModalOrchestrationProps {
-  // Hook dependencies
-  /** Game data management (roster, seasons, tournaments, etc.) */
+export interface ModalHooks {
   gameDataManagement: UseGameDataManagementReturn;
-  /** Field coordination (field state, tactical board) */
   fieldCoordination: UseFieldCoordinationReturn;
-  /** Game persistence (save, load, delete) */
   persistence: UseGamePersistenceReturn;
-  /** Timer management (timer state, goal events) */
   timerManagement: UseTimerManagementReturn;
+}
 
-  // Data from useGameOrchestration
+/**
+ * Game session state and dispatch
+ */
+export interface ModalSessionState {
   gameSessionState: GameSessionState;
   dispatchGameSession: React.Dispatch<GameSessionAction>;
+}
+
+/**
+ * UI state for modals
+ */
+export interface ModalUIState {
   availablePlayers: Player[];
   playersForCurrentGame: Player[];
   savedGames: SavedGamesCollection;
@@ -72,7 +77,6 @@ export interface UseModalOrchestrationProps {
   rosterError: string | null;
   isLoadingGamesList: boolean;
   loadGamesListError: string | null;
-  // Match ModalManagerProps type which uses any for variables parameter
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   updateGameDetailsMutation: UseMutationResult<AppState | null, Error, any, unknown>;
   isTeamReassignModalOpen: boolean;
@@ -81,8 +85,12 @@ export interface UseModalOrchestrationProps {
   showSaveBeforeNewConfirm: boolean;
   showHardResetConfirm: boolean;
   setShowHardResetConfirm: (open: boolean) => void;
+}
 
-  // Handlers from useGameOrchestration (matching ModalManagerHandlers signatures)
+/**
+ * Handlers for modal operations
+ */
+export interface ModalHandlers {
   handleUpdateGameEvent: (event: import('@/types').GameEvent) => void;
   handleExportOneExcel: (gameId: string) => void;
   handleExportAggregateExcel: (gameIds: string[], aggregateStats: import('@/types').PlayerStatRow[]) => void;
@@ -150,6 +158,22 @@ export interface UseModalOrchestrationProps {
 }
 
 /**
+ * Props for useModalOrchestration hook
+ *
+ * Organized into 4 logical groups for clarity:
+ * - hooks: The 4 extracted coordination hooks
+ * - session: Game session state and dispatch
+ * - ui: UI state for modal display
+ * - handlers: Callbacks for modal actions
+ */
+export interface UseModalOrchestrationProps {
+  hooks: ModalHooks;
+  session: ModalSessionState;
+  ui: ModalUIState;
+  handlers: ModalHandlers;
+}
+
+/**
  * Return interface for useModalOrchestration hook
  */
 export interface UseModalOrchestrationReturn {
@@ -175,13 +199,18 @@ export interface UseModalOrchestrationReturn {
  * @returns Modal manager props
  */
 export function useModalOrchestration(props: UseModalOrchestrationProps): UseModalOrchestrationReturn {
+  // Destructure from grouped interface (4 groups instead of 76 flat params)
+  const { hooks, session, ui, handlers } = props;
+
+  // Destructure hooks
+  const { gameDataManagement, fieldCoordination, persistence, timerManagement } = hooks;
+
+  // Destructure session
+  const { gameSessionState } = session;
+  // dispatchGameSession not used locally - passed through to modalManagerProps
+
+  // Destructure UI state
   const {
-    gameDataManagement,
-    fieldCoordination,
-    persistence,
-    timerManagement,
-    gameSessionState,
-    // dispatchGameSession not used locally - passed through to modalManagerProps
     availablePlayers,
     playersForCurrentGame,
     savedGames,
@@ -212,6 +241,10 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     showSaveBeforeNewConfirm,
     showHardResetConfirm,
     setShowHardResetConfirm,
+  } = ui;
+
+  // Destructure handlers
+  const {
     handleUpdateGameEvent,
     handleExportOneExcel,
     handleExportAggregateExcel,
@@ -257,7 +290,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleSaveBeforeNewConfirmed,
     handleSaveBeforeNewCancelled,
     handleStartNewConfirmed,
-  } = props;
+  } = handlers;
 
   // --- Modal State from Context ---
   const {
