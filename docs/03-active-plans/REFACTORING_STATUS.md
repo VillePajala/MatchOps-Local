@@ -792,10 +792,24 @@ npm run dev
 
 ## 🔜 WHAT'S NEXT?
 
-**After 100% completion of Step 2.6**, see:
-- **[POST-REFACTORING-ROADMAP.md](./POST-REFACTORING-ROADMAP.md)** - Week-by-week plan for tasks after refactoring
+### Step 2.8: Modal Architecture Fix (Priority: HIGH)
 
-This includes:
+**Problem Discovered**: `useModalOrchestration` receives **76 parameters** (industry standard: 3-5). This is an 8/10 severity God Object anti-pattern that:
+- Makes testing practically impossible (200+ lines mock setup)
+- Violates Single Responsibility Principle
+- Has 83-line destructure statement
+
+**Solution**: Domain-Driven Hook Decomposition — split into 5 focused hooks + 1 aggregator via 8 PRs.
+
+**Estimated Effort**: 20-27 hours over 2-3 weeks
+
+**See**: [L2-2.8-Modal-Architecture-Fix-PLAN.md](./L2-2.8-Modal-Architecture-Fix-PLAN.md)
+
+---
+
+### After Step 2.8
+
+See **[POST-REFACTORING-ROADMAP.md](./POST-REFACTORING-ROADMAP.md)** for:
 - Critical security fixes (xlsx vulnerability)
 - NPM dependency updates (Sentry, React Query, Jest 30, Next.js 16)
 - Layer 3 polish (performance, error handling, auto-save, cache hygiene)

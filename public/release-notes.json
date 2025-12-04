@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: update roadmap with Jest 30, i18next, and Next.js security fix completion"
+  "notes": "refactor: clean up imports and remove comment noise (Step 2.7.4)"
 }
