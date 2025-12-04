@@ -1,44 +1,132 @@
-# Active Plans & Current Status
+# Active Plans — START HERE
 
-⭐ **START HERE for current execution plans and project status**
+**Last Updated**: 2025-12-04
 
-Primary plan: `docs/03-active-plans/MICRO-REFactor-ROADMAP.md`
+---
 
-This micro‑step roadmap replaces big‑bang refactors. We will execute Layers 1–3 in small, test‑gated steps. After each step, manually test before proceeding.
+## 🚨 WHAT TO DO NEXT (Priority Order)
 
-This directory contains all active execution plans, current status, and roadmaps. These are the living documents that guide day-to-day development.
+### 1. Structural Refactoring (8-12 hours) — DO FIRST
 
-## 📊 **Current Progress**
+| # | Task | Current | Target | Time | Plan |
+|---|------|---------|--------|------|------|
+| 1 | **useGameOrchestration cleanup** | 2,199 lines | ~200 lines | 4-6h | [L2-2.7 Plan](./L2-2.7-useGameOrchestration-Cleanup-PLAN.md) |
+| 2 | **GameSettingsModal refactoring** | 1,969 lines | ~200 lines | 4-6h | [P1 Plan](../05-development/fix-plans/P1-GameSettingsModal-Refactoring-Plan.md) |
 
-**⭐ [PROGRESS_DASHBOARD.md](./PROGRESS_DASHBOARD.md)** - **START HERE** - Single-page progress tracker showing what's done and what's next
+### 2. Production Hardening (After Structural Work)
 
-**Current Phase**: 🎯 P0 - HomePage Refactoring (Layer 2 micro-steps in progress)
-**Overall Progress**: 42% Complete (2 of 6 phases done)
+| # | Task | Time | Plan |
+|---|------|------|------|
+| 3 | Security headers & CSP | 1-2h | [production-readiness.md](./production-readiness.md) §1 |
+| 4 | Service Worker hardening | 2-3h | [production-readiness.md](./production-readiness.md) §2 |
+| 5 | Test coverage (64.8% → 85%) | 6-8h | [TEST_COVERAGE_IMPROVEMENT_PLAN.md](./TEST_COVERAGE_IMPROVEMENT_PLAN.md) |
 
-## 🎯 Master Execution Plan
+### 3. Polish & Performance (After Production Hardening)
 
-**[master-execution-guide.md](./master-execution-guide.md)** - The authoritative step-by-step guide to Play Store readiness
+| # | Task | Time | Plan |
+|---|------|------|------|
+| 6 | Error handling improvements | 1h | [P2-Error-Handling-Improvements.md](../05-development/fix-plans/P2-Error-Handling-Improvements.md) |
+| 7 | Modal state reducer completion | 0.5h | [P2-Modal-State-Management-Fix.md](../05-development/fix-plans/P2-Modal-State-Management-Fix.md) |
+| 8 | Performance optimization | 0.5h | [P2-Performance-Optimization-Plan.md](../05-development/fix-plans/P2-Performance-Optimization-Plan.md) |
 
-## 📊 Detailed Status
+---
 
-- **[project-status.md](./project-status.md)** - Current implementation status and maturity level (feature-focused)
-- **[production-readiness.md](./production-readiness.md)** - Canonical production readiness checklist (task-focused)
-- **[release-checklist.md](./release-checklist.md)** - One-page final go/no-go checklist
+## 📊 Current Status at a Glance
 
-## 🗺️ Roadmaps
+| Component | Status | Lines |
+|-----------|--------|-------|
+| HomePage.tsx | ✅ Complete | 62 |
+| useGameDataManagement.ts | ✅ Complete | 361 |
+| useGameSessionCoordination.ts | ✅ Complete | 501 |
+| useFieldCoordination.ts | ✅ Complete | 602 |
+| useGamePersistence.ts | ✅ Complete | 665 |
+| useTimerManagement.ts | ✅ Complete | 235 |
+| useModalOrchestration.ts | ✅ Complete | 581 |
+| GameStatsModal refactoring | ✅ Complete | — |
+| **useGameOrchestration.ts** | 🔴 **NEEDS CLEANUP** | 2,199 |
+| **GameSettingsModal.tsx** | 🔴 **NEEDS REFACTORING** | 1,969 |
 
-- **[roadmap.md](./roadmap.md)** - Strategic vision and future development plans
-- **[publication-roadmap.md](./publication-roadmap.md)** - Complete path to app store publication
-- **[play-store-deployment.md](./play-store-deployment.md)** - Play Store deployment guide
+---
 
-## 📋 Technical Assessments & Feature Plans
+## 📁 Document Index
 
-- **[personnel-feature-plan.md](./personnel-feature-plan.md)** - Complete implementation plan for personnel (coaches/staff) management
-- **[storage-concurrency-assessment.md](./storage-concurrency-assessment.md)** - Storage layer concurrency analysis
+### 🔴 Structural Refactoring (ACTIVE)
+| Document | Purpose | Status |
+|----------|---------|--------|
+| [L2-2.7-useGameOrchestration-Cleanup-PLAN.md](./L2-2.7-useGameOrchestration-Cleanup-PLAN.md) | Step 2.7 cleanup with 4 PRs | 🔴 NOT STARTED |
+| [P1-GameSettingsModal-Refactoring-Plan.md](../05-development/fix-plans/P1-GameSettingsModal-Refactoring-Plan.md) | GameSettingsModal split into 5 components | 🔴 NOT STARTED |
+| [REFACTORING_STATUS.md](./REFACTORING_STATUS.md) | Single source of truth for refactoring | 🟡 90% COMPLETE |
+| [L2-2.6-useGameOrchestration-Splitting-PLAN.md](./L2-2.6-useGameOrchestration-Splitting-PLAN.md) | Original hook extraction plan | ✅ HOOKS DONE |
 
-## Quick Start
+### 🟠 Production Hardening (AFTER STRUCTURAL)
+| Document | Purpose | Status |
+|----------|---------|--------|
+| [production-readiness.md](./production-readiness.md) | Security headers, SW, analytics | 🔴 NOT STARTED |
+| [TEST_COVERAGE_IMPROVEMENT_PLAN.md](./TEST_COVERAGE_IMPROVEMENT_PLAN.md) | Test coverage 64.8% → 85% | 🟡 IN PROGRESS |
+| [NPM_DEPENDENCY_UPDATE_PLAN.md](./NPM_DEPENDENCY_UPDATE_PLAN.md) | Dependency updates | ✅ PHASE 1-2 DONE |
 
-1. **New to execution?** → Start with [master-execution-guide.md](./master-execution-guide.md)
-2. **Want current status?** → Check [project-status.md](./project-status.md)
-3. **Planning next steps?** → Review [roadmap.md](./roadmap.md)
-4. **Ready to release?** → Use [release-checklist.md](./release-checklist.md)
+### 🟡 Polish & Performance (AFTER PRODUCTION)
+| Document | Purpose | Status |
+|----------|---------|--------|
+| [P2-Error-Handling-Improvements.md](../05-development/fix-plans/P2-Error-Handling-Improvements.md) | Replace silent catches | 🔴 NOT STARTED |
+| [P2-Modal-State-Management-Fix.md](../05-development/fix-plans/P2-Modal-State-Management-Fix.md) | Complete modal reducer | ⏸️ DEFERRED |
+| [P2-Performance-Optimization-Plan.md](../05-development/fix-plans/P2-Performance-Optimization-Plan.md) | React.memo, render optimization | 🔴 NOT STARTED |
+
+### 📅 Future Features (NOT SCHEDULED)
+| Document | Purpose | Status |
+|----------|---------|--------|
+| [TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md](./TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md) | Tournament series & league features | 📅 DESIGN DONE |
+| [team-final-positions-plan.md](./team-final-positions-plan.md) | Track team final positions | 📅 PLANNED |
+| [personnel-comprehensive-plan-2025.md](./personnel-comprehensive-plan-2025.md) | Personnel management feature | 📅 PLANNED |
+
+### 📚 Reference & Historical
+| Document | Purpose | Status |
+|----------|---------|--------|
+| [POST-REFACTORING-ROADMAP.md](./POST-REFACTORING-ROADMAP.md) | Week-by-week roadmap | 🟡 ACTIVE |
+| [MICRO-REFactor-ROADMAP.md](./MICRO-REFactor-ROADMAP.md) | Original micro-step plan | ✅ L1-L2 DONE |
+| [master-execution-guide.md](./master-execution-guide.md) | Play Store execution guide | 📖 REFERENCE |
+| [project-status.md](./project-status.md) | Overall project status | 📖 REFERENCE |
+| [roadmap.md](./roadmap.md) | Strategic vision | 📖 REFERENCE |
+| [GameStatsModal-Refactoring-Session-1-Complete.md](./GameStatsModal-Refactoring-Session-1-Complete.md) | GameStatsModal refactoring notes | ✅ COMPLETE |
+
+---
+
+## ✅ Completed Work
+
+- ✅ HomePage reduced from 3,725 to 62 lines
+- ✅ 6 hooks extracted from useGameOrchestration
+- ✅ GameStatsModal refactoring (Phases 1 & 2)
+- ✅ Layer 1 stability (modal guards, anti-flash)
+- ✅ Layer 2 architecture (container pattern, view-model)
+- ✅ Jest 30 upgrade
+- ✅ Sentry 10.28 upgrade
+- ✅ React Query 5.90 upgrade
+- ✅ xlsx security fix
+- ✅ 303 new tests added (total: 1,997)
+- ✅ IndexedDB migration (Phase M1)
+
+---
+
+## 🚫 Do NOT Start Until Structural Work Done
+
+These tasks should wait until Step 2.7 and GameSettingsModal are complete:
+
+- Production readiness tasks (security headers, SW)
+- Play Store packaging
+- Performance optimization (React.memo, etc.)
+- Additional feature development
+
+---
+
+## 📈 Estimated Total Remaining Work
+
+| Category | Hours | Priority |
+|----------|-------|----------|
+| Structural refactoring | 8-12h | 🔴 P0 |
+| Production hardening | 10-13h | 🟠 P1 |
+| Polish & performance | 2h | 🟡 P2 |
+| **Total** | **20-27h** | — |
+
+---
+
+**Questions?** Check [REFACTORING_STATUS.md](./REFACTORING_STATUS.md) for detailed status.
