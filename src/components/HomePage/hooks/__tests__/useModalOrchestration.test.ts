@@ -68,8 +68,13 @@ const createMockPersonnel = (overrides?: Partial<Personnel>): Personnel => ({
   ...overrides,
 });
 
-// Create comprehensive mock props following the pattern from other hook tests
-const createMockProps = (overrides?: Partial<UseModalOrchestrationProps>): UseModalOrchestrationProps => {
+// Define a deep partial type for flexible overrides
+type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
+// Create comprehensive mock props following the new grouped interface
+const createMockProps = (overrides?: DeepPartial<UseModalOrchestrationProps>): UseModalOrchestrationProps => {
   const mockGameDataManagement: UseGameDataManagementReturn = {
     teams: [createMockTeam()],
     seasons: [createMockSeason()],
@@ -193,96 +198,99 @@ const createMockProps = (overrides?: Partial<UseModalOrchestrationProps>): UseMo
     showPlayerNames: true,
   };
 
+  // New grouped interface structure
+  // Use type assertion to allow partial overrides while returning full type
   return {
-    gameDataManagement: mockGameDataManagement,
-    fieldCoordination: mockFieldCoordination,
-    persistence: mockPersistence,
-    timerManagement: mockTimerManagement,
-    gameSessionState: mockGameSessionState,
-    dispatchGameSession: jest.fn(),
-    availablePlayers: [createMockPlayer()],
-    playersForCurrentGame: [],
-    savedGames: {},
-    currentGameId: null,
-    playerAssessments: {},
-    selectedPlayerForStats: null,
-    setSelectedPlayerForStats: jest.fn(),
-    playerIdsForNewGame: null,
-    newGameDemandFactor: 5,
-    setNewGameDemandFactor: jest.fn(),
-    availableTeams: [createMockTeam()],
-    orphanedGameInfo: null,
-    appLanguage: 'en',
-    setAppLanguage: jest.fn(),
-    defaultTeamNameSetting: 'Test Team',
-    setDefaultTeamNameSetting: jest.fn(),
-    gameIdentifierForSave: 'game-123',
-    isPlayed: false,
-    setIsPlayed: jest.fn(),
-    isRosterUpdating: false,
-    rosterError: null,
-    isLoadingGamesList: false,
-    loadGamesListError: null,
-    updateGameDetailsMutation: { mutate: jest.fn() } as unknown as UseMutationResult<AppState | null, Error, unknown, unknown>,
-    isTeamReassignModalOpen: false,
-    setIsTeamReassignModalOpen: jest.fn(),
-    setSelectedTeamForRoster: jest.fn(),
-    showSaveBeforeNewConfirm: false,
-    showHardResetConfirm: false,
-    setShowHardResetConfirm: jest.fn(),
-    handleUpdateGameEvent: jest.fn(),
-    handleExportOneExcel: jest.fn(),
-    handleExportAggregateExcel: jest.fn(),
-    handleExportPlayerExcel: jest.fn(),
-    handleGameLogClick: jest.fn(),
-    handleExportOneJson: jest.fn(),
-    handleStartNewGameWithSetup: jest.fn(),
-    handleCancelNewGameSetup: jest.fn(),
-    // closeRosterModal: removed - defined locally in useModalOrchestration
-    // closePlayerAssessmentModal: removed - defined locally in useModalOrchestration
-    handleUpdatePlayerForModal: jest.fn(),
-    handleRenamePlayerForModal: jest.fn(),
-    handleSetJerseyNumberForModal: jest.fn(),
-    handleSetPlayerNotesForModal: jest.fn(),
-    handleRemovePlayerForModal: jest.fn(),
-    handleAddPlayerForModal: jest.fn(),
-    handleOpenPlayerStats: jest.fn(),
-    // handleCloseSeasonTournamentModal: removed - defined locally in useModalOrchestration
-    // handleCloseGameSettingsModal: removed - defined locally in useModalOrchestration
-    handleTeamNameChange: jest.fn(),
-    handleOpponentNameChange: jest.fn(),
-    handleGameDateChange: jest.fn(),
-    handleGameLocationChange: jest.fn(),
-    handleGameTimeChange: jest.fn(),
-    handleGameNotesChange: jest.fn(),
-    handleAgeGroupChange: jest.fn(),
-    handleTournamentLevelChange: jest.fn(),
-    handleAwardFairPlayCard: jest.fn(),
-    handleSetNumberOfPeriods: jest.fn(),
-    handleSetPeriodDuration: jest.fn(),
-    handleSetDemandFactor: jest.fn(),
-    handleSetSeasonId: jest.fn(),
-    handleSetTournamentId: jest.fn(),
-    handleSetHomeOrAway: jest.fn(),
-    handleUpdateSelectedPlayers: jest.fn(),
-    handleSetGamePersonnel: jest.fn(),
-    // handleCloseSettingsModal: removed - defined locally in useModalOrchestration
-    handleShowAppGuide: jest.fn(),
-    handleHardResetApp: jest.fn(),
-    // handleOpenSettingsModal: removed - defined locally in useModalOrchestration
-    handleSavePlayerAssessment: jest.fn(),
-    handleDeletePlayerAssessment: jest.fn(),
-    handleTeamReassignment: jest.fn(),
-    handleCreateBackup: jest.fn(),
-    onDataImportSuccess: jest.fn(),
-    handleManageTeamRosterFromNewGame: jest.fn(),
-    handleNoPlayersConfirmed: jest.fn(),
-    handleHardResetConfirmed: jest.fn(),
-    handleSaveBeforeNewConfirmed: jest.fn(),
-    handleSaveBeforeNewCancelled: jest.fn(),
-    handleStartNewConfirmed: jest.fn(),
-    ...overrides,
-  };
+    hooks: {
+      gameDataManagement: (overrides?.hooks?.gameDataManagement ?? mockGameDataManagement) as UseGameDataManagementReturn,
+      fieldCoordination: (overrides?.hooks?.fieldCoordination ?? mockFieldCoordination) as UseFieldCoordinationReturn,
+      persistence: (overrides?.hooks?.persistence ?? mockPersistence) as UseGamePersistenceReturn,
+      timerManagement: (overrides?.hooks?.timerManagement ?? mockTimerManagement) as UseTimerManagementReturn,
+    },
+    session: {
+      gameSessionState: (overrides?.session?.gameSessionState ?? mockGameSessionState) as GameSessionState,
+      dispatchGameSession: (overrides?.session?.dispatchGameSession ?? jest.fn()) as React.Dispatch<import('@/hooks/useGameSessionReducer').GameSessionAction>,
+    },
+    ui: {
+      availablePlayers: (overrides?.ui?.availablePlayers ?? [createMockPlayer()]) as Player[],
+      playersForCurrentGame: (overrides?.ui?.playersForCurrentGame ?? []) as Player[],
+      savedGames: (overrides?.ui?.savedGames ?? {}) as import('@/types').SavedGamesCollection,
+      currentGameId: overrides?.ui?.currentGameId ?? null,
+      playerAssessments: (overrides?.ui?.playerAssessments ?? {}) as Record<string, import('@/types').PlayerAssessment>,
+      selectedPlayerForStats: overrides?.ui?.selectedPlayerForStats ?? null,
+      setSelectedPlayerForStats: (overrides?.ui?.setSelectedPlayerForStats ?? jest.fn()) as (player: Player | null) => void,
+      playerIdsForNewGame: overrides?.ui?.playerIdsForNewGame ?? null,
+      newGameDemandFactor: overrides?.ui?.newGameDemandFactor ?? 5,
+      setNewGameDemandFactor: (overrides?.ui?.setNewGameDemandFactor ?? jest.fn()) as (factor: number) => void,
+      availableTeams: (overrides?.ui?.availableTeams ?? [createMockTeam()]) as Team[],
+      orphanedGameInfo: overrides?.ui?.orphanedGameInfo ?? null,
+      appLanguage: overrides?.ui?.appLanguage ?? 'en',
+      setAppLanguage: (overrides?.ui?.setAppLanguage ?? jest.fn()) as (language: string) => void,
+      defaultTeamNameSetting: overrides?.ui?.defaultTeamNameSetting ?? 'Test Team',
+      setDefaultTeamNameSetting: (overrides?.ui?.setDefaultTeamNameSetting ?? jest.fn()) as (name: string) => void,
+      gameIdentifierForSave: overrides?.ui?.gameIdentifierForSave ?? 'game-123',
+      isPlayed: overrides?.ui?.isPlayed ?? false,
+      setIsPlayed: (overrides?.ui?.setIsPlayed ?? jest.fn()) as (played: boolean) => void,
+      isRosterUpdating: overrides?.ui?.isRosterUpdating ?? false,
+      rosterError: overrides?.ui?.rosterError ?? null,
+      isLoadingGamesList: overrides?.ui?.isLoadingGamesList ?? false,
+      loadGamesListError: overrides?.ui?.loadGamesListError ?? null,
+      updateGameDetailsMutation: (overrides?.ui?.updateGameDetailsMutation ?? { mutate: jest.fn() }) as UseMutationResult<AppState | null, Error, unknown, unknown>,
+      isTeamReassignModalOpen: overrides?.ui?.isTeamReassignModalOpen ?? false,
+      setIsTeamReassignModalOpen: (overrides?.ui?.setIsTeamReassignModalOpen ?? jest.fn()) as (open: boolean) => void,
+      setSelectedTeamForRoster: (overrides?.ui?.setSelectedTeamForRoster ?? jest.fn()) as (teamId: string | null) => void,
+      showSaveBeforeNewConfirm: overrides?.ui?.showSaveBeforeNewConfirm ?? false,
+      showHardResetConfirm: overrides?.ui?.showHardResetConfirm ?? false,
+      setShowHardResetConfirm: (overrides?.ui?.setShowHardResetConfirm ?? jest.fn()) as (open: boolean) => void,
+    },
+    handlers: {
+      handleUpdateGameEvent: overrides?.handlers?.handleUpdateGameEvent ?? jest.fn(),
+      handleExportOneExcel: overrides?.handlers?.handleExportOneExcel ?? jest.fn(),
+      handleExportAggregateExcel: overrides?.handlers?.handleExportAggregateExcel ?? jest.fn(),
+      handleExportPlayerExcel: overrides?.handlers?.handleExportPlayerExcel ?? jest.fn(),
+      handleGameLogClick: overrides?.handlers?.handleGameLogClick ?? jest.fn(),
+      handleExportOneJson: overrides?.handlers?.handleExportOneJson ?? jest.fn(),
+      handleStartNewGameWithSetup: overrides?.handlers?.handleStartNewGameWithSetup ?? jest.fn(),
+      handleCancelNewGameSetup: overrides?.handlers?.handleCancelNewGameSetup ?? jest.fn(),
+      handleUpdatePlayerForModal: overrides?.handlers?.handleUpdatePlayerForModal ?? jest.fn(),
+      handleRenamePlayerForModal: overrides?.handlers?.handleRenamePlayerForModal ?? jest.fn(),
+      handleSetJerseyNumberForModal: overrides?.handlers?.handleSetJerseyNumberForModal ?? jest.fn(),
+      handleSetPlayerNotesForModal: overrides?.handlers?.handleSetPlayerNotesForModal ?? jest.fn(),
+      handleRemovePlayerForModal: overrides?.handlers?.handleRemovePlayerForModal ?? jest.fn(),
+      handleAddPlayerForModal: overrides?.handlers?.handleAddPlayerForModal ?? jest.fn(),
+      handleOpenPlayerStats: overrides?.handlers?.handleOpenPlayerStats ?? jest.fn(),
+      handleTeamNameChange: overrides?.handlers?.handleTeamNameChange ?? jest.fn(),
+      handleOpponentNameChange: overrides?.handlers?.handleOpponentNameChange ?? jest.fn(),
+      handleGameDateChange: overrides?.handlers?.handleGameDateChange ?? jest.fn(),
+      handleGameLocationChange: overrides?.handlers?.handleGameLocationChange ?? jest.fn(),
+      handleGameTimeChange: overrides?.handlers?.handleGameTimeChange ?? jest.fn(),
+      handleGameNotesChange: overrides?.handlers?.handleGameNotesChange ?? jest.fn(),
+      handleAgeGroupChange: overrides?.handlers?.handleAgeGroupChange ?? jest.fn(),
+      handleTournamentLevelChange: overrides?.handlers?.handleTournamentLevelChange ?? jest.fn(),
+      handleAwardFairPlayCard: overrides?.handlers?.handleAwardFairPlayCard ?? jest.fn(),
+      handleSetNumberOfPeriods: overrides?.handlers?.handleSetNumberOfPeriods ?? jest.fn(),
+      handleSetPeriodDuration: overrides?.handlers?.handleSetPeriodDuration ?? jest.fn(),
+      handleSetDemandFactor: overrides?.handlers?.handleSetDemandFactor ?? jest.fn(),
+      handleSetSeasonId: overrides?.handlers?.handleSetSeasonId ?? jest.fn(),
+      handleSetTournamentId: overrides?.handlers?.handleSetTournamentId ?? jest.fn(),
+      handleSetHomeOrAway: overrides?.handlers?.handleSetHomeOrAway ?? jest.fn(),
+      handleUpdateSelectedPlayers: overrides?.handlers?.handleUpdateSelectedPlayers ?? jest.fn(),
+      handleSetGamePersonnel: overrides?.handlers?.handleSetGamePersonnel ?? jest.fn(),
+      handleShowAppGuide: overrides?.handlers?.handleShowAppGuide ?? jest.fn(),
+      handleHardResetApp: overrides?.handlers?.handleHardResetApp ?? jest.fn(),
+      handleSavePlayerAssessment: overrides?.handlers?.handleSavePlayerAssessment ?? jest.fn(),
+      handleDeletePlayerAssessment: overrides?.handlers?.handleDeletePlayerAssessment ?? jest.fn(),
+      handleTeamReassignment: overrides?.handlers?.handleTeamReassignment ?? jest.fn(),
+      handleCreateBackup: overrides?.handlers?.handleCreateBackup ?? jest.fn(),
+      onDataImportSuccess: overrides?.handlers?.onDataImportSuccess ?? jest.fn(),
+      handleManageTeamRosterFromNewGame: overrides?.handlers?.handleManageTeamRosterFromNewGame ?? jest.fn(),
+      handleNoPlayersConfirmed: overrides?.handlers?.handleNoPlayersConfirmed ?? jest.fn(),
+      handleHardResetConfirmed: overrides?.handlers?.handleHardResetConfirmed ?? jest.fn(),
+      handleSaveBeforeNewConfirmed: overrides?.handlers?.handleSaveBeforeNewConfirmed ?? jest.fn(),
+      handleSaveBeforeNewCancelled: overrides?.handlers?.handleSaveBeforeNewCancelled ?? jest.fn(),
+      handleStartNewConfirmed: overrides?.handlers?.handleStartNewConfirmed ?? jest.fn(),
+    },
+  } as UseModalOrchestrationProps;
 };
 
 describe('useModalOrchestration', () => {
@@ -536,11 +544,11 @@ describe('useModalOrchestration', () => {
 
       const { data } = result.current.modalManagerProps;
 
-      expect(data.teams).toEqual(props.gameDataManagement.teams);
-      expect(data.seasons).toEqual(props.gameDataManagement.seasons);
-      expect(data.tournaments).toEqual(props.gameDataManagement.tournaments);
-      expect(data.masterRoster).toEqual(props.gameDataManagement.masterRoster);
-      expect(data.personnel).toEqual(props.gameDataManagement.personnel);
+      expect(data.teams).toEqual(props.hooks.gameDataManagement.teams);
+      expect(data.seasons).toEqual(props.hooks.gameDataManagement.seasons);
+      expect(data.tournaments).toEqual(props.hooks.gameDataManagement.tournaments);
+      expect(data.masterRoster).toEqual(props.hooks.gameDataManagement.masterRoster);
+      expect(data.personnel).toEqual(props.hooks.gameDataManagement.personnel);
     });
 
     /**
@@ -555,7 +563,7 @@ describe('useModalOrchestration', () => {
 
       const { state } = result.current.modalManagerProps;
 
-      expect(state.showResetFieldConfirm).toBe(props.fieldCoordination.showResetFieldConfirm);
+      expect(state.showResetFieldConfirm).toBe(props.hooks.fieldCoordination.showResetFieldConfirm);
     });
 
     /**
@@ -564,16 +572,18 @@ describe('useModalOrchestration', () => {
      */
     it('should include persistence loading states', () => {
       const mockProps = createMockProps({
-        persistence: {
-          handleLoadGame: jest.fn(),
-          handleDeleteGame: jest.fn(),
-          handleDeleteGameEvent: jest.fn(),
-          handleQuickSaveGame: jest.fn(),
-          isGameLoading: true,
-          gameLoadError: 'Load error',
-          isGameDeleting: false,
-          gameDeleteError: null,
-          processingGameId: 'game-123',
+        hooks: {
+          persistence: {
+            handleLoadGame: jest.fn(),
+            handleDeleteGame: jest.fn(),
+            handleDeleteGameEvent: jest.fn(),
+            handleQuickSaveGame: jest.fn(),
+            isGameLoading: true,
+            gameLoadError: 'Load error',
+            isGameDeleting: false,
+            gameDeleteError: null,
+            processingGameId: 'game-123',
+          },
         },
       });
 
@@ -600,7 +610,7 @@ describe('useModalOrchestration', () => {
 
       const { data } = result.current.modalManagerProps;
 
-      expect(data.gameSessionState).toBe(props.gameSessionState);
+      expect(data.gameSessionState).toBe(props.session.gameSessionState);
     });
 
     /**
@@ -616,11 +626,11 @@ describe('useModalOrchestration', () => {
       const { handlers } = result.current.modalManagerProps;
 
       // Verify key handlers are present (spot check, not exhaustive)
-      expect(handlers.updateGameEvent).toBe(props.handleUpdateGameEvent);
-      expect(handlers.exportOneExcel).toBe(props.handleExportOneExcel);
-      expect(handlers.loadGame).toBe(props.persistence.handleLoadGame);
-      expect(handlers.deleteGame).toBe(props.persistence.handleDeleteGame);
-      expect(handlers.startNewGameWithSetup).toBe(props.handleStartNewGameWithSetup);
+      expect(handlers.updateGameEvent).toBe(props.handlers.handleUpdateGameEvent);
+      expect(handlers.exportOneExcel).toBe(props.handlers.handleExportOneExcel);
+      expect(handlers.loadGame).toBe(props.hooks.persistence.handleLoadGame);
+      expect(handlers.deleteGame).toBe(props.hooks.persistence.handleDeleteGame);
+      expect(handlers.startNewGameWithSetup).toBe(props.handlers.handleStartNewGameWithSetup);
     });
   });
 
@@ -637,11 +647,11 @@ describe('useModalOrchestration', () => {
 
       const { handlers } = result.current.modalManagerProps;
 
-      expect(handlers.confirmNoPlayers).toBe(props.handleNoPlayersConfirmed);
-      expect(handlers.confirmHardReset).toBe(props.handleHardResetConfirmed);
-      expect(handlers.saveBeforeNewConfirmed).toBe(props.handleSaveBeforeNewConfirmed);
-      expect(handlers.saveBeforeNewCancelled).toBe(props.handleSaveBeforeNewCancelled);
-      expect(handlers.startNewConfirmed).toBe(props.handleStartNewConfirmed);
+      expect(handlers.confirmNoPlayers).toBe(props.handlers.handleNoPlayersConfirmed);
+      expect(handlers.confirmHardReset).toBe(props.handlers.handleHardResetConfirmed);
+      expect(handlers.saveBeforeNewConfirmed).toBe(props.handlers.handleSaveBeforeNewConfirmed);
+      expect(handlers.saveBeforeNewCancelled).toBe(props.handlers.handleSaveBeforeNewCancelled);
+      expect(handlers.startNewConfirmed).toBe(props.handlers.handleStartNewConfirmed);
     });
 
     /**
@@ -669,10 +679,12 @@ describe('useModalOrchestration', () => {
      */
     it('should handle null optional data gracefully', () => {
       const props = createMockProps({
-        currentGameId: null,
-        selectedPlayerForStats: null,
-        playerIdsForNewGame: null,
-        orphanedGameInfo: null,
+        ui: {
+          currentGameId: null,
+          selectedPlayerForStats: null,
+          playerIdsForNewGame: null,
+          orphanedGameInfo: null,
+        },
       });
 
       const { result } = renderHook(() => useModalOrchestration(props), {
@@ -721,10 +733,14 @@ describe('useModalOrchestration', () => {
       };
 
       const props = createMockProps({
-        gameDataManagement: emptyGameDataManagement,
-        availablePlayers: [],
-        playersForCurrentGame: [],
-        savedGames: {},
+        hooks: {
+          gameDataManagement: emptyGameDataManagement,
+        },
+        ui: {
+          availablePlayers: [],
+          playersForCurrentGame: [],
+          savedGames: {},
+        },
       });
 
       const { result } = renderHook(() => useModalOrchestration(props), {
@@ -802,7 +818,9 @@ describe('useModalOrchestration', () => {
       };
 
       const props = createMockProps({
-        timerManagement: mockTimerManagement,
+        hooks: {
+          timerManagement: mockTimerManagement,
+        },
       });
 
       const { result } = renderHook(() => useModalOrchestration(props), {
