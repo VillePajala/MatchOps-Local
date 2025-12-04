@@ -75,7 +75,7 @@ const initialState: AppState = {
   playersOnField: [], // Start with no players on field
   opponents: [], // Start with no opponents
   drawings: [],
-  availablePlayers: initialAvailablePlayersData, // <<< ADD: Use initial data here
+  availablePlayers: initialAvailablePlayersData,
   showPlayerNames: true,
   teamName: "My Team",
   gameEvents: [], // Initialize game events as empty array
@@ -85,7 +85,7 @@ const initialState: AppState = {
   homeScore: 0,
   awayScore: 0,
   gameNotes: '', // Initialize game notes as empty string
-  homeOrAway: 'home', // <<< Step 1: Initialize field
+  homeOrAway: 'home',
   // Initialize game structure
   numberOfPeriods: 2,
   periodDurationMinutes: 15, // Default to 15 minutes
@@ -265,19 +265,13 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // caused game data to reset to defaults when navigating between games.
   const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
 
-  // TODO: Add useGamePersistence hook call here after reordering dependencies
-
-  // <<< ADD: State for home/away status >>>
   const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
-  // hasSkippedInitialSetup moved to top of component to prevent flash
   const [defaultTeamNameSetting, setDefaultTeamNameSetting] = useState<string>('');
   const [appLanguage, setAppLanguage] = useState<string>(i18n.language);
 
   useEffect(() => {
     utilGetLastHomeTeamName().then((name) => setDefaultTeamNameSetting(name));
   }, []);
-
-
 
   useEffect(() => {
     i18n.changeLanguage(appLanguage);
@@ -493,17 +487,8 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialAction]);
   
-  // --- Modal States handled via context ---
-
-  // <<< ADD State to hold player IDs for the next new game >>>
   const [playerIdsForNewGame, setPlayerIdsForNewGame] = useState<string[] | null>(null);
   const [newGameDemandFactor, setNewGameDemandFactor] = useState(1);
-  // <<< ADD State for the roster prompt toast >>>
-  // const [showRosterPrompt, setShowRosterPrompt] = useState<boolean>(false);
-
-  // State for game saving error (loading state is from saveGameMutation.isLoading)
-
-  // NEW: States for LoadGameModal operations
   const [isLoadingGamesList, setIsLoadingGamesList] = useState(false);
 
   // Confirmation modal states - Passed to useModalOrchestration
@@ -1269,13 +1254,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
   };
 
-  // --- END INDIVIDUAL GAME EXPORT HANDLERS ---
-
-  // --- Roster Management Handlers ---
   const openRosterModal = () => {
-    logger.log('[openRosterModal] Called. Setting highlightRosterButton to false.'); // Log modal open
     openRosterViaReducer();
-    setHighlightRosterButton(false); // <<< Remove highlight when modal is opened
+    setHighlightRosterButton(false);
   };
 
   const openPlayerAssessmentModal = () => setIsPlayerAssessmentModalOpen(true);
@@ -1478,80 +1459,51 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
   // --- NEW: Handler to Award Fair Play Card ---
   const handleAwardFairPlayCard = useCallback(async (playerId: string | null) => {
-      // <<< ADD LOG HERE >>>
-      logger.log(`[page.tsx] handleAwardFairPlayCard called with playerId: ${playerId}`);
-      logger.log(`[page.tsx] availablePlayers BEFORE update:`, JSON.stringify(availablePlayers.map(p => ({id: p.id, fp: p.receivedFairPlayCard}))));
-      logger.log(`[page.tsx] playersOnField BEFORE update:`, JSON.stringify(fieldCoordination.playersOnField.map(p => ({id: p.id, fp: p.receivedFairPlayCard}))));
+    if (!currentGameId || currentGameId === DEFAULT_GAME_ID) {
+      logger.warn("Cannot award fair play card in unsaved/default state.");
+      return;
+    }
 
-      if (!currentGameId || currentGameId === DEFAULT_GAME_ID) {
-          logger.warn("Cannot award fair play card in unsaved/default state.");
-          return; // Prevent awarding in default state
+    let updatedAvailablePlayers = availablePlayers;
+    let updatedPlayersOnField = fieldCoordination.playersOnField;
+
+    const currentlyAwardedPlayerId = availablePlayers.find(p => p.receivedFairPlayCard)?.id;
+
+    // Clear any existing card first
+    if (currentlyAwardedPlayerId) {
+      updatedAvailablePlayers = updatedAvailablePlayers.map(p =>
+        p.id === currentlyAwardedPlayerId ? { ...p, receivedFairPlayCard: false } : p
+      );
+      updatedPlayersOnField = updatedPlayersOnField.map(p =>
+        p.id === currentlyAwardedPlayerId ? { ...p, receivedFairPlayCard: false } : p
+      );
+    }
+
+    // Award the new card if a playerId is provided (and it's different from the one just cleared)
+    if (playerId && playerId !== currentlyAwardedPlayerId) {
+      updatedAvailablePlayers = updatedAvailablePlayers.map(p =>
+        p.id === playerId ? { ...p, receivedFairPlayCard: true } : p
+      );
+      updatedPlayersOnField = updatedPlayersOnField.map(p =>
+        p.id === playerId ? { ...p, receivedFairPlayCard: true } : p
+      );
+    }
+
+    setAvailablePlayers(updatedAvailablePlayers);
+    fieldCoordination.setPlayersOnField(updatedPlayersOnField);
+
+    try {
+      const success = await saveMasterRoster(updatedAvailablePlayers);
+      if (!success) {
+        logger.error('[handleAwardFairPlayCard] Failed to save master roster');
       }
+    } catch (error) {
+      logger.error('[handleAwardFairPlayCard] Error saving master roster:', error);
+    }
 
-      let updatedAvailablePlayers = availablePlayers;
-      let updatedPlayersOnField = fieldCoordination.playersOnField;
-
-      // Find the currently awarded player, if any
-      const currentlyAwardedPlayerId = availablePlayers.find(p => p.receivedFairPlayCard)?.id;
-
-      // If the selected ID is the same as the current one, we are toggling it OFF.
-      // If the selected ID is different, we are changing the award.
-      // If the selected ID is null, we are clearing the award.
-
-      // Clear any existing card first
-      if (currentlyAwardedPlayerId) {
-          updatedAvailablePlayers = updatedAvailablePlayers.map(p =>
-              p.id === currentlyAwardedPlayerId ? { ...p, receivedFairPlayCard: false } : p
-          );
-          updatedPlayersOnField = updatedPlayersOnField.map(p =>
-              p.id === currentlyAwardedPlayerId ? { ...p, receivedFairPlayCard: false } : p
-          );
-      }
-
-      // Award the new card if a playerId is provided (and it's different from the one just cleared)
-      if (playerId && playerId !== currentlyAwardedPlayerId) {
-          // <<< MODIFY LOGGING HERE >>>
-          updatedAvailablePlayers = updatedAvailablePlayers.map(p =>
-              p.id === playerId ? { ...p, receivedFairPlayCard: true } : p
-          );
-          updatedPlayersOnField = updatedPlayersOnField.map(p =>
-              p.id === playerId ? { ...p, receivedFairPlayCard: true } : p
-          );
-          logger.log(`[page.tsx] Awarding card to ${playerId}`);
-      } else {
-          // <<< ADD LOG HERE >>>
-          logger.log(`[page.tsx] Clearing card (or toggling off). PlayerId: ${playerId}, Currently Awarded: ${currentlyAwardedPlayerId}`);
-      }
-      // If playerId is null, we only cleared the existing card.
-      // If playerId is the same as currentlyAwardedPlayerId, we cleared it and don't re-award.
-
-      // <<< ADD LOG HERE >>>
-      logger.log(`[page.tsx] availablePlayers AFTER update logic:`, JSON.stringify(updatedAvailablePlayers.map(p => ({id: p.id, fp: p.receivedFairPlayCard}))));
-      logger.log(`[page.tsx] playersOnField AFTER update logic:`, JSON.stringify(updatedPlayersOnField.map(p => ({id: p.id, fp: p.receivedFairPlayCard}))));
-
-      // <<< ADD LOG HERE >>>
-      logger.log(`[page.tsx] Calling setAvailablePlayers and setPlayersOnField...`);
-      setAvailablePlayers(updatedAvailablePlayers);
-      fieldCoordination.setPlayersOnField(updatedPlayersOnField);
-      // Save updated global roster
-      // localStorage.setItem(MASTER_ROSTER_KEY, JSON.stringify(updatedAvailablePlayers));
-      try {
-        const success = await saveMasterRoster(updatedAvailablePlayers);
-        if (!success) {
-          logger.error('[page.tsx] handleAwardFairPlayCard: Failed to save master roster using utility.');
-          // Optionally, set an error state to inform the user
-        }
-      } catch (error) {
-        logger.error('[page.tsx] handleAwardFairPlayCard: Error calling saveMasterRoster utility:', error);
-        // Optionally, set an error state
-      }
-      // <<< ADD LOG HERE >>>
-      logger.log(`[page.tsx] Calling saveStateToHistory for playersOnField and availablePlayers`);
-      // Save both playersOnField and availablePlayers to game history for fair play card persistence
-      saveStateToHistory({ playersOnField: updatedPlayersOnField, availablePlayers: updatedAvailablePlayers });
-
-      logger.log(`[page.tsx] Updated Fair Play card award. ${playerId ? `Awarded to ${playerId}` : 'Cleared'}`);
-    }, [availablePlayers, saveStateToHistory, currentGameId, setAvailablePlayers, fieldCoordination]);
+    saveStateToHistory({ playersOnField: updatedPlayersOnField, availablePlayers: updatedAvailablePlayers });
+    logger.log(`[page.tsx] Updated Fair Play card award. ${playerId ? `Awarded to ${playerId}` : 'Cleared'}`);
+  }, [availablePlayers, saveStateToHistory, currentGameId, setAvailablePlayers, fieldCoordination]);
 
 
   const handleUpdateSelectedPlayers = (playerIds: string[]) => {
@@ -1779,35 +1731,11 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setShowStartNewConfirm(false);
     openNewGameViaReducer(); // Open the setup modal
   }, [availablePlayers, openNewGameViaReducer]);
-  // --- END Start New Game Handler ---
 
-  // --- handlePlaceAllPlayers - MOVED TO useFieldCoordination ---
-
-  // --- Step 3: Handler for Importing Games ---
-  // const handleImportGamesFromJson = useCallback(async (jsonContent: string) => { // This function is no longer used
-  //   // ...
-  // }, [savedGames, setSavedGames, t]); 
-  // --- End Step 3 --- 
-
-  // --- NEW: Handlers for Game Settings Modal --- (Placeholder open/close)
-
-  // Render null or a loading indicator until state is loaded
-  // Note: Console log added before the check itself
- 
-  // Final console log before returning the main JSX
   if (debug.enabled('home')) {
     logger.log('[Home Render] highlightRosterButton:', highlightRosterButton);
-  }
-
-  // ATTEMPTING TO EXPLICITLY REMOVE THE CONDITIONAL HOOK
-  // The useEffect for highlightRosterButton that was here (around lines 2977-2992)
-  // should be removed as it's called conditionally and its correct version is at the top level.
-
-  // Log gameEvents before PlayerBar is rendered
-  if (debug.enabled('home')) {
     logger.log('[page.tsx] About to render PlayerBar, gameEvents for PlayerBar:', JSON.stringify(gameSessionState.gameEvents));
   }
-
 
   const handleOpenPlayerStats = (playerId: string) => {
     const player = availablePlayers.find(p => p.id === playerId);
