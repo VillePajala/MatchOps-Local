@@ -63,7 +63,8 @@ describe('GlobalError', () => {
     const goHomeButton = screen.getByText('Go home');
     fireEvent.click(goHomeButton);
 
-    expect(window.location.href).toBe('/');
+    // jsdom 26+ returns full URL, so check pathname or ending with '/'
+    expect(window.location.href.endsWith('/')).toBe(true);
   });
 
   it('should only capture exception once even if re-rendered', () => {
