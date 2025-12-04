@@ -213,6 +213,39 @@ export const importFullBackup = async (
 
     logger.log("User confirmed import. Proceeding to overwrite data...");
 
+    // --- Get current roster BEFORE clearing (needed for legacy imports without roster) ---
+    let currentRosterBeforeClear: Player[] = [];
+    try {
+      const currentRosterData = await getStorageJSON<Player[]>(MASTER_ROSTER_KEY);
+      if (currentRosterData) {
+        currentRosterBeforeClear = currentRosterData;
+      }
+    } catch (error) {
+      logger.warn('Could not get current roster before clear:', error);
+    }
+
+    // --- Clear all existing app data for a clean restore ---
+    const allKeysToReset = [
+      SAVED_GAMES_KEY,
+      APP_SETTINGS_KEY,
+      SEASONS_LIST_KEY,
+      TOURNAMENTS_LIST_KEY,
+      MASTER_ROSTER_KEY,
+      PLAYER_ADJUSTMENTS_KEY,
+      TEAMS_INDEX_KEY,
+      TEAM_ROSTERS_KEY,
+      PERSONNEL_KEY,
+    ];
+
+    for (const key of allKeysToReset) {
+      try {
+        await removeStorageItem(key);
+      } catch (error) {
+        logger.warn(`Could not clear storage key ${key} before restore:`, error);
+      }
+    }
+    logger.log("Cleared existing app data for clean restore");
+
     // --- Process games to ensure proper player mapping ---
     let processedSavedGames = backupData.localStorage[SAVED_GAMES_KEY];
 
@@ -227,23 +260,12 @@ export const importFullBackup = async (
           // Games already have correct player IDs that match the backup's roster
           logger.log('Backup contains matching roster - skipping player remapping');
         } else {
-          // Legacy/partial import without roster - remap using current roster
-          let currentRoster: Player[] = [];
-
-          try {
-            const currentRosterData = await getStorageJSON<Player[]>(MASTER_ROSTER_KEY);
-            if (currentRosterData) {
-              currentRoster = currentRosterData;
-            }
-          } catch (error) {
-            logger.warn('Could not get current roster for player mapping:', error);
-          }
-
+          // Legacy/partial import without roster - remap using roster we saved before clearing
           // Process imported games to ensure proper player integration
-          if (currentRoster.length > 0) {
+          if (currentRosterBeforeClear.length > 0) {
             const { processedGames, mappingReport } = processImportedGames(
               processedSavedGames as SavedGamesCollection,
-              currentRoster
+              currentRosterBeforeClear
             );
 
             processedSavedGames = processedGames;
@@ -321,21 +343,8 @@ export const importFullBackup = async (
             `Failed to restore data for key ${key}. Aborting import.`,
           );
         }
-      } else {
-        // If data for this key is null/undefined in backup, remove it from storage if it exists
-        // Check if item exists before attempting removal to avoid unnecessary operations/logs
-        try {
-          const currentItem = await getStorageJSON<unknown>(key as string); // Check if item exists
-          if (currentItem !== null) {
-            await removeStorageItem(key as string);
-            logger.log(
-              `Removed existing data for key: ${key} as it was explicitly null or not present in the backup.`,
-            );
-          }
-        } catch (error) {
-          logger.warn(`Could not check/remove storage item for key ${key}:`, error);
-        }
       }
+      // No else needed - we already cleared all keys at the start
     }
 
     // --- Ensure currentGameId points to a real game after restore ---
