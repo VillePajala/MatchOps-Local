@@ -1,52 +1,55 @@
 # MatchOps-Local Refactoring Status — Single Source of Truth
 
 **Last Updated**: December 4, 2025
-**Status**: ✅ **100% COMPLETE** 🎉 — All hook splitting COMPLETE, P1 fixes COMPLETE, NPM Phase 1-2 COMPLETE
+**Status**: 🟡 **90% COMPLETE** — Hook extraction done, cleanup remaining
 **Supersedes**: All P0/P1/P2 fix plans, MICRO-REFactor-ROADMAP Layer 2 completion
-**Next Steps**: See [POST-REFACTORING-ROADMAP.md](./POST-REFACTORING-ROADMAP.md) for what comes next
+**Next Steps**: Complete Step 2.7 (useGameOrchestration cleanup), then GameSettingsModal refactoring
 
 ---
 
 ## 🎯 EXECUTIVE SUMMARY
 
-### What We Accomplished (100% Complete) 🎉
+### What We Accomplished ✅
 
-The HomePage refactoring is **COMPLETE** with excellent architecture in place:
+The HomePage refactoring achieved excellent results:
 
 - ✅ **HomePage.tsx**: Reduced from 3,725 lines → **62 lines** (98.3% reduction, orchestrator only)
 - ✅ **Container Pattern**: GameContainer, ModalManager, FieldContainer extracted
 - ✅ **View-Model Pattern**: All components use typed view-models
 - ✅ **Layer 1 & 2**: Stability + architecture complete (Steps 2.4.0–2.5 ✅ COMPLETE)
-- ✅ **Hook Extractions**: ALL 6 hooks complete:
-  - ✅ useGameDataManagement (Step 2.6.1)
-  - ✅ useGameSessionCoordination (Step 2.6.2)
-  - ✅ useFieldCoordination (Step 2.6.3)
-  - ✅ useGamePersistence (Step 2.6.4)
-  - ✅ useTimerManagement (Step 2.6.5)
-  - ✅ useModalOrchestration (Step 2.6.6)
-- ✅ **Architecture**: Industry-standard React pattern ✅
-- ✅ **P1 Fixes**: All high-priority fixes complete (useAutoSave, handleDeleteGameEvent, modalManagerProps documentation)
-- ✅ **All Tests Passing**: 1593 tests, build succeeds, lint clean
+- ✅ **Hook Extractions**: ALL 6 hooks created:
+  - ✅ useGameDataManagement (361 lines)
+  - ✅ useGameSessionCoordination (501 lines)
+  - ✅ useFieldCoordination (602 lines)
+  - ✅ useGamePersistence (665 lines)
+  - ✅ useTimerManagement (235 lines)
+  - ✅ useModalOrchestration (581 lines)
+- ✅ **P1 Fixes**: All high-priority fixes complete
+- ✅ **All Tests Passing**: 1,997 tests, build succeeds, lint clean
 
-### What Remains
+### ⚠️ What Remains (Step 2.7)
 
-- ✅ **Integration Complete**: All branches merged to master
-  - All 6 hooks extracted and tested
-  - All 1,615 tests passing
-  - CI clean (lint, types, build)
-  - **Action**: Follow [POST-REFACTORING-ROADMAP.md](./POST-REFACTORING-ROADMAP.md) for next steps
+**useGameOrchestration.ts cleanup is NOT complete:**
 
-### Success Metrics — ACHIEVED! 🎉
+| File | Current | Target | Status |
+|------|---------|--------|--------|
+| useGameOrchestration.ts | **2,199 lines** | ~200 lines | 🔴 **NEEDS CLEANUP** |
+| GameSettingsModal.tsx | **1,969 lines** | ~200 lines | 🔴 **NEEDS REFACTORING** |
+
+The 6 hooks were **created** but the original code in useGameOrchestration was **not removed**. This is the remaining structural work.
+
+### Success Metrics
 
 - ✅ **HomePage**: 62 lines (Target: ≤200 lines) — **71% better than target**
-- ✅ **All hooks**: ≤733 lines each (Target: ≤600 lines per file for most hooks)
+- ✅ **Extracted hooks**: All ≤665 lines
   - useGameDataManagement: 361 lines ✅
-  - useGameSessionCoordination: 480 lines ✅
-  - useFieldCoordination: 733 lines (acceptable for complexity)
-  - useGamePersistence: 664 lines (acceptable for persistence logic)
-  - useTimerManagement: ~250 lines ✅
-  - useModalOrchestration: ~500 lines ✅
-- ✅ **Timeline**: Completed in ~3 weeks (6 PRs)
+  - useGameSessionCoordination: 501 lines ✅
+  - useFieldCoordination: 602 lines ✅
+  - useGamePersistence: 665 lines ✅
+  - useTimerManagement: 235 lines ✅
+  - useModalOrchestration: 581 lines ✅
+- 🔴 **useGameOrchestration**: 2,199 lines (Target: ~200 lines) — **CLEANUP NEEDED**
+- 🔴 **GameSettingsModal**: 1,969 lines (Target: ~200 lines) — **REFACTORING NEEDED**
 
 ### Bundle Size Impact (Post-Refactoring) 📦
 

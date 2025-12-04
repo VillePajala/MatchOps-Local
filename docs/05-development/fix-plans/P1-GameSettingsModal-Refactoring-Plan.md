@@ -1,12 +1,13 @@
 # P1: GameSettingsModal.tsx Refactoring Plan (HIGH)
 
-**Priority**: P1 - HIGH
+**Priority**: P1 - HIGH (after Step 2.7 useGameOrchestration cleanup)
 **File**: `/src/components/GameSettingsModal.tsx`
-**Current Size**: 1,995 lines
+**Current Size**: 1,969 lines
 **Target Size**: 200 lines (orchestrator only)
-**Estimated Effort**: 1 hour
+**Estimated Effort**: 4-6 hours (realistic estimate)
 **Impact**: HIGH - Reduces complexity, improves maintainability
-**Status**: ❌ Not Started
+**Status**: 🔴 NOT STARTED
+**Prerequisites**: Step 2.7 (useGameOrchestration cleanup) should be done first
 
 ---
 
@@ -235,11 +236,106 @@ describe('TeamsAndRosterSection', () => {
 
 ---
 
+## 📦 PR BREAKDOWN (5 PRs)
+
+### PR 1: Setup Structure & Extract State Hook (~1 hour)
+**Branch**: `refactor/gamesettings-1-setup`
+
+**Tasks**:
+1. Create directory structure:
+   ```
+   src/components/GameSettingsModal/
+   ├── index.tsx
+   ├── sections/
+   ├── hooks/
+   └── utils/
+   ```
+2. Create `useGameSettingsState.ts` hook
+3. Move shared state management to hook
+
+**Verification**:
+- [ ] Directory structure created
+- [ ] Modal still opens/closes
+- [ ] Basic state management works
+
+---
+
+### PR 2: Extract TeamsAndRosterSection (~1 hour)
+**Branch**: `refactor/gamesettings-2-teams`
+
+**Tasks**:
+1. Create `TeamsAndRosterSection.tsx`
+2. Move team selection, roster UI
+3. Move fair play card UI
+4. Wire up to main modal
+
+**Verification**:
+- [ ] Team selection works
+- [ ] Player selection works
+- [ ] Fair play card works
+- [ ] Tests pass
+
+---
+
+### PR 3: Extract GameDetailsSection (~1 hour)
+**Branch**: `refactor/gamesettings-3-details`
+
+**Tasks**:
+1. Create `GameDetailsSection.tsx`
+2. Move season/tournament selection
+3. Move date, location, time inputs
+4. Wire up to main modal
+
+**Verification**:
+- [ ] Season/tournament selection works
+- [ ] Date picker works
+- [ ] Location/time inputs work
+- [ ] Tests pass
+
+---
+
+### PR 4: Extract EventLogSection (~1.5 hours)
+**Branch**: `refactor/gamesettings-4-events`
+
+**Tasks**:
+1. Create `EventLogSection.tsx`
+2. Move event list display
+3. Move event edit/delete handlers
+4. Move goal/substitution editing UI
+
+**Verification**:
+- [ ] Event list displays correctly
+- [ ] Edit event works
+- [ ] Delete event works
+- [ ] Tests pass
+
+---
+
+### PR 5: Extract GameConfigSection & GameNotesSection + Final Cleanup (~1.5 hours)
+**Branch**: `refactor/gamesettings-5-final`
+
+**Tasks**:
+1. Create `GameConfigSection.tsx` (periods, duration, demand factor)
+2. Create `GameNotesSection.tsx` (notes textarea)
+3. Clean up main `index.tsx` to ~200 lines
+4. Remove dead code, unused imports
+5. Final testing
+
+**Verification**:
+- [ ] Game config section works
+- [ ] Notes section works
+- [ ] Main modal ≤200 lines
+- [ ] All tests pass
+- [ ] Build succeeds
+
+---
+
 ## 📚 RELATED DOCUMENTS
 
 - [P0: HomePage Refactoring](./P0-HomePage-Refactoring-Plan.md)
+- [Step 2.7: useGameOrchestration Cleanup](../../03-active-plans/L2-2.7-useGameOrchestration-Cleanup-PLAN.md)
 - [Critical Fixes Overview](../../CRITICAL_FIXES_REQUIRED.md)
 
 ---
 
-**Last Updated**: October 16, 2025
+**Last Updated**: 2025-12-04

@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: update documentation to reflect 100% completion of refactoring and all hooks extraction"
+  "notes": "docs: update roadmap with Jest 30, i18next, and Next.js security fix completion"
 }
