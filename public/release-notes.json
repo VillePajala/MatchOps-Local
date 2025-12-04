@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "chore: update .gitignore to include backup files in screenshots directory"
+  "notes": "fix: update documentation to reflect 100% completion of refactoring and all hooks extraction"
 }
