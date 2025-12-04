@@ -190,6 +190,40 @@ function createBackupData(overrides: {
   };
 }
 
+/**
+ * Creates a valid AppState object with all required fields for testing.
+ * Only the provided overrides will differ from defaults.
+ */
+function createTestAppState(overrides: Partial<AppState> = {}): AppState {
+  return {
+    playersOnField: [],
+    availablePlayers: [],
+    selectedPlayerIds: [],
+    gameEvents: [],
+    drawings: [],
+    opponents: [],
+    showPlayerNames: true,
+    teamName: 'Test Team',
+    opponentName: 'Test Opponent',
+    gameDate: '2024-01-01',
+    homeScore: 0,
+    awayScore: 0,
+    gameNotes: '',
+    homeOrAway: 'home',
+    numberOfPeriods: 2,
+    periodDurationMinutes: 45,
+    currentPeriod: 1,
+    gameStatus: 'notStarted',
+    isPlayed: false,
+    seasonId: '',
+    tournamentId: '',
+    tacticalDiscs: [],
+    tacticalDrawings: [],
+    tacticalBallPosition: null,
+    ...overrides,
+  };
+}
+
 describe("importFullBackup", () => {
   let consoleErrorSpy: jest.SpyInstance;
   let consoleWarnSpy: jest.SpyInstance;
@@ -1058,5 +1092,723 @@ describe("exportFullBackup", () => {
         });
       }
     }
+  });
+});
+
+// --- Tests for Roster-Aware Import (Fix for player ID remapping issue) ---
+describe("importFullBackup - Roster-Aware Import", () => {
+  let consoleErrorSpy: jest.SpyInstance;
+  let consoleWarnSpy: jest.SpyInstance;
+  let consoleLogSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    // Clear mock store
+    Object.keys(mockStore).forEach(key => delete mockStore[key]);
+    jest.clearAllMocks();
+    localStorageMock.mockClear();
+
+    // Mock window.confirm to return true by default
+    (window.confirm as jest.Mock).mockReturnValue(true);
+    (window.alert as jest.Mock)?.mockReset();
+
+    // Mock reload
+    try {
+      const mockReload = jest.fn();
+      Object.defineProperty(window.location, 'reload', {
+        value: mockReload,
+        configurable: true,
+        writable: true
+      });
+    } catch {
+      // Degrade gracefully
+    }
+
+    // Mock console methods
+    consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    if (consoleErrorSpy) consoleErrorSpy.mockRestore();
+    if (consoleWarnSpy) consoleWarnSpy.mockRestore();
+    if (consoleLogSpy) consoleLogSpy.mockRestore();
+    try {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    } catch {}
+  });
+
+  /**
+   * @critical - This tests the main fix: when backup contains its own roster,
+   * player ID remapping should be SKIPPED because games and roster are already consistent.
+   */
+  describe("Full Backup with Matching Roster (Skip Remapping)", () => {
+    it("should NOT remap player IDs when backup contains its own roster", async () => {
+      // Arrange: Backup contains games with specific player IDs AND the matching roster
+      const backupRoster: Player[] = [
+        { id: 'backup-player-1', name: 'Alice', isGoalie: false, jerseyNumber: '10', notes: '' },
+        { id: 'backup-player-2', name: 'Bob', isGoalie: false, jerseyNumber: '7', notes: '' },
+        { id: 'backup-player-3', name: 'Charlie', isGoalie: true, jerseyNumber: '1', notes: '' },
+      ];
+
+      const backupGames: SavedGamesCollection = {
+        'game1': createTestAppState({
+          teamName: 'Test Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-01-15',
+          selectedPlayerIds: ['backup-player-1', 'backup-player-2'],
+          playersOnField: [backupRoster[0], backupRoster[1]],
+          availablePlayers: [backupRoster[2]],
+        }),
+        'game2': createTestAppState({
+          teamName: 'Test Team',
+          opponentName: 'Another Opponent',
+          gameDate: '2024-01-22',
+          selectedPlayerIds: ['backup-player-1', 'backup-player-3'],
+          playersOnField: [backupRoster[0], backupRoster[2]],
+          availablePlayers: [backupRoster[1]],
+        }),
+      };
+
+      const backupData = createBackupData({
+        games: backupGames,
+        roster: backupRoster,
+        settings: { currentGameId: 'game1' },
+      });
+
+      // Existing different roster should NOT affect imported games
+      const existingRoster: Player[] = [
+        { id: 'existing-player-1', name: 'Alice', isGoalie: false, jerseyNumber: '10', notes: '' },
+        { id: 'existing-player-2', name: 'Bob', isGoalie: false, jerseyNumber: '7', notes: '' },
+      ];
+      mockStore[MASTER_ROSTER_KEY] = existingRoster;
+
+      // Act
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      // Assert
+      expect(result).not.toBeNull();
+      expect(result?.success).toBe(true);
+
+      // Games should retain their ORIGINAL player IDs (from backup, not remapped)
+      const restoredGames = mockStore[SAVED_GAMES_KEY] as SavedGamesCollection;
+
+      // Game1 should have backup-player-1 and backup-player-2 (NOT existing-player-1, existing-player-2)
+      expect(restoredGames['game1'].selectedPlayerIds).toEqual(['backup-player-1', 'backup-player-2']);
+
+      // Game2 should have backup-player-1 and backup-player-3
+      expect(restoredGames['game2'].selectedPlayerIds).toEqual(['backup-player-1', 'backup-player-3']);
+
+      // Roster should be the backup roster
+      expect(mockStore[MASTER_ROSTER_KEY]).toEqual(backupRoster);
+    });
+
+    it("should preserve exact selectedPlayerIds count per game when backup includes roster", async () => {
+      // Arrange: Multiple games with different player selections
+      const backupRoster: Player[] = Array.from({ length: 15 }, (_, i) => ({
+        id: `player-${i + 1}`,
+        name: `Player ${i + 1}`,
+        isGoalie: i === 0,
+        jerseyNumber: String(i + 1),
+        notes: ''
+      }));
+
+      const backupGames: SavedGamesCollection = {
+        'game-with-5-players': createTestAppState({
+          teamName: 'Team A',
+          opponentName: 'Opp A',
+          gameDate: '2024-01-01',
+          selectedPlayerIds: ['player-1', 'player-2', 'player-3', 'player-4', 'player-5'],
+          playersOnField: backupRoster.slice(0, 5),
+          availablePlayers: backupRoster.slice(5),
+        }),
+        'game-with-11-players': createTestAppState({
+          teamName: 'Team A',
+          opponentName: 'Opp B',
+          gameDate: '2024-01-08',
+          selectedPlayerIds: backupRoster.slice(0, 11).map(p => p.id),
+          playersOnField: backupRoster.slice(0, 11),
+          availablePlayers: backupRoster.slice(11),
+        }),
+        'game-with-all-players': createTestAppState({
+          teamName: 'Team A',
+          opponentName: 'Opp C',
+          gameDate: '2024-01-15',
+          selectedPlayerIds: backupRoster.map(p => p.id),
+          playersOnField: backupRoster,
+          availablePlayers: [],
+        }),
+      };
+
+      const backupData = createBackupData({
+        games: backupGames,
+        roster: backupRoster,
+      });
+
+      // Act
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      // Assert
+      expect(result?.success).toBe(true);
+      const restoredGames = mockStore[SAVED_GAMES_KEY] as SavedGamesCollection;
+
+      expect(restoredGames['game-with-5-players'].selectedPlayerIds).toHaveLength(5);
+      expect(restoredGames['game-with-11-players'].selectedPlayerIds).toHaveLength(11);
+      expect(restoredGames['game-with-all-players'].selectedPlayerIds).toHaveLength(15);
+    });
+
+    it("should preserve game events with correct player IDs when backup includes roster", async () => {
+      const backupRoster: Player[] = [
+        { id: 'scorer-id', name: 'Scorer', isGoalie: false, jerseyNumber: '9', notes: '' },
+        { id: 'assister-id', name: 'Assister', isGoalie: false, jerseyNumber: '10', notes: '' },
+      ];
+
+      const backupGames: SavedGamesCollection = {
+        'game-with-events': createTestAppState({
+          teamName: 'Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-02-01',
+          selectedPlayerIds: ['scorer-id', 'assister-id'],
+          playersOnField: backupRoster,
+          availablePlayers: [],
+          gameEvents: [
+            { id: 'e1', type: 'goal', time: 1500, scorerId: 'scorer-id', assisterId: 'assister-id', entityId: undefined },
+            { id: 'e2', type: 'goal', time: 3000, scorerId: 'scorer-id', assisterId: undefined, entityId: undefined },
+          ],
+          homeScore: 2,
+          awayScore: 0,
+        }),
+      };
+
+      const backupData = createBackupData({
+        games: backupGames,
+        roster: backupRoster,
+      });
+
+      // Act
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      // Assert
+      expect(result?.success).toBe(true);
+      const restoredGames = mockStore[SAVED_GAMES_KEY] as SavedGamesCollection;
+      const events = restoredGames['game-with-events'].gameEvents;
+
+      expect(events[0].scorerId).toBe('scorer-id');
+      expect(events[0].assisterId).toBe('assister-id');
+      expect(events[1].scorerId).toBe('scorer-id');
+    });
+  });
+
+  /**
+   * Tests for legacy imports - when backup does NOT contain a roster,
+   * player IDs SHOULD be remapped against the current roster.
+   */
+  describe("Legacy Backup without Roster (Apply Remapping)", () => {
+    it("should remap player IDs when backup does NOT contain roster", async () => {
+      // Arrange: Current roster exists in storage
+      const currentRoster: Player[] = [
+        { id: 'current-alice', name: 'Alice', isGoalie: false, jerseyNumber: '10', notes: '' },
+        { id: 'current-bob', name: 'Bob', isGoalie: false, jerseyNumber: '7', notes: '' },
+      ];
+      mockStore[MASTER_ROSTER_KEY] = currentRoster;
+
+      // Backup games have different player IDs but same names
+      const backupGames: SavedGamesCollection = {
+        'legacy-game': createTestAppState({
+          teamName: 'Old Team',
+          opponentName: 'Old Opponent',
+          gameDate: '2023-06-01',
+          selectedPlayerIds: ['old-alice-id', 'old-bob-id'],
+          playersOnField: [
+            { id: 'old-alice-id', name: 'Alice', isGoalie: false, jerseyNumber: '10', notes: '' },
+            { id: 'old-bob-id', name: 'Bob', isGoalie: false, jerseyNumber: '7', notes: '' },
+          ],
+          availablePlayers: [],
+          gameEvents: [
+            { id: 'e1', type: 'goal', time: 1000, scorerId: 'old-alice-id', assisterId: 'old-bob-id', entityId: undefined },
+          ],
+        }),
+      };
+
+      // Backup WITHOUT roster (legacy format)
+      const backupData = createBackupData({
+        games: backupGames,
+        // NO roster key - this is the legacy scenario
+      });
+
+      // Act
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      // Assert
+      expect(result?.success).toBe(true);
+      const restoredGames = mockStore[SAVED_GAMES_KEY] as SavedGamesCollection;
+
+      // Player IDs should be REMAPPED to current roster IDs
+      expect(restoredGames['legacy-game'].selectedPlayerIds).toContain('current-alice');
+      expect(restoredGames['legacy-game'].selectedPlayerIds).toContain('current-bob');
+      expect(restoredGames['legacy-game'].selectedPlayerIds).not.toContain('old-alice-id');
+
+      // Game events should also be remapped
+      expect(restoredGames['legacy-game'].gameEvents[0].scorerId).toBe('current-alice');
+      expect(restoredGames['legacy-game'].gameEvents[0].assisterId).toBe('current-bob');
+    });
+
+    it("should remap player IDs when backup roster is empty array", async () => {
+      // Arrange
+      const currentRoster: Player[] = [
+        { id: 'current-1', name: 'Player One', isGoalie: false, jerseyNumber: '1', notes: '' },
+      ];
+      mockStore[MASTER_ROSTER_KEY] = currentRoster;
+
+      const backupGames: SavedGamesCollection = {
+        'game': createTestAppState({
+          teamName: 'Team',
+          opponentName: 'Opponent',
+          gameDate: '2023-07-01',
+          selectedPlayerIds: ['old-1'],
+          playersOnField: [
+            { id: 'old-1', name: 'Player One', isGoalie: false, jerseyNumber: '1', notes: '' },
+          ],
+          availablePlayers: [],
+        }),
+      };
+
+      const backupData = createBackupData({
+        games: backupGames,
+        roster: [], // Empty roster - should trigger remapping
+      });
+
+      // Act
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      // Assert
+      expect(result?.success).toBe(true);
+      const restoredGames = mockStore[SAVED_GAMES_KEY] as SavedGamesCollection;
+      expect(restoredGames['game'].selectedPlayerIds).toContain('current-1');
+    });
+
+    it("should handle partial roster matches during remapping", async () => {
+      // Current roster has only some of the players
+      const currentRoster: Player[] = [
+        { id: 'known-player', name: 'Known Player', isGoalie: false, jerseyNumber: '1', notes: '' },
+      ];
+      mockStore[MASTER_ROSTER_KEY] = currentRoster;
+
+      const backupGames: SavedGamesCollection = {
+        'game': createTestAppState({
+          teamName: 'Team',
+          opponentName: 'Opponent',
+          gameDate: '2023-08-01',
+          selectedPlayerIds: ['old-known', 'old-unknown'],
+          playersOnField: [
+            { id: 'old-known', name: 'Known Player', isGoalie: false, jerseyNumber: '1', notes: '' },
+            { id: 'old-unknown', name: 'Unknown Player', isGoalie: false, jerseyNumber: '99', notes: '' },
+          ],
+          availablePlayers: [],
+        }),
+      };
+
+      const backupData = createBackupData({
+        games: backupGames,
+        // No roster - triggers remapping
+      });
+
+      // Act
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      // Assert
+      expect(result?.success).toBe(true);
+      const restoredGames = mockStore[SAVED_GAMES_KEY] as SavedGamesCollection;
+
+      // Known player should be mapped
+      expect(restoredGames['game'].selectedPlayerIds).toContain('known-player');
+      // Unknown player should be filtered out (no match in current roster)
+      expect(restoredGames['game'].selectedPlayerIds).toHaveLength(1);
+    });
+  });
+
+  /**
+   * Tests for edge cases in backup/restore with different roster states
+   */
+  describe("Edge Cases - Roster Consistency", () => {
+    it("should handle backup with null roster key as legacy (apply remapping)", async () => {
+      const currentRoster: Player[] = [
+        { id: 'current-1', name: 'Test Player', isGoalie: false, jerseyNumber: '1', notes: '' },
+      ];
+      mockStore[MASTER_ROSTER_KEY] = currentRoster;
+
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {
+            'game': {
+              teamName: 'Team',
+              opponentName: 'Opponent',
+              selectedPlayerIds: ['old-1'],
+              playersOnField: [{ id: 'old-1', name: 'Test Player', isGoalie: false, jerseyNumber: '1', notes: '' }],
+              availablePlayers: [],
+              gameEvents: [],
+              drawings: [],
+              opponents: [],
+            },
+          },
+          [MASTER_ROSTER_KEY]: null, // Explicitly null
+        },
+      };
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result?.success).toBe(true);
+      const restoredGames = mockStore[SAVED_GAMES_KEY] as SavedGamesCollection;
+      expect(restoredGames['game'].selectedPlayerIds).toContain('current-1');
+    });
+
+    it("should NOT remap when backup roster has players even if IDs differ from storage", async () => {
+      // Storage has roster with certain IDs
+      const storageRoster: Player[] = [
+        { id: 'storage-id', name: 'Player Name', isGoalie: false, jerseyNumber: '1', notes: '' },
+      ];
+      mockStore[MASTER_ROSTER_KEY] = storageRoster;
+
+      // Backup has DIFFERENT roster IDs
+      const backupRoster: Player[] = [
+        { id: 'backup-id', name: 'Player Name', isGoalie: false, jerseyNumber: '1', notes: '' },
+      ];
+
+      const backupGames: SavedGamesCollection = {
+        'game': createTestAppState({
+          teamName: 'Team',
+          opponentName: 'Opponent',
+          selectedPlayerIds: ['backup-id'],
+          playersOnField: [backupRoster[0]],
+          availablePlayers: [],
+        }),
+      };
+
+      const backupData = createBackupData({
+        games: backupGames,
+        roster: backupRoster, // Has roster - skip remapping
+      });
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result?.success).toBe(true);
+      const restoredGames = mockStore[SAVED_GAMES_KEY] as SavedGamesCollection;
+
+      // Should use backup IDs, not storage IDs
+      expect(restoredGames['game'].selectedPlayerIds).toEqual(['backup-id']);
+      expect(restoredGames['game'].selectedPlayerIds).not.toContain('storage-id');
+
+      // Roster should be replaced with backup roster
+      expect(mockStore[MASTER_ROSTER_KEY]).toEqual(backupRoster);
+    });
+
+    it("should handle games with no selectedPlayerIds gracefully", async () => {
+      const backupRoster: Player[] = [
+        { id: 'p1', name: 'Player 1', isGoalie: false, jerseyNumber: '1', notes: '' },
+      ];
+
+      const backupGames: SavedGamesCollection = {
+        'empty-game': createTestAppState({
+          teamName: 'Team',
+          opponentName: 'Opponent',
+          selectedPlayerIds: [], // Empty selection
+          playersOnField: [],
+          availablePlayers: backupRoster,
+        }),
+      };
+
+      const backupData = createBackupData({
+        games: backupGames,
+        roster: backupRoster,
+      });
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result?.success).toBe(true);
+      const restoredGames = mockStore[SAVED_GAMES_KEY] as SavedGamesCollection;
+      expect(restoredGames['empty-game'].selectedPlayerIds).toEqual([]);
+    });
+
+    it("should handle games with undefined selectedPlayerIds", async () => {
+      const backupRoster: Player[] = [
+        { id: 'p1', name: 'Player 1', isGoalie: false, jerseyNumber: '1', notes: '' },
+      ];
+
+      const backupData = {
+        meta: { schema: 1, exportedAt: new Date().toISOString() },
+        localStorage: {
+          [SAVED_GAMES_KEY]: {
+            'undefined-game': {
+              teamName: 'Team',
+              opponentName: 'Opponent',
+              // selectedPlayerIds intentionally missing
+              playersOnField: [],
+              availablePlayers: backupRoster,
+              gameEvents: [],
+              drawings: [],
+              opponents: [],
+            },
+          },
+          [MASTER_ROSTER_KEY]: backupRoster,
+        },
+      };
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result?.success).toBe(true);
+    });
+  });
+
+  /**
+   * Tests for statistics tracking during import
+   */
+  describe("Import Statistics", () => {
+    it("should correctly count imported games in statistics", async () => {
+      const backupData = createBackupData({
+        games: {
+          'game1': createTestAppState({ teamName: 'A', opponentName: 'B' }),
+          'game2': createTestAppState({ teamName: 'C', opponentName: 'D' }),
+          'game3': createTestAppState({ teamName: 'E', opponentName: 'F' }),
+        },
+        roster: [{ id: 'p1', name: 'P1', isGoalie: false, jerseyNumber: '1', notes: '' }],
+      });
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result?.statistics.gamesImported).toBe(3);
+    });
+
+    it("should correctly count imported players in statistics", async () => {
+      const backupData = createBackupData({
+        games: {},
+        roster: [
+          { id: 'p1', name: 'P1', isGoalie: false, jerseyNumber: '1', notes: '' },
+          { id: 'p2', name: 'P2', isGoalie: false, jerseyNumber: '2', notes: '' },
+          { id: 'p3', name: 'P3', isGoalie: true, jerseyNumber: '3', notes: '' },
+        ],
+      });
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result?.statistics.playersImported).toBe(3);
+    });
+
+    it("should include mapping report when remapping occurs", async () => {
+      const currentRoster: Player[] = [
+        { id: 'current-1', name: 'Player One', isGoalie: false, jerseyNumber: '1', notes: '' },
+        { id: 'current-2', name: 'Player Two', isGoalie: false, jerseyNumber: '2', notes: '' },
+      ];
+      mockStore[MASTER_ROSTER_KEY] = currentRoster;
+
+      const backupGames: SavedGamesCollection = {
+        'game': createTestAppState({
+          teamName: 'Team',
+          opponentName: 'Opponent',
+          selectedPlayerIds: ['old-1', 'old-2', 'unknown-id'],
+          playersOnField: [
+            { id: 'old-1', name: 'Player One', isGoalie: false, jerseyNumber: '1', notes: '' },
+            { id: 'old-2', name: 'Player Two', isGoalie: false, jerseyNumber: '2', notes: '' },
+            { id: 'unknown-id', name: 'Unknown', isGoalie: false, jerseyNumber: '99', notes: '' },
+          ],
+          availablePlayers: [],
+        }),
+      };
+
+      const backupData = createBackupData({
+        games: backupGames,
+        // No roster - triggers remapping
+      });
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result?.success).toBe(true);
+      expect(result?.mappingReport).toBeDefined();
+      expect(result?.mappingReport?.totalGames).toBe(1);
+      expect(result?.mappingReport?.nameMatches).toBeGreaterThan(0);
+    });
+
+    it("should NOT include mapping report when backup has roster (no remapping)", async () => {
+      const backupData = createBackupData({
+        games: {
+          'game': createTestAppState({
+            teamName: 'Team',
+            opponentName: 'Opponent',
+            selectedPlayerIds: ['p1'],
+            playersOnField: [{ id: 'p1', name: 'Player', isGoalie: false, jerseyNumber: '1', notes: '' }],
+            availablePlayers: [],
+          }),
+        },
+        roster: [{ id: 'p1', name: 'Player', isGoalie: false, jerseyNumber: '1', notes: '' }],
+      });
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result?.success).toBe(true);
+      expect(result?.mappingReport).toBeUndefined();
+    });
+  });
+
+  /**
+   * Tests for delayReload functionality
+   */
+  describe("Delayed Reload", () => {
+    it("should not trigger reload when delayReload is true", async () => {
+      jest.useFakeTimers();
+
+      const backupData = createBackupData({
+        games: { 'game': createTestAppState({ teamName: 'A', opponentName: 'B' }) },
+        roster: [{ id: 'p1', name: 'P', isGoalie: false, jerseyNumber: '1', notes: '' }],
+      });
+
+      const result = await importFullBackup(
+        JSON.stringify(backupData),
+        undefined,
+        undefined,
+        true, // confirmed
+        true  // delayReload
+      );
+
+      expect(result?.success).toBe(true);
+
+      // Advance all timers
+      jest.advanceTimersByTime(1000);
+
+      // Reload should NOT have been called
+      if (jest.isMockFunction(window.location.reload)) {
+        expect(window.location.reload).not.toHaveBeenCalled();
+      }
+
+      jest.useRealTimers();
+    });
+
+    it("should return result immediately when delayReload is true", async () => {
+      const backupData = createBackupData({
+        games: { 'game': createTestAppState({ teamName: 'A', opponentName: 'B' }) },
+        roster: [{ id: 'p1', name: 'P', isGoalie: false, jerseyNumber: '1', notes: '' }],
+      });
+
+      const startTime = Date.now();
+      const result = await importFullBackup(
+        JSON.stringify(backupData),
+        undefined,
+        undefined,
+        true,
+        true
+      );
+      const endTime = Date.now();
+
+      expect(result).not.toBeNull();
+      expect(result?.success).toBe(true);
+      // Should complete quickly (no setTimeout delay)
+      expect(endTime - startTime).toBeLessThan(1000);
+    });
+  });
+
+  /**
+   * Tests for cross-device backup/restore scenarios
+   */
+  describe("Cross-Device Backup Scenarios", () => {
+    it("should preserve all game selections across device transfer", async () => {
+      // Simulate Device A backup with various game configurations
+      const backupRoster: Player[] = [
+        { id: 'alice-uuid', name: 'Alice', isGoalie: false, jerseyNumber: '10', notes: '' },
+        { id: 'bob-uuid', name: 'Bob', isGoalie: false, jerseyNumber: '7', notes: '' },
+        { id: 'charlie-uuid', name: 'Charlie', isGoalie: true, jerseyNumber: '1', notes: '' },
+        { id: 'diana-uuid', name: 'Diana', isGoalie: false, jerseyNumber: '5', notes: '' },
+      ];
+
+      const games: SavedGamesCollection = {
+        'game-march-1': createTestAppState({
+          teamName: 'Team A',
+          opponentName: 'Team X',
+          gameDate: '2024-03-01',
+          selectedPlayerIds: ['alice-uuid', 'bob-uuid'], // 2 players
+          playersOnField: [backupRoster[0], backupRoster[1]],
+          availablePlayers: [backupRoster[2], backupRoster[3]],
+        }),
+        'game-march-8': createTestAppState({
+          teamName: 'Team A',
+          opponentName: 'Team Y',
+          gameDate: '2024-03-08',
+          selectedPlayerIds: ['alice-uuid', 'charlie-uuid', 'diana-uuid'], // 3 players
+          playersOnField: [backupRoster[0], backupRoster[2], backupRoster[3]],
+          availablePlayers: [backupRoster[1]],
+        }),
+        'game-march-15': createTestAppState({
+          teamName: 'Team A',
+          opponentName: 'Team Z',
+          gameDate: '2024-03-15',
+          selectedPlayerIds: backupRoster.map(p => p.id), // All 4 players
+          playersOnField: backupRoster,
+          availablePlayers: [],
+        }),
+      };
+
+      const backupData = createBackupData({
+        games,
+        roster: backupRoster,
+        settings: { currentGameId: 'game-march-15' },
+      });
+
+      // Act: Import on "Device B" (empty storage)
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      // Assert
+      expect(result?.success).toBe(true);
+      const restoredGames = mockStore[SAVED_GAMES_KEY] as SavedGamesCollection;
+
+      // Each game should have EXACTLY the number of players it originally had
+      expect(restoredGames['game-march-1'].selectedPlayerIds).toHaveLength(2);
+      expect(restoredGames['game-march-8'].selectedPlayerIds).toHaveLength(3);
+      expect(restoredGames['game-march-15'].selectedPlayerIds).toHaveLength(4);
+
+      // Verify specific players per game
+      expect(restoredGames['game-march-1'].selectedPlayerIds).toEqual(['alice-uuid', 'bob-uuid']);
+      expect(restoredGames['game-march-8'].selectedPlayerIds).toEqual(['alice-uuid', 'charlie-uuid', 'diana-uuid']);
+    });
+
+    it("should handle assessment data correctly across device transfer", async () => {
+      const backupRoster: Player[] = [
+        { id: 'player-1', name: 'Star Player', isGoalie: false, jerseyNumber: '10', notes: '' },
+      ];
+
+      const games: SavedGamesCollection = {
+        'game-with-assessment': createTestAppState({
+          teamName: 'Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-04-01',
+          selectedPlayerIds: ['player-1'],
+          playersOnField: [backupRoster[0]],
+          availablePlayers: [],
+          assessments: {
+            'player-1': {
+              overall: 9,
+              sliders: { intensity: 9, courage: 8, duels: 9, technique: 8, creativity: 7, decisions: 8, awareness: 9, teamwork: 10, fair_play: 9, impact: 9 },
+              notes: 'Outstanding performance!',
+              minutesPlayed: 90,
+              createdAt: Date.now(),
+              createdBy: 'coach'
+            }
+          }
+        }),
+      };
+
+      const backupData = createBackupData({
+        games,
+        roster: backupRoster,
+      });
+
+      const result = await importFullBackup(JSON.stringify(backupData), undefined, undefined, true);
+
+      expect(result?.success).toBe(true);
+      const restoredGames = mockStore[SAVED_GAMES_KEY] as SavedGamesCollection;
+      const assessment = restoredGames['game-with-assessment'].assessments?.['player-1'];
+
+      expect(assessment).toBeDefined();
+      expect(assessment?.overall).toBe(9);
+      expect(assessment?.notes).toBe('Outstanding performance!');
+    });
   });
 });

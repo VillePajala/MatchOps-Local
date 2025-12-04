@@ -215,36 +215,46 @@ export const importFullBackup = async (
 
     // --- Process games to ensure proper player mapping ---
     let processedSavedGames = backupData.localStorage[SAVED_GAMES_KEY];
-    
+
     if (processedSavedGames && typeof processedSavedGames === 'object') {
       try {
-        // Get current roster for player mapping
-        let currentRoster: Player[] = [];
+        // Check if backup contains its own roster
+        // If yes, games and roster are already consistent - skip remapping
+        const backupRoster = backupData.localStorage[MASTER_ROSTER_KEY];
 
-        try {
-          const currentRosterData = await getStorageJSON<Player[]>(MASTER_ROSTER_KEY);
-          if (currentRosterData) {
-            currentRoster = currentRosterData;
+        if (backupRoster && Array.isArray(backupRoster) && backupRoster.length > 0) {
+          // Full backup with matching roster - no remapping needed
+          // Games already have correct player IDs that match the backup's roster
+          logger.log('Backup contains matching roster - skipping player remapping');
+        } else {
+          // Legacy/partial import without roster - remap using current roster
+          let currentRoster: Player[] = [];
+
+          try {
+            const currentRosterData = await getStorageJSON<Player[]>(MASTER_ROSTER_KEY);
+            if (currentRosterData) {
+              currentRoster = currentRosterData;
+            }
+          } catch (error) {
+            logger.warn('Could not get current roster for player mapping:', error);
           }
-        } catch (error) {
-          logger.warn('Could not get current roster for player mapping:', error);
-        }
-        
-        // Process imported games to ensure proper player integration
-        if (currentRoster.length > 0) {
-          const { processedGames, mappingReport } = processImportedGames(
-            processedSavedGames as SavedGamesCollection,
-            currentRoster
-          );
-          
-          processedSavedGames = processedGames;
 
-          logger.log('Game import processing completed:', mappingReport);
+          // Process imported games to ensure proper player integration
+          if (currentRoster.length > 0) {
+            const { processedGames, mappingReport } = processImportedGames(
+              processedSavedGames as SavedGamesCollection,
+              currentRoster
+            );
 
-          // Store mapping report for result modal
-          mappingReportData = mappingReport;
+            processedSavedGames = processedGames;
 
-          // Note: We'll show detailed results in the modal instead of toast
+            logger.log('Game import processing completed:', mappingReport);
+
+            // Store mapping report for result modal
+            mappingReportData = mappingReport;
+
+            // Note: We'll show detailed results in the modal instead of toast
+          }
         }
       } catch (error) {
         logger.error('Error processing imported games for player mapping:', error);
