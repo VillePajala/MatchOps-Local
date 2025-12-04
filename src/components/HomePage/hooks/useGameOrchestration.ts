@@ -9,17 +9,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 import { useFieldCoordination } from './useFieldCoordination';
 import { useTimerManagement } from './useTimerManagement';
-// Import game session types (reducer is used internally by useGameSessionWithHistory)
-import {
-  GameSessionState,
-  // initialGameSessionStatePlaceholder // We will derive initial state from page.tsx's initialState
-} from '@/hooks/useGameSessionReducer';
-// Import roster utility functions
-// roster mutations now managed inside useRoster hook
-
-// Removed unused import of utilGetMasterRoster
-
-// Import utility functions for seasons and tournaments
+import { GameSessionState } from '@/hooks/useGameSessionReducer';
 import { saveGame as utilSaveGame, getLatestGameId, getSavedGames as utilGetSavedGames } from '@/utils/savedGames';
 import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
@@ -30,12 +20,9 @@ import {
   updateAppSettings as utilUpdateAppSettings,
 } from '@/utils/appSettings';
 import { getTeams, getTeam } from '@/utils/teams';
-// Import Player from types directory
 import { Player, Team } from '@/types';
-// Import saveMasterRoster utility
 import type { GameEvent, AppState, SavedGamesCollection, TimerState, PlayerAssessment } from "@/types";
 import { saveMasterRoster } from '@/utils/masterRoster';
-// Import useQuery, useMutation, useQueryClient
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRoster } from '@/hooks/useRoster';
 import { useGameDataManagement } from './useGameDataManagement';
@@ -43,21 +30,13 @@ import { useGameSessionCoordination } from './useGameSessionCoordination';
 import { useGamePersistence } from './useGamePersistence';
 import { useModalOrchestration } from './useModalOrchestration';
 import { useModalContext } from '@/contexts/ModalProvider';
-// Import async storage utilities
-import {
-  getStorageItem,
-  setStorageItem,
-  removeStorageItem,
-} from '@/utils/storage';
-// Import query keys
+import { getStorageItem, setStorageItem, removeStorageItem } from '@/utils/storage';
 import { queryKeys } from '@/config/queryKeys';
-// Also import addSeason and addTournament for the new mutations
 import { updateGameDetails as utilUpdateGameDetails } from '@/utils/savedGames';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { MASTER_ROSTER_KEY, TIMER_STATE_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
 import { exportJson } from '@/utils/exportGames';
 import { exportCurrentGameExcel, exportAggregateExcel, exportPlayerExcel } from '@/utils/exportExcel';
-// Icons imported where used; remove unused here to satisfy lint
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { startNewGameWithSetup, cancelNewGameSetup } from '../utils/newGameHandlers';
@@ -66,7 +45,6 @@ import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { FieldContainerProps, FieldInteractions } from '@/components/HomePage/containers/FieldContainer';
 import type { ReducerDrivenModals } from '@/types';
 import { debug } from '@/utils/debug';
-
 
 // Empty initial data for clean app start
 const initialAvailablePlayersData: Player[] = [];
