@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "chore: update release notes and improve caching strategy in service worker"
+  "notes": "chore: update .gitignore to include backup files in screenshots directory"
 }

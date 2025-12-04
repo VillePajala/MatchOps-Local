@@ -396,8 +396,8 @@ describe("importFullBackup", () => {
       };
       const backupJson = JSON.stringify(partialBackupData);
 
-      // Pre-populate mockStore with some existing data that should be preserved
-      // for keys not in the backup
+      // Pre-populate mockStore with some existing data
+      // With clean restore behavior, this should be CLEARED (not preserved)
       const existingRoster = [{ id: "existing1", name: "Existing Player" }];
       mockStore[MASTER_ROSTER_KEY] = existingRoster;
 
@@ -422,10 +422,8 @@ describe("importFullBackup", () => {
         partialBackupData.localStorage[APP_SETTINGS_KEY],
       );
 
-      // Verify keys not in backup were preserved
-      expect(mockStore[MASTER_ROSTER_KEY]).toEqual(
-        existingRoster,
-      );
+      // Verify keys not in backup were CLEARED (clean restore behavior)
+      expect(mockStore[MASTER_ROSTER_KEY]).toBeUndefined();
 
       // Note: Alert is no longer shown on success when showToast is not provided
       // Success is indicated via the returned result object
