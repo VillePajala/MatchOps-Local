@@ -1,42 +1,70 @@
 # Post-Refactoring Roadmap
 
 **Created**: November 20, 2025
-**Status**: ✅ **ACTIVE** — Refactoring 100% complete, roadmap activated
-**Purpose**: Master checklist for work after useGameOrchestration hook splitting is finished
+**Status**: 🟡 **ACTIVE** — Structural refactoring 90% complete, cleanup remaining
+**Purpose**: Master checklist for completing refactoring and post-refactoring work
 
 ---
 
 ## 🎯 Executive Summary
 
-This document provides a **prioritized, week-by-week roadmap** for all work that should be completed after the current refactoring (Step 2.6 - useGameOrchestration splitting) reaches 100%.
+This document provides a **prioritized roadmap** for completing the remaining structural work and post-refactoring tasks.
 
-**Current Refactoring Status**: ✅ **100% COMPLETE** (All 6 hooks extracted)
-**Roadmap Status**: ✅ **ACTIVE** — Started December 4, 2025
-**Total estimated effort**: 15-20 hours over 4-5 weeks
+**Current Refactoring Status**: 🟡 **90% COMPLETE** — Hooks extracted, cleanup remaining
+**Roadmap Status**: 🟡 **ACTIVE** — Started December 4, 2025
+**Total estimated effort**: 25-30 hours remaining
 **Expected completion**: Late January 2026
 
 ---
 
-## ✅ Pre-Flight Checklist — ALL COMPLETE ✅
+## ⚠️ REMAINING STRUCTURAL WORK (Do First!)
+
+**The 6 hooks were extracted but useGameOrchestration cleanup was NOT completed:**
+
+| File | Current | Target | Priority |
+|------|---------|--------|----------|
+| **useGameOrchestration.ts** | 2,199 lines | ~200 lines | 🔴 **P0** |
+| **GameSettingsModal.tsx** | 1,969 lines | ~200 lines | 🟠 **P1** |
+
+### Step 2.7: useGameOrchestration Cleanup (4-6 hours)
+**See**: [L2-2.7-useGameOrchestration-Cleanup-PLAN.md](./L2-2.7-useGameOrchestration-Cleanup-PLAN.md)
+
+- [ ] PR 1: Remove data management duplicates (~1 hour)
+- [ ] PR 2: Remove session & field duplicates (~1.5 hours)
+- [ ] PR 3: Remove persistence & timer duplicates (~1.5 hours)
+- [ ] PR 4: Final cleanup to ~200 lines (~1 hour)
+
+### GameSettingsModal Refactoring (4-6 hours)
+**See**: [P1-GameSettingsModal-Refactoring-Plan.md](../05-development/fix-plans/P1-GameSettingsModal-Refactoring-Plan.md)
+
+- [ ] PR 1: Setup structure & extract state hook (~1 hour)
+- [ ] PR 2: Extract TeamsAndRosterSection (~1 hour)
+- [ ] PR 3: Extract GameDetailsSection (~1 hour)
+- [ ] PR 4: Extract EventLogSection (~1.5 hours)
+- [ ] PR 5: Final cleanup (~1.5 hours)
+
+---
+
+## ✅ Pre-Flight Checklist (for post-refactoring work)
 
 **Verified December 4, 2025:**
 
 - [x] All 6 hooks extracted from useGameOrchestration:
   - [x] useGameDataManagement (361 lines) ✅
-  - [x] useGameSessionCoordination (480 lines) ✅
-  - [x] useFieldCoordination (733 lines) ✅
-  - [x] useGamePersistence (664 lines) ✅
-  - [x] useTimerManagement (~250 lines) ✅
-  - [x] useModalOrchestration (~500 lines) ✅
+  - [x] useGameSessionCoordination (501 lines) ✅
+  - [x] useFieldCoordination (602 lines) ✅
+  - [x] useGamePersistence (665 lines) ✅
+  - [x] useTimerManagement (235 lines) ✅
+  - [x] useModalOrchestration (581 lines) ✅
 
-- [x] All hooks ≤733 lines ✅
-- [x] All 1,615 tests passing ✅
+- [x] All extracted hooks ≤665 lines ✅
+- [x] All 1,997 tests passing ✅
 - [x] `npm run build` succeeds ✅
 - [x] `npm run lint` passes ✅
-- [x] No functionality regressions ✅
-- [x] Integration branch merged to master ✅
+- [ ] **useGameOrchestration cleanup** 🔴 NOT DONE (2,199 lines → ~200 lines)
+- [ ] **GameSettingsModal refactoring** 🔴 NOT DONE (1,969 lines → ~200 lines)
 
-**✅ ROADMAP IS NOW ACTIVE — Proceed with Week 1 tasks**
+**⚠️ Complete Step 2.7 and GameSettingsModal refactoring before other roadmap tasks**
 
 ---
 
