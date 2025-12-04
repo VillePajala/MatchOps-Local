@@ -792,22 +792,29 @@ npm run dev
 
 ## 🔜 WHAT'S NEXT?
 
-### Step 2.8: Modal Architecture Fix (Priority: HIGH)
+### Step 2.8: Modal Architecture Cleanup (Priority: LOW — OPTIONAL)
 
-**Problem Discovered**: `useModalOrchestration` receives **76 parameters** (industry standard: 3-5). This is an 8/10 severity God Object anti-pattern that:
-- Makes testing practically impossible (200+ lines mock setup)
-- Violates Single Responsibility Principle
-- Has 83-line destructure statement
+**Revised Assessment**: After detailed code review, the 76-parameter interface is **internal plumbing**, not exposed API. The public `ModalManagerProps` interface is already well-structured:
 
-**Solution**: Domain-Driven Hook Decomposition — split into 5 focused hooks + 1 aggregator via 8 PRs.
+```typescript
+interface ModalManagerProps {
+  state: ModalManagerState;      // 19 boolean flags
+  data: ModalManagerData;        // ~25 data items, grouped logically
+  handlers: ModalManagerHandlers; // ~50 callbacks, organized
+}
+```
 
-**Estimated Effort**: 20-27 hours over 2-3 weeks
+**Severity**: 3/10 (cosmetic improvement, not architectural issue)
+
+**Simple Fix** (if desired): Delete `useModalOrchestration` pass-through layer, build `modalManagerProps` directly in `useGameOrchestration`. Result: -400 lines, 2-3 hours, 1 PR.
+
+**Plan**: Delete `useModalOrchestration` pass-through layer in a single PR.
 
 **See**: [L2-2.8-Modal-Architecture-Fix-PLAN.md](./L2-2.8-Modal-Architecture-Fix-PLAN.md)
 
 ---
 
-### After Step 2.8
+### Other Priorities
 
 See **[POST-REFACTORING-ROADMAP.md](./POST-REFACTORING-ROADMAP.md)** for:
 - Critical security fixes (xlsx vulnerability)
