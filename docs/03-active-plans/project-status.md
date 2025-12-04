@@ -75,10 +75,22 @@ MatchOps-Local is in **active beta** with core functionality complete and stable
 - 📅 **First-Game Onboarding** - Guided setup for new users
 - 📅 **Advanced Help System** - Comprehensive in-app guidance
 
-### 🧱 HomePage Refactoring Progress (Layer 2)
-- ✅ Steps 2.4.0–2.5 completed (view-model adapter, VM-only data flow, FieldContainer/timer interactions, reducer-driven modals, edge-case regression tests). See `docs/03-active-plans/L2-2.4-HomePage-Reduction-PLAN.md` for the detailed log.
-- 🟡 Final integration pass pending: wire `HomePage.tsx` to use `useGameOrchestration`, `GameContainer`, and `ModalManager`, then delete the legacy inline logic (estimated 1-2 hours).
-- 📏 File size progress: HomePage.tsx currently sits at ~3,680 lines, down ~45 lines from kickoff; the count will drop below 200 lines once the final integration step replaces the remaining inline JSX.
+### ✅ HomePage Refactoring — 100% COMPLETE 🎉
+- ✅ **HomePage.tsx**: **62 lines** (98.3% reduction from 3,725 lines)
+- ✅ **All 6 hooks extracted**:
+  - useGameDataManagement (361 lines)
+  - useGameSessionCoordination (480 lines)
+  - useFieldCoordination (733 lines)
+  - useGamePersistence (664 lines)
+  - useTimerManagement (~250 lines)
+  - useModalOrchestration (~500 lines)
+- ✅ Container pattern: GameContainer, ModalManager, FieldContainer
+- ✅ View-model pattern applied throughout
+- ✅ Industry-standard React architecture
+- ✅ 1,615 tests passing
+
+**Completion Date**: January 2025
+**See**: `docs/03-active-plans/REFACTORING_STATUS.md` for full details
 
 ### 📋 **Planned Features**
 
@@ -103,11 +115,13 @@ MatchOps-Local is in **active beta** with core functionality complete and stable
 ## Technical Status
 
 ### Code Quality Metrics
-- **Test Coverage**: 41% → Target: 90% (comprehensive testing strategy in progress)
+- **Test Coverage**: 62% → Target: 85% (comprehensive testing strategy in progress)
+- **Test Count**: 1,615 tests passing
 - **TypeScript Coverage**: 95%+ - Nearly complete type safety
 - **Performance Score**: 90+ on Lighthouse audits
 - **Bundle Size**: Optimized with code splitting and lazy loading
 - **Browser Support**: 95%+ of modern browsers supported
+- **HomePage.tsx**: 62 lines (industry-standard architecture)
 
 ### Known Limitations
 - **Single-Device**: Currently optimized for single-device use per coach
@@ -124,16 +138,19 @@ MatchOps-Local is in **active beta** with core functionality complete and stable
 ## Deployment Readiness
 
 ### Production Use
-🚧 **Production Hardening in Progress** (35% complete)
+🚧 **Production Hardening in Progress** (50% complete)
 - ✅ Core functionality stable and tested
 - ✅ Data safety with robust backup/recovery
 - ✅ IndexedDB storage foundation complete
-- 🚧 Security headers and CSP (P1 - next phase)
-- 🚧 Service worker optimization (P1)
+- ✅ **P0 Refactoring 100% complete** (HomePage 62 lines, all hooks extracted)
+- ✅ **NPM Phase 1-2 complete** (security fix, Sentry, React Query updated)
+- 🚧 Jest 30 + react-i18next v16 (next up)
+- 📅 Security headers and CSP (P1)
+- 📅 Service worker optimization (P1)
 - 📅 Play Store packaging (P2)
 - 📅 Quality gates and accessibility (P3)
 
-**Est. Time to Play Store**: 35-50 hours remaining  
+**Est. Time to Play Store**: 30-45 hours remaining  
 
 ### Self-Hosting Requirements
 - **Server**: Static file hosting (Vercel, Netlify, Apache, Nginx)

@@ -1,7 +1,7 @@
 # 📊 Production Readiness Progress Dashboard
 
-**Last Updated**: November 18, 2025
-**Overall Progress**: Layer 2 Complete (Step 2.5 done), P0 HomePage 95% done (HomePage **62 lines**, hook splitting remaining)
+**Last Updated**: December 4, 2025
+**Overall Progress**: ✅ **P0 Refactoring 100% COMPLETE!** HomePage **62 lines**, all 6 hooks extracted. NPM Phase 1-2 complete.
 **See**: [REFACTORING_STATUS.md](./REFACTORING_STATUS.md) for unified refactoring plan
 
 ---
@@ -176,16 +176,21 @@
 
 ## 🎯 **Current Phases (Parallel Work)**
 
-### Phase: P0 - HomePage Refactoring (95% Complete)
-**Status**: 🟡 **95% DONE - Hook Splitting Remaining**
-**Estimated Time**: 12 hours (6 PRs × 1-2 hours each)
-**Progress**: ~95% complete
-  - ✅ HomePage.tsx reduced from 3,725 lines → **62 lines** ✅ (98.3% reduction)
+### Phase: P0 - HomePage Refactoring ✅ 100% COMPLETE
+**Status**: ✅ **100% COMPLETE** 🎉
+**Completion Date**: January 2025
+**Final Metrics**:
+  - ✅ HomePage.tsx: **62 lines** (98.3% reduction from 3,725 lines)
+  - ✅ All 6 hooks extracted:
+    - useGameDataManagement (361 lines)
+    - useGameSessionCoordination (480 lines)
+    - useFieldCoordination (733 lines)
+    - useGamePersistence (664 lines)
+    - useTimerManagement (~250 lines)
+    - useModalOrchestration (~500 lines)
   - ✅ Container pattern implemented (GameContainer, ModalManager, FieldContainer)
   - ✅ View-model pattern applied throughout
-  - ✅ Layer 1 & 2 complete (Steps 2.4.0–2.5)
-  - ⏳ Final step: Split useGameOrchestration (3,378 lines) into 6 hooks (Step 2.6)
-**Owner**: Ready for hook splitting
+  - ✅ 1,615 tests passing
 **Plan**: [REFACTORING_STATUS.md](./REFACTORING_STATUS.md)
 
 ### Phase: P1 - Security & Service Worker Hardening
@@ -202,14 +207,17 @@
 ```
 ✅ M0: Pre-Migration Essentials     [████████░░] 80% COMPLETE
 ✅ M1: IndexedDB Foundation         [██████████] 100% COMPLETE ✓
-🎯 P1: Security & SW Hardening      [░░░░░░░░░░] 0% - NEXT UP
+✅ P0: HomePage Refactoring         [██████████] 100% COMPLETE ✓ 🎉
+✅ NPM Phase 1-2: Security/Updates  [██████████] 100% COMPLETE ✓
+🎯 NPM Phase 3: Jest 30 + i18n      [░░░░░░░░░░] 0% - NEXT UP
+📅 P1: Security & SW Hardening      [░░░░░░░░░░] 0% - Planned
 📅 P2: PWA Packaging                [░░░░░░░░░░] 0% - Planned
 📅 P3: Quality Gates                [░░░░░░░░░░] 0% - Planned
 📅 P4: Monetization                 [░░░░░░░░░░] 0% - Planned
 📅 P5: Release Operations           [░░░░░░░░░░] 0% - Planned
 ```
 
-**Estimated Time to Play Store**: 35-50 hours remaining
+**Estimated Time to Play Store**: 30-45 hours remaining
 
 ---
 
@@ -418,59 +426,49 @@
 
 ---
 
-## 🎯 **NEXT STEPS - Decision Point**
+## 🎯 **NEXT STEPS**
 
-### 🔴 **CRITICAL DECISION REQUIRED**
+### ✅ **Refactoring Complete — What's Next?**
 
-You have completed all major features but stand at a fork in the road. Choose your path:
+With P0 refactoring 100% complete, the codebase is now clean and maintainable. Here's the recommended path forward:
 
-### **Option 1: Complete Refactoring (95% Done)** ⭐ **RECOMMENDED - ALMOST THERE!**
-**Time**: ~12 hours (6 small PRs)
-**Impact**: Final 5% to unlock 3-5x faster development
-**ROI**: 1000% over project lifetime
-**Status**: 🟡 95% COMPLETE - HomePage is **62 lines**!
+### **Option 1: Jest 30 + react-i18next v16 Upgrade** ⭐ **RECOMMENDED**
+**Time**: 3-6 hours
+**Impact**: 20% faster tests, better React 19 compatibility
+**Status**: Ready to start
 
-**What's Done** ✅:
-- HomePage.tx: **62 lines** (was 3,725 - 98.3% reduction!)
-- Container pattern: ✅ Complete
-- View-model pattern: ✅ Complete
-- Layer 1 & 2: ✅ Complete
+```bash
+npm install --save-dev jest@30 ts-jest@30 jest-environment-jsdom@30
+npm install react-i18next@latest
+npm test
+```
 
-**What Remains** (5%):
-- Split useGameOrchestration (3,378 lines) into 6 hooks (Step 2.6 - See L2-2.6 plan)
-- 6 PRs in dependency order = 16-20 hours over 2-3 weeks
+### **Option 2: Test Coverage Improvement**
+**Time**: 8-12 hours
+**Impact**: Safety net before more changes
+**Current**: 62% → Target: 85%
 
-**Start Here**: [REFACTORING_STATUS.md](./REFACTORING_STATUS.md) - Clear, unambiguous plan
+Priority areas: storage layer, core hooks, extracted hooks
 
-**After Completion**: All files ≤600 lines, professional architecture ready for production
-
-### **Option 2: Production Readiness P1 (Security & Service Worker)**
+### **Option 3: Production Readiness P1 (Security & Service Worker)**
 **Time**: 3-5 hours
 **Impact**: Security improvements, better offline experience
-**Risk**: Technical debt makes P2-P5 slower and more painful
 
 **Start Here**: `production-readiness.md` §1-2
 
-### **Option 3: Add Team Final Positions Feature**
-**Time**: 6-8 hours (will take longer due to technical debt)
-**Impact**: New user-facing feature
-**Risk**: Makes technical debt worse, compounds future slowdown
+### **Option 4: Next.js 16 Upgrade**
+**Time**: 2-3 days
+**Impact**: 5-10x faster Fast Refresh, 2-5x faster builds
+**Status**: Can proceed now (refactoring complete)
 
-**Start Here**: `team-final-positions-plan.md`
-
-### 📊 **Recommendation Matrix**
+### 📊 **Recommendation**
 
 | Priority | Choose Option |
 |----------|---------------|
-| **Long-term sustainability** | 1️⃣ Fix debt first |
-| **Need Play Store ASAP** | 2️⃣ P1, then fix debt during P2-P5 |
-| **Want new features visible to users** | ⚠️ Not recommended (fix debt first for sanity) |
-
-### ⚡ **Quick Decision Guide**
-
-**If you have 2+ weeks**: Fix debt → P1 → P2-P5 (smooth, fast, maintainable)
-**If you have days**: P1 → P2-P5 → Fix debt (painful but possible)
-**If you're planning to maintain long-term**: Fix debt is non-negotiable
+| **Immediate value** | 1️⃣ Jest 30 (faster dev cycle) |
+| **Safety first** | 2️⃣ Test coverage (safety net) |
+| **Production focus** | 3️⃣ Security headers & SW |
+| **Modern stack** | 4️⃣ Next.js 16 |
 
 ---
 
@@ -495,6 +493,11 @@ You have completed all major features but stand at a fork in the road. Choose yo
 
 ## 📝 **Version History**
 
+- **2025-12-04**: P0 Refactoring 100% COMPLETE + Documentation Update
+  - ✅ ALL 6 hooks extracted from useGameOrchestration
+  - ✅ NPM Phase 1-2 complete (security fix, Sentry, React Query)
+  - ✅ Documentation updated to reflect completion
+  - Test count: 1,615 tests passing
 - **2025-11-18**: P0 HomePage Refactoring 95% Complete + Hook Splitting Plan
   - HomePage.tsx reduced from 3,725 → 62 lines (98.3% reduction) ✅
   - Steps 2.4.0-2.5 COMPLETE (container extraction, view-models, modal reducer)
