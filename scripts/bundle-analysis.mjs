@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFileSync, existsSync } from 'fs';
+import { existsSync } from 'fs';
 import { join } from 'path';
 
 /**
@@ -20,8 +20,6 @@ function formatBytes(bytes) {
 }
 
 async function analyzeBundleSize() {
-  const buildStatsPath = join(BUILD_DIR, 'trace');
-
   if (!existsSync(BUILD_DIR)) {
     console.log('❌ Build directory not found');
     process.exit(1);

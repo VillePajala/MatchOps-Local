@@ -1,5 +1,5 @@
 // src/hooks/useGameState.ts
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Player } from '@/types'; // Player type is from @/types
 import {
     Opponent,
@@ -168,7 +168,7 @@ export function useGameState({ initialState, saveStateToHistory }: UseGameStateA
     }, [saveStateToHistory]);
 
     // Sync availablePlayers when initialState changes
-    useEffect(() => {
+    React.useLayoutEffect(() => {
         setAvailablePlayers(initialState.availablePlayers || []);
     }, [initialState.availablePlayers]);
 

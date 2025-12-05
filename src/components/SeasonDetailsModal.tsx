@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Season } from '@/types';
@@ -41,31 +41,33 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Initialize form when season changes or modal opens
-  useEffect(() => {
-    if (mode === 'create') {
-      // Reset form for create mode
-      setName('');
-      setLocation('');
-      setAgeGroup('');
-      setPeriodCount(undefined);
-      setPeriodDuration(undefined);
-      setStartDate('');
-      setEndDate('');
-      setNotes('');
-      setArchived(false);
-      setErrorMessage(null);
-    } else if (season) {
-      // Load existing season data for edit mode
-      setName(season.name || '');
-      setLocation(season.location || '');
-      setAgeGroup(season.ageGroup || '');
-      setPeriodCount(season.periodCount);
-      setPeriodDuration(season.periodDuration);
-      setStartDate(season.startDate || '');
-      setEndDate(season.endDate || '');
-      setNotes(season.notes || '');
-      setArchived(season.archived || false);
-      setErrorMessage(null);
+  React.useLayoutEffect(() => {
+    if (isOpen) {
+      if (mode === 'create') {
+        // Reset form for create mode
+        setName('');
+        setLocation('');
+        setAgeGroup('');
+        setPeriodCount(undefined);
+        setPeriodDuration(undefined);
+        setStartDate('');
+        setEndDate('');
+        setNotes('');
+        setArchived(false);
+        setErrorMessage(null);
+      } else if (season) {
+        // Load existing season data for edit mode
+        setName(season.name || '');
+        setLocation(season.location || '');
+        setAgeGroup(season.ageGroup || '');
+        setPeriodCount(season.periodCount);
+        setPeriodDuration(season.periodDuration);
+        setStartDate(season.startDate || '');
+        setEndDate(season.endDate || '');
+        setNotes(season.notes || '');
+        setArchived(season.archived || false);
+        setErrorMessage(null);
+      }
     }
   }, [mode, season, isOpen]);
 

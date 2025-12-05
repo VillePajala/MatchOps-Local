@@ -26,7 +26,7 @@ const InstallPrompt: React.FC = () => {
 
   const checkInstallationStatus = useCallback(async () => {
     // Only run this in the browser
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") return false;
 
     // Check if app is already installed (PWA or iOS)
     const isAppInstalled =
@@ -35,8 +35,7 @@ const InstallPrompt: React.FC = () => {
       (window.navigator as IosNavigator).standalone === true;
 
     if (isAppInstalled) {
-      setIsVisible(false); // Hide prompt if installed
-      return;
+      return false; // Hide prompt if installed
     }
 
     // Check storage to see if the user dismissed the prompt recently
@@ -46,18 +45,16 @@ const InstallPrompt: React.FC = () => {
         lastPromptTime &&
         Date.now() - Number(lastPromptTime) < 24 * 60 * 60 * 1000
       ) {
-        return; // Don't show prompt if dismissed in the last 24 hours
+        return false; // Don't show prompt if dismissed in the last 24 hours
       }
     } catch (error) {
       // Silent fail - proceed to show prompt if storage check fails
       logger.debug('Failed to check install prompt dismissal status (non-critical)', { error });
     }
 
-    // If not installed and not recently dismissed, check if we have a prompt event
-    if (installPrompt) {
-      setIsVisible(true);
-    }
-  }, [installPrompt]);
+    // If not installed and not recently dismissed, show prompt
+    return true;
+  }, []);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event: Event) => {
@@ -73,20 +70,22 @@ const InstallPrompt: React.FC = () => {
       setIsVisible(false);
     };
 
-    const handleFocus = () => {
-      checkInstallationStatus().catch(() => {
+    const handleFocus = async () => {
+      try {
+        const shouldShow = await checkInstallationStatus();
+        if (!shouldShow) {
+          setIsVisible(false);
+        } else if (installPrompt) {
+          setIsVisible(true);
+        }
+      } catch {
         // Silent fail - focus check is not critical
-      });
+      }
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
     window.addEventListener("focus", handleFocus); // Re-check on focus
-
-    // Initial check
-    checkInstallationStatus().catch(() => {
-      // Silent fail - initial check is not critical
-    });
 
     return () => {
       window.removeEventListener(
@@ -96,7 +95,20 @@ const InstallPrompt: React.FC = () => {
       window.removeEventListener("appinstalled", handleAppInstalled);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [installPrompt, checkInstallationStatus]); // Rerun effect if installPrompt changes
+  }, [checkInstallationStatus, installPrompt]); // Rerun effect if installPrompt changes
+
+  // Initial check - run once on mount
+  React.useLayoutEffect(() => {
+    checkInstallationStatus().then(shouldShow => {
+      if (!shouldShow) {
+        setIsVisible(false);
+      } else if (installPrompt) {
+        setIsVisible(true);
+      }
+    }).catch(() => {
+      // Silent fail - initial check is not critical
+    });
+  }, [checkInstallationStatus, installPrompt]);
 
   const handleInstall = async () => {
     if (!installPrompt) return;

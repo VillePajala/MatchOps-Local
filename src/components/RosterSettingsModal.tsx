@@ -81,7 +81,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   const [playerToDelete, setPlayerToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Close editing mode when modal closes
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!isOpen) {
       setCreatePlayerModalOpen(false);
       setSelectedPlayerId(null);

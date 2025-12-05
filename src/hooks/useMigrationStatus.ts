@@ -3,7 +3,7 @@
  * Provides real-time migration progress and state information
  */
 
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 // Simple progress type for the simplified migration system
 export interface MigrationProgress {
   percentage: number;
@@ -81,7 +81,7 @@ export function useMigrationStatus(): MigrationStatusInfo & {
 } {
   const [status, setStatus] = useState<MigrationStatusInfo>(globalMigrationStatus);
 
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     // Subscribe to status updates
     statusSubscribers.add(setStatus);
 
