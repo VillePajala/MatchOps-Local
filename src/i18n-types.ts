@@ -808,6 +808,8 @@ export type TranslationKey =
   | 'playerStats.deleteConfirmMessage'
   | 'playerStats.deleteError'
   | 'playerStats.emptyStatsError'
+  | 'playerStats.external'
+  | 'playerStats.externalGame'
   | 'playerStats.externalGames'
   | 'playerStats.externalTeam'
   | 'playerStats.fairPlayCards'

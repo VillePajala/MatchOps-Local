@@ -54,12 +54,14 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [adjGames, setAdjGames] = useState(1);
   const [adjGoals, setAdjGoals] = useState(0);
   const [adjAssists, setAdjAssists] = useState(0);
+  const [adjFairPlayCards, setAdjFairPlayCards] = useState(0);
   const [adjNote, setAdjNote] = useState('');
   const [adjIncludeInSeasonTournament, setAdjIncludeInSeasonTournament] = useState(false);
   const [editingAdjId, setEditingAdjId] = useState<string | null>(null);
   const [editGames, setEditGames] = useState<number>(0);
   const [editGoals, setEditGoals] = useState<number>(0);
   const [editAssists, setEditAssists] = useState<number>(0);
+  const [editFairPlayCards, setEditFairPlayCards] = useState<number>(0);
   const [editNote, setEditNote] = useState('');
   const [editHomeAway, setEditHomeAway] = useState<'home' | 'away' | 'neutral'>('neutral');
   const [editExternalTeam, setEditExternalTeam] = useState('');
@@ -328,13 +330,14 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   gamesPlayedDelta: Math.max(0, Number(adjGames) || 0),
                   goalsDelta: Math.max(0, Number(adjGoals) || 0),
                   assistsDelta: Math.max(0, Number(adjAssists) || 0),
+                  fairPlayCardsDelta: Math.max(0, Number(adjFairPlayCards) || 0),
                   note: adjNote.trim() || undefined,
                   includeInSeasonTournament: adjIncludeInSeasonTournament,
                 });
                 setAdjustments(prev => [...prev, created]);
                 setShowAdjForm(false);
                 // Reset form
-                setAdjGames(1); setAdjGoals(0); setAdjAssists(0); setAdjNote('');
+                setAdjGames(1); setAdjGoals(0); setAdjAssists(0); setAdjFairPlayCards(0); setAdjNote('');
                 setAdjTournamentId(''); setAdjExternalTeam(''); setAdjOpponentName(''); setAdjScoreFor(''); setAdjScoreAgainst('');
                 setAdjGameDate(new Date().toISOString().split('T')[0]);
                 setAdjHomeAway('neutral');
@@ -441,6 +444,14 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                   <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setAdjAssists(v => (Number(v) || 0) + 1)}>+</button>
                 </div>
               </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.fairPlayCards', 'Fair Play Cards')}</label>
+                <div className="flex items-center gap-2">
+                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setAdjFairPlayCards(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                  <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(adjFairPlayCards)} onChange={e => setAdjFairPlayCards(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
+                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setAdjFairPlayCards(v => (Number(v) || 0) + 1)}>+</button>
+                </div>
+              </div>
               <div className="lg:col-span-3">
                 <label className="flex items-center gap-2">
                   <input 
@@ -542,6 +553,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                                   setEditGames(a.gamesPlayedDelta);
                                   setEditGoals(a.goalsDelta);
                                   setEditAssists(a.assistsDelta);
+                                  setEditFairPlayCards(a.fairPlayCardsDelta || 0);
                                   setEditNote(a.note || '');
                                   setEditHomeAway(a.homeOrAway || 'neutral');
                                   setEditExternalTeam(a.externalTeamName || '');
@@ -658,6 +670,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 gamesPlayedDelta: Math.max(0, Number(editGames) || 0),
                 goalsDelta: Math.max(0, Number(editGoals) || 0),
                 assistsDelta: Math.max(0, Number(editAssists) || 0),
+                fairPlayCardsDelta: Math.max(0, Number(editFairPlayCards) || 0),
                 note: editNote.trim() || undefined,
                 homeOrAway: editHomeAway,
                 externalTeamName: editExternalTeam.trim(),
@@ -745,9 +758,17 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditAssists(v => (Number(v) || 0) + 1)}>+</button>
               </div>
             </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.fairPlayCards', 'Fair Play Cards')}</label>
+              <div className="flex items-center gap-2">
+                <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditFairPlayCards(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editFairPlayCards)} onChange={e => setEditFairPlayCards(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
+                <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditFairPlayCards(v => (Number(v) || 0) + 1)}>+</button>
+              </div>
+            </div>
             <div className="lg:col-span-3">
               <label className="flex items-center gap-2">
-                <input 
+                <input
                   type="checkbox"
                   checked={editIncludeInSeasonTournament}
                   onChange={(e) => setEditIncludeInSeasonTournament(e.target.checked)}
@@ -976,36 +997,46 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
         <div className="flex-grow mt-4">
           <div className="space-y-2">
             {playerStats.gameByGameStats.length > 0 ? (
-              playerStats.gameByGameStats.map(game => (
-                <button
-                  key={game.gameId}
-                  className="relative w-full bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 border border-slate-700/50 p-4 rounded-md flex justify-between items-center text-left transition-all shadow-inner"
-                  onClick={() => onGameClick(game.gameId)}
-                >
-                  <span className={`absolute inset-y-0 left-0 w-1 rounded-l-md ${getResultClass(game.result)}`}></span>
-                  <div className="flex items-center pl-2">
-                    <div>
-                      <p className="font-semibold text-slate-100 drop-shadow-lg">
-                        {t('playerStats.vs', 'vs')} {game.opponentName}
-                        {game.receivedFairPlayCard && (
-                          <span className="ml-2 inline-block bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.fairPlayCard', 'Fair Play Card')}>FP</span>
-                        )}
-                      </p>
-                      <p className="text-xs text-slate-400">{format(new Date(game.date), i18n.language === 'fi' ? 'd.M.yyyy' : 'PP', { locale: i18n.language === 'fi' ? fi : enUS })}</p>
+              playerStats.gameByGameStats.map(game => {
+                // External games use a div instead of button (not clickable)
+                const GameWrapper = game.isExternal ? 'div' : 'button';
+                return (
+                  <GameWrapper
+                    key={game.gameId}
+                    className={`relative w-full bg-gradient-to-br from-slate-600/50 to-slate-800/30 ${!game.isExternal ? 'hover:from-slate-600/60 hover:to-slate-800/40 cursor-pointer' : ''} border border-slate-700/50 p-4 rounded-md flex justify-between items-center text-left transition-all shadow-inner`}
+                    onClick={game.isExternal ? undefined : () => onGameClick(game.gameId)}
+                  >
+                    <span className={`absolute inset-y-0 left-0 w-1 rounded-l-md ${getResultClass(game.result)}`}></span>
+                    <div className="flex items-center pl-2">
+                      <div>
+                        <p className="font-semibold text-slate-100 drop-shadow-lg">
+                          {game.isExternal && game.externalTeamName && (
+                            <span className="text-slate-400">{game.externalTeamName} </span>
+                          )}
+                          {t('playerStats.vs', 'vs')} {game.opponentName}
+                          {game.isExternal && (
+                            <span className="ml-2 inline-block bg-purple-600/50 text-purple-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.externalGame', 'External Game')}>{t('playerStats.external', 'EXT')}</span>
+                          )}
+                          {game.receivedFairPlayCard && (
+                            <span className="ml-2 inline-block bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.fairPlayCard', 'Fair Play Card')}>FP</span>
+                          )}
+                        </p>
+                        <p className="text-xs text-slate-400">{format(new Date(game.date), i18n.language === 'fi' ? 'd.M.yyyy' : 'PP', { locale: i18n.language === 'fi' ? fi : enUS })}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="text-center mx-2">
-                      <p className={`font-bold text-xl ${game.goals > 0 ? 'text-green-400' : 'text-slate-300'}`}>{game.goals}</p>
-                      <p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p>
+                    <div className="flex items-center">
+                      <div className="text-center mx-2">
+                        <p className={`font-bold text-xl ${game.goals > 0 ? 'text-green-400' : 'text-slate-300'}`}>{game.goals}</p>
+                        <p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p>
+                      </div>
+                      <div className="text-center mx-2">
+                        <p className={`font-bold text-xl ${game.assists > 0 ? 'text-blue-400' : 'text-slate-300'}`}>{game.assists}</p>
+                        <p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p>
+                      </div>
                     </div>
-                    <div className="text-center mx-2">
-                      <p className={`font-bold text-xl ${game.assists > 0 ? 'text-blue-400' : 'text-slate-300'}`}>{game.assists}</p>
-                      <p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p>
-                    </div>
-                  </div>
-                </button>
-              ))
+                  </GameWrapper>
+                );
+              })
             ) : (
               <div className="text-center py-6">
                 {unfilteredPlayerStats && unfilteredPlayerStats.totalGames > 0 ? (
