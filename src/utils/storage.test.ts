@@ -7,7 +7,32 @@
  * and utility functions that don't require complex async mocking.
  */
 
-import { typeGuards } from './storage';
+// Import fake-indexeddb BEFORE any other imports to polyfill IndexedDB
+import 'fake-indexeddb/auto';
+
+import {
+  typeGuards,
+  isIndexedDBAvailable,
+  getIndexedDBErrorMessage,
+  clearAdapterCache,
+  getStorageMemoryStats,
+} from './storage';
+
+// Mock the logger
+jest.mock('./logger', () => {
+  const mockLogger = {
+    debug: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  };
+  return {
+    __esModule: true,
+    default: mockLogger,
+    createLogger: jest.fn(() => mockLogger),
+  };
+});
 
 describe('storage utilities', () => {
 
@@ -226,6 +251,94 @@ describe('storage utilities', () => {
       it('should return false for null', () => {
         expect(typeGuards.isGameSession(null)).toBe(false);
       });
+    });
+  });
+
+  // ============================================
+  // isIndexedDBAvailable
+  // ============================================
+  describe('isIndexedDBAvailable', () => {
+    /**
+     * Tests IndexedDB availability check
+     * @critical - Storage layer depends on this check
+     */
+    it('should return true when indexedDB is available', () => {
+      // With fake-indexeddb polyfill, indexedDB is available
+      expect(isIndexedDBAvailable()).toBe(true);
+    });
+
+    /**
+     * Tests that function handles various environments
+     * @integration - Environment detection
+     */
+    it('should be a function that returns a boolean', () => {
+      const result = isIndexedDBAvailable();
+      expect(typeof result).toBe('boolean');
+    });
+  });
+
+  // ============================================
+  // getIndexedDBErrorMessage
+  // ============================================
+  describe('getIndexedDBErrorMessage', () => {
+    /**
+     * Tests error message generation
+     * @integration - User-facing error messages
+     */
+    it('should return a non-empty string message', () => {
+      const message = getIndexedDBErrorMessage();
+      expect(typeof message).toBe('string');
+      expect(message.length).toBeGreaterThan(0);
+    });
+
+    /**
+     * Tests message content
+     * @integration - User-facing error messages
+     */
+    it('should mention storage or browser compatibility', () => {
+      const message = getIndexedDBErrorMessage();
+      // The message should be helpful and mention storage or browser
+      expect(
+        message.toLowerCase().includes('storage') ||
+        message.toLowerCase().includes('browser') ||
+        message.toLowerCase().includes('indexeddb') ||
+        message.toLowerCase().includes('mode')
+      ).toBe(true);
+    });
+  });
+
+  // ============================================
+  // clearAdapterCache
+  // ============================================
+  describe('clearAdapterCache', () => {
+    it('should clear the adapter cache without throwing', () => {
+      expect(() => clearAdapterCache()).not.toThrow();
+    });
+  });
+
+  // ============================================
+  // getStorageMemoryStats
+  // ============================================
+  describe('getStorageMemoryStats', () => {
+    it('should return memory stats object', async () => {
+      const stats = await getStorageMemoryStats();
+
+      expect(stats).toHaveProperty('adapterAge');
+      expect(stats).toHaveProperty('retryCount');
+      expect(stats).toHaveProperty('hasAdapter');
+      expect(stats).toHaveProperty('mutexStatus');
+
+      expect(typeof stats.retryCount).toBe('number');
+      expect(typeof stats.hasAdapter).toBe('boolean');
+      expect(typeof stats.mutexStatus).toBe('string');
+    });
+
+    it('should return null adapterAge when no adapter exists', async () => {
+      clearAdapterCache(); // Ensure no adapter
+      const stats = await getStorageMemoryStats();
+
+      expect(stats.adapterAge).toBeNull();
+      expect(stats.hasAdapter).toBe(false);
     });
   });
 });
