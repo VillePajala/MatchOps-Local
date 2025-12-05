@@ -41,6 +41,10 @@
 - [x] Entity lookup system (live name resolution)
 - [x] Backup/restore with teams included
 
+### Features (2025)
+- [x] Team Final Position Tracking (🥇🥈🥉 in UnifiedTeamModal)
+- [x] Personnel Management (8 role types, PersonnelManagerModal, game selection)
+
 ---
 
 ## 🎯 NEXT UP (Choose One)
@@ -67,22 +71,6 @@
 - [ ] Season leagues (29 Finnish youth leagues)
 - [ ] UI updates (modals, game setup)
 - [ ] Translations (EN/FI)
-
-#### Team Final Position Tracking (~6-8 hours)
-**Design**: Complete | **Doc**: `team-final-positions-plan.md`
-
-- [ ] `CompetitionResult` data model
-- [ ] Position entry UI
-- [ ] Trophy icons (🥇🥈🥉)
-- [ ] Display in stats views
-
-#### Personnel Management (~8-10 hours)
-**Design**: Complete | **Doc**: `personnel-comprehensive-plan-2025.md`
-
-- [ ] Personnel roster (coaches, trainers, etc.)
-- [ ] Personnel selection in game setup
-- [ ] React Query integration
-- [ ] 7 role types
 
 ---
 
@@ -141,8 +129,6 @@
 | This roadmap | `UNIFIED-ROADMAP.md` |
 | Play Store details | `master-execution-guide.md` |
 | Feature: Tournament/Leagues | `TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md` |
-| Feature: Team Positions | `team-final-positions-plan.md` |
-| Feature: Personnel | `personnel-comprehensive-plan-2025.md` |
 | Social media launch | `SOCIAL_MEDIA_LAUNCH_STRATEGY.md` |
 
 ---
@@ -151,6 +137,8 @@
 
 | Date | Update |
 |------|--------|
+| 2025-12-05 | Personnel Management confirmed complete, plan archived |
+| 2025-12-05 | Team Final Position Tracking confirmed complete, plan archived |
 | 2025-12-05 | Created unified roadmap, consolidated 16 plan files |
 | 2025-12-05 | Layer 3 Polish complete (PR #105) |
 | 2025-12-05 | Test coverage: 2,025 tests |
