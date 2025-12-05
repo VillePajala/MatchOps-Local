@@ -12,7 +12,6 @@ import {
 } from '@/styles/modalStyles';
 import type { Player } from '@/types'; // Import Player type from the central types file
 import {
-    HiOutlinePencil,
     HiOutlineTrash,
     HiOutlineChartBar,
     HiOutlineEllipsisVertical
@@ -204,7 +203,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                         <span
                           className="text-base text-slate-100 truncate cursor-pointer hover:text-yellow-400"
                           title={player.name}
-                          onClick={() => onOpenPlayerStats(player.id)}
+                          onClick={() => handleEditPlayer(player.id)}
                         >
                           {player.name}{player.nickname ? <span className="text-slate-400"> ({player.nickname})</span> : ''}
                         </span>
@@ -221,18 +220,11 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                         {actionsMenuPlayerId === player.id && (
                           <div className="absolute right-0 top-8 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[140px]">
                             <button
-                              onClick={() => handleEditPlayer(player.id)}
-                              className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-lg transition-colors"
-                            >
-                              <HiOutlinePencil className="w-4 h-4" />
-                              {t('common.edit', 'Edit')}
-                            </button>
-                            <button
                               onClick={() => {
                                 onOpenPlayerStats(player.id);
                                 setActionsMenuPlayerId(null);
                               }}
-                              className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"
+                              className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-lg transition-colors"
                             >
                               <HiOutlineChartBar className="w-4 h-4" />
                               {t('common.stats', 'Stats')}
