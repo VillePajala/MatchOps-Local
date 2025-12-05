@@ -1732,6 +1732,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setIsGameStatsModalOpen(prev => !prev); // handleToggleGameStatsModal moved to useModalOrchestration
   };
 
+  // Memoize fieldInteractions with explicit handler dependencies.
+  // All handlers are useCallback-wrapped in useFieldCoordination, so they're stable.
+  // Using explicit deps instead of [fieldCoordination] (which is a new object every render).
   const fieldInteractions = useMemo<FieldInteractions>(() => ({
     players: {
       move: fieldCoordination.handlePlayerMove,
@@ -1762,7 +1765,32 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       playerDrop: fieldCoordination.handlePlayerDropViaTouch,
       playerDragCancel: fieldCoordination.handlePlayerDragCancelViaTouch,
     },
-  }), [fieldCoordination]);
+  }), [
+    // Player handlers
+    fieldCoordination.handlePlayerMove,
+    fieldCoordination.handlePlayerMoveEnd,
+    fieldCoordination.handlePlayerRemove,
+    fieldCoordination.handleDropOnField,
+    // Opponent handlers
+    fieldCoordination.handleOpponentMove,
+    fieldCoordination.handleOpponentMoveEnd,
+    fieldCoordination.handleOpponentRemove,
+    // Drawing handlers
+    fieldCoordination.handleDrawingStart,
+    fieldCoordination.handleDrawingAddPoint,
+    fieldCoordination.handleDrawingEnd,
+    // Tactical handlers
+    fieldCoordination.handleTacticalDrawingStart,
+    fieldCoordination.handleTacticalDrawingAddPoint,
+    fieldCoordination.handleTacticalDrawingEnd,
+    fieldCoordination.handleTacticalDiscMove,
+    fieldCoordination.handleTacticalDiscRemove,
+    fieldCoordination.handleToggleTacticalDiscType,
+    fieldCoordination.handleTacticalBallMove,
+    // Touch handlers
+    fieldCoordination.handlePlayerDropViaTouch,
+    fieldCoordination.handlePlayerDragCancelViaTouch,
+  ]);
 
   // timerInteractions now provided by useTimerManagement (Step 2.6.5)
 
