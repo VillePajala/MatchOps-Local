@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useGameImport } from '../useGameImport';
 import type { GameImportResult } from '@/utils/gameImport';
@@ -292,7 +292,10 @@ describe('useGameImport', () => {
         await result.current.importFromJson('{}');
       });
 
-      expect(result.current.lastResult).toEqual(mockSuccessResult);
+      // Wait for state update to propagate
+      await waitFor(() => {
+        expect(result.current.lastResult).toEqual(mockSuccessResult);
+      });
     });
 
     /**
@@ -312,7 +315,10 @@ describe('useGameImport', () => {
         await result.current.importFromFile(mockFile);
       });
 
-      expect(result.current.lastResult).toEqual(mockSuccessResult);
+      // Wait for state update to propagate
+      await waitFor(() => {
+        expect(result.current.lastResult).toEqual(mockSuccessResult);
+      });
     });
   });
 
