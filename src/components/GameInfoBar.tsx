@@ -12,7 +12,7 @@ interface GameInfoBarProps {
   homeOrAway: 'home' | 'away';
 }
 
-const GameInfoBar: React.FC<GameInfoBarProps> = ({
+const GameInfoBar: React.FC<GameInfoBarProps> = React.memo(({
   teamName,
   opponentName,
   homeScore,
@@ -164,6 +164,8 @@ const GameInfoBar: React.FC<GameInfoBarProps> = ({
       </div>
     </div>
   );
-};
+});
+
+GameInfoBar.displayName = 'GameInfoBar';
 
 export default GameInfoBar; 

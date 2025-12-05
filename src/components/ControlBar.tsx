@@ -105,7 +105,7 @@ interface ControlBarProps {
   onOpenPersonnelManager: () => void;
 }
 
-const ControlBar: React.FC<ControlBarProps> = ({
+const ControlBar: React.FC<ControlBarProps> = React.memo(({
   timeElapsedInSeconds,
   isTimerRunning,
   onToggleLargeTimerOverlay,
@@ -637,6 +637,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
       </div>
     </>
   );
-};
+});
+
+ControlBar.displayName = 'ControlBar';
 
 export default ControlBar;
