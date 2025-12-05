@@ -1,17 +1,11 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+// Next.js 16 native flat config - no FlatCompat needed
+// See: https://github.com/vercel/next.js/issues/85244
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 import customHooksPlugin from "./eslint/custom-hooks-plugin.mjs";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
 const eslintConfig = [
-  // Ignore build output, dependencies, and non-source files
+  // Global ignores
   {
     ignores: [
       ".next/**",
@@ -22,7 +16,6 @@ const eslintConfig = [
       "docs/**",
       "__mocks__/**",
       "types/**",
-      "scripts/**",
       "public/**",
       "site/**",
       "eslint/**",
@@ -32,13 +25,23 @@ const eslintConfig = [
       "sentry.*.config.ts",
     ],
   },
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  // Next.js rules (native flat config)
+  ...nextVitals,
+  ...nextTypescript,
+  // Custom rules
   {
     plugins: {
       "custom-hooks": customHooksPlugin,
     },
     rules: {
       "react-hooks/exhaustive-deps": "error",
+      // React 19 eslint-plugin-react-hooks v7 new rules - set to warn for gradual adoption
+      // These flag patterns that work but could be improved. Warnings allow build while
+      // tracking technical debt. Re-evaluate after Layer 3 polish phase.
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/immutability": "warn",
+      "react-hooks/globals": "warn",
       // Prevent direct console usage - use logger utility instead
       "no-console": "error",
       // Prevent localStorage usage - use storage helper instead (IndexedDB-only policy)
@@ -123,6 +126,19 @@ const eslintConfig = [
       }],
       "@typescript-eslint/ban-ts-comment": "off",       // Tests may need @ts-ignore for mocks
       "@typescript-eslint/no-require-imports": "off",   // Some test utils use require
+      "custom-hooks/require-memoized-function-props": "off"
+    }
+  },
+  {
+    // Script files: relax rules for Node.js build/utility scripts
+    files: [
+      "scripts/**/*.js",
+      "scripts/**/*.mjs",
+      "scripts/**/*.ts"
+    ],
+    rules: {
+      "no-console": "off",                              // Scripts need console for output
+      "@typescript-eslint/no-require-imports": "off",   // Scripts may use require
       "custom-hooks/require-memoized-function-props": "off"
     }
   }

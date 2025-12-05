@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import { TIMER_STATE_KEY } from '@/config/storageKeys';
 import { setStorageJSON, getStorageJSON, removeStorageItem } from '@/utils/storage';
 import { useWakeLock } from './useWakeLock';
@@ -82,7 +82,11 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   );
 
   const stateRef = useRef(state);
-  stateRef.current = state;
+
+  // Update ref in effect to comply with React 19 hooks rules
+  useEffect(() => {
+    stateRef.current = state;
+  });
 
   const { handleVisibilityChange } = useTimerRestore();
 
@@ -136,25 +140,27 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
     }
   }, [currentGameId, dispatch]);
 
-  // Initialize precision timer with stable startTime reference
-  const stableStartTimeRef = useRef(state.timeElapsedInSeconds);
-  
+  // Use state for values needed during render (React 19 compliant)
+  const [stableStartTime, setStableStartTime] = useState(state.timeElapsedInSeconds);
+
   // Update startTime when timer is not running (paused/stopped) to ensure proper synchronization
   useEffect(() => {
-    if (!state.isTimerRunning && stableStartTimeRef.current !== state.timeElapsedInSeconds) {
-      stableStartTimeRef.current = state.timeElapsedInSeconds;
+    if (!state.isTimerRunning && stableStartTime !== state.timeElapsedInSeconds) {
+      setStableStartTime(state.timeElapsedInSeconds);
     }
-  }, [state.isTimerRunning, state.timeElapsedInSeconds]);
+  }, [state.isTimerRunning, state.timeElapsedInSeconds, stableStartTime]);
 
   const precisionTimer = usePrecisionTimer({
     onTick: handleTimerTick,
     isRunning: state.isTimerRunning && state.gameStatus === 'inProgress',
-    startTime: stableStartTimeRef.current,
+    startTime: stableStartTime,
     interval: 50 // Check every 50ms (20fps) for smoother UI updates while maintaining precision
   });
 
-  // Store precision timer reference for use in startPause callback
-  precisionTimerRef.current = precisionTimer;
+  // Store precision timer reference in effect (React 19 compliant)
+  useEffect(() => {
+    precisionTimerRef.current = precisionTimer;
+  }, [precisionTimer]);
 
   useEffect(() => {
     syncWakeLock(state.isTimerRunning);
@@ -196,8 +202,8 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
               savedTimerState.timestamp,
               savedTimerState.timeElapsedInSeconds,
               (restoredTime) => {
-                // Update the stable ref BEFORE dispatching to prevent precision timer from using old value
-                stableStartTimeRef.current = restoredTime;
+                // Update stable start time BEFORE dispatching to prevent precision timer from using old value
+                setStableStartTime(restoredTime);
 
                 dispatch({
                   type: 'RESTORE_TIMER_STATE',
@@ -225,7 +231,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         saveTimerRef.current = null;
       }
     };
-  }, [state.isTimerRunning, currentGameId, dispatch, precisionTimer, handleVisibilityChange]);
+  }, [state.isTimerRunning, currentGameId, dispatch, precisionTimer, handleVisibilityChange, setStableStartTime]);
 
   return {
     timeElapsedInSeconds: state.timeElapsedInSeconds,
