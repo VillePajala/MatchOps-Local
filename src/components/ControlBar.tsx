@@ -637,6 +637,20 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
       </div>
     </>
   );
+}, (prevProps, nextProps) => {
+  // Custom comparison: only compare data props, not callbacks (they're stable or we don't care about them)
+  // Return true if props are equal (skip re-render), false if props changed (do re-render)
+  return (
+    prevProps.timeElapsedInSeconds === nextProps.timeElapsedInSeconds &&
+    prevProps.isTimerRunning === nextProps.isTimerRunning &&
+    prevProps.canUndo === nextProps.canUndo &&
+    prevProps.canRedo === nextProps.canRedo &&
+    prevProps.canTacticalUndo === nextProps.canTacticalUndo &&
+    prevProps.canTacticalRedo === nextProps.canTacticalRedo &&
+    prevProps.isTacticsBoardView === nextProps.isTacticsBoardView &&
+    prevProps.isDrawingEnabled === nextProps.isDrawingEnabled &&
+    prevProps.isGameLoaded === nextProps.isGameLoaded
+  );
 });
 
 ControlBar.displayName = 'ControlBar';
