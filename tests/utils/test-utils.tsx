@@ -33,8 +33,8 @@ const createTestQueryClient = () => new QueryClient({
   },
 });
 
-// Store query client reference for cleanup
-let currentQueryClient: QueryClient | null = null;
+// Store query client reference for cleanup using ref-like pattern
+const queryClientRef = { current: null as QueryClient | null };
 
 /**
  * Wrapper component that provides all necessary contexts for testing
@@ -54,8 +54,13 @@ let currentQueryClient: QueryClient | null = null;
  * ```
  */
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
-  const queryClient = createTestQueryClient();
-  currentQueryClient = queryClient;
+  // Create query client once per render tree using useMemo
+  const queryClient = React.useMemo(() => createTestQueryClient(), []);
+
+  // Store ref in effect (React 19 compliant)
+  React.useEffect(() => {
+    queryClientRef.current = queryClient;
+  }, [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -501,9 +506,9 @@ export const expectToBeAccessible = async (container: HTMLElement) => {
 
 // Cleanup function for React Query
 export const cleanupReactQuery = () => {
-  if (currentQueryClient) {
-    currentQueryClient.clear();
-    currentQueryClient = null;
+  if (queryClientRef.current) {
+    queryClientRef.current.clear();
+    queryClientRef.current = null;
   }
 };
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { Player, Season, Tournament, Team, Personnel } from '@/types';
@@ -109,29 +109,47 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [showManageRosterConfirm, setShowManageRosterConfirm] = useState(false);
   const [emptyRosterTeamId, setEmptyRosterTeamId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      // Reset form
-      setOpponentName('');
-      setGameDate(new Date().toISOString().split('T')[0]);
-      setGameLocation('');
-      setGameHour('');
-      setGameMinute('');
-      setSelectedSeasonId(null);
-      setSelectedTournamentId(null);
-      setSelectedTeamId(null);
-      setLocalNumPeriods(2);
-      setLocalPeriodDurationString('15');
-      setLocalHomeOrAway('home');
+  // Track modal open count to reset form via key-like pattern
+  const [openCount, setOpenCount] = useState(0);
+  const wasOpenRef = useRef(false);
 
-      // Use master roster from props
-      setAvailablePlayersForSetup(masterRoster);
-      if (initialPlayerSelection && initialPlayerSelection.length > 0) {
-        setSelectedPlayerIds(initialPlayerSelection);
-      } else if (masterRoster.length > 0) {
-        setSelectedPlayerIds(masterRoster.map(p => p.id));
-      }
-      setSelectedPersonnelIds([]);
+  // Detect when modal opens (transition from closed to open)
+  useEffect(() => {
+    if (isOpen && !wasOpenRef.current) {
+      // Modal just opened - increment count to trigger reset
+      setOpenCount(c => c + 1);
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  // Reset form state when openCount changes (modal opens)
+  const resetForm = useCallback(() => {
+    setOpponentName('');
+    setGameDate(new Date().toISOString().split('T')[0]);
+    setGameLocation('');
+    setGameHour('');
+    setGameMinute('');
+    setSelectedSeasonId(null);
+    setSelectedTournamentId(null);
+    setSelectedTeamId(null);
+    setLocalNumPeriods(2);
+    setLocalPeriodDurationString('15');
+    setLocalHomeOrAway('home');
+    setAvailablePlayersForSetup(masterRoster);
+    if (initialPlayerSelection && initialPlayerSelection.length > 0) {
+      setSelectedPlayerIds(initialPlayerSelection);
+    } else if (masterRoster.length > 0) {
+      setSelectedPlayerIds(masterRoster.map(p => p.id));
+    }
+    setSelectedPersonnelIds([]);
+    setActiveTab('none');
+    setAgeGroup('');
+    setTournamentLevel('');
+  }, [masterRoster, initialPlayerSelection]);
+
+  useEffect(() => {
+    if (openCount > 0) {
+      resetForm();
 
       // Load last home team name
       const loadLastTeamName = async () => {
@@ -148,16 +166,32 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       // Focus on home team input
       setTimeout(() => homeTeamInputRef.current?.focus(), 100);
     }
-  }, [isOpen, initialPlayerSelection, masterRoster, t]);
+  }, [openCount, resetForm, t]);
 
+
+
+  // Helper to apply season settings to form
+  const applySeasonSettings = useCallback((seasonId: string) => {
+    const s = seasons.find(se => se.id === seasonId);
+    if (s) {
+      setGameLocation(s.location || '');
+      setAgeGroup(s.ageGroup || '');
+      setLocalNumPeriods((s.periodCount as 1 | 2) || 2);
+      setLocalPeriodDurationString(s.periodDuration ? String(s.periodDuration) : '15');
+      setGameDate(s.startDate || new Date().toISOString().split('T')[0]);
+      setActiveTab('season');
+    }
+  }, [seasons]);
 
   const handleSeasonChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     if (value) {
       setSelectedSeasonId(value);
       setSelectedTournamentId(null);
+      applySeasonSettings(value);
     } else {
       setSelectedSeasonId(null);
+      setActiveTab('none');
     }
   };
 
@@ -246,57 +280,31 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     }
   };
 
-  useEffect(() => {
-    if (selectedSeasonId) {
-      const s = seasons.find(se => se.id === selectedSeasonId);
-      if (s) {
-        setGameLocation(s.location || '');
-        setAgeGroup(s.ageGroup || '');
-        setLocalNumPeriods((s.periodCount as 1 | 2) || 2);
-        setLocalPeriodDurationString(s.periodDuration ? String(s.periodDuration) : '15');
-        // Always set gameDate (fallback to today if season doesn't have one)
-        setGameDate(s.startDate || new Date().toISOString().split('T')[0]);
-      }
+  // Helper to apply tournament settings to form
+  const applyTournamentSettings = useCallback((tournamentId: string) => {
+    const t = tournaments.find(tt => tt.id === tournamentId);
+    if (t) {
+      setGameLocation(t.location || '');
+      setAgeGroup(t.ageGroup || '');
+      setTournamentLevel(t.level || '');
+      setLocalNumPeriods((t.periodCount as 1 | 2) || 2);
+      setLocalPeriodDurationString(t.periodDuration ? String(t.periodDuration) : '15');
+      setGameDate(t.startDate || new Date().toISOString().split('T')[0]);
+      setActiveTab('tournament');
     }
-  }, [selectedSeasonId, seasons, availablePlayersForSetup]);
+  }, [tournaments]);
 
   const handleTournamentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     if (value) {
       setSelectedTournamentId(value);
       setSelectedSeasonId(null);
+      applyTournamentSettings(value);
     } else {
       setSelectedTournamentId(null);
+      setActiveTab('none');
     }
   };
-
-  useEffect(() => {
-    if (selectedTournamentId) {
-      const t = tournaments.find(tt => tt.id === selectedTournamentId);
-      if (t) {
-        setGameLocation(t.location || '');
-        setAgeGroup(t.ageGroup || '');
-        setTournamentLevel(t.level || '');
-        setLocalNumPeriods((t.periodCount as 1 | 2) || 2);
-        setLocalPeriodDurationString(t.periodDuration ? String(t.periodDuration) : '15');
-        // Always set gameDate (fallback to today if tournament doesn't have one)
-        setGameDate(t.startDate || new Date().toISOString().split('T')[0]);
-      }
-    }
-  }, [selectedTournamentId, tournaments, availablePlayersForSetup]);
-
-  // Sync activeTab with selection state
-  useEffect(() => {
-    if (isOpen) {
-      if (selectedSeasonId && selectedSeasonId !== '') {
-        setActiveTab('season');
-      } else if (selectedTournamentId && selectedTournamentId !== '') {
-        setActiveTab('tournament');
-      } else {
-        setActiveTab('none');
-      }
-    }
-  }, [isOpen, selectedSeasonId, selectedTournamentId]);
 
   // Handle tab changes
   const handleTabChange = (tab: 'none' | 'season' | 'tournament') => {

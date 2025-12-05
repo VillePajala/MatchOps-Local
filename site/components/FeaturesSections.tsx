@@ -1,5 +1,4 @@
 import FeatureCard from '@/components/FeatureCard';
-import Link from 'next/link';
 import { FaFutbol, FaClock, FaChartLine, FaPencilAlt, FaUsers, FaTrophy, FaDatabase, FaShieldAlt, FaBolt, FaDownload, FaGlobe, FaMobileAlt } from 'react-icons/fa';
 import { useTranslation } from 'next-i18next';
 
