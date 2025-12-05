@@ -1289,6 +1289,8 @@
     "useDemandCorrectionTooltip": "Kun käytössä, vaikeiden pelien arviot vaikuttavat enemmän",
     "includesAdjustments": "Sisältää ulkoiset pelit",
     "externalGames": "Ulkoiset pelit",
+    "externalGame": "Ulkoinen peli",
+    "external": "ULK",
     "addExternalStats": "Lisää ulkoisia tilastoja",
     "seasonRequired": "Luo ensin kausi.",
     "teamRequired": "Joukkueen nimi on pakollinen.",

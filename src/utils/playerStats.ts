@@ -23,6 +23,9 @@ export interface GameStats {
   points: number;
   result: 'W' | 'L' | 'D' | 'N/A';
   receivedFairPlayCard: boolean;
+  fairPlayCards?: number;  // Number of fair play cards (for external games that may have multiple)
+  isExternal?: boolean;  // True for external games (adjustments)
+  externalTeamName?: string;  // Team name for external games
 }
 
 /**
@@ -185,14 +188,61 @@ export const calculatePlayerStats = (
       }
     }
     // Note: Stats always count toward overall totals regardless of includeInSeasonTournament flag
+
+    // Add external game to gameByGameStats for display in game log
+    // Calculate result based on scores if available
+    let result: 'W' | 'L' | 'D' | 'N/A' = 'N/A';
+    if (typeof adj.scoreFor === 'number' && typeof adj.scoreAgainst === 'number') {
+      if (adj.scoreFor > adj.scoreAgainst) {
+        result = 'W';
+      } else if (adj.scoreFor < adj.scoreAgainst) {
+        result = 'L';
+      } else {
+        result = 'D';
+      }
+    }
+
+    const fpCards = adj.fairPlayCardsDelta || 0;
+    gameByGameStats.push({
+      gameId: `external-${adj.id}`,
+      date: adj.gameDate || adj.appliedAt,
+      opponentName: adj.opponentName || 'Unknown',
+      goals: adj.goalsDelta || 0,
+      assists: adj.assistsDelta || 0,
+      points: (adj.goalsDelta || 0) + (adj.assistsDelta || 0),
+      result,
+      receivedFairPlayCard: fpCards > 0,
+      fairPlayCards: fpCards,
+      isExternal: true,
+      externalTeamName: adj.externalTeamName,
+    });
   });
 
-  const totalGoals = gameByGameStats.reduce((sum, game) => sum + game.goals, 0) + adjustmentsForPlayer.reduce((s, a) => s + (a.goalsDelta || 0), 0);
-  const totalAssists = gameByGameStats.reduce((sum, game) => sum + game.assists, 0) + adjustmentsForPlayer.reduce((s, a) => s + (a.assistsDelta || 0), 0);
-  const totalGames = gameByGameStats.length + adjustmentsForPlayer.reduce((s, a) => s + (a.gamesPlayedDelta || 0), 0);
+  // Calculate totals - external games are now included in gameByGameStats
+  const totalGoals = gameByGameStats.reduce((sum, game) => sum + game.goals, 0);
+  const totalAssists = gameByGameStats.reduce((sum, game) => sum + game.assists, 0);
+  // For games count, external adjustments may have gamesPlayedDelta > 1 (multiple games in one entry)
+  // Regular games count as 1 each, external games count as their gamesPlayedDelta
+  const totalGames = gameByGameStats.reduce((sum, game) => {
+    if (game.isExternal) {
+      // Find the adjustment to get the actual games count
+      const adj = adjustmentsForPlayer.find(a => `external-${a.id}` === game.gameId);
+      return sum + (adj?.gamesPlayedDelta || 1);
+    }
+    return sum + 1;
+  }, 0);
 
-  // Add fair play cards from manual adjustments to total
-  totalFairPlayCards += adjustmentsForPlayer.reduce((s, a) => s + (a.fairPlayCardsDelta || 0), 0);
+  // Calculate total fair play cards from all games
+  // For regular games, receivedFairPlayCard is boolean (1 or 0)
+  // For external games, use fairPlayCards which can be > 1
+  const calculatedFairPlayCards = gameByGameStats.reduce((sum, game) => {
+    if (game.isExternal) {
+      return sum + (game.fairPlayCards || 0);
+    }
+    return sum + (game.receivedFairPlayCard ? 1 : 0);
+  }, 0);
+  totalFairPlayCards = calculatedFairPlayCards;
+
   const avgGoalsPerGame = totalGames > 0 ? totalGoals / totalGames : 0;
   const avgAssistsPerGame = totalGames > 0 ? totalAssists / totalGames : 0;
 
