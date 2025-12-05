@@ -1855,16 +1855,16 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     isDrawingEnabled: fieldCoordination.isDrawingEnabled,
     onToggleDrawingMode: fieldCoordination.handleToggleDrawingMode,
     onToggleTrainingResources: handleToggleTrainingResources,
-    onToggleGameStatsModal: () => setIsGameStatsModalOpen(prev => !prev), // handleToggleGameStatsModal moved to useModalOrchestration
-    onOpenLoadGameModal: () => setIsLoadGameModalOpen(true),
+    onToggleGameStatsModal: () => setIsGameStatsModalOpen(prev => !prev),
+    onOpenLoadGameModal: openLoadGameViaReducer,
     onStartNewGame: handleStartNewGame,
     onOpenRosterModal: openRosterModal,
     onQuickSave: persistence.handleQuickSaveGame,
     onOpenGameSettingsModal: () => setIsGameSettingsModalOpen(true),
     isGameLoaded: Boolean(currentGameId && currentGameId !== DEFAULT_GAME_ID),
-    onOpenSeasonTournamentModal: () => setIsSeasonTournamentModalOpen(true),
-    onToggleInstructionsModal: () => setIsInstructionsModalOpen(prev => !prev), // handleToggleInstructionsModal moved to useModalOrchestration
-    onOpenSettingsModal: () => setIsSettingsModalOpen(true), // handleOpenSettingsModal moved to useModalOrchestration
+    onOpenSeasonTournamentModal: openSeasonTournamentViaReducer,
+    onToggleInstructionsModal: () => setIsInstructionsModalOpen(prev => !prev),
+    onOpenSettingsModal: () => setIsSettingsModalOpen(true),
     onOpenPlayerAssessmentModal: openPlayerAssessmentModal,
     onOpenTeamManagerModal: () => setIsTeamManagerOpen(true),
     onOpenPersonnelManager: () => setIsPersonnelManagerOpen(true),
