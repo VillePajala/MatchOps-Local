@@ -366,7 +366,24 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.tournament', 'Tournament')}</label>
                 <select
                   value={adjTournamentId}
-                  onChange={(e) => setAdjTournamentId(e.target.value)}
+                  onChange={(e) => {
+                    const tournamentId = e.target.value;
+                    setAdjTournamentId(tournamentId);
+                    // Prefill tournament data when selected
+                    if (tournamentId) {
+                      const tournament = tournaments.find(t => t.id === tournamentId);
+                      if (tournament) {
+                        // Prefill location as team name if external team is empty
+                        if (!adjExternalTeam && tournament.location) {
+                          setAdjExternalTeam(tournament.location);
+                        }
+                        // Prefill game date with tournament start date if available
+                        if (tournament.startDate) {
+                          setAdjGameDate(tournament.startDate);
+                        }
+                      }
+                    }
+                  }}
                   className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">{t('playerStats.selectTournament', 'Select tournament (optional)')}</option>
