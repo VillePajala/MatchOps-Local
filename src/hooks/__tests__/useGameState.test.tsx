@@ -1,6 +1,28 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useGameState } from '../useGameState';
-import type { AppState, Player } from '@/types';
+import type { AppState, Player, Point, Opponent } from '@/types';
+
+// Mock the masterRosterManager
+jest.mock('@/utils/masterRosterManager', () => ({
+  updatePlayer: jest.fn(),
+  getMasterRoster: jest.fn(),
+}));
+
+// Mock the logger
+jest.mock('@/utils/logger', () => {
+  const mockLogger = {
+    debug: jest.fn(),
+    log: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  };
+  return {
+    __esModule: true,
+    default: mockLogger,
+    createLogger: jest.fn(() => mockLogger),
+  };
+});
 
 describe('useGameState', () => {
   const basePlayer: Player = {
@@ -288,6 +310,339 @@ describe('useGameState', () => {
           }),
         ],
       });
+    });
+  });
+
+  describe('handlePlayerDrop', () => {
+    /**
+     * Tests dropping a player onto the field
+     * @critical - Core field interaction
+     */
+    it('adds a player to the field when dropped', async () => {
+      const saveStateToHistory = jest.fn();
+      const { result } = renderHook(() =>
+        useGameState({
+          initialState,
+          saveStateToHistory,
+        })
+      );
+
+      await act(async () => {
+        result.current.handlePlayerDrop(basePlayer, { relX: 0.3, relY: 0.4 });
+      });
+
+      expect(result.current.playersOnField).toHaveLength(1);
+      expect(result.current.playersOnField[0]).toEqual(
+        expect.objectContaining({
+          id: basePlayer.id,
+          relX: 0.3,
+          relY: 0.4,
+        })
+      );
+      expect(saveStateToHistory).toHaveBeenCalled();
+    });
+
+    /**
+     * Tests updating player position when already on field
+     * @edge-case - Player repositioning
+     */
+    it('updates player position when player is already on field', async () => {
+      const saveStateToHistory = jest.fn();
+      const initial = {
+        ...initialState,
+        playersOnField: [{ ...basePlayer, relX: 0.1, relY: 0.1 }],
+      };
+
+      const { result } = renderHook(() =>
+        useGameState({
+          initialState: initial,
+          saveStateToHistory,
+        })
+      );
+
+      await act(async () => {
+        result.current.handlePlayerDrop(basePlayer, { relX: 0.6, relY: 0.7 });
+      });
+
+      expect(result.current.playersOnField).toHaveLength(1);
+      expect(result.current.playersOnField[0]).toEqual(
+        expect.objectContaining({
+          id: basePlayer.id,
+          relX: 0.6,
+          relY: 0.7,
+        })
+      );
+    });
+  });
+
+  describe('drawing handlers', () => {
+    /**
+     * Tests starting a drawing
+     * @critical - Drawing functionality
+     */
+    it('starts a new drawing path', async () => {
+      const saveStateToHistory = jest.fn();
+      const { result } = renderHook(() =>
+        useGameState({
+          initialState,
+          saveStateToHistory,
+        })
+      );
+
+      const startPoint: Point = { relX: 0.1, relY: 0.2 };
+
+      await act(async () => {
+        result.current.handleDrawingStart(startPoint);
+      });
+
+      expect(result.current.drawings).toHaveLength(1);
+      expect(result.current.drawings[0]).toEqual([startPoint]);
+      expect(saveStateToHistory).toHaveBeenCalledWith({ drawings: [[startPoint]] });
+    });
+
+    /**
+     * Tests adding points to a drawing
+     * @integration - Drawing continuation
+     */
+    it('adds points to current drawing path', async () => {
+      const saveStateToHistory = jest.fn();
+      const initialDrawings: Point[][] = [[{ relX: 0.1, relY: 0.2 }]];
+      const initial = {
+        ...initialState,
+        drawings: initialDrawings,
+      };
+
+      const { result } = renderHook(() =>
+        useGameState({
+          initialState: initial,
+          saveStateToHistory,
+        })
+      );
+
+      const newPoint: Point = { relX: 0.15, relY: 0.25 };
+
+      await act(async () => {
+        result.current.handleDrawingAddPoint(newPoint);
+      });
+
+      expect(result.current.drawings[0]).toContainEqual(newPoint);
+    });
+
+    /**
+     * Tests ending a drawing
+     * @integration - Drawing completion
+     */
+    it('ends drawing and saves to history', async () => {
+      const saveStateToHistory = jest.fn();
+      const initialDrawings: Point[][] = [[{ relX: 0.1, relY: 0.2 }, { relX: 0.15, relY: 0.25 }]];
+      const initial = {
+        ...initialState,
+        drawings: initialDrawings,
+      };
+
+      const { result } = renderHook(() =>
+        useGameState({
+          initialState: initial,
+          saveStateToHistory,
+        })
+      );
+
+      saveStateToHistory.mockClear();
+
+      await act(async () => {
+        result.current.handleDrawingEnd();
+      });
+
+      // Drawing end uses version counter pattern, wait for effect
+      await waitFor(() => {
+        expect(saveStateToHistory).toHaveBeenCalledWith({ drawings: initialDrawings });
+      });
+    });
+
+    /**
+     * Tests clearing all drawings
+     * @integration - Clear functionality
+     */
+    it('clears all drawings', async () => {
+      const saveStateToHistory = jest.fn();
+      const initialDrawings: Point[][] = [[{ relX: 0.1, relY: 0.2 }], [{ relX: 0.3, relY: 0.4 }]];
+      const initial = {
+        ...initialState,
+        drawings: initialDrawings,
+      };
+
+      const { result } = renderHook(() =>
+        useGameState({
+          initialState: initial,
+          saveStateToHistory,
+        })
+      );
+
+      await act(async () => {
+        result.current.handleClearDrawings();
+      });
+
+      expect(result.current.drawings).toEqual([]);
+      expect(saveStateToHistory).toHaveBeenCalledWith({ drawings: [] });
+    });
+  });
+
+  describe('opponent handlers', () => {
+    /**
+     * Tests adding an opponent
+     * @critical - Opponent management
+     */
+    it('adds a new opponent to the field', async () => {
+      const saveStateToHistory = jest.fn();
+      const { result } = renderHook(() =>
+        useGameState({
+          initialState,
+          saveStateToHistory,
+        })
+      );
+
+      await act(async () => {
+        result.current.handleAddOpponent();
+      });
+
+      expect(result.current.opponents).toHaveLength(1);
+      expect(result.current.opponents[0]).toEqual(
+        expect.objectContaining({
+          relX: 0.5,
+          relY: 0.5,
+        })
+      );
+      expect(saveStateToHistory).toHaveBeenCalled();
+    });
+
+    /**
+     * Tests moving an opponent
+     * @integration - Opponent repositioning
+     */
+    it('moves an opponent to new position', async () => {
+      const saveStateToHistory = jest.fn();
+      const opponent: Opponent = { id: 'opp-1', relX: 0.5, relY: 0.5 };
+      const initial = {
+        ...initialState,
+        opponents: [opponent],
+      };
+
+      const { result } = renderHook(() =>
+        useGameState({
+          initialState: initial,
+          saveStateToHistory,
+        })
+      );
+
+      await act(async () => {
+        result.current.handleOpponentMove('opp-1', 0.7, 0.3);
+      });
+
+      expect(result.current.opponents[0]).toEqual(
+        expect.objectContaining({
+          id: 'opp-1',
+          relX: 0.7,
+          relY: 0.3,
+        })
+      );
+    });
+
+    /**
+     * Tests opponent move end saves to history
+     * @integration - History saving
+     */
+    it('saves opponent position to history on move end', async () => {
+      const saveStateToHistory = jest.fn();
+      const opponent: Opponent = { id: 'opp-1', relX: 0.5, relY: 0.5 };
+      const initial = {
+        ...initialState,
+        opponents: [opponent],
+      };
+
+      const { result } = renderHook(() =>
+        useGameState({
+          initialState: initial,
+          saveStateToHistory,
+        })
+      );
+
+      saveStateToHistory.mockClear();
+
+      await act(async () => {
+        result.current.handleOpponentMoveEnd();
+      });
+
+      await waitFor(() => {
+        expect(saveStateToHistory).toHaveBeenCalledWith({ opponents: [opponent] });
+      });
+    });
+
+    /**
+     * Tests removing an opponent
+     * @integration - Opponent removal
+     */
+    it('removes an opponent from the field', async () => {
+      const saveStateToHistory = jest.fn();
+      const opponent: Opponent = { id: 'opp-1', relX: 0.5, relY: 0.5 };
+      const initial = {
+        ...initialState,
+        opponents: [opponent],
+      };
+
+      const { result } = renderHook(() =>
+        useGameState({
+          initialState: initial,
+          saveStateToHistory,
+        })
+      );
+
+      await act(async () => {
+        result.current.handleOpponentRemove('opp-1');
+      });
+
+      expect(result.current.opponents).toHaveLength(0);
+      expect(saveStateToHistory).toHaveBeenCalledWith({ opponents: [] });
+    });
+  });
+
+  describe('interface completeness', () => {
+    /**
+     * Tests all interface members are exposed
+     * @integration - API contract
+     */
+    it('exposes all required handlers and state', () => {
+      const saveStateToHistory = jest.fn();
+      const { result } = renderHook(() =>
+        useGameState({
+          initialState,
+          saveStateToHistory,
+        })
+      );
+
+      // State values
+      expect(result.current).toHaveProperty('playersOnField');
+      expect(result.current).toHaveProperty('opponents');
+      expect(result.current).toHaveProperty('drawings');
+      expect(result.current).toHaveProperty('availablePlayers');
+
+      // Setters
+      expect(result.current).toHaveProperty('setPlayersOnField');
+      expect(result.current).toHaveProperty('setOpponents');
+      expect(result.current).toHaveProperty('setDrawings');
+      expect(result.current).toHaveProperty('setAvailablePlayers');
+
+      // Handlers
+      expect(typeof result.current.handlePlayerDrop).toBe('function');
+      expect(typeof result.current.handleDrawingStart).toBe('function');
+      expect(typeof result.current.handleDrawingAddPoint).toBe('function');
+      expect(typeof result.current.handleDrawingEnd).toBe('function');
+      expect(typeof result.current.handleClearDrawings).toBe('function');
+      expect(typeof result.current.handleAddOpponent).toBe('function');
+      expect(typeof result.current.handleOpponentMove).toBe('function');
+      expect(typeof result.current.handleOpponentMoveEnd).toBe('function');
+      expect(typeof result.current.handleOpponentRemove).toBe('function');
+      expect(typeof result.current.handleRenamePlayer).toBe('function');
+      expect(typeof result.current.handleToggleGoalie).toBe('function');
     });
   });
 });
