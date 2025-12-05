@@ -4,7 +4,6 @@
 
 import React from 'react';
 import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
-import { act } from 'react';
 import { TestFixtures } from '../fixtures';
 
 // Use centralized test data instead of inline mock functions

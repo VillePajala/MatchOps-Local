@@ -79,7 +79,7 @@ MatchOps-Local combines the best of modern web technology with local data storag
 - Complete backup and data export capabilities
 
 ### 5. **Modern Technology Stack**
-- Built with Next.js 15 and React 19 for cutting-edge performance
+- Built with Next.js 16 and React 19 for cutting-edge performance
 - TypeScript for reliability and maintainability
 - Tailwind CSS 4 for responsive, professional design
 - Comprehensive testing suite for quality assurance

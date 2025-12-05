@@ -22,7 +22,6 @@ const eslintConfig = [
       "docs/**",
       "__mocks__/**",
       "types/**",
-      "tests/**",
       "scripts/**",
       "public/**",
       "site/**",
@@ -86,14 +85,9 @@ const eslintConfig = [
     },
   },
   {
-    // Allow console usage and localStorage in specific files where it's appropriate
+    // Allow console usage and localStorage in specific utility files
     files: [
       "src/utils/logger.ts",           // Logger implementation itself
-      "**/*.test.ts",                  // Test files
-      "**/*.test.tsx",                 // Test files
-      "tests/**/*",                    // Test directory
-      "scripts/**/*",                  // Build scripts
-      "tests/utils/console-control.js", // Console control utility
       "src/setupTests.mjs",           // Test setup file
       "src/utils/migration.ts",        // Migration needs localStorage for one-time enumeration
       "src/utils/localStorage.ts",     // localStorage utility itself (for migration only)
@@ -106,6 +100,29 @@ const eslintConfig = [
       "no-console": "off",
       "no-restricted-imports": "off",
       "no-restricted-globals": "off",
+      "custom-hooks/require-memoized-function-props": "off"
+    }
+  },
+  {
+    // Test files: relax rules that are impractical in test code
+    files: [
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "tests/**/*.ts",
+      "tests/**/*.tsx",
+      "tests/**/*.js"
+    ],
+    rules: {
+      "no-console": "off",                              // Tests often need console for debugging
+      "no-restricted-imports": "off",                   // Tests may need to import localStorage utils
+      "no-restricted-globals": "off",                   // Tests may mock localStorage
+      "@typescript-eslint/no-explicit-any": "off",      // Test mocks often use any
+      "@typescript-eslint/no-unused-vars": ["error", {
+        "argsIgnorePattern": "^_",                      // Allow _unused pattern
+        "varsIgnorePattern": "^_"
+      }],
+      "@typescript-eslint/ban-ts-comment": "off",       // Tests may need @ts-ignore for mocks
+      "@typescript-eslint/no-require-imports": "off",   // Some test utils use require
       "custom-hooks/require-memoized-function-props": "off"
     }
   }

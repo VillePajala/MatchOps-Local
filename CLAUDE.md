@@ -17,12 +17,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### What's Complete
 - All P0/P1/P2 refactoring
-- NPM security updates (xlsx, Sentry, React Query, Jest 30, i18next 16, Next.js 15.5.7)
+- NPM security updates (xlsx, Sentry, React Query, Jest 30, i18next 16, Next.js 16)
 - Layer 3 performance polish
 - Test coverage improvement (+694 tests)
 
 ### What's Next (Optional)
-- **Next.js 16** upgrade (stable, not urgent)
 - **New features**: Tournament Series, Team Positions, Personnel Management
 
 ### Essential Reading
@@ -50,7 +49,7 @@ The build process includes a custom manifest generation step that runs before Ne
 ## Architecture Overview
 
 ### Tech Stack
-- **Next.js 15** with App Router
+- **Next.js 16** with App Router
 - **React 19** with TypeScript
 - **Tailwind CSS 4** for styling
 - **PWA** with custom service worker

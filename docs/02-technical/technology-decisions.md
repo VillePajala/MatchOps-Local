@@ -15,7 +15,7 @@ All technology decisions for MatchOps-Local are evaluated against our core princ
 
 ## Core Technology Stack
 
-### Frontend Framework: Next.js 15 with App Router
+### Frontend Framework: Next.js 16 with App Router
 
 #### **Decision Rationale**
 

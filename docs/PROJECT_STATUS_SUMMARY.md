@@ -298,7 +298,7 @@ What you've built so far is **impressive**:
 3. ✅ **IndexedDB migration** completed smoothly
 4. ✅ **Production-ready codebase** (8.5/10 quality)
 5. ✅ **Comprehensive documentation** (CLAUDE.md, plans, guides)
-6. ✅ **Modern tech stack** (Next.js 15, React 19, TypeScript)
+6. ✅ **Modern tech stack** (Next.js 16, React 19, TypeScript)
 7. ✅ **Personnel management** just completed
 8. ✅ **Excel export** recently added
 

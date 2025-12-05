@@ -24,7 +24,7 @@ import { clearMockStore } from './storage';
 
 // Mock storageKeyLock with proper serialization
 jest.mock('./storageKeyLock', () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const lockQueues = new Map<string, Promise<any>>();
 
   return {

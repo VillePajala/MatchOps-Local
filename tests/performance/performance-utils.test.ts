@@ -175,7 +175,7 @@ describe('Performance Testing Infrastructure', () => {
 
   describe('Concurrent Operations Testing', () => {
     it('should handle parallel data operations', async () => {
-      const operations = Array.from({ length: 5 }, async (_, i) => {
+      const operations = Array.from({ length: 5 }, async () => {
         const players = createMockPlayers(50);
         await new Promise(resolve => setTimeout(resolve, 10)); // Simulate async work
         return players.length;

@@ -153,7 +153,7 @@ Create a local-first sports software ecosystem and demonstrate the viability of 
 ## 🏗️ Technical Excellence
 
 ### **Modern Technology Stack**
-- **Next.js 15** with App Router for cutting-edge performance
+- **Next.js 16** with App Router for cutting-edge performance
 - **React 19** with TypeScript for reliability and maintainability
 - **React Query** + **Storage Abstraction** for local-first data management
   - ✅ Current backend: IndexedDB with automatic localStorage migration (production-ready)

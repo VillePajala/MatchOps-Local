@@ -4,10 +4,6 @@ import HomePage from '@/components/HomePage';
 import {
   createMockPlayers,
   createMockGameState,
-  dragAndDrop,
-  clickButton,
-  fillInput,
-  expectElementToBeVisible,
   mockLocalStorage,
   setupGameWithPlayers,
   simulateGameSession
@@ -112,8 +108,8 @@ describe('Core User Workflows Integration Tests', () => {
     });
 
     it('should handle player selection and field positioning', async () => {
-      const { players } = await setupGameWithPlayers();
-      
+      await setupGameWithPlayers();
+
       render(<HomePage />);
 
       await waitFor(() => {
@@ -212,8 +208,8 @@ describe('Core User Workflows Integration Tests', () => {
     it('should handle timer operations without crashes', async () => {
       jest.useFakeTimers();
 
-      const { gameState } = await simulateGameSession();
-      
+      await simulateGameSession();
+
       render(<HomePage />);
 
       await waitFor(() => {
@@ -257,8 +253,6 @@ describe('Core User Workflows Integration Tests', () => {
     });
 
     it('should handle concurrent localStorage operations', async () => {
-      const gameState = createMockGameState();
-
       // Simulate rapid localStorage operations
       for (let i = 0; i < 10; i++) {
         mockStorage.setItem(`test-key-${i}`, JSON.stringify({ data: i }));
