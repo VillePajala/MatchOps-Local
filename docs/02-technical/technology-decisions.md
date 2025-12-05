@@ -121,15 +121,15 @@ const { data: players, isLoading, error } = useQuery({
 
 ---
 
-### UI Framework: React 19 with TypeScript
+### UI Framework: React 19.2 with TypeScript
 
 #### **Decision Rationale**
 
-**Why React 19?**
+**Why React 19.2?**
 
 React remains the dominant frontend framework with the largest ecosystem and best tooling support. Version 19 introduces concurrent features that improve performance for data-heavy applications like coaching software.
 
-**React 19 Advantages:**
+**React 19.2 Advantages:**
 - **Concurrent Rendering**: Better performance with large datasets
 - **Suspense Integration**: Elegant loading states for data operations
 - **Server Components**: Future extensibility if server features needed

@@ -68,8 +68,8 @@ MatchOps-Local is built on **local-first principles** with a **progressive enhan
 - **Scalability**: 50MB+ storage quota vs 5-10MB localStorage limit
 - **Data Structure**: Supports complex objects and efficient queries
 
-### UI Framework: React 19 with TypeScript
-**Why React 19?**
+### UI Framework: React 19.2 with TypeScript
+**Why React 19.2?**
 - **Concurrent Features**: Better performance with concurrent rendering
 - **Suspense**: Elegant loading states and progressive enhancement
 - **Modern Hooks**: Advanced state management capabilities

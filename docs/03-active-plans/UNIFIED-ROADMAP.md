@@ -10,10 +10,11 @@
 
 | Category | Status |
 |----------|--------|
-| Codebase Health | ✅ Excellent (2,025 tests, 62-line HomePage, 6 extracted hooks) |
+| Codebase Health | ✅ Excellent (2,085 tests, 62-line HomePage, 6 extracted hooks) |
 | Security | ✅ All vulnerabilities fixed |
 | Performance | ✅ React.memo optimization complete |
-| Next Major Work | 🎯 Features or Next.js 16 |
+| Framework | ✅ Next.js 16 + React 19.2 |
+| Next Major Work | 🎯 Features or Play Store Release |
 
 ---
 
@@ -23,7 +24,7 @@
 - [x] HomePage refactoring: 3,725 → 62 lines (98% reduction)
 - [x] 6 hooks extracted (all ≤665 lines)
 - [x] Layer 3 Polish: React.memo, useMemo optimization
-- [x] 2,025 tests passing (65% coverage)
+- [x] 2,085 tests passing (65% coverage)
 - [x] All P0/P1/P2 fixes complete
 
 ### NPM & Security Updates (December 2025)
@@ -32,7 +33,7 @@
 - [x] React Query 5.90.11
 - [x] Jest 30.2.0
 - [x] react-i18next 16.3.5
-- [x] Next.js 16 (upgraded from 15.5.7)
+- [x] **Next.js 16.0.7 + React 19.2** ✅ (upgraded from 15.5.7)
 - [x] npm audit: 0 vulnerabilities
 
 ### Infrastructure (September-October 2025)
@@ -49,20 +50,7 @@
 
 ## 🎯 NEXT UP (Choose One)
 
-### Option A: Next.js 16 Upgrade
-**Time**: 2-3 days | **Priority**: Optional (current version stable)
-
-- [ ] Read upgrade guide
-- [ ] Update `next lint` → `eslint .`
-- [ ] Test Turbopack compatibility
-- [ ] Update middleware if needed
-- [ ] Full regression test
-
-**Benefits**: 5-10x faster Fast Refresh, 2-5x faster builds
-
----
-
-### Option B: New Features
+### Option A: New Features
 
 #### Tournament Series & Season Leagues (~6-9 hours)
 **Design**: Complete | **Doc**: `TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md`
@@ -137,11 +125,12 @@
 
 | Date | Update |
 |------|--------|
+| 2025-12-05 | **Next.js 16.0.7 + React 19.2 upgrade complete** |
+| 2025-12-05 | Test coverage: 2,085 tests across 142 suites |
 | 2025-12-05 | Personnel Management confirmed complete, plan archived |
 | 2025-12-05 | Team Final Position Tracking confirmed complete, plan archived |
 | 2025-12-05 | Created unified roadmap, consolidated 16 plan files |
 | 2025-12-05 | Layer 3 Polish complete (PR #105) |
-| 2025-12-05 | Test coverage: 2,025 tests |
 | 2025-12-04 | Jest 30, i18next 16, Next.js security fix |
 | 2025-12-03 | NPM security updates complete |
 
