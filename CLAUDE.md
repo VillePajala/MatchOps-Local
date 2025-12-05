@@ -9,20 +9,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Last Updated**: December 5, 2025
 
 ### Quick Stats
-- ✅ **2,025 tests** passing
+- ✅ **2,085 tests** passing across 142 suites
 - ✅ **0 security vulnerabilities**
+- ✅ **Next.js 16.0.7 + React 19.2**
 - ✅ **HomePage**: 62 lines (was 3,725)
 - ✅ **6 hooks** extracted and tested
 - ✅ **React.memo** optimization complete
 
 ### What's Complete
 - All P0/P1/P2 refactoring
-- NPM security updates (xlsx, Sentry, React Query, Jest 30, i18next 16, Next.js 16)
+- NPM security updates (xlsx, Sentry, React Query, Jest 30, i18next 16)
+- **Next.js 16.0.7 + React 19.2 upgrade**
 - Layer 3 performance polish
 - Test coverage improvement (+694 tests)
 
 ### What's Next (Optional)
-- **New features**: Tournament Series, Team Positions, Personnel Management
+- **New features**: Tournament Series & Season Leagues
+- **Play Store Release**: See master-execution-guide.md
 
 ### Essential Reading
 - **[UNIFIED-ROADMAP.md](./docs/03-active-plans/UNIFIED-ROADMAP.md)** ⭐ **Single source of truth**
@@ -49,8 +52,8 @@ The build process includes a custom manifest generation step that runs before Ne
 ## Architecture Overview
 
 ### Tech Stack
-- **Next.js 16** with App Router
-- **React 19** with TypeScript
+- **Next.js 16.0.7** with App Router
+- **React 19.2** with TypeScript
 - **Tailwind CSS 4** for styling
 - **PWA** with custom service worker
 - **Browser IndexedDB** for data persistence
