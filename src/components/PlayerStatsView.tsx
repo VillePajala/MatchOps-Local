@@ -377,9 +377,10 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         if (!adjExternalTeam && tournament.location) {
                           setAdjExternalTeam(tournament.location);
                         }
-                        // Prefill game date with tournament start date if available
-                        if (tournament.startDate) {
-                          setAdjGameDate(tournament.startDate);
+                        // Prefill game date with tournament start date or first game date if available
+                        const tournamentDate = tournament.startDate || (tournament.gameDates && tournament.gameDates[0]);
+                        if (tournamentDate) {
+                          setAdjGameDate(tournamentDate);
                         }
                       }
                     }
