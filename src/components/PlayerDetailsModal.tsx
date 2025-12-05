@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Player } from '@/types';
@@ -38,19 +38,21 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   const [notes, setNotes] = useState('');
 
   // Initialize form when player changes or modal opens
-  useEffect(() => {
-    if (mode === 'create') {
-      // Reset form for create mode
-      setName('');
-      setNickname('');
-      setJerseyNumber('');
-      setNotes('');
-    } else if (player) {
-      // Load existing player data for edit mode
-      setName(player.name || '');
-      setNickname(player.nickname || '');
-      setJerseyNumber(player.jerseyNumber || '');
-      setNotes(player.notes || '');
+  React.useLayoutEffect(() => {
+    if (isOpen) {
+      if (mode === 'create') {
+        // Reset form for create mode
+        setName('');
+        setNickname('');
+        setJerseyNumber('');
+        setNotes('');
+      } else if (player) {
+        // Load existing player data for edit mode
+        setName(player.name || '');
+        setNickname(player.nickname || '');
+        setJerseyNumber(player.jerseyNumber || '');
+        setNotes(player.notes || '');
+      }
     }
   }, [mode, player, isOpen]);
 

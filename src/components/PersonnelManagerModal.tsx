@@ -66,7 +66,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
   } | null>(null);
 
   // Reset state when modal closes
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!isOpen) {
       setCreatePersonnelModalOpen(false);
       setSelectedPersonnelId(null);

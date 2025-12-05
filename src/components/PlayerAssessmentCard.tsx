@@ -38,7 +38,7 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
   const [notes, setNotes] = useState(assessment?.notes ?? '');
   const prev = useRef({ overall, sliders, notes });
 
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     setOverall(assessment?.overall ?? 5);
     setSliders(assessment?.sliders ?? initialSliders);
     setNotes(assessment?.notes ?? '');

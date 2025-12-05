@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Tournament, Player } from '@/types';
@@ -46,35 +46,37 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Initialize form when tournament changes or modal opens
-  useEffect(() => {
-    if (mode === 'create') {
-      // Reset form for create mode
-      setName('');
-      setLocation('');
-      setAgeGroup('');
-      setLevel('');
-      setPeriodCount(undefined);
-      setPeriodDuration(undefined);
-      setStartDate('');
-      setEndDate('');
-      setNotes('');
-      setAwardedPlayerId(undefined);
-      setArchived(false);
-      setErrorMessage(null);
-    } else if (tournament) {
-      // Load existing tournament data for edit mode
-      setName(tournament.name || '');
-      setLocation(tournament.location || '');
-      setAgeGroup(tournament.ageGroup || '');
-      setLevel(tournament.level || '');
-      setPeriodCount(tournament.periodCount);
-      setPeriodDuration(tournament.periodDuration);
-      setStartDate(tournament.startDate || '');
-      setEndDate(tournament.endDate || '');
-      setNotes(tournament.notes || '');
-      setAwardedPlayerId(tournament.awardedPlayerId);
-      setArchived(tournament.archived || false);
-      setErrorMessage(null);
+  React.useLayoutEffect(() => {
+    if (isOpen) {
+      if (mode === 'create') {
+        // Reset form for create mode
+        setName('');
+        setLocation('');
+        setAgeGroup('');
+        setLevel('');
+        setPeriodCount(undefined);
+        setPeriodDuration(undefined);
+        setStartDate('');
+        setEndDate('');
+        setNotes('');
+        setAwardedPlayerId(undefined);
+        setArchived(false);
+        setErrorMessage(null);
+      } else if (tournament) {
+        // Load existing tournament data for edit mode
+        setName(tournament.name || '');
+        setLocation(tournament.location || '');
+        setAgeGroup(tournament.ageGroup || '');
+        setLevel(tournament.level || '');
+        setPeriodCount(tournament.periodCount);
+        setPeriodDuration(tournament.periodDuration);
+        setStartDate(tournament.startDate || '');
+        setEndDate(tournament.endDate || '');
+        setNotes(tournament.notes || '');
+        setAwardedPlayerId(tournament.awardedPlayerId);
+        setArchived(tournament.archived || false);
+        setErrorMessage(null);
+      }
     }
   }, [mode, tournament, isOpen]);
 

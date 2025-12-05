@@ -125,7 +125,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   }, [actionsMenuTeamId]);
 
   // Reset state when modal closes
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!isOpen) {
       setUnifiedModalOpen(false);
       setSelectedTeamId(null);
@@ -136,7 +136,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   }, [isOpen]);
 
   // Load roster counts when modal opens or teams change
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     const loadRosterCounts = async () => {
       if (!isOpen) return;
       try {
