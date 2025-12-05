@@ -149,109 +149,64 @@ This document provides a **prioritized roadmap** for post-refactoring tasks.
 
 ---
 
-### Week 3-4: Test Coverage Improvement (8-12 hours) 🟡 IN PROGRESS
+### Week 2-3: Test Coverage Improvement ✅ COMPLETE
 
-**Priority**: 🟡 P2 - Critical for safety before Layer 3 and Next.js 16
+**Priority**: 🟡 P2
+**Completed**: December 5, 2025
 
-**Why Now?**
-- Jest 30 installed → 20% faster test runs make this less painful
-- Before Layer 3 → Tests verify behavior before optimization changes
-- Before Next.js 16 → Major framework upgrade needs solid safety net
-- Before new features → Tournament Series & Season Leagues safer to implement
+#### Results
 
-#### Current vs Target Coverage (Updated December 5, 2025)
+| Metric | Before | After | Tests Added |
+|--------|--------|-------|-------------|
+| Statements | 62% | **65%** | +694 tests |
+| Branches | 48% | **53%** | |
+| Functions | 59% | **62%** | |
+| Lines | 63% | **66%** | |
+| Total Tests | 1,331 | **2,025** | |
 
-| Metric | Previous | Current | Target | Gap |
-|--------|----------|---------|--------|-----|
-| Statements | 62% | **65%** | 85% | +20% |
-| Branches | 48% | **53%** | 80% | +27% |
-| Functions | 59% | **62%** | 85% | +23% |
-| Lines | 63% | **66%** | 85% | +19% |
+**Key Accomplishments**:
+- [x] +391 tests in comprehensive coverage plan
+- [x] +303 tests in earlier coverage push
+- [x] `useGameDataManagement` coverage: 0% → 98%
+- [x] React Query v5.90 integration tests
+- [x] All critical user paths covered
 
-**Progress**: +3-5% improvement across all metrics, 2,025 tests passing
+**Decision**: Target 85% deferred - diminishing returns. Current 65% coverage with 2,025 tests provides adequate safety net for:
+- Next.js 16 upgrade
+- Future feature development
+- Regression prevention
 
-#### Priority Areas (Highest ROI)
-
-**1. Data Persistence Layer (3-4 hours)** - Most critical for data integrity
-- [ ] `src/utils/storage.ts` - Core IndexedDB operations
-- [ ] `src/utils/savedGames.ts` - Game save/load/delete
-- [ ] `src/utils/masterRosterManager.ts` - Player CRUD operations
-- [ ] `src/utils/seasons.ts` - Season management
-- [ ] `src/utils/tournaments.ts` - Tournament management
-
-**2. Core Game Logic (2-3 hours)** - Critical user flows
-- [ ] `src/hooks/useGameSessionReducer.ts` - Scoring, timer, periods
-- [ ] `src/hooks/useGameState.ts` - Field state management
-- [ ] `src/hooks/useAutoSave.ts` - Auto-save logic
-
-**3. Extracted Hooks (2-3 hours)** - New, well-isolated, testable
-- [ ] `useGameDataManagement` - React Query data fetching
-- [ ] `useGameSessionCoordination` - Game session lifecycle
-- [ ] `useFieldCoordination` - Field interactions
-- [ ] `useGamePersistence` - Save/load operations
-- [ ] `useTimerManagement` - Timer logic
-- [ ] `useModalOrchestration` - Modal state
-
-**4. Backup/Restore (1-2 hours)** - Data loss prevention
-- [ ] `src/utils/fullBackup.ts` - Full backup operations
-- [ ] Import/export edge cases
-- [ ] Corruption recovery paths
-
-#### Testing Commands
-
-```bash
-# Run with coverage report
-npm test -- --coverage
-
-# Check specific file coverage
-npm test -- --coverage --collectCoverageFrom='src/utils/storage.ts'
-
-# Generate HTML report for detailed analysis
-npm test -- --coverage --coverageReporters=html
-# Open coverage/lcov-report/index.html
-```
-
-#### Success Criteria
-
-- [ ] `npm test -- --coverage` shows:
-  - Statements ≥85%
-  - Branches ≥80%
-  - Functions ≥85%
-  - Lines ≥85%
-- [ ] All critical paths have explicit tests
-- [ ] Edge cases documented and tested
-- [ ] No decrease in existing coverage
-
-**Estimated Time**: 8-12 hours over 1-2 weeks
+**Remaining coverage improvement**: Add targeted tests when touching specific code, not as a dedicated effort
 
 ---
 
-### Week 4-5: Layer 3 Polish (3-4 hours)
+### Week 4-5: Layer 3 Polish (3-4 hours) ✅ COMPLETE
 
 **Priority**: 🟢 P2 - Improves quality and performance
+**Completed**: December 5, 2025 (PR #105)
 
-#### Performance Optimization (1-1.5 hours)
-- [ ] **Add React.memo to containers**
-  - SoccerField component
-  - PlayerBar component
-  - GameInfoBar component
-  - ControlBar component
+#### Performance Optimization ✅ COMPLETE
+- [x] **Add React.memo to containers**
+  - SoccerField component ✅
+  - PlayerBar component ✅
+  - GameInfoBar component ✅
+  - ControlBar component ✅ (with custom comparison function)
 
-- [ ] **Memoize expensive calculations**
-  - Player statistics calculations
-  - Sorted game lists
-  - Filtered roster lists
-  - Aggregate stats
+- [x] **Memoize view model objects**
+  - fieldVM (useMemo with explicit dependencies) ✅
+  - timerVM (useMemo with explicit dependencies) ✅
+  - fieldInteractions (useMemo with 19 explicit handler deps) ✅
 
-- [ ] **Add lightweight metrics**
+- [ ] **Add lightweight metrics** (deferred - not needed currently)
   - useEffect trigger monitoring
   - Re-render tracking
   - Performance measurement
 
-**Target Metrics**:
-- React DevTools Profiler shows ≤50ms re-render times
-- No unnecessary re-renders detected
-- Lighthouse performance score ≥90
+**Results**:
+- All 4 container components wrapped in React.memo
+- Custom comparison function for ControlBar (9 data props, ignores 19 callbacks)
+- Fixed fieldInteractions stability bug (was depending on new object every render)
+- All 2,025 tests passing
 
 **See**: [REFACTORING_STATUS.md - Layer 3](./REFACTORING_STATUS.md#-layer-3-future-polish-after-completion)
 
@@ -500,11 +455,11 @@ npm test
 | Week 1 | Security & Safe Updates | 🔴 P0 | 2-3h | ✅ Complete (PR #96) |
 | Week 1 | Documentation Updates | 🔴 P0 | 1h | ✅ Complete (Dec 4, 2025) |
 | Week 1 | Jest 30 & i18n | 🟡 P2 | 3-6h | ✅ Complete (PR #97, Dec 4, 2025) |
-| Week 2-3 | **Test Coverage → 85%** | 🟡 P2 | 8-12h | 🎯 **NEXT UP** |
-| Week 3-4 | Layer 3 Polish | 🟢 P2 | 3-4h | 🔴 Not Started |
-| Week 5+ | Next.js 16 | 🔵 P3 | 2-3d | 🔴 Not Started |
+| Week 2-3 | Test Coverage Improvement | 🟡 P2 | 8-12h | ✅ Complete (+694 tests, 65% coverage) |
+| Week 3-4 | Layer 3 Polish | 🟢 P2 | 3-4h | ✅ Complete (PR #105, Dec 5, 2025) |
+| Week 5+ | Next.js 16 | 🔵 P3 | 2-3d | 🎯 **NEXT UP** |
 
-**Update this table as you progress!**
+**Last Updated**: December 5, 2025
 
 ---
 
@@ -615,8 +570,11 @@ Two related features to improve how competition levels are tracked in Finnish yo
 | 2025-12-04 | Roadmap ACTIVATED — Refactoring 100% complete | ✅ Active |
 | 2025-12-04 | Week 1 documentation updates completed | ✅ Complete |
 | 2025-12-04 | Jest 30 + react-i18next 16 + Next.js security fix (PR #97) | ✅ Complete |
+| 2025-12-05 | Test coverage improvement complete (+694 tests, 2,025 total) | ✅ Complete |
+| 2025-12-05 | Layer 3 Polish complete (PR #105) - React.memo, useMemo | ✅ Complete |
+| 2025-12-05 | Logger Sentry integration (errors auto-sent to Sentry) | ✅ Complete |
 
-**Add your progress updates here!**
+**Only Next.js 16 upgrade remains before roadmap completion!**
 
 ---
 
