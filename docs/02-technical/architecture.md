@@ -41,7 +41,7 @@ MatchOps-Local is built on **local-first principles** with a **progressive enhan
 
 ## Technology Stack & Rationale
 
-### Frontend Framework: Next.js 15 with App Router
+### Frontend Framework: Next.js 16 with App Router
 **Why Next.js?**
 - **Performance**: Built-in optimizations for bundle size and loading
 - **PWA Support**: Excellent service worker and manifest integration

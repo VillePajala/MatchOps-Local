@@ -7,10 +7,10 @@ jest.mock('@/utils/storage', () => {
     getStorageJSON: jest.fn(async (_key: string, opts?: any) => opts?.defaultValue ?? null),
   };
 });
-// eslint-disable-next-line no-console
+ 
 // @ts-ignore
 console.error = jest.fn();
-// eslint-disable-next-line no-console
+ 
 // @ts-ignore
 console.warn = jest.fn();
 

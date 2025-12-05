@@ -32,7 +32,7 @@
 - [x] React Query 5.90.11
 - [x] Jest 30.2.0
 - [x] react-i18next 16.3.5
-- [x] Next.js 15.5.7 (security fix)
+- [x] Next.js 16 (upgraded from 15.5.7)
 - [x] npm audit: 0 vulnerabilities
 
 ### Infrastructure (September-October 2025)

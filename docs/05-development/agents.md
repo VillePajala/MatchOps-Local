@@ -1,6 +1,6 @@
 # AGENTS Instructions
 
-This repository uses Node.js 20, Next.js 15 and React 19 with TypeScript. Follow these guidelines when using Codex with this code base.
+This repository uses Node.js 20, Next.js 16 and React 19 with TypeScript. Follow these guidelines when using Codex with this code base.
 
 ## Repository Context
 - Local-first PWA for a single soccer coach. No backend, no multi-tenant, no auth flows. All state lives in IndexedDB via `src/utils/storage.ts`.

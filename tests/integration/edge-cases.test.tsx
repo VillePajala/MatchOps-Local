@@ -3,10 +3,9 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '../utils/test-utils';
-import { 
-  createMockPlayers, 
+import {
   createMockFieldPlayers,
-  mockLocalStorageQuotaExceeded 
+  mockLocalStorageQuotaExceeded
 } from '../utils/test-utils';
 import HomePage from '@/components/HomePage';
 import SoccerField from '@/components/SoccerField';
@@ -358,7 +357,7 @@ describe('Edge Cases and Error Handling Tests', () => {
       const buttons = screen.getAllByRole('button').filter(btn => !(btn as HTMLButtonElement).disabled);
       
       // Simulate rapid concurrent operations
-      const promises = buttons.slice(0, 3).map(async (button, index) => {
+      const promises = buttons.slice(0, 3).map(async (button) => {
         for (let i = 0; i < 5; i++) {
           fireEvent.click(button);
           await new Promise(resolve => setTimeout(resolve, 1));

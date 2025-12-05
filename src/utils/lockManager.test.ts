@@ -260,9 +260,9 @@ describe('LockManager', () => {
       const resource1 = 'resource-1';
       const resource2 = 'resource-2';
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       const _release1 = await lockManager.acquire(resource1);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       const _release2 = await lockManager.acquire(resource2);
 
       expect(lockManager.isLocked(resource1)).toBe(true);

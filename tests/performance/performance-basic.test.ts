@@ -120,7 +120,7 @@ describe('Performance Tests - Basic', () => {
     });
 
     it('should handle concurrent operations efficiently', async () => {
-      const operations = Array.from({ length: 10 }, async (_, i) => {
+      const operations = Array.from({ length: 10 }, async () => {
         const players = createMockPlayers(50);
         await new Promise(resolve => setTimeout(resolve, 5)); // Simulate async work
         return players.length;

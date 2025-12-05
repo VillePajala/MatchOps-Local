@@ -421,12 +421,13 @@ export const triggerComponentError = (componentName: string) => {
   // Mock console.error to capture error boundary logs
   const originalConsoleError = console.error;
   console.error = jest.fn();
-  
-  // Throw an error to trigger error boundary
-  const ErrorComponent = () => {
+
+  // Note: ErrorComponent can be used to trigger error boundary in tests
+  // Usage: render(<ErrorComponent />) within an ErrorBoundary
+  const _ErrorComponent = () => {
     throw new Error(`Test error in ${componentName}`);
   };
-  
+
   return () => {
     console.error = originalConsoleError;
   };
