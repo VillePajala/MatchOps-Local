@@ -511,6 +511,166 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
 
                   const scoreDisplay = getScoreDisplay();
 
+                  // If editing this adjustment, show the edit form inline
+                  if (editingAdjId === a.id) {
+                    return (
+                      <form
+                        key={a.id}
+                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-800/60 p-4 rounded-lg border border-indigo-500"
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          if (!player) return;
+
+                          // Comprehensive Validation
+                          if (!editExternalTeam.trim() || !editOpponentName.trim()) {
+                            showToast(t('playerStats.requiredFields', 'Team and opponent names are required.'), 'error');
+                            return;
+                          }
+                          if (editGames < 0 || editGoals < 0 || editAssists < 0) {
+                            showToast(t('playerStats.negativeStatsError', 'Stats cannot be negative.'), 'error');
+                            return;
+                          }
+                          if (editGames === 0 && editGoals === 0 && editAssists === 0) {
+                            showToast(t('playerStats.emptyStatsError', 'Please enter at least one statistic (games, goals, or assists).'), 'error');
+                            return;
+                          }
+                          if (editGames > 0 && editGoals > editGames * 20) {
+                            showToast(t('playerStats.unrealisticGoalsError', 'Goals per game seems unrealistic. Please check your input.'), 'error');
+                            return;
+                          }
+                          if (editGames > 0 && editAssists > editGames * 20) {
+                            showToast(t('playerStats.unrealisticAssistsError', 'Assists per game seems unrealistic. Please check your input.'), 'error');
+                            return;
+                          }
+
+                          const updated = await updatePlayerAdjustment(player.id, editingAdjId, {
+                            gamesPlayedDelta: Math.max(0, Number(editGames) || 0),
+                            goalsDelta: Math.max(0, Number(editGoals) || 0),
+                            assistsDelta: Math.max(0, Number(editAssists) || 0),
+                            fairPlayCardsDelta: Math.max(0, Number(editFairPlayCards) || 0),
+                            note: editNote.trim() || undefined,
+                            homeOrAway: editHomeAway,
+                            externalTeamName: editExternalTeam.trim(),
+                            opponentName: editOpponentName.trim(),
+                            tournamentId: editTournamentId || undefined,
+                            gameDate: editGameDate || undefined,
+                            scoreFor: typeof editScoreFor === 'number' ? editScoreFor : undefined,
+                            scoreAgainst: typeof editScoreAgainst === 'number' ? editScoreAgainst : undefined,
+                            includeInSeasonTournament: editIncludeInSeasonTournament,
+                          });
+                          if (updated) {
+                            setAdjustments(prev => prev.map(x => x.id === updated.id ? updated : x));
+                            setEditingAdjId(null);
+                          }
+                        }}
+                      >
+                        <div>
+                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.homeAway', 'Home/Away')}</label>
+                          <select value={editHomeAway} onChange={e => setEditHomeAway(e.target.value as 'home' | 'away' | 'neutral')} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="home">{t('playerStats.home', 'Home')}</option>
+                            <option value="away">{t('playerStats.away', 'Away')}</option>
+                            <option value="neutral">{t('playerStats.neutral', 'Neutral')}</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.team', 'Team')} <span className="text-red-400">*</span></label>
+                          <input type="text" value={editExternalTeam} onChange={e => setEditExternalTeam(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" required />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.opponent', 'Opponent')} <span className="text-red-400">*</span></label>
+                          <input type="text" value={editOpponentName} onChange={e => setEditOpponentName(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" required />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.tournament', 'Tournament')}</label>
+                          <select value={editTournamentId} onChange={e => setEditTournamentId(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="">{t('playerStats.selectTournament', 'Select tournament (optional)')}</option>
+                            {tournaments.map(t => (
+                              <option key={t.id} value={t.id}>{t.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="lg:col-span-2">
+                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.score', 'Score')}</label>
+                          <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+                            <span>{editHomeAway === 'away' ? (editOpponentName || t('playerStats.opponent', 'Opponent')) : (editExternalTeam || t('playerStats.team', 'Team'))}</span>
+                            <span>{editHomeAway === 'away' ? (editExternalTeam || t('playerStats.team', 'Team')) : (editOpponentName || t('playerStats.opponent', 'Opponent'))}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <input type="number" inputMode="numeric" pattern="[0-9]*" value={editHomeAway === 'away' ? editScoreAgainst : editScoreFor} onChange={e => {
+                              const val = e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0);
+                              void (editHomeAway === 'away' ? setEditScoreAgainst(val) : setEditScoreFor(val));
+                            }} className="w-16 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-1 text-sm" placeholder="0" min="0" />
+                            <span className="mx-1 text-lg font-bold">-</span>
+                            <input type="number" inputMode="numeric" pattern="[0-9]*" value={editHomeAway === 'away' ? editScoreFor : editScoreAgainst} onChange={e => {
+                              const val = e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0);
+                              void (editHomeAway === 'away' ? setEditScoreFor(val) : setEditScoreAgainst(val));
+                            }} className="w-16 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-1 text-sm" placeholder="0" min="0" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gameDate', 'Game date')}</label>
+                          <input type="date" value={editGameDate} onChange={e => setEditGameDate(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gamesPlayed', 'Games')}</label>
+                          <div className="flex items-center gap-2">
+                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditGames(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                            <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editGames)} onChange={e => setEditGames(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
+                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditGames(v => (Number(v) || 0) + 1)}>+</button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.goals', 'Goals')}</label>
+                          <div className="flex items-center gap-2">
+                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditGoals(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                            <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editGoals)} onChange={e => setEditGoals(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
+                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditGoals(v => (Number(v) || 0) + 1)}>+</button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.assists', 'Assists')}</label>
+                          <div className="flex items-center gap-2">
+                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditAssists(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                            <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editAssists)} onChange={e => setEditAssists(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
+                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditAssists(v => (Number(v) || 0) + 1)}>+</button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.fairPlayCards', 'Fair Play Cards')}</label>
+                          <div className="flex items-center gap-2">
+                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditFairPlayCards(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                            <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editFairPlayCards)} onChange={e => setEditFairPlayCards(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
+                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditFairPlayCards(v => (Number(v) || 0) + 1)}>+</button>
+                          </div>
+                        </div>
+                        <div className="lg:col-span-3">
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={editIncludeInSeasonTournament}
+                              onChange={(e) => setEditIncludeInSeasonTournament(e.target.checked)}
+                              className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-600 border-slate-500 rounded"
+                            />
+                            <span className="text-xs text-slate-400">
+                              {t('playerStats.includeInSeasonTournament', 'Include in season/tournament statistics')}
+                            </span>
+                          </label>
+                          <p className="text-xs text-slate-500 mt-1 ml-6">
+                            {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
+                          </p>
+                        </div>
+                        <div className="lg:col-span-3">
+                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.note', 'Note')}</label>
+                          <input type="text" value={editNote} onChange={e => setEditNote(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t('playerStats.noteOptional', 'Optional note about this game') as string} />
+                        </div>
+                        <div className="lg:col-span-3 flex justify-end gap-3 pt-2">
+                          <button type="button" onClick={() => setEditingAdjId(null)} className="px-4 py-2 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600 text-sm font-medium">{t('common.cancel', 'Cancel')}</button>
+                          <button type="submit" className="px-4 py-2 bg-indigo-600 rounded hover:bg-indigo-500 text-sm font-medium">{t('common.save', 'Save')}</button>
+                        </div>
+                      </form>
+                    );
+                  }
+
                   return (
                     <div key={a.id} className="bg-slate-700/40 p-3 rounded-lg border border-slate-600/50">
                       {/* Header with date and association */}
@@ -635,162 +795,6 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 })}
             </div>
           </div>
-        )}
-
-        {editingAdjId && showExternalGames && (
-          <form
-            className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-800/60 p-4 rounded-lg border border-slate-600"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              if (!player) return;
-              
-              // Comprehensive Validation
-              if (!editExternalTeam.trim() || !editOpponentName.trim()) {
-                showToast(t('playerStats.requiredFields', 'Team and opponent names are required.'), 'error');
-                return;
-              }
-              if (editGames < 0 || editGoals < 0 || editAssists < 0) {
-                showToast(t('playerStats.negativeStatsError', 'Stats cannot be negative.'), 'error');
-                return;
-              }
-              if (editGames === 0 && editGoals === 0 && editAssists === 0) {
-                showToast(t('playerStats.emptyStatsError', 'Please enter at least one statistic (games, goals, or assists).'), 'error');
-                return;
-              }
-              if (editGames > 0 && editGoals > editGames * 20) {
-                showToast(t('playerStats.unrealisticGoalsError', 'Goals per game seems unrealistic. Please check your input.'), 'error');
-                return;
-              }
-              if (editGames > 0 && editAssists > editGames * 20) {
-                showToast(t('playerStats.unrealisticAssistsError', 'Assists per game seems unrealistic. Please check your input.'), 'error');
-                return;
-              }
-              
-              const updated = await updatePlayerAdjustment(player.id, editingAdjId, {
-                gamesPlayedDelta: Math.max(0, Number(editGames) || 0),
-                goalsDelta: Math.max(0, Number(editGoals) || 0),
-                assistsDelta: Math.max(0, Number(editAssists) || 0),
-                fairPlayCardsDelta: Math.max(0, Number(editFairPlayCards) || 0),
-                note: editNote.trim() || undefined,
-                homeOrAway: editHomeAway,
-                externalTeamName: editExternalTeam.trim(),
-                opponentName: editOpponentName.trim(),
-                tournamentId: editTournamentId || undefined,
-                gameDate: editGameDate || undefined,
-                scoreFor: typeof editScoreFor === 'number' ? editScoreFor : undefined,
-                scoreAgainst: typeof editScoreAgainst === 'number' ? editScoreAgainst : undefined,
-                includeInSeasonTournament: editIncludeInSeasonTournament,
-              });
-              if (updated) {
-                setAdjustments(prev => prev.map(x => x.id === updated.id ? updated : x));
-                setEditingAdjId(null);
-              }
-            }}
-          >
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.homeAway', 'Home/Away')}</label>
-              <select value={editHomeAway} onChange={e => setEditHomeAway(e.target.value as 'home' | 'away' | 'neutral')} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
-                <option value="home">{t('playerStats.home', 'Home')}</option>
-                <option value="away">{t('playerStats.away', 'Away')}</option>
-                <option value="neutral">{t('playerStats.neutral', 'Neutral')}</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.team', 'Team')} <span className="text-red-400">*</span></label>
-              <input type="text" value={editExternalTeam} onChange={e => setEditExternalTeam(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" required />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.opponent', 'Opponent')} <span className="text-red-400">*</span></label>
-              <input type="text" value={editOpponentName} onChange={e => setEditOpponentName(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" required />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.tournament', 'Tournament')}</label>
-              <select value={editTournamentId} onChange={e => setEditTournamentId(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500">
-                <option value="">{t('playerStats.selectTournament', 'Select tournament (optional)')}</option>
-                {tournaments.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="lg:col-span-2">
-              <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.score', 'Score')}</label>
-              <div className="flex justify-between text-[10px] text-slate-400 mb-1">
-                <span>{editHomeAway === 'away' ? (editOpponentName || t('playerStats.opponent', 'Opponent')) : (editExternalTeam || t('playerStats.team', 'Team'))}</span>
-                <span>{editHomeAway === 'away' ? (editExternalTeam || t('playerStats.team', 'Team')) : (editOpponentName || t('playerStats.opponent', 'Opponent'))}</span>
-              </div>
-              <div className="flex items-center gap-2" aria-label={`${editHomeAway === 'away' ? (editOpponentName || t('playerStats.opponent', 'Opponent')) : (editExternalTeam || t('playerStats.team', 'Team'))} - ${editHomeAway === 'away' ? (editExternalTeam || t('playerStats.team', 'Team')) : (editOpponentName || t('playerStats.opponent', 'Opponent'))}`}>
-                <input aria-label={`${editHomeAway === 'away' ? (editOpponentName || t('playerStats.opponent', 'Opponent')) : (editExternalTeam || t('playerStats.team', 'Team'))} ${t('playerStats.goals', 'Goals')}`} type="number" inputMode="numeric" pattern="[0-9]*" value={editHomeAway === 'away' ? editScoreAgainst : editScoreFor} onChange={e => {
-                  const val = e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0);
-                  void (editHomeAway === 'away' ? setEditScoreAgainst(val) : setEditScoreFor(val));
-                }} className="w-16 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-1 text-sm" placeholder="0" min="0" />
-                <span className="mx-1 text-lg font-bold">-</span>
-                <input aria-label={`${editHomeAway === 'away' ? (editExternalTeam || t('playerStats.team', 'Team')) : (editOpponentName || t('playerStats.opponent', 'Opponent'))} ${t('playerStats.goals', 'Goals')}`} type="number" inputMode="numeric" pattern="[0-9]*" value={editHomeAway === 'away' ? editScoreFor : editScoreAgainst} onChange={e => {
-                  const val = e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0);
-                  void (editHomeAway === 'away' ? setEditScoreFor(val) : setEditScoreAgainst(val));
-                }} className="w-16 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-1 text-sm" placeholder="0" min="0" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gameDate', 'Game date')}</label>
-              <input type="date" value={editGameDate} onChange={e => setEditGameDate(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gamesPlayed', 'Games')}</label>
-              <div className="flex items-center gap-2">
-                <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditGames(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
-                <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editGames)} onChange={e => setEditGames(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditGames(v => (Number(v) || 0) + 1)}>+</button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.goals', 'Goals')}</label>
-              <div className="flex items-center gap-2">
-                <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditGoals(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
-                <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editGoals)} onChange={e => setEditGoals(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditGoals(v => (Number(v) || 0) + 1)}>+</button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.assists', 'Assists')}</label>
-              <div className="flex items-center gap-2">
-                <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditAssists(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
-                <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editAssists)} onChange={e => setEditAssists(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditAssists(v => (Number(v) || 0) + 1)}>+</button>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.fairPlayCards', 'Fair Play Cards')}</label>
-              <div className="flex items-center gap-2">
-                <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditFairPlayCards(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
-                <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editFairPlayCards)} onChange={e => setEditFairPlayCards(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditFairPlayCards(v => (Number(v) || 0) + 1)}>+</button>
-              </div>
-            </div>
-            <div className="lg:col-span-3">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={editIncludeInSeasonTournament}
-                  onChange={(e) => setEditIncludeInSeasonTournament(e.target.checked)}
-                  className="form-checkbox h-4 w-4 text-indigo-600 bg-slate-600 border-slate-500 rounded"
-                />
-                <span className="text-xs text-slate-400">
-                  {t('playerStats.includeInSeasonTournament', 'Include in season/tournament statistics')}
-                </span>
-              </label>
-              <p className="text-xs text-slate-500 mt-1 ml-6">
-                {t('playerStats.includeInSeasonTournamentHelp', 'Check this if the external game was played for the same team')}
-              </p>
-            </div>
-            <div className="lg:col-span-3">
-              <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.note', 'Note')}</label>
-              <input type="text" value={editNote} onChange={e => setEditNote(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t('playerStats.noteOptional', 'Optional note about this game') as string} />
-            </div>
-            <div className="lg:col-span-3 flex justify-end gap-3 pt-2">
-              <button type="button" onClick={() => setEditingAdjId(null)} className="px-4 py-2 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600 text-sm font-medium">{t('common.cancel', 'Cancel')}</button>
-              <button type="submit" className="px-4 py-2 bg-indigo-600 rounded hover:bg-indigo-500 text-sm font-medium">{t('common.save', 'Save')}</button>
-            </div>
-          </form>
         )}
             </div>
           )}
