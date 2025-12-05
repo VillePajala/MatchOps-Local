@@ -19,7 +19,7 @@ async function createTransparentLogo() {
     // Check if source file exists
     try {
       await fs.access(sourceImage);
-    } catch (error) {
+    } catch {
       throw new Error(`Source image not found: ${sourceImage}`);
     }
     

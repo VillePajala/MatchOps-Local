@@ -84,7 +84,7 @@ function isRedColor(r, g, b) {
 
 // Convert red to yellow while preserving saturation and lightness
 function redToYellow(r, g, b) {
-  const [h, s, l] = rgbToHsl(r, g, b);
+  const [, s, l] = rgbToHsl(r, g, b);
 
   // Yellow hue is around 50 degrees (yellow-400: #FBBF24)
   const yellowHue = 48;

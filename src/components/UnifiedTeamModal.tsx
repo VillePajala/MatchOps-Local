@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Team, Player, Tournament, Season } from '@/types';
@@ -90,7 +90,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   });
 
   // Initialize form when modal opens or team changes
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     if (isOpen) {
       if (mode === 'create') {
         // Reset for create mode
@@ -120,7 +120,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
 
   // Pre-select existing roster players when in edit mode
   // Match by name since roster uses team-local IDs, not master roster IDs
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     if (mode === 'edit' && existingRoster.length > 0 && masterRoster.length > 0) {
       const teamPlayerNames = new Set(existingRoster.map(p => normalizeName(p.name)));
       const matchedMasterIds = masterRoster
@@ -131,7 +131,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   }, [mode, existingRoster, masterRoster]);
 
   // Clear duplicate error when name changes
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     if (duplicateError) {
       setDuplicateError(null);
     }

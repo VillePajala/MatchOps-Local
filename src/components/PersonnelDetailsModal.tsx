@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Personnel, PersonnelRole } from '@/types/personnel';
@@ -48,25 +48,27 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Initialize form when personnel changes or modal opens
-  useEffect(() => {
-    if (mode === 'create') {
-      // Reset form for create mode
-      setName('');
-      setRole('head_coach');
-      setPhone('');
-      setEmail('');
-      setCertificationsText('');
-      setNotes('');
-      setErrorMessage(null);
-    } else if (personnel) {
-      // Load existing personnel data for edit mode
-      setName(personnel.name || '');
-      setRole(personnel.role);
-      setPhone(personnel.phone || '');
-      setEmail(personnel.email || '');
-      setCertificationsText((personnel.certifications || []).join('\n'));
-      setNotes(personnel.notes || '');
-      setErrorMessage(null);
+  React.useLayoutEffect(() => {
+    if (isOpen) {
+      if (mode === 'create') {
+        // Reset form for create mode
+        setName('');
+        setRole('head_coach');
+        setPhone('');
+        setEmail('');
+        setCertificationsText('');
+        setNotes('');
+        setErrorMessage(null);
+      } else if (personnel) {
+        // Load existing personnel data for edit mode
+        setName(personnel.name || '');
+        setRole(personnel.role);
+        setPhone(personnel.phone || '');
+        setEmail(personnel.email || '');
+        setCertificationsText((personnel.certifications || []).join('\n'));
+        setNotes(personnel.notes || '');
+        setErrorMessage(null);
+      }
     }
   }, [mode, personnel, isOpen]);
 

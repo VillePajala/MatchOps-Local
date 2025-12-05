@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { Player, Season, Tournament, Team, Personnel } from '@/types';
@@ -109,20 +109,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [showManageRosterConfirm, setShowManageRosterConfirm] = useState(false);
   const [emptyRosterTeamId, setEmptyRosterTeamId] = useState<string | null>(null);
 
-  // Track modal open count to reset form via key-like pattern
-  const [openCount, setOpenCount] = useState(0);
+  // Track if modal just opened - use layout effect to sync before paint
   const wasOpenRef = useRef(false);
+  const initializingRef = useRef(false);
 
-  // Detect when modal opens (transition from closed to open)
-  useEffect(() => {
-    if (isOpen && !wasOpenRef.current) {
-      // Modal just opened - increment count to trigger reset
-      setOpenCount(c => c + 1);
-    }
-    wasOpenRef.current = isOpen;
-  }, [isOpen]);
-
-  // Reset form state when openCount changes (modal opens)
+  // Memoize reset function
   const resetForm = useCallback(() => {
     setOpponentName('');
     setGameDate(new Date().toISOString().split('T')[0]);
@@ -147,8 +138,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     setTournamentLevel('');
   }, [masterRoster, initialPlayerSelection]);
 
-  useEffect(() => {
-    if (openCount > 0) {
+  // Initialize form when modal opens - using layout effect to avoid setState in regular effect
+  React.useLayoutEffect(() => {
+    if (isOpen && !wasOpenRef.current && !initializingRef.current) {
+      initializingRef.current = true;
       resetForm();
 
       // Load last home team name
@@ -164,9 +157,13 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       loadLastTeamName();
 
       // Focus on home team input
-      setTimeout(() => homeTeamInputRef.current?.focus(), 100);
+      setTimeout(() => {
+        homeTeamInputRef.current?.focus();
+        initializingRef.current = false;
+      }, 100);
     }
-  }, [openCount, resetForm, t]);
+    wasOpenRef.current = isOpen;
+  }, [isOpen, resetForm, t]);
 
 
 

@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState } from 'react';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { TIMER_STATE_KEY } from '@/config/storageKeys';
 import { setStorageJSON, getStorageJSON, removeStorageItem } from '@/utils/storage';
 import { useWakeLock } from './useWakeLock';
@@ -144,7 +144,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
   const [stableStartTime, setStableStartTime] = useState(state.timeElapsedInSeconds);
 
   // Update startTime when timer is not running (paused/stopped) to ensure proper synchronization
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!state.isTimerRunning && stableStartTime !== state.timeElapsedInSeconds) {
       setStableStartTime(state.timeElapsedInSeconds);
     }

@@ -73,7 +73,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
   const [showActionsMenu, setShowActionsMenu] = useState<string | null>(null);
   const [showExternalGames, setShowExternalGames] = useState(false);
 
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     getAppSettings().then(s => {
       setUseDemandCorrection(s.useDemandCorrection ?? false);
     });

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import type { PlayerAssessment, IntervalLog } from '@/types';
 import { getPlayerAssessments, savePlayerAssessment, deletePlayerAssessment } from '@/utils/playerAssessments';
 import logger from '@/utils/logger';
@@ -23,7 +23,7 @@ export function usePlayerAssessments(gameId: string, intervals?: IntervalLog[]) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!gameId) return;
     setLoading(true);
     getPlayerAssessments(gameId)

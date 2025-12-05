@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
@@ -102,11 +102,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
   const [pendingRestoreContent, setPendingRestoreContent] = useState<string | null>(null);
 
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     setTeamName(defaultTeamName);
   }, [defaultTeamName]);
 
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     if (isOpen) {
       // Load club season settings
       getAppSettings().then(settings => {

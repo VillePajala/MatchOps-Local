@@ -35,13 +35,11 @@ const eslintConfig = [
     },
     rules: {
       "react-hooks/exhaustive-deps": "error",
-      // React 19 eslint-plugin-react-hooks v7 new rules - set to warn for gradual adoption
-      // These flag patterns that work but could be improved. Warnings allow build while
-      // tracking technical debt. Re-evaluate after Layer 3 polish phase.
-      "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/refs": "warn",
-      "react-hooks/immutability": "warn",
-      "react-hooks/globals": "warn",
+      // React 19 eslint-plugin-react-hooks v7 new rules - enforce strictly
+      "react-hooks/set-state-in-effect": "error",
+      "react-hooks/refs": "error",
+      "react-hooks/immutability": "error",
+      "react-hooks/globals": "error",
       // Prevent direct console usage - use logger utility instead
       "no-console": "error",
       // Prevent localStorage usage - use storage helper instead (IndexedDB-only policy)

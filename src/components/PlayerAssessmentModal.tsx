@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ModalFooter } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import type { Player, PlayerAssessment } from '@/types';
@@ -49,7 +49,7 @@ const PlayerAssessmentModal: React.FC<PlayerAssessmentModalProps> = ({
   const { t } = useTranslation();
   const [savedIds, setSavedIds] = useState<string[]>([]);
 
-  useEffect(() => {
+  React.useLayoutEffect(() => {
     if (isOpen) {
       setSavedIds(Object.keys(assessments || {}));
     }
