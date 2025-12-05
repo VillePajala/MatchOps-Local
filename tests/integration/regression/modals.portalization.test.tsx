@@ -4,10 +4,10 @@ jest.mock('@/utils/storage', () => {
   const actual = jest.requireActual('@/utils/storage');
   return { ...actual, getStorageJSON: jest.fn(async (_k: string, opts?: any) => opts?.defaultValue ?? null) };
 });
-// eslint-disable-next-line no-console
+ 
 // @ts-ignore
 console.error = jest.fn();
-// eslint-disable-next-line no-console
+ 
 // @ts-ignore
 console.warn = jest.fn();
 
@@ -66,7 +66,6 @@ jest.mock('@/contexts/ToastProvider', () => {
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, f?: string) => f ?? k }) }));
 
 const noop = () => {};
-const noopAsync = async () => {};
 
 const createMutation = <T, V>(): UseMutationResult<T, Error, V, unknown> =>
   ({ mutate: jest.fn(), mutateAsync: jest.fn(), reset: jest.fn(), status: 'idle' } as unknown as UseMutationResult<T, Error, V, unknown>);

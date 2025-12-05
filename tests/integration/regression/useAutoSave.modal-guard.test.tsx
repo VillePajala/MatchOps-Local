@@ -1,7 +1,7 @@
 // Prevent i18n/storage side-effects (IndexedDB) during this focused test
 // Quieten environment-level IndexedDB bootstrap noise in this focused test
 // (setupTests installs strict console handlers; replace with no-op here)
-// eslint-disable-next-line no-console
+ 
 // @ts-ignore - test override
 console.error = jest.fn();
 

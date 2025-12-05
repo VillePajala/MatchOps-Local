@@ -116,7 +116,7 @@ const SimpleA11yTestComponent = () => (
 // Component with accessibility issues for testing violation detection
 const ComponentWithA11yIssues = () => (
   <div>
-    {/* Missing alt text */}
+    {/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text -- intentional a11y violation for test */}
     <img src="/logo.png" />
     
     {/* Missing label */}
@@ -230,13 +230,13 @@ describe('Accessibility Tests (Simplified)', () => {
       
       // Check sections are properly labeled by their headings
       const sections = screen.getAllByRole('region', { hidden: true });
-      const gameControlsSection = sections.find(section => 
+      const _gameControlsSection = sections.find(section =>
         (section as HTMLElement).getAttribute('aria-labelledby') === 'game-controls'
       );
-      const rosterSection = sections.find(section => 
+      const _rosterSection = sections.find(section =>
         (section as HTMLElement).getAttribute('aria-labelledby') === 'player-roster'
       );
-      
+
       // If sections don't exist, just verify the heading IDs are present
       expect(screen.getByText('Game Controls')).toHaveAttribute('id', 'game-controls');
       expect(screen.getByText('Player Roster')).toHaveAttribute('id', 'player-roster');

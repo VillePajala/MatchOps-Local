@@ -14,7 +14,7 @@
  * ```
  */
 
-import { Player, Season, Tournament, AppState, GameEvent } from '@/types';
+import type { Player as _Player, Season as _Season, Tournament as _Tournament, AppState, GameEvent as _GameEvent } from '@/types';
 export { TestIdGenerator, BaseFixture } from './base';
 
 // Import all fixture factories individually to avoid naming conflicts
@@ -208,7 +208,7 @@ export const TestFixtures = {
         games: Array.from({ length: gameCount }, (_, i) =>
           games.completed({ teamName: `Perf Team ${i + 1}` })
         ),
-        events: Array.from({ length: eventCount }, (_, i) =>
+        events: Array.from({ length: eventCount }, () =>
           games.createGoalEvent({ time: Math.floor(Math.random() * 2700) })
         ),
         metadata: {
