@@ -17,8 +17,6 @@
 | **UNIFIED-ROADMAP.md** | Master roadmap with all tasks |
 | master-execution-guide.md | Play Store release details |
 | TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md | Feature design |
-| team-final-positions-plan.md | Feature design |
-| personnel-comprehensive-plan-2025.md | Feature design |
 | SOCIAL_MEDIA_LAUNCH_STRATEGY.md | Marketing plan |
 | backend-evolution/ | Cloud backend architecture |
 
