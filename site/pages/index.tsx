@@ -323,6 +323,7 @@ export default function HomePage() {
       </section>
 
       {/* The Coach's Challenge - HIDDEN */}
+      {/* eslint-disable-next-line no-constant-binary-expression */}
       {false && (
       <section className="section section-divider bg-slate-800/50">
         <div className="container-custom">

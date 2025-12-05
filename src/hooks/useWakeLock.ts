@@ -3,9 +3,25 @@ import logger from '@/utils/logger';
 
 const MAX_RETRY_ATTEMPTS = 5;
 
+// Check support at module level (safe for SSR - returns false)
+const checkWakeLockSupport = (): boolean => {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return false;
+  }
+  return 'wakeLock' in navigator;
+};
+
 export const useWakeLock = () => {
   const [wakeLock, setWakeLock] = useState<WakeLockSentinel | null>(null);
-  const [isSupported, setIsSupported] = useState(false);
+
+  // Initialize support check with lazy initializer (React 19 compliant)
+  const [isSupported] = useState(() => {
+    const supported = checkWakeLockSupport();
+    if (!supported && typeof window !== 'undefined') {
+      logger.log('Screen Wake Lock API not supported.');
+    }
+    return supported;
+  });
 
   // Track desired state and retry count
   const desiredActiveRef = useRef(false);
@@ -18,14 +34,8 @@ export const useWakeLock = () => {
     wakeLockRef.current = wakeLock;
   }, [wakeLock]);
 
-  useEffect(() => {
-    // Check for support once on mount
-    const supported = 'wakeLock' in navigator;
-    setIsSupported(supported);
-    if (!supported) {
-      logger.log('Screen Wake Lock API not supported.');
-    }
-  }, []);
+  // Store request function in ref to allow recursive calls without stale closures
+  const requestWakeLockRef = useRef<(() => Promise<void>) | null>(null);
 
   // Extracted function to request wake lock with re-acquisition logic
   const requestWakeLock = useCallback(async () => {
@@ -47,8 +57,8 @@ export const useWakeLock = () => {
 
           // Use setTimeout to avoid rapid re-request loops
           retryTimeoutRef.current = setTimeout(() => {
-            if (desiredActiveRef.current) {
-              requestWakeLock();
+            if (desiredActiveRef.current && requestWakeLockRef.current) {
+              requestWakeLockRef.current();
             }
           }, 1000);
         } else if (retryCountRef.current >= MAX_RETRY_ATTEMPTS) {
@@ -66,6 +76,11 @@ export const useWakeLock = () => {
       }
     }
   }, [isSupported]);
+
+  // Keep ref in sync with callback (React 19 compliant - done in effect)
+  useEffect(() => {
+    requestWakeLockRef.current = requestWakeLock;
+  }, [requestWakeLock]);
 
   const syncWakeLock = useCallback(async (shouldBeActive: boolean) => {
     if (!isSupported) return;
