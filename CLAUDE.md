@@ -4,107 +4,30 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
-## 🔄 P0 REFACTORING 90% COMPLETE
+## ✅ Project Status: Healthy
 
-**Status**: 🟡 **90% COMPLETE** — Step 2.7 (useGameOrchestration cleanup) remaining
+**Last Updated**: December 5, 2025
 
-**Current State**:
-- ✅ HomePage.tsx reduced to **62 lines** (98.3% reduction!)
-- ✅ 6 hooks extracted and tested (61-100% coverage)
-- 🔴 **useGameOrchestration.ts still 2,199 lines** — needs cleanup (Step 2.7)
-- The hooks ARE being called, but duplicate code was never deleted
+### Quick Stats
+- ✅ **2,025 tests** passing
+- ✅ **0 security vulnerabilities**
+- ✅ **HomePage**: 62 lines (was 3,725)
+- ✅ **6 hooks** extracted and tested
+- ✅ **React.memo** optimization complete
 
-**Next Step**: [L2-2.7-useGameOrchestration-Cleanup-PLAN.md](./docs/03-active-plans/L2-2.7-useGameOrchestration-Cleanup-PLAN.md)
+### What's Complete
+- All P0/P1/P2 refactoring
+- NPM security updates (xlsx, Sentry, React Query, Jest 30, i18next 16, Next.js 15.5.7)
+- Layer 3 performance polish
+- Test coverage improvement (+694 tests)
 
-**Remaining Technical Debt**:
-- 🔴 **Step 2.7**: useGameOrchestration.ts cleanup (2,199 → ~200 lines) — **IN PROGRESS**
-- **P1**: GameSettingsModal.tsx (1,995 lines) — Deferred (after Step 2.7)
-- ~~**P2**: Silent error swallowing~~ — ✅ FIXED (December 2025)
-- **P2**: Re-render performance optimization — Deferred to Layer 3
-
-### What Was Accomplished
-
-| Priority | Issue | Status | Result |
-|----------|-------|--------|--------|
-| ~~**P0**~~ | ~~`HomePage.tsx` was 3,725 lines~~ | ✅ **COMPLETE** | Now **62 lines** (98.3% reduction!) |
-| **P0** | `useGameOrchestration.ts` still 2,199 lines | 🔴 **Step 2.7** | 6 hooks extracted but duplicates not deleted |
-| ~~**P1**~~ | ~~useAutoSave stale closure~~ | ✅ **COMPLETE** | Ref pattern implemented |
-| ~~**P1**~~ | ~~handleDeleteGameEvent race condition~~ | ✅ **COMPLETE** | Atomic action created |
-| ~~**P1**~~ | ~~modalManagerProps documentation~~ | ✅ **COMPLETE** | ADR-001 created |
-| **P1** | `GameSettingsModal.tsx` is 1,995 lines | ⏸️ Deferred | Low priority, can address later |
-| ~~**P2**~~ | ~~Modal state race conditions~~ | ✅ **COMPLETE** | Layer 2 modal reducer |
-| ~~**P2**~~ | ~~Silent error swallowing~~ | ✅ **COMPLETE** | December 2025 code review fix |
-| ~~**P2**~~ | ~~Memory leak (SoccerField cache)~~ | ✅ **COMPLETE** | LRU cache implemented |
-| ~~**P2**~~ | ~~JSON parsing validation~~ | ✅ **COMPLETE** | Graceful degradation pattern |
-| **P2** | Re-render performance | ⏸️ Deferred | Layer 3 polish |
-
-### What You Can Do NOW
-
-**✅ P0 COMPLETE — Major Development Speed Boost Unlocked!** 🚀
-
-The **critical** P0 refactoring is **COMPLETE**. You can now work on most tasks at full speed:
-
-- ✅ **Major features**: Go ahead — HomePage and hooks are clean
-- ✅ **New game modes**: Ready to implement
-- ✅ **Complex functionality**: Core codebase is maintainable and testable
-- ✅ **Bug fixes**: Easy to locate and fix
-- ✅ **Tests**: All 2,025 passing
-- ✅ **Production readiness**: Ready for security & service worker work
-
-**Remaining Considerations**:
-- 🟡 **GameSettingsModal** (1,995 lines): Still large but doesn't block development
-- 🟡 **Layer 3 Polish**: Performance optimization deferred but not blocking
-- ✅ **December 2025 Fixes**: Data integrity, error logging, memory leak all resolved
-
-### Why This Matters
-
-**What We've Achieved** ✅:
-- HomePage: 3,725 lines → **62 lines** (98.3% reduction!)
-- useGameOrchestration: Split into 6 focused hooks:
-  - useGameDataManagement (361 lines) ✅
-  - useGameSessionCoordination (480 lines) ✅
-  - useFieldCoordination (733 lines) ✅
-  - useGamePersistence (664 lines) ✅
-  - useTimerManagement (~250 lines) ✅
-  - useModalOrchestration (~500 lines) ✅
-- Container pattern: ✅ Complete
-- View-model pattern: ✅ Complete
-- Modal reducer: ✅ Complete
-- Architecture: ✅ Industry-standard React pattern
-- P1 fixes: ✅ All complete
-
-**Impact**:
-- Development velocity: **3-5x faster** ✅
-- Code maintainability: **Excellent** ✅
-- Testing: **Easy** ✅
-- Onboarding: **Simple** ✅
+### What's Next (Optional)
+- **Next.js 16** upgrade (stable, not urgent)
+- **New features**: Tournament Series, Team Positions, Personnel Management
 
 ### Essential Reading
-
-- **[REFACTORING_STATUS.md](./docs/03-active-plans/REFACTORING_STATUS.md)** ⭐ **START HERE** - Single source of truth
-- **[POST-REFACTORING-ROADMAP.md](./docs/03-active-plans/POST-REFACTORING-ROADMAP.md)** 🔜 **AFTER COMPLETION** - Week-by-week plan for tasks after refactoring
-- **[CRITICAL_FIXES_TRACKER.md](./docs/CRITICAL_FIXES_TRACKER.md)** - Detailed progress tracking
-- **[CRITICAL_FIXES_REQUIRED.md](./docs/CRITICAL_FIXES_REQUIRED.md)** - Original analysis (updated)
-- **[DOCUMENTATION_CLEANUP.md](./docs/03-active-plans/DOCUMENTATION_CLEANUP.md)** - File organization guide
-
-### When Starting Work
-
-**✅ Refactoring Complete — What's Next:**
-
-1. **Merge to master**: refactor/2.6-integration → master (ready now)
-2. **Follow**: [POST-REFACTORING-ROADMAP.md](./docs/03-active-plans/POST-REFACTORING-ROADMAP.md) for next steps
-3. **Priorities**:
-   - Security fixes (xlsx vulnerability)
-   - Service Worker improvements
-   - NPM updates (Sentry, React Query, Jest 30, Next.js 16)
-   - Layer 3 polish (performance, error handling)
-4. **Estimated effort**: 15-20 hours over 4-5 weeks
-
-**For Any New Work:**
-1. **Major features**: ✅ Full speed ahead — codebase is ready
-2. **Bug fixes**: ✅ Easy to locate and fix
-3. **Documentation**: ✅ Keep it updated
-4. **Tests**: ✅ Maintain 100% pass rate
+- **[UNIFIED-ROADMAP.md](./docs/03-active-plans/UNIFIED-ROADMAP.md)** ⭐ **Single source of truth**
+- **[master-execution-guide.md](./docs/03-active-plans/master-execution-guide.md)** — Play Store release plan
 
 ---
 
