@@ -297,7 +297,7 @@ const createFieldBackground = (
   return offscreenCanvas;
 };
 
-const SoccerField: React.FC<SoccerFieldProps> = ({
+const SoccerField: React.FC<SoccerFieldProps> = React.memo(({
   players,
   opponents,
   drawings,
@@ -1248,6 +1248,8 @@ const SoccerField: React.FC<SoccerFieldProps> = ({
       {/* Optional: Render player names/numbers as separate HTML elements over the canvas? */}
     </div>
   );
-};
+});
+
+SoccerField.displayName = 'SoccerField';
 
 export default SoccerField; 

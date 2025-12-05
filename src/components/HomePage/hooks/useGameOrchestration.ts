@@ -1766,27 +1766,50 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
   // timerInteractions now provided by useTimerManagement (Step 2.6.5)
 
+  // Memoize fieldVM to prevent unnecessary re-renders of SoccerField
+  const fieldVM = useMemo(() => ({
+    playersOnField: fieldCoordination.playersOnField,
+    opponents: fieldCoordination.opponents,
+    drawings: fieldCoordination.drawings,
+    isTacticsBoardView: fieldCoordination.isTacticsBoardView,
+    tacticalDrawings: fieldCoordination.tacticalDrawings,
+    tacticalDiscs: fieldCoordination.tacticalDiscs,
+    tacticalBallPosition: fieldCoordination.tacticalBallPosition,
+    draggingPlayerFromBarInfo: fieldCoordination.draggingPlayerFromBarInfo,
+    isDrawingEnabled: fieldCoordination.isDrawingEnabled,
+  }), [
+    fieldCoordination.playersOnField,
+    fieldCoordination.opponents,
+    fieldCoordination.drawings,
+    fieldCoordination.isTacticsBoardView,
+    fieldCoordination.tacticalDrawings,
+    fieldCoordination.tacticalDiscs,
+    fieldCoordination.tacticalBallPosition,
+    fieldCoordination.draggingPlayerFromBarInfo,
+    fieldCoordination.isDrawingEnabled,
+  ]);
+
+  // Memoize timerVM to prevent unnecessary re-renders of TimerOverlay
+  const timerVM = useMemo(() => ({
+    timeElapsedInSeconds,
+    isTimerRunning,
+    subAlertLevel,
+    lastSubConfirmationTimeSeconds,
+    showLargeTimerOverlay,
+    initialLoadComplete,
+  }), [
+    timeElapsedInSeconds,
+    isTimerRunning,
+    subAlertLevel,
+    lastSubConfirmationTimeSeconds,
+    showLargeTimerOverlay,
+    initialLoadComplete,
+  ]);
+
   const fieldContainerProps: FieldContainerProps = {
     gameSessionState,
-    fieldVM: {
-      playersOnField: fieldCoordination.playersOnField,
-      opponents: fieldCoordination.opponents,
-      drawings: fieldCoordination.drawings,
-      isTacticsBoardView: fieldCoordination.isTacticsBoardView,
-      tacticalDrawings: fieldCoordination.tacticalDrawings,
-      tacticalDiscs: fieldCoordination.tacticalDiscs,
-      tacticalBallPosition: fieldCoordination.tacticalBallPosition,
-      draggingPlayerFromBarInfo: fieldCoordination.draggingPlayerFromBarInfo,
-      isDrawingEnabled: fieldCoordination.isDrawingEnabled,
-    },
-    timerVM: {
-      timeElapsedInSeconds,
-      isTimerRunning,
-      subAlertLevel,
-      lastSubConfirmationTimeSeconds,
-      showLargeTimerOverlay,
-      initialLoadComplete,
-    },
+    fieldVM,
+    timerVM,
     currentGameId,
     availablePlayers,
     teams: gameDataManagement.teams,

@@ -36,7 +36,7 @@ interface PlayerBarProps {
 //   { id: 'p11', name: 'Player 11' },
 // ];
 
-const PlayerBar: React.FC<PlayerBarProps> = ({ players, onPlayerDragStartFromBar, selectedPlayerIdFromBar, onBarBackgroundClick, gameEvents, onPlayerTapInBar, onToggleGoalie }) => {
+const PlayerBar: React.FC<PlayerBarProps> = React.memo(({ players, onPlayerDragStartFromBar, selectedPlayerIdFromBar, onBarBackgroundClick, gameEvents, onPlayerTapInBar, onToggleGoalie }) => {
   /* Commented out - was used for animated text
   // Exact same gradient colors as StartScreen
   const logoGradientPrimary = `conic-gradient(from calc(var(--holo-angle, 0deg) + var(--holo-start, 0deg)) at 50% 50%,
@@ -175,6 +175,8 @@ const PlayerBar: React.FC<PlayerBarProps> = ({ players, onPlayerDragStartFromBar
       </div>
     </div>
   );
-};
+});
+
+PlayerBar.displayName = 'PlayerBar';
 
 export default PlayerBar; 
