@@ -11,6 +11,28 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  // Ignore build output, dependencies, and non-source files
+  {
+    ignores: [
+      ".next/**",
+      "node_modules/**",
+      "out/**",
+      "coverage/**",
+      "test-results/**",
+      "docs/**",
+      "__mocks__/**",
+      "types/**",
+      "tests/**",
+      "scripts/**",
+      "public/**",
+      "site/**",
+      "eslint/**",
+      "*.config.js",
+      "*.config.mjs",
+      "jest.setup.js",
+      "sentry.*.config.ts",
+    ],
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     plugins: {
