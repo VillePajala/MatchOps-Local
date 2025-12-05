@@ -140,13 +140,9 @@ describe('<RosterSettingsModal />', () => {
       </ToastProvider>
     );
 
-    // Open the actions menu for first player (P1)
-    const actionsButtons = screen.getAllByTitle('Actions');
-    fireEvent.click(actionsButtons[0]);
-
-    // Click Edit in the dropdown
-    const editButton = screen.getByRole('button', { name: /Edit/i });
-    fireEvent.click(editButton);
+    // Click on player name to open edit modal
+    const playerName = screen.getByText('Player One');
+    fireEvent.click(playerName);
 
     // Wait for edit modal to open
     await waitFor(() => {
