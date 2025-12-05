@@ -273,7 +273,7 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
             <div className="mt-2">
               <button
                 type="button"
-                className="text-sm px-3 py-1.5 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600"
+                className="text-sm px-3 py-1.5 bg-slate-700 text-slate-200 rounded border border-slate-600 hover:bg-slate-600"
                 onClick={() => setShowAdjForm(v => !v)}
               >
                 {t('playerStats.addExternalStats', 'Add external stats')}
