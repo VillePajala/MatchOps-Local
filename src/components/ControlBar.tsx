@@ -638,8 +638,17 @@ const ControlBar: React.FC<ControlBarProps> = React.memo(({
     </>
   );
 }, (prevProps, nextProps) => {
-  // Custom comparison: only compare data props, not callbacks (they're stable or we don't care about them)
-  // Return true if props are equal (skip re-render), false if props changed (do re-render)
+  // Custom comparison: only compare DATA props that affect render output.
+  // Callbacks are intentionally excluded because:
+  // 1. They don't affect what ControlBar displays (only data props do)
+  // 2. They're stable references (useCallback/useState setters)
+  // 3. Default shallow comparison of 28 props would defeat React.memo
+  //
+  // MAINTAINER NOTE: If you add a new DATA prop (not a callback), add it here!
+  // Current data props: timeElapsedInSeconds, isTimerRunning, canUndo, canRedo,
+  // canTacticalUndo, canTacticalRedo, isTacticsBoardView, isDrawingEnabled, isGameLoaded
+  //
+  // Return true = props equal (skip re-render), false = props changed (re-render)
   return (
     prevProps.timeElapsedInSeconds === nextProps.timeElapsedInSeconds &&
     prevProps.isTimerRunning === nextProps.isTimerRunning &&
