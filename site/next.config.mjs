@@ -2,18 +2,17 @@ import { createRequire } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import createMDX from '@next/mdx';
-import remarkGfm from 'remark-gfm';
-import rehypeSlug from 'rehype-slug';
-import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 
 const require = createRequire(import.meta.url);
 const { i18n } = require('./next-i18next.config.js');
 
+// Use string-based plugin references for Turbopack compatibility (Next.js 16+)
+// See: https://github.com/vercel/next.js/issues/71819
 const withMDX = createMDX({
   extension: /\.mdx?$/,
   options: {
-    remarkPlugins: [remarkGfm],
-    rehypePlugins: [rehypeSlug, rehypeAutolinkHeadings],
+    remarkPlugins: ['remark-gfm'],
+    rehypePlugins: ['rehype-slug', 'rehype-autolink-headings'],
   },
 });
 
