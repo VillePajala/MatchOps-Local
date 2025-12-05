@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/nextjs';
+
 /**
  * Type-safe logger interface with improved IDE support
  */
@@ -57,6 +59,19 @@ const logger: Logger = {
   },
   error: (message: string, ...data: unknown[]) => {
     console.error(message, ...data);
+
+    // Send to Sentry - extract Error object if present in data
+    const error = data.find((d): d is Error => d instanceof Error);
+    if (error) {
+      Sentry.captureException(error, {
+        extra: { message, data: data.filter(d => !(d instanceof Error)) },
+      });
+    } else {
+      Sentry.captureMessage(message, {
+        level: 'error',
+        extra: { data },
+      });
+    }
   },
 };
 
@@ -80,6 +95,7 @@ export function createLogger(namespace: string): Logger {
       logger.warn(`[${namespace}] ${message}`, ...data);
     },
     error: (message: string, ...data: unknown[]) => {
+      // Pass to base logger which handles Sentry
       logger.error(`[${namespace}] ${message}`, ...data);
     },
   };
