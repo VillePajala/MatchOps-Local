@@ -1293,6 +1293,7 @@
     "unrealisticGoalsError": "Goals per game seems unrealistic. Please check your input.",
     "unrealisticAssistsError": "Assists per game seems unrealistic. Please check your input.",
     "season": "Season",
+    "noSeason": "No season",
     "noSeasonsAvailable": "No seasons available",
     "homeAway": "Home/Away",
     "home": "Home",

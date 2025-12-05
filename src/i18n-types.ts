@@ -830,6 +830,7 @@ export type TranslationKey =
   | 'playerStats.negativeStatsError'
   | 'playerStats.neutral'
   | 'playerStats.noGames'
+  | 'playerStats.noSeason'
   | 'playerStats.noSeasonsAvailable'
   | 'playerStats.note'
   | 'playerStats.noteOptional'

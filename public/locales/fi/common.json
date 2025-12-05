@@ -1298,6 +1298,7 @@
     "unrealisticGoalsError": "Maalit per peli vaikuttaa epärealistiselta. Tarkista syötteesi.",
     "unrealisticAssistsError": "Syötöt per peli vaikuttaa epärealistiselta. Tarkista syötteesi.",
     "season": "Kausi",
+    "noSeason": "Ei kautta",
     "noSeasonsAvailable": "Kausia ei ole saatavilla",
     "homeAway": "Koti/Vieras",
     "home": "Koti",
