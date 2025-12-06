@@ -28,6 +28,13 @@ const translations: { [key: string]: string } = {
   'newGameSetupModal.confirmButton': 'Confirm & Start Game',
   'newGameSetupModal.errorHomeTeamRequired': 'Home Team Name is required.',
   'newGameSetupModal.unplayedToggle': 'Not played yet',
+  // Level translations for series
+  'common.levelKilpa': 'Competition',
+  'common.levelHarraste': 'Recreational',
+  'common.levelElite': 'Elite',
+  'common.levelHaaste': 'Challenger',
+  'common.selectSeries': '-- Select Series --',
+  'newGameSetupModal.seriesLabel': 'Series',
 };
 
 const mockT = jest.fn((key: string, fallback?: any) => {
@@ -234,5 +241,122 @@ describe('NewGameSetupModal', () => {
         fireEvent.click(cancelButton);
     });
     expect(mockOnCancel).toHaveBeenCalledTimes(1);
+  });
+
+  describe('Tournament Series Selection', () => {
+    const tournamentWithSeries = {
+      id: 'tournament-series',
+      name: 'League Cup',
+      series: [
+        { id: 'series-1', level: 'Kilpa' },
+        { id: 'series-2', level: 'Harraste' },
+      ],
+    };
+
+    const renderModalWithSeries = () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal
+            {...defaultProps}
+            tournaments={[...mockTournamentsData, tournamentWithSeries]}
+          />
+        </ToastProvider>
+      );
+    };
+
+    test('shows series dropdown when tournament with series is selected', async () => {
+      renderModalWithSeries();
+
+      // Switch to tournament tab
+      const tournamentTab = screen.getByRole('button', { name: /Tournament/i });
+      await act(async () => {
+        fireEvent.click(tournamentTab);
+      });
+
+      // Select the tournament with series (find by id since no associated label)
+      await waitFor(() => {
+        expect(document.getElementById('tournamentSelect')).toBeInTheDocument();
+      });
+      const tournamentSelect = document.getElementById('tournamentSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(tournamentSelect, { target: { value: 'tournament-series' } });
+      });
+
+      // Series dropdown should appear with translated level options
+      await waitFor(() => {
+        expect(screen.getByText('Competition')).toBeInTheDocument(); // Kilpa translated
+      });
+      expect(screen.getByText('Recreational')).toBeInTheDocument(); // Harraste translated
+    });
+
+    test('passes selected series ID to onStart callback', async () => {
+      renderModalWithSeries();
+
+      // Wait for home team name to load
+      const homeTeamInput = screen.getByRole('textbox', { name: /Your Team Name/i });
+      await waitFor(() => {
+        expect(homeTeamInput).toHaveValue('Last Team');
+      });
+
+      // Fill required opponent name
+      const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
+      fireEvent.change(opponentInput, { target: { value: 'Test Opponent' } });
+
+      // Switch to tournament tab and select tournament with series
+      const tournamentTab = screen.getByRole('button', { name: /Tournament/i });
+      await act(async () => {
+        fireEvent.click(tournamentTab);
+      });
+
+      await waitFor(() => {
+        expect(document.getElementById('tournamentSelect')).toBeInTheDocument();
+      });
+      const tournamentSelect = document.getElementById('tournamentSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(tournamentSelect, { target: { value: 'tournament-series' } });
+      });
+
+      // Wait for series dropdown to appear
+      await waitFor(() => {
+        expect(screen.getByText('Competition')).toBeInTheDocument();
+      });
+
+      // Find the series dropdown by id (shares id with level dropdown)
+      const seriesSelect = document.getElementById('tournamentLevelInput') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(seriesSelect, { target: { value: 'series-1' } });
+      });
+
+      // Submit the form
+      const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
+      await act(async () => {
+        fireEvent.click(startButton);
+      });
+
+      // Verify onStart was called with the series ID
+      await waitFor(() => {
+        expect(mockOnStart).toHaveBeenCalledWith(
+          expect.any(Array), // selectedPlayerIds
+          'Last Team', // homeTeamName
+          'Test Opponent', // opponentName
+          expect.any(String), // gameDate
+          expect.any(String), // gameLocation
+          expect.any(String), // gameTime
+          null, // seasonId
+          'tournament-series', // tournamentId
+          expect.any(Number), // numPeriods
+          expect.any(Number), // periodDuration
+          expect.any(String), // homeOrAway
+          expect.any(Number), // demandFactor
+          expect.any(String), // ageGroup
+          'Kilpa', // tournamentLevel (from series)
+          'series-1', // tournamentSeriesId - THE KEY ASSERTION
+          expect.any(Boolean), // isPlayed
+          null, // teamId
+          expect.any(Array), // availablePlayersForGame
+          expect.any(Array) // selectedPersonnelIds
+        );
+      });
+    });
   });
 });
