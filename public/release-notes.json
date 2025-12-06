@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix(tests): use querySelector for league select in tests"
+  "notes": "feat(LoadGameModal): show league and series badges on game cards"
 }

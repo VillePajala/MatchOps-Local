@@ -365,6 +365,7 @@ export type TranslationKey =
   | 'gameStatsModal.exportExcelButton'
   | 'gameStatsModal.exportJsonButton'
   | 'gameStatsModal.filterAllSeasons'
+  | 'gameStatsModal.filterAllSeries'
   | 'gameStatsModal.filterAllTournaments'
   | 'gameStatsModal.game'
   | 'gameStatsModal.gameInfoTitle'

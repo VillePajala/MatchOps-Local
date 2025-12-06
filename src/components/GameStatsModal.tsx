@@ -185,6 +185,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [selectedSeasonIdFilter, setSelectedSeasonIdFilter] = useState<string | 'all'>('all');
   const [selectedTournamentIdFilter, setSelectedTournamentIdFilter] = useState<string | 'all'>('all');
   const [selectedTeamIdFilter, setSelectedTeamIdFilter] = useState<string | 'all' | 'legacy'>('all');
+  const [selectedSeriesIdFilter, setSelectedSeriesIdFilter] = useState<string | 'all'>('all');
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(
     initialSelectedPlayerId ? availablePlayers.find(p => p.id === initialSelectedPlayerId) || null : null
@@ -307,9 +308,17 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   // Reset filters when tab changes
   useEffect(() => {
     if (activeTab !== 'season') setSelectedSeasonIdFilter('all');
-    if (activeTab !== 'tournament') setSelectedTournamentIdFilter('all');
+    if (activeTab !== 'tournament') {
+      setSelectedTournamentIdFilter('all');
+      setSelectedSeriesIdFilter('all');
+    }
     if (activeTab === 'currentGame' || activeTab === 'player') setSelectedTeamIdFilter('all');
   }, [activeTab]);
+
+  // Reset series filter when tournament changes
+  useEffect(() => {
+    setSelectedSeriesIdFilter('all');
+  }, [selectedTournamentIdFilter]);
 
   // --- Use extracted hooks ---
   const { stats: playerStats, gameIds: processedGameIds, totals } = useGameStats({
@@ -322,6 +331,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     selectedSeasonIdFilter,
     selectedTournamentIdFilter,
     selectedTeamIdFilter,
+    selectedSeriesIdFilter,
     sortColumn,
     sortDirection,
     filterText,
@@ -713,9 +723,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   selectedSeasonIdFilter={selectedSeasonIdFilter}
                   selectedTournamentIdFilter={selectedTournamentIdFilter}
                   selectedTeamIdFilter={selectedTeamIdFilter}
+                  selectedSeriesIdFilter={selectedSeriesIdFilter}
                   onSeasonFilterChange={setSelectedSeasonIdFilter}
                   onTournamentFilterChange={setSelectedTournamentIdFilter}
                   onTeamFilterChange={setSelectedTeamIdFilter}
+                  onSeriesFilterChange={setSelectedSeriesIdFilter}
                 />
               )}
 
