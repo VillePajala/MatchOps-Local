@@ -1,16 +1,40 @@
 import { TOURNAMENTS_LIST_KEY, SAVED_GAMES_KEY } from '@/config/storageKeys';
-import type { Tournament } from '@/types'; // Import Tournament type from shared types
+import type { Tournament, TournamentSeries } from '@/types'; // Import Tournament type from shared types
 import type { AppState } from '@/types/game';
 import logger from '@/utils/logger';
 import { getStorageItem, setStorageItem } from '@/utils/storage';
 import { withKeyLock } from './storageKeyLock';
 
-// Define the Tournament type (consider moving to a shared types file)
-// export interface Tournament { // Remove local definition
-//   id: string;
-//   name: string;
-//   // Add any other relevant tournament properties, e.g., date, location
-// }
+/**
+ * Migrates legacy tournament level to series format.
+ * Called during getTournaments() to ensure backwards compatibility.
+ *
+ * @remarks
+ * - If tournament already has series array with items, return as-is
+ * - If tournament has legacy `level` field but no series, create series array
+ * - If tournament has neither, return as-is
+ */
+function migrateTournamentLevel(tournament: Tournament): Tournament {
+  // If already has series with items, no migration needed
+  if (tournament.series && tournament.series.length > 0) {
+    return tournament;
+  }
+
+  // If has legacy level but no series, migrate
+  if (tournament.level) {
+    const newSeries: TournamentSeries = {
+      id: `series_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      level: tournament.level,
+    };
+    return {
+      ...tournament,
+      series: [newSeries],
+    };
+  }
+
+  // No level set, return as-is (series will be undefined)
+  return tournament;
+}
 
 /**
  * Retrieves all tournaments from storage.
@@ -41,7 +65,8 @@ export const getTournaments = async (): Promise<Tournament[]> => {
       return [];
     }
 
-    return parsed.map(t => ({
+    // Apply migration to convert legacy level to series format
+    return parsed.map(t => migrateTournamentLevel({
       ...t,
       level: t.level ?? undefined,
       ageGroup: t.ageGroup ?? undefined,

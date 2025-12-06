@@ -69,6 +69,11 @@ export interface AppState {
   seasonId: string;
   tournamentId: string;
   tournamentLevel?: string;
+  /**
+   * Tournament series ID - references TournamentSeries.id
+   * Used when tournament has multiple series defined
+   */
+  tournamentSeriesId?: string;
   /** Age group for the game, independent of tournament/season */
   ageGroup?: string;
   /** Difficulty weighting factor for demand-correction averages */
