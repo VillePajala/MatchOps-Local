@@ -71,6 +71,7 @@ describe('newGameHandlers', () => {
       demandFactor: 1,
       ageGroup: 'U12',
       tournamentLevel: 'regular',
+      tournamentSeriesId: null,
       isPlayed: true,
       teamId: null,
       availablePlayersForGame: mockPlayers,

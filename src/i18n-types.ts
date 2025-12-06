@@ -110,6 +110,7 @@ export type TranslationKey =
   | 'common.select'
   | 'common.selectAgeGroup'
   | 'common.selectLevel'
+  | 'common.selectSeries'
   | 'common.startNew'
   | 'common.stats'
   | 'common.ties'
