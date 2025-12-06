@@ -7,8 +7,9 @@ import { getTournaments, addTournament, updateTournament } from '../tournaments'
 import { getStorageItem, setStorageItem } from '../storage';
 import type { Tournament, TournamentSeries } from '@/types';
 
-// Mock storage
+// Mock storage with jest.requireActual for better isolation
 jest.mock('../storage', () => ({
+  ...jest.requireActual('../storage'),
   getStorageItem: jest.fn(),
   setStorageItem: jest.fn(),
 }));
