@@ -112,15 +112,8 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
     // Validate level is from allowed list (dropdown enforces this, but defensive check)
     if (!newSeriesLevel || !LEVELS.includes(newSeriesLevel)) return;
     // Generate unique ID - crypto.randomUUID available in all browsers supporting IndexedDB
-    let uniquePart: string;
-    try {
-      uniquePart = crypto.randomUUID().slice(0, 8);
-    } catch {
-      // Fallback for edge cases (shouldn't happen in supported browsers)
-      uniquePart = Math.random().toString(36).substring(2, 10);
-    }
     const newSeries: TournamentSeries = {
-      id: `series_${Date.now()}_${uniquePart}`,
+      id: `series_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`,
       level: newSeriesLevel,
     };
     setSeries([...series, newSeries]);
