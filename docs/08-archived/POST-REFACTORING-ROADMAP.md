@@ -536,9 +536,9 @@ Two related features to improve how competition levels are tracked in Finnish yo
 - **Files**: types, leagues.ts (new), seasons.ts, SeasonDetailsModal
 
 #### Deferred Considerations
-- **Gender handling**: Needs separate discussion on where gender should live
-- **Age group filtering**: Needs investigation on which leagues apply to which age groups
-- **Area-based filtering**: Split league selection into separate dropdowns for area (Itä, Länsi, Etelä, etc.) and level to reduce dropdown size and improve UX
+- **Gender handling** (HIGH PRIORITY): Add gender property to applicable entities (teams, seasons, players?). Needs design discussion on where gender should live and how it propagates through the system.
+- **Age group filtering**: Needs investigation on which leagues apply to which age groups. Want to implement but need to figure out the data model.
+- **Area-based filtering** (SeasonDetailsModal only): Split league selection into separate dropdowns for area (Itä, Länsi, Etelä) and level to make league selection more user-friendly. Only applies to season creation UI.
 
 **See design document for full details including data models, user flows, and file changes.**
 
