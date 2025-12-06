@@ -353,4 +353,237 @@ describe('LoadGameModal', () => {
       expect(mockHandlers.onLoad).toHaveBeenCalledWith('game_deleted_tournament');
     });
   });
+
+  /**
+   * Tests for league and series badge display
+   * @integration - Tests component interactions with domain logic
+   */
+  describe('league and series badge display', () => {
+    it('displays league badge for season games with leagueId', async () => {
+      const seasonsWithLeague: Season[] = [{
+        id: 'season_with_league',
+        name: 'Spring Season',
+        leagueId: 'sm-sarja', // National league
+      }];
+
+      const gameWithLeague: SavedGamesCollection = {
+        'game_with_league': {
+          teamName: 'League Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-03-15',
+          homeOrAway: 'home',
+          seasonId: 'season_with_league',
+          tournamentId: '',
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+
+      await renderModal({
+        savedGames: gameWithLeague,
+        seasons: seasonsWithLeague,
+      });
+
+      const gameCard = await screen.findByTestId('game-item-game_with_league');
+
+      // Season name badge should display
+      expect(within(gameCard).getByText('Spring Season')).toBeInTheDocument();
+
+      // League badge should display with full league name
+      expect(within(gameCard).getByText('Valtakunnallinen SM-sarja')).toBeInTheDocument();
+    });
+
+    it('does not display league badge when season has no leagueId', async () => {
+      const seasonWithoutLeague: Season[] = [{
+        id: 'season_no_league',
+        name: 'Casual Season',
+        // No leagueId set
+      }];
+
+      const gameWithoutLeague: SavedGamesCollection = {
+        'game_no_league': {
+          teamName: 'Casual Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-04-10',
+          homeOrAway: 'home',
+          seasonId: 'season_no_league',
+          tournamentId: '',
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+
+      await renderModal({
+        savedGames: gameWithoutLeague,
+        seasons: seasonWithoutLeague,
+      });
+
+      const gameCard = await screen.findByTestId('game-item-game_no_league');
+
+      // Season name should display
+      expect(within(gameCard).getByText('Casual Season')).toBeInTheDocument();
+
+      // League badge should NOT appear (no sm-sarja or similar text)
+      expect(within(gameCard).queryByText(/Valtakunnallinen/)).not.toBeInTheDocument();
+      expect(within(gameCard).queryByText(/Aluesarja/)).not.toBeInTheDocument();
+    });
+
+    it('displays series level badge for tournament games with valid tournamentSeriesId', async () => {
+      const tournamentsWithSeries: Tournament[] = [{
+        id: 'tourn_with_series',
+        name: 'Championship Cup',
+        series: [
+          { id: 'series_elite', level: 'Elite' },
+          { id: 'series_kilpa', level: 'Kilpa' },
+        ],
+      }];
+
+      const gameWithSeries: SavedGamesCollection = {
+        'game_with_series': {
+          teamName: 'Elite Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-05-20',
+          homeOrAway: 'away',
+          seasonId: '',
+          tournamentId: 'tourn_with_series',
+          tournamentSeriesId: 'series_elite',
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+
+      await renderModal({
+        savedGames: gameWithSeries,
+        tournaments: tournamentsWithSeries,
+      });
+
+      const gameCard = await screen.findByTestId('game-item-game_with_series');
+
+      // Tournament name badge should display
+      expect(within(gameCard).getByText('Championship Cup')).toBeInTheDocument();
+
+      // Series level badge should display (translation key pattern: common.levelElite)
+      expect(within(gameCard).getByText('common.levelElite')).toBeInTheDocument();
+    });
+
+    it('does not display series badge when tournament game has no tournamentSeriesId', async () => {
+      const tournamentsWithSeries: Tournament[] = [{
+        id: 'tourn_has_series',
+        name: 'Multi-Level Tournament',
+        series: [
+          { id: 'series_a', level: 'Elite' },
+          { id: 'series_b', level: 'Kilpa' },
+        ],
+      }];
+
+      const gameWithoutSeries: SavedGamesCollection = {
+        'game_no_series_id': {
+          teamName: 'No Series Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-06-15',
+          homeOrAway: 'home',
+          seasonId: '',
+          tournamentId: 'tourn_has_series',
+          // No tournamentSeriesId set
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+
+      await renderModal({
+        savedGames: gameWithoutSeries,
+        tournaments: tournamentsWithSeries,
+      });
+
+      const gameCard = await screen.findByTestId('game-item-game_no_series_id');
+
+      // Tournament name should display
+      expect(within(gameCard).getByText('Multi-Level Tournament')).toBeInTheDocument();
+
+      // Series level badge should NOT appear
+      expect(within(gameCard).queryByText(/common\.level/)).not.toBeInTheDocument();
+    });
+
+    it('does not display series badge when tournamentSeriesId references non-existent series', async () => {
+      const tournamentsWithSeries: Tournament[] = [{
+        id: 'tourn_missing_series',
+        name: 'Tournament Missing Series',
+        series: [
+          { id: 'series_exists', level: 'Kilpa' },
+        ],
+      }];
+
+      const gameWithOrphanSeries: SavedGamesCollection = {
+        'game_orphan_series': {
+          teamName: 'Orphan Series Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-07-10',
+          homeOrAway: 'home',
+          seasonId: '',
+          tournamentId: 'tourn_missing_series',
+          tournamentSeriesId: 'series_deleted', // This series doesn't exist
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+
+      await renderModal({
+        savedGames: gameWithOrphanSeries,
+        tournaments: tournamentsWithSeries,
+      });
+
+      const gameCard = await screen.findByTestId('game-item-game_orphan_series');
+
+      // Tournament name should display
+      expect(within(gameCard).getByText('Tournament Missing Series')).toBeInTheDocument();
+
+      // Series level badge should NOT appear (orphaned reference)
+      expect(within(gameCard).queryByText(/common\.level/)).not.toBeInTheDocument();
+    });
+
+    it('displays correct translation key format for series level badge', async () => {
+      // Test all level types to verify translation key pattern
+      const levels = ['Elite', 'Kilpa', 'Haaste', 'Harraste'];
+
+      for (const level of levels) {
+        const tournaments: Tournament[] = [{
+          id: `tourn_${level.toLowerCase()}`,
+          name: `${level} Tournament`,
+          series: [{ id: `series_${level.toLowerCase()}`, level }],
+        }];
+
+        const games: SavedGamesCollection = {
+          [`game_${level.toLowerCase()}`]: {
+            teamName: `${level} Team`,
+            opponentName: 'Opponent',
+            gameDate: '2024-08-01',
+            homeOrAway: 'home',
+            seasonId: '',
+            tournamentId: `tourn_${level.toLowerCase()}`,
+            tournamentSeriesId: `series_${level.toLowerCase()}`,
+            isPlayed: true,
+            selectedPlayerIds: ['p1'],
+            assessments: {},
+          } as unknown as AppState,
+        };
+
+        const { unmount } = await renderModal({
+          savedGames: games,
+          tournaments,
+        });
+
+        const gameCard = await screen.findByTestId(`game-item-game_${level.toLowerCase()}`);
+
+        // Verify translation key format: common.level${Level}
+        expect(within(gameCard).getByText(`common.level${level}`)).toBeInTheDocument();
+
+        unmount();
+      }
+    });
+  });
 });

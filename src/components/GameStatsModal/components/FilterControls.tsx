@@ -1,11 +1,12 @@
 /**
- * FilterControls component - displays filters for season, tournament, and team
+ * FilterControls component - displays filters for season, tournament, series, and team
  * Conditionally renders based on active tab
  */
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Season, Tournament, Team } from '@/types';
+import type { TranslationKey } from '@/i18n-types';
 import { StatsTab } from '../types';
 
 interface FilterControlsProps {
@@ -16,9 +17,11 @@ interface FilterControlsProps {
   selectedSeasonIdFilter: string | 'all';
   selectedTournamentIdFilter: string | 'all';
   selectedTeamIdFilter: string | 'all' | 'legacy';
+  selectedSeriesIdFilter: string | 'all';
   onSeasonFilterChange: (seasonId: string | 'all') => void;
   onTournamentFilterChange: (tournamentId: string | 'all') => void;
   onTeamFilterChange: (teamId: string | 'all' | 'legacy') => void;
+  onSeriesFilterChange: (seriesId: string | 'all') => void;
 }
 
 export function FilterControls({
@@ -29,18 +32,35 @@ export function FilterControls({
   selectedSeasonIdFilter,
   selectedTournamentIdFilter,
   selectedTeamIdFilter,
+  selectedSeriesIdFilter,
   onSeasonFilterChange,
   onTournamentFilterChange,
   onTeamFilterChange,
+  onSeriesFilterChange,
 }: FilterControlsProps) {
   const { t } = useTranslation();
 
+  // Get the selected tournament to show its series
+  const selectedTournament = selectedTournamentIdFilter !== 'all'
+    ? tournaments.find(tour => tour.id === selectedTournamentIdFilter)
+    : null;
+  const hasSeries = selectedTournament?.series && selectedTournament.series.length > 0;
+
   // Determine grid columns based on visible filters
-  // Season/Tournament tabs: Show both primary filter and team filter (if teams exist) = 2 columns
-  // Overall/CurrentGame tabs: Only team filter (if teams exist) = 1 column
+  // Tournament tab with series: 3 columns (tournament, series, team)
+  // Season/Tournament tabs without series: 2 columns
+  // Overall/CurrentGame tabs: 1 column
   const hasSeasonOrTournamentFilter = activeTab === 'season' || activeTab === 'tournament';
   const hasTeamFilter = teams.length > 0;
-  const gridCols = hasSeasonOrTournamentFilter && hasTeamFilter ? 'grid-cols-2' : 'grid-cols-1';
+
+  let gridCols = 'grid-cols-1';
+  if (activeTab === 'tournament' && hasSeries && hasTeamFilter) {
+    gridCols = 'grid-cols-3';
+  } else if (activeTab === 'tournament' && hasSeries) {
+    gridCols = 'grid-cols-2';
+  } else if (hasSeasonOrTournamentFilter && hasTeamFilter) {
+    gridCols = 'grid-cols-2';
+  }
 
   return (
     <div className={`mb-4 mx-1 grid ${gridCols} gap-2`}>
@@ -61,13 +81,32 @@ export function FilterControls({
       {activeTab === 'tournament' && (
         <select
           value={selectedTournamentIdFilter}
-          onChange={(e) => onTournamentFilterChange(e.target.value)}
+          onChange={(e) => {
+            onTournamentFilterChange(e.target.value);
+            // Reset series filter when tournament changes
+            onSeriesFilterChange('all');
+          }}
           className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
         >
           <option value="all">{t('gameStatsModal.filterAllTournaments', 'All Tournaments')}</option>
-          {tournaments.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
+          {tournaments.map((tour) => (
+            <option key={tour.id} value={tour.id}>
+              {tour.name}
+            </option>
+          ))}
+        </select>
+      )}
+      {/* Series filter - only show when a specific tournament with series is selected */}
+      {activeTab === 'tournament' && hasSeries && selectedTournament?.series && (
+        <select
+          value={selectedSeriesIdFilter}
+          onChange={(e) => onSeriesFilterChange(e.target.value)}
+          className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-amber-300 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500"
+        >
+          <option value="all">{t('gameStatsModal.filterAllSeries', 'All Series')}</option>
+          {selectedTournament.series.map((s) => (
+            <option key={s.id} value={s.id}>
+              {t(`common.level${s.level}` as TranslationKey, s.level)}
             </option>
           ))}
         </select>

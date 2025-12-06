@@ -8,6 +8,7 @@ import type { TranslationKey } from '@/i18n-types';
 import logger from '@/utils/logger';
 import { createEntityMaps, getDisplayNames } from '@/utils/entityLookup';
 import { getLeagueName } from '@/config/leagues';
+import { LEVELS } from '@/config/gameOptions';
 import {
   HiOutlineTrash,
   HiOutlineDocumentText,
@@ -287,11 +288,13 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             // Get league name for season games
             const leagueName = season?.leagueId ? getLeagueName(season.leagueId) : null;
 
-            // Get series level for tournament games
+            // Get series level for tournament games (with validation)
             const seriesLevel = (() => {
               if (!tournament || !game.tournamentSeriesId) return null;
               const series = tournament.series?.find(s => s.id === game.tournamentSeriesId);
-              return series?.level || null;
+              const level = series?.level;
+              // Validate level exists in LEVELS to ensure translation key exists
+              return level && LEVELS.includes(level) ? level : null;
             })();
 
             // Get live entity names (or fallback to snapshots)

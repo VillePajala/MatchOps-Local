@@ -30,6 +30,7 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
     selectedSeasonIdFilter,
     selectedTournamentIdFilter,
     selectedTeamIdFilter,
+    selectedSeriesIdFilter,
     sortColumn,
     sortDirection,
     filterText,
@@ -68,6 +69,7 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
         teamFilter: selectedTeamIdFilter,
         seasonFilter: activeTab === 'season' ? selectedSeasonIdFilter : undefined,
         tournamentFilter: activeTab === 'tournament' ? selectedTournamentIdFilter : undefined,
+        seriesFilter: activeTab === 'tournament' ? selectedSeriesIdFilter : undefined,
         activeTab
       });
 
@@ -197,6 +199,7 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
     selectedSeasonIdFilter,
     selectedTournamentIdFilter,
     selectedTeamIdFilter,
+    selectedSeriesIdFilter,
     currentGameId,
     selectedPlayerIds
   ]);
