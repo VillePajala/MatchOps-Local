@@ -948,6 +948,8 @@
     "notesPlaceholder": "Additional notes"
   },
   "seasonDetailsModal": {
+    "createTitle": "Create Season",
+    "editTitle": "Edit Season",
     "errors": {
       "duplicateName": "A season with this name already exists. Please choose a different name.",
       "createFailed": "Failed to create season. Please try again.",
@@ -978,6 +980,8 @@
     "archivedLabel": "Archived"
   },
   "tournamentDetailsModal": {
+    "createTitle": "Create Tournament",
+    "editTitle": "Edit Tournament",
     "errors": {
       "duplicateName": "A tournament with this name already exists. Please choose a different name.",
       "createFailed": "Failed to create tournament. Please try again.",

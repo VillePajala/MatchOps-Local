@@ -852,6 +852,8 @@
     }
   },
   "seasonDetailsModal": {
+    "createTitle": "Luo kausi",
+    "editTitle": "Muokkaa kautta",
     "title": "Kauden tiedot",
     "gameSingular": "Ottelu",
     "games": "Ottelua",
@@ -882,6 +884,8 @@
     }
   },
   "tournamentDetailsModal": {
+    "createTitle": "Luo turnaus",
+    "editTitle": "Muokkaa turnausta",
     "title": "Turnauksen tiedot",
     "gameSingular": "Ottelu",
     "games": "Ottelua",
