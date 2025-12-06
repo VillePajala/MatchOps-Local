@@ -80,6 +80,7 @@ export type TranslationKey =
   | 'common.goalsForShort'
   | 'common.goalsShort'
   | 'common.home'
+  | 'common.lastGame'
   | 'common.levelElite'
   | 'common.levelHaaste'
   | 'common.levelHarraste'
