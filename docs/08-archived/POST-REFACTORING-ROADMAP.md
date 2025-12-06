@@ -538,6 +538,7 @@ Two related features to improve how competition levels are tracked in Finnish yo
 #### Deferred Considerations
 - **Gender handling**: Needs separate discussion on where gender should live
 - **Age group filtering**: Needs investigation on which leagues apply to which age groups
+- **Area-based filtering**: Split league selection into separate dropdowns for area (Itä, Länsi, Etelä, etc.) and level to reduce dropdown size and improve UX
 
 **See design document for full details including data models, user flows, and file changes.**
 
