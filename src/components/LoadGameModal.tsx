@@ -4,8 +4,10 @@ import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SavedGamesCollection } from '@/types'; // Keep this if SavedGamesCollection is from here
 import { Season, Tournament, Team } from '@/types'; // Corrected import path
+import type { TranslationKey } from '@/i18n-types';
 import logger from '@/utils/logger';
 import { createEntityMaps, getDisplayNames } from '@/utils/entityLookup';
+import { getLeagueName } from '@/config/leagues';
 import {
   HiOutlineTrash,
   HiOutlineDocumentText,
@@ -282,6 +284,16 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             const season = game.seasonId ? entityMaps.seasons.get(game.seasonId) : null;
             const tournament = game.tournamentId ? entityMaps.tournaments.get(game.tournamentId) : null;
 
+            // Get league name for season games
+            const leagueName = season?.leagueId ? getLeagueName(season.leagueId) : null;
+
+            // Get series level for tournament games
+            const seriesLevel = (() => {
+              if (!tournament || !game.tournamentSeriesId) return null;
+              const series = tournament.series?.find(s => s.id === game.tournamentSeriesId);
+              return series?.level || null;
+            })();
+
             // Get live entity names (or fallback to snapshots)
             const { teamName: liveTeamName } = getDisplayNames(game, entityMaps);
 
@@ -425,17 +437,33 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                       )}
                     </div>
 
-                    {/* Right side: Season/Tournament badges */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Right side: Season/Tournament badges with league/series info */}
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      {/* Season badge with optional league */}
                       {season && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                          {season.name}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                            {season.name}
+                          </span>
+                          {leagueName && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                              {leagueName}
+                            </span>
+                          )}
+                        </div>
                       )}
+                      {/* Tournament badge with optional series level */}
                       {tournament && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                          {tournament.name}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                            {tournament.name}
+                          </span>
+                          {seriesLevel && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                              {t(`common.level${seriesLevel}` as TranslationKey, seriesLevel)}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
