@@ -261,11 +261,16 @@ Acceptance Criteria (for IndexedDB rollout)
 
 - Owner: TBD
 - Target Date: TBD
-- Estimated Duration: 16-24 weeks (4-6 months)
-- Complexity: High
-- Documentation: `backend-evolution/` folder
+- Estimated Duration: 4-6 weeks (Phases 1-3) + 3-4 weeks optional (Phase 4 Supabase)
+- Complexity: Medium (mostly refactoring existing code)
+- Documentation: `backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md` ⭐ **START HERE**
 
 **Overview**: Evolve from IndexedDB-only to dual-backend architecture supporting both local (free) and cloud (premium) modes.
+
+**December 2025 Update**: Code analysis revealed the original estimates were for theoretical design. Realistic implementation requires:
+- 50-72 hours total (~4-6 weeks)
+- 8 PRs for Phases 1-3 (backend switching capability)
+- 4 additional PRs for Phase 4 (Supabase, optional)
 
 **Business Context**:
 - **Free Tier**: Local mode (IndexedDB), full features, single device
@@ -481,7 +486,8 @@ Acceptance
   - personnel-implementation-plan.md (personnel management with real-time React Query updates - 8-10 hours)
   - personnel-feature-plan.md (older format, superseded by personnel-implementation-plan.md)
 - Backend Architecture Evolution (planned)
-  - backend-evolution/phased-implementation-roadmap.md ⚡ **START HERE - EXECUTION PLAN**
+  - backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md ⚡ **START HERE - PR-CHUNKED EXECUTION PLAN**
+  - backend-evolution/phased-implementation-roadmap.md (theoretical design - superseded by above)
   - backend-evolution/migration-strategy.md (data transformation: IndexedDB → Supabase)
   - 02-technical/architecture/dual-backend-architecture.md (comprehensive architecture design)
   - 02-technical/architecture/datastore-interface.md (unified data access API)

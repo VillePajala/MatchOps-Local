@@ -107,12 +107,28 @@
 
 ## 🔮 LONG-TERM (Not Scheduled)
 
-### Backend Evolution (4-6 months if pursued)
-**Doc**: `backend-evolution/` folder
+### Backend Evolution (50-72 hours / ~4 weeks if pursued)
+**Primary Doc**: `backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md` ⭐ **START HERE**
+**Theoretical Docs**: `backend-evolution/` folder
 
-- Cloud backend (Supabase PostgreSQL)
-- Multi-device sync
-- Premium tier with in-app purchase
+**What This Enables**:
+- Backend switching capability (IndexedDB ↔ Supabase)
+- Foundation for cloud features (multi-device sync, cloud backup)
+- Premium tier monetization path
+
+**Realistic PR Breakdown** (based on December 2025 code analysis):
+
+| Phase | PRs | Hours | Risk |
+|-------|-----|-------|------|
+| 1. Foundation (centralize storage calls) | #1-3 | 12-16h | LOW |
+| 2. DataStore Interface | #4-5 | 8-12h | LOW |
+| 3. LocalDataStore Implementation | #6-8 | 10-14h | MEDIUM |
+| 4. Supabase (optional, future) | #9-12 | 20-30h | MEDIUM |
+| **Total (Phase 1-3)** | 8 PRs | ~4 weeks | |
+
+**Key Insight**: Phases 1-3 provide backend switching capability WITHOUT requiring Supabase. Phase 4 is optional and can be done after Play Store release.
+
+**See**: [REALISTIC-IMPLEMENTATION-PLAN.md](./backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md) for detailed PR breakdown
 
 ### GameSettingsModal Refactoring (~1 hour)
 - Currently 1,969 lines

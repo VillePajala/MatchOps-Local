@@ -1,9 +1,14 @@
 # Phased Implementation Roadmap: Dual-Backend Evolution
 
-**Status**: Proposed Plan
-**Last Updated**: 2025-10-11
+**Status**: ⚠️ **SUPERSEDED** - See [REALISTIC-IMPLEMENTATION-PLAN.md](./REALISTIC-IMPLEMENTATION-PLAN.md) for PR-chunked execution plan
+**Last Updated**: 2025-10-11 (theoretical design) | 2025-12-06 (superseded notice added)
 **Purpose**: Detailed phase-by-phase execution plan for implementing dual-backend architecture
 **Related**: [Dual-Backend Architecture](../../02-technical/architecture/dual-backend-architecture.md) | [Migration Strategy](./migration-strategy.md) | [Master Execution Guide](../master-execution-guide.md)
+
+> **December 2025 Update**: This document contains the original **theoretical design** created in October 2025. After deep code analysis in December 2025, a more realistic PR-chunked implementation plan was created. **For actual implementation, use [REALISTIC-IMPLEMENTATION-PLAN.md](./REALISTIC-IMPLEMENTATION-PLAN.md)** which accounts for:
+> - Actual storage call patterns (195 calls across 26 files)
+> - Hook-level storage coupling that needs to be fixed first
+> - More accurate effort estimates (50-72 hours vs theoretical 144-212 hours)
 
 ## Overview
 

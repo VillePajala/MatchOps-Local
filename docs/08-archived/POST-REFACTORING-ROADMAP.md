@@ -544,6 +544,31 @@ Two related features to improve how competition levels are tracked in Finnish yo
 
 ---
 
+### Backend Abstraction (DataStore Interface)
+
+**Status**: 📋 Realistic implementation plan created (December 2025)
+**Primary Doc**: [REALISTIC-IMPLEMENTATION-PLAN.md](../03-active-plans/backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md) ⭐ **START HERE**
+**Theoretical Docs**: `docs/03-active-plans/backend-evolution/` folder
+
+**What This Enables**:
+- Backend switching capability (IndexedDB ↔ Supabase)
+- Foundation for cloud features (multi-device sync, cloud backup)
+- Premium tier monetization path
+
+**Realistic Effort** (based on December 2025 code analysis):
+
+| Phase | PRs | Hours | Risk |
+|-------|-----|-------|------|
+| 1. Foundation (centralize storage calls) | #1-3 | 12-16h | LOW |
+| 2. DataStore Interface | #4-5 | 8-12h | LOW |
+| 3. LocalDataStore Implementation | #6-8 | 10-14h | MEDIUM |
+| 4. Supabase (optional, future) | #9-12 | 20-30h | MEDIUM |
+| **Total (Phase 1-3)** | 8 PRs | ~4 weeks | |
+
+**Key Insight**: Phases 1-3 provide backend switching capability WITHOUT requiring Supabase. Phase 4 is optional and can be done after Play Store release.
+
+---
+
 ## 🔗 Related Documentation
 
 **Core Planning Documents:**
