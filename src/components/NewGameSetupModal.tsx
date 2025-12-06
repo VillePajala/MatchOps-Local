@@ -304,8 +304,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       setSelectedTournamentSeriesId(null);
       setGameLocation(tournament.location || '');
       setAgeGroup(tournament.ageGroup || '');
-      // If tournament has series, pre-select first one for better UX
-      // If no series but has legacy level, use that
+      // UX decision: Pre-select first series when tournament is selected.
+      // Rationale: Most tournaments have a single series (e.g., "Kilpa"), so auto-selecting
+      // reduces clicks. Users can still change via dropdown. Empty placeholder would require
+      // an extra click in the common case.
       if (tournament.series && tournament.series.length > 0) {
         const firstSeries = tournament.series[0];
         setTournamentLevel(firstSeries.level);
