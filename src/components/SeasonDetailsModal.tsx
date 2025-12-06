@@ -86,6 +86,13 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   const handleSave = () => {
     if (!name.trim()) return;
 
+    // Validate custom league name if "Muu" is selected (min 2 chars)
+    const trimmedCustomLeague = customLeagueName.trim();
+    if (leagueId === 'muu' && trimmedCustomLeague.length > 0 && trimmedCustomLeague.length < 2) {
+      setErrorMessage(t('seasonDetailsModal.errors.customLeagueTooShort', 'Custom league name must be at least 2 characters.'));
+      return;
+    }
+
     // Sanitize period values
     const sanitizedPeriodCount = periodCount === 1 || periodCount === 2 ? periodCount : undefined;
     const sanitizedPeriodDuration = periodDuration && periodDuration > 0 ? periodDuration : undefined;
@@ -105,7 +112,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         notes: notes.trim() || undefined,
         archived,
         leagueId: leagueId || undefined,
-        customLeagueName: leagueId === 'muu' ? customLeagueName.trim() || undefined : undefined,
+        customLeagueName: leagueId === 'muu' ? trimmedCustomLeague || undefined : undefined,
       };
 
       addSeasonMutation.mutate(newSeason, {
@@ -138,7 +145,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         notes: notes.trim() || undefined,
         archived,
         leagueId: leagueId || undefined,
-        customLeagueName: leagueId === 'muu' ? customLeagueName.trim() || undefined : undefined,
+        customLeagueName: leagueId === 'muu' ? trimmedCustomLeague || undefined : undefined,
       };
 
       updateSeasonMutation.mutate(updatedSeason, {
@@ -256,10 +263,11 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
 
               {/* Age Group */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label htmlFor="season-age-group" className="block text-sm font-medium text-slate-300 mb-1">
                   {t('seasonDetailsModal.ageGroupLabel', 'Age Group')}
                 </label>
                 <select
+                  id="season-age-group"
                   value={ageGroup}
                   onChange={(e) => setAgeGroup(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
@@ -273,10 +281,11 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
 
               {/* League Selection */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
+                <label htmlFor="season-league" className="block text-sm font-medium text-slate-300 mb-1">
                   {t('seasonDetailsModal.leagueLabel', 'League')}
                 </label>
                 <select
+                  id="season-league"
                   value={leagueId}
                   onChange={(e) => {
                     setLeagueId(e.target.value);
@@ -303,6 +312,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                     value={customLeagueName}
                     onChange={(e) => setCustomLeagueName(e.target.value)}
                     placeholder={t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name')}
+                    maxLength={50}
+                    minLength={2}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>

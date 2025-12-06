@@ -307,8 +307,9 @@ describe('SeasonDetailsModal', () => {
       // Custom league input should not be visible initially
       expect(screen.queryByPlaceholderText(i18n.t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name'))).not.toBeInTheDocument();
 
-      // Select "Muu (vapaa kuvaus)"
-      const leagueSelect = screen.getByDisplayValue('-- Select League --');
+      // Select "Muu (vapaa kuvaus)" - find select by its label
+      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
+      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
       await user.selectOptions(leagueSelect, 'muu');
 
       // Custom league input should now be visible
@@ -322,8 +323,11 @@ describe('SeasonDetailsModal', () => {
         renderWithProviders();
       });
 
+      // Find select by its label
+      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
+      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+
       // Select "Muu" and enter custom name
-      const leagueSelect = screen.getByDisplayValue('-- Select League --');
       await user.selectOptions(leagueSelect, 'muu');
 
       const customInput = screen.getByPlaceholderText(i18n.t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name'));
@@ -347,8 +351,11 @@ describe('SeasonDetailsModal', () => {
         });
       });
 
+      // Find select by its label
+      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
+      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+
       // Select a league
-      const leagueSelect = screen.getByDisplayValue('-- Select League --');
       await user.selectOptions(leagueSelect, 'sm-sarja');
 
       // Click save
@@ -359,6 +366,7 @@ describe('SeasonDetailsModal', () => {
       const [[firstArg]] = (updateMutation.mutate as jest.Mock).mock.calls;
       expect(firstArg).toMatchObject({
         leagueId: 'sm-sarja',
+        customLeagueName: undefined, // Verify cleanup logic clears custom name
       });
     });
 
@@ -372,8 +380,11 @@ describe('SeasonDetailsModal', () => {
         });
       });
 
+      // Find select by its label
+      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
+      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+
       // Select "Muu" and enter custom name
-      const leagueSelect = screen.getByDisplayValue('-- Select League --');
       await user.selectOptions(leagueSelect, 'muu');
 
       const customInput = screen.getByPlaceholderText(i18n.t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name'));
@@ -401,9 +412,10 @@ describe('SeasonDetailsModal', () => {
         renderWithProviders({ season: seasonWithLeague });
       });
 
-      // League should be pre-selected
-      const leagueSelect = screen.getByDisplayValue('Harrastesarja (Palloliitto)');
-      expect(leagueSelect).toBeInTheDocument();
+      // Find select by its label and verify value
+      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
+      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+      expect(leagueSelect.value).toBe('harrastesarja');
     });
 
     it('loads existing customLeagueName when editing season with custom league', async () => {
@@ -417,11 +429,12 @@ describe('SeasonDetailsModal', () => {
         renderWithProviders({ season: seasonWithCustomLeague });
       });
 
-      // League should be pre-selected to "Muu"
-      const leagueSelect = screen.getByDisplayValue('Muu (vapaa kuvaus)');
-      expect(leagueSelect).toBeInTheDocument();
+      // Find select by its label and verify value is "muu"
+      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
+      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+      expect(leagueSelect.value).toBe('muu');
 
-      // Custom name should be populated
+      // Custom name input should be visible and populated
       const customInput = screen.getByDisplayValue('My Special League');
       expect(customInput).toBeInTheDocument();
     });
