@@ -877,6 +877,10 @@
     "notesLabel": "Muistiinpanot",
     "notesPlaceholder": "Kirjoita muistiinpanoja",
     "archivedLabel": "Arkistoitu",
+    "leagueLabel": "Sarja",
+    "selectLeague": "-- Valitse sarja --",
+    "customLeagueLabel": "Oma sarjan nimi",
+    "customLeaguePlaceholder": "Kirjoita sarjan nimi",
     "errors": {
       "duplicateName": "Kausi tällä nimellä on jo olemassa. Valitse eri nimi.",
       "createFailed": "Kauden luominen epäonnistui. Yritä uudelleen.",

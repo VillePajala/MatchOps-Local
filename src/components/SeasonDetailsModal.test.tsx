@@ -280,4 +280,150 @@ describe('SeasonDetailsModal', () => {
     expect(screen.getByDisplayValue('1')).toBeInTheDocument();
     expect(screen.getByDisplayValue('25')).toBeInTheDocument();
   });
+
+  describe('League Selection', () => {
+    it('renders league dropdown with Finnish youth leagues', async () => {
+      await act(async () => {
+        renderWithProviders();
+      });
+
+      // Find the league dropdown by label
+      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
+      expect(leagueLabel).toBeInTheDocument();
+
+      // Check some league options are present
+      expect(screen.getByText('Valtakunnallinen SM-sarja')).toBeInTheDocument();
+      expect(screen.getByText('Harrastesarja (Palloliitto)')).toBeInTheDocument();
+      expect(screen.getByText('Muu (vapaa kuvaus)')).toBeInTheDocument();
+    });
+
+    it('shows custom league input when "Muu" is selected', async () => {
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders();
+      });
+
+      // Custom league input should not be visible initially
+      expect(screen.queryByPlaceholderText(i18n.t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name'))).not.toBeInTheDocument();
+
+      // Select "Muu (vapaa kuvaus)"
+      const leagueSelect = screen.getByDisplayValue('-- Select League --');
+      await user.selectOptions(leagueSelect, 'muu');
+
+      // Custom league input should now be visible
+      expect(screen.getByPlaceholderText(i18n.t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name'))).toBeInTheDocument();
+    });
+
+    it('clears custom league name when switching from "Muu" to another league', async () => {
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders();
+      });
+
+      // Select "Muu" and enter custom name
+      const leagueSelect = screen.getByDisplayValue('-- Select League --');
+      await user.selectOptions(leagueSelect, 'muu');
+
+      const customInput = screen.getByPlaceholderText(i18n.t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name'));
+      await user.type(customInput, 'My Custom League');
+      expect(customInput).toHaveValue('My Custom League');
+
+      // Switch to a different league
+      await user.selectOptions(leagueSelect, 'sm-sarja');
+
+      // Custom input should be hidden
+      expect(screen.queryByPlaceholderText(i18n.t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name'))).not.toBeInTheDocument();
+    });
+
+    it('saves leagueId when league is selected', async () => {
+      const updateMutation = mockMutation();
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders({
+          updateSeasonMutation: updateMutation as unknown as UseMutationResult<Season | null, Error, Season, unknown>,
+        });
+      });
+
+      // Select a league
+      const leagueSelect = screen.getByDisplayValue('-- Select League --');
+      await user.selectOptions(leagueSelect, 'sm-sarja');
+
+      // Click save
+      const saveButton = screen.getByRole('button', { name: i18n.t('common.save', 'Save') });
+      await user.click(saveButton);
+
+      expect(updateMutation.mutate).toHaveBeenCalled();
+      const [[firstArg]] = (updateMutation.mutate as jest.Mock).mock.calls;
+      expect(firstArg).toMatchObject({
+        leagueId: 'sm-sarja',
+      });
+    });
+
+    it('saves customLeagueName when "Muu" is selected', async () => {
+      const updateMutation = mockMutation();
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders({
+          updateSeasonMutation: updateMutation as unknown as UseMutationResult<Season | null, Error, Season, unknown>,
+        });
+      });
+
+      // Select "Muu" and enter custom name
+      const leagueSelect = screen.getByDisplayValue('-- Select League --');
+      await user.selectOptions(leagueSelect, 'muu');
+
+      const customInput = screen.getByPlaceholderText(i18n.t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name'));
+      await user.type(customInput, 'Custom Youth League');
+
+      // Click save
+      const saveButton = screen.getByRole('button', { name: i18n.t('common.save', 'Save') });
+      await user.click(saveButton);
+
+      expect(updateMutation.mutate).toHaveBeenCalled();
+      const [[firstArg]] = (updateMutation.mutate as jest.Mock).mock.calls;
+      expect(firstArg).toMatchObject({
+        leagueId: 'muu',
+        customLeagueName: 'Custom Youth League',
+      });
+    });
+
+    it('loads existing leagueId when editing season with league', async () => {
+      const seasonWithLeague: Season = {
+        ...mockSeason,
+        leagueId: 'harrastesarja',
+      };
+
+      await act(async () => {
+        renderWithProviders({ season: seasonWithLeague });
+      });
+
+      // League should be pre-selected
+      const leagueSelect = screen.getByDisplayValue('Harrastesarja (Palloliitto)');
+      expect(leagueSelect).toBeInTheDocument();
+    });
+
+    it('loads existing customLeagueName when editing season with custom league', async () => {
+      const seasonWithCustomLeague: Season = {
+        ...mockSeason,
+        leagueId: 'muu',
+        customLeagueName: 'My Special League',
+      };
+
+      await act(async () => {
+        renderWithProviders({ season: seasonWithCustomLeague });
+      });
+
+      // League should be pre-selected to "Muu"
+      const leagueSelect = screen.getByDisplayValue('Muu (vapaa kuvaus)');
+      expect(leagueSelect).toBeInTheDocument();
+
+      // Custom name should be populated
+      const customInput = screen.getByDisplayValue('My Special League');
+      expect(customInput).toBeInTheDocument();
+    });
+  });
 });

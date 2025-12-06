@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Season } from '@/types';
 import { UseMutationResult } from '@tanstack/react-query';
 import { AGE_GROUPS } from '@/config/gameOptions';
+import { FINNISH_YOUTH_LEAGUES } from '@/config/leagues';
 
 interface SeasonDetailsModalProps {
   isOpen: boolean;
@@ -38,6 +39,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   const [endDate, setEndDate] = useState('');
   const [notes, setNotes] = useState('');
   const [archived, setArchived] = useState(false);
+  const [leagueId, setLeagueId] = useState('');
+  const [customLeagueName, setCustomLeagueName] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Initialize form when season changes or modal opens
@@ -54,6 +57,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         setEndDate('');
         setNotes('');
         setArchived(false);
+        setLeagueId('');
+        setCustomLeagueName('');
         setErrorMessage(null);
       } else if (season) {
         // Load existing season data for edit mode
@@ -66,6 +71,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         setEndDate(season.endDate || '');
         setNotes(season.notes || '');
         setArchived(season.archived || false);
+        setLeagueId(season.leagueId || '');
+        setCustomLeagueName(season.customLeagueName || '');
         setErrorMessage(null);
       }
     }
@@ -97,6 +104,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         endDate: endDate || undefined,
         notes: notes.trim() || undefined,
         archived,
+        leagueId: leagueId || undefined,
+        customLeagueName: leagueId === 'muu' ? customLeagueName.trim() || undefined : undefined,
       };
 
       addSeasonMutation.mutate(newSeason, {
@@ -128,6 +137,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         endDate: endDate || undefined,
         notes: notes.trim() || undefined,
         archived,
+        leagueId: leagueId || undefined,
+        customLeagueName: leagueId === 'muu' ? customLeagueName.trim() || undefined : undefined,
       };
 
       updateSeasonMutation.mutate(updatedSeason, {
@@ -259,6 +270,43 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                   ))}
                 </select>
               </div>
+
+              {/* League Selection */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  {t('seasonDetailsModal.leagueLabel', 'League')}
+                </label>
+                <select
+                  value={leagueId}
+                  onChange={(e) => {
+                    setLeagueId(e.target.value);
+                    // Clear custom name when selecting a non-custom league
+                    if (e.target.value !== 'muu') setCustomLeagueName('');
+                  }}
+                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="">{t('seasonDetailsModal.selectLeague', '-- Select League --')}</option>
+                  {FINNISH_YOUTH_LEAGUES.map(league => (
+                    <option key={league.id} value={league.id}>{league.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Custom League Name - shown when "Muu" selected */}
+              {leagueId === 'muu' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    {t('seasonDetailsModal.customLeagueLabel', 'Custom League Name')}
+                  </label>
+                  <input
+                    type="text"
+                    value={customLeagueName}
+                    onChange={(e) => setCustomLeagueName(e.target.value)}
+                    placeholder={t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name')}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+              )}
 
               {/* Start Date and End Date */}
               <div className="grid grid-cols-2 gap-3">

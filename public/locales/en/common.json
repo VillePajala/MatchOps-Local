@@ -977,7 +977,11 @@
     "badgePlaceholder": "e.g., ⭐",
     "notesLabel": "Notes",
     "notesPlaceholder": "Enter any notes",
-    "archivedLabel": "Archived"
+    "archivedLabel": "Archived",
+    "leagueLabel": "League",
+    "selectLeague": "-- Select League --",
+    "customLeagueLabel": "Custom League Name",
+    "customLeaguePlaceholder": "Enter league name"
   },
   "tournamentDetailsModal": {
     "createTitle": "Create Tournament",
