@@ -124,6 +124,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     setGameMinute('');
     setSelectedSeasonId(null);
     setSelectedTournamentId(null);
+    setSelectedTournamentSeriesId(null);
     setSelectedTeamId(null);
     setLocalNumPeriods(2);
     setLocalPeriodDurationString('15');
@@ -303,6 +304,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   const handleTournamentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
+    // Clear series selection when tournament changes (prevents stale reference)
+    setSelectedTournamentSeriesId(null);
+    setTournamentLevel('');
     if (value) {
       setSelectedTournamentId(value);
       setSelectedSeasonId(null);
@@ -358,7 +362,20 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         showToast(t('newGameSetupModal.invalidPeriodDuration', 'Period duration must be a positive number.'), 'error');
         return;
     }
-    
+
+    // Validate tournamentSeriesId exists in the selected tournament (if provided)
+    // This prevents saving orphaned references if series was deleted after selection
+    let validatedSeriesId = selectedTournamentSeriesId;
+    if (validatedSeriesId && selectedTournamentId) {
+      const tournament = tournaments.find(t => t.id === selectedTournamentId);
+      const seriesExists = tournament?.series?.some(s => s.id === validatedSeriesId);
+      if (!seriesExists) {
+        // Series no longer exists in tournament - clear the reference
+        validatedSeriesId = null;
+        logger.warn(`Tournament series ${selectedTournamentSeriesId} not found in tournament ${selectedTournamentId}, clearing reference`);
+      }
+    }
+
     // --- Save last used home team name using utility function ---
     try {
       await utilSaveLastHomeTeamName(trimmedHomeTeamName);
@@ -384,7 +401,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       demandFactor,
       ageGroup,
       tournamentLevel,
-      selectedTournamentSeriesId,
+      validatedSeriesId,
       isPlayed,
       selectedTeamId, // Add team selection parameter
       availablePlayersForSetup, // Pass the actual roster being used in the modal
