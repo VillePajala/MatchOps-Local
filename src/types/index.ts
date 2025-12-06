@@ -74,6 +74,15 @@ export interface Season {
   badge?: string;
   ageGroup?: string;
   /**
+   * League ID from predefined Finnish youth leagues.
+   * @see src/config/leagues.ts for available leagues
+   */
+  leagueId?: string;
+  /**
+   * Custom league name when leagueId === 'muu'
+   */
+  customLeagueName?: string;
+  /**
    * Optional team placements for this season.
    * Maps team IDs to their final placement/ranking.
    *
@@ -87,6 +96,20 @@ export interface Season {
   };
   // Note: teamId removed - seasons are global entities per plan
   // Note: roster management removed - teams handle rosters now
+}
+
+/**
+ * Tournament series - represents a competition level within a tournament.
+ * E.g., "Elite", "Kilpa", "Haaste", "Harraste"
+ *
+ * @remarks
+ * - Each series has a unique ID and a level from LEVELS constant
+ * - Tournaments can have multiple series running simultaneously
+ * - Games reference a specific series via tournamentSeriesId
+ */
+export interface TournamentSeries {
+  id: string;      // UUID format: series_timestamp_random
+  level: string;   // One of LEVELS from gameOptions.ts
 }
 
 export interface Tournament {
@@ -104,6 +127,16 @@ export interface Tournament {
   badge?: string;
   level?: string;
   ageGroup?: string;
+  /**
+   * Tournament series for multi-level tournaments.
+   * Each series represents a different competition level (Elite, Kilpa, etc.)
+   *
+   * @remarks
+   * - If series array exists and has items, use series for game assignment
+   * - If series is empty/undefined, fall back to legacy `level` field
+   * - Migration: tournaments with level but no series get auto-migrated on read
+   */
+  series?: TournamentSeries[];
   /**
    * Optional player ID for "Player of Tournament" award.
    *
