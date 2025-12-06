@@ -358,5 +358,118 @@ describe('NewGameSetupModal', () => {
         );
       });
     });
+
+    test('shows level dropdown when switching from tournament with series to tournament without series', async () => {
+      renderModalWithSeries();
+
+      // Switch to tournament tab
+      const tournamentTab = screen.getByRole('button', { name: /Tournament/i });
+      await act(async () => {
+        fireEvent.click(tournamentTab);
+      });
+
+      // Select tournament WITH series first
+      await waitFor(() => {
+        expect(document.getElementById('tournamentSelect')).toBeInTheDocument();
+      });
+      const tournamentSelect = document.getElementById('tournamentSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(tournamentSelect, { target: { value: 'tournament-series' } });
+      });
+
+      // Verify series dropdown appears
+      await waitFor(() => {
+        expect(screen.getByText('-- Select Series --')).toBeInTheDocument();
+      });
+
+      // Now switch to tournament WITHOUT series
+      await act(async () => {
+        fireEvent.change(tournamentSelect, { target: { value: 'tournament1' } });
+      });
+
+      // Series dropdown should be replaced with level dropdown
+      // Check that the level dropdown (tournamentLevelInput) now shows level options instead of series
+      await waitFor(() => {
+        expect(screen.queryByText('-- Select Series --')).not.toBeInTheDocument();
+        // The level dropdown should have the standard level options (Elite, Competition, etc.)
+        const levelSelect = document.getElementById('tournamentLevelInput') as HTMLSelectElement;
+        expect(levelSelect).toBeInTheDocument();
+        // Check that Elite option exists (standard level, not a series)
+        expect(screen.getByText('Elite')).toBeInTheDocument();
+      });
+    });
+
+    test('clears series selection when user selects placeholder option', async () => {
+      renderModalWithSeries();
+
+      // Wait for home team name to load
+      const homeTeamInput = screen.getByRole('textbox', { name: /Your Team Name/i });
+      await waitFor(() => {
+        expect(homeTeamInput).toHaveValue('Last Team');
+      });
+
+      // Fill required opponent name
+      const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
+      fireEvent.change(opponentInput, { target: { value: 'Test Opponent' } });
+
+      // Switch to tournament tab and select tournament with series
+      const tournamentTab = screen.getByRole('button', { name: /Tournament/i });
+      await act(async () => {
+        fireEvent.click(tournamentTab);
+      });
+
+      await waitFor(() => {
+        expect(document.getElementById('tournamentSelect')).toBeInTheDocument();
+      });
+      const tournamentSelect = document.getElementById('tournamentSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(tournamentSelect, { target: { value: 'tournament-series' } });
+      });
+
+      // Wait for series dropdown and select a series
+      await waitFor(() => {
+        expect(screen.getByText('Competition')).toBeInTheDocument();
+      });
+      const seriesSelect = document.getElementById('tournamentLevelInput') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(seriesSelect, { target: { value: 'series-1' } });
+      });
+
+      // Now clear the selection by selecting placeholder
+      await act(async () => {
+        fireEvent.change(seriesSelect, { target: { value: '' } });
+      });
+
+      // Submit the form
+      const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
+      await act(async () => {
+        fireEvent.click(startButton);
+      });
+
+      // Verify onStart was called with null series ID
+      await waitFor(() => {
+        expect(mockOnStart).toHaveBeenCalledWith(
+          expect.any(Array), // selectedPlayerIds
+          'Last Team', // homeTeamName
+          'Test Opponent', // opponentName
+          expect.any(String), // gameDate
+          expect.any(String), // gameLocation
+          expect.any(String), // gameTime
+          null, // seasonId
+          'tournament-series', // tournamentId
+          expect.any(Number), // numPeriods
+          expect.any(Number), // periodDuration
+          expect.any(String), // homeOrAway
+          expect.any(Number), // demandFactor
+          expect.any(String), // ageGroup
+          '', // tournamentLevel - cleared
+          null, // tournamentSeriesId - cleared to null
+          expect.any(Boolean), // isPlayed
+          null, // teamId
+          expect.any(Array), // availablePlayersForGame
+          expect.any(Array) // selectedPersonnelIds
+        );
+      });
+    });
   });
 });
