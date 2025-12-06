@@ -464,5 +464,65 @@ describe('SeasonDetailsModal', () => {
       expect(screen.getByText(i18n.t('seasonDetailsModal.errors.customLeagueRequired', 'Please enter a custom league name or select a different league.'))).toBeInTheDocument();
       expect(updateMutation.mutate).not.toHaveBeenCalled();
     });
+
+    it('shows error when custom league name is too short (1 character)', async () => {
+      const updateMutation = mockMutation();
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders({
+          updateSeasonMutation: updateMutation as unknown as UseMutationResult<Season | null, Error, Season, unknown>,
+        });
+      });
+
+      // Find and select "Muu" league
+      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
+      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+      await user.selectOptions(leagueSelect, 'muu');
+
+      // Enter only 1 character (too short)
+      const customInput = screen.getByPlaceholderText(i18n.t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name'));
+      await user.type(customInput, 'A');
+
+      // Click save
+      const saveButton = screen.getByRole('button', { name: i18n.t('common.save', 'Save') });
+      await user.click(saveButton);
+
+      // Should show error and NOT call mutation
+      expect(screen.getByText(i18n.t('seasonDetailsModal.errors.customLeagueTooShort', 'Custom league name must be at least 2 characters.'))).toBeInTheDocument();
+      expect(updateMutation.mutate).not.toHaveBeenCalled();
+    });
+
+    it('saves successfully when custom league name has exactly 2 characters', async () => {
+      const updateMutation = mockMutation();
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders({
+          updateSeasonMutation: updateMutation as unknown as UseMutationResult<Season | null, Error, Season, unknown>,
+        });
+      });
+
+      // Find and select "Muu" league
+      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
+      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+      await user.selectOptions(leagueSelect, 'muu');
+
+      // Enter exactly 2 characters (minimum valid length)
+      const customInput = screen.getByPlaceholderText(i18n.t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name'));
+      await user.type(customInput, 'AB');
+
+      // Click save
+      const saveButton = screen.getByRole('button', { name: i18n.t('common.save', 'Save') });
+      await user.click(saveButton);
+
+      // Should succeed - mutation called with the custom league name
+      expect(updateMutation.mutate).toHaveBeenCalled();
+      const [[firstArg]] = (updateMutation.mutate as jest.Mock).mock.calls;
+      expect(firstArg).toMatchObject({
+        leagueId: 'muu',
+        customLeagueName: 'AB',
+      });
+    });
   });
 });
