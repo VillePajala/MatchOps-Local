@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { Player, Season, Tournament, Team, Personnel } from '@/types';
@@ -168,7 +168,17 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     wasOpenRef.current = isOpen;
   }, [isOpen, resetForm, t]);
 
-
+  // Clear stale series selection if tournament was edited and series no longer exists
+  useEffect(() => {
+    if (selectedTournamentSeriesId && selectedTournamentId) {
+      const tournament = tournaments.find(t => t.id === selectedTournamentId);
+      const seriesExists = tournament?.series?.some(s => s.id === selectedTournamentSeriesId);
+      if (!seriesExists) {
+        setSelectedTournamentSeriesId(null);
+        setTournamentLevel('');
+      }
+    }
+  }, [tournaments, selectedTournamentId, selectedTournamentSeriesId]);
 
   // Helper to apply season settings to form
   const applySeasonSettings = useCallback((seasonId: string) => {
