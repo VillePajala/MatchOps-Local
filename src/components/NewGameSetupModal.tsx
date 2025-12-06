@@ -183,7 +183,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const hasSeries = validSeries.length > 0;
 
   // Compute effective series ID - returns null if the selected series no longer exists
-  // or is not in the validSeries list (invalid level)
+  // or is not in the validSeries list (invalid level).
+  // Note: We intentionally don't sync selectedTournamentSeriesId state when validation fails.
+  // This useMemo pattern avoids an extra render cycle that a useEffect sync would cause.
+  // The dropdown uses effectiveSeriesId for display (shows placeholder when null),
+  // and onStart passes effectiveSeriesId to handlers (null when invalid).
   const effectiveSeriesId = useMemo(() => {
     if (!selectedTournamentSeriesId) {
       return null;
