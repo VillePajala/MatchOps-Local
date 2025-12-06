@@ -244,4 +244,113 @@ describe('LoadGameModal', () => {
     // Check for the subtle left border indicator
     expect(gameCard).toHaveClass('border-l-4', 'border-indigo-500');
   });
+
+  describe('orphaned tournamentSeriesId handling', () => {
+    /**
+     * Tests that games with orphaned tournamentSeriesId references
+     * (series was deleted from tournament) still display and load correctly.
+     *
+     * This is important for data integrity when:
+     * - Tournament has series A, B, C
+     * - Game is created referencing series A
+     * - User later deletes series A from tournament
+     * - Game should still work (series is optional metadata)
+     */
+    it('handles game with orphaned tournamentSeriesId gracefully', async () => {
+      // Tournament with only series B (series A was deleted)
+      const tournamentWithDeletedSeries: Tournament[] = [{
+        id: 'tourn_orphan',
+        name: 'Tournament With Deleted Series',
+        series: [{ id: 'series_b', level: 'Kilpa' }], // series_a no longer exists
+      }];
+
+      // Game still references the deleted series_a
+      const gameWithOrphanedSeries: SavedGamesCollection = {
+        'game_orphaned_series': {
+          teamName: 'Orphan Team',
+          opponentName: 'Other Team',
+          gameDate: '2024-01-15',
+          homeOrAway: 'home',
+          seasonId: '',
+          tournamentId: 'tourn_orphan',
+          tournamentSeriesId: 'series_a', // This series no longer exists!
+          tournamentLevel: 'Elite', // Fallback value still present
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+
+      (tournamentsUtils.getTournaments as jest.Mock).mockResolvedValue(tournamentWithDeletedSeries);
+
+      await renderModal({
+        savedGames: gameWithOrphanedSeries,
+        tournaments: tournamentWithDeletedSeries,
+      });
+
+      // Game should render correctly
+      const gameCard = await screen.findByTestId('game-item-game_orphaned_series');
+      expect(gameCard).toBeInTheDocument();
+
+      // Tournament name should still display (lookup by tournamentId works)
+      expect(within(gameCard).getByText('Tournament With Deleted Series')).toBeInTheDocument();
+
+      // Team names should display
+      expect(within(gameCard).getByText('Orphan Team')).toBeInTheDocument();
+
+      // Click on card to load game
+      await act(async () => {
+        fireEvent.click(gameCard);
+      });
+
+      // onLoad should be called with the game ID
+      expect(mockHandlers.onLoad).toHaveBeenCalledWith('game_orphaned_series');
+    });
+
+    it('handles game referencing completely deleted tournament gracefully', async () => {
+      // Tournament was completely deleted
+      const emptyTournaments: Tournament[] = [];
+
+      // Game still references the deleted tournament
+      const gameWithDeletedTournament: SavedGamesCollection = {
+        'game_deleted_tournament': {
+          teamName: 'Deleted Tournament Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-02-20',
+          homeOrAway: 'away',
+          seasonId: '',
+          tournamentId: 'tourn_deleted', // Tournament no longer exists
+          tournamentSeriesId: 'series_deleted', // Series also doesn't exist
+          tournamentLevel: 'Harraste',
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+
+      (tournamentsUtils.getTournaments as jest.Mock).mockResolvedValue(emptyTournaments);
+
+      await renderModal({
+        savedGames: gameWithDeletedTournament,
+        tournaments: emptyTournaments,
+      });
+
+      // Game should still render
+      const gameCard = await screen.findByTestId('game-item-game_deleted_tournament');
+      expect(gameCard).toBeInTheDocument();
+
+      // Team names should display
+      expect(within(gameCard).getByText('Deleted Tournament Team')).toBeInTheDocument();
+
+      // Tournament badge should NOT appear (tournament lookup returns null)
+      expect(within(gameCard).queryByText('tourn_deleted')).not.toBeInTheDocument();
+
+      // Click on card to load game
+      await act(async () => {
+        fireEvent.click(gameCard);
+      });
+
+      expect(mockHandlers.onLoad).toHaveBeenCalledWith('game_deleted_tournament');
+    });
+  });
 });

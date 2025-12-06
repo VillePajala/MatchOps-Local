@@ -168,5 +168,50 @@ describe('Tournament Series Migration', () => {
       expect(result).not.toBeNull();
       expect(result?.series).toHaveLength(2);
     });
+
+    it('should allow series deletion even when games reference it (orphaned reference)', async () => {
+      /**
+       * This test documents the expected behavior when a series is deleted
+       * while games still reference it via tournamentSeriesId.
+       *
+       * Expected behavior:
+       * - Series can be removed from tournament (no validation against games)
+       * - Games with orphaned tournamentSeriesId continue to function
+       * - Game still has tournamentLevel string as fallback for display
+       * - This is acceptable because:
+       *   1. Series info is optional/supplementary
+       *   2. UI gracefully handles missing series
+       *   3. Core game data is unaffected
+       */
+      const tournamentWithSeries: Tournament = {
+        id: 'tournament_orphan_test',
+        name: 'Orphan Test Tournament',
+        series: [
+          { id: 'series_to_delete', level: 'Elite' },
+          { id: 'series_to_keep', level: 'Kilpa' },
+        ],
+      };
+      mockGetStorageItem.mockResolvedValue(JSON.stringify([tournamentWithSeries]));
+      mockSetStorageItem.mockResolvedValue(undefined);
+
+      // Simulate deleting a series (as done in TournamentDetailsModal)
+      const updatedTournament: Tournament = {
+        ...tournamentWithSeries,
+        series: [{ id: 'series_to_keep', level: 'Kilpa' }], // series_to_delete removed
+      };
+
+      const result = await updateTournament(updatedTournament);
+
+      // Assert: update succeeds, series is removed
+      expect(result).not.toBeNull();
+      expect(result?.series).toHaveLength(1);
+      expect(result?.series![0].id).toBe('series_to_keep');
+
+      // Verify: deleted series ID no longer exists
+      expect(result?.series?.find(s => s.id === 'series_to_delete')).toBeUndefined();
+
+      // Note: Any game with tournamentSeriesId='series_to_delete' now has an orphaned reference.
+      // This is acceptable - games store tournamentLevel as string backup for display.
+    });
   });
 });
