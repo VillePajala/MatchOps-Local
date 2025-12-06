@@ -300,6 +300,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const applyTournamentSettings = useCallback((tournamentId: string) => {
     const tournament = tournaments.find(tt => tt.id === tournamentId);
     if (tournament) {
+      // Clear previous series selection before applying new tournament settings
+      setSelectedTournamentSeriesId(null);
       setGameLocation(tournament.location || '');
       setAgeGroup(tournament.ageGroup || '');
       // If tournament has series, pre-select first one for better UX
@@ -670,7 +672,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                                 >
                                   <option value="">{t('common.selectSeries', '-- Select Series --')}</option>
-                                  {selectedTournament.series?.map((series) => (
+                                  {selectedTournament.series?.filter(s => LEVELS.includes(s.level)).map((series) => (
                                     <option key={series.id} value={series.id}>
                                       {t(`common.level${series.level}` as TranslationKey, series.level)}
                                     </option>
