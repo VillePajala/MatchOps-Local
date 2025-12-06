@@ -22,7 +22,7 @@ describe('Tournament Series Migration', () => {
   });
 
   describe('getTournaments - legacy migration', () => {
-    it('should migrate legacy level field to series array', async () => {
+    it('should migrate legacy level field to series array with deterministic ID', async () => {
       // Setup: tournament with level but no series
       const legacyTournament = {
         id: 'tournament_123',
@@ -39,7 +39,26 @@ describe('Tournament Series Migration', () => {
       expect(tournaments[0].series).toBeDefined();
       expect(tournaments[0].series).toHaveLength(1);
       expect(tournaments[0].series![0].level).toBe('Elite');
-      expect(tournaments[0].series![0].id).toMatch(/^series_/);
+      // Deterministic ID: series_{tournamentId}_{level-lowercase}
+      expect(tournaments[0].series![0].id).toBe('series_tournament_123_elite');
+    });
+
+    it('should generate idempotent series IDs on repeated migration calls', async () => {
+      // Setup: same legacy tournament
+      const legacyTournament = {
+        id: 'tournament_456',
+        name: 'Winter Cup',
+        level: 'Kilpa',
+      };
+      mockGetStorageItem.mockResolvedValue(JSON.stringify([legacyTournament]));
+
+      // Act: call twice
+      const first = await getTournaments();
+      const second = await getTournaments();
+
+      // Assert: IDs are identical (idempotent)
+      expect(first[0].series![0].id).toBe(second[0].series![0].id);
+      expect(first[0].series![0].id).toBe('series_tournament_456_kilpa');
     });
 
     it('should preserve existing series array (no duplicate migration)', async () => {
