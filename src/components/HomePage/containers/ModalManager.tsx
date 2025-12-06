@@ -138,6 +138,7 @@ interface ModalManagerHandlers {
     demandFactor: number,
     ageGroup: string,
     tournamentLevel: string,
+    tournamentSeriesId: string | null,
     isPlayedParam: boolean,
     teamId: string | null,
     availablePlayersForGame: Player[],
