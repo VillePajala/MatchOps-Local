@@ -438,5 +438,31 @@ describe('SeasonDetailsModal', () => {
       const customInput = screen.getByDisplayValue('My Special League');
       expect(customInput).toBeInTheDocument();
     });
+
+    it('shows error when "Muu" is selected but custom name is empty', async () => {
+      const updateMutation = mockMutation();
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders({
+          updateSeasonMutation: updateMutation as unknown as UseMutationResult<Season | null, Error, Season, unknown>,
+        });
+      });
+
+      // Find and select "Muu" league
+      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
+      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+      await user.selectOptions(leagueSelect, 'muu');
+
+      // Don't enter any custom league name - leave it empty
+
+      // Click save
+      const saveButton = screen.getByRole('button', { name: i18n.t('common.save', 'Save') });
+      await user.click(saveButton);
+
+      // Should show error and NOT call mutation
+      expect(screen.getByText(i18n.t('seasonDetailsModal.errors.customLeagueRequired', 'Please enter a custom league name or select a different league.'))).toBeInTheDocument();
+      expect(updateMutation.mutate).not.toHaveBeenCalled();
+    });
   });
 });
