@@ -76,10 +76,12 @@ export interface Season {
   /**
    * League ID from predefined Finnish youth leagues.
    * @see src/config/leagues.ts for available leagues
+   * @example 'sm-sarja' | 'harrastesarja' | 'muu'
    */
   leagueId?: string;
   /**
    * Custom league name when leagueId === 'muu'
+   * @remarks Only persisted when leagueId is 'muu', otherwise cleared
    */
   customLeagueName?: string;
   /**

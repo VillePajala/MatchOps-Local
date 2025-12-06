@@ -912,6 +912,7 @@ export type TranslationKey =
   | 'seasonDetailsModal.editTitle'
   | 'seasonDetailsModal.endDateLabel'
   | 'seasonDetailsModal.errors.createFailed'
+  | 'seasonDetailsModal.errors.customLeagueTooShort'
   | 'seasonDetailsModal.errors.duplicateName'
   | 'seasonDetailsModal.errors.updateFailed'
   | 'seasonDetailsModal.gameSingular'
