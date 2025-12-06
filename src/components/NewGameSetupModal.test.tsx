@@ -471,5 +471,48 @@ describe('NewGameSetupModal', () => {
         );
       });
     });
+
+    test('falls back to legacy level when tournament has empty series array', async () => {
+      const tournamentWithEmptySeries = {
+        id: 'empty-series-tournament',
+        name: 'Empty Series Cup',
+        series: [], // Explicitly empty array
+        level: 'Kilpa', // Should use this as fallback
+      };
+
+      render(
+        <ToastProvider>
+          <NewGameSetupModal
+            {...defaultProps}
+            tournaments={[...mockTournamentsData, tournamentWithEmptySeries]}
+          />
+        </ToastProvider>
+      );
+
+      // Switch to tournament tab
+      const tournamentTab = screen.getByRole('button', { name: /Tournament/i });
+      await act(async () => {
+        fireEvent.click(tournamentTab);
+      });
+
+      // Select the tournament with empty series
+      await waitFor(() => {
+        expect(document.getElementById('tournamentSelect')).toBeInTheDocument();
+      });
+      const tournamentSelect = document.getElementById('tournamentSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(tournamentSelect, { target: { value: 'empty-series-tournament' } });
+      });
+
+      // Should show level dropdown (not series dropdown) since series is empty
+      await waitFor(() => {
+        // Series placeholder should NOT be present
+        expect(screen.queryByText('-- Select Series --')).not.toBeInTheDocument();
+        // Standard level options should be available
+        const levelSelect = document.getElementById('tournamentLevelInput') as HTMLSelectElement;
+        expect(levelSelect).toBeInTheDocument();
+        expect(screen.getByText('Elite')).toBeInTheDocument();
+      });
+    });
   });
 });
