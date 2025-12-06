@@ -21,9 +21,10 @@ function migrateTournamentLevel(tournament: Tournament): Tournament {
   }
 
   // If has legacy level but no series, migrate
+  // Use deterministic ID based on tournament.id + level for idempotent migration
   if (tournament.level) {
     const newSeries: TournamentSeries = {
-      id: `series_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      id: `series_${tournament.id}_${tournament.level.toLowerCase().replace(/\s+/g, '-')}`,
       level: tournament.level,
     };
     return {
