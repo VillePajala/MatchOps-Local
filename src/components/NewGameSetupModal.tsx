@@ -174,17 +174,23 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     return tournaments.find(t => t.id === selectedTournamentId) || null;
   }, [tournaments, selectedTournamentId]);
 
-  const hasSeries = Boolean(selectedTournament?.series && selectedTournament.series.length > 0);
+  // Filter to only valid series (with levels in LEVELS constant)
+  const validSeries = useMemo(() => {
+    if (!selectedTournament?.series) return [];
+    return selectedTournament.series.filter(s => LEVELS.includes(s.level));
+  }, [selectedTournament]);
+
+  const hasSeries = validSeries.length > 0;
 
   // Compute effective series ID - returns null if the selected series no longer exists
-  // This avoids calling setState in an effect which causes cascading renders
+  // or is not in the validSeries list (invalid level)
   const effectiveSeriesId = useMemo(() => {
-    if (!selectedTournamentSeriesId || !selectedTournament) {
-      return selectedTournamentSeriesId;
+    if (!selectedTournamentSeriesId) {
+      return null;
     }
-    const seriesExists = selectedTournament.series?.some(s => s.id === selectedTournamentSeriesId);
+    const seriesExists = validSeries.some(s => s.id === selectedTournamentSeriesId);
     return seriesExists ? selectedTournamentSeriesId : null;
-  }, [selectedTournament, selectedTournamentSeriesId]);
+  }, [validSeries, selectedTournamentSeriesId]);
 
   // Helper to apply season settings to form
   const applySeasonSettings = useCallback((seasonId: string) => {
@@ -304,12 +310,14 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       setSelectedTournamentSeriesId(null);
       setGameLocation(tournament.location || '');
       setAgeGroup(tournament.ageGroup || '');
-      // UX decision: Pre-select first series when tournament is selected.
+      // UX decision: Pre-select first valid series when tournament is selected.
       // Rationale: Most tournaments have a single series (e.g., "Kilpa"), so auto-selecting
       // reduces clicks. Users can still change via dropdown. Empty placeholder would require
       // an extra click in the common case.
-      if (tournament.series && tournament.series.length > 0) {
-        const firstSeries = tournament.series[0];
+      // Only consider series with valid levels (from LEVELS constant).
+      const tournamentValidSeries = tournament.series?.filter(s => LEVELS.includes(s.level)) || [];
+      if (tournamentValidSeries.length > 0) {
+        const firstSeries = tournamentValidSeries[0];
         setTournamentLevel(firstSeries.level);
         setSelectedTournamentSeriesId(firstSeries.id);
       } else {
@@ -674,7 +682,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                                 >
                                   <option value="">{t('common.selectSeries', '-- Select Series --')}</option>
-                                  {selectedTournament.series?.filter(s => LEVELS.includes(s.level)).map((series) => (
+                                  {validSeries.map((series) => (
                                     <option key={series.id} value={series.id}>
                                       {t(`common.level${series.level}` as TranslationKey, series.level)}
                                     </option>
