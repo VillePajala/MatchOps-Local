@@ -230,7 +230,10 @@ describe('useGameImport', () => {
         false,
         expect.any(Function)
       );
-      expect(result.current.lastResult).toEqual(mockSuccessResult);
+      // Wait for state update to propagate
+      await waitFor(() => {
+        expect(result.current.lastResult).toEqual(mockSuccessResult);
+      });
     });
 
     /**
