@@ -116,7 +116,7 @@ describe('TournamentDetailsModal', () => {
     expect(screen.getByDisplayValue('Updated Tournament Name')).toBeInTheDocument();
   });
 
-  it('allows editing all tournament fields including level', async () => {
+  it('allows editing all tournament fields', async () => {
     const user = userEvent.setup();
 
     await act(async () => {
@@ -132,10 +132,6 @@ describe('TournamentDetailsModal', () => {
     const ageGroupSelect = screen.getByDisplayValue('U12');
     await user.selectOptions(ageGroupSelect, 'U14');
 
-    // Edit level
-    const levelSelect = screen.getByDisplayValue('Elite');
-    await user.selectOptions(levelSelect, 'Kilpa');
-
     // Edit notes
     const notesTextarea = screen.getByDisplayValue('Championship tournament');
     await user.clear(notesTextarea);
@@ -143,7 +139,6 @@ describe('TournamentDetailsModal', () => {
 
     expect(screen.getByDisplayValue('New Arena')).toBeInTheDocument();
     expect(screen.getByDisplayValue('U14')).toBeInTheDocument();
-    expect(levelSelect).toHaveValue('Kilpa'); // Check value directly since it's translated
     expect(screen.getByDisplayValue('Updated tournament notes')).toBeInTheDocument();
   });
 
@@ -390,11 +385,8 @@ describe('TournamentDetailsModal', () => {
     expect(screen.getByDisplayValue('Ice Rink')).toBeInTheDocument();
     expect(screen.getByDisplayValue('U16')).toBeInTheDocument();
 
-    // Check level select value directly since it's translated
-    // Find all selects and locate the one with Harraste value
-    const selects = document.querySelectorAll('select');
-    const levelSelect = Array.from(selects).find(s => s.value === 'Harraste');
-    expect(levelSelect).toBeTruthy();
+    // Legacy level should be migrated to series and displayed (translated)
+    expect(screen.getByText('Recreational')).toBeInTheDocument(); // Harraste -> Recreational
 
     expect(screen.getByDisplayValue('1')).toBeInTheDocument();
     expect(screen.getByDisplayValue('30')).toBeInTheDocument();
@@ -415,5 +407,143 @@ describe('TournamentDetailsModal', () => {
 
     const awardDropdown = screen.getByRole('combobox', { name: /select player of tournament/i });
     expect(awardDropdown).toHaveValue('');
+  });
+
+  describe('Tournament Series Management', () => {
+    it('displays existing series when editing tournament with series', async () => {
+      const tournamentWithSeries: Tournament = {
+        ...mockTournament,
+        series: [
+          { id: 'series_1', level: 'Elite' },
+          { id: 'series_2', level: 'Kilpa' },
+        ],
+      };
+
+      await act(async () => {
+        renderWithProviders({ tournament: tournamentWithSeries });
+      });
+
+      // Should display both series levels (using translated text)
+      expect(screen.getByText('Elite')).toBeInTheDocument();
+      expect(screen.getByText('Competition')).toBeInTheDocument(); // 'Kilpa' translates to 'Competition' in EN
+    });
+
+    it('allows adding a new series to the tournament', async () => {
+      const user = userEvent.setup();
+      const tournamentWithSeries: Tournament = {
+        ...mockTournament,
+        series: [{ id: 'series_1', level: 'Elite' }],
+      };
+
+      await act(async () => {
+        renderWithProviders({ tournament: tournamentWithSeries });
+      });
+
+      // Click add series button
+      const addButton = screen.getByRole('button', { name: /add series/i });
+      await user.click(addButton);
+
+      // Select a level for the new series (using raw value, not translated)
+      const levelSelect = screen.getByRole('combobox', { name: /select level for new series/i });
+      await user.selectOptions(levelSelect, 'Kilpa');
+
+      // Confirm adding the series (look for Add button by aria-label)
+      const confirmButton = screen.getByRole('button', { name: /confirm add series/i });
+      await user.click(confirmButton);
+
+      // Should now show both series (translated)
+      expect(screen.getByText('Elite')).toBeInTheDocument();
+      expect(screen.getByText('Competition')).toBeInTheDocument();
+    });
+
+    it('allows removing a series from the tournament', async () => {
+      const user = userEvent.setup();
+      const tournamentWithSeries: Tournament = {
+        ...mockTournament,
+        series: [
+          { id: 'series_1', level: 'Elite' },
+          { id: 'series_2', level: 'Kilpa' },
+        ],
+      };
+
+      await act(async () => {
+        renderWithProviders({ tournament: tournamentWithSeries });
+      });
+
+      // Find and click remove button for Kilpa series
+      const removeButtons = screen.getAllByRole('button', { name: /remove series/i });
+      await user.click(removeButtons[1]); // Remove second series (Kilpa)
+
+      // Should only show Elite now
+      expect(screen.getByText('Elite')).toBeInTheDocument();
+      expect(screen.queryByText('Competition')).not.toBeInTheDocument();
+    });
+
+    it('saves series array when saving tournament', async () => {
+      const updateMutation = mockMutation();
+      const user = userEvent.setup();
+      const tournamentWithSeries: Tournament = {
+        ...mockTournament,
+        series: [
+          { id: 'series_1', level: 'Elite' },
+          { id: 'series_2', level: 'Kilpa' },
+        ],
+      };
+
+      await act(async () => {
+        renderWithProviders({
+          tournament: tournamentWithSeries,
+          updateTournamentMutation: updateMutation as unknown as UseMutationResult<Tournament | null, Error, Tournament, unknown>,
+        });
+      });
+
+      // Click save
+      const saveButton = screen.getByRole('button', { name: i18n.t('common.save', 'Save') });
+      await user.click(saveButton);
+
+      expect(updateMutation.mutate).toHaveBeenCalled();
+      const [[firstArg]] = (updateMutation.mutate as jest.Mock).mock.calls;
+      expect(firstArg.series).toEqual([
+        { id: 'series_1', level: 'Elite' },
+        { id: 'series_2', level: 'Kilpa' },
+      ]);
+    });
+
+    it('prevents adding duplicate series levels', async () => {
+      const user = userEvent.setup();
+      const tournamentWithSeries: Tournament = {
+        ...mockTournament,
+        series: [{ id: 'series_1', level: 'Elite' }],
+      };
+
+      await act(async () => {
+        renderWithProviders({ tournament: tournamentWithSeries });
+      });
+
+      // Click add series button
+      const addButton = screen.getByRole('button', { name: /add series/i });
+      await user.click(addButton);
+
+      // Elite should be disabled or not available since it already exists
+      const levelSelect = screen.getByRole('combobox', { name: /select level for new series/i });
+      const eliteOption = levelSelect.querySelector('option[value="Elite"]') as HTMLOptionElement;
+      expect(eliteOption.disabled).toBe(true);
+    });
+
+    it('migrates legacy level to series on edit mode load', async () => {
+      // Tournament with legacy level but no series
+      const legacyTournament: Tournament = {
+        id: 't_legacy',
+        name: 'Legacy Tournament',
+        level: 'Harraste',
+      };
+
+      await act(async () => {
+        renderWithProviders({ tournament: legacyTournament });
+      });
+
+      // Should display the migrated series (translated: Harraste -> Recreational)
+      expect(screen.getByText('Recreational')).toBeInTheDocument();
+    });
   });
 });
