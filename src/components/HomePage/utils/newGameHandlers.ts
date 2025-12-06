@@ -46,6 +46,7 @@ export interface StartNewGameRequest {
   demandFactor: number;
   ageGroup: string;
   tournamentLevel: string;
+  tournamentSeriesId: string | null;
   isPlayed: boolean;
   teamId: string | null;
   availablePlayersForGame: Player[];
@@ -71,6 +72,7 @@ export async function startNewGameWithSetup(
     demandFactor,
     ageGroup,
     tournamentLevel,
+    tournamentSeriesId,
     isPlayed,
     teamId,
     availablePlayersForGame,
@@ -110,6 +112,7 @@ export async function startNewGameWithSetup(
     tournamentId: tournamentId || '',
     ageGroup,
     tournamentLevel,
+    tournamentSeriesId: tournamentSeriesId || undefined,
     numberOfPeriods: numPeriods,
     periodDurationMinutes: periodDuration,
     homeScore: 0,
