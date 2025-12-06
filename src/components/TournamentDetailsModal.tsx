@@ -145,6 +145,10 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
       // Create new tournament
       if (!addTournamentMutation) return;
 
+      // Level/series are both optional - valid scenarios:
+      // - No level, no series: casual/friendly tournament
+      // - Level only: single-level tournament (legacy or simple)
+      // - Series only: multi-level tournament (new format)
       const newTournament: Partial<Tournament> & { name: string } = {
         name: name.trim(),
         location: location.trim() || undefined,
