@@ -86,11 +86,17 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   const handleSave = () => {
     if (!name.trim()) return;
 
-    // Validate custom league name if "Muu" is selected (min 2 chars)
+    // Validate custom league name if "Muu" is selected
     const trimmedCustomLeague = customLeagueName.trim();
-    if (leagueId === 'muu' && trimmedCustomLeague.length > 0 && trimmedCustomLeague.length < 2) {
-      setErrorMessage(t('seasonDetailsModal.errors.customLeagueTooShort', 'Custom league name must be at least 2 characters.'));
-      return;
+    if (leagueId === 'muu') {
+      if (trimmedCustomLeague.length === 0) {
+        setErrorMessage(t('seasonDetailsModal.errors.customLeagueRequired', 'Please enter a custom league name or select a different league.'));
+        return;
+      }
+      if (trimmedCustomLeague.length < 2) {
+        setErrorMessage(t('seasonDetailsModal.errors.customLeagueTooShort', 'Custom league name must be at least 2 characters.'));
+        return;
+      }
     }
 
     // Sanitize period values
@@ -304,16 +310,15 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
               {/* Custom League Name - shown when "Muu" selected */}
               {leagueId === 'muu' && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                  <label htmlFor="season-custom-league" className="block text-sm font-medium text-slate-300 mb-1">
                     {t('seasonDetailsModal.customLeagueLabel', 'Custom League Name')}
                   </label>
                   <input
+                    id="season-custom-league"
                     type="text"
                     value={customLeagueName}
                     onChange={(e) => setCustomLeagueName(e.target.value)}
                     placeholder={t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name')}
-                    maxLength={50}
-                    minLength={2}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>

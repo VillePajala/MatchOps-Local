@@ -884,7 +884,8 @@
     "errors": {
       "duplicateName": "Kausi tällä nimellä on jo olemassa. Valitse eri nimi.",
       "createFailed": "Kauden luominen epäonnistui. Yritä uudelleen.",
-      "updateFailed": "Kauden päivittäminen epäonnistui. Yritä uudelleen."
+      "updateFailed": "Kauden päivittäminen epäonnistui. Yritä uudelleen.",
+      "customLeagueTooShort": "Oman sarjan nimen tulee olla vähintään 2 merkkiä."
     }
   },
   "tournamentDetailsModal": {
