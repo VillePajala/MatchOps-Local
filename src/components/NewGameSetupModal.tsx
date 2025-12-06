@@ -168,16 +168,23 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     wasOpenRef.current = isOpen;
   }, [isOpen, resetForm, t]);
 
+  // Memoize selected tournament lookup to avoid duplicate find() calls in render
+  const selectedTournament = useMemo(() => {
+    if (!selectedTournamentId) return null;
+    return tournaments.find(t => t.id === selectedTournamentId) || null;
+  }, [tournaments, selectedTournamentId]);
+
+  const hasSeries = Boolean(selectedTournament?.series && selectedTournament.series.length > 0);
+
   // Compute effective series ID - returns null if the selected series no longer exists
   // This avoids calling setState in an effect which causes cascading renders
   const effectiveSeriesId = useMemo(() => {
-    if (!selectedTournamentSeriesId || !selectedTournamentId) {
+    if (!selectedTournamentSeriesId || !selectedTournament) {
       return selectedTournamentSeriesId;
     }
-    const tournament = tournaments.find(t => t.id === selectedTournamentId);
-    const seriesExists = tournament?.series?.some(s => s.id === selectedTournamentSeriesId);
+    const seriesExists = selectedTournament.series?.some(s => s.id === selectedTournamentSeriesId);
     return seriesExists ? selectedTournamentSeriesId : null;
-  }, [tournaments, selectedTournamentId, selectedTournamentSeriesId]);
+  }, [selectedTournament, selectedTournamentSeriesId]);
 
   // Helper to apply season settings to form
   const applySeasonSettings = useCallback((seasonId: string) => {
@@ -640,59 +647,54 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                               </option>
                             ))}
                           </select>
-                          {selectedTournamentId && (() => {
-                            const selectedTournament = tournaments.find(t => t.id === selectedTournamentId);
-                            const hasSeries = selectedTournament?.series && selectedTournament.series.length > 0;
-
-                            return (
-                              <div className="mt-2">
-                                <label htmlFor="tournamentLevelInput" className="block text-sm font-medium text-slate-300 mb-1">
-                                  {hasSeries
-                                    ? t('newGameSetupModal.seriesLabel', 'Series')
-                                    : t('newGameSetupModal.levelLabel', 'Level')}
-                                </label>
-                                {hasSeries ? (
-                                  // Show series dropdown when tournament has defined series
-                                  <select
-                                    id="tournamentLevelInput"
-                                    value={effectiveSeriesId || ''}
-                                    onChange={(e) => {
-                                      const seriesId = e.target.value || null;
-                                      setSelectedTournamentSeriesId(seriesId);
-                                      // Also set level for backwards compatibility
-                                      const series = selectedTournament?.series?.find(s => s.id === seriesId);
-                                      setTournamentLevel(series?.level || '');
-                                    }}
-                                    onKeyDown={handleKeyDown}
-                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                                  >
-                                    <option value="">{t('common.selectSeries', '-- Select Series --')}</option>
-                                    {selectedTournament?.series?.map((series) => (
-                                      <option key={series.id} value={series.id}>
-                                        {t(`common.level${series.level}` as TranslationKey, series.level)}
-                                      </option>
-                                    ))}
-                                  </select>
-                                ) : (
-                                  // Fallback to all LEVELS when no series defined
-                                  <select
-                                    id="tournamentLevelInput"
-                                    value={tournamentLevel}
-                                    onChange={(e) => setTournamentLevel(e.target.value)}
-                                    onKeyDown={handleKeyDown}
-                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                                  >
-                                    <option value="">{t('common.none', 'None')}</option>
-                                    {LEVELS.map((lvl) => (
-                                      <option key={lvl} value={lvl}>
-                                        {t(`common.level${lvl}` as TranslationKey, lvl)}
-                                      </option>
-                                    ))}
-                                  </select>
-                                )}
-                              </div>
-                            );
-                          })()}
+                          {selectedTournament && (
+                            <div className="mt-2">
+                              <label htmlFor="tournamentLevelInput" className="block text-sm font-medium text-slate-300 mb-1">
+                                {hasSeries
+                                  ? t('newGameSetupModal.seriesLabel', 'Series')
+                                  : t('newGameSetupModal.levelLabel', 'Level')}
+                              </label>
+                              {hasSeries ? (
+                                // Show series dropdown when tournament has defined series
+                                <select
+                                  id="tournamentLevelInput"
+                                  value={effectiveSeriesId || ''}
+                                  onChange={(e) => {
+                                    const seriesId = e.target.value || null;
+                                    setSelectedTournamentSeriesId(seriesId);
+                                    // Also set level for backwards compatibility
+                                    const series = selectedTournament.series?.find(s => s.id === seriesId);
+                                    setTournamentLevel(series?.level || '');
+                                  }}
+                                  onKeyDown={handleKeyDown}
+                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                                >
+                                  <option value="">{t('common.selectSeries', '-- Select Series --')}</option>
+                                  {selectedTournament.series?.map((series) => (
+                                    <option key={series.id} value={series.id}>
+                                      {t(`common.level${series.level}` as TranslationKey, series.level)}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                // Fallback to all LEVELS when no series defined
+                                <select
+                                  id="tournamentLevelInput"
+                                  value={tournamentLevel}
+                                  onChange={(e) => setTournamentLevel(e.target.value)}
+                                  onKeyDown={handleKeyDown}
+                                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                                >
+                                  <option value="">{t('common.none', 'None')}</option>
+                                  {LEVELS.map((lvl) => (
+                                    <option key={lvl} value={lvl}>
+                                      {t(`common.level${lvl}` as TranslationKey, lvl)}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
 
