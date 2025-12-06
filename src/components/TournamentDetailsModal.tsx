@@ -341,7 +341,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                           type="button"
                           onClick={() => handleRemoveSeries(s.id)}
                           className="text-slate-400 hover:text-red-400 ml-1"
-                          aria-label={t('tournamentDetailsModal.removeSeries', 'Remove series')}
+                          aria-label={`${t('tournamentDetailsModal.removeSeries', 'Remove series')}: ${t(`common.level${s.level}` as TranslationKey, s.level)}`}
                         >
                           ×
                         </button>
