@@ -119,6 +119,12 @@
 - Split into 5 sub-components
 - Low priority (works fine)
 
+### Component Extraction (Low Priority)
+- Extract `<TournamentSeriesManager />` from TournamentDetailsModal
+  - ~50 lines of series management UI
+  - Benefits: testability, reusability if needed elsewhere
+  - Not urgent: only used in one place currently
+
 ---
 
 ## 📁 Document Reference
