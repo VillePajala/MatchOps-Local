@@ -906,6 +906,11 @@
     "notesLabel": "Muistiinpanot",
     "notesPlaceholder": "Kirjoita muistiinpanoja",
     "archivedLabel": "Arkistoitu",
+    "seriesLabel": "Sarjat (kilpailutasot)",
+    "addSeries": "Lisää sarja",
+    "removeSeries": "Poista sarja",
+    "selectLevelForNewSeries": "Valitse uuden sarjan taso",
+    "confirmAddSeries": "Vahvista sarjan lisäys",
     "errors": {
       "duplicateName": "Turnaus tällä nimellä on jo olemassa. Valitse eri nimi.",
       "createFailed": "Turnauksen luominen epäonnistui. Yritä uudelleen.",
