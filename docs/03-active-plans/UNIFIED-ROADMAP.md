@@ -48,17 +48,28 @@
 
 ---
 
-## 🎯 NEXT UP (Choose One)
+## 🎯 NEXT UP: Tournament Series & Season Leagues
 
-### Option A: New Features
+**Design**: ✅ Complete | **Doc**: `TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md`
+**Branch**: `feature/tournament-series-and-leagues`
+**Approach**: TDD (Test-Driven Development)
 
-#### Tournament Series & Season Leagues (~6-9 hours)
-**Design**: Complete | **Doc**: `TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md`
+### PRs (All in one integration branch)
+- [ ] **PR #1**: Types + Storage + Migration (~2h)
+- [ ] **PR #2**: Tournament Series UI (~2.5h)
+- [ ] **PR #3**: Season Leagues UI (~1.5h)
+- [ ] **PR #4**: Stats Filtering (~3h)
+- [ ] Final integration PR to master
 
-- [ ] Tournament series (Elite, Kilpa, Haaste, Harraste)
-- [ ] Season leagues (29 Finnish youth leagues)
-- [ ] UI updates (modals, game setup)
-- [ ] Translations (EN/FI)
+**What this delivers**:
+- Tournament series (Elite, Kilpa, Haaste, Harraste)
+- Season leagues (34 Finnish youth leagues + custom)
+- UI in modals (TournamentDetails, SeasonDetails, NewGameSetup)
+- Stats filtering by series/league
+- Translations (EN/FI)
+- Backwards compatible migration
+
+**Total effort**: ~9.5 hours
 
 ---
 
@@ -125,6 +136,7 @@
 
 | Date | Update |
 |------|--------|
+| 2025-12-06 | Tournament Series & Season Leagues plan refined (2 phases) |
 | 2025-12-05 | **Next.js 16.0.7 + React 19.2 upgrade complete** |
 | 2025-12-05 | Test coverage: 2,085 tests across 142 suites |
 | 2025-12-05 | Personnel Management confirmed complete, plan archived |
