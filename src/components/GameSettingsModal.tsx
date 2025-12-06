@@ -230,6 +230,15 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const { t } = useTranslation();
   const { showToast } = useToast();
 
+  // Memoize available levels to avoid O(n) lookup on every render
+  const availableLevels = useMemo(() => {
+    if (!tournamentId) return LEVELS;
+    const selectedTournament = tournaments.find(tour => tour.id === tournamentId);
+    return selectedTournament?.series && selectedTournament.series.length > 0
+      ? selectedTournament.series.map(s => s.level)
+      : LEVELS;
+  }, [tournamentId, tournaments]);
+
   // Track if we've already applied season/tournament updates to prevent infinite loops
   const appliedSeasonRef = useRef<string | null>(null);
   const appliedTournamentRef = useRef<string | null>(null);
@@ -1583,42 +1592,33 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   />
                 </div>
 
-                {tournamentId && (() => {
-                  // Get the selected tournament to check for series
-                  const selectedTournament = tournaments.find(t => t.id === tournamentId);
-                  // Use tournament's series levels if available, otherwise fall back to all LEVELS (legacy)
-                  const availableLevels = selectedTournament?.series && selectedTournament.series.length > 0
-                    ? selectedTournament.series.map(s => s.level)
-                    : LEVELS;
-
-                  return (
-                    <div className="mb-4">
-                      <label htmlFor="levelInput" className="block text-sm font-medium text-slate-300 mb-1">
-                        {t('gameSettingsModal.levelLabel', 'Level')}
-                      </label>
-                      <select
-                        id="levelInput"
-                        value={tournamentLevel}
-                        onChange={(e) => {
-                            const value = e.target.value;
-                            onTournamentLevelChange(value);
-                            mutateGameDetails(
-                              { tournamentLevel: value },
-                              { source: 'stateSync', expectedState: { tournamentLevel: value } }
-                            );
-                        }}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
-                      >
-                        <option value="">{t('common.none', 'None')}</option>
-                        {availableLevels.map((lvl) => (
-                          <option key={lvl} value={lvl}>
-                            {t(`common.level${lvl}` as TranslationKey, lvl)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  );
-                })()}
+                {tournamentId && (
+                  <div className="mb-4">
+                    <label htmlFor="levelInput" className="block text-sm font-medium text-slate-300 mb-1">
+                      {t('gameSettingsModal.levelLabel', 'Level')}
+                    </label>
+                    <select
+                      id="levelInput"
+                      value={tournamentLevel}
+                      onChange={(e) => {
+                          const value = e.target.value;
+                          onTournamentLevelChange(value);
+                          mutateGameDetails(
+                            { tournamentLevel: value },
+                            { source: 'stateSync', expectedState: { tournamentLevel: value } }
+                          );
+                      }}
+                      className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                    >
+                      <option value="">{t('common.none', 'None')}</option>
+                      {availableLevels.map((lvl) => (
+                        <option key={lvl} value={lvl}>
+                          {t(`common.level${lvl}` as TranslationKey, lvl)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {/* Home/Away Selection */}
                 <div className="mb-4">

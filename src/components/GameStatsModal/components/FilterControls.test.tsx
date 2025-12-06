@@ -38,6 +38,7 @@ const createTeam = (overrides: Partial<Team> = {}): Team => ({
   id: 'team-1',
   name: 'Team Alpha',
   createdAt: '2024-01-01',
+  updatedAt: '2024-01-01',
   ...overrides,
 });
 

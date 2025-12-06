@@ -3,7 +3,7 @@
  * @integration - Tests core filtering logic used across GameStatsModal
  */
 
-import { filterGameIds, getPlayedGamesByTeam, GameFilterOptions } from './gameFilters';
+import { filterGameIds, getPlayedGamesByTeam } from './gameFilters';
 import { SavedGamesCollection, AppState } from '@/types';
 
 // Helper to create minimal game state for testing

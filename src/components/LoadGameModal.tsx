@@ -19,6 +19,20 @@ import { DEFAULT_GAME_ID } from '@/config/constants';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 
+/**
+ * Get validated series level from tournament, returning null if invalid.
+ * Validates level exists in LEVELS config to ensure translation key exists.
+ */
+function getValidatedSeriesLevel(
+  tournament: Tournament | null | undefined,
+  seriesId: string | undefined
+): string | null {
+  if (!tournament || !seriesId) return null;
+  const series = tournament.series?.find(s => s.id === seriesId);
+  const level = series?.level;
+  return level && LEVELS.includes(level) ? level : null;
+}
+
 export interface LoadGameModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -289,13 +303,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             const leagueName = season?.leagueId ? getLeagueName(season.leagueId) : null;
 
             // Get series level for tournament games (with validation)
-            const seriesLevel = (() => {
-              if (!tournament || !game.tournamentSeriesId) return null;
-              const series = tournament.series?.find(s => s.id === game.tournamentSeriesId);
-              const level = series?.level;
-              // Validate level exists in LEVELS to ensure translation key exists
-              return level && LEVELS.includes(level) ? level : null;
-            })();
+            const seriesLevel = getValidatedSeriesLevel(tournament, game.tournamentSeriesId);
 
             // Get live entity names (or fallback to snapshots)
             const { teamName: liveTeamName } = getDisplayNames(game, entityMaps);
