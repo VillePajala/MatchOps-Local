@@ -32,6 +32,11 @@ export interface GameFilterOptions {
   tournamentFilter?: string | 'all';
 
   /**
+   * Series filter - 'all' or specific series ID (within tournament)
+   */
+  seriesFilter?: string | 'all';
+
+  /**
    * Active tab context - affects season/tournament filtering logic
    */
   activeTab?: StatsTab;
@@ -68,6 +73,7 @@ export function filterGameIds(
     teamFilter = 'all',
     seasonFilter,
     tournamentFilter,
+    seriesFilter,
     activeTab
   } = options;
 
@@ -121,7 +127,14 @@ export function filterGameIds(
         return hasTournament && !hasSeason;
       } else if (tournamentFilter !== undefined) {
         // Show specific tournament only
-        return game.tournamentId === tournamentFilter;
+        if (game.tournamentId !== tournamentFilter) return false;
+
+        // Apply series filter if set (only when specific tournament selected)
+        if (seriesFilter && seriesFilter !== 'all') {
+          // Filter by specific series within this tournament
+          return game.tournamentSeriesId === seriesFilter;
+        }
+        return true;
       }
       // If on tournament tab but no tournamentFilter or game has no tournament, exclude
       return false;
