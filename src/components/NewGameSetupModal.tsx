@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { Player, Season, Tournament, Team, Personnel } from '@/types';
@@ -168,16 +168,15 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     wasOpenRef.current = isOpen;
   }, [isOpen, resetForm, t]);
 
-  // Clear stale series selection if tournament was edited and series no longer exists
-  useEffect(() => {
-    if (selectedTournamentSeriesId && selectedTournamentId) {
-      const tournament = tournaments.find(t => t.id === selectedTournamentId);
-      const seriesExists = tournament?.series?.some(s => s.id === selectedTournamentSeriesId);
-      if (!seriesExists) {
-        setSelectedTournamentSeriesId(null);
-        setTournamentLevel('');
-      }
+  // Compute effective series ID - returns null if the selected series no longer exists
+  // This avoids calling setState in an effect which causes cascading renders
+  const effectiveSeriesId = useMemo(() => {
+    if (!selectedTournamentSeriesId || !selectedTournamentId) {
+      return selectedTournamentSeriesId;
     }
+    const tournament = tournaments.find(t => t.id === selectedTournamentId);
+    const seriesExists = tournament?.series?.some(s => s.id === selectedTournamentSeriesId);
+    return seriesExists ? selectedTournamentSeriesId : null;
   }, [tournaments, selectedTournamentId, selectedTournamentSeriesId]);
 
   // Helper to apply season settings to form
@@ -296,11 +295,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     if (tournament) {
       setGameLocation(tournament.location || '');
       setAgeGroup(tournament.ageGroup || '');
-      // If tournament has series, reset level selection (user will pick from series dropdown)
+      // If tournament has series, pre-select first one for better UX
       // If no series but has legacy level, use that
       if (tournament.series && tournament.series.length > 0) {
-        setTournamentLevel('');
-        setSelectedTournamentSeriesId(null);
+        const firstSeries = tournament.series[0];
+        setTournamentLevel(firstSeries.level);
+        setSelectedTournamentSeriesId(firstSeries.id);
       } else {
         setTournamentLevel(tournament.level || '');
         setSelectedTournamentSeriesId(null);
@@ -373,19 +373,6 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         return;
     }
 
-    // Validate tournamentSeriesId exists in the selected tournament (if provided)
-    // This prevents saving orphaned references if series was deleted after selection
-    let validatedSeriesId = selectedTournamentSeriesId;
-    if (validatedSeriesId && selectedTournamentId) {
-      const tournament = tournaments.find(t => t.id === selectedTournamentId);
-      const seriesExists = tournament?.series?.some(s => s.id === validatedSeriesId);
-      if (!seriesExists) {
-        // Series no longer exists in tournament - clear the reference
-        validatedSeriesId = null;
-        logger.warn(`Tournament series ${selectedTournamentSeriesId} not found in tournament ${selectedTournamentId}, clearing reference`);
-      }
-    }
-
     // --- Save last used home team name using utility function ---
     try {
       await utilSaveLastHomeTeamName(trimmedHomeTeamName);
@@ -411,7 +398,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       demandFactor,
       ageGroup,
       tournamentLevel,
-      validatedSeriesId,
+      effectiveSeriesId,
       isPlayed,
       selectedTeamId, // Add team selection parameter
       availablePlayersForSetup, // Pass the actual roster being used in the modal
@@ -669,7 +656,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                   // Show series dropdown when tournament has defined series
                                   <select
                                     id="tournamentLevelInput"
-                                    value={selectedTournamentSeriesId || ''}
+                                    value={effectiveSeriesId || ''}
                                     onChange={(e) => {
                                       const seriesId = e.target.value || null;
                                       setSelectedTournamentSeriesId(seriesId);

@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: update README with current stats and remove critical fixes section"
+  "notes": "chore: remove unused hidden legacy level input"
 }
