@@ -110,8 +110,12 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   // Series management functions
   const handleAddSeries = () => {
     if (!newSeriesLevel) return;
+    // Use crypto.randomUUID for better uniqueness, fallback for older browsers
+    const uniquePart = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID().slice(0, 8)
+      : Math.random().toString(36).substring(2, 9);
     const newSeries: TournamentSeries = {
-      id: `series_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      id: `series_${Date.now()}_${uniquePart}`,
       level: newSeriesLevel,
     };
     setSeries([...series, newSeries]);
