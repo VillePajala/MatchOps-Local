@@ -1006,7 +1006,12 @@
     "awardedPlayerLabel": "Player of Tournament",
     "notesLabel": "Notes",
     "notesPlaceholder": "Enter any notes",
-    "archivedLabel": "Archived"
+    "archivedLabel": "Archived",
+    "seriesLabel": "Series (Competition Levels)",
+    "addSeries": "Add Series",
+    "removeSeries": "Remove series",
+    "selectLevelForNewSeries": "Select level for new series",
+    "confirmAddSeries": "Confirm add series"
   },
   "tournaments": {
     "selectAwardWinner": "-- Select Player of Tournament --",
