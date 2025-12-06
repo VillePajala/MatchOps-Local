@@ -109,7 +109,8 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
 
   // Series management functions
   const handleAddSeries = () => {
-    if (!newSeriesLevel) return;
+    // Validate level is from allowed list (dropdown enforces this, but defensive check)
+    if (!newSeriesLevel || !LEVELS.includes(newSeriesLevel)) return;
     // Generate unique ID - crypto.randomUUID available in all browsers supporting IndexedDB
     let uniquePart: string;
     try {
