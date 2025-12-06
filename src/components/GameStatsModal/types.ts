@@ -65,6 +65,7 @@ export interface GameStatsParams {
   selectedSeasonIdFilter: string | 'all';
   selectedTournamentIdFilter: string | 'all';
   selectedTeamIdFilter: string | 'all' | 'legacy';
+  selectedSeriesIdFilter: string | 'all';
   sortColumn: SortableColumn;
   sortDirection: SortDirection;
   filterText: string;
@@ -95,4 +96,5 @@ export interface GameFilters {
   selectedSeasonIdFilter: string | 'all';
   selectedTournamentIdFilter: string | 'all';
   selectedTeamIdFilter: string | 'all' | 'legacy';
+  selectedSeriesIdFilter: string | 'all';
 }
