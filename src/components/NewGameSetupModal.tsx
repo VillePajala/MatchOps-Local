@@ -314,15 +314,14 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
 
   const handleTournamentChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
-    // Clear series selection when tournament changes (prevents stale reference)
-    setSelectedTournamentSeriesId(null);
-    setTournamentLevel('');
     if (value) {
       setSelectedTournamentId(value);
       setSelectedSeasonId(null);
-      applyTournamentSettings(value);
+      applyTournamentSettings(value); // handles series/level internally
     } else {
       setSelectedTournamentId(null);
+      setSelectedTournamentSeriesId(null);
+      setTournamentLevel('');
       setActiveTab('none');
     }
   };

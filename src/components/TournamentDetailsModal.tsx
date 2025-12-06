@@ -110,10 +110,14 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   // Series management functions
   const handleAddSeries = () => {
     if (!newSeriesLevel) return;
-    // Use crypto.randomUUID for better uniqueness, fallback for older browsers
-    const uniquePart = typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID().slice(0, 8)
-      : Math.random().toString(36).substring(2, 9);
+    // Generate unique ID - crypto.randomUUID available in all browsers supporting IndexedDB
+    let uniquePart: string;
+    try {
+      uniquePart = crypto.randomUUID().slice(0, 8);
+    } catch {
+      // Fallback for edge cases (shouldn't happen in supported browsers)
+      uniquePart = Math.random().toString(36).substring(2, 10);
+    }
     const newSeries: TournamentSeries = {
       id: `series_${Date.now()}_${uniquePart}`,
       level: newSeriesLevel,
