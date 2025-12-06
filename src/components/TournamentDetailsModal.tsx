@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
-import { Tournament, Player } from '@/types';
+import { Tournament, Player, TournamentSeries } from '@/types';
 import { UseMutationResult } from '@tanstack/react-query';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
 import type { TranslationKey } from '@/i18n-types';
@@ -36,6 +36,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   const [location, setLocation] = useState('');
   const [ageGroup, setAgeGroup] = useState('');
   const [level, setLevel] = useState('');
+  const [series, setSeries] = useState<TournamentSeries[]>([]);
   const [periodCount, setPeriodCount] = useState<number | undefined>(undefined);
   const [periodDuration, setPeriodDuration] = useState<number | undefined>(undefined);
   const [startDate, setStartDate] = useState('');
@@ -44,6 +45,10 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   const [awardedPlayerId, setAwardedPlayerId] = useState<string | undefined>(undefined);
   const [archived, setArchived] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Series management UI state
+  const [isAddingNewSeries, setIsAddingNewSeries] = useState(false);
+  const [newSeriesLevel, setNewSeriesLevel] = useState('');
 
   // Initialize form when tournament changes or modal opens
   React.useLayoutEffect(() => {
@@ -54,6 +59,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         setLocation('');
         setAgeGroup('');
         setLevel('');
+        setSeries([]);
         setPeriodCount(undefined);
         setPeriodDuration(undefined);
         setStartDate('');
@@ -62,12 +68,26 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         setAwardedPlayerId(undefined);
         setArchived(false);
         setErrorMessage(null);
+        setIsAddingNewSeries(false);
+        setNewSeriesLevel('');
       } else if (tournament) {
         // Load existing tournament data for edit mode
         setName(tournament.name || '');
         setLocation(tournament.location || '');
         setAgeGroup(tournament.ageGroup || '');
         setLevel(tournament.level || '');
+        // Migrate legacy level to series if needed
+        if (tournament.series && tournament.series.length > 0) {
+          setSeries(tournament.series);
+        } else if (tournament.level) {
+          // Auto-migrate legacy level to series for UI display
+          setSeries([{
+            id: `series_${tournament.id}_${tournament.level.toLowerCase().replace(/\s+/g, '-')}`,
+            level: tournament.level,
+          }]);
+        } else {
+          setSeries([]);
+        }
         setPeriodCount(tournament.periodCount);
         setPeriodDuration(tournament.periodDuration);
         setStartDate(tournament.startDate || '');
@@ -76,6 +96,8 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         setAwardedPlayerId(tournament.awardedPlayerId);
         setArchived(tournament.archived || false);
         setErrorMessage(null);
+        setIsAddingNewSeries(false);
+        setNewSeriesLevel('');
       }
     }
   }, [mode, tournament, isOpen]);
@@ -84,6 +106,25 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
     const parsed = parseInt(value, 10);
     return isNaN(parsed) ? undefined : parsed;
   };
+
+  // Series management functions
+  const handleAddSeries = () => {
+    if (!newSeriesLevel) return;
+    const newSeries: TournamentSeries = {
+      id: `series_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      level: newSeriesLevel,
+    };
+    setSeries([...series, newSeries]);
+    setNewSeriesLevel('');
+    setIsAddingNewSeries(false);
+  };
+
+  const handleRemoveSeries = (seriesId: string) => {
+    setSeries(series.filter(s => s.id !== seriesId));
+  };
+
+  // Get available levels (exclude already selected)
+  const availableLevels = LEVELS.filter(lvl => !series.some(s => s.level === lvl));
 
   const handleSave = () => {
     if (!name.trim()) return;
@@ -101,6 +142,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         location: location.trim() || undefined,
         ageGroup: ageGroup || undefined,
         level: level || undefined,
+        series: series.length > 0 ? series : undefined,
         periodCount: sanitizedPeriodCount,
         periodDuration: sanitizedPeriodDuration,
         startDate: startDate || undefined,
@@ -134,6 +176,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         location: location.trim() || undefined,
         ageGroup: ageGroup || undefined,
         level: level || undefined,
+        series: series.length > 0 ? series : undefined,
         periodCount: sanitizedPeriodCount,
         periodDuration: sanitizedPeriodDuration,
         startDate: startDate || undefined,
@@ -273,22 +316,89 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                 </select>
               </div>
 
-              {/* Level */}
+              {/* Tournament Series */}
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">
-                  {t('tournamentDetailsModal.levelLabel', 'Level')}
+                  {t('tournamentDetailsModal.seriesLabel', 'Series (Competition Levels)')}
                 </label>
-                <select
-                  value={level}
-                  onChange={(e) => setLevel(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="">{t('common.selectLevel', '-- Select Level --')}</option>
-                  {LEVELS.map(lvl => (
-                    <option key={lvl} value={lvl}>{t(`common.level${lvl}` as TranslationKey, lvl)}</option>
-                  ))}
-                </select>
+
+                {/* Display existing series */}
+                {series.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {series.map((s) => (
+                      <div
+                        key={s.id}
+                        className="flex items-center gap-1 bg-slate-600 px-2 py-1 rounded-md text-sm"
+                      >
+                        <span>{t(`common.level${s.level}` as TranslationKey, s.level)}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSeries(s.id)}
+                          className="text-slate-400 hover:text-red-400 ml-1"
+                          aria-label={t('tournamentDetailsModal.removeSeries', 'Remove series')}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Add new series UI */}
+                {isAddingNewSeries ? (
+                  <div className="flex gap-2">
+                    <select
+                      value={newSeriesLevel}
+                      onChange={(e) => setNewSeriesLevel(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                      aria-label={t('tournamentDetailsModal.selectLevelForNewSeries', 'Select level for new series')}
+                    >
+                      <option value="">{t('common.selectLevel', '-- Select Level --')}</option>
+                      {LEVELS.map(lvl => (
+                        <option
+                          key={lvl}
+                          value={lvl}
+                          disabled={series.some(s => s.level === lvl)}
+                        >
+                          {t(`common.level${lvl}` as TranslationKey, lvl)}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={handleAddSeries}
+                      disabled={!newSeriesLevel}
+                      className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-md text-sm"
+                      aria-label={t('tournamentDetailsModal.confirmAddSeries', 'Confirm add series')}
+                    >
+                      {t('common.add', 'Add')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingNewSeries(false);
+                        setNewSeriesLevel('');
+                      }}
+                      className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-md text-sm"
+                    >
+                      {t('common.cancel', 'Cancel')}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingNewSeries(true)}
+                    disabled={availableLevels.length === 0}
+                    className="px-3 py-2 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-md text-sm"
+                    aria-label={t('tournamentDetailsModal.addSeries', 'Add series')}
+                  >
+                    + {t('tournamentDetailsModal.addSeries', 'Add Series')}
+                  </button>
+                )}
               </div>
+
+              {/* Legacy Level (hidden, kept for backwards compatibility during migration) */}
+              <input type="hidden" value={level} />
 
               {/* Start Date and End Date */}
               <div className="grid grid-cols-2 gap-3">
