@@ -141,7 +141,8 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         name: name.trim(),
         location: location.trim() || undefined,
         ageGroup: ageGroup || undefined,
-        level: level || undefined,
+        // Clear legacy level field when series is present (series is now source of truth)
+        level: series.length > 0 ? undefined : (level || undefined),
         series: series.length > 0 ? series : undefined,
         periodCount: sanitizedPeriodCount,
         periodDuration: sanitizedPeriodDuration,
@@ -175,7 +176,8 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         name: name.trim(),
         location: location.trim() || undefined,
         ageGroup: ageGroup || undefined,
-        level: level || undefined,
+        // Clear legacy level field when series is present (series is now source of truth)
+        level: series.length > 0 ? undefined : (level || undefined),
         series: series.length > 0 ? series : undefined,
         periodCount: sanitizedPeriodCount,
         periodDuration: sanitizedPeriodDuration,
