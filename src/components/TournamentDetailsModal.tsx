@@ -397,9 +397,6 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                 )}
               </div>
 
-              {/* Legacy Level (hidden, kept for backwards compatibility during migration) */}
-              <input type="hidden" value={level} />
-
               {/* Start Date and End Date */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
