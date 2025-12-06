@@ -13,6 +13,7 @@ import { withKeyLock } from './storageKeyLock';
  * - If tournament already has series array with items, return as-is
  * - If tournament has legacy `level` field but no series, create series array
  * - If tournament has neither, return as-is
+ * - Migration happens in-memory only; changes persist on next save operation
  */
 function migrateTournamentLevel(tournament: Tournament): Tournament {
   // If already has series with items, no migration needed
