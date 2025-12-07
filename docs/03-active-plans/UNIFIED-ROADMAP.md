@@ -1,6 +1,6 @@
 # MatchOps-Local: Unified Project Roadmap
 
-**Last Updated**: December 5, 2025
+**Last Updated**: December 7, 2025
 **Status**: Active
 **Purpose**: Single source of truth for ALL project work
 
@@ -10,11 +10,11 @@
 
 | Category | Status |
 |----------|--------|
-| Codebase Health | ✅ Excellent (2,085 tests, 62-line HomePage, 6 extracted hooks) |
+| Codebase Health | ✅ Excellent (2,201 tests, 62-line HomePage, 6 extracted hooks) |
 | Security | ✅ All vulnerabilities fixed |
 | Performance | ✅ React.memo optimization complete |
 | Framework | ✅ Next.js 16 + React 19.2 |
-| Next Major Work | 🎯 Features or Play Store Release |
+| Next Major Work | 🎯 **Play Store Release** (Priority 1) |
 
 ---
 
@@ -24,7 +24,7 @@
 - [x] HomePage refactoring: 3,725 → 62 lines (98% reduction)
 - [x] 6 hooks extracted (all ≤665 lines)
 - [x] Layer 3 Polish: React.memo, useMemo optimization
-- [x] 2,085 tests passing (65% coverage)
+- [x] 2,201 tests passing (65% coverage)
 - [x] All P0/P1/P2 fixes complete
 
 ### NPM & Security Updates (December 2025)
@@ -45,37 +45,27 @@
 ### Features (2025)
 - [x] Team Final Position Tracking (🥇🥈🥉 in UnifiedTeamModal)
 - [x] Personnel Management (8 role types, PersonnelManagerModal, game selection)
+- [x] Tournament Series & Season Leagues (Elite/Kilpa/Haaste/Harraste + 34 Finnish leagues)
 
 ---
 
-## 🎯 NEXT UP: Tournament Series & Season Leagues
+## 🎯 PRIORITY ORDER (December 2025)
 
-**Design**: ✅ Complete | **Doc**: `TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md`
-**Branch**: `feature/tournament-series-and-leagues`
-**Approach**: TDD (Test-Driven Development)
-
-### PRs (All in one integration branch)
-- [ ] **PR #1**: Types + Storage + Migration (~2h)
-- [ ] **PR #2**: Tournament Series UI (~2.5h)
-- [ ] **PR #3**: Season Leagues UI (~1.5h)
-- [ ] **PR #4**: Stats Filtering (~3h)
-- [ ] Final integration PR to master
-
-**What this delivers**:
-- Tournament series (Elite, Kilpa, Haaste, Harraste)
-- Season leagues (34 Finnish youth leagues + custom)
-- UI in modals (TournamentDetails, SeasonDetails, NewGameSetup)
-- Stats filtering by series/league
-- Translations (EN/FI)
-- Backwards compatible migration
-
-**Total effort**: ~9.5 hours
+| # | Task | Effort | Why This Order |
+|---|------|--------|----------------|
+| **1** | Play Store Release | 2-3 weeks | Unlocks monetization, validates product |
+| **2** | Backend Architecture Refactoring | ~4 weeks | Clean architecture before more features |
+| **3** | Gender Handling | 1-2 weeks | HIGH priority feature, needs design |
+| **4** | Season League UX (area/age filtering) | 1 week | Nice-to-have UX improvement |
+| **5** | Other features & fixes | Ongoing | As needed |
 
 ---
 
-## 📋 PLAY STORE RELEASE (Future)
+## 🚀 PRIORITY 1: Play Store Release
 
+**Status**: 🎯 **NEXT UP**
 **Master Plan**: `master-execution-guide.md`
+**Effort**: 2-3 weeks
 
 ### Phase P1: Security Hardening
 - [ ] CSP headers in next.config.ts
@@ -103,43 +93,112 @@
 - [ ] Sentry alerts configured
 - [ ] Support channels
 
+**Why First**: App is fully functional and ready. Play Store validates product-market fit and unlocks revenue potential.
+
 ---
 
-## 🔮 LONG-TERM (Not Scheduled)
+## 🔧 PRIORITY 2: Backend Architecture Refactoring
 
-### Backend Evolution (50-72 hours / ~4 weeks if pursued)
+**Status**: 📋 Plan ready
 **Primary Doc**: `backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md` ⭐ **START HERE**
-**Theoretical Docs**: `backend-evolution/` folder
+**Effort**: ~4 weeks (50-72 hours)
 
-**What This Enables**:
+### What This Enables
 - Backend switching capability (IndexedDB ↔ Supabase)
 - Foundation for cloud features (multi-device sync, cloud backup)
 - Premium tier monetization path
+- **Cleaner architecture before adding more features**
 
-**Realistic PR Breakdown** (based on December 2025 code analysis):
+### PR Breakdown
 
 | Phase | PRs | Hours | Risk |
 |-------|-----|-------|------|
 | 1. Foundation (centralize storage calls) | #1-3 | 12-16h | LOW |
 | 2. DataStore Interface | #4-5 | 8-12h | LOW |
 | 3. LocalDataStore Implementation | #6-8 | 10-14h | MEDIUM |
-| 4. Supabase (optional, future) | #9-12 | 20-30h | MEDIUM |
-| **Total (Phase 1-3)** | 8 PRs | ~4 weeks | |
+| **Total (Phases 1-3)** | 8 PRs | ~4 weeks | |
 
-**Key Insight**: Phases 1-3 provide backend switching capability WITHOUT requiring Supabase. Phase 4 is optional and can be done after Play Store release.
+**Key Insight**: Phases 1-3 provide backend switching capability WITHOUT requiring Supabase. Phase 4 (Supabase) is optional and can be done later.
 
-**See**: [REALISTIC-IMPLEMENTATION-PLAN.md](./backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md) for detailed PR breakdown
+**Why Second**:
+- LOW risk (pure refactoring, same IndexedDB behavior)
+- "Now or never" problem - harder to refactor after adding more features
+- Enables future flexibility for cloud features
 
-### GameSettingsModal Refactoring (~1 hour)
-- Currently 1,969 lines
-- Split into 5 sub-components
-- Low priority (works fine)
+---
 
-### Component Extraction (Low Priority)
-- Extract `<TournamentSeriesManager />` from TournamentDetailsModal
-  - ~50 lines of series management UI
-  - Benefits: testability, reusability if needed elsewhere
-  - Not urgent: only used in one place currently
+## 👥 PRIORITY 3: Gender Handling
+
+**Status**: 📋 Needs design discussion
+**Effort**: 1-2 weeks
+
+### The Problem
+- App tracks soccer games but doesn't distinguish gender
+- Affects: teams, seasons, tournaments, players, stats filtering
+- Finnish youth soccer is gender-separated
+
+### Design Questions to Resolve
+1. **Where does gender live?**
+   - Team level? (most games are single-gender teams)
+   - Season/Tournament level?
+   - Player level?
+   - All of the above?
+
+2. **How does it propagate?**
+   - Team gender → Game inherits?
+   - Filter stats by gender?
+   - Validation (can't mix genders in same game)?
+
+3. **UI considerations**
+   - Where to show gender?
+   - How to filter by gender in stats?
+   - Migration for existing data?
+
+### Implementation (after design)
+- [ ] Design document created
+- [ ] Types updated
+- [ ] Storage/migration
+- [ ] UI components
+- [ ] Stats filtering
+- [ ] Translations (EN/FI)
+
+**Why Third**: Important feature but needs design discussion. Real user feedback from Play Store may inform design decisions.
+
+---
+
+## 🎨 PRIORITY 4: Season League UX Improvements
+
+**Status**: 📋 Idea documented
+**Effort**: 1 week
+
+### The Problem
+Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Could be more intuitive with grouping.
+
+### Proposed Improvements
+- **Area filtering**: Split by Itä (East), Länsi (West), Etelä (South)
+- **Age group pre-selection**: Filter leagues applicable to age group
+- **Level grouping**: Group by competition level
+
+### Implementation
+- [ ] Design area/age dropdown filters
+- [ ] Update SeasonDetailsModal UI
+- [ ] Add translations
+- [ ] Test UX flow
+
+**Why Fourth**: Pure UX improvement. Current UI works, just not ideal. Can wait until after more critical work.
+
+---
+
+## 📦 PRIORITY 5: Other Features & Fixes
+
+**Status**: Ongoing
+**Tracked in**: GitHub Issues
+
+### Low Priority / As Needed
+- GameSettingsModal refactoring (~1 hour, 1,969 lines)
+- Component extraction (TournamentSeriesManager)
+- Performance optimizations
+- Bug fixes as reported
 
 ---
 
@@ -149,6 +208,7 @@
 |---------|------|
 | This roadmap | `UNIFIED-ROADMAP.md` |
 | Play Store details | `master-execution-guide.md` |
+| Backend refactoring | `backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md` |
 | Feature: Tournament/Leagues | `TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md` |
 | Social media launch | `SOCIAL_MEDIA_LAUNCH_STRATEGY.md` |
 
@@ -158,9 +218,11 @@
 
 | Date | Update |
 |------|--------|
-| 2025-12-06 | Tournament Series & Season Leagues plan refined (2 phases) |
+| 2025-12-07 | **Established priority order**: Play Store → Backend → Gender → League UX |
+| 2025-12-07 | Tournament Series & Season Leagues feature merged to master (PR #111) |
+| 2025-12-06 | Backend abstraction realistic plan created |
 | 2025-12-05 | **Next.js 16.0.7 + React 19.2 upgrade complete** |
-| 2025-12-05 | Test coverage: 2,085 tests across 142 suites |
+| 2025-12-05 | Test coverage: 2,201 tests across 142 suites |
 | 2025-12-05 | Personnel Management confirmed complete, plan archived |
 | 2025-12-05 | Team Final Position Tracking confirmed complete, plan archived |
 | 2025-12-05 | Created unified roadmap, consolidated 16 plan files |
@@ -170,4 +232,4 @@
 
 ---
 
-**Remember**: The codebase is healthy. No urgent work required. Build features when ready.
+**Current Focus**: 🎯 **Play Store Release** - App is ready, let's ship it!
