@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 declare module 'jest-axe' {
   export interface AxeResults {
     violations: Array<{
@@ -23,7 +24,7 @@ declare module 'jest-axe' {
 
   export function axe(container: Element | Document): Promise<AxeResults>;
   export function configureAxe(options?: any): any;
-  export const toHaveNoViolations: { [key: string]: any };
+  export const toHaveNoViolations: jest.ExpectExtendMap;
 }
 
 declare global {
@@ -31,11 +32,5 @@ declare global {
     interface Matchers<R> {
       toHaveNoViolations(): R;
     }
-  }
-}
-
-declare module '@jest/expect' {
-  interface Matchers<R> {
-    toHaveNoViolations(): R;
   }
 }

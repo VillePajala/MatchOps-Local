@@ -190,6 +190,18 @@ const shouldUseSentry =
   process.env.NEXT_PUBLIC_SENTRY_DSN &&
   (process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_SENTRY_FORCE_ENABLE === 'true');
 
-export default shouldUseSentry
-  ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
-  : nextConfig;
+export default async function buildConfig(): Promise<NextConfig> {
+  // Bundle analyzer - run with ANALYZE=true npm run build
+  // Lazy-load to avoid requiring devDependencies when ANALYZE is not set
+  let withBundleAnalyzer = (config: NextConfig) => config;
+  if (process.env.ANALYZE === 'true') {
+    const { default: bundleAnalyzer } = await import('@next/bundle-analyzer');
+    withBundleAnalyzer = bundleAnalyzer({ enabled: true });
+  }
+
+  const configWithAnalyzer = withBundleAnalyzer(nextConfig);
+
+  return shouldUseSentry
+    ? withSentryConfig(configWithAnalyzer, sentryWebpackPluginOptions)
+    : configWithAnalyzer;
+}
