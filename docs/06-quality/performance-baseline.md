@@ -54,7 +54,7 @@ npm run build:analyze
 | Metric | Target | Description |
 |--------|--------|-------------|
 | LCP | < 2.5s | Largest Contentful Paint |
-| FID | < 100ms | First Input Delay |
+| INP | < 200ms | Interaction to Next Paint (replaces FID) |
 | CLS | < 0.1 | Cumulative Layout Shift |
 | TTFB | < 800ms | Time to First Byte |
 

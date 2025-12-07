@@ -13,6 +13,7 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 import { axe, toHaveNoViolations } from 'jest-axe';
+import tinycolor from 'tinycolor2';
 
 // Extend Jest matchers
 expect.extend(toHaveNoViolations);
@@ -99,9 +100,6 @@ describe('Accessibility: Color Contrast', () => {
   // - AAA Normal text: 7:1
   const WCAG_AA_NORMAL = 4.5;
   const WCAG_AAA_NORMAL = 7;
-
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const tinycolor = require('tinycolor2');
 
   // App color palette - primary text colors on dark backgrounds
   const colors = {
