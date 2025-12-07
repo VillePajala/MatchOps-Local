@@ -24,14 +24,10 @@ MatchOps-Local is built for coaches who need privacy, offline reliability, and s
 
 ## Feature Tour
 
-![Live timer and substitutions](docs/assets/screenshots/screenshot_timer_view_with_substitutions_play_time_records.png)
-
 - **Plan**: Personnel pool, multi-team rosters from a master player list, seasons/tournaments with Finnish league presets, bilingual UI (EN/FI).
 - **Track**: Interactive field with undo/redo, live game timer with substitution alerts and history, real-time event logging (goals/assists/opponent), tactics board with drawings.
 - **Assess**: Per-player stats across games/seasons/tournaments, weighted assessments (technical/tactical/physical/mental), filters by season/tournament/team, backups/import/export.
 - **PWA**: Installable, offline-first, wake-lock support, auto-update prompt; HTML served network-first to avoid stale versions, offline fallback page.
-
-![Tactics view](docs/assets/screenshots/screeshot_tactics_view.png)
 
 ## What You Can Do (Highlights)
 
