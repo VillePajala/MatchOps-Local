@@ -161,7 +161,8 @@ async function validateAssetLinks() {
 
     // SHA256 fingerprint format: 32 pairs of hex digits separated by colons
     // Example: AB:CD:EF:12:34:56:78:90:AB:CD:EF:12:34:56:78:90:AB:CD:EF:12:34:56:78:90:AB:CD:EF:12:34:56:78:90
-    const fingerprintRegex = /^([A-F0-9]{2}:){31}[A-F0-9]{2}$/;
+    // Note: Accept both uppercase and lowercase hex (some tools like keytool output uppercase, others lowercase)
+    const fingerprintRegex = /^([A-Fa-f0-9]{2}:){31}[A-Fa-f0-9]{2}$/;
 
     if (fingerprint.includes('REPLACE')) {
       if (isProduction) {

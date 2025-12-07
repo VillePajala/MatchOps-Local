@@ -37,13 +37,16 @@ const IS_DEV = self.location.hostname === 'localhost';
 const log = IS_DEV ? console.log.bind(console) : () => {};
 const logError = console.error.bind(console); // Always log errors
 
-// Helper to trim cache if it exceeds size limit (removes oldest entries first)
+// Helper to trim cache if it exceeds size limit
+// Note: Cache API doesn't guarantee key order = insertion order, so this removes
+// "first" entries which may not be strictly oldest. This is acceptable because:
+// 1. The entire cache is cleared on SW update anyway
+// 2. This just prevents unbounded growth within a single SW version
 async function trimCache(cache) {
   const keys = await cache.keys();
   if (keys.length > MAX_CACHE_ENTRIES) {
     const deleteCount = keys.length - MAX_CACHE_ENTRIES;
-    log(`[SW] Trimming cache: removing ${deleteCount} oldest entries`);
-    // Delete oldest entries (first in the keys array)
+    log(`[SW] Trimming cache: removing ${deleteCount} entries`);
     await Promise.all(keys.slice(0, deleteCount).map(key => cache.delete(key)));
   }
 }
