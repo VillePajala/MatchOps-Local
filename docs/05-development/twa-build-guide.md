@@ -85,7 +85,7 @@ The easiest way to build a TWA is using PWABuilder:
 4. Select "Android" → "Generate Package"
 5. Configure:
    - **App name**: MatchOps
-   - **Package ID**: com.matchops.local
+   - **Package ID**: com.matchops.local (using `.local` as this is a local-first app with no server backend)
    - **Signing key**: Use the keystore generated in Step 1
 6. Download the AAB (Android App Bundle)
 
@@ -93,7 +93,7 @@ The easiest way to build a TWA is using PWABuilder:
 
 ```bash
 # Install Bubblewrap
-npm install -g @nicolo-ribaudo/nicolo-aspect-cli
+npm install -g @bubblewrap/cli
 
 # Initialize TWA project
 npx bubblewrap init --manifest https://matchops-local.vercel.app/manifest.json
