@@ -24,18 +24,25 @@ async function generateManifest() {
   const manifest = {
     "name": config.appName,
     "short_name": config.shortName,
-    "description": "Soccer Tactics and Timer App for Coaches",
+    "description": "Soccer Tactics and Timer App for Coaches. Track games, manage lineups, and analyze player performance.",
     "start_url": "/",
     "scope": "/",
-    "display": config.displayMode || "fullscreen",
+    "id": "/",
+    "display": config.displayMode || "standalone",
     "orientation": "portrait-primary",
     "background_color": "#1e293b",
     "theme_color": config.themeColor,
-    "categories": ["sports", "productivity"],
+    "categories": ["sports", "productivity", "utilities"],
     "lang": "en-US",
     "dir": "ltr",
     "prefer_related_applications": false,
     "icons": [
+      {
+        "src": "/icons/favicon-32x32.png",
+        "sizes": "32x32",
+        "type": "image/png",
+        "purpose": "any"
+      },
       {
         "src": "/icons/icon-192x192.png",
         "sizes": "192x192",
@@ -43,10 +50,32 @@ async function generateManifest() {
         "purpose": "any"
       },
       {
+        "src": "/icons/icon-192x192.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "maskable"
+      },
+      {
         "src": "/icons/icon-512x512.png",
         "sizes": "512x512",
         "type": "image/png",
         "purpose": "any"
+      },
+      {
+        "src": "/icons/icon-512x512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "maskable"
+      }
+    ],
+    "screenshots": [],
+    "shortcuts": [
+      {
+        "name": "New Game",
+        "short_name": "New Game",
+        "description": "Start a new game",
+        "url": "/?action=new-game",
+        "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
       }
     ]
   };
