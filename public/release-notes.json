@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat: PWA enhancements for Play Store release"
+  "notes": "test: add CI validation for assetlinks.json placeholder"
 }

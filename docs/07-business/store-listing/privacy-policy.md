@@ -2,7 +2,7 @@
 
 **Last Updated**: December 2025
 
-> **Hosted URL**: https://matchops.app/privacy-policy (use this URL for Play Store submission)
+> **Hosted URL**: https://matchops.com/privacy-policy (use this URL for Play Store submission)
 
 ## Overview
 
