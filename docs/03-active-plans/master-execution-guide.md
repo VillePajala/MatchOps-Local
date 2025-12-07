@@ -11,7 +11,7 @@ Purpose: a single, authoritative, step‑by‑step guide to take MatchOps‑Loca
 
 | # | Task | Effort | Status |
 |---|------|--------|--------|
-| **1** | **Play Store Release** | 2-3 weeks (11 PRs) | 🎯 NEXT UP |
+| **1** | **Play Store Release** | 2-3 weeks (11 PRs) | 🚧 IN PROGRESS |
 | **2** | Backend Architecture Refactoring | ~4 weeks (8 PRs) | 📋 Plan ready |
 | **3** | Gender Handling | 1-2 weeks | 📋 Needs design |
 | **4** | Season League UX Improvements | 1 week | 📋 Idea documented |
@@ -27,13 +27,13 @@ Purpose: a single, authoritative, step‑by‑step guide to take MatchOps‑Loca
 
 ### Quick Overview
 
-| Phase | PRs | Hours | Focus |
-|-------|-----|-------|-------|
-| P1: Security | #1-2 | 4-6h | CSP headers, Service Worker |
-| P2: PWA Packaging | #3-5 | 8-12h | Manifest, TWA, Store assets |
-| P3: Quality | #6-7 | 4-6h | Accessibility, Performance |
-| P4: Monetization | #8-10 | 8-12h | Billing, Feature gating, Paywall |
-| P5: Release | #11 | 2-4h | Store submission |
+| Phase | PRs | Hours | Focus | Status |
+|-------|-----|-------|-------|--------|
+| P1: Security | #1-2 | 4-6h | CSP headers, Service Worker | ✅ Done |
+| P2: PWA Packaging | #3-5 | 8-12h | Manifest, TWA, Store assets | 🚧 ~80% |
+| P3: Quality | #6-7 | 4-6h | Accessibility, Performance | ⏳ Pending |
+| P4: Monetization | #8-10 | 8-12h | Billing, Feature gating, Paywall | ⏳ Pending |
+| P5: Release | #11 | 2-4h | Store submission | ⏳ Pending |
 
 ### Branching Strategy
 
@@ -404,8 +404,9 @@ Outcome: strengthen web security and offline behavior; finalize analytics stance
 - See: `docs/02-technical/security.md` for local-first security model
 
 - P1 Checklist
-  - [ ] Security headers/CSP in `next.config.ts` (FIX_PLAN §1) - local-first appropriate scope
-  - [ ] SW: restrict caching to static assets; versioned cleanup; avoid HTML caching; update flow OK (FIX_PLAN §2)
+  - [x] Security headers/CSP in `next.config.ts` (FIX_PLAN §1) - local-first appropriate scope ✅ Done Dec 7
+  - [x] SW: restrict caching to static assets; versioned cleanup; avoid HTML caching; update flow OK (FIX_PLAN §2) ✅ Done Dec 7
+  - [x] CSP violation reporting endpoint (`/api/csp-report`) with Sentry integration ✅ Done Dec 7
   - [ ] Analytics: disabled by default outside production; gated via env/flag (FIX_PLAN §6)
 
 Acceptance
@@ -423,9 +424,15 @@ Acceptance
 Outcome: app installs cleanly as a PWA and is packaged for the Play Store.
 
 - P2 Checklist
-  - [ ] Manifest: production values verified; icons maskable (192/512); screenshots gathered
-  - [ ] Packaging: TWA built (Bubblewrap/PWABuilder) and passes Play targets; assetlinks configured
-  - [ ] Listing: store text finalized; Privacy/Terms URLs ready and accurate
+  - [x] Manifest: production values verified; icons maskable (192/512); shortcuts configured ✅ Done Dec 7
+  - [x] Privacy Policy page (`/privacy-policy`) ✅ Done Dec 7
+  - [x] Terms of Service page (`/terms`) ✅ Done Dec 7
+  - [x] Settings modal links to Privacy/Terms ✅ Done Dec 7
+  - [x] Offline page with branding and retry button ✅ Done Dec 7
+  - [x] assetlinks.json structure (placeholder fingerprint - update before TWA build)
+  - [ ] Screenshots gathered for store listing
+  - [ ] Packaging: TWA built (Bubblewrap/PWABuilder) and passes Play targets
+  - [ ] Listing: store text finalized
 
 ### ⚠️ CRITICAL: Pre-Submission Checklist
 

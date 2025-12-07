@@ -2,7 +2,7 @@
 
 **Last Updated**: December 2025
 
-> **Hosted URL**: https://matchops.app/terms (use this URL for Play Store submission)
+> **Hosted URL**: https://matchops.com/terms (use this URL for Play Store submission)
 
 ## Agreement to Terms
 

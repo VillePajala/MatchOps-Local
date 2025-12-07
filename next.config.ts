@@ -50,7 +50,7 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Required by Next.js - see note above
       "style-src 'self' 'unsafe-inline'", // Required for CSS-in-JS and Next.js styles
-      "img-src 'self' data: blob:",
+      "img-src 'self'", // Strict: no data: or blob: URIs needed for images
       "font-src 'self' data:",
       "connect-src 'self' https://*.ingest.sentry.io https://*.sentry.io https://play.googleapis.com",
       "worker-src 'self'",
