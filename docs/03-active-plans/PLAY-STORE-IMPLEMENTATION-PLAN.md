@@ -365,6 +365,24 @@ npx @nicolo-ribaudo/nicolo-aspect-cli init
 - [ ] Bundle size documented
 - [ ] Baselines recorded for comparison
 
+### Should Consider (Future PRs)
+
+These improvements are not blocking for Play Store release but would enhance CI/quality infrastructure:
+
+1. **Enforce bundle size thresholds in CI**
+   - Add automated bundle size checks to fail CI if thresholds exceeded
+   - Reference: See bundle analysis setup in PR #7
+
+2. **Add jest-axe type definitions**
+   - Install `@types/jest-axe` or create custom declarations
+   - Eliminates verbose type assertions like `(expect(results) as jest.JestMatchers<unknown> & { toHaveNoViolations: () => void })`
+   - Makes accessibility tests cleaner
+
+3. **Cross-platform bundle analysis**
+   - Current setup uses Linux-specific commands
+   - If Windows developers join the team, add cross-platform alternatives
+   - Consider using Node.js-based analysis scripts instead of shell commands
+
 ---
 
 ## Phase P4: Monetization

@@ -15,6 +15,10 @@ import { render } from '@testing-library/react';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import tinycolor from 'tinycolor2';
 
+// Type helper for jest-axe matcher (Jest 30 doesn't pick up global augmentation)
+const expectA11y = (results: Awaited<ReturnType<typeof axe>>) =>
+  (expect(results) as ReturnType<typeof expect> & { toHaveNoViolations: () => void });
+
 // Extend Jest matchers
 expect.extend(toHaveNoViolations);
 
@@ -26,8 +30,7 @@ describe('Accessibility: Static Pages', () => {
       const { container } = render(<PrivacyPolicy />);
 
       const results = await axe(container);
-      // Type assertion needed because jest-axe extends Jest matchers at runtime
-      (expect(results) as jest.JestMatchers<unknown> & { toHaveNoViolations: () => void }).toHaveNoViolations();
+      expectA11y(results).toHaveNoViolations();
     });
 
     it('should have proper heading hierarchy', async () => {
@@ -50,8 +53,7 @@ describe('Accessibility: Static Pages', () => {
       const { container } = render(<Terms />);
 
       const results = await axe(container);
-      // Type assertion needed because jest-axe extends Jest matchers at runtime
-      (expect(results) as jest.JestMatchers<unknown> & { toHaveNoViolations: () => void }).toHaveNoViolations();
+      expectA11y(results).toHaveNoViolations();
     });
 
     it('should have proper heading hierarchy', async () => {
