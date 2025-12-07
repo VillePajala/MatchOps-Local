@@ -49,19 +49,5 @@
       "purpose": "maskable"
     }
   ],
-  "screenshots": [],
-  "shortcuts": [
-    {
-      "name": "New Game",
-      "short_name": "New Game",
-      "description": "Start a new game",
-      "url": "/?action=new-game",
-      "icons": [
-        {
-          "src": "/icons/icon-192x192.png",
-          "sizes": "192x192"
-        }
-      ]
-    }
-  ]
+  "screenshots": []
 }
