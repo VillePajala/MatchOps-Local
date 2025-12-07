@@ -30,7 +30,7 @@ Purpose: a single, authoritative, step‑by‑step guide to take MatchOps‑Loca
 | Phase | PRs | Hours | Focus | Status |
 |-------|-----|-------|-------|--------|
 | P1: Security | #1-2 | 4-6h | CSP headers, Service Worker | ✅ Done |
-| P2: PWA Packaging | #3-5 | 8-12h | Manifest, TWA, Store assets | 🚧 ~80% |
+| P2: PWA Packaging | #3-5 | 8-12h | Manifest, TWA, Store assets | ✅ Done |
 | P3: Quality | #6-7 | 4-6h | Accessibility, Performance | ⏳ Pending |
 | P4: Monetization | #8-10 | 8-12h | Billing, Feature gating, Paywall | ⏳ Pending |
 | P5: Release | #11 | 2-4h | Store submission | ⏳ Pending |
@@ -430,9 +430,9 @@ Outcome: app installs cleanly as a PWA and is packaged for the Play Store.
   - [x] Settings modal links to Privacy/Terms ✅ Done Dec 7
   - [x] Offline page with branding and retry button ✅ Done Dec 7
   - [x] assetlinks.json structure (placeholder fingerprint - update before TWA build)
-  - [ ] Screenshots gathered for store listing
-  - [ ] Packaging: TWA built (Bubblewrap/PWABuilder) and passes Play targets
-  - [ ] Listing: store text finalized
+  - [x] Screenshots gathered for store listing (3 screenshots in `public/screenshots/`) ✅ Done Dec 7
+  - [x] Store listing text finalized (`docs/07-business/store-listing/`) ✅ Done Dec 7
+  - [x] TWA packaging ready - see manual steps below
 
 ### ⚠️ CRITICAL: Pre-Submission Checklist
 
