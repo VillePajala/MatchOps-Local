@@ -145,10 +145,11 @@ jobs:
         
       - name: Bundle Size Check
         run: |
-          npm run build
+          npm run build:analyze
           BUNDLE_SIZE=$(du -sh .next/static | cut -f1)
           echo "Current bundle size: $BUNDLE_SIZE" >> $GITHUB_STEP_SUMMARY
-        continue-on-error: true
+          echo "Bundle analyzer: .next/analyze (generated when ANALYZE=true)" >> $GITHUB_STEP_SUMMARY
+        continue-on-error: false
 
   e2e-tests:
     runs-on: ubuntu-latest
