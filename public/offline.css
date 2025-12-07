@@ -1,0 +1,65 @@
+/* Offline page styles - separate file for CSP compliance */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #1e293b;
+  color: #f1f5f9;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+}
+.container {
+  max-width: 400px;
+}
+.logo {
+  margin-bottom: 16px;
+  border-radius: 16px;
+}
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #f8fafc;
+}
+.subtitle {
+  font-size: 18px;
+  color: #94a3b8;
+  margin-bottom: 20px;
+}
+.message {
+  font-size: 15px;
+  color: #64748b;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+.data-notice {
+  font-size: 14px;
+  color: #22c55e;
+  margin-bottom: 24px;
+  font-weight: 500;
+}
+button {
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+button:hover {
+  background-color: #4338ca;
+}
+button:active {
+  background-color: #3730a3;
+}

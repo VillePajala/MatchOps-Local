@@ -1210,6 +1210,8 @@
     "doneButton": "Valmis",
     "aboutTitle": "Tietoja",
     "appVersion": "Sovelluksen versio",
+    "privacyPolicy": "Tietosuojakäytäntö",
+    "termsOfService": "Käyttöehdot",
     "documentationLink": "Dokumentaatio",
     "documentationDescription": "Lue täydellinen käyttöohje ja vianetsintäopas.",
     "storageUsageLabel": "Tallennustila",

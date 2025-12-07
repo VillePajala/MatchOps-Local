@@ -1,10 +1,136 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from '@sentry/nextjs';
 
+/**
+ * Security headers for production deployment
+ * CSP is configured for a local-first PWA with:
+ * - Self-hosted scripts/styles
+ * - Sentry for error reporting
+ * - Play Store API for license validation (future)
+ *
+ * SECURITY NOTE: 'unsafe-inline' and 'unsafe-eval' in script-src
+ * ----------------------------------------------------------------
+ * These directives weaken CSP but are currently necessary because:
+ * 1. Next.js injects inline scripts for hydration and routing
+ * 2. Nonce-based CSP requires dynamic rendering (server-side on each request)
+ * 3. For a local-first PWA, static/client rendering is critical for:
+ *    - Offline-first capability (static assets cached by service worker)
+ *    - Fast initial loads without server roundtrip
+ *    - Lower hosting costs (no SSR compute needed)
+ *
+ * Alternative Approaches Evaluated:
+ *
+ * 1. Hash-Based CSP: NOT FEASIBLE
+ *    Next.js generates dynamic inline scripts (RSC payloads, chunk hashes)
+ *    that change every build. Pre-computing hashes would require post-build
+ *    processing and regeneration on every build.
+ *
+ * 2. Nonce-Based CSP with Middleware: NOT SUITABLE FOR THIS APP
+ *    Requires dynamic rendering (server generates fresh nonce per request).
+ *    This breaks PWA offline capability - pages can't load without server.
+ *    See: https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
+ *
+ * Risk Assessment (LOW for this app):
+ * - No user-generated content that could contain scripts
+ * - No third-party scripts (Sentry uses connect-src, not script-src)
+ * - All data is local (IndexedDB), not from external APIs
+ * - Single-page PWA with minimal attack surface
+ * - XSS would require attacker to modify static files on hosting server
+ *
+ * ACCEPTED RISK: unsafe-inline/unsafe-eval are security trade-offs accepted
+ * for PWA offline capability. This is documented and intentional.
+ */
+const securityHeaders = [
+  {
+    // Content Security Policy
+    // Note: unsafe-inline/unsafe-eval required for Next.js + PWA offline capability
+    // See security documentation above for risk assessment and alternatives evaluated
+    key: 'Content-Security-Policy',
+    value: [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Required by Next.js - see note above
+      "style-src 'self' 'unsafe-inline'", // Required for CSS-in-JS and Next.js styles
+      "img-src 'self'", // Strict: no data: or blob: URIs needed for images
+      "font-src 'self' data:",
+      "connect-src 'self' https://*.ingest.sentry.io https://*.sentry.io https://play.googleapis.com",
+      "worker-src 'self'",
+      "object-src 'none'", // Block Flash, Java applets, and other plugins
+      "frame-ancestors 'none'",
+      "form-action 'self'",
+      "base-uri 'self'",
+      "upgrade-insecure-requests", // Force HTTPS for all resources
+      "report-to csp-endpoint", // Modern browsers (Chrome 70+, Firefox 65+)
+      "report-uri /api/csp-report", // Legacy browsers fallback (deprecated but needed for Safari, older browsers)
+    ].join('; '),
+  },
+  {
+    // Prevent clickjacking
+    key: 'X-Frame-Options',
+    value: 'DENY',
+  },
+  {
+    // Prevent MIME type sniffing
+    key: 'X-Content-Type-Options',
+    value: 'nosniff',
+  },
+  {
+    // Control referrer information
+    key: 'Referrer-Policy',
+    value: 'strict-origin-when-cross-origin',
+  },
+  {
+    // DNS prefetch control
+    key: 'X-DNS-Prefetch-Control',
+    value: 'on',
+  },
+  {
+    // Permissions Policy (formerly Feature-Policy)
+    // Disable features we don't need
+    key: 'Permissions-Policy',
+    value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+  },
+  {
+    // Preconnect hints for Sentry error reporting
+    // preconnect includes DNS + TCP + TLS handshake for faster first request
+    key: 'Link',
+    value: '<https://sentry.io>; rel=preconnect, <https://ingest.sentry.io>; rel=preconnect',
+  },
+  {
+    // Report-To header for modern CSP reporting (Chrome 70+, Firefox 65+)
+    // Defines the endpoint group referenced by CSP's report-to directive
+    key: 'Report-To',
+    value: JSON.stringify({
+      group: 'csp-endpoint',
+      max_age: 10886400,
+      endpoints: [{ url: '/api/csp-report' }],
+    }),
+  },
+  {
+    // Cross-Origin-Opener-Policy
+    // Prevents other sites from opening this app in a popup and accessing window.opener
+    // 'same-origin' is the strictest setting for a standalone PWA
+    key: 'Cross-Origin-Opener-Policy',
+    value: 'same-origin',
+  },
+  {
+    // Cross-Origin-Resource-Policy
+    // Prevents other origins from reading this app's resources
+    // 'same-origin' blocks cross-origin resource requests
+    key: 'Cross-Origin-Resource-Policy',
+    value: 'same-origin',
+  },
+];
+
 const nextConfig: NextConfig = {
   // No special experimental config needed - instrumentation.ts is auto-detected
   async headers() {
     return [
+      // Apply security headers to all routes
+      {
+        source: '/:path*',
+        headers: securityHeaders,
+      },
+      // Cache control for specific files
       {
         source: '/sw.js',
         headers: [
@@ -21,6 +147,19 @@ const nextConfig: NextConfig = {
         source: '/release-notes.json',
         headers: [
           { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate, max-age=0' },
+        ],
+      },
+      // Asset Links for TWA (Trusted Web Activity) verification
+      // Google requires specific headers for Digital Asset Links
+      {
+        source: '/.well-known/assetlinks.json',
+        headers: [
+          { key: 'Content-Type', value: 'application/json' },
+          // Short cache (1 hour) to ensure signing key updates propagate quickly
+          // while still allowing reasonable caching for Google's verification
+          { key: 'Cache-Control', value: 'public, max-age=3600, stale-while-revalidate=86400' },
+          // CORS headers for Google verification
+          { key: 'Access-Control-Allow-Origin', value: '*' },
         ],
       },
     ];
