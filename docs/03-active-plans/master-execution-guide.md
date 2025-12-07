@@ -11,13 +11,40 @@ Purpose: a single, authoritative, step‑by‑step guide to take MatchOps‑Loca
 
 | # | Task | Effort | Status |
 |---|------|--------|--------|
-| **1** | **Play Store Release** (this doc) | 2-3 weeks | 🎯 NEXT UP |
-| **2** | Backend Architecture Refactoring | ~4 weeks | 📋 Plan ready |
+| **1** | **Play Store Release** | 2-3 weeks (11 PRs) | 🎯 NEXT UP |
+| **2** | Backend Architecture Refactoring | ~4 weeks (8 PRs) | 📋 Plan ready |
 | **3** | Gender Handling | 1-2 weeks | 📋 Needs design |
 | **4** | Season League UX Improvements | 1 week | 📋 Idea documented |
 | **5** | Other features & fixes | Ongoing | As needed |
 
 **See**: [UNIFIED-ROADMAP.md](./UNIFIED-ROADMAP.md) for full priority breakdown
+
+---
+
+## 🚀 Play Store Release: PR-Chunked Plan
+
+**Primary Doc**: [PLAY-STORE-IMPLEMENTATION-PLAN.md](./PLAY-STORE-IMPLEMENTATION-PLAN.md) ⭐ **START HERE**
+
+### Quick Overview
+
+| Phase | PRs | Hours | Focus |
+|-------|-----|-------|-------|
+| P1: Security | #1-2 | 4-6h | CSP headers, Service Worker |
+| P2: PWA Packaging | #3-5 | 8-12h | Manifest, TWA, Store assets |
+| P3: Quality | #6-7 | 4-6h | Accessibility, Performance |
+| P4: Monetization | #8-10 | 8-12h | Billing, Feature gating, Paywall |
+| P5: Release | #11 | 2-4h | Store submission |
+
+### Branching Strategy
+
+```
+master
+  └── release/play-store-v1  (integration branch)
+        ├── ps/1-csp-headers → PR #1
+        ├── ps/2-service-worker → PR #2
+        ├── ... (9 more PRs)
+        └── Final PR → master
+```
 
 ---
 

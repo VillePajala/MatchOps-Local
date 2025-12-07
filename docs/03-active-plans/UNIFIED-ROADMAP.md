@@ -64,36 +64,35 @@
 ## 🚀 PRIORITY 1: Play Store Release
 
 **Status**: 🎯 **NEXT UP**
+**Primary Doc**: `PLAY-STORE-IMPLEMENTATION-PLAN.md` ⭐ **START HERE**
 **Master Plan**: `master-execution-guide.md`
-**Effort**: 2-3 weeks
+**Effort**: 2-3 weeks (26-40 hours)
 
-### Phase P1: Security Hardening
-- [ ] CSP headers in next.config.ts
-- [ ] Service worker caching policy
-- [ ] Analytics gating
+### PR Breakdown
 
-### Phase P2: PWA & Store Packaging
-- [ ] Manifest finalization
-- [ ] TWA build (Bubblewrap)
-- [ ] Store listing assets
-- [ ] Privacy/Terms URLs
+| Phase | PRs | Hours | Focus |
+|-------|-----|-------|-------|
+| P1: Security | #1-2 | 4-6h | CSP headers, Service Worker |
+| P2: PWA Packaging | #3-5 | 8-12h | Manifest, TWA, Store assets |
+| P3: Quality | #6-7 | 4-6h | Accessibility, Performance |
+| P4: Monetization | #8-10 | 8-12h | Billing, Feature gating, Paywall |
+| P5: Release | #11 | 2-4h | Store submission |
+| **Total** | 11 PRs | 26-40h | |
 
-### Phase P3: Quality Gates
-- [ ] E2E test expansion
-- [ ] Accessibility audit (jest-axe)
-- [ ] Performance baselines
+### Branching Strategy
 
-### Phase P4: Monetization
-- [ ] Play Store billing integration
-- [ ] Feature gating (free vs premium)
-- [ ] License caching for offline
-
-### Phase P5: Release
-- [ ] Staged rollout plan
-- [ ] Sentry alerts configured
-- [ ] Support channels
+```
+master
+  └── release/play-store-v1  (integration branch)
+        ├── ps/1-csp-headers → PR #1
+        ├── ps/2-service-worker → PR #2
+        ├── ... (9 more PRs)
+        └── Final PR → master
+```
 
 **Why First**: App is fully functional and ready. Play Store validates product-market fit and unlocks revenue potential.
+
+**See**: [PLAY-STORE-IMPLEMENTATION-PLAN.md](./PLAY-STORE-IMPLEMENTATION-PLAN.md) for detailed PR breakdown
 
 ---
 
@@ -207,8 +206,9 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 | Purpose | File |
 |---------|------|
 | This roadmap | `UNIFIED-ROADMAP.md` |
-| Play Store details | `master-execution-guide.md` |
-| Backend refactoring | `backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md` |
+| **Play Store (Priority 1)** | `PLAY-STORE-IMPLEMENTATION-PLAN.md` ⭐ |
+| **Backend refactoring (Priority 2)** | `backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md` |
+| Play Store master guide | `master-execution-guide.md` |
 | Feature: Tournament/Leagues | `TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md` |
 | Social media launch | `SOCIAL_MEDIA_LAUNCH_STRATEGY.md` |
 
