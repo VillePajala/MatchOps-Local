@@ -68,7 +68,29 @@ async function generateManifest() {
         "purpose": "maskable"
       }
     ],
-    "screenshots": [],
+    "screenshots": [
+      {
+        "src": "/screenshots/game-view.png",
+        "sizes": "1696x2528",
+        "type": "image/png",
+        "form_factor": "narrow",
+        "label": "Game tracking view with player positions"
+      },
+      {
+        "src": "/screenshots/detail-view.png",
+        "sizes": "1024x1536",
+        "type": "image/png",
+        "form_factor": "narrow",
+        "label": "Detailed game analysis"
+      },
+      {
+        "src": "/screenshots/stats-view.png",
+        "sizes": "1024x1536",
+        "type": "image/png",
+        "form_factor": "narrow",
+        "label": "Player statistics dashboard"
+      }
+    ],
     "shortcuts": [
       {
         "name": "New Game",

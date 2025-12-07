@@ -59,7 +59,8 @@ const securityHeaders = [
       "form-action 'self'",
       "base-uri 'self'",
       "upgrade-insecure-requests", // Force HTTPS for all resources
-      "report-uri /api/csp-report", // Send violation reports to our endpoint
+      "report-to csp-endpoint", // Modern browsers (Chrome 70+, Firefox 65+)
+      "report-uri /api/csp-report", // Legacy browsers fallback (deprecated but needed for Safari, older browsers)
     ].join('; '),
   },
   {
@@ -89,10 +90,20 @@ const securityHeaders = [
     value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
   },
   {
-    // DNS prefetch hints for external services
-    // Improves connection time to Sentry for error reporting
+    // Preconnect hints for Sentry error reporting
+    // preconnect includes DNS + TCP + TLS handshake for faster first request
     key: 'Link',
-    value: '<https://sentry.io>; rel=dns-prefetch, <https://ingest.sentry.io>; rel=preconnect',
+    value: '<https://sentry.io>; rel=preconnect, <https://ingest.sentry.io>; rel=preconnect',
+  },
+  {
+    // Report-To header for modern CSP reporting (Chrome 70+, Firefox 65+)
+    // Defines the endpoint group referenced by CSP's report-to directive
+    key: 'Report-To',
+    value: JSON.stringify({
+      group: 'csp-endpoint',
+      max_age: 10886400,
+      endpoints: [{ url: '/api/csp-report' }],
+    }),
   },
   {
     // Cross-Origin-Opener-Policy

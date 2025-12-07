@@ -80,3 +80,13 @@ site/*.tsbuildinfo
 *.key
 release-key.properties
 keystore.properties
+
+# Android build artifacts (if building locally)
+*.apk
+*.aab
+android/app/release/
+android/app/build/
+
+# Gradle files (if using Android Studio)
+.gradle/
+local.properties

@@ -139,7 +139,7 @@ export default function PrivacyPolicyPage() {
             <li>
               Email:{' '}
               <a href="mailto:valoraami@gmail.com" className="text-indigo-400 hover:underline">
-                valoraami@gmail.com
+                support@matchops.com
               </a>
             </li>
             <li>
