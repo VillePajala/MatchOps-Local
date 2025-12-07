@@ -164,7 +164,7 @@ Every push to your repo will rebuild `site/`, which copies docs from `../docs` a
 
 ## Step 7 — Link from the app
 
-Once deployed, add a “User Guide” link in the app’s Settings to the new site URL (e.g., `https://docs.matchops.app/docs`).
+Once deployed, add a “User Guide” link in the app’s Settings to the new site URL (e.g., `https://docs.matchops.com/docs`).
 
 ## Customization Tips
 

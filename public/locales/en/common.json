@@ -1210,6 +1210,8 @@
     "doneButton": "Done",
     "aboutTitle": "About",
     "appVersion": "App Version",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
     "documentationLink": "Documentation",
     "documentationDescription": "Read the full user guide and troubleshooting tips.",
     "storageUsageLabel": "Storage Usage",

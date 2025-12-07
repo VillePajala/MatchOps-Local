@@ -1,57 +1,96 @@
-// Caching strategy for PWA offline support
-const CACHE_NAME = 'matchops-2025-12-06T18-42-14';
+/**
+ * Service Worker for MatchOps-Local PWA
+ *
+ * Caching Strategy:
+ * - Static assets (JS, CSS, images, fonts): Cache-first with network fallback
+ * - HTML documents: Network-only (never cached to ensure app updates work)
+ * - manifest.json: Stale-while-revalidate (fast load, background update)
+ * - External requests: Pass through to network
+ *
+ * Production-hardened:
+ * - No HTML caching to prevent stale app versions
+ * - Versioned cache for clean updates
+ * - Minimal logging (errors only in production)
+ * - Dedicated offline page for graceful offline experience
+ */
+
+const CACHE_NAME = 'matchops-2025-12-07T18-55-26';
+
+// Cache size limit - prevents unbounded growth from dynamically cached assets
+// Note: Entire cache is cleared on SW update, so this just limits runtime growth
+const MAX_CACHE_ENTRIES = 100;
+
+// Static resources to precache (NO HTML - HTML should never be cached)
+// Exception: offline.html is a static fallback page for when network is unavailable
 const STATIC_RESOURCES = [
-  '/',
   '/manifest.json',
+  '/offline.html',
+  '/offline.css',
+  '/offline.js',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/logos/app-logo.png'
 ];
 
+// Environment check - reduce logging in production
+const IS_DEV = self.location.hostname === 'localhost';
+const log = IS_DEV ? console.log.bind(console) : () => {};
+const logError = console.error.bind(console); // Always log errors
+
+// Helper to trim cache if it exceeds size limit
+// Note: Cache API doesn't guarantee key order = insertion order, so this removes
+// "first" entries which may not be strictly oldest. This is acceptable because:
+// 1. The entire cache is cleared on SW update anyway
+// 2. This just prevents unbounded growth within a single SW version
+async function trimCache(cache) {
+  const keys = await cache.keys();
+  if (keys.length > MAX_CACHE_ENTRIES) {
+    const deleteCount = keys.length - MAX_CACHE_ENTRIES;
+    log(`[SW] Trimming cache: removing ${deleteCount} entries`);
+    await Promise.all(keys.slice(0, deleteCount).map(key => cache.delete(key)));
+  }
+}
+
 // Listen for the install event - cache static resources
 self.addEventListener('install', (event) => {
-  console.log('[SW] Service worker installing...');
+  log('[SW] Installing...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Caching static resources');
-      // Cache resources individually to better handle errors
+      log('[SW] Caching static resources');
       return Promise.all(
         STATIC_RESOURCES.map(url =>
           cache.add(url).catch(err => {
-            console.error(`[SW] Failed to cache ${url}:`, err);
-            // Don't fail the entire installation if one resource fails
+            logError(`[SW] Failed to cache ${url}:`, err);
             return Promise.resolve();
           })
         )
       );
     }).then(() => {
-      console.log('[SW] Service worker installed successfully');
+      log('[SW] Installed successfully');
     }).catch(err => {
-      console.error('[SW] Service worker installation failed:', err);
+      logError('[SW] Installation failed:', err);
       throw err;
     })
   );
   // Do NOT call self.skipWaiting() here.
-  // We want to wait for the user to click the update button.
+  // Wait for user to click the update button.
 });
 
-// Listen for the activate event
+// Listen for the activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Service worker activating...');
+  log('[SW] Activating...');
   event.waitUntil(
-    // Clean up old caches
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('[SW] Deleting old cache:', cacheName);
+        cacheNames
+          .filter(name => name !== CACHE_NAME && name.startsWith('matchops-'))
+          .map(cacheName => {
+            log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
-          }
-        })
+          })
       );
     }).then(() => {
-      console.log('[SW] Service worker activated');
-      // Take control of all open clients immediately
+      log('[SW] Activated');
       return clients.claim();
     })
   );
@@ -60,71 +99,110 @@ self.addEventListener('activate', (event) => {
 // Listen for messages from the client
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
-    console.log('[SW] Received SKIP_WAITING message. Activating new service worker.');
+    log('[SW] SKIP_WAITING received, activating new version');
     self.skipWaiting();
   }
 });
 
-// Enhanced fetch handler with offline support
+// Fetch handler with production-safe caching
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Handle same-origin requests
-  if (url.origin === location.origin) {
-    // Use network-first strategy for HTML documents to ensure app updates
-    if (request.destination === 'document') {
-      event.respondWith(
-        fetch(request)
-          .then((fetchResponse) => {
-            // Only cache GET/HEAD requests with successful responses
-            const isCacheable = request.method === 'GET' || request.method === 'HEAD';
-            if (isCacheable && fetchResponse.status === 200) {
-              const responseClone = fetchResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, responseClone);
-              }).catch(err => {
-                console.warn('[SW] Failed to cache document:', err);
-              });
-            }
-            return fetchResponse;
-          })
-          .catch(() => {
-            // Offline fallback - serve from cache
-            return caches.match(request).then((cachedResponse) => {
-              return cachedResponse || caches.match('/');
-            });
-          })
-      );
-    } else {
-      // Use cache-first for all other resources (CSS, JS, images, etc.)
-      event.respondWith(
-        caches.match(request).then((response) => {
+  // Only handle same-origin requests
+  if (url.origin !== location.origin) {
+    return; // Let browser handle external requests normally
+  }
+
+  // NEVER cache HTML documents - always fetch from network
+  // This ensures app updates are always reflected
+  if (request.destination === 'document' || request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).catch(() => {
+        // If offline, serve the cached offline page
+        return caches.match('/offline.html').then((response) => {
           if (response) {
-            console.log('[SW] Serving from cache:', request.url);
             return response;
           }
-
-          // Fetch from network and cache for next time
-          return fetch(request).then((fetchResponse) => {
-            // Only cache GET/HEAD requests with successful responses
-            const isCacheable = request.method === 'GET' || request.method === 'HEAD';
-            if (isCacheable && fetchResponse.status === 200) {
-              const responseClone = fetchResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, responseClone);
-              }).catch(err => {
-                console.warn('[SW] Failed to cache response:', err);
-              });
-            }
-            return fetchResponse;
-          });
-        })
-      );
-    }
-  } else {
-    // Pass through external requests
-    event.respondWith(fetch(request));
+          // Final fallback if offline.html not in cache (e.g., first visit while offline)
+          return new Response(
+            '<html><head><title>Offline</title></head><body style="font-family:system-ui;text-align:center;padding:40px"><h1>Offline</h1><p>Please check your connection and try again.</p></body></html>',
+            { headers: { 'Content-Type': 'text/html' } }
+          );
+        });
+      })
+    );
+    return;
   }
+
+  // Stale-while-revalidate for manifest.json
+  // Return cached version immediately, update cache in background
+  if (url.pathname === '/manifest.json') {
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
+        const fetchPromise = fetch(request).then((networkResponse) => {
+          if (networkResponse.status === 200) {
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, networkResponse.clone());
+            }).catch(err => {
+              logError('[SW] Cache put failed for manifest:', err);
+            });
+          }
+          return networkResponse;
+        }).catch((err) => {
+          logError('[SW] Network request failed for manifest:', err);
+          throw err;
+        });
+        // Return cached response immediately, or wait for network if not cached
+        return cachedResponse || fetchPromise;
+      })
+    );
+    return;
+  }
+
+  // Cache-first for static assets (JS, CSS, images, fonts)
+  if (
+    request.destination === 'script' ||
+    request.destination === 'style' ||
+    request.destination === 'image' ||
+    request.destination === 'font' ||
+    request.url.includes('/icons/') ||
+    request.url.includes('/logos/')
+  ) {
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+
+        // Fetch from network and cache for next time
+        return fetch(request).then((fetchResponse) => {
+          // Only cache successful GET requests
+          if (request.method === 'GET' && fetchResponse.status === 200) {
+            const responseClone = fetchResponse.clone();
+            caches.open(CACHE_NAME).then(async (cache) => {
+              await cache.put(request, responseClone);
+              // Trim cache if it exceeds size limit
+              await trimCache(cache);
+            }).catch(err => {
+              logError('[SW] Cache put failed:', err);
+            });
+          }
+          return fetchResponse;
+        }).catch((err) => {
+          logError('[SW] Network request failed for asset:', request.url, err);
+          // For assets not in cache and network failed, return error
+          // The browser will handle this gracefully (broken image, etc.)
+          throw err;
+        });
+      })
+    );
+    return;
+  }
+
+  // All other requests: network-only
+  // (manifest.json, API calls, etc.)
 });
-// Build Timestamp: 2025-12-06T18:42:14.019Z
+
+// ↑ Auto-generated by scripts/generate-manifest.mjs - do not edit manually
+// Build Timestamp: 2025-12-07T18:55:26.448Z

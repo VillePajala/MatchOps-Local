@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.matchops.local",
+      "sha256_cert_fingerprints": [
+        "__ PLACEHOLDER - SEE docs/05-development/twa-build-guide.md FOR INSTRUCTIONS __"
+      ]
+    }
+  }
+]

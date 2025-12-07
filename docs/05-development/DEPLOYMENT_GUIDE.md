@@ -16,13 +16,13 @@ MatchOps-Local/
 This monorepo uses Vercel's "Root Directory" feature to deploy two separate applications:
 
 ### 1. Main PWA Application
-- **URL**: `https://matchops.app`
+- **URL**: `https://matchops.com`
 - **Root Directory**: `.` (repository root)
 - **Framework**: Next.js
 - **Purpose**: The actual MatchOps-Local PWA application
 
 ### 2. Marketing Website
-- **URL**: `https://www.matchops.app` or `https://docs.matchops.app`
+- **URL**: `https://www.matchops.com` or `https://docs.matchops.com`
 - **Root Directory**: `site/`
 - **Framework**: Next.js
 - **Purpose**: Marketing site + documentation
@@ -63,7 +63,7 @@ No environment variables required for basic deployment.
 ### Step 5: Custom Domain (Optional)
 
 1. Go to **Settings** → **Domains**
-2. Add custom domain (e.g., `www.matchops.app`)
+2. Add custom domain (e.g., `www.matchops.com`)
 3. Configure DNS records as instructed by Vercel
 
 ---
