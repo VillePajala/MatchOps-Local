@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix(pwa): improve offline page messaging for local-first app"
+  "notes": "chore: improve assetlinks.json placeholder with documentation reference"
 }
