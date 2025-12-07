@@ -4,20 +4,36 @@ import { withSentryConfig } from '@sentry/nextjs';
 /**
  * Security headers for production deployment
  * CSP is configured for a local-first PWA with:
- * - Self-hosted scripts/styles (Next.js requires unsafe-inline/eval for development)
+ * - Self-hosted scripts/styles
  * - Sentry for error reporting
  * - Play Store API for license validation (future)
+ *
+ * SECURITY NOTE: 'unsafe-inline' and 'unsafe-eval' in script-src
+ * ----------------------------------------------------------------
+ * These directives weaken CSP but are currently necessary because:
+ * 1. Next.js injects inline scripts for hydration and routing
+ * 2. Nonce-based CSP requires dynamic rendering (no static optimization)
+ * 3. For a local-first PWA, static optimization is critical for performance
+ *
+ * Risk Assessment (LOW for this app):
+ * - No user-generated content that could contain scripts
+ * - No third-party scripts except Vercel Analytics (trusted)
+ * - All data is local (IndexedDB), not from external APIs
+ * - Single-page app with minimal attack surface
+ *
+ * TODO: Implement nonce-based CSP when Next.js supports it with static pages
+ * See: https://nextjs.org/docs/app/guides/content-security-policy
  */
 const securityHeaders = [
   {
     // Content Security Policy
-    // Note: 'unsafe-inline' and 'unsafe-eval' are required by Next.js for development
-    // In production, Next.js uses nonces but we keep these for compatibility
+    // TODO: Replace unsafe-inline/unsafe-eval with nonce-based CSP
+    // when Next.js supports nonces with static optimization
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-      "style-src 'self' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Required by Next.js - see note above
+      "style-src 'self' 'unsafe-inline'", // Required for CSS-in-JS and Next.js styles
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
       "connect-src 'self' https://*.ingest.sentry.io https://*.sentry.io https://play.googleapis.com",
