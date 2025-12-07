@@ -4,19 +4,23 @@
  * Caching Strategy:
  * - Static assets (JS, CSS, images, fonts): Cache-first with network fallback
  * - HTML documents: Network-only (never cached to ensure app updates work)
+ * - manifest.json: Stale-while-revalidate (fast load, background update)
  * - External requests: Pass through to network
  *
  * Production-hardened:
  * - No HTML caching to prevent stale app versions
  * - Versioned cache for clean updates
  * - Minimal logging (errors only in production)
+ * - Dedicated offline page for graceful offline experience
  */
 
-const CACHE_NAME = 'matchops-2025-12-07T11-23-32';
+const CACHE_NAME = 'matchops-2025-12-07T11-53-59';
 
 // Static resources to precache (NO HTML - HTML should never be cached)
+// Exception: offline.html is a static fallback page for when network is unavailable
 const STATIC_RESOURCES = [
   '/manifest.json',
+  '/offline.html',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/logos/app-logo.png'
@@ -96,12 +100,33 @@ self.addEventListener('fetch', (event) => {
   if (request.destination === 'document' || request.mode === 'navigate') {
     event.respondWith(
       fetch(request).catch(() => {
-        // If offline, show a simple offline page or the cached app shell
-        // But we don't have a dedicated offline page, so just let it fail
-        return new Response(
-          '<!DOCTYPE html><html><body><h1>Offline</h1><p>Please check your connection.</p></body></html>',
-          { headers: { 'Content-Type': 'text/html' } }
-        );
+        // If offline, serve the cached offline page
+        return caches.match('/offline.html');
+      })
+    );
+    return;
+  }
+
+  // Stale-while-revalidate for manifest.json
+  // Return cached version immediately, update cache in background
+  if (url.pathname === '/manifest.json') {
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
+        const fetchPromise = fetch(request).then((networkResponse) => {
+          if (networkResponse.status === 200) {
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, networkResponse.clone());
+            }).catch(err => {
+              logError('[SW] Cache put failed for manifest:', err);
+            });
+          }
+          return networkResponse;
+        }).catch((err) => {
+          logError('[SW] Network request failed for manifest:', err);
+          throw err;
+        });
+        // Return cached response immediately, or wait for network if not cached
+        return cachedResponse || fetchPromise;
       })
     );
     return;
@@ -134,6 +159,11 @@ self.addEventListener('fetch', (event) => {
             });
           }
           return fetchResponse;
+        }).catch((err) => {
+          logError('[SW] Network request failed for asset:', request.url, err);
+          // For assets not in cache and network failed, return error
+          // The browser will handle this gracefully (broken image, etc.)
+          throw err;
         });
       })
     );
@@ -143,4 +173,4 @@ self.addEventListener('fetch', (event) => {
   // All other requests: network-only
   // (manifest.json, API calls, etc.)
 });
-// Build Timestamp: 2025-12-07T11:23:32.366Z
+// Build Timestamp: 2025-12-07T11:53:59.796Z

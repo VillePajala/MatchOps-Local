@@ -68,16 +68,17 @@ async function generateManifest() {
         "purpose": "maskable"
       }
     ],
-    "screenshots": [],
-    "shortcuts": [
-      {
-        "name": "New Game",
-        "short_name": "New Game",
-        "description": "Start a new game",
-        "url": "/?action=new-game",
-        "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
-      }
-    ]
+    "screenshots": []
+    // TODO: Add shortcuts when app supports query parameter actions
+    // "shortcuts": [
+    //   {
+    //     "name": "New Game",
+    //     "short_name": "New Game",
+    //     "description": "Start a new game",
+    //     "url": "/?action=new-game",
+    //     "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    //   }
+    // ]
   };
 
   fs.writeFileSync('public/manifest.json', JSON.stringify(manifest, null, 2));
@@ -118,9 +119,43 @@ async function updateServiceWorker() {
   }
 }
 
+async function validateAssetLinks() {
+  const assetLinksPath = path.join(process.cwd(), 'public', '.well-known', 'assetlinks.json');
+  const branch = process.env.VERCEL_GIT_COMMIT_REF || 'development';
+  const isProduction = branch === 'master' || branch === 'main';
+
+  try {
+    const assetLinks = JSON.parse(fs.readFileSync(assetLinksPath, 'utf8'));
+    const fingerprint = assetLinks[0]?.target?.sha256_cert_fingerprints?.[0] || '';
+
+    if (fingerprint.includes('REPLACE')) {
+      if (isProduction) {
+        throw new Error(
+          'PRODUCTION BUILD BLOCKED: assetlinks.json contains placeholder fingerprint!\n' +
+          'Update public/.well-known/assetlinks.json with your actual signing key SHA256 fingerprint.\n' +
+          'See docs/05-development/twa-build-guide.md for instructions.'
+        );
+      } else {
+        console.warn('⚠️  WARNING: assetlinks.json contains placeholder fingerprint.');
+        console.warn('   TWA verification will fail until you add your signing key fingerprint.');
+        console.warn('   This is OK for development but must be fixed before Play Store release.');
+      }
+    } else {
+      console.log('Asset links validated successfully!');
+    }
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      console.warn('public/.well-known/assetlinks.json not found, skipping validation.');
+    } else {
+      throw error;
+    }
+  }
+}
+
 async function main() {
   await generateManifest();
   await updateServiceWorker();
+  await validateAssetLinks();
 }
 
 main().catch(error => {

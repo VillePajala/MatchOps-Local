@@ -38,9 +38,11 @@ const securityHeaders = [
       "font-src 'self' data:",
       "connect-src 'self' https://*.ingest.sentry.io https://*.sentry.io https://play.googleapis.com",
       "worker-src 'self'",
+      "object-src 'none'", // Block Flash, Java applets, and other plugins
       "frame-ancestors 'none'",
       "form-action 'self'",
       "base-uri 'self'",
+      "upgrade-insecure-requests", // Force HTTPS for all resources
     ].join('; '),
   },
   {
@@ -68,6 +70,12 @@ const securityHeaders = [
     // Disable features we don't need
     key: 'Permissions-Policy',
     value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+  },
+  {
+    // DNS prefetch hints for external services
+    // Improves connection time to Sentry for error reporting
+    key: 'Link',
+    value: '<https://sentry.io>; rel=dns-prefetch, <https://ingest.sentry.io>; rel=preconnect',
   },
 ];
 
