@@ -427,6 +427,28 @@ Outcome: app installs cleanly as a PWA and is packaged for the Play Store.
   - [ ] Packaging: TWA built (Bubblewrap/PWABuilder) and passes Play targets; assetlinks configured
   - [ ] Listing: store text finalized; Privacy/Terms URLs ready and accurate
 
+### ⚠️ CRITICAL: Pre-Submission Checklist
+
+**Before submitting to Play Store, you MUST complete these steps:**
+
+1. **Update assetlinks.json** (blocks production build if not done)
+   - File: `public/.well-known/assetlinks.json`
+   - Replace placeholder with your signing key SHA256 fingerprint
+   - Get fingerprint: `keytool -list -v -keystore your-release.keystore -alias your-alias`
+   - See: `docs/05-development/twa-build-guide.md` for full instructions
+   - **Note**: Build will fail on `master`/`main` branch if placeholder remains
+
+2. **Create Store Assets** (required by Play Store)
+   - [ ] 2-8 screenshots (phone + tablet recommended)
+   - [ ] Feature graphic (1024x500 PNG)
+   - [ ] Hi-res icon (512x512 PNG) - already in `/public/icons/`
+   - See: `docs/07-business/store-listing/README.md`
+
+3. **Verify Legal Pages**
+   - [ ] Privacy Policy accessible at `/privacy-policy`
+   - [ ] Terms of Service accessible at `/terms`
+   - [ ] Links work from Settings > About
+
 Acceptance
 - PWA installable; Lighthouse PWA pass.
 - TWA builds successfully; meets Play target API.

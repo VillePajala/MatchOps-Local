@@ -176,6 +176,6 @@ public/
 ## Related Documentation
 
 - [PWABuilder Documentation](https://docs.pwabuilder.com/)
-- [Bubblewrap CLI](https://github.com/nicolo-ribaudo/nicolo-aspect-cli)
+- [Bubblewrap CLI](https://github.com/GoogleChrome/bubblewrap)
 - [Digital Asset Links](https://developers.google.com/digital-asset-links)
 - [Play Console Help](https://support.google.com/googleplay/android-developer)
