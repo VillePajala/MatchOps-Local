@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "node scripts/generate-release-notes.mjs && node scripts/generate-manifest.mjs && next build",
-    "build:analyze": "npm run build && node scripts/bundle-analysis.mjs",
+    "build:analyze": "ANALYZE=true npm run build && node scripts/bundle-analysis.mjs",
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -59,6 +59,7 @@
   "devDependencies": {
     "@axe-core/react": "^4.10.2",
     "@eslint/eslintrc": "^3",
+    "@next/bundle-analyzer": "^16.0.7",
     "@playwright/test": "^1.55.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.6.3",
