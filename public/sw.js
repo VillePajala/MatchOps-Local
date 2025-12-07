@@ -14,13 +14,19 @@
  * - Dedicated offline page for graceful offline experience
  */
 
-const CACHE_NAME = 'matchops-2025-12-07T13-08-41';
+const CACHE_NAME = 'matchops-2025-12-07T16-38-43';
+
+// Cache size limit - prevents unbounded growth from dynamically cached assets
+// Note: Entire cache is cleared on SW update, so this just limits runtime growth
+const MAX_CACHE_ENTRIES = 100;
 
 // Static resources to precache (NO HTML - HTML should never be cached)
 // Exception: offline.html is a static fallback page for when network is unavailable
 const STATIC_RESOURCES = [
   '/manifest.json',
   '/offline.html',
+  '/offline.css',
+  '/offline.js',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/logos/app-logo.png'
@@ -30,6 +36,17 @@ const STATIC_RESOURCES = [
 const IS_DEV = self.location.hostname === 'localhost';
 const log = IS_DEV ? console.log.bind(console) : () => {};
 const logError = console.error.bind(console); // Always log errors
+
+// Helper to trim cache if it exceeds size limit (removes oldest entries first)
+async function trimCache(cache) {
+  const keys = await cache.keys();
+  if (keys.length > MAX_CACHE_ENTRIES) {
+    const deleteCount = keys.length - MAX_CACHE_ENTRIES;
+    log(`[SW] Trimming cache: removing ${deleteCount} oldest entries`);
+    // Delete oldest entries (first in the keys array)
+    await Promise.all(keys.slice(0, deleteCount).map(key => cache.delete(key)));
+  }
+}
 
 // Listen for the install event - cache static resources
 self.addEventListener('install', (event) => {
@@ -100,7 +117,16 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request).catch(() => {
         // If offline, serve the cached offline page
-        return caches.match('/offline.html');
+        return caches.match('/offline.html').then((response) => {
+          if (response) {
+            return response;
+          }
+          // Final fallback if offline.html not in cache (e.g., first visit while offline)
+          return new Response(
+            '<html><head><title>Offline</title></head><body style="font-family:system-ui;text-align:center;padding:40px"><h1>Offline</h1><p>Please check your connection and try again.</p></body></html>',
+            { headers: { 'Content-Type': 'text/html' } }
+          );
+        });
       })
     );
     return;
@@ -151,8 +177,10 @@ self.addEventListener('fetch', (event) => {
           // Only cache successful GET requests
           if (request.method === 'GET' && fetchResponse.status === 200) {
             const responseClone = fetchResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseClone);
+            caches.open(CACHE_NAME).then(async (cache) => {
+              await cache.put(request, responseClone);
+              // Trim cache if it exceeds size limit
+              await trimCache(cache);
             }).catch(err => {
               logError('[SW] Cache put failed:', err);
             });
@@ -172,4 +200,4 @@ self.addEventListener('fetch', (event) => {
   // All other requests: network-only
   // (manifest.json, API calls, etc.)
 });
-// Build Timestamp: 2025-12-07T13:08:41.470Z
+// Build Timestamp: 2025-12-07T16:38:43.884Z

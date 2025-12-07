@@ -27,12 +27,26 @@ describe('Service Worker Configuration', () => {
       expect(swContent).toContain('fetch(request).catch');
     });
 
-    it('should have offline.html in precache list', () => {
+    it('should have offline assets in precache list', () => {
       expect(swContent).toContain("'/offline.html'");
+      expect(swContent).toContain("'/offline.css'");
+      expect(swContent).toContain("'/offline.js'");
     });
 
     it('should serve offline page when network fails for HTML', () => {
       expect(swContent).toContain("caches.match('/offline.html')");
+    });
+
+    it('should have final fallback if offline.html not in cache', () => {
+      // If offline.html itself fails to load from cache, return minimal inline HTML
+      expect(swContent).toContain('Final fallback if offline.html not in cache');
+      expect(swContent).toContain("new Response(");
+      expect(swContent).toContain("'Content-Type': 'text/html'");
+    });
+
+    it('should have cache size limit', () => {
+      expect(swContent).toContain('MAX_CACHE_ENTRIES');
+      expect(swContent).toContain('trimCache');
     });
 
     it('should use cache-first for static assets', () => {
