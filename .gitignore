@@ -90,3 +90,7 @@ android/app/build/
 # Gradle files (if using Android Studio)
 .gradle/
 local.properties
+
+# Environment files with signing credentials
+.env.keystore
+.env.signing
