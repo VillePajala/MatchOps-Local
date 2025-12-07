@@ -132,3 +132,94 @@ describe('Service Worker Configuration', () => {
     });
   });
 });
+
+/**
+ * Tests for offline page branding and structure
+ * @critical - Offline page is the fallback when network is unavailable
+ */
+describe('Offline Page Branding', () => {
+  const fs = require('fs');
+  const path = require('path');
+
+  let offlineHtmlContent: string;
+
+  beforeAll(() => {
+    const offlinePath = path.join(process.cwd(), 'public', 'offline.html');
+    offlineHtmlContent = fs.readFileSync(offlinePath, 'utf8');
+  });
+
+  describe('Page Structure', () => {
+    it('should have DOCTYPE html declaration', () => {
+      expect(offlineHtmlContent).toContain('<!DOCTYPE html>');
+    });
+
+    it('should have proper language attribute', () => {
+      expect(offlineHtmlContent).toContain('lang="en"');
+    });
+
+    it('should have viewport meta tag', () => {
+      expect(offlineHtmlContent).toContain('viewport');
+      expect(offlineHtmlContent).toContain('width=device-width');
+    });
+
+    it('should link to offline.css stylesheet', () => {
+      expect(offlineHtmlContent).toContain('href="/offline.css"');
+    });
+
+    it('should link to offline.js script', () => {
+      expect(offlineHtmlContent).toContain('src="/offline.js"');
+    });
+  });
+
+  describe('Branding', () => {
+    it('should have MatchOps in title', () => {
+      expect(offlineHtmlContent).toContain('<title>Offline - MatchOps</title>');
+    });
+
+    it('should display MatchOps brand name', () => {
+      expect(offlineHtmlContent).toContain('<h1>MatchOps</h1>');
+    });
+
+    it('should include app logo', () => {
+      expect(offlineHtmlContent).toContain('/icons/icon-192x192.png');
+      expect(offlineHtmlContent).toContain('alt="MatchOps"');
+    });
+
+    it('should have favicon', () => {
+      expect(offlineHtmlContent).toContain('rel="icon"');
+      expect(offlineHtmlContent).toContain('favicon');
+    });
+  });
+
+  describe('User Experience', () => {
+    it('should have retry button', () => {
+      expect(offlineHtmlContent).toContain('id="retry-btn"');
+      expect(offlineHtmlContent).toContain('Try Again');
+    });
+
+    it('should explain offline behavior', () => {
+      expect(offlineHtmlContent).toContain('Unable to Load App');
+      expect(offlineHtmlContent).toContain('works fully offline');
+    });
+
+    it('should reassure about data safety', () => {
+      expect(offlineHtmlContent).toContain('data is safe');
+    });
+
+    it('should have noscript fallback', () => {
+      expect(offlineHtmlContent).toContain('<noscript>');
+      expect(offlineHtmlContent).toContain('JavaScript is required');
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('should have alt text on logo image', () => {
+      expect(offlineHtmlContent).toMatch(/img[^>]*alt="[^"]+"/);
+    });
+
+    it('should have explicit width and height on images', () => {
+      expect(offlineHtmlContent).toMatch(/img[^>]*width="\d+"/);
+      expect(offlineHtmlContent).toMatch(/img[^>]*height="\d+"/);
+    });
+  });
+});

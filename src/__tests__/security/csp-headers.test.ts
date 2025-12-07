@@ -67,8 +67,17 @@ describe('Security Headers Configuration', () => {
       expect(configContent).toContain("worker-src 'self'");
     });
 
-    it('should have CSP violation reporting endpoint', () => {
+    it('should have CSP violation reporting with both modern and legacy directives', () => {
+      // Modern browsers (Chrome 70+, Firefox 65+)
+      expect(configContent).toContain('report-to csp-endpoint');
+      // Legacy browsers fallback (Safari, older browsers)
       expect(configContent).toContain('report-uri /api/csp-report');
+    });
+
+    it('should have Report-To header defining the CSP endpoint', () => {
+      expect(configContent).toContain("key: 'Report-To'");
+      expect(configContent).toContain('csp-endpoint');
+      expect(configContent).toContain('/api/csp-report');
     });
   });
 
@@ -99,6 +108,16 @@ describe('Security Headers Configuration', () => {
       expect(configContent).toContain('microphone=()');
       expect(configContent).toContain('geolocation=()');
     });
+
+    it('should have Cross-Origin-Opener-Policy same-origin', () => {
+      expect(configContent).toContain("key: 'Cross-Origin-Opener-Policy'");
+      expect(configContent).toContain("value: 'same-origin'");
+    });
+
+    it('should have Cross-Origin-Resource-Policy same-origin', () => {
+      expect(configContent).toContain("key: 'Cross-Origin-Resource-Policy'");
+      expect(configContent).toContain("value: 'same-origin'");
+    });
   });
 
   describe('Cache Control Headers', () => {
@@ -128,12 +147,63 @@ describe('Security Headers Configuration', () => {
     it('should allow CORS for Google verification', () => {
       expect(configContent).toContain("key: 'Access-Control-Allow-Origin'");
     });
+
+    it('should have stale-while-revalidate cache policy for assetlinks.json', () => {
+      expect(configContent).toContain('stale-while-revalidate');
+    });
   });
 
   describe('Resource Hints', () => {
-    it('should have DNS prefetch hints for Sentry', () => {
-      expect(configContent).toContain('rel=dns-prefetch');
+    it('should have preconnect hints for Sentry', () => {
+      expect(configContent).toContain('rel=preconnect');
       expect(configContent).toContain('sentry.io');
     });
+  });
+});
+
+describe('Asset Links File Structure', () => {
+  const fs = require('fs');
+  const path = require('path');
+
+  interface AssetLink {
+    relation: string[];
+    target: {
+      namespace: string;
+      package_name: string;
+      sha256_cert_fingerprints: string[];
+    };
+  }
+
+  let assetLinksContent: AssetLink[];
+
+  beforeAll(() => {
+    const assetLinksPath = path.join(process.cwd(), 'public', '.well-known', 'assetlinks.json');
+    assetLinksContent = JSON.parse(fs.readFileSync(assetLinksPath, 'utf8'));
+  });
+
+  it('should be valid JSON array', () => {
+    expect(Array.isArray(assetLinksContent)).toBe(true);
+    expect(assetLinksContent.length).toBeGreaterThan(0);
+  });
+
+  it('should have correct relation for TWA', () => {
+    const entry = assetLinksContent[0];
+    expect(entry.relation).toContain('delegate_permission/common.handle_all_urls');
+  });
+
+  it('should target android_app namespace', () => {
+    const entry = assetLinksContent[0];
+    expect(entry.target.namespace).toBe('android_app');
+  });
+
+  it('should have package name com.matchops.local', () => {
+    const entry = assetLinksContent[0];
+    expect(entry.target.package_name).toBe('com.matchops.local');
+  });
+
+  it('should have sha256_cert_fingerprints array', () => {
+    const entry = assetLinksContent[0];
+    expect(Array.isArray(entry.target.sha256_cert_fingerprints)).toBe(true);
+    expect(entry.target.sha256_cert_fingerprints.length).toBeGreaterThan(0);
   });
 });
