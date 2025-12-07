@@ -80,6 +80,34 @@ export default function Home() {
     checkAppState();
   }, [checkAppState, refreshTrigger]);
 
+  // Handle PWA shortcut query parameters (e.g., /?action=newGame)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const params = new URLSearchParams(window.location.search);
+    const action = params.get('action');
+
+    if (action) {
+      // Map query parameter to valid action
+      const validActions: Record<string, typeof initialAction> = {
+        newGame: 'newGame',
+        stats: 'stats',
+        roster: 'roster',
+        settings: 'settings',
+        loadGame: 'loadGame',
+      };
+
+      const mappedAction = validActions[action];
+      if (mappedAction) {
+        // Clear the query parameter from URL to prevent re-triggering
+        window.history.replaceState({}, '', window.location.pathname);
+        // Skip start screen and go directly to the action
+        setInitialAction(mappedAction);
+        setScreen('home');
+      }
+    }
+  }, []);
+
   const handleAction = (
     action: 'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'getStarted' | 'season' | 'stats' | 'roster' | 'teams' | 'settings'
   ) => {

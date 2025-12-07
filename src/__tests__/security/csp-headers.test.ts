@@ -66,6 +66,10 @@ describe('Security Headers Configuration', () => {
     it('should allow service workers', () => {
       expect(configContent).toContain("worker-src 'self'");
     });
+
+    it('should have CSP violation reporting endpoint', () => {
+      expect(configContent).toContain('report-uri /api/csp-report');
+    });
   });
 
   describe('Additional Security Headers', () => {

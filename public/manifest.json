@@ -49,5 +49,43 @@
       "purpose": "maskable"
     }
   ],
-  "screenshots": []
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "New Game",
+      "short_name": "New",
+      "description": "Start a new game",
+      "url": "/?action=newGame",
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Player Stats",
+      "short_name": "Stats",
+      "description": "View player statistics",
+      "url": "/?action=stats",
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Manage Roster",
+      "short_name": "Roster",
+      "description": "Manage your player roster",
+      "url": "/?action=roster",
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
 }

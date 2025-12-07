@@ -10,8 +10,16 @@ describe('Manifest Generation', () => {
   interface ManifestIcon {
     src: string;
     sizes: string;
-    type: string;
-    purpose: string;
+    type?: string;
+    purpose?: string;
+  }
+
+  interface ManifestShortcut {
+    name: string;
+    short_name: string;
+    description: string;
+    url: string;
+    icons: ManifestIcon[];
   }
 
   interface Manifest {
@@ -28,6 +36,7 @@ describe('Manifest Generation', () => {
     dir: string;
     prefer_related_applications: boolean;
     icons: ManifestIcon[];
+    shortcuts?: ManifestShortcut[];
   }
 
   let scriptContent: string;
@@ -173,6 +182,71 @@ describe('Manifest Generation', () => {
 
     it('should add build timestamp', () => {
       expect(scriptContent).toContain('Build Timestamp');
+    });
+  });
+
+  describe('Build Verification', () => {
+    it('should verify manifest is valid JSON after generation', () => {
+      expect(scriptContent).toContain('JSON.parse(written)');
+      expect(scriptContent).toContain('Manifest is valid JSON');
+    });
+
+    it('should verify service worker has valid syntax after generation', () => {
+      expect(scriptContent).toContain('new Function(newContent)');
+      expect(scriptContent).toContain('Service worker has valid JavaScript syntax');
+    });
+
+    it('should throw on invalid manifest JSON', () => {
+      expect(scriptContent).toContain('Generated manifest is not valid JSON');
+    });
+
+    it('should throw on invalid service worker syntax', () => {
+      expect(scriptContent).toContain('Generated service worker has invalid syntax');
+    });
+  });
+
+  describe('PWA Shortcuts', () => {
+    it('should have shortcuts defined', () => {
+      expect(staticManifest.shortcuts).toBeDefined();
+      expect(staticManifest.shortcuts!.length).toBeGreaterThan(0);
+    });
+
+    it('should have New Game shortcut', () => {
+      const newGameShortcut = staticManifest.shortcuts?.find(
+        (s) => s.url === '/?action=newGame'
+      );
+      expect(newGameShortcut).toBeDefined();
+      expect(newGameShortcut!.name).toBe('New Game');
+    });
+
+    it('should have Stats shortcut', () => {
+      const statsShortcut = staticManifest.shortcuts?.find(
+        (s) => s.url === '/?action=stats'
+      );
+      expect(statsShortcut).toBeDefined();
+      expect(statsShortcut!.name).toBe('Player Stats');
+    });
+
+    it('should have Roster shortcut', () => {
+      const rosterShortcut = staticManifest.shortcuts?.find(
+        (s) => s.url === '/?action=roster'
+      );
+      expect(rosterShortcut).toBeDefined();
+      expect(rosterShortcut!.name).toBe('Manage Roster');
+    });
+
+    it('should have icons for all shortcuts', () => {
+      staticManifest.shortcuts?.forEach((shortcut) => {
+        expect(shortcut.icons).toBeDefined();
+        expect(shortcut.icons.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('script should define shortcuts', () => {
+      expect(scriptContent).toContain('"shortcuts"');
+      expect(scriptContent).toContain('action=newGame');
+      expect(scriptContent).toContain('action=stats');
+      expect(scriptContent).toContain('action=roster');
     });
   });
 });

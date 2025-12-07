@@ -88,7 +88,7 @@ We may update this policy occasionally. Changes will be noted by the "Last Updat
 ## Contact
 
 For privacy questions or concerns:
-- Email: [your-email@example.com]
+- Email: valoraami@gmail.com
 - GitHub Issues: https://github.com/VillePajala/MatchOps-Local/issues
 
 ---

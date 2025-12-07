@@ -68,21 +68,43 @@ async function generateManifest() {
         "purpose": "maskable"
       }
     ],
-    "screenshots": []
-    // TODO: Add shortcuts when app supports query parameter actions
-    // "shortcuts": [
-    //   {
-    //     "name": "New Game",
-    //     "short_name": "New Game",
-    //     "description": "Start a new game",
-    //     "url": "/?action=new-game",
-    //     "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
-    //   }
-    // ]
+    "screenshots": [],
+    "shortcuts": [
+      {
+        "name": "New Game",
+        "short_name": "New",
+        "description": "Start a new game",
+        "url": "/?action=newGame",
+        "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+      },
+      {
+        "name": "Player Stats",
+        "short_name": "Stats",
+        "description": "View player statistics",
+        "url": "/?action=stats",
+        "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+      },
+      {
+        "name": "Manage Roster",
+        "short_name": "Roster",
+        "description": "Manage your player roster",
+        "url": "/?action=roster",
+        "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+      }
+    ]
   };
 
   fs.writeFileSync('public/manifest.json', JSON.stringify(manifest, null, 2));
-  console.log('Manifest generated successfully!');
+
+  // Verify the generated manifest is valid JSON
+  try {
+    const written = fs.readFileSync('public/manifest.json', 'utf8');
+    JSON.parse(written);
+    console.log('Manifest generated successfully!');
+    console.log('  ✓ Manifest is valid JSON');
+  } catch (parseError) {
+    throw new Error(`Generated manifest is not valid JSON: ${parseError.message}`);
+  }
 }
 
 async function updateServiceWorker() {
@@ -104,9 +126,18 @@ async function updateServiceWorker() {
     newContent = `${newContent}\n// Build Timestamp: ${buildTimestamp}`;
 
     fs.writeFileSync(swPath, newContent);
-    console.log('Service worker updated successfully!');
-    console.log(`  - Cache version: matchops-${cacheVersion}`);
-    console.log(`  - Build timestamp: ${buildTimestamp}`);
+
+    // Verify the service worker has valid JavaScript syntax
+    try {
+      // Use Function constructor to check syntax (doesn't execute the code)
+      new Function(newContent);
+      console.log('Service worker updated successfully!');
+      console.log(`  - Cache version: matchops-${cacheVersion}`);
+      console.log(`  - Build timestamp: ${buildTimestamp}`);
+      console.log('  ✓ Service worker has valid JavaScript syntax');
+    } catch (syntaxError) {
+      throw new Error(`Generated service worker has invalid syntax: ${syntaxError.message}`);
+    }
   } catch (error) {
     console.error('Failed to update service worker:', error);
     // We don't want to fail the build if the SW doesn't exist,

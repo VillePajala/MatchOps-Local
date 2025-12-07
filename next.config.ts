@@ -12,31 +12,39 @@ import { withSentryConfig } from '@sentry/nextjs';
  * ----------------------------------------------------------------
  * These directives weaken CSP but are currently necessary because:
  * 1. Next.js injects inline scripts for hydration and routing
- * 2. Nonce-based CSP requires dynamic rendering (no static optimization)
- * 3. For a local-first PWA, static optimization is critical for performance
+ * 2. Nonce-based CSP requires dynamic rendering (server-side on each request)
+ * 3. For a local-first PWA, static/client rendering is critical for:
+ *    - Offline-first capability (static assets cached by service worker)
+ *    - Fast initial loads without server roundtrip
+ *    - Lower hosting costs (no SSR compute needed)
  *
- * Why Hash-Based CSP Isn't Feasible:
- * Next.js generates dynamic inline scripts containing:
- * - React Server Component (RSC) payloads with build-specific data
- * - Chunk hashes that change every build (e.g., "static/chunks/app/page-abc123.js")
- * - Hydration data that varies per page and build
- * Pre-computing hashes would require post-build processing of every HTML file,
- * and hashes would need to be regenerated on every build - not practical.
+ * Alternative Approaches Evaluated:
+ *
+ * 1. Hash-Based CSP: NOT FEASIBLE
+ *    Next.js generates dynamic inline scripts (RSC payloads, chunk hashes)
+ *    that change every build. Pre-computing hashes would require post-build
+ *    processing and regeneration on every build.
+ *
+ * 2. Nonce-Based CSP with Middleware: NOT SUITABLE FOR THIS APP
+ *    Requires dynamic rendering (server generates fresh nonce per request).
+ *    This breaks PWA offline capability - pages can't load without server.
+ *    See: https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
  *
  * Risk Assessment (LOW for this app):
  * - No user-generated content that could contain scripts
- * - No third-party scripts except Vercel Analytics (trusted)
+ * - No third-party scripts (Sentry uses connect-src, not script-src)
  * - All data is local (IndexedDB), not from external APIs
- * - Single-page app with minimal attack surface
+ * - Single-page PWA with minimal attack surface
+ * - XSS would require attacker to modify static files on hosting server
  *
- * TODO: Implement nonce-based CSP when Next.js supports it with static pages
- * See: https://nextjs.org/docs/app/guides/content-security-policy
+ * ACCEPTED RISK: unsafe-inline/unsafe-eval are security trade-offs accepted
+ * for PWA offline capability. This is documented and intentional.
  */
 const securityHeaders = [
   {
     // Content Security Policy
-    // TODO: Replace unsafe-inline/unsafe-eval with nonce-based CSP
-    // when Next.js supports nonces with static optimization
+    // Note: unsafe-inline/unsafe-eval required for Next.js + PWA offline capability
+    // See security documentation above for risk assessment and alternatives evaluated
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
@@ -51,6 +59,7 @@ const securityHeaders = [
       "form-action 'self'",
       "base-uri 'self'",
       "upgrade-insecure-requests", // Force HTTPS for all resources
+      "report-uri /api/csp-report", // Send violation reports to our endpoint
     ].join('; '),
   },
   {
