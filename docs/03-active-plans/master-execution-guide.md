@@ -1,8 +1,25 @@
 # Master Execution Guide: Play Store Readiness and Monetization
 
 Status: Authoritative (execution sequence)
+Last Updated: December 7, 2025
 
-Purpose: a single, authoritative, step‑by‑step guide to take MatchOps‑Local from today’s state to a production‑grade release on the Play Store with a sustainable monetization path. This master guide links to the canonical sub‑plans and relevant documentation.
+Purpose: a single, authoritative, step‑by‑step guide to take MatchOps‑Local from today's state to a production‑grade release on the Play Store with a sustainable monetization path. This master guide links to the canonical sub‑plans and relevant documentation.
+
+---
+
+## 🎯 Priority Order (December 2025)
+
+| # | Task | Effort | Status |
+|---|------|--------|--------|
+| **1** | **Play Store Release** (this doc) | 2-3 weeks | 🎯 NEXT UP |
+| **2** | Backend Architecture Refactoring | ~4 weeks | 📋 Plan ready |
+| **3** | Gender Handling | 1-2 weeks | 📋 Needs design |
+| **4** | Season League UX Improvements | 1 week | 📋 Idea documented |
+| **5** | Other features & fixes | Ongoing | As needed |
+
+**See**: [UNIFIED-ROADMAP.md](./UNIFIED-ROADMAP.md) for full priority breakdown
+
+---
 
 Start Here
 - Canonical checklist: PRODUCTION_READINESS_FIX_PLAN.md
@@ -23,6 +40,7 @@ Table of Contents
 - Phase P3: Quality Gates (A11y, Performance, Test expansion)
 - Phase P4: Monetization Readiness (Paywall, Analytics, Compliance)
 - Phase P5: Release and Post‑Launch Operations
+- Phase F2: Feature Development (Post-Release)
 - Links Index (All References)
 
 ---
@@ -485,7 +503,7 @@ Acceptance
   - team-final-positions-plan.md (team final position tracking for seasons/tournaments - 6-8 hours)
   - personnel-implementation-plan.md (personnel management with real-time React Query updates - 8-10 hours)
   - personnel-feature-plan.md (older format, superseded by personnel-implementation-plan.md)
-- Backend Architecture Evolution (planned)
+- Backend Architecture Evolution (Priority 2 - after Play Store)
   - backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md ⚡ **START HERE - PR-CHUNKED EXECUTION PLAN**
   - backend-evolution/phased-implementation-roadmap.md (theoretical design - superseded by above)
   - backend-evolution/migration-strategy.md (data transformation: IndexedDB → Supabase)
@@ -494,3 +512,57 @@ Acceptance
   - 02-technical/architecture/auth-service-interface.md (authentication abstraction)
   - 02-technical/database/current-storage-schema.md (IndexedDB structure documentation)
   - 02-technical/database/supabase-schema.md (PostgreSQL target schema)
+
+---
+
+## Phase F2: Feature Development (Post-Release)
+
+**Status**: After Play Store Release + Backend Refactoring
+**Priority Order**: As defined in UNIFIED-ROADMAP.md
+
+### Priority 3: Gender Handling (1-2 weeks)
+
+**Status**: Needs design discussion
+
+**Problem**: App doesn't distinguish gender in soccer games. Finnish youth soccer is gender-separated.
+
+**Design Questions**:
+1. Where does gender live? (Team? Season? Tournament? Player?)
+2. How does it propagate through the system?
+3. UI considerations for display and filtering
+
+**Implementation** (after design):
+- [ ] Design document created
+- [ ] Types updated
+- [ ] Storage/migration
+- [ ] UI components
+- [ ] Stats filtering
+- [ ] Translations (EN/FI)
+
+### Priority 4: Season League UX Improvements (1 week)
+
+**Status**: Idea documented
+
+**Problem**: Flat list of 34 leagues in SeasonDetailsModal. Could be more intuitive.
+
+**Proposed Improvements**:
+- Area filtering (Itä, Länsi, Etelä)
+- Age group pre-selection
+- Level grouping
+
+**Implementation**:
+- [ ] Design area/age dropdown filters
+- [ ] Update SeasonDetailsModal UI
+- [ ] Add translations
+- [ ] Test UX flow
+
+### Priority 5: Other Features & Fixes
+
+**Status**: Ongoing / As needed
+
+- GameSettingsModal refactoring (~1 hour)
+- Component extraction (TournamentSeriesManager)
+- Performance optimizations
+- Bug fixes as reported
+
+**See**: [UNIFIED-ROADMAP.md](./UNIFIED-ROADMAP.md) for full details

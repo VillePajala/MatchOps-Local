@@ -1,8 +1,23 @@
 # Post-Refactoring Roadmap
 
 **Created**: November 20, 2025
+**Last Updated**: December 7, 2025
 **Status**: ✅ **ACTIVE** — Structural refactoring complete, post-refactoring work in progress
 **Purpose**: Master checklist for post-refactoring work
+
+---
+
+## 🎯 Priority Order (December 2025)
+
+| # | Task | Effort | Status |
+|---|------|--------|--------|
+| **1** | Play Store Release | 2-3 weeks | 🎯 NEXT UP |
+| **2** | Backend Architecture Refactoring | ~4 weeks | 📋 Plan ready |
+| **3** | Gender Handling | 1-2 weeks | 📋 Needs design |
+| **4** | Season League UX Improvements | 1 week | 📋 Idea documented |
+| **5** | Other features & fixes | Ongoing | As needed |
+
+**See**: [UNIFIED-ROADMAP.md](../03-active-plans/UNIFIED-ROADMAP.md) for authoritative roadmap
 
 ---
 
