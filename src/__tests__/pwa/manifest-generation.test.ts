@@ -160,8 +160,9 @@ describe('Manifest Generation', () => {
       expect(scriptContent).toContain('WARNING: assetlinks.json contains placeholder');
     });
 
-    it('should check for REPLACE placeholder', () => {
+    it('should check for placeholder values', () => {
       expect(scriptContent).toContain("fingerprint.includes('REPLACE')");
+      expect(scriptContent).toContain("fingerprint.includes('PLACEHOLDER')");
     });
 
     it('should validate fingerprint format with regex', () => {

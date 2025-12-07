@@ -164,7 +164,8 @@ async function validateAssetLinks() {
     // Note: Accept both uppercase and lowercase hex (some tools like keytool output uppercase, others lowercase)
     const fingerprintRegex = /^([A-Fa-f0-9]{2}:){31}[A-Fa-f0-9]{2}$/;
 
-    if (fingerprint.includes('REPLACE')) {
+    // Check for placeholder values (both old and new format)
+    if (fingerprint.includes('REPLACE') || fingerprint.includes('PLACEHOLDER')) {
       if (isProduction) {
         throw new Error(
           'PRODUCTION BUILD BLOCKED: assetlinks.json contains placeholder fingerprint!\n' +
