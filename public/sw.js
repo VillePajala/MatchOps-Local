@@ -1,57 +1,73 @@
-// Caching strategy for PWA offline support
-const CACHE_NAME = 'matchops-2025-12-06T18-42-14';
+/**
+ * Service Worker for MatchOps-Local PWA
+ *
+ * Caching Strategy:
+ * - Static assets (JS, CSS, images, fonts): Cache-first with network fallback
+ * - HTML documents: Network-only (never cached to ensure app updates work)
+ * - External requests: Pass through to network
+ *
+ * Production-hardened:
+ * - No HTML caching to prevent stale app versions
+ * - Versioned cache for clean updates
+ * - Minimal logging (errors only in production)
+ */
+
+const CACHE_NAME = 'matchops-2025-12-07T11-23-32';
+
+// Static resources to precache (NO HTML - HTML should never be cached)
 const STATIC_RESOURCES = [
-  '/',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/logos/app-logo.png'
 ];
 
+// Environment check - reduce logging in production
+const IS_DEV = self.location.hostname === 'localhost';
+const log = IS_DEV ? console.log.bind(console) : () => {};
+const logError = console.error.bind(console); // Always log errors
+
 // Listen for the install event - cache static resources
 self.addEventListener('install', (event) => {
-  console.log('[SW] Service worker installing...');
+  log('[SW] Installing...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Caching static resources');
-      // Cache resources individually to better handle errors
+      log('[SW] Caching static resources');
       return Promise.all(
         STATIC_RESOURCES.map(url =>
           cache.add(url).catch(err => {
-            console.error(`[SW] Failed to cache ${url}:`, err);
-            // Don't fail the entire installation if one resource fails
+            logError(`[SW] Failed to cache ${url}:`, err);
             return Promise.resolve();
           })
         )
       );
     }).then(() => {
-      console.log('[SW] Service worker installed successfully');
+      log('[SW] Installed successfully');
     }).catch(err => {
-      console.error('[SW] Service worker installation failed:', err);
+      logError('[SW] Installation failed:', err);
       throw err;
     })
   );
   // Do NOT call self.skipWaiting() here.
-  // We want to wait for the user to click the update button.
+  // Wait for user to click the update button.
 });
 
-// Listen for the activate event
+// Listen for the activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Service worker activating...');
+  log('[SW] Activating...');
   event.waitUntil(
-    // Clean up old caches
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('[SW] Deleting old cache:', cacheName);
+          // Delete ALL old caches (different version)
+          if (cacheName !== CACHE_NAME && cacheName.startsWith('matchops-')) {
+            log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     }).then(() => {
-      console.log('[SW] Service worker activated');
-      // Take control of all open clients immediately
+      log('[SW] Activated');
       return clients.claim();
     })
   );
@@ -60,71 +76,71 @@ self.addEventListener('activate', (event) => {
 // Listen for messages from the client
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
-    console.log('[SW] Received SKIP_WAITING message. Activating new service worker.');
+    log('[SW] SKIP_WAITING received, activating new version');
     self.skipWaiting();
   }
 });
 
-// Enhanced fetch handler with offline support
+// Fetch handler with production-safe caching
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Handle same-origin requests
-  if (url.origin === location.origin) {
-    // Use network-first strategy for HTML documents to ensure app updates
-    if (request.destination === 'document') {
-      event.respondWith(
-        fetch(request)
-          .then((fetchResponse) => {
-            // Only cache GET/HEAD requests with successful responses
-            const isCacheable = request.method === 'GET' || request.method === 'HEAD';
-            if (isCacheable && fetchResponse.status === 200) {
-              const responseClone = fetchResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, responseClone);
-              }).catch(err => {
-                console.warn('[SW] Failed to cache document:', err);
-              });
-            }
-            return fetchResponse;
-          })
-          .catch(() => {
-            // Offline fallback - serve from cache
-            return caches.match(request).then((cachedResponse) => {
-              return cachedResponse || caches.match('/');
-            });
-          })
-      );
-    } else {
-      // Use cache-first for all other resources (CSS, JS, images, etc.)
-      event.respondWith(
-        caches.match(request).then((response) => {
-          if (response) {
-            console.log('[SW] Serving from cache:', request.url);
-            return response;
-          }
-
-          // Fetch from network and cache for next time
-          return fetch(request).then((fetchResponse) => {
-            // Only cache GET/HEAD requests with successful responses
-            const isCacheable = request.method === 'GET' || request.method === 'HEAD';
-            if (isCacheable && fetchResponse.status === 200) {
-              const responseClone = fetchResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, responseClone);
-              }).catch(err => {
-                console.warn('[SW] Failed to cache response:', err);
-              });
-            }
-            return fetchResponse;
-          });
-        })
-      );
-    }
-  } else {
-    // Pass through external requests
-    event.respondWith(fetch(request));
+  // Only handle same-origin requests
+  if (url.origin !== location.origin) {
+    return; // Let browser handle external requests normally
   }
+
+  // NEVER cache HTML documents - always fetch from network
+  // This ensures app updates are always reflected
+  if (request.destination === 'document' || request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).catch(() => {
+        // If offline, show a simple offline page or the cached app shell
+        // But we don't have a dedicated offline page, so just let it fail
+        return new Response(
+          '<!DOCTYPE html><html><body><h1>Offline</h1><p>Please check your connection.</p></body></html>',
+          { headers: { 'Content-Type': 'text/html' } }
+        );
+      })
+    );
+    return;
+  }
+
+  // Cache-first for static assets (JS, CSS, images, fonts)
+  if (
+    request.destination === 'script' ||
+    request.destination === 'style' ||
+    request.destination === 'image' ||
+    request.destination === 'font' ||
+    request.url.includes('/icons/') ||
+    request.url.includes('/logos/')
+  ) {
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+
+        // Fetch from network and cache for next time
+        return fetch(request).then((fetchResponse) => {
+          // Only cache successful GET requests
+          if (request.method === 'GET' && fetchResponse.status === 200) {
+            const responseClone = fetchResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseClone);
+            }).catch(err => {
+              logError('[SW] Cache put failed:', err);
+            });
+          }
+          return fetchResponse;
+        });
+      })
+    );
+    return;
+  }
+
+  // All other requests: network-only
+  // (manifest.json, API calls, etc.)
 });
-// Build Timestamp: 2025-12-06T18:42:14.019Z
+// Build Timestamp: 2025-12-07T11:23:32.366Z
