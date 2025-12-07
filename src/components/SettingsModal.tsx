@@ -673,6 +673,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               <p className="text-sm text-slate-300">
                 {t('settingsModal.appVersion', 'App Version')}: {packageJson.version}
               </p>
+              <div className="flex gap-4 text-sm">
+                <a
+                  href="/privacy-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-400 hover:text-indigo-300 underline"
+                >
+                  {t('settingsModal.privacyPolicy', 'Privacy Policy')}
+                </a>
+                <a
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-400 hover:text-indigo-300 underline"
+                >
+                  {t('settingsModal.termsOfService', 'Terms of Service')}
+                </a>
+              </div>
               <div className="space-y-1">
                 <label className={labelStyle}>{t('settingsModal.storageUsageLabel', 'Storage Usage')}</label>
                   <p className="text-sm text-slate-300">
