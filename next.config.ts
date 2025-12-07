@@ -1,5 +1,11 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from '@sentry/nextjs';
+import bundleAnalyzer from '@next/bundle-analyzer';
+
+// Bundle analyzer - run with ANALYZE=true npm run build
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+});
 
 /**
  * Security headers for production deployment
@@ -190,6 +196,9 @@ const shouldUseSentry =
   process.env.NEXT_PUBLIC_SENTRY_DSN &&
   (process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_SENTRY_FORCE_ENABLE === 'true');
 
+// Apply bundle analyzer wrapper, then optionally Sentry
+const configWithAnalyzer = withBundleAnalyzer(nextConfig);
+
 export default shouldUseSentry
-  ? withSentryConfig(nextConfig, sentryWebpackPluginOptions)
-  : nextConfig;
+  ? withSentryConfig(configWithAnalyzer, sentryWebpackPluginOptions)
+  : configWithAnalyzer;
