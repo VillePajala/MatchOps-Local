@@ -206,4 +206,24 @@ describe('Asset Links File Structure', () => {
     expect(Array.isArray(entry.target.sha256_cert_fingerprints)).toBe(true);
     expect(entry.target.sha256_cert_fingerprints.length).toBeGreaterThan(0);
   });
+
+  it('should not have placeholder fingerprint on protected branches in CI', () => {
+    const isCI = process.env.CI === 'true';
+    const branch = process.env.VERCEL_GIT_COMMIT_REF || process.env.GITHUB_REF_NAME || '';
+    const isProtectedBranch = ['master', 'main'].includes(branch);
+
+    if (!isCI || !isProtectedBranch) {
+      // Skip validation outside CI or on non-protected branches
+      return;
+    }
+
+    const entry = assetLinksContent[0];
+    const fingerprint = entry.target.sha256_cert_fingerprints[0];
+    const hasPlaceholder =
+      fingerprint.includes('PLACEHOLDER') ||
+      fingerprint.includes('REPLACE') ||
+      fingerprint.startsWith('__');
+
+    expect(hasPlaceholder).toBe(false);
+  });
 });
