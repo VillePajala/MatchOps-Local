@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: mark P1 and P2 phases complete in master execution guide"
+  "notes": "feat: add P3 quality gates - accessibility tests and bundle analysis"
 }

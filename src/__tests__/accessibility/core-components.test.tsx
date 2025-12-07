@@ -1,4 +1,8 @@
 /**
+ * @jest-environment jsdom
+ */
+
+/**
  * Accessibility tests for static pages and offline content
  * @critical - Ensures WCAG compliance for Play Store release
  *
@@ -21,7 +25,8 @@ describe('Accessibility: Static Pages', () => {
       const { container } = render(<PrivacyPolicy />);
 
       const results = await axe(container);
-      expect(results).toHaveNoViolations();
+      // Type assertion needed because jest-axe extends Jest matchers at runtime
+      (expect(results) as jest.JestMatchers<unknown> & { toHaveNoViolations: () => void }).toHaveNoViolations();
     });
 
     it('should have proper heading hierarchy', async () => {
@@ -44,7 +49,8 @@ describe('Accessibility: Static Pages', () => {
       const { container } = render(<Terms />);
 
       const results = await axe(container);
-      expect(results).toHaveNoViolations();
+      // Type assertion needed because jest-axe extends Jest matchers at runtime
+      (expect(results) as jest.JestMatchers<unknown> & { toHaveNoViolations: () => void }).toHaveNoViolations();
     });
 
     it('should have proper heading hierarchy', async () => {
@@ -69,56 +75,56 @@ describe('Accessibility: Offline Page Structure', () => {
     const offlinePath = path.join(process.cwd(), 'public', 'offline.html');
     const offlineContent = fs.readFileSync(offlinePath, 'utf8');
 
-    // Language attribute
-    expect(offlineContent).toContain('lang="en"');
+    // Language attribute (flexible quote matching)
+    expect(offlineContent).toMatch(/lang=["']en["']/);
 
-    // Image alt text
-    expect(offlineContent).toContain('alt="MatchOps"');
+    // Image with alt text
+    expect(offlineContent).toMatch(/alt=["']MatchOps["']/);
 
-    // Interactive elements
-    expect(offlineContent).toContain('<button');
+    // Interactive button element
+    expect(offlineContent).toMatch(/<button[^>]*>/);
 
     // Heading structure
-    expect(offlineContent).toContain('<h1>');
+    expect(offlineContent).toMatch(/<h1[^>]*>/);
 
     // Viewport meta tag for mobile accessibility
-    expect(offlineContent).toContain('viewport');
-    expect(offlineContent).toContain('width=device-width');
+    expect(offlineContent).toMatch(/name=["']viewport["']/);
+    expect(offlineContent).toMatch(/width=device-width/);
   });
 });
 
-describe('Accessibility: Color Contrast Documentation', () => {
-  it('should document primary color palette for WCAG verification', () => {
-    // These are the primary colors used in the app (Tailwind slate/indigo theme)
-    // Contrast ratios should be at least 4.5:1 for normal text (WCAG AA)
-    const colorPalette = {
-      // Backgrounds
-      bgPrimary: '#1e293b', // slate-800
-      bgSecondary: '#334155', // slate-700
+describe('Accessibility: Color Contrast', () => {
+  // WCAG 2.1 contrast ratio requirements:
+  // - AA Normal text (< 18pt): 4.5:1
+  // - AAA Normal text: 7:1
+  const WCAG_AA_NORMAL = 4.5;
+  const WCAG_AAA_NORMAL = 7;
 
-      // Text
-      textPrimary: '#f8fafc', // slate-50
-      textSecondary: '#cbd5e1', // slate-300
-      textMuted: '#94a3b8', // slate-400
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const tinycolor = require('tinycolor2');
 
-      // Accent colors
-      primary: '#4f46e5', // indigo-600
-      primaryHover: '#4338ca', // indigo-700
+  // App color palette - primary text colors on dark backgrounds
+  const colors = {
+    bgPrimary: '#1e293b', // slate-800
+    bgSecondary: '#334155', // slate-700
+    textPrimary: '#f8fafc', // slate-50
+    textSecondary: '#cbd5e1', // slate-300
+    textMuted: '#94a3b8', // slate-400
+  };
 
-      // Semantic colors
-      success: '#22c55e', // green-500
-      warning: '#f59e0b', // amber-500
-      error: '#ef4444', // red-500
-      info: '#3b82f6', // blue-500
-    };
+  it('should meet WCAG AA contrast for text on dark backgrounds', () => {
+    // These are the critical text/background combinations
+    const ratio1 = tinycolor.readability(colors.bgPrimary, colors.textPrimary);
+    const ratio2 = tinycolor.readability(colors.bgPrimary, colors.textSecondary);
+    const ratio3 = tinycolor.readability(colors.bgPrimary, colors.textMuted);
 
-    // Verify palette is defined (actual contrast testing done via Lighthouse)
-    expect(Object.keys(colorPalette).length).toBeGreaterThan(0);
+    expect(ratio1).toBeGreaterThanOrEqual(WCAG_AA_NORMAL); // ~12.6:1
+    expect(ratio2).toBeGreaterThanOrEqual(WCAG_AA_NORMAL); // ~7.5:1
+    expect(ratio3).toBeGreaterThanOrEqual(WCAG_AA_NORMAL); // ~4.6:1
+  });
 
-    // Document for manual review
-    // Recommended tool: https://webaim.org/resources/contrastchecker/
-    // slate-50 (#f8fafc) on slate-800 (#1e293b) = 12.6:1 ✅ AAA
-    // slate-300 (#cbd5e1) on slate-800 (#1e293b) = 7.5:1 ✅ AAA
-    // slate-400 (#94a3b8) on slate-800 (#1e293b) = 4.6:1 ✅ AA
+  it('should meet WCAG AAA contrast for primary text', () => {
+    const ratio = tinycolor.readability(colors.bgPrimary, colors.textPrimary);
+    expect(ratio).toBeGreaterThanOrEqual(WCAG_AAA_NORMAL); // ~12.6:1
   });
 });
