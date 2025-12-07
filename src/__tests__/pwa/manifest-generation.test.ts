@@ -166,7 +166,8 @@ describe('Manifest Generation', () => {
 
     it('should validate fingerprint format with regex', () => {
       expect(scriptContent).toContain('fingerprintRegex');
-      expect(scriptContent).toContain('[A-F0-9]{2}');
+      // Should accept both uppercase and lowercase hex
+      expect(scriptContent).toContain('[A-Fa-f0-9]{2}');
     });
 
     it('should block production builds with invalid fingerprint format', () => {
