@@ -15,6 +15,14 @@ import { withSentryConfig } from '@sentry/nextjs';
  * 2. Nonce-based CSP requires dynamic rendering (no static optimization)
  * 3. For a local-first PWA, static optimization is critical for performance
  *
+ * Why Hash-Based CSP Isn't Feasible:
+ * Next.js generates dynamic inline scripts containing:
+ * - React Server Component (RSC) payloads with build-specific data
+ * - Chunk hashes that change every build (e.g., "static/chunks/app/page-abc123.js")
+ * - Hydration data that varies per page and build
+ * Pre-computing hashes would require post-build processing of every HTML file,
+ * and hashes would need to be regenerated on every build - not practical.
+ *
  * Risk Assessment (LOW for this app):
  * - No user-generated content that could contain scripts
  * - No third-party scripts except Vercel Analytics (trusted)
@@ -113,7 +121,9 @@ const nextConfig: NextConfig = {
         source: '/.well-known/assetlinks.json',
         headers: [
           { key: 'Content-Type', value: 'application/json' },
-          { key: 'Cache-Control', value: 'public, max-age=86400' },
+          // Short cache (1 hour) to ensure signing key updates propagate quickly
+          // while still allowing reasonable caching for Google's verification
+          { key: 'Cache-Control', value: 'public, max-age=3600, stale-while-revalidate=86400' },
           // CORS headers for Google verification
           { key: 'Access-Control-Allow-Origin', value: '*' },
         ],

@@ -154,6 +154,15 @@ describe('Manifest Generation', () => {
     it('should check for REPLACE placeholder', () => {
       expect(scriptContent).toContain("fingerprint.includes('REPLACE')");
     });
+
+    it('should validate fingerprint format with regex', () => {
+      expect(scriptContent).toContain('fingerprintRegex');
+      expect(scriptContent).toContain('[A-F0-9]{2}');
+    });
+
+    it('should block production builds with invalid fingerprint format', () => {
+      expect(scriptContent).toContain('Invalid fingerprint format');
+    });
   });
 
   describe('Service Worker Update', () => {

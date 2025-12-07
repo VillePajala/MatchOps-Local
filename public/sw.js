@@ -14,7 +14,7 @@
  * - Dedicated offline page for graceful offline experience
  */
 
-const CACHE_NAME = 'matchops-2025-12-07T11-53-59';
+const CACHE_NAME = 'matchops-2025-12-07T13-08-41';
 
 // Static resources to precache (NO HTML - HTML should never be cached)
 // Exception: offline.html is a static fallback page for when network is unavailable
@@ -62,13 +62,12 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          // Delete ALL old caches (different version)
-          if (cacheName !== CACHE_NAME && cacheName.startsWith('matchops-')) {
+        cacheNames
+          .filter(name => name !== CACHE_NAME && name.startsWith('matchops-'))
+          .map(cacheName => {
             log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
-          }
-        })
+          })
       );
     }).then(() => {
       log('[SW] Activated');
@@ -173,4 +172,4 @@ self.addEventListener('fetch', (event) => {
   // All other requests: network-only
   // (manifest.json, API calls, etc.)
 });
-// Build Timestamp: 2025-12-07T11:53:59.796Z
+// Build Timestamp: 2025-12-07T13:08:41.470Z
