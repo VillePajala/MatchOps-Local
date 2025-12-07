@@ -94,6 +94,20 @@ const securityHeaders = [
     key: 'Link',
     value: '<https://sentry.io>; rel=dns-prefetch, <https://ingest.sentry.io>; rel=preconnect',
   },
+  {
+    // Cross-Origin-Opener-Policy
+    // Prevents other sites from opening this app in a popup and accessing window.opener
+    // 'same-origin' is the strictest setting for a standalone PWA
+    key: 'Cross-Origin-Opener-Policy',
+    value: 'same-origin',
+  },
+  {
+    // Cross-Origin-Resource-Policy
+    // Prevents other origins from reading this app's resources
+    // 'same-origin' blocks cross-origin resource requests
+    key: 'Cross-Origin-Resource-Policy',
+    value: 'same-origin',
+  },
 ];
 
 const nextConfig: NextConfig = {

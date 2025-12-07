@@ -19,21 +19,32 @@ body {
 .container {
   max-width: 400px;
 }
-.icon {
-  font-size: 64px;
-  margin-bottom: 24px;
+.logo {
+  margin-bottom: 16px;
+  border-radius: 16px;
 }
 h1 {
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 12px;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
   color: #f8fafc;
 }
-p {
-  font-size: 16px;
+.subtitle {
+  font-size: 18px;
   color: #94a3b8;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+}
+.message {
+  font-size: 15px;
+  color: #64748b;
+  margin-bottom: 12px;
   line-height: 1.5;
+}
+.data-notice {
+  font-size: 14px;
+  color: #22c55e;
+  margin-bottom: 24px;
+  font-weight: 500;
 }
 button {
   background-color: #4f46e5;

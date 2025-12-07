@@ -5,12 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Offline - MatchOps</title>
   <link rel="stylesheet" href="/offline.css">
+  <link rel="icon" href="/icons/favicon-32x32.png" type="image/png">
 </head>
 <body>
   <div class="container">
-    <div class="icon">📡</div>
-    <h1>Unable to Load</h1>
-    <p>MatchOps works offline, but we couldn't load the app this time. If you've used MatchOps before, your data is safe on this device. Please check your connection and try again.</p>
+    <img src="/icons/icon-192x192.png" alt="MatchOps" class="logo" width="96" height="96">
+    <h1>MatchOps</h1>
+    <p class="subtitle">Unable to Load App</p>
+    <p class="message">This usually happens on first install when you're offline. Once MatchOps loads successfully, it works fully offline.</p>
+    <p class="data-notice">Your existing data is safe on this device.</p>
     <button id="retry-btn">Try Again</button>
   </div>
   <script src="/offline.js"></script>
