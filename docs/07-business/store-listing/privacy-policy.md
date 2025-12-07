@@ -2,6 +2,8 @@
 
 **Last Updated**: December 2025
 
+> **Hosted URL**: https://matchops.app/privacy-policy (use this URL for Play Store submission)
+
 ## Overview
 
 MatchOps ("we", "our", "the app") is a local-first soccer coaching application. This privacy policy explains how we handle your information.

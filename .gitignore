@@ -72,3 +72,11 @@ site/*.tsbuildinfo
 
 # site-specific (marketing/docs site)
 /site/pages/docs/
+
+# Android signing keys and certificates
+# NEVER commit these - they should be stored securely outside the repo
+*.keystore
+*.jks
+*.key
+release-key.properties
+keystore.properties
