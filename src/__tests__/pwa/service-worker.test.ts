@@ -64,12 +64,9 @@ describe('Service Worker Configuration', () => {
       expect(swContent).toContain('caches.delete(cacheName)');
     });
 
-    it('should only delete matchops caches', () => {
-      expect(swContent).toContain("cacheName.startsWith('matchops-')");
-    });
-
-    it('should keep current cache version', () => {
-      expect(swContent).toContain('cacheName !== CACHE_NAME');
+    it('should only delete matchops caches and keep current version', () => {
+      // Uses filter to select only old matchops caches for deletion
+      expect(swContent).toContain("name !== CACHE_NAME && name.startsWith('matchops-')");
     });
   });
 

@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "feat(stats): add tournament series filtering dropdown"
+  "notes": "fix(pwa): improve offline page messaging for local-first app"
 }

@@ -128,6 +128,10 @@ async function validateAssetLinks() {
     const assetLinks = JSON.parse(fs.readFileSync(assetLinksPath, 'utf8'));
     const fingerprint = assetLinks[0]?.target?.sha256_cert_fingerprints?.[0] || '';
 
+    // SHA256 fingerprint format: 32 pairs of hex digits separated by colons
+    // Example: AB:CD:EF:12:34:56:78:90:AB:CD:EF:12:34:56:78:90:AB:CD:EF:12:34:56:78:90:AB:CD:EF:12:34:56:78:90
+    const fingerprintRegex = /^([A-F0-9]{2}:){31}[A-F0-9]{2}$/;
+
     if (fingerprint.includes('REPLACE')) {
       if (isProduction) {
         throw new Error(
@@ -139,6 +143,13 @@ async function validateAssetLinks() {
         console.warn('⚠️  WARNING: assetlinks.json contains placeholder fingerprint.');
         console.warn('   TWA verification will fail until you add your signing key fingerprint.');
         console.warn('   This is OK for development but must be fixed before Play Store release.');
+      }
+    } else if (!fingerprintRegex.test(fingerprint)) {
+      console.warn('⚠️  WARNING: Invalid SHA256 fingerprint format in assetlinks.json');
+      console.warn('   Expected format: XX:XX:XX:... (32 pairs of hex digits separated by colons)');
+      console.warn(`   Got: ${fingerprint}`);
+      if (isProduction) {
+        throw new Error('PRODUCTION BUILD BLOCKED: Invalid fingerprint format in assetlinks.json');
       }
     } else {
       console.log('Asset links validated successfully!');
