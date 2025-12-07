@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true }, { status: 204 });
   } catch {
-    // Invalid report format - just acknowledge
+    // Invalid report format - silently accept to prevent retries
     return NextResponse.json({ received: true }, { status: 204 });
   }
 }
