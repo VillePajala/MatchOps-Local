@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   getPremiumLicense,
   grantPremium,
@@ -24,8 +24,8 @@ interface PremiumContextValue {
   canCreate: (resource: ResourceType, currentCount: number) => boolean;
   /** Get remaining count for a resource */
   getRemaining: (resource: ResourceType, currentCount: number) => number;
-  /** Check if imported data exceeds limits */
-  checkImportLimits: (counts: ResourceCounts) => boolean;
+  /** Returns true if imported data exceeds free tier limits */
+  isImportOverLimits: (counts: ResourceCounts) => boolean;
   /** Trigger to show upgrade prompt (set by consumer) */
   showUpgradePrompt: (resource?: ResourceType) => void;
   /** Register the upgrade prompt handler */
@@ -45,9 +45,9 @@ const PremiumContext = createContext<PremiumContextValue | undefined>(undefined)
 export function PremiumProvider({ children }: { children: React.ReactNode }) {
   const [isPremium, setIsPremium] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [upgradePromptHandler, setUpgradePromptHandlerState] = useState<
-    ((resource?: ResourceType) => void) | null
-  >(null);
+
+  // Use ref for callback to avoid re-renders when handler changes
+  const upgradePromptHandlerRef = useRef<((resource?: ResourceType) => void) | null>(null);
 
   const loadPremiumStatus = useCallback(async () => {
     try {
@@ -82,7 +82,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
     [isPremium]
   );
 
-  const checkImportLimits = useCallback(
+  const isImportOverLimits = useCallback(
     (counts: ResourceCounts): boolean => {
       if (isPremium) return false;
       return isOverFreeLimit(counts);
@@ -92,32 +92,42 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
 
   const showUpgradePrompt = useCallback(
     (resource?: ResourceType) => {
-      if (upgradePromptHandler) {
-        upgradePromptHandler(resource);
+      if (upgradePromptHandlerRef.current) {
+        upgradePromptHandlerRef.current(resource);
       } else {
         logger.warn('Upgrade prompt handler not registered');
       }
     },
-    [upgradePromptHandler]
+    []
   );
 
   const setUpgradePromptHandler = useCallback(
     (handler: (resource?: ResourceType) => void) => {
-      setUpgradePromptHandlerState(() => handler);
+      upgradePromptHandlerRef.current = handler;
     },
     []
   );
 
   const grantPremiumAccess = useCallback(async (purchaseToken?: string) => {
-    await grantPremium(purchaseToken);
-    setIsPremium(true);
-    logger.info('Premium access granted');
+    try {
+      await grantPremium(purchaseToken);
+      setIsPremium(true);
+      logger.info('Premium access granted');
+    } catch (error) {
+      logger.error('Failed to grant premium access', error);
+      throw error;
+    }
   }, []);
 
   const revokePremiumAccess = useCallback(async () => {
-    await revokePremium();
-    setIsPremium(false);
-    logger.info('Premium access revoked');
+    try {
+      await revokePremium();
+      setIsPremium(false);
+      logger.info('Premium access revoked');
+    } catch (error) {
+      logger.error('Failed to revoke premium access', error);
+      throw error;
+    }
   }, []);
 
   const refreshPremiumStatus = useCallback(async () => {
@@ -131,7 +141,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       limits: isPremium ? null : FREE_LIMITS,
       canCreate,
       getRemaining,
-      checkImportLimits,
+      isImportOverLimits,
       showUpgradePrompt,
       setUpgradePromptHandler,
       grantPremiumAccess,
@@ -144,7 +154,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       canCreate,
       getRemaining,
-      checkImportLimits,
+      isImportOverLimits,
       showUpgradePrompt,
       setUpgradePromptHandler,
       grantPremiumAccess,

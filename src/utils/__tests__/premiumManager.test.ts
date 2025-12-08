@@ -2,6 +2,12 @@
  * @jest-environment jsdom
  */
 
+/**
+ * Premium Manager Tests
+ * @critical - Core monetization logic for freemium model
+ * Tests license storage, limit checking, and premium status management
+ */
+
 import {
   getPremiumLicense,
   savePremiumLicense,
