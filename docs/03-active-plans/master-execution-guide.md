@@ -32,7 +32,7 @@ Purpose: a single, authoritative, step‑by‑step guide to take MatchOps‑Loca
 | P1: Security | #1-2 | 4-6h | CSP headers, Service Worker | ✅ Done |
 | P2: PWA Packaging | #3-5 | 8-12h | Manifest, TWA, Store assets | ✅ Done |
 | P3: Quality | #6-7 | 4-6h | Accessibility, Performance | ✅ Done |
-| P4: Monetization | #8-10 | 8-12h | Billing, Feature gating, Paywall | ⏳ Pending |
+| P4: Monetization | #8-10 | 8-12h | Billing, Feature gating, Paywall | ✅ Done |
 | P5: Release | #11 | 2-4h | Store submission | ⏳ Pending |
 
 ### Branching Strategy
@@ -488,10 +488,10 @@ Acceptance
 
 ---
 
-## Phase P4: Monetization (Freemium with Limits)
+## Phase P4: Monetization (Freemium with Limits) ✅ COMPLETED
 
-- Owner: TBD
-- Target Date: TBD
+- Owner: Completed
+- Completion Date: December 8, 2025
 - Effort: 8-12 hours (3 PRs)
 
 Outcome: Freemium model with usage limits and $9.99 one-time premium purchase.
@@ -509,11 +509,11 @@ Outcome: Freemium model with usage limits and $9.99 one-time premium purchase.
 - Offline-first: License cached locally, works offline after purchase
 
 - P4 Checklist
-  - [ ] PR #8: Premium context, hooks, and limit constants
-  - [ ] PR #9: Upgrade prompt UI and limit enforcement in creation flows
-  - [ ] PR #10: Play Store billing integration (Digital Goods API for TWA)
-  - [ ] Translations complete (EN/FI)
-  - [ ] Compliance: Play Billing policy checks complete
+  - [x] PR #8: Premium context, hooks, and limit constants ✅ Done Dec 8
+  - [x] PR #9: Upgrade prompt UI and limit enforcement in creation flows ✅ Done Dec 8
+  - [x] PR #10: Play Store billing integration (Digital Goods API for TWA) ✅ Done Dec 8
+  - [x] Translations complete (EN/FI) ✅ Done Dec 8
+  - [ ] Compliance: Play Billing policy checks complete (verify before submission)
 
 **Free Tier Limits**:
 | Resource | Free | Premium |
