@@ -9,6 +9,7 @@ This directory contains business strategy and monetization documentation.
 | **First launch?** | Start with [FIRST-LAUNCH-STRATEGY.md](./FIRST-LAUNCH-STRATEGY.md) |
 | **Understanding value?** | Read [PORTFOLIO-VALUE.md](./PORTFOLIO-VALUE.md) |
 | **Long-term vision?** | See [FUTURE-VISION.md](./FUTURE-VISION.md) |
+| **Know the competition?** | Read [COMPETITOR-ANALYSIS.md](./COMPETITOR-ANALYSIS.md) |
 
 ## Documents
 
@@ -17,6 +18,7 @@ This directory contains business strategy and monetization documentation.
 - **[FIRST-LAUNCH-STRATEGY.md](./FIRST-LAUNCH-STRATEGY.md)** - Practical first launch approach: quantity limits, $9.99 one-time purchase, promo codes, realistic revenue projections
 - **[PORTFOLIO-VALUE.md](./PORTFOLIO-VALUE.md)** - Indirect value: career leverage, teaching opportunities, the "built with AI" story
 - **[FUTURE-VISION.md](./FUTURE-VISION.md)** - Long-term CoachHub platform vision (B2B, multi-coach, club management)
+- **[COMPETITOR-ANALYSIS.md](./COMPETITOR-ANALYSIS.md)** - Market research: TeamSnap, Spond, TacticalPad, Coachbetter, and positioning
 
 ### Reference
 
