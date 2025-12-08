@@ -488,33 +488,48 @@ Acceptance
 
 ---
 
-## Phase P4: Monetization Readiness (Paywall, Feature Gating, Compliance)
+## Phase P4: Monetization (Freemium with Limits)
 
 - Owner: TBD
 - Target Date: TBD
+- Effort: 8-12 hours (3 PRs)
 
-Outcome: a privacy-compatible monetization approach with feature gating.
+Outcome: Freemium model with usage limits and $9.99 one-time premium purchase.
 
-**Privacy-First Monetization Context**:
+**Monetization Model**:
+- **Free tier**: Full features, limited quantities (1 team, 10 games/competition, 18 players, 1 season, 1 tournament)
+- **Premium tier**: $9.99 one-time purchase, unlimited everything
+- Aligns with local-first philosophy ("pay once, own forever")
+- No subscriptions, no server infrastructure
+
+**Privacy-First Approach**:
 - User game data NEVER transmitted (scores, players, stats stay local)
 - License validation: Minimal network call to Play Store API
 - No behavioral tracking or usage analytics
-- Feature gating: Premium features unlocked after purchase
-- Offline-first: License cached locally, works offline after validation
+- Offline-first: License cached locally, works offline after purchase
 
 - P4 Checklist
-  - [ ] Strategy finalized in `07-business/monetization-strategies.md`
-  - [ ] Play Store billing integration (in-app purchases)
-  - [ ] Feature gating implementation (free vs premium tiers)
-  - [ ] License caching for offline premium access
-  - [ ] Paywall UI/UX components
+  - [ ] PR #8: Premium context, hooks, and limit constants
+  - [ ] PR #9: Upgrade prompt UI and limit enforcement in creation flows
+  - [ ] PR #10: Play Store billing integration (Digital Goods API for TWA)
+  - [ ] Translations complete (EN/FI)
   - [ ] Compliance: Play Billing policy checks complete
 
+**Free Tier Limits**:
+| Resource | Free | Premium |
+|----------|------|---------|
+| Teams | 1 | Unlimited |
+| Games per season/tournament | 10 | Unlimited |
+| Players | 18 | Unlimited |
+| Seasons | 1 | Unlimited |
+| Tournaments | 1 | Unlimited |
+
 Acceptance
-- Feature gating functional; premium features locked for free users
-- Purchase flow works; license validated and cached
-- Offline premium access after purchase
-- No user data transmitted (only license status checks)
+- Limits enforced at all creation points
+- Clear upgrade prompt when limit reached
+- Purchase flow works in TWA
+- License cached for offline premium access
+- No user data transmitted (only license status)
 - Play Store policies compliant
 
 ---
