@@ -139,6 +139,8 @@ export function TermsOfServiceClient() {
               {t('termsOfService.contact.github')}:{' '}
               <a
                 href="https://github.com/VillePajala/MatchOps-Local/issues"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-indigo-400 hover:underline"
               >
                 github.com/VillePajala/MatchOps-Local/issues

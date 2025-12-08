@@ -111,24 +111,31 @@ describe('PrivacyPolicyClient', () => {
     });
   });
 
-  it('should render external privacy policy links', () => {
+  it('should render external privacy policy links with security attributes', () => {
     render(<PrivacyPolicyClient />);
 
     const googleLink = screen.getByRole('link', { name: /google's privacy policy/i });
     expect(googleLink).toHaveAttribute('href', 'https://policies.google.com/privacy');
+    expect(googleLink).toHaveAttribute('target', '_blank');
+    expect(googleLink).toHaveAttribute('rel', 'noopener noreferrer');
 
     const sentryLink = screen.getByRole('link', { name: /sentry's privacy policy/i });
     expect(sentryLink).toHaveAttribute('href', 'https://sentry.io/privacy/');
+    expect(sentryLink).toHaveAttribute('target', '_blank');
+    expect(sentryLink).toHaveAttribute('rel', 'noopener noreferrer');
 
     const vercelLink = screen.getByRole('link', { name: /vercel's privacy policy/i });
     expect(vercelLink).toHaveAttribute('href', 'https://vercel.com/legal/privacy-policy');
+    expect(vercelLink).toHaveAttribute('target', '_blank');
+    expect(vercelLink).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
-  it('should render contact links', () => {
+  it('should render contact links with appropriate attributes', () => {
     render(<PrivacyPolicyClient />);
 
     const emailLink = screen.getByRole('link', { name: 'valoraami@gmail.com' });
     expect(emailLink).toHaveAttribute('href', 'mailto:valoraami@gmail.com');
+    // mailto links don't need target/rel
 
     const githubLink = screen.getByRole('link', {
       name: 'github.com/VillePajala/MatchOps-Local/issues',
@@ -137,6 +144,8 @@ describe('PrivacyPolicyClient', () => {
       'href',
       'https://github.com/VillePajala/MatchOps-Local/issues'
     );
+    expect(githubLink).toHaveAttribute('target', '_blank');
+    expect(githubLink).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
   it('should render back navigation link', () => {

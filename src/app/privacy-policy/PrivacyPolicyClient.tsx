@@ -64,19 +64,19 @@ export function PrivacyPolicyClient() {
           <div className="space-y-3 text-slate-300">
             <p>
               <strong>{t('privacyPolicy.thirdPartyServices.googlePlay')}</strong> - {t('privacyPolicy.thirdPartyServices.googlePlayDesc')}{' '}
-              <a href="https://policies.google.com/privacy" className="text-indigo-400 hover:underline">
+              <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
                 Google&apos;s Privacy Policy
               </a>
             </p>
             <p>
               <strong>{t('privacyPolicy.thirdPartyServices.sentry')}</strong> - {t('privacyPolicy.thirdPartyServices.sentryDesc')}{' '}
-              <a href="https://sentry.io/privacy/" className="text-indigo-400 hover:underline">
+              <a href="https://sentry.io/privacy/" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
                 Sentry&apos;s Privacy Policy
               </a>
             </p>
             <p>
               <strong>{t('privacyPolicy.thirdPartyServices.vercel')}</strong> - {t('privacyPolicy.thirdPartyServices.vercelDesc')}{' '}
-              <a href="https://vercel.com/legal/privacy-policy" className="text-indigo-400 hover:underline">
+              <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">
                 Vercel&apos;s Privacy Policy
               </a>
             </p>
@@ -126,6 +126,8 @@ export function PrivacyPolicyClient() {
               {t('privacyPolicy.contact.github')}:{' '}
               <a
                 href="https://github.com/VillePajala/MatchOps-Local/issues"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-indigo-400 hover:underline"
               >
                 github.com/VillePajala/MatchOps-Local/issues
