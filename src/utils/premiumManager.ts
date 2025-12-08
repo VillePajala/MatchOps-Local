@@ -55,6 +55,15 @@ export async function savePremiumLicense(license: PremiumLicense): Promise<void>
 
 /**
  * Grant premium status (after successful purchase verification)
+ *
+ * Note: This is a local-first PWA. Purchase verification happens client-side
+ * via the Digital Goods API in the TWA context - no backend server involved.
+ *
+ * TODO: PR #10 (Play Billing Integration) should add:
+ * - Use Digital Goods API to verify purchase with Play Store
+ * - Validate purchase is for correct product ID (PREMIUM_PRODUCT_ID)
+ * - Check purchase state (PURCHASED, not PENDING/CANCELED)
+ * - Handle acknowledgement via Digital Goods API
  */
 export async function grantPremium(purchaseToken?: string): Promise<void> {
   const license: PremiumLicense = {
@@ -88,7 +97,9 @@ export async function isPremiumUser(): Promise<boolean> {
  */
 export interface ResourceCounts {
   teams: number;
+  /** Maximum game count in any single season (not total across all seasons) */
   gamesInSeason: number;
+  /** Maximum game count in any single tournament (not total across all tournaments) */
   gamesInTournament: number;
   players: number;
   seasons: number;
@@ -167,6 +178,10 @@ export function getResourceLimit(resource: ResourceType): number {
 
 /**
  * Check if any resource is over the free limit (for import warnings)
+ *
+ * Note: gamesInSeason/gamesInTournament represent the MAXIMUM game count
+ * in any single season or tournament, not the total across all competitions.
+ * This matches how limits are enforced per-competition.
  */
 export function isOverFreeLimit(counts: ResourceCounts): boolean {
   return (
