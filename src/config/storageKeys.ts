@@ -14,3 +14,6 @@ export const APP_DATA_VERSION_KEY = 'appDataVersion';
 
 // Personnel storage key
 export const PERSONNEL_KEY = 'soccerPersonnel';
+
+// Premium license storage key
+export const PREMIUM_LICENSE_KEY = 'soccerPremiumLicense';
