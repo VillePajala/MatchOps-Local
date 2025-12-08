@@ -1514,7 +1514,7 @@
       "restrictionsIntro": "ET saa:",
       "restrictions": {
         "reverseEngineer": "Purkaa, dekompilata tai hajottaa sovellusta",
-        "modify": "Muokata, mukauttaa tai luoda johdannaisteoksia",
+        "modify": "Muokata, mukauttaa tai luoda muunnelmia",
         "distribute": "Jakaa, alilisensoida tai siirtää sovellusta muille",
         "illegal": "Käyttää sovellusta laittomiin tarkoituksiin",
         "removeNotices": "Poistaa tekijänoikeus- tai omistusoikeusilmoituksia"
