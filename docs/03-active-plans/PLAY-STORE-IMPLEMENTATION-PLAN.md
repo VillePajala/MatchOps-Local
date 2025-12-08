@@ -567,6 +567,75 @@ if ('getDigitalGoodsService' in window) {
 
 ---
 
+### License Restoration Strategy
+
+**Problem**: User buys premium on device A, installs on device B (or resets). IndexedDB is empty.
+
+**Solution**: Auto-check on app start + manual restore fallback.
+
+**On App Start**:
+```typescript
+async function checkPremiumStatus() {
+  // 1. Check local cache first (instant, works offline)
+  const cachedLicense = await getLicenseFromIndexedDB();
+  if (cachedLicense?.isPremium) {
+    return true;
+  }
+
+  // 2. If not premium AND online AND Play Billing available → auto-check
+  if (isOnline() && isPlayBillingAvailable()) {
+    const purchases = await getExistingPurchases();
+    if (purchases.includes('matchops_premium')) {
+      await saveLicenseToIndexedDB({ isPremium: true });
+      showToast('Welcome back! Premium restored.');
+      return true;
+    }
+  }
+
+  return false;
+}
+```
+
+**Manual Fallback**: "Restore Purchase" button in Settings for edge cases (auto-check failed, offline on first launch, etc.)
+
+---
+
+### Backup Import with Over-Limit Data
+
+**Scenario**: Free user imports backup containing 3 teams, 50 games, 25 players (exceeds limits).
+
+**Decision**: Import everything, enforce limits only on NEW creation.
+
+**Rationale**:
+- User's data is sacred - never block access to their own backup
+- Simple to implement - import logic unchanged
+- Clear upgrade path when they try to create more
+
+**Import Flow**:
+```
+┌─────────────────────────────────────┐
+│  Import Complete                    │
+│                                     │
+│  ✅ 3 teams imported                │
+│  ✅ 47 games imported               │
+│  ✅ 25 players imported             │
+│                                     │
+│  ⚠️ Your data exceeds free limits.  │
+│  You can view and edit everything,  │
+│  but creating new items requires    │
+│  Premium.                           │
+│                                     │
+│  [Upgrade $9.99]  [Continue Free]   │
+└─────────────────────────────────────┘
+```
+
+**Post-Import Behavior**:
+- All existing data: view ✅, edit ✅, delete ✅
+- Create new (when over limit): shows upgrade prompt
+- Delete items → can create again if back under limit
+
+---
+
 ## Phase P5: Release
 
 **Goal**: Submit to Play Store and release
