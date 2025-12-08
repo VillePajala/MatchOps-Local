@@ -387,117 +387,183 @@ These improvements are not blocking for Play Store release but would enhance CI/
 
 ## Phase P4: Monetization
 
-**Goal**: Implement premium tier with Play Store billing
-**Risk**: MEDIUM (external API, payment flow)
+**Goal**: Implement freemium model with usage limits and one-time premium purchase
+**Risk**: MEDIUM (Play Billing API integration)
 **Effort**: 8-12 hours
+**Model**: Free with limits → $9.99 one-time purchase for unlimited
 
-### PR #8: Play Store Billing Integration (3-4h)
+### Monetization Strategy
 
-**Branch**: `ps/8-billing-integration`
+**Why this approach:**
+- Aligns with local-first philosophy ("pay once, own forever")
+- No subscription management or server infrastructure
+- Users can fully try before buying
+- Clear value proposition: limits removed permanently
 
-**Purpose**: Add Play Store billing API integration
+**Free vs Premium Limits:**
 
-**Tasks**:
-1. Set up Play Console developer account
-2. Create in-app product (one-time purchase)
-3. Add billing library/API integration
-4. Implement purchase flow
-5. Handle purchase verification
+| Resource | Free | Premium ($9.99) |
+|----------|------|-----------------|
+| Teams | 1 | Unlimited |
+| Games per season/tournament | 10 | Unlimited |
+| Players | 18 | Unlimited |
+| Seasons | 1 | Unlimited |
+| Tournaments | 1 | Unlimited |
+| All features | ✅ Full | ✅ Full |
 
-**New Files**:
-- `src/utils/playStoreBilling.ts`
-- `src/hooks/usePremiumStatus.ts`
-
-**Purchase Flow**:
-```typescript
-// src/utils/playStoreBilling.ts
-export async function purchasePremium(): Promise<boolean>;
-export async function checkPurchaseStatus(): Promise<boolean>;
-export async function restorePurchase(): Promise<boolean>;
-```
-
-**Acceptance Criteria**:
-- [ ] Can initiate purchase from app
-- [ ] Purchase verification works
-- [ ] Handles purchase errors gracefully
-- [ ] Works in test mode
+**Note**: All features work in free tier - only quantity limits apply.
 
 ---
 
-### PR #9: Feature Gating (3-4h)
+### PR #8: Premium Context & Limits (3-4h)
 
-**Branch**: `ps/9-feature-gating`
+**Branch**: `ps/8-premium-context`
 
-**Purpose**: Lock premium features for free users
+**Purpose**: Add premium state management and usage limit checks
 
 **Tasks**:
-1. Define free vs premium features
-2. Create feature gate hook
-3. Add gates to premium features
-4. Cache license status locally
-5. Handle offline mode (cached license)
-
-**Premium Features** (suggested):
-- Cloud backup (future)
-- Multi-device sync (future)
-- Advanced statistics
-- Export to Excel
-- Custom themes (future)
-
-**Or simpler**: All features free, premium = "support the developer" with badge
+1. Create PremiumContext for app-wide premium state
+2. Create usePremium hook for components
+3. Create premiumManager utility for license storage
+4. Add limit constants and checking logic
+5. Integrate with existing data creation flows
 
 **New Files**:
-- `src/hooks/useFeatureGate.ts`
-- `src/contexts/PremiumContext.tsx`
+```
+src/
+├── contexts/
+│   └── PremiumContext.tsx       # Premium state provider
+├── hooks/
+│   └── usePremium.ts            # Premium status hook
+├── utils/
+│   └── premiumManager.ts        # License storage & limit checks
+└── config/
+    └── premiumLimits.ts         # Limit constants
+```
 
-**Feature Gate Hook**:
+**Limit Constants**:
 ```typescript
-// src/hooks/useFeatureGate.ts
-export function useFeatureGate(feature: PremiumFeature): {
-  isAvailable: boolean;
+// src/config/premiumLimits.ts
+export const FREE_LIMITS = {
+  maxTeams: 1,
+  maxGamesPerSeason: 10,
+  maxGamesPerTournament: 10,
+  maxPlayers: 18,
+  maxSeasons: 1,
+  maxTournaments: 1,
+};
+```
+
+**Premium Hook**:
+```typescript
+// src/hooks/usePremium.ts
+export function usePremium(): {
   isPremium: boolean;
-  showPaywall: () => void;
+  isLoading: boolean;
+  limits: typeof FREE_LIMITS | null;  // null if premium
+  canCreate: (resource: 'team' | 'game' | 'player' | 'season' | 'tournament') => boolean;
+  showUpgradePrompt: () => void;
 };
 ```
 
 **Acceptance Criteria**:
-- [ ] Free features work without purchase
-- [ ] Premium features gated
-- [ ] License cached for offline use
-- [ ] Graceful handling when offline
+- [ ] Premium state persists in IndexedDB
+- [ ] Limit checks work correctly
+- [ ] Works offline (cached license)
+- [ ] Hook provides clear API for components
 
 ---
 
-### PR #10: Paywall UI (2-4h)
+### PR #9: Upgrade UI & Limit Enforcement (3-4h)
 
-**Branch**: `ps/10-paywall-ui`
+**Branch**: `ps/9-upgrade-ui`
 
-**Purpose**: Create UI for premium upgrade
+**Purpose**: Add upgrade prompt UI and enforce limits in creation flows
 
 **Tasks**:
-1. Design paywall modal
-2. Show feature comparison (free vs premium)
-3. Add purchase button
-4. Handle loading/success/error states
-5. Add "Restore Purchase" option
-6. Translations (EN/FI)
+1. Create UpgradePromptModal component
+2. Add limit checks to team creation
+3. Add limit checks to game creation (NewGameSetupModal)
+4. Add limit checks to player creation
+5. Add limit checks to season/tournament creation
+6. Add "Premium" indicator in Settings
+7. Translations (EN/FI)
 
 **New Files**:
-- `src/components/PaywallModal.tsx`
-- `src/components/PremiumBadge.tsx` (optional)
+```
+src/components/
+├── UpgradePromptModal.tsx      # "Upgrade to Premium" modal
+└── PremiumBadge.tsx            # Small badge for Settings
+```
 
-**UI Elements**:
-- Feature list with checkmarks
-- Price display
+**Modified Files**:
+- `src/components/NewGameSetupModal.tsx` - Game limit check
+- `src/components/TeamManagementModal.tsx` - Team limit check
+- `src/components/PlayerBar.tsx` or roster creation - Player limit check
+- `src/components/SeasonTournamentManagementModal.tsx` - Season/tournament limits
+- `src/components/SettingsModal.tsx` - Premium status display
+- `public/locales/en/common.json` - English translations
+- `public/locales/fi/common.json` - Finnish translations
+
+**Upgrade Prompt Content**:
+- Current usage vs limit (e.g., "1/1 teams used")
+- What premium unlocks (unlimited everything)
+- Price ($9.99 one-time)
 - Purchase button
 - Restore purchase link
-- Success/error states
 
 **Acceptance Criteria**:
-- [ ] Paywall displays correctly
-- [ ] Purchase flow works end-to-end
+- [ ] Limits enforced at all creation points
+- [ ] Clear messaging when limit reached
+- [ ] Upgrade prompt is non-intrusive but clear
+- [ ] Translations complete (EN/FI)
+
+---
+
+### PR #10: Play Store Billing Integration (4-5h)
+
+**Branch**: `ps/10-play-billing`
+
+**Purpose**: Integrate Google Play Billing for in-app purchase
+
+**Tasks**:
+1. Set up in-app product in Play Console ($9.99 one-time)
+2. Implement Digital Goods API for TWA billing
+3. Handle purchase flow (initiate → verify → grant)
+4. Implement restore purchase functionality
+5. Cache license status for offline use
+6. Handle edge cases (pending, canceled, refunded)
+
+**New Files**:
+```
+src/utils/
+└── playBilling.ts              # Play Billing API wrapper
+```
+
+**Play Billing Flow**:
+```typescript
+// src/utils/playBilling.ts
+export async function initializeBilling(): Promise<void>;
+export async function purchasePremium(): Promise<PurchaseResult>;
+export async function restorePurchase(): Promise<boolean>;
+export async function checkPurchaseStatus(): Promise<boolean>;
+```
+
+**TWA Digital Goods API**:
+```typescript
+// Check if Digital Goods API is available (TWA context)
+if ('getDigitalGoodsService' in window) {
+  const service = await window.getDigitalGoodsService('https://play.google.com/billing');
+  // Use service for purchases
+}
+```
+
+**Acceptance Criteria**:
+- [ ] Purchase flow works in TWA
+- [ ] License persists after purchase
 - [ ] Restore purchase works
-- [ ] Translations complete
+- [ ] Graceful fallback when not in TWA (web testing)
+- [ ] Works offline after initial purchase
 
 ---
 
