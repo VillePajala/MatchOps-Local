@@ -1403,5 +1403,193 @@
   "reset": {
     "resetting": "Nollataan sovellusta...",
     "description": "Kaikki tiedot poistetaan ja sovellus käynnistetään uudelleen."
+  },
+  "privacyPolicy": {
+    "title": "MatchOpsin tietosuojakäytäntö",
+    "lastUpdated": "Päivitetty: joulukuu 2025",
+    "overview": {
+      "title": "Yleiskatsaus",
+      "content": "MatchOps (\"me\", \"meidän\", \"sovellus\") on paikallisesti toimiva jalkapallovalmennus­sovellus. Tämä tietosuojakäytäntö selittää, miten käsittelemme tietojasi."
+    },
+    "dataStorage": {
+      "title": "Tietojen tallennus",
+      "localDataTitle": "Paikalliset tiedot",
+      "localDataIntro": "Kaikki tietosi tallennetaan paikallisesti laitteellesi:",
+      "localDataItems": {
+        "playerRosters": "Pelaajalistat ja -tiedot",
+        "gameRecords": "Pelitallenteet ja tilastot",
+        "settings": "Asetukset ja mieltymykset",
+        "seasonData": "Kausi- ja turnaustiedot"
+      },
+      "localDataNote": "Meillä ei ole pääsyä näihin tietoihin. Ne eivät koskaan poistu laitteeltasi, ellet erikseen vie niitä.",
+      "noAccountTitle": "Tiliä ei tarvita",
+      "noAccountContent": "MatchOps toimii täysin offline-tilassa. Tilin luomista, kirjautumista tai henkilötietoja ei tarvita sovelluksen käyttämiseen."
+    },
+    "dataWeCollect": {
+      "title": "Tiedot, joita saatamme kerätä",
+      "errorReportingTitle": "Virheraportit (valinnainen)",
+      "errorReportingIntro": "Kun sovelluksessa tapahtuu virhe, saatamme kerätä:",
+      "errorReportingItems": {
+        "errorType": "Virhetyyppi ja pinojälki",
+        "deviceType": "Laitetyyppi ja käyttöjärjestelmäversio",
+        "appVersion": "Sovelluksen versio",
+        "sessionInfo": "Anonymisoitu istuntotieto"
+      },
+      "errorReportingNote": "Tämä auttaa meitä korjaamaan virheitä ja parantamaan sovellusta. Virheraportit eivät sisällä pelitietojasi tai pelaajatietoja, ja ne käsittelee Sentry.io.",
+      "licenseValidationTitle": "Play Kaupan lisenssivahvistus",
+      "licenseValidationContent": "Kun ostat premium-ominaisuuksia, Google Play käsittelee kaikki maksut. Vahvistamme lisenssitilan Play Kaupan API:n kautta, mutta emme saa maksutietojasi."
+    },
+    "dataWeDoNotCollect": {
+      "title": "Tiedot, joita EMME kerää",
+      "items": {
+        "playerNames": "Pelaajalistojesi nimiä tai henkilötietoja",
+        "gameContent": "Pelisisältöä, tuloksia tai tilastoja",
+        "location": "Sijaintitietoja",
+        "photos": "Valokuvia tai mediaa",
+        "contacts": "Yhteystietoja",
+        "deviceIds": "Laitetunnisteita seurantaa varten"
+      }
+    },
+    "thirdPartyServices": {
+      "title": "Kolmannen osapuolen palvelut",
+      "googlePlay": "Google Play Kauppa",
+      "googlePlayDesc": "Käsittelee sovelluksen jakelun ja maksut.",
+      "sentry": "Sentry",
+      "sentryDesc": "Käsittelee virheraportit ja kaatumiset.",
+      "vercel": "Vercel",
+      "vercelDesc": "Isännöi PWA-versiota."
+    },
+    "yourRights": {
+      "title": "Oikeutesi",
+      "export": "Vie tietosi sovelluksen vientitoiminnolla",
+      "delete": "Poista tietosi tyhjentämällä sovellustiedot tai poistamalla sovellus",
+      "contactUs": "Ota meihin yhteyttä tietosuojakysymyksissä"
+    },
+    "childrensPrivacy": {
+      "title": "Lasten yksityisyys",
+      "content": "MatchOps ei tietoisesti kerää tietoja lapsilta. Sovellus tallentaa pelaajien nimet paikallisesti valmentajan syöttäminä - nämä ovat täysin sinun hallinnassasi eikä niitä koskaan lähetetä meille."
+    },
+    "dataSecurity": {
+      "title": "Tietoturva",
+      "intro": "Tietosi on suojattu:",
+      "items": {
+        "encryption": "Laitetason salaus (Androidin tarjoama)",
+        "localStorage": "Vain paikallinen tallennus",
+        "noTransmission": "Ei pelitietojen verkkolähetystä"
+      }
+    },
+    "changes": {
+      "title": "Muutokset tähän käytäntöön",
+      "content": "Saatamme päivittää tätä käytäntöä ajoittain. Muutokset merkitään \"Päivitetty\"-päivämäärään."
+    },
+    "contact": {
+      "title": "Yhteystiedot",
+      "intro": "Tietosuojakysymysten tai -huolien osalta:",
+      "email": "Sähköposti",
+      "github": "GitHub Issues"
+    },
+    "footer": "Tämä tietosuojakäytäntö koskee Google Play Kaupassa saatavilla olevaa MatchOps-sovellusta."
+  },
+  "termsOfService": {
+    "title": "MatchOpsin käyttöehdot",
+    "lastUpdated": "Päivitetty: joulukuu 2025",
+    "agreement": {
+      "title": "Ehtojen hyväksyminen",
+      "content": "Lataamalla, asentamalla tai käyttämällä MatchOpsia (\"sovellus\") hyväksyt nämä käyttöehdot. Jos et hyväksy ehtoja, älä käytä sovellusta."
+    },
+    "description": {
+      "title": "Palvelun kuvaus",
+      "intro": "MatchOps on paikallisesti toimiva jalkapallovalmennus­sovellus, joka auttaa valmentajia:",
+      "items": {
+        "trackTime": "Seuraamaan peliaikaa ja tuloksia",
+        "manageRosters": "Hallitsemaan pelaajalistoja",
+        "recordStats": "Tallentamaan pelaajatilastoja",
+        "organizeSeasons": "Järjestämään kausia ja turnauksia"
+      },
+      "note": "Kaikki tiedot tallennetaan paikallisesti laitteellesi."
+    },
+    "license": {
+      "title": "Käyttöoikeuden myöntäminen",
+      "intro": "Myönnämme sinulle rajoitetun, ei-yksinomaisen, ei-siirrettävän, peruutettavissa olevan oikeuden käyttää MatchOpsia henkilökohtaisiin, ei-kaupallisiin tarkoituksiin näiden ehtojen mukaisesti.",
+      "restrictionsIntro": "ET saa:",
+      "restrictions": {
+        "reverseEngineer": "Purkaa, dekompilata tai hajottaa sovellusta",
+        "modify": "Muokata, mukauttaa tai luoda johdannaisteoksia",
+        "distribute": "Jakaa, alilisensoida tai siirtää sovellusta muille",
+        "illegal": "Käyttää sovellusta laittomiin tarkoituksiin",
+        "removeNotices": "Poistaa tekijänoikeus- tai omistusoikeusilmoituksia"
+      }
+    },
+    "userResponsibilities": {
+      "title": "Käyttäjän vastuut",
+      "intro": "Olet vastuussa:",
+      "items": {
+        "data": "Kaikista sovellukseen syöttämistäsi tiedoista",
+        "backups": "Varmuuskopioiden ylläpitämisestä (vientitoiminnon avulla)",
+        "compliance": "Käyttösi lainmukaisuuden varmistamisesta",
+        "activity": "Kaikesta toiminnasta, joka tapahtuu sovelluksen käyttösi kautta"
+      }
+    },
+    "dataAndPrivacy": {
+      "title": "Tiedot ja yksityisyys",
+      "content": "Tietosi tallennetaan paikallisesti laitteellesi. Meillä ei ole pääsyä pelitietoihisi, pelaajatietoihisi tai tilastoihisi. Katso tietosuojakäytännöstämme tarkemmat tiedot siitä, mitä rajallisia tietoja saatamme kerätä."
+    },
+    "intellectualProperty": {
+      "title": "Immateriaalioikeudet",
+      "content": "MatchOps ja kaikki siihen liittyvät tavaramerkit, logot ja sisältö ovat kehittäjän omaisuutta. Et saa omistusoikeuksia käyttämällä sovellusta."
+    },
+    "disclaimer": {
+      "title": "Takuuvapauslauseke",
+      "intro": "Sovellus tarjotaan \"sellaisena kuin se on\" ja \"saatavuuden mukaan\" ilman minkäänlaisia takuita, mukaan lukien mutta ei rajoittuen:",
+      "items": {
+        "merchantability": "Myyntikelpoisuus",
+        "fitness": "Sopivuus tiettyyn tarkoitukseen",
+        "nonInfringement": "Oikeuksien loukkaamattomuus",
+        "accuracy": "Tietojen tarkkuus tai luotettavuus"
+      },
+      "note": "Emme takaa, että sovellus täyttää erityisvaatimuksesi, toimii keskeytyksettä, ajallaan, turvallisesti tai virheettömästi, tai että virheet korjataan."
+    },
+    "liability": {
+      "title": "Vastuunrajoitus",
+      "intro": "Lain sallimissa rajoissa kehittäjä ei missään tapauksessa ole vastuussa mistään epäsuorista, satunnaisista, erityisistä, seuraamuksellisista tai rangaistusluonteisista vahingoista, tietojen menetyksestä, voitoista tai liiketoimintamahdollisuuksista.",
+      "note": "Kokonaisvastuumme ei ylitä sovelluksesta maksamaasi summaa (jos sellainen on)."
+    },
+    "dataLoss": {
+      "title": "Tietojen menetys",
+      "intro": "Hyväksyt seuraavat:",
+      "items": {
+        "localStorage": "Tiedot tallennetaan paikallisesti laitteellesi",
+        "notResponsible": "Emme ole vastuussa tietojen menetyksestä laitevian, sovelluksen poistamisen tai muun syyn vuoksi",
+        "backupAdvice": "Sinun tulisi säännöllisesti viedä ja varmuuskopioida tärkeät tiedot"
+      }
+    },
+    "thirdPartyServices": {
+      "title": "Kolmannen osapuolen palvelut",
+      "intro": "Sovellus voi olla yhteydessä kolmannen osapuolen palveluihin:",
+      "googlePlay": "Google Play Kauppa",
+      "googlePlayDesc": "Sovelluksen jakeluun ja maksuihin",
+      "sentry": "Sentry",
+      "sentryDesc": "Virheraportointiin (valinnainen)",
+      "note": "Näiden palveluiden käyttöäsi koskevat niiden omat ehdot ja käytännöt."
+    },
+    "changes": {
+      "title": "Muutokset sovellukseen",
+      "content": "Pidätämme oikeuden muokata tai lopettaa sovelluksen milloin tahansa, päivittää näitä ehtoja kohtuullisella varoitusajalla ja lisätä tai poistaa ominaisuuksia."
+    },
+    "termination": {
+      "title": "Päättäminen",
+      "content": "Voimme lopettaa tai keskeyttää pääsysi sovellukseen välittömästi ilman ennakkoilmoitusta, jos rikot näitä ehtoja. Päättämisen jälkeen oikeutesi käyttää sovellusta päättyy."
+    },
+    "governingLaw": {
+      "title": "Sovellettava laki",
+      "content": "Näitä ehtoja sääntelee Suomen laki, ottamatta huomioon lainvalintasääntöjä."
+    },
+    "contact": {
+      "title": "Yhteystiedot",
+      "intro": "Kysymyksiä näistä ehdoista:",
+      "email": "Sähköposti",
+      "github": "GitHub Issues"
+    },
+    "footer": "Nämä käyttöehdot koskevat Google Play Kaupassa saatavilla olevaa MatchOps-sovellusta."
   }
 }

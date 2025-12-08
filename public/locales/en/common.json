@@ -1403,5 +1403,193 @@
   "reset": {
     "resetting": "Resetting Application...",
     "description": "All data will be cleared and the application will restart."
+  },
+  "privacyPolicy": {
+    "title": "Privacy Policy for MatchOps",
+    "lastUpdated": "Last Updated: December 2025",
+    "overview": {
+      "title": "Overview",
+      "content": "MatchOps (\"we\", \"our\", \"the app\") is a local-first soccer coaching application. This privacy policy explains how we handle your information."
+    },
+    "dataStorage": {
+      "title": "Data Storage",
+      "localDataTitle": "Local Data",
+      "localDataIntro": "All your data is stored locally on your device:",
+      "localDataItems": {
+        "playerRosters": "Player rosters and information",
+        "gameRecords": "Game records and statistics",
+        "settings": "Settings and preferences",
+        "seasonData": "Season and tournament data"
+      },
+      "localDataNote": "We do not have access to this data. It never leaves your device unless you explicitly export it.",
+      "noAccountTitle": "No Account Required",
+      "noAccountContent": "MatchOps works entirely offline. No account creation, login, or personal information is required to use the app."
+    },
+    "dataWeCollect": {
+      "title": "Data We May Collect",
+      "errorReportingTitle": "Error Reporting (Optional)",
+      "errorReportingIntro": "When the app encounters an error, we may collect:",
+      "errorReportingItems": {
+        "errorType": "Error type and stack trace",
+        "deviceType": "Device type and OS version",
+        "appVersion": "App version",
+        "sessionInfo": "Anonymized session information"
+      },
+      "errorReportingNote": "This helps us fix bugs and improve the app. Error reports do not contain your game data or player information and are processed by Sentry.io.",
+      "licenseValidationTitle": "Play Store License Validation",
+      "licenseValidationContent": "When you purchase premium features, Google Play handles all payment processing. We verify license status through Play Store API but do not receive your payment information."
+    },
+    "dataWeDoNotCollect": {
+      "title": "Data We Do NOT Collect",
+      "items": {
+        "playerNames": "Names or personal details of players in your roster",
+        "gameContent": "Game content, scores, or statistics",
+        "location": "Location data",
+        "photos": "Photos or media",
+        "contacts": "Contact information",
+        "deviceIds": "Device identifiers for tracking"
+      }
+    },
+    "thirdPartyServices": {
+      "title": "Third-Party Services",
+      "googlePlay": "Google Play Store",
+      "googlePlayDesc": "Handles app distribution and payments.",
+      "sentry": "Sentry",
+      "sentryDesc": "Processes crash reports and errors.",
+      "vercel": "Vercel",
+      "vercelDesc": "Hosts the PWA version."
+    },
+    "yourRights": {
+      "title": "Your Rights",
+      "export": "Export your data using the app's export feature",
+      "delete": "Delete your data by clearing app data or uninstalling",
+      "contactUs": "Contact us with privacy concerns"
+    },
+    "childrensPrivacy": {
+      "title": "Children's Privacy",
+      "content": "MatchOps does not knowingly collect information from children. The app stores player names locally as entered by the coach - these are controlled entirely by you and never transmitted to us."
+    },
+    "dataSecurity": {
+      "title": "Data Security",
+      "intro": "Your data is protected by:",
+      "items": {
+        "encryption": "Device-level encryption (provided by Android)",
+        "localStorage": "Local-only storage",
+        "noTransmission": "No network transmission of game data"
+      }
+    },
+    "changes": {
+      "title": "Changes to This Policy",
+      "content": "We may update this policy occasionally. Changes will be noted by the \"Last Updated\" date."
+    },
+    "contact": {
+      "title": "Contact",
+      "intro": "For privacy questions or concerns:",
+      "email": "Email",
+      "github": "GitHub Issues"
+    },
+    "footer": "This privacy policy applies to the MatchOps application available on Google Play Store."
+  },
+  "termsOfService": {
+    "title": "Terms of Service for MatchOps",
+    "lastUpdated": "Last Updated: December 2025",
+    "agreement": {
+      "title": "Agreement to Terms",
+      "content": "By downloading, installing, or using MatchOps (\"the app\"), you agree to these Terms of Service. If you do not agree, do not use the app."
+    },
+    "description": {
+      "title": "Description of Service",
+      "intro": "MatchOps is a local-first soccer coaching application that helps coaches:",
+      "items": {
+        "trackTime": "Track game time and scores",
+        "manageRosters": "Manage player rosters",
+        "recordStats": "Record player statistics",
+        "organizeSeasons": "Organize seasons and tournaments"
+      },
+      "note": "All data is stored locally on your device."
+    },
+    "license": {
+      "title": "License Grant",
+      "intro": "We grant you a limited, non-exclusive, non-transferable, revocable license to use MatchOps for personal, non-commercial purposes in accordance with these terms.",
+      "restrictionsIntro": "You may NOT:",
+      "restrictions": {
+        "reverseEngineer": "Reverse engineer, decompile, or disassemble the app",
+        "modify": "Modify, adapt, or create derivative works",
+        "distribute": "Distribute, sublicense, or transfer the app to others",
+        "illegal": "Use the app for any illegal purpose",
+        "removeNotices": "Remove any copyright or proprietary notices"
+      }
+    },
+    "userResponsibilities": {
+      "title": "User Responsibilities",
+      "intro": "You are responsible for:",
+      "items": {
+        "data": "All data you enter into the app",
+        "backups": "Maintaining backups of your data (using the export feature)",
+        "compliance": "Ensuring your use complies with applicable laws",
+        "activity": "Any activity that occurs through your use of the app"
+      }
+    },
+    "dataAndPrivacy": {
+      "title": "Data and Privacy",
+      "content": "Your data is stored locally on your device. We do not have access to your game data, player information, or statistics. See our Privacy Policy for details on what limited data we may collect."
+    },
+    "intellectualProperty": {
+      "title": "Intellectual Property",
+      "content": "MatchOps and all related trademarks, logos, and content are the property of the developer. You do not acquire any ownership rights by using the app."
+    },
+    "disclaimer": {
+      "title": "Disclaimer of Warranties",
+      "intro": "The app is provided \"as is\" and \"as available\" without warranties of any kind, express or implied, including but not limited to:",
+      "items": {
+        "merchantability": "Merchantability",
+        "fitness": "Fitness for a particular purpose",
+        "nonInfringement": "Non-infringement",
+        "accuracy": "Accuracy or reliability of data"
+      },
+      "note": "We do not warrant that the app will meet your specific requirements, be uninterrupted, timely, secure, or error-free, or that any errors will be corrected."
+    },
+    "liability": {
+      "title": "Limitation of Liability",
+      "intro": "To the maximum extent permitted by law, in no event shall the developer be liable for any indirect, incidental, special, consequential, or punitive damages, loss of data, profits, or business opportunities.",
+      "note": "Our total liability shall not exceed the amount you paid for the app (if any)."
+    },
+    "dataLoss": {
+      "title": "Data Loss",
+      "intro": "You acknowledge that:",
+      "items": {
+        "localStorage": "Data is stored locally on your device",
+        "notResponsible": "We are not responsible for data loss due to device failure, app uninstallation, or any other cause",
+        "backupAdvice": "You should regularly export and backup important data"
+      }
+    },
+    "thirdPartyServices": {
+      "title": "Third-Party Services",
+      "intro": "The app may interact with third-party services:",
+      "googlePlay": "Google Play Store",
+      "googlePlayDesc": "For app distribution and payments",
+      "sentry": "Sentry",
+      "sentryDesc": "For error reporting (optional)",
+      "note": "Your use of these services is governed by their respective terms and policies."
+    },
+    "changes": {
+      "title": "Changes to the App",
+      "content": "We reserve the right to modify or discontinue the app at any time, update these terms with reasonable notice, and add or remove features."
+    },
+    "termination": {
+      "title": "Termination",
+      "content": "We may terminate or suspend your access to the app immediately, without notice, if you breach these terms. Upon termination, your license to use the app ends."
+    },
+    "governingLaw": {
+      "title": "Governing Law",
+      "content": "These terms are governed by the laws of Finland, without regard to conflict of law principles."
+    },
+    "contact": {
+      "title": "Contact",
+      "intro": "For questions about these terms:",
+      "email": "Email",
+      "github": "GitHub Issues"
+    },
+    "footer": "These Terms of Service apply to the MatchOps application available on Google Play Store."
   }
 }
