@@ -6,11 +6,11 @@ import { PremiumProvider } from '@/contexts/PremiumContext';
 
 const ClientWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <PremiumProvider>
-      <ToastProvider>
+    <ToastProvider>
+      <PremiumProvider>
         {children}
-      </ToastProvider>
-    </PremiumProvider>
+      </PremiumProvider>
+    </ToastProvider>
   );
 };
 

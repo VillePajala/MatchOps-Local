@@ -1,3 +1,9 @@
+/**
+ * Premium Limits Configuration Tests
+ * @critical - Verifies freemium tier limits are correctly defined
+ * Tests limit values, helper functions, and pricing constants
+ */
+
 import {
   FREE_LIMITS,
   getLimit,
