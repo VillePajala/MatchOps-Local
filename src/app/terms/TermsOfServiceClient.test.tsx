@@ -129,11 +129,12 @@ describe('TermsOfServiceClient', () => {
     expect(privacyLink).toHaveAttribute('href', '/privacy-policy');
   });
 
-  it('should render contact links', () => {
+  it('should render contact links with appropriate attributes', () => {
     render(<TermsOfServiceClient />);
 
     const emailLink = screen.getByRole('link', { name: 'valoraami@gmail.com' });
     expect(emailLink).toHaveAttribute('href', 'mailto:valoraami@gmail.com');
+    // mailto links don't need target/rel
 
     const githubLink = screen.getByRole('link', {
       name: 'github.com/VillePajala/MatchOps-Local/issues',
@@ -142,6 +143,8 @@ describe('TermsOfServiceClient', () => {
       'href',
       'https://github.com/VillePajala/MatchOps-Local/issues'
     );
+    expect(githubLink).toHaveAttribute('target', '_blank');
+    expect(githubLink).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
   it('should render back navigation link', () => {
