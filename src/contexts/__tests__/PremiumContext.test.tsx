@@ -12,7 +12,6 @@ import { render, screen, act, waitFor } from '@testing-library/react';
 import { PremiumProvider, usePremiumContext } from '../PremiumContext';
 import { usePremium, useResourceLimit } from '@/hooks/usePremium';
 import * as premiumManager from '@/utils/premiumManager';
-import { FREE_LIMITS } from '@/config/premiumLimits';
 
 // Mock premiumManager
 jest.mock('@/utils/premiumManager', () => ({

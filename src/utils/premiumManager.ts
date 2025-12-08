@@ -4,7 +4,7 @@
  */
 
 import { PREMIUM_LICENSE_KEY } from '@/config/storageKeys';
-import { FREE_LIMITS, ResourceType, PREMIUM_PRODUCT_ID } from '@/config/premiumLimits';
+import { FREE_LIMITS, ResourceType, PREMIUM_PRODUCT_ID, getLimit } from '@/config/premiumLimits';
 import { getStorageItem, setStorageItem } from './storage';
 import logger from './logger';
 
@@ -158,23 +158,9 @@ export function getRemainingCount(
 
 /**
  * Get the limit for a resource type
+ * Re-exports getLimit from premiumLimits for convenience
  */
-export function getResourceLimit(resource: ResourceType): number {
-  switch (resource) {
-    case 'team':
-      return FREE_LIMITS.maxTeams;
-    case 'player':
-      return FREE_LIMITS.maxPlayers;
-    case 'season':
-      return FREE_LIMITS.maxSeasons;
-    case 'tournament':
-      return FREE_LIMITS.maxTournaments;
-    case 'game':
-      return FREE_LIMITS.maxGamesPerSeason;
-    default:
-      return 0;
-  }
-}
+export const getResourceLimit = getLimit;
 
 /**
  * Check if any resource is over the free limit (for import warnings)

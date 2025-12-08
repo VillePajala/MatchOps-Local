@@ -11,6 +11,7 @@ import {
   PREMIUM_PRODUCT_ID,
   PREMIUM_PRICE,
   PREMIUM_PRICE_AMOUNT,
+  ResourceType,
 } from '../premiumLimits';
 
 describe('premiumLimits', () => {
@@ -54,6 +55,10 @@ describe('premiumLimits', () => {
 
     it('should return tournament limit', () => {
       expect(getLimit('tournament')).toBe(FREE_LIMITS.maxTournaments);
+    });
+
+    it('should return 0 for unknown resource type', () => {
+      expect(getLimit('unknown' as ResourceType)).toBe(0);
     });
   });
 
