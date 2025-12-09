@@ -76,6 +76,8 @@ describe('newGameHandlers', () => {
       teamId: null,
       availablePlayersForGame: mockPlayers,
       selectedPersonnelIds: [],
+      leagueId: '',
+      customLeagueName: '',
     });
 
     expect(setPlayerIdsForNewGame).toHaveBeenCalledWith(null);

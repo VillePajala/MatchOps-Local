@@ -88,6 +88,17 @@ export interface AppState {
   tacticalBallPosition: Point | null;
   teamId?: string;              // NEW: the team this game belongs to
   /**
+   * League ID for this game - can override the season's league setting.
+   * @see src/config/leagues.ts for available leagues
+   * @example 'sm-sarja' | 'harrastesarja' | 'muu'
+   */
+  leagueId?: string;
+  /**
+   * Custom league name when leagueId === 'muu'
+   * @remarks Only used when leagueId is 'muu', otherwise ignored
+   */
+  customLeagueName?: string;
+  /**
    * Personnel assigned to this game (coaches, trainers, etc.)
    *
    * @remarks
