@@ -42,6 +42,8 @@ export interface GameData {
   lastSubConfirmationTimeSeconds?: number;
   seasonId: string | null;
   tournamentId: string | null;
+  leagueId?: string;
+  customLeagueName?: string;
 }
 
 /**

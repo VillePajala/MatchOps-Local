@@ -73,6 +73,10 @@ jest.mock('react-i18next', () => ({
         'gameSettingsModal.confirmDeleteEvent': 'Are you sure you want to delete this event? This cannot be undone.',
         'gameSettingsModal.eventActions': 'Event actions',
         'common.doneButton': 'Done',
+        // League translations
+        'seasonDetailsModal.leagueLabel': 'League',
+        'seasonDetailsModal.selectLeague': '-- Select League --',
+        'seasonDetailsModal.customLeaguePlaceholder': 'Enter league name',
       };
       
       let translation = translations[key] || key;
@@ -679,6 +683,230 @@ describe('<GameSettingsModal />', () => {
 
       // Trophy should not be displayed
       expect(screen.queryByText('🏆')).not.toBeInTheDocument();
+    });
+  });
+
+  /**
+   * League Selection Tests
+   * @integration - Tests league prefilling and override functionality in game settings
+   */
+  describe('League Selection', () => {
+    const mockSeasonsWithLeague: Season[] = [
+      { id: 's1', name: 'Spring League 2024', location: 'Arena', periodCount: 2, periodDuration: 25, leagueId: 'sm-sarja' },
+      { id: 's2', name: 'Custom League Season', location: 'Dome', periodCount: 1, periodDuration: 30, leagueId: 'muu', customLeagueName: 'My Custom League' },
+      { id: 's3', name: 'No League Season', location: 'Field', periodCount: 2, periodDuration: 20 }, // No league set
+    ];
+
+    const mockOnLeagueIdChange = jest.fn();
+    const mockOnCustomLeagueNameChange = jest.fn();
+
+    const leagueProps: GameSettingsModalProps = {
+      ...defaultProps,
+      seasons: mockSeasonsWithLeague,
+      onLeagueIdChange: mockOnLeagueIdChange,
+      onCustomLeagueNameChange: mockOnCustomLeagueNameChange,
+    };
+
+    beforeEach(() => {
+      mockOnLeagueIdChange.mockClear();
+      mockOnCustomLeagueNameChange.mockClear();
+    });
+
+    test('should show league dropdown when season is selected', async () => {
+      const user = userEvent.setup();
+      renderModal({
+        ...leagueProps,
+        seasonId: 's1',
+      });
+
+      // League dropdown should be visible when season is set
+      await waitFor(() => {
+        expect(document.getElementById('leagueSelectGameSettings')).toBeInTheDocument();
+      });
+    });
+
+    test('should not show league dropdown when no season is selected', async () => {
+      renderModal({
+        ...leagueProps,
+        seasonId: '',
+      });
+
+      // League dropdown should not be visible
+      expect(document.getElementById('leagueSelectGameSettings')).not.toBeInTheDocument();
+    });
+
+    test('should prefill league from selected season on season change', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(
+        <ToastProvider>
+          <GameSettingsModal {...leagueProps} />
+        </ToastProvider>
+      );
+
+      // Switch to season tab
+      const section = screen.getByText(t('gameSettingsModal.gameTypeLabel')).closest('div') as HTMLElement;
+      const seasonTab = within(section).getByText(t('gameSettingsModal.kausi'));
+      await user.click(seasonTab);
+
+      // Select season with league
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await user.selectOptions(seasonSelect, 's1');
+
+      // Rerender with season set (simulating parent state update)
+      rerender(
+        <ToastProvider>
+          <GameSettingsModal {...leagueProps} seasonId="s1" />
+        </ToastProvider>
+      );
+
+      // League should be prefilled from season
+      await waitFor(() => {
+        expect(mockOnLeagueIdChange).toHaveBeenCalledWith('sm-sarja');
+      });
+    });
+
+    test('should allow overriding season league for individual game', async () => {
+      const user = userEvent.setup();
+      renderModal({
+        ...leagueProps,
+        seasonId: 's1',
+        leagueId: 'sm-sarja', // Initially set from season
+      });
+
+      // Wait for league dropdown to appear
+      await waitFor(() => {
+        expect(document.getElementById('leagueSelectGameSettings')).toBeInTheDocument();
+      });
+
+      const leagueSelect = document.getElementById('leagueSelectGameSettings') as HTMLSelectElement;
+      expect(leagueSelect.value).toBe('sm-sarja');
+
+      // Change to a different league
+      await user.selectOptions(leagueSelect, 'harrastesarja');
+
+      await waitFor(() => {
+        expect(mockOnLeagueIdChange).toHaveBeenCalledWith('harrastesarja');
+      });
+    });
+
+    test('should show custom name input when "Muu" selected', async () => {
+      const user = userEvent.setup();
+      renderModal({
+        ...leagueProps,
+        seasonId: 's1',
+        leagueId: '', // Start with no league
+      });
+
+      // Wait for league dropdown
+      await waitFor(() => {
+        expect(document.getElementById('leagueSelectGameSettings')).toBeInTheDocument();
+      });
+
+      const leagueSelect = document.getElementById('leagueSelectGameSettings') as HTMLSelectElement;
+      await user.selectOptions(leagueSelect, 'muu');
+
+      // Rerender with muu selected (simulating parent state update)
+      render(
+        <ToastProvider>
+          <GameSettingsModal {...leagueProps} seasonId="s1" leagueId="muu" />
+        </ToastProvider>
+      );
+
+      // Custom name input should appear
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Enter league name')).toBeInTheDocument();
+      });
+    });
+
+    test('should prefill custom league name when season has custom league', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(
+        <ToastProvider>
+          <GameSettingsModal {...leagueProps} />
+        </ToastProvider>
+      );
+
+      // Switch to season tab
+      const section = screen.getByText(t('gameSettingsModal.gameTypeLabel')).closest('div') as HTMLElement;
+      const seasonTab = within(section).getByText(t('gameSettingsModal.kausi'));
+      await user.click(seasonTab);
+
+      // Select season with custom league (s2)
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await user.selectOptions(seasonSelect, 's2');
+
+      // Rerender with season set
+      rerender(
+        <ToastProvider>
+          <GameSettingsModal {...leagueProps} seasonId="s2" />
+        </ToastProvider>
+      );
+
+      // Custom league name should be prefilled
+      await waitFor(() => {
+        expect(mockOnLeagueIdChange).toHaveBeenCalledWith('muu');
+        expect(mockOnCustomLeagueNameChange).toHaveBeenCalledWith('My Custom League');
+      });
+    });
+
+    test('should clear league when switching from season to no-selection', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(
+        <ToastProvider>
+          <GameSettingsModal {...leagueProps} seasonId="s1" leagueId="sm-sarja" />
+        </ToastProvider>
+      );
+
+      // Verify league dropdown is visible
+      await waitFor(() => {
+        expect(document.getElementById('leagueSelectGameSettings')).toBeInTheDocument();
+      });
+
+      // Switch to "None" tab
+      const section = screen.getByText(t('gameSettingsModal.gameTypeLabel')).closest('div') as HTMLElement;
+      const noneTab = within(section).getByText(t('gameSettingsModal.eiMitaan'));
+      await user.click(noneTab);
+
+      // Rerender without season
+      rerender(
+        <ToastProvider>
+          <GameSettingsModal {...leagueProps} seasonId="" leagueId="" />
+        </ToastProvider>
+      );
+
+      // League dropdown should no longer be visible
+      await waitFor(() => {
+        expect(document.getElementById('leagueSelectGameSettings')).not.toBeInTheDocument();
+      });
+    });
+
+    test('should display league dropdown with proper value when game has league set', async () => {
+      renderModal({
+        ...leagueProps,
+        seasonId: 's1',
+        leagueId: 'harrastesarja', // Different from season default
+      });
+
+      await waitFor(() => {
+        const leagueSelect = document.getElementById('leagueSelectGameSettings') as HTMLSelectElement;
+        expect(leagueSelect).toBeInTheDocument();
+        expect(leagueSelect.value).toBe('harrastesarja');
+      });
+    });
+
+    test('should display custom league name input with value when "Muu" is selected', async () => {
+      renderModal({
+        ...leagueProps,
+        seasonId: 's1',
+        leagueId: 'muu',
+        customLeagueName: 'My Custom Tournament League',
+      });
+
+      await waitFor(() => {
+        const customInput = screen.getByPlaceholderText('Enter league name') as HTMLInputElement;
+        expect(customInput).toBeInTheDocument();
+        expect(customInput.value).toBe('My Custom Tournament League');
+      });
     });
   });
 });

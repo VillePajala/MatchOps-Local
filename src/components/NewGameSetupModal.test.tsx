@@ -35,6 +35,10 @@ const translations: { [key: string]: string } = {
   'common.levelHaaste': 'Challenger',
   'common.selectSeries': '-- Select Series --',
   'newGameSetupModal.seriesLabel': 'Series',
+  // League translations
+  'seasonDetailsModal.leagueLabel': 'League',
+  'seasonDetailsModal.selectLeague': '-- Select League --',
+  'seasonDetailsModal.customLeaguePlaceholder': 'Enter league name',
 };
 
 const mockT = jest.fn((key: string, fallback?: any) => {
@@ -70,7 +74,11 @@ describe('NewGameSetupModal', () => {
   const mockOnStart = jest.fn();
   const mockOnCancel = jest.fn();
 
-  const mockSeasonsData = [{ id: 'season1', name: 'Spring 2024' }, { id: 'season2', name: 'Summer 2024' }];
+  const mockSeasonsData = [
+    { id: 'season1', name: 'Spring 2024', leagueId: 'sm-sarja', customLeagueName: '' },
+    { id: 'season2', name: 'Summer 2024', leagueId: 'muu', customLeagueName: 'Custom Summer League' },
+    { id: 'season3', name: 'Fall 2024' }, // No league set
+  ];
   const mockTournamentsData = [{ id: 'tournament1', name: 'City Cup' }, { id: 'tournament2', name: 'Regional Tournament' }];
   const mockPlayersData = [{ id: 'player1', name: 'John Doe', jerseyNumber: '10' },{ id: 'player2', name: 'Jane Smith', jerseyNumber: '7' }];
   const mockTeamsData = [
@@ -520,6 +528,344 @@ describe('NewGameSetupModal', () => {
         const levelSelect = document.getElementById('tournamentLevelInput') as HTMLSelectElement;
         expect(levelSelect).toBeInTheDocument();
         expect(screen.getByText('Elite')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('League Selection', () => {
+    const renderModalForLeague = () => {
+      return render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>
+      );
+    };
+
+    it('should show league dropdown when season is selected', async () => {
+      renderModalForLeague();
+
+      // Wait for initial load
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toHaveValue('Last Team');
+      });
+
+      // Switch to season tab
+      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      await act(async () => {
+        fireEvent.click(seasonTab);
+      });
+
+      // Select a season
+      await waitFor(() => {
+        expect(document.getElementById('seasonSelect')).toBeInTheDocument();
+      });
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(seasonSelect, { target: { value: 'season1' } });
+      });
+
+      // League dropdown should now be visible
+      await waitFor(() => {
+        expect(document.getElementById('leagueSelect')).toBeInTheDocument();
+      });
+    });
+
+    it('should prefill league from selected season', async () => {
+      renderModalForLeague();
+
+      // Wait for initial load
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toHaveValue('Last Team');
+      });
+
+      // Switch to season tab and select season with league
+      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      await act(async () => {
+        fireEvent.click(seasonTab);
+      });
+
+      await waitFor(() => {
+        expect(document.getElementById('seasonSelect')).toBeInTheDocument();
+      });
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(seasonSelect, { target: { value: 'season1' } }); // Has leagueId: 'sm-sarja'
+      });
+
+      // League should be prefilled with season's league
+      await waitFor(() => {
+        const leagueSelect = document.getElementById('leagueSelect') as HTMLSelectElement;
+        expect(leagueSelect).toBeInTheDocument();
+        expect(leagueSelect.value).toBe('sm-sarja');
+      });
+    });
+
+    it('should allow overriding season league for individual game', async () => {
+      renderModalForLeague();
+
+      // Wait for initial load
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toHaveValue('Last Team');
+      });
+
+      // Switch to season tab and select season
+      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      await act(async () => {
+        fireEvent.click(seasonTab);
+      });
+
+      await waitFor(() => {
+        expect(document.getElementById('seasonSelect')).toBeInTheDocument();
+      });
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(seasonSelect, { target: { value: 'season1' } });
+      });
+
+      // Change league to a different value
+      await waitFor(() => {
+        expect(document.getElementById('leagueSelect')).toBeInTheDocument();
+      });
+      const leagueSelect = document.getElementById('leagueSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(leagueSelect, { target: { value: 'harrastesarja' } });
+      });
+
+      // Verify the override took effect
+      await waitFor(() => {
+        expect(leagueSelect.value).toBe('harrastesarja');
+      });
+    });
+
+    it('should show custom name input when "Muu" selected', async () => {
+      renderModalForLeague();
+
+      // Wait for initial load
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toHaveValue('Last Team');
+      });
+
+      // Switch to season tab and select season
+      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      await act(async () => {
+        fireEvent.click(seasonTab);
+      });
+
+      await waitFor(() => {
+        expect(document.getElementById('seasonSelect')).toBeInTheDocument();
+      });
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(seasonSelect, { target: { value: 'season1' } });
+      });
+
+      // Select "Muu" (Other) option
+      await waitFor(() => {
+        expect(document.getElementById('leagueSelect')).toBeInTheDocument();
+      });
+      const leagueSelect = document.getElementById('leagueSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(leagueSelect, { target: { value: 'muu' } });
+      });
+
+      // Custom name input should appear
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Enter league name')).toBeInTheDocument();
+      });
+    });
+
+    it('should pass league selection to onStart when creating game', async () => {
+      renderModalForLeague();
+
+      // Wait for initial load
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toHaveValue('Last Team');
+      });
+
+      // Fill opponent name
+      const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
+      fireEvent.change(opponentInput, { target: { value: 'Test Opponent' } });
+
+      // Switch to season tab and select season with league
+      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      await act(async () => {
+        fireEvent.click(seasonTab);
+      });
+
+      await waitFor(() => {
+        expect(document.getElementById('seasonSelect')).toBeInTheDocument();
+      });
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(seasonSelect, { target: { value: 'season1' } });
+      });
+
+      // Wait for league to be set
+      await waitFor(() => {
+        const leagueSelect = document.getElementById('leagueSelect') as HTMLSelectElement;
+        expect(leagueSelect.value).toBe('sm-sarja');
+      });
+
+      // Submit the form
+      const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
+      await act(async () => {
+        fireEvent.click(startButton);
+      });
+
+      // Verify onStart was called with league parameters
+      await waitFor(() => {
+        expect(mockOnStart).toHaveBeenCalledWith(
+          expect.any(Array), // selectedPlayerIds
+          'Last Team', // homeTeamName
+          'Test Opponent', // opponentName
+          expect.any(String), // gameDate
+          expect.any(String), // gameLocation
+          expect.any(String), // gameTime
+          'season1', // seasonId
+          null, // tournamentId
+          expect.any(Number), // numPeriods
+          expect.any(Number), // periodDuration
+          expect.any(String), // homeOrAway
+          expect.any(Number), // demandFactor
+          expect.any(String), // ageGroup
+          expect.any(String), // tournamentLevel
+          null, // tournamentSeriesId
+          expect.any(Boolean), // isPlayed
+          null, // teamId
+          expect.any(Array), // availablePlayersForGame
+          expect.any(Array), // selectedPersonnelIds
+          'sm-sarja', // leagueId - THE KEY ASSERTION
+          '' // customLeagueName
+        );
+      });
+    });
+
+    it('should pass custom league name when "Muu" is selected', async () => {
+      renderModalForLeague();
+
+      // Wait for initial load
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toHaveValue('Last Team');
+      });
+
+      // Fill opponent name
+      const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
+      fireEvent.change(opponentInput, { target: { value: 'Test Opponent' } });
+
+      // Switch to season tab and select season
+      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      await act(async () => {
+        fireEvent.click(seasonTab);
+      });
+
+      await waitFor(() => {
+        expect(document.getElementById('seasonSelect')).toBeInTheDocument();
+      });
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(seasonSelect, { target: { value: 'season1' } });
+      });
+
+      // Select "Muu" and enter custom name
+      await waitFor(() => {
+        expect(document.getElementById('leagueSelect')).toBeInTheDocument();
+      });
+      const leagueSelect = document.getElementById('leagueSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(leagueSelect, { target: { value: 'muu' } });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Enter league name')).toBeInTheDocument();
+      });
+      const customInput = screen.getByPlaceholderText('Enter league name');
+      await act(async () => {
+        fireEvent.change(customInput, { target: { value: 'My Custom League' } });
+      });
+
+      // Submit the form
+      const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
+      await act(async () => {
+        fireEvent.click(startButton);
+      });
+
+      // Verify onStart was called with custom league name
+      await waitFor(() => {
+        expect(mockOnStart).toHaveBeenCalledWith(
+          expect.any(Array), // selectedPlayerIds
+          'Last Team', // homeTeamName
+          'Test Opponent', // opponentName
+          expect.any(String), // gameDate
+          expect.any(String), // gameLocation
+          expect.any(String), // gameTime
+          'season1', // seasonId
+          null, // tournamentId
+          expect.any(Number), // numPeriods
+          expect.any(Number), // periodDuration
+          expect.any(String), // homeOrAway
+          expect.any(Number), // demandFactor
+          expect.any(String), // ageGroup
+          expect.any(String), // tournamentLevel
+          null, // tournamentSeriesId
+          expect.any(Boolean), // isPlayed
+          null, // teamId
+          expect.any(Array), // availablePlayersForGame
+          expect.any(Array), // selectedPersonnelIds
+          'muu', // leagueId
+          'My Custom League' // customLeagueName - THE KEY ASSERTION
+        );
+      });
+    });
+
+    it('should not show league dropdown when no season is selected', async () => {
+      renderModalForLeague();
+
+      // Wait for initial load
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toHaveValue('Last Team');
+      });
+
+      // League dropdown should not be visible in "None" mode
+      expect(document.getElementById('leagueSelect')).not.toBeInTheDocument();
+    });
+
+    it('should clear league when switching from season to no-selection', async () => {
+      renderModalForLeague();
+
+      // Wait for initial load
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toHaveValue('Last Team');
+      });
+
+      // Switch to season tab and select season
+      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      await act(async () => {
+        fireEvent.click(seasonTab);
+      });
+
+      await waitFor(() => {
+        expect(document.getElementById('seasonSelect')).toBeInTheDocument();
+      });
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(seasonSelect, { target: { value: 'season1' } });
+      });
+
+      // Verify league is set
+      await waitFor(() => {
+        const leagueSelect = document.getElementById('leagueSelect') as HTMLSelectElement;
+        expect(leagueSelect.value).toBe('sm-sarja');
+      });
+
+      // Switch back to "None" tab
+      const noneTab = screen.getByRole('button', { name: /None/i });
+      await act(async () => {
+        fireEvent.click(noneTab);
+      });
+
+      // League dropdown should no longer be visible
+      await waitFor(() => {
+        expect(document.getElementById('leagueSelect')).not.toBeInTheDocument();
       });
     });
   });
