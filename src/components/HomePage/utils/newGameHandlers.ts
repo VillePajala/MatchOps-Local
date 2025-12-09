@@ -51,6 +51,8 @@ export interface StartNewGameRequest {
   teamId: string | null;
   availablePlayersForGame: Player[];
   selectedPersonnelIds: string[];
+  leagueId: string;
+  customLeagueName: string;
 }
 
 export async function startNewGameWithSetup(
@@ -77,6 +79,8 @@ export async function startNewGameWithSetup(
     teamId,
     availablePlayersForGame,
     selectedPersonnelIds,
+    leagueId,
+    customLeagueName,
   } = request;
   const {
     availablePlayers,
@@ -123,6 +127,8 @@ export async function startNewGameWithSetup(
     demandFactor,
     isPlayed,
     teamId: teamId || undefined,
+    leagueId: leagueId || undefined,
+    customLeagueName: leagueId === 'muu' ? customLeagueName || undefined : undefined,
     availablePlayers: availablePlayersForGame,
     selectedPlayerIds: finalSelectedPlayerIds,
     playersOnField: [],

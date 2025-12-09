@@ -12,6 +12,7 @@ import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
+import { FINNISH_YOUTH_LEAGUES } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
@@ -41,7 +42,9 @@ interface NewGameSetupModalProps {
     isPlayed: boolean,
     teamId: string | null, // Add team selection parameter
     availablePlayersForGame: Player[], // Add the actual roster to use for the game
-    selectedPersonnelIds: string[] // Add personnel selection parameter
+    selectedPersonnelIds: string[], // Add personnel selection parameter
+    leagueId: string, // League ID for the game
+    customLeagueName: string // Custom league name when leagueId === 'muu'
   ) => void;
   onCancel: () => void;
   // Fresh data from React Query
@@ -76,6 +79,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [gameMinute, setGameMinute] = useState<string>('');
   const [ageGroup, setAgeGroup] = useState('');
   const [tournamentLevel, setTournamentLevel] = useState('');
+  const [leagueId, setLeagueId] = useState('');
+  const [customLeagueName, setCustomLeagueName] = useState('');
   const [selectedTournamentSeriesId, setSelectedTournamentSeriesId] = useState<string | null>(null);
   const homeTeamInputRef = useRef<HTMLInputElement>(null);
   const opponentInputRef = useRef<HTMLInputElement>(null);
@@ -139,6 +144,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     setActiveTab('none');
     setAgeGroup('');
     setTournamentLevel('');
+    setLeagueId('');
+    setCustomLeagueName('');
   }, [masterRoster, initialPlayerSelection]);
 
   // Initialize form when modal opens - using layout effect to avoid setState in regular effect
@@ -206,6 +213,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       setLocalPeriodDurationString(s.periodDuration ? String(s.periodDuration) : '15');
       setGameDate(s.startDate || new Date().toISOString().split('T')[0]);
       setActiveTab('season');
+      // Apply league from season as default
+      setLeagueId(s.leagueId || '');
+      setCustomLeagueName(s.customLeagueName || '');
     }
   }, [seasons]);
 
@@ -424,7 +434,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       isPlayed,
       selectedTeamId, // Add team selection parameter
       availablePlayersForSetup, // Pass the actual roster being used in the modal
-      selectedPersonnelIds // Pass the personnel selection
+      selectedPersonnelIds, // Pass the personnel selection
+      leagueId, // League ID for the game
+      leagueId === 'muu' ? customLeagueName.trim() : '' // Custom league name when leagueId === 'muu'
     );
 
     // Modal will be closed by parent component after onStart
@@ -644,6 +656,43 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                               </option>
                             ))}
                           </select>
+
+                          {/* League Selection - shows when season is selected */}
+                          {selectedSeasonId && (
+                            <div className="mt-3">
+                              <label htmlFor="leagueSelect" className="block text-sm font-medium text-slate-300 mb-1">
+                                {t('seasonDetailsModal.leagueLabel', 'League')}
+                              </label>
+                              <select
+                                id="leagueSelect"
+                                value={leagueId}
+                                onChange={(e) => {
+                                  setLeagueId(e.target.value);
+                                  if (e.target.value !== 'muu') setCustomLeagueName('');
+                                }}
+                                onKeyDown={handleKeyDown}
+                                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                              >
+                                <option value="">{t('seasonDetailsModal.selectLeague', '-- Select League --')}</option>
+                                {FINNISH_YOUTH_LEAGUES.map(league => (
+                                  <option key={league.id} value={league.id}>{league.name}</option>
+                                ))}
+                              </select>
+                              {/* Custom League Name - shown when "Muu" selected */}
+                              {leagueId === 'muu' && (
+                                <div className="mt-2">
+                                  <input
+                                    type="text"
+                                    value={customLeagueName}
+                                    onChange={(e) => setCustomLeagueName(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder={t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name')}
+                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
 

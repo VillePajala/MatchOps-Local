@@ -169,7 +169,9 @@ describe('NewGameSetupModal', () => {
         expect.objectContaining({ id: 'player1', name: 'John Doe' }),
         expect.objectContaining({ id: 'player2', name: 'Jane Smith' })
       ]),
-      expect.arrayContaining([])
+      expect.arrayContaining([]),
+      '', // leagueId
+      '' // customLeagueName
     );
   });
 
@@ -202,7 +204,9 @@ describe('NewGameSetupModal', () => {
           expect.objectContaining({ id: 'player1', name: 'John Doe' }),
           expect.objectContaining({ id: 'player2', name: 'Jane Smith' })
         ]),
-        expect.arrayContaining([])
+        expect.arrayContaining([]),
+        '', // leagueId
+        '' // customLeagueName
       );
     });
   });
@@ -354,7 +358,9 @@ describe('NewGameSetupModal', () => {
           expect.any(Boolean), // isPlayed
           null, // teamId
           expect.any(Array), // availablePlayersForGame
-          expect.any(Array) // selectedPersonnelIds
+          expect.any(Array), // selectedPersonnelIds
+          expect.any(String), // leagueId
+          expect.any(String) // customLeagueName
         );
       });
     });
@@ -467,7 +473,9 @@ describe('NewGameSetupModal', () => {
           expect.any(Boolean), // isPlayed
           null, // teamId
           expect.any(Array), // availablePlayersForGame
-          expect.any(Array) // selectedPersonnelIds
+          expect.any(Array), // selectedPersonnelIds
+          expect.any(String), // leagueId
+          expect.any(String) // customLeagueName
         );
       });
     });

@@ -16,6 +16,7 @@ import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
+import { FINNISH_YOUTH_LEAGUES } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
@@ -91,6 +92,8 @@ export interface GameSettingsModalProps {
   tournamentLevel?: string;
   seasonId?: string;
   tournamentId?: string;
+  leagueId?: string;
+  customLeagueName?: string;
   gameEvents: GameEvent[];
   availablePlayers: Player[];
   availablePersonnel: Personnel[];
@@ -118,6 +121,8 @@ export interface GameSettingsModalProps {
   onDemandFactorChange: (factor: number) => void;
   onSeasonIdChange: (seasonId: string | undefined) => void;
   onTournamentIdChange: (tournamentId: string | undefined) => void;
+  onLeagueIdChange: (leagueId: string | undefined) => void;
+  onCustomLeagueNameChange: (customLeagueName: string | undefined) => void;
   homeOrAway: 'home' | 'away';
   onSetHomeOrAway: (status: 'home' | 'away') => void;
   isPlayed: boolean;
@@ -202,6 +207,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   onSelectedPersonnelChange,
   seasonId = '',
   tournamentId = '',
+  leagueId = '',
+  customLeagueName = '',
   numPeriods,
   periodDurationMinutes,
   demandFactor = 1,
@@ -210,6 +217,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   onDemandFactorChange,
   onSeasonIdChange,
   onTournamentIdChange,
+  onLeagueIdChange,
+  onCustomLeagueNameChange,
   homeOrAway,
   onSetHomeOrAway,
   isPlayed,
@@ -597,6 +606,15 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         batchedUpdates.periodDurationMinutes = parsedDuration;
         hasUpdates = true;
       }
+
+      // Apply league from season as default
+      const seasonLeagueId = season.leagueId || '';
+      const seasonCustomLeagueName = season.customLeagueName || '';
+      onLeagueIdChange(seasonLeagueId || undefined);
+      onCustomLeagueNameChange(seasonLeagueId === 'muu' ? seasonCustomLeagueName || undefined : undefined);
+      batchedUpdates.leagueId = seasonLeagueId || undefined;
+      batchedUpdates.customLeagueName = seasonLeagueId === 'muu' ? seasonCustomLeagueName || undefined : undefined;
+      hasUpdates = true;
 
       // Mark this season as applied AFTER handlers succeed to allow retry on failure
       appliedSeasonRef.current = seasonId;
@@ -1452,6 +1470,55 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       </option>
                     ))}
                   </select>
+
+                  {/* League Selection - shows when season is selected */}
+                  {seasonId && (
+                    <div className="mt-3">
+                      <label htmlFor="leagueSelectGameSettings" className="block text-sm font-medium text-slate-300 mb-1">
+                        {t('seasonDetailsModal.leagueLabel', 'League')}
+                      </label>
+                      <select
+                        id="leagueSelectGameSettings"
+                        value={leagueId}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          onLeagueIdChange(value || undefined);
+                          if (value !== 'muu') {
+                            onCustomLeagueNameChange(undefined);
+                          }
+                          mutateGameDetails(
+                            { leagueId: value || undefined, customLeagueName: value === 'muu' ? customLeagueName || undefined : undefined },
+                            { source: 'stateSync' }
+                          );
+                        }}
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                      >
+                        <option value="">{t('seasonDetailsModal.selectLeague', '-- Select League --')}</option>
+                        {FINNISH_YOUTH_LEAGUES.map(league => (
+                          <option key={league.id} value={league.id}>{league.name}</option>
+                        ))}
+                      </select>
+                      {/* Custom League Name - shown when "Muu" selected */}
+                      {leagueId === 'muu' && (
+                        <div className="mt-2">
+                          <input
+                            type="text"
+                            value={customLeagueName}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              onCustomLeagueNameChange(value || undefined);
+                              mutateGameDetails(
+                                { customLeagueName: value || undefined },
+                                { source: 'stateSync' }
+                              );
+                            }}
+                            placeholder={t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name')}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
