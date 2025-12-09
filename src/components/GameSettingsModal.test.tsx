@@ -908,5 +908,62 @@ describe('<GameSettingsModal />', () => {
         expect(customInput.value).toBe('My Custom Tournament League');
       });
     });
+
+    test('should clear league and customLeagueName when switching to season without league', async () => {
+      const user = userEvent.setup();
+
+      // Start with season that has custom league (s2)
+      const { rerender } = render(
+        <ToastProvider>
+          <GameSettingsModal
+            {...leagueProps}
+            seasonId="s2"
+            leagueId="muu"
+            customLeagueName="My Custom League"
+          />
+        </ToastProvider>
+      );
+
+      // Verify custom league input is visible
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('gameSettingsModal.customLeaguePlaceholder')).toBeInTheDocument();
+      });
+
+      // Clear mocks before switching
+      mockOnLeagueIdChange.mockClear();
+      mockOnCustomLeagueNameChange.mockClear();
+
+      // Select season without league (s3)
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await user.selectOptions(seasonSelect, 's3');
+
+      // Rerender to simulate state update
+      rerender(
+        <ToastProvider>
+          <GameSettingsModal
+            {...leagueProps}
+            seasonId="s3"
+            leagueId=""
+            customLeagueName=""
+          />
+        </ToastProvider>
+      );
+
+      // Verify both handlers were called with undefined to clear the values
+      await waitFor(() => {
+        expect(mockOnLeagueIdChange).toHaveBeenCalledWith(undefined);
+        expect(mockOnCustomLeagueNameChange).toHaveBeenCalledWith(undefined);
+      });
+
+      // League dropdown should still be visible (season is selected) but have empty value
+      await waitFor(() => {
+        const leagueSelect = document.getElementById('leagueSelectGameSettings') as HTMLSelectElement;
+        expect(leagueSelect).toBeInTheDocument();
+        expect(leagueSelect.value).toBe('');
+      });
+
+      // Custom league input should NOT be visible (no "Muu" selected)
+      expect(screen.queryByPlaceholderText('gameSettingsModal.customLeaguePlaceholder')).not.toBeInTheDocument();
+    });
   });
 });
