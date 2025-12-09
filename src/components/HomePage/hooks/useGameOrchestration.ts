@@ -75,6 +75,8 @@ const initialState: AppState = {
   gamePersonnel: [],
   seasonId: '', // Initialize season ID
   tournamentId: '', // Initialize tournament ID
+  leagueId: undefined, // Initialize league ID (optional, can override season's default)
+  customLeagueName: undefined, // Initialize custom league name (used when leagueId === 'muu')
   ageGroup: '',
   tournamentLevel: '',
   gameLocation: '', // Initialize optional fields
