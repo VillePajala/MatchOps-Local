@@ -572,8 +572,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // Prefill game settings when selecting a season
   useEffect(() => {
     if (!isOpen || !seasonId) {
-      // Reset the ref when modal closes or season is cleared
-      if (!isOpen || !seasonId) {
+      // Reset the ref only when season is cleared (not when modal closes)
+      // This prevents re-applying season defaults when reopening the modal,
+      // which would overwrite user's manual league selection
+      if (!seasonId) {
         appliedSeasonRef.current = null;
       }
       return;
