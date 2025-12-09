@@ -3,7 +3,7 @@
  * TDD: These tests are written BEFORE the implementation
  */
 
-import { FINNISH_YOUTH_LEAGUES, getLeagueById, getLeagueName } from '../leagues';
+import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID, getLeagueById, getLeagueName } from '../leagues';
 
 describe('Finnish Youth Leagues Configuration', () => {
   describe('FINNISH_YOUTH_LEAGUES constant', () => {
@@ -17,10 +17,14 @@ describe('Finnish Youth Leagues Configuration', () => {
       expect(uniqueIds.size).toBe(ids.length);
     });
 
-    it('should have "muu" as the last entry with isCustom flag', () => {
+    it('should have CUSTOM_LEAGUE_ID as the last entry with isCustom flag', () => {
       const lastLeague = FINNISH_YOUTH_LEAGUES[FINNISH_YOUTH_LEAGUES.length - 1];
-      expect(lastLeague.id).toBe('muu');
+      expect(lastLeague.id).toBe(CUSTOM_LEAGUE_ID);
       expect(lastLeague.isCustom).toBe(true);
+    });
+
+    it('should have CUSTOM_LEAGUE_ID equal to "muu"', () => {
+      expect(CUSTOM_LEAGUE_ID).toBe('muu');
     });
 
     it('should include national leagues (Valtakunnallinen)', () => {
@@ -61,8 +65,8 @@ describe('Finnish Youth Leagues Configuration', () => {
       expect(league).toBeUndefined();
     });
 
-    it('should return the custom league for "muu"', () => {
-      const league = getLeagueById('muu');
+    it('should return the custom league for CUSTOM_LEAGUE_ID', () => {
+      const league = getLeagueById(CUSTOM_LEAGUE_ID);
       expect(league).toBeDefined();
       expect(league?.isCustom).toBe(true);
     });

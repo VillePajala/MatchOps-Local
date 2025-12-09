@@ -16,7 +16,7 @@ import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
-import { FINNISH_YOUTH_LEAGUES } from '@/config/leagues';
+import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
@@ -121,7 +121,32 @@ export interface GameSettingsModalProps {
   onDemandFactorChange: (factor: number) => void;
   onSeasonIdChange: (seasonId: string | undefined) => void;
   onTournamentIdChange: (tournamentId: string | undefined) => void;
+  /**
+   * Updates the league ID for the current game.
+   * @param leagueId - League ID from FINNISH_YOUTH_LEAGUES, or undefined to clear.
+   *                   Use CUSTOM_LEAGUE_ID ('muu') for custom leagues.
+   * @example
+   * // Set to SM-sarja
+   * onLeagueIdChange('sm-sarja');
+   *
+   * // Set to custom league (requires customLeagueName)
+   * onLeagueIdChange(CUSTOM_LEAGUE_ID);
+   *
+   * // Clear league selection
+   * onLeagueIdChange(undefined);
+   */
   onLeagueIdChange: (leagueId: string | undefined) => void;
+  /**
+   * Updates the custom league name when leagueId === CUSTOM_LEAGUE_ID.
+   * @param customLeagueName - Custom league name, or undefined to clear.
+   *                           Only used when leagueId is CUSTOM_LEAGUE_ID ('muu').
+   * @example
+   * // Set custom league name
+   * onCustomLeagueNameChange('My Local Tournament');
+   *
+   * // Clear custom league name (e.g., when switching to predefined league)
+   * onCustomLeagueNameChange(undefined);
+   */
   onCustomLeagueNameChange: (customLeagueName: string | undefined) => void;
   homeOrAway: 'home' | 'away';
   onSetHomeOrAway: (status: 'home' | 'away') => void;
@@ -611,9 +636,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       const seasonLeagueId = season.leagueId || '';
       const seasonCustomLeagueName = season.customLeagueName || '';
       onLeagueIdChange(seasonLeagueId || undefined);
-      onCustomLeagueNameChange(seasonLeagueId === 'muu' ? seasonCustomLeagueName || undefined : undefined);
+      onCustomLeagueNameChange(seasonLeagueId === CUSTOM_LEAGUE_ID ? seasonCustomLeagueName || undefined : undefined);
       batchedUpdates.leagueId = seasonLeagueId || undefined;
-      batchedUpdates.customLeagueName = seasonLeagueId === 'muu' ? seasonCustomLeagueName || undefined : undefined;
+      batchedUpdates.customLeagueName = seasonLeagueId === CUSTOM_LEAGUE_ID ? seasonCustomLeagueName || undefined : undefined;
       hasUpdates = true;
 
       // Mark this season as applied AFTER handlers succeed to allow retry on failure
@@ -1483,11 +1508,11 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         onChange={(e) => {
                           const value = e.target.value;
                           onLeagueIdChange(value || undefined);
-                          if (value !== 'muu') {
+                          if (value !== CUSTOM_LEAGUE_ID) {
                             onCustomLeagueNameChange(undefined);
                           }
                           mutateGameDetails(
-                            { leagueId: value || undefined, customLeagueName: value === 'muu' ? customLeagueName || undefined : undefined },
+                            { leagueId: value || undefined, customLeagueName: value === CUSTOM_LEAGUE_ID ? customLeagueName || undefined : undefined },
                             { source: 'stateSync' }
                           );
                         }}
@@ -1499,7 +1524,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         ))}
                       </select>
                       {/* Custom League Name - shown when "Muu" selected */}
-                      {leagueId === 'muu' && (
+                      {leagueId === CUSTOM_LEAGUE_ID && (
                         <div className="mt-2">
                           <input
                             type="text"

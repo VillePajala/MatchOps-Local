@@ -12,7 +12,7 @@ import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
-import { FINNISH_YOUTH_LEAGUES } from '@/config/leagues';
+import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
@@ -44,7 +44,7 @@ interface NewGameSetupModalProps {
     availablePlayersForGame: Player[], // Add the actual roster to use for the game
     selectedPersonnelIds: string[], // Add personnel selection parameter
     leagueId: string, // League ID for the game
-    customLeagueName: string // Custom league name when leagueId === 'muu'
+    customLeagueName: string // Custom league name when leagueId === CUSTOM_LEAGUE_ID
   ) => void;
   onCancel: () => void;
   // Fresh data from React Query
@@ -213,9 +213,10 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       setLocalPeriodDurationString(s.periodDuration ? String(s.periodDuration) : '15');
       setGameDate(s.startDate || new Date().toISOString().split('T')[0]);
       setActiveTab('season');
-      // Apply league from season as default
-      setLeagueId(s.leagueId || '');
-      setCustomLeagueName(s.customLeagueName || '');
+      // Apply league from season as default (clear custom name if not "muu")
+      const seasonLeagueId = s.leagueId || '';
+      setLeagueId(seasonLeagueId);
+      setCustomLeagueName(seasonLeagueId === CUSTOM_LEAGUE_ID ? s.customLeagueName || '' : '');
     }
   }, [seasons]);
 
@@ -436,7 +437,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       availablePlayersForSetup, // Pass the actual roster being used in the modal
       selectedPersonnelIds, // Pass the personnel selection
       leagueId, // League ID for the game
-      leagueId === 'muu' ? customLeagueName.trim() : '' // Custom league name when leagueId === 'muu'
+      leagueId === CUSTOM_LEAGUE_ID ? customLeagueName.trim() : '' // Custom league name when leagueId === CUSTOM_LEAGUE_ID
     );
 
     // Modal will be closed by parent component after onStart
@@ -679,7 +680,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                 ))}
                               </select>
                               {/* Custom League Name - shown when "Muu" selected */}
-                              {leagueId === 'muu' && (
+                              {leagueId === CUSTOM_LEAGUE_ID && (
                                 <div className="mt-2">
                                   <input
                                     type="text"

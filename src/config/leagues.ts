@@ -17,6 +17,12 @@ export interface League {
   isCustom?: boolean;
 }
 
+/**
+ * ID for the custom league option ("Muu").
+ * Use this constant instead of hardcoding 'muu' for type safety and easier refactoring.
+ */
+export const CUSTOM_LEAGUE_ID = 'muu';
+
 export const FINNISH_YOUTH_LEAGUES: League[] = [
   // Valtakunnalliset (National) - 5 levels
   { id: 'sm-sarja', name: 'Valtakunnallinen SM-sarja' },
@@ -60,7 +66,7 @@ export const FINNISH_YOUTH_LEAGUES: League[] = [
   { id: 'miniliiga', name: 'Seuran oma pelitapahtuma / Miniliiga' },
 
   // Custom option - always last
-  { id: 'muu', name: 'Muu (vapaa kuvaus)', isCustom: true },
+  { id: CUSTOM_LEAGUE_ID, name: 'Muu (vapaa kuvaus)', isCustom: true },
 ];
 
 /**

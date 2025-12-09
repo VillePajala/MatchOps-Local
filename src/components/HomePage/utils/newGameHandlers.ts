@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 
 import { queryKeys } from '@/config/queryKeys';
+import { CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import logger from '@/utils/logger';
 import type { AppState, Player, SavedGamesCollection } from '@/types';
 import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
@@ -128,7 +129,7 @@ export async function startNewGameWithSetup(
     isPlayed,
     teamId: teamId || undefined,
     leagueId: leagueId || undefined,
-    customLeagueName: leagueId === 'muu' ? customLeagueName || undefined : undefined,
+    customLeagueName: leagueId === CUSTOM_LEAGUE_ID ? customLeagueName || undefined : undefined,
     availablePlayers: availablePlayersForGame,
     selectedPlayerIds: finalSelectedPlayerIds,
     playersOnField: [],
