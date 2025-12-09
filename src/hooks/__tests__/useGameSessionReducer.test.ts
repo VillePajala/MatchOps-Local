@@ -327,4 +327,30 @@ describe('gameSessionReducer', () => {
       expect(state.tournamentId).toBe('tournament_999');
     });
   });
+
+  describe('League management actions', () => {
+    it('should set league ID', () => {
+      const state = { ...baseState, leagueId: undefined };
+      const result = gameSessionReducer(state, { type: 'SET_LEAGUE_ID', payload: 'sm-sarja' });
+      expect(result.leagueId).toBe('sm-sarja');
+    });
+
+    it('should clear league ID when empty string provided', () => {
+      const state = { ...baseState, leagueId: 'sm-sarja' };
+      const result = gameSessionReducer(state, { type: 'SET_LEAGUE_ID', payload: '' });
+      expect(result.leagueId).toBeUndefined();
+    });
+
+    it('should set custom league name', () => {
+      const state = { ...baseState, customLeagueName: undefined };
+      const result = gameSessionReducer(state, { type: 'SET_CUSTOM_LEAGUE_NAME', payload: 'My League' });
+      expect(result.customLeagueName).toBe('My League');
+    });
+
+    it('should clear custom league name when empty string provided', () => {
+      const state = { ...baseState, customLeagueName: 'My League' };
+      const result = gameSessionReducer(state, { type: 'SET_CUSTOM_LEAGUE_NAME', payload: '' });
+      expect(result.customLeagueName).toBeUndefined();
+    });
+  });
 });
