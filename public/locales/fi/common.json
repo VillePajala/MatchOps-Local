@@ -684,7 +684,10 @@
     "teamsAndRosterLabel": "Joukkueet ja kokoonpano",
     "gameDetailsLabel": "Pelin yksityiskohdat",
     "gameRulesLabel": "Pelisäännöt",
-    "gameConfigLabel": "Pelin asetukset"
+    "gameConfigLabel": "Pelin asetukset",
+    "leagueLabel": "Sarja",
+    "selectLeague": "-- Valitse sarja --",
+    "customLeaguePlaceholder": "Kirjoita sarjan nimi"
   },
   "startScreen": {
     "tagline": "Suunnittele · Kirjaa · Arvioi",
@@ -1170,7 +1173,10 @@
     "teamsAndRosterLabel": "Joukkueet ja kokoonpano",
     "gameDetailsLabel": "Pelin yksityiskohdat",
     "gameRulesLabel": "Pelisäännöt",
-    "gameConfigLabel": "Pelin asetukset"
+    "gameConfigLabel": "Pelin asetukset",
+    "leagueLabel": "Sarja",
+    "selectLeague": "-- Valitse sarja --",
+    "customLeaguePlaceholder": "Kirjoita sarjan nimi"
   },
   "gameStats": {
     "personnelSectionTitle": "Ottelun taustahenkilöt",
