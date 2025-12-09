@@ -7,7 +7,7 @@ import { Season, Tournament, Team } from '@/types'; // Corrected import path
 import type { TranslationKey } from '@/i18n-types';
 import logger from '@/utils/logger';
 import { createEntityMaps, getDisplayNames } from '@/utils/entityLookup';
-import { getLeagueName } from '@/config/leagues';
+import { getLeagueName, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import { LEVELS } from '@/config/gameOptions';
 import {
   HiOutlineTrash,
@@ -300,7 +300,11 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
             const tournament = game.tournamentId ? entityMaps.tournaments.get(game.tournamentId) : null;
 
             // Get league name for season games
-            const leagueName = season?.leagueId ? getLeagueName(season.leagueId) : null;
+            // Priority: game's leagueId > season's leagueId (game can override season default)
+            const effectiveLeagueId = game.leagueId || season?.leagueId;
+            const leagueName = effectiveLeagueId === CUSTOM_LEAGUE_ID
+              ? (game.customLeagueName || season?.customLeagueName || null)
+              : (effectiveLeagueId ? getLeagueName(effectiveLeagueId) : null);
 
             // Get series level for tournament games (with validation)
             const seriesLevel = getValidatedSeriesLevel(tournament, game.tournamentSeriesId);
