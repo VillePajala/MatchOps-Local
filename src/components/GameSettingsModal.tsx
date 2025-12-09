@@ -635,12 +635,15 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       }
 
       // Apply league from season as default
-      const seasonLeagueId = season.leagueId || '';
-      const seasonCustomLeagueName = season.customLeagueName || '';
-      onLeagueIdChange(seasonLeagueId || undefined);
-      onCustomLeagueNameChange(seasonLeagueId === CUSTOM_LEAGUE_ID ? seasonCustomLeagueName || undefined : undefined);
-      batchedUpdates.leagueId = seasonLeagueId || undefined;
-      batchedUpdates.customLeagueName = seasonLeagueId === CUSTOM_LEAGUE_ID ? seasonCustomLeagueName || undefined : undefined;
+      // Use undefined for empty values (consistent with reducer state type)
+      const effectiveLeagueId = season.leagueId || undefined;
+      const effectiveCustomLeagueName = effectiveLeagueId === CUSTOM_LEAGUE_ID
+        ? (season.customLeagueName || undefined)
+        : undefined;
+      onLeagueIdChange(effectiveLeagueId);
+      onCustomLeagueNameChange(effectiveCustomLeagueName);
+      batchedUpdates.leagueId = effectiveLeagueId;
+      batchedUpdates.customLeagueName = effectiveCustomLeagueName;
       hasUpdates = true;
 
       // Mark this season as applied AFTER handlers succeed to allow retry on failure
@@ -1502,7 +1505,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   {seasonId && (
                     <div className="mt-3">
                       <label htmlFor="leagueSelectGameSettings" className="block text-sm font-medium text-slate-300 mb-1">
-                        {t('seasonDetailsModal.leagueLabel', 'League')}
+                        {t('gameSettingsModal.leagueLabel', 'League')}
                       </label>
                       <select
                         id="leagueSelectGameSettings"
@@ -1520,7 +1523,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         }}
                         className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                       >
-                        <option value="">{t('seasonDetailsModal.selectLeague', '-- Select League --')}</option>
+                        <option value="">{t('gameSettingsModal.selectLeague', '-- Select League --')}</option>
                         {FINNISH_YOUTH_LEAGUES.map(league => (
                           <option key={league.id} value={league.id}>{league.name}</option>
                         ))}
@@ -1539,7 +1542,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                                 { source: 'stateSync' }
                               );
                             }}
-                            placeholder={t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name')}
+                            placeholder={t('gameSettingsModal.customLeaguePlaceholder', 'Enter league name')}
                             className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                           />
                         </div>

@@ -662,7 +662,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           {selectedSeasonId && (
                             <div className="mt-3">
                               <label htmlFor="leagueSelect" className="block text-sm font-medium text-slate-300 mb-1">
-                                {t('seasonDetailsModal.leagueLabel', 'League')}
+                                {t('newGameSetupModal.leagueLabel', 'League')}
                               </label>
                               <select
                                 id="leagueSelect"
@@ -674,7 +674,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                 onKeyDown={handleKeyDown}
                                 className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                               >
-                                <option value="">{t('seasonDetailsModal.selectLeague', '-- Select League --')}</option>
+                                <option value="">{t('newGameSetupModal.selectLeague', '-- Select League --')}</option>
                                 {FINNISH_YOUTH_LEAGUES.map(league => (
                                   <option key={league.id} value={league.id}>{league.name}</option>
                                 ))}
@@ -687,7 +687,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                     value={customLeagueName}
                                     onChange={(e) => setCustomLeagueName(e.target.value)}
                                     onKeyDown={handleKeyDown}
-                                    placeholder={t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name')}
+                                    placeholder={t('newGameSetupModal.customLeaguePlaceholder', 'Enter league name')}
                                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
                                   />
                                 </div>

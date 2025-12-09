@@ -814,7 +814,7 @@ describe('<GameSettingsModal />', () => {
 
       // Custom name input should appear
       await waitFor(() => {
-        expect(screen.getByPlaceholderText('Enter league name')).toBeInTheDocument();
+        expect(screen.getByPlaceholderText('gameSettingsModal.customLeaguePlaceholder')).toBeInTheDocument();
       });
     });
 
@@ -903,7 +903,7 @@ describe('<GameSettingsModal />', () => {
       });
 
       await waitFor(() => {
-        const customInput = screen.getByPlaceholderText('Enter league name') as HTMLInputElement;
+        const customInput = screen.getByPlaceholderText('gameSettingsModal.customLeaguePlaceholder') as HTMLInputElement;
         expect(customInput).toBeInTheDocument();
         expect(customInput.value).toBe('My Custom Tournament League');
       });

@@ -391,15 +391,15 @@ export function useGameSessionCoordination({
   }, [dispatchGameSession]);
 
   const handleSetLeagueId = useCallback((newLeagueId: string | undefined) => {
-    const idToSet = newLeagueId || ''; // Ensure empty string instead of undefined
-    logger.log('[useGameSessionCoordination] handleSetLeagueId called with:', idToSet);
-    dispatchGameSession({ type: 'SET_LEAGUE_ID', payload: idToSet });
+    // Pass value directly - reducer normalizes empty string to undefined
+    logger.log('[useGameSessionCoordination] handleSetLeagueId called with:', newLeagueId);
+    dispatchGameSession({ type: 'SET_LEAGUE_ID', payload: newLeagueId || '' });
   }, [dispatchGameSession]);
 
   const handleSetCustomLeagueName = useCallback((newCustomLeagueName: string | undefined) => {
-    const nameToSet = newCustomLeagueName || ''; // Ensure empty string instead of undefined
-    logger.log('[useGameSessionCoordination] handleSetCustomLeagueName called with:', nameToSet);
-    dispatchGameSession({ type: 'SET_CUSTOM_LEAGUE_NAME', payload: nameToSet });
+    // Pass value directly - reducer normalizes empty string to undefined
+    logger.log('[useGameSessionCoordination] handleSetCustomLeagueName called with:', newCustomLeagueName);
+    dispatchGameSession({ type: 'SET_CUSTOM_LEAGUE_NAME', payload: newCustomLeagueName || '' });
   }, [dispatchGameSession]);
 
   const handleSetGamePersonnel = useCallback((personnelIds: string[]) => {
