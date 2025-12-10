@@ -101,9 +101,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [localHomeOrAway, setLocalHomeOrAway] = useState<'home' | 'away'>('home');
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
 
-  // Player selection state
-  const [availablePlayersForSetup, setAvailablePlayersForSetup] = useState<Player[]>([]);
-  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>(initialPlayerSelection || []);
+  // Player selection state - start with empty selection (no players pre-selected)
+  const [availablePlayersForSetup, setAvailablePlayersForSetup] = useState<Player[]>(masterRoster);
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
 
   // Personnel selection state
   const [selectedPersonnelIds, setSelectedPersonnelIds] = useState<string[]>([]);

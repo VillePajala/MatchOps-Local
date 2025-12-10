@@ -117,9 +117,9 @@ export function useNewGameFlow({
     }
 
     // For saved games (auto-saved), go directly to new game setup modal
-    setPlayerIdsForNewGame(availablePlayers.map(p => p.id));
+    setPlayerIdsForNewGame([]); // Start with no players pre-selected
     openNewGameSetupModal();
-  }, [availablePlayers, currentGameId, t, openNewGameSetupModal]);
+  }, [availablePlayers.length, currentGameId, t, openNewGameSetupModal]);
 
   const handleNoPlayersConfirmed = useCallback(() => {
     setShowNoPlayersConfirm(false);
@@ -132,10 +132,10 @@ export function useNewGameFlow({
   }, []);
 
   const handleStartNewConfirmed = useCallback(() => {
-    setPlayerIdsForNewGame(availablePlayers.map((player) => player.id));
+    setPlayerIdsForNewGame([]); // Start with no players pre-selected
     setShowStartNewConfirm(false);
     openNewGameSetupModal();
-  }, [availablePlayers, openNewGameSetupModal]);
+  }, [openNewGameSetupModal]);
 
   const openSetupAfterPreSave = useCallback(
     (selectedPlayerIds: string[]) => {

@@ -146,8 +146,8 @@ describe('useNewGameFlow', () => {
     expect(result.current.showStartNewConfirm).toBe(false);
     // Should open new game setup modal directly
     expect(options.ui.openNewGameSetupModal).toHaveBeenCalled();
-    // Should pre-select all available players
-    expect(result.current.playerIdsForNewGame).toEqual(['p1']);
+    // Should start with no players pre-selected (user selects in modal)
+    expect(result.current.playerIdsForNewGame).toEqual([]);
   });
 
   it('prompts to save for unsaved scratch games (DEFAULT_GAME_ID)', async () => {
