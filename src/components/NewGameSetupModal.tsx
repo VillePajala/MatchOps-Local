@@ -674,7 +674,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                 value={leagueId}
                                 onChange={(e) => {
                                   setLeagueId(e.target.value);
-                                  if (e.target.value !== 'muu') setCustomLeagueName('');
+                                  if (e.target.value !== CUSTOM_LEAGUE_ID) setCustomLeagueName('');
                                 }}
                                 onKeyDown={handleKeyDown}
                                 className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
