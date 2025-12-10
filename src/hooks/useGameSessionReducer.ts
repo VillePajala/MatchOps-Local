@@ -111,8 +111,8 @@ export type GameSessionAction =
   | { type: 'SET_GAME_PERSONNEL'; payload: string[] }
   | { type: 'SET_SEASON_ID'; payload: string }
   | { type: 'SET_TOURNAMENT_ID'; payload: string }
-  | { type: 'SET_LEAGUE_ID'; payload: string }
-  | { type: 'SET_CUSTOM_LEAGUE_NAME'; payload: string }
+  | { type: 'SET_LEAGUE_ID'; payload: string | undefined }
+  | { type: 'SET_CUSTOM_LEAGUE_NAME'; payload: string | undefined }
   | { type: 'SET_GAME_LOCATION'; payload: string }
   | { type: 'SET_GAME_TIME'; payload: string }
   | { type: 'SET_AGE_GROUP'; payload: string }
