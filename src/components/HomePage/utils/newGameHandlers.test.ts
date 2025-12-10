@@ -78,6 +78,7 @@ describe('newGameHandlers', () => {
       selectedPersonnelIds: [],
       leagueId: '',
       customLeagueName: '',
+      gameType: 'soccer',
     });
 
     expect(setPlayerIdsForNewGame).toHaveBeenCalledWith(null);

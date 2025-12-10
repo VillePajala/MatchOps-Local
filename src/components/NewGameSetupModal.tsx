@@ -3,7 +3,7 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
-import { Player, Season, Tournament, Team, Personnel } from '@/types';
+import { Player, Season, Tournament, Team, Personnel, GameType } from '@/types';
 import logger from '@/utils/logger';
 import { getTeamRoster } from '@/utils/teams';
 import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
@@ -44,7 +44,8 @@ interface NewGameSetupModalProps {
     availablePlayersForGame: Player[], // Add the actual roster to use for the game
     selectedPersonnelIds: string[], // Add personnel selection parameter
     leagueId: string, // League ID for the game
-    customLeagueName: string // Custom league name when leagueId === CUSTOM_LEAGUE_ID
+    customLeagueName: string, // Custom league name when leagueId === CUSTOM_LEAGUE_ID
+    gameType: GameType // Sport type: 'soccer' or 'futsal'
   ) => void;
   onCancel: () => void;
   // Fresh data from React Query
@@ -101,6 +102,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [localHomeOrAway, setLocalHomeOrAway] = useState<'home' | 'away'>('home');
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
 
+  // Game type state - defaults to 'soccer', can be prefilled from season/tournament
+  const [gameType, setGameType] = useState<GameType>('soccer');
+
   // Player selection state - start with empty selection (no players pre-selected)
   const [availablePlayersForSetup, setAvailablePlayersForSetup] = useState<Player[]>(masterRoster);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
@@ -147,6 +151,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     setTournamentLevel('');
     setLeagueId('');
     setCustomLeagueName('');
+    setGameType('soccer'); // Reset to default
   }, [masterRoster, initialPlayerSelection]);
 
   // Initialize form when modal opens - using layout effect to avoid setState in regular effect
@@ -223,6 +228,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       const seasonLeagueId = s.leagueId || '';
       setLeagueId(seasonLeagueId);
       setCustomLeagueName(seasonLeagueId === CUSTOM_LEAGUE_ID ? s.customLeagueName || '' : '');
+      // Prefill game type from season (defaults to 'soccer' if not set)
+      setGameType(s.gameType || 'soccer');
     }
   }, [seasons]);
 
@@ -349,6 +356,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       setLocalPeriodDurationString(tournament.periodDuration ? String(tournament.periodDuration) : '15');
       setGameDate(tournament.startDate || new Date().toISOString().split('T')[0]);
       setActiveTab('tournament');
+      // Prefill game type from tournament (defaults to 'soccer' if not set)
+      setGameType(tournament.gameType || 'soccer');
     }
   }, [tournaments]);
 
@@ -449,7 +458,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       availablePlayersForSetup, // Pass the actual roster being used in the modal
       selectedPersonnelIds, // Pass the personnel selection
       leagueId, // League ID for the game
-      leagueId === CUSTOM_LEAGUE_ID ? customLeagueName.trim() : '' // Custom league name when leagueId === CUSTOM_LEAGUE_ID
+      leagueId === CUSTOM_LEAGUE_ID ? customLeagueName.trim() : '', // Custom league name when leagueId === CUSTOM_LEAGUE_ID
+      gameType // Sport type: 'soccer' or 'futsal'
     );
 
     // Modal will be closed by parent component after onStart
@@ -798,6 +808,35 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                           ))}
                         </select>
                       </div>
+
+              {/* Sport Type (Soccer/Futsal) */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  {t('common.gameTypeLabel', 'Sport Type')}
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setGameType('soccer')}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      gameType === 'soccer'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('common.gameTypeSoccer', 'Soccer')}
+                  </button>
+                  <button
+                    onClick={() => setGameType('futsal')}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      gameType === 'futsal'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('common.gameTypeFutsal', 'Futsal')}
+                  </button>
+                </div>
+              </div>
 
                       {/* Game Date */}
                       <div className="mb-6">

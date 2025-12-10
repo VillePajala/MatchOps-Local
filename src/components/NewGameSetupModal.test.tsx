@@ -179,7 +179,8 @@ describe('NewGameSetupModal', () => {
       ]),
       expect.arrayContaining([]),
       '', // leagueId
-      '' // customLeagueName
+      '', // customLeagueName
+      'soccer' // gameType
     );
   });
 
@@ -214,7 +215,8 @@ describe('NewGameSetupModal', () => {
         ]),
         expect.arrayContaining([]),
         '', // leagueId
-        '' // customLeagueName
+        '', // customLeagueName
+        'soccer' // gameType
       );
     });
   });
@@ -368,7 +370,8 @@ describe('NewGameSetupModal', () => {
           expect.any(Array), // availablePlayersForGame
           expect.any(Array), // selectedPersonnelIds
           expect.any(String), // leagueId
-          expect.any(String) // customLeagueName
+          expect.any(String), // customLeagueName
+          'soccer' // gameType
         );
       });
     });
@@ -483,7 +486,8 @@ describe('NewGameSetupModal', () => {
           expect.any(Array), // availablePlayersForGame
           expect.any(Array), // selectedPersonnelIds
           expect.any(String), // leagueId
-          expect.any(String) // customLeagueName
+          expect.any(String), // customLeagueName
+          'soccer' // gameType
         );
       });
     });
@@ -735,7 +739,8 @@ describe('NewGameSetupModal', () => {
           expect.any(Array), // availablePlayersForGame
           expect.any(Array), // selectedPersonnelIds
           'sm-sarja', // leagueId - THE KEY ASSERTION
-          '' // customLeagueName
+          '', // customLeagueName
+          'soccer' // gameType
         );
       });
     });
@@ -812,7 +817,8 @@ describe('NewGameSetupModal', () => {
           expect.any(Array), // availablePlayersForGame
           expect.any(Array), // selectedPersonnelIds
           'muu', // leagueId
-          'My Custom League' // customLeagueName - THE KEY ASSERTION
+          'My Custom League', // customLeagueName - THE KEY ASSERTION
+          'soccer' // gameType
         );
       });
     });

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
-import { Season } from '@/types';
+import { Season, GameType } from '@/types';
 import { UseMutationResult } from '@tanstack/react-query';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
@@ -41,6 +41,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   const [archived, setArchived] = useState(false);
   const [leagueId, setLeagueId] = useState('');
   const [customLeagueName, setCustomLeagueName] = useState('');
+  const [gameType, setGameType] = useState<GameType>('soccer');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Initialize form when season changes or modal opens
@@ -59,6 +60,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         setArchived(false);
         setLeagueId('');
         setCustomLeagueName('');
+        setGameType('soccer');
         setErrorMessage(null);
       } else if (season) {
         // Load existing season data for edit mode
@@ -73,6 +75,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         setArchived(season.archived || false);
         setLeagueId(season.leagueId || '');
         setCustomLeagueName(season.customLeagueName || '');
+        setGameType(season.gameType || 'soccer');
         setErrorMessage(null);
       }
     }
@@ -119,6 +122,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         archived,
         leagueId: leagueId || undefined,
         customLeagueName: leagueId === CUSTOM_LEAGUE_ID ? trimmedCustomLeague || undefined : undefined,
+        gameType,
       };
 
       addSeasonMutation.mutate(newSeason, {
@@ -152,6 +156,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         archived,
         leagueId: leagueId || undefined,
         customLeagueName: leagueId === CUSTOM_LEAGUE_ID ? trimmedCustomLeague || undefined : undefined,
+        gameType,
       };
 
       updateSeasonMutation.mutate(updatedSeason, {
@@ -283,6 +288,37 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                     <option key={group} value={group}>{group}</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Sport Type (Soccer/Futsal) */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  {t('common.gameTypeLabel', 'Sport Type')}
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGameType('soccer')}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      gameType === 'soccer'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('common.gameTypeSoccer', 'Soccer')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGameType('futsal')}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      gameType === 'futsal'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('common.gameTypeFutsal', 'Futsal')}
+                  </button>
+                </div>
               </div>
 
               {/* League Selection */}

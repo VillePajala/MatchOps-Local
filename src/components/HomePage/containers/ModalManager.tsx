@@ -144,7 +144,8 @@ interface ModalManagerHandlers {
     availablePlayersForGame: Player[],
     selectedPersonnelIds: string[],
     leagueId: string,
-    customLeagueName: string
+    customLeagueName: string,
+    gameType: import('@/types').GameType
   ) => void;
   cancelNewGameSetup: () => void;
   closeRosterModal: () => void;
@@ -173,6 +174,7 @@ interface ModalManagerHandlers {
   setTournamentId: (id: string | undefined) => void;
   setLeagueId: (id: string | undefined) => void;
   setCustomLeagueName: (name: string | undefined) => void;
+  setGameType: (gameType: import('@/types').GameType) => void;
   setHomeOrAway: (value: 'home' | 'away') => void;
   setIsPlayed: (played: boolean) => void;
   updateSelectedPlayers: (playerIds: string[]) => void;
@@ -416,6 +418,8 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           onSetHomeOrAway={handlers.setHomeOrAway}
           isPlayed={data.isPlayed}
           onIsPlayedChange={handlers.setIsPlayed}
+          gameType={data.gameSessionState.gameType}
+          onGameTypeChange={handlers.setGameType}
           timeElapsedInSeconds={data.gameSessionState.timeElapsedInSeconds}
           updateGameDetailsMutation={data.updateGameDetailsMutation!}
           seasons={data.seasons}

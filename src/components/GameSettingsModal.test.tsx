@@ -175,6 +175,8 @@ const defaultProps: GameSettingsModalProps = {
   onAwardFairPlayCard: jest.fn(),
   isPlayed: true,
   onIsPlayedChange: jest.fn(),
+  gameType: 'soccer',
+  onGameTypeChange: jest.fn(),
   updateGameDetailsMutation: {
     mutate: jest.fn(),
   } as unknown as UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>,

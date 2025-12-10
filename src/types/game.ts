@@ -1,5 +1,17 @@
 import type { Player } from './index';
 import type { PlayerAssessment } from './playerAssessment';
+
+/**
+ * Game type - distinguishes between outdoor soccer and indoor futsal.
+ * Finnish youth seasons often include both types of games.
+ *
+ * @remarks
+ * - Defaults to 'soccer' for backward compatibility
+ * - Used for filtering games, seasons, tournaments in stats views
+ * - Future: may enable different field visualization (soccer field vs futsal court)
+ */
+export type GameType = 'soccer' | 'futsal';
+
 export interface Point {
   relX: number;
   relY: number;
@@ -114,6 +126,14 @@ export interface AppState {
    * Tracks the exact elapsed time for the timer state preservation.
    */
   timeElapsedInSeconds?: number;
+  /**
+   * Game type - soccer (outdoor) or futsal (indoor).
+   *
+   * @remarks
+   * Optional for backwards compatibility - defaults to 'soccer' if undefined.
+   * Used for filtering and organizing games.
+   */
+  gameType?: GameType;
 }
 
 export interface SavedGamesCollection {

@@ -1,4 +1,4 @@
-import { GameEvent, SubAlertLevel } from '@/types';
+import { GameEvent, SubAlertLevel, GameType } from '@/types';
 import logger from '@/utils/logger';
 
 // --- State Definition ---
@@ -21,6 +21,7 @@ export interface GameSessionState {
   leagueId?: string; // Optional league ID - can override season's default league
   customLeagueName?: string; // Custom league name when leagueId === 'muu'
   teamId?: string; // Optional team ID for multi-team support
+  gameType?: GameType; // Sport type: 'soccer' or 'futsal' (defaults to 'soccer')
   ageGroup?: string;
   tournamentLevel?: string;
   tournamentSeriesId?: string;
@@ -113,6 +114,7 @@ export type GameSessionAction =
   | { type: 'SET_TOURNAMENT_ID'; payload: string }
   | { type: 'SET_LEAGUE_ID'; payload: string | undefined }
   | { type: 'SET_CUSTOM_LEAGUE_NAME'; payload: string | undefined }
+  | { type: 'SET_GAME_TYPE'; payload: GameType }
   | { type: 'SET_GAME_LOCATION'; payload: string }
   | { type: 'SET_GAME_TIME'; payload: string }
   | { type: 'SET_AGE_GROUP'; payload: string }
@@ -265,6 +267,8 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return { ...state, leagueId: action.payload || undefined };
     case 'SET_CUSTOM_LEAGUE_NAME':
       return { ...state, customLeagueName: action.payload || undefined };
+    case 'SET_GAME_TYPE':
+      return { ...state, gameType: action.payload };
     case 'SET_GAME_LOCATION':
       return { ...state, gameLocation: action.payload };
     case 'SET_GAME_TIME':

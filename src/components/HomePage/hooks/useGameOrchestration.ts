@@ -1527,6 +1527,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const handleSetTournamentId = sessionCoordination.handlers.setTournamentId;
   const handleSetLeagueId = sessionCoordination.handlers.setLeagueId;
   const handleSetCustomLeagueName = sessionCoordination.handlers.setCustomLeagueName;
+  const handleSetGameType = sessionCoordination.handlers.setGameType;
   const handleSetGamePersonnel = sessionCoordination.handlers.setGamePersonnel;
 
   // --- AGGREGATE EXPORT HANDLERS ---
@@ -1593,7 +1594,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     availablePlayersForGame: Player[],
     selectedPersonnelIds: string[],
     leagueId: string,
-    customLeagueName: string
+    customLeagueName: string,
+    gameType: import('@/types').GameType
   ) => {
     // Clear field state before creating new game to prevent stale data
     fieldCoordination.setPlayersOnField([]);
@@ -1646,6 +1648,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         selectedPersonnelIds,
         leagueId,
         customLeagueName,
+        gameType,
       },
     );
   }, [
@@ -2008,6 +2011,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       handleSetTournamentId,
       handleSetLeagueId,
       handleSetCustomLeagueName,
+      handleSetGameType,
       handleSetHomeOrAway,
       handleUpdateSelectedPlayers,
       handleSetGamePersonnel,
