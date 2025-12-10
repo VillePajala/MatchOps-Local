@@ -26,6 +26,7 @@ export interface GameStats {
   fairPlayCards?: number;  // Number of fair play cards (for external games that may have multiple)
   isExternal?: boolean;  // True for external games (adjustments)
   externalTeamName?: string;  // Team name for external games
+  gameType?: 'soccer' | 'futsal';  // Sport type for filtering/display
 }
 
 /**
@@ -129,6 +130,7 @@ export const calculatePlayerStats = (
         points,
         result,
         receivedFairPlayCard: fairPlayCards > 0,
+        gameType: game.gameType,
       });
     }
   });

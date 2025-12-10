@@ -39,6 +39,11 @@ const translations: { [key: string]: string } = {
   'seasonDetailsModal.leagueLabel': 'League',
   'seasonDetailsModal.selectLeague': '-- Select League --',
   'seasonDetailsModal.customLeaguePlaceholder': 'Enter league name',
+  // Game type translations
+  'newGameSetupModal.gameTypeLabel': 'Game Type',
+  'common.gameTypeLabel': 'Sport Type',
+  'common.gameTypeSoccer': 'Soccer',
+  'common.gameTypeFutsal': 'Futsal',
 };
 
 const mockT = jest.fn((key: string, fallback?: any) => {
@@ -75,11 +80,14 @@ describe('NewGameSetupModal', () => {
   const mockOnCancel = jest.fn();
 
   const mockSeasonsData = [
-    { id: 'season1', name: 'Spring 2024', leagueId: 'sm-sarja', customLeagueName: '' },
-    { id: 'season2', name: 'Summer 2024', leagueId: 'muu', customLeagueName: 'Custom Summer League' },
-    { id: 'season3', name: 'Fall 2024' }, // No league set
+    { id: 'season1', name: 'Spring 2024', leagueId: 'sm-sarja', customLeagueName: '', gameType: 'soccer' as const },
+    { id: 'season2', name: 'Summer 2024', leagueId: 'muu', customLeagueName: 'Custom Summer League', gameType: 'futsal' as const },
+    { id: 'season3', name: 'Fall 2024' }, // No league or gameType set
   ];
-  const mockTournamentsData = [{ id: 'tournament1', name: 'City Cup' }, { id: 'tournament2', name: 'Regional Tournament' }];
+  const mockTournamentsData = [
+    { id: 'tournament1', name: 'City Cup', gameType: 'soccer' as const },
+    { id: 'tournament2', name: 'Regional Tournament', gameType: 'futsal' as const },
+  ];
   const mockPlayersData = [{ id: 'player1', name: 'John Doe', jerseyNumber: '10' },{ id: 'player2', name: 'Jane Smith', jerseyNumber: '7' }];
   const mockTeamsData = [
     { id: 'team1', name: 'Team Alpha', createdAt: '2024-01-01T00:00:00.000Z', updatedAt: '2024-01-01T00:00:00.000Z' },
@@ -920,6 +928,195 @@ describe('NewGameSetupModal', () => {
 
       // Verify onStart was NOT called due to validation
       expect(mockOnStart).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * Tests for game type (Soccer/Futsal) prefill and toggle functionality
+   * @integration
+   */
+  describe('Game Type Selection', () => {
+    it('should default to Soccer when no season/tournament is selected', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toBeInTheDocument();
+      });
+
+      // Find the Soccer button by text and verify it's selected (has active styling)
+      const soccerButton = screen.getByRole('button', { name: /Soccer/i });
+      expect(soccerButton).toHaveClass('bg-indigo-600');
+    });
+
+    it('should prefill game type from selected season', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toBeInTheDocument();
+      });
+
+      // Switch to season tab
+      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      await act(async () => {
+        fireEvent.click(seasonTab);
+      });
+
+      // Select season2 which has gameType: 'futsal'
+      await waitFor(() => {
+        expect(document.getElementById('seasonSelect')).toBeInTheDocument();
+      });
+
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(seasonSelect, { target: { value: 'season2' } });
+      });
+
+      // Verify Futsal is now selected
+      await waitFor(() => {
+        const futsalButton = screen.getByRole('button', { name: /Futsal/i });
+        expect(futsalButton).toHaveClass('bg-indigo-600');
+      });
+    });
+
+    it('should prefill game type from selected tournament', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toBeInTheDocument();
+      });
+
+      // Switch to tournament tab
+      const tournamentTab = screen.getByRole('button', { name: /Tournament/i });
+      await act(async () => {
+        fireEvent.click(tournamentTab);
+      });
+
+      // Select tournament2 which has gameType: 'futsal'
+      await waitFor(() => {
+        expect(document.getElementById('tournamentSelect')).toBeInTheDocument();
+      });
+
+      const tournamentSelect = document.getElementById('tournamentSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(tournamentSelect, { target: { value: 'tournament2' } });
+      });
+
+      // Verify Futsal is now selected
+      await waitFor(() => {
+        const futsalButton = screen.getByRole('button', { name: /Futsal/i });
+        expect(futsalButton).toHaveClass('bg-indigo-600');
+      });
+    });
+
+    it('should allow manual toggle from Soccer to Futsal', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toBeInTheDocument();
+      });
+
+      // Initially Soccer should be selected
+      const soccerButton = screen.getByRole('button', { name: /Soccer/i });
+      expect(soccerButton).toHaveClass('bg-indigo-600');
+
+      // Click Futsal button
+      const futsalButton = screen.getByRole('button', { name: /Futsal/i });
+      await act(async () => {
+        fireEvent.click(futsalButton);
+      });
+
+      // Verify Futsal is now selected and Soccer is not
+      await waitFor(() => {
+        expect(futsalButton).toHaveClass('bg-indigo-600');
+        expect(soccerButton).not.toHaveClass('bg-indigo-600');
+      });
+    });
+
+    it('should pass gameType to onStart callback', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toBeInTheDocument();
+      });
+
+      // Fill required fields
+      const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
+      fireEvent.change(opponentInput, { target: { value: 'Test Opponent' } });
+
+      // Toggle to Futsal
+      const futsalButton = screen.getByRole('button', { name: /Futsal/i });
+      await act(async () => {
+        fireEvent.click(futsalButton);
+      });
+
+      // Submit the form
+      const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
+      await act(async () => {
+        fireEvent.click(startButton);
+      });
+
+      // Verify onStart was called with gameType: 'futsal'
+      // onStart is called with positional args - gameType is the last argument (index 22)
+      await waitFor(() => {
+        expect(mockOnStart).toHaveBeenCalled();
+        const args = mockOnStart.mock.calls[0];
+        const gameTypeArg = args[args.length - 1];
+        expect(gameTypeArg).toBe('futsal');
+      });
+    });
+
+    it('should default to Soccer when season has no gameType set', async () => {
+      render(
+        <ToastProvider>
+          <NewGameSetupModal {...defaultProps} />
+        </ToastProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toBeInTheDocument();
+      });
+
+      // Switch to season tab
+      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      await act(async () => {
+        fireEvent.click(seasonTab);
+      });
+
+      // Select season3 which has no gameType
+      await waitFor(() => {
+        expect(document.getElementById('seasonSelect')).toBeInTheDocument();
+      });
+
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(seasonSelect, { target: { value: 'season3' } });
+      });
+
+      // Verify Soccer remains selected (default)
+      await waitFor(() => {
+        const soccerButton = screen.getByRole('button', { name: /Soccer/i });
+        expect(soccerButton).toHaveClass('bg-indigo-600');
+      });
     });
   });
 });

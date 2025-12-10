@@ -86,6 +86,7 @@ export const initialGameSessionStatePlaceholder: GameSessionState = {
   lastSubConfirmationTimeSeconds: 0,
   completedIntervalDurations: [],
   showPlayerNames: true,
+  gameType: 'soccer',
 };
 
 

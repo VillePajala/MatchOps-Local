@@ -1024,6 +1024,9 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                           {game.receivedFairPlayCard && (
                             <span className="ml-2 inline-block bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.fairPlayCard', 'Fair Play Card')}>FP</span>
                           )}
+                          {game.gameType === 'futsal' && (
+                            <span className="ml-2 inline-block bg-orange-500/50 text-orange-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('common.gameTypeFutsal', 'Futsal')}>{t('common.gameTypeFutsal', 'Futsal')}</span>
+                          )}
                         </p>
                         <p className="text-xs text-slate-400">{format(new Date(game.date), i18n.language === 'fi' ? 'd.M.yyyy' : 'PP', { locale: i18n.language === 'fi' ? fi : enUS })}</p>
                       </div>
