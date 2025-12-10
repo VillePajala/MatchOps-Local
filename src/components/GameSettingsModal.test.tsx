@@ -965,5 +965,70 @@ describe('<GameSettingsModal />', () => {
       // Custom league input should NOT be visible (no "Muu" selected)
       expect(screen.queryByPlaceholderText('gameSettingsModal.customLeaguePlaceholder')).not.toBeInTheDocument();
     });
+
+    test('should preserve manual league override when modal is reopened with same season', async () => {
+      // This tests the appliedSeasonRef behavior:
+      // 1. Open modal with Season A (league prefilled)
+      // 2. Manually change league
+      // 3. Close modal
+      // 4. Reopen modal with Season A - should NOT re-apply season defaults
+      const { rerender } = render(
+        <ToastProvider>
+          <GameSettingsModal
+            {...leagueProps}
+            seasonId="s1"
+            leagueId="sm-sarja" // Initially prefilled from season
+          />
+        </ToastProvider>
+      );
+
+      // Wait for initial render
+      await waitFor(() => {
+        expect(document.getElementById('leagueSelectGameSettings')).toBeInTheDocument();
+      });
+
+      // Clear the mock to track only new calls
+      mockOnLeagueIdChange.mockClear();
+
+      // Close modal
+      rerender(
+        <ToastProvider>
+          <GameSettingsModal
+            {...leagueProps}
+            isOpen={false}
+            seasonId="s1"
+            leagueId="harrastesarja" // User manually changed to different league
+          />
+        </ToastProvider>
+      );
+
+      // Reopen modal with same season but user's manual override
+      rerender(
+        <ToastProvider>
+          <GameSettingsModal
+            {...leagueProps}
+            isOpen={true}
+            seasonId="s1"
+            leagueId="harrastesarja" // Manual override preserved
+          />
+        </ToastProvider>
+      );
+
+      // Wait for modal to reopen
+      await waitFor(() => {
+        expect(document.getElementById('leagueSelectGameSettings')).toBeInTheDocument();
+      });
+
+      // The league should remain as the manual override, NOT be re-prefilled from season
+      const leagueSelect = document.getElementById('leagueSelectGameSettings') as HTMLSelectElement;
+      expect(leagueSelect.value).toBe('harrastesarja');
+
+      // onLeagueIdChange should NOT have been called with 'sm-sarja' (season default)
+      // during the reopen - the ref prevents re-applying season defaults
+      const smSarjaCalls = mockOnLeagueIdChange.mock.calls.filter(
+        (call: [string | undefined]) => call[0] === 'sm-sarja'
+      );
+      expect(smSarjaCalls.length).toBe(0);
+    });
   });
 });
