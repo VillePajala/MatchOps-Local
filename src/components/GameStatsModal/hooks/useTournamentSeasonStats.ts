@@ -5,6 +5,7 @@
 
 import { useMemo } from 'react';
 import { Season, Tournament } from '@/types';
+import type { GameType } from '@/types/game';
 import { StatsTab, TournamentSeasonStats, OverallTournamentSeasonStats } from '../types';
 import { SavedGamesCollection } from '@/types';
 import { filterGameIds } from '../utils/gameFilters';
@@ -17,6 +18,7 @@ interface UseTournamentSeasonStatsParams {
   selectedSeasonIdFilter: string | 'all';
   selectedTournamentIdFilter: string | 'all';
   selectedTeamIdFilter?: string | 'all' | 'legacy';
+  selectedGameTypeFilter?: GameType | 'all';
 }
 
 export function useTournamentSeasonStats(
@@ -30,6 +32,7 @@ export function useTournamentSeasonStats(
     selectedSeasonIdFilter,
     selectedTournamentIdFilter,
     selectedTeamIdFilter = 'all',
+    selectedGameTypeFilter = 'all',
   } = params;
 
   return useMemo(() => {
@@ -295,8 +298,9 @@ export function useTournamentSeasonStats(
       teamFilter: selectedTeamIdFilter,
       seasonFilter: activeTab === 'season' ? selectedSeasonIdFilter : undefined,
       tournamentFilter: activeTab === 'tournament' ? selectedTournamentIdFilter : undefined,
+      gameTypeFilter: selectedGameTypeFilter,
       activeTab,
     });
     return calculateStats(playedGameIds);
-  }, [activeTab, savedGames, seasons, tournaments, selectedSeasonIdFilter, selectedTournamentIdFilter, selectedTeamIdFilter]);
+  }, [activeTab, savedGames, seasons, tournaments, selectedSeasonIdFilter, selectedTournamentIdFilter, selectedTeamIdFilter, selectedGameTypeFilter]);
 }

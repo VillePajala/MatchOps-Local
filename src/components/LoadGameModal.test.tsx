@@ -586,4 +586,99 @@ describe('LoadGameModal', () => {
       }
     });
   });
+
+  /**
+   * Tests for game type (Soccer/Futsal) badge display
+   * @integration
+   */
+  describe('game type badge display', () => {
+    it('displays Futsal badge for futsal games', async () => {
+      const games: SavedGamesCollection = {
+        'game_futsal': {
+          teamName: 'Futsal Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-08-01',
+          homeOrAway: 'home',
+          seasonId: '',
+          tournamentId: '',
+          gameType: 'futsal',
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+
+      await renderModal({ savedGames: games });
+
+      const gameCard = await screen.findByTestId('game-item-game_futsal');
+      expect(within(gameCard).getByText('common.gameTypeFutsal')).toBeInTheDocument();
+    });
+
+    it('does not display Futsal badge for soccer games', async () => {
+      const games: SavedGamesCollection = {
+        'game_soccer': {
+          teamName: 'Soccer Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-08-01',
+          homeOrAway: 'home',
+          seasonId: '',
+          tournamentId: '',
+          gameType: 'soccer',
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+
+      await renderModal({ savedGames: games });
+
+      const gameCard = await screen.findByTestId('game-item-game_soccer');
+      expect(within(gameCard).queryByText('common.gameTypeFutsal')).not.toBeInTheDocument();
+    });
+
+    it('does not display Futsal badge when gameType is undefined (defaults to soccer)', async () => {
+      const games: SavedGamesCollection = {
+        'game_default': {
+          teamName: 'Default Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-08-01',
+          homeOrAway: 'home',
+          seasonId: '',
+          tournamentId: '',
+          // gameType intentionally omitted
+          isPlayed: true,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+
+      await renderModal({ savedGames: games });
+
+      const gameCard = await screen.findByTestId('game-item-game_default');
+      expect(within(gameCard).queryByText('common.gameTypeFutsal')).not.toBeInTheDocument();
+    });
+
+    it('displays both NOT PLAYED and Futsal badges together', async () => {
+      const games: SavedGamesCollection = {
+        'game_futsal_unplayed': {
+          teamName: 'Futsal Team',
+          opponentName: 'Opponent',
+          gameDate: '2024-08-01',
+          homeOrAway: 'home',
+          seasonId: '',
+          tournamentId: '',
+          gameType: 'futsal',
+          isPlayed: false,
+          selectedPlayerIds: ['p1'],
+          assessments: {},
+        } as unknown as AppState,
+      };
+
+      await renderModal({ savedGames: games });
+
+      const gameCard = await screen.findByTestId('game-item-game_futsal_unplayed');
+      expect(within(gameCard).getByText('loadGameModal.unplayedBadge')).toBeInTheDocument();
+      expect(within(gameCard).getByText('common.gameTypeFutsal')).toBeInTheDocument();
+    });
+  });
 });

@@ -44,6 +44,7 @@ export interface GameData {
   tournamentId: string | null;
   leagueId?: string;
   customLeagueName?: string;
+  gameType?: import('@/types').GameType;
 }
 
 /**

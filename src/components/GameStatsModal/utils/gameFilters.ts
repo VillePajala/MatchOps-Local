@@ -4,6 +4,7 @@
  */
 
 import { SavedGamesCollection } from '@/types';
+import type { GameType } from '@/types/game';
 import { StatsTab } from '../types';
 
 /**
@@ -35,6 +36,11 @@ export interface GameFilterOptions {
    * Series filter - 'all' or specific series ID (within tournament)
    */
   seriesFilter?: string | 'all';
+
+  /**
+   * Game type filter - 'all', 'soccer', or 'futsal'
+   */
+  gameTypeFilter?: GameType | 'all';
 
   /**
    * Active tab context - affects season/tournament filtering logic
@@ -74,6 +80,7 @@ export function filterGameIds(
     seasonFilter,
     tournamentFilter,
     seriesFilter,
+    gameTypeFilter = 'all',
     activeTab
   } = options;
 
@@ -101,6 +108,12 @@ export function filterGameIds(
         // Specific team
         if (game.teamId !== teamFilter) return false;
       }
+    }
+
+    // Game type filter
+    if (gameTypeFilter !== 'all') {
+      const gameType = game.gameType || 'soccer'; // Default to soccer for legacy games
+      if (gameType !== gameTypeFilter) return false;
     }
 
     // Season filter (based on activeTab context)

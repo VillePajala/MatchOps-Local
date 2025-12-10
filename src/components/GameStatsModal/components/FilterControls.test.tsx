@@ -374,7 +374,7 @@ describe('FilterControls', () => {
   });
 
   describe('Tab-specific Filter Visibility', () => {
-    it('shows only team filter on currentGame tab', () => {
+    it('shows no filters on currentGame tab (only shows current game stats)', () => {
       const teams = [createTeam()];
       renderFilterControls({
         activeTab: 'currentGame',
@@ -385,7 +385,7 @@ describe('FilterControls', () => {
 
       expect(screen.queryByText('All Seasons')).not.toBeInTheDocument();
       expect(screen.queryByText('All Tournaments')).not.toBeInTheDocument();
-      expect(screen.getByText('All Teams')).toBeInTheDocument();
+      expect(screen.queryByText('All Teams')).not.toBeInTheDocument();
     });
 
     it('shows only team filter on overall tab', () => {
