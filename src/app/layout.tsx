@@ -57,7 +57,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className={rajdhani.variable}>
-        {/* Initial loading indicator - shows before React hydrates, hidden by CSS once app loads */}
+        {/* Initial loading indicator - shows before React hydrates, hidden by script once app loads */}
         <div id="initial-loader" style={{
           position: 'fixed',
           inset: 0,
@@ -66,6 +66,7 @@ export default function RootLayout({
           justifyContent: 'center',
           backgroundColor: '#0f172a',
           zIndex: 99999,
+          transition: 'opacity 0.2s ease-out',
         }}>
           <div style={{
             width: '48px',
@@ -75,11 +76,24 @@ export default function RootLayout({
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
           }} />
-          <style dangerouslySetInnerHTML={{ __html: `
-            @keyframes spin { to { transform: rotate(360deg); } }
-            body:has(#__next > *) #initial-loader { display: none !important; }
-          `}} />
+          <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { to { transform: rotate(360deg); } }`}} />
         </div>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            var hideLoader = function() {
+              var loader = document.getElementById('initial-loader');
+              if (loader) {
+                loader.style.opacity = '0';
+                setTimeout(function() { loader.style.display = 'none'; }, 200);
+              }
+            };
+            if (document.readyState === 'complete') {
+              hideLoader();
+            } else {
+              window.addEventListener('load', hideLoader);
+            }
+          })();
+        `}} />
         <I18nInitializer>
           <ServiceWorkerRegistration />
           <InstallPrompt />
