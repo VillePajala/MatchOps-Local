@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: add initial loading spinner for TWA cold start"
+  "notes": "fix: use window.load event to hide initial loader"
 }
