@@ -628,6 +628,7 @@
     "homeTeamNameRequired": "Home Team Name is required.",
     "opponentNameRequired": "Opponent Name is required.",
     "invalidPeriodDuration": "Period duration must be a positive number.",
+    "customLeagueNameRequired": "Please enter a custom league name.",
     "loadingData": "Loading setup data...",
     "homeTeamName": "Your Team Name",
     "homeTeamPlaceholder": "e.g., Galaxy U10",

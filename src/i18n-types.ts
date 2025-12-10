@@ -642,6 +642,7 @@ export type TranslationKey =
   | 'newGameSetupModal.createSeason'
   | 'newGameSetupModal.createTournament'
   | 'newGameSetupModal.creating'
+  | 'newGameSetupModal.customLeagueNameRequired'
   | 'newGameSetupModal.customLeaguePlaceholder'
   | 'newGameSetupModal.dateLabel'
   | 'newGameSetupModal.defaultTeamName'

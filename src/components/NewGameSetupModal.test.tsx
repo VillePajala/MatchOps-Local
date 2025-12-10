@@ -868,5 +868,52 @@ describe('NewGameSetupModal', () => {
         expect(document.getElementById('leagueSelect')).not.toBeInTheDocument();
       });
     });
+
+    it('should show error when "Muu" selected but custom league name is empty', async () => {
+      renderModalForLeague();
+
+      // Wait for initial load
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: /Your Team Name/i })).toHaveValue('Last Team');
+      });
+
+      // Fill opponent name
+      const opponentInput = screen.getByRole('textbox', { name: /Opponent Name/i });
+      fireEvent.change(opponentInput, { target: { value: 'Test Opponent' } });
+
+      // Switch to season tab and select season
+      const seasonTab = screen.getByRole('button', { name: /Season/i });
+      await act(async () => {
+        fireEvent.click(seasonTab);
+      });
+
+      await waitFor(() => {
+        expect(document.getElementById('seasonSelect')).toBeInTheDocument();
+      });
+
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(seasonSelect, { target: { value: 'season1' } });
+      });
+
+      // Select "Muu" (custom league) but leave custom name empty
+      await waitFor(() => {
+        expect(document.getElementById('leagueSelect')).toBeInTheDocument();
+      });
+
+      const leagueSelect = document.getElementById('leagueSelect') as HTMLSelectElement;
+      await act(async () => {
+        fireEvent.change(leagueSelect, { target: { value: 'muu' } });
+      });
+
+      // Submit without entering custom league name
+      const startButton = screen.getByRole('button', { name: /Confirm & Start Game/i });
+      await act(async () => {
+        fireEvent.click(startButton);
+      });
+
+      // Verify onStart was NOT called due to validation
+      expect(mockOnStart).not.toHaveBeenCalled();
+    });
   });
 });
