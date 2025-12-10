@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
-import { Tournament, Player, TournamentSeries } from '@/types';
+import { Tournament, Player, TournamentSeries, GameType } from '@/types';
 import { UseMutationResult } from '@tanstack/react-query';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { createLogger } from '@/utils/logger';
@@ -47,6 +47,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   const [notes, setNotes] = useState('');
   const [awardedPlayerId, setAwardedPlayerId] = useState<string | undefined>(undefined);
   const [archived, setArchived] = useState(false);
+  const [gameType, setGameType] = useState<GameType>('soccer');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
 
@@ -67,6 +68,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         setNotes('');
         setAwardedPlayerId(undefined);
         setArchived(false);
+        setGameType('soccer');
         setErrorMessage(null);
       } else if (tournament) {
         // Load existing tournament data for edit mode
@@ -100,6 +102,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         setNotes(tournament.notes || '');
         setAwardedPlayerId(tournament.awardedPlayerId);
         setArchived(tournament.archived || false);
+        setGameType(tournament.gameType || 'soccer');
         setErrorMessage(null);
       }
     }
@@ -139,6 +142,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         notes: notes.trim() || undefined,
         awardedPlayerId: awardedPlayerId || undefined,
         archived,
+        gameType,
       };
 
       addTournamentMutation.mutate(newTournament, {
@@ -186,6 +190,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         notes: notes.trim() || undefined,
         awardedPlayerId: awardedPlayerId || undefined,
         archived,
+        gameType,
       };
 
       updateTournamentMutation.mutate(updatedTournament, {
@@ -316,6 +321,37 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                     <option key={group} value={group}>{group}</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Sport Type (Soccer/Futsal) */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  {t('common.gameTypeLabel', 'Sport Type')}
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGameType('soccer')}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      gameType === 'soccer'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('common.gameTypeSoccer', 'Soccer')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGameType('futsal')}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      gameType === 'futsal'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('common.gameTypeFutsal', 'Futsal')}
+                  </button>
+                </div>
               </div>
 
               {/* Tournament Series */}

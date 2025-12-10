@@ -84,6 +84,7 @@ export interface UseGameSessionCoordinationReturn {
     setTournamentId: (tournamentId: string | undefined) => void;
     setLeagueId: (leagueId: string | undefined) => void;
     setCustomLeagueName: (customLeagueName: string | undefined) => void;
+    setGameType: (gameType: import('@/types').GameType) => void;
     setGamePersonnel: (personnelIds: string[]) => void;
   };
 }
@@ -402,6 +403,11 @@ export function useGameSessionCoordination({
     dispatchGameSession({ type: 'SET_CUSTOM_LEAGUE_NAME', payload: newCustomLeagueName });
   }, [dispatchGameSession]);
 
+  const handleSetGameType = useCallback((newGameType: import('@/types').GameType) => {
+    logger.log('[useGameSessionCoordination] handleSetGameType called with:', newGameType);
+    dispatchGameSession({ type: 'SET_GAME_TYPE', payload: newGameType });
+  }, [dispatchGameSession]);
+
   const handleSetGamePersonnel = useCallback((personnelIds: string[]) => {
     dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: personnelIds });
   }, [dispatchGameSession]);
@@ -513,6 +519,7 @@ export function useGameSessionCoordination({
       setTournamentId: handleSetTournamentId,
       setLeagueId: handleSetLeagueId,
       setCustomLeagueName: handleSetCustomLeagueName,
+      setGameType: handleSetGameType,
       setGamePersonnel: handleSetGamePersonnel,
     },
   };

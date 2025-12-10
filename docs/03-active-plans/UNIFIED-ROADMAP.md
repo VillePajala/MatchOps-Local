@@ -56,8 +56,9 @@
 | **1** | Play Store Release | 2-3 weeks | Unlocks monetization, validates product |
 | **2** | Backend Architecture Refactoring | ~4 weeks | Clean architecture before more features |
 | **3** | Gender Handling | 1-2 weeks | HIGH priority feature, needs design |
-| **4** | Season League UX (area/age filtering) | 1 week | Nice-to-have UX improvement |
-| **5** | Other features & fixes | Ongoing | As needed |
+| **4** | Game Type (Soccer/Futsal) | 3-5 days | Real user need, simple labeling system |
+| **5** | Season League UX (area/age filtering) | 1 week | Nice-to-have UX improvement |
+| **6** | Other features & fixes | Ongoing | As needed |
 
 ---
 
@@ -165,7 +166,50 @@ master
 
 ---
 
-## 🎨 PRIORITY 4: Season League UX Improvements
+## ⚽ PRIORITY 4: Game Type (Soccer/Futsal) Labeling
+
+**Status**: 📋 Design approved
+**Effort**: 3-5 days
+
+### The Problem
+Finnish youth seasons often include both outdoor soccer and indoor futsal games. Currently no way to distinguish or filter by game type.
+
+### Phase 1: Labeling System (Current Scope)
+Add `gameType: 'soccer' | 'futsal'` field for filtering and organization.
+
+**Where gameType is set:**
+- NewGameSetupModal (when creating new game)
+- GameSettingsModal (when editing existing game)
+- SeasonDetailsModal (season-level default)
+- TournamentDetailsModal (tournament-level default)
+
+**Filtering enabled in:**
+- Game history lists
+- Stats views (PlayerStatsView, GameStatsModal)
+- Season/Tournament game lists
+
+**Implementation:**
+- [ ] Add `gameType` field to types (Game, Season, Tournament)
+- [ ] Update NewGameSetupModal with game type selector
+- [ ] Update GameSettingsModal with game type selector
+- [ ] Update SeasonDetailsModal with game type selector
+- [ ] Update TournamentDetailsModal with game type selector
+- [ ] Add filtering UI to stats views
+- [ ] Backward compatible (default to `'soccer'` for existing data)
+- [ ] Translations (EN/FI)
+- [ ] Icon/badge in game lists (⚽/🏟️ or similar)
+
+### Phase 2: Futsal Field Visualization (Future)
+**Deferred** - Document for future implementation:
+- Different field component for futsal (smaller court, different markings)
+- Different default player positions (5 players vs 11)
+- Futsal-specific tactical overlays
+
+**Why This Priority**: Real user need for Finnish youth coaches. Clean labeling enables filtering without over-engineering. Field visualization can come later based on user feedback.
+
+---
+
+## 🎨 PRIORITY 5: Season League UX Improvements
 
 **Status**: 📋 Idea documented
 **Effort**: 1 week
@@ -184,11 +228,11 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 - [ ] Add translations
 - [ ] Test UX flow
 
-**Why Fourth**: Pure UX improvement. Current UI works, just not ideal. Can wait until after more critical work.
+**Why Fifth**: Pure UX improvement. Current UI works, just not ideal. Can wait until after more critical work.
 
 ---
 
-## 📦 PRIORITY 5: Other Features & Fixes
+## 📦 PRIORITY 6: Other Features & Fixes
 
 **Status**: Ongoing
 **Tracked in**: GitHub Issues

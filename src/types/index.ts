@@ -96,6 +96,14 @@ export interface Season {
   teamPlacements?: {
     [teamId: string]: TeamPlacementInfo;
   };
+  /**
+   * Game type for this season - soccer (outdoor) or futsal (indoor).
+   *
+   * @remarks
+   * Optional for backwards compatibility - defaults to 'soccer' if undefined.
+   * Games in this season can inherit this setting or override it.
+   */
+  gameType?: import('./game').GameType;
   // Note: teamId removed - seasons are global entities per plan
   // Note: roster management removed - teams handle rosters now
 }
@@ -160,6 +168,14 @@ export interface Tournament {
   teamPlacements?: {
     [teamId: string]: TeamPlacementInfo;
   };
+  /**
+   * Game type for this tournament - soccer (outdoor) or futsal (indoor).
+   *
+   * @remarks
+   * Optional for backwards compatibility - defaults to 'soccer' if undefined.
+   * Games in this tournament can inherit this setting or override it.
+   */
+  gameType?: import('./game').GameType;
   // Note: teamId removed - tournaments are global entities per plan
   // Note: roster management removed - teams handle rosters now
 }
