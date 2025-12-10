@@ -142,7 +142,9 @@ interface ModalManagerHandlers {
     isPlayedParam: boolean,
     teamId: string | null,
     availablePlayersForGame: Player[],
-    selectedPersonnelIds: string[]
+    selectedPersonnelIds: string[],
+    leagueId: string,
+    customLeagueName: string
   ) => void;
   cancelNewGameSetup: () => void;
   closeRosterModal: () => void;
@@ -169,6 +171,8 @@ interface ModalManagerHandlers {
   setDemandFactor: (factor: number) => void;
   setSeasonId: (id: string | undefined) => void;
   setTournamentId: (id: string | undefined) => void;
+  setLeagueId: (id: string | undefined) => void;
+  setCustomLeagueName: (name: string | undefined) => void;
   setHomeOrAway: (value: 'home' | 'away') => void;
   setIsPlayed: (played: boolean) => void;
   updateSelectedPlayers: (playerIds: string[]) => void;
@@ -402,8 +406,12 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           onDemandFactorChange={handlers.setDemandFactor}
           seasonId={data.gameSessionState.seasonId}
           tournamentId={data.gameSessionState.tournamentId}
+          leagueId={data.gameSessionState.leagueId}
+          customLeagueName={data.gameSessionState.customLeagueName}
           onSeasonIdChange={handlers.setSeasonId}
           onTournamentIdChange={handlers.setTournamentId}
+          onLeagueIdChange={handlers.setLeagueId}
+          onCustomLeagueNameChange={handlers.setCustomLeagueName}
           homeOrAway={data.gameSessionState.homeOrAway}
           onSetHomeOrAway={handlers.setHomeOrAway}
           isPlayed={data.isPlayed}

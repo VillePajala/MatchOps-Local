@@ -628,6 +628,7 @@
     "homeTeamNameRequired": "Home Team Name is required.",
     "opponentNameRequired": "Opponent Name is required.",
     "invalidPeriodDuration": "Period duration must be a positive number.",
+    "customLeagueNameRequired": "Please enter a custom league name.",
     "loadingData": "Loading setup data...",
     "homeTeamName": "Your Team Name",
     "homeTeamPlaceholder": "e.g., Galaxy U10",
@@ -680,7 +681,10 @@
     "teamsAndRosterLabel": "Teams & Roster",
     "gameDetailsLabel": "Game Details",
     "gameRulesLabel": "Game Rules",
-    "gameConfigLabel": "Game Configuration"
+    "gameConfigLabel": "Game Configuration",
+    "leagueLabel": "League",
+    "selectLeague": "-- Select League --",
+    "customLeaguePlaceholder": "Enter league name"
   },
   "gameSettingsModal": {
     "unknownPlayer": "Unknown Player",
@@ -772,7 +776,10 @@
     "teamsAndRosterLabel": "Teams & Roster",
     "gameDetailsLabel": "Game Details",
     "gameRulesLabel": "Game Rules",
-    "gameConfigLabel": "Game Configuration"
+    "gameConfigLabel": "Game Configuration",
+    "leagueLabel": "League",
+    "selectLeague": "-- Select League --",
+    "customLeaguePlaceholder": "Enter league name"
   },
   "errors": {
     "failedToSaveDrawingMode": "Failed to save drawing mode setting. Changes may not persist.",

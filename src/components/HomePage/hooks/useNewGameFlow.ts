@@ -167,6 +167,8 @@ export function useNewGameFlow({
       teamId: string | null,
       availablePlayersForGame: Player[],
       selectedPersonnelIds: string[],
+      leagueId: string,
+      customLeagueName: string,
     ) => {
       await startNewGameWithSetup(
         {
@@ -208,6 +210,8 @@ export function useNewGameFlow({
           teamId,
           availablePlayersForGame,
           selectedPersonnelIds,
+          leagueId,
+          customLeagueName,
         },
       );
     },

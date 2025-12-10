@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Season } from '@/types';
 import { UseMutationResult } from '@tanstack/react-query';
 import { AGE_GROUPS } from '@/config/gameOptions';
-import { FINNISH_YOUTH_LEAGUES } from '@/config/leagues';
+import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 
 interface SeasonDetailsModalProps {
   isOpen: boolean;
@@ -88,7 +88,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
 
     // Validate custom league name if "Muu" is selected
     const trimmedCustomLeague = customLeagueName.trim();
-    if (leagueId === 'muu') {
+    if (leagueId === CUSTOM_LEAGUE_ID) {
       if (trimmedCustomLeague.length === 0) {
         setErrorMessage(t('seasonDetailsModal.errors.customLeagueRequired', 'Please enter a custom league name or select a different league.'));
         return;
@@ -118,7 +118,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         notes: notes.trim() || undefined,
         archived,
         leagueId: leagueId || undefined,
-        customLeagueName: leagueId === 'muu' ? trimmedCustomLeague || undefined : undefined,
+        customLeagueName: leagueId === CUSTOM_LEAGUE_ID ? trimmedCustomLeague || undefined : undefined,
       };
 
       addSeasonMutation.mutate(newSeason, {
@@ -151,7 +151,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         notes: notes.trim() || undefined,
         archived,
         leagueId: leagueId || undefined,
-        customLeagueName: leagueId === 'muu' ? trimmedCustomLeague || undefined : undefined,
+        customLeagueName: leagueId === CUSTOM_LEAGUE_ID ? trimmedCustomLeague || undefined : undefined,
       };
 
       updateSeasonMutation.mutate(updatedSeason, {
@@ -308,7 +308,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
               </div>
 
               {/* Custom League Name - shown when "Muu" selected */}
-              {leagueId === 'muu' && (
+              {leagueId === CUSTOM_LEAGUE_ID && (
                 <div>
                   <label htmlFor="season-custom-league" className="block text-sm font-medium text-slate-300 mb-1">
                     {t('seasonDetailsModal.customLeagueLabel', 'Custom League Name')}

@@ -17,6 +17,12 @@ export interface League {
   isCustom?: boolean;
 }
 
+/**
+ * ID for the custom league option ("Muu").
+ * Use this constant instead of hardcoding 'muu' for type safety and easier refactoring.
+ */
+export const CUSTOM_LEAGUE_ID = 'muu';
+
 export const FINNISH_YOUTH_LEAGUES: League[] = [
   // Valtakunnalliset (National) - 5 levels
   { id: 'sm-sarja', name: 'Valtakunnallinen SM-sarja' },
@@ -60,7 +66,7 @@ export const FINNISH_YOUTH_LEAGUES: League[] = [
   { id: 'miniliiga', name: 'Seuran oma pelitapahtuma / Miniliiga' },
 
   // Custom option - always last
-  { id: 'muu', name: 'Muu (vapaa kuvaus)', isCustom: true },
+  { id: CUSTOM_LEAGUE_ID, name: 'Muu (vapaa kuvaus)', isCustom: true },
 ];
 
 /**
@@ -73,9 +79,20 @@ export function getLeagueById(id: string): League | undefined {
 }
 
 /**
+ * Check if a league ID is valid (exists in FINNISH_YOUTH_LEAGUES).
+ * @param id - The league ID to validate
+ * @returns True if the ID is valid, false otherwise
+ */
+export function isValidLeagueId(id: string | undefined): boolean {
+  if (!id) return false;
+  return FINNISH_YOUTH_LEAGUES.some(l => l.id === id);
+}
+
+/**
  * Get the display name for a league ID.
  * @param id - The league ID to look up
  * @returns The league name, the ID as fallback for unknown IDs, or empty string for undefined/empty
+ * @remarks Returns the raw ID as fallback for unknown IDs (e.g., corrupted data) to aid debugging
  */
 export function getLeagueName(id: string | undefined): string {
   if (!id) return '';

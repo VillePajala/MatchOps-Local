@@ -75,6 +75,8 @@ const initialState: AppState = {
   gamePersonnel: [],
   seasonId: '', // Initialize season ID
   tournamentId: '', // Initialize tournament ID
+  leagueId: undefined, // Initialize league ID (optional, can override season's default)
+  customLeagueName: undefined, // Initialize custom league name (used when leagueId === 'muu')
   ageGroup: '',
   tournamentLevel: '',
   gameLocation: '', // Initialize optional fields
@@ -961,6 +963,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         gamePersonnel: Array.isArray(gameData.gamePersonnel) ? gameData.gamePersonnel : [],
         seasonId: gameData.seasonId ?? undefined,
         tournamentId: gameData.tournamentId ?? undefined,
+        leagueId: gameData.leagueId ?? undefined,
+        customLeagueName: gameData.customLeagueName ?? undefined,
         teamId: gameData.teamId,
         gameLocation: gameData.gameLocation,
         gameTime: gameData.gameTime,
@@ -1014,6 +1018,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       gameStatus: gameData?.gameStatus ?? initialGameSessionData.gameStatus,
       seasonId: gameData?.seasonId ?? initialGameSessionData.seasonId,
       tournamentId: gameData?.tournamentId ?? initialGameSessionData.tournamentId,
+      leagueId: gameData?.leagueId ?? initialGameSessionData.leagueId,
+      customLeagueName: gameData?.customLeagueName ?? initialGameSessionData.customLeagueName,
       gameLocation: gameData?.gameLocation ?? initialGameSessionData.gameLocation,
       gameTime: gameData?.gameTime ?? initialGameSessionData.gameTime,
       demandFactor: gameData?.demandFactor ?? initialGameSessionData.demandFactor,
@@ -1519,6 +1525,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
   const handleSetHomeOrAway = sessionCoordination.handlers.setHomeOrAway;
   const handleSetSeasonId = sessionCoordination.handlers.setSeasonId;
   const handleSetTournamentId = sessionCoordination.handlers.setTournamentId;
+  const handleSetLeagueId = sessionCoordination.handlers.setLeagueId;
+  const handleSetCustomLeagueName = sessionCoordination.handlers.setCustomLeagueName;
   const handleSetGamePersonnel = sessionCoordination.handlers.setGamePersonnel;
 
   // --- AGGREGATE EXPORT HANDLERS ---
@@ -1583,7 +1591,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     isPlayedParam: boolean,
     teamId: string | null,
     availablePlayersForGame: Player[],
-    selectedPersonnelIds: string[]
+    selectedPersonnelIds: string[],
+    leagueId: string,
+    customLeagueName: string
   ) => {
     // Clear field state before creating new game to prevent stale data
     fieldCoordination.setPlayersOnField([]);
@@ -1634,6 +1644,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         teamId,
         availablePlayersForGame,
         selectedPersonnelIds,
+        leagueId,
+        customLeagueName,
       },
     );
   }, [
@@ -1994,6 +2006,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       handleSetDemandFactor,
       handleSetSeasonId,
       handleSetTournamentId,
+      handleSetLeagueId,
+      handleSetCustomLeagueName,
       handleSetHomeOrAway,
       handleUpdateSelectedPlayers,
       handleSetGamePersonnel,

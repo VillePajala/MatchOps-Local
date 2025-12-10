@@ -121,6 +121,8 @@ export const appStateSchema = z.object({
   isPlayed: z.boolean().optional(),
   teamId: z.string().optional(),
   gamePersonnel: z.array(z.string()).optional(),
+  leagueId: z.string().optional(),
+  customLeagueName: z.string().max(100, 'Custom league name cannot exceed 100 characters').optional(),
 });
 
 export type AppStateSchema = typeof appStateSchema;

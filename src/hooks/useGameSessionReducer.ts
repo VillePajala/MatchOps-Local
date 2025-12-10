@@ -18,6 +18,8 @@ export interface GameSessionState {
   gamePersonnel: string[];
   seasonId: string;
   tournamentId: string;
+  leagueId?: string; // Optional league ID - can override season's default league
+  customLeagueName?: string; // Custom league name when leagueId === 'muu'
   teamId?: string; // Optional team ID for multi-team support
   ageGroup?: string;
   tournamentLevel?: string;
@@ -109,6 +111,8 @@ export type GameSessionAction =
   | { type: 'SET_GAME_PERSONNEL'; payload: string[] }
   | { type: 'SET_SEASON_ID'; payload: string }
   | { type: 'SET_TOURNAMENT_ID'; payload: string }
+  | { type: 'SET_LEAGUE_ID'; payload: string | undefined }
+  | { type: 'SET_CUSTOM_LEAGUE_NAME'; payload: string | undefined }
   | { type: 'SET_GAME_LOCATION'; payload: string }
   | { type: 'SET_GAME_TIME'; payload: string }
   | { type: 'SET_AGE_GROUP'; payload: string }
@@ -257,6 +261,10 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       return action.payload
         ? { ...state, tournamentId: action.payload, seasonId: '' }
         : { ...state, tournamentId: action.payload };
+    case 'SET_LEAGUE_ID':
+      return { ...state, leagueId: action.payload || undefined };
+    case 'SET_CUSTOM_LEAGUE_NAME':
+      return { ...state, customLeagueName: action.payload || undefined };
     case 'SET_GAME_LOCATION':
       return { ...state, gameLocation: action.payload };
     case 'SET_GAME_TIME':

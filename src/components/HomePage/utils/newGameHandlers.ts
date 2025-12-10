@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 
 import { queryKeys } from '@/config/queryKeys';
+import { CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import logger from '@/utils/logger';
 import type { AppState, Player, SavedGamesCollection } from '@/types';
 import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
@@ -51,6 +52,8 @@ export interface StartNewGameRequest {
   teamId: string | null;
   availablePlayersForGame: Player[];
   selectedPersonnelIds: string[];
+  leagueId: string;
+  customLeagueName: string;
 }
 
 export async function startNewGameWithSetup(
@@ -77,6 +80,8 @@ export async function startNewGameWithSetup(
     teamId,
     availablePlayersForGame,
     selectedPersonnelIds,
+    leagueId,
+    customLeagueName,
   } = request;
   const {
     availablePlayers,
@@ -123,6 +128,8 @@ export async function startNewGameWithSetup(
     demandFactor,
     isPlayed,
     teamId: teamId || undefined,
+    leagueId: leagueId || undefined,
+    customLeagueName: leagueId === CUSTOM_LEAGUE_ID ? customLeagueName || undefined : undefined,
     availablePlayers: availablePlayersForGame,
     selectedPlayerIds: finalSelectedPlayerIds,
     playersOnField: [],

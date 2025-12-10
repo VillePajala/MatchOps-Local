@@ -426,6 +426,8 @@ export function useGamePersistence({
         gameNotes: gameSessionState.gameNotes,
         assessments: playerAssessments,
         availablePlayers, // For fair play card and per-game player data
+        leagueId: gameSessionState.leagueId, // League selection
+        customLeagueName: gameSessionState.customLeagueName, // Custom league name when leagueId === CUSTOM_LEAGUE_ID
       },
       delay: 500,
     },
