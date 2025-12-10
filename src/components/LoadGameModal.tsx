@@ -439,7 +439,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
 
                   {/* Bottom row: Date on left, Badges on right (full width) */}
                   <div className="flex items-center justify-between gap-2">
-                    {/* Left side: Date and Status */}
+                    {/* Left side: Date, Status, and Game Type */}
                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                       {game.gameDate && (
                         <span>{new Date(game.gameDate).toLocaleDateString(i18n.language)}</span>
@@ -448,6 +448,14 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                         <>
                           {game.gameDate && <span>•</span>}
                           <span className="text-red-400 font-medium">{t('loadGameModal.unplayedBadge', 'NOT PLAYED')}</span>
+                        </>
+                      )}
+                      {game.gameType === 'futsal' && (
+                        <>
+                          {(game.gameDate || game.isPlayed === false) && <span>•</span>}
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                            {t('common.gameTypeFutsal', 'Futsal')}
+                          </span>
                         </>
                       )}
                     </div>

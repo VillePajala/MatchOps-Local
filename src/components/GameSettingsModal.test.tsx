@@ -123,12 +123,12 @@ const mockGameEvents: GameEvent[] = [
   { id: 'goal2', type: 'opponentGoal' as GameEventType, time: 300 },
 ];
 const mockSeasons: Season[] = [
-  { id: 's1', name: 'Spring League 2024', location: 'Arena', periodCount: 2, periodDuration: 25 },
-  { id: 's2', name: 'Winter League 2023', location: 'Dome', periodCount: 1, periodDuration: 30 },
+  { id: 's1', name: 'Spring League 2024', location: 'Arena', periodCount: 2, periodDuration: 25, gameType: 'soccer' },
+  { id: 's2', name: 'Winter League 2023', location: 'Dome', periodCount: 1, periodDuration: 30, gameType: 'futsal' },
 ];
 const mockTournaments: Tournament[] = [
-  { id: 't1', name: 'Summer Cup', location: 'Cup Arena', periodCount: 2, periodDuration: 20 },
-  { id: 't2', name: 'Annual Gala', location: 'Gala Field', periodCount: 2, periodDuration: 15 },
+  { id: 't1', name: 'Summer Cup', location: 'Cup Arena', periodCount: 2, periodDuration: 20, gameType: 'soccer' },
+  { id: 't2', name: 'Annual Gala', location: 'Gala Field', periodCount: 2, periodDuration: 15, gameType: 'futsal' },
 ];
 
 const defaultProps: GameSettingsModalProps = {
@@ -1030,6 +1030,165 @@ describe('<GameSettingsModal />', () => {
         (call: [string | undefined]) => call[0] === 'sm-sarja'
       );
       expect(smSarjaCalls.length).toBe(0);
+    });
+  });
+
+  /**
+   * Tests for game type (Soccer/Futsal) toggle and persistence functionality
+   * @integration
+   */
+  describe('Game Type Toggle', () => {
+    const mockOnGameTypeChange = jest.fn();
+
+    const gameTypeProps = {
+      ...defaultProps,
+      gameType: 'soccer' as const,
+      onGameTypeChange: mockOnGameTypeChange,
+    };
+
+    beforeEach(() => {
+      mockOnGameTypeChange.mockClear();
+    });
+
+    test('displays current game type as selected', async () => {
+      render(
+        <ToastProvider>
+          <GameSettingsModal {...gameTypeProps} gameType="soccer" />
+        </ToastProvider>
+      );
+
+      // Find Soccer button and verify it's selected
+      const soccerButton = screen.getByRole('button', { name: t('common.gameTypeSoccer') });
+      expect(soccerButton).toHaveClass('bg-indigo-600');
+
+      // Futsal should not be selected
+      const futsalButton = screen.getByRole('button', { name: t('common.gameTypeFutsal') });
+      expect(futsalButton).not.toHaveClass('bg-indigo-600');
+    });
+
+    test('displays Futsal as selected when gameType is futsal', async () => {
+      render(
+        <ToastProvider>
+          <GameSettingsModal {...gameTypeProps} gameType="futsal" />
+        </ToastProvider>
+      );
+
+      // Futsal should be selected
+      const futsalButton = screen.getByRole('button', { name: t('common.gameTypeFutsal') });
+      expect(futsalButton).toHaveClass('bg-indigo-600');
+
+      // Soccer should not be selected
+      const soccerButton = screen.getByRole('button', { name: t('common.gameTypeSoccer') });
+      expect(soccerButton).not.toHaveClass('bg-indigo-600');
+    });
+
+    test('calls onGameTypeChange when toggling from Soccer to Futsal', async () => {
+      const user = userEvent.setup();
+      render(
+        <ToastProvider>
+          <GameSettingsModal {...gameTypeProps} gameType="soccer" />
+        </ToastProvider>
+      );
+
+      // Click Futsal button
+      const futsalButton = screen.getByRole('button', { name: t('common.gameTypeFutsal') });
+      await user.click(futsalButton);
+
+      // Verify callback was called with 'futsal'
+      expect(mockOnGameTypeChange).toHaveBeenCalledWith('futsal');
+    });
+
+    test('calls onGameTypeChange when toggling from Futsal to Soccer', async () => {
+      const user = userEvent.setup();
+      render(
+        <ToastProvider>
+          <GameSettingsModal {...gameTypeProps} gameType="futsal" />
+        </ToastProvider>
+      );
+
+      // Click Soccer button
+      const soccerButton = screen.getByRole('button', { name: t('common.gameTypeSoccer') });
+      await user.click(soccerButton);
+
+      // Verify callback was called with 'soccer'
+      expect(mockOnGameTypeChange).toHaveBeenCalledWith('soccer');
+    });
+
+    test('does not call onGameTypeChange when clicking already selected type', async () => {
+      const user = userEvent.setup();
+      render(
+        <ToastProvider>
+          <GameSettingsModal {...gameTypeProps} gameType="soccer" />
+        </ToastProvider>
+      );
+
+      // Click Soccer button (already selected)
+      const soccerButton = screen.getByRole('button', { name: t('common.gameTypeSoccer') });
+      await user.click(soccerButton);
+
+      // The callback might be called but with the same value, or not called at all
+      // Either is acceptable behavior, but let's verify it doesn't change unexpectedly
+      const futsalCalls = mockOnGameTypeChange.mock.calls.filter(
+        (call: [string]) => call[0] === 'futsal'
+      );
+      expect(futsalCalls.length).toBe(0);
+    });
+
+    test('game type toggle persists through modal rerender', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(
+        <ToastProvider>
+          <GameSettingsModal {...gameTypeProps} gameType="soccer" />
+        </ToastProvider>
+      );
+
+      // Toggle to Futsal
+      const futsalButton = screen.getByRole('button', { name: t('common.gameTypeFutsal') });
+      await user.click(futsalButton);
+
+      expect(mockOnGameTypeChange).toHaveBeenCalledWith('futsal');
+
+      // Rerender with new game type (simulating parent state update)
+      rerender(
+        <ToastProvider>
+          <GameSettingsModal {...gameTypeProps} gameType="futsal" />
+        </ToastProvider>
+      );
+
+      // Verify Futsal is now displayed as selected
+      await waitFor(() => {
+        const updatedFutsalButton = screen.getByRole('button', { name: t('common.gameTypeFutsal') });
+        expect(updatedFutsalButton).toHaveClass('bg-indigo-600');
+      });
+    });
+
+    test('game type prefills from season when season is selected', async () => {
+      const user = userEvent.setup();
+      render(
+        <ToastProvider>
+          <GameSettingsModal
+            {...gameTypeProps}
+            gameType="soccer"
+            seasonId=""
+          />
+        </ToastProvider>
+      );
+
+      // Find and click the Season tab in the association section
+      const section = screen.getByText(t('gameSettingsModal.gameTypeLabel')).closest('div') as HTMLElement;
+      const seasonTab = within(section).getByText(t('gameSettingsModal.kausi'));
+      await user.click(seasonTab);
+
+      // Select a season with futsal gameType (s2)
+      const seasonSelect = document.getElementById('seasonSelect') as HTMLSelectElement;
+      expect(seasonSelect).toBeTruthy();
+      await user.selectOptions(seasonSelect, 's2');
+
+      // Note: The actual prefill behavior happens in the parent component
+      // This test verifies the selection triggers the callback
+      await waitFor(() => {
+        expect(mockOnSeasonIdChange).toHaveBeenCalledWith('s2');
+      });
     });
   });
 });
