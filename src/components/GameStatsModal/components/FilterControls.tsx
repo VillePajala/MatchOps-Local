@@ -7,6 +7,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Season, Tournament, Team } from '@/types';
 import type { TranslationKey } from '@/i18n-types';
+import type { GameType } from '@/types/game';
 import { StatsTab } from '../types';
 
 interface FilterControlsProps {
@@ -18,10 +19,12 @@ interface FilterControlsProps {
   selectedTournamentIdFilter: string | 'all';
   selectedTeamIdFilter: string | 'all' | 'legacy';
   selectedSeriesIdFilter: string | 'all';
+  selectedGameTypeFilter?: GameType | 'all';
   onSeasonFilterChange: (seasonId: string | 'all') => void;
   onTournamentFilterChange: (tournamentId: string | 'all') => void;
   onTeamFilterChange: (teamId: string | 'all' | 'legacy') => void;
   onSeriesFilterChange: (seriesId: string | 'all') => void;
+  onGameTypeFilterChange?: (gameType: GameType | 'all') => void;
 }
 
 export function FilterControls({
@@ -33,10 +36,12 @@ export function FilterControls({
   selectedTournamentIdFilter,
   selectedTeamIdFilter,
   selectedSeriesIdFilter,
+  selectedGameTypeFilter = 'all',
   onSeasonFilterChange,
   onTournamentFilterChange,
   onTeamFilterChange,
   onSeriesFilterChange,
+  onGameTypeFilterChange,
 }: FilterControlsProps) {
   const { t } = useTranslation();
 
@@ -47,20 +52,21 @@ export function FilterControls({
   const hasSeries = selectedTournament?.series && selectedTournament.series.length > 0;
 
   // Determine grid columns based on visible filters
-  // Tournament tab with series: 3 columns (tournament, series, team)
-  // Season/Tournament tabs without series: 2 columns
-  // Overall/CurrentGame tabs: 1 column
+  // Count visible filters: season/tournament + series (if applicable) + team + game type
   const hasSeasonOrTournamentFilter = activeTab === 'season' || activeTab === 'tournament';
-  const hasTeamFilter = teams.length > 0;
+  const hasTeamFilter = teams.length > 0 && activeTab !== 'currentGame';
+  const hasGameTypeFilter = !!onGameTypeFilterChange && activeTab !== 'currentGame';
+
+  let filterCount = 0;
+  if (hasSeasonOrTournamentFilter) filterCount++;
+  if (activeTab === 'tournament' && hasSeries) filterCount++;
+  if (hasTeamFilter) filterCount++;
+  if (hasGameTypeFilter) filterCount++;
 
   let gridCols = 'grid-cols-1';
-  if (activeTab === 'tournament' && hasSeries && hasTeamFilter) {
-    gridCols = 'grid-cols-3';
-  } else if (activeTab === 'tournament' && hasSeries) {
-    gridCols = 'grid-cols-2';
-  } else if (hasSeasonOrTournamentFilter && hasTeamFilter) {
-    gridCols = 'grid-cols-2';
-  }
+  if (filterCount === 4) gridCols = 'grid-cols-4';
+  else if (filterCount === 3) gridCols = 'grid-cols-3';
+  else if (filterCount === 2) gridCols = 'grid-cols-2';
 
   return (
     <div className={`mb-4 mx-1 grid ${gridCols} gap-2`}>
@@ -111,7 +117,8 @@ export function FilterControls({
           ))}
         </select>
       )}
-      {teams.length > 0 && (
+      {/* Team filter - not shown for currentGame tab (only shows current game stats) */}
+      {teams.length > 0 && activeTab !== 'currentGame' && (
         <select
           value={selectedTeamIdFilter}
           onChange={(e) =>
@@ -126,6 +133,18 @@ export function FilterControls({
               {team.name}
             </option>
           ))}
+        </select>
+      )}
+      {/* Game Type filter - not shown for currentGame tab */}
+      {hasGameTypeFilter && (
+        <select
+          value={selectedGameTypeFilter}
+          onChange={(e) => onGameTypeFilterChange?.(e.target.value as GameType | 'all')}
+          className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        >
+          <option value="all">{t('gameStatsModal.filterAllGameTypes', 'All Sports')}</option>
+          <option value="soccer">{t('common.gameTypeSoccer', 'Soccer')}</option>
+          <option value="futsal">{t('common.gameTypeFutsal', 'Futsal')}</option>
         </select>
       )}
     </div>
