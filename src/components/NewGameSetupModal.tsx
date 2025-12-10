@@ -137,8 +137,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     setAvailablePlayersForSetup(masterRoster);
     if (initialPlayerSelection && initialPlayerSelection.length > 0) {
       setSelectedPlayerIds(initialPlayerSelection);
-    } else if (masterRoster.length > 0) {
-      setSelectedPlayerIds(masterRoster.map(p => p.id));
+    } else {
+      // No team selected - start with no players pre-selected
+      setSelectedPlayerIds([]);
     }
     setSelectedPersonnelIds([]);
     setActiveTab('none');
@@ -302,9 +303,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         setSelectedPlayerIds([]); // No players selected on error
       }
     } else {
-      // No team selected - use master roster
+      // No team selected - use master roster with no players pre-selected
       setAvailablePlayersForSetup(masterRoster);
-      setSelectedPlayerIds(masterRoster.map((p: Player) => p.id));
+      setSelectedPlayerIds([]);
 
       // Clear team name only if it was auto-filled (preserve manual input)
       if (isTeamNameAutoFilled) {
