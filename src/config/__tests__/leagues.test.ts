@@ -3,7 +3,7 @@
  * TDD: These tests are written BEFORE the implementation
  */
 
-import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID, getLeagueById, getLeagueName } from '../leagues';
+import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID, getLeagueById, getLeagueName, isValidLeagueId } from '../leagues';
 
 describe('Finnish Youth Leagues Configuration', () => {
   describe('FINNISH_YOUTH_LEAGUES constant', () => {
@@ -91,6 +91,27 @@ describe('Finnish Youth Leagues Configuration', () => {
     it('should return empty string for empty string ID', () => {
       const name = getLeagueName('');
       expect(name).toBe('');
+    });
+  });
+
+  describe('isValidLeagueId', () => {
+    it('should return true for valid league ID', () => {
+      expect(isValidLeagueId('sm-sarja')).toBe(true);
+      expect(isValidLeagueId('harrastesarja')).toBe(true);
+      expect(isValidLeagueId(CUSTOM_LEAGUE_ID)).toBe(true);
+    });
+
+    it('should return false for invalid league ID', () => {
+      expect(isValidLeagueId('invalid-league')).toBe(false);
+      expect(isValidLeagueId('typo-sm-sarja')).toBe(false);
+    });
+
+    it('should return false for undefined', () => {
+      expect(isValidLeagueId(undefined)).toBe(false);
+    });
+
+    it('should return false for empty string', () => {
+      expect(isValidLeagueId('')).toBe(false);
     });
   });
 });

@@ -79,9 +79,20 @@ export function getLeagueById(id: string): League | undefined {
 }
 
 /**
+ * Check if a league ID is valid (exists in FINNISH_YOUTH_LEAGUES).
+ * @param id - The league ID to validate
+ * @returns True if the ID is valid, false otherwise
+ */
+export function isValidLeagueId(id: string | undefined): boolean {
+  if (!id) return false;
+  return FINNISH_YOUTH_LEAGUES.some(l => l.id === id);
+}
+
+/**
  * Get the display name for a league ID.
  * @param id - The league ID to look up
  * @returns The league name, the ID as fallback for unknown IDs, or empty string for undefined/empty
+ * @remarks Returns the raw ID as fallback for unknown IDs (e.g., corrupted data) to aid debugging
  */
 export function getLeagueName(id: string | undefined): string {
   if (!id) return '';
