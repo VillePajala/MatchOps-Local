@@ -574,7 +574,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     if (!isOpen || !seasonId) {
       // Reset the ref only when season is cleared (not when modal closes)
       // This prevents re-applying season defaults when reopening the modal,
-      // which would overwrite user's manual league selection
+      // which would overwrite user's manual league selection.
+      //
+      // Note: If user clears season then re-selects the same season, defaults
+      // WILL be re-applied. This is intentional - clearing the season breaks
+      // the association, and re-selecting creates a new association that should
+      // use the season's defaults. Only modal close/reopen preserves overrides.
       if (!seasonId) {
         appliedSeasonRef.current = null;
       }
