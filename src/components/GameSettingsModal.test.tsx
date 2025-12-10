@@ -794,7 +794,7 @@ describe('<GameSettingsModal />', () => {
       renderModal({
         ...leagueProps,
         seasonId: 's1',
-        leagueId: '', // Start with no league
+        leagueId: undefined, // Start with no league
       });
 
       // Wait for league dropdown
