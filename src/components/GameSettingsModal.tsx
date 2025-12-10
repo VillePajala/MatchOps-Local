@@ -1530,6 +1530,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         onChange={(e) => {
                           const value = e.target.value;
                           onLeagueIdChange(value || undefined);
+                          // Clear custom name when switching away from "Muu" (intentional)
+                          // This provides clean state and prevents stale data. If user switches
+                          // back to "Muu", they'll need to re-enter the custom name.
                           if (value !== CUSTOM_LEAGUE_ID) {
                             onCustomLeagueNameChange(undefined);
                           }
