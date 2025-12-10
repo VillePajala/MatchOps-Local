@@ -132,6 +132,8 @@ export async function startNewGameWithSetup(
     teamId: teamId || undefined,
     leagueId: leagueId || undefined,
     customLeagueName: leagueId === CUSTOM_LEAGUE_ID ? customLeagueName || undefined : undefined,
+    // gameType flows from modal → handler → AppState storage
+    // It's also tracked in game session reducer for undo/redo history
     gameType,
     availablePlayers: availablePlayersForGame,
     selectedPlayerIds: finalSelectedPlayerIds,

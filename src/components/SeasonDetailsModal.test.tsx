@@ -525,4 +525,152 @@ describe('SeasonDetailsModal', () => {
       });
     });
   });
+
+  describe('Game Type Handling', () => {
+    it('defaults to soccer game type for new seasons', async () => {
+      const addMutation = mockMutation();
+      const user = userEvent.setup();
+
+      await act(async () => {
+        render(
+          <I18nextProvider i18n={i18n}>
+            <SeasonDetailsModal
+              isOpen={true}
+              onClose={jest.fn()}
+              mode="create"
+              season={undefined}
+              addSeasonMutation={addMutation as unknown as UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>}
+            />
+          </I18nextProvider>
+        );
+      });
+
+      // Soccer button should be selected by default (has indigo background)
+      const soccerButton = screen.getByRole('button', { name: i18n.t('common.gameTypeSoccer', 'Soccer') });
+      expect(soccerButton).toHaveClass('bg-indigo-600');
+
+      // Enter required name
+      const nameInput = screen.getByPlaceholderText(i18n.t('seasonDetailsModal.namePlaceholder', 'e.g., Kevätkausi 2024'));
+      await user.type(nameInput, 'Test Season');
+
+      // Click create (not save - button text is "Create" in create mode)
+      const createButton = screen.getByRole('button', { name: i18n.t('common.create', 'Create') });
+      await user.click(createButton);
+
+      // Should save with soccer as default
+      expect(addMutation.mutate).toHaveBeenCalled();
+      const [[firstArg]] = (addMutation.mutate as jest.Mock).mock.calls;
+      expect(firstArg).toMatchObject({
+        gameType: 'soccer',
+      });
+    });
+
+    it('saves season with futsal game type when selected', async () => {
+      const updateMutation = mockMutation();
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders({
+          updateSeasonMutation: updateMutation as unknown as UseMutationResult<Season | null, Error, Season, unknown>,
+        });
+      });
+
+      // Click futsal button
+      const futsalButton = screen.getByRole('button', { name: i18n.t('common.gameTypeFutsal', 'Futsal') });
+      await user.click(futsalButton);
+
+      // Futsal button should now be selected
+      expect(futsalButton).toHaveClass('bg-indigo-600');
+
+      // Click save
+      const saveButton = screen.getByRole('button', { name: i18n.t('common.save', 'Save') });
+      await user.click(saveButton);
+
+      // Verify mutation called with gameType: 'futsal'
+      expect(updateMutation.mutate).toHaveBeenCalled();
+      const [[firstArg]] = (updateMutation.mutate as jest.Mock).mock.calls;
+      expect(firstArg).toMatchObject({
+        gameType: 'futsal',
+      });
+    });
+
+    it('loads season with existing futsal gameType and shows futsal selected', async () => {
+      const seasonWithFutsal: Season = {
+        ...mockSeason,
+        gameType: 'futsal',
+      };
+
+      await act(async () => {
+        renderWithProviders({ season: seasonWithFutsal });
+      });
+
+      // Futsal button should be selected (has indigo background)
+      const futsalButton = screen.getByRole('button', { name: i18n.t('common.gameTypeFutsal', 'Futsal') });
+      expect(futsalButton).toHaveClass('bg-indigo-600');
+
+      // Soccer button should NOT be selected
+      const soccerButton = screen.getByRole('button', { name: i18n.t('common.gameTypeSoccer', 'Soccer') });
+      expect(soccerButton).not.toHaveClass('bg-indigo-600');
+    });
+
+    it('loads season with existing soccer gameType and shows soccer selected', async () => {
+      const seasonWithSoccer: Season = {
+        ...mockSeason,
+        gameType: 'soccer',
+      };
+
+      await act(async () => {
+        renderWithProviders({ season: seasonWithSoccer });
+      });
+
+      // Soccer button should be selected (has indigo background)
+      const soccerButton = screen.getByRole('button', { name: i18n.t('common.gameTypeSoccer', 'Soccer') });
+      expect(soccerButton).toHaveClass('bg-indigo-600');
+
+      // Futsal button should NOT be selected
+      const futsalButton = screen.getByRole('button', { name: i18n.t('common.gameTypeFutsal', 'Futsal') });
+      expect(futsalButton).not.toHaveClass('bg-indigo-600');
+    });
+
+    it('defaults to soccer when editing season without gameType set', async () => {
+      // Season without gameType (legacy data)
+      const legacySeason: Season = {
+        ...mockSeason,
+        gameType: undefined,
+      };
+
+      await act(async () => {
+        renderWithProviders({ season: legacySeason });
+      });
+
+      // Soccer should be selected by default for legacy data
+      const soccerButton = screen.getByRole('button', { name: i18n.t('common.gameTypeSoccer', 'Soccer') });
+      expect(soccerButton).toHaveClass('bg-indigo-600');
+    });
+
+    it('allows switching between soccer and futsal', async () => {
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders();
+      });
+
+      const soccerButton = screen.getByRole('button', { name: i18n.t('common.gameTypeSoccer', 'Soccer') });
+      const futsalButton = screen.getByRole('button', { name: i18n.t('common.gameTypeFutsal', 'Futsal') });
+
+      // Initially soccer is selected (default)
+      expect(soccerButton).toHaveClass('bg-indigo-600');
+      expect(futsalButton).not.toHaveClass('bg-indigo-600');
+
+      // Click futsal
+      await user.click(futsalButton);
+      expect(futsalButton).toHaveClass('bg-indigo-600');
+      expect(soccerButton).not.toHaveClass('bg-indigo-600');
+
+      // Click soccer again
+      await user.click(soccerButton);
+      expect(soccerButton).toHaveClass('bg-indigo-600');
+      expect(futsalButton).not.toHaveClass('bg-indigo-600');
+    });
+  });
 });
