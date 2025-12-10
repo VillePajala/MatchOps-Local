@@ -1,18 +1,23 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HiOutlineXMark } from "react-icons/hi2";
 
 interface UpdateBannerProps {
   onUpdate: () => void;
-  notes?: string;
   onDismiss?: () => void;
+  notes?: string;
 }
 
-const UpdateBanner: React.FC<UpdateBannerProps> = ({ onUpdate, notes, onDismiss }) => {
+const UpdateBanner: React.FC<UpdateBannerProps> = ({ onUpdate, onDismiss, notes }) => {
   const { t } = useTranslation();
   const [hidden, setHidden] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
 
   if (hidden) return null;
 
@@ -22,27 +27,54 @@ const UpdateBanner: React.FC<UpdateBannerProps> = ({ onUpdate, notes, onDismiss 
   };
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-md bg-gradient-to-r from-slate-800 to-slate-900 text-white p-4 rounded-xl shadow-2xl border border-slate-700/50 z-50">
-      <div className="flex items-start gap-3">
-        <div className="flex-1">
-          <p className="text-sm font-medium mb-1">{t("updateBanner.message")}</p>
-          {notes && <p className="text-xs text-slate-400">{notes}</p>}
+    <div
+      style={{
+        position: 'fixed',
+        top: '12px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 9999,
+        width: 'min(860px, calc(100vw - 24px))',
+        pointerEvents: 'auto',
+      }}
+      className={`font-display transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}
+    >
+      <div className="relative overflow-hidden rounded-2xl bg-slate-900/75 border border-white/12 shadow-[0_18px_50px_rgba(0,0,0,0.55)] backdrop-blur-md ring-1 ring-inset ring-white/8">
+        <div className="absolute left-1/2 top-0 h-[3px] w-[55%] max-w-[480px] -translate-x-1/2 bg-gradient-to-r from-sky-400 via-indigo-400 to-fuchsia-500 opacity-85" />
+        <div className="absolute -right-24 -top-24 h-48 w-48 rounded-full bg-indigo-500/15 blur-3xl" aria-hidden />
+
+        <div className="relative flex flex-col items-center gap-3 px-5 py-3.5 text-center">
+          <button
+            onClick={handleDismiss}
+            className="absolute top-2.5 right-2.5 flex h-9 w-9 items-center justify-center rounded-full text-slate-200 transition hover:bg-white/6 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 focus:ring-offset-slate-900"
+            aria-label={t("updateBanner.dismissButton", "Dismiss update")}
+          >
+            <HiOutlineXMark className="h-5 w-5" />
+          </button>
+
+          <div className="min-w-0 space-y-1">
+            <p className="text-sm font-semibold tracking-tight text-white">
+              {t("updateBanner.title", "Päivitys saatavilla")}
+            </p>
+            <p className="text-xs leading-relaxed text-slate-200/90">
+              {t("updateBanner.message", "Uusia ominaisuuksia ja parannuksia.")}
+            </p>
+            {notes ? (
+              <p className="mt-1 text-xs font-medium text-sky-100/90">
+                {notes}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="mt-1 flex items-center justify-center">
+            <button
+              onClick={onUpdate}
+              className="rounded-full bg-gradient-to-r from-indigo-400 via-indigo-500 to-fuchsia-500 px-5 py-2 text-xs md:text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition duration-150 hover:brightness-110 hover:shadow-[0_10px_28px_rgba(99,102,241,0.35)] active:brightness-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 focus:ring-offset-slate-900"
+            >
+              {t("updateBanner.updateButton", "Päivitä nyt")}
+            </button>
+          </div>
         </div>
-        <button
-          onClick={handleDismiss}
-          className="text-slate-500 hover:text-slate-300 transition-colors"
-          aria-label={t("updateBanner.dismissButton")}
-        >
-          <HiOutlineXMark className="w-5 h-5" />
-        </button>
-      </div>
-      <div className="mt-3 flex gap-2">
-        <button
-          onClick={onUpdate}
-          className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-sm transition-all hover:shadow-lg"
-        >
-          {t("updateBanner.reloadButton")}
-        </button>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: add leagueId and customLeagueName to initialState"
+  "notes": "Merge branch 'feature/game-league-selection' into master"
 }

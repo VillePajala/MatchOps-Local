@@ -1373,8 +1373,9 @@
     "december": "Joulukuu"
   },
   "updateBanner": {
-    "message": "Sovelluksesta on saatavilla uusi versio.",
-    "reloadButton": "Päivitä",
+    "title": "Päivitys saatavilla",
+    "message": "Uusia ominaisuuksia ja parannuksia.",
+    "updateButton": "Päivitä nyt",
     "dismissButton": "Sulje"
   },
   "installPrompt": {
