@@ -680,6 +680,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                                 value={leagueId}
                                 onChange={(e) => {
                                   setLeagueId(e.target.value);
+                                  // Clear custom name when switching away from "Muu" (intentional)
                                   if (e.target.value !== CUSTOM_LEAGUE_ID) setCustomLeagueName('');
                                 }}
                                 onKeyDown={handleKeyDown}
