@@ -214,6 +214,11 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       setGameDate(s.startDate || new Date().toISOString().split('T')[0]);
       setActiveTab('season');
       // Apply league from season as default (clear custom name if not "muu")
+      //
+      // League-Season Dependency: League selection is tied to season selection.
+      // When creating a new game, league defaults from season but can be overridden.
+      // The override is passed to onStart and stored in the game, not the season.
+      // See also: GameSettingsModal.tsx for similar prefill logic during game editing.
       const seasonLeagueId = s.leagueId || '';
       setLeagueId(seasonLeagueId);
       setCustomLeagueName(seasonLeagueId === CUSTOM_LEAGUE_ID ? s.customLeagueName || '' : '');
