@@ -118,7 +118,8 @@ export interface ModalHandlers {
     availablePlayersForGame: Player[],
     selectedPersonnelIds: string[],
     leagueId: string,
-    customLeagueName: string
+    customLeagueName: string,
+    gameType: import('@/types').GameType
   ) => void;
   handleCancelNewGameSetup: () => void;
   handleUpdatePlayerForModal: (playerId: string, updates: Partial<Omit<Player, 'id'>>) => Promise<void>;
@@ -144,6 +145,7 @@ export interface ModalHandlers {
   handleSetTournamentId: (tournamentId: string | undefined) => void;
   handleSetLeagueId: (leagueId: string | undefined) => void;
   handleSetCustomLeagueName: (customLeagueName: string | undefined) => void;
+  handleSetGameType: (gameType: import('@/types').GameType) => void;
   handleSetHomeOrAway: (homeOrAway: 'home' | 'away') => void;
   handleUpdateSelectedPlayers: (playerIds: string[]) => void;
   handleSetGamePersonnel: (personnelIds: string[]) => void;
@@ -281,6 +283,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleSetTournamentId,
     handleSetLeagueId,
     handleSetCustomLeagueName,
+    handleSetGameType,
     handleSetHomeOrAway,
     handleUpdateSelectedPlayers,
     handleSetGamePersonnel,
@@ -578,6 +581,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setTournamentId: handleSetTournamentId,
       setLeagueId: handleSetLeagueId,
       setCustomLeagueName: handleSetCustomLeagueName,
+      setGameType: handleSetGameType,
       setHomeOrAway: handleSetHomeOrAway,
       setIsPlayed,
       updateSelectedPlayers: handleUpdateSelectedPlayers,

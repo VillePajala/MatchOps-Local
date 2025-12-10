@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
-import { Season, Tournament, Player, Team, Personnel } from '@/types';
+import { Season, Tournament, Player, Team, Personnel, GameType } from '@/types';
 import { AppState } from '@/types';
 import { getTeamRoster } from '@/utils/teams';
 import { updateGameDetails, updateGameEvent } from '@/utils/savedGames';
@@ -152,6 +152,8 @@ export interface GameSettingsModalProps {
   onSetHomeOrAway: (status: 'home' | 'away') => void;
   isPlayed: boolean;
   onIsPlayedChange: (played: boolean) => void;
+  gameType?: GameType;
+  onGameTypeChange: (gameType: GameType) => void;
   // Removed: addSeasonMutation - unused prop (season creation moved to dedicated modal)
   // Removed: addTournamentMutation - unused prop (tournament creation moved to dedicated modal)
   // Removed: isAddingSeason - unused prop, mutations handle loading state internally
@@ -248,6 +250,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   onSetHomeOrAway,
   isPlayed,
   onIsPlayedChange,
+  gameType = 'soccer',
+  onGameTypeChange,
   // Removed: addSeasonMutation - unused prop (season creation moved to dedicated modal)
   // Removed: addTournamentMutation - unused prop (tournament creation moved to dedicated modal)
   // Removed: isAddingSeason - unused prop, mutations handle loading state internally
@@ -1616,6 +1620,49 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Sport Type (Soccer/Futsal) */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  {t('common.gameTypeLabel', 'Sport Type')}
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onGameTypeChange('soccer');
+                      mutateGameDetails(
+                        { gameType: 'soccer' },
+                        { source: 'stateSync' }
+                      );
+                    }}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      gameType === 'soccer'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('common.gameTypeSoccer', 'Soccer')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onGameTypeChange('futsal');
+                      mutateGameDetails(
+                        { gameType: 'futsal' },
+                        { source: 'stateSync' }
+                      );
+                    }}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      gameType === 'futsal'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('common.gameTypeFutsal', 'Futsal')}
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4">
