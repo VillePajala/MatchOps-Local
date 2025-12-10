@@ -452,7 +452,8 @@ describe('GameStatsModal', () => {
     // Switch to Season tab and check for season-specific elements
     fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.season') }));
     await waitFor(() => {
-      expect(screen.getByRole('combobox')).toBeInTheDocument();
+      // With game type filter, we now have multiple comboboxes
+      expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0);
       // Check for the fallback text since translations might not be loaded in tests
       // Use getAllByText since it appears in both the dropdown and heading
       const allSeasons = screen.getAllByText('All Seasons');
@@ -462,7 +463,8 @@ describe('GameStatsModal', () => {
     // Switch to Tournament tab and check for tournament-specific elements
     fireEvent.click(screen.getByRole('button', { name: i18n.t('gameStatsModal.tabs.tournament') }));
     await waitFor(() => {
-      expect(screen.getByRole('combobox')).toBeInTheDocument();
+      // With game type filter, we now have multiple comboboxes
+      expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0);
       // Check for the fallback text since translations might not be loaded in tests
       // Use getAllByText since it appears in both the dropdown and heading
       const allTournaments = screen.getAllByText('All Tournaments');

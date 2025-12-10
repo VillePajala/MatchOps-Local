@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import logger from '@/utils/logger';
 import { Player, PlayerStatRow, Season, Tournament, Team, Personnel } from '@/types';
 import { GameEvent, SavedGamesCollection } from '@/types';
+import type { GameType } from '@/types/game';
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';
 import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
 import { getTeams as utilGetTeams } from '@/utils/teams';
@@ -192,6 +193,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   );
   const [playerQuery, setPlayerQuery] = useState('');
   const [selectedClubSeason, setSelectedClubSeason] = useState<string>('all');
+  const [selectedGameTypeFilter, setSelectedGameTypeFilter] = useState<GameType | 'all'>('all');
 
   // Use React Query for settings management
   const { data: settings, isLoading: isLoadingSettings } = useQuery({
@@ -353,6 +355,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     selectedSeasonIdFilter,
     selectedTournamentIdFilter,
     selectedTeamIdFilter,
+    selectedGameTypeFilter,
   });
 
   const goalEditorHook = useGoalEditor({
@@ -383,6 +386,12 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         if (gameSeason !== selectedClubSeason) return; // Skip games not in selected club season
       }
 
+      // Filter by game type if one is selected
+      if (selectedGameTypeFilter !== 'all') {
+        const gameType = game.gameType || 'soccer'; // Default to soccer for legacy games
+        if (gameType !== selectedGameTypeFilter) return;
+      }
+
       gamesPlayed++;
       const ourScore = game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
       const theirScore = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
@@ -407,7 +416,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       averageGoalsFor: gamesPlayed > 0 ? goalsFor / gamesPlayed : 0,
       averageGoalsAgainst: gamesPlayed > 0 ? goalsAgainst / gamesPlayed : 0,
     };
-  }, [activeTab, savedGames, selectedTeamIdFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
+  }, [activeTab, savedGames, selectedTeamIdFilter, selectedClubSeason, selectedGameTypeFilter, clubSeasonStartDate, clubSeasonEndDate]);
 
   // Tab counter memoized for performance
   const tabCounterContent = useMemo(() => {
@@ -618,8 +627,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         <div className="flex-1 overflow-y-auto min-h-0">
           {activeTab === 'player' ? (
             <div className="p-4 sm:p-6">
-              {/* Player and Season Filters */}
-              <div className="mb-4 grid grid-cols-2 gap-2 overflow-visible">
+              {/* Player, Game Type and Season Filters */}
+              <div className="mb-4 grid grid-cols-3 gap-2 overflow-visible">
                 <Combobox
                   value={selectedPlayer}
                   onChange={(player) => {
@@ -657,6 +666,16 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     )}
                   </div>
                 </Combobox>
+                {/* Game Type Filter */}
+                <select
+                  value={selectedGameTypeFilter}
+                  onChange={(e) => setSelectedGameTypeFilter(e.target.value as GameType | 'all')}
+                  className="h-[42px] px-3 py-2 bg-slate-900/40 border border-slate-700/60 rounded-lg text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400/70"
+                >
+                  <option value="all">{t('gameStatsModal.filterAllGameTypes', 'All Sports')}</option>
+                  <option value="soccer">{t('common.gameTypeSoccer', 'Soccer')}</option>
+                  <option value="futsal">{t('common.gameTypeFutsal', 'Futsal')}</option>
+                </select>
                 <ClubSeasonFilter
                   selectedSeason={selectedClubSeason}
                   onChange={setSelectedClubSeason}
@@ -677,14 +696,15 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 selectedClubSeason={selectedClubSeason}
                 clubSeasonStartDate={clubSeasonStartDate}
                 clubSeasonEndDate={clubSeasonEndDate}
+                selectedGameTypeFilter={selectedGameTypeFilter}
               />
             </div>
           ) : (
             <div className="p-4 sm:p-6">
               {/* Filters */}
               {activeTab === 'overall' ? (
-                /* Overall tab with club season filter - side by side layout */
-                <div className={`mb-4 mx-1 grid ${teams.length > 0 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 items-center`}>
+                /* Overall tab with club season filter - responsive grid layout */
+                <div className={`mb-4 mx-1 grid ${teams.length > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-2 items-center`}>
                   {/* Team Filter */}
                   {teams.length > 0 && (
                     <select
@@ -703,6 +723,16 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                       ))}
                     </select>
                   )}
+                  {/* Game Type Filter */}
+                  <select
+                    value={selectedGameTypeFilter}
+                    onChange={(e) => setSelectedGameTypeFilter(e.target.value as GameType | 'all')}
+                    className="h-[34px] px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="all">{t('gameStatsModal.filterAllGameTypes', 'All Sports')}</option>
+                    <option value="soccer">{t('common.gameTypeSoccer', 'Soccer')}</option>
+                    <option value="futsal">{t('common.gameTypeFutsal', 'Futsal')}</option>
+                  </select>
                   {/* Club Season Filter with gear icon */}
                   <ClubSeasonFilter
                     selectedSeason={selectedClubSeason}
@@ -724,10 +754,12 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   selectedTournamentIdFilter={selectedTournamentIdFilter}
                   selectedTeamIdFilter={selectedTeamIdFilter}
                   selectedSeriesIdFilter={selectedSeriesIdFilter}
+                  selectedGameTypeFilter={selectedGameTypeFilter}
                   onSeasonFilterChange={setSelectedSeasonIdFilter}
                   onTournamentFilterChange={setSelectedTournamentIdFilter}
                   onTeamFilterChange={setSelectedTeamIdFilter}
                   onSeriesFilterChange={setSelectedSeriesIdFilter}
+                  onGameTypeFilterChange={setSelectedGameTypeFilter}
                 />
               )}
 

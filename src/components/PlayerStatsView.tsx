@@ -6,6 +6,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import type { TranslationKey } from '@/i18n-types';
 import { Player, Season, Tournament } from '@/types';
 import { AppState } from '@/types';
+import type { GameType } from '@/types/game';
 import { calculatePlayerStats, PlayerStats as PlayerStatsData } from '@/utils/playerStats';
 import { getAdjustmentsForPlayer, addPlayerAdjustment, updatePlayerAdjustment, deletePlayerAdjustment } from '@/utils/playerAdjustments';
 import type { PlayerStatAdjustment } from '@/types';
@@ -32,9 +33,11 @@ interface PlayerStatsViewProps {
   clubSeasonStartDate: string;
   /** Club season end date (ISO format YYYY-MM-DD). Year is template (e.g., "2000-05-01" for May 1). */
   clubSeasonEndDate: string;
+  /** Optional game type filter - 'soccer', 'futsal', or 'all' */
+  selectedGameTypeFilter?: GameType | 'all';
 }
 
-const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate }) => {
+const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all' }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
 
@@ -142,26 +145,33 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
     return getPlayerAssessmentNotes(player.id, savedGames);
   }, [player, savedGames]);
 
-  // Filter games by selected club season
+  // Filter games by selected club season and game type
   const filteredGamesByClubSeason = useMemo(() => {
-    if (selectedClubSeason === 'all') {
-      return savedGames;
-    }
-
     // Inline filtering to avoid redundant object transformations
     return Object.fromEntries(
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       Object.entries(savedGames).filter(([_id, game]) => {
-        if (!game.gameDate) return false;
-        const gameSeason = getClubSeasonForDate(
-          game.gameDate,
-          clubSeasonStartDate,
-          clubSeasonEndDate
-        );
-        return gameSeason === selectedClubSeason;
+        // Filter by club season
+        if (selectedClubSeason !== 'all') {
+          if (!game.gameDate) return false;
+          const gameSeason = getClubSeasonForDate(
+            game.gameDate,
+            clubSeasonStartDate,
+            clubSeasonEndDate
+          );
+          if (gameSeason !== selectedClubSeason) return false;
+        }
+
+        // Filter by game type
+        if (selectedGameTypeFilter !== 'all') {
+          const gameType = game.gameType || 'soccer'; // Default to soccer for legacy games
+          if (gameType !== selectedGameTypeFilter) return false;
+        }
+
+        return true;
       })
     );
-  }, [savedGames, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
+  }, [savedGames, selectedClubSeason, selectedGameTypeFilter, clubSeasonStartDate, clubSeasonEndDate]);
 
   const playerStats: PlayerStatsData | null = useMemo(() => {
     if (!player) return null;
