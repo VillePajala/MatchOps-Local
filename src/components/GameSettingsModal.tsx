@@ -635,6 +635,14 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       }
 
       // Apply league from season as default
+      //
+      // League-Season Dependency Chain:
+      // 1. Season data includes optional leagueId and customLeagueName
+      // 2. When season changes, league is prefilled from season defaults
+      // 3. User can override league per-game (stored in game state, not season)
+      // 4. Data flow: Season → Modal handlers → useGameSessionCoordination → Reducer → IndexedDB
+      // 5. Game's leagueId takes precedence over season's when loading (see LoadGameModal)
+      //
       // Use undefined for empty values (consistent with reducer state type)
       const effectiveLeagueId = season.leagueId || undefined;
       const effectiveCustomLeagueName = effectiveLeagueId === CUSTOM_LEAGUE_ID
