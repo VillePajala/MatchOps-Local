@@ -643,6 +643,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       // 4. Data flow: Season → Modal handlers → useGameSessionCoordination → Reducer → IndexedDB
       // 5. Game's leagueId takes precedence over season's when loading (see LoadGameModal)
       //
+      // UX Design Decision: Switching seasons overwrites any manual league override.
+      // This is intentional - changing which season a game belongs to should adopt
+      // that season's league default. User can re-override after switching if needed.
+      //
       // Use undefined for empty values (consistent with reducer state type)
       const effectiveLeagueId = season.leagueId || undefined;
       const effectiveCustomLeagueName = effectiveLeagueId === CUSTOM_LEAGUE_ID
