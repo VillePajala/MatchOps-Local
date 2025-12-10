@@ -12,6 +12,7 @@ import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
+import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
@@ -41,7 +42,9 @@ interface NewGameSetupModalProps {
     isPlayed: boolean,
     teamId: string | null, // Add team selection parameter
     availablePlayersForGame: Player[], // Add the actual roster to use for the game
-    selectedPersonnelIds: string[] // Add personnel selection parameter
+    selectedPersonnelIds: string[], // Add personnel selection parameter
+    leagueId: string, // League ID for the game
+    customLeagueName: string // Custom league name when leagueId === CUSTOM_LEAGUE_ID
   ) => void;
   onCancel: () => void;
   // Fresh data from React Query
@@ -76,6 +79,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   const [gameMinute, setGameMinute] = useState<string>('');
   const [ageGroup, setAgeGroup] = useState('');
   const [tournamentLevel, setTournamentLevel] = useState('');
+  const [leagueId, setLeagueId] = useState('');
+  const [customLeagueName, setCustomLeagueName] = useState('');
   const [selectedTournamentSeriesId, setSelectedTournamentSeriesId] = useState<string | null>(null);
   const homeTeamInputRef = useRef<HTMLInputElement>(null);
   const opponentInputRef = useRef<HTMLInputElement>(null);
@@ -139,6 +144,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     setActiveTab('none');
     setAgeGroup('');
     setTournamentLevel('');
+    setLeagueId('');
+    setCustomLeagueName('');
   }, [masterRoster, initialPlayerSelection]);
 
   // Initialize form when modal opens - using layout effect to avoid setState in regular effect
@@ -206,6 +213,15 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       setLocalPeriodDurationString(s.periodDuration ? String(s.periodDuration) : '15');
       setGameDate(s.startDate || new Date().toISOString().split('T')[0]);
       setActiveTab('season');
+      // Apply league from season as default (clear custom name if not "muu")
+      //
+      // League-Season Dependency: League selection is tied to season selection.
+      // When creating a new game, league defaults from season but can be overridden.
+      // The override is passed to onStart and stored in the game, not the season.
+      // See also: GameSettingsModal.tsx for similar prefill logic during game editing.
+      const seasonLeagueId = s.leagueId || '';
+      setLeagueId(seasonLeagueId);
+      setCustomLeagueName(seasonLeagueId === CUSTOM_LEAGUE_ID ? s.customLeagueName || '' : '');
     }
   }, [seasons]);
 
@@ -395,6 +411,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         return;
     }
 
+    // Validate custom league name when "Muu" is selected
+    if (leagueId === CUSTOM_LEAGUE_ID && !customLeagueName.trim()) {
+        showToast(t('newGameSetupModal.customLeagueNameRequired', 'Please enter a custom league name.'), 'error');
+        return;
+    }
+
     // --- Save last used home team name using utility function ---
     try {
       await utilSaveLastHomeTeamName(trimmedHomeTeamName);
@@ -424,7 +446,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       isPlayed,
       selectedTeamId, // Add team selection parameter
       availablePlayersForSetup, // Pass the actual roster being used in the modal
-      selectedPersonnelIds // Pass the personnel selection
+      selectedPersonnelIds, // Pass the personnel selection
+      leagueId, // League ID for the game
+      leagueId === CUSTOM_LEAGUE_ID ? customLeagueName.trim() : '' // Custom league name when leagueId === CUSTOM_LEAGUE_ID
     );
 
     // Modal will be closed by parent component after onStart
@@ -644,6 +668,44 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                               </option>
                             ))}
                           </select>
+
+                          {/* League Selection - shows when season is selected */}
+                          {selectedSeasonId && (
+                            <div className="mt-3">
+                              <label htmlFor="leagueSelect" className="block text-sm font-medium text-slate-300 mb-1">
+                                {t('newGameSetupModal.leagueLabel', 'League')}
+                              </label>
+                              <select
+                                id="leagueSelect"
+                                value={leagueId}
+                                onChange={(e) => {
+                                  setLeagueId(e.target.value);
+                                  // Clear custom name when switching away from "Muu" (intentional)
+                                  if (e.target.value !== CUSTOM_LEAGUE_ID) setCustomLeagueName('');
+                                }}
+                                onKeyDown={handleKeyDown}
+                                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                              >
+                                <option value="">{t('newGameSetupModal.selectLeague', '-- Select League --')}</option>
+                                {FINNISH_YOUTH_LEAGUES.map(league => (
+                                  <option key={league.id} value={league.id}>{league.name}</option>
+                                ))}
+                              </select>
+                              {/* Custom League Name - shown when "Muu" selected */}
+                              {leagueId === CUSTOM_LEAGUE_ID && (
+                                <div className="mt-2">
+                                  <input
+                                    type="text"
+                                    value={customLeagueName}
+                                    onChange={(e) => setCustomLeagueName(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder={t('newGameSetupModal.customLeaguePlaceholder', 'Enter league name')}
+                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
 

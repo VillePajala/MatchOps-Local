@@ -82,6 +82,8 @@ export interface UseGameSessionCoordinationReturn {
     setHomeOrAway: (status: 'home' | 'away') => void;
     setSeasonId: (seasonId: string | undefined) => void;
     setTournamentId: (tournamentId: string | undefined) => void;
+    setLeagueId: (leagueId: string | undefined) => void;
+    setCustomLeagueName: (customLeagueName: string | undefined) => void;
     setGamePersonnel: (personnelIds: string[]) => void;
   };
 }
@@ -129,6 +131,8 @@ export function useGameSessionCoordination({
     gamePersonnel: initialState.gamePersonnel ?? [],
     seasonId: initialState.seasonId,
     tournamentId: initialState.tournamentId,
+    leagueId: initialState.leagueId,
+    customLeagueName: initialState.customLeagueName,
     ageGroup: initialState.ageGroup,
     tournamentLevel: initialState.tournamentLevel,
     gameLocation: initialState.gameLocation,
@@ -386,6 +390,18 @@ export function useGameSessionCoordination({
     dispatchGameSession({ type: 'SET_TOURNAMENT_ID', payload: idToSet });
   }, [dispatchGameSession]);
 
+  const handleSetLeagueId = useCallback((newLeagueId: string | undefined) => {
+    // Action now accepts string | undefined directly - reducer normalizes to undefined
+    logger.log('[useGameSessionCoordination] handleSetLeagueId called with:', newLeagueId);
+    dispatchGameSession({ type: 'SET_LEAGUE_ID', payload: newLeagueId });
+  }, [dispatchGameSession]);
+
+  const handleSetCustomLeagueName = useCallback((newCustomLeagueName: string | undefined) => {
+    // Action now accepts string | undefined directly - reducer normalizes to undefined
+    logger.log('[useGameSessionCoordination] handleSetCustomLeagueName called with:', newCustomLeagueName);
+    dispatchGameSession({ type: 'SET_CUSTOM_LEAGUE_NAME', payload: newCustomLeagueName });
+  }, [dispatchGameSession]);
+
   const handleSetGamePersonnel = useCallback((personnelIds: string[]) => {
     dispatchGameSession({ type: 'SET_GAME_PERSONNEL', payload: personnelIds });
   }, [dispatchGameSession]);
@@ -495,6 +511,8 @@ export function useGameSessionCoordination({
       setHomeOrAway: handleSetHomeOrAway,
       setSeasonId: handleSetSeasonId,
       setTournamentId: handleSetTournamentId,
+      setLeagueId: handleSetLeagueId,
+      setCustomLeagueName: handleSetCustomLeagueName,
       setGamePersonnel: handleSetGamePersonnel,
     },
   };

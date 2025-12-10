@@ -635,6 +635,7 @@
     "homeTeamNameRequired": "Kotijoukkueen nimi on pakollinen.",
     "opponentNameRequired": "Vastustajan nimi on pakollinen.",
     "invalidPeriodDuration": "Jakson keston on oltava positiivinen luku.",
+    "customLeagueNameRequired": "Anna mukautetun sarjan nimi.",
     "loadingData": "Ladataan tietoja...",
     "homeTeamName": "Joukkueesi nimi",
     "homeTeamPlaceholder": "esim. Galaxy U10",
@@ -684,7 +685,10 @@
     "teamsAndRosterLabel": "Joukkueet ja kokoonpano",
     "gameDetailsLabel": "Pelin yksityiskohdat",
     "gameRulesLabel": "Pelisäännöt",
-    "gameConfigLabel": "Pelin asetukset"
+    "gameConfigLabel": "Pelin asetukset",
+    "leagueLabel": "Sarja",
+    "selectLeague": "-- Valitse sarja --",
+    "customLeaguePlaceholder": "Kirjoita sarjan nimi"
   },
   "startScreen": {
     "tagline": "Suunnittele · Kirjaa · Arvioi",
@@ -1170,7 +1174,10 @@
     "teamsAndRosterLabel": "Joukkueet ja kokoonpano",
     "gameDetailsLabel": "Pelin yksityiskohdat",
     "gameRulesLabel": "Pelisäännöt",
-    "gameConfigLabel": "Pelin asetukset"
+    "gameConfigLabel": "Pelin asetukset",
+    "leagueLabel": "Sarja",
+    "selectLeague": "-- Valitse sarja --",
+    "customLeaguePlaceholder": "Kirjoita sarjan nimi"
   },
   "gameStats": {
     "personnelSectionTitle": "Ottelun taustahenkilöt",

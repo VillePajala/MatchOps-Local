@@ -16,6 +16,7 @@ import PlayerSelectionSection from './PlayerSelectionSection';
 import PersonnelSelectionSection from './PersonnelSelectionSection';
 import TeamOpponentInputs from './TeamOpponentInputs';
 import { AGE_GROUPS, LEVELS } from '@/config/gameOptions';
+import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
@@ -91,6 +92,8 @@ export interface GameSettingsModalProps {
   tournamentLevel?: string;
   seasonId?: string;
   tournamentId?: string;
+  leagueId?: string;
+  customLeagueName?: string;
   gameEvents: GameEvent[];
   availablePlayers: Player[];
   availablePersonnel: Personnel[];
@@ -118,6 +121,33 @@ export interface GameSettingsModalProps {
   onDemandFactorChange: (factor: number) => void;
   onSeasonIdChange: (seasonId: string | undefined) => void;
   onTournamentIdChange: (tournamentId: string | undefined) => void;
+  /**
+   * Updates the league ID for the current game.
+   * @param leagueId - League ID from FINNISH_YOUTH_LEAGUES, or undefined to clear.
+   *                   Use CUSTOM_LEAGUE_ID ('muu') for custom leagues.
+   * @example
+   * // Set to SM-sarja
+   * onLeagueIdChange('sm-sarja');
+   *
+   * // Set to custom league (requires customLeagueName)
+   * onLeagueIdChange(CUSTOM_LEAGUE_ID);
+   *
+   * // Clear league selection
+   * onLeagueIdChange(undefined);
+   */
+  onLeagueIdChange: (leagueId: string | undefined) => void;
+  /**
+   * Updates the custom league name when leagueId === CUSTOM_LEAGUE_ID.
+   * @param customLeagueName - Custom league name, or undefined to clear.
+   *                           Only used when leagueId is CUSTOM_LEAGUE_ID ('muu').
+   * @example
+   * // Set custom league name
+   * onCustomLeagueNameChange('My Local Tournament');
+   *
+   * // Clear custom league name (e.g., when switching to predefined league)
+   * onCustomLeagueNameChange(undefined);
+   */
+  onCustomLeagueNameChange: (customLeagueName: string | undefined) => void;
   homeOrAway: 'home' | 'away';
   onSetHomeOrAway: (status: 'home' | 'away') => void;
   isPlayed: boolean;
@@ -202,6 +232,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   onSelectedPersonnelChange,
   seasonId = '',
   tournamentId = '',
+  leagueId = '',
+  customLeagueName = '',
   numPeriods,
   periodDurationMinutes,
   demandFactor = 1,
@@ -210,6 +242,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   onDemandFactorChange,
   onSeasonIdChange,
   onTournamentIdChange,
+  onLeagueIdChange,
+  onCustomLeagueNameChange,
   homeOrAway,
   onSetHomeOrAway,
   isPlayed,
@@ -538,8 +572,15 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   // Prefill game settings when selecting a season
   useEffect(() => {
     if (!isOpen || !seasonId) {
-      // Reset the ref when modal closes or season is cleared
-      if (!isOpen || !seasonId) {
+      // Reset the ref only when season is cleared (not when modal closes)
+      // This prevents re-applying season defaults when reopening the modal,
+      // which would overwrite user's manual league selection.
+      //
+      // Note: If user clears season then re-selects the same season, defaults
+      // WILL be re-applied. This is intentional - clearing the season breaks
+      // the association, and re-selecting creates a new association that should
+      // use the season's defaults. Only modal close/reopen preserves overrides.
+      if (!seasonId) {
         appliedSeasonRef.current = null;
       }
       return;
@@ -597,6 +638,30 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
         batchedUpdates.periodDurationMinutes = parsedDuration;
         hasUpdates = true;
       }
+
+      // Apply league from season as default
+      //
+      // League-Season Dependency Chain:
+      // 1. Season data includes optional leagueId and customLeagueName
+      // 2. When season changes, league is prefilled from season defaults
+      // 3. User can override league per-game (stored in game state, not season)
+      // 4. Data flow: Season → Modal handlers → useGameSessionCoordination → Reducer → IndexedDB
+      // 5. Game's leagueId takes precedence over season's when loading (see LoadGameModal)
+      //
+      // UX Design Decision: Switching seasons overwrites any manual league override.
+      // This is intentional - changing which season a game belongs to should adopt
+      // that season's league default. User can re-override after switching if needed.
+      //
+      // Use undefined for empty values (consistent with reducer state type)
+      const effectiveLeagueId = season.leagueId || undefined;
+      const effectiveCustomLeagueName = effectiveLeagueId === CUSTOM_LEAGUE_ID
+        ? (season.customLeagueName || undefined)
+        : undefined;
+      onLeagueIdChange(effectiveLeagueId);
+      onCustomLeagueNameChange(effectiveCustomLeagueName);
+      batchedUpdates.leagueId = effectiveLeagueId;
+      batchedUpdates.customLeagueName = effectiveCustomLeagueName;
+      hasUpdates = true;
 
       // Mark this season as applied AFTER handlers succeed to allow retry on failure
       appliedSeasonRef.current = seasonId;
@@ -1452,6 +1517,58 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                       </option>
                     ))}
                   </select>
+
+                  {/* League Selection - shows when season is selected */}
+                  {seasonId && (
+                    <div className="mt-3">
+                      <label htmlFor="leagueSelectGameSettings" className="block text-sm font-medium text-slate-300 mb-1">
+                        {t('gameSettingsModal.leagueLabel', 'League')}
+                      </label>
+                      <select
+                        id="leagueSelectGameSettings"
+                        value={leagueId}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          onLeagueIdChange(value || undefined);
+                          // Clear custom name when switching away from "Muu" (intentional)
+                          // This provides clean state and prevents stale data. If user switches
+                          // back to "Muu", they'll need to re-enter the custom name.
+                          if (value !== CUSTOM_LEAGUE_ID) {
+                            onCustomLeagueNameChange(undefined);
+                          }
+                          mutateGameDetails(
+                            { leagueId: value || undefined, customLeagueName: value === CUSTOM_LEAGUE_ID ? customLeagueName || undefined : undefined },
+                            { source: 'stateSync' }
+                          );
+                        }}
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                      >
+                        <option value="">{t('gameSettingsModal.selectLeague', '-- Select League --')}</option>
+                        {FINNISH_YOUTH_LEAGUES.map(league => (
+                          <option key={league.id} value={league.id}>{league.name}</option>
+                        ))}
+                      </select>
+                      {/* Custom League Name - shown when "Muu" selected */}
+                      {leagueId === CUSTOM_LEAGUE_ID && (
+                        <div className="mt-2">
+                          <input
+                            type="text"
+                            value={customLeagueName}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              onCustomLeagueNameChange(value || undefined);
+                              mutateGameDetails(
+                                { customLeagueName: value || undefined },
+                                { source: 'stateSync' }
+                              );
+                            }}
+                            placeholder={t('gameSettingsModal.customLeaguePlaceholder', 'Enter league name')}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
