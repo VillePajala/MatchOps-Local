@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "style: redesign update banner with glassmorphism effect"
+  "notes": "fix: add initial loading spinner for TWA cold start"
 }
