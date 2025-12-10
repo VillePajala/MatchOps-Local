@@ -411,6 +411,12 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         return;
     }
 
+    // Validate custom league name when "Muu" is selected
+    if (leagueId === CUSTOM_LEAGUE_ID && !customLeagueName.trim()) {
+        showToast(t('newGameSetupModal.customLeagueNameRequired', 'Please enter a custom league name.'), 'error');
+        return;
+    }
+
     // --- Save last used home team name using utility function ---
     try {
       await utilSaveLastHomeTeamName(trimmedHomeTeamName);
