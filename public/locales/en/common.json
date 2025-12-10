@@ -1373,8 +1373,9 @@
     "december": "December"
   },
   "updateBanner": {
-    "message": "A new version of the app is available.",
-    "reloadButton": "Reload",
+    "title": "Update Ready",
+    "message": "New features and improvements available.",
+    "updateButton": "Update Now",
     "dismissButton": "Dismiss"
   },
   "installPrompt": {

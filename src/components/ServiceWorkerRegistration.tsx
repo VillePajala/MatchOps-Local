@@ -7,25 +7,12 @@ import logger from '@/utils/logger';
 export default function ServiceWorkerRegistration() {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
   const [showUpdateBanner, setShowUpdateBanner] = useState(false);
-  const [releaseNotes, setReleaseNotes] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
       logger.log('[PWA] Service Worker is not supported or not in browser.');
       return;
     }
-
-    const fetchReleaseNotes = async () => {
-      try {
-        const res = await fetch('/release-notes.json', { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          setReleaseNotes(data.notes);
-        }
-      } catch (error) {
-        logger.error('Failed to fetch release notes', error);
-      }
-    };
 
     const swUrl = '/sw.js';
     let updateInterval: NodeJS.Timeout | null = null;
@@ -38,7 +25,6 @@ export default function ServiceWorkerRegistration() {
       if (registration.waiting) {
         logger.log('[PWA] Update available on registration - showing update banner');
         setWaitingWorker(registration.waiting);
-        fetchReleaseNotes();
         setShowUpdateBanner(true);
         return;
       }
@@ -54,7 +40,6 @@ export default function ServiceWorkerRegistration() {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 logger.log('[PWA] New service worker installed - showing update banner');
                 setWaitingWorker(newWorker);
-                fetchReleaseNotes();
                 setShowUpdateBanner(true);
               }
           };
@@ -110,7 +95,6 @@ export default function ServiceWorkerRegistration() {
   return showUpdateBanner ? (
     <UpdateBanner
       onUpdate={handleUpdate}
-      notes={releaseNotes || undefined}
       onDismiss={() => setShowUpdateBanner(false)}
     />
   ) : null;
