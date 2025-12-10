@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HiOutlineXMark } from "react-icons/hi2";
 
@@ -13,11 +13,6 @@ interface UpdateBannerProps {
 const UpdateBanner: React.FC<UpdateBannerProps> = ({ onUpdate, onDismiss, notes }) => {
   const { t } = useTranslation();
   const [hidden, setHidden] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
 
   if (hidden) return null;
 
@@ -36,8 +31,9 @@ const UpdateBanner: React.FC<UpdateBannerProps> = ({ onUpdate, onDismiss, notes 
         zIndex: 9999,
         width: 'min(860px, calc(100vw - 24px))',
         pointerEvents: 'auto',
+        animation: 'fadeSlideIn 0.3s ease-out',
       }}
-      className={`font-display transition-all duration-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}
+      className="font-display"
     >
       <div className="relative overflow-hidden rounded-2xl bg-slate-900/75 border border-white/12 shadow-[0_18px_50px_rgba(0,0,0,0.55)] backdrop-blur-md ring-1 ring-inset ring-white/8">
         <div className="absolute left-1/2 top-0 h-[3px] w-[55%] max-w-[480px] -translate-x-1/2 bg-gradient-to-r from-sky-400 via-indigo-400 to-fuchsia-500 opacity-85" />

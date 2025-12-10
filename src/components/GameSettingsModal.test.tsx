@@ -713,7 +713,6 @@ describe('<GameSettingsModal />', () => {
     });
 
     test('should show league dropdown when season is selected', async () => {
-      const user = userEvent.setup();
       renderModal({
         ...leagueProps,
         seasonId: 's1',

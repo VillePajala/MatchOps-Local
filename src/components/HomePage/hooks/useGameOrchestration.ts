@@ -1691,7 +1691,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       setShowSaveBeforeNewConfirm(true);
     } else {
       // For saved games (auto-saved), go directly to new game setup modal
-      setPlayerIdsForNewGame(availablePlayers.map(p => p.id));
+      setPlayerIdsForNewGame([]); // Start with no players pre-selected
       openNewGameViaReducer();
     }
   }, [currentGameId, availablePlayers, t, openNewGameViaReducer]);
@@ -1719,10 +1719,10 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
   // Handler for "Start New" confirmation
   const handleStartNewConfirmed = useCallback(() => {
-    setPlayerIdsForNewGame(availablePlayers.map(p => p.id)); // SET default player selection (all players)
+    setPlayerIdsForNewGame([]); // Start with no players pre-selected
     setShowStartNewConfirm(false);
     openNewGameViaReducer(); // Open the setup modal
-  }, [availablePlayers, openNewGameViaReducer]);
+  }, [openNewGameViaReducer]);
 
   if (debug.enabled('home')) {
     logger.log('[Home Render] highlightRosterButton:', highlightRosterButton);
