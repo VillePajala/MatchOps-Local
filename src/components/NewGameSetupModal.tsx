@@ -816,6 +816,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                 </label>
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={() => setGameType('soccer')}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gameType === 'soccer'
@@ -826,6 +827,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     {t('common.gameTypeSoccer', 'Soccer')}
                   </button>
                   <button
+                    type="button"
                     onClick={() => setGameType('futsal')}
                     className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
                       gameType === 'futsal'
