@@ -33,7 +33,12 @@ Purpose: a single, authoritative, step‑by‑step guide to take MatchOps‑Loca
 | P2: PWA Packaging | #3-5 | 8-12h | Manifest, TWA, Store assets | ✅ Done |
 | P3: Quality | #6-7 | 4-6h | Accessibility, Performance | ✅ Done |
 | P4: Monetization | #8-10 | 8-12h | Billing, Feature gating, Paywall | ✅ Done |
-| P5: Release | #11 | 2-4h | Store submission | ⏳ Pending |
+| P5: Release | #11 | 2-4h | Store submission | 🚧 In Progress |
+
+**P5 Breakdown**:
+- P5.1: TWA Build & Internal Testing ✅ Done (Dec 10)
+- P5.2: Store Listing & Declarations ⏳ In Progress
+- P5.3: Production Release 📋 Pending
 
 ### Branching Strategy
 
@@ -540,6 +545,36 @@ Acceptance
 - Target Date: TBD
 
 Outcome: staged rollout, monitoring, support, and maintenance loop defined.
+
+### P5.1: TWA Build & Internal Testing ✅ COMPLETED
+
+- Completion Date: December 10, 2025
+
+**What Was Done**:
+- [x] TWA (Trusted Web Activity) built using Bubblewrap
+- [x] App signing configured with Play App Signing
+- [x] AAB uploaded to Play Console internal testing track
+- [x] Digital Asset Links (`assetlinks.json`) configured with correct SHA-256 fingerprints
+  - Upload key fingerprint: `30:12:BB:EB:13:71:22:FF:42:E5:15:AB:24:33:C8:62:00:CE:9F:0B:B8:FC:E7:E1:87:F5:7D:9F:FC:14:61:2F`
+  - Google Play signing key: `0A:22:9D:2B:93:8B:65:81:CC:80:11:A4:65:3D:32:DE:C5:DD:8C:00:7B:02:F2:84:8F:8B:45:62:97:83:49:F3`
+- [x] TWA runs in full-screen mode (no browser bar)
+- [x] App installs successfully from Play Store internal testing
+- [x] Update flow verified - PWA updates deploy via Vercel, no new AAB needed for content changes
+- [x] Update banner redesigned with glassmorphism effect
+
+**Key Learnings**:
+- TWA is a thin wrapper - most updates deploy via Vercel without touching Play Store
+- New AAB only needed for: launcher icon, splash screen, TWA config, or permissions changes
+- Digital Asset Links requires BOTH upload key AND Google Play signing key fingerprints
+
+### P5.2: Store Listing & Content Declarations ⏳ IN PROGRESS
+
+- [ ] Complete store listing (app name, descriptions, screenshots)
+- [ ] Fill out data safety form
+- [ ] Complete content rating questionnaire
+- [ ] Verify privacy policy URL is accessible
+
+### P5.3: Production Release 📋 PENDING
 
 - P5 Checklist
   - [ ] Staged rollout plan: internal → closed → production; Sentry alerts configured
