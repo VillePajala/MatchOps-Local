@@ -120,6 +120,34 @@ describe('gameFilters', () => {
       });
     });
 
+    describe('gameType filter', () => {
+      it('filters futsal games when gameTypeFilter is futsal', () => {
+        const games: SavedGamesCollection = {
+          'soccer_game': createGame({ gameType: 'soccer' }),
+          'futsal_game': createGame({ gameType: 'futsal' }),
+          'legacy_game': createGame({ gameType: undefined }),
+        };
+
+        const result = filterGameIds(games, { playedOnly: false, gameTypeFilter: 'futsal' });
+
+        expect(result).toEqual(['futsal_game']);
+      });
+
+      it('treats legacy games as soccer when filtering for soccer', () => {
+        const games: SavedGamesCollection = {
+          'soccer_game': createGame({ gameType: 'soccer' }),
+          'legacy_game': createGame({ gameType: undefined }),
+          'futsal_game': createGame({ gameType: 'futsal' }),
+        };
+
+        const result = filterGameIds(games, { playedOnly: false, gameTypeFilter: 'soccer' });
+
+        expect(result).toContain('soccer_game');
+        expect(result).toContain('legacy_game');
+        expect(result).not.toContain('futsal_game');
+      });
+    });
+
     describe('season tab filtering', () => {
       it('returns games with seasonId and no tournamentId when seasonFilter=all', () => {
         const games: SavedGamesCollection = {
