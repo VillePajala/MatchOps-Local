@@ -4,6 +4,7 @@ This directory contains detailed specifications for individual features and plan
 
 ## Feature Documents
 
+- **[game-type-support.md](./game-type-support.md)** - Soccer and futsal game type labeling
 - **[team-management.md](./team-management.md)** - Multi-team support and team organization
 - **[master-roster-management.md](./master-roster-management.md)** - Central player roster system
 - **[seasons-tournaments.md](./seasons-tournaments.md)** - Season and tournament organization (includes club season filtering)
