@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: resolve lint errors in GameStatsModal and PlayerStatsView.test"
+  "notes": "fix: update tests for FilterControls and PlayerStatsView mocks"
 }

@@ -6,7 +6,7 @@ import { useToast } from '@/contexts/ToastProvider';
 import type { TranslationKey } from '@/i18n-types';
 import { Player, Season, Tournament } from '@/types';
 import { AppState } from '@/types';
-import type { GameType } from '@/types/game';
+import type { GameType, Gender } from '@/types/game';
 import { calculatePlayerStats, PlayerStats as PlayerStatsData } from '@/utils/playerStats';
 import { getAdjustmentsForPlayer, addPlayerAdjustment, updatePlayerAdjustment, deletePlayerAdjustment } from '@/utils/playerAdjustments';
 import type { PlayerStatAdjustment } from '@/types';
@@ -35,9 +35,11 @@ interface PlayerStatsViewProps {
   clubSeasonEndDate: string;
   /** Optional game type filter - 'soccer', 'futsal', or 'all' */
   selectedGameTypeFilter?: GameType | 'all';
+  /** Optional gender filter - 'boys', 'girls', or 'all' */
+  selectedGenderFilter?: Gender | 'all';
 }
 
-const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all' }) => {
+const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, onGameClick, seasons, tournaments, teamId, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate, selectedGameTypeFilter = 'all', selectedGenderFilter = 'all' }) => {
   const { t, i18n } = useTranslation();
   const { showToast } = useToast();
 
@@ -168,10 +170,15 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
           if (gameType !== selectedGameTypeFilter) return false;
         }
 
+        // Filter by gender
+        if (selectedGenderFilter !== 'all') {
+          if (game.gender !== selectedGenderFilter) return false;
+        }
+
         return true;
       })
     );
-  }, [savedGames, selectedClubSeason, selectedGameTypeFilter, clubSeasonStartDate, clubSeasonEndDate]);
+  }, [savedGames, selectedClubSeason, selectedGameTypeFilter, selectedGenderFilter, clubSeasonStartDate, clubSeasonEndDate]);
 
   const playerStats: PlayerStatsData | null = useMemo(() => {
     if (!player) return null;

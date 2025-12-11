@@ -175,6 +175,7 @@ export function useNewGameFlow({
       leagueId: string,
       customLeagueName: string,
       gameType: import('@/types').GameType,
+      gender: import('@/types').Gender | undefined,
     ) => {
       await startNewGameWithSetup(
         {
@@ -219,6 +220,7 @@ export function useNewGameFlow({
           leagueId,
           customLeagueName,
           gameType,
+          gender,
         },
       );
     },

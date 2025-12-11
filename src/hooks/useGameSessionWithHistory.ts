@@ -54,6 +54,7 @@ const HISTORY_SAVING_ACTIONS = new Set([
   'SET_LEAGUE_ID',
   'SET_CUSTOM_LEAGUE_NAME',
   'SET_GAME_TYPE',
+  'SET_GENDER',
   // Players and personnel
   'SET_SELECTED_PLAYER_IDS',
   'SET_GAME_PERSONNEL',
