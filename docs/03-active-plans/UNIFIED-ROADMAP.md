@@ -254,7 +254,8 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 | **Backend refactoring (Priority 2)** | `backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md` |
 | Play Store master guide | `master-execution-guide.md` |
 | Feature: Tournament/Leagues | `TOURNAMENT-SERIES-AND-SEASON-LEAGUES.md` |
-| Social media launch | `SOCIAL_MEDIA_LAUNCH_STRATEGY.md` |
+| **Communication & Marketing** | `../07-business/communication-infrastructure-plan.md` ⭐ |
+| Monetization strategies | `../07-business/monetization-strategies.md` |
 
 ---
 
