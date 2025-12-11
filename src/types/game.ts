@@ -6,7 +6,8 @@ import type { PlayerAssessment } from './playerAssessment';
  * Finnish youth seasons often include both types of games.
  *
  * @remarks
- * - Defaults to 'soccer' for backward compatibility
+ * - Defaults to 'soccer' for backward compatibility (applied at filter time, not persisted)
+ * - Legacy games without gameType are treated as 'soccer' during filtering
  * - Used for filtering games, seasons, tournaments in stats views
  * - Future: may enable different field visualization (soccer field vs futsal court)
  */
