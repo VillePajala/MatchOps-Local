@@ -19,6 +19,10 @@ interface UseTournamentSeasonStatsParams {
   selectedTournamentIdFilter: string | 'all';
   selectedTeamIdFilter?: string | 'all' | 'legacy';
   selectedGameTypeFilter?: GameType | 'all';
+  // Club season filter params
+  selectedClubSeason?: string | 'all';
+  clubSeasonStartDate?: string;
+  clubSeasonEndDate?: string;
 }
 
 export function useTournamentSeasonStats(
@@ -33,6 +37,9 @@ export function useTournamentSeasonStats(
     selectedTournamentIdFilter,
     selectedTeamIdFilter = 'all',
     selectedGameTypeFilter = 'all',
+    selectedClubSeason = 'all',
+    clubSeasonStartDate = '2000-10-01',
+    clubSeasonEndDate = '2000-05-01',
   } = params;
 
   return useMemo(() => {
@@ -300,7 +307,10 @@ export function useTournamentSeasonStats(
       tournamentFilter: activeTab === 'tournament' ? selectedTournamentIdFilter : undefined,
       gameTypeFilter: selectedGameTypeFilter,
       activeTab,
+      clubSeasonFilter: selectedClubSeason,
+      clubSeasonStartDate,
+      clubSeasonEndDate,
     });
     return calculateStats(playedGameIds);
-  }, [activeTab, savedGames, seasons, tournaments, selectedSeasonIdFilter, selectedTournamentIdFilter, selectedTeamIdFilter, selectedGameTypeFilter]);
+  }, [activeTab, savedGames, seasons, tournaments, selectedSeasonIdFilter, selectedTournamentIdFilter, selectedTeamIdFilter, selectedGameTypeFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
 }

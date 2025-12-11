@@ -6,6 +6,7 @@
 import { SavedGamesCollection } from '@/types';
 import type { GameType } from '@/types/game';
 import { StatsTab } from '../types';
+import { getClubSeasonForDate } from '@/utils/clubSeason';
 
 /**
  * Filter options for game collection
@@ -46,6 +47,21 @@ export interface GameFilterOptions {
    * Active tab context - affects season/tournament filtering logic
    */
   activeTab?: StatsTab;
+
+  /**
+   * Club season filter - 'all' or specific season label (e.g., '24/25')
+   */
+  clubSeasonFilter?: string | 'all';
+
+  /**
+   * Club season start date template (ISO format, e.g., '2000-10-01')
+   */
+  clubSeasonStartDate?: string;
+
+  /**
+   * Club season end date template (ISO format, e.g., '2000-05-01')
+   */
+  clubSeasonEndDate?: string;
 }
 
 /**
@@ -81,7 +97,10 @@ export function filterGameIds(
     tournamentFilter,
     seriesFilter,
     gameTypeFilter = 'all',
-    activeTab
+    activeTab,
+    clubSeasonFilter = 'all',
+    clubSeasonStartDate = '2000-10-01',
+    clubSeasonEndDate = '2000-05-01',
   } = options;
 
   if (!games) return [];
@@ -114,6 +133,13 @@ export function filterGameIds(
     if (gameTypeFilter !== 'all') {
       const gameType = game.gameType || 'soccer'; // Default to soccer for legacy games
       if (gameType !== gameTypeFilter) return false;
+    }
+
+    // Club season filter (Vuosi - e.g., '24/25')
+    if (clubSeasonFilter !== 'all') {
+      if (!game.gameDate) return false;
+      const gameSeason = getClubSeasonForDate(game.gameDate, clubSeasonStartDate, clubSeasonEndDate);
+      if (gameSeason !== clubSeasonFilter) return false;
     }
 
     // Season filter (based on activeTab context)
