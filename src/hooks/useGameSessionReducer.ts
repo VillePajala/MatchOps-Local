@@ -470,6 +470,11 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       const tournamentId = loadedData.tournamentId ?? '';
       const tournamentSeriesId = loadedData.tournamentSeriesId;
       const teamId = loadedData.teamId;
+      const leagueId = loadedData.leagueId;
+      const customLeagueName = loadedData.customLeagueName;
+      const gameType = loadedData.gameType;
+      const ageGroup = loadedData.ageGroup;
+      const tournamentLevel = loadedData.tournamentLevel;
       const gameLocation = loadedData.gameLocation ?? '';
       const gameTime = loadedData.gameTime ?? '';
       const demandFactor = loadedData.demandFactor ?? 1;
@@ -508,6 +513,11 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         tournamentId,
         tournamentSeriesId,
         teamId,
+        leagueId,
+        customLeagueName,
+        gameType,
+        ageGroup,
+        tournamentLevel,
         gameLocation,
         gameTime,
         demandFactor,
