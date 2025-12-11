@@ -73,6 +73,7 @@ describe('Game Type Persistence Integration Tests', () => {
    * 4. Reload game from storage
    * 5. Verify gameType: 'futsal' persists
    * @critical
+   * @integration
    */
   it('should preserve gameType from season through game creation to saved game', async () => {
     // Step 1: Create a season with gameType: 'futsal'
