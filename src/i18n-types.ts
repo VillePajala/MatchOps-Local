@@ -379,7 +379,6 @@ export type TranslationKey =
   | 'gameStatsModal.filtersTitle'
   | 'gameStatsModal.game'
   | 'gameStatsModal.gameInfoTitle'
-  | 'gameStatsModal.gameTypeFilterLabel'
   | 'gameStatsModal.games'
   | 'gameStatsModal.goalLogTitle'
   | 'gameStatsModal.goalsHeader'

@@ -8,7 +8,6 @@ import { useQuery } from '@tanstack/react-query';
 import logger from '@/utils/logger';
 import { Player, PlayerStatRow, Season, Tournament, Team, Personnel } from '@/types';
 import { GameEvent, SavedGamesCollection } from '@/types';
-import type { GameType } from '@/types/game';
 import { getSeasons as utilGetSeasons } from '@/utils/seasons';
 import { getTournaments as utilGetTournaments } from '@/utils/tournaments';
 import { getTeams as utilGetTeams } from '@/utils/teams';
@@ -25,6 +24,7 @@ import { queryKeys } from '@/config/queryKeys';
 import { useGameStats } from './GameStatsModal/hooks/useGameStats';
 import { useTournamentSeasonStats } from './GameStatsModal/hooks/useTournamentSeasonStats';
 import { useGoalEditor } from './GameStatsModal/hooks/useGoalEditor';
+import { useStatsFilters } from './GameStatsModal/hooks/useStatsFilters';
 
 // Import shared utilities
 import { getPlayedGamesByTeam } from './GameStatsModal/utils/gameFilters';
@@ -183,17 +183,28 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [activeTab, setActiveTab] = useState<StatsTab>(initialSelectedPlayerId ? 'player' : 'currentGame');
-  const [selectedSeasonIdFilter, setSelectedSeasonIdFilter] = useState<string | 'all'>('all');
-  const [selectedTournamentIdFilter, setSelectedTournamentIdFilter] = useState<string | 'all'>('all');
-  const [selectedTeamIdFilter, setSelectedTeamIdFilter] = useState<string | 'all' | 'legacy'>('all');
-  const [selectedSeriesIdFilter, setSelectedSeriesIdFilter] = useState<string | 'all'>('all');
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(
     initialSelectedPlayerId ? availablePlayers.find(p => p.id === initialSelectedPlayerId) || null : null
   );
   const [playerQuery, setPlayerQuery] = useState('');
-  const [selectedClubSeason, setSelectedClubSeason] = useState<string>('all');
-  const [selectedGameTypeFilter, setSelectedGameTypeFilter] = useState<GameType | 'all'>('all');
+  const { filters, handlers } = useStatsFilters({ activeTab });
+  const {
+    selectedSeasonIdFilter,
+    selectedTournamentIdFilter,
+    selectedTeamIdFilter,
+    selectedSeriesIdFilter,
+    selectedGameTypeFilter,
+    selectedClubSeason,
+  } = filters;
+  const {
+    onSeasonFilterChange,
+    onTournamentFilterChange,
+    onTeamFilterChange,
+    onSeriesFilterChange,
+    onGameTypeFilterChange,
+    onClubSeasonChange,
+  } = handlers;
 
   // Use React Query for settings management
   const { data: settings, isLoading: isLoadingSettings } = useQuery({
@@ -306,21 +317,6 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       setSelectedPlayer(null);
     }
   }, [initialSelectedPlayerId, playerPool, isOpen]);
-
-  // Reset ALL filters when tab changes - users expect a clean view on each tab
-  useEffect(() => {
-    setSelectedSeasonIdFilter('all');
-    setSelectedTournamentIdFilter('all');
-    setSelectedTeamIdFilter('all');
-    setSelectedSeriesIdFilter('all');
-    setSelectedGameTypeFilter('all');
-    setSelectedClubSeason('all');
-  }, [activeTab]);
-
-  // Reset series filter when tournament changes
-  useEffect(() => {
-    setSelectedSeriesIdFilter('all');
-  }, [selectedTournamentIdFilter]);
 
   // --- Use extracted hooks ---
   const { stats: playerStats, gameIds: processedGameIds, totals } = useGameStats({
@@ -637,18 +633,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 seasons={seasons}
                 tournaments={tournaments}
                 teams={teams}
-                selectedSeasonIdFilter={selectedSeasonIdFilter}
-                selectedTournamentIdFilter={selectedTournamentIdFilter}
-                selectedTeamIdFilter={selectedTeamIdFilter}
-                selectedSeriesIdFilter={selectedSeriesIdFilter}
-                selectedGameTypeFilter={selectedGameTypeFilter}
-                onSeasonFilterChange={setSelectedSeasonIdFilter}
-                onTournamentFilterChange={setSelectedTournamentIdFilter}
-                onTeamFilterChange={setSelectedTeamIdFilter}
-                onSeriesFilterChange={setSelectedSeriesIdFilter}
-                onGameTypeFilterChange={setSelectedGameTypeFilter}
-                selectedClubSeason={selectedClubSeason}
-                onClubSeasonChange={setSelectedClubSeason}
+                filters={filters}
+                handlers={handlers}
                 availableClubSeasons={availableClubSeasons}
                 hasConfiguredSeasonDates={hasConfiguredSeasonDates}
                 isLoadingSettings={isLoadingSettings}
@@ -717,19 +703,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   seasons={seasons}
                   tournaments={tournaments}
                   teams={teams}
-                  selectedSeasonIdFilter={selectedSeasonIdFilter}
-                  selectedTournamentIdFilter={selectedTournamentIdFilter}
-                  selectedTeamIdFilter={selectedTeamIdFilter}
-                  selectedSeriesIdFilter={selectedSeriesIdFilter}
-                  selectedGameTypeFilter={selectedGameTypeFilter}
-                  onSeasonFilterChange={setSelectedSeasonIdFilter}
-                  onTournamentFilterChange={setSelectedTournamentIdFilter}
-                  onTeamFilterChange={setSelectedTeamIdFilter}
-                  onSeriesFilterChange={setSelectedSeriesIdFilter}
-                  onGameTypeFilterChange={setSelectedGameTypeFilter}
+                  filters={filters}
+                  handlers={handlers}
                   // Club Season Filter props (for Season tab)
-                  selectedClubSeason={selectedClubSeason}
-                  onClubSeasonChange={setSelectedClubSeason}
                   availableClubSeasons={availableClubSeasons}
                   hasConfiguredSeasonDates={hasConfiguredSeasonDates}
                   isLoadingSettings={isLoadingSettings}
@@ -747,11 +723,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   selectedTeamIdFilter={selectedTeamIdFilter}
                   selectedSeriesIdFilter={selectedSeriesIdFilter}
                   selectedGameTypeFilter={selectedGameTypeFilter}
-                  onSeasonFilterChange={setSelectedSeasonIdFilter}
-                  onTournamentFilterChange={setSelectedTournamentIdFilter}
-                  onTeamFilterChange={setSelectedTeamIdFilter}
-                  onSeriesFilterChange={setSelectedSeriesIdFilter}
-                  onGameTypeFilterChange={setSelectedGameTypeFilter}
+                  onSeasonFilterChange={onSeasonFilterChange}
+                  onTournamentFilterChange={onTournamentFilterChange}
+                  onTeamFilterChange={onTeamFilterChange}
+                  onSeriesFilterChange={onSeriesFilterChange}
+                  onGameTypeFilterChange={onGameTypeFilterChange}
                 />
               )}
 
