@@ -12,5 +12,6 @@ Use this short checklist to manually verify key workflows after making changes t
 8. **Review assessment progress** – Save ratings for multiple players and ensure the header progress updates and saved players show a ✔ icon.
 9. **Check performance averages** – Open a player's stats page and confirm the new Performance Ratings section shows average slider values and number of rated games. In Game Stats, open the Overall tab to see team rating averages.
 10. **Toggle demand correction** – In Player Stats view, enable the *Weight by Difficulty* option and verify averages change when games use different difficulty factors.
+11. **Game type empty state** – In Game Stats, switch the sport filter from **Soccer** to **Futsal** when there are no futsal games. Confirm the list shows an appropriate "No games found" message instead of staying blank.
 
 Running through these steps after updates helps catch regressions before deploying.

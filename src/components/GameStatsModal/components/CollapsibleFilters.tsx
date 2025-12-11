@@ -12,25 +12,15 @@ import type { TranslationKey } from '@/i18n-types';
 import type { GameType } from '@/types/game';
 import { StatsTab } from '../types';
 import { ClubSeasonFilter } from './ClubSeasonFilter';
+import type { StatsFiltersHandlers, StatsFiltersState } from '../hooks/useStatsFilters';
 
 interface CollapsibleFiltersProps {
   activeTab: StatsTab;
   seasons: Season[];
   tournaments: Tournament[];
   teams: Team[];
-  selectedSeasonIdFilter: string | 'all';
-  selectedTournamentIdFilter: string | 'all';
-  selectedTeamIdFilter: string | 'all' | 'legacy';
-  selectedSeriesIdFilter: string | 'all';
-  selectedGameTypeFilter?: GameType | 'all';
-  onSeasonFilterChange: (seasonId: string | 'all') => void;
-  onTournamentFilterChange: (tournamentId: string | 'all') => void;
-  onTeamFilterChange: (teamId: string | 'all' | 'legacy') => void;
-  onSeriesFilterChange: (seriesId: string | 'all') => void;
-  onGameTypeFilterChange?: (gameType: GameType | 'all') => void;
-  // Club Season Filter props (for Season tab)
-  selectedClubSeason?: string;
-  onClubSeasonChange?: (season: string) => void;
+  filters: StatsFiltersState;
+  handlers: StatsFiltersHandlers;
   availableClubSeasons?: string[];
   hasConfiguredSeasonDates?: boolean;
   isLoadingSettings?: boolean;
@@ -44,19 +34,8 @@ export function CollapsibleFilters({
   seasons,
   tournaments,
   teams,
-  selectedSeasonIdFilter,
-  selectedTournamentIdFilter,
-  selectedTeamIdFilter,
-  selectedSeriesIdFilter,
-  selectedGameTypeFilter = 'all',
-  onSeasonFilterChange,
-  onTournamentFilterChange,
-  onTeamFilterChange,
-  onSeriesFilterChange,
-  onGameTypeFilterChange,
-  // Club Season Filter props
-  selectedClubSeason = 'all',
-  onClubSeasonChange,
+  filters,
+  handlers,
   availableClubSeasons = [],
   hasConfiguredSeasonDates = false,
   isLoadingSettings = false,
@@ -64,6 +43,25 @@ export function CollapsibleFilters({
   // Custom primary filter (e.g., Player combobox)
   children,
 }: CollapsibleFiltersProps) {
+  const {
+    selectedSeasonIdFilter,
+    selectedTournamentIdFilter,
+    selectedTeamIdFilter,
+    selectedSeriesIdFilter,
+    selectedGameTypeFilter = 'all',
+    selectedClubSeason,
+  } = filters;
+
+  const {
+    onSeasonFilterChange,
+    onTournamentFilterChange,
+    onTeamFilterChange,
+    onSeriesFilterChange,
+    onGameTypeFilterChange,
+    onClubSeasonChange,
+    clearCollapsibleFilters,
+  } = handlers;
+
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -94,7 +92,7 @@ export function CollapsibleFilters({
   // Team filter is in collapsible panel for tournament/season tabs, but visible on overall tab
   // Player tab doesn't show team filter (it's player-specific stats)
   const hasTeamFilterInPanel = teams.length > 0 && activeTab !== 'currentGame' && activeTab !== 'overall' && activeTab !== 'player';
-  const hasGameTypeFilter = !!onGameTypeFilterChange && activeTab !== 'currentGame';
+  const hasGameTypeFilter = activeTab !== 'currentGame';
   const hasClubSeasonFilter = !!onClubSeasonChange && !!onOpenSettings && (activeTab === 'tournament' || activeTab === 'season' || activeTab === 'overall' || activeTab === 'player');
 
   // Count active (non-default) filters for badge (only filters in collapsible panel)
@@ -118,8 +116,7 @@ export function CollapsibleFilters({
         <select
           value={selectedTournamentIdFilter}
           onChange={(e) => {
-            onTournamentFilterChange(e.target.value);
-            onSeriesFilterChange('all');
+                      onTournamentFilterChange(e.target.value);
           }}
           className="flex-1 min-w-0 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
         >
@@ -202,16 +199,12 @@ export function CollapsibleFilters({
                 </span>
                 {activeFilterCount > 0 && (
                   <button
-                    onClick={() => {
-                      // Reset only collapsible filters (not primary filter visible outside)
-                      if (activeTab === 'tournament') {
-                        onSeriesFilterChange('all');
-                      }
-                      // Team filter is only in panel for tournament/season tabs
-                      if (hasTeamFilterInPanel) onTeamFilterChange('all');
-                      if (hasGameTypeFilter && onGameTypeFilterChange) onGameTypeFilterChange('all');
-                      if (hasClubSeasonFilter && onClubSeasonChange) onClubSeasonChange('all');
-                    }}
+                    onClick={() => clearCollapsibleFilters({
+                      resetSeries: activeTab === 'tournament',
+                      resetTeam: hasTeamFilterInPanel,
+                      resetGameType: hasGameTypeFilter,
+                      resetClubSeason: hasClubSeasonFilter,
+                    })}
                     className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
                   >
                     {t('gameStatsModal.clearFilters', 'Clear all')}
@@ -268,11 +261,11 @@ export function CollapsibleFilters({
                 {hasGameTypeFilter && (
                   <div>
                     <label className="block text-xs font-medium text-slate-400 mb-1">
-                      {t('gameStatsModal.gameTypeFilterLabel', 'Sport Type')}
+                      {t('common.gameTypeLabel', 'Sport Type')}
                     </label>
                     <select
                       value={selectedGameTypeFilter}
-                      onChange={(e) => onGameTypeFilterChange?.(e.target.value as GameType | 'all')}
+                    onChange={(e) => onGameTypeFilterChange(e.target.value as GameType | 'all')}
                       className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     >
                       <option value="all">{t('gameStatsModal.filterAllGameTypes', 'All Sports')}</option>
@@ -290,7 +283,7 @@ export function CollapsibleFilters({
                     </label>
                     <ClubSeasonFilter
                       selectedSeason={selectedClubSeason}
-                      onChange={onClubSeasonChange!}
+                      onChange={onClubSeasonChange}
                       seasons={availableClubSeasons}
                       hasConfigured={hasConfiguredSeasonDates}
                       isLoading={isLoadingSettings}

@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "docs: update roadmap and business documentation"
+  "notes": "fix: make FilterControls responsive on mobile (max 2 cols)"
 }
