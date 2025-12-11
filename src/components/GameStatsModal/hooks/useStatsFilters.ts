@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { GameType } from '@/types/game';
-import type { StatsTab } from '../types';
 
 export interface StatsFiltersState {
   selectedSeasonIdFilter: string | 'all';
@@ -24,29 +23,20 @@ export interface StatsFiltersHandlers {
     resetGameType?: boolean;
     resetClubSeason?: boolean;
   }) => void;
+  /**
+   * Resets all filters to their default 'all' values.
+   * Call this from tab button onClick handlers to ensure each tab starts clean.
+   */
+  resetAllFilters: () => void;
 }
 
-interface UseStatsFiltersParams {
-  activeTab: StatsTab;
-}
-
-export function useStatsFilters({ activeTab }: UseStatsFiltersParams) {
+export function useStatsFilters() {
   const [selectedSeasonIdFilter, setSelectedSeasonIdFilter] = useState<string | 'all'>('all');
   const [selectedTournamentIdFilter, setSelectedTournamentIdFilter] = useState<string | 'all'>('all');
   const [selectedTeamIdFilter, setSelectedTeamIdFilter] = useState<string | 'all' | 'legacy'>('all');
   const [selectedSeriesIdFilter, setSelectedSeriesIdFilter] = useState<string | 'all'>('all');
   const [selectedGameTypeFilter, setSelectedGameTypeFilter] = useState<GameType | 'all'>('all');
   const [selectedClubSeason, setSelectedClubSeason] = useState<string>('all');
-
-  // Reset all filters when the active tab changes to keep each tab isolated.
-  useEffect(() => {
-    setSelectedSeasonIdFilter('all');
-    setSelectedTournamentIdFilter('all');
-    setSelectedTeamIdFilter('all');
-    setSelectedSeriesIdFilter('all');
-    setSelectedGameTypeFilter('all');
-    setSelectedClubSeason('all');
-  }, [activeTab]);
 
   const onSeasonFilterChange = useCallback((seasonId: string | 'all') => {
     setSelectedSeasonIdFilter(seasonId);
@@ -93,6 +83,15 @@ export function useStatsFilters({ activeTab }: UseStatsFiltersParams) {
     []
   );
 
+  const resetAllFilters = useCallback(() => {
+    setSelectedSeasonIdFilter('all');
+    setSelectedTournamentIdFilter('all');
+    setSelectedTeamIdFilter('all');
+    setSelectedSeriesIdFilter('all');
+    setSelectedGameTypeFilter('all');
+    setSelectedClubSeason('all');
+  }, []);
+
   return {
     filters: {
       selectedSeasonIdFilter,
@@ -110,6 +109,7 @@ export function useStatsFilters({ activeTab }: UseStatsFiltersParams) {
       onGameTypeFilterChange,
       onClubSeasonChange,
       clearCollapsibleFilters,
+      resetAllFilters,
     },
   };
 }

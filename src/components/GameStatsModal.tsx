@@ -188,7 +188,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     initialSelectedPlayerId ? availablePlayers.find(p => p.id === initialSelectedPlayerId) || null : null
   );
   const [playerQuery, setPlayerQuery] = useState('');
-  const { filters, handlers } = useStatsFilters({ activeTab });
+  const { filters, handlers } = useStatsFilters();
   const {
     selectedSeasonIdFilter,
     selectedTournamentIdFilter,
@@ -204,6 +204,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     onSeriesFilterChange,
     onGameTypeFilterChange,
     onClubSeasonChange,
+    resetAllFilters,
   } = handlers;
 
   // Use React Query for settings management
@@ -574,6 +575,27 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     }
   };
 
+  // Helper to check if any filters are active (for empty state messaging)
+  const hasActiveFilters = selectedGameTypeFilter !== 'all' || selectedClubSeason !== 'all' || selectedTeamIdFilter !== 'all';
+
+  // Generate filter hint for empty state
+  const getFilterHint = () => {
+    const hints: string[] = [];
+    if (selectedGameTypeFilter !== 'all') {
+      hints.push(selectedGameTypeFilter === 'soccer'
+        ? t('common.gameTypeSoccer', 'Soccer')
+        : t('common.gameTypeFutsal', 'Futsal'));
+    }
+    if (selectedClubSeason !== 'all') {
+      hints.push(`${t('playerStats.periodLabel', 'Period')}: ${selectedClubSeason}`);
+    }
+    if (selectedTeamIdFilter !== 'all' && selectedTeamIdFilter !== 'legacy') {
+      const teamName = teams.find(team => team.id === selectedTeamIdFilter)?.name;
+      if (teamName) hints.push(teamName);
+    }
+    return hints.length > 0 ? hints.join(', ') : null;
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -603,19 +625,19 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
             {/* Tabs */}
             <div className="flex items-center gap-2 flex-wrap flex-1">
               <div className="flex w-full gap-2">
-            <button onClick={() => setActiveTab('currentGame')} className={`${getTabStyle('currentGame')} flex-1`} aria-pressed={activeTab === 'currentGame'}>
+            <button onClick={() => { resetAllFilters(); setActiveTab('currentGame'); }} className={`${getTabStyle('currentGame')} flex-1`} aria-pressed={activeTab === 'currentGame'}>
               {t('gameStatsModal.tabs.currentGame')}
             </button>
-            <button onClick={() => setActiveTab('season')} className={`${getTabStyle('season')} flex-1`} aria-pressed={activeTab === 'season'}>
+            <button onClick={() => { resetAllFilters(); setActiveTab('season'); }} className={`${getTabStyle('season')} flex-1`} aria-pressed={activeTab === 'season'}>
               {t('gameStatsModal.tabs.season')}
             </button>
-            <button onClick={() => setActiveTab('tournament')} className={`${getTabStyle('tournament')} flex-1`} aria-pressed={activeTab === 'tournament'}>
+            <button onClick={() => { resetAllFilters(); setActiveTab('tournament'); }} className={`${getTabStyle('tournament')} flex-1`} aria-pressed={activeTab === 'tournament'}>
               {t('gameStatsModal.tabs.tournament')}
             </button>
-            <button onClick={() => setActiveTab('overall')} className={`${getTabStyle('overall')} flex-1`} aria-pressed={activeTab === 'overall'}>
+            <button onClick={() => { resetAllFilters(); setActiveTab('overall'); }} className={`${getTabStyle('overall')} flex-1`} aria-pressed={activeTab === 'overall'}>
               {t('gameStatsModal.tabs.overall')}
             </button>
-            <button onClick={() => setActiveTab('player')} className={getPlayerTabStyle()} aria-pressed={activeTab === 'player'}>
+            <button onClick={() => { resetAllFilters(); setActiveTab('player'); }} className={getPlayerTabStyle()} aria-pressed={activeTab === 'player'}>
               {t('gameStatsModal.tabs.player', 'Player')}
             </button>
               </div>
@@ -785,10 +807,17 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                           ))
                         ) : (
                           <div className="bg-slate-900/70 p-8 rounded-lg border border-slate-700 shadow-inner text-center text-slate-400">
-                            {activeTab === 'season'
-                              ? t('gameStatsModal.noSeasonGames', 'No games found for this season.')
-                              : t('gameStatsModal.noTournamentGames', 'No games found for this tournament.')
-                            }
+                            <div>
+                              {activeTab === 'season'
+                                ? t('gameStatsModal.noSeasonGames', 'No games found for this season.')
+                                : t('gameStatsModal.noTournamentGames', 'No games found for this tournament.')
+                              }
+                            </div>
+                            {hasActiveFilters && (
+                              <div className="mt-2 text-sm text-slate-500">
+                                {t('gameStatsModal.activeFiltersHint', 'Active filters')}: {getFilterHint()}
+                              </div>
+                            )}
                           </div>
                         )
                       ) : (
@@ -872,6 +901,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                         <div className="text-sm">
                           {t('gameStatsModal.noTeamGamesSubtitle', 'Choose another team or adjust filters to view player statistics.')}
                         </div>
+                        {hasActiveFilters && (
+                          <div className="mt-2 text-xs text-slate-500">
+                            {t('gameStatsModal.activeFiltersHint', 'Active filters')}: {getFilterHint()}
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <>
