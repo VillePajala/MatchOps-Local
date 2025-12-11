@@ -203,7 +203,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     onTeamFilterChange,
     onSeriesFilterChange,
     onGameTypeFilterChange,
-    onClubSeasonChange,
+    // onClubSeasonChange - available but not currently used in UI
     resetAllFilters,
   } = handlers;
 
