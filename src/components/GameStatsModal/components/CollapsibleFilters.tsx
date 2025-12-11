@@ -110,7 +110,7 @@ export function CollapsibleFilters({
   const hasCollapsibleFilters = (activeTab === 'tournament' && hasSeries) || hasTeamFilterInPanel || hasGameTypeFilter || hasClubSeasonFilter;
 
   return (
-    <div className="mb-4 mx-1 flex items-center gap-2">
+    <div className="mt-0.5 mb-3 mx-1 flex items-center gap-2">
       {/* Tournament Filter - Always visible on tournament tab */}
       {activeTab === 'tournament' && (
         <select

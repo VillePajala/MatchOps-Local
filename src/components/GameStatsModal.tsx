@@ -648,7 +648,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto min-h-0">
           {activeTab === 'player' ? (
-            <div className="p-4 sm:p-6">
+            <div className="px-4 sm:px-6 pt-3 sm:pt-4 pb-4 sm:pb-6">
               {/* Player filter with collapsible Game Type and Season filters */}
               <CollapsibleFilters
                 activeTab={activeTab}
@@ -716,7 +716,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
               />
             </div>
           ) : (
-            <div className="p-4 sm:p-6">
+            <div className="px-4 sm:px-6 pt-3 sm:pt-4 pb-4 sm:pb-6">
               {/* Filters */}
               {activeTab === 'overall' || activeTab === 'tournament' || activeTab === 'season' ? (
                 /* Overall, Tournament and Season tabs - collapsible filters for space efficiency */
