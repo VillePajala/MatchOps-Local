@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "Add game type filtering tests"
+  "notes": "fix: resolve lint errors in GameStatsModal and PlayerStatsView.test"
 }
