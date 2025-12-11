@@ -145,8 +145,8 @@ export function CollapsibleFilters({
         </select>
       )}
 
-      {/* Team Filter - Always visible on overall tab */}
-      {activeTab === 'overall' && teams.length > 0 && (
+      {/* Team Filter - Always visible on overall tab (show even without teams for All/Legacy options) */}
+      {activeTab === 'overall' && (
         <select
           value={selectedTeamIdFilter}
           onChange={(e) => onTeamFilterChange(e.target.value as 'all' | 'legacy' | string)}
