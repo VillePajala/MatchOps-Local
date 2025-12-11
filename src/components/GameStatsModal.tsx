@@ -37,9 +37,9 @@ import {
   GameNotesEditor,
   FilterControls,
   TeamPerformanceCard,
-  ClubSeasonFilter,
   PersonnelSummaryCard,
 } from './GameStatsModal/components';
+import { CollapsibleFilters } from './GameStatsModal/components/CollapsibleFilters';
 
 // Import types
 import type { SortableColumn, SortDirection, StatsTab } from './GameStatsModal/types';
@@ -307,14 +307,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     }
   }, [initialSelectedPlayerId, playerPool, isOpen]);
 
-  // Reset filters when tab changes
+  // Reset ALL filters when tab changes - users expect a clean view on each tab
   useEffect(() => {
-    if (activeTab !== 'season') setSelectedSeasonIdFilter('all');
-    if (activeTab !== 'tournament') {
-      setSelectedTournamentIdFilter('all');
-      setSelectedSeriesIdFilter('all');
-    }
-    if (activeTab === 'currentGame' || activeTab === 'player') setSelectedTeamIdFilter('all');
+    setSelectedSeasonIdFilter('all');
+    setSelectedTournamentIdFilter('all');
+    setSelectedTeamIdFilter('all');
+    setSelectedSeriesIdFilter('all');
+    setSelectedGameTypeFilter('all');
+    setSelectedClubSeason('all');
   }, [activeTab]);
 
   // Reset series filter when tournament changes
@@ -356,6 +356,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     selectedTournamentIdFilter,
     selectedTeamIdFilter,
     selectedGameTypeFilter,
+    // Club season filter params
+    selectedClubSeason,
+    clubSeasonStartDate,
+    clubSeasonEndDate,
   });
 
   const goalEditorHook = useGoalEditor({
@@ -627,8 +631,30 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         <div className="flex-1 overflow-y-auto min-h-0">
           {activeTab === 'player' ? (
             <div className="p-4 sm:p-6">
-              {/* Player, Game Type and Season Filters */}
-              <div className="mb-4 grid grid-cols-3 gap-2 overflow-visible">
+              {/* Player filter with collapsible Game Type and Season filters */}
+              <CollapsibleFilters
+                activeTab={activeTab}
+                seasons={seasons}
+                tournaments={tournaments}
+                teams={teams}
+                selectedSeasonIdFilter={selectedSeasonIdFilter}
+                selectedTournamentIdFilter={selectedTournamentIdFilter}
+                selectedTeamIdFilter={selectedTeamIdFilter}
+                selectedSeriesIdFilter={selectedSeriesIdFilter}
+                selectedGameTypeFilter={selectedGameTypeFilter}
+                onSeasonFilterChange={setSelectedSeasonIdFilter}
+                onTournamentFilterChange={setSelectedTournamentIdFilter}
+                onTeamFilterChange={setSelectedTeamIdFilter}
+                onSeriesFilterChange={setSelectedSeriesIdFilter}
+                onGameTypeFilterChange={setSelectedGameTypeFilter}
+                selectedClubSeason={selectedClubSeason}
+                onClubSeasonChange={setSelectedClubSeason}
+                availableClubSeasons={availableClubSeasons}
+                hasConfiguredSeasonDates={hasConfiguredSeasonDates}
+                isLoadingSettings={isLoadingSettings}
+                onOpenSettings={handleOpenSeasonSettings}
+              >
+                {/* Player Combobox as primary filter */}
                 <Combobox
                   value={selectedPlayer}
                   onChange={(player) => {
@@ -637,9 +663,9 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                   }}
                   nullable
                 >
-                  <div className="relative">
+                  <div className="relative flex-1 min-w-0">
                     <Combobox.Input
-                      className="w-full rounded-lg border border-slate-700/60 bg-slate-900/40 px-3 py-2 text-sm text-slate-100 placeholder-slate-400 transition focus:border-indigo-400/70 focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+                      className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                       onChange={(e) => setPlayerQuery(e.target.value)}
                       displayValue={(p: Player) => (p ? p.name : '')}
                       placeholder={t('playerStats.selectPlayerLabel', 'Select Player')}
@@ -666,25 +692,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                     )}
                   </div>
                 </Combobox>
-                {/* Game Type Filter */}
-                <select
-                  value={selectedGameTypeFilter}
-                  onChange={(e) => setSelectedGameTypeFilter(e.target.value as GameType | 'all')}
-                  className="h-[42px] px-3 py-2 bg-slate-900/40 border border-slate-700/60 rounded-lg text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400/70"
-                >
-                  <option value="all">{t('gameStatsModal.filterAllGameTypes', 'All Sports')}</option>
-                  <option value="soccer">{t('common.gameTypeSoccer', 'Soccer')}</option>
-                  <option value="futsal">{t('common.gameTypeFutsal', 'Futsal')}</option>
-                </select>
-                <ClubSeasonFilter
-                  selectedSeason={selectedClubSeason}
-                  onChange={setSelectedClubSeason}
-                  seasons={availableClubSeasons}
-                  hasConfigured={hasConfiguredSeasonDates}
-                  isLoading={isLoadingSettings}
-                  onOpenSettings={handleOpenSeasonSettings}
-                />
-              </div>
+              </CollapsibleFilters>
               {/* Player Stats View */}
               <PlayerStatsView
                 player={selectedPlayer}
@@ -702,49 +710,33 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
           ) : (
             <div className="p-4 sm:p-6">
               {/* Filters */}
-              {activeTab === 'overall' ? (
-                /* Overall tab with club season filter - responsive grid layout */
-                <div className={`mb-4 mx-1 grid ${teams.length > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-2 items-center`}>
-                  {/* Team Filter */}
-                  {teams.length > 0 && (
-                    <select
-                      value={selectedTeamIdFilter}
-                      onChange={(e) =>
-                        setSelectedTeamIdFilter(e.target.value as 'all' | 'legacy' | string)
-                      }
-                      className="h-[34px] px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    >
-                      <option value="all">{t('loadGameModal.allTeamsFilter', 'All Teams')}</option>
-                      <option value="legacy">{t('loadGameModal.legacyGamesFilter', 'Legacy Games')}</option>
-                      {teams.map((team) => (
-                        <option key={team.id} value={team.id}>
-                          {team.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  {/* Game Type Filter */}
-                  <select
-                    value={selectedGameTypeFilter}
-                    onChange={(e) => setSelectedGameTypeFilter(e.target.value as GameType | 'all')}
-                    className="h-[34px] px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  >
-                    <option value="all">{t('gameStatsModal.filterAllGameTypes', 'All Sports')}</option>
-                    <option value="soccer">{t('common.gameTypeSoccer', 'Soccer')}</option>
-                    <option value="futsal">{t('common.gameTypeFutsal', 'Futsal')}</option>
-                  </select>
-                  {/* Club Season Filter with gear icon */}
-                  <ClubSeasonFilter
-                    selectedSeason={selectedClubSeason}
-                    onChange={setSelectedClubSeason}
-                    seasons={availableClubSeasons}
-                    hasConfigured={hasConfiguredSeasonDates}
-                    isLoading={isLoadingSettings}
-                    onOpenSettings={handleOpenSeasonSettings}
-                  />
-                </div>
+              {activeTab === 'overall' || activeTab === 'tournament' || activeTab === 'season' ? (
+                /* Overall, Tournament and Season tabs - collapsible filters for space efficiency */
+                <CollapsibleFilters
+                  activeTab={activeTab}
+                  seasons={seasons}
+                  tournaments={tournaments}
+                  teams={teams}
+                  selectedSeasonIdFilter={selectedSeasonIdFilter}
+                  selectedTournamentIdFilter={selectedTournamentIdFilter}
+                  selectedTeamIdFilter={selectedTeamIdFilter}
+                  selectedSeriesIdFilter={selectedSeriesIdFilter}
+                  selectedGameTypeFilter={selectedGameTypeFilter}
+                  onSeasonFilterChange={setSelectedSeasonIdFilter}
+                  onTournamentFilterChange={setSelectedTournamentIdFilter}
+                  onTeamFilterChange={setSelectedTeamIdFilter}
+                  onSeriesFilterChange={setSelectedSeriesIdFilter}
+                  onGameTypeFilterChange={setSelectedGameTypeFilter}
+                  // Club Season Filter props (for Season tab)
+                  selectedClubSeason={selectedClubSeason}
+                  onClubSeasonChange={setSelectedClubSeason}
+                  availableClubSeasons={availableClubSeasons}
+                  hasConfiguredSeasonDates={hasConfiguredSeasonDates}
+                  isLoadingSettings={isLoadingSettings}
+                  onOpenSettings={handleOpenSeasonSettings}
+                />
               ) : (
-                /* Other tabs - normal layout */
+                /* Current Game tab - normal layout */
                 <FilterControls
                   activeTab={activeTab}
                   seasons={seasons}
