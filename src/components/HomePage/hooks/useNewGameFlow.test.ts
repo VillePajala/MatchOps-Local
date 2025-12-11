@@ -128,8 +128,12 @@ describe('useNewGameFlow', () => {
 
   it('skips save prompt and opens setup modal directly for saved games (auto-save handles them)', async () => {
     // Saved game (currentGameId is not DEFAULT_GAME_ID)
+    const currentGameId = 'saved_game_123';
     const { options } = buildOptions({
-      gameState: { currentGameId: 'saved_game_123' },
+      gameState: {
+        currentGameId,
+        savedGames: { [currentGameId]: createAppState({ selectedPlayerIds: ['p1'] }) },
+      },
     });
 
     const { result } = renderHook(() =>
@@ -146,8 +150,8 @@ describe('useNewGameFlow', () => {
     expect(result.current.showStartNewConfirm).toBe(false);
     // Should open new game setup modal directly
     expect(options.ui.openNewGameSetupModal).toHaveBeenCalled();
-    // Should start with no players pre-selected (user selects in modal)
-    expect(result.current.playerIdsForNewGame).toEqual([]);
+    // Should start with last game's selected players pre-selected
+    expect(result.current.playerIdsForNewGame).toEqual(['p1']);
   });
 
   it('prompts to save for unsaved scratch games (DEFAULT_GAME_ID)', async () => {

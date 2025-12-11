@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "refactor: consolidate translation keys and improve type imports"
+  "notes": "Add game type filtering tests"
 }
