@@ -63,9 +63,10 @@ export function FilterControls({
   if (hasTeamFilter) filterCount++;
   if (hasGameTypeFilter) filterCount++;
 
+  // Mobile: max 2 cols, Desktop: full width
   let gridCols = 'grid-cols-1';
-  if (filterCount === 4) gridCols = 'grid-cols-4';
-  else if (filterCount === 3) gridCols = 'grid-cols-3';
+  if (filterCount === 4) gridCols = 'grid-cols-2 sm:grid-cols-4';
+  else if (filterCount === 3) gridCols = 'grid-cols-2 sm:grid-cols-3';
   else if (filterCount === 2) gridCols = 'grid-cols-2';
 
   return (
