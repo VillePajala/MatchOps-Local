@@ -4,21 +4,29 @@ import { render, screen, waitFor } from '../../tests/utils/test-utils';
 import PlayerStatsView from './PlayerStatsView';
 import { AppState, Player, Season, Tournament } from '@/types';
 
-const MockSparklineChart = () => <div data-testid="sparkline-chart" />;
-MockSparklineChart.displayName = 'MockSparklineChart';
-jest.mock('./SparklineChart', () => MockSparklineChart);
+jest.mock('./SparklineChart', () => {
+  const Mock = () => <div data-testid="sparkline-chart" />;
+  Mock.displayName = 'MockSparklineChart';
+  return Mock;
+});
 
-const MockMetricTrendChart = () => <div data-testid="metric-trend-chart" />;
-MockMetricTrendChart.displayName = 'MockMetricTrendChart';
-jest.mock('./MetricTrendChart', () => MockMetricTrendChart);
+jest.mock('./MetricTrendChart', () => {
+  const Mock = () => <div data-testid="metric-trend-chart" />;
+  Mock.displayName = 'MockMetricTrendChart';
+  return Mock;
+});
 
-const MockMetricAreaChart = () => <div data-testid="metric-area-chart" />;
-MockMetricAreaChart.displayName = 'MockMetricAreaChart';
-jest.mock('./MetricAreaChart', () => MockMetricAreaChart);
+jest.mock('./MetricAreaChart', () => {
+  const Mock = () => <div data-testid="metric-area-chart" />;
+  Mock.displayName = 'MockMetricAreaChart';
+  return Mock;
+});
 
-const MockRatingBar = ({ value }: { value: number }) => <div data-testid="rating-bar">{value}</div>;
-MockRatingBar.displayName = 'MockRatingBar';
-jest.mock('./RatingBar', () => MockRatingBar);
+jest.mock('./RatingBar', () => {
+  const Mock = ({ value }: { value: number }) => <div data-testid="rating-bar">{value}</div>;
+  Mock.displayName = 'MockRatingBar';
+  return Mock;
+});
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({

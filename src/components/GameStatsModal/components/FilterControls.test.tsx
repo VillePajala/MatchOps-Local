@@ -316,16 +316,14 @@ describe('FilterControls', () => {
     });
     const teams = [createTeam()];
 
-    it('uses grid-cols-1 when currentGame tab with no filters', () => {
+    it('returns null when currentGame tab with no filters', () => {
       const { container } = renderFilterControls({ activeTab: 'currentGame' });
-      const gridDiv = container.firstChild as HTMLElement;
-      expect(gridDiv.className).toContain('grid-cols-1');
+      expect(container.firstChild).toBeNull();
     });
 
-    it('uses grid-cols-1 when overall tab with no teams', () => {
+    it('returns null when overall tab with no teams', () => {
       const { container } = renderFilterControls({ activeTab: 'overall', teams: [] });
-      const gridDiv = container.firstChild as HTMLElement;
-      expect(gridDiv.className).toContain('grid-cols-1');
+      expect(container.firstChild).toBeNull();
     });
 
     it('uses grid-cols-2 for season tab with teams', () => {
