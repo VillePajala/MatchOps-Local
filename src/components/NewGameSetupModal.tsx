@@ -3,7 +3,7 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
-import { Player, Season, Tournament, Team, Personnel, GameType } from '@/types';
+import { Player, Season, Tournament, Team, Personnel, GameType, Gender } from '@/types';
 import logger from '@/utils/logger';
 import { getTeamRoster } from '@/utils/teams';
 import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
@@ -45,7 +45,8 @@ interface NewGameSetupModalProps {
     selectedPersonnelIds: string[], // Add personnel selection parameter
     leagueId: string, // League ID for the game
     customLeagueName: string, // Custom league name when leagueId === CUSTOM_LEAGUE_ID
-    gameType: GameType // Sport type: 'soccer' or 'futsal'
+    gameType: GameType, // Sport type: 'soccer' or 'futsal'
+    gender: Gender | undefined // Gender: 'boys' or 'girls' (optional)
   ) => void;
   onCancel: () => void;
   // Fresh data from React Query
@@ -105,6 +106,9 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
   // Game type state - defaults to 'soccer', can be prefilled from season/tournament
   const [gameType, setGameType] = useState<GameType>('soccer');
 
+  // Gender state - optional, can be prefilled from season/tournament
+  const [gender, setGender] = useState<Gender | undefined>(undefined);
+
   // Player selection state - start with empty selection (no players pre-selected)
   const [availablePlayersForSetup, setAvailablePlayersForSetup] = useState<Player[]>(masterRoster);
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
@@ -152,6 +156,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
     setLeagueId('');
     setCustomLeagueName('');
     setGameType('soccer'); // Reset to default
+    setGender(undefined); // Reset to not set
   }, [masterRoster, initialPlayerSelection]);
 
   // Initialize form when modal opens - using layout effect to avoid setState in regular effect
@@ -230,6 +235,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       setCustomLeagueName(seasonLeagueId === CUSTOM_LEAGUE_ID ? s.customLeagueName || '' : '');
       // Prefill game type from season (defaults to 'soccer' if not set)
       setGameType(s.gameType || 'soccer');
+      // Prefill gender from season (undefined if not set)
+      setGender(s.gender);
     }
   }, [seasons]);
 
@@ -358,6 +365,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       setActiveTab('tournament');
       // Prefill game type from tournament (defaults to 'soccer' if not set)
       setGameType(tournament.gameType || 'soccer');
+      // Prefill gender from tournament (undefined if not set)
+      setGender(tournament.gender);
     }
   }, [tournaments]);
 
@@ -459,7 +468,8 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
       selectedPersonnelIds, // Pass the personnel selection
       leagueId, // League ID for the game
       leagueId === CUSTOM_LEAGUE_ID ? customLeagueName.trim() : '', // Custom league name when leagueId === CUSTOM_LEAGUE_ID
-      gameType // Sport type: 'soccer' or 'futsal'
+      gameType, // Sport type: 'soccer' or 'futsal'
+      gender // Gender: 'boys' or 'girls' (optional)
     );
 
     // Modal will be closed by parent component after onStart
@@ -836,6 +846,48 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                     }`}
                   >
                     {t('common.gameTypeFutsal', 'Futsal')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Gender (Boys/Girls) */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  {t('common.genderLabel', 'Gender')}
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGender(undefined)}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      gender === undefined
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('common.genderNotSet', 'Not Set')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGender('boys')}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      gender === 'boys'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('common.genderBoys', 'Boys')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGender('girls')}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      gender === 'girls'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('common.genderGirls', 'Girls')}
                   </button>
                 </div>
               </div>

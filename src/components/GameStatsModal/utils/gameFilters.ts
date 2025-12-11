@@ -4,7 +4,7 @@
  */
 
 import { SavedGamesCollection } from '@/types';
-import type { GameType } from '@/types/game';
+import type { GameType, Gender } from '@/types/game';
 import { StatsTab } from '../types';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
 
@@ -42,6 +42,11 @@ export interface GameFilterOptions {
    * Game type filter - 'all', 'soccer', or 'futsal'
    */
   gameTypeFilter?: GameType | 'all';
+
+  /**
+   * Gender filter - 'all', 'boys', or 'girls'
+   */
+  genderFilter?: Gender | 'all';
 
   /**
    * Active tab context - affects season/tournament filtering logic
@@ -97,6 +102,7 @@ export function filterGameIds(
     tournamentFilter,
     seriesFilter,
     gameTypeFilter = 'all',
+    genderFilter = 'all',
     activeTab,
     clubSeasonFilter = 'all',
     clubSeasonStartDate = '2000-10-01',
@@ -133,6 +139,12 @@ export function filterGameIds(
     if (gameTypeFilter !== 'all') {
       const gameType = game.gameType || 'soccer'; // Default to soccer for legacy games
       if (gameType !== gameTypeFilter) return false;
+    }
+
+    // Gender filter
+    if (genderFilter !== 'all') {
+      // Games without gender set don't match specific gender filters
+      if (game.gender !== genderFilter) return false;
     }
 
     // Club season filter (Vuosi - e.g., '24/25')

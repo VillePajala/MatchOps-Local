@@ -79,6 +79,7 @@ describe('newGameHandlers', () => {
       leagueId: '',
       customLeagueName: '',
       gameType: 'soccer',
+      gender: undefined,
     });
 
     expect(setPlayerIdsForNewGame).toHaveBeenCalledWith(null);

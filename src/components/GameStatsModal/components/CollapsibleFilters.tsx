@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { HiAdjustmentsHorizontal } from 'react-icons/hi2';
 import { Season, Tournament, Team } from '@/types';
 import type { TranslationKey } from '@/i18n-types';
-import type { GameType } from '@/types/game';
+import type { GameType, Gender } from '@/types/game';
 import { StatsTab } from '../types';
 import { ClubSeasonFilter } from './ClubSeasonFilter';
 import type { StatsFiltersHandlers, StatsFiltersState } from '../hooks/useStatsFilters';
@@ -49,6 +49,7 @@ export function CollapsibleFilters({
     selectedTeamIdFilter,
     selectedSeriesIdFilter,
     selectedGameTypeFilter = 'all',
+    selectedGenderFilter = 'all',
     selectedClubSeason,
   } = filters;
 
@@ -58,6 +59,7 @@ export function CollapsibleFilters({
     onTeamFilterChange,
     onSeriesFilterChange,
     onGameTypeFilterChange,
+    onGenderFilterChange,
     onClubSeasonChange,
     clearCollapsibleFilters,
   } = handlers;
@@ -93,6 +95,7 @@ export function CollapsibleFilters({
   // Player tab doesn't show team filter (it's player-specific stats)
   const hasTeamFilterInPanel = teams.length > 0 && activeTab !== 'currentGame' && activeTab !== 'overall' && activeTab !== 'player';
   const hasGameTypeFilter = activeTab !== 'currentGame';
+  const hasGenderFilter = activeTab !== 'currentGame';
   const hasClubSeasonFilter = !!onClubSeasonChange && !!onOpenSettings && (activeTab === 'tournament' || activeTab === 'season' || activeTab === 'overall' || activeTab === 'player');
 
   // Count active (non-default) filters for badge (only filters in collapsible panel)
@@ -102,12 +105,13 @@ export function CollapsibleFilters({
   if (activeTab === 'tournament' && hasSeries && selectedSeriesIdFilter !== 'all') activeFilterCount++;
   // Team is in the collapsible panel for tournament/season tabs only (not overall)
   if (hasTeamFilterInPanel && selectedTeamIdFilter !== 'all') activeFilterCount++;
-  // Game Type and Club Season are always in the collapsible panel
+  // Game Type, Gender, and Club Season are always in the collapsible panel
   if (hasGameTypeFilter && selectedGameTypeFilter !== 'all') activeFilterCount++;
+  if (hasGenderFilter && selectedGenderFilter !== 'all') activeFilterCount++;
   if (hasClubSeasonFilter && selectedClubSeason !== 'all') activeFilterCount++;
 
   // Check if there are any filters to show in the collapsible panel
-  const hasCollapsibleFilters = (activeTab === 'tournament' && hasSeries) || hasTeamFilterInPanel || hasGameTypeFilter || hasClubSeasonFilter;
+  const hasCollapsibleFilters = (activeTab === 'tournament' && hasSeries) || hasTeamFilterInPanel || hasGameTypeFilter || hasGenderFilter || hasClubSeasonFilter;
 
   return (
     <div className="mt-0.5 mb-3 mx-1 flex items-center gap-2">
@@ -203,6 +207,7 @@ export function CollapsibleFilters({
                       resetSeries: activeTab === 'tournament',
                       resetTeam: hasTeamFilterInPanel,
                       resetGameType: hasGameTypeFilter,
+                      resetGender: hasGenderFilter,
                       resetClubSeason: hasClubSeasonFilter,
                     })}
                     className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
@@ -271,6 +276,24 @@ export function CollapsibleFilters({
                       <option value="all">{t('gameStatsModal.filterAllGameTypes', 'All Sports')}</option>
                       <option value="soccer">{t('common.gameTypeSoccer', 'Soccer')}</option>
                       <option value="futsal">{t('common.gameTypeFutsal', 'Futsal')}</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Gender Filter */}
+                {hasGenderFilter && (
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">
+                      {t('common.genderLabel', 'Gender')}
+                    </label>
+                    <select
+                      value={selectedGenderFilter}
+                      onChange={(e) => onGenderFilterChange(e.target.value as Gender | 'all')}
+                      className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-md text-slate-100 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="all">{t('common.genderAll', 'All Genders')}</option>
+                      <option value="boys">{t('common.genderBoys', 'Boys')}</option>
+                      <option value="girls">{t('common.genderGirls', 'Girls')}</option>
                     </select>
                   </div>
                 )}

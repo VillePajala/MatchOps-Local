@@ -188,7 +188,8 @@ describe('NewGameSetupModal', () => {
       expect.arrayContaining([]),
       '', // leagueId
       '', // customLeagueName
-      'soccer' // gameType
+      'soccer', // gameType
+      undefined // gender
     );
   });
 
@@ -224,7 +225,8 @@ describe('NewGameSetupModal', () => {
         expect.arrayContaining([]),
         '', // leagueId
         '', // customLeagueName
-        'soccer' // gameType
+        'soccer', // gameType
+      undefined // gender
       );
     });
   });
@@ -379,7 +381,8 @@ describe('NewGameSetupModal', () => {
           expect.any(Array), // selectedPersonnelIds
           expect.any(String), // leagueId
           expect.any(String), // customLeagueName
-          'soccer' // gameType
+          'soccer', // gameType
+      undefined // gender
         );
       });
     });
@@ -495,7 +498,8 @@ describe('NewGameSetupModal', () => {
           expect.any(Array), // selectedPersonnelIds
           expect.any(String), // leagueId
           expect.any(String), // customLeagueName
-          'soccer' // gameType
+          'soccer', // gameType
+      undefined // gender
         );
       });
     });
@@ -748,7 +752,8 @@ describe('NewGameSetupModal', () => {
           expect.any(Array), // selectedPersonnelIds
           'sm-sarja', // leagueId - THE KEY ASSERTION
           '', // customLeagueName
-          'soccer' // gameType
+          'soccer', // gameType
+      undefined // gender
         );
       });
     });
@@ -826,7 +831,8 @@ describe('NewGameSetupModal', () => {
           expect.any(Array), // selectedPersonnelIds
           'muu', // leagueId
           'My Custom League', // customLeagueName - THE KEY ASSERTION
-          'soccer' // gameType
+          'soccer', // gameType
+      undefined // gender
         );
       });
     });
@@ -1076,11 +1082,11 @@ describe('NewGameSetupModal', () => {
       });
 
       // Verify onStart was called with gameType: 'futsal'
-      // onStart is called with positional args - gameType is the last argument (index 22)
+      // onStart is called with positional args - gameType is second to last argument (index 22, gender is last at 23)
       await waitFor(() => {
         expect(mockOnStart).toHaveBeenCalled();
         const args = mockOnStart.mock.calls[0];
-        const gameTypeArg = args[args.length - 1];
+        const gameTypeArg = args[args.length - 2];
         expect(gameTypeArg).toBe('futsal');
       });
     });

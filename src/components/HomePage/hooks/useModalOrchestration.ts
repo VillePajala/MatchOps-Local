@@ -119,7 +119,8 @@ export interface ModalHandlers {
     selectedPersonnelIds: string[],
     leagueId: string,
     customLeagueName: string,
-    gameType: import('@/types').GameType
+    gameType: import('@/types').GameType,
+    gender: import('@/types').Gender | undefined
   ) => void;
   handleCancelNewGameSetup: () => void;
   handleUpdatePlayerForModal: (playerId: string, updates: Partial<Omit<Player, 'id'>>) => Promise<void>;
@@ -146,6 +147,7 @@ export interface ModalHandlers {
   handleSetLeagueId: (leagueId: string | undefined) => void;
   handleSetCustomLeagueName: (customLeagueName: string | undefined) => void;
   handleSetGameType: (gameType: import('@/types').GameType) => void;
+  handleSetGender: (gender: import('@/types').Gender | undefined) => void;
   handleSetHomeOrAway: (homeOrAway: 'home' | 'away') => void;
   handleUpdateSelectedPlayers: (playerIds: string[]) => void;
   handleSetGamePersonnel: (personnelIds: string[]) => void;
@@ -284,6 +286,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
     handleSetLeagueId,
     handleSetCustomLeagueName,
     handleSetGameType,
+    handleSetGender,
     handleSetHomeOrAway,
     handleUpdateSelectedPlayers,
     handleSetGamePersonnel,
@@ -582,6 +585,7 @@ export function useModalOrchestration(props: UseModalOrchestrationProps): UseMod
       setLeagueId: handleSetLeagueId,
       setCustomLeagueName: handleSetCustomLeagueName,
       setGameType: handleSetGameType,
+      setGender: handleSetGender,
       setHomeOrAway: handleSetHomeOrAway,
       setIsPlayed,
       updateSelectedPlayers: handleUpdateSelectedPlayers,

@@ -177,6 +177,8 @@ const defaultProps: GameSettingsModalProps = {
   onIsPlayedChange: jest.fn(),
   gameType: 'soccer',
   onGameTypeChange: jest.fn(),
+  gender: undefined,
+  onGenderChange: jest.fn(),
   updateGameDetailsMutation: {
     mutate: jest.fn(),
   } as unknown as UseMutationResult<AppState | null, Error, { gameId: string; updates: Partial<AppState> }, unknown>,

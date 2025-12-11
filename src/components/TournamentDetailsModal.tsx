@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
-import { Tournament, Player, TournamentSeries, GameType } from '@/types';
+import { Tournament, Player, TournamentSeries, GameType, Gender } from '@/types';
 import { UseMutationResult } from '@tanstack/react-query';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { createLogger } from '@/utils/logger';
@@ -48,6 +48,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   const [awardedPlayerId, setAwardedPlayerId] = useState<string | undefined>(undefined);
   const [archived, setArchived] = useState(false);
   const [gameType, setGameType] = useState<GameType>('soccer');
+  const [gender, setGender] = useState<Gender | undefined>(undefined);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
 
@@ -69,6 +70,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         setAwardedPlayerId(undefined);
         setArchived(false);
         setGameType('soccer');
+        setGender(undefined);
         setErrorMessage(null);
       } else if (tournament) {
         // Load existing tournament data for edit mode
@@ -103,6 +105,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         setAwardedPlayerId(tournament.awardedPlayerId);
         setArchived(tournament.archived || false);
         setGameType(tournament.gameType || 'soccer');
+        setGender(tournament.gender);
         setErrorMessage(null);
       }
     }
@@ -143,6 +146,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         awardedPlayerId: awardedPlayerId || undefined,
         archived,
         gameType,
+        gender,
       };
 
       addTournamentMutation.mutate(newTournament, {
@@ -191,6 +195,7 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         awardedPlayerId: awardedPlayerId || undefined,
         archived,
         gameType,
+        gender,
       };
 
       updateTournamentMutation.mutate(updatedTournament, {
@@ -350,6 +355,48 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                     }`}
                   >
                     {t('common.gameTypeFutsal', 'Futsal')}
+                  </button>
+                </div>
+              </div>
+
+              {/* Gender (Boys/Girls) */}
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  {t('common.genderLabel', 'Gender')}
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGender(undefined)}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      gender === undefined
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('common.genderNotSet', 'Not Set')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGender('boys')}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      gender === 'boys'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('common.genderBoys', 'Boys')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGender('girls')}
+                    className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 ${
+                      gender === 'girls'
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {t('common.genderGirls', 'Girls')}
                   </button>
                 </div>
               </div>
