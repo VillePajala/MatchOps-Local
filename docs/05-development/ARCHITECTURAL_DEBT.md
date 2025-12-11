@@ -290,6 +290,56 @@ Triggers:
 
 ---
 
+### 🟢 LOW: CollapsibleFilters Prop Drilling and Scattered Filter Logic
+
+**Discovered**: December 11, 2025 (during Game Stats UI review)
+**Component**: `src/components/GameStatsModal/components/CollapsibleFilters.tsx`
+**Impact**: Low - fully functional today, but adding filters or tests requires plumbing 7+ props through a single component
+
+#### The Problem
+
+`CollapsibleFilters` owns seven filter values/callbacks plus optional children. Cross-filter reset logic (series reset on tournament change, badge counts, clear-all behavior) lives inline with rendering, so each new filter requires updating the prop surface and the internal reset logic.
+
+#### Why This Is Problematic
+
+1. **Prop Drilling Overhead**:
+   - Every consumer must manage and pass all filter states/callbacks, even when only a subset is relevant.
+   - Adding a new filter increases the prop list and component signature churn.
+
+2. **Mixed Concerns**:
+   - UI rendering, state wiring, and reset rules are interleaved, making the component harder to unit test in isolation.
+   - Clear-all logic is scattered across handlers instead of living in one place.
+
+3. **Test Friction**:
+   - Verifying filter interactions requires building a heavy prop object rather than calling a focused state helper.
+
+#### Refactoring Options
+
+**Option A (Recommended)**: Extract `useStatsFilters` hook that owns filter state, derived counts, and reset rules. The hook would expose `filters`, `setFilter`, `clearAll()`, and derived metadata (e.g., `activeFilterCount`, `hasSeries`). `CollapsibleFilters` becomes a thin view layer consuming the hook output.
+
+**Option B**: Introduce a lightweight `StatsFiltersProvider` context that wraps the Game Stats modal and supplies filter state via context. Components inside the modal consume only the filters they need, and clear/reset logic stays centralized.
+
+**Option C**: Keep the current implementation but add a small helper module for badge counting and reset orchestration to reduce inline complexity.
+
+#### Current State
+
+- **Chosen Approach**: Option C (status quo)
+- **Status**: Works; no user-facing issues
+- **Priority**: LOW - treat as technical debt to unblock future filter additions or testing improvements
+
+#### When to Address
+
+- Adding another stats filter (e.g., venue, opponent strength)
+- Creating unit tests for filter interactions or reset flows
+- Reworking Game Stats modal UX/IA
+
+#### Related Files
+
+- `src/components/GameStatsModal/components/CollapsibleFilters.tsx`
+- `src/components/GameStatsModal` (filter consumers)
+
+---
+
 ## Resolved Debt Items
 
 _(Items that have been refactored and resolved)_
@@ -347,5 +397,5 @@ When documenting architectural debt:
 ---
 
 **Document Owner**: Development Team
-**Last Updated**: November 20, 2025
-**Next Review**: When modifying assessment or persistence logic
+**Last Updated**: December 11, 2025
+**Next Review**: When modifying assessment/persistence logic or expanding stats filters
