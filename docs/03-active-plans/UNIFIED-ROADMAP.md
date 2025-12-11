@@ -1,6 +1,6 @@
 # MatchOps-Local: Unified Project Roadmap
 
-**Last Updated**: December 8, 2025
+**Last Updated**: December 11, 2025
 **Status**: Active
 **Purpose**: Single source of truth for ALL project work
 
@@ -55,10 +55,10 @@
 |---|------|--------|----------------|
 | **1** | Play Store Release | 2-3 weeks | Unlocks monetization, validates product |
 | **2** | Backend Architecture Refactoring | ~4 weeks | Clean architecture before more features |
-| **3** | Gender Handling | 1-2 weeks | HIGH priority feature, needs design |
-| **4** | Game Type (Soccer/Futsal) | 3-5 days | Real user need, simple labeling system |
-| **5** | Season League UX (area/age filtering) | 1 week | Nice-to-have UX improvement |
-| **6** | Other features & fixes | Ongoing | As needed |
+| **3** | Gender Handling (Boys/Girls) | 3-5 days | HIGH priority, design approved (mirrors Game Type) |
+| ~~4~~ | ~~Game Type (Soccer/Futsal)~~ | ~~3-5 days~~ | ✅ **COMPLETED** December 11, 2025 |
+| **4** | Season League UX (area/age filtering) | 1 week | Nice-to-have UX improvement |
+| **5** | Other features & fixes | Ongoing | As needed |
 
 ---
 
@@ -127,77 +127,205 @@ master
 
 ---
 
-## 👥 PRIORITY 3: Gender Handling
+## 👥 PRIORITY 3: Gender Handling (Boys/Girls)
 
-**Status**: 📋 Needs design discussion
-**Effort**: 1-2 weeks
+**Status**: 📋 Design approved (mirrors Game Type implementation)
+**Effort**: 3-5 days
+**Pattern**: Same as Game Type (Soccer/Futsal) - see merged PR for reference
 
 ### The Problem
-- App tracks soccer games but doesn't distinguish gender
-- Affects: teams, seasons, tournaments, players, stats filtering
+- App tracks soccer games but doesn't distinguish gender (boys/girls)
 - Finnish youth soccer is gender-separated
+- Affects: games, seasons, tournaments, stats filtering
+- Users need to filter stats by gender
 
-### Design Questions to Resolve
-1. **Where does gender live?**
-   - Team level? (most games are single-gender teams)
-   - Season/Tournament level?
-   - Player level?
-   - All of the above?
+### Design Decision: Entity-Level Labeling (Same as Game Type)
 
-2. **How does it propagate?**
-   - Team gender → Game inherits?
-   - Filter stats by gender?
-   - Validation (can't mix genders in same game)?
+**Gender lives at these levels:**
+- Game (AppState) - `gender?: Gender`
+- Season - `gender?: Gender`
+- Tournament - `gender?: Gender`
 
-3. **UI considerations**
-   - Where to show gender?
-   - How to filter by gender in stats?
-   - Migration for existing data?
+**NOT at player level** - Players can participate in both boys' and girls' games (especially in younger age groups).
 
-### Implementation (after design)
-- [ ] Design document created
-- [ ] Types updated
-- [ ] Storage/migration
-- [ ] UI components
-- [ ] Stats filtering
-- [ ] Translations (EN/FI)
+**Type definition:**
+```typescript
+// src/types/game.ts
+export type Gender = 'boys' | 'girls';
+```
 
-**Why Third**: Important feature but needs design discussion. Real user feedback from Play Store may inform design decisions.
+### Implementation Plan (Mirrors Game Type PR)
+
+#### 1. Type Updates
+**Files:**
+- `src/types/game.ts` - Add `Gender` type, add `gender?: Gender` to `AppState`
+- `src/types/index.ts` - Add `gender?: Gender` to `Season` and `Tournament`
+
+#### 2. Reducer Updates
+**File:** `src/hooks/useGameSessionReducer.ts`
+- Add `SET_GENDER` action
+- Add `gender` to `LOAD_PERSISTED_GAME_DATA` extraction
+- Add `gender` to initial state handling
+
+**File:** `src/hooks/useGameSessionWithHistory.ts`
+- Add `SET_GENDER` to `HISTORY_SAVING_ACTIONS`
+
+#### 3. Modal Updates (Gender Selector)
+**Files to update:**
+- `src/components/NewGameSetupModal.tsx` - Gender dropdown (same pattern as game type)
+- `src/components/GameSettingsModal.tsx` - Gender dropdown
+- `src/components/SeasonDetailsModal.tsx` - Gender dropdown (default for season games)
+- `src/components/TournamentDetailsModal.tsx` - Gender dropdown (default for tournament games)
+
+**UI Pattern (same as Game Type):**
+```tsx
+<div className="flex flex-col">
+  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+    {t('genderLabel')}
+  </label>
+  <select
+    value={gender || ''}
+    onChange={(e) => setGender(e.target.value as Gender | undefined)}
+    className="..."
+  >
+    <option value="">{t('genderNotSet')}</option>
+    <option value="boys">{t('genderBoys')}</option>
+    <option value="girls">{t('genderGirls')}</option>
+  </select>
+</div>
+```
+
+#### 4. Statistics Filtering
+**Files to update:**
+- `src/components/GameStatsModal/utils/gameFilters.ts`
+  - Add `genderFilter?: Gender | 'all'` to `GameFilterOptions`
+  - Add gender filtering logic (same pattern as `gameTypeFilter`)
+
+- `src/components/GameStatsModal/hooks/useStatsFilters.ts`
+  - Add `selectedGenderFilter` state
+  - Add to filter props passed down
+
+- `src/components/GameStatsModal/components/FilterControls.tsx`
+  - Add gender filter dropdown
+
+- `src/components/GameStatsModal/components/CollapsibleFilters.tsx`
+  - Add gender filter to collapsible section
+
+- `src/components/GameStatsModal.tsx`
+  - Wire up gender filter state and handlers
+
+- `src/components/PlayerStatsView.tsx`
+  - Add gender filtering support
+
+#### 5. Load Game Search
+**File:** `src/components/LoadGameModal.tsx`
+- Add gender to search terms (boys/girls/pojat/tytöt)
+
+#### 6. New Game Flow
+**Files:**
+- `src/components/HomePage/hooks/useNewGameFlow.ts` - Add gender state
+- `src/components/HomePage/hooks/useModalOrchestration.ts` - Pass gender to modal
+- `src/components/HomePage/utils/newGameHandlers.ts` - Include gender in game creation
+
+#### 7. Translations
+**Files:**
+- `public/locales/en/common.json`
+- `public/locales/fi/common.json`
+
+**Keys to add:**
+```json
+{
+  "genderLabel": "Gender / Sukupuoli",
+  "genderBoys": "Boys / Pojat",
+  "genderGirls": "Girls / Tytöt",
+  "genderNotSet": "Not set / Ei asetettu",
+  "genderAll": "All / Kaikki"
+}
+```
+
+#### 8. i18n Types
+**File:** `src/i18n-types.ts`
+- Run `npm run generate:i18n-types` after adding translations
+
+#### 9. Tests to Update
+- `src/components/NewGameSetupModal.test.tsx`
+- `src/components/GameSettingsModal.test.tsx`
+- `src/components/SeasonDetailsModal.test.tsx`
+- `src/components/TournamentDetailsModal.test.tsx`
+- `src/components/GameStatsModal/utils/gameFilters.test.ts`
+- `src/components/GameStatsModal/hooks/__tests__/useStatsFilters.test.ts`
+- `src/components/GameStatsModal/components/FilterControls.test.tsx`
+- `src/components/LoadGameModal.test.tsx`
+- `src/components/PlayerStatsView.test.tsx`
+- `src/components/HomePage/utils/newGameHandlers.test.ts`
+
+### Backward Compatibility
+- `gender` field is optional (`gender?: Gender`)
+- Legacy games without gender work seamlessly (treated as "not set")
+- No migration needed - field simply absent on old games
+- Filter "All" includes games with and without gender set
+
+### Implementation Checklist
+- [ ] Types: Add `Gender` type and fields
+- [ ] Reducer: Add `SET_GENDER` action
+- [ ] Reducer: Add gender to `LOAD_PERSISTED_GAME_DATA`
+- [ ] History: Add `SET_GENDER` to history actions
+- [ ] NewGameSetupModal: Add gender selector
+- [ ] GameSettingsModal: Add gender selector
+- [ ] SeasonDetailsModal: Add gender selector
+- [ ] TournamentDetailsModal: Add gender selector
+- [ ] gameFilters.ts: Add gender filter logic
+- [ ] useStatsFilters.ts: Add gender filter state
+- [ ] FilterControls.tsx: Add gender dropdown
+- [ ] CollapsibleFilters.tsx: Add gender filter
+- [ ] GameStatsModal.tsx: Wire up gender filter
+- [ ] PlayerStatsView.tsx: Add gender filtering
+- [ ] LoadGameModal.tsx: Add gender to search
+- [ ] useNewGameFlow.ts: Add gender state
+- [ ] useModalOrchestration.ts: Pass gender
+- [ ] newGameHandlers.ts: Include gender
+- [ ] Translations: EN + FI
+- [ ] Generate i18n types
+- [ ] Update all tests
+- [ ] Run full test suite
+- [ ] Run build
+
+**Why Third**: Important feature for Finnish youth soccer. Now has clear implementation plan mirroring the Game Type feature.
 
 ---
 
 ## ⚽ PRIORITY 4: Game Type (Soccer/Futsal) Labeling
 
-**Status**: 📋 Design approved
-**Effort**: 3-5 days
+**Status**: ✅ **COMPLETED** (December 11, 2025)
+**Effort**: 3-5 days (actual)
 
-### The Problem
-Finnish youth seasons often include both outdoor soccer and indoor futsal games. Currently no way to distinguish or filter by game type.
+### The Problem (Solved)
+Finnish youth seasons often include both outdoor soccer and indoor futsal games. ~~Currently no way to distinguish or filter by game type.~~
 
-### Phase 1: Labeling System (Current Scope)
-Add `gameType: 'soccer' | 'futsal'` field for filtering and organization.
+### Implementation Complete
+Added `gameType: 'soccer' | 'futsal'` field for filtering and organization.
 
 **Where gameType is set:**
-- NewGameSetupModal (when creating new game)
-- GameSettingsModal (when editing existing game)
-- SeasonDetailsModal (season-level default)
-- TournamentDetailsModal (tournament-level default)
+- ✅ NewGameSetupModal (when creating new game)
+- ✅ GameSettingsModal (when editing existing game)
+- ✅ SeasonDetailsModal (season-level default)
+- ✅ TournamentDetailsModal (tournament-level default)
 
 **Filtering enabled in:**
-- Game history lists
-- Stats views (PlayerStatsView, GameStatsModal)
-- Season/Tournament game lists
+- ✅ Game history lists (LoadGameModal search)
+- ✅ Stats views (PlayerStatsView, GameStatsModal)
+- ✅ Season/Tournament stats tabs
 
-**Implementation:**
-- [ ] Add `gameType` field to types (Game, Season, Tournament)
-- [ ] Update NewGameSetupModal with game type selector
-- [ ] Update GameSettingsModal with game type selector
-- [ ] Update SeasonDetailsModal with game type selector
-- [ ] Update TournamentDetailsModal with game type selector
-- [ ] Add filtering UI to stats views
-- [ ] Backward compatible (default to `'soccer'` for existing data)
-- [ ] Translations (EN/FI)
-- [ ] Icon/badge in game lists (⚽/🏟️ or similar)
+**Completed:**
+- [x] Add `gameType` field to types (Game, Season, Tournament)
+- [x] Update NewGameSetupModal with game type selector
+- [x] Update GameSettingsModal with game type selector
+- [x] Update SeasonDetailsModal with game type selector
+- [x] Update TournamentDetailsModal with game type selector
+- [x] Add filtering UI to stats views
+- [x] Backward compatible (default to `'soccer'` for existing data)
+- [x] Translations (EN/FI)
+- [x] Search by game type in LoadGameModal
 
 ### Phase 2: Futsal Field Visualization (Future)
 **Deferred** - Document for future implementation:
@@ -205,7 +333,7 @@ Add `gameType: 'soccer' | 'futsal'` field for filtering and organization.
 - Different default player positions (5 players vs 11)
 - Futsal-specific tactical overlays
 
-**Why This Priority**: Real user need for Finnish youth coaches. Clean labeling enables filtering without over-engineering. Field visualization can come later based on user feedback.
+**Reference**: Use this implementation as pattern for Gender (Boys/Girls) feature.
 
 ---
 
@@ -263,6 +391,8 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 
 | Date | Update |
 |------|--------|
+| 2025-12-11 | ✅ **Game Type (Soccer/Futsal) COMPLETED** - merged to master |
+| 2025-12-11 | **Gender Handling plan created** - detailed implementation mirroring Game Type |
 | 2025-12-07 | **Established priority order**: Play Store → Backend → Gender → League UX |
 | 2025-12-07 | Tournament Series & Season Leagues feature merged to master (PR #111) |
 | 2025-12-06 | Backend abstraction realistic plan created |

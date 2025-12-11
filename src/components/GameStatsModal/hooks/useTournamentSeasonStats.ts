@@ -5,7 +5,7 @@
 
 import { useMemo } from 'react';
 import { Season, Tournament } from '@/types';
-import type { GameType } from '@/types/game';
+import type { GameType, Gender } from '@/types/game';
 import { StatsTab, TournamentSeasonStats, OverallTournamentSeasonStats } from '../types';
 import { SavedGamesCollection } from '@/types';
 import { filterGameIds } from '../utils/gameFilters';
@@ -19,6 +19,7 @@ interface UseTournamentSeasonStatsParams {
   selectedTournamentIdFilter: string | 'all';
   selectedTeamIdFilter?: string | 'all' | 'legacy';
   selectedGameTypeFilter?: GameType | 'all';
+  selectedGenderFilter?: Gender | 'all';
   // Club season filter params
   selectedClubSeason?: string | 'all';
   clubSeasonStartDate?: string;
@@ -37,6 +38,7 @@ export function useTournamentSeasonStats(
     selectedTournamentIdFilter,
     selectedTeamIdFilter = 'all',
     selectedGameTypeFilter = 'all',
+    selectedGenderFilter = 'all',
     selectedClubSeason = 'all',
     clubSeasonStartDate = '2000-10-01',
     clubSeasonEndDate = '2000-05-01',
@@ -306,11 +308,12 @@ export function useTournamentSeasonStats(
       seasonFilter: activeTab === 'season' ? selectedSeasonIdFilter : undefined,
       tournamentFilter: activeTab === 'tournament' ? selectedTournamentIdFilter : undefined,
       gameTypeFilter: selectedGameTypeFilter,
+      genderFilter: selectedGenderFilter,
       activeTab,
       clubSeasonFilter: selectedClubSeason,
       clubSeasonStartDate,
       clubSeasonEndDate,
     });
     return calculateStats(playedGameIds);
-  }, [activeTab, savedGames, seasons, tournaments, selectedSeasonIdFilter, selectedTournamentIdFilter, selectedTeamIdFilter, selectedGameTypeFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
+  }, [activeTab, savedGames, seasons, tournaments, selectedSeasonIdFilter, selectedTournamentIdFilter, selectedTeamIdFilter, selectedGameTypeFilter, selectedGenderFilter, selectedClubSeason, clubSeasonStartDate, clubSeasonEndDate]);
 }

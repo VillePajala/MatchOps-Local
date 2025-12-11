@@ -1,4 +1,4 @@
-import type { GameType } from './game';
+import type { GameType, Gender } from './game';
 
 export interface Player {
   id: string;
@@ -106,6 +106,14 @@ export interface Season {
    * Games in this season can inherit this setting or override it.
    */
   gameType?: GameType;
+  /**
+   * Gender for this season - boys or girls.
+   *
+   * @remarks
+   * Optional for backwards compatibility - legacy seasons work without gender set.
+   * Games in this season can inherit this setting or override it.
+   */
+  gender?: Gender;
   // Note: teamId removed - seasons are global entities per plan
   // Note: roster management removed - teams handle rosters now
 }
@@ -178,6 +186,14 @@ export interface Tournament {
    * Games in this tournament can inherit this setting or override it.
    */
   gameType?: GameType;
+  /**
+   * Gender for this tournament - boys or girls.
+   *
+   * @remarks
+   * Optional for backwards compatibility - legacy tournaments work without gender set.
+   * Games in this tournament can inherit this setting or override it.
+   */
+  gender?: Gender;
   // Note: teamId removed - tournaments are global entities per plan
   // Note: roster management removed - teams handle rosters now
 }

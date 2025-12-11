@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import type { GameType } from '@/types/game';
+import type { GameType, Gender } from '@/types/game';
 
 export interface StatsFiltersState {
   selectedSeasonIdFilter: string | 'all';
@@ -7,6 +7,7 @@ export interface StatsFiltersState {
   selectedTeamIdFilter: string | 'all' | 'legacy';
   selectedSeriesIdFilter: string | 'all';
   selectedGameTypeFilter: GameType | 'all';
+  selectedGenderFilter: Gender | 'all';
   selectedClubSeason: string;
 }
 
@@ -16,11 +17,13 @@ export interface StatsFiltersHandlers {
   onTeamFilterChange: (teamId: string | 'all' | 'legacy') => void;
   onSeriesFilterChange: (seriesId: string | 'all') => void;
   onGameTypeFilterChange: (gameType: GameType | 'all') => void;
+  onGenderFilterChange: (gender: Gender | 'all') => void;
   onClubSeasonChange: (season: string) => void;
   clearCollapsibleFilters: (options?: {
     resetSeries?: boolean;
     resetTeam?: boolean;
     resetGameType?: boolean;
+    resetGender?: boolean;
     resetClubSeason?: boolean;
   }) => void;
   /**
@@ -36,6 +39,7 @@ export function useStatsFilters() {
   const [selectedTeamIdFilter, setSelectedTeamIdFilter] = useState<string | 'all' | 'legacy'>('all');
   const [selectedSeriesIdFilter, setSelectedSeriesIdFilter] = useState<string | 'all'>('all');
   const [selectedGameTypeFilter, setSelectedGameTypeFilter] = useState<GameType | 'all'>('all');
+  const [selectedGenderFilter, setSelectedGenderFilter] = useState<Gender | 'all'>('all');
   const [selectedClubSeason, setSelectedClubSeason] = useState<string>('all');
 
   const onSeasonFilterChange = useCallback((seasonId: string | 'all') => {
@@ -59,6 +63,10 @@ export function useStatsFilters() {
     setSelectedGameTypeFilter(gameType);
   }, []);
 
+  const onGenderFilterChange = useCallback((gender: Gender | 'all') => {
+    setSelectedGenderFilter(gender);
+  }, []);
+
   const onClubSeasonChange = useCallback((season: string) => {
     setSelectedClubSeason(season);
   }, []);
@@ -68,16 +76,19 @@ export function useStatsFilters() {
       resetSeries = true,
       resetTeam = true,
       resetGameType = true,
+      resetGender = true,
       resetClubSeason = true,
     }: {
       resetSeries?: boolean;
       resetTeam?: boolean;
       resetGameType?: boolean;
+      resetGender?: boolean;
       resetClubSeason?: boolean;
     } = {}) => {
       if (resetSeries) setSelectedSeriesIdFilter('all');
       if (resetTeam) setSelectedTeamIdFilter('all');
       if (resetGameType) setSelectedGameTypeFilter('all');
+      if (resetGender) setSelectedGenderFilter('all');
       if (resetClubSeason) setSelectedClubSeason('all');
     },
     []
@@ -89,6 +100,7 @@ export function useStatsFilters() {
     setSelectedTeamIdFilter('all');
     setSelectedSeriesIdFilter('all');
     setSelectedGameTypeFilter('all');
+    setSelectedGenderFilter('all');
     setSelectedClubSeason('all');
   }, []);
 
@@ -99,6 +111,7 @@ export function useStatsFilters() {
       selectedTeamIdFilter,
       selectedSeriesIdFilter,
       selectedGameTypeFilter,
+      selectedGenderFilter,
       selectedClubSeason,
     },
     handlers: {
@@ -107,6 +120,7 @@ export function useStatsFilters() {
       onTeamFilterChange,
       onSeriesFilterChange,
       onGameTypeFilterChange,
+      onGenderFilterChange,
       onClubSeasonChange,
       clearCollapsibleFilters,
       resetAllFilters,

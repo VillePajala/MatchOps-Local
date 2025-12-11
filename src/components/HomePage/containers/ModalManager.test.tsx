@@ -173,6 +173,7 @@ const createProps = (): ModalManagerProps => ({
     setLeagueId: noop,
     setCustomLeagueName: noop,
     setGameType: noop,
+    setGender: noop,
     setHomeOrAway: noop,
     setIsPlayed: noop,
     updateSelectedPlayers: noop,

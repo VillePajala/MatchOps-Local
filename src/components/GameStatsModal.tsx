@@ -195,6 +195,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     selectedTeamIdFilter,
     selectedSeriesIdFilter,
     selectedGameTypeFilter,
+    selectedGenderFilter,
     selectedClubSeason,
   } = filters;
   const {
@@ -353,6 +354,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     selectedTournamentIdFilter,
     selectedTeamIdFilter,
     selectedGameTypeFilter,
+    selectedGenderFilter,
     // Club season filter params
     selectedClubSeason,
     clubSeasonStartDate,
@@ -393,6 +395,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         if (gameType !== selectedGameTypeFilter) return;
       }
 
+      // Filter by gender if one is selected
+      if (selectedGenderFilter !== 'all') {
+        if (game.gender !== selectedGenderFilter) return;
+      }
+
       gamesPlayed++;
       const ourScore = game.homeOrAway === 'home' ? game.homeScore : game.awayScore;
       const theirScore = game.homeOrAway === 'home' ? game.awayScore : game.homeScore;
@@ -417,7 +424,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       averageGoalsFor: gamesPlayed > 0 ? goalsFor / gamesPlayed : 0,
       averageGoalsAgainst: gamesPlayed > 0 ? goalsAgainst / gamesPlayed : 0,
     };
-  }, [activeTab, savedGames, selectedTeamIdFilter, selectedClubSeason, selectedGameTypeFilter, clubSeasonStartDate, clubSeasonEndDate]);
+  }, [activeTab, savedGames, selectedTeamIdFilter, selectedClubSeason, selectedGameTypeFilter, selectedGenderFilter, clubSeasonStartDate, clubSeasonEndDate]);
 
   // Tab counter memoized for performance
   const tabCounterContent = useMemo(() => {
@@ -576,7 +583,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   };
 
   // Helper to check if any filters are active (for empty state messaging)
-  const hasActiveFilters = selectedGameTypeFilter !== 'all' || selectedClubSeason !== 'all' || selectedTeamIdFilter !== 'all';
+  const hasActiveFilters = selectedGameTypeFilter !== 'all' || selectedGenderFilter !== 'all' || selectedClubSeason !== 'all' || selectedTeamIdFilter !== 'all';
 
   // Generate filter hint for empty state
   const getFilterHint = () => {
@@ -585,6 +592,11 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
       hints.push(selectedGameTypeFilter === 'soccer'
         ? t('common.gameTypeSoccer', 'Soccer')
         : t('common.gameTypeFutsal', 'Futsal'));
+    }
+    if (selectedGenderFilter !== 'all') {
+      hints.push(selectedGenderFilter === 'boys'
+        ? t('common.genderBoys', 'Boys')
+        : t('common.genderGirls', 'Girls'));
     }
     if (selectedClubSeason !== 'all') {
       hints.push(`${t('playerStats.periodLabel', 'Period')}: ${selectedClubSeason}`);
@@ -713,6 +725,7 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
                 clubSeasonStartDate={clubSeasonStartDate}
                 clubSeasonEndDate={clubSeasonEndDate}
                 selectedGameTypeFilter={selectedGameTypeFilter}
+                selectedGenderFilter={selectedGenderFilter}
               />
             </div>
           ) : (

@@ -13,6 +13,18 @@ import type { PlayerAssessment } from './playerAssessment';
  */
 export type GameType = 'soccer' | 'futsal';
 
+/**
+ * Gender - distinguishes between boys' and girls' games/competitions.
+ * Finnish youth soccer is gender-separated.
+ *
+ * @remarks
+ * - Optional field for backward compatibility - legacy games work without gender set
+ * - Used for filtering games, seasons, tournaments in stats views
+ * - Gender is at entity level (game/season/tournament), NOT player level
+ *   (players can participate in both boys' and girls' games in younger age groups)
+ */
+export type Gender = 'boys' | 'girls';
+
 export interface Point {
   relX: number;
   relY: number;
@@ -135,6 +147,14 @@ export interface AppState {
    * Used for filtering and organizing games.
    */
   gameType?: GameType;
+  /**
+   * Gender - boys or girls.
+   *
+   * @remarks
+   * Optional for backwards compatibility - legacy games work without gender set.
+   * Used for filtering and organizing games.
+   */
+  gender?: Gender;
 }
 
 export interface SavedGamesCollection {

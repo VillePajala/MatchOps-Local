@@ -5,7 +5,7 @@ import type { TFunction } from 'i18next';
 import { queryKeys } from '@/config/queryKeys';
 import { CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import logger from '@/utils/logger';
-import type { AppState, Player, SavedGamesCollection, GameType } from '@/types';
+import type { AppState, Player, SavedGamesCollection, GameType, Gender } from '@/types';
 import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
 
 type ToastFn = (message: string, type?: 'success' | 'error' | 'info') => void;
@@ -55,6 +55,7 @@ export interface StartNewGameRequest {
   leagueId: string;
   customLeagueName: string;
   gameType: GameType;
+  gender: Gender | undefined;
 }
 
 export async function startNewGameWithSetup(
@@ -84,6 +85,7 @@ export async function startNewGameWithSetup(
     leagueId,
     customLeagueName,
     gameType,
+    gender,
   } = request;
   const {
     availablePlayers,
@@ -135,6 +137,8 @@ export async function startNewGameWithSetup(
     // gameType flows from modal → handler → AppState storage
     // It's also tracked in game session reducer for undo/redo history
     gameType,
+    // gender flows from modal → handler → AppState storage (optional)
+    gender,
     availablePlayers: availablePlayersForGame,
     selectedPlayerIds: finalSelectedPlayerIds,
     playersOnField: [],

@@ -145,7 +145,8 @@ interface ModalManagerHandlers {
     selectedPersonnelIds: string[],
     leagueId: string,
     customLeagueName: string,
-    gameType: import('@/types').GameType
+    gameType: import('@/types').GameType,
+    gender: import('@/types').Gender | undefined
   ) => void;
   cancelNewGameSetup: () => void;
   closeRosterModal: () => void;
@@ -175,6 +176,7 @@ interface ModalManagerHandlers {
   setLeagueId: (id: string | undefined) => void;
   setCustomLeagueName: (name: string | undefined) => void;
   setGameType: (gameType: import('@/types').GameType) => void;
+  setGender: (gender: import('@/types').Gender | undefined) => void;
   setHomeOrAway: (value: 'home' | 'away') => void;
   setIsPlayed: (played: boolean) => void;
   updateSelectedPlayers: (playerIds: string[]) => void;
@@ -420,6 +422,8 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
           onIsPlayedChange={handlers.setIsPlayed}
           gameType={data.gameSessionState.gameType}
           onGameTypeChange={handlers.setGameType}
+          gender={data.gameSessionState.gender}
+          onGenderChange={handlers.setGender}
           timeElapsedInSeconds={data.gameSessionState.timeElapsedInSeconds}
           updateGameDetailsMutation={data.updateGameDetailsMutation!}
           seasons={data.seasons}
