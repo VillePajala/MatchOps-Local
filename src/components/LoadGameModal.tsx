@@ -147,6 +147,9 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       // Include game type in search (soccer/futsal/jalkapallo)
       const gameType = (gameData.gameType || 'soccer').toLowerCase();
       const gameTypeSearchTerms = gameType === 'soccer' ? 'soccer jalkapallo' : 'futsal';
+      // Include gender in search (boys/girls/pojat/tytöt)
+      const gender = gameData.gender;
+      const genderSearchTerms = gender === 'boys' ? 'boys pojat' : gender === 'girls' ? 'girls tytöt' : '';
 
       return (
         teamName.includes(lowerSearchText) ||
@@ -154,7 +157,8 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
         gameDate.includes(lowerSearchText) ||
         seasonName.includes(lowerSearchText) ||
         tournamentName.includes(lowerSearchText) ||
-        gameTypeSearchTerms.includes(lowerSearchText)
+        gameTypeSearchTerms.includes(lowerSearchText) ||
+        genderSearchTerms.includes(lowerSearchText)
       );
     });
 

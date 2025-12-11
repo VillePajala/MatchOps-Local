@@ -148,6 +148,133 @@ describe('gameFilters', () => {
       });
     });
 
+    describe('gender filter', () => {
+      it('filters boys games when genderFilter is boys', () => {
+        const games: SavedGamesCollection = {
+          'boys_game': createGame({ gender: 'boys' }),
+          'girls_game': createGame({ gender: 'girls' }),
+          'no_gender_game': createGame({ gender: undefined }),
+        };
+
+        const result = filterGameIds(games, { playedOnly: false, genderFilter: 'boys' });
+
+        expect(result).toEqual(['boys_game']);
+      });
+
+      it('filters girls games when genderFilter is girls', () => {
+        const games: SavedGamesCollection = {
+          'boys_game': createGame({ gender: 'boys' }),
+          'girls_game': createGame({ gender: 'girls' }),
+          'no_gender_game': createGame({ gender: undefined }),
+        };
+
+        const result = filterGameIds(games, { playedOnly: false, genderFilter: 'girls' });
+
+        expect(result).toEqual(['girls_game']);
+      });
+
+      it('returns all games when genderFilter is all', () => {
+        const games: SavedGamesCollection = {
+          'boys_game': createGame({ gender: 'boys' }),
+          'girls_game': createGame({ gender: 'girls' }),
+          'no_gender_game': createGame({ gender: undefined }),
+        };
+
+        const result = filterGameIds(games, { playedOnly: false, genderFilter: 'all' });
+
+        expect(result).toHaveLength(3);
+        expect(result).toContain('boys_game');
+        expect(result).toContain('girls_game');
+        expect(result).toContain('no_gender_game');
+      });
+
+      it('excludes games without gender when filtering by specific gender', () => {
+        const games: SavedGamesCollection = {
+          'boys_game': createGame({ gender: 'boys' }),
+          'no_gender': createGame({ gender: undefined }),
+          'null_gender': createGame({ gender: null as unknown as 'boys' | 'girls' }),
+        };
+
+        const result = filterGameIds(games, { playedOnly: false, genderFilter: 'boys' });
+
+        expect(result).toHaveLength(1);
+        expect(result).toContain('boys_game');
+        expect(result).not.toContain('no_gender');
+        expect(result).not.toContain('null_gender');
+      });
+
+      it('combines gender filter with other filters', () => {
+        const games: SavedGamesCollection = {
+          'boys_team1': createGame({ gender: 'boys', teamId: 'team1' }),
+          'girls_team1': createGame({ gender: 'girls', teamId: 'team1' }),
+          'boys_team2': createGame({ gender: 'boys', teamId: 'team2' }),
+        };
+
+        const result = filterGameIds(games, {
+          playedOnly: false,
+          genderFilter: 'boys',
+          teamFilter: 'team1'
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result).toContain('boys_team1');
+      });
+
+      it('combines gender filter with gameType filter', () => {
+        const games: SavedGamesCollection = {
+          'boys_soccer': createGame({ gender: 'boys', gameType: 'soccer' }),
+          'boys_futsal': createGame({ gender: 'boys', gameType: 'futsal' }),
+          'girls_soccer': createGame({ gender: 'girls', gameType: 'soccer' }),
+          'girls_futsal': createGame({ gender: 'girls', gameType: 'futsal' }),
+        };
+
+        const result = filterGameIds(games, {
+          playedOnly: false,
+          genderFilter: 'boys',
+          gameTypeFilter: 'futsal'
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result).toContain('boys_futsal');
+      });
+
+      it('combines gender filter with tournament filter', () => {
+        const games: SavedGamesCollection = {
+          'boys_tourn1': createGame({ gender: 'boys', tournamentId: 'tourn1', seasonId: '' }),
+          'girls_tourn1': createGame({ gender: 'girls', tournamentId: 'tourn1', seasonId: '' }),
+          'boys_tourn2': createGame({ gender: 'boys', tournamentId: 'tourn2', seasonId: '' }),
+        };
+
+        const result = filterGameIds(games, {
+          playedOnly: false,
+          activeTab: 'tournament',
+          genderFilter: 'boys',
+          tournamentFilter: 'tourn1'
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result).toContain('boys_tourn1');
+      });
+
+      it('combines gender filter with season filter', () => {
+        const games: SavedGamesCollection = {
+          'boys_season1': createGame({ gender: 'boys', seasonId: 'season1', tournamentId: '' }),
+          'girls_season1': createGame({ gender: 'girls', seasonId: 'season1', tournamentId: '' }),
+          'boys_season2': createGame({ gender: 'boys', seasonId: 'season2', tournamentId: '' }),
+        };
+
+        const result = filterGameIds(games, {
+          playedOnly: false,
+          activeTab: 'season',
+          genderFilter: 'boys',
+          seasonFilter: 'season1'
+        });
+
+        expect(result).toHaveLength(1);
+        expect(result).toContain('boys_season1');
+      });
+    });
+
     describe('season tab filtering', () => {
       it('returns games with seasonId and no tournamentId when seasonFilter=all', () => {
         const games: SavedGamesCollection = {
