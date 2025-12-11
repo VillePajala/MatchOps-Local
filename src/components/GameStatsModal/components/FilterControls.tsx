@@ -63,6 +63,10 @@ export function FilterControls({
   if (hasTeamFilter) filterCount++;
   if (hasGameTypeFilter) filterCount++;
 
+  if (filterCount === 0) {
+    return null; // No visible filters; avoid rendering empty spacing
+  }
+
   // Mobile: max 2 cols, Desktop: full width
   let gridCols = 'grid-cols-1';
   if (filterCount === 4) gridCols = 'grid-cols-2 sm:grid-cols-4';
@@ -70,7 +74,7 @@ export function FilterControls({
   else if (filterCount === 2) gridCols = 'grid-cols-2';
 
   return (
-    <div className={`mb-4 mx-1 grid ${gridCols} gap-2`}>
+    <div className={`mt-0.5 mb-3 mx-1 grid ${gridCols} gap-2`}>
       {activeTab === 'season' && (
         <select
           value={selectedSeasonIdFilter}
