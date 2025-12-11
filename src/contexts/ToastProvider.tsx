@@ -49,7 +49,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed top-4 right-4 space-y-2 z-50">
+      <div className="fixed top-4 right-4 space-y-2 z-[100]">
         {toasts.map(t => {
           const base = 'text-white px-4 py-2 rounded shadow animate-fade-in-out';
           const color =

@@ -431,6 +431,7 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
           if (availablePlayers.length === 0) {
             setShowNoPlayersConfirm(true);
           } else {
+            setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds);
             openNewGameViaReducer();
           }
           break;
@@ -1089,12 +1090,23 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       // Check currentGameId *inside* the effect body
       if (currentGameId === DEFAULT_GAME_ID) {
         logger.log('Default game ID loaded, prompting for setup...');
-        openNewGameViaReducer();
+        setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds);
+        if (!isNewGameSetupModalOpen) {
+          openNewGameViaReducer();
+        }
       } else {
         logger.log('Not prompting: Specific game loaded.');
     }
     }
-  }, [initialLoadComplete, hasSkippedInitialSetup, currentGameId, openNewGameViaReducer]);
+  }, [
+    initialLoadComplete,
+    hasSkippedInitialSetup,
+    currentGameId,
+    openNewGameViaReducer,
+    gameSessionState.selectedPlayerIds,
+    isNewGameSetupModalOpen,
+    setPlayerIdsForNewGame,
+  ]);
 
   // --- Game Persistence Hook ---
   const persistence = useGamePersistence({
@@ -1696,10 +1708,10 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       setShowSaveBeforeNewConfirm(true);
     } else {
       // For saved games (auto-saved), go directly to new game setup modal
-      setPlayerIdsForNewGame([]); // Start with no players pre-selected
+      setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds); // Prefill with last game's selection
       openNewGameViaReducer();
     }
-  }, [currentGameId, availablePlayers, t, openNewGameViaReducer]);
+  }, [currentGameId, availablePlayers, t, openNewGameViaReducer, gameSessionState.selectedPlayerIds]);
 
   // Handler for "No Players" confirmation
   const handleNoPlayersConfirmed = useCallback(() => {
@@ -1724,10 +1736,10 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
   // Handler for "Start New" confirmation
   const handleStartNewConfirmed = useCallback(() => {
-    setPlayerIdsForNewGame([]); // Start with no players pre-selected
+    setPlayerIdsForNewGame(gameSessionState.selectedPlayerIds);
     setShowStartNewConfirm(false);
     openNewGameViaReducer(); // Open the setup modal
-  }, [openNewGameViaReducer]);
+  }, [openNewGameViaReducer, gameSessionState.selectedPlayerIds]);
 
   if (debug.enabled('home')) {
     logger.log('[Home Render] highlightRosterButton:', highlightRosterButton);

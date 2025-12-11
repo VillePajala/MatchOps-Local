@@ -94,6 +94,11 @@ export function useNewGameFlow({
   const [gameIdentifierForSave, setGameIdentifierForSave] = useState('');
   const [showStartNewConfirm, setShowStartNewConfirm] = useState(false);
 
+  const getLastSelectedPlayerIds = useCallback(() => {
+    const currentGame = currentGameId ? savedGames[currentGameId] : undefined;
+    return currentGame?.selectedPlayerIds ?? [];
+  }, [currentGameId, savedGames]);
+
   const handleInitialActionNewGame = useCallback(() => {
     if (availablePlayers.length === 0) {
       setShowNoPlayersConfirm(true);
@@ -117,9 +122,9 @@ export function useNewGameFlow({
     }
 
     // For saved games (auto-saved), go directly to new game setup modal
-    setPlayerIdsForNewGame([]); // Start with no players pre-selected
+    setPlayerIdsForNewGame(getLastSelectedPlayerIds()); // Prefill with last game's selection
     openNewGameSetupModal();
-  }, [availablePlayers.length, currentGameId, t, openNewGameSetupModal]);
+  }, [availablePlayers.length, currentGameId, t, openNewGameSetupModal, getLastSelectedPlayerIds]);
 
   const handleNoPlayersConfirmed = useCallback(() => {
     setShowNoPlayersConfirm(false);
@@ -132,10 +137,10 @@ export function useNewGameFlow({
   }, []);
 
   const handleStartNewConfirmed = useCallback(() => {
-    setPlayerIdsForNewGame([]); // Start with no players pre-selected
+    setPlayerIdsForNewGame(getLastSelectedPlayerIds()); // Prefill with last game's selection
     setShowStartNewConfirm(false);
     openNewGameSetupModal();
-  }, [openNewGameSetupModal]);
+  }, [openNewGameSetupModal, getLastSelectedPlayerIds]);
 
   const openSetupAfterPreSave = useCallback(
     (selectedPlayerIds: string[]) => {
