@@ -593,10 +593,10 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
         ? t('common.gameTypeSoccer', 'Soccer')
         : t('common.gameTypeFutsal', 'Futsal'));
     }
-    if (selectedGenderFilter !== 'all') {
-      hints.push(selectedGenderFilter === 'boys'
-        ? t('common.genderBoys', 'Boys')
-        : t('common.genderGirls', 'Girls'));
+    if (selectedGenderFilter === 'boys') {
+      hints.push(t('common.genderBoys', 'Boys'));
+    } else if (selectedGenderFilter === 'girls') {
+      hints.push(t('common.genderGirls', 'Girls'));
     }
     if (selectedClubSeason !== 'all') {
       hints.push(`${t('playerStats.periodLabel', 'Period')}: ${selectedClubSeason}`);

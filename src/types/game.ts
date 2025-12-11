@@ -22,6 +22,8 @@ export type GameType = 'soccer' | 'futsal';
  * - Used for filtering games, seasons, tournaments in stats views
  * - Gender is at entity level (game/season/tournament), NOT player level
  *   (players can participate in both boys' and girls' games in younger age groups)
+ * - Games without gender are excluded when filtering by specific gender (boys/girls)
+ * - Filter 'all' includes both games with gender set and legacy games without gender
  */
 export type Gender = 'boys' | 'girls';
 
