@@ -144,13 +144,17 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       const gameDate = (gameData.gameDate || '').toLowerCase();
       const seasonName = (displayNames.seasonName || '').toLowerCase();
       const tournamentName = (displayNames.tournamentName || '').toLowerCase();
+      // Include game type in search (soccer/futsal/jalkapallo)
+      const gameType = (gameData.gameType || 'soccer').toLowerCase();
+      const gameTypeSearchTerms = gameType === 'soccer' ? 'soccer jalkapallo' : 'futsal';
 
       return (
         teamName.includes(lowerSearchText) ||
         opponentName.includes(lowerSearchText) ||
         gameDate.includes(lowerSearchText) ||
         seasonName.includes(lowerSearchText) ||
-        tournamentName.includes(lowerSearchText)
+        tournamentName.includes(lowerSearchText) ||
+        gameTypeSearchTerms.includes(lowerSearchText)
       );
     });
 

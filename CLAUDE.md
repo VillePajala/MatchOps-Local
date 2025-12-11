@@ -531,3 +531,4 @@ Code that works in dev may fail in Vercel due to stricter ESLint, different Type
 - Be professional and factual
 - Defend quality and best practices even if it means disagreeing
 - Ensure `npm run lint` passes before commits and pushes
+- Do not run tests, build or anything if I dont specifically ask for it
