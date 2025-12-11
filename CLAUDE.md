@@ -85,6 +85,8 @@ The build process includes a custom manifest generation step that runs before Ne
 - Seasons and tournaments (`src/utils/seasons.ts`, `src/utils/tournaments.ts`)
 - App settings (`src/utils/appSettings.ts`)
 
+**Game Types**: Supports both soccer and futsal games via `gameType: 'soccer' | 'futsal'` field on games, seasons, and tournaments. Legacy games without `gameType` default to soccer. See `docs/04-features/game-type-support.md`.
+
 **IndexedDB Migration**: `src/utils/migration.ts` handles localStorage → IndexedDB migration with essential features (data transfer, error handling, progress tracking, rollback). Production-ready for small-scale deployments.
 
 **Storage Requirements**:

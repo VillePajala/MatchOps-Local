@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: make FilterControls responsive on mobile (max 2 cols)"
+  "notes": "refactor: consolidate translation keys and improve type imports"
 }
