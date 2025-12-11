@@ -356,6 +356,7 @@ export type TranslationKey =
   | 'gameSettingsModal.unplayedToggle'
   | 'gameStats.personnelEmpty'
   | 'gameStats.personnelSectionTitle'
+  | 'gameStatsModal.activeFiltersHint'
   | 'gameStatsModal.allSeasonsStats'
   | 'gameStatsModal.allTournamentsStats'
   | 'gameStatsModal.assistPrefix'

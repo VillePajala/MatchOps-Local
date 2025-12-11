@@ -226,4 +226,72 @@ describe('Game Type Persistence Integration Tests', () => {
     expect(loadedSoccerGame!.gameType).toBe('soccer');
     expect(loadedFutsalGame!.gameType).toBe('futsal');
   });
+
+  /**
+   * Tests the filtering behavior for legacy games without gameType.
+   * Verifies comment on line 10 of src/types/game.ts:
+   * "Legacy games without gameType are treated as 'soccer' during filtering"
+   * @integration
+   */
+  it('should treat legacy games (gameType: undefined) as soccer during filtering', async () => {
+    // Import the filter function
+    const { filterGameIds } = await import('@/components/GameStatsModal/utils/gameFilters');
+
+    // Create a legacy game (no gameType - simulates pre-gameType data)
+    const legacyGameId = 'game-legacy-filter-test';
+    const legacyGame = createTestAppState({
+      testId: legacyGameId,
+      teamName: 'Legacy Team',
+      opponentName: 'Old Opponent',
+      gameDate: '2023-06-15',
+      homeScore: 2,
+      awayScore: 1,
+      gameStatus: 'gameEnd',
+      isPlayed: true,
+    });
+    // Remove gameType to simulate legacy data
+    delete (legacyGame as Partial<AppState>).gameType;
+
+    await saveGame(legacyGameId, legacyGame);
+
+    // Verify the game has no gameType
+    const loadedGame = await getGame(legacyGameId);
+    expect(loadedGame!.gameType).toBeUndefined();
+
+    // Create a SavedGamesCollection for filtering
+    const savedGames = { [legacyGameId]: loadedGame! };
+
+    // Test 1: Filter for 'soccer' - legacy game SHOULD be included
+    const soccerFiltered = filterGameIds(savedGames, {
+      activeTab: 'overall',
+      teamFilter: 'all',
+      gameTypeFilter: 'soccer',
+      clubSeasonFilter: 'all',
+      clubSeasonStartDate: '2000-10-01',
+      clubSeasonEndDate: '2000-05-01',
+    });
+    expect(soccerFiltered).toContain(legacyGameId);
+
+    // Test 2: Filter for 'futsal' - legacy game should NOT be included
+    const futsalFiltered = filterGameIds(savedGames, {
+      activeTab: 'overall',
+      teamFilter: 'all',
+      gameTypeFilter: 'futsal',
+      clubSeasonFilter: 'all',
+      clubSeasonStartDate: '2000-10-01',
+      clubSeasonEndDate: '2000-05-01',
+    });
+    expect(futsalFiltered).not.toContain(legacyGameId);
+
+    // Test 3: Filter for 'all' - legacy game SHOULD be included
+    const allFiltered = filterGameIds(savedGames, {
+      activeTab: 'overall',
+      teamFilter: 'all',
+      gameTypeFilter: 'all',
+      clubSeasonFilter: 'all',
+      clubSeasonStartDate: '2000-10-01',
+      clubSeasonEndDate: '2000-05-01',
+    });
+    expect(allFiltered).toContain(legacyGameId);
+  });
 });

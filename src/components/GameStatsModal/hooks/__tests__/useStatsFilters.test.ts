@@ -1,8 +1,10 @@
 import { renderHook, act } from '@testing-library/react';
 import { useStatsFilters } from '../useStatsFilters';
 
+type HookResult = ReturnType<typeof useStatsFilters>;
+
 describe('useStatsFilters', () => {
-  const assertDefaults = (result: ReturnType<typeof renderHook>['result']) => {
+  const assertDefaults = (result: { current: HookResult }) => {
     expect(result.current.filters.selectedSeasonIdFilter).toBe('all');
     expect(result.current.filters.selectedTournamentIdFilter).toBe('all');
     expect(result.current.filters.selectedTeamIdFilter).toBe('all');
@@ -11,11 +13,8 @@ describe('useStatsFilters', () => {
     expect(result.current.filters.selectedClubSeason).toBe('all');
   };
 
-  it('resets all filters when activeTab changes', () => {
-    const { result, rerender } = renderHook(
-      ({ activeTab }) => useStatsFilters({ activeTab }),
-      { initialProps: { activeTab: 'overall' as const } }
-    );
+  it('resets all filters when resetAllFilters is called', () => {
+    const { result } = renderHook(() => useStatsFilters());
 
     // mutate filters away from defaults
     act(() => {
@@ -34,13 +33,15 @@ describe('useStatsFilters', () => {
     expect(result.current.filters.selectedGameTypeFilter).toBe('soccer');
     expect(result.current.filters.selectedClubSeason).toBe('club-2024');
 
-    // Changing the active tab should reset to defaults
-    rerender({ activeTab: 'season' });
+    // Calling resetAllFilters should reset to defaults
+    act(() => {
+      result.current.handlers.resetAllFilters();
+    });
     assertDefaults(result);
   });
 
   it('clears collapsible filters with clearCollapsibleFilters respecting flags', () => {
-    const { result } = renderHook(() => useStatsFilters({ activeTab: 'tournament' }));
+    const { result } = renderHook(() => useStatsFilters());
 
     act(() => {
       result.current.handlers.onSeriesFilterChange('series-1');
@@ -66,7 +67,7 @@ describe('useStatsFilters', () => {
   });
 
   it('resets series when tournament changes', () => {
-    const { result } = renderHook(() => useStatsFilters({ activeTab: 'tournament' }));
+    const { result } = renderHook(() => useStatsFilters());
 
     act(() => {
       result.current.handlers.onSeriesFilterChange('series-1');

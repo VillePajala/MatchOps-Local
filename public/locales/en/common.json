@@ -236,6 +236,7 @@
     "filtersButton": "Filters",
     "filtersTitle": "Filter Options",
     "clearFilters": "Clear all",
+    "activeFiltersHint": "Active filters",
     "seasonFilterLabel": "Season",
     "tournamentFilterLabel": "Tournament",
     "seriesFilterLabel": "Series",
