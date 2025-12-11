@@ -72,6 +72,7 @@ Table of Contents
 - Phase P3: Quality Gates (A11y, Performance, Test expansion)
 - Phase P4: Monetization Readiness (Paywall, Analytics, Compliance)
 - Phase P5: Release and Post‑Launch Operations
+- Phase P6: Communication Infrastructure (Email, Social Media, Websites)
 - Phase F2: Feature Development (Post-Release)
 - Links Index (All References)
 
@@ -586,6 +587,59 @@ Acceptance
 
 ---
 
+## Phase P6: Communication Infrastructure (Parallel to P5)
+
+- Owner: TBD
+- Target Date: Before/during Play Store launch
+
+Outcome: Professional email, website, and social media presence for product launch and user support.
+
+**Primary Doc**: [../07-business/communication-infrastructure-plan.md](../07-business/communication-infrastructure-plan.md) ⭐
+
+### Overview
+
+| Component | Provider | Cost |
+|-----------|----------|------|
+| velomoai.com domain | Namecheap | ~10/year |
+| DNS (both domains) | Cloudflare | Free |
+| Email (receiving) | Cloudflare Email Routing | Free |
+| Email (sending) | Zoho Mail | Free tier |
+| Websites | Vercel | Free tier |
+| Social media | X, LinkedIn | Free |
+
+### Email Architecture
+
+```
+velomoai.com (Company)
+├── alerts@velomoai.com     → Sentry, monitoring
+├── dev@velomoai.com        → Play Store, Vercel, developer platforms
+└── hello@velomoai.com      → Company inquiries
+
+matchops.com (Product)
+├── support@matchops.com    → User support (can send replies)
+└── hello@matchops.com      → General product inquiries
+```
+
+### Checklist
+
+- P6 Checklist
+  - [ ] Register velomoai.com domain
+  - [ ] Set up Cloudflare DNS for both domains
+  - [ ] Configure email routing (Cloudflare + Zoho)
+  - [ ] Update Sentry notifications to alerts@velomoai.com
+  - [ ] Create Velomo AI website (landing page)
+  - [ ] Create @MatchOpsApp on X/Twitter
+  - [ ] Create Velomo AI LinkedIn page
+  - [ ] Set up Gmail labels and filters
+
+Acceptance
+- Professional email addresses working (send + receive)
+- Sentry alerts routing to dedicated email
+- Social media presence established
+- Company website live
+
+---
+
 ## Links Index (All References)
 
 - Production readiness
@@ -598,6 +652,8 @@ Acceptance
 - Monetization
   - business/MONETIZATION_STRATEGIES.md (canonical)
   - paywall-implementation-guide.md
+- Communication & Marketing
+  - business/communication-infrastructure-plan.md ⭐ (email, social media, websites)
 - Architecture & status
   - ARCHITECTURE.md, TECHNOLOGY_DECISIONS.md, PROJECT_STATUS.md, ROADMAP.md, PROJECT_OVERVIEW.md
 - Testing & quality
