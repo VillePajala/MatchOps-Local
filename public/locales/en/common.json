@@ -1368,6 +1368,7 @@
     "sportsmanship": "Sportsmanship",
     "fairPlayTrophy": "Fair Play Trophy",
     "playerOfTournament": "Player of Tournament",
+    "periodLabel": "Period",
     "periodNotConfiguredTitle": "Season Period Not Configured",
     "periodNotConfiguredMessage": "To filter statistics by period, first configure your season period (e.g., October to May) in Settings.",
     "configurePeriodDates": "Configure Period Dates",
