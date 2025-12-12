@@ -17,6 +17,10 @@ interface State {
 
 class ErrorBoundary extends Component<Props, State> {
   private handleVisibilityChange: (() => void) | null = null;
+  private recoveryCount = 0;
+  private recoveryResetTimer: ReturnType<typeof setTimeout> | null = null;
+  private static readonly MAX_RECOVERIES = 3;
+  private static readonly RECOVERY_RESET_MS = 30000; // Reset counter after 30s of stability
 
   constructor(props: Props) {
     super(props);
@@ -29,14 +33,20 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidMount() {
     // Auto-recover from error state when app becomes visible (Android TWA resume fix)
+    // Limited to MAX_RECOVERIES to prevent infinite loops from persistent bugs
     this.handleVisibilityChange = () => {
       if (!document.hidden && this.state.hasError) {
-        logger.log('[ErrorBoundary] App became visible with error state - auto-recovering');
-        this.setState({
-          hasError: false,
-          error: null,
-          errorInfo: null,
-        });
+        if (this.recoveryCount < ErrorBoundary.MAX_RECOVERIES) {
+          this.recoveryCount++;
+          logger.log(`[ErrorBoundary] App became visible with error state - auto-recovering (attempt ${this.recoveryCount}/${ErrorBoundary.MAX_RECOVERIES})`);
+          this.setState({
+            hasError: false,
+            error: null,
+            errorInfo: null,
+          });
+        } else {
+          logger.warn('[ErrorBoundary] Max auto-recovery attempts reached - staying in error state to prevent infinite loop');
+        }
       }
     };
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
@@ -45,6 +55,9 @@ class ErrorBoundary extends Component<Props, State> {
   componentWillUnmount() {
     if (this.handleVisibilityChange) {
       document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+    }
+    if (this.recoveryResetTimer) {
+      clearTimeout(this.recoveryResetTimer);
     }
   }
 
@@ -60,7 +73,7 @@ class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log error details
     logger.error('ErrorBoundary caught an error:', error, errorInfo);
-    
+
     // Update state with error info
     this.setState({
       error,
@@ -71,6 +84,18 @@ class ErrorBoundary extends Component<Props, State> {
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
+
+    // Reset recovery count after period of stability (no errors for 30s)
+    // This allows future legitimate visibility-based recoveries
+    if (this.recoveryResetTimer) {
+      clearTimeout(this.recoveryResetTimer);
+    }
+    this.recoveryResetTimer = setTimeout(() => {
+      if (this.recoveryCount > 0) {
+        logger.log('[ErrorBoundary] Resetting recovery count after stability period');
+        this.recoveryCount = 0;
+      }
+    }, ErrorBoundary.RECOVERY_RESET_MS);
   }
 
   componentDidUpdate(prevProps: Props) {
