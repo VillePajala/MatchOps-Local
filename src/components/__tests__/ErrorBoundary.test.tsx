@@ -112,4 +112,145 @@ describe('ErrorBoundary', () => {
     expect(screen.getByText('New content')).toBeInTheDocument();
     expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
   });
+
+  /**
+   * Tests auto-recovery on app visibility change (Android TWA resume fix)
+   * @critical
+   */
+  it('should auto-recover from error when app becomes visible', async () => {
+    // Store original document.hidden descriptor
+    const originalHiddenDescriptor = Object.getOwnPropertyDescriptor(
+      document,
+      'hidden'
+    );
+
+    // Start with document visible
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => false,
+    });
+
+    const { rerender } = render(
+      <ErrorBoundary>
+        <ThrowError shouldThrow={true} />
+      </ErrorBoundary>
+    );
+
+    // Error boundary should show fallback
+    expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
+
+    // Simulate visibility change (app returning from background)
+    // First simulate going to background (document.hidden = true)
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => true,
+    });
+    document.dispatchEvent(new Event('visibilitychange'));
+
+    // Then simulate returning to foreground (document.hidden = false)
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => false,
+    });
+    document.dispatchEvent(new Event('visibilitychange'));
+
+    // Re-render with non-throwing component to see if recovery worked
+    rerender(
+      <ErrorBoundary>
+        <ThrowError shouldThrow={false} />
+      </ErrorBoundary>
+    );
+
+    // Should have recovered and show normal content
+    expect(screen.getByText('No error')).toBeInTheDocument();
+    expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
+
+    // Restore original document.hidden
+    if (originalHiddenDescriptor) {
+      Object.defineProperty(document, 'hidden', originalHiddenDescriptor);
+    }
+  });
+
+  /**
+   * Tests max recovery limit to prevent infinite loops
+   * @critical
+   */
+  it('should stop auto-recovering after max attempts', async () => {
+    const originalHiddenDescriptor = Object.getOwnPropertyDescriptor(
+      document,
+      'hidden'
+    );
+
+    // Suppress expected warning about max recovery attempts
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => false,
+    });
+
+    render(
+      <ErrorBoundary>
+        <ThrowError shouldThrow={true} />
+      </ErrorBoundary>
+    );
+
+    // Error boundary should show fallback
+    expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
+
+    // Simulate multiple visibility changes (exceeding max recoveries of 3)
+    for (let i = 0; i < 4; i++) {
+      // Go to background
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        get: () => true,
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      // Return to foreground
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        get: () => false,
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }
+
+    // After 4 attempts (exceeding max of 3), should stay in error state
+    // Note: The component will still show error state because ThrowError keeps throwing
+    expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
+
+    // Verify the warning was called (max recoveries exceeded)
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Max auto-recovery attempts reached')
+    );
+
+    warnSpy.mockRestore();
+
+    if (originalHiddenDescriptor) {
+      Object.defineProperty(document, 'hidden', originalHiddenDescriptor);
+    }
+  });
+
+  /**
+   * Tests cleanup of event listeners on unmount
+   * @critical - Prevents memory leaks
+   */
+  it('should cleanup visibility change listener on unmount', () => {
+    const removeEventListenerSpy = jest.spyOn(document, 'removeEventListener');
+
+    const { unmount } = render(
+      <ErrorBoundary>
+        <ThrowError shouldThrow={false} />
+      </ErrorBoundary>
+    );
+
+    unmount();
+
+    expect(removeEventListenerSpy).toHaveBeenCalledWith(
+      'visibilitychange',
+      expect.any(Function)
+    );
+
+    removeEventListenerSpy.mockRestore();
+  });
 });
