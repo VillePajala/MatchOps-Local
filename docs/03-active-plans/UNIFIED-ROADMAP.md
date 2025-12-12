@@ -46,6 +46,9 @@
 - [x] Team Final Position Tracking (🥇🥈🥉 in UnifiedTeamModal)
 - [x] Personnel Management (8 role types, PersonnelManagerModal, game selection)
 - [x] Tournament Series & Season Leagues (Elite/Kilpa/Haaste/Harraste + 34 Finnish leagues)
+- [x] First Game Onboarding (FirstGameGuideOverlay, step-by-step guidance)
+- [x] External Match Stats (PlayerStatAdjustment for games played outside app)
+- [x] Instructions Modal / How It Works help system
 
 ---
 
@@ -351,16 +354,49 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 
 ---
 
-## 📦 PRIORITY 6: Other Features & Fixes
+## 📦 BACKLOG: Future Features & Improvements
 
-**Status**: Ongoing
-**Tracked in**: GitHub Issues
+**Status**: Documented for future consideration
+**Tracked in**: GitHub Issues + this document
 
-### Low Priority / As Needed
-- GameSettingsModal refactoring (~1 hour, 1,969 lines)
-- Component extraction (TournamentSeriesManager)
-- Performance optimizations
-- Bug fixes as reported
+### 🎨 UX Improvements
+| Item | Effort | Notes |
+|------|--------|-------|
+| Season League area/age filtering | 1 week | See Priority 5 above |
+
+### ⚽ Future Features
+| Item | Effort | Doc |
+|------|--------|-----|
+| Tactics Field Variations (half/quarter field) | Medium | `docs/04-features/tactics-field-variations.md` |
+| Futsal Field Visualization | Medium | Different court, 5 players default |
+| Configurable Formations | Low | TODO in useFieldCoordination.ts |
+
+### 🔧 Refactoring (Low Priority)
+| Item | Effort | Notes |
+|------|--------|-------|
+| GameSettingsModal split | ~1 hour | 1,969 lines → Container/View |
+| TournamentSeriesManager extraction | ~2 hours | Extract from parent component |
+| Gate tactical logging behind DEBUG | Minor | P3 items in tactical hooks |
+| Delete/complete useNewGameFlow.ts | Minor | TODO: file extraction incomplete |
+
+### 🧪 Testing Improvements
+| Item | Notes |
+|------|-------|
+| Service Worker integration tests | GitHub issue #115 |
+| jest-axe type definitions | Cleaner accessibility test code |
+| Cross-platform bundle analysis | Currently Linux-specific |
+
+### 🐛 Known Code TODOs
+| Location | Description |
+|----------|-------------|
+| `src/utils/clubSeason.ts:20` | After 2099, implement smart century detection |
+| `src/utils/premiumManager.ts:62` | Play Billing integration (may be done) |
+
+### 🏗️ Architecture (Long-term)
+| Item | Effort | Doc |
+|------|--------|-----|
+| Backend Architecture Refactoring | ~4 weeks | `backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md` |
+| DataStore Interface (IndexedDB ↔ Supabase) | Part of above | Enables cloud sync |
 
 ---
 
@@ -382,6 +418,8 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 
 | Date | Update |
 |------|--------|
+| 2025-12-12 | 📦 **Backlog section added** - consolidated all future features, refactoring, TODOs |
+| 2025-12-12 | ✅ Confirmed First Game Onboarding, External Match Stats, Instructions Modal already done |
 | 2025-12-12 | 🎯 **Play Store in internal testing** - updated roadmap to reflect actual status |
 | 2025-12-12 | 🔄 **Gender Handling implementation complete** - all code done, pending test/build |
 | 2025-12-11 | ✅ **Game Type (Soccer/Futsal) COMPLETED** - merged to master |
