@@ -75,17 +75,31 @@
 - [x] P1: Security Hardening (CSP headers, Service Worker)
 - [x] P2: PWA & Store Packaging (Manifest, TWA, Asset links)
 - [x] P3: Quality Gates (Accessibility, Performance)
-- [x] P4: Monetization foundation (PremiumContext, premiumLimits, premiumManager)
+- [x] P4A: Monetization foundation (PremiumContext, premiumLimits, premiumManager) - infrastructure built
 - [x] Store assets and listing
 - [x] App submitted to Play Store
 - [x] **Currently in internal testing**
 
-### Remaining Work
-- [ ] Play Billing API integration (`playBilling.ts`) - if not done
-- [ ] Upgrade prompt UI (`UpgradePromptModal.tsx`) - if not done
+### Remaining Work (BEFORE PRODUCTION RELEASE)
+**⚠️ CRITICAL: Monetization not yet enforced - complete before public release!**
+
+- [ ] **P4B: Upgrade UI & Limit Enforcement** (PR #9) - NOT DONE
+  - [ ] Create `UpgradePromptModal.tsx` component
+  - [ ] Integrate `canCreate()` checks into NewGameSetupModal (game creation)
+  - [ ] Integrate `canCreate()` checks into TeamManagerModal (team creation)
+  - [ ] Integrate `canCreate()` checks into PlayerBar/roster (player creation)
+  - [ ] Integrate `canCreate()` checks into SeasonTournamentManagementModal
+  - [ ] Translations (EN/FI)
+- [ ] **P4C: Play Billing API integration** (PR #10) - NOT DONE
+  - [ ] Create `playBilling.ts` (Digital Goods API wrapper)
+  - [ ] Purchase flow implementation
+  - [ ] Restore purchase functionality
+  - [ ] License caching for offline
 - [ ] Complete internal testing
 - [ ] Submit for production review
 - [ ] Public release
+
+**Note**: Current internal test build has **no limits enforced** - users can create unlimited everything.
 
 **See**: [PLAY-STORE-IMPLEMENTATION-PLAN.md](./PLAY-STORE-IMPLEMENTATION-PLAN.md) for detailed PR breakdown
 
@@ -418,6 +432,7 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 
 | Date | Update |
 |------|--------|
+| 2025-12-12 | ⚠️ **Clarified monetization status** - P4B/P4C (limit enforcement, Play Billing) NOT done, required before production |
 | 2025-12-12 | 📦 **Backlog section added** - consolidated all future features, refactoring, TODOs |
 | 2025-12-12 | ✅ Confirmed First Game Onboarding, External Match Stats, Instructions Modal already done |
 | 2025-12-12 | 🎯 **Play Store in internal testing** - updated roadmap to reflect actual status |
