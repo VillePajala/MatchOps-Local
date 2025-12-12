@@ -415,9 +415,10 @@ These improvements are not blocking for Play Store release but would enhance CI/
 
 ---
 
-### PR #8: Premium Context & Limits (3-4h)
+### PR #8: Premium Context & Limits (3-4h) ✅ DONE (Infrastructure Only)
 
 **Branch**: `ps/8-premium-context`
+**Status**: ✅ Complete - infrastructure built, but NOT enforced in UI
 
 **Purpose**: Add premium state management and usage limit checks
 
@@ -474,9 +475,10 @@ export function usePremium(): {
 
 ---
 
-### PR #9: Upgrade UI & Limit Enforcement (3-4h)
+### PR #9: Upgrade UI & Limit Enforcement (3-4h) ❌ NOT DONE
 
 **Branch**: `ps/9-upgrade-ui`
+**Status**: ❌ NOT STARTED - Required before production release!
 
 **Purpose**: Add upgrade prompt UI and enforce limits in creation flows
 
@@ -520,9 +522,10 @@ src/components/
 
 ---
 
-### PR #10: Play Store Billing Integration (4-5h)
+### PR #10: Play Store Billing Integration (4-5h) ❌ NOT DONE
 
 **Branch**: `ps/10-play-billing`
+**Status**: ❌ NOT STARTED - Required before production release!
 
 **Purpose**: Integrate Google Play Billing for in-app purchase
 
@@ -564,6 +567,41 @@ if ('getDigitalGoodsService' in window) {
 - [ ] Restore purchase works
 - [ ] Graceful fallback when not in TWA (web testing)
 - [ ] Works offline after initial purchase
+
+---
+
+### Developer Testing: Getting Premium Without Paying
+
+**For the app developer (you) to test premium features:**
+
+**Option 1: Google Play Console License Testers (Recommended)**
+1. Go to Play Console → Setup → License testing
+2. Add your Google account email to the list of license testers
+3. License testers can "purchase" without being charged
+4. Works with real Play Billing flow - best for testing
+
+**Option 2: Direct IndexedDB Grant (Quick Testing)**
+```javascript
+// Run in browser DevTools console while app is open:
+// This directly grants premium in IndexedDB
+
+const request = indexedDB.open('soccer-app-storage', 1);
+request.onsuccess = () => {
+  const db = request.result;
+  const tx = db.transaction('keyval', 'readwrite');
+  const store = tx.objectStore('keyval');
+  store.put({ isPremium: true, grantedAt: new Date().toISOString() }, 'soccerPremiumLicense');
+  tx.oncomplete = () => {
+    console.log('Premium granted! Refresh the app.');
+    location.reload();
+  };
+};
+```
+
+**Option 3: Environment Variable (Future - Not Yet Implemented)**
+Could add `NEXT_PUBLIC_FORCE_PREMIUM=true` for dev builds.
+
+**Note**: Options 2 and 3 are for development only. Production should use Play Billing.
 
 ---
 
@@ -762,4 +800,6 @@ Common rejection reasons and fixes:
 
 | Date | Update |
 |------|--------|
+| 2025-12-12 | ⚠️ **Clarified status**: PR #8 done (infrastructure), PR #9-10 NOT done (required before production) |
+| 2025-12-12 | 📝 **Added developer testing section** - how to grant premium for testing without paying |
 | 2025-12-07 | Initial plan created with 11 PRs |
