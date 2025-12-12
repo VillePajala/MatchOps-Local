@@ -871,6 +871,7 @@ export type TranslationKey =
   | 'playerStats.perGameShort'
   | 'playerStats.performanceRatings'
   | 'playerStats.periodFilter'
+  | 'playerStats.periodLabel'
   | 'playerStats.periodNotConfiguredMessage'
   | 'playerStats.periodNotConfiguredTitle'
   | 'playerStats.playerOfTournament'
