@@ -14,7 +14,7 @@
 | Security | ✅ All vulnerabilities fixed |
 | Performance | ✅ React.memo optimization complete |
 | Framework | ✅ Next.js 16 + React 19.2 |
-| Next Major Work | 🎯 **Play Store Release - P5 Submission** |
+| Next Major Work | 🎯 **Play Store Release - In Internal Testing** |
 
 ---
 
@@ -53,45 +53,36 @@
 
 | # | Task | Effort | Why This Order |
 |---|------|--------|----------------|
-| **1** | Play Store Release | 2-3 weeks | Unlocks monetization, validates product |
-| **2** | Backend Architecture Refactoring | ~4 weeks | Clean architecture before more features |
-| ~~3~~ | ~~Gender Handling (Boys/Girls)~~ | ~~3-5 days~~ | 🔄 Implementation complete (pending test/build) |
-| ~~4~~ | ~~Game Type (Soccer/Futsal)~~ | ~~3-5 days~~ | ✅ **COMPLETED** December 11, 2025 |
-| **3** | Season League UX (area/age filtering) | 1 week | Nice-to-have UX improvement |
-| **4** | Other features & fixes | Ongoing | As needed |
+| ~~1~~ | ~~Play Store Release~~ | ~~2-3 weeks~~ | 🎯 **IN INTERNAL TESTING** |
+| ~~2~~ | ~~Gender Handling (Boys/Girls)~~ | ~~3-5 days~~ | 🔄 Implementation complete (pending test/build) |
+| ~~3~~ | ~~Game Type (Soccer/Futsal)~~ | ~~3-5 days~~ | ✅ **COMPLETED** December 11, 2025 |
+| **1** | Backend Architecture Refactoring | ~4 weeks | Clean architecture before more features |
+| **2** | Season League UX (area/age filtering) | 1 week | Nice-to-have UX improvement |
+| **3** | Other features & fixes | Ongoing | As needed |
 
 ---
 
 ## 🚀 PRIORITY 1: Play Store Release
 
-**Status**: 🎯 **NEXT UP**
-**Primary Doc**: `PLAY-STORE-IMPLEMENTATION-PLAN.md` ⭐ **START HERE**
+**Status**: 🎯 **IN INTERNAL TESTING** (Play Store)
+**Primary Doc**: `PLAY-STORE-IMPLEMENTATION-PLAN.md`
 **Master Plan**: `master-execution-guide.md`
-**Effort**: 2-3 weeks (26-40 hours)
 
-### PR Breakdown
+### Completed Work
+- [x] P1: Security Hardening (CSP headers, Service Worker)
+- [x] P2: PWA & Store Packaging (Manifest, TWA, Asset links)
+- [x] P3: Quality Gates (Accessibility, Performance)
+- [x] P4: Monetization foundation (PremiumContext, premiumLimits, premiumManager)
+- [x] Store assets and listing
+- [x] App submitted to Play Store
+- [x] **Currently in internal testing**
 
-| Phase | PRs | Hours | Focus |
-|-------|-----|-------|-------|
-| P1: Security | #1-2 | 4-6h | CSP headers, Service Worker |
-| P2: PWA Packaging | #3-5 | 8-12h | Manifest, TWA, Store assets |
-| P3: Quality | #6-7 | 4-6h | Accessibility, Performance |
-| P4: Monetization | #8-10 | 8-12h | Billing, Feature gating, Paywall |
-| P5: Release | #11 | 2-4h | Store submission |
-| **Total** | 11 PRs | 26-40h | |
-
-### Branching Strategy
-
-```
-master
-  └── release/play-store-v1  (integration branch)
-        ├── ps/1-csp-headers → PR #1
-        ├── ps/2-service-worker → PR #2
-        ├── ... (9 more PRs)
-        └── Final PR → master
-```
-
-**Why First**: App is fully functional and ready. Play Store validates product-market fit and unlocks revenue potential.
+### Remaining Work
+- [ ] Play Billing API integration (`playBilling.ts`) - if not done
+- [ ] Upgrade prompt UI (`UpgradePromptModal.tsx`) - if not done
+- [ ] Complete internal testing
+- [ ] Submit for production review
+- [ ] Public release
 
 **See**: [PLAY-STORE-IMPLEMENTATION-PLAN.md](./PLAY-STORE-IMPLEMENTATION-PLAN.md) for detailed PR breakdown
 
@@ -391,6 +382,7 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 
 | Date | Update |
 |------|--------|
+| 2025-12-12 | 🎯 **Play Store in internal testing** - updated roadmap to reflect actual status |
 | 2025-12-12 | 🔄 **Gender Handling implementation complete** - all code done, pending test/build |
 | 2025-12-11 | ✅ **Game Type (Soccer/Futsal) COMPLETED** - merged to master |
 | 2025-12-11 | **Gender Handling plan created** - detailed implementation mirroring Game Type |
@@ -408,4 +400,4 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 
 ---
 
-**Current Focus**: 🎯 **Play Store Release** - App is ready, let's ship it!
+**Current Focus**: 🎯 **Play Store in Internal Testing** - Complete testing, then production release!
