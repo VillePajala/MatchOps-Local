@@ -16,6 +16,8 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
+  private handleVisibilityChange: (() => void) | null = null;
+
   constructor(props: Props) {
     super(props);
     this.state = {
@@ -23,6 +25,27 @@ class ErrorBoundary extends Component<Props, State> {
       error: null,
       errorInfo: null,
     };
+  }
+
+  componentDidMount() {
+    // Auto-recover from error state when app becomes visible (Android TWA resume fix)
+    this.handleVisibilityChange = () => {
+      if (!document.hidden && this.state.hasError) {
+        logger.log('[ErrorBoundary] App became visible with error state - auto-recovering');
+        this.setState({
+          hasError: false,
+          error: null,
+          errorInfo: null,
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
+  }
+
+  componentWillUnmount() {
+    if (this.handleVisibilityChange) {
+      document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+    }
   }
 
   static getDerivedStateFromError(error: Error): State {
