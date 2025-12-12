@@ -1368,6 +1368,7 @@
     "periodFilter": "Suodata ajanjakson mukaan",
     "allPeriods": "Kaikki ajanjaksot",
     "offPeriod": "Jakson ulkopuolella",
+    "periodLabel": "Ajanjakso",
     "periodNotConfiguredTitle": "Ajanjaksoa ei ole määritetty",
     "periodNotConfiguredMessage": "Suodattaaksesi tilastoja ajanjakson mukaan, määritä ensin ajanjakso (esim. lokakuu - toukokuu) asetuksista.",
     "configurePeriodDates": "Määritä ajanjakso",
