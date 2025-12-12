@@ -1,7 +1,7 @@
 # First Game Onboarding (Center Overlay)
 
 ## Overview
-**⚠️ PLANNED FEATURE**: This center overlay system is referenced in code comments but not currently implemented. This document describes the intended behavior for future implementation.
+**✅ IMPLEMENTED**: This feature is complete. See `src/components/HomePage/components/FirstGameGuideOverlay.tsx` and `FirstGameGuide.tsx`.
 
 Simple center overlay guidance system that should appear on the soccer field to help first-time users understand next steps for game creation.
 
