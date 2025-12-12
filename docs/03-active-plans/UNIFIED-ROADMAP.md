@@ -1,6 +1,6 @@
 # MatchOps-Local: Unified Project Roadmap
 
-**Last Updated**: December 11, 2025
+**Last Updated**: December 12, 2025
 **Status**: Active
 **Purpose**: Single source of truth for ALL project work
 
@@ -55,10 +55,10 @@
 |---|------|--------|----------------|
 | **1** | Play Store Release | 2-3 weeks | Unlocks monetization, validates product |
 | **2** | Backend Architecture Refactoring | ~4 weeks | Clean architecture before more features |
-| **3** | Gender Handling (Boys/Girls) | 3-5 days | HIGH priority, design approved (mirrors Game Type) |
+| ~~3~~ | ~~Gender Handling (Boys/Girls)~~ | ~~3-5 days~~ | 🔄 Implementation complete (pending test/build) |
 | ~~4~~ | ~~Game Type (Soccer/Futsal)~~ | ~~3-5 days~~ | ✅ **COMPLETED** December 11, 2025 |
-| **4** | Season League UX (area/age filtering) | 1 week | Nice-to-have UX improvement |
-| **5** | Other features & fixes | Ongoing | As needed |
+| **3** | Season League UX (area/age filtering) | 1 week | Nice-to-have UX improvement |
+| **4** | Other features & fixes | Ongoing | As needed |
 
 ---
 
@@ -129,7 +129,7 @@ master
 
 ## 👥 PRIORITY 3: Gender Handling (Boys/Girls)
 
-**Status**: 📋 Design approved (mirrors Game Type implementation)
+**Status**: 🔄 Implementation complete, pending test/build verification
 **Effort**: 3-5 days
 **Pattern**: Same as Game Type (Soccer/Futsal) - see merged PR for reference
 
@@ -266,27 +266,27 @@ export type Gender = 'boys' | 'girls';
 - Filter "All" includes games with and without gender set
 
 ### Implementation Checklist
-- [ ] Types: Add `Gender` type and fields
-- [ ] Reducer: Add `SET_GENDER` action
-- [ ] Reducer: Add gender to `LOAD_PERSISTED_GAME_DATA`
-- [ ] History: Add `SET_GENDER` to history actions
-- [ ] NewGameSetupModal: Add gender selector
-- [ ] GameSettingsModal: Add gender selector
-- [ ] SeasonDetailsModal: Add gender selector
-- [ ] TournamentDetailsModal: Add gender selector
-- [ ] gameFilters.ts: Add gender filter logic
-- [ ] useStatsFilters.ts: Add gender filter state
-- [ ] FilterControls.tsx: Add gender dropdown
-- [ ] CollapsibleFilters.tsx: Add gender filter
-- [ ] GameStatsModal.tsx: Wire up gender filter
-- [ ] PlayerStatsView.tsx: Add gender filtering
-- [ ] LoadGameModal.tsx: Add gender to search
-- [ ] useNewGameFlow.ts: Add gender state
-- [ ] useModalOrchestration.ts: Pass gender
-- [ ] newGameHandlers.ts: Include gender
-- [ ] Translations: EN + FI
-- [ ] Generate i18n types
-- [ ] Update all tests
+- [x] Types: Add `Gender` type and fields
+- [x] Reducer: Add `SET_GENDER` action
+- [x] Reducer: Add gender to `LOAD_PERSISTED_GAME_DATA`
+- [x] History: Add `SET_GENDER` to history actions
+- [x] NewGameSetupModal: Add gender selector
+- [x] GameSettingsModal: Add gender selector
+- [x] SeasonDetailsModal: Add gender selector
+- [x] TournamentDetailsModal: Add gender selector
+- [x] gameFilters.ts: Add gender filter logic
+- [x] useStatsFilters.ts: Add gender filter state
+- [x] FilterControls.tsx: Add gender dropdown
+- [x] CollapsibleFilters.tsx: Add gender filter
+- [x] GameStatsModal.tsx: Wire up gender filter
+- [x] PlayerStatsView.tsx: Add gender filtering
+- [x] LoadGameModal.tsx: Add gender to search
+- [x] useNewGameFlow.ts: Add gender state
+- [x] useModalOrchestration.ts: Pass gender
+- [x] newGameHandlers.ts: Include gender
+- [x] Translations: EN + FI
+- [x] Generate i18n types
+- [x] Update all tests
 - [ ] Run full test suite
 - [ ] Run build
 
@@ -391,6 +391,7 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 
 | Date | Update |
 |------|--------|
+| 2025-12-12 | 🔄 **Gender Handling implementation complete** - all code done, pending test/build |
 | 2025-12-11 | ✅ **Game Type (Soccer/Futsal) COMPLETED** - merged to master |
 | 2025-12-11 | **Gender Handling plan created** - detailed implementation mirroring Game Type |
 | 2025-12-07 | **Established priority order**: Play Store → Backend → Gender → League UX |
