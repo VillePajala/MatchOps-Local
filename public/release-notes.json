@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: update tests for FilterControls and PlayerStatsView mocks"
+  "notes": "test: update i18n key count for periodLabel addition"
 }

@@ -6,6 +6,7 @@ import StartScreen from '@/components/StartScreen';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import { useState, useEffect, useCallback } from 'react';
+import { useAppResume } from '@/hooks/useAppResume';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
 import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
@@ -79,6 +80,16 @@ export default function Home() {
   useEffect(() => {
     checkAppState();
   }, [checkAppState, refreshTrigger]);
+
+  // Handle app resume from background (Android TWA blank screen fix)
+  // Triggers refreshTrigger to re-run checkAppState when returning from extended background
+  useAppResume({
+    onResume: () => {
+      logger.log('[page.tsx] App resumed - triggering state refresh');
+      setRefreshTrigger((prev) => prev + 1);
+    },
+    minBackgroundTime: 30000, // 30 seconds
+  });
 
   // Handle PWA shortcut query parameters (e.g., /?action=newGame)
   useEffect(() => {
