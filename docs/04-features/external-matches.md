@@ -1,13 +1,11 @@
 # Player Stat Adjustments (External Game Stats)
 
 ## Overview
+**✅ IMPLEMENTED**: This feature is complete. See `src/utils/playerAdjustments.ts`, `src/types/index.ts` (PlayerStatAdjustment), and `src/components/PlayerStatsView.tsx`.
+
 Individual player stat adjustment system that allows manual addition of statistics from games played outside the app. Integrates seamlessly into player profiles and statistical calculations.
 
-**⚠️ Implementation Note**: This document focuses on UI/UX behavior and business logic. The following technical aspects are NOT covered and must be investigated in the target app version before implementation:
-- Data storage mechanisms (how adjustments are persisted and retrieved)
-- State management approach (how adjustment state is handled across components)
-- Authentication requirements (if user identity affects adjustment permissions)
-- Performance considerations for stat calculations (how adjustments integrate with game stats)
+**Implementation Note**: This document describes the UI/UX behavior and business logic.
 
 ## Business Logic
 
