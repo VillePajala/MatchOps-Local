@@ -466,6 +466,14 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                           </span>
                         </>
                       )}
+                      {game.gender && (
+                        <>
+                          {(game.gameDate || game.isPlayed === false || game.gameType === 'futsal') && <span>•</span>}
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                            {game.gender === 'boys' ? t('common.genderBoys', 'Boys') : t('common.genderGirls', 'Girls')}
+                          </span>
+                        </>
+                      )}
                     </div>
 
                     {/* Right side: Season/Tournament badges with league/series info */}
