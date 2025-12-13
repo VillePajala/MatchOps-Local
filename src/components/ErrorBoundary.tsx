@@ -17,6 +17,11 @@ interface State {
 
 class ErrorBoundary extends Component<Props, State> {
   private handleVisibilityChange: (() => void) | null = null;
+  // Recovery count is instance-based and resets on unmount. This is acceptable because:
+  // - Production: ErrorBoundary is at root level, rarely unmounts
+  // - Development: Fast Refresh may reset counter, but persistent errors will still
+  //   hit the limit within each component lifecycle. If stricter cross-lifecycle
+  //   limits are needed, consider sessionStorage persistence.
   private recoveryCount = 0;
   private recoveryResetTimer: ReturnType<typeof setTimeout> | null = null;
   private static readonly MAX_RECOVERIES = 3;
