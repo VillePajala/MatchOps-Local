@@ -152,6 +152,17 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     };
 
     const handleToggleArchive = (item: Season | Tournament, type: 'season' | 'tournament') => {
+        // If unarchiving (archived -> not archived), check premium limits first
+        if (item.archived) {
+            const canUnarchive = type === 'season'
+                ? checkSeasonLimitAndPrompt()
+                : checkTournamentLimitAndPrompt();
+            if (!canUnarchive) {
+                setActionsMenuId(null);
+                return; // Upgrade prompt shown
+            }
+        }
+
         const updatedItem = {
             ...item,
             archived: !item.archived,
