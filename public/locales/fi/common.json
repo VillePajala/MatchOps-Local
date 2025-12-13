@@ -454,7 +454,9 @@
     "deleteSection": "Poista osio",
     "sectionTitlePlaceholder": "Osion otsikko",
     "contentPlaceholder": "Kirjoita sisältö tähän... Käytä • luettelomerkkeihin",
-    "newSectionTitle": "Uusi osio"
+    "newSectionTitle": "Uusi osio",
+    "saveError": "Lämmittelysuunnitelman tallennus epäonnistui",
+    "resetError": "Lämmittelysuunnitelman palautus epäonnistui"
   },
   "goalLogModal": {
     "title": "Kirjaa Maalitapahtuma",

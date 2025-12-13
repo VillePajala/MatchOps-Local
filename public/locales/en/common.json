@@ -524,7 +524,9 @@
     "deleteSection": "Delete Section",
     "sectionTitlePlaceholder": "Section Title",
     "contentPlaceholder": "Enter content here... Use • for bullet points",
-    "newSectionTitle": "New Section"
+    "newSectionTitle": "New Section",
+    "saveError": "Failed to save warmup plan",
+    "resetError": "Failed to reset warmup plan"
   },
   "goalLogModal": {
     "title": "Log Goal Event",

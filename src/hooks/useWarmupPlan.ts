@@ -8,6 +8,8 @@ import {
   createDefaultWarmupPlan,
 } from '@/utils/warmupPlan';
 import type { WarmupPlan } from '@/types/warmupPlan';
+import logger from '@/utils/logger';
+import { useToast } from '@/contexts/ToastProvider';
 
 export interface UseWarmupPlanResult {
   /** The current warmup plan (from storage or default) */
@@ -33,6 +35,7 @@ export interface UseWarmupPlanResult {
 export function useWarmupPlan(): UseWarmupPlanResult {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   // Query: Get the warmup plan (or generate default if none exists)
   const query = useQuery<WarmupPlan, Error>({
@@ -53,6 +56,10 @@ export function useWarmupPlan(): UseWarmupPlanResult {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.warmupPlan });
     },
+    onError: (error) => {
+      logger.error('[useWarmupPlan] Failed to save warmup plan:', error);
+      showToast(t('warmupPlanModal.saveError', 'Failed to save warmup plan'), 'error');
+    },
   });
 
   // Mutation: Reset to default
@@ -63,6 +70,10 @@ export function useWarmupPlan(): UseWarmupPlanResult {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.warmupPlan });
+    },
+    onError: (error) => {
+      logger.error('[useWarmupPlan] Failed to reset warmup plan:', error);
+      showToast(t('warmupPlanModal.resetError', 'Failed to reset warmup plan'), 'error');
     },
   });
 
