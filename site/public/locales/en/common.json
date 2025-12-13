@@ -71,7 +71,7 @@
     },
     "technical": {
       "title": "Technical Specifications - MatchOps Local",
-      "description": "Technical details of MatchOps Local: Progressive Web App built with React 19, Next.js 15, IndexedDB storage. Offline-first, local-first architecture."
+      "description": "Technical details of MatchOps Local: Progressive Web App built with React 19, Next.js 15. Offline-first, local-first architecture with data stored on your device."
     }
   },
   "footer": {
@@ -106,7 +106,7 @@
       "stateFlow": "State Management",
       "stateFlowDesc": "useReducer for complex game state, React Query for async data, useState for UI state",
       "dataLayer": "Data Layer",
-      "dataLayerDesc": "Async storage adapters with IndexedDB backend, automatic migration from localStorage",
+      "dataLayerDesc": "Async storage adapters with automatic data migration",
       "errorHandling": "Error Handling",
       "errorHandlingDesc": "Sentry integration for production monitoring, graceful degradation patterns"
     },
@@ -136,8 +136,8 @@
     },
     "dataFeatures": {
       "title": "Data Management",
-      "migration": "IndexedDB Migration",
-      "migrationDesc": "Enterprise-grade migration with pause/resume/cancel, progress persistence, and tab coordination",
+      "migration": "Data Migration",
+      "migrationDesc": "Robust migration with pause/resume/cancel, progress persistence, and tab coordination",
       "backup": "Backup & Restore",
       "backupDesc": "One-click full backup export with checksums and integrity verification",
       "memory": "Memory Management",
@@ -155,7 +155,7 @@
     "architecture": {
       "title": "Architecture",
       "localFirst": "Local-First Design",
-      "localFirstDesc": "All data stored locally on your device using IndexedDB. No external servers or databases required.",
+      "localFirstDesc": "All data stored locally on your device. No external servers or databases required.",
       "offlineFirst": "Offline-First",
       "offlineFirstDesc": "Full functionality without internet connection. Network only required for PWA updates.",
       "singleUser": "Single-User",
@@ -170,7 +170,7 @@
       "styling": "Styling",
       "stylingDesc": "Tailwind CSS 4 for responsive, modern UI",
       "storage": "Data Storage",
-      "storageDesc": "Browser IndexedDB with async storage adapters",
+      "storageDesc": "Local device storage with async adapters",
       "stateManagement": "State Management",
       "stateManagementDesc": "React Query for server state, useReducer for game session state",
       "pwa": "Progressive Web App",
@@ -180,8 +180,8 @@
     },
     "storage": {
       "title": "Storage & Data",
-      "indexedDB": "IndexedDB Storage",
-      "indexedDBDesc": "Uses device's free storage space (typically tens to hundreds of GB available). Typical usage: under 50MB for 100+ games.",
+      "deviceStorage": "Device Storage",
+      "deviceStorageDesc": "Uses your device's free storage space. Typical usage: under 50MB for 100+ games.",
       "dataScale": "Data Scale",
       "dataScaleDesc": "Optimized for 50-100 players, 50-100 games per season. Small dataset, fast performance.",
       "backup": "Backup & Export",
@@ -195,8 +195,8 @@
       "browserList": "Chrome 90+, Firefox 88+, Safari 14+, Edge 90+",
       "javascript": "JavaScript",
       "javascriptDesc": "Must be enabled (standard in all modern browsers)",
-      "indexedDBSupport": "IndexedDB Support",
-      "indexedDBSupportDesc": "Required (available in all supported browsers)",
+      "storageSupport": "Storage Support",
+      "storageSupportDesc": "Required (available in all supported browsers)",
       "storageSpace": "Storage Space",
       "storageSpaceDesc": "Minimum 50MB recommended (typical usage is much less)",
       "privateMode": "Private/Incognito Mode",
@@ -264,7 +264,7 @@
     "technical": {
       "title": "Technical Details",
       "desc1": "MatchOps Local is a Progressive Web App (PWA). This means it installs like a native app but runs in your web browser.",
-      "desc2": "All data is stored locally on your device using IndexedDB, a browser database. No internet connection is required to use the app.",
+      "desc2": "All data is stored locally on your device. No internet connection is required to use the app.",
       "desc3": "Compatible with iOS Safari, Android Chrome, and all major desktop browsers."
     },
     "faq": {
@@ -272,7 +272,7 @@
       "q1": "How do I install the app?",
       "a1": "Open the app in your browser [Link coming soon]. The app will prompt you to install it - just tap 'Install'.",
       "q2": "Where is my data stored?",
-      "a2": "All data is stored locally on your device in IndexedDB (browser storage). Nothing is sent to external servers.",
+      "a2": "All data is stored locally on your device. Nothing is sent to external servers.",
       "q3": "Can I use it on multiple devices?",
       "a3": "Yes, but you'll need to export your data from one device and import it on another. There's no automatic syncing since everything is stored locally.",
       "q4": "How do I back up my data?",
@@ -284,7 +284,7 @@
       "q7": "Can I manage multiple teams?",
       "a7": "Yes. You can create and manage multiple teams (U12, U14, etc.) from the same app and switch between them easily.",
       "q8": "How much storage space does the app use?",
-      "a8": "The app uses your device's free storage space through IndexedDB. Available space depends on your device and can be tens or even hundreds of gigabytes. Typical usage with 100+ games and full statistics is under 50MB.",
+      "a8": "The app uses your device's free storage space. Typical usage with 100+ games and full statistics is under 50MB.",
       "q9": "How do I update the app?",
       "a9": "The app updates automatically when you open it and have an internet connection. After an update, the app will notify you of the new version and ask you to reload the page.",
       "q10": "Can I share statistics with other coaches?",

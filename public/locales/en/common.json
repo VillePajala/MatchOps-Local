@@ -510,6 +510,22 @@
       "Let the player make their own decisions – guide only off-the-ball players and subs if needed."
     ]
   },
+  "warmupPlanModal": {
+    "editButton": "Edit",
+    "saveButton": "Save",
+    "cancelButton": "Cancel",
+    "resetToDefaultButton": "Reset to Default",
+    "resetConfirmTitle": "Reset Warmup Plan?",
+    "resetConfirmMessage": "This will replace your custom warmup plan with the default template. This cannot be undone.",
+    "resetButton": "Reset",
+    "addSection": "Add Section",
+    "moveUp": "Move Up",
+    "moveDown": "Move Down",
+    "deleteSection": "Delete Section",
+    "sectionTitlePlaceholder": "Section Title",
+    "contentPlaceholder": "Enter content here... Use • for bullet points",
+    "newSectionTitle": "New Section"
+  },
   "goalLogModal": {
     "title": "Log Goal Event",
     "closeButton": "Close",
@@ -806,7 +822,10 @@
     "personnelEmpty": "No personnel assigned."
   },
   "startScreen": {
-    "tagline": "Plan | Track | Assess",
+    "tagline": "Plan · Track · Assess",
+    "taglinePlan": "Plan",
+    "taglineTrack": "Track",
+    "taglineAssess": "Assess",
     "premiumTagline": "Professional Soccer Coaching",
     "description": "Soccer Tactics and Timer App for Coaches",
     "createNewGame": "Create New Game",
@@ -826,7 +845,8 @@
     "howItWorks": "How It Works",
     "getStarted": "Get Started",
     "manageTeams": "Manage Teams",
-    "appSettings": "App Settings"
+    "appSettings": "App Settings",
+    "freeVersionLimits": "Free version includes:"
   },
   "workspace": {
     "unsavedIndicator": "Temporary Workspace - Changes won't be saved until you create a new game",
@@ -841,9 +861,9 @@
     "descNoPlayers": "First, add players so you can create your first team and match.",
     "setupRoster": "Set Up Team Roster",
     "rosterFirst": "Add players first, then create your game",
-    "createGame": "Create Your First Match",
+    "createGame": "Create Match",
     "createSeasonFirst": "Create Season/Tournament First",
-    "createTeam": "Create First Team",
+    "createTeam": "Create Team First",
     "manageTeams": "Manage Teams",
     "manageSeasonsAndTournaments": "Manage Seasons & Tournaments",
     "orExperiment": "Or experiment first:",
@@ -883,9 +903,9 @@
     "loadGameTip": "Load a saved game",
     "quickSaveTip": "Quick save your game (Ctrl/Cmd+S)",
     "goalLogTip": "Log goals and events",
-    "rosterManageTip": "Manage your roster",
+    "rosterManageTip": "Manage player list",
     "gameSettingsTip": "Edit game settings",
-    "statsReportsTip": "View stats and reports",
+    "statsReportsTip": "View stats and download reports",
     "seasonsTeamsTip": "Manage seasons, teams, and personnel",
     "helpTip": "Get help and instructions",
     "appSettingsTip": "Access app settings",
@@ -1267,7 +1287,20 @@
     "dayLabel": "Day",
     "invalidPeriodDateError": "Invalid period date. Please enter a valid date.",
     "savePeriodDateError": "Failed to save period date. Please try again.",
-    "sameStartEndDateError": "Season start and end cannot be the same date."
+    "sameStartEndDateError": "Season start and end cannot be the same date.",
+    "premiumStatusLabel": "App Status",
+    "premiumActive": "Full Version",
+    "freeVersion": "Free Version",
+    "upgradeToPremium": "Upgrade",
+    "premiumDescription": "The full version includes unlimited teams, players, seasons, tournaments, and games.",
+    "freeLimitsLabel": "Free version limits:",
+    "limitTeams": "1 team",
+    "limitPlayers": "18 players",
+    "limitSeasons": "1 season / 1 tournament",
+    "limitGames": "10 games per competition",
+    "resetToFree": "Reset",
+    "resetToFreeConfirm": "Reset to free version? (For testing)",
+    "resetToFreeSuccess": "Reset to free version"
   },
   "playerAssessmentModal": {
     "title": "Assess Game Performance",
@@ -1427,6 +1460,7 @@
   },
   "reset": {
     "resetting": "Resetting Application...",
+    "pleaseWait": "Please wait while we clear all data",
     "description": "All data will be cleared and the application will restart."
   },
   "privacyPolicy": {
@@ -1616,5 +1650,36 @@
       "github": "GitHub Issues"
     },
     "footer": "These Terms of Service apply to the MatchOps application available on Google Play Store."
+  },
+  "premium": {
+    "limitReached": "Limit Reached",
+    "freeVersionLimitReached": "Free version limit reached",
+    "limitExplanation": "You've reached the free tier limit of {{limit}} {{resource}}.",
+    "currentUsage": "Current: {{count}}/{{limit}}",
+    "resource": {
+      "team": "team",
+      "team_plural": "teams",
+      "player": "player",
+      "player_plural": "players",
+      "season": "season",
+      "season_plural": "seasons",
+      "tournament": "tournament",
+      "tournament_plural": "tournaments",
+      "game": "game",
+      "game_plural": "games"
+    },
+    "upgradeUnlocks": "Upgrade to Premium:",
+    "fullVersionIncludes": "The full version includes:",
+    "benefit": {
+      "unlimitedTeams": "Unlimited teams",
+      "unlimitedPlayers": "Unlimited players",
+      "unlimitedSeasons": "Unlimited seasons & tournaments",
+      "unlimitedGames": "Unlimited games per competition"
+    },
+    "oneTime": "one-time purchase",
+    "oneTimePayment": "one-time payment",
+    "upgradeButton": "Upgrade to Premium",
+    "maybeLater": "Maybe Later",
+    "purchaseComingSoon": "In-app purchase coming soon!"
   }
 }

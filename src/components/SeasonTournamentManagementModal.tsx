@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import SeasonDetailsModal from './SeasonDetailsModal';
 import TournamentDetailsModal from './TournamentDetailsModal';
 import ConfirmationModal from './ConfirmationModal';
+import { useResourceLimit } from '@/hooks/usePremium';
 
 interface SeasonTournamentManagementModalProps {
     isOpen: boolean;
@@ -31,6 +32,12 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
     updateTournamentMutation, deleteTournamentMutation
 }) => {
     const { t } = useTranslation();
+
+    // Premium limit checks (count non-archived items)
+    const activeSeasonCount = seasons.filter(s => !s.archived).length;
+    const activeTournamentCount = tournaments.filter(t => !t.archived).length;
+    const { checkAndPrompt: checkSeasonLimitAndPrompt } = useResourceLimit('season', activeSeasonCount);
+    const { checkAndPrompt: checkTournamentLimitAndPrompt } = useResourceLimit('tournament', activeTournamentCount);
 
     // Modal state for create
     const [createSeasonModalOpen, setCreateSeasonModalOpen] = useState(false);
@@ -87,6 +94,22 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [actionsMenuId]);
+
+    const handleAddSeason = () => {
+        // Check premium limit before allowing season creation
+        if (!checkSeasonLimitAndPrompt()) {
+            return; // Upgrade prompt shown
+        }
+        setCreateSeasonModalOpen(true);
+    };
+
+    const handleAddTournament = () => {
+        // Check premium limit before allowing tournament creation
+        if (!checkTournamentLimitAndPrompt()) {
+            return; // Upgrade prompt shown
+        }
+        setCreateTournamentModalOpen(true);
+    };
 
     if (!isOpen) {
         return null;
@@ -258,13 +281,13 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
             {/* Add Buttons */}
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => setCreateSeasonModalOpen(true)}
+                onClick={handleAddSeason}
                 className="px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg"
               >
                 {t('seasonTournamentModal.addSeason', 'Add Season')}
               </button>
               <button
-                onClick={() => setCreateTournamentModalOpen(true)}
+                onClick={handleAddTournament}
                 className="px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-b from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-lg"
               >
                 {t('seasonTournamentModal.addTournament', 'Add Tournament')}

@@ -54,6 +54,8 @@ describe('newGameHandlers', () => {
       utilSaveGame: jest.fn().mockImplementation(async (_id: string, state: AppState) => state),
       utilSaveCurrentGameIdSetting: jest.fn().mockResolvedValue(undefined),
       defaultSubIntervalMinutes: 5,
+      canCreate: jest.fn().mockReturnValue(true),
+      showUpgradePrompt: jest.fn(),
     };
 
     await startNewGameWithSetup(deps, {

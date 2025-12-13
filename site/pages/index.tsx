@@ -9,7 +9,7 @@ import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { serverSideTranslations } from 'next-i18next/serverSideTranslations';
 import type { GetStaticProps } from 'next';
-import { FaFutbol, FaClock, FaPencilAlt, FaChartLine, FaTrophy, FaUsers, FaBolt, FaShieldAlt, FaDatabase, FaGlobe } from 'react-icons/fa';
+import { FaFutbol, FaClock, FaPencilAlt, FaChartLine, FaTrophy, FaUsers, FaBolt, FaShieldAlt, FaDatabase, FaGlobe, FaClipboardList, FaPlay, FaChartBar } from 'react-icons/fa';
 
 export default function HomePage() {
   const { t } = useTranslation('common');
@@ -181,22 +181,53 @@ export default function HomePage() {
                 </button>
               </div>
 
-              <div className="mt-3 flex items-center justify-center gap-2">
-                {[t('screenshots.labels.plan'), t('screenshots.labels.track'), t('screenshots.labels.review')].map((label, i) => (
-                  <button
-                    key={label}
-                    type="button"
-                    aria-label={t('screenshots.aria.goTo', { label })}
-                    className={`px-2 py-1 text-xs rounded-full border ${
-                      activeSlide === i
-                        ? 'border-primary text-white bg-primary/20'
-                        : 'border-slate-600 text-slate-300 bg-slate-800/60 hover:bg-slate-800'
-                    }`}
-                    onClick={() => goTo(i)}
-                  >
-                    {label}
-                  </button>
-                ))}
+              {/* Workflow stepper navigation */}
+              <div className="mt-6 flex items-center justify-center">
+                <div className="flex items-center gap-0">
+                  {[
+                    { label: t('screenshots.labels.plan'), icon: FaClipboardList },
+                    { label: t('screenshots.labels.track'), icon: FaPlay },
+                    { label: t('screenshots.labels.review'), icon: FaChartBar },
+                  ].map((item, i, arr) => (
+                    <div key={item.label} className="flex items-center">
+                      <button
+                        type="button"
+                        aria-label={t('screenshots.aria.goTo', { label: item.label })}
+                        className={`flex flex-col items-center gap-1.5 px-4 py-2 rounded-lg transition-all ${
+                          activeSlide === i
+                            ? 'bg-primary/20 scale-105'
+                            : 'hover:bg-slate-800/60'
+                        }`}
+                        onClick={() => goTo(i)}
+                      >
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                            activeSlide === i
+                              ? 'bg-primary text-slate-900 shadow-lg shadow-primary/30'
+                              : 'bg-slate-700 text-slate-300'
+                          }`}
+                        >
+                          <item.icon className="text-lg" />
+                        </div>
+                        <span
+                          className={`text-xs font-medium transition-colors ${
+                            activeSlide === i ? 'text-primary' : 'text-slate-400'
+                          }`}
+                        >
+                          {item.label}
+                        </span>
+                      </button>
+                      {/* Connector line between steps */}
+                      {i < arr.length - 1 && (
+                        <div
+                          className={`w-6 h-0.5 -mx-1 transition-colors ${
+                            activeSlide > i ? 'bg-primary' : 'bg-slate-700'
+                          }`}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="text-center mt-6">
                 <Link
@@ -228,7 +259,12 @@ export default function HomePage() {
                   />
                   <span className="pointer-events-none absolute inset-0 rounded-xl bg-black/0 group-hover:bg-black/10 transition" />
                 </button>
-                <p className="text-center text-sm text-slate-400 mt-2">{t('screenshots.captions.plan')}</p>
+                <div className="flex items-center justify-center gap-2 mt-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <FaClipboardList className="text-primary text-sm" />
+                  </div>
+                  <span className="text-sm text-slate-300 font-medium">{t('screenshots.captions.plan')}</span>
+                </div>
               </div>
               <div>
                 <button
@@ -247,7 +283,12 @@ export default function HomePage() {
                   />
                   <span className="pointer-events-none absolute inset-0 rounded-xl bg-black/0 group-hover:bg-black/10 transition" />
                 </button>
-                <p className="text-center text-sm text-slate-400 mt-2">{t('screenshots.captions.track')}</p>
+                <div className="flex items-center justify-center gap-2 mt-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <FaPlay className="text-primary text-sm" />
+                  </div>
+                  <span className="text-sm text-slate-300 font-medium">{t('screenshots.captions.track')}</span>
+                </div>
               </div>
               <div>
                 <button
@@ -266,7 +307,12 @@ export default function HomePage() {
                   />
                   <span className="pointer-events-none absolute inset-0 rounded-xl bg-black/0 group-hover:bg-black/10 transition" />
                 </button>
-                <p className="text-center text-sm text-slate-400 mt-2">{t('screenshots.captions.review')}</p>
+                <div className="flex items-center justify-center gap-2 mt-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <FaChartBar className="text-primary text-sm" />
+                  </div>
+                  <span className="text-sm text-slate-300 font-medium">{t('screenshots.captions.review')}</span>
+                </div>
               </div>
             </div>
 
