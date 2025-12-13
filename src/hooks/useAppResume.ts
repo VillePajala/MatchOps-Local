@@ -2,11 +2,12 @@
  * Hook to handle app resume from background
  *
  * Triggers state refresh when app returns to foreground after extended periods.
- * Addresses blank screen issues on Android TWA when app is restored from background.
+ * Addresses blank screen issues on Android TWA and iOS Safari when app is restored from background.
  *
  * Handles:
  * - visibilitychange events (standard browser API)
- * - pageshow events with persisted flag (bfcache restoration, common on Android TWA)
+ * - pageshow events with persisted flag (bfcache restoration)
+ * - pagehide events with persisted flag (iOS Safari bfcache entry - may not fire visibilitychange)
  */
 import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -59,7 +60,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
     }
   }, [queryClient, onResume, minBackgroundTime]);
 
-  // Handle pageshow for bfcache restoration (Android TWA specific)
+  // Handle pageshow for bfcache restoration (Android TWA, iOS Safari)
   const handlePageShow = useCallback(
     (event: PageTransitionEvent) => {
       if (event.persisted) {
@@ -71,13 +72,25 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
     [queryClient, onResume]
   );
 
+  // Handle pagehide for iOS Safari bfcache entry
+  // iOS Safari may not fire visibilitychange on freeze/thaw, but pagehide with
+  // persisted=true reliably indicates entry into bfcache
+  const handlePageHide = useCallback((event: PageTransitionEvent) => {
+    if (event.persisted) {
+      backgroundStartRef.current = Date.now();
+      logger.debug('[useAppResume] Page entering bfcache (pagehide)');
+    }
+  }, []);
+
   useEffect(() => {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('pageshow', handlePageShow);
+    window.addEventListener('pagehide', handlePageHide);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
+      window.removeEventListener('pagehide', handlePageHide);
     };
-  }, [handleVisibilityChange, handlePageShow]);
+  }, [handleVisibilityChange, handlePageShow, handlePageHide]);
 }
