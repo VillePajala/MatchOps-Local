@@ -19,6 +19,9 @@ export const queryKeys = {
     detail: () => ['settings', 'detail'] as const,
   },
 
+  // Warm-up plan
+  warmupPlan: ['warmupPlan'] as const,
+
   // Example for a detail query if needed later:
   // gameById: (gameId: string) => ['games', 'detail', gameId] as const,
 }; 

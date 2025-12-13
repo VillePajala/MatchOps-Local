@@ -326,10 +326,10 @@ export function FieldContainer({
 
                       <button
                       onClick={() => onOpenSeasonTournamentModal?.()}
-                        className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors border border-slate-600 ${
+                        className={`w-full px-6 py-3 rounded-lg font-semibold transition-colors border ${
                           seasons.length > 0 || tournaments.length > 0
-                            ? 'bg-slate-600 hover:bg-slate-500 text-slate-300'
-                            : 'bg-slate-700 hover:bg-slate-600 text-white'
+                            ? 'bg-slate-600 hover:bg-slate-500 text-slate-300 border-slate-500'
+                            : 'bg-amber-700 hover:bg-amber-600 text-amber-100 border-amber-600'
                         }`}
                       >
                         {seasons.length > 0 || tournaments.length > 0

@@ -71,7 +71,7 @@
     },
     "technical": {
       "title": "Tekniset tiedot - MatchOps Local",
-      "description": "MatchOps Localin tekniset tiedot: Progressiivinen nettisovellus (PWA), React 19, Next.js 15, IndexedDB-tallennus. Offline-first ja local-first arkkitehtuuri."
+      "description": "MatchOps Localin tekniset tiedot: Progressiivinen nettisovellus (PWA), React 19, Next.js 15. Offline-first ja local-first arkkitehtuuri, data tallentuu laitteellesi."
     }
   },
   "footer": {
@@ -106,7 +106,7 @@
       "stateFlow": "Tilanhallinta",
       "stateFlowDesc": "useReducer monimutkaiselle pelitilalle, React Query asynkroniselle datalle, useState UI-tilalle",
       "dataLayer": "Datakerros",
-      "dataLayerDesc": "Asynkroniset tallennusadapterit IndexedDB-taustalla, automaattinen migraatio localStoragesta",
+      "dataLayerDesc": "Asynkroniset tallennusadapterit ja automaattinen tietojen migraatio",
       "errorHandling": "Virheenkäsittely",
       "errorHandlingDesc": "Sentry-integraatio tuotantomonitorointiin, graceful degradation -mallit"
     },
@@ -136,8 +136,8 @@
     },
     "dataFeatures": {
       "title": "Tiedonhallinta",
-      "migration": "IndexedDB-migraatio",
-      "migrationDesc": "Yritystason migraatio pause/resume/cancel-tuella, edistymisen tallennuksella ja välilehtien koordinoinnilla",
+      "migration": "Tietojen migraatio",
+      "migrationDesc": "Luotettava migraatio pause/resume/cancel-tuella, edistymisen tallennuksella ja välilehtien koordinoinnilla",
       "backup": "Varmuuskopiointi ja palautus",
       "backupDesc": "Yhden napin täysi varmuuskopiointi tarkistussummilla ja eheyden varmennuksella",
       "memory": "Muistinhallinta",
@@ -155,7 +155,7 @@
     "architecture": {
       "title": "Arkkitehtuuri",
       "localFirst": "Paikallinen tallennusarkkitehtuuri",
-      "localFirstDesc": "Kaikki tiedot tallennetaan paikallisesti laitteellesi IndexedDB:hen. Ei ulkoisia palvelimia tai tietokantoja.",
+      "localFirstDesc": "Kaikki tiedot tallennetaan paikallisesti laitteellesi. Ei ulkoisia palvelimia tai tietokantoja.",
       "offlineFirst": "Offline-ensin",
       "offlineFirstDesc": "Täysi toiminnallisuus ilman nettiyhteyttä. Verkko tarvitaan vain PWA-päivityksiin.",
       "singleUser": "Yhden käyttäjän ratkaisu",
@@ -170,7 +170,7 @@
       "styling": "Ulkoasu",
       "stylingDesc": "Tailwind CSS 4 responsiiviseen, moderniin käyttöliittymään",
       "storage": "Tietojen tallennus",
-      "storageDesc": "Selaimen IndexedDB asynkronisilla tallennusadaptereilla",
+      "storageDesc": "Paikallinen laitetallennus asynkronisilla adaptereilla",
       "stateManagement": "Tilanhallinta",
       "stateManagementDesc": "React Query palvelintilalle, useReducer pelisession tilalle",
       "pwa": "Progressiivinen nettisovellus",
@@ -180,8 +180,8 @@
     },
     "storage": {
       "title": "Tallennus ja tiedot",
-      "indexedDB": "IndexedDB-tallennus",
-      "indexedDBDesc": "Käyttää laitteesi vapaata tallennustilaa (tyypillisesti kymmeniä tai satoja gigatavuja saatavilla). Tyypillinen käyttö: alle 50MB 100+ pelille.",
+      "deviceStorage": "Laitetallennus",
+      "deviceStorageDesc": "Käyttää laitteesi vapaata tallennustilaa. Tyypillinen käyttö: alle 50MB 100+ pelille.",
       "dataScale": "Tiedon määrä",
       "dataScaleDesc": "Optimoitu 50-100 pelaajalle, 50-100 pelille per kausi. Pieni tietomäärä, nopea suorituskyky.",
       "backup": "Varmuuskopiointi ja vienti",
@@ -195,8 +195,8 @@
       "browserList": "Chrome 90+, Firefox 88+, Safari 14+, Edge 90+",
       "javascript": "JavaScript",
       "javascriptDesc": "Täytyy olla päällä (oletusarvoisesti kaikissa moderneissa selaimissa)",
-      "indexedDBSupport": "IndexedDB-tuki",
-      "indexedDBSupportDesc": "Vaaditaan (saatavilla kaikissa tuetuissa selaimissa)",
+      "storageSupport": "Tallennustuki",
+      "storageSupportDesc": "Vaaditaan (saatavilla kaikissa tuetuissa selaimissa)",
       "storageSpace": "Tallennustila",
       "storageSpaceDesc": "Vähintään 50MB suositeltava (tyypillinen käyttö paljon vähemmän)",
       "privateMode": "Yksityinen/Incognito-tila",
@@ -264,7 +264,7 @@
     "technical": {
       "title": "Tekniset tiedot",
       "desc1": "MatchOps Local on progressiivinen nettisovellus (PWA). Tämä tarkoittaa, että se asentuu kuin tavallinen sovellus mutta toimii selaimessasi.",
-      "desc2": "Kaikki tiedot tallennetaan paikallisesti laitteellesi IndexedDB-tietokantaan. Sovelluksen käyttöön ei tarvita nettiyhteyttä.",
+      "desc2": "Kaikki tiedot tallennetaan paikallisesti laitteellesi. Sovelluksen käyttöön ei tarvita nettiyhteyttä.",
       "desc3": "Yhteensopiva iOS Safarin, Android Chromen ja kaikkien suurten työpöytäselainten kanssa."
     },
     "faq": {
@@ -272,7 +272,7 @@
       "q1": "Miten asennan sovelluksen?",
       "a1": "Avaa sovellus selaimellasi [Linkki tulossa pian]. Sovellus kysyy haluatko asentaa sen - napauta vain 'Asenna'.",
       "q2": "Mihin tietoni tallennetaan?",
-      "a2": "Kaikki tiedot tallennetaan paikallisesti laitteellesi IndexedDB-tietokantaan (selaimen tallennustila). Mitään ei lähetetä ulkoisille palvelimille.",
+      "a2": "Kaikki tiedot tallennetaan paikallisesti laitteellesi. Mitään ei lähetetä ulkoisille palvelimille.",
       "q3": "Voinko käyttää useammalla laitteella?",
       "a3": "Kyllä, mutta sinun täytyy viedä tietosi yhdeltä laitteelta ja tuoda ne toiselle. Automaattista synkronointia ei ole, koska kaikki tallentuu paikallisesti.",
       "q4": "Miten varmuuskopioin tietoni?",
@@ -284,7 +284,7 @@
       "q7": "Voinko hallita useita joukkueita?",
       "a7": "Kyllä. Voit luoda ja hallita useita joukkueita (U12, U14, jne.) samassa sovelluksessa ja vaihtaa niiden välillä helposti.",
       "q8": "Kuinka paljon tallennustilaa sovellus käyttää?",
-      "a8": "Sovellus käyttää laitteesi vapaata tallennustilaa IndexedDB:n kautta. Käytettävissä oleva tila riippuu laitteestasi ja voi olla kymmeniä tai jopa satoja gigatavuja. Tyypillinen käyttö 100+ pelin ja täysien tilastojen kanssa on alle 50MB.",
+      "a8": "Sovellus käyttää laitteesi vapaata tallennustilaa. Tyypillinen käyttö 100+ pelin ja täysien tilastojen kanssa on alle 50MB.",
       "q9": "Miten päivitän sovelluksen?",
       "a9": "Sovellus päivittyy automaattisesti kun avaat sen ja sinulla on nettiyhteys. Päivityksen jälkeen sovellus ilmoittaa uudesta versiosta ja pyytää lataamaan sivun uudelleen.",
       "q10": "Voinko jakaa tilastoja muille valmentajille?",

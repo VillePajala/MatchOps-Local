@@ -119,48 +119,32 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
           </section>
 
           <section className="space-y-3">
-            <h3 className="text-2xl font-bold text-yellow-300">{t('firstGameGuide.menuActions', 'Menu Actions')}</h3>
+            <h3 className="text-2xl font-bold text-yellow-300">{t('firstGameGuide.gameManagement', 'Game Management')}</h3>
             <p className="text-sm text-slate-300">
               {t('firstGameGuide.menuActionsNote', 'Click the Menu button to access:')}
               <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-indigo-300" size={18} />
             </p>
-
             <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{t('instructionsModal.menuActionsSection.gameManagement')}</h4>
-              <ul className="text-sm leading-6 text-slate-200 space-y-1 list-disc pl-5 marker:text-slate-400 mb-3">
-                <li>{t('instructionsModal.menuActionsSection.save')}</li>
-                <li>{t('instructionsModal.menuActionsSection.loadGame')}</li>
-                <li>{t('instructionsModal.menuActionsSection.newGame')}</li>
+              <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
+                <li>{t('firstGameGuide.startNewGameTip', 'Start a new game')}</li>
+                <li>{t('firstGameGuide.loadGameTip', 'Load a saved game')}</li>
+                <li>{t('firstGameGuide.gameSettingsTip', 'Edit game settings')}</li>
               </ul>
+            </div>
+          </section>
 
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{t('instructionsModal.menuActionsSection.setupConfig')}</h4>
-              <ul className="text-sm leading-6 text-slate-200 space-y-1 list-disc pl-5 marker:text-slate-400 mb-3">
-                <li>{t('instructionsModal.menuActionsSection.gameSettings')}</li>
-                <li>{t('instructionsModal.menuActionsSection.manageRoster')}</li>
-                <li>{t('instructionsModal.menuActionsSection.manageTeams')}</li>
-                <li>{t('instructionsModal.menuActionsSection.personnelManager')}</li>
-                <li>{t('instructionsModal.menuActionsSection.manageSeasonsAndTournaments')}</li>
-              </ul>
-
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{t('instructionsModal.menuActionsSection.analysisTools')}</h4>
-              <ul className="text-sm leading-6 text-slate-200 space-y-1 list-disc pl-5 marker:text-slate-400 mb-3">
-                <li>{t('instructionsModal.menuActionsSection.stats')}</li>
-                <li>{t('instructionsModal.menuActionsSection.assessPlayers')}</li>
-                <li>{t('instructionsModal.menuActionsSection.training')}</li>
-                <li>{t('instructionsModal.menuActionsSection.backupRestore')}</li>
-              </ul>
-
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{t('instructionsModal.menuActionsSection.resources')}</h4>
-              <ul className="text-sm leading-6 text-slate-200 space-y-1 list-disc pl-5 marker:text-slate-400 mb-3">
-                <li>{t('instructionsModal.menuActionsSection.howItWorks')}</li>
-                <li>{t('instructionsModal.menuActionsSection.coachingMaterials')}</li>
-                <li>{t('instructionsModal.menuActionsSection.taso')}</li>
-                <li>{t('instructionsModal.menuActionsSection.docsFeatures')}</li>
-              </ul>
-
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{t('instructionsModal.menuActionsSection.settings')}</h4>
-              <ul className="text-sm leading-6 text-slate-200 space-y-1 list-disc pl-5 marker:text-slate-400">
-                <li>{t('instructionsModal.menuActionsSection.appSettings')}</li>
+          <section className="space-y-3">
+            <h3 className="text-2xl font-bold text-yellow-300">{t('firstGameGuide.otherFeatures', 'Other Features')}</h3>
+            <p className="text-sm text-slate-300">
+              {t('firstGameGuide.otherFeaturesNote', 'Also available from the Menu:')}
+              <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-indigo-300" size={18} />
+            </p>
+            <div className="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+              <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
+                <li>{t('firstGameGuide.rosterManageTip', 'Manage player list')}</li>
+                <li>{t('firstGameGuide.statsReportsTip', 'View stats and download reports')}</li>
+                <li>{t('firstGameGuide.seasonsTeamsTip', 'Manage seasons, teams, and personnel')}</li>
+                <li>{t('firstGameGuide.appSettingsTip', 'Access app settings')}</li>
               </ul>
             </div>
           </section>

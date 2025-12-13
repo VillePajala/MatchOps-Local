@@ -8,9 +8,34 @@ import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n'; // Your i18n instance
 import { getFilteredGames } from '@/utils/savedGames';
 import { ToastProvider } from '@/contexts/ToastProvider';
+import { PremiumProvider } from '@/contexts/PremiumContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+});
 
 jest.mock('@/utils/savedGames', () => ({
   getFilteredGames: jest.fn().mockResolvedValue([]),
+}));
+
+// Mock usePremium to avoid "Upgrade prompt handler not registered" warnings
+jest.mock('@/hooks/usePremium', () => ({
+  usePremium: () => ({
+    isPremium: false,
+    isLoading: false,
+    hasLimits: true,
+    grantPremiumAccess: jest.fn(),
+    revokePremiumAccess: jest.fn(),
+    PREMIUM_PRICE: '9,99 €',
+  }),
+  useResourceLimit: () => ({
+    canAdd: true,
+    remaining: 10,
+    limit: 10,
+    current: 0,
+    checkAndPrompt: jest.fn().mockReturnValue(true),
+  }),
 }));
 
 const mockMutation = () => ({
@@ -36,11 +61,15 @@ const defaultProps = {
 
 const renderWithProviders = (props: Partial<typeof defaultProps> = {}) => {
   return render(
-    <I18nextProvider i18n={i18n}>
-      <ToastProvider>
-        <SeasonTournamentManagementModal {...defaultProps} {...props} />
-      </ToastProvider>
-    </I18nextProvider>
+    <QueryClientProvider client={createTestQueryClient()}>
+      <PremiumProvider>
+        <I18nextProvider i18n={i18n}>
+          <ToastProvider>
+            <SeasonTournamentManagementModal {...defaultProps} {...props} />
+          </ToastProvider>
+        </I18nextProvider>
+      </PremiumProvider>
+    </QueryClientProvider>
   );
 };
 

@@ -475,7 +475,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                         <button
                           type="button"
                           onClick={() => setIsEditingRoster(true)}
-                          className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                          className={`${secondaryButtonStyle} px-3 py-1 text-xs`}
                         >
                           {t('unifiedTeamModal.editRoster', 'Edit Roster')} →
                         </button>

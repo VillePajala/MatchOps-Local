@@ -210,8 +210,6 @@ function GuideStepFour() {
       <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
         <li>{t('firstGameGuide.startNewGameTip', 'Start a new game')}</li>
         <li>{t('firstGameGuide.loadGameTip', 'Load a saved game')}</li>
-        <li>{t('firstGameGuide.quickSaveTip', 'Quick save your game (Ctrl/Cmd+S)')}</li>
-        <li>{t('firstGameGuide.goalLogTip', 'Log goals and events')}</li>
         <li>{t('firstGameGuide.gameSettingsTip', 'Edit game settings')}</li>
       </ul>
     </div>
@@ -230,10 +228,9 @@ function GuideStepFive() {
         <HiBars3 aria-hidden className="inline-block align-[-2px] ml-2 text-indigo-300" size={18} />
       </p>
       <ul className="text-sm leading-6 text-slate-200 space-y-2 list-disc pl-5 marker:text-slate-400">
-        <li>{t('firstGameGuide.rosterManageTip', 'Manage your roster')}</li>
-        <li>{t('firstGameGuide.statsReportsTip', 'View stats and reports')}</li>
+        <li>{t('firstGameGuide.rosterManageTip', 'Manage player list')}</li>
+        <li>{t('firstGameGuide.statsReportsTip', 'View stats and download reports')}</li>
         <li>{t('firstGameGuide.seasonsTeamsTip', 'Manage seasons, teams, and personnel')}</li>
-        <li>{t('firstGameGuide.helpTip', 'Get help and instructions')}</li>
         <li>{t('firstGameGuide.appSettingsTip', 'Access app settings')}</li>
       </ul>
     </div>
