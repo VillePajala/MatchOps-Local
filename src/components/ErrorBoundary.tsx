@@ -44,6 +44,18 @@ class ErrorBoundary extends Component<Props, State> {
             error: null,
             errorInfo: null,
           });
+
+          // Reset recovery count after period of stability FOLLOWING successful recovery
+          // This is more defensive than resetting after error catch - ensures app is actually stable
+          if (this.recoveryResetTimer) {
+            clearTimeout(this.recoveryResetTimer);
+          }
+          this.recoveryResetTimer = setTimeout(() => {
+            if (this.recoveryCount > 0) {
+              logger.log('[ErrorBoundary] Resetting recovery count after stability period');
+              this.recoveryCount = 0;
+            }
+          }, ErrorBoundary.RECOVERY_RESET_MS);
         } else {
           logger.warn('[ErrorBoundary] Max auto-recovery attempts reached - staying in error state to prevent infinite loop');
         }
@@ -85,17 +97,9 @@ class ErrorBoundary extends Component<Props, State> {
       this.props.onError(error, errorInfo);
     }
 
-    // Reset recovery count after period of stability (no errors for 30s)
-    // This allows future legitimate visibility-based recoveries
-    if (this.recoveryResetTimer) {
-      clearTimeout(this.recoveryResetTimer);
-    }
-    this.recoveryResetTimer = setTimeout(() => {
-      if (this.recoveryCount > 0) {
-        logger.log('[ErrorBoundary] Resetting recovery count after stability period');
-        this.recoveryCount = 0;
-      }
-    }, ErrorBoundary.RECOVERY_RESET_MS);
+    // Note: Recovery count reset timer is started in handleVisibilityChange
+    // AFTER successful recovery, not here. This ensures counter only resets
+    // when the app is actually stable, not just because time passed after an error.
   }
 
   componentDidUpdate(prevProps: Props) {
