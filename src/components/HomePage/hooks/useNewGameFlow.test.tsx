@@ -3,11 +3,31 @@
  * @regression
  * Validates that the grouped gameState/ui/orchestration/dependencies contexts pass through to handlers after the parameter grouping refactor.
  */
+import React from 'react';
 import { renderHook, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { SetStateAction } from 'react';
-import type { QueryClient } from '@tanstack/react-query';
 import type { SavedGamesCollection, Player, AppState } from '@/types';
 import { useNewGameFlow } from './useNewGameFlow';
+import { PremiumProvider } from '@/contexts/PremiumContext';
+import ToastProvider from '@/contexts/ToastProvider';
+
+// Test wrapper with required providers
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      <PremiumProvider>
+        <ToastProvider>
+          {children}
+        </ToastProvider>
+      </PremiumProvider>
+    </QueryClientProvider>
+  );
+  return TestWrapper;
+};
 
 const mockGetSavedGames = jest.fn();
 
@@ -138,6 +158,7 @@ describe('useNewGameFlow', () => {
 
     const { result } = renderHook(() =>
       useNewGameFlow(options),
+      { wrapper: createWrapper() }
     );
 
     await act(async () => {
@@ -162,6 +183,7 @@ describe('useNewGameFlow', () => {
 
     const { result } = renderHook(() =>
       useNewGameFlow(options),
+      { wrapper: createWrapper() }
     );
 
     await act(async () => {
@@ -182,6 +204,7 @@ describe('useNewGameFlow', () => {
 
     const { result } = renderHook(() =>
       useNewGameFlow(options),
+      { wrapper: createWrapper() }
     );
 
     await act(async () => {

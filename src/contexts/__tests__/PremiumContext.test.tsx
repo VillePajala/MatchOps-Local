@@ -281,7 +281,7 @@ describe('PremiumContext', () => {
         </PremiumProvider>
       );
 
-      expect(screen.getByTestId('price').textContent).toBe('$9.99');
+      expect(screen.getByTestId('price').textContent).toBe('9,99 €');
     });
 
     it('should handle license load error gracefully', async () => {
@@ -508,7 +508,7 @@ describe('usePremium hook', () => {
 
     expect(screen.getByTestId('premium').textContent).toBe('false');
     expect(screen.getByTestId('has-limits').textContent).toBe('true');
-    expect(screen.getByTestId('price').textContent).toBe('$9.99');
+    expect(screen.getByTestId('price').textContent).toBe('9,99 €');
   });
 });
 

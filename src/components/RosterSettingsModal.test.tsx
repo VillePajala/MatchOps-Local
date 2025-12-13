@@ -1,10 +1,12 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@testing-library/jest-dom';
 
 import RosterSettingsModal from './RosterSettingsModal';
 import type { Player } from '@/types';
 import { ToastProvider } from '@/contexts/ToastProvider';
+import { PremiumProvider } from '@/contexts/PremiumContext';
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -40,6 +42,21 @@ const defaultProps = {
   onOpenPlayerStats: mockOnOpenPlayerStats,
 };
 
+// Test wrapper with required providers
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+});
+
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <QueryClientProvider client={createTestQueryClient()}>
+    <PremiumProvider>
+      <ToastProvider>
+        {children}
+      </ToastProvider>
+    </PremiumProvider>
+  </QueryClientProvider>
+);
+
 describe('<RosterSettingsModal />', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -47,9 +64,9 @@ describe('<RosterSettingsModal />', () => {
 
   test('renders the modal when isOpen is true', () => {
     render(
-      <ToastProvider>
+      <TestWrapper>
         <RosterSettingsModal {...defaultProps} />
-      </ToastProvider>
+      </TestWrapper>
     );
     expect(screen.getByText('Manage Roster')).toBeInTheDocument();
     expect(screen.getByText('Player One')).toBeInTheDocument();
@@ -60,18 +77,18 @@ describe('<RosterSettingsModal />', () => {
 
   test('does not render when isOpen is false', () => {
     render(
-      <ToastProvider>
+      <TestWrapper>
         <RosterSettingsModal {...defaultProps} isOpen={false} />
-      </ToastProvider>
+      </TestWrapper>
     );
     expect(screen.queryByText('Manage Roster')).not.toBeInTheDocument();
   });
 
   test('calls onClose when Done button is clicked', () => {
     render(
-      <ToastProvider>
+      <TestWrapper>
         <RosterSettingsModal {...defaultProps} />
-      </ToastProvider>
+      </TestWrapper>
     );
     const doneButton = screen.getByRole('button', { name: /Done/i });
     fireEvent.click(doneButton);
@@ -80,9 +97,9 @@ describe('<RosterSettingsModal />', () => {
 
   test('shows add player form when Add Player button is clicked', async () => {
     render(
-      <ToastProvider>
+      <TestWrapper>
         <RosterSettingsModal {...defaultProps} />
-      </ToastProvider>
+      </TestWrapper>
     );
     const addButton = screen.getByRole('button', { name: /Add Player/i });
     fireEvent.click(addButton);
@@ -95,9 +112,9 @@ describe('<RosterSettingsModal />', () => {
 
   test('adds a new player when form is submitted', async () => {
     render(
-      <ToastProvider>
+      <TestWrapper>
         <RosterSettingsModal {...defaultProps} />
-      </ToastProvider>
+      </TestWrapper>
     );
 
     // Open modal
@@ -135,9 +152,9 @@ describe('<RosterSettingsModal />', () => {
 
   test('edits player when edit form is submitted', async () => {
     render(
-      <ToastProvider>
+      <TestWrapper>
         <RosterSettingsModal {...defaultProps} />
-      </ToastProvider>
+      </TestWrapper>
     );
 
     // Click on player name to open edit modal
@@ -179,9 +196,9 @@ describe('<RosterSettingsModal />', () => {
 
   test('removes player when remove button is clicked', async () => {
     render(
-      <ToastProvider>
+      <TestWrapper>
         <RosterSettingsModal {...defaultProps} />
-      </ToastProvider>
+      </TestWrapper>
     );
 
     // Open the actions menu for first player (P1)
@@ -213,9 +230,9 @@ describe('<RosterSettingsModal />', () => {
 
   test('opens player stats', () => {
     render(
-      <ToastProvider>
+      <TestWrapper>
         <RosterSettingsModal {...defaultProps} />
-      </ToastProvider>
+      </TestWrapper>
     );
 
     // Open the actions menu for first player (P1)
@@ -231,9 +248,9 @@ describe('<RosterSettingsModal />', () => {
 
   test('filters players by search input', () => {
     render(
-      <ToastProvider>
+      <TestWrapper>
         <RosterSettingsModal {...defaultProps} />
-      </ToastProvider>
+      </TestWrapper>
     );
     const searchInput = screen.getByPlaceholderText('Search players...');
     fireEvent.change(searchInput, { target: { value: 'Two' } });
