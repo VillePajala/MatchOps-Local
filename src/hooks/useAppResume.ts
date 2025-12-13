@@ -20,10 +20,14 @@ interface UseAppResumeOptions {
   minBackgroundTime?: number;
 }
 
+// Debounce rapid pageshow events (iOS Safari gesture navigation edge case)
+const PAGESHOW_DEBOUNCE_MS = 1000;
+
 export function useAppResume(options: UseAppResumeOptions = {}) {
   const { onResume, minBackgroundTime = 30000 } = options;
   const queryClient = useQueryClient();
   const backgroundStartRef = useRef<number | null>(null);
+  const lastPageShowRef = useRef<number>(0);
 
   const handleVisibilityChange = useCallback(() => {
     if (document.hidden) {
@@ -32,9 +36,13 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
       logger.debug('[useAppResume] App going to background');
     } else {
       // Returning to foreground
-      const backgroundDuration = backgroundStartRef.current
-        ? Date.now() - backgroundStartRef.current
-        : 0;
+      // Skip if backgroundStartRef is null (pageshow already handled this resume)
+      if (backgroundStartRef.current === null) {
+        logger.debug('[useAppResume] visibilitychange skipped - already handled by pageshow');
+        return;
+      }
+
+      const backgroundDuration = Date.now() - backgroundStartRef.current;
 
       if (backgroundDuration > minBackgroundTime) {
         logger.log(
@@ -64,9 +72,21 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
   const handlePageShow = useCallback(
     (event: PageTransitionEvent) => {
       if (event.persisted) {
+        // Debounce rapid pageshow events (iOS Safari gesture navigation)
+        const now = Date.now();
+        if (now - lastPageShowRef.current < PAGESHOW_DEBOUNCE_MS) {
+          logger.debug('[useAppResume] Debouncing rapid pageshow event');
+          return;
+        }
+        lastPageShowRef.current = now;
+
         logger.log('[useAppResume] Page restored from bfcache - triggering refresh');
         queryClient.invalidateQueries();
         onResume?.();
+
+        // Reset background start to prevent visibilitychange from double-triggering
+        // (pageshow often fires before visibilitychange on iOS Safari)
+        backgroundStartRef.current = null;
       }
     },
     [queryClient, onResume]
