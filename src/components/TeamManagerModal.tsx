@@ -181,6 +181,14 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   };
 
   const handleToggleArchive = (teamId: string, currentArchived: boolean) => {
+    // If unarchiving (archived -> not archived), check premium limits first
+    if (currentArchived) {
+      if (!checkTeamLimitAndPrompt()) {
+        setActionsMenuTeamId(null);
+        return; // Upgrade prompt shown
+      }
+    }
+
     updateTeamMutation.mutate({
       teamId,
       updates: {
