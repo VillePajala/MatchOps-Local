@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ModalManager } from './ModalManager';
+import { PremiumProvider } from '@/contexts/PremiumContext';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
 import type { Season, Tournament, Team, PlayerAssessment } from '@/types';
 import type { ModalManagerProps } from './ModalManager';
@@ -220,7 +221,9 @@ describe('ModalManager', () => {
   const renderWithProvider = (component: React.ReactElement) => {
     return render(
       <QueryClientProvider client={queryClient}>
-        {component}
+        <PremiumProvider>
+          {component}
+        </PremiumProvider>
       </QueryClientProvider>
     );
   };

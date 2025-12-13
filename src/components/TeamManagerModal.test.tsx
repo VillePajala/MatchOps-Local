@@ -6,10 +6,30 @@ import TeamManagerModal from './TeamManagerModal';
 import type { Team } from '@/types';
 import * as teamsUtils from '@/utils/teams';
 import { ToastProvider } from '@/contexts/ToastProvider';
+import { PremiumProvider } from '@/contexts/PremiumContext';
 
 // Mock utilities
 jest.mock('@/utils/teams');
 jest.mock('@/utils/logger');
+
+// Mock usePremium to avoid limit checks blocking UI in tests
+jest.mock('@/hooks/usePremium', () => ({
+  usePremium: () => ({
+    isPremium: false,
+    isLoading: false,
+    hasLimits: true,
+    grantPremiumAccess: jest.fn(),
+    revokePremiumAccess: jest.fn(),
+    PREMIUM_PRICE: '9,99 €',
+  }),
+  useResourceLimit: () => ({
+    canAdd: true,
+    remaining: 10,
+    limit: 10,
+    current: 0,
+    checkAndPrompt: jest.fn().mockReturnValue(true),
+  }),
+}));
 
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -52,9 +72,11 @@ const renderWithQueryClient = (ui: React.ReactElement) => {
   const queryClient = createQueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        {ui}
-      </ToastProvider>
+      <PremiumProvider>
+        <ToastProvider>
+          {ui}
+        </ToastProvider>
+      </PremiumProvider>
     </QueryClientProvider>
   );
 };
@@ -243,18 +265,22 @@ describe('TeamManagerModal', () => {
       // Close modal
       rerender(
         <QueryClientProvider client={createQueryClient()}>
-          <ToastProvider>
-            <TeamManagerModal {...defaultProps} isOpen={false} />
-          </ToastProvider>
+          <PremiumProvider>
+            <ToastProvider>
+              <TeamManagerModal {...defaultProps} isOpen={false} />
+            </ToastProvider>
+          </PremiumProvider>
         </QueryClientProvider>
       );
 
       // Reopen modal
       rerender(
         <QueryClientProvider client={createQueryClient()}>
-          <ToastProvider>
-            <TeamManagerModal {...defaultProps} isOpen={true} />
-          </ToastProvider>
+          <PremiumProvider>
+            <ToastProvider>
+              <TeamManagerModal {...defaultProps} isOpen={true} />
+            </ToastProvider>
+          </PremiumProvider>
         </QueryClientProvider>
       );
 
@@ -364,18 +390,22 @@ describe('TeamManagerModal', () => {
       // Close modal
       rerender(
         <QueryClientProvider client={createQueryClient()}>
-          <ToastProvider>
-            <TeamManagerModal {...defaultProps} isOpen={false} />
-          </ToastProvider>
+          <PremiumProvider>
+            <ToastProvider>
+              <TeamManagerModal {...defaultProps} isOpen={false} />
+            </ToastProvider>
+          </PremiumProvider>
         </QueryClientProvider>
       );
 
       // Reopen modal
       rerender(
         <QueryClientProvider client={createQueryClient()}>
-          <ToastProvider>
-            <TeamManagerModal {...defaultProps} isOpen={true} />
-          </ToastProvider>
+          <PremiumProvider>
+            <ToastProvider>
+              <TeamManagerModal {...defaultProps} isOpen={true} />
+            </ToastProvider>
+          </PremiumProvider>
         </QueryClientProvider>
       );
 

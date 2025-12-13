@@ -6,6 +6,7 @@ import '@testing-library/jest-dom';
 
 import SettingsModal from './SettingsModal';
 import { ToastProvider } from '@/contexts/ToastProvider';
+import { PremiumProvider } from '@/contexts/PremiumContext';
 
 // Create test query client
 const createTestQueryClient = () => new QueryClient({
@@ -20,9 +21,11 @@ const TestWrapper = ({ children }: { children: React.ReactNode }) => {
   const queryClient = createTestQueryClient();
   return (
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        {children}
-      </ToastProvider>
+      <PremiumProvider>
+        <ToastProvider>
+          {children}
+        </ToastProvider>
+      </PremiumProvider>
     </QueryClientProvider>
   );
 };
