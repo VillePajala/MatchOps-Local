@@ -411,10 +411,10 @@ export default function TechnicalPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-slate-900/50 p-6 rounded-lg border border-slate-700">
                 <h3 className="text-lg font-bold text-primary mb-2">
-                  {t('technical.storage.indexedDB')}
+                  {t('technical.storage.deviceStorage')}
                 </h3>
                 <p className="text-slate-300">
-                  {t('technical.storage.indexedDBDesc')}
+                  {t('technical.storage.deviceStorageDesc')}
                 </p>
               </div>
               <div className="bg-slate-900/50 p-6 rounded-lg border border-slate-700">
@@ -472,10 +472,10 @@ export default function TechnicalPage() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-primary mb-2">
-                  {t('technical.requirements.indexedDBSupport')}
+                  {t('technical.requirements.storageSupport')}
                 </h3>
                 <p className="text-slate-300">
-                  {t('technical.requirements.indexedDBSupportDesc')}
+                  {t('technical.requirements.storageSupportDesc')}
                 </p>
               </div>
               <div>

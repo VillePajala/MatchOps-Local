@@ -14,7 +14,6 @@ import { saveGame as utilSaveGame, getLatestGameId, getSavedGames as utilGetSave
 import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
   resetAppSettings as utilResetAppSettings,
-  getHasSeenAppGuide,
   saveHasSeenAppGuide,
   getLastHomeTeamName as utilGetLastHomeTeamName,
   updateAppSettings as utilUpdateAppSettings,
@@ -40,6 +39,7 @@ import { exportCurrentGameExcel, exportAggregateExcel, exportPlayerExcel } from 
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 import { startNewGameWithSetup, cancelNewGameSetup } from '../utils/newGameHandlers';
+import { usePremium } from '@/hooks/usePremium';
 import { buildGameContainerViewModel, isValidGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { BuildGameContainerVMInput } from '@/viewModels/gameContainer';
 import type { FieldContainerProps, FieldInteractions } from '@/components/HomePage/containers/FieldContainer';
@@ -134,6 +134,9 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   const saveStateToHistory = useCallback(saveStateToHistoryFromSession, [saveStateToHistoryFromSession]);
   const saveTacticalStateToHistory = useCallback(saveTacticalStateToHistoryFromSession, [saveTacticalStateToHistoryFromSession]);
 
+  // --- Premium limits ---
+  const { canCreate, showUpgradePrompt } = usePremium();
+
   // --- Get showToast early (needed by Field Coordination) ---
   const { showToast } = useToast();
 
@@ -212,7 +215,6 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // --- Persistence State ---
   const [currentGameId, setCurrentGameId] = useState<string | null>(DEFAULT_GAME_ID);
   const [isPlayed, setIsPlayed] = useState<boolean>(true);
-  const [hasCheckedInstructionsModal, setHasCheckedInstructionsModal] = useState<boolean>(false);
 
   // This ref needs to be declared after currentGameId
   const gameIdRef = useRef(currentGameId);
@@ -1643,6 +1645,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         utilSaveGame,
         utilSaveCurrentGameIdSetting,
         defaultSubIntervalMinutes: initialState.subIntervalMinutes ?? 5,
+        canCreate,
+        showUpgradePrompt,
       },
       {
         initialSelectedPlayerIds,
@@ -1686,6 +1690,8 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     showToast,
     t,
     fieldCoordination,
+    canCreate,
+    showUpgradePrompt,
   ]);
 
   // ** REVERT handleCancelNewGameSetup TO ORIGINAL **
@@ -2067,22 +2073,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     // removed - these are no longer returned from useModalOrchestration
   } = modalOrchestration;
 
-  // Show automatic instructions for experienced users with specific actions, not first-time users
-  // Guard prevents multiple triggers when savedGames changes
-  useEffect(() => {
-    if (!initialLoadComplete || hasCheckedInstructionsModal) return;
-
-    const checkInstructionsModal = async () => {
-      const seenGuide = await getHasSeenAppGuide();
-      const hasAnyData = Object.keys(savedGames).length > 0; // Check if user has any saved games
-      if (!seenGuide && initialAction !== null && hasAnyData) {
-        setIsInstructionsModalOpen(true);
-      }
-      setHasCheckedInstructionsModal(true); // Mark as checked to prevent re-triggering
-    };
-
-    checkInstructionsModal();
-  }, [initialLoadComplete, initialAction, savedGames, setIsInstructionsModalOpen, hasCheckedInstructionsModal]);
+  // Instructions modal is now only opened explicitly from menu - no auto-open logic
 
   return {
     gameContainerProps,

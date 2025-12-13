@@ -18,6 +18,7 @@ import type { GameSessionAction } from '@/hooks/useGameSessionReducer';
 import { saveGame as utilSaveGame } from '@/utils/savedGames';
 import { saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
 import { startNewGameWithSetup, cancelNewGameSetup } from '../utils/newGameHandlers';
+import { usePremium } from '@/hooks/usePremium';
 
 type ToastFn = (message: string, type?: 'success' | 'error' | 'info') => void;
 
@@ -86,6 +87,9 @@ export function useNewGameFlow({
     setCurrentGameId,
   } = orchestration;
   const { queryClient, showToast, t, defaultSubIntervalMinutes } = dependencies;
+
+  // Premium limits (deprecated hook - kept for type compatibility)
+  const { canCreate, showUpgradePrompt } = usePremium();
 
   const [playerIdsForNewGame, setPlayerIdsForNewGame] = useState<string[] | null>(null);
   const [newGameDemandFactor, setNewGameDemandFactor] = useState(1);
@@ -196,6 +200,8 @@ export function useNewGameFlow({
           utilSaveGame,
           utilSaveCurrentGameIdSetting,
           defaultSubIntervalMinutes,
+          canCreate,
+          showUpgradePrompt,
         },
         {
           initialSelectedPlayerIds,
@@ -238,6 +244,8 @@ export function useNewGameFlow({
       showToast,
       t,
       defaultSubIntervalMinutes,
+      canCreate,
+      showUpgradePrompt,
     ],
   );
 

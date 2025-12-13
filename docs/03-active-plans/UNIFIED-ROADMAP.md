@@ -1,6 +1,6 @@
 # MatchOps-Local: Unified Project Roadmap
 
-**Last Updated**: December 12, 2025
+**Last Updated**: December 13, 2025
 **Status**: Active
 **Purpose**: Single source of truth for ALL project work
 
@@ -36,6 +36,12 @@
 - [x] **Next.js 16.0.7 + React 19.2** ✅ (upgraded from 15.5.7)
 - [x] npm audit: 0 vulnerabilities
 
+### PWA Stability (December 2025)
+- [x] **Blank screen fix** - useAppResume hook for Android TWA/iOS Safari bfcache handling
+- [x] ErrorBoundary auto-recovery with loop prevention (max 3 attempts)
+- [x] iOS Safari pageshow debouncing for gesture navigation
+- [x] Test coverage for useAppResume and ErrorBoundary visibility handling
+
 ### Infrastructure (September-October 2025)
 - [x] IndexedDB migration complete
 - [x] Storage abstraction layer
@@ -49,6 +55,8 @@
 - [x] First Game Onboarding (FirstGameGuideOverlay, step-by-step guidance)
 - [x] External Match Stats (PlayerStatAdjustment for games played outside app)
 - [x] Instructions Modal / How It Works help system
+- [x] Game Type labeling (Soccer/Futsal) with filtering
+- [x] Gender labeling (Boys/Girls) with filtering
 
 ---
 
@@ -57,7 +65,7 @@
 | # | Task | Effort | Why This Order |
 |---|------|--------|----------------|
 | ~~1~~ | ~~Play Store Release~~ | ~~2-3 weeks~~ | 🎯 **IN INTERNAL TESTING** |
-| ~~2~~ | ~~Gender Handling (Boys/Girls)~~ | ~~3-5 days~~ | 🔄 Implementation complete (pending test/build) |
+| ~~2~~ | ~~Gender Handling (Boys/Girls)~~ | ~~3-5 days~~ | ✅ **COMPLETED** December 2025 |
 | ~~3~~ | ~~Game Type (Soccer/Futsal)~~ | ~~3-5 days~~ | ✅ **COMPLETED** December 11, 2025 |
 | **1** | Backend Architecture Refactoring | ~4 weeks | Clean architecture before more features |
 | **2** | Season League UX (area/age filtering) | 1 week | Nice-to-have UX improvement |
@@ -83,18 +91,27 @@
 ### Remaining Work (BEFORE PRODUCTION RELEASE)
 **⚠️ CRITICAL: Monetization not yet enforced - complete before public release!**
 
-- [ ] **P4B: Upgrade UI & Limit Enforcement** (PR #9) - NOT DONE
-  - [ ] Create `UpgradePromptModal.tsx` component
-  - [ ] Integrate `canCreate()` checks into NewGameSetupModal (game creation)
-  - [ ] Integrate `canCreate()` checks into TeamManagerModal (team creation)
-  - [ ] Integrate `canCreate()` checks into PlayerBar/roster (player creation)
-  - [ ] Integrate `canCreate()` checks into SeasonTournamentManagementModal
-  - [ ] Translations (EN/FI)
+- [ ] **P4B: Upgrade UI & Limit Enforcement** (PR #9) - IMPLEMENTED on `feature/p4b-upgrade-ui` branch
+  - [x] Create `UpgradePromptModal.tsx` component
+  - [x] Create `UpgradePromptManager.tsx` (connects modal to PremiumContext)
+  - [x] Integrate `canCreate()` checks into newGameHandlers (game creation)
+  - [x] Integrate `canCreate()` checks into TeamManagerModal (team creation)
+  - [x] Integrate `canCreate()` checks into RosterSettingsModal (player creation)
+  - [x] Integrate `canCreate()` checks into SeasonTournamentManagementModal
+  - [x] Premium Status section in SettingsModal (with limits breakdown)
+  - [x] Translations (EN/FI)
+  - [ ] Merge to master after testing
 - [ ] **P4C: Play Billing API integration** (PR #10) - NOT DONE
-  - [ ] Create `playBilling.ts` (Digital Goods API wrapper)
-  - [ ] Purchase flow implementation
-  - [ ] Restore purchase functionality
-  - [ ] License caching for offline
+  - **See**: [`docs/04-features/play-billing-implementation.md`](../04-features/play-billing-implementation.md) for detailed implementation guide
+  - [ ] Google Play Console setup (product SKU, merchant account)
+  - [ ] Create `src/utils/playBilling.ts` (Digital Goods API + Payment Request API)
+  - [ ] Create `src/hooks/usePlayBilling.ts` (React hook)
+  - [ ] Create `pages/api/billing/verify.ts` (backend verification)
+  - [ ] Update `UpgradePromptModal.tsx` to use real billing
+  - [ ] Update `twa-manifest.json` with `playBilling: true`
+  - [ ] Rebuild TWA with billing enabled
+  - [ ] Test with license testers
+  - [ ] Restore purchase functionality on app startup
 - [ ] Complete internal testing
 - [ ] Submit for production review
 - [ ] Public release
@@ -137,9 +154,9 @@
 
 ## 👥 PRIORITY 3: Gender Handling (Boys/Girls)
 
-**Status**: 🔄 Implementation complete, pending test/build verification
-**Effort**: 3-5 days
-**Pattern**: Same as Game Type (Soccer/Futsal) - see merged PR for reference
+**Status**: ✅ **COMPLETED** (December 2025)
+**Effort**: 3-5 days (actual)
+**Pattern**: Same as Game Type (Soccer/Futsal)
 
 ### The Problem
 - App tracks soccer games but doesn't distinguish gender (boys/girls)
@@ -295,10 +312,10 @@ export type Gender = 'boys' | 'girls';
 - [x] Translations: EN + FI
 - [x] Generate i18n types
 - [x] Update all tests
-- [ ] Run full test suite
-- [ ] Run build
+- [x] Run full test suite
+- [x] Run build
 
-**Why Third**: Important feature for Finnish youth soccer. Now has clear implementation plan mirroring the Game Type feature.
+**Reference**: Use this implementation as pattern for future similar features.
 
 ---
 
@@ -432,11 +449,12 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 
 | Date | Update |
 |------|--------|
+| 2025-12-13 | ✅ **Gender Handling COMPLETED** - merged to master |
+| 2025-12-13 | ✅ **PWA Stability fixes merged** - Blank screen fix (useAppResume, ErrorBoundary improvements, iOS Safari bfcache) |
 | 2025-12-12 | ⚠️ **Clarified monetization status** - P4B/P4C (limit enforcement, Play Billing) NOT done, required before production |
 | 2025-12-12 | 📦 **Backlog section added** - consolidated all future features, refactoring, TODOs |
 | 2025-12-12 | ✅ Confirmed First Game Onboarding, External Match Stats, Instructions Modal already done |
 | 2025-12-12 | 🎯 **Play Store in internal testing** - updated roadmap to reflect actual status |
-| 2025-12-12 | 🔄 **Gender Handling implementation complete** - all code done, pending test/build |
 | 2025-12-11 | ✅ **Game Type (Soccer/Futsal) COMPLETED** - merged to master |
 | 2025-12-11 | **Gender Handling plan created** - detailed implementation mirroring Game Type |
 | 2025-12-07 | **Established priority order**: Play Store → Backend → Gender → League UX |
