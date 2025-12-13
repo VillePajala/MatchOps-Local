@@ -5,6 +5,8 @@
  * Tests cover:
  * - visibilitychange event handling
  * - pageshow event handling (bfcache restoration)
+ * - pagehide event handling (iOS Safari bfcache entry)
+ * - Rapid pageshow debouncing (iOS Safari gesture navigation)
  * - Background time threshold logic
  * - React Query cache invalidation
  * - Event listener cleanup
@@ -186,6 +188,32 @@ describe('useAppResume', () => {
   });
 
   /**
+   * Tests debouncing of rapid pageshow events (iOS Safari gesture navigation)
+   * @edge-case
+   */
+  it('should debounce multiple rapid pageshow events', async () => {
+    const onResume = jest.fn();
+
+    renderHook(() => useAppResume({ onResume }), { wrapper });
+
+    // Simulate 3 rapid pageshow events (iOS Safari edge case)
+    act(() => {
+      window.dispatchEvent(
+        new PageTransitionEvent('pageshow', { persisted: true })
+      );
+      window.dispatchEvent(
+        new PageTransitionEvent('pageshow', { persisted: true })
+      );
+      window.dispatchEvent(
+        new PageTransitionEvent('pageshow', { persisted: true })
+      );
+    });
+
+    // Should only trigger once due to debounce
+    expect(onResume).toHaveBeenCalledTimes(1);
+  });
+
+  /**
    * Tests React Query cache invalidation on resume
    * @critical
    */
@@ -237,6 +265,10 @@ describe('useAppResume', () => {
     );
     expect(windowRemoveEventListenerSpy).toHaveBeenCalledWith(
       'pageshow',
+      expect.any(Function)
+    );
+    expect(windowRemoveEventListenerSpy).toHaveBeenCalledWith(
+      'pagehide',
       expect.any(Function)
     );
 
