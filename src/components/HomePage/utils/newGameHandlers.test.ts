@@ -32,11 +32,6 @@ const mockPlayers: Player[] = [
   { id: 'p2', name: 'Player 2', isGoalie: true },
 ];
 
-// Helper to create base dependencies for tests
-const createBaseDeps = (overrides?: Partial<ReturnType<typeof createTestDeps>>) => {
-  return createTestDeps(overrides);
-};
-
 const createTestDeps = (overrides?: Record<string, unknown>) => {
   const savedGamesState = createSetStateMock<SavedGamesCollection>({});
   return {

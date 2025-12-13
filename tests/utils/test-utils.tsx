@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppState, Player, Season, Tournament, GameEvent } from '@/types';
 import ModalProvider from '@/contexts/ModalProvider';
 import ToastProvider from '@/contexts/ToastProvider';
+import { PremiumProvider } from '@/contexts/PremiumContext';
 
 /**
  * Creates a fresh QueryClient instance optimized for testing
@@ -41,6 +42,7 @@ const queryClientRef = { current: null as QueryClient | null };
  *
  * @description Wraps components with essential providers:
  * - QueryClientProvider for React Query
+ * - PremiumProvider for premium/freemium state
  * - ToastProvider for notifications
  * - ModalProvider for modal management
  *
@@ -64,11 +66,13 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <ModalProvider>
-          {children}
-        </ModalProvider>
-      </ToastProvider>
+      <PremiumProvider>
+        <ToastProvider>
+          <ModalProvider>
+            {children}
+          </ModalProvider>
+        </ToastProvider>
+      </PremiumProvider>
     </QueryClientProvider>
   );
 };
@@ -77,7 +81,7 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
  * Enhanced render function with all providers pre-configured
  *
  * @description Extends React Testing Library's render with:
- * - Automatic provider wrapping (QueryClient, Toast, Modal)
+ * - Automatic provider wrapping (QueryClient, Premium, Toast, Modal)
  * - Memory leak prevention through proper cleanup
  * - Consistent test environment setup
  *

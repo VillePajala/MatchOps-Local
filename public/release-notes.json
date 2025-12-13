@@ -1,4 +1,4 @@
 {
   "version": "0.1.0",
-  "notes": "fix: improve ErrorBoundary recovery reset and iOS Safari bfcache support"
+  "notes": "test: add comprehensive test coverage for P4B components"
 }

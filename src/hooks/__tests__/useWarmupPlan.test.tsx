@@ -194,14 +194,20 @@ describe('useWarmupPlan', () => {
         await result.current.savePlan(updatedPlan);
       });
 
-      expect(saveWarmupPlan).toHaveBeenCalledWith(updatedPlan);
+      // React Query may pass additional context to mutationFn, so check the first argument
+      expect(saveWarmupPlan).toHaveBeenCalled();
+      expect(saveWarmupPlan.mock.calls[0][0]).toEqual(updatedPlan);
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.warmupPlan });
     });
 
     it('sets isSaving to true during mutation', async () => {
       getWarmupPlan.mockResolvedValue(mockStoredPlan);
+      let resolvePromise: (value: boolean) => void;
       saveWarmupPlan.mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve(true), 100))
+        () =>
+          new Promise((resolve) => {
+            resolvePromise = resolve;
+          })
       );
 
       const { result } = renderHook(() => useWarmupPlan(), {
@@ -223,11 +229,15 @@ describe('useWarmupPlan', () => {
         expect(result.current.isSaving).toBe(true);
       });
 
+      // Resolve the promise and wait for state to update
       await act(async () => {
+        resolvePromise!(true);
         await savePromise;
       });
 
-      expect(result.current.isSaving).toBe(false);
+      await waitFor(() => {
+        expect(result.current.isSaving).toBe(false);
+      });
     });
   });
 
@@ -255,8 +265,12 @@ describe('useWarmupPlan', () => {
 
     it('sets isResetting to true during mutation', async () => {
       getWarmupPlan.mockResolvedValue(mockStoredPlan);
+      let resolvePromise: (value: boolean) => void;
       deleteWarmupPlan.mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve(true), 100))
+        () =>
+          new Promise((resolve) => {
+            resolvePromise = resolve;
+          })
       );
 
       const { result } = renderHook(() => useWarmupPlan(), {
@@ -278,11 +292,15 @@ describe('useWarmupPlan', () => {
         expect(result.current.isResetting).toBe(true);
       });
 
+      // Resolve the promise and wait for state to update
       await act(async () => {
+        resolvePromise!(true);
         await resetPromise;
       });
 
-      expect(result.current.isResetting).toBe(false);
+      await waitFor(() => {
+        expect(result.current.isResetting).toBe(false);
+      });
     });
   });
 

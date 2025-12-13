@@ -4,7 +4,7 @@ import React, { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiSparkles, HiCheck } from 'react-icons/hi2';
 import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
-import { ResourceType, PREMIUM_PRICE, FREE_LIMITS } from '@/config/premiumLimits';
+import { ResourceType, PREMIUM_PRICE, getLimit } from '@/config/premiumLimits';
 import { usePremium } from '@/hooks/usePremium';
 
 export interface UpgradePromptModalProps {
@@ -61,18 +61,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
 
   if (!isOpen) return null;
 
-  const getResourceLimit = (res: ResourceType): number => {
-    switch (res) {
-      case 'team': return FREE_LIMITS.maxTeams;
-      case 'player': return FREE_LIMITS.maxPlayers;
-      case 'season': return FREE_LIMITS.maxSeasons;
-      case 'tournament': return FREE_LIMITS.maxTournaments;
-      case 'game': return FREE_LIMITS.maxGamesPerSeason;
-      default: return 0;
-    }
-  };
-
-  const limit = resource ? getResourceLimit(resource) : 0;
+  const limit = resource ? getLimit(resource) : 0;
   // Use translated resource name (singular or plural based on limit)
   const resourceKey = resource ? (limit === 1 ? `premium.resource.${resource}` : `premium.resource.${resource}_plural`) : '';
   const resourceName = resource ? t(resourceKey, resource) : '';

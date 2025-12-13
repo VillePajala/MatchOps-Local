@@ -94,7 +94,7 @@ describe('premiumLimits', () => {
     });
 
     it('should have correct price string', () => {
-      expect(PREMIUM_PRICE).toBe('$9.99');
+      expect(PREMIUM_PRICE).toBe('9,99 €');
     });
 
     it('should have correct price amount', () => {
