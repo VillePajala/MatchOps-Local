@@ -44,6 +44,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
 
       const backgroundDuration = Date.now() - backgroundStartRef.current;
 
+      // Strict inequality: refresh only if duration exceeds threshold (not at exactly threshold)
       if (backgroundDuration > minBackgroundTime) {
         logger.log(
           '[useAppResume] App resumed after',
