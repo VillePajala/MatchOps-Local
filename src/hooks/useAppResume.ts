@@ -82,6 +82,8 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
         lastPageShowRef.current = now;
 
         logger.log('[useAppResume] Page restored from bfcache - triggering refresh');
+        // Safe even if visibilitychange also fires - invalidateQueries is idempotent.
+        // The null guard on backgroundStartRef prevents onResume from double-firing.
         queryClient.invalidateQueries();
         onResume?.();
 
