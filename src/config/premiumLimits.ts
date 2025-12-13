@@ -15,7 +15,7 @@ export const FREE_LIMITS = {
 export type ResourceType = 'team' | 'game' | 'player' | 'season' | 'tournament';
 
 export const PREMIUM_PRODUCT_ID = 'matchops_premium';
-export const PREMIUM_PRICE = '$9.99';
+export const PREMIUM_PRICE = '9,99 €';
 export const PREMIUM_PRICE_AMOUNT = 9.99;
 
 /**

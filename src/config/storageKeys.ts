@@ -17,3 +17,6 @@ export const PERSONNEL_KEY = 'soccerPersonnel';
 
 // Premium license storage key
 export const PREMIUM_LICENSE_KEY = 'soccerPremiumLicense';
+
+// Warm-up plan storage key
+export const WARMUP_PLAN_KEY = 'soccerWarmupPlan';

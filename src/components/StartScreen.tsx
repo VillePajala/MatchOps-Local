@@ -237,8 +237,8 @@ const StartScreen: React.FC<StartScreenProps> = ({
               />
             </div>
             {/* Tagline */}
-            <p className={`text-sm sm:text-base tracking-wide text-center px-6 bg-gradient-to-b from-white to-slate-200 bg-clip-text text-transparent ${isFirstTimeUser ? 'mt-6' : 'mt-3'}`}>
-              {t('startScreen.tagline', 'Plan | Track | Assess')}
+            <p className={`text-base sm:text-lg tracking-widest text-center px-6 font-medium text-slate-300 ${isFirstTimeUser ? 'mt-6' : 'mt-4'}`}>
+              {t('startScreen.tagline', 'Plan · Track · Assess')}
             </p>
           </div>
         </div>

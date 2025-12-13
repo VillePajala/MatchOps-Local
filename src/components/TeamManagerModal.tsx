@@ -24,6 +24,7 @@ import { getTournaments } from '@/utils/tournaments';
 import { getSeasons } from '@/utils/seasons';
 import logger from '@/utils/logger';
 import UnifiedTeamModal from './UnifiedTeamModal';
+import { useResourceLimit } from '@/hooks/usePremium';
 
 interface TeamManagerModalProps {
   isOpen: boolean;
@@ -42,6 +43,10 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+
+  // Premium limit check for team creation (count non-archived teams)
+  const activeTeamCount = teams.filter(team => !team.archived).length;
+  const { checkAndPrompt: checkTeamLimitAndPrompt } = useResourceLimit('team', activeTeamCount);
 
   // State management
   const [unifiedModalOpen, setUnifiedModalOpen] = useState(false);
@@ -186,6 +191,10 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
   };
 
   const handleCreateTeam = () => {
+    // Check premium limit before allowing team creation
+    if (!checkTeamLimitAndPrompt()) {
+      return; // Upgrade prompt shown, don't open create modal
+    }
     setSelectedTeamId(null);
     setUnifiedModalMode('create');
     setUnifiedModalOpen(true);

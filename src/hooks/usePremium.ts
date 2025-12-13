@@ -40,6 +40,8 @@ export function usePremium() {
     showUpgradePrompt: context.showUpgradePrompt,
     /** Grant premium (for after purchase verification) */
     grantPremiumAccess: context.grantPremiumAccess,
+    /** Revoke premium (for testing/refunds) */
+    revokePremiumAccess: context.revokePremiumAccess,
     /** Refresh premium status from storage */
     refreshPremiumStatus: context.refreshPremiumStatus,
   };

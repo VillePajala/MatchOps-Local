@@ -440,6 +440,22 @@
       "Anna pelaajan itse tehdä ratkaisuja – ohjaa vain pallotonta ja vaihdossa olevia pelaajia tarvittaessa."
     ]
   },
+  "warmupPlanModal": {
+    "editButton": "Muokkaa",
+    "saveButton": "Tallenna",
+    "cancelButton": "Peruuta",
+    "resetToDefaultButton": "Palauta",
+    "resetConfirmTitle": "Palauta lämmittelysuunnitelma?",
+    "resetConfirmMessage": "Tämä korvaa mukautetun lämmittelysuunnitelmasi oletuspohjalla. Tätä ei voi perua.",
+    "resetButton": "Palauta",
+    "addSection": "Lisää osio",
+    "moveUp": "Siirrä ylös",
+    "moveDown": "Siirrä alas",
+    "deleteSection": "Poista osio",
+    "sectionTitlePlaceholder": "Osion otsikko",
+    "contentPlaceholder": "Kirjoita sisältö tähän... Käytä • luettelomerkkeihin",
+    "newSectionTitle": "Uusi osio"
+  },
   "goalLogModal": {
     "title": "Kirjaa Maalitapahtuma",
     "closeButton": "Sulje",
@@ -708,6 +724,9 @@
   },
   "startScreen": {
     "tagline": "Suunnittele · Kirjaa · Arvioi",
+    "taglinePlan": "Suunnittele",
+    "taglineTrack": "Kirjaa",
+    "taglineAssess": "Arvioi",
     "premiumTagline": "Ammattimainen jalkapallovalmennus",
     "description": "Jalkapallovalmentajan taktiikka- ja ajastinsovellus",
     "createNewGame": "Luo uusi ottelu",
@@ -727,7 +746,8 @@
     "howItWorks": "Näin äppi toimii",
     "getStarted": "Aloita tästä",
     "manageTeams": "Joukkueet",
-    "appSettings": "Asetukset"
+    "appSettings": "Asetukset",
+    "freeVersionLimits": "Ilmaisversio sisältää:"
   },
   "workspace": {
     "unsavedIndicator": "Väliaikainen työtila - Muutoksia ei tallenneta ennen kuin luot uuden pelin",
@@ -742,9 +762,9 @@
     "descNoPlayers": "Lisää ensin pelaajia, jotta voit luoda ensimmäisen joukkueesi ja ottelusi.",
     "setupRoster": "Luo kokoonpano",
     "rosterFirst": "Lisää pelaajat ensin, sitten luo pelisi",
-    "createGame": "Luo ensimmäinen ottelu",
+    "createGame": "Luo ottelu",
     "createSeasonFirst": "Luo ensin kausi/turnaus",
-    "createTeam": "Luo ensimmäinen joukkue",
+    "createTeam": "Luo ensin joukkue",
     "manageTeams": "Hallinnoi joukkueita",
     "manageSeasonsAndTournaments": "Hallinnoi kilpailuja",
     "orExperiment": "Tai kokeile ensin:",
@@ -784,9 +804,9 @@
     "loadGameTip": "Lataa tallennettu ottelu",
     "quickSaveTip": "Pikatallennus (Ctrl/Cmd+S)",
     "goalLogTip": "Kirjaa maalit ja tapahtumat",
-    "rosterManageTip": "Hallitse kokoonpanoa",
+    "rosterManageTip": "Hallitse pelaajaluetteloa",
     "gameSettingsTip": "Muokkaa otteluasetuksia",
-    "statsReportsTip": "Katso tilastot ja raportit",
+    "statsReportsTip": "Tarkastele tilastoja ja lataa raportit",
     "seasonsTeamsTip": "Hallitse kausia, joukkueita ja henkilöstöä",
     "helpTip": "Hae ohje ja käyttöohjeet",
     "appSettingsTip": "Avaa sovelluksen asetukset",
@@ -1267,7 +1287,20 @@
     "dayLabel": "Päivä",
     "invalidPeriodDateError": "Virheellinen jakson päivämäärä. Anna kelvollinen päivämäärä.",
     "savePeriodDateError": "Jakson päivämäärän tallennus epäonnistui. Yritä uudelleen.",
-    "sameStartEndDateError": "Jakson alku ja loppu eivät voi olla sama päivämäärä."
+    "sameStartEndDateError": "Jakson alku ja loppu eivät voi olla sama päivämäärä.",
+    "premiumStatusLabel": "Sovelluksen tila",
+    "premiumActive": "Täysversio",
+    "freeVersion": "Ilmaisversio",
+    "upgradeToPremium": "Päivitä",
+    "premiumDescription": "Sovelluksen täysversio sisältää rajattomat joukkueet, pelaajat, sarjat, turnaukset ja ottelut.",
+    "freeLimitsLabel": "Ilmaisversion rajoitukset:",
+    "limitTeams": "1 joukkue",
+    "limitPlayers": "18 pelaajaa",
+    "limitSeasons": "1 sarja / 1 turnaus",
+    "limitGames": "10 ottelua per kilpailu",
+    "resetToFree": "Nollaa",
+    "resetToFreeConfirm": "Palautetaanko ilmaisversioon? (Testausta varten)",
+    "resetToFreeSuccess": "Palautettu ilmaisversioon"
   },
   "playerAssessmentModal": {
     "title": "Arvioi ottelusuoritukset",
@@ -1427,6 +1460,7 @@
   },
   "reset": {
     "resetting": "Nollataan sovellusta...",
+    "pleaseWait": "Odota, kaikki tiedot poistetaan",
     "description": "Kaikki tiedot poistetaan ja sovellus käynnistetään uudelleen."
   },
   "privacyPolicy": {
@@ -1616,5 +1650,36 @@
       "github": "GitHub Issues"
     },
     "footer": "Nämä käyttöehdot koskevat Google Play Kaupassa saatavilla olevaa MatchOps-sovellusta."
+  },
+  "premium": {
+    "limitReached": "Raja saavutettu",
+    "freeVersionLimitReached": "Ilmaisversion raja saavutettu",
+    "limitExplanation": "Olet saavuttanut ilmaisen version rajan: {{limit}} {{resource}}.",
+    "currentUsage": "Käytössä: {{count}}/{{limit}}",
+    "resource": {
+      "team": "joukkue",
+      "team_plural": "joukkuetta",
+      "player": "pelaaja",
+      "player_plural": "pelaajaa",
+      "season": "sarja",
+      "season_plural": "sarjaa",
+      "tournament": "turnaus",
+      "tournament_plural": "turnausta",
+      "game": "ottelu",
+      "game_plural": "ottelua"
+    },
+    "upgradeUnlocks": "Premium-versio sisältää:",
+    "fullVersionIncludes": "Sovelluksen täysversio sisältää:",
+    "benefit": {
+      "unlimitedTeams": "Rajattomat joukkueet",
+      "unlimitedPlayers": "Rajattomat pelaajat",
+      "unlimitedSeasons": "Rajattomat sarjat ja turnaukset",
+      "unlimitedGames": "Rajattomat ottelut kilpailua kohden"
+    },
+    "oneTime": "kertamaksu",
+    "oneTimePayment": "kertamaksu",
+    "upgradeButton": "Päivitä Premiumiin",
+    "maybeLater": "Ehkä myöhemmin",
+    "purchaseComingSoon": "Sovelluksen sisäinen osto tulossa pian!"
   }
 }

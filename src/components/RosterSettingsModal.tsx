@@ -19,6 +19,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import ConfirmationModal from './ConfirmationModal';
 import PlayerDetailsModal from './PlayerDetailsModal';
+import { useResourceLimit } from '@/hooks/usePremium';
 
 interface RosterSettingsModalProps {
   isOpen: boolean;
@@ -66,6 +67,10 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   void onRenamePlayer;
   void onSetJerseyNumber;
   void onSetPlayerNotes;
+
+  // Premium limit check for player creation
+  const { checkAndPrompt: checkPlayerLimitAndPrompt } = useResourceLimit('player', availablePlayers.length);
+
   const [createPlayerModalOpen, setCreatePlayerModalOpen] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
@@ -124,6 +129,13 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
     setPlayerToDelete(null);
   };
 
+  const handleAddPlayer = () => {
+    // Check premium limit before allowing player creation
+    if (!checkPlayerLimitAndPrompt()) {
+      return; // Upgrade prompt shown, don't open create modal
+    }
+    setCreatePlayerModalOpen(true);
+  };
 
   if (!isOpen) return null;
 
@@ -146,7 +158,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
         <div className="absolute -inset-[50px] bg-indigo-600/5 blur-2xl bottom-0 opacity-50" />
 
         {/* Content wrapper */}
-        <div className="relative z-10 flex flex-col min-h-0">
+        <div className="relative z-10 flex flex-col min-h-0 flex-1">
           {/* Header */}
           <div className="flex flex-col">
             {/* Title Section */}
@@ -168,7 +180,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
 
               {/* Add Player Button - Always visible */}
               <button
-                onClick={() => setCreatePlayerModalOpen(true)}
+                onClick={handleAddPlayer}
                 className={`${primaryButtonStyle} w-full bg-indigo-600 hover:bg-indigo-700`}
                 disabled={isRosterUpdating}
               >
