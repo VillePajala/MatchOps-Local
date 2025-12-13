@@ -83,6 +83,12 @@ export const deleteWarmupPlan = async (): Promise<boolean> => {
 };
 
 /**
+ * Type guard to check if a value is an array of strings
+ */
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((item): item is string => typeof item === 'string');
+
+/**
  * Creates the default warm-up plan from i18n translations.
  * This is used when no custom plan exists.
  * @param t - The i18next translation function
@@ -91,66 +97,66 @@ export const deleteWarmupPlan = async (): Promise<boolean> => {
 export const createDefaultWarmupPlan = (t: TFunction): WarmupPlan => {
   // Helper to convert array of strings to bullet point text
   const arrayToText = (key: string): string => {
-    const result = t(key, { returnObjects: true, defaultValue: [] });
-    if (Array.isArray(result)) {
-      return result.map(item => `• ${item}`).join('\n');
+    const result: unknown = t(key, { returnObjects: true, defaultValue: [] });
+    if (isStringArray(result)) {
+      return result.map((item: string) => `• ${item}`).join('\n');
     }
     return '';
   };
 
+  // Helper to create a section with type safety
+  const createSection = (title: string, content: string): WarmupPlanSection => ({
+    id: generateId(),
+    title,
+    content,
+  });
+
   const sections: WarmupPlanSection[] = [
-    {
-      id: generateId(),
-      title: t('warmup.section1Title', '1. 30 min / Gathering'),
-      content: [
+    createSection(
+      t('warmup.section1Title', '1. 30 min / Gathering'),
+      [
         t('warmup.section1Goal', ''),
         '',
         arrayToText('warmup.section1Points'),
-      ].filter(Boolean).join('\n'),
-    },
-    {
-      id: generateId(),
-      title: t('warmup.section2Title', '2. 20 min / Warm-up'),
-      content: [
+      ].filter(Boolean).join('\n')
+    ),
+    createSection(
+      t('warmup.section2Title', '2. 20 min / Warm-up'),
+      [
         t('warmup.section2Goal', ''),
         '',
         arrayToText('warmup.section2Activities'),
-      ].filter(Boolean).join('\n'),
-    },
-    {
-      id: generateId(),
-      title: t('warmup.section3Title', '3. 10 min / Ball Work'),
-      content: [
+      ].filter(Boolean).join('\n')
+    ),
+    createSection(
+      t('warmup.section3Title', '3. 10 min / Ball Work'),
+      [
         t('warmup.section3Goal', ''),
         '',
         t('warmup.section3PairWork', 'Partner + Ball:'),
         arrayToText('warmup.section3PairWorkPoints'),
-      ].filter(Boolean).join('\n'),
-    },
-    {
-      id: generateId(),
-      title: t('warmup.section3GoalieWarmup', 'Goalkeeper Warm-up'),
-      content: arrayToText('warmup.section3GoalieWarmupPoints'),
-    },
-    {
-      id: generateId(),
-      title: t('warmup.section3CombinedGoalieWarmup', 'Combined GK warm-up'),
-      content: arrayToText('warmup.section3CombinedGoalieWarmupPoints'),
-    },
-    {
-      id: generateId(),
-      title: t('warmup.section4Title', '4. 2 min / Bench Area'),
-      content: [
+      ].filter(Boolean).join('\n')
+    ),
+    createSection(
+      t('warmup.section3GoalieWarmup', 'Goalkeeper Warm-up'),
+      arrayToText('warmup.section3GoalieWarmupPoints')
+    ),
+    createSection(
+      t('warmup.section3CombinedGoalieWarmup', 'Combined GK warm-up'),
+      arrayToText('warmup.section3CombinedGoalieWarmupPoints')
+    ),
+    createSection(
+      t('warmup.section4Title', '4. 2 min / Bench Area'),
+      [
         t('warmup.section4Goal', ''),
         '',
         arrayToText('warmup.section4Points'),
-      ].filter(Boolean).join('\n'),
-    },
-    {
-      id: generateId(),
-      title: t('warmup.duringGameTitle', 'During the Game'),
-      content: arrayToText('warmup.duringGamePoints'),
-    },
+      ].filter(Boolean).join('\n')
+    ),
+    createSection(
+      t('warmup.duringGameTitle', 'During the Game'),
+      arrayToText('warmup.duringGamePoints')
+    ),
   ];
 
   return {
@@ -159,5 +165,5 @@ export const createDefaultWarmupPlan = (t: TFunction): WarmupPlan => {
     lastModified: new Date().toISOString(),
     isDefault: true,
     sections,
-  };
+  } satisfies WarmupPlan;
 };
