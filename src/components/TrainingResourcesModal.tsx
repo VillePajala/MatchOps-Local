@@ -22,7 +22,7 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
   // Initialize edit mode with current plan
   const startEditing = useCallback(() => {
     if (plan) {
-      setEditedPlan(JSON.parse(JSON.stringify(plan))); // Deep copy
+      setEditedPlan(structuredClone(plan));
       setIsEditMode(true);
     }
   }, [plan]);
