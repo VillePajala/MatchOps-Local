@@ -8,6 +8,11 @@ jest.mock('@/utils/logger', () => ({
   debug: jest.fn(),
 }));
 
+// Mock appSettings to avoid IndexedDB dependency in tests
+jest.mock('@/utils/appSettings', () => ({
+  getAppSettings: jest.fn().mockResolvedValue({ language: 'fi' }),
+}));
+
 // Mock UpdateBanner - capture props for testing
 const mockUpdateBannerProps = { notes: undefined as string | undefined };
 jest.mock('../UpdateBanner', () => {
@@ -50,10 +55,17 @@ describe('ServiceWorkerRegistration', () => {
       configurable: true,
     });
 
-    // Mock fetch for release notes
+    // Mock fetch for changelog.json - matches actual format with language-specific notes
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ notes: 'Test release notes' }),
+      json: async () => ({
+        version: 'test123',
+        date: '2025-12-14',
+        notes: {
+          en: 'Test release notes EN',
+          fi: 'Test release notes'
+        }
+      }),
     });
   });
 
@@ -138,9 +150,9 @@ describe('ServiceWorkerRegistration', () => {
       expect(getByTestId('update-banner')).toBeInTheDocument();
     });
 
-    // Verify fetch was called for release notes
+    // Verify fetch was called for changelog
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/release-notes.json'));
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/changelog.json'));
     });
 
     // Verify notes are passed to UpdateBanner

@@ -702,6 +702,28 @@ const SoccerField: React.FC<SoccerFieldProps> = React.memo(({
     };
   }, [draw]); // Dependency on `draw` ensures the observer always uses the latest version
 
+  // Force redraw when app returns from background (Android TWA / iOS Safari bfcache fix)
+  // The ResizeObserver won't fire if the canvas size hasn't changed, but the canvas context
+  // might be stale after a long background period. This ensures a fresh redraw on resume.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Clear the background cache to force fresh rendering
+        // This handles cases where the canvas context became invalid
+        backgroundCache.clear();
+        // Use requestAnimationFrame to ensure layout is complete before drawing
+        requestAnimationFrame(() => {
+          draw();
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [draw]);
+
   // --- Event Handlers --- 
 
   // --- Event Position Helper ---

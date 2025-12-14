@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import UpdateBanner from './UpdateBanner';
 import logger from '@/utils/logger';
+import { getAppSettings } from '@/utils/appSettings';
 
 interface ChangelogData {
   version: string;
@@ -26,8 +27,9 @@ export default function ServiceWorkerRegistration() {
       if (res.ok) {
         const data: ChangelogData = await res.json();
         if (data.notes) {
-          // Get user's language preference (default to Finnish)
-          const lang = localStorage.getItem('appLanguage') || 'fi';
+          // Get user's language preference from IndexedDB (default to Finnish)
+          const settings = await getAppSettings();
+          const lang = settings.language || 'fi';
           const note = data.notes[lang as keyof typeof data.notes] || data.notes.fi;
           setReleaseNotes(note);
         }
