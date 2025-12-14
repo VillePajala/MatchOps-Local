@@ -4,25 +4,37 @@ import { useEffect, useState } from 'react';
 import UpdateBanner from './UpdateBanner';
 import logger from '@/utils/logger';
 
+interface ChangelogData {
+  version: string;
+  date: string;
+  notes: {
+    en: string;
+    fi: string;
+  };
+}
+
 export default function ServiceWorkerRegistration() {
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
   const [showUpdateBanner, setShowUpdateBanner] = useState(false);
   const [releaseNotes, setReleaseNotes] = useState<string | undefined>();
 
-  // Fetch release notes when update is detected
+  // Fetch changelog when update is detected
   const fetchReleaseNotes = async () => {
     try {
       // Cache bust to ensure we get the latest notes
-      const res = await fetch('/release-notes.json?t=' + Date.now());
+      const res = await fetch('/changelog.json?t=' + Date.now());
       if (res.ok) {
-        const data = await res.json();
+        const data: ChangelogData = await res.json();
         if (data.notes) {
-          setReleaseNotes(data.notes);
+          // Get user's language preference (default to Finnish)
+          const lang = localStorage.getItem('appLanguage') || 'fi';
+          const note = data.notes[lang as keyof typeof data.notes] || data.notes.fi;
+          setReleaseNotes(note);
         }
       }
     } catch {
       // Notes are optional, don't block update banner
-      logger.debug('[PWA] Could not fetch release notes');
+      logger.debug('[PWA] Could not fetch changelog');
     }
   };
 
