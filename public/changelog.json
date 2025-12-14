@@ -1,8 +1,8 @@
 {
-  "version": "8574d5c9",
+  "version": "9762ad43",
   "date": "2025-12-14",
   "notes": {
-    "en": "Update build artifacts",
-    "fi": "Update build artifacts"
+    "en": "Upgrade button now works in preview/non-production",
+    "fi": "Päivityspainike toimii nyt preview-ympäristössä"
   }
 }
