@@ -398,4 +398,264 @@ describe('useAppResume', () => {
 
     expect(onResume).toHaveBeenCalledTimes(1);
   });
+
+  /**
+   * Tests force reload after forceReloadTime threshold
+   * @critical - Recovery mechanism for corrupted state after very long background periods
+   *
+   * Note: In JSDOM, window.location.reload cannot be reliably mocked, so we test the
+   * behavior via logger.log calls that indicate the force reload path was executed.
+   */
+  it('should attempt force page reload after forceReloadTime threshold', async () => {
+    const logger = require('@/utils/logger').default;
+
+    renderHook(() => useAppResume({ forceReloadTime: 300000 }), { wrapper });
+
+    // Go to background
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => true,
+    });
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    // 6 minutes - past forceReloadTime threshold (5 min default)
+    mockNow += 360000;
+
+    // Return to foreground
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => false,
+    });
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    // Wait for async IIFE to complete
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+
+    // Verify the force reload code path was executed via logger
+    expect(logger.log).toHaveBeenCalledWith(
+      '[useAppResume] App was in background for',
+      360, // 360 seconds = 6 minutes
+      'seconds - forcing page reload for recovery'
+    );
+  });
+
+  /**
+   * Tests force reload during bfcache pageshow restoration
+   * @critical - Recovery for very long background periods with bfcache
+   *
+   * Note: In JSDOM, window.location.reload cannot be reliably mocked, so we test the
+   * behavior via logger.log calls that indicate the force reload path was executed.
+   */
+  it('should attempt force page reload on pageshow after forceReloadTime', async () => {
+    const logger = require('@/utils/logger').default;
+
+    renderHook(() => useAppResume({ forceReloadTime: 300000 }), { wrapper });
+
+    // First, go to background via pagehide
+    const pageHideEvent = new PageTransitionEvent('pagehide', {
+      persisted: true,
+    });
+    act(() => {
+      window.dispatchEvent(pageHideEvent);
+    });
+
+    // 6 minutes in background
+    mockNow += 360000;
+
+    // Restore from bfcache
+    const pageShowEvent = new PageTransitionEvent('pageshow', {
+      persisted: true,
+    });
+    act(() => {
+      window.dispatchEvent(pageShowEvent);
+    });
+
+    // Wait for async IIFE to complete
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+
+    // Verify the force reload code path was executed via logger
+    expect(logger.log).toHaveBeenCalledWith(
+      '[useAppResume] bfcache restore after',
+      360, // 360 seconds = 6 minutes
+      'seconds - forcing page reload'
+    );
+  });
+
+  /**
+   * Tests custom app-resume event dispatch
+   * @integration - Allows components to perform their own recovery
+   */
+  it('should dispatch custom app-resume event with backgroundDuration', async () => {
+    const eventListener = jest.fn();
+    window.addEventListener('app-resume', eventListener);
+
+    renderHook(() => useAppResume({ minBackgroundTime: 30000 }), { wrapper });
+
+    // Go to background
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => true,
+    });
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    // 31 seconds in background
+    mockNow += 31000;
+
+    // Return to foreground
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => false,
+    });
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    expect(eventListener).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: expect.objectContaining({
+          backgroundDuration: 31000,
+          timestamp: expect.any(Number),
+        }),
+      })
+    );
+
+    window.removeEventListener('app-resume', eventListener);
+  });
+
+  /**
+   * Tests that app-resume event is dispatched on pageshow restoration
+   * @integration
+   */
+  it('should dispatch app-resume event on pageshow bfcache restore', async () => {
+    const eventListener = jest.fn();
+    window.addEventListener('app-resume', eventListener);
+
+    renderHook(() => useAppResume({ minBackgroundTime: 30000 }), { wrapper });
+
+    // Go to background via pagehide
+    const pageHideEvent = new PageTransitionEvent('pagehide', {
+      persisted: true,
+    });
+    act(() => {
+      window.dispatchEvent(pageHideEvent);
+    });
+
+    // 31 seconds in background
+    mockNow += 31000;
+
+    // Restore from bfcache
+    const pageShowEvent = new PageTransitionEvent('pageshow', {
+      persisted: true,
+    });
+    act(() => {
+      window.dispatchEvent(pageShowEvent);
+    });
+
+    expect(eventListener).toHaveBeenCalled();
+
+    window.removeEventListener('app-resume', eventListener);
+  });
+
+  /**
+   * Tests that short backgrounds don't trigger force reload
+   * @edge-case
+   *
+   * Note: We verify by checking that the force reload log message was NOT called
+   */
+  it('should NOT force reload for background under forceReloadTime', async () => {
+    const logger = require('@/utils/logger').default;
+    logger.log.mockClear();
+
+    renderHook(() => useAppResume({ forceReloadTime: 300000 }), { wrapper });
+
+    // Go to background
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => true,
+    });
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    // 4 minutes - below forceReloadTime threshold
+    mockNow += 240000;
+
+    // Return to foreground
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => false,
+    });
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    // Wait for any potential async operations
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+
+    // Verify the force reload code path was NOT executed
+    expect(logger.log).not.toHaveBeenCalledWith(
+      expect.stringContaining('forcing page reload'),
+      expect.anything(),
+      expect.anything()
+    );
+  });
+
+  /**
+   * Tests custom forceReloadTime configuration
+   * @integration
+   *
+   * Note: In JSDOM, window.location.reload cannot be reliably mocked, so we test the
+   * behavior via logger.log calls that indicate the force reload path was executed.
+   */
+  it('should respect custom forceReloadTime', async () => {
+    const logger = require('@/utils/logger').default;
+
+    // Use short forceReloadTime (1 minute)
+    renderHook(() => useAppResume({ forceReloadTime: 60000 }), { wrapper });
+
+    // Go to background
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => true,
+    });
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    // 2 minutes - past custom forceReloadTime
+    mockNow += 120000;
+
+    // Return to foreground
+    Object.defineProperty(document, 'hidden', {
+      configurable: true,
+      get: () => false,
+    });
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    // Wait for async IIFE to complete
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+
+    // Verify the force reload code path was executed via logger
+    expect(logger.log).toHaveBeenCalledWith(
+      '[useAppResume] App was in background for',
+      120, // 120 seconds = 2 minutes
+      'seconds - forcing page reload for recovery'
+    );
+  });
 });

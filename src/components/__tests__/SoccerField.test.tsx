@@ -385,12 +385,151 @@ describe('SoccerField Component - Interaction Testing', () => {
         };
 
         render(<SoccerField {...malformedProps} />);
-        
+
         // Should handle malformed data gracefully
         expect(document.body).toContainHTML('canvas');
       } finally {
         console.error = originalConsoleError;
       }
+    });
+  });
+
+  describe('Background Resume Recovery', () => {
+    // Store original document.hidden descriptor
+    const originalHiddenDescriptor = Object.getOwnPropertyDescriptor(
+      document,
+      'hidden'
+    );
+
+    afterEach(() => {
+      // Restore original document.hidden
+      if (originalHiddenDescriptor) {
+        Object.defineProperty(document, 'hidden', originalHiddenDescriptor);
+      }
+    });
+
+    /**
+     * Tests that canvas sets up visibility change listener on mount
+     * @critical - Ensures canvas redraws on app resume
+     */
+    it('should add visibilitychange listener on mount', () => {
+      const addEventListenerSpy = jest.spyOn(document, 'addEventListener');
+
+      render(<SoccerField {...defaultProps} />);
+
+      expect(addEventListenerSpy).toHaveBeenCalledWith(
+        'visibilitychange',
+        expect.any(Function)
+      );
+
+      addEventListenerSpy.mockRestore();
+    });
+
+    /**
+     * Tests that canvas removes visibility change listener on unmount
+     * @critical - Prevents memory leaks
+     */
+    it('should remove visibilitychange listener on unmount', () => {
+      const removeEventListenerSpy = jest.spyOn(document, 'removeEventListener');
+
+      const { unmount } = render(<SoccerField {...defaultProps} />);
+      unmount();
+
+      expect(removeEventListenerSpy).toHaveBeenCalledWith(
+        'visibilitychange',
+        expect.any(Function)
+      );
+
+      removeEventListenerSpy.mockRestore();
+    });
+
+    /**
+     * Tests that canvas triggers redraw when app returns from background
+     * @critical - Recovery mechanism for blank screen bug
+     */
+    it('should trigger redraw when document becomes visible', async () => {
+      // Mock requestAnimationFrame to capture the callback
+      const originalRAF = window.requestAnimationFrame;
+      const rafCallback = jest.fn();
+      window.requestAnimationFrame = jest.fn((cb) => {
+        rafCallback();
+        cb(0); // Execute callback synchronously for testing
+        return 0;
+      });
+
+      render(<SoccerField {...defaultProps} />);
+
+      // Simulate returning from background
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        get: () => false,
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      // requestAnimationFrame should have been called to schedule redraw
+      expect(rafCallback).toHaveBeenCalled();
+
+      window.requestAnimationFrame = originalRAF;
+    });
+
+    /**
+     * Tests that visibility change to hidden doesn't trigger redraw
+     * @edge-case
+     */
+    it('should NOT trigger redraw when document becomes hidden', () => {
+      const originalRAF = window.requestAnimationFrame;
+      const rafCallback = jest.fn();
+      window.requestAnimationFrame = jest.fn((cb) => {
+        rafCallback();
+        cb(0);
+        return 0;
+      });
+
+      render(<SoccerField {...defaultProps} />);
+
+      // Reset RAF spy after initial render
+      rafCallback.mockClear();
+
+      // Simulate going to background
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        get: () => true,
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      // requestAnimationFrame should NOT be called when going to background
+      expect(rafCallback).not.toHaveBeenCalled();
+
+      window.requestAnimationFrame = originalRAF;
+    });
+
+    /**
+     * Tests that canvas still renders properly after visibility change cycle
+     * @integration
+     */
+    it('should maintain stable canvas after background/foreground cycle', () => {
+      render(<SoccerField {...defaultProps} />);
+
+      const canvas = document.querySelector('canvas');
+      expect(canvas).toBeInTheDocument();
+
+      // Go to background
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        get: () => true,
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      // Return to foreground
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        get: () => false,
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      // Canvas should still be in DOM and functional
+      const canvasAfter = document.querySelector('canvas');
+      expect(canvasAfter).toBeInTheDocument();
     });
   });
 });
