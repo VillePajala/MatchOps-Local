@@ -501,14 +501,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400">
                       {t('settingsModal.premiumActive', 'Premium')}
                     </span>
-                    {/* Reset button in dev mode or internal testing mode */}
-                    {(process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true') && (
+                    {/* Reset button in non-production environments (for testing) */}
+                    {process.env.VERCEL_ENV !== 'production' && (
                       <button
                         onClick={async () => {
-                          if (window.confirm(t('settingsModal.resetToFreeConfirm', 'Reset to free version? (For testing)'))) {
-                            await revokePremiumAccess();
-                            showToast(t('settingsModal.resetToFreeSuccess', 'Reset to free version'), 'success');
-                          }
+                          await revokePremiumAccess();
+                          showToast(t('settingsModal.resetToFreeSuccess', 'Reset to free version'), 'success');
                         }}
                         className="text-xs text-slate-500 hover:text-slate-300 underline"
                       >
@@ -537,10 +535,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     {t('settingsModal.premiumDescription', 'The full version includes unlimited teams, players, seasons, tournaments, and games.')}
                   </p>
                   <button
-                    onClick={() => {
-                      showToast('DEBUG: Button clicked', 'info');
-                      showUpgradePrompt();
-                    }}
+                    onClick={() => showUpgradePrompt()}
                     className="inline-flex items-center justify-center gap-1 w-full px-3 py-2 rounded-md text-sm font-medium bg-gradient-to-b from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 shadow-sm transition-colors"
                   >
                     <HiSparkles className="w-4 h-4" aria-hidden="true" />
