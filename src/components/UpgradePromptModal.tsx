@@ -7,6 +7,7 @@ import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { ResourceType, PREMIUM_PRICE, getLimit } from '@/config/premiumLimits';
 import { usePremium } from '@/hooks/usePremium';
 import { useToast } from '@/contexts/ToastProvider';
+import ModalPortal from './ModalPortal';
 import logger from '@/utils/logger';
 
 export interface UpgradePromptModalProps {
@@ -106,12 +107,13 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   const titleId = 'upgrade-prompt-modal-title';
 
   return (
-    <div
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-[80] font-display"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
-    >
+    <ModalPortal>
+      <div
+        className="fixed inset-0 bg-black/60 flex items-center justify-center z-[80] font-display"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
       <div
         className="bg-slate-800 p-6 rounded-lg border border-slate-600 w-[min(28rem,calc(100%_-_2.5rem))] sm:w-[min(32rem,calc(100%_-_4rem))] mx-auto shadow-2xl"
       >
@@ -215,6 +217,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 };
 
