@@ -47,6 +47,9 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
     onPersistErrorRef.current = options?.onPersistError;
   }, [options?.onPersistError]);
 
+  // Track previous value for rollback on persistence failure
+  const previousValueRef = useRef<boolean>(isDrawingEnabled);
+
   // Load saved drawing mode preference on mount (with unmount safety)
   useEffect(() => {
     let isMounted = true;
@@ -54,6 +57,7 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
       const saved = await getDrawingModeEnabled();
       if (isMounted) {
         setIsDrawingEnabled(saved);
+        previousValueRef.current = saved;
       }
     };
     loadPreference();
@@ -62,8 +66,28 @@ export function useFieldInteractions(options?: UseFieldInteractionsOptions): Use
     };
   }, []);
 
-  // Track previous value for rollback on persistence failure
-  const previousValueRef = useRef<boolean>(isDrawingEnabled);
+  // Reload drawing mode preference when app returns from background (Android TWA / iOS Safari fix)
+  // This prevents stale state after bfcache restoration where the preference might have
+  // been changed in another tab/session or the state became inconsistent
+  useEffect(() => {
+    let isMounted = true;
+    const handleVisibilityChange = async () => {
+      if (!document.hidden && isMounted) {
+        // Re-sync with IndexedDB to ensure state consistency
+        const saved = await getDrawingModeEnabled();
+        if (isMounted) {
+          setIsDrawingEnabled(saved);
+          previousValueRef.current = saved;
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      isMounted = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   // Persist drawing mode preference to IndexedDB with rollback on failure
   // Skip initial mount to avoid redundant write (value just loaded)
