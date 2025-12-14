@@ -73,5 +73,10 @@ jobs:
           else
             git add README.md
             git commit -m "chore: update test count badge [skip ci]"
-            git push
+            # Push with error handling - badge update is non-critical
+            # May fail on protected branches (requires PR) - that's acceptable
+            if ! git push; then
+              echo "::warning::Failed to push badge update. This is non-critical - badge will update on next successful push."
+              echo "If master branch is protected, badge updates require manual commits or workflow adjustment."
+            fi
           fi
