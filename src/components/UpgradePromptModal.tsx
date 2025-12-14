@@ -6,6 +6,7 @@ import { HiSparkles, HiCheck } from 'react-icons/hi2';
 import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { ResourceType, PREMIUM_PRICE, getLimit } from '@/config/premiumLimits';
 import { usePremium } from '@/hooks/usePremium';
+import logger from '@/utils/logger';
 
 export interface UpgradePromptModalProps {
   isOpen: boolean;
@@ -82,7 +83,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
           await grantPremiumAccess('dev-test-token');
           onClose();
         } catch (error) {
-          console.error('Failed to grant premium access:', error);
+          logger.error('Failed to grant premium access:', error);
           window.alert('DEV MODE: Failed to grant premium access. Check console for details.');
         }
       }
