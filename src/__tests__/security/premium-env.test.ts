@@ -48,7 +48,11 @@ describe('Premium Environment Variables Security', () => {
 
     it('should allow dev mode locally', () => {
       delete process.env.VERCEL_ENV; // Not on Vercel
-      process.env.NODE_ENV = 'development';
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'development',
+        writable: true,
+        configurable: true,
+      });
 
       const isVercelProduction = process.env.VERCEL_ENV === 'production';
       const isDev = process.env.NODE_ENV === 'development';
@@ -62,7 +66,11 @@ describe('Premium Environment Variables Security', () => {
     it('should prioritize VERCEL_ENV=production over all other flags', () => {
       // Simulate worst case: all dev flags enabled but in production
       process.env.VERCEL_ENV = 'production';
-      process.env.NODE_ENV = 'development'; // This shouldn't happen but test it
+      Object.defineProperty(process.env, 'NODE_ENV', {
+        value: 'development', // This shouldn't happen but test it
+        writable: true,
+        configurable: true,
+      });
       process.env.NEXT_PUBLIC_INTERNAL_TESTING = 'true';
 
       const isVercelProduction = process.env.VERCEL_ENV === 'production';
