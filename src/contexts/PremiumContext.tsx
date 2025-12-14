@@ -92,6 +92,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
 
   const showUpgradePrompt = useCallback(
     (resource?: ResourceType, currentCount?: number) => {
+      logger.debug('showUpgradePrompt called', { resource, currentCount, hasHandler: !!upgradePromptHandlerRef.current });
       if (upgradePromptHandlerRef.current) {
         upgradePromptHandlerRef.current(resource, currentCount);
       } else {
