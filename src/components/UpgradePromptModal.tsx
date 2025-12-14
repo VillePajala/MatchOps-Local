@@ -67,24 +67,29 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   const resourceKey = resource ? (limit === 1 ? `premium.resource.${resource}` : `premium.resource.${resource}_plural`) : '';
   const resourceName = resource ? t(resourceKey, resource) : '';
 
-  // For development testing only - will be replaced by Play Billing in P4C
+  // For development/internal testing - will be replaced by Play Billing in P4C
   const handleUpgradeClick = async () => {
     // TODO: P4C will replace this with actual Play Billing flow
-    // For now, show alert explaining this is not yet implemented
+    // For now, allow simulated purchase in dev mode or internal testing mode
     const isDev = process.env.NODE_ENV === 'development';
+    const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
 
-    if (isDev) {
+    if (isDev || isInternalTesting) {
       const confirmGrant = window.confirm(
-        'DEV MODE: Grant premium access for testing?\n\n' +
-        'In production, this will open the Google Play purchase flow.'
+        isInternalTesting && !isDev
+          ? 'INTERNAL TESTING: Simulate premium purchase?\n\n' +
+            'This grants premium access for testing purposes.\n' +
+            'You can reset to free version in Settings.'
+          : 'DEV MODE: Grant premium access for testing?\n\n' +
+            'In production, this will open the Google Play purchase flow.'
       );
       if (confirmGrant) {
         try {
-          await grantPremiumAccess('dev-test-token');
+          await grantPremiumAccess(isInternalTesting ? 'internal-test-token' : 'dev-test-token');
           onClose();
         } catch (error) {
           logger.error('Failed to grant premium access:', error);
-          window.alert('DEV MODE: Failed to grant premium access. Check console for details.');
+          window.alert('Failed to grant premium access. Check console for details.');
         }
       }
     } else {
