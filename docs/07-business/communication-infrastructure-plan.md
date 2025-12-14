@@ -1,8 +1,10 @@
 # Communication Infrastructure Plan
 
-**Status**: Planning
-**Last Updated**: December 10, 2025
+**Status**: ⚡ **NEXT PRIORITY** - Do in parallel with business setup
+**Last Updated**: December 14, 2025
 **Owner**: Ville Pajala
+
+> **Note**: This can be done NOW while waiting for Toiminimi registration and bank account setup. Email infrastructure is needed before Play Store production release.
 
 This document outlines the complete setup for email, websites, and social media infrastructure for Velomo AI and MatchOps.
 

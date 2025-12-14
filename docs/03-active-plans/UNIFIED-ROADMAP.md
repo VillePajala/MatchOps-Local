@@ -1,6 +1,6 @@
 # MatchOps-Local: Unified Project Roadmap
 
-**Last Updated**: December 13, 2025
+**Last Updated**: December 14, 2025
 **Status**: Active
 **Purpose**: Single source of truth for ALL project work
 
@@ -79,6 +79,17 @@
 **Primary Doc**: `PLAY-STORE-IMPLEMENTATION-PLAN.md`
 **Master Plan**: `master-execution-guide.md`
 
+### 📅 End of Year Plan (Dec 2025 → Jan 2026)
+
+| Phase | When | Tasks |
+|-------|------|-------|
+| **Now** | Dec 14-31 | P4E: Communication infrastructure (domains, email, social) |
+| **Now** | Dec 14-31 | Thorough app testing (internal testing track) |
+| **Jan 2** | Jan 2, 2026 | P4D: Register Toiminimi at ytj.fi |
+| **Jan 3-10** | Jan 2026 | Receive Y-tunnus, open bank account, Google Payments Profile |
+| **Jan 10+** | Jan 2026 | P4C: Play Billing integration |
+| **Late Jan/Feb** | 2026 | Production release 🚀 |
+
 ### Completed Work
 - [x] P1: Security Hardening (CSP headers, Service Worker)
 - [x] P2: PWA & Store Packaging (Manifest, TWA, Asset links)
@@ -103,6 +114,7 @@
   - [ ] Merge to master after testing
 - [ ] **P4C: Play Billing API integration** (PR #10) - NOT DONE
   - **See**: [`docs/04-features/play-billing-implementation.md`](../04-features/play-billing-implementation.md) for detailed implementation guide
+  - **Requires**: Business setup complete (see P4D below)
   - [ ] Google Play Console setup (product SKU, merchant account)
   - [ ] Create `src/utils/playBilling.ts` (Digital Goods API + Payment Request API)
   - [ ] Create `src/hooks/usePlayBilling.ts` (React hook)
@@ -112,6 +124,40 @@
   - [ ] Rebuild TWA with billing enabled
   - [ ] Test with license testers
   - [ ] Restore purchase functionality on app startup
+- [ ] **P4D: Business & Legal Setup** - REQUIRED BEFORE BILLING
+  - **Timeline**: Do this NOW while P4B testing continues
+  - [ ] Register Toiminimi at ytj.fi (~60 €, 1-3 days)
+  - [ ] Receive Y-tunnus (business ID)
+  - [ ] Open business bank account (Holvi/Nordea/OP, 1-5 days)
+  - [ ] Set up Google Payments Profile with business IBAN
+  - [ ] Tax registration (ennakkoperintärekisteri)
+  - [ ] Basic bookkeeping setup (Excel or Holvi built-in)
+
+  **📅 Tax Timing: Wait until January 2026**
+
+  ⚠️ **Don't register in December** - you'd have to file 2025 taxes for just 2-3 weeks of activity.
+
+  **Plan:**
+  - **January 2, 2026**: Register Toiminimi at ytj.fi
+  - First fiscal year: Jan 1, 2026 → Dec 31, 2026 (full year)
+  - First tax filing: April 2027 (for 2026)
+  - No 2025 tax paperwork needed
+
+  **Key info:**
+  - Fiscal year: Calendar year (Jan 1 - Dec 31) for Toiminimi
+  - VAT threshold: 15,000 €/year (below = no VAT registration needed)
+  - Google handles EU VAT for digital goods sold via Play Store
+- [ ] **P4E: Communication Infrastructure** - DO IN PARALLEL ⚡
+  - **See**: [`docs/07-business/communication-infrastructure-plan.md`](../07-business/communication-infrastructure-plan.md)
+  - **Can be done now** while waiting for business setup
+  - [ ] Register velomoai.com domain (~10 €)
+  - [ ] Set up Cloudflare for DNS (free)
+  - [ ] Set up Cloudflare Email Routing for velomoai.com (alerts@, dev@, hello@)
+  - [ ] Set up Zoho Mail for matchops.com (support@, hello@)
+  - [ ] Update Sentry notifications to alerts@velomoai.com
+  - [ ] Create @MatchOpsApp on X/Twitter
+  - [ ] Create Velomo AI LinkedIn page
+  - [ ] Gmail labels and filters
 - [ ] Complete internal testing
 - [ ] Submit for production review
 - [ ] Public release
@@ -449,6 +495,7 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 
 | Date | Update |
 |------|--------|
+| 2025-12-14 | 📋 **Added P4D (Business Setup) and P4E (Communication Infrastructure)** - required before Play Billing |
 | 2025-12-13 | ✅ **Gender Handling COMPLETED** - merged to master |
 | 2025-12-13 | ✅ **PWA Stability fixes merged** - Blank screen fix (useAppResume, ErrorBoundary improvements, iOS Safari bfcache) |
 | 2025-12-12 | ⚠️ **Clarified monetization status** - P4B/P4C (limit enforcement, Play Billing) NOT done, required before production |
