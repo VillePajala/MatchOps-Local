@@ -1,8 +1,8 @@
 {
-  "version": "dcfe0212",
+  "version": "90c6e25f",
   "date": "2025-12-14",
   "notes": {
-    "en": "Debug: add toast notifications to trace upgrade flow",
-    "fi": "Debug: add toast notifications to trace upgrade flow"
+    "en": "Improve PWA state recovery after background resume",
+    "fi": "Paranna PWA:n tilan palautusta taustalta paluun jälkeen"
   }
 }

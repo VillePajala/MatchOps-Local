@@ -23,6 +23,8 @@ import logger from '@/utils/logger';
 interface UseAppResumeOptions {
   /** Callback when app resumes from background */
   onResume?: () => void;
+  /** Callback before force reload - can be used to show notification. Return Promise to delay reload. */
+  onBeforeForceReload?: () => void | Promise<void>;
   /** Minimum time in background (ms) before triggering refresh. Default: 30000 (30 seconds) */
   minBackgroundTime?: number;
   /** Time in background (ms) after which to force a full page reload. Default: 300000 (5 minutes) */
@@ -33,10 +35,11 @@ interface UseAppResumeOptions {
 const PAGESHOW_DEBOUNCE_MS = 1000;
 
 export function useAppResume(options: UseAppResumeOptions = {}) {
-  const { onResume, minBackgroundTime = 30000, forceReloadTime = 300000 } = options;
+  const { onResume, onBeforeForceReload, minBackgroundTime = 30000, forceReloadTime = 300000 } = options;
   const queryClient = useQueryClient();
   const backgroundStartRef = useRef<number | null>(null);
   const lastPageShowRef = useRef<number>(0);
+  const isReloadingRef = useRef<boolean>(false);
 
   /**
    * Dispatch a custom event that components can listen to for recovery
@@ -69,14 +72,32 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
       // For very long background periods, force a full page reload
       // This handles cases where app state may have become corrupted
       if (backgroundDuration > forceReloadTime) {
+        // Guard against duplicate reloads - reload() is async and other handlers may fire
+        if (isReloadingRef.current) return;
+        isReloadingRef.current = true;
+
         logger.log(
           '[useAppResume] App was in background for',
           Math.round(backgroundDuration / 1000),
           'seconds - forcing page reload for recovery'
         );
-        // Clear backgroundStartRef before reload to prevent any race conditions
         backgroundStartRef.current = null;
-        window.location.reload();
+
+        // Use async IIFE to allow onBeforeForceReload to show notification before reload
+        (async () => {
+          try {
+            // Call optional callback (e.g., to show toast notification)
+            await onBeforeForceReload?.();
+            window.location.reload();
+          } catch (error) {
+            logger.error('[useAppResume] Failed to reload page:', error);
+            isReloadingRef.current = false;
+            // Fallback: Try soft recovery
+            queryClient.invalidateQueries();
+            dispatchResumeEvent(backgroundDuration);
+            onResume?.();
+          }
+        })();
         return;
       }
 
@@ -106,7 +127,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
 
       backgroundStartRef.current = null;
     }
-  }, [queryClient, onResume, minBackgroundTime, forceReloadTime, dispatchResumeEvent]);
+  }, [queryClient, onResume, onBeforeForceReload, minBackgroundTime, forceReloadTime, dispatchResumeEvent]);
 
   // Handle pageshow for bfcache restoration (Android TWA, iOS Safari)
   const handlePageShow = useCallback(
@@ -126,13 +147,32 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
           : 0;
 
         if (backgroundDuration > forceReloadTime) {
+          // Guard against duplicate reloads - reload() is async and other handlers may fire
+          if (isReloadingRef.current) return;
+          isReloadingRef.current = true;
+
           logger.log(
             '[useAppResume] bfcache restore after',
             Math.round(backgroundDuration / 1000),
             'seconds - forcing page reload'
           );
           backgroundStartRef.current = null;
-          window.location.reload();
+
+          // Use async IIFE to allow onBeforeForceReload to show notification before reload
+          (async () => {
+            try {
+              // Call optional callback (e.g., to show toast notification)
+              await onBeforeForceReload?.();
+              window.location.reload();
+            } catch (error) {
+              logger.error('[useAppResume] Failed to reload page:', error);
+              isReloadingRef.current = false;
+              // Fallback: Try soft recovery
+              queryClient.invalidateQueries();
+              dispatchResumeEvent(backgroundDuration);
+              onResume?.();
+            }
+          })();
           return;
         }
 
@@ -151,7 +191,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
         backgroundStartRef.current = null;
       }
     },
-    [queryClient, onResume, forceReloadTime, dispatchResumeEvent]
+    [queryClient, onResume, onBeforeForceReload, forceReloadTime, dispatchResumeEvent]
   );
 
   // Handle pagehide for iOS Safari bfcache entry

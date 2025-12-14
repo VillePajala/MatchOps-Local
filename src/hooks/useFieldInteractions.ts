@@ -40,15 +40,15 @@ export interface UseFieldInteractionsOptions {
 export function useFieldInteractions(options?: UseFieldInteractionsOptions): UseFieldInteractionsReturn {
   const [isDrawingEnabled, setIsDrawingEnabled] = useState<boolean>(false);
   const [isPersisting, setIsPersisting] = useState<boolean>(false);
+
+  // Refs grouped together for maintainability
   const isInitialMount = useRef(true);
   const onPersistErrorRef = useRef<UseFieldInteractionsOptions['onPersistError']>(options?.onPersistError);
+  const previousValueRef = useRef<boolean>(false); // Track previous value for rollback on persistence failure
 
   useEffect(() => {
     onPersistErrorRef.current = options?.onPersistError;
   }, [options?.onPersistError]);
-
-  // Track previous value for rollback on persistence failure
-  const previousValueRef = useRef<boolean>(isDrawingEnabled);
 
   // Load saved drawing mode preference on mount (with unmount safety)
   useEffect(() => {

@@ -294,6 +294,66 @@ Service worker file caching:
 - Timestamp changes force browser to fetch new version
 - No manual cache invalidation needed
 
+## Background Resume Handling
+
+### Force Reload Threshold
+
+When the PWA has been in the background for an extended period (5+ minutes by default), the app forces a full page reload on resume. This addresses potential state corruption issues that can occur on Android TWA and iOS Safari when the app is restored from background/bfcache.
+
+**Thresholds (configurable in `useAppResume` hook):**
+- **30 seconds** (`minBackgroundTime`): Triggers soft recovery (React Query cache invalidation, custom resume event)
+- **5 minutes** (`forceReloadTime`): Forces full page reload
+
+**User Notification:**
+Before a force reload, users see an info toast: "Refreshing app after extended background period..." with a brief delay (800ms) to allow them to see the notification.
+
+### Implementation Details
+
+**Hook**: `/src/hooks/useAppResume.ts`
+
+The `useAppResume` hook handles:
+1. `visibilitychange` events (standard browser API)
+2. `pageshow` events with `persisted` flag (bfcache restoration)
+3. `pagehide` events with `persisted` flag (iOS Safari bfcache entry)
+4. Debouncing rapid pageshow events (iOS Safari gesture navigation)
+
+**Options:**
+```typescript
+interface UseAppResumeOptions {
+  onResume?: () => void;                    // Callback for soft recovery
+  onBeforeForceReload?: () => void | Promise<void>;  // Show notification before reload
+  minBackgroundTime?: number;               // Default: 30000 (30 seconds)
+  forceReloadTime?: number;                 // Default: 300000 (5 minutes)
+}
+```
+
+**Usage in page.tsx:**
+```typescript
+useAppResume({
+  onResume: () => {
+    setRefreshTrigger((prev) => prev + 1);
+  },
+  onBeforeForceReload: () => {
+    showToast('Refreshing app after extended background period...', 'info');
+    return new Promise(resolve => setTimeout(resolve, 800));
+  },
+  minBackgroundTime: 30000,  // 30 seconds
+  forceReloadTime: 300000,   // 5 minutes
+});
+```
+
+### Recovery Mechanisms
+
+1. **Soft Recovery** (30s - 5min background):
+   - Invalidates React Query caches
+   - Dispatches custom `app-resume` event for component-level recovery
+   - Calls `onResume` callback
+
+2. **Hard Recovery** (5+ min background):
+   - Shows info toast notification
+   - Forces full page reload
+   - Falls back to soft recovery if reload fails
+
 ## Known Issues & Solutions
 
 ### Issue: Update Prompts Not Appearing (FIXED)
