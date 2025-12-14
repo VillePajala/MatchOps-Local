@@ -603,7 +603,7 @@ describe('useResourceLimit hook', () => {
       screen.getByRole('button').click();
     });
 
-    expect(mockHandler).toHaveBeenCalledWith('team');
+    expect(mockHandler).toHaveBeenCalledWith('team', 1);
   });
 
   it('should return true from checkAndPrompt when allowed', async () => {
