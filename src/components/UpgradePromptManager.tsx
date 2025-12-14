@@ -4,6 +4,7 @@ import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from
 import { usePremiumContext } from '@/contexts/PremiumContext';
 import { ResourceType } from '@/config/premiumLimits';
 import UpgradePromptModal from './UpgradePromptModal';
+import logger from '@/utils/logger';
 
 /**
  * Manages the upgrade prompt modal state and connects it to PremiumContext
@@ -22,6 +23,7 @@ const UpgradePromptManager: React.FC<{ children: React.ReactNode }> = ({ childre
   const [triggeredCount, setTriggeredCount] = useState<number | undefined>();
 
   const handleShowUpgradePrompt = useCallback((resource?: ResourceType, currentCount?: number) => {
+    logger.debug('UpgradePromptManager handler called', { resource, currentCount });
     setTriggeredResource(resource);
     setTriggeredCount(currentCount);
     setIsOpen(true);
@@ -41,8 +43,11 @@ const UpgradePromptManager: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Register the handler once on mount (ref ensures latest callback is used)
   useEffect(() => {
+    logger.debug('UpgradePromptManager registering handler');
     setUpgradePromptHandler((resource, count) => handleShowUpgradePromptRef.current(resource, count));
   }, [setUpgradePromptHandler]);
+
+  logger.debug('UpgradePromptManager render', { isOpen, triggeredResource, triggeredCount });
 
   return (
     <>
