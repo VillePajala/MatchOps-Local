@@ -448,3 +448,306 @@ describe('SeasonTournamentManagementModal', () => {
     });
   });
 });
+
+/**
+ * Premium limit enforcement tests for SeasonTournamentManagementModal
+ * @critical - Tests that free users are blocked when hitting season/tournament limits
+ */
+describe('SeasonTournamentManagementModal - Premium Limit Enforcement', () => {
+  let mockSeasonCheckAndPrompt: jest.Mock;
+  let mockTournamentCheckAndPrompt: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSeasonCheckAndPrompt = jest.fn();
+    mockTournamentCheckAndPrompt = jest.fn();
+    mockGetFilteredGames.mockResolvedValue([]);
+  });
+
+  /**
+   * Tests season creation blocked when limit reached
+   * @critical - Monetization: free users cannot exceed 1 season limit
+   */
+  it('blocks season creation when free limit is reached', async () => {
+    const user = userEvent.setup();
+    mockSeasonCheckAndPrompt.mockReturnValue(false);
+    mockTournamentCheckAndPrompt.mockReturnValue(true);
+
+    // Re-mock usePremium for this specific test
+    const usePremiumModule = require('@/hooks/usePremium');
+    const originalUseResourceLimit = usePremiumModule.useResourceLimit;
+
+    usePremiumModule.useResourceLimit = jest.fn((resourceType: string) => {
+      if (resourceType === 'season') {
+        return {
+          canAdd: false,
+          remaining: 0,
+          limit: 1,
+          current: 1,
+          checkAndPrompt: mockSeasonCheckAndPrompt,
+        };
+      }
+      return {
+        canAdd: true,
+        remaining: 10,
+        limit: 10,
+        current: 0,
+        checkAndPrompt: mockTournamentCheckAndPrompt,
+      };
+    });
+
+    await act(async () => {
+      renderWithProviders({
+        seasons: [{ id: 's1', name: 'Existing Season' }],
+        tournaments: [],
+      });
+    });
+    await act(async () => {});
+
+    // Click Add Season button
+    const addSeasonButton = screen.getByRole('button', {
+      name: i18n.t('seasonTournamentModal.addSeason', 'Add Season'),
+    });
+    await user.click(addSeasonButton);
+
+    // checkAndPrompt should have been called
+    expect(mockSeasonCheckAndPrompt).toHaveBeenCalled();
+
+    // Modal should NOT open (no season create modal visible)
+    expect(screen.queryByText('Create Season')).not.toBeInTheDocument();
+
+    // Restore original mock
+    usePremiumModule.useResourceLimit = originalUseResourceLimit;
+  });
+
+  /**
+   * Tests tournament creation blocked when limit reached
+   * @critical - Monetization: free users cannot exceed 1 tournament limit
+   */
+  it('blocks tournament creation when free limit is reached', async () => {
+    const user = userEvent.setup();
+    mockSeasonCheckAndPrompt.mockReturnValue(true);
+    mockTournamentCheckAndPrompt.mockReturnValue(false);
+
+    const usePremiumModule = require('@/hooks/usePremium');
+    const originalUseResourceLimit = usePremiumModule.useResourceLimit;
+
+    usePremiumModule.useResourceLimit = jest.fn((resourceType: string) => {
+      if (resourceType === 'tournament') {
+        return {
+          canAdd: false,
+          remaining: 0,
+          limit: 1,
+          current: 1,
+          checkAndPrompt: mockTournamentCheckAndPrompt,
+        };
+      }
+      return {
+        canAdd: true,
+        remaining: 10,
+        limit: 10,
+        current: 0,
+        checkAndPrompt: mockSeasonCheckAndPrompt,
+      };
+    });
+
+    await act(async () => {
+      renderWithProviders({
+        seasons: [],
+        tournaments: [{ id: 't1', name: 'Existing Tournament' }],
+      });
+    });
+    await act(async () => {});
+
+    // Click Add Tournament button
+    const addTournamentButton = screen.getByRole('button', {
+      name: i18n.t('seasonTournamentModal.addTournament', 'Add Tournament'),
+    });
+    await user.click(addTournamentButton);
+
+    // checkAndPrompt should have been called
+    expect(mockTournamentCheckAndPrompt).toHaveBeenCalled();
+
+    // Modal should NOT open
+    expect(screen.queryByText('Create Tournament')).not.toBeInTheDocument();
+
+    // Restore original mock
+    usePremiumModule.useResourceLimit = originalUseResourceLimit;
+  });
+
+  /**
+   * Tests season creation allowed when under limit
+   */
+  it('allows season creation when under limit', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      renderWithProviders({
+        seasons: [],
+        tournaments: [],
+      });
+    });
+    await act(async () => {});
+
+    const createSeasonButton = screen.getByRole('button', {
+      name: i18n.t('seasonTournamentModal.addSeason', 'Add Season'),
+    });
+    await user.click(createSeasonButton);
+
+    // Modal should open
+    await waitFor(() => {
+      expect(screen.getByText('Create Season')).toBeInTheDocument();
+    });
+  });
+
+  /**
+   * Tests tournament creation allowed when under limit
+   */
+  it('allows tournament creation when under limit', async () => {
+    const user = userEvent.setup();
+    await act(async () => {
+      renderWithProviders({
+        seasons: [],
+        tournaments: [],
+      });
+    });
+    await act(async () => {});
+
+    const createTournamentButton = screen.getByRole('button', {
+      name: i18n.t('seasonTournamentModal.addTournament', 'Add Tournament'),
+    });
+    await user.click(createTournamentButton);
+
+    // Modal should open
+    await waitFor(() => {
+      expect(screen.getByText('Create Tournament')).toBeInTheDocument();
+    });
+  });
+
+  /**
+   * Tests season unarchive blocked when limit reached
+   * @critical - Prevents circumventing limits via archive/unarchive
+   */
+  it('blocks season unarchive when free limit is reached', async () => {
+    const user = userEvent.setup();
+    mockSeasonCheckAndPrompt.mockReturnValue(false);
+
+    const usePremiumModule = require('@/hooks/usePremium');
+    const originalUseResourceLimit = usePremiumModule.useResourceLimit;
+
+    usePremiumModule.useResourceLimit = jest.fn((resourceType: string) => {
+      if (resourceType === 'season') {
+        return {
+          canAdd: false,
+          remaining: 0,
+          limit: 1,
+          current: 1,
+          checkAndPrompt: mockSeasonCheckAndPrompt,
+        };
+      }
+      return {
+        canAdd: true,
+        remaining: 10,
+        limit: 10,
+        current: 0,
+        checkAndPrompt: jest.fn().mockReturnValue(true),
+      };
+    });
+
+    await act(async () => {
+      renderWithProviders({
+        seasons: [
+          { id: 's1', name: 'Active Season' },
+          { id: 's2', name: 'Archived Season', archived: true },
+        ],
+        tournaments: [],
+      });
+    });
+    await act(async () => {});
+
+    // Enable show archived
+    const showArchivedCheckbox = screen.getByLabelText(i18n.t('seasonTournamentModal.showArchived', 'Show Archived'));
+    await user.click(showArchivedCheckbox);
+
+    // Find the archived season's actions button
+    const archivedSeasonItem = screen.getByText('Archived Season');
+    expect(archivedSeasonItem).toBeInTheDocument();
+
+    // Get the actions button within the archived season's row
+    const actionsButtons = screen.getAllByLabelText('season actions');
+    await user.click(actionsButtons[1]); // Second season is archived
+
+    const unarchiveOption = await screen.findByRole('button', { name: i18n.t('seasonTournamentModal.unarchive', 'Unarchive') });
+    await user.click(unarchiveOption);
+
+    // checkAndPrompt should have been called
+    expect(mockSeasonCheckAndPrompt).toHaveBeenCalled();
+
+    // Mutation should NOT have been called
+    expect(defaultProps.updateSeasonMutation.mutate).not.toHaveBeenCalled();
+
+    // Restore original mock
+    usePremiumModule.useResourceLimit = originalUseResourceLimit;
+  });
+
+  /**
+   * Tests tournament unarchive blocked when limit reached
+   * @critical - Prevents circumventing limits via archive/unarchive
+   */
+  it('blocks tournament unarchive when free limit is reached', async () => {
+    const user = userEvent.setup();
+    mockTournamentCheckAndPrompt.mockReturnValue(false);
+
+    const usePremiumModule = require('@/hooks/usePremium');
+    const originalUseResourceLimit = usePremiumModule.useResourceLimit;
+
+    usePremiumModule.useResourceLimit = jest.fn((resourceType: string) => {
+      if (resourceType === 'tournament') {
+        return {
+          canAdd: false,
+          remaining: 0,
+          limit: 1,
+          current: 1,
+          checkAndPrompt: mockTournamentCheckAndPrompt,
+        };
+      }
+      return {
+        canAdd: true,
+        remaining: 10,
+        limit: 10,
+        current: 0,
+        checkAndPrompt: jest.fn().mockReturnValue(true),
+      };
+    });
+
+    await act(async () => {
+      renderWithProviders({
+        seasons: [],
+        tournaments: [
+          { id: 't1', name: 'Active Tournament' },
+          { id: 't2', name: 'Archived Tournament', archived: true },
+        ],
+      });
+    });
+    await act(async () => {});
+
+    // Enable show archived
+    const showArchivedCheckbox = screen.getByLabelText(i18n.t('seasonTournamentModal.showArchived', 'Show Archived'));
+    await user.click(showArchivedCheckbox);
+
+    // Get the actions button for archived tournament
+    const actionsButtons = screen.getAllByLabelText('tournament actions');
+    await user.click(actionsButtons[1]); // Second tournament is archived
+
+    const unarchiveOption = await screen.findByRole('button', { name: i18n.t('seasonTournamentModal.unarchive', 'Unarchive') });
+    await user.click(unarchiveOption);
+
+    // checkAndPrompt should have been called
+    expect(mockTournamentCheckAndPrompt).toHaveBeenCalled();
+
+    // Mutation should NOT have been called
+    expect(defaultProps.updateTournamentMutation.mutate).not.toHaveBeenCalled();
+
+    // Restore original mock
+    usePremiumModule.useResourceLimit = originalUseResourceLimit;
+  });
+});

@@ -455,3 +455,142 @@ describe('TeamManagerModal', () => {
     });
   });
 });
+
+/**
+ * Premium limit enforcement tests for TeamManagerModal
+ * @critical - Tests that free users are blocked when hitting team limit
+ */
+describe('TeamManagerModal - Premium Limit Enforcement', () => {
+  let mockCheckAndPrompt: jest.Mock;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCheckAndPrompt = jest.fn();
+    (teamsUtils.countGamesForTeam as jest.Mock).mockResolvedValue(0);
+    window.alert = jest.fn();
+  });
+
+  /**
+   * Tests team creation blocked when limit reached
+   * @critical - Monetization: free users cannot exceed 1 team limit
+   */
+  it('blocks team creation when free limit is reached', async () => {
+    // Override the mock to return false for this test
+    mockCheckAndPrompt.mockReturnValue(false);
+
+    // Re-mock usePremium for this specific test
+    const usePremiumModule = require('@/hooks/usePremium');
+    const originalUseResourceLimit = usePremiumModule.useResourceLimit;
+
+    usePremiumModule.useResourceLimit = jest.fn(() => ({
+      canAdd: false,
+      remaining: 0,
+      limit: 1,
+      current: 1,
+      checkAndPrompt: mockCheckAndPrompt,
+    }));
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <PremiumProvider>
+          <ToastProvider>
+            <TeamManagerModal {...defaultProps} teams={mockTeams} />
+          </ToastProvider>
+        </PremiumProvider>
+      </QueryClientProvider>
+    );
+
+    // Click Add Team button
+    fireEvent.click(screen.getByText('Add Team'));
+
+    // checkAndPrompt should have been called
+    expect(mockCheckAndPrompt).toHaveBeenCalled();
+
+    // Modal should NOT open (no team name input visible)
+    expect(screen.queryByPlaceholderText('Enter team name')).not.toBeInTheDocument();
+
+    // Restore original mock
+    usePremiumModule.useResourceLimit = originalUseResourceLimit;
+  });
+
+  /**
+   * Tests team creation allowed when under limit
+   */
+  it('allows team creation when under limit', async () => {
+    // The default mock returns true, so team creation should work
+    renderWithQueryClient(<TeamManagerModal {...defaultProps} teams={[]} />);
+
+    fireEvent.click(screen.getByText('Add Team'));
+
+    // Modal should open - team name input should be visible
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Enter team name')).toBeInTheDocument();
+    });
+  });
+
+  /**
+   * Tests unarchive blocked when limit reached
+   * @critical - Prevents circumventing limits via archive/unarchive
+   */
+  it('blocks team unarchive when free limit is reached', async () => {
+    mockCheckAndPrompt.mockReturnValue(false);
+
+    const usePremiumModule = require('@/hooks/usePremium');
+    const originalUseResourceLimit = usePremiumModule.useResourceLimit;
+
+    usePremiumModule.useResourceLimit = jest.fn(() => ({
+      canAdd: false,
+      remaining: 0,
+      limit: 1,
+      current: 1,
+      checkAndPrompt: mockCheckAndPrompt,
+    }));
+
+    const teamsWithArchived: Team[] = [
+      { id: 't1', name: 'Active Team', color: '#6366F1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      { id: 't2', name: 'Archived Team', color: '#8B5CF6', archived: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+    ];
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <PremiumProvider>
+          <ToastProvider>
+            <TeamManagerModal {...defaultProps} teams={teamsWithArchived} />
+          </ToastProvider>
+        </PremiumProvider>
+      </QueryClientProvider>
+    );
+
+    // Enable show archived
+    const showArchivedCheckbox = screen.getByLabelText('Show Archived');
+    fireEvent.click(showArchivedCheckbox);
+
+    // Open actions menu for archived team
+    const actionsButtons = screen.getAllByLabelText('Team actions');
+    fireEvent.click(actionsButtons[1]); // Second team is archived
+
+    await waitFor(() => {
+      expect(screen.getByText('Unarchive')).toBeInTheDocument();
+    });
+
+    // Click Unarchive
+    fireEvent.click(screen.getByText('Unarchive'));
+
+    // checkAndPrompt should have been called
+    expect(mockCheckAndPrompt).toHaveBeenCalled();
+
+    // Team should NOT be unarchived (mutation not called)
+    expect(teamsUtils.updateTeam).not.toHaveBeenCalled();
+
+    // Restore original mock
+    usePremiumModule.useResourceLimit = originalUseResourceLimit;
+  });
+});
