@@ -431,7 +431,7 @@ describe('PremiumContext', () => {
         }, [setUpgradePromptHandler]);
 
         return (
-          <button onClick={() => showUpgradePrompt('team')}>Show Prompt</button>
+          <button onClick={() => showUpgradePrompt('team', 5)}>Show Prompt</button>
         );
       };
 
@@ -445,7 +445,7 @@ describe('PremiumContext', () => {
         screen.getByRole('button').click();
       });
 
-      expect(mockHandler).toHaveBeenCalledWith('team');
+      expect(mockHandler).toHaveBeenCalledWith('team', 5);
     });
 
     it('should warn when handler not registered', async () => {
@@ -454,7 +454,7 @@ describe('PremiumContext', () => {
       const TestComponent = () => {
         const { showUpgradePrompt } = usePremiumContext();
         return (
-          <button onClick={() => showUpgradePrompt('team')}>Show Prompt</button>
+          <button onClick={() => showUpgradePrompt('team', 5)}>Show Prompt</button>
         );
       };
 

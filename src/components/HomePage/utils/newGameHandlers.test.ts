@@ -191,8 +191,8 @@ describe('newGameHandlers', () => {
 
       await startNewGameWithSetup(deps, createBaseRequest({ seasonId: 'season-1' }));
 
-      // Should show upgrade prompt
-      expect(showUpgradePrompt).toHaveBeenCalledWith('game');
+      // Should show upgrade prompt with current game count (3 existing games)
+      expect(showUpgradePrompt).toHaveBeenCalledWith('game', 3);
       // Should NOT proceed with game creation
       expect(deps.utilSaveGame).not.toHaveBeenCalled();
       expect(deps.closeNewGameSetupModal).not.toHaveBeenCalled();
@@ -217,8 +217,8 @@ describe('newGameHandlers', () => {
 
       await startNewGameWithSetup(deps, createBaseRequest({ tournamentId: 'tournament-1' }));
 
-      // Should show upgrade prompt
-      expect(showUpgradePrompt).toHaveBeenCalledWith('game');
+      // Should show upgrade prompt with current game count
+      expect(showUpgradePrompt).toHaveBeenCalledWith('game', 2);
       // Should NOT proceed with game creation
       expect(deps.utilSaveGame).not.toHaveBeenCalled();
     });

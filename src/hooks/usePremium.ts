@@ -13,7 +13,7 @@ import { ResourceType } from '@/config/premiumLimits';
  *
  * const handleAddTeam = () => {
  *   if (!canCreate('team', currentTeamCount)) {
- *     showUpgradePrompt('team');
+ *     showUpgradePrompt('team', currentTeamCount);
  *     return;
  *   }
  *   // ... create team
@@ -77,9 +77,9 @@ export function useResourceLimit(resource: ResourceType, currentCount: number) {
    */
   const checkAndPrompt = useCallback((): boolean => {
     if (canAdd) return true;
-    showUpgradePrompt(resource);
+    showUpgradePrompt(resource, currentCount);
     return false;
-  }, [canAdd, showUpgradePrompt, resource]);
+  }, [canAdd, showUpgradePrompt, resource, currentCount]);
 
   return {
     /** Whether user can add another of this resource */
