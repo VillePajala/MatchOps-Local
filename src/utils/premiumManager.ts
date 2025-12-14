@@ -62,20 +62,33 @@ const TEST_TOKEN_PATTERN = /^(dev|internal)-test-token$/;
 /**
  * Validate purchase token before granting premium
  *
- * Security: Test tokens are ONLY accepted in:
+ * Security (Defense in Depth):
+ * 1. Build-time: next.config.ts blocks INTERNAL_TESTING on production branches
+ * 2. Runtime: This function rejects test tokens in Vercel production (VERCEL_ENV)
+ * 3. Runtime: Test tokens only accepted in dev mode OR with INTERNAL_TESTING flag
+ *
+ * Test tokens are ONLY accepted in:
  * - Development mode (NODE_ENV !== 'production')
  * - Internal testing mode (NEXT_PUBLIC_INTERNAL_TESTING === 'true')
- *
- * In production without internal testing flag, test tokens are rejected.
+ * - AND NOT in Vercel production environment (regardless of flags)
  *
  * @throws Error if token validation fails
  */
 function validatePurchaseToken(purchaseToken?: string): void {
   const isDev = process.env.NODE_ENV !== 'production';
   const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
+  const isVercelProduction = process.env.VERCEL_ENV === 'production';
 
-  // If token matches test pattern, ensure we're in dev/testing mode
+  // If token matches test pattern, validate environment
   if (purchaseToken && TEST_TOKEN_PATTERN.test(purchaseToken)) {
+    // DEFENSE IN DEPTH: Always block test tokens in Vercel production
+    // This catches edge cases even if other safeguards fail
+    if (isVercelProduction) {
+      logger.error('Test token rejected in Vercel production environment');
+      throw new Error('Invalid purchase token');
+    }
+
+    // Standard check: only allow in dev or internal testing mode
     if (!isDev && !isInternalTesting) {
       logger.error('Test token rejected in production', { tokenPrefix: purchaseToken.split('-')[0] });
       throw new Error('Invalid purchase token');

@@ -900,6 +900,7 @@ export type TranslationKey =
   | 'playerStats.useDemandCorrection'
   | 'playerStats.useDemandCorrectionTooltip'
   | 'playerStats.vs'
+  | 'premium.availableSoon'
   | 'premium.benefit.unlimitedGames'
   | 'premium.benefit.unlimitedPlayers'
   | 'premium.benefit.unlimitedSeasons'
