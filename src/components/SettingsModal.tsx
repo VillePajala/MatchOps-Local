@@ -543,6 +543,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     <HiSparkles className="w-4 h-4" aria-hidden="true" />
                     {t('settingsModal.upgradeToPremium', 'Upgrade')} - {price}
                   </button>
+                  {/* TODO P4C: Add "Restore Purchase" button for edge case where:
+                      - User has valid Play Billing purchase but local verification failed
+                      - User reinstalled app and needs to restore their purchase
+                      Button should call Play Billing's queryPurchases() to re-verify */}
                 </>
               )}
             </div>
