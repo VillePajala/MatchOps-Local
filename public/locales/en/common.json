@@ -1654,7 +1654,6 @@
     "footer": "These Terms of Service apply to the MatchOps application available on Google Play Store."
   },
   "premium": {
-    "limitReached": "Limit Reached",
     "freeVersionLimitReached": "Free version limit reached",
     "limitExplanation": "You've reached the free tier limit of {{limit}} {{resource}}.",
     "currentUsage": "Current: {{count}}/{{limit}}",
@@ -1670,7 +1669,6 @@
       "game": "game",
       "gamePlural": "games"
     },
-    "upgradeUnlocks": "Upgrade to Premium:",
     "fullVersionIncludes": "The full version includes:",
     "benefit": {
       "unlimitedTeams": "Unlimited teams",
@@ -1678,7 +1676,6 @@
       "unlimitedSeasons": "Unlimited seasons & tournaments",
       "unlimitedGames": "Unlimited games per competition"
     },
-    "oneTime": "one-time purchase",
     "oneTimePayment": "one-time payment",
     "upgradeButton": "Upgrade to Premium",
     "maybeLater": "Maybe Later",
