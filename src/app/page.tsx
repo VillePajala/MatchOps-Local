@@ -7,6 +7,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { MigrationStatus } from '@/components/MigrationStatus';
 import { useState, useEffect, useCallback } from 'react';
 import { useAppResume } from '@/hooks/useAppResume';
+import { useToast } from '@/contexts/ToastProvider';
 import { getCurrentGameIdSetting, saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
 import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
@@ -21,6 +22,7 @@ export default function Home() {
   const [hasSavedGames, setHasSavedGames] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isCheckingState, setIsCheckingState] = useState(true);
+  const { showToast } = useToast();
 
   // A user is considered "first time" if they haven't created a roster OR a game yet.
   // This ensures they are guided through the full setup process.
@@ -88,7 +90,14 @@ export default function Home() {
       logger.log('[page.tsx] App resumed - triggering state refresh');
       setRefreshTrigger((prev) => prev + 1);
     },
+    onBeforeForceReload: () => {
+      // Show notification before force reload (5+ minute background)
+      showToast('Refreshing app after extended background period...', 'info');
+      // Brief delay so user can see the notification
+      return new Promise(resolve => setTimeout(resolve, 800));
+    },
     minBackgroundTime: 30000, // 30 seconds
+    forceReloadTime: 300000,  // 5 minutes - force full page reload
   });
 
   // Handle PWA shortcut query parameters (e.g., /?action=newGame)

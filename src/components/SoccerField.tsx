@@ -713,7 +713,11 @@ const SoccerField: React.FC<SoccerFieldProps> = React.memo(({
         backgroundCache.clear();
         // Use requestAnimationFrame to ensure layout is complete before drawing
         requestAnimationFrame(() => {
-          draw();
+          try {
+            draw();
+          } catch (error) {
+            logger.error('[SoccerField] Failed to redraw canvas after resume:', error);
+          }
         });
       }
     };
