@@ -19,15 +19,18 @@ const UpgradePromptManager: React.FC<{ children: React.ReactNode }> = ({ childre
   const { setUpgradePromptHandler } = usePremiumContext();
   const [isOpen, setIsOpen] = useState(false);
   const [triggeredResource, setTriggeredResource] = useState<ResourceType | undefined>();
+  const [triggeredCount, setTriggeredCount] = useState<number | undefined>();
 
-  const handleShowUpgradePrompt = useCallback((resource?: ResourceType) => {
+  const handleShowUpgradePrompt = useCallback((resource?: ResourceType, currentCount?: number) => {
     setTriggeredResource(resource);
+    setTriggeredCount(currentCount);
     setIsOpen(true);
   }, []);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
     setTriggeredResource(undefined);
+    setTriggeredCount(undefined);
   }, []);
 
   // Register the handler on mount
@@ -42,6 +45,7 @@ const UpgradePromptManager: React.FC<{ children: React.ReactNode }> = ({ childre
         isOpen={isOpen}
         onClose={handleClose}
         resource={triggeredResource}
+        currentCount={triggeredCount}
       />
     </>
   );

@@ -1680,6 +1680,7 @@
     "upgradeButton": "Upgrade to Premium",
     "maybeLater": "Maybe Later",
     "purchaseComingSoon": "In-app purchase coming soon!",
-    "grantError": "Failed to activate premium. Please try again."
+    "grantError": "Failed to activate premium. Please try again.",
+    "availableSoon": "Premium upgrade will be available soon via Google Play!"
   }
 }
