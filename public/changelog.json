@@ -1,8 +1,8 @@
 {
-  "version": "9762ad43",
+  "version": "dcfe0212",
   "date": "2025-12-14",
   "notes": {
-    "en": "Upgrade button now works in preview/non-production",
-    "fi": "Päivityspainike toimii nyt preview-ympäristössä"
+    "en": "Debug: add toast notifications to trace upgrade flow",
+    "fi": "Debug: add toast notifications to trace upgrade flow"
   }
 }

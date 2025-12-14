@@ -4,7 +4,6 @@ import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from
 import { usePremiumContext } from '@/contexts/PremiumContext';
 import { ResourceType } from '@/config/premiumLimits';
 import UpgradePromptModal from './UpgradePromptModal';
-import { useToast } from '@/contexts/ToastProvider';
 
 /**
  * Manages the upgrade prompt modal state and connects it to PremiumContext
@@ -18,17 +17,15 @@ import { useToast } from '@/contexts/ToastProvider';
  */
 const UpgradePromptManager: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { setUpgradePromptHandler } = usePremiumContext();
-  const { showToast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [triggeredResource, setTriggeredResource] = useState<ResourceType | undefined>();
   const [triggeredCount, setTriggeredCount] = useState<number | undefined>();
 
   const handleShowUpgradePrompt = useCallback((resource?: ResourceType, currentCount?: number) => {
-    showToast('DEBUG: Handler called, opening modal', 'info');
     setTriggeredResource(resource);
     setTriggeredCount(currentCount);
     setIsOpen(true);
-  }, [showToast]);
+  }, []);
 
   const handleClose = useCallback(() => {
     setIsOpen(false);
