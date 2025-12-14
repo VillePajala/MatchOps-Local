@@ -6,6 +6,7 @@ import { HiSparkles, HiCheck } from 'react-icons/hi2';
 import { primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { ResourceType, PREMIUM_PRICE, getLimit } from '@/config/premiumLimits';
 import { usePremium } from '@/hooks/usePremium';
+import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
 
 export interface UpgradePromptModalProps {
@@ -34,6 +35,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const { grantPremiumAccess } = usePremium();
+  const { showToast } = useToast();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousActiveElementRef = useRef<HTMLElement | null>(null);
 
@@ -55,6 +57,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
         document.removeEventListener('keydown', handleEscape);
         if (previousActiveElementRef.current) {
           previousActiveElementRef.current.focus();
+          previousActiveElementRef.current = null; // Clear ref to prevent stale references
         }
       };
     }
@@ -64,7 +67,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
 
   const limit = resource ? getLimit(resource) : 0;
   // Use translated resource name (singular or plural based on limit)
-  const resourceKey = resource ? (limit === 1 ? `premium.resource.${resource}` : `premium.resource.${resource}_plural`) : '';
+  const resourceKey = resource ? (limit === 1 ? `premium.resource.${resource}` : `premium.resource.${resource}Plural`) : '';
   const resourceName = resource ? t(resourceKey, resource) : '';
 
   // For development/internal testing - will be replaced by Play Billing in P4C
@@ -73,6 +76,14 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
     // For now, allow simulated purchase in dev mode or internal testing mode
     const isDev = process.env.NODE_ENV === 'development';
     const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
+
+    // SECURITY: Block dev/test shortcuts in Vercel production, regardless of env var misconfiguration
+    const isVercelProduction = process.env.VERCEL_ENV === 'production';
+    if (isVercelProduction) {
+      // In production, this will eventually trigger Play Billing (P4C)
+      window.alert(t('premium.purchaseComingSoon', 'In-app purchase coming soon!'));
+      return;
+    }
 
     if (isDev || isInternalTesting) {
       const confirmGrant = window.confirm(
@@ -89,7 +100,7 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
           onClose();
         } catch (error) {
           logger.error('Failed to grant premium access:', error);
-          window.alert('Failed to grant premium access. Check console for details.');
+          showToast(t('premium.grantError', 'Failed to activate premium. Please try again.'), 'error');
         }
       }
     } else {

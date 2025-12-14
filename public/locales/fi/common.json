@@ -1660,15 +1660,15 @@
     "currentUsage": "Käytössä: {{count}}/{{limit}}",
     "resource": {
       "team": "joukkue",
-      "team_plural": "joukkuetta",
+      "teamPlural": "joukkuetta",
       "player": "pelaaja",
-      "player_plural": "pelaajaa",
+      "playerPlural": "pelaajaa",
       "season": "sarja",
-      "season_plural": "sarjaa",
+      "seasonPlural": "sarjaa",
       "tournament": "turnaus",
-      "tournament_plural": "turnausta",
+      "tournamentPlural": "turnausta",
       "game": "ottelu",
-      "game_plural": "ottelua"
+      "gamePlural": "ottelua"
     },
     "upgradeUnlocks": "Premium-versio sisältää:",
     "fullVersionIncludes": "Sovelluksen täysversio sisältää:",

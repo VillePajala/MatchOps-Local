@@ -1660,15 +1660,15 @@
     "currentUsage": "Current: {{count}}/{{limit}}",
     "resource": {
       "team": "team",
-      "team_plural": "teams",
+      "teamPlural": "teams",
       "player": "player",
-      "player_plural": "players",
+      "playerPlural": "players",
       "season": "season",
-      "season_plural": "seasons",
+      "seasonPlural": "seasons",
       "tournament": "tournament",
-      "tournament_plural": "tournaments",
+      "tournamentPlural": "tournaments",
       "game": "game",
-      "game_plural": "games"
+      "gamePlural": "games"
     },
     "upgradeUnlocks": "Upgrade to Premium:",
     "fullVersionIncludes": "The full version includes:",

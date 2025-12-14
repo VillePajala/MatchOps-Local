@@ -2,6 +2,32 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from '@sentry/nextjs';
 
 /**
+ * Environment variable validation
+ * Runs at build time to catch misconfigurations early
+ */
+function validateEnvironment(): void {
+  // Block NEXT_PUBLIC_INTERNAL_TESTING in production deployments
+  // Internal testing mode should only be used on Play Store internal testing track,
+  // never on public production releases
+  const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
+  const branch = process.env.VERCEL_GIT_COMMIT_REF;
+  const vercelEnv = process.env.VERCEL_ENV;
+  const isProductionBranch = branch === 'master' || branch === 'main';
+  const isVercelProduction = vercelEnv === 'production';
+
+  if (isInternalTesting && (isProductionBranch || isVercelProduction)) {
+    throw new Error(
+      'NEXT_PUBLIC_INTERNAL_TESTING must not be enabled in production.\n' +
+      'This flag is for Play Store internal testing track only.\n' +
+      `Current: VERCEL_ENV=${vercelEnv}, branch=${branch}`
+    );
+  }
+}
+
+// Run validation at config load time
+validateEnvironment();
+
+/**
  * Security headers for production deployment
  * CSP is configured for a local-first PWA with:
  * - Self-hosted scripts/styles

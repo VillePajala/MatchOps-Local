@@ -54,18 +54,63 @@ export async function savePremiumLicense(license: PremiumLicense): Promise<void>
 }
 
 /**
+ * Test token pattern - only valid in dev/internal testing modes
+ * Format: 'dev-test-token' or 'internal-test-token'
+ */
+const TEST_TOKEN_PATTERN = /^(dev|internal)-test-token$/;
+
+/**
+ * Validate purchase token before granting premium
+ *
+ * Security: Test tokens are ONLY accepted in:
+ * - Development mode (NODE_ENV !== 'production')
+ * - Internal testing mode (NEXT_PUBLIC_INTERNAL_TESTING === 'true')
+ *
+ * In production without internal testing flag, test tokens are rejected.
+ *
+ * @throws Error if token validation fails
+ */
+function validatePurchaseToken(purchaseToken?: string): void {
+  const isDev = process.env.NODE_ENV !== 'production';
+  const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
+
+  // If token matches test pattern, ensure we're in dev/testing mode
+  if (purchaseToken && TEST_TOKEN_PATTERN.test(purchaseToken)) {
+    if (!isDev && !isInternalTesting) {
+      logger.error('Test token rejected in production', { tokenPrefix: purchaseToken.split('-')[0] });
+      throw new Error('Invalid purchase token');
+    }
+    logger.debug('Test token accepted', { isDev, isInternalTesting });
+    return;
+  }
+
+  // TODO: P4C - Add Digital Goods API token validation for real tokens
+  // For now, require a token in production (will be validated via Play Store)
+  if (!purchaseToken && !isDev && !isInternalTesting) {
+    logger.error('Missing purchase token in production');
+    throw new Error('Purchase token required');
+  }
+}
+
+/**
  * Grant premium status (after successful purchase verification)
  *
  * Note: This is a local-first PWA. Purchase verification happens client-side
  * via the Digital Goods API in the TWA context - no backend server involved.
  *
- * TODO: PR #10 (Play Billing Integration) should add:
+ * Security: Test tokens (dev-test-token, internal-test-token) are only
+ * accepted in development mode or when NEXT_PUBLIC_INTERNAL_TESTING is enabled.
+ *
+ * TODO: P4C (Play Billing Integration) should add:
  * - Use Digital Goods API to verify purchase with Play Store
  * - Validate purchase is for correct product ID (PREMIUM_PRODUCT_ID)
  * - Check purchase state (PURCHASED, not PENDING/CANCELED)
  * - Handle acknowledgement via Digital Goods API
  */
 export async function grantPremium(purchaseToken?: string): Promise<void> {
+  // Validate token before granting access
+  validatePurchaseToken(purchaseToken);
+
   const license: PremiumLicense = {
     isPremium: true,
     purchaseToken,
