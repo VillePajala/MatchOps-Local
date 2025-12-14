@@ -1654,7 +1654,6 @@
     "footer": "Nämä käyttöehdot koskevat Google Play Kaupassa saatavilla olevaa MatchOps-sovellusta."
   },
   "premium": {
-    "limitReached": "Raja saavutettu",
     "freeVersionLimitReached": "Ilmaisversion raja saavutettu",
     "limitExplanation": "Olet saavuttanut ilmaisen version rajan: {{limit}} {{resource}}.",
     "currentUsage": "Käytössä: {{count}}/{{limit}}",
@@ -1670,7 +1669,6 @@
       "game": "ottelu",
       "gamePlural": "ottelua"
     },
-    "upgradeUnlocks": "Premium-versio sisältää:",
     "fullVersionIncludes": "Sovelluksen täysversio sisältää:",
     "benefit": {
       "unlimitedTeams": "Rajattomat joukkueet",
@@ -1678,7 +1676,6 @@
       "unlimitedSeasons": "Rajattomat sarjat ja turnaukset",
       "unlimitedGames": "Rajattomat ottelut kilpailua kohden"
     },
-    "oneTime": "kertamaksu",
     "oneTimePayment": "kertamaksu",
     "upgradeButton": "Päivitä Premiumiin",
     "maybeLater": "Ehkä myöhemmin",
