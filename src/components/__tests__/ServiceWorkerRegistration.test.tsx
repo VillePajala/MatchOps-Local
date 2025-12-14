@@ -5,12 +5,15 @@ import ServiceWorkerRegistration from '../ServiceWorkerRegistration';
 jest.mock('@/utils/logger', () => ({
   log: jest.fn(),
   error: jest.fn(),
+  debug: jest.fn(),
 }));
 
-// Mock UpdateBanner
+// Mock UpdateBanner - capture props for testing
+const mockUpdateBannerProps = { notes: undefined as string | undefined };
 jest.mock('../UpdateBanner', () => {
-  return function MockUpdateBanner() {
-    return <div data-testid="update-banner">Update Available</div>;
+  return function MockUpdateBanner(props: { notes?: string }) {
+    mockUpdateBannerProps.notes = props.notes;
+    return <div data-testid="update-banner">{props.notes || 'Update Available'}</div>;
   };
 });
 
@@ -21,6 +24,7 @@ describe('ServiceWorkerRegistration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    mockUpdateBannerProps.notes = undefined;
 
     mockServiceWorker = {
       state: 'activated',
@@ -114,6 +118,61 @@ describe('ServiceWorkerRegistration', () => {
     await waitFor(() => {
       expect(getByTestId('update-banner')).toBeInTheDocument();
     });
+  });
+
+  it('should fetch and display release notes when update is available', async () => {
+    const waitingWorker = {
+      state: 'installed',
+      postMessage: jest.fn(),
+    } as Partial<ServiceWorker>;
+
+    Object.defineProperty(mockRegistration, 'waiting', {
+      value: waitingWorker as ServiceWorker,
+      writable: true,
+      configurable: true,
+    });
+
+    const { getByTestId } = render(<ServiceWorkerRegistration />);
+
+    await waitFor(() => {
+      expect(getByTestId('update-banner')).toBeInTheDocument();
+    });
+
+    // Verify fetch was called for release notes
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/release-notes.json'));
+    });
+
+    // Verify notes are passed to UpdateBanner
+    await waitFor(() => {
+      expect(mockUpdateBannerProps.notes).toBe('Test release notes');
+    });
+  });
+
+  it('should handle release notes fetch failure gracefully', async () => {
+    // Make fetch fail
+    global.fetch = jest.fn().mockRejectedValue(new Error('Network error'));
+
+    const waitingWorker = {
+      state: 'installed',
+      postMessage: jest.fn(),
+    } as Partial<ServiceWorker>;
+
+    Object.defineProperty(mockRegistration, 'waiting', {
+      value: waitingWorker as ServiceWorker,
+      writable: true,
+      configurable: true,
+    });
+
+    const { getByTestId } = render(<ServiceWorkerRegistration />);
+
+    // Update banner should still show even if notes fetch fails
+    await waitFor(() => {
+      expect(getByTestId('update-banner')).toBeInTheDocument();
+    });
+
+    // Notes should be undefined (not blocking the banner)
+    expect(mockUpdateBannerProps.notes).toBeUndefined();
   });
 
   it('should cleanup interval on unmount', async () => {
