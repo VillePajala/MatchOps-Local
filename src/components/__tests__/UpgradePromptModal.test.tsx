@@ -234,25 +234,8 @@ describe('UpgradePromptModal', () => {
       });
     });
 
-    it('shows dev mode confirmation when upgrade is clicked in dev', async () => {
-      const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
-      renderWithProviders(<UpgradePromptModal {...defaultProps} />);
-
-      const upgradeButton = screen.getByRole('button', { name: /upgrade to premium/i });
-      await act(async () => {
-        fireEvent.click(upgradeButton);
-      });
-
-      expect(confirmSpy).toHaveBeenCalledWith(
-        expect.stringContaining('DEV MODE')
-      );
-
-      confirmSpy.mockRestore();
-    });
-
-    it('grants premium access when confirmed in dev mode', async () => {
+    it('grants premium access directly when upgrade is clicked in dev mode', async () => {
       const onClose = jest.fn();
-      const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
       mockGrantPremiumAccess.mockResolvedValue(undefined);
 
       renderWithProviders(<UpgradePromptModal {...defaultProps} onClose={onClose} />);
@@ -264,25 +247,6 @@ describe('UpgradePromptModal', () => {
 
       expect(mockGrantPremiumAccess).toHaveBeenCalledWith('dev-test-token');
       expect(onClose).toHaveBeenCalled();
-
-      confirmSpy.mockRestore();
-    });
-
-    it('does not grant premium when cancelled in dev mode', async () => {
-      const onClose = jest.fn();
-      const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
-
-      renderWithProviders(<UpgradePromptModal {...defaultProps} onClose={onClose} />);
-
-      const upgradeButton = screen.getByRole('button', { name: /upgrade to premium/i });
-      await act(async () => {
-        fireEvent.click(upgradeButton);
-      });
-
-      expect(mockGrantPremiumAccess).not.toHaveBeenCalled();
-      expect(onClose).not.toHaveBeenCalled();
-
-      confirmSpy.mockRestore();
     });
   });
 
