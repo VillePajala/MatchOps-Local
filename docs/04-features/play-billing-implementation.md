@@ -9,6 +9,47 @@ This document details the implementation of Google Play Billing for the MatchOps
 
 **Requirements:** Chrome 101+, Android 9+, app installed via Google Play
 
+### Purchase Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         PURCHASE FLOW                                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  User clicks          Digital Goods API       Payment Request API       │
+│  "Upgrade"            checks product          shows Play dialog         │
+│      │                     │                        │                   │
+│      ▼                     ▼                        ▼                   │
+│  ┌────────┐          ┌──────────┐            ┌──────────┐              │
+│  │ Button │ ───────► │ getDetails│ ─────────►│  show()  │              │
+│  └────────┘          └──────────┘            └────┬─────┘              │
+│                                                   │                     │
+│                                                   ▼                     │
+│                                           User completes                │
+│                                           payment in Play               │
+│                                                   │                     │
+│  ┌─────────────────────────────────────────────────────────────────┐   │
+│  │                    BACKEND VERIFICATION                          │   │
+│  ├─────────────────────────────────────────────────────────────────┤   │
+│  │                              │                                   │   │
+│  │   ┌──────────────┐     ┌─────▼─────┐     ┌──────────────┐       │   │
+│  │   │ /api/billing │ ◄── │ Purchase  │ ──► │ Google Play  │       │   │
+│  │   │   /verify    │     │  Token    │     │ Developer API│       │   │
+│  │   └──────┬───────┘     └───────────┘     └──────────────┘       │   │
+│  │          │                                                       │   │
+│  │          ▼                                                       │   │
+│  │   Verify + Acknowledge                                           │   │
+│  │          │                                                       │   │
+│  └──────────┼───────────────────────────────────────────────────────┘   │
+│             ▼                                                           │
+│      ┌─────────────┐          ┌─────────────┐                          │
+│      │Grant Premium│ ───────► │  IndexedDB  │                          │
+│      │   Access    │          │   Storage   │                          │
+│      └─────────────┘          └─────────────┘                          │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## Prerequisites
@@ -341,23 +382,76 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { google } from 'googleapis';
 
 // Service account credentials (store securely!)
-const GOOGLE_SERVICE_ACCOUNT = JSON.parse(
-  process.env.GOOGLE_SERVICE_ACCOUNT_KEY || '{}'
-);
+const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+if (!serviceAccountKey) {
+  throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY environment variable not set');
+}
+const GOOGLE_SERVICE_ACCOUNT = JSON.parse(serviceAccountKey);
 const PACKAGE_NAME = 'app.matchops.local'; // Your app package name
+
+// Error codes for client handling
+const ErrorCodes = {
+  METHOD_NOT_ALLOWED: 'METHOD_NOT_ALLOWED',
+  MISSING_FIELDS: 'MISSING_FIELDS',
+  PURCHASE_CANCELLED: 'PURCHASE_CANCELLED',
+  ORDER_ID_MISMATCH: 'ORDER_ID_MISMATCH',
+  INVALID_TOKEN: 'INVALID_TOKEN',
+  GOOGLE_API_ERROR: 'GOOGLE_API_ERROR',
+  ACKNOWLEDGEMENT_FAILED: 'ACKNOWLEDGEMENT_FAILED',
+  VERIFICATION_ERROR: 'VERIFICATION_ERROR',
+} as const;
+
+// Simple in-memory rate limiting (for production, use Redis or similar)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 10; // 10 requests per minute
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+
+  if (!entry || now > entry.resetTime) {
+    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return false;
+  }
+
+  entry.count++;
+  return true;
+}
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  // Rate limiting
+  const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
+    req.socket.remoteAddress || 'unknown';
+  if (!checkRateLimit(clientIp)) {
+    return res.status(429).json({
+      verified: false,
+      error: 'Too many requests',
+      code: 'RATE_LIMITED',
+    });
+  }
+
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({
+      error: 'Method not allowed',
+      code: ErrorCodes.METHOD_NOT_ALLOWED,
+    });
   }
 
   const { purchaseToken, sku, orderId } = req.body;
 
   if (!purchaseToken || !sku) {
-    return res.status(400).json({ error: 'Missing required fields' });
+    return res.status(400).json({
+      error: 'Missing required fields',
+      code: ErrorCodes.MISSING_FIELDS,
+    });
   }
 
   try {
@@ -384,21 +478,42 @@ export default async function handler(
     // Validate purchase
     if (purchase.purchaseState !== 0) {
       // 0 = Purchased, 1 = Cancelled
-      return res.status(400).json({ verified: false, error: 'Purchase cancelled' });
+      return res.status(400).json({
+        verified: false,
+        error: 'Purchase cancelled',
+        code: ErrorCodes.PURCHASE_CANCELLED,
+      });
     }
 
     // Validate order ID if provided
     if (orderId && purchase.orderId !== orderId) {
-      return res.status(400).json({ verified: false, error: 'Order ID mismatch' });
+      return res.status(400).json({
+        verified: false,
+        error: 'Order ID mismatch',
+        code: ErrorCodes.ORDER_ID_MISMATCH,
+      });
     }
 
     // Acknowledge the purchase (CRITICAL - must be done within 72 hours!)
     if (purchase.acknowledgementState === 0) {
-      await androidPublisher.purchases.products.acknowledge({
-        packageName: PACKAGE_NAME,
-        productId: sku,
-        token: purchaseToken,
-      });
+      try {
+        await androidPublisher.purchases.products.acknowledge({
+          packageName: PACKAGE_NAME,
+          productId: sku,
+          token: purchaseToken,
+        });
+      } catch (ackError) {
+        console.error('[Billing API] Acknowledgement failed:', ackError);
+        // Purchase is valid but acknowledgement failed - still grant access
+        // but log for manual review (72-hour window applies)
+        return res.status(200).json({
+          verified: true,
+          orderId: purchase.orderId,
+          purchaseTime: purchase.purchaseTimeMillis,
+          warning: 'Acknowledgement pending - will retry',
+          code: ErrorCodes.ACKNOWLEDGEMENT_FAILED,
+        });
+      }
     }
 
     return res.status(200).json({
@@ -408,9 +523,15 @@ export default async function handler(
     });
   } catch (error) {
     console.error('[Billing API] Verification error:', error);
+
+    // Determine specific error type for client handling
+    const isGoogleApiError = error instanceof Error &&
+      error.message.includes('googleapis');
+
     return res.status(500).json({
       verified: false,
       error: 'Verification failed',
+      code: isGoogleApiError ? ErrorCodes.GOOGLE_API_ERROR : ErrorCodes.VERIFICATION_ERROR,
     });
   }
 }
@@ -511,9 +632,31 @@ bubblewrap build
 
 ### Security
 
+**Core Principles:**
 - NEVER trust client-side purchase tokens alone
 - Always verify with Google Play Developer API
 - Store service account credentials securely (environment variables)
+
+**Purchase Token Validation:**
+- Check `purchaseTimeMillis` to detect stale tokens (reject if > 24h old for new purchases)
+- Verify `orderId` matches if provided by client
+- Check `purchaseState === 0` (purchased, not cancelled)
+
+**Replay Attack Prevention:**
+- Track processed `orderId` values to prevent token reuse
+- Consider adding request timestamps and rejecting requests > 5 minutes old
+- The verification endpoint includes rate limiting (10 req/min per IP)
+
+**Audit Logging (for debugging):**
+```typescript
+// Log all premium grants for troubleshooting
+console.log('[Billing] Premium granted:', {
+  orderId: purchase.orderId,
+  purchaseTime: new Date(Number(purchase.purchaseTimeMillis)).toISOString(),
+  sku: sku,
+  timestamp: new Date().toISOString(),
+});
+```
 
 ### Error Handling
 
@@ -526,6 +669,126 @@ bubblewrap build
 - Check for existing purchases on app startup
 - Use `getExistingPurchases()` to restore premium status
 - Handle reinstalls and device changes
+
+---
+
+## Troubleshooting
+
+### Common Errors
+
+| Error Code | Cause | Solution |
+|------------|-------|----------|
+| `GOOGLE_API_ERROR` | Service account misconfigured | Verify API access enabled in Play Console, check credentials |
+| `PURCHASE_CANCELLED` | User cancelled or refund issued | No action needed - expected behavior |
+| `ORDER_ID_MISMATCH` | Token/order don't match | Possible tampering - reject purchase |
+| `ACKNOWLEDGEMENT_FAILED` | Google API timeout | Purchase valid, retry acknowledgement (72h window) |
+| `RATE_LIMITED` | Too many verification requests | Wait 1 minute, check for client-side bugs causing loops |
+| `MISSING_FIELDS` | Client sent incomplete data | Check client is sending `purchaseToken` and `sku` |
+
+### Digital Goods API Not Available
+
+**Symptoms:** `isPlayBillingAvailable()` returns `false`
+
+**Causes & Solutions:**
+1. **Not installed from Play Store** - App must be installed via Play Store (not sideloaded)
+2. **Chrome version < 101** - Update Chrome/WebView
+3. **Android version < 9** - Minimum API level 28 required
+4. **`playBilling: false` in TWA manifest** - Rebuild TWA with `playBilling: true`
+5. **Debug Chrome flag disabled** - Enable `chrome://flags/#enable-debug-for-store-billing` for testing
+
+### Purchase Succeeds but Premium Not Granted
+
+**Check order:**
+1. Client received `purchaseToken`? → Check `makePurchase()` response
+2. Verification endpoint called? → Check network tab / server logs
+3. Backend returned `verified: true`? → Check response
+4. `grantPremiumAccess()` called? → Check IndexedDB for `premiumLicense` key
+5. UI reflects premium? → Check `usePremium()` hook state
+
+### "Purchase already owned" Error
+
+User already has valid purchase. Call `getExistingPurchases()` and restore:
+
+```typescript
+const purchases = await getExistingPurchases();
+const existing = purchases.find(p => p.itemId === PREMIUM_SKU);
+if (existing) {
+  await verifyAndGrantPremium(existing.purchaseToken);
+}
+```
+
+### Acknowledgement Failures
+
+If acknowledgement fails but purchase is valid:
+1. Grant premium access immediately (don't block user)
+2. Log the `purchaseToken` for manual retry
+3. Set up background job to retry acknowledgement
+4. Monitor for 72-hour deadline
+
+---
+
+## Rollback Procedure
+
+### If Billing Breaks in Production
+
+**Immediate mitigation (< 5 minutes):**
+
+```typescript
+// 1. Disable billing checks temporarily in usePremium.ts
+export function usePremium() {
+  // EMERGENCY: Billing broken, grant all users access
+  // TODO: Remove after fix deployed
+  return {
+    isPremium: true,  // Grant everyone access temporarily
+    isLoading: false,
+    // ... rest of interface
+  };
+}
+```
+
+**Proper rollback steps:**
+
+1. **Revert to previous deployment** (Vercel dashboard → Deployments → Promote previous)
+
+2. **If issue is backend-only:**
+   ```bash
+   git revert <commit-hash-of-billing-changes>
+   git push
+   ```
+
+3. **If issue is client-side:**
+   - Deploy fix ASAP (service worker will update within 24h)
+   - For urgent fixes, increment SW version to force immediate update
+
+### Data Recovery
+
+**User purchased but premium not stored:**
+
+```typescript
+// Manual grant via browser console (dev only)
+import { grantPremium } from '@/utils/premiumManager';
+await grantPremium('manual-recovery-<orderId>');
+```
+
+**For production users:**
+1. Get order ID from user (Google Play receipt email)
+2. Verify in Play Console (Orders section)
+3. If valid, provide one-time recovery token or manual database update
+
+### Refund Handling
+
+Google Play handles refunds automatically. To revoke access after refund:
+
+1. Set up [Real-time Developer Notifications](https://developer.android.com/google/play/billing/rtdn-reference)
+2. Listen for `ONE_TIME_PRODUCT_CANCELED` notifications
+3. Call `revokePremiumAccess()` for affected user
+
+**Manual revocation (if needed):**
+```typescript
+import { revokePremium } from '@/utils/premiumManager';
+await revokePremium();
+// User will see upgrade prompt on next limit check
+```
 
 ---
 
