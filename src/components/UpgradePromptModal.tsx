@@ -78,8 +78,13 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
         'In production, this will open the Google Play purchase flow.'
       );
       if (confirmGrant) {
-        await grantPremiumAccess('dev-test-token');
-        onClose();
+        try {
+          await grantPremiumAccess('dev-test-token');
+          onClose();
+        } catch (error) {
+          console.error('Failed to grant premium access:', error);
+          window.alert('DEV MODE: Failed to grant premium access. Check console for details.');
+        }
       }
     } else {
       // In production without Play Billing, show coming soon message
@@ -161,6 +166,8 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-2">
+          {/* TODO P4C: Add disabled={isPurchasing}, aria-busy={isPurchasing},
+              and loading text when Play Billing integration is added */}
           <button
             onClick={handleUpgradeClick}
             className={`${primaryButtonStyle} w-full bg-gradient-to-b from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700`}

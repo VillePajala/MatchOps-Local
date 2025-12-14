@@ -3,6 +3,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import packageJson from '../../package.json';
 import {
   HiOutlineSquares2X2,
   HiOutlinePlusCircle,
@@ -163,9 +164,12 @@ const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, onClose }
         </div>
 
         <ModalFooter>
-          <button onClick={onClose} className={primaryButtonStyle}>
-            {t('common.doneButton', 'Done')}
-          </button>
+          <div className="flex flex-col items-center gap-2 w-full">
+            <button onClick={onClose} className={primaryButtonStyle}>
+              {t('common.doneButton', 'Done')}
+            </button>
+            <span className="text-xs text-slate-500">v{packageJson.version}</span>
+          </div>
         </ModalFooter>
       </div>
     </div>
