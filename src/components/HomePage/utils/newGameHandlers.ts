@@ -33,7 +33,7 @@ export interface StartNewGameDependencies {
   defaultSubIntervalMinutes: number;
   // Premium limit checking
   canCreate: (resource: ResourceType, currentCount: number) => boolean;
-  showUpgradePrompt: (resource?: ResourceType) => void;
+  showUpgradePrompt: (resource?: ResourceType, currentCount?: number) => void;
 }
 
 export interface StartNewGameRequest {
@@ -129,7 +129,7 @@ export async function startNewGameWithSetup(
     }).length;
 
     if (!canCreate('game', gamesInCompetition)) {
-      showUpgradePrompt('game');
+      showUpgradePrompt('game', gamesInCompetition);
       return;
     }
   }

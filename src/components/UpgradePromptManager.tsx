@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { usePremiumContext } from '@/contexts/PremiumContext';
 import { ResourceType } from '@/config/premiumLimits';
 import UpgradePromptModal from './UpgradePromptModal';
@@ -33,10 +33,16 @@ const UpgradePromptManager: React.FC<{ children: React.ReactNode }> = ({ childre
     setTriggeredCount(undefined);
   }, []);
 
-  // Register the handler on mount
+  // Use ref to avoid re-registering handler on every render
+  const handleShowUpgradePromptRef = useRef(handleShowUpgradePrompt);
+  useLayoutEffect(() => {
+    handleShowUpgradePromptRef.current = handleShowUpgradePrompt;
+  }, [handleShowUpgradePrompt]);
+
+  // Register the handler once on mount (ref ensures latest callback is used)
   useEffect(() => {
-    setUpgradePromptHandler(handleShowUpgradePrompt);
-  }, [setUpgradePromptHandler, handleShowUpgradePrompt]);
+    setUpgradePromptHandler((resource, count) => handleShowUpgradePromptRef.current(resource, count));
+  }, [setUpgradePromptHandler]);
 
   return (
     <>
