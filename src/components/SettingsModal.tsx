@@ -537,7 +537,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     {t('settingsModal.premiumDescription', 'The full version includes unlimited teams, players, seasons, tournaments, and games.')}
                   </p>
                   <button
-                    onClick={() => showUpgradePrompt()}
+                    onClick={() => {
+                      showToast('DEBUG: Button clicked', 'info');
+                      showUpgradePrompt();
+                    }}
                     className="inline-flex items-center justify-center gap-1 w-full px-3 py-2 rounded-md text-sm font-medium bg-gradient-to-b from-amber-500 to-amber-600 text-white hover:from-amber-600 hover:to-amber-700 shadow-sm transition-colors"
                   >
                     <HiSparkles className="w-4 h-4" aria-hidden="true" />
