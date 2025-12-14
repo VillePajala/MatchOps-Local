@@ -501,8 +501,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400">
                       {t('settingsModal.premiumActive', 'Premium')}
                     </span>
-                    {/* Reset button only in dev mode for testing */}
-                    {process.env.NODE_ENV === 'development' && (
+                    {/* Reset button in dev mode or internal testing mode */}
+                    {(process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true') && (
                       <button
                         onClick={async () => {
                           if (window.confirm(t('settingsModal.resetToFreeConfirm', 'Reset to free version? (For testing)'))) {
