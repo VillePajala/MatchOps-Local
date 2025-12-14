@@ -1679,6 +1679,7 @@
     "oneTimePayment": "kertamaksu",
     "upgradeButton": "Päivitä Premiumiin",
     "maybeLater": "Ehkä myöhemmin",
-    "purchaseComingSoon": "Sovelluksen sisäinen osto tulossa pian!"
+    "purchaseComingSoon": "Sovelluksen sisäinen osto tulossa pian!",
+    "grantError": "Premium-version aktivointi epäonnistui. Yritä uudelleen."
   }
 }

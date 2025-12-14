@@ -1679,6 +1679,7 @@
     "oneTimePayment": "one-time payment",
     "upgradeButton": "Upgrade to Premium",
     "maybeLater": "Maybe Later",
-    "purchaseComingSoon": "In-app purchase coming soon!"
+    "purchaseComingSoon": "In-app purchase coming soon!",
+    "grantError": "Failed to activate premium. Please try again."
   }
 }

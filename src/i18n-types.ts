@@ -907,6 +907,7 @@ export type TranslationKey =
   | 'premium.currentUsage'
   | 'premium.freeVersionLimitReached'
   | 'premium.fullVersionIncludes'
+  | 'premium.grantError'
   | 'premium.limitExplanation'
   | 'premium.maybeLater'
   | 'premium.oneTimePayment'
