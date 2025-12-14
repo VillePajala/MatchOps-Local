@@ -292,22 +292,29 @@ describe('UpgradePromptModal', () => {
         value: 'production',
         writable: true,
       });
+      // Simulate Vercel production (no Play Billing yet)
+      Object.defineProperty(process.env, 'VERCEL_ENV', {
+        value: 'production',
+        writable: true,
+        configurable: true,
+      });
     });
 
-    it('shows coming soon alert in production', async () => {
-      const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
+    afterEach(() => {
+      delete (process.env as Record<string, string | undefined>).VERCEL_ENV;
+    });
+
+    it('shows inline coming soon message in production (no upgrade button)', () => {
       renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
-      const upgradeButton = screen.getByRole('button', { name: /upgrade to premium/i });
-      await act(async () => {
-        fireEvent.click(upgradeButton);
-      });
+      // In production without Play Billing, upgrade button is replaced with inline message
+      expect(screen.queryByRole('button', { name: /upgrade to premium/i })).not.toBeInTheDocument();
 
-      expect(alertSpy).toHaveBeenCalledWith(
-        expect.stringContaining('coming soon')
-      );
+      // Should show inline "coming soon" message
+      expect(screen.getByText(/available soon/i)).toBeInTheDocument();
 
-      alertSpy.mockRestore();
+      // Should show OK button instead
+      expect(screen.getByRole('button', { name: /ok/i })).toBeInTheDocument();
     });
   });
 
