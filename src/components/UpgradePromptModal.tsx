@@ -82,11 +82,11 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   // For development/internal testing - will be replaced by Play Billing in P4C
   const handleUpgradeClick = async () => {
     // TODO: P4C will replace this with actual Play Billing flow
-    if (isDev || isInternalTesting) {
-      // In internal testing mode (TWA), window.confirm doesn't work, so grant directly
-      // User can reset to free version in Settings if needed
+    // For now, grant premium directly in dev/test/preview environments
+    if (canPurchase) {
       try {
-        await grantPremiumAccess(isInternalTesting ? 'internal-test-token' : 'dev-test-token');
+        const token = isInternalTesting ? 'internal-test-token' : isDev ? 'dev-test-token' : 'preview-test-token';
+        await grantPremiumAccess(token);
         showToast(t('premium.grantSuccess', 'Premium activated! You can reset in Settings.'), 'success');
         onClose();
       } catch (error) {
@@ -94,7 +94,6 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
         showToast(t('premium.grantError', 'Failed to activate premium. Please try again.'), 'error');
       }
     }
-    // TODO P4C: Add Play Billing purchase flow here
   };
 
   const titleId = 'upgrade-prompt-modal-title';
