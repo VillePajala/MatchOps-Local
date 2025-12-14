@@ -1,0 +1,77 @@
+name: Update Test Badge
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - '*.config.*'
+      - 'package.json'
+
+jobs:
+  update-badge:
+    name: Update Test Count Badge
+    runs-on: ubuntu-latest
+    # Only run if CI tests passed (this runs after push, so CI should have run)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests and capture count
+        id: test-count
+        run: |
+          # Run tests and capture output
+          TEST_OUTPUT=$(CI=true npx jest --ci --maxWorkers=2 --testTimeout=10000 2>&1) || true
+
+          # Extract passing test count
+          PASSING=$(echo "$TEST_OUTPUT" | grep -oP 'Tests:\s+(\d+ failed, )?\K\d+(?= passed)' | tail -1)
+
+          if [ -z "$PASSING" ]; then
+            echo "Could not extract test count from output"
+            exit 1
+          fi
+
+          echo "passing=$PASSING" >> $GITHUB_OUTPUT
+          echo "Found $PASSING passing tests"
+
+      - name: Update README badge
+        run: |
+          PASSING=${{ steps.test-count.outputs.passing }}
+
+          # Current badge value
+          CURRENT=$(grep -oP 'tests-\K\d+' README.md | head -1)
+
+          echo "Current badge: $CURRENT"
+          echo "New count: $PASSING"
+
+          if [ "$CURRENT" != "$PASSING" ]; then
+            # Update the badge (use floor to nearest 5 for stability)
+            BADGE_COUNT=$(( (PASSING / 5) * 5 ))
+            sed -i "s/tests-[0-9]*+-/tests-${BADGE_COUNT}+-/" README.md
+            echo "Badge updated to ${BADGE_COUNT}+"
+          else
+            echo "Badge already up to date"
+          fi
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          if git diff --quiet README.md; then
+            echo "No changes to commit"
+          else
+            git add README.md
+            git commit -m "chore: update test count badge [skip ci]"
+            git push
+          fi

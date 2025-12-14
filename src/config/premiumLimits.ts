@@ -4,12 +4,12 @@
  */
 
 export const FREE_LIMITS = {
-  maxTeams: 1,
-  maxGamesPerSeason: 10,
-  maxGamesPerTournament: 10,
-  maxPlayers: 18,
-  maxSeasons: 1,
-  maxTournaments: 1,
+  maxTeams: 1,               // Allow trying one team before upgrade
+  maxGamesPerSeason: 10,     // ~1/3 of typical Finnish youth season (25-30 games)
+  maxGamesPerTournament: 10, // Covers most small tournaments
+  maxPlayers: 18,            // Standard squad size (11 starters + 7 subs)
+  maxSeasons: 1,             // One active season to evaluate the app
+  maxTournaments: 1,         // One tournament to try the feature
 } as const;
 
 export type ResourceType = 'team' | 'game' | 'player' | 'season' | 'tournament';

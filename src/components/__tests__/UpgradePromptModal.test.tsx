@@ -15,6 +15,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import UpgradePromptModal from '../UpgradePromptModal';
 import type { UpgradePromptModalProps } from '../UpgradePromptModal';
+import { ToastProvider } from '@/contexts/ToastProvider';
 
 // Mock react-i18next
 jest.mock('react-i18next', () => ({
@@ -40,6 +41,16 @@ jest.mock('@/hooks/usePremium', () => ({
     grantPremiumAccess: mockGrantPremiumAccess,
   }),
 }));
+
+// Wrapper component with ToastProvider
+const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <ToastProvider>{children}</ToastProvider>
+);
+
+// Custom render with providers
+const renderWithProviders = (ui: React.ReactElement) => {
+  return render(ui, { wrapper: TestWrapper });
+};
 
 // Store original NODE_ENV
 const originalNodeEnv = process.env.NODE_ENV;
@@ -68,19 +79,19 @@ describe('UpgradePromptModal', () => {
 
   describe('rendering', () => {
     it('renders nothing when isOpen is false', () => {
-      render(<UpgradePromptModal {...defaultProps} isOpen={false} />);
+      renderWithProviders(<UpgradePromptModal {...defaultProps} isOpen={false} />);
 
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
     it('renders dialog when isOpen is true', () => {
-      render(<UpgradePromptModal {...defaultProps} />);
+      renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
       expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
     it('displays premium benefits list', () => {
-      render(<UpgradePromptModal {...defaultProps} />);
+      renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
       expect(screen.getByText('Unlimited teams')).toBeInTheDocument();
       expect(screen.getByText('Unlimited players')).toBeInTheDocument();
@@ -89,14 +100,14 @@ describe('UpgradePromptModal', () => {
     });
 
     it('displays price', () => {
-      render(<UpgradePromptModal {...defaultProps} />);
+      renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
       expect(screen.getByText('9,99 €')).toBeInTheDocument();
       expect(screen.getByText('one-time payment')).toBeInTheDocument();
     });
 
     it('displays upgrade and dismiss buttons', () => {
-      render(<UpgradePromptModal {...defaultProps} />);
+      renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
       expect(screen.getByRole('button', { name: /upgrade to premium/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /maybe later/i })).toBeInTheDocument();
@@ -105,7 +116,7 @@ describe('UpgradePromptModal', () => {
 
   describe('resource-specific display', () => {
     it('displays resource limit info when resource prop is provided', () => {
-      render(
+      renderWithProviders(
         <UpgradePromptModal
           {...defaultProps}
           resource="team"
@@ -118,7 +129,7 @@ describe('UpgradePromptModal', () => {
     });
 
     it('displays current usage when currentCount is provided', () => {
-      render(
+      renderWithProviders(
         <UpgradePromptModal
           {...defaultProps}
           resource="player"
@@ -132,7 +143,7 @@ describe('UpgradePromptModal', () => {
     });
 
     it('does not display resource info when resource prop is not provided', () => {
-      render(<UpgradePromptModal {...defaultProps} />);
+      renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
       expect(screen.queryByText(/free tier limit/i)).not.toBeInTheDocument();
     });
@@ -140,7 +151,7 @@ describe('UpgradePromptModal', () => {
 
   describe('focus management', () => {
     it('focuses the Maybe Later button on open', async () => {
-      render(<UpgradePromptModal {...defaultProps} />);
+      renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
       await waitFor(() => {
         const maybeLaterButton = screen.getByRole('button', { name: /maybe later/i });
@@ -161,7 +172,7 @@ describe('UpgradePromptModal', () => {
         );
       };
 
-      render(<TestComponent />);
+      renderWithProviders(<TestComponent />);
 
       const triggerButton = screen.getByTestId('trigger');
       triggerButton.focus();
@@ -191,7 +202,7 @@ describe('UpgradePromptModal', () => {
   describe('keyboard interactions', () => {
     it('closes modal when Escape key is pressed', async () => {
       const onClose = jest.fn();
-      render(<UpgradePromptModal {...defaultProps} onClose={onClose} />);
+      renderWithProviders(<UpgradePromptModal {...defaultProps} onClose={onClose} />);
 
       await act(async () => {
         fireEvent.keyDown(document, { key: 'Escape' });
@@ -204,7 +215,7 @@ describe('UpgradePromptModal', () => {
   describe('button interactions', () => {
     it('calls onClose when Maybe Later is clicked', async () => {
       const onClose = jest.fn();
-      render(<UpgradePromptModal {...defaultProps} onClose={onClose} />);
+      renderWithProviders(<UpgradePromptModal {...defaultProps} onClose={onClose} />);
 
       const maybeLaterButton = screen.getByRole('button', { name: /maybe later/i });
       await act(async () => {
@@ -225,7 +236,7 @@ describe('UpgradePromptModal', () => {
 
     it('shows dev mode confirmation when upgrade is clicked in dev', async () => {
       const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
-      render(<UpgradePromptModal {...defaultProps} />);
+      renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
       const upgradeButton = screen.getByRole('button', { name: /upgrade to premium/i });
       await act(async () => {
@@ -244,7 +255,7 @@ describe('UpgradePromptModal', () => {
       const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
       mockGrantPremiumAccess.mockResolvedValue(undefined);
 
-      render(<UpgradePromptModal {...defaultProps} onClose={onClose} />);
+      renderWithProviders(<UpgradePromptModal {...defaultProps} onClose={onClose} />);
 
       const upgradeButton = screen.getByRole('button', { name: /upgrade to premium/i });
       await act(async () => {
@@ -261,7 +272,7 @@ describe('UpgradePromptModal', () => {
       const onClose = jest.fn();
       const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
 
-      render(<UpgradePromptModal {...defaultProps} onClose={onClose} />);
+      renderWithProviders(<UpgradePromptModal {...defaultProps} onClose={onClose} />);
 
       const upgradeButton = screen.getByRole('button', { name: /upgrade to premium/i });
       await act(async () => {
@@ -285,7 +296,7 @@ describe('UpgradePromptModal', () => {
 
     it('shows coming soon alert in production', async () => {
       const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
-      render(<UpgradePromptModal {...defaultProps} />);
+      renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
       const upgradeButton = screen.getByRole('button', { name: /upgrade to premium/i });
       await act(async () => {
@@ -302,7 +313,7 @@ describe('UpgradePromptModal', () => {
 
   describe('accessibility', () => {
     it('has proper aria attributes', () => {
-      render(<UpgradePromptModal {...defaultProps} />);
+      renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
       const dialog = screen.getByRole('dialog');
       expect(dialog).toHaveAttribute('aria-modal', 'true');
@@ -310,7 +321,7 @@ describe('UpgradePromptModal', () => {
     });
 
     it('title is associated with dialog via aria-labelledby', () => {
-      render(<UpgradePromptModal {...defaultProps} />);
+      renderWithProviders(<UpgradePromptModal {...defaultProps} />);
 
       const dialog = screen.getByRole('dialog');
       const labelledById = dialog.getAttribute('aria-labelledby');

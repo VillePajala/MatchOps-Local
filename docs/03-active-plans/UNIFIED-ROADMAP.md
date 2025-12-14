@@ -57,6 +57,7 @@
 - [x] Instructions Modal / How It Works help system
 - [x] Game Type labeling (Soccer/Futsal) with filtering
 - [x] Gender labeling (Boys/Girls) with filtering
+- [x] Warm-up Plan (customizable pre-match warm-up routine with sections, stored in IndexedDB)
 
 ---
 
@@ -444,6 +445,7 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 ### ⚽ Future Features
 | Item | Effort | Doc |
 |------|--------|-----|
+| **Field Export (Image/PDF)** | Medium | Export soccer field with match info and lineup as shareable image or PDF |
 | Tactics Field Variations (half/quarter field) | Medium | `docs/04-features/tactics-field-variations.md` |
 | Futsal Field Visualization | Medium | Different court, 5 players default |
 | Configurable Formations | Low | TODO in useFieldCoordination.ts |
@@ -495,6 +497,7 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 
 | Date | Update |
 |------|--------|
+| 2025-12-14 | ✅ **Warm-up Plan feature documented** - customizable pre-match routine (bundled with P4B branch) |
 | 2025-12-14 | 📋 **Added P4D (Business Setup) and P4E (Communication Infrastructure)** - required before Play Billing |
 | 2025-12-13 | ✅ **Gender Handling COMPLETED** - merged to master |
 | 2025-12-13 | ✅ **PWA Stability fixes merged** - Blank screen fix (useAppResume, ErrorBoundary improvements, iOS Safari bfcache) |
