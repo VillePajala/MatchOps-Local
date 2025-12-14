@@ -27,9 +27,9 @@ interface PremiumContextValue {
   /** Returns true if imported data exceeds free tier limits */
   isImportOverLimits: (counts: ResourceCounts) => boolean;
   /** Trigger to show upgrade prompt (set by consumer) */
-  showUpgradePrompt: (resource?: ResourceType) => void;
+  showUpgradePrompt: (resource?: ResourceType, currentCount?: number) => void;
   /** Register the upgrade prompt handler */
-  setUpgradePromptHandler: (handler: (resource?: ResourceType) => void) => void;
+  setUpgradePromptHandler: (handler: (resource?: ResourceType, currentCount?: number) => void) => void;
   /** Grant premium (for after purchase verification) */
   grantPremiumAccess: (purchaseToken?: string) => Promise<void>;
   /** Revoke premium (for testing) */
@@ -47,7 +47,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   // Use ref for callback to avoid re-renders when handler changes
-  const upgradePromptHandlerRef = useRef<((resource?: ResourceType) => void) | null>(null);
+  const upgradePromptHandlerRef = useRef<((resource?: ResourceType, currentCount?: number) => void) | null>(null);
 
   const loadPremiumStatus = useCallback(async () => {
     try {
@@ -91,9 +91,9 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   );
 
   const showUpgradePrompt = useCallback(
-    (resource?: ResourceType) => {
+    (resource?: ResourceType, currentCount?: number) => {
       if (upgradePromptHandlerRef.current) {
-        upgradePromptHandlerRef.current(resource);
+        upgradePromptHandlerRef.current(resource, currentCount);
       } else {
         logger.warn('Upgrade prompt handler not registered');
       }
@@ -102,7 +102,7 @@ export function PremiumProvider({ children }: { children: React.ReactNode }) {
   );
 
   const setUpgradePromptHandler = useCallback(
-    (handler: (resource?: ResourceType) => void) => {
+    (handler: (resource?: ResourceType, currentCount?: number) => void) => {
       upgradePromptHandlerRef.current = handler;
     },
     []

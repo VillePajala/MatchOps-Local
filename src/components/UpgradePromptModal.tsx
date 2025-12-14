@@ -70,21 +70,17 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
   const resourceKey = resource ? (limit === 1 ? `premium.resource.${resource}` : `premium.resource.${resource}Plural`) : '';
   const resourceName = resource ? t(resourceKey, resource) : '';
 
+  // Check if purchase is available
+  // In Vercel production without Play Billing, we show an inline message instead of the button
+  const isDev = process.env.NODE_ENV === 'development';
+  const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
+  const isVercelProduction = process.env.VERCEL_ENV === 'production';
+  // TODO P4C: Add isPlayBillingAvailable check when Play Billing is integrated
+  const canPurchase = !isVercelProduction || isDev || isInternalTesting;
+
   // For development/internal testing - will be replaced by Play Billing in P4C
   const handleUpgradeClick = async () => {
     // TODO: P4C will replace this with actual Play Billing flow
-    // For now, allow simulated purchase in dev mode or internal testing mode
-    const isDev = process.env.NODE_ENV === 'development';
-    const isInternalTesting = process.env.NEXT_PUBLIC_INTERNAL_TESTING === 'true';
-
-    // SECURITY: Block dev/test shortcuts in Vercel production, regardless of env var misconfiguration
-    const isVercelProduction = process.env.VERCEL_ENV === 'production';
-    if (isVercelProduction) {
-      // In production, this will eventually trigger Play Billing (P4C)
-      window.alert(t('premium.purchaseComingSoon', 'In-app purchase coming soon!'));
-      return;
-    }
-
     if (isDev || isInternalTesting) {
       const confirmGrant = window.confirm(
         isInternalTesting && !isDev
@@ -103,10 +99,8 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
           showToast(t('premium.grantError', 'Failed to activate premium. Please try again.'), 'error');
         }
       }
-    } else {
-      // In production without Play Billing, show coming soon message
-      window.alert(t('premium.purchaseComingSoon', 'In-app purchase coming soon!'));
     }
+    // TODO P4C: Add Play Billing purchase flow here
   };
 
   const titleId = 'upgrade-prompt-modal-title';
@@ -183,21 +177,41 @@ const UpgradePromptModal: React.FC<UpgradePromptModalProps> = ({
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-2">
-          {/* TODO P4C: Add disabled={isPurchasing}, aria-busy={isPurchasing},
-              and loading text when Play Billing integration is added */}
-          <button
-            onClick={handleUpgradeClick}
-            className={`${primaryButtonStyle} w-full bg-gradient-to-b from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700`}
-          >
-            {t('premium.upgradeButton', 'Upgrade to Premium')}
-          </button>
-          <button
-            ref={closeButtonRef}
-            onClick={onClose}
-            className={`${secondaryButtonStyle} w-full`}
-          >
-            {t('premium.maybeLater', 'Maybe Later')}
-          </button>
+          {canPurchase ? (
+            <>
+              {/* TODO P4C: Add disabled={isPurchasing}, aria-busy={isPurchasing},
+                  and loading text when Play Billing integration is added */}
+              <button
+                onClick={handleUpgradeClick}
+                className={`${primaryButtonStyle} w-full bg-gradient-to-b from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700`}
+              >
+                {t('premium.upgradeButton', 'Upgrade to Premium')}
+              </button>
+              <button
+                ref={closeButtonRef}
+                onClick={onClose}
+                className={`${secondaryButtonStyle} w-full`}
+              >
+                {t('premium.maybeLater', 'Maybe Later')}
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Production without Play Billing - show coming soon message */}
+              <div className="text-center py-3 px-4 bg-slate-700/50 rounded-md border border-slate-600">
+                <p className="text-slate-300 text-sm">
+                  {t('premium.availableSoon', 'Premium upgrade will be available soon via Google Play!')}
+                </p>
+              </div>
+              <button
+                ref={closeButtonRef}
+                onClick={onClose}
+                className={`${primaryButtonStyle} w-full`}
+              >
+                {t('common.ok', 'OK')}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

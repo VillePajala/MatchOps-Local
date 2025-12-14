@@ -1680,6 +1680,7 @@
     "upgradeButton": "Päivitä Premiumiin",
     "maybeLater": "Ehkä myöhemmin",
     "purchaseComingSoon": "Sovelluksen sisäinen osto tulossa pian!",
-    "grantError": "Premium-version aktivointi epäonnistui. Yritä uudelleen."
+    "grantError": "Premium-version aktivointi epäonnistui. Yritä uudelleen.",
+    "availableSoon": "Premium-päivitys tulee pian saataville Google Playn kautta!"
   }
 }
