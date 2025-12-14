@@ -1,0 +1,8 @@
+{
+  "version": "3f51915b",
+  "date": "2025-12-14",
+  "notes": {
+    "en": "Remove window.confirm for TWA compatibility",
+    "fi": "Remove window.confirm for TWA compatibility"
+  }
+}
