@@ -319,9 +319,6 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                               </a>
                             ) : null;
                           })()}
-                          {person.notes && (
-                            <p className="text-xs text-slate-500 mt-2 italic">{person.notes}</p>
-                          )}
                         </div>
                         <div className="relative ml-4" ref={openMenuId === person.id ? menuRef : null}>
                           <button
