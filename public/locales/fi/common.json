@@ -1057,6 +1057,13 @@
       "other": "Muu"
     }
   },
+  "certifications": {
+    "groups": {
+      "football": "Jalkapallovalmennus",
+      "futsal": "Futsalvalmennus",
+      "goalkeeper": "Maalivahtivalmennus"
+    }
+  },
   "personnelManager": {
     "title": "Taustahenkilöt",
     "addPersonnel": "Lisää taustahenkilö",
