@@ -1,8 +1,8 @@
 {
-  "version": "9f7bbd62",
+  "version": "abdaa823",
   "date": "2025-12-15",
   "notes": {
-    "en": "Prevent auto-save from re-creating deleted player assessments",
-    "fi": "Prevent auto-save from re-creating deleted player assessments"
+    "en": "Add sorting options to master roster",
+    "fi": "Add sorting options to master roster"
   }
 }
