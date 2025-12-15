@@ -511,7 +511,11 @@
     "confirmAddPlayer": "Lisää Pelaaja",
     "confirmDeletePlayer": "Haluatko varmasti poistaa tämän pelaajan?",
     "confirmDeletePlayerTitle": "Poista pelaaja",
-    "searchPlaceholder": "Etsi pelaajaa..."
+    "searchPlaceholder": "Etsi pelaajaa...",
+    "sortBy": "Järjestä",
+    "sortByLastName": "Sukunimi",
+    "sortByNewest": "Uusimmat",
+    "sortByOldest": "Vanhimmat"
   },
   "gameStatsModal": {
     "title": "Ottelutilastot",

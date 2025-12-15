@@ -75,6 +75,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
   const [searchText, setSearchText] = useState('');
+  const [sortBy, setSortBy] = useState<'lastName' | 'creationNewest' | 'creationOldest'>('lastName');
 
   // State for the actions menu
   const [actionsMenuPlayerId, setActionsMenuPlayerId] = useState<string | null>(null);
@@ -139,7 +140,36 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const filteredPlayers = [...availablePlayers].filter(p => {
+  // Helper to extract last name (last word of full name)
+  const getLastName = (fullName: string): string => {
+    const parts = fullName.trim().split(/\s+/);
+    return parts[parts.length - 1] || fullName;
+  };
+
+  // Sort players based on selected sort option
+  const sortPlayers = (players: Player[]): Player[] => {
+    return [...players].sort((a, b) => {
+      switch (sortBy) {
+        case 'lastName':
+          return getLastName(a.name).localeCompare(getLastName(b.name), undefined, { sensitivity: 'base' });
+        case 'creationNewest': {
+          // Extract timestamp from ID: player_TIMESTAMP_random
+          const timeA = parseInt(a.id.split('_')[1], 10) || 0;
+          const timeB = parseInt(b.id.split('_')[1], 10) || 0;
+          return timeB - timeA;
+        }
+        case 'creationOldest': {
+          const timeA = parseInt(a.id.split('_')[1], 10) || 0;
+          const timeB = parseInt(b.id.split('_')[1], 10) || 0;
+          return timeA - timeB;
+        }
+        default:
+          return 0;
+      }
+    });
+  };
+
+  const filteredPlayers = sortPlayers([...availablePlayers]).filter(p => {
     if (!searchText) return true;
     const search = searchText.toLowerCase();
     return (
@@ -192,18 +222,30 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
           </div>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
-            <input
-              type="text"
-              placeholder={t('rosterSettingsModal.searchPlaceholder', 'Search players...')}
-              value={searchText}
-              onChange={handleSearchChange}
-              autoComplete="off"
-              className="w-full px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            />
+          <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-2 pb-6">
+            <div className="mt-0.5 mb-3 flex items-center gap-2">
+              <input
+                type="text"
+                placeholder={t('rosterSettingsModal.searchPlaceholder', 'Search players...')}
+                value={searchText}
+                onChange={handleSearchChange}
+                autoComplete="off"
+                className="flex-1 min-w-0 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                className="flex-shrink-0 px-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                aria-label={t('rosterSettingsModal.sortBy', 'Sort by')}
+              >
+                <option value="lastName">{t('rosterSettingsModal.sortByLastName', 'Last Name')}</option>
+                <option value="creationNewest">{t('rosterSettingsModal.sortByNewest', 'Newest')}</option>
+                <option value="creationOldest">{t('rosterSettingsModal.sortByOldest', 'Oldest')}</option>
+              </select>
+            </div>
 
             {/* Player List */}
-            <div className={`${cardStyle} mt-4 -mx-2 sm:-mx-4 md:-mx-6`}>
+            <div className={`${cardStyle} -mx-2 sm:-mx-4 md:-mx-6`}>
               <div className="space-y-3">
                 {filteredPlayers.map((player) => (
                   <div

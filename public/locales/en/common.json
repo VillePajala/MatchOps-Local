@@ -581,7 +581,11 @@
     "confirmAddPlayer": "Add Player",
     "confirmDeletePlayer": "Are you sure you want to remove this player?",
     "confirmDeletePlayerTitle": "Remove Player",
-    "searchPlaceholder": "Search players..."
+    "searchPlaceholder": "Search players...",
+    "sortBy": "Sort by",
+    "sortByLastName": "Last Name",
+    "sortByNewest": "Newest",
+    "sortByOldest": "Oldest"
   },
   "loadGameModal": {
     "title": "Load Game",
