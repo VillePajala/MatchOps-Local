@@ -88,24 +88,28 @@ export const useDuplicateTeamMutation = () => {
 // Team roster mutations
 export const useSetTeamRosterMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ teamId, roster }: { teamId: string; roster: TeamPlayer[] }) => 
+    mutationFn: ({ teamId, roster }: { teamId: string; roster: TeamPlayer[] }) =>
       setTeamRoster(teamId, roster),
     onSuccess: (_, { teamId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.teamRoster(teamId) });
+      // Also invalidate teams to trigger roster count refresh in TeamManagerModal
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams });
     },
   });
 };
 
 export const useAddPlayerToRosterMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ teamId, player }: { teamId: string; player: TeamPlayer }) => 
+    mutationFn: ({ teamId, player }: { teamId: string; player: TeamPlayer }) =>
       addPlayerToRoster(teamId, player),
     onSuccess: (_, { teamId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.teamRoster(teamId) });
+      // Also invalidate teams to trigger roster count refresh in TeamManagerModal
+      queryClient.invalidateQueries({ queryKey: queryKeys.teams });
     },
   });
 };
@@ -126,13 +130,15 @@ export const useUpdatePlayerInRosterMutation = () => {
 
 export const useRemovePlayerFromRosterMutation = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ teamId, playerId }: { teamId: string; playerId: string }) => 
+    mutationFn: ({ teamId, playerId }: { teamId: string; playerId: string }) =>
       removePlayerFromRoster(teamId, playerId),
     onSuccess: (success, { teamId }) => {
       if (success) {
         queryClient.invalidateQueries({ queryKey: queryKeys.teamRoster(teamId) });
+        // Also invalidate teams to trigger roster count refresh in TeamManagerModal
+        queryClient.invalidateQueries({ queryKey: queryKeys.teams });
       }
     },
   });
