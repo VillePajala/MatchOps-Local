@@ -180,19 +180,10 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
 
         <div className="relative z-10 flex flex-col min-h-0 h-full">
           {/* Header */}
-          <div className="flex justify-between items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">
-            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg">
+          <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 flex-shrink-0">
+            <h2 className="text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg text-center">
               {t('controlBar.training', 'Warmup Plan')}
             </h2>
-            {!isEditMode && (
-              <button
-                onClick={startEditing}
-                className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md text-sm font-medium transition-colors"
-              >
-                <FaPen className="w-3 h-3" />
-                {t('warmupPlanModal.editButton', 'Edit')}
-              </button>
-            )}
           </div>
 
           {/* Scrollable Content */}
@@ -250,9 +241,18 @@ const TrainingResourcesModal: React.FC<TrainingResourcesModalProps> = ({ isOpen,
                 </button>
               </>
             ) : (
-              <button onClick={onClose} className={primaryButtonStyle}>
-                {t('common.doneButton', 'Done')}
-              </button>
+              <>
+                <button
+                  onClick={startEditing}
+                  className={`${secondaryButtonStyle} flex items-center gap-2`}
+                >
+                  <FaPen className="w-3 h-3" />
+                  {t('warmupPlanModal.editButton', 'Edit')}
+                </button>
+                <button onClick={onClose} className={primaryButtonStyle}>
+                  {t('common.doneButton', 'Done')}
+                </button>
+              </>
             )}
           </ModalFooter>
         </div>

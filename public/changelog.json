@@ -1,8 +1,8 @@
 {
-  "version": "1035cc4f",
+  "version": "9f7bbd62",
   "date": "2025-12-15",
   "notes": {
-    "en": "Fixes based on core review",
-    "fi": "Fixes based on core review"
+    "en": "Prevent auto-save from re-creating deleted player assessments",
+    "fi": "Prevent auto-save from re-creating deleted player assessments"
   }
 }
