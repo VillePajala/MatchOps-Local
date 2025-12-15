@@ -332,6 +332,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
     selectedTournamentIdFilter,
     selectedTeamIdFilter,
     selectedSeriesIdFilter,
+    selectedGameTypeFilter,
+    selectedGenderFilter,
     sortColumn,
     sortDirection,
     filterText,

@@ -66,6 +66,8 @@ export interface GameStatsParams {
   selectedTournamentIdFilter: string | 'all';
   selectedTeamIdFilter: string | 'all' | 'legacy';
   selectedSeriesIdFilter: string | 'all';
+  selectedGameTypeFilter: 'all' | 'soccer' | 'futsal';
+  selectedGenderFilter: 'all' | 'boys' | 'girls';
   sortColumn: SortableColumn;
   sortDirection: SortDirection;
   filterText: string;
