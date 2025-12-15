@@ -35,3 +35,20 @@ export function generatePlayerIds(count: number): string[] {
     return `player_${timestamp}_${randomPart}_${index}`;
   });
 }
+
+/**
+ * Extracts the timestamp from an ID in format: {prefix}_{timestamp}_{random}[_{index}]
+ * Works with player IDs, game IDs, and other entities using this format.
+ *
+ * @param id - The ID string to extract timestamp from
+ * @returns The timestamp as a number, or 0 if extraction fails
+ *
+ * @example
+ * extractTimestampFromId('player_1703123456789_a1b2c3d4e_0'); // Returns: 1703123456789
+ * extractTimestampFromId('game_1703123456789_xyz'); // Returns: 1703123456789
+ * extractTimestampFromId('invalid'); // Returns: 0
+ */
+export function extractTimestampFromId(id: string): number {
+  const parts = id.split('_');
+  return parts.length >= 2 ? parseInt(parts[1], 10) || 0 : 0;
+}
