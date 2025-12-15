@@ -875,7 +875,8 @@
     "jerseyNumberPlaceholder": "esim. 10",
     "notesLabel": "Muistiinpanot",
     "notesPlaceholder": "Valinnaiset muistiinpanot pelaajasta",
-    "goalieLabel": "Maalivahti"
+    "goalieLabel": "Maalivahti",
+    "duplicateNameError": "Samanniminen pelaaja on jo olemassa"
   },
   "personnelDetailsModal": {
     "createTitle": "Lisää taustahenkilö",
