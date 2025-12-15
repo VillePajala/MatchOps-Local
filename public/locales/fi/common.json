@@ -633,8 +633,10 @@
     "importReadError": "Virhe luettaessa tiedostoa",
     "loadButton": "Lataa peli",
     "loadingGames": "Ladataan pelejä...",
-    "noGamesMatchFilter": "Yhtään peliä ei vastaa suodatinta",
-    "noGamesSaved": "Yhtään peliä ei ole tallennettu",
+    "noGamesMatchFilter": "Yhtään peliä ei vastaa hakua",
+    "noGamesSaved": "Ei tallennettuja pelejä",
+    "tryDifferentFilter": "Kokeile eri hakusanaa tai tyhjennä suodatin",
+    "startFirstGame": "Aloita ensimmäinen pelisi aloitusnäytöltä",
     "gameSaved": "Peli tallennettu!",
     "newGameSaved": "Uusi peli tallennettu!",
     "errors": {

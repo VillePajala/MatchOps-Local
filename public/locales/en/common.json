@@ -633,8 +633,10 @@
     "importReadError": "Error reading file content.",
     "loadButton": "Load Game",
     "loadingGames": "Loading games...",
-    "noGamesMatchFilter": "No saved games match your filter.",
-    "noGamesSaved": "No games have been saved yet.",
+    "noGamesMatchFilter": "No games match your filter",
+    "noGamesSaved": "No games saved yet",
+    "tryDifferentFilter": "Try a different search term or clear the filter",
+    "startFirstGame": "Start your first game from the home screen to begin tracking matches",
     "gameSaved": "Game saved!",
     "newGameSaved": "New game saved!",
     "errors": {

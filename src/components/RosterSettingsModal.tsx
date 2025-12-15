@@ -250,21 +250,21 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                 {filteredPlayers.map((player) => (
                   <div
                     key={player.id}
-                    className="p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40"
+                    className="p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 cursor-pointer"
+                    onClick={() => handleEditPlayer(player.id)}
                   >
                     <div className="flex items-center gap-3">
                       <div className="flex-grow flex items-center gap-2 truncate">
                         <span
-                          className="text-base text-slate-100 truncate cursor-pointer hover:text-yellow-400"
+                          className="text-base text-slate-100 truncate"
                           title={player.name}
-                          onClick={() => handleEditPlayer(player.id)}
                         >
                           {player.name}{player.nickname ? <span className="text-slate-400"> ({player.nickname})</span> : ''}
                         </span>
                       </div>
                       <div className="relative" ref={actionsMenuPlayerId === player.id ? actionsMenuRef : null}>
                         <button
-                          onClick={() => setActionsMenuPlayerId(actionsMenuPlayerId === player.id ? null : player.id)}
+                          onClick={(e) => { e.stopPropagation(); setActionsMenuPlayerId(actionsMenuPlayerId === player.id ? null : player.id); }}
                           className={`${iconButtonBaseStyle} text-slate-400 hover:text-slate-200`}
                           title={t('common.actions', 'Actions')}
                           disabled={isRosterUpdating}
@@ -274,7 +274,8 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                         {actionsMenuPlayerId === player.id && (
                           <div className="absolute right-0 top-8 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[140px]">
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 onOpenPlayerStats(player.id);
                                 setActionsMenuPlayerId(null);
                               }}
@@ -284,7 +285,8 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                               {t('common.stats', 'Stats')}
                             </button>
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setPlayerToDelete({ id: player.id, name: player.name });
                                 setShowDeleteConfirm(true);
                                 setActionsMenuPlayerId(null);
