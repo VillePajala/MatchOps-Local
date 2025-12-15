@@ -726,7 +726,7 @@ const SoccerField: React.FC<SoccerFieldProps> = React.memo(({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [draw]);
+  }, [draw]); // Effect re-runs when `draw` changes, ensuring handler uses latest version
 
   // --- Event Handlers --- 
 

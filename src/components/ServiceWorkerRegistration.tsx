@@ -29,7 +29,7 @@ export default function ServiceWorkerRegistration() {
         if (data.notes) {
           // Get user's language preference from IndexedDB (default to Finnish)
           const settings = await getAppSettings();
-          const lang = settings.language || 'fi';
+          const lang = settings?.language || 'fi';
           const note = data.notes[lang as keyof typeof data.notes] || data.notes.fi;
           setReleaseNotes(note);
         }
