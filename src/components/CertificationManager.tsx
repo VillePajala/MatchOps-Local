@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CERTIFICATIONS } from '@/config/gameOptions';
+import { CERTIFICATIONS, CERTIFICATION_GROUPS } from '@/config/gameOptions';
 
 interface CertificationManagerProps {
   certifications: string[];
@@ -24,15 +24,25 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
   const [isAdding, setIsAdding] = useState(false);
   const [selectedCert, setSelectedCert] = useState('');
 
-  // Get available certifications (exclude already selected)
-  const availableCertifications = useMemo(
-    () => CERTIFICATIONS.filter(cert => !certifications.includes(cert)),
+  // Get available certifications grouped (exclude already selected)
+  const availableGroups = useMemo(
+    () => CERTIFICATION_GROUPS.map(group => ({
+      ...group,
+      certifications: group.certifications.filter(cert => !certifications.includes(cert)),
+    })).filter(group => group.certifications.length > 0),
     [certifications]
   );
 
+  // Flat list for checking if any certifications remain
+  const hasAvailableCertifications = availableGroups.some(g => g.certifications.length > 0);
+
+  /**
+   * Validates and adds selected certification:
+   * 1. Must not be empty
+   * 2. Must be from CERTIFICATIONS list (dropdown enforces this, defensive check)
+   * 3. Must not already exist (filtered by availableCertifications, defensive check)
+   */
   const handleAdd = () => {
-    // selectedCert comes from controlled dropdown with only valid options
-    // Cast to string[] for includes check since CERTIFICATIONS is a const array
     if (!selectedCert || !(CERTIFICATIONS as readonly string[]).includes(selectedCert)) return;
     if (certifications.includes(selectedCert)) return;
 
@@ -88,10 +98,14 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
             aria-label={t('personnelDetailsModal.selectCertification', 'Select certification')}
           >
             <option value="">{t('personnelDetailsModal.selectCertificationPlaceholder', '-- Select Certification --')}</option>
-            {availableCertifications.map(cert => (
-              <option key={cert} value={cert}>
-                {cert}
-              </option>
+            {availableGroups.map(group => (
+              <optgroup key={group.labelKey} label={t(group.labelKey, group.label)}>
+                {group.certifications.map(cert => (
+                  <option key={cert} value={cert}>
+                    {cert}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
           <button
@@ -115,7 +129,7 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
         <button
           type="button"
           onClick={() => setIsAdding(true)}
-          disabled={availableCertifications.length === 0}
+          disabled={!hasAvailableCertifications}
           className="px-3 py-2 bg-slate-600 hover:bg-slate-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded-md text-sm"
           aria-label={t('personnelDetailsModal.addCertification', 'Add certification')}
         >
