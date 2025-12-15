@@ -229,20 +229,17 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
 
         logger.log('[useAppResume] Page restored from bfcache - triggering refresh');
         // Safe even if visibilitychange also fires - invalidateQueries is idempotent.
-        // The null guard on backgroundStartRef prevents onResume from double-firing.
         queryClient.invalidateQueries();
 
-        // Dispatch custom event for component-level recovery
-        dispatchResumeEvent(backgroundDuration);
-
-        onResume?.();
+        // Dispatch custom event and call resume handler (with debounce protection)
+        triggerResumeWithDebounce(backgroundDuration);
 
         // Reset background start to prevent visibilitychange from double-triggering
         // (pageshow often fires before visibilitychange on iOS Safari)
         backgroundStartRef.current = null;
       }
     },
-    [queryClient, onResume, forceReloadTime, dispatchResumeEvent, forceReloadWithNotification]
+    [queryClient, forceReloadTime, triggerResumeWithDebounce, forceReloadWithNotification]
   );
 
   // Handle pagehide for iOS Safari bfcache entry
