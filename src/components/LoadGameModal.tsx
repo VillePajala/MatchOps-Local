@@ -194,33 +194,31 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       return gameData.isPlayed === false;
     });
 
-    const sortedIds = filteredByPlayed.sort((a, b) => {
-      const gameA = savedGames[a];
-      const gameB = savedGames[b];
-      
-      // Primary sort: by date in descending order (newest first)
-      const dateA = gameA.gameDate ? new Date(gameA.gameDate).getTime() : 0;
-      const dateB = gameB.gameDate ? new Date(gameB.gameDate).getTime() : 0;
+    // Pre-extract dates and timestamps once (O(n)) instead of during sort comparisons (O(n log n))
+    const gamesWithSortKeys = filteredByPlayed.map(id => {
+      const gameData = savedGames[id];
+      return {
+        id,
+        dateTimestamp: gameData?.gameDate ? new Date(gameData.gameDate).getTime() : 0,
+        idTimestamp: extractTimestampFromId(id) || 0,
+      };
+    });
 
-      if (dateB !== dateA) {
+    // Sort using pre-extracted values
+    gamesWithSortKeys.sort((a, b) => {
+      // Primary sort: by date in descending order (newest first)
+      if (b.dateTimestamp !== a.dateTimestamp) {
         // Handle cases where one date is missing (put games without date last)
-        if (!dateA) return 1;
-        if (!dateB) return -1;
-        return dateB - dateA;
+        if (!a.dateTimestamp) return 1;
+        if (!b.dateTimestamp) return -1;
+        return b.dateTimestamp - a.dateTimestamp;
       }
 
       // Secondary sort: by timestamp in game ID (descending, newest first)
-      const timestampA = extractTimestampFromId(a);
-      const timestampB = extractTimestampFromId(b);
-
-      if (timestampA && timestampB) {
-        return timestampB - timestampA;
-      }
-
-      // Fallback if dates are equal and timestamps can't be parsed
-      return 0;
+      return b.idTimestamp - a.idTimestamp;
     });
-    return sortedIds;
+
+    return gamesWithSortKeys.map(g => g.id);
   }, [savedGames, searchText, filterType, filterId, showUnplayedOnly, entityMaps]);
 
   const handleDeleteClick = (gameId: string, gameName: string) => {
