@@ -3,6 +3,7 @@
  */
 
 import { Player, GameEvent, SavedGamesCollection, PlayerStatRow } from '@/types';
+import type { GameType, Gender } from '@/types/game';
 
 // Define the type for sortable columns
 export type SortableColumn = 'name' | 'goals' | 'assists' | 'totalScore' | 'fpAwards' | 'gamesPlayed' | 'avgPoints';
@@ -66,8 +67,8 @@ export interface GameStatsParams {
   selectedTournamentIdFilter: string | 'all';
   selectedTeamIdFilter: string | 'all' | 'legacy';
   selectedSeriesIdFilter: string | 'all';
-  selectedGameTypeFilter: 'all' | 'soccer' | 'futsal';
-  selectedGenderFilter: 'all' | 'boys' | 'girls';
+  selectedGameTypeFilter: GameType | 'all';
+  selectedGenderFilter: Gender | 'all';
   sortColumn: SortableColumn;
   sortDirection: SortDirection;
   filterText: string;
