@@ -170,6 +170,32 @@ describe('CertificationManager', () => {
   });
 
   /**
+   * Tests that certifications are grouped by category in dropdown
+   * @integration
+   */
+  it('renders certifications in grouped optgroups', async () => {
+    render(
+      <CertificationManager
+        certifications={[]}
+        onCertificationsChange={mockOnCertificationsChange}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /add certification/i }));
+
+    const select = screen.getByRole('combobox', { name: /select certification/i });
+    const optgroups = select.querySelectorAll('optgroup');
+
+    // Should have 3 groups: Football, Futsal, Goalkeeper
+    expect(optgroups).toHaveLength(3);
+
+    const groupLabels = Array.from(optgroups).map(og => og.getAttribute('label'));
+    expect(groupLabels).toContain('Football Coaching');
+    expect(groupLabels).toContain('Futsal Coaching');
+    expect(groupLabels).toContain('Goalkeeper Coaching');
+  });
+
+  /**
    * Tests disabling add button when all certifications are used
    * @edge-case
    */

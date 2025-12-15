@@ -1156,6 +1156,13 @@
       "other": "Other"
     }
   },
+  "certifications": {
+    "groups": {
+      "football": "Football Coaching",
+      "futsal": "Futsal Coaching",
+      "goalkeeper": "Goalkeeper Coaching"
+    }
+  },
   "personnelManager": {
     "title": "Personnel Manager",
     "addPersonnel": "Add Personnel",
