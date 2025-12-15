@@ -13,6 +13,7 @@ import { getSavedGames, getLatestGameId } from '@/utils/savedGames';
 import { getMasterRoster } from '@/utils/masterRosterManager';
 import { runMigration } from '@/utils/migration';
 import logger from '@/utils/logger';
+import * as Sentry from '@sentry/nextjs'; // TODO: Remove after Sentry test
 
 // Toast display duration before force reload - allows user to see the notification
 const FORCE_RELOAD_NOTIFICATION_DELAY_MS = 800;
@@ -85,6 +86,15 @@ export default function Home() {
   useEffect(() => {
     checkAppState();
   }, [checkAppState, refreshTrigger]);
+
+  // TODO: Remove this after verifying Sentry works in production
+  useEffect(() => {
+    Sentry.captureMessage('Sentry test: App loaded in PWA', {
+      level: 'info',
+      tags: { test: 'true', component: 'page' },
+    });
+    logger.log('[Sentry Test] Test message sent to Sentry');
+  }, []);
 
   // Handle app resume from background (Android TWA blank screen fix)
   // Triggers refreshTrigger to re-run checkAppState when returning from extended background
