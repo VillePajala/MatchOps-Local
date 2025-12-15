@@ -1,8 +1,8 @@
 {
-  "version": "abdaa823",
+  "version": "243a8511",
   "date": "2025-12-15",
   "notes": {
-    "en": "Add sorting options to master roster",
-    "fi": "Add sorting options to master roster"
+    "en": "Add missing test coverage for PR fixes",
+    "fi": "Add missing test coverage for PR fixes"
   }
 }

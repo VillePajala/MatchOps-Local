@@ -18,6 +18,7 @@ import {
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { extractTimestampFromId } from '@/utils/idGenerator';
 
 /**
  * Get validated series level from tournament, returning null if invalid.
@@ -209,18 +210,13 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
       }
 
       // Secondary sort: by timestamp in game ID (descending, newest first)
-      // Extract timestamp assuming format "game_TIMESTAMP_RANDOM"
-      try {
-        const timestampA = parseInt(a.split('_')[1], 10);
-        const timestampB = parseInt(b.split('_')[1], 10);
-        
-        if (!isNaN(timestampA) && !isNaN(timestampB)) {
-          return timestampB - timestampA;
-        }
-      } catch (error) {
-        logger.warn("Could not parse timestamps from game IDs for secondary sort:", a, b, error);
+      const timestampA = extractTimestampFromId(a);
+      const timestampB = extractTimestampFromId(b);
+
+      if (timestampA && timestampB) {
+        return timestampB - timestampA;
       }
-      
+
       // Fallback if dates are equal and timestamps can't be parsed
       return 0;
     });

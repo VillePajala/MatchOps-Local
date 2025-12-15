@@ -745,20 +745,23 @@ describe('GameStatsModal', () => {
         renderComponent(props);
       });
 
-      // Find and click the edit button for notes
-      const editButton = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
+      // Find the notes section by heading, then find the edit button within it
+      const notesHeading = await screen.findByText(i18n.t('gameStatsModal.notesTitle', 'Game Notes'));
+      // The heading is h3 inside a flex div inside the main container div
+      const notesSection = notesHeading.parentElement?.parentElement;
+      const editButton = within(notesSection as HTMLElement).getByRole('button', { name: i18n.t('common.edit', 'Edit') });
       await act(async () => {
         fireEvent.click(editButton);
       });
 
-      // Find the notes textarea (should now be editable)
-      const notesTextarea = await screen.findByRole('textbox');
+      // Find the notes textarea within the notes section (should now be editable)
+      const notesTextarea = within(notesSection as HTMLElement).getByRole('textbox');
       await act(async () => {
         fireEvent.change(notesTextarea, { target: { value: 'Updated notes' } });
       });
 
-      // Find and click save button
-      const saveButton = await screen.findByRole('button', { name: i18n.t('common.save', 'Save') });
+      // Find and click save button within the notes section
+      const saveButton = within(notesSection as HTMLElement).getByRole('button', { name: i18n.t('common.saveChanges', 'Save Changes') });
       await act(async () => {
         fireEvent.click(saveButton);
       });
@@ -829,20 +832,23 @@ describe('GameStatsModal', () => {
         renderComponent(props);
       });
 
-      // Find and click edit button
-      const editButton = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
+      // Find the notes section by heading, then find the edit button within it
+      const notesHeading = await screen.findByText(i18n.t('gameStatsModal.notesTitle', 'Game Notes'));
+      // The heading is h3 inside a flex div inside the main container div
+      const notesSection = notesHeading.parentElement?.parentElement;
+      const editButton = within(notesSection as HTMLElement).getByRole('button', { name: i18n.t('common.edit', 'Edit') });
       await act(async () => {
         fireEvent.click(editButton);
       });
 
-      // Modify notes
-      const notesTextarea = await screen.findByRole('textbox');
+      // Modify notes within the notes section
+      const notesTextarea = within(notesSection as HTMLElement).getByRole('textbox');
       await act(async () => {
         fireEvent.change(notesTextarea, { target: { value: 'Modified but not saved' } });
       });
 
-      // Cancel edit
-      const cancelButton = await screen.findByRole('button', { name: i18n.t('common.cancel', 'Cancel') });
+      // Cancel edit within notes section
+      const cancelButton = within(notesSection as HTMLElement).getByRole('button', { name: i18n.t('common.cancel', 'Cancel') });
       await act(async () => {
         fireEvent.click(cancelButton);
       });

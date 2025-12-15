@@ -155,6 +155,14 @@ describe('useAppResume', () => {
 
     renderHook(() => useAppResume({ onResume }), { wrapper });
 
+    // First, go to background via pagehide to set backgroundStartRef
+    const pageHideEvent = new PageTransitionEvent('pagehide', {
+      persisted: true,
+    });
+    act(() => {
+      window.dispatchEvent(pageHideEvent);
+    });
+
     // Simulate bfcache restoration (pageshow with persisted=true)
     const pageShowEvent = new PageTransitionEvent('pageshow', {
       persisted: true,
@@ -195,6 +203,13 @@ describe('useAppResume', () => {
     const onResume = jest.fn();
 
     renderHook(() => useAppResume({ onResume }), { wrapper });
+
+    // First, go to background via pagehide to set backgroundStartRef
+    act(() => {
+      window.dispatchEvent(
+        new PageTransitionEvent('pagehide', { persisted: true })
+      );
+    });
 
     // Simulate 3 rapid pageshow events (iOS Safari edge case)
     act(() => {
@@ -441,7 +456,7 @@ describe('useAppResume', () => {
     expect(logger.log).toHaveBeenCalledWith(
       '[useAppResume] App was in background for',
       360, // 360 seconds = 6 minutes
-      'seconds - forcing page reload for recovery'
+      'seconds - forcing page reload'
     );
   });
 
@@ -483,7 +498,7 @@ describe('useAppResume', () => {
 
     // Verify the force reload code path was executed via logger
     expect(logger.log).toHaveBeenCalledWith(
-      '[useAppResume] bfcache restore after',
+      '[useAppResume] bfcache restore for',
       360, // 360 seconds = 6 minutes
       'seconds - forcing page reload'
     );
@@ -655,7 +670,7 @@ describe('useAppResume', () => {
     expect(logger.log).toHaveBeenCalledWith(
       '[useAppResume] App was in background for',
       120, // 120 seconds = 2 minutes
-      'seconds - forcing page reload for recovery'
+      'seconds - forcing page reload'
     );
   });
 });

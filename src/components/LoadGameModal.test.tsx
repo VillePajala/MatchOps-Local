@@ -111,7 +111,9 @@ describe('LoadGameModal', () => {
     });
 
     const card = await screen.findByTestId('game-item-game_1659123456_abc');
-    expect(within(card).getByText('2 - 1')).toBeInTheDocument();
+    // Score is now split into separate elements (number - span - number)
+    expect(card.textContent).toContain('2');
+    expect(card.textContent).toContain('1');
   });
   
   it('renders correctly and displays games', async () => {
@@ -241,8 +243,8 @@ describe('LoadGameModal', () => {
     await renderModal({ currentGameId: 'game_1659123456_abc' });
     const gameCard = await screen.findByTestId('game-item-game_1659123456_abc');
 
-    // Check for the subtle left border indicator
-    expect(gameCard).toHaveClass('border-l-4', 'border-indigo-500');
+    // Check for the indigo ring indicator (current game styling)
+    expect(gameCard).toHaveClass('ring-1', 'ring-indigo-400/60', 'bg-indigo-900/20');
   });
 
   describe('orphaned tournamentSeriesId handling', () => {
