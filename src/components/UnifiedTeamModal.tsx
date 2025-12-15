@@ -386,7 +386,9 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-h-0 p-6 relative z-10 flex flex-col">
+        <div
+          className={`flex-1 min-h-0 p-6 ${isEditingRoster ? 'pb-6' : 'pb-2'} relative z-10 flex flex-col`}
+        >
           <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6 -mt-2 sm:-mt-4 md:-mt-6 flex-1 overflow-y-auto">
               <div className={`space-y-4 ${isEditingRoster ? 'flex flex-col h-full' : ''}`}>
                 {!isEditingRoster && (
@@ -464,7 +466,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                 )}
 
                 {/* Roster Section */}
-                <div>
+                <div className={isEditingRoster ? 'flex flex-col flex-1 min-h-0' : ''}>
                   {!isEditingRoster ? (
                     <>
                       {/* Roster Header */}
@@ -590,7 +592,7 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                   ) : (
                     <>
                       {/* Player Selection - Flexible height to stretch to buttons */}
-                      <div className="flex-1 min-h-0 flex flex-col pb-4">
+                      <div className="flex-1 min-h-0 flex flex-col">
                         <PlayerSelectionSection
                           availablePlayers={masterRoster}
                           selectedPlayerIds={selectedPlayerIds}
@@ -601,7 +603,6 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                           noPlayersText={t('teamRosterModal.noAvailablePlayers', 'No available players to add from master roster.')}
                           disabled={isPending}
                           useFlexHeight={true}
-                          className="flex-1 min-h-0"
                         />
                       </div>
                     </>
