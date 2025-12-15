@@ -39,12 +39,15 @@ interface UseAppResumeOptions {
 
 // Debounce rapid pageshow events (iOS Safari gesture navigation edge case)
 const PAGESHOW_DEBOUNCE_MS = 1000;
+// Debounce app-resume events across handlers (prevents duplicate events from pageshow + visibilitychange race)
+const RESUME_DEBOUNCE_MS = 100;
 
 export function useAppResume(options: UseAppResumeOptions = {}) {
   const { onResume, onBeforeForceReload, minBackgroundTime = 30000, forceReloadTime = 300000 } = options;
   const queryClient = useQueryClient();
   const backgroundStartRef = useRef<number | null>(null);
   const lastPageShowRef = useRef<number>(0);
+  const lastResumeTimestampRef = useRef<number>(0);
   const isReloadingRef = useRef<boolean>(false);
 
   /**
@@ -59,6 +62,22 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
       window.dispatchEvent(event);
     }
   }, []);
+
+  /**
+   * Trigger resume with debounce protection across handlers
+   * Prevents duplicate app-resume events when pageshow and visibilitychange fire in quick succession
+   */
+  const triggerResumeWithDebounce = useCallback((backgroundDuration: number) => {
+    const now = Date.now();
+    if (now - lastResumeTimestampRef.current < RESUME_DEBOUNCE_MS) {
+      logger.debug('[useAppResume] Debouncing duplicate resume event');
+      return;
+    }
+    lastResumeTimestampRef.current = now;
+
+    dispatchResumeEvent(backgroundDuration);
+    onResume?.();
+  }, [dispatchResumeEvent, onResume]);
 
   /**
    * Dispatch event when reload fails - allows UI to show error message
@@ -76,6 +95,64 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
       window.dispatchEvent(event);
     }
   }, []);
+
+  /**
+   * Force reload with notification and error handling
+   * Shared function to eliminate duplication between visibilitychange and pageshow handlers
+   */
+  const forceReloadWithNotification = useCallback(
+    (backgroundDuration: number, trigger: 'visibilitychange' | 'pageshow_bfcache') => {
+      // Guard against duplicate reloads - reload() is async and other handlers may fire
+      if (isReloadingRef.current) return;
+      isReloadingRef.current = true;
+
+      logger.log(
+        `[useAppResume] ${trigger === 'pageshow_bfcache' ? 'bfcache restore' : 'App was in background'} for`,
+        Math.round(backgroundDuration / 1000),
+        'seconds - forcing page reload'
+      );
+      backgroundStartRef.current = null;
+
+      // Execute reload with proper error handling
+      (async () => {
+        try {
+          // Call optional callback (e.g., to show toast notification)
+          await onBeforeForceReload?.();
+          // Note: window.location.reload() cannot be tested in JSDOM - tests verify via logger
+          window.location.reload();
+        } catch (error) {
+          // This is rare but critical - log to Sentry with high severity
+          logger.error('[useAppResume] Failed to reload page:', error);
+          Sentry.captureException(error, {
+            level: 'fatal',
+            tags: {
+              component: 'useAppResume',
+              action: 'force_reload_failed',
+              backgroundDuration: String(backgroundDuration)
+            },
+            extra: {
+              backgroundDurationMs: backgroundDuration,
+              trigger
+            }
+          });
+
+          isReloadingRef.current = false;
+
+          // Dispatch event so UI can show "Please close and reopen the app" message
+          dispatchReloadFailedEvent(error, backgroundDuration);
+
+          // Attempt soft recovery as last resort (may not work if state is corrupted)
+          queryClient.invalidateQueries();
+          dispatchResumeEvent(backgroundDuration);
+          onResume?.();
+        }
+      })().catch((err) => {
+        // Catch any unhandled promise rejection from the IIFE
+        logger.error('[useAppResume] Unhandled error in reload IIFE:', err);
+      });
+    },
+    [onBeforeForceReload, onResume, queryClient, dispatchResumeEvent, dispatchReloadFailedEvent]
+  );
 
   const handleVisibilityChange = useCallback(() => {
     if (document.hidden) {
@@ -95,51 +172,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
       // For very long background periods, force a full page reload
       // This handles cases where app state may have become corrupted
       if (backgroundDuration > forceReloadTime) {
-        // Guard against duplicate reloads - reload() is async and other handlers may fire
-        if (isReloadingRef.current) return;
-        isReloadingRef.current = true;
-
-        logger.log(
-          '[useAppResume] App was in background for',
-          Math.round(backgroundDuration / 1000),
-          'seconds - forcing page reload for recovery'
-        );
-        backgroundStartRef.current = null;
-
-        // Use async IIFE to allow onBeforeForceReload to show notification before reload
-        (async () => {
-          try {
-            // Call optional callback (e.g., to show toast notification)
-            await onBeforeForceReload?.();
-            // Note: window.location.reload() cannot be tested in JSDOM - tests verify via logger
-            window.location.reload();
-          } catch (error) {
-            // This is rare but critical - log to Sentry with high severity
-            logger.error('[useAppResume] Failed to reload page:', error);
-            Sentry.captureException(error, {
-              level: 'fatal',
-              tags: {
-                component: 'useAppResume',
-                action: 'force_reload_failed',
-                backgroundDuration: String(backgroundDuration)
-              },
-              extra: {
-                backgroundDurationMs: backgroundDuration,
-                trigger: 'visibilitychange'
-              }
-            });
-
-            isReloadingRef.current = false;
-
-            // Dispatch event so UI can show "Please close and reopen the app" message
-            dispatchReloadFailedEvent(error, backgroundDuration);
-
-            // Attempt soft recovery as last resort (may not work if state is corrupted)
-            queryClient.invalidateQueries();
-            dispatchResumeEvent(backgroundDuration);
-            onResume?.();
-          }
-        })();
+        forceReloadWithNotification(backgroundDuration, 'visibilitychange');
         return;
       }
 
@@ -154,11 +187,8 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
         // Invalidate all React Query caches to force refetch
         queryClient.invalidateQueries();
 
-        // Dispatch custom event for component-level recovery
-        dispatchResumeEvent(backgroundDuration);
-
-        // Call custom resume handler
-        onResume?.();
+        // Dispatch custom event and call resume handler (with debounce protection)
+        triggerResumeWithDebounce(backgroundDuration);
       } else {
         logger.debug(
           '[useAppResume] App resumed after',
@@ -169,7 +199,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
 
       backgroundStartRef.current = null;
     }
-  }, [queryClient, onResume, onBeforeForceReload, minBackgroundTime, forceReloadTime, dispatchResumeEvent, dispatchReloadFailedEvent]);
+  }, [queryClient, minBackgroundTime, forceReloadTime, triggerResumeWithDebounce, forceReloadWithNotification]);
 
   // Handle pageshow for bfcache restoration (Android TWA, iOS Safari)
   const handlePageShow = useCallback(
@@ -183,57 +213,17 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
         }
         lastPageShowRef.current = now;
 
-        // Check if we were in background for a very long time
-        const backgroundDuration = backgroundStartRef.current
-          ? now - backgroundStartRef.current
-          : 0;
+        // Skip if no background timestamp - either already handled by visibilitychange
+        // or pageshow fired without prior pagehide (browser edge case)
+        if (!backgroundStartRef.current) {
+          logger.debug('[useAppResume] pageshow without background timestamp - skipping');
+          return;
+        }
+
+        const backgroundDuration = now - backgroundStartRef.current;
 
         if (backgroundDuration > forceReloadTime) {
-          // Guard against duplicate reloads - reload() is async and other handlers may fire
-          if (isReloadingRef.current) return;
-          isReloadingRef.current = true;
-
-          logger.log(
-            '[useAppResume] bfcache restore after',
-            Math.round(backgroundDuration / 1000),
-            'seconds - forcing page reload'
-          );
-          backgroundStartRef.current = null;
-
-          // Use async IIFE to allow onBeforeForceReload to show notification before reload
-          (async () => {
-            try {
-              // Call optional callback (e.g., to show toast notification)
-              await onBeforeForceReload?.();
-              // Note: window.location.reload() cannot be tested in JSDOM - tests verify via logger
-              window.location.reload();
-            } catch (error) {
-              // This is rare but critical - log to Sentry with high severity
-              logger.error('[useAppResume] Failed to reload page:', error);
-              Sentry.captureException(error, {
-                level: 'fatal',
-                tags: {
-                  component: 'useAppResume',
-                  action: 'force_reload_failed',
-                  backgroundDuration: String(backgroundDuration)
-                },
-                extra: {
-                  backgroundDurationMs: backgroundDuration,
-                  trigger: 'pageshow_bfcache'
-                }
-              });
-
-              isReloadingRef.current = false;
-
-              // Dispatch event so UI can show "Please close and reopen the app" message
-              dispatchReloadFailedEvent(error, backgroundDuration);
-
-              // Attempt soft recovery as last resort (may not work if state is corrupted)
-              queryClient.invalidateQueries();
-              dispatchResumeEvent(backgroundDuration);
-              onResume?.();
-            }
-          })();
+          forceReloadWithNotification(backgroundDuration, 'pageshow_bfcache');
           return;
         }
 
@@ -252,7 +242,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
         backgroundStartRef.current = null;
       }
     },
-    [queryClient, onResume, onBeforeForceReload, forceReloadTime, dispatchResumeEvent, dispatchReloadFailedEvent]
+    [queryClient, onResume, forceReloadTime, dispatchResumeEvent, forceReloadWithNotification]
   );
 
   // Handle pagehide for iOS Safari bfcache entry
