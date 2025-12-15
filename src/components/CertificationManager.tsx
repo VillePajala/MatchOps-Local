@@ -31,7 +31,9 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
   );
 
   const handleAdd = () => {
-    if (!selectedCert || !CERTIFICATIONS.includes(selectedCert as typeof CERTIFICATIONS[number])) return;
+    // selectedCert comes from controlled dropdown with only valid options
+    // Cast to string[] for includes check since CERTIFICATIONS is a const array
+    if (!selectedCert || !(CERTIFICATIONS as readonly string[]).includes(selectedCert)) return;
     if (certifications.includes(selectedCert)) return;
 
     onCertificationsChange([...certifications, selectedCert]);

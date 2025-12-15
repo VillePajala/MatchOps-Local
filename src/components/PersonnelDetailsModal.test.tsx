@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PersonnelDetailsModal from './PersonnelDetailsModal';
 import { Personnel } from '@/types/personnel';
@@ -14,7 +14,7 @@ const mockPersonnel: Personnel = {
   role: 'head_coach',
   phone: '+1234567890',
   email: 'john@example.com',
-  certifications: ['UEFA A License', 'First Aid Certificate'],
+  certifications: ['UEFA C', 'UEFA B'],
   notes: 'Experienced coach',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
@@ -85,7 +85,8 @@ describe('PersonnelDetailsModal', () => {
       expect(selects.length).toBeGreaterThan(0);
       expect(screen.getByPlaceholderText('Phone number')).toBeInTheDocument();
       expect(screen.getByPlaceholderText('Email address')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/One per line/i)).toBeInTheDocument();
+      // Certifications section with dropdown
+      expect(screen.getByText('Certifications')).toBeInTheDocument();
       expect(screen.getByPlaceholderText('Additional notes')).toBeInTheDocument();
     });
 
@@ -94,7 +95,8 @@ describe('PersonnelDetailsModal', () => {
         renderWithProviders();
       });
 
-      const roleSelect = screen.getByRole('combobox');
+      // Get the role select (first combobox)
+      const roleSelect = screen.getAllByRole('combobox')[0];
       expect(roleSelect).toBeInTheDocument();
       expect(roleSelect.tagName).toBe('SELECT');
 
@@ -102,24 +104,28 @@ describe('PersonnelDetailsModal', () => {
       expect(options.length).toBe(8);
     });
 
-    it('renders certifications as newline-separated text', async () => {
+    it('renders certifications as chips', async () => {
       await act(async () => {
         renderWithProviders();
       });
 
-      const certificationsTextarea = screen.getByPlaceholderText(/One per line/i) as HTMLTextAreaElement;
-      expect(certificationsTextarea.value).toBe('UEFA A License\nFirst Aid Certificate');
+      // Certifications should be displayed as chips
+      expect(screen.getByText('UEFA C')).toBeInTheDocument();
+      expect(screen.getByText('UEFA B')).toBeInTheDocument();
     });
 
-    it('renders empty certifications as empty textarea', async () => {
+    it('renders no certification chips when certifications is empty', async () => {
       const personnelNoCerts = { ...mockPersonnel, certifications: undefined };
 
       await act(async () => {
         renderWithProviders({ personnel: personnelNoCerts });
       });
 
-      const certificationsTextarea = screen.getByPlaceholderText(/One per line/i) as HTMLTextAreaElement;
-      expect(certificationsTextarea.value).toBe('');
+      // Should not find any certification chips
+      expect(screen.queryByText('UEFA C')).not.toBeInTheDocument();
+      expect(screen.queryByText('UEFA B')).not.toBeInTheDocument();
+      // But should show the Add Certification button
+      expect(screen.getByRole('button', { name: /Add Certification/i })).toBeInTheDocument();
     });
   });
 
@@ -145,7 +151,7 @@ describe('PersonnelDetailsModal', () => {
         renderWithProviders();
       });
 
-      const roleSelect = screen.getByRole('combobox');
+      const roleSelect = screen.getAllByRole('combobox')[0];
       await user.selectOptions(roleSelect, 'assistant_coach');
 
       expect((roleSelect as HTMLSelectElement).value).toBe('assistant_coach');
@@ -179,18 +185,45 @@ describe('PersonnelDetailsModal', () => {
       expect(screen.getByDisplayValue('jane@example.com')).toBeInTheDocument();
     });
 
-    it('allows editing certifications', async () => {
+    it('allows adding certification via dropdown', async () => {
       const user = userEvent.setup();
 
       await act(async () => {
         renderWithProviders();
       });
 
-      const certificationsTextarea = screen.getByPlaceholderText(/One per line/i);
-      await user.clear(certificationsTextarea);
-      await user.type(certificationsTextarea, 'New Cert 1{enter}New Cert 2{enter}New Cert 3');
+      // Click "Add Certification" button
+      const addCertButton = screen.getByRole('button', { name: /Add Certification/i });
+      await user.click(addCertButton);
 
-      expect(certificationsTextarea).toHaveValue('New Cert 1\nNew Cert 2\nNew Cert 3');
+      // Select a certification from dropdown
+      const certSelect = screen.getByRole('combobox', { name: /Select certification/i });
+      await user.selectOptions(certSelect, 'UEFA A + VAT');
+
+      // Click Add button
+      const confirmAddButton = screen.getAllByRole('button', { name: /^Add$/i })[0];
+      await user.click(confirmAddButton);
+
+      // Verify chip appears
+      expect(screen.getByText('UEFA A + VAT')).toBeInTheDocument();
+    });
+
+    it('allows removing certification via × button', async () => {
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders();
+      });
+
+      // Find the remove button for UEFA C
+      const uefaCChip = screen.getByText('UEFA C').closest('div');
+      const removeButton = within(uefaCChip!).getByRole('button');
+      await user.click(removeButton);
+
+      // Verify chip is removed
+      expect(screen.queryByText('UEFA C')).not.toBeInTheDocument();
+      // Other certification should still be there
+      expect(screen.getByText('UEFA B')).toBeInTheDocument();
     });
 
     it('allows editing notes', async () => {
@@ -205,6 +238,72 @@ describe('PersonnelDetailsModal', () => {
       await user.type(notesTextarea, 'Updated notes');
 
       expect(screen.getByDisplayValue('Updated notes')).toBeInTheDocument();
+    });
+  });
+
+  describe('Certification Dropdown Behavior', () => {
+    it('filters out already selected certifications from dropdown', async () => {
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders();
+      });
+
+      // Click "Add Certification" button
+      const addCertButton = screen.getByRole('button', { name: /Add Certification/i });
+      await user.click(addCertButton);
+
+      // Get the dropdown
+      const certSelect = screen.getByRole('combobox', { name: /Select certification/i });
+      const options = Array.from((certSelect as HTMLSelectElement).options);
+      const optionValues = options.map(opt => opt.value);
+
+      // UEFA C and UEFA B should not be in the dropdown (already selected)
+      expect(optionValues).not.toContain('UEFA C');
+      expect(optionValues).not.toContain('UEFA B');
+      // Other certifications should be available
+      expect(optionValues).toContain('UEFA A + VAT');
+      expect(optionValues).toContain('UEFA PRO');
+    });
+
+    it('disables Add Certification button when all certifications selected', async () => {
+      // Create personnel with all certifications
+      const { CERTIFICATIONS } = await import('@/config/gameOptions');
+      const personnelAllCerts = {
+        ...mockPersonnel,
+        certifications: [...CERTIFICATIONS]
+      };
+
+      await act(async () => {
+        renderWithProviders({ personnel: personnelAllCerts });
+      });
+
+      const addCertButton = screen.getByRole('button', { name: /Add Certification/i });
+      expect(addCertButton).toBeDisabled();
+    });
+
+    it('allows canceling certification add', async () => {
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders();
+      });
+
+      // Click "Add Certification" button
+      const addCertButton = screen.getByRole('button', { name: /Add Certification/i });
+      await user.click(addCertButton);
+
+      // Dropdown should be visible
+      expect(screen.getByRole('combobox', { name: /Select certification/i })).toBeInTheDocument();
+
+      // Click Cancel in the certification dropdown (first Cancel button, modal footer is second)
+      const cancelButtons = screen.getAllByRole('button', { name: /Cancel/i });
+      // The CertificationManager Cancel button is the first one in DOM order
+      await user.click(cancelButtons[0]);
+
+      // Dropdown should be hidden, Add Certification button should be visible
+      expect(screen.queryByRole('combobox', { name: /Select certification/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Add Certification/i })).toBeInTheDocument();
     });
   });
 
@@ -250,7 +349,7 @@ describe('PersonnelDetailsModal', () => {
       await user.clear(nameInput);
       await user.type(nameInput, 'New Coach');
 
-      const roleSelect = screen.getByRole('combobox');
+      const roleSelect = screen.getAllByRole('combobox')[0];
       await user.selectOptions(roleSelect, 'physio');
 
       const phoneInput = screen.getByDisplayValue('+1234567890');
@@ -268,7 +367,7 @@ describe('PersonnelDetailsModal', () => {
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('parses certifications from textarea correctly', async () => {
+    it('saves added certifications correctly', async () => {
       const onUpdatePersonnel = jest.fn().mockResolvedValue(mockPersonnel);
       const onClose = jest.fn();
       const user = userEvent.setup();
@@ -280,19 +379,25 @@ describe('PersonnelDetailsModal', () => {
         });
       });
 
-      const certificationsTextarea = screen.getByPlaceholderText(/One per line/i);
-      await user.clear(certificationsTextarea);
-      await user.type(certificationsTextarea, 'Cert A\nCert B\nCert C');
+      // Add a new certification
+      const addCertButton = screen.getByRole('button', { name: /Add Certification/i });
+      await user.click(addCertButton);
+
+      const certSelect = screen.getByRole('combobox', { name: /Select certification/i });
+      await user.selectOptions(certSelect, 'UEFA PRO');
+
+      const confirmAddButton = screen.getAllByRole('button', { name: /^Add$/i })[0];
+      await user.click(confirmAddButton);
 
       const saveButton = screen.getByRole('button', { name: /Save/i });
       await user.click(saveButton);
 
       expect(onUpdatePersonnel).toHaveBeenCalledWith('per1', {
-        certifications: ['Cert A', 'Cert B', 'Cert C'],
+        certifications: ['UEFA C', 'UEFA B', 'UEFA PRO'],
       });
     });
 
-    it('filters out empty lines from certifications', async () => {
+    it('saves removed certifications correctly', async () => {
       const onUpdatePersonnel = jest.fn().mockResolvedValue(mockPersonnel);
       const onClose = jest.fn();
       const user = userEvent.setup();
@@ -304,19 +409,20 @@ describe('PersonnelDetailsModal', () => {
         });
       });
 
-      const certificationsTextarea = screen.getByPlaceholderText(/One per line/i);
-      await user.clear(certificationsTextarea);
-      await user.type(certificationsTextarea, 'Cert A\n\n\nCert B\n  \nCert C');
+      // Remove UEFA C
+      const uefaCChip = screen.getByText('UEFA C').closest('div');
+      const removeButton = within(uefaCChip!).getByRole('button');
+      await user.click(removeButton);
 
       const saveButton = screen.getByRole('button', { name: /Save/i });
       await user.click(saveButton);
 
       expect(onUpdatePersonnel).toHaveBeenCalledWith('per1', {
-        certifications: ['Cert A', 'Cert B', 'Cert C'],
+        certifications: ['UEFA B'],
       });
     });
 
-    it('sets certifications to undefined when textarea is empty', async () => {
+    it('sets certifications to undefined when all removed', async () => {
       const onUpdatePersonnel = jest.fn().mockResolvedValue(mockPersonnel);
       const onClose = jest.fn();
       const user = userEvent.setup();
@@ -328,8 +434,12 @@ describe('PersonnelDetailsModal', () => {
         });
       });
 
-      const certificationsTextarea = screen.getByPlaceholderText(/One per line/i);
-      await user.clear(certificationsTextarea);
+      // Remove all certifications
+      const uefaCChip = screen.getByText('UEFA C').closest('div');
+      await user.click(within(uefaCChip!).getByRole('button'));
+
+      const uefaBChip = screen.getByText('UEFA B').closest('div');
+      await user.click(within(uefaBChip!).getByRole('button'));
 
       const saveButton = screen.getByRole('button', { name: /Save/i });
       await user.click(saveButton);
@@ -358,7 +468,7 @@ describe('PersonnelDetailsModal', () => {
       expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('creates personnel when in create mode', async () => {
+    it('creates personnel with certifications when in create mode', async () => {
       const onAddPersonnel = jest.fn().mockResolvedValue(mockPersonnel);
       const onClose = jest.fn();
       const user = userEvent.setup();
@@ -376,7 +486,7 @@ describe('PersonnelDetailsModal', () => {
       const nameInput = screen.getByPlaceholderText('Enter name');
       await user.type(nameInput, 'New Personnel');
 
-      const roleSelect = screen.getByRole('combobox');
+      const roleSelect = screen.getAllByRole('combobox')[0];
       await user.selectOptions(roleSelect, 'team_manager');
 
       const phoneInput = screen.getByPlaceholderText('Phone number');
@@ -385,13 +495,24 @@ describe('PersonnelDetailsModal', () => {
       const emailInput = screen.getByPlaceholderText('Email address');
       await user.type(emailInput, 'new@example.com');
 
-      const certificationsTextarea = screen.getByPlaceholderText(/One per line/i);
-      await user.type(certificationsTextarea, 'License 1\nLicense 2');
+      // Add certifications via dropdown
+      const addCertButton = screen.getByRole('button', { name: /Add Certification/i });
+      await user.click(addCertButton);
+      const certSelect = screen.getByRole('combobox', { name: /Select certification/i });
+      await user.selectOptions(certSelect, 'UEFA C');
+      const confirmAddButton = screen.getAllByRole('button', { name: /^Add$/i })[0];
+      await user.click(confirmAddButton);
+
+      // Add another certification
+      await user.click(screen.getByRole('button', { name: /Add Certification/i }));
+      const certSelect2 = screen.getByRole('combobox', { name: /Select certification/i });
+      await user.selectOptions(certSelect2, 'UEFA B');
+      await user.click(screen.getAllByRole('button', { name: /^Add$/i })[0]);
 
       const notesTextarea = screen.getByPlaceholderText('Additional notes');
       await user.type(notesTextarea, 'New hire');
 
-      const addButton = screen.getByRole('button', { name: /Add/i });
+      const addButton = screen.getByRole('button', { name: /^Add$/i });
       await user.click(addButton);
 
       expect(onAddPersonnel).toHaveBeenCalledWith({
@@ -399,7 +520,7 @@ describe('PersonnelDetailsModal', () => {
         role: 'team_manager',
         phone: '+9999999999',
         email: 'new@example.com',
-        certifications: ['License 1', 'License 2'],
+        certifications: ['UEFA C', 'UEFA B'],
         notes: 'New hire',
       });
       expect(onClose).toHaveBeenCalledTimes(1);
@@ -426,7 +547,7 @@ describe('PersonnelDetailsModal', () => {
       const phoneInput = screen.getByPlaceholderText('Phone number');
       await user.type(phoneInput, '  +1234567890  ');
 
-      const addButton = screen.getByRole('button', { name: /Add/i });
+      const addButton = screen.getByRole('button', { name: /^Add$/i });
       await user.click(addButton);
 
       expect(onAddPersonnel).toHaveBeenCalledWith(
@@ -455,7 +576,7 @@ describe('PersonnelDetailsModal', () => {
       const nameInput = screen.getByPlaceholderText('Enter name');
       await user.type(nameInput, 'Minimal Personnel');
 
-      const addButton = screen.getByRole('button', { name: /Add/i });
+      const addButton = screen.getByRole('button', { name: /^Add$/i });
       await user.click(addButton);
 
       expect(onAddPersonnel).toHaveBeenCalledWith({
@@ -494,7 +615,7 @@ describe('PersonnelDetailsModal', () => {
         });
       });
 
-      const addButton = screen.getByRole('button', { name: /Add/i });
+      const addButton = screen.getByRole('button', { name: /^Add$/i });
       expect(addButton).toBeDisabled();
     });
 
@@ -539,8 +660,10 @@ describe('PersonnelDetailsModal', () => {
         renderWithProviders({ onClose });
       });
 
-      const cancelButton = screen.getByRole('button', { name: /Cancel/i });
-      await user.click(cancelButton);
+      // Get the Cancel button in the footer (not the one in certification dropdown)
+      const cancelButtons = screen.getAllByRole('button', { name: /Cancel/i });
+      const footerCancelButton = cancelButtons[cancelButtons.length - 1];
+      await user.click(footerCancelButton);
 
       expect(onClose).toHaveBeenCalledTimes(1);
     });
@@ -561,8 +684,9 @@ describe('PersonnelDetailsModal', () => {
       await user.clear(nameInput);
       await user.type(nameInput, 'Changed Name');
 
-      const cancelButton = screen.getByRole('button', { name: /Cancel/i });
-      await user.click(cancelButton);
+      const cancelButtons = screen.getAllByRole('button', { name: /Cancel/i });
+      const footerCancelButton = cancelButtons[cancelButtons.length - 1];
+      await user.click(footerCancelButton);
 
       expect(onUpdatePersonnel).not.toHaveBeenCalled();
       expect(onClose).toHaveBeenCalledTimes(1);
@@ -636,7 +760,7 @@ describe('PersonnelDetailsModal', () => {
       const nameInput = screen.getByPlaceholderText('Enter name');
       await user.type(nameInput, 'New Personnel');
 
-      const addButton = screen.getByRole('button', { name: /Add/i });
+      const addButton = screen.getByRole('button', { name: /^Add$/i });
       await user.click(addButton);
 
       expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to save personnel:', expect.any(Error));
@@ -695,8 +819,9 @@ describe('PersonnelDetailsModal', () => {
     it('resets certifications when switching modes', async () => {
       const { rerender } = renderWithProviders();
 
-      const certTextarea = screen.getByPlaceholderText(/One per line/i) as HTMLTextAreaElement;
-      expect(certTextarea.value).toBe('UEFA A License\nFirst Aid Certificate');
+      // Check certifications are displayed as chips
+      expect(screen.getByText('UEFA C')).toBeInTheDocument();
+      expect(screen.getByText('UEFA B')).toBeInTheDocument();
 
       await act(async () => {
         rerender(
@@ -712,8 +837,9 @@ describe('PersonnelDetailsModal', () => {
         );
       });
 
-      const certificationsTextarea = screen.getByPlaceholderText(/One per line/i) as HTMLTextAreaElement;
-      expect(certificationsTextarea.value).toBe('');
+      // No certification chips should be present
+      expect(screen.queryByText('UEFA C')).not.toBeInTheDocument();
+      expect(screen.queryByText('UEFA B')).not.toBeInTheDocument();
     });
   });
 });
