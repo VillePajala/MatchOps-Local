@@ -5,6 +5,7 @@ import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/
 import { useTranslation } from 'react-i18next';
 import { Personnel, PersonnelRole } from '@/types/personnel';
 import logger from '@/utils/logger';
+import CertificationManager from './CertificationManager';
 
 interface PersonnelDetailsModalProps {
   isOpen: boolean;
@@ -43,7 +44,7 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
   const [role, setRole] = useState<PersonnelRole>('head_coach');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [certificationsText, setCertificationsText] = useState(''); // For textarea
+  const [certifications, setCertifications] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -56,7 +57,7 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
         setRole('head_coach');
         setPhone('');
         setEmail('');
-        setCertificationsText('');
+        setCertifications([]);
         setNotes('');
         setErrorMessage(null);
       } else if (personnel) {
@@ -65,7 +66,7 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
         setRole(personnel.role);
         setPhone(personnel.phone || '');
         setEmail(personnel.email || '');
-        setCertificationsText((personnel.certifications || []).join('\n'));
+        setCertifications(personnel.certifications || []);
         setNotes(personnel.notes || '');
         setErrorMessage(null);
       }
@@ -79,18 +80,12 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
       return; // Name is required
     }
 
-    // Parse certifications from textarea (one per line)
-    const parsedCertifications = certificationsText
-      .split('\n')
-      .map(cert => cert.trim())
-      .filter(cert => cert.length > 0);
-
     const data = {
       name: trimmedName,
       role,
       phone: phone.trim() || undefined,
       email: email.trim() || undefined,
-      certifications: parsedCertifications.length > 0 ? parsedCertifications : undefined,
+      certifications: certifications.length > 0 ? certifications : undefined,
       notes: notes.trim() || undefined,
     };
 
@@ -114,8 +109,8 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
 
         // Compare certifications arrays
         const oldCerts = JSON.stringify(personnel.certifications || []);
-        const newCerts = JSON.stringify(parsedCertifications);
-        if (oldCerts !== newCerts) updates.certifications = parsedCertifications.length > 0 ? parsedCertifications : undefined;
+        const newCerts = JSON.stringify(certifications);
+        if (oldCerts !== newCerts) updates.certifications = certifications.length > 0 ? certifications : undefined;
 
         if (data.notes !== (personnel.notes || undefined)) updates.notes = data.notes;
 
@@ -252,21 +247,10 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
               </div>
 
               {/* Certifications */}
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  {t('personnelDetailsModal.certificationsLabel', 'Certifications')}
-                </label>
-                <textarea
-                  value={certificationsText}
-                  onChange={(e) => setCertificationsText(e.target.value)}
-                  placeholder={t('personnelDetailsModal.certificationsPlaceholder', 'One per line (e.g., UEFA A License)')}
-                  rows={3}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-                <p className="mt-1 text-xs text-slate-400">
-                  {t('personnelDetailsModal.certificationsHint', 'Enter each certification on a new line')}
-                </p>
-              </div>
+              <CertificationManager
+                certifications={certifications}
+                onCertificationsChange={setCertifications}
+              />
 
               {/* Notes */}
               <div>
