@@ -153,14 +153,13 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
         case 'lastName':
           return getLastName(a.name).localeCompare(getLastName(b.name), undefined, { sensitivity: 'base' });
         case 'creationNewest': {
-          // Extract timestamp from ID: player_TIMESTAMP_random
-          const timeA = parseInt(a.id.split('_')[1], 10) || 0;
-          const timeB = parseInt(b.id.split('_')[1], 10) || 0;
+          const timeA = extractTimestampFromId(a.id);
+          const timeB = extractTimestampFromId(b.id);
           return timeB - timeA;
         }
         case 'creationOldest': {
-          const timeA = parseInt(a.id.split('_')[1], 10) || 0;
-          const timeB = parseInt(b.id.split('_')[1], 10) || 0;
+          const timeA = extractTimestampFromId(a.id);
+          const timeB = extractTimestampFromId(b.id);
           return timeA - timeB;
         }
         default:

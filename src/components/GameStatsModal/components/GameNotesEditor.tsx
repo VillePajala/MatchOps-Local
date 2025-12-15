@@ -43,6 +43,7 @@ export function GameNotesEditor({
                 onClick={onSaveNotes}
                 className="p-1.5 text-green-400 hover:text-green-300 rounded bg-slate-700 hover:bg-slate-600"
                 title={t('common.saveChanges', 'Save Changes')}
+                aria-label={t('common.saveChanges', 'Save Changes')}
               >
                 <FaSave />
               </button>
@@ -50,6 +51,7 @@ export function GameNotesEditor({
                 onClick={onCancelEdit}
                 className="p-1.5 text-red-400 hover:text-red-300 rounded bg-slate-700 hover:bg-slate-600"
                 title={t('common.cancel', 'Cancel')}
+                aria-label={t('common.cancel', 'Cancel')}
               >
                 <FaTimes />
               </button>
@@ -59,6 +61,7 @@ export function GameNotesEditor({
               onClick={onStartEdit}
               className="p-1.5 text-slate-400 hover:text-indigo-400 rounded bg-slate-700 hover:bg-slate-600"
               title={t('common.edit', 'Edit')}
+              aria-label={t('common.edit', 'Edit')}
             >
               <FaEdit />
             </button>

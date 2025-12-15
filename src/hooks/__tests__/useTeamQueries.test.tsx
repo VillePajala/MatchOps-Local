@@ -542,9 +542,11 @@ describe('useTeamQueries', () => {
       expect(addTeam).toHaveBeenCalled();
       expect(updateTeam).toHaveBeenCalled();
 
-      // Both mutations should succeed
-      expect(addResult.current.isSuccess).toBe(true);
-      expect(updateResult.current.isSuccess).toBe(true);
+      // Wait for mutations to settle and verify success
+      await waitFor(() => {
+        expect(addResult.current.isSuccess).toBe(true);
+        expect(updateResult.current.isSuccess).toBe(true);
+      });
     });
   });
 
