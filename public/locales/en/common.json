@@ -988,9 +988,10 @@
     "phonePlaceholder": "Phone number",
     "emailLabel": "Email",
     "emailPlaceholder": "Email address",
-    "certificationsLabel": "Certifications",
-    "certificationsPlaceholder": "One per line (e.g., UEFA A License)",
-    "certificationsHint": "Enter each certification on a new line",
+    "certifications": "Certifications",
+    "addCertification": "Add Certification",
+    "selectCertification": "Select certification",
+    "selectCertificationPlaceholder": "-- Select Certification --",
     "notesLabel": "Notes",
     "notesPlaceholder": "Additional notes"
   },
