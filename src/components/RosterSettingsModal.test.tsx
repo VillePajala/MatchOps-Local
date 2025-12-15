@@ -281,6 +281,166 @@ describe('<RosterSettingsModal />', () => {
 });
 
 /**
+ * Roster sorting functionality tests
+ * @integration - Tests sorting options for master roster
+ */
+describe('RosterSettingsModal - Sorting', () => {
+  // Create players with different names and creation timestamps in IDs
+  const sortTestPlayers: Player[] = [
+    { id: 'player_1000000001_abc', name: 'Charlie Brown', nickname: 'CB', jerseyNumber: '10', notes: '' },
+    { id: 'player_1000000003_def', name: 'Alice Smith', nickname: 'AS', jerseyNumber: '20', notes: '' },
+    { id: 'player_1000000002_ghi', name: 'Bob Johnson', nickname: 'BJ', jerseyNumber: '30', notes: '' },
+  ];
+
+  const sortProps = {
+    ...defaultProps,
+    availablePlayers: sortTestPlayers,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  /**
+   * Tests default sorting by last name
+   * @critical - Last name A-Z should be default sort
+   */
+  test('sorts by last name (A-Z) by default', () => {
+    render(
+      <TestWrapper>
+        <RosterSettingsModal {...sortProps} />
+      </TestWrapper>
+    );
+
+    // Get all player names in order
+    const playerNames = screen.getAllByTitle(/Charlie Brown|Alice Smith|Bob Johnson/);
+
+    // Should be sorted by last name: Brown, Johnson, Smith
+    expect(playerNames[0]).toHaveTextContent('Charlie Brown');
+    expect(playerNames[1]).toHaveTextContent('Bob Johnson');
+    expect(playerNames[2]).toHaveTextContent('Alice Smith');
+  });
+
+  /**
+   * Tests sorting by newest creation date
+   * @integration - Verifies timestamp extraction from player IDs
+   */
+  test('sorts by newest first when selected', () => {
+    render(
+      <TestWrapper>
+        <RosterSettingsModal {...sortProps} />
+      </TestWrapper>
+    );
+
+    // Change sort to Newest
+    const sortSelect = screen.getByRole('combobox', { name: /Sort by/i });
+    fireEvent.change(sortSelect, { target: { value: 'creationNewest' } });
+
+    // Get all player cards in order
+    const playerCards = screen.getAllByTitle(/Charlie Brown|Alice Smith|Bob Johnson/);
+
+    // Should be sorted by timestamp descending: Alice (3), Bob (2), Charlie (1)
+    expect(playerCards[0]).toHaveTextContent('Alice Smith');
+    expect(playerCards[1]).toHaveTextContent('Bob Johnson');
+    expect(playerCards[2]).toHaveTextContent('Charlie Brown');
+  });
+
+  /**
+   * Tests sorting by oldest creation date
+   * @integration - Verifies timestamp extraction from player IDs
+   */
+  test('sorts by oldest first when selected', () => {
+    render(
+      <TestWrapper>
+        <RosterSettingsModal {...sortProps} />
+      </TestWrapper>
+    );
+
+    // Change sort to Oldest
+    const sortSelect = screen.getByRole('combobox', { name: /Sort by/i });
+    fireEvent.change(sortSelect, { target: { value: 'creationOldest' } });
+
+    // Get all player cards in order
+    const playerCards = screen.getAllByTitle(/Charlie Brown|Alice Smith|Bob Johnson/);
+
+    // Should be sorted by timestamp ascending: Charlie (1), Bob (2), Alice (3)
+    expect(playerCards[0]).toHaveTextContent('Charlie Brown');
+    expect(playerCards[1]).toHaveTextContent('Bob Johnson');
+    expect(playerCards[2]).toHaveTextContent('Alice Smith');
+  });
+
+  /**
+   * Tests last name extraction from full name
+   * @edge-case - Handles various name formats
+   */
+  test('extracts last name correctly from multi-word names', () => {
+    const multiWordNamePlayers: Player[] = [
+      { id: 'player_1_a', name: 'Mary Jane Watson', nickname: '', jerseyNumber: '1', notes: '' },
+      { id: 'player_2_b', name: 'Peter Parker', nickname: '', jerseyNumber: '2', notes: '' },
+      { id: 'player_3_c', name: 'Norman Osborn', nickname: '', jerseyNumber: '3', notes: '' },
+    ];
+
+    render(
+      <TestWrapper>
+        <RosterSettingsModal {...sortProps} availablePlayers={multiWordNamePlayers} />
+      </TestWrapper>
+    );
+
+    // Default sort by last name: Osborn, Parker, Watson
+    const playerCards = screen.getAllByTitle(/Mary Jane Watson|Peter Parker|Norman Osborn/);
+    expect(playerCards[0]).toHaveTextContent('Norman Osborn');
+    expect(playerCards[1]).toHaveTextContent('Peter Parker');
+    expect(playerCards[2]).toHaveTextContent('Mary Jane Watson');
+  });
+
+  /**
+   * Tests sort selector displays correct options
+   */
+  test('displays all sort options', () => {
+    render(
+      <TestWrapper>
+        <RosterSettingsModal {...sortProps} />
+      </TestWrapper>
+    );
+
+    const sortSelect = screen.getByRole('combobox', { name: /Sort by/i });
+
+    // Check all options exist
+    expect(sortSelect).toContainHTML('Last Name');
+    expect(sortSelect).toContainHTML('Newest');
+    expect(sortSelect).toContainHTML('Oldest');
+  });
+
+  /**
+   * Tests sorting works with search filter
+   * @integration - Sorting should apply to filtered results
+   */
+  test('sorting works together with search filter', () => {
+    const playersWithCommonName: Player[] = [
+      { id: 'player_1000000001_a', name: 'John Zebra', nickname: '', jerseyNumber: '1', notes: '' },
+      { id: 'player_1000000002_b', name: 'John Apple', nickname: '', jerseyNumber: '2', notes: '' },
+      { id: 'player_1000000003_c', name: 'Jane Banana', nickname: '', jerseyNumber: '3', notes: '' },
+    ];
+
+    render(
+      <TestWrapper>
+        <RosterSettingsModal {...sortProps} availablePlayers={playersWithCommonName} />
+      </TestWrapper>
+    );
+
+    // Filter to only Johns
+    const searchInput = screen.getByPlaceholderText('Search players...');
+    fireEvent.change(searchInput, { target: { value: 'John' } });
+
+    // Should show only Johns, sorted by last name: Apple, Zebra
+    const filteredPlayers = screen.getAllByTitle(/John Zebra|John Apple/);
+    expect(filteredPlayers).toHaveLength(2);
+    expect(filteredPlayers[0]).toHaveTextContent('John Apple');
+    expect(filteredPlayers[1]).toHaveTextContent('John Zebra');
+  });
+});
+
+/**
  * Premium limit enforcement tests
  * @critical - Tests that free users are blocked when hitting player limit
  */

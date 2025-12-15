@@ -704,9 +704,156 @@ describe('GameStatsModal', () => {
     });
   });
 
-  // Add more tests for:
-  // - Filtering stats table
-  // - Sorting stats table
-  // - Editing game notes
-  // - Export functionalities
+  /**
+   * Game Notes Save/Display Tests
+   * @critical - Tests that game notes are displayed correctly after saving
+   */
+  describe('Game Notes Save/Display', () => {
+    /**
+     * Tests that notes are displayed correctly in view mode
+     * @critical - Notes should display the prop value, not internal state
+     */
+    test('displays game notes in view mode', async () => {
+      const props = {
+        ...getDefaultProps(),
+        gameNotes: 'Test game notes content',
+      };
+
+      await act(async () => {
+        renderComponent(props);
+      });
+
+      // Notes should be visible in the game info section
+      await waitFor(() => {
+        expect(screen.getByText('Test game notes content')).toBeInTheDocument();
+      });
+    });
+
+    /**
+     * Tests that saving notes calls onGameNotesChange
+     * @critical - User-entered notes should be saved via callback
+     */
+    test('calls onGameNotesChange when notes are saved', async () => {
+      const mockOnNotesChange = jest.fn();
+      const props = {
+        ...getDefaultProps(),
+        gameNotes: 'Original notes',
+        onGameNotesChange: mockOnNotesChange,
+      };
+
+      await act(async () => {
+        renderComponent(props);
+      });
+
+      // Find and click the edit button for notes
+      const editButton = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
+      await act(async () => {
+        fireEvent.click(editButton);
+      });
+
+      // Find the notes textarea (should now be editable)
+      const notesTextarea = await screen.findByRole('textbox');
+      await act(async () => {
+        fireEvent.change(notesTextarea, { target: { value: 'Updated notes' } });
+      });
+
+      // Find and click save button
+      const saveButton = await screen.findByRole('button', { name: i18n.t('common.save', 'Save') });
+      await act(async () => {
+        fireEvent.click(saveButton);
+      });
+
+      expect(mockOnNotesChange).toHaveBeenCalledWith('Updated notes');
+    });
+
+    /**
+     * Tests that view mode shows updated notes after prop change
+     * @critical - Bug fix: Notes should reflect prop updates, not stale internal state
+     *
+     * The fix ensures that when onGameNotesChange is called:
+     * 1. The save handler doesn't immediately exit edit mode
+     * 2. A useEffect watching gameNotes prop exits edit mode when prop updates
+     * 3. This ensures view mode shows the updated value from props
+     */
+    test('updates view mode when gameNotes prop changes after save', async () => {
+      const mockOnNotesChange = jest.fn();
+      const initialProps = {
+        ...getDefaultProps(),
+        gameNotes: 'Initial notes',
+        onGameNotesChange: mockOnNotesChange,
+      };
+
+      const { rerender } = await act(async () => {
+        return renderComponent(initialProps);
+      });
+
+      // Verify initial notes displayed
+      await waitFor(() => {
+        expect(screen.getByText('Initial notes')).toBeInTheDocument();
+      });
+
+      // Simulate parent updating gameNotes prop (as would happen after save)
+      const updatedProps = {
+        ...initialProps,
+        gameNotes: 'Updated from parent',
+      };
+
+      await act(async () => {
+        rerender(
+          <div style={{ width: 800, height: 600 }}>
+            <I18nextProvider i18n={i18n}>
+              <GameStatsModal {...updatedProps} />
+            </I18nextProvider>
+          </div>
+        );
+      });
+
+      // View mode should now show the updated notes from props
+      await waitFor(() => {
+        expect(screen.getByText('Updated from parent')).toBeInTheDocument();
+      });
+    });
+
+    /**
+     * Tests cancelling edit mode restores original notes
+     * @edge-case - User should see original value after cancelling
+     */
+    test('restores original notes when edit is cancelled', async () => {
+      const props = {
+        ...getDefaultProps(),
+        gameNotes: 'Original notes',
+        onGameNotesChange: jest.fn(),
+      };
+
+      await act(async () => {
+        renderComponent(props);
+      });
+
+      // Find and click edit button
+      const editButton = await screen.findByRole('button', { name: i18n.t('common.edit', 'Edit') });
+      await act(async () => {
+        fireEvent.click(editButton);
+      });
+
+      // Modify notes
+      const notesTextarea = await screen.findByRole('textbox');
+      await act(async () => {
+        fireEvent.change(notesTextarea, { target: { value: 'Modified but not saved' } });
+      });
+
+      // Cancel edit
+      const cancelButton = await screen.findByRole('button', { name: i18n.t('common.cancel', 'Cancel') });
+      await act(async () => {
+        fireEvent.click(cancelButton);
+      });
+
+      // onGameNotesChange should NOT have been called
+      expect(props.onGameNotesChange).not.toHaveBeenCalled();
+
+      // Original notes should be displayed
+      await waitFor(() => {
+        expect(screen.getByText('Original notes')).toBeInTheDocument();
+      });
+    });
+  });
 }); 

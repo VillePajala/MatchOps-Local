@@ -311,6 +311,153 @@ describe('PlayerDetailsModal', () => {
       expect(saveButton).toBeDisabled();
     });
 
+    /**
+     * Tests duplicate name validation in create mode
+     * @critical - Prevents data integrity issues with duplicate player names
+     */
+    it('shows error when creating player with duplicate name', async () => {
+      const onAddPlayer = jest.fn();
+      const onClose = jest.fn();
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders({
+          mode: 'create',
+          player: undefined,
+          onAddPlayer,
+          onUpdatePlayer: undefined,
+          onClose,
+        });
+      });
+
+      // Try to create a player with an existing name
+      const nameInput = screen.getByPlaceholderText('Enter player name');
+      await user.type(nameInput, 'John Doe'); // Already exists in mockPlayers
+
+      const createButton = screen.getByRole('button', { name: /Add/i });
+      await user.click(createButton);
+
+      // Should show error and NOT call onAddPlayer or close
+      expect(screen.getByText(/player with this name already exists/i)).toBeInTheDocument();
+      expect(onAddPlayer).not.toHaveBeenCalled();
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Tests duplicate name validation is case-insensitive
+     * @critical - Ensures "john doe" and "John Doe" are treated as duplicates
+     */
+    it('shows error for duplicate name regardless of case', async () => {
+      const onAddPlayer = jest.fn();
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders({
+          mode: 'create',
+          player: undefined,
+          onAddPlayer,
+          onUpdatePlayer: undefined,
+        });
+      });
+
+      const nameInput = screen.getByPlaceholderText('Enter player name');
+      await user.type(nameInput, 'JOHN DOE'); // Different case but same name
+
+      const createButton = screen.getByRole('button', { name: /Add/i });
+      await user.click(createButton);
+
+      expect(screen.getByText(/player with this name already exists/i)).toBeInTheDocument();
+      expect(onAddPlayer).not.toHaveBeenCalled();
+    });
+
+    /**
+     * Tests that error clears when user modifies name
+     * @edge-case - UX improvement to allow correction
+     */
+    it('clears duplicate name error when name is modified', async () => {
+      const onAddPlayer = jest.fn();
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders({
+          mode: 'create',
+          player: undefined,
+          onAddPlayer,
+          onUpdatePlayer: undefined,
+        });
+      });
+
+      const nameInput = screen.getByPlaceholderText('Enter player name');
+      await user.type(nameInput, 'John Doe');
+
+      const createButton = screen.getByRole('button', { name: /Add/i });
+      await user.click(createButton);
+
+      // Error should appear
+      expect(screen.getByText(/player with this name already exists/i)).toBeInTheDocument();
+
+      // Type more to modify name
+      await user.type(nameInput, ' Jr');
+
+      // Error should be cleared
+      expect(screen.queryByText(/player with this name already exists/i)).not.toBeInTheDocument();
+    });
+
+    /**
+     * Tests that editing a player can keep their own name
+     * @critical - Player should be able to save without changing their name
+     */
+    it('allows keeping same name when editing existing player', async () => {
+      const onUpdatePlayer = jest.fn().mockResolvedValue(undefined);
+      const onClose = jest.fn();
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders({
+          onUpdatePlayer,
+          onClose,
+        });
+      });
+
+      // Just click save without changing name
+      const saveButton = screen.getByRole('button', { name: /Save/i });
+      await user.click(saveButton);
+
+      // Should close without error (no changes = no validation needed)
+      expect(screen.queryByText(/player with this name already exists/i)).not.toBeInTheDocument();
+      expect(onClose).toHaveBeenCalled();
+    });
+
+    /**
+     * Tests duplicate validation in edit mode excludes self
+     * @critical - Can't rename to another player's name
+     */
+    it('shows error when renaming to another existing player name', async () => {
+      const onUpdatePlayer = jest.fn().mockResolvedValue(undefined);
+      const onClose = jest.fn();
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders({
+          onUpdatePlayer,
+          onClose,
+        });
+      });
+
+      // Try to rename John Doe to Jane Smith (another existing player)
+      const nameInput = screen.getByDisplayValue('John Doe');
+      await user.clear(nameInput);
+      await user.type(nameInput, 'Jane Smith');
+
+      const saveButton = screen.getByRole('button', { name: /Save/i });
+      await user.click(saveButton);
+
+      // Should show error
+      expect(screen.getByText(/player with this name already exists/i)).toBeInTheDocument();
+      expect(onUpdatePlayer).not.toHaveBeenCalled();
+      expect(onClose).not.toHaveBeenCalled();
+    });
+
     it('disables Add button when name is empty in create mode', async () => {
       await act(async () => {
         renderWithProviders({

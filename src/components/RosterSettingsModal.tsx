@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   ModalFooter,
   primaryButtonStyle,
@@ -20,6 +20,13 @@ import { useTranslation } from 'react-i18next';
 import ConfirmationModal from './ConfirmationModal';
 import PlayerDetailsModal from './PlayerDetailsModal';
 import { useResourceLimit } from '@/hooks/usePremium';
+import { extractTimestampFromId } from '@/utils/idGenerator';
+
+// Helper to extract last name (last word of full name) - pure function, no dependencies
+const getLastName = (fullName: string): string => {
+  const parts = fullName.trim().split(/\s+/);
+  return parts[parts.length - 1] || fullName;
+};
 
 interface RosterSettingsModalProps {
   isOpen: boolean;
@@ -138,17 +145,10 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
     setCreatePlayerModalOpen(true);
   };
 
-  if (!isOpen) return null;
-
-  // Helper to extract last name (last word of full name)
-  const getLastName = (fullName: string): string => {
-    const parts = fullName.trim().split(/\s+/);
-    return parts[parts.length - 1] || fullName;
-  };
-
-  // Sort players based on selected sort option
-  const sortPlayers = (players: Player[]): Player[] => {
-    return [...players].sort((a, b) => {
+  // Memoized sorted and filtered players to prevent recalculation on every render
+  const filteredPlayers = useMemo(() => {
+    // Sort players based on selected sort option
+    const sorted = [...availablePlayers].sort((a, b) => {
       switch (sortBy) {
         case 'lastName':
           return getLastName(a.name).localeCompare(getLastName(b.name), undefined, { sensitivity: 'base' });
@@ -167,16 +167,17 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
           return 0;
       }
     });
-  };
 
-  const filteredPlayers = sortPlayers([...availablePlayers]).filter(p => {
-    if (!searchText) return true;
+    // Filter by search text
+    if (!searchText) return sorted;
     const search = searchText.toLowerCase();
-    return (
+    return sorted.filter(p =>
       p.name.toLowerCase().includes(search) ||
       (p.nickname && p.nickname.toLowerCase().includes(search))
     );
-  });
+  }, [availablePlayers, sortBy, searchText]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
