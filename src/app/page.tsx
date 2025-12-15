@@ -14,6 +14,9 @@ import { getMasterRoster } from '@/utils/masterRosterManager';
 import { runMigration } from '@/utils/migration';
 import logger from '@/utils/logger';
 
+// Toast display duration before force reload - allows user to see the notification
+const FORCE_RELOAD_NOTIFICATION_DELAY_MS = 800;
+
 export default function Home() {
   const [screen, setScreen] = useState<'start' | 'home'>('start');
   const [initialAction, setInitialAction] = useState<'newGame' | 'loadGame' | 'resumeGame' | 'explore' | 'season' | 'stats' | 'roster' | 'teams' | 'settings' | null>(null);
@@ -93,8 +96,7 @@ export default function Home() {
     onBeforeForceReload: () => {
       // Show notification before force reload (5+ minute background)
       showToast('Refreshing app after extended background period...', 'info');
-      // Brief delay so user can see the notification
-      return new Promise(resolve => setTimeout(resolve, 800));
+      return new Promise(resolve => setTimeout(resolve, FORCE_RELOAD_NOTIFICATION_DELAY_MS));
     },
     minBackgroundTime: 30000, // 30 seconds
     forceReloadTime: 300000,  // 5 minutes - force full page reload

@@ -15,9 +15,15 @@
  * - Calls custom onResume callback for app-specific recovery
  * - Dispatches custom 'app-resume' event for components to handle recovery
  * - Forces page reload for very long background periods (5+ minutes)
+ *
+ * Error handling:
+ * - If page reload fails (rare), logs to Sentry with 'fatal' level
+ * - Dispatches 'app-resume-reload-failed' event so UI can show "Please close and reopen" message
+ * - Falls back to soft recovery as last resort (may not work for corrupted state)
  */
 import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import * as Sentry from '@sentry/nextjs';
 import logger from '@/utils/logger';
 
 interface UseAppResumeOptions {
@@ -49,6 +55,23 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
     if (typeof window !== 'undefined') {
       const event = new CustomEvent('app-resume', {
         detail: { backgroundDuration, timestamp: Date.now() }
+      });
+      window.dispatchEvent(event);
+    }
+  }, []);
+
+  /**
+   * Dispatch event when reload fails - allows UI to show error message
+   * Components can listen to this to display "Please close and reopen the app" message
+   */
+  const dispatchReloadFailedEvent = useCallback((error: unknown, backgroundDuration: number) => {
+    if (typeof window !== 'undefined') {
+      const event = new CustomEvent('app-resume-reload-failed', {
+        detail: {
+          error: error instanceof Error ? error.message : String(error),
+          backgroundDuration,
+          timestamp: Date.now()
+        }
       });
       window.dispatchEvent(event);
     }
@@ -90,9 +113,27 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
             await onBeforeForceReload?.();
             window.location.reload();
           } catch (error) {
+            // This is rare but critical - log to Sentry with high severity
             logger.error('[useAppResume] Failed to reload page:', error);
+            Sentry.captureException(error, {
+              level: 'fatal',
+              tags: {
+                component: 'useAppResume',
+                action: 'force_reload_failed',
+                backgroundDuration: String(backgroundDuration)
+              },
+              extra: {
+                backgroundDurationMs: backgroundDuration,
+                trigger: 'visibilitychange'
+              }
+            });
+
             isReloadingRef.current = false;
-            // Fallback: Try soft recovery
+
+            // Dispatch event so UI can show "Please close and reopen the app" message
+            dispatchReloadFailedEvent(error, backgroundDuration);
+
+            // Attempt soft recovery as last resort (may not work if state is corrupted)
             queryClient.invalidateQueries();
             dispatchResumeEvent(backgroundDuration);
             onResume?.();
@@ -127,7 +168,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
 
       backgroundStartRef.current = null;
     }
-  }, [queryClient, onResume, onBeforeForceReload, minBackgroundTime, forceReloadTime, dispatchResumeEvent]);
+  }, [queryClient, onResume, onBeforeForceReload, minBackgroundTime, forceReloadTime, dispatchResumeEvent, dispatchReloadFailedEvent]);
 
   // Handle pageshow for bfcache restoration (Android TWA, iOS Safari)
   const handlePageShow = useCallback(
@@ -165,9 +206,27 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
               await onBeforeForceReload?.();
               window.location.reload();
             } catch (error) {
+              // This is rare but critical - log to Sentry with high severity
               logger.error('[useAppResume] Failed to reload page:', error);
+              Sentry.captureException(error, {
+                level: 'fatal',
+                tags: {
+                  component: 'useAppResume',
+                  action: 'force_reload_failed',
+                  backgroundDuration: String(backgroundDuration)
+                },
+                extra: {
+                  backgroundDurationMs: backgroundDuration,
+                  trigger: 'pageshow_bfcache'
+                }
+              });
+
               isReloadingRef.current = false;
-              // Fallback: Try soft recovery
+
+              // Dispatch event so UI can show "Please close and reopen the app" message
+              dispatchReloadFailedEvent(error, backgroundDuration);
+
+              // Attempt soft recovery as last resort (may not work if state is corrupted)
               queryClient.invalidateQueries();
               dispatchResumeEvent(backgroundDuration);
               onResume?.();
@@ -191,7 +250,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
         backgroundStartRef.current = null;
       }
     },
-    [queryClient, onResume, onBeforeForceReload, forceReloadTime, dispatchResumeEvent]
+    [queryClient, onResume, onBeforeForceReload, forceReloadTime, dispatchResumeEvent, dispatchReloadFailedEvent]
   );
 
   // Handle pagehide for iOS Safari bfcache entry

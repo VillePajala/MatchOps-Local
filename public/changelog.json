@@ -1,8 +1,8 @@
 {
-  "version": "90c6e25f",
-  "date": "2025-12-14",
+  "version": "1035cc4f",
+  "date": "2025-12-15",
   "notes": {
-    "en": "Improve PWA state recovery after background resume",
-    "fi": "Paranna PWA:n tilan palautusta taustalta paluun jälkeen"
+    "en": "Fixes based on core review",
+    "fi": "Fixes based on core review"
   }
 }
