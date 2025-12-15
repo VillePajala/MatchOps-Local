@@ -311,9 +311,16 @@ export const resetAppSettings = async (): Promise<boolean> => {
       removeStorageItem('storage-version'),
     ]);
 
-    // Then use clearStorage to ensure everything is gone
-    logger.log('[resetAppSettings] Performing full storage clear...');
+    // Then use clearStorage to ensure everything is gone from IndexedDB
+    logger.log('[resetAppSettings] Performing full IndexedDB storage clear...');
     await clearStorage();
+
+    // CRITICAL: Also clear localStorage to prevent migration from restoring old data
+    // The migration reads from localStorage, so if we don't clear it, the old data
+    // will be re-migrated to IndexedDB on the next page load
+    logger.log('[resetAppSettings] Clearing localStorage backup data...');
+    const { clearLocalStorage } = await import('./localStorage');
+    clearLocalStorage();
 
     // Reset storage configuration to defaults
     logger.log('[resetAppSettings] Resetting storage configuration...');
