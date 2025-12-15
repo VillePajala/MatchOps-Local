@@ -39,9 +39,14 @@ const PlayerAssessmentCard: React.FC<PlayerAssessmentCardProps> = ({ player, onS
   const prev = useRef({ overall, sliders, notes });
 
   React.useLayoutEffect(() => {
-    setOverall(assessment?.overall ?? 5);
-    setSliders(assessment?.sliders ?? initialSliders);
-    setNotes(assessment?.notes ?? '');
+    const newOverall = assessment?.overall ?? 5;
+    const newSliders = assessment?.sliders ?? initialSliders;
+    const newNotes = assessment?.notes ?? '';
+    setOverall(newOverall);
+    setSliders(newSliders);
+    setNotes(newNotes);
+    // Also update prev to prevent auto-save from triggering after reset
+    prev.current = { overall: newOverall, sliders: newSliders, notes: newNotes };
   }, [assessment]);
   const isValid = validateAssessment({ overall, sliders: sliders as PlayerAssessment['sliders'], notes });
 
