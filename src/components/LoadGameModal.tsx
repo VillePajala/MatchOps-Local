@@ -276,11 +276,32 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   } else if (filteredGameIds.length === 0) {
     const hasFilters = searchText || (filterType && filterId);
     mainContent = (
-      <div className="text-center text-slate-500 py-10 italic">
-        {hasFilters ? 
-          t('loadGameModal.noGamesMatchFilter', 'No saved games match your filter.') :
-          t('loadGameModal.noGamesSaved', 'No games have been saved yet.')
-        }
+      <div className="flex flex-col items-center justify-center py-16 px-4">
+        {/* Soccer ball illustration */}
+        <div className="w-20 h-20 mb-6 text-slate-600">
+          <svg viewBox="0 0 24 24" fill="currentColor" className="w-full h-full">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 13v1c0 1.1.9 2 2 2v4.93zM17 12c0-.55-.45-1-1-1h-2v-1c0-.55-.45-1-1-1H9V7h4c.55 0 1-.45 1-1V4.59c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39-.26-.81-1-1.39-1.9-1.39h-1v-3z"/>
+          </svg>
+        </div>
+        {hasFilters ? (
+          <>
+            <h3 className="text-lg font-medium text-slate-300 mb-2">
+              {t('loadGameModal.noGamesMatchFilter', 'No games match your filter')}
+            </h3>
+            <p className="text-slate-500 text-sm">
+              {t('loadGameModal.tryDifferentFilter', 'Try a different search term or clear the filter')}
+            </p>
+          </>
+        ) : (
+          <>
+            <h3 className="text-lg font-medium text-slate-300 mb-2">
+              {t('loadGameModal.noGamesSaved', 'No games saved yet')}
+            </h3>
+            <p className="text-slate-500 text-sm text-center max-w-xs">
+              {t('loadGameModal.startFirstGame', 'Start your first game from the home screen to begin tracking matches')}
+            </p>
+          </>
+        )}
       </div>
     );
   } else {
@@ -337,17 +358,33 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
               : (game.awayScore ?? 0);
 
             // Calculate score display color using display scores
-            const scoreColor = (() => {
-              if (displayHomeScore === displayAwayScore) return 'text-slate-300';
-              const isWin = (game.homeOrAway === 'home' && displayHomeScore > displayAwayScore) ||
-                           (game.homeOrAway === 'away' && displayAwayScore > displayHomeScore);
-              return isWin ? 'text-green-400' : 'text-red-400';
-            })();
+            // Determine win/loss/draw state
+            const isDraw = displayHomeScore === displayAwayScore;
+            const isWin = !isDraw && (
+              (game.homeOrAway === 'home' && displayHomeScore > displayAwayScore) ||
+              (game.homeOrAway === 'away' && displayAwayScore > displayHomeScore)
+            );
+            const isLoss = !isDraw && !isWin;
+
+            // Score color based on result
+            const scoreColor = isDraw ? 'text-slate-300' : isWin ? 'text-green-400' : 'text-red-400';
+
+            // Left border accent for result
+            const resultBorderClass = isDraw
+              ? 'border-l-4 border-slate-500'
+              : isWin
+                ? 'border-l-4 border-green-500'
+                : 'border-l-4 border-red-500';
+
+            // Current game highlight with glow
+            const currentGameClass = isCurrent
+              ? 'ring-1 ring-indigo-400/60 bg-indigo-900/20'
+              : '';
 
             return (
               <div
                 key={gameId}
-                className={`px-4 py-6 rounded-lg cursor-pointer transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 ${isCurrent ? 'border-l-4 border-indigo-500' : ''}`}
+                className={`px-4 py-6 rounded-lg cursor-pointer transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:brightness-110 ${resultBorderClass} ${currentGameClass}`}
                 data-testid={`game-item-${gameId}`}
                 onClick={() => {
                   if (!disableActions && !isLoadActionActive) {
@@ -373,10 +410,10 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
 
                     {/* Score and actions */}
                     <div className="flex items-start gap-2 flex-shrink-0">
-                      {/* Score */}
+                      {/* Score - prominent display */}
                       <div className="text-right">
-                        <div className={`text-xl font-bold ${scoreColor}`}>
-                          {displayHomeScore} - {displayAwayScore}
+                        <div className={`text-2xl font-black tracking-tight ${scoreColor}`}>
+                          {displayHomeScore} <span className="text-slate-500">-</span> {displayAwayScore}
                         </div>
                       </div>
 
@@ -447,12 +484,22 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
 
                   {/* Bottom row: Game data left, category labels right */}
                   <div className="flex items-end justify-between gap-4 text-xs">
-                    {/* Left: Game data (date, status) */}
-                    <div className="flex items-center gap-2">
-                      {game.gameDate && (
-                        <span className="text-slate-400">
-                          {new Date(game.gameDate).toLocaleDateString(i18n.language)}
-                        </span>
+                    {/* Left: Game data (date, duration, status) */}
+                    <div className="flex items-end gap-3">
+                      {/* Date and duration stacked */}
+                      {(game.gameDate || (game.numberOfPeriods && game.periodDurationMinutes)) && (
+                        <div className="flex flex-col text-slate-400">
+                          {game.gameDate && (
+                            <span>
+                              {new Date(game.gameDate).toLocaleDateString(i18n.language)}
+                            </span>
+                          )}
+                          {game.numberOfPeriods && game.periodDurationMinutes && (
+                            <span className="text-slate-500 text-[10px]">
+                              {game.numberOfPeriods}×{game.periodDurationMinutes}min
+                            </span>
+                          )}
+                        </div>
                       )}
                       {game.isPlayed === false && (
                         <span className="px-2 py-0.5 rounded-full bg-red-600/80 text-red-100 font-semibold uppercase text-[10px] tracking-wide">
