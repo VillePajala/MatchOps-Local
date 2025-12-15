@@ -90,11 +90,11 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
 
       {/* Add new certification UI */}
       {isAdding ? (
-        <div className="flex gap-2">
+        <div className="space-y-2">
           <select
             value={selectedCert}
             onChange={(e) => setSelectedCert(e.target.value)}
-            className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
             aria-label={t('personnelDetailsModal.selectCertification', 'Select certification')}
           >
             <option value="">{t('personnelDetailsModal.selectCertificationPlaceholder', '-- Select Certification --')}</option>
@@ -108,22 +108,24 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
               </optgroup>
             ))}
           </select>
-          <button
-            type="button"
-            onClick={handleAdd}
-            disabled={!selectedCert}
-            className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-md text-sm"
-            aria-label={t('common.add', 'Add')}
-          >
-            {t('common.add', 'Add')}
-          </button>
-          <button
-            type="button"
-            onClick={handleCancel}
-            className="px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-md text-sm"
-          >
-            {t('common.cancel', 'Cancel')}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={!selectedCert}
+              className="flex-1 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-md text-sm"
+              aria-label={t('common.add', 'Add')}
+            >
+              {t('common.add', 'Add')}
+            </button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="flex-1 px-3 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-md text-sm"
+            >
+              {t('common.cancel', 'Cancel')}
+            </button>
+          </div>
         </div>
       ) : (
         <button
