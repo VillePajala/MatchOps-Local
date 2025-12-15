@@ -883,9 +883,10 @@
     "phonePlaceholder": "Puhelinnumero",
     "emailLabel": "Sähköposti",
     "emailPlaceholder": "Sähköpostiosoite",
-    "certificationsLabel": "Sertifikaatit",
-    "certificationsPlaceholder": "Yksi per rivi (esim. UEFA A -lisenssi)",
-    "certificationsHint": "Syötä jokainen sertifikaatti uudelle riville",
+    "certifications": "Valmentajakoulutukset",
+    "addCertification": "Lisää koulutus",
+    "selectCertification": "Valitse koulutus",
+    "selectCertificationPlaceholder": "-- Valitse koulutus --",
     "notesLabel": "Muistiinpanot",
     "notesPlaceholder": "Lisämuistiinpanot",
     "errors": {
