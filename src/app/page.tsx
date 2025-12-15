@@ -112,6 +112,16 @@ export default function Home() {
     forceReloadTime: 300000,  // 5 minutes - force full page reload
   });
 
+  // Listen for reload failure events from useAppResume
+  // This handles the rare case where window.location.reload() fails
+  useEffect(() => {
+    const handleReloadFailed = () => {
+      showToast('Unable to refresh app. Please close and reopen.', 'error');
+    };
+    window.addEventListener('app-resume-reload-failed', handleReloadFailed);
+    return () => window.removeEventListener('app-resume-reload-failed', handleReloadFailed);
+  }, [showToast]);
+
   // Handle PWA shortcut query parameters (e.g., /?action=newGame)
   useEffect(() => {
     if (typeof window === 'undefined') return;
