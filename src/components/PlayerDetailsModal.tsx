@@ -27,8 +27,6 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   onUpdatePlayer,
   isRosterUpdating,
 }) => {
-  // players is kept for future enhancements (e.g., duplicate validation)
-  void players;
   const { t } = useTranslation();
 
   // Form state
@@ -36,10 +34,12 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
   const [nickname, setNickname] = useState('');
   const [jerseyNumber, setJerseyNumber] = useState('');
   const [notes, setNotes] = useState('');
+  const [nameError, setNameError] = useState<string | null>(null);
 
   // Initialize form when player changes or modal opens
   React.useLayoutEffect(() => {
     if (isOpen) {
+      setNameError(null);
       if (mode === 'create') {
         // Reset form for create mode
         setName('');
@@ -62,6 +62,17 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
 
     if (!trimmedName) {
       return; // Name is required
+    }
+
+    // Check for duplicate name
+    const isDuplicate = players.some(p =>
+      p.name.toLowerCase() === trimmedName.toLowerCase() &&
+      (mode === 'create' || p.id !== player?.id)  // Exclude self in edit mode
+    );
+
+    if (isDuplicate) {
+      setNameError(t('playerDetailsModal.duplicateNameError', 'A player with this name already exists'));
+      return;  // Don't close modal
     }
 
     try {
@@ -138,11 +149,17 @@ const PlayerDetailsModal: React.FC<PlayerDetailsModalProps> = ({
                 <input
                   type="text"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setNameError(null);
+                  }}
                   placeholder={t('playerDetailsModal.namePlaceholder', 'Enter player name')}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500"
                   required
                 />
+                {nameError && (
+                  <p className="mt-1 text-sm text-red-400">{nameError}</p>
+                )}
               </div>
 
               {/* Nickname */}

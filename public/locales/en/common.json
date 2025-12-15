@@ -974,7 +974,8 @@
     "jerseyNumberPlaceholder": "e.g., 10",
     "notesLabel": "Notes",
     "notesPlaceholder": "Optional notes about this player",
-    "goalieLabel": "Goalkeeper"
+    "goalieLabel": "Goalkeeper",
+    "duplicateNameError": "A player with this name already exists"
   },
   "personnelDetailsModal": {
     "errors": {
