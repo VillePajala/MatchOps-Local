@@ -525,8 +525,14 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
 
   // --- Handlers ---
   const handleSaveNotes = () => {
-    if (gameNotes !== editGameNotes) onGameNotesChange(editGameNotes);
-    setIsEditingNotes(false);
+    if (gameNotes !== editGameNotes) {
+      // Notes changed - call onGameNotesChange and let useEffect exit edit mode
+      // when gameNotes prop updates, to avoid showing stale value in view mode
+      onGameNotesChange(editGameNotes);
+    } else {
+      // No changes - exit edit mode immediately
+      setIsEditingNotes(false);
+    }
   };
 
   const handleCancelEditNotes = () => {
