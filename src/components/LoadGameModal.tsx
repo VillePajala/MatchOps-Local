@@ -445,64 +445,65 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Bottom row: Date on left, Badges on right (full width) */}
-                  <div className="flex items-center justify-between gap-2">
-                    {/* Left side: Date, Status, and Game Type */}
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                  {/* Bottom row: Game data left, category labels right */}
+                  <div className="flex items-end justify-between gap-4 text-xs">
+                    {/* Left: Game data (date, status) */}
+                    <div className="flex items-center gap-2">
                       {game.gameDate && (
-                        <span>{new Date(game.gameDate).toLocaleDateString(i18n.language)}</span>
+                        <span className="text-slate-400">
+                          {new Date(game.gameDate).toLocaleDateString(i18n.language)}
+                        </span>
                       )}
                       {game.isPlayed === false && (
-                        <>
-                          {game.gameDate && <span>•</span>}
-                          <span className="text-red-400 font-medium">{t('loadGameModal.unplayedBadge', 'NOT PLAYED')}</span>
-                        </>
-                      )}
-                      {game.gameType === 'futsal' && (
-                        <>
-                          {(game.gameDate || game.isPlayed === false) && <span>•</span>}
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-500/20 text-orange-300 border border-orange-500/30">
-                            {t('common.gameTypeFutsal', 'Futsal')}
-                          </span>
-                        </>
-                      )}
-                      {game.gender && (
-                        <>
-                          {(game.gameDate || game.isPlayed === false || game.gameType === 'futsal') && <span>•</span>}
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-500/20 text-orange-300 border border-orange-500/30">
-                            {game.gender === 'boys' ? t('common.genderBoys', 'Boys') : t('common.genderGirls', 'Girls')}
-                          </span>
-                        </>
+                        <span className="px-2 py-0.5 rounded-full bg-red-600/80 text-red-100 font-semibold uppercase text-[10px] tracking-wide">
+                          {t('loadGameModal.unplayedBadge', 'NOT PLAYED')}
+                        </span>
                       )}
                     </div>
 
-                    {/* Right side: Season/Tournament badges with league/series info */}
-                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      {/* Season badge with optional league */}
-                      {season && (
-                        <div className="flex items-center gap-1">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                            {season.name}
-                          </span>
-                          {leagueName && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                              {leagueName}
-                            </span>
-                          )}
-                        </div>
+                    {/* Right: Category labels - wrap upward from bottom right */}
+                    <div className="flex flex-wrap-reverse justify-end content-end gap-1.5">
+                      {/* Game type */}
+                      {game.gameType === 'futsal' && (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+                          {t('common.gameTypeFutsal', 'Futsal')}
+                        </span>
                       )}
-                      {/* Tournament badge with optional series level */}
+                      {/* Gender */}
+                      {game.gender && (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-pink-400"></span>
+                          {game.gender === 'boys' ? t('common.genderBoys', 'Boys') : t('common.genderGirls', 'Girls')}
+                        </span>
+                      )}
+                      {/* Season */}
+                      {season && (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                          {season.name}
+                        </span>
+                      )}
+                      {/* League */}
+                      {leagueName && (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                          {leagueName}
+                        </span>
+                      )}
+                      {/* Tournament */}
                       {tournament && (
-                        <div className="flex items-center gap-1">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                            {tournament.name}
-                          </span>
-                          {seriesLevel && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                              {t(`common.level${seriesLevel}` as TranslationKey, seriesLevel)}
-                            </span>
-                          )}
-                        </div>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                          {tournament.name}
+                        </span>
+                      )}
+                      {/* Series level */}
+                      {seriesLevel && (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                          {t(`common.level${seriesLevel}` as TranslationKey, seriesLevel)}
+                        </span>
                       )}
                     </div>
                   </div>
