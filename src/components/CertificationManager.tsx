@@ -72,7 +72,7 @@ const CertificationManager: React.FC<CertificationManagerProps> = ({
           {certifications.map((cert) => (
             <div
               key={cert}
-              className="flex items-center gap-1 bg-slate-600 px-2 py-1 rounded-md text-sm"
+              className="flex items-center gap-1 bg-slate-600 px-2 py-1 rounded-md text-sm text-white"
             >
               <span>{cert}</span>
               <button
