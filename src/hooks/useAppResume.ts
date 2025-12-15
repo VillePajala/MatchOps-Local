@@ -111,6 +111,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
           try {
             // Call optional callback (e.g., to show toast notification)
             await onBeforeForceReload?.();
+            // Note: window.location.reload() cannot be tested in JSDOM - tests verify via logger
             window.location.reload();
           } catch (error) {
             // This is rare but critical - log to Sentry with high severity
@@ -204,6 +205,7 @@ export function useAppResume(options: UseAppResumeOptions = {}) {
             try {
               // Call optional callback (e.g., to show toast notification)
               await onBeforeForceReload?.();
+              // Note: window.location.reload() cannot be tested in JSDOM - tests verify via logger
               window.location.reload();
             } catch (error) {
               // This is rare but critical - log to Sentry with high severity
