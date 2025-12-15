@@ -12,13 +12,20 @@ import {
 import { APP_SETTINGS_KEY, LAST_HOME_TEAM_NAME_KEY } from '@/config/storageKeys';
 import { clearMockStore } from './__mocks__/storage';
 import { getStorageItem, setStorageItem, removeStorageItem, clearStorage } from './storage';
+import { clearLocalStorage } from './localStorage';
 
 // Auto-mock the storage module
 jest.mock('./storage');
 
+// Mock localStorage module
+jest.mock('./localStorage', () => ({
+  clearLocalStorage: jest.fn(),
+}));
+
 // Type the mocked functions
 const mockGetStorageItem = getStorageItem as jest.MockedFunction<typeof getStorageItem>;
 const mockSetStorageItem = setStorageItem as jest.MockedFunction<typeof setStorageItem>;
+const mockClearLocalStorage = clearLocalStorage as jest.MockedFunction<typeof clearLocalStorage>;
 const mockRemoveStorageItem = removeStorageItem as jest.MockedFunction<typeof removeStorageItem>;
 const mockClearStorage = clearStorage as jest.MockedFunction<typeof clearStorage>;
 
@@ -397,7 +404,7 @@ describe('App Settings Utilities', () => {
   });
 
   describe('resetAppSettings', () => {
-    it('should clear all storage and return true', async () => {
+    it('should clear all storage including localStorage and return true', async () => {
       // Mock clearStorage to simulate successful clear
       mockClearStorage.mockImplementation(async () => {});
 
@@ -406,8 +413,11 @@ describe('App Settings Utilities', () => {
       // Should call removeStorageItem for all known keys
       expect(mockRemoveStorageItem).toHaveBeenCalled();
 
-      // Should call clearStorage to ensure everything is cleared
+      // Should call clearStorage to ensure IndexedDB is cleared
       expect(mockClearStorage).toHaveBeenCalled();
+
+      // CRITICAL: Should call clearLocalStorage to prevent migration from restoring old data
+      expect(mockClearLocalStorage).toHaveBeenCalled();
 
       expect(result).toBe(true);
     });
