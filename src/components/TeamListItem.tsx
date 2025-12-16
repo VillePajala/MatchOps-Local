@@ -4,6 +4,7 @@ import React, { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDocumentDuplicate, HiOutlineUserGroup } from 'react-icons/hi2';
 import { Team } from '@/types';
+import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 
 interface TeamListItemProps {
   team: Team;
@@ -45,6 +46,7 @@ const TeamListItem: React.FC<TeamListItemProps> = memo(({
   actionsMenuRef,
 }) => {
   const { t } = useTranslation();
+  const { openUpward, calculatePosition } = useDropdownPosition();
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && isEditing) {
@@ -118,7 +120,10 @@ const TeamListItem: React.FC<TeamListItemProps> = memo(({
 
       <div className="relative" ref={actionsMenuRef}>
         <button
-          onClick={onActionsMenuToggle}
+          onClick={(e) => {
+            calculatePosition(e.currentTarget);
+            onActionsMenuToggle();
+          }}
           className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded-md transition-colors opacity-0 group-hover:opacity-100"
           aria-label={t('teamManager.teamActions', 'Team actions')}
         >
@@ -126,7 +131,7 @@ const TeamListItem: React.FC<TeamListItemProps> = memo(({
         </button>
 
         {showActionsMenu && (
-          <div className="absolute right-0 top-8 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-10 min-w-[180px]">
+          <div className={`absolute right-0 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-10 min-w-[180px] ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
             <button
               onClick={onManageRosterClick}
               className="w-full px-3 py-2 text-left text-slate-200 hover:bg-slate-600 flex items-center gap-2 transition-colors"

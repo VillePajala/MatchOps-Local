@@ -10,6 +10,7 @@ import SeasonDetailsModal from './SeasonDetailsModal';
 import TournamentDetailsModal from './TournamentDetailsModal';
 import ConfirmationModal from './ConfirmationModal';
 import { useResourceLimit } from '@/hooks/usePremium';
+import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 
 interface SeasonTournamentManagementModalProps {
     isOpen: boolean;
@@ -56,6 +57,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
 
     const [actionsMenuId, setActionsMenuId] = useState<string | null>(null);
     const actionsMenuRef = React.useRef<HTMLDivElement>(null);
+    const { openUpward, calculatePosition } = useDropdownPosition();
 
     React.useEffect(() => {
         const loadStats = async () => {
@@ -210,7 +212,10 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                 </div>
                                 <div className="relative" ref={actionsMenuId === item.id ? actionsMenuRef : null} onClick={(e) => e.stopPropagation()}>
                                     <button
-                                        onClick={() => setActionsMenuId(actionsMenuId === item.id ? null : item.id)}
+                                        onClick={(e) => {
+                                            calculatePosition(e.currentTarget);
+                                            setActionsMenuId(actionsMenuId === item.id ? null : item.id);
+                                        }}
                                         className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
                                         aria-label={`${type} actions`}
                                     >
@@ -218,7 +223,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                     </button>
 
                                     {actionsMenuId === item.id && (
-                                        <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
+                                        <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                                             <button
                                                 onClick={() => handleToggleArchive(item, type)}
                                                 className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"

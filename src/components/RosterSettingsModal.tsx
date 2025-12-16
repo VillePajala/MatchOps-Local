@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import ConfirmationModal from './ConfirmationModal';
 import PlayerDetailsModal from './PlayerDetailsModal';
 import { useResourceLimit } from '@/hooks/usePremium';
+import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { extractTimestampFromId } from '@/utils/idGenerator';
 
 // Helper to extract last name (last word of full name) - pure function, no dependencies
@@ -87,6 +88,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   // State for the actions menu
   const [actionsMenuPlayerId, setActionsMenuPlayerId] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null); // Ref for click outside
+  const { openUpward, calculatePosition } = useDropdownPosition();
 
   // Confirmation modal state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -264,7 +266,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                       </div>
                       <div className="relative" ref={actionsMenuPlayerId === player.id ? actionsMenuRef : null}>
                         <button
-                          onClick={(e) => { e.stopPropagation(); setActionsMenuPlayerId(actionsMenuPlayerId === player.id ? null : player.id); }}
+                          onClick={(e) => { e.stopPropagation(); calculatePosition(e.currentTarget); setActionsMenuPlayerId(actionsMenuPlayerId === player.id ? null : player.id); }}
                           className={`${iconButtonBaseStyle} text-slate-400 hover:text-slate-200`}
                           title={t('common.actions', 'Actions')}
                           disabled={isRosterUpdating}
@@ -272,7 +274,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                           <HiOutlineEllipsisVertical className="w-5 h-5" />
                         </button>
                         {actionsMenuPlayerId === player.id && (
-                          <div className="absolute right-0 top-8 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[140px]">
+                          <div className={`absolute right-0 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[140px] ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();

@@ -12,6 +12,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import logger from '@/utils/logger';
+import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { getRoleLabelKey } from '@/utils/personnelRoles';
 import { getGamesWithPersonnel } from '@/utils/personnelManager';
 import { getSafeTelHref, getSafeMailtoHref } from '@/utils/contactValidation';
@@ -56,6 +57,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
   const [searchText, setSearchText] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const { openUpward, calculatePosition } = useDropdownPosition();
 
   // Confirmation modal state
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -322,7 +324,10 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                         </div>
                         <div className="relative ml-4" ref={openMenuId === person.id ? menuRef : null}>
                           <button
-                            onClick={() => setOpenMenuId(openMenuId === person.id ? null : person.id)}
+                            onClick={(e) => {
+                              calculatePosition(e.currentTarget);
+                              setOpenMenuId(openMenuId === person.id ? null : person.id);
+                            }}
                             className={`${iconButtonBaseStyle} text-slate-400 hover:text-slate-200`}
                             disabled={isUpdating}
                             aria-label="More options"
@@ -330,7 +335,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                             <HiOutlineEllipsisVertical className="h-5 w-5" />
                           </button>
                           {openMenuId === person.id && (
-                            <div className="absolute right-0 top-full mt-1 w-36 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-10">
+                            <div className={`absolute right-0 w-36 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-10 ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                               <button
                                 onClick={() => handleEditPersonnel(person.id)}
                                 className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-700 rounded-t-lg flex items-center gap-2"
