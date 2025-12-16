@@ -1,8 +1,8 @@
 {
-  "version": "243a8511",
-  "date": "2025-12-15",
+  "version": "66a43e0b",
+  "date": "2025-12-16",
   "notes": {
-    "en": "Add missing test coverage for PR fixes",
-    "fi": "Add missing test coverage for PR fixes"
+    "en": "Improve Excel exports with i18n support and format fixes",
+    "fi": "Improve Excel exports with i18n support and format fixes"
   }
 }
