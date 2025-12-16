@@ -98,6 +98,12 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
         };
     }, [actionsMenuId]);
 
+    const handleActionsMenuToggle = (e: React.MouseEvent<HTMLButtonElement>, itemId: string) => {
+        const shouldOpenUpward = calculatePosition(e.currentTarget);
+        setMenuPositions(prev => ({ ...prev, [itemId]: shouldOpenUpward }));
+        setActionsMenuId(actionsMenuId === itemId ? null : itemId);
+    };
+
     const handleAddSeason = () => {
         // Check premium limit before allowing season creation
         if (!checkSeasonLimitAndPrompt()) {
@@ -213,11 +219,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                 </div>
                                 <div className="relative" ref={actionsMenuId === item.id ? actionsMenuRef : null} onClick={(e) => e.stopPropagation()}>
                                     <button
-                                        onClick={(e) => {
-                                            const shouldOpenUpward = calculatePosition(e.currentTarget);
-                                            setMenuPositions(prev => ({ ...prev, [item.id]: shouldOpenUpward }));
-                                            setActionsMenuId(actionsMenuId === item.id ? null : item.id);
-                                        }}
+                                        onClick={(e) => handleActionsMenuToggle(e, item.id)}
                                         className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
                                         aria-label={`${type} actions`}
                                     >

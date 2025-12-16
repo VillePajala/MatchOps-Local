@@ -132,6 +132,12 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     };
   }, [actionsMenuTeamId]);
 
+  const handleActionsMenuToggle = (e: React.MouseEvent<HTMLButtonElement>, teamId: string) => {
+    const shouldOpenUpward = calculatePosition(e.currentTarget);
+    setMenuPositions(prev => ({ ...prev, [teamId]: shouldOpenUpward }));
+    setActionsMenuTeamId(actionsMenuTeamId === teamId ? null : teamId);
+  };
+
   // Reset state when modal closes
   React.useLayoutEffect(() => {
     if (!isOpen) {
@@ -386,11 +392,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                         <div className="flex items-center gap-2">
                           <div className="relative" ref={actionsMenuTeamId === team.id ? actionsMenuRef : null}>
                             <button
-                              onClick={(e) => {
-                                const shouldOpenUpward = calculatePosition(e.currentTarget);
-                                setMenuPositions(prev => ({ ...prev, [team.id]: shouldOpenUpward }));
-                                setActionsMenuTeamId(actionsMenuTeamId === team.id ? null : team.id);
-                              }}
+                              onClick={(e) => handleActionsMenuToggle(e, team.id)}
                               className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
                               aria-label="Team actions"
                             >
