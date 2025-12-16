@@ -57,7 +57,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
 
     const [actionsMenuId, setActionsMenuId] = useState<string | null>(null);
     const actionsMenuRef = React.useRef<HTMLDivElement>(null);
-    const [openUpward, setOpenUpward] = useState(false);
+    const [menuPositions, setMenuPositions] = useState<Record<string, boolean>>({});
     const { calculatePosition } = useDropdownPosition();
 
     React.useEffect(() => {
@@ -214,7 +214,8 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                 <div className="relative" ref={actionsMenuId === item.id ? actionsMenuRef : null} onClick={(e) => e.stopPropagation()}>
                                     <button
                                         onClick={(e) => {
-                                            setOpenUpward(calculatePosition(e.currentTarget));
+                                            const shouldOpenUpward = calculatePosition(e.currentTarget);
+                                            setMenuPositions(prev => ({ ...prev, [item.id]: shouldOpenUpward }));
                                             setActionsMenuId(actionsMenuId === item.id ? null : item.id);
                                         }}
                                         className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
@@ -224,7 +225,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                     </button>
 
                                     {actionsMenuId === item.id && (
-                                        <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                                        <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${menuPositions[item.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                                             <button
                                                 onClick={() => handleToggleArchive(item, type)}
                                                 className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"

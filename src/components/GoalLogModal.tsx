@@ -98,7 +98,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [eventActionsMenuId, setEventActionsMenuId] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
-  const [openUpward, setOpenUpward] = useState(false);
+  const [menuPositions, setMenuPositions] = useState<Record<string, boolean>>({});
   const { calculatePosition } = useDropdownPosition();
 
   // Format time MM:SS
@@ -506,7 +506,8 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                             <div className="relative" ref={eventActionsMenuId === event.id ? actionsMenuRef : null}>
                               <button
                                 onClick={(e) => {
-                                  setOpenUpward(calculatePosition(e.currentTarget));
+                                  const shouldOpenUpward = calculatePosition(e.currentTarget);
+                                  setMenuPositions(prev => ({ ...prev, [event.id]: shouldOpenUpward }));
                                   setEventActionsMenuId(eventActionsMenuId === event.id ? null : event.id);
                                 }}
                                 className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-600 transition-colors"
@@ -517,7 +518,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                               </button>
 
                               {eventActionsMenuId === event.id && (
-                                <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                                <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${menuPositions[event.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                                   <button
                                     onClick={() => { setEventActionsMenuId(null); handleEditGoal(event); }}
                                     className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"

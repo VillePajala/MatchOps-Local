@@ -88,7 +88,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   // State for the actions menu
   const [actionsMenuPlayerId, setActionsMenuPlayerId] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null); // Ref for click outside
-  const [openUpward, setOpenUpward] = useState(false);
+  const [menuPositions, setMenuPositions] = useState<Record<string, boolean>>({});
   const { calculatePosition } = useDropdownPosition();
 
   // Confirmation modal state
@@ -267,7 +267,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                       </div>
                       <div className="relative" ref={actionsMenuPlayerId === player.id ? actionsMenuRef : null}>
                         <button
-                          onClick={(e) => { e.stopPropagation(); setOpenUpward(calculatePosition(e.currentTarget)); setActionsMenuPlayerId(actionsMenuPlayerId === player.id ? null : player.id); }}
+                          onClick={(e) => { e.stopPropagation(); const shouldOpenUpward = calculatePosition(e.currentTarget); setMenuPositions(prev => ({ ...prev, [player.id]: shouldOpenUpward })); setActionsMenuPlayerId(actionsMenuPlayerId === player.id ? null : player.id); }}
                           className={`${iconButtonBaseStyle} text-slate-400 hover:text-slate-200`}
                           title={t('common.actions', 'Actions')}
                           disabled={isRosterUpdating}
@@ -275,7 +275,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                           <HiOutlineEllipsisVertical className="w-5 h-5" />
                         </button>
                         {actionsMenuPlayerId === player.id && (
-                          <div className={`absolute right-0 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[140px] ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                          <div className={`absolute right-0 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[140px] ${menuPositions[player.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
