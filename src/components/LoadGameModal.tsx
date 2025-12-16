@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { SavedGamesCollection } from '@/types'; // Keep this if SavedGamesCollection is from here
 import { Season, Tournament, Team } from '@/types'; // Corrected import path
 import type { TranslationKey } from '@/i18n-types';
-import logger from '@/utils/logger';
 import { createEntityMaps, getDisplayNames } from '@/utils/entityLookup';
 import { getLeagueName, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import { LEVELS } from '@/config/gameOptions';
@@ -358,8 +357,6 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
               (game.homeOrAway === 'home' && displayHomeScore > displayAwayScore) ||
               (game.homeOrAway === 'away' && displayAwayScore > displayHomeScore)
             );
-            const isLoss = !isDraw && !isWin;
-
             // Score color based on result
             const scoreColor = isDraw ? 'text-slate-300' : isWin ? 'text-green-400' : 'text-red-400';
 
