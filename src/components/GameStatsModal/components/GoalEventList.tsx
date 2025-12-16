@@ -57,7 +57,7 @@ export function GoalEventList({
   // State for actions menu
   const [goalActionsMenuId, setGoalActionsMenuId] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
-  const [openUpward, setOpenUpward] = useState(false);
+  const [menuPositions, setMenuPositions] = useState<Record<string, boolean>>({});
   const { calculatePosition } = useDropdownPosition();
 
   // Close actions menu when clicking outside
@@ -177,7 +177,8 @@ export function GoalEventList({
                 <div className="relative" ref={goalActionsMenuId === goal.id ? actionsMenuRef : null}>
                   <button
                     onClick={(e) => {
-                      setOpenUpward(calculatePosition(e.currentTarget));
+                      const shouldOpenUpward = calculatePosition(e.currentTarget);
+                      setMenuPositions(prev => ({ ...prev, [goal.id]: shouldOpenUpward }));
                       setGoalActionsMenuId(goalActionsMenuId === goal.id ? null : goal.id);
                     }}
                     className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-600 transition-colors"
@@ -187,7 +188,7 @@ export function GoalEventList({
                   </button>
 
                   {goalActionsMenuId === goal.id && (
-                    <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                    <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${menuPositions[goal.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                       {goal.type === 'goal' && (
                         <button
                           onClick={() => {

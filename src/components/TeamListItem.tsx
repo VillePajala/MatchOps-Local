@@ -1,6 +1,6 @@
 'use client';
 
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDocumentDuplicate, HiOutlineUserGroup } from 'react-icons/hi2';
 import { Team } from '@/types';
@@ -46,7 +46,7 @@ const TeamListItem: React.FC<TeamListItemProps> = memo(({
   actionsMenuRef,
 }) => {
   const { t } = useTranslation();
-  const [openUpward, setOpenUpward] = React.useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const { calculatePosition } = useDropdownPosition();
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
