@@ -104,7 +104,8 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   // Actions menu state
   const [actionsMenuId, setActionsMenuId] = useState<string | null>(null);
   const actionsMenuRef = React.useRef<HTMLDivElement>(null);
-  const { openUpward, calculatePosition } = useDropdownPosition();
+  const [openUpward, setOpenUpward] = useState(false);
+  const { calculatePosition } = useDropdownPosition();
 
   // Create entity maps for O(1) lookups (live entity names)
   const entityMaps = useMemo(
@@ -415,7 +416,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            calculatePosition(e.currentTarget);
+                            setOpenUpward(calculatePosition(e.currentTarget));
                             setActionsMenuId(actionsMenuId === gameId ? null : gameId);
                           }}
                           className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
