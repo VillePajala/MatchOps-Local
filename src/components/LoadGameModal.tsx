@@ -130,6 +130,13 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
     };
   }, [actionsMenuId]);
 
+  const handleActionsMenuToggle = (e: React.MouseEvent<HTMLButtonElement>, gameId: string) => {
+    e.stopPropagation();
+    const shouldOpenUpward = calculatePosition(e.currentTarget);
+    setMenuPositions(prev => ({ ...prev, [gameId]: shouldOpenUpward }));
+    setActionsMenuId(actionsMenuId === gameId ? null : gameId);
+  };
+
   // Filter logic updated to only use searchText
   const filteredGameIds = useMemo(() => {
     const initialIds = Object.keys(savedGames).filter(id => id !== DEFAULT_GAME_ID);
@@ -414,12 +421,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                       {/* Actions menu button */}
                       <div className="relative" ref={actionsMenuId === gameId ? actionsMenuRef : null}>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const shouldOpenUpward = calculatePosition(e.currentTarget);
-                            setMenuPositions(prev => ({ ...prev, [gameId]: shouldOpenUpward }));
-                            setActionsMenuId(actionsMenuId === gameId ? null : gameId);
-                          }}
+                          onClick={(e) => handleActionsMenuToggle(e, gameId)}
                           className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
                           aria-label="Game actions"
                           disabled={disableActions}

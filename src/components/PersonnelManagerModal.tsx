@@ -92,6 +92,12 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
     }
   }, [openMenuId]);
 
+  const handleActionsMenuToggle = (e: React.MouseEvent<HTMLButtonElement>, personId: string) => {
+    const shouldOpenUpward = calculatePosition(e.currentTarget);
+    setMenuPositions(prev => ({ ...prev, [personId]: shouldOpenUpward }));
+    setOpenMenuId(openMenuId === personId ? null : personId);
+  };
+
   // Handle opening edit modal
   const handleEditPersonnel = (personnelId: string) => {
     setSelectedPersonnelId(personnelId);
@@ -325,11 +331,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                         </div>
                         <div className="relative ml-4" ref={openMenuId === person.id ? menuRef : null}>
                           <button
-                            onClick={(e) => {
-                              const shouldOpenUpward = calculatePosition(e.currentTarget);
-                              setMenuPositions(prev => ({ ...prev, [person.id]: shouldOpenUpward }));
-                              setOpenMenuId(openMenuId === person.id ? null : person.id);
-                            }}
+                            onClick={(e) => handleActionsMenuToggle(e, person.id)}
                             className={`${iconButtonBaseStyle} text-slate-400 hover:text-slate-200`}
                             disabled={isUpdating}
                             aria-label="More options"

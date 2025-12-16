@@ -131,6 +131,12 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [eventActionsMenuId]);
 
+  const handleActionsMenuToggle = (e: React.MouseEvent<HTMLButtonElement>, eventId: string) => {
+    const shouldOpenUpward = calculatePosition(e.currentTarget);
+    setMenuPositions(prev => ({ ...prev, [eventId]: shouldOpenUpward }));
+    setEventActionsMenuId(eventActionsMenuId === eventId ? null : eventId);
+  };
+
   const handleLogOwnGoalClick = () => {
     if (scorerId) {
       onLogGoal(scorerId, assisterId || undefined); // Pass undefined if assisterId is empty
@@ -505,11 +511,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                             </div>
                             <div className="relative" ref={eventActionsMenuId === event.id ? actionsMenuRef : null}>
                               <button
-                                onClick={(e) => {
-                                  const shouldOpenUpward = calculatePosition(e.currentTarget);
-                                  setMenuPositions(prev => ({ ...prev, [event.id]: shouldOpenUpward }));
-                                  setEventActionsMenuId(eventActionsMenuId === event.id ? null : event.id);
-                                }}
+                                onClick={(e) => handleActionsMenuToggle(e, event.id)}
                                 className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-600 transition-colors"
                                 aria-label={t('gameSettingsModal.eventActions', 'Event actions')}
                                 disabled={isProcessing}

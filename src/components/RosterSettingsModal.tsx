@@ -132,6 +132,13 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
     setSearchText(e.target.value);
   };
 
+  const handleActionsMenuToggle = (e: React.MouseEvent<HTMLButtonElement>, playerId: string) => {
+    e.stopPropagation();
+    const shouldOpenUpward = calculatePosition(e.currentTarget);
+    setMenuPositions(prev => ({ ...prev, [playerId]: shouldOpenUpward }));
+    setActionsMenuPlayerId(actionsMenuPlayerId === playerId ? null : playerId);
+  };
+
   const handleDeleteConfirmed = () => {
     if (playerToDelete) {
       onRemovePlayer(playerToDelete.id);
@@ -267,7 +274,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                       </div>
                       <div className="relative" ref={actionsMenuPlayerId === player.id ? actionsMenuRef : null}>
                         <button
-                          onClick={(e) => { e.stopPropagation(); const shouldOpenUpward = calculatePosition(e.currentTarget); setMenuPositions(prev => ({ ...prev, [player.id]: shouldOpenUpward })); setActionsMenuPlayerId(actionsMenuPlayerId === player.id ? null : player.id); }}
+                          onClick={(e) => handleActionsMenuToggle(e, player.id)}
                           className={`${iconButtonBaseStyle} text-slate-400 hover:text-slate-200`}
                           title={t('common.actions', 'Actions')}
                           disabled={isRosterUpdating}
