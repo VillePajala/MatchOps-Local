@@ -57,7 +57,8 @@ export function GoalEventList({
   // State for actions menu
   const [goalActionsMenuId, setGoalActionsMenuId] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
-  const { openUpward, calculatePosition } = useDropdownPosition();
+  const [openUpward, setOpenUpward] = useState(false);
+  const { calculatePosition } = useDropdownPosition();
 
   // Close actions menu when clicking outside
   useEffect(() => {
@@ -176,7 +177,7 @@ export function GoalEventList({
                 <div className="relative" ref={goalActionsMenuId === goal.id ? actionsMenuRef : null}>
                   <button
                     onClick={(e) => {
-                      calculatePosition(e.currentTarget);
+                      setOpenUpward(calculatePosition(e.currentTarget));
                       setGoalActionsMenuId(goalActionsMenuId === goal.id ? null : goal.id);
                     }}
                     className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-600 transition-colors"

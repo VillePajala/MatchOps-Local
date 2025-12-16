@@ -57,7 +57,8 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
 
     const [actionsMenuId, setActionsMenuId] = useState<string | null>(null);
     const actionsMenuRef = React.useRef<HTMLDivElement>(null);
-    const { openUpward, calculatePosition } = useDropdownPosition();
+    const [openUpward, setOpenUpward] = useState(false);
+    const { calculatePosition } = useDropdownPosition();
 
     React.useEffect(() => {
         const loadStats = async () => {
@@ -213,7 +214,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                 <div className="relative" ref={actionsMenuId === item.id ? actionsMenuRef : null} onClick={(e) => e.stopPropagation()}>
                                     <button
                                         onClick={(e) => {
-                                            calculatePosition(e.currentTarget);
+                                            setOpenUpward(calculatePosition(e.currentTarget));
                                             setActionsMenuId(actionsMenuId === item.id ? null : item.id);
                                         }}
                                         className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"

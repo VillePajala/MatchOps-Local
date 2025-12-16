@@ -422,7 +422,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [eventActionsMenuId, setEventActionsMenuId] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
-  const { openUpward, calculatePosition } = useDropdownPosition();
+  const [openUpward, setOpenUpward] = useState(false);
+  const { calculatePosition } = useDropdownPosition();
 
   // Close actions menu when clicking outside
   useEffect(() => {
@@ -2091,7 +2092,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         <div className="relative" ref={eventActionsMenuId === event.id ? actionsMenuRef : null}>
                           <button
                             onClick={(e) => {
-                              calculatePosition(e.currentTarget);
+                              setOpenUpward(calculatePosition(e.currentTarget));
                               setEventActionsMenuId(eventActionsMenuId === event.id ? null : event.id);
                             }}
                             className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-600 transition-colors"

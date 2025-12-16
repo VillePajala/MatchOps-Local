@@ -57,7 +57,8 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
   const [searchText, setSearchText] = useState('');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const { openUpward, calculatePosition } = useDropdownPosition();
+  const [openUpward, setOpenUpward] = useState(false);
+  const { calculatePosition } = useDropdownPosition();
 
   // Confirmation modal state
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -325,7 +326,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                         <div className="relative ml-4" ref={openMenuId === person.id ? menuRef : null}>
                           <button
                             onClick={(e) => {
-                              calculatePosition(e.currentTarget);
+                              setOpenUpward(calculatePosition(e.currentTarget));
                               setOpenMenuId(openMenuId === person.id ? null : person.id);
                             }}
                             className={`${iconButtonBaseStyle} text-slate-400 hover:text-slate-200`}
