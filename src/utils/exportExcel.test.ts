@@ -31,7 +31,7 @@ interface PlayerStatsRow {
   Assists: number;
   Points: number;
   'Fair Play': string;
-  'Is Goalie': string;
+  Goalie: string;  // Renamed from 'Is Goalie'
   Notes?: string;
 }
 
@@ -64,7 +64,6 @@ interface GameHistoryRow {
   Assists: number;
   Points: number;
   'Fair Play': string;
-  'Minutes Played': number | string;
   'Overall Rating': number | string;
   Season: string;
   Tournament: string;
@@ -78,6 +77,21 @@ jest.mock('xlsx', () => ({
     book_append_sheet: jest.fn((wb: MockWorkbook, ws: unknown, name: string) => {
       wb.SheetNames.push(name);
       wb.Sheets[name] = ws;
+    }),
+    // Add decode_range and encode_cell for setColumnAsText function
+    decode_range: jest.fn((ref: string) => {
+      // Parse A1:Z100 style ref - simplified mock
+      const match = ref.match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/);
+      if (!match) return { s: { c: 0, r: 0 }, e: { c: 25, r: 99 } };
+      const colToNum = (col: string) => col.charCodeAt(0) - 65;
+      return {
+        s: { c: colToNum(match[1]), r: parseInt(match[2]) - 1 },
+        e: { c: colToNum(match[3]), r: parseInt(match[4]) - 1 },
+      };
+    }),
+    encode_cell: jest.fn((cell: { c: number; r: number }) => {
+      const col = String.fromCharCode(65 + cell.c);
+      return `${col}${cell.r + 1}`;
     }),
   },
   write: jest.fn(() => new ArrayBuffer(100)),
@@ -213,7 +227,7 @@ describe('Excel Export Utilities', () => {
         Assists: 0,
         Points: 2,
         'Fair Play': 'Yes',
-        'Is Goalie': 'No',
+        Goalie: 'No',  // Renamed from 'Is Goalie'
       });
 
       // Jane Smith should have 0 goals, 1 assist, 1 point
@@ -225,7 +239,7 @@ describe('Excel Export Utilities', () => {
         Assists: 1,
         Points: 1,
         'Fair Play': 'No',
-        'Is Goalie': 'Yes',
+        Goalie: 'Yes',  // Renamed from 'Is Goalie'
       });
     });
 
@@ -664,7 +678,7 @@ describe('Excel Export Utilities', () => {
 
       expect(summary).toMatchObject({
         'Player Name': 'John Doe',
-        'Jersey Number': '10',
+        'Jersey #': '10',  // Uses 'Jersey #' not 'Jersey Number'
         'Nickname': 'Johnny',
         'Total Games': 2,
         'Total Goals': 5,
