@@ -209,18 +209,18 @@ export function useGamePersistence({
    */
   const createGameSnapshot = useCallback((): AppState => {
     // Volatile timer states are intentionally EXCLUDED from the snapshot:
-    // - timeElapsedInSeconds: Current elapsed time (paused state)
     // - startTimestamp: Timestamp when timer started/resumed
     // - isTimerRunning: Whether timer is currently running
-    // - nextSubDueTimeSeconds: Next substitution due time
-    // - subAlertLevel: Current substitution alert level
+    // - nextSubDueTimeSeconds: Next substitution due time (recalculated from timeElapsedInSeconds)
+    // - subAlertLevel: Current substitution alert level (recalculated)
     //
     // These fields are re-initialized on load by the reducer to ensure:
     // - Timer starts in stopped state when loading a game
     // - No race conditions with stale timestamps
     // - Clean slate for substitution tracking
+    //
+    // Note: timeElapsedInSeconds IS persisted to preserve timer progress across game switches
     const {
-      timeElapsedInSeconds, // eslint-disable-line @typescript-eslint/no-unused-vars
       startTimestamp, // eslint-disable-line @typescript-eslint/no-unused-vars
       isTimerRunning, // eslint-disable-line @typescript-eslint/no-unused-vars
       nextSubDueTimeSeconds, // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -229,7 +229,7 @@ export function useGamePersistence({
     } = gameSessionState;
 
     return {
-      // Spread all persisted GameSessionState fields
+      // Spread all persisted GameSessionState fields (includes timeElapsedInSeconds)
       ...persistedGameSessionState,
 
       // Override/add additional fields not in gameSessionState
