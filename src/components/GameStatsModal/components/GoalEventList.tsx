@@ -7,6 +7,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { GameEvent, Player } from '@/types';
+import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 
 interface GoalEventListProps {
   goals: GameEvent[];
@@ -56,6 +57,7 @@ export function GoalEventList({
   // State for actions menu
   const [goalActionsMenuId, setGoalActionsMenuId] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
+  const { openUpward, calculatePosition } = useDropdownPosition();
 
   // Close actions menu when clicking outside
   useEffect(() => {
@@ -173,7 +175,10 @@ export function GoalEventList({
                 </div>
                 <div className="relative" ref={goalActionsMenuId === goal.id ? actionsMenuRef : null}>
                   <button
-                    onClick={() => setGoalActionsMenuId(goalActionsMenuId === goal.id ? null : goal.id)}
+                    onClick={(e) => {
+                      calculatePosition(e.currentTarget);
+                      setGoalActionsMenuId(goalActionsMenuId === goal.id ? null : goal.id);
+                    }}
                     className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-600 transition-colors"
                     aria-label={t('common.actions', 'Actions')}
                   >
@@ -181,7 +186,7 @@ export function GoalEventList({
                   </button>
 
                   {goalActionsMenuId === goal.id && (
-                    <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
+                    <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                       {goal.type === 'goal' && (
                         <button
                           onClick={() => {

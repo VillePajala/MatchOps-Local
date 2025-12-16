@@ -6,6 +6,7 @@ import { SavedGamesCollection } from '@/types'; // Keep this if SavedGamesCollec
 import { Season, Tournament, Team } from '@/types'; // Corrected import path
 import type { TranslationKey } from '@/i18n-types';
 import { createEntityMaps, getDisplayNames } from '@/utils/entityLookup';
+import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { getLeagueName, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import { LEVELS } from '@/config/gameOptions';
 import {
@@ -103,6 +104,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   // Actions menu state
   const [actionsMenuId, setActionsMenuId] = useState<string | null>(null);
   const actionsMenuRef = React.useRef<HTMLDivElement>(null);
+  const { openUpward, calculatePosition } = useDropdownPosition();
 
   // Create entity maps for O(1) lookups (live entity names)
   const entityMaps = useMemo(
@@ -413,6 +415,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            calculatePosition(e.currentTarget);
                             setActionsMenuId(actionsMenuId === gameId ? null : gameId);
                           }}
                           className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
@@ -431,7 +434,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
 
                         {/* Actions dropdown menu */}
                         {actionsMenuId === gameId && (
-                          <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
+                          <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();

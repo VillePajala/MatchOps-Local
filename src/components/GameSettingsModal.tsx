@@ -20,6 +20,7 @@ import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import type { TranslationKey } from '@/i18n-types';
 import ConfirmationModal from './ConfirmationModal';
 import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
+import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 
 /**
  * Delay before applying prefill mutations to prevent race conditions on mobile devices.
@@ -421,6 +422,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [eventActionsMenuId, setEventActionsMenuId] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
+  const { openUpward, calculatePosition } = useDropdownPosition();
 
   // Close actions menu when clicking outside
   useEffect(() => {
@@ -2088,7 +2090,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         </div>
                         <div className="relative" ref={eventActionsMenuId === event.id ? actionsMenuRef : null}>
                           <button
-                            onClick={() => setEventActionsMenuId(eventActionsMenuId === event.id ? null : event.id)}
+                            onClick={(e) => {
+                              calculatePosition(e.currentTarget);
+                              setEventActionsMenuId(eventActionsMenuId === event.id ? null : event.id);
+                            }}
                             className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-600 transition-colors"
                             aria-label={t('gameSettingsModal.eventActions', 'Event actions')}
                             disabled={isProcessing}
@@ -2097,7 +2102,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                           </button>
 
                           {eventActionsMenuId === event.id && (
-                            <div className="absolute right-0 mt-1 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50">
+                            <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                               <button
                                 onClick={() => { setEventActionsMenuId(null); handleEditGoal(event); }}
                                 className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"
