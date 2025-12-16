@@ -88,7 +88,8 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
   // State for the actions menu
   const [actionsMenuPlayerId, setActionsMenuPlayerId] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null); // Ref for click outside
-  const { openUpward, calculatePosition } = useDropdownPosition();
+  const [openUpward, setOpenUpward] = useState(false);
+  const { calculatePosition } = useDropdownPosition();
 
   // Confirmation modal state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -266,7 +267,7 @@ const RosterSettingsModal: React.FC<RosterSettingsModalProps> = ({
                       </div>
                       <div className="relative" ref={actionsMenuPlayerId === player.id ? actionsMenuRef : null}>
                         <button
-                          onClick={(e) => { e.stopPropagation(); calculatePosition(e.currentTarget); setActionsMenuPlayerId(actionsMenuPlayerId === player.id ? null : player.id); }}
+                          onClick={(e) => { e.stopPropagation(); setOpenUpward(calculatePosition(e.currentTarget)); setActionsMenuPlayerId(actionsMenuPlayerId === player.id ? null : player.id); }}
                           className={`${iconButtonBaseStyle} text-slate-400 hover:text-slate-200`}
                           title={t('common.actions', 'Actions')}
                           disabled={isRosterUpdating}

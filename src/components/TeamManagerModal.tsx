@@ -62,7 +62,8 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
   // Refs
   const actionsMenuRef = useRef<HTMLDivElement>(null);
-  const { openUpward, calculatePosition } = useDropdownPosition();
+  const [openUpward, setOpenUpward] = useState(false);
+  const { calculatePosition } = useDropdownPosition();
 
   // Mutations
   const deleteTeamMutation = useMutation({
@@ -386,7 +387,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                           <div className="relative" ref={actionsMenuTeamId === team.id ? actionsMenuRef : null}>
                             <button
                               onClick={(e) => {
-                                calculatePosition(e.currentTarget);
+                                setOpenUpward(calculatePosition(e.currentTarget));
                                 setActionsMenuTeamId(actionsMenuTeamId === team.id ? null : team.id);
                               }}
                               className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"

@@ -46,7 +46,8 @@ const TeamListItem: React.FC<TeamListItemProps> = memo(({
   actionsMenuRef,
 }) => {
   const { t } = useTranslation();
-  const { openUpward, calculatePosition } = useDropdownPosition();
+  const [openUpward, setOpenUpward] = React.useState(false);
+  const { calculatePosition } = useDropdownPosition();
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && isEditing) {
@@ -121,7 +122,7 @@ const TeamListItem: React.FC<TeamListItemProps> = memo(({
       <div className="relative" ref={actionsMenuRef}>
         <button
           onClick={(e) => {
-            calculatePosition(e.currentTarget);
+            setOpenUpward(calculatePosition(e.currentTarget));
             onActionsMenuToggle();
           }}
           className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded-md transition-colors opacity-0 group-hover:opacity-100"

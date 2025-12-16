@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 
 interface UseDropdownPositionOptions {
   /** Estimated menu height in pixels (default: 150) */
@@ -9,17 +9,17 @@ interface UseDropdownPositionOptions {
  * Hook to determine if a dropdown menu should open upward or downward
  * based on available viewport space.
  *
- * Works well with lists where you can't have separate refs for each item.
- * Call calculatePosition in the button's onClick handler.
+ * Returns the position synchronously to avoid race conditions with menu state.
  *
  * @param options - Configuration options
- * @returns Object with openUpward boolean and calculatePosition function
+ * @returns calculatePosition function that returns true if menu should open upward
  *
  * @example
- * const { openUpward, calculatePosition } = useDropdownPosition();
+ * const { calculatePosition } = useDropdownPosition();
+ * const [openUpward, setOpenUpward] = useState(false);
  *
  * <button onClick={(e) => {
- *   calculatePosition(e.currentTarget);
+ *   setOpenUpward(calculatePosition(e.currentTarget));
  *   setMenuOpen(!menuOpen);
  * }}>
  *
@@ -27,15 +27,14 @@ interface UseDropdownPositionOptions {
  */
 export function useDropdownPosition(options: UseDropdownPositionOptions = {}) {
   const { menuHeight = 150 } = options;
-  const [openUpward, setOpenUpward] = useState(false);
 
-  const calculatePosition = useCallback((triggerElement: HTMLElement | null) => {
-    if (!triggerElement) return;
+  const calculatePosition = useCallback((triggerElement: HTMLElement | null): boolean => {
+    if (!triggerElement) return false;
 
     const rect = triggerElement.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
-    setOpenUpward(spaceBelow < menuHeight);
+    return spaceBelow < menuHeight;
   }, [menuHeight]);
 
-  return { openUpward, calculatePosition };
+  return { calculatePosition };
 }
