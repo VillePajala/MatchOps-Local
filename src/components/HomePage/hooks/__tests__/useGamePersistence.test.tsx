@@ -643,10 +643,11 @@ describe('useGamePersistence', () => {
 
   describe('Snapshot Creation', () => {
     /**
-     * Tests that volatile timer states are excluded from snapshot
+     * Tests that volatile runtime states are excluded from snapshot
+     * (timer progress is persisted, but volatile runtime timestamps are not)
      * @critical
      */
-    it('should exclude volatile timer states from game snapshot', async () => {
+    it('should exclude volatile runtime states from game snapshot', async () => {
       const mockSavedGames = {};
       const setSavedGames = jest.fn((updater) => {
         const newGames = typeof updater === 'function' ? updater(mockSavedGames) : updater;
@@ -655,8 +656,11 @@ describe('useGamePersistence', () => {
         if (gameIds.length > 0) {
           const snapshot = newGames[gameIds[0]];
 
-          // Verify volatile timer states are NOT in the snapshot
-          expect(snapshot).not.toHaveProperty('timeElapsedInSeconds');
+          // Verify timer progress IS persisted (so returning to game restores timer position)
+          expect(snapshot).toHaveProperty('timeElapsedInSeconds');
+          expect(snapshot.timeElapsedInSeconds).toBe(1234);
+
+          // Verify volatile runtime states are NOT in the snapshot
           expect(snapshot).not.toHaveProperty('startTimestamp');
           expect(snapshot).not.toHaveProperty('isTimerRunning');
           expect(snapshot).not.toHaveProperty('nextSubDueTimeSeconds');
@@ -710,8 +714,7 @@ describe('useGamePersistence', () => {
           // TypeScript will error. This catches issues when AppState is extended.
           const typeCheck: Omit<
             AppState,
-            // Volatile timer states intentionally excluded
-            | 'timeElapsedInSeconds'
+            // Volatile runtime states intentionally excluded (not timer progress)
             | 'startTimestamp'
             | 'isTimerRunning'
             | 'nextSubDueTimeSeconds'
