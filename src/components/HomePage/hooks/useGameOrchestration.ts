@@ -1249,7 +1249,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       return;
     }
     try {
-      exportCurrentGameExcel(gameId, gameData, availablePlayers, gameDataManagement.seasons, gameDataManagement.tournaments);
+      // Wrap t() to match TranslationFn signature
+      const translate = (key: string, defaultValue?: string) => t(key, defaultValue ?? key);
+      exportCurrentGameExcel(gameId, gameData, availablePlayers, gameDataManagement.seasons, gameDataManagement.tournaments, translate);
     } catch (error) {
       logger.error('[handleExportOneExcel] Export failed:', error);
       showToast(t('export.exportGameFailed'), 'error');
@@ -1564,7 +1566,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       return acc;
     }, {} as SavedGamesCollection);
     try {
-      exportAggregateExcel(gamesData, aggregateStats, gameDataManagement.seasons, gameDataManagement.tournaments, []);
+      // Wrap t() to match TranslationFn signature
+      const translate = (key: string, defaultValue?: string) => t(key, defaultValue ?? key);
+      exportAggregateExcel(gamesData, aggregateStats, gameDataManagement.seasons, gameDataManagement.tournaments, [], undefined, undefined, translate);
     } catch (error) {
       logger.error('[handleExportAggregateExcel] Export failed:', error);
       showToast(t('export.exportStatsFailed'), 'error');
@@ -1582,7 +1586,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     try {
       const { getAdjustmentsForPlayer } = await import('@/utils/playerAdjustments');
       const adjustments = await getAdjustmentsForPlayer(playerId);
-      exportPlayerExcel(playerId, playerData, gamesData, gameDataManagement.seasons, gameDataManagement.tournaments, adjustments);
+      // Wrap t() to match TranslationFn signature
+      const translate = (key: string, defaultValue?: string) => t(key, defaultValue ?? key);
+      exportPlayerExcel(playerId, playerData, gamesData, gameDataManagement.seasons, gameDataManagement.tournaments, adjustments, translate);
     } catch (error) {
       logger.error('[handleExportPlayerExcel] Export failed:', error);
       showToast(t('export.exportPlayerFailed'), 'error');

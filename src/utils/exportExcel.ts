@@ -11,6 +11,26 @@ import {
 import { formatTime } from './time';
 
 /**
+ * Translation function type for Excel exports
+ * Compatible with i18next's t() function
+ */
+export type TranslationFn = (key: string, defaultValue?: string) => string;
+
+/**
+ * Create a TranslationFn wrapper from i18next's t function
+ * Adapts the i18next signature to the simpler TranslationFn signature
+ */
+export const createTranslateFn = (
+  t: (key: string, defaultValue?: string) => string
+): TranslationFn => (key: string, defaultValue?: string) => t(key, defaultValue ?? key);
+
+/**
+ * Default translation function that returns the default value or key
+ */
+const defaultTranslate: TranslationFn = (key: string, defaultValue?: string) =>
+  defaultValue || key;
+
+/**
  * Sanitize filename to remove invalid characters and prevent issues
  *
  * @param filename - Raw filename string
@@ -74,6 +94,40 @@ const getTimestamp = (): string => {
 };
 
 /**
+ * Force text formatting on a column to prevent Excel auto-formatting
+ * (e.g., converting "2017" to a number/date)
+ *
+ * @param sheet - The worksheet to modify
+ * @param columnName - The header name of the column to format as text
+ */
+const setColumnAsText = (sheet: XLSX.WorkSheet, columnName: string): void => {
+  const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
+
+  // Find the column index for the given header name
+  let colIndex = -1;
+  for (let col = range.s.c; col <= range.e.c; col++) {
+    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+    const cell = sheet[cellAddress];
+    if (cell && cell.v === columnName) {
+      colIndex = col;
+      break;
+    }
+  }
+
+  if (colIndex === -1) return; // Column not found
+
+  // Set all cells in that column (except header) to text format
+  for (let row = range.s.r + 1; row <= range.e.r; row++) {
+    const cellAddress = XLSX.utils.encode_cell({ r: row, c: colIndex });
+    const cell = sheet[cellAddress];
+    if (cell) {
+      cell.t = 's'; // Force string type
+      cell.z = '@'; // Text format
+    }
+  }
+};
+
+/**
  * Calculate Win/Loss/Tie record from games
  */
 const calculateRecord = (
@@ -121,10 +175,15 @@ export const exportCurrentGameExcel = (
   game: AppState,
   players: Player[],
   seasons: Season[] = [],
-  tournaments: Tournament[] = []
+  tournaments: Tournament[] = [],
+  translate: TranslationFn = defaultTranslate
 ): void => {
   try {
     const workbook = XLSX.utils.book_new();
+
+  // Translation keys for common values
+  const yes = translate('export.yes', 'Yes');
+  const no = translate('export.no', 'No');
 
   const seasonName = game.seasonId ? seasons.find((s) => s.id === game.seasonId)?.name : '';
   const tournamentName = game.tournamentId
@@ -133,40 +192,51 @@ export const exportCurrentGameExcel = (
 
   // Sheet 1: Player Stats
   const selectedPlayers = players.filter((p) => game.selectedPlayerIds?.includes(p.id));
+
+  // Store translated keys as constants for type-safe sorting
+  const pointsKey = translate('export.points', 'Points');
+  const goalsKey = translate('export.goals', 'Goals');
+
   const playerStats = selectedPlayers
     .map((p) => {
       const goals = game.gameEvents.filter((e) => e.type === 'goal' && e.scorerId === p.id).length;
       const assists = game.gameEvents.filter((e) => e.type === 'goal' && e.assisterId === p.id).length;
       const totalScore = goals + assists;
       return {
-        Player: p.name,
-        'Jersey #': p.jerseyNumber || '',
-        Nickname: p.nickname || '',
-        Goals: goals,
-        Assists: assists,
-        Points: totalScore,
-        'Fair Play': p.receivedFairPlayCard ? 'Yes' : 'No',
-        'Is Goalie': p.isGoalie ? 'Yes' : 'No',
-        Notes: p.notes || '',
+        [translate('export.player', 'Player')]: p.name,
+        [translate('export.jerseyNumber', 'Jersey #')]: p.jerseyNumber || '',
+        [translate('export.nickname', 'Nickname')]: p.nickname || '',
+        [goalsKey]: goals,
+        [translate('export.assists', 'Assists')]: assists,
+        [pointsKey]: totalScore,
+        [translate('export.fairPlay', 'Fair Play')]: p.receivedFairPlayCard ? yes : no,
+        [translate('export.goalie', 'Goalie')]: p.isGoalie ? yes : no,
+        [translate('export.notes', 'Notes')]: p.notes || '',
       };
     })
-    .sort((a, b) => b.Points - a.Points || b.Goals - a.Goals);
+    .sort((a, b) => {
+      const pointDiff = (b[pointsKey] as number) - (a[pointsKey] as number);
+      const goalDiff = (b[goalsKey] as number) - (a[goalsKey] as number);
+      return pointDiff || goalDiff;
+    });
 
+  const notesHeader = translate('export.notes', 'Notes');
   const playerStatsSheet = XLSX.utils.json_to_sheet(playerStats);
-  XLSX.utils.book_append_sheet(workbook, playerStatsSheet, 'Player Stats');
+  setColumnAsText(playerStatsSheet, notesHeader);
+  XLSX.utils.book_append_sheet(workbook, playerStatsSheet, translate('export.sheetPlayerStats', 'Player Stats'));
 
   // Sheet 2: Events
   const sortedEvents = game.gameEvents
     .filter((e) => e.type === 'goal' || e.type === 'opponentGoal')
     .sort((a, b) => a.time - b.time);
   const eventData = sortedEvents.map((event) => ({
-    Time: formatTime(event.time),
-    Type: event.type === 'goal' ? 'Goal' : 'Opponent Goal',
-    Scorer:
+    [translate('export.time', 'Time')]: formatTime(event.time),
+    [translate('export.type', 'Type')]: event.type === 'goal' ? translate('export.goal', 'Goal') : translate('export.opponentGoal', 'Opponent Goal'),
+    [translate('export.scorer', 'Scorer')]:
       event.type === 'goal'
         ? selectedPlayers.find((p) => p.id === event.scorerId)?.name || event.scorerId || ''
-        : game.opponentName || 'Opponent',
-    Assister:
+        : game.opponentName || translate('export.opponent', 'Opponent'),
+    [translate('export.assister', 'Assister')]:
       event.type === 'goal' && event.assisterId
         ? selectedPlayers.find((p) => p.id === event.assisterId)?.name || event.assisterId || ''
         : '',
@@ -174,18 +244,18 @@ export const exportCurrentGameExcel = (
 
   const eventsSheet = eventData.length > 0
     ? XLSX.utils.json_to_sheet(eventData)
-    : XLSX.utils.json_to_sheet([{ Message: 'No goals logged' }]);
-  XLSX.utils.book_append_sheet(workbook, eventsSheet, 'Events');
+    : XLSX.utils.json_to_sheet([{ [translate('export.message', 'Message')]: translate('export.noGoalsLogged', 'No goals logged') }]);
+  XLSX.utils.book_append_sheet(workbook, eventsSheet, translate('export.sheetEvents', 'Events'));
 
   // Sheet 3: Game Info
   const isHome = game.homeOrAway === 'home';
   const ourScore = isHome ? game.homeScore : game.awayScore;
   const theirScore = isHome ? game.awayScore : game.homeScore;
-  let result = 'Not Started';
+  let result = translate('export.notStarted', 'Not Started');
   if (game.isPlayed) {
-    if (ourScore > theirScore) result = 'Win';
-    else if (ourScore < theirScore) result = 'Loss';
-    else result = 'Tie';
+    if (ourScore > theirScore) result = translate('export.win', 'Win');
+    else if (ourScore < theirScore) result = translate('export.loss', 'Loss');
+    else result = translate('export.tie', 'Tie');
   }
 
   const totalDuration = (game.completedIntervalDurations || []).reduce(
@@ -193,39 +263,41 @@ export const exportCurrentGameExcel = (
     0
   );
 
+  const fieldLabel = translate('export.field', 'Field');
+  const valueLabel = translate('export.value', 'Value');
   const gameInfo = [
-    { Field: 'Game ID', Value: gameId },
-    { Field: 'Game Date', Value: game.gameDate },
-    { Field: 'Game Time', Value: game.gameTime || '' },
-    { Field: 'Location', Value: game.gameLocation || '' },
-    { Field: 'Home Team', Value: game.teamName },
-    { Field: 'Away Team', Value: game.opponentName },
-    { Field: 'Home Score', Value: game.homeScore },
-    { Field: 'Away Score', Value: game.awayScore },
-    { Field: 'We Played As', Value: game.homeOrAway },
-    { Field: 'Result', Value: result },
-    { Field: 'Goal Difference', Value: ourScore - theirScore },
-    { Field: 'Season', Value: seasonName || game.seasonId || 'None' },
-    { Field: 'Tournament', Value: tournamentName || game.tournamentId || 'None' },
-    { Field: 'Tournament Level', Value: game.tournamentLevel || '' },
-    { Field: 'Age Group', Value: game.ageGroup || '' },
-    { Field: 'Demand Factor', Value: game.demandFactor || '' },
-    { Field: 'Team ID', Value: game.teamId || '' },
-    { Field: 'Game Status', Value: game.gameStatus },
-    { Field: 'Is Played', Value: game.isPlayed ? 'Yes' : 'No' },
-    { Field: '', Value: '' },
-    { Field: 'Game Settings', Value: '' },
-    { Field: 'Number of Periods', Value: game.numberOfPeriods },
-    { Field: 'Period Duration (min)', Value: game.periodDurationMinutes },
-    { Field: 'Substitution Interval (min)', Value: game.subIntervalMinutes ?? '' },
-    { Field: 'Current Period', Value: game.currentPeriod },
-    { Field: 'Total Game Duration', Value: formatTime(totalDuration) },
-    { Field: '', Value: '' },
-    { Field: 'Notes', Value: game.gameNotes || '' },
+    { [fieldLabel]: translate('export.gameId', 'Game ID'), [valueLabel]: gameId },
+    { [fieldLabel]: translate('export.gameDate', 'Game Date'), [valueLabel]: game.gameDate },
+    { [fieldLabel]: translate('export.gameTime', 'Game Time'), [valueLabel]: game.gameTime || '' },
+    { [fieldLabel]: translate('export.location', 'Location'), [valueLabel]: game.gameLocation || '' },
+    { [fieldLabel]: translate('export.homeTeam', 'Home Team'), [valueLabel]: game.teamName },
+    { [fieldLabel]: translate('export.awayTeam', 'Away Team'), [valueLabel]: game.opponentName },
+    { [fieldLabel]: translate('export.homeScore', 'Home Score'), [valueLabel]: game.homeScore },
+    { [fieldLabel]: translate('export.awayScore', 'Away Score'), [valueLabel]: game.awayScore },
+    { [fieldLabel]: translate('export.wePlayedAs', 'We Played As'), [valueLabel]: game.homeOrAway },
+    { [fieldLabel]: translate('export.result', 'Result'), [valueLabel]: result },
+    { [fieldLabel]: translate('export.goalDifference', 'Goal Difference'), [valueLabel]: ourScore - theirScore },
+    { [fieldLabel]: translate('export.season', 'Season'), [valueLabel]: seasonName || game.seasonId || translate('export.none', 'None') },
+    { [fieldLabel]: translate('export.tournament', 'Tournament'), [valueLabel]: tournamentName || game.tournamentId || translate('export.none', 'None') },
+    { [fieldLabel]: translate('export.tournamentLevel', 'Tournament Level'), [valueLabel]: game.tournamentLevel || '' },
+    { [fieldLabel]: translate('export.ageGroup', 'Age Group'), [valueLabel]: game.ageGroup || '' },
+    { [fieldLabel]: translate('export.demandFactor', 'Demand Factor'), [valueLabel]: game.demandFactor || '' },
+    { [fieldLabel]: translate('export.teamId', 'Team ID'), [valueLabel]: game.teamId || '' },
+    { [fieldLabel]: translate('export.gameStatus', 'Game Status'), [valueLabel]: game.gameStatus },
+    { [fieldLabel]: translate('export.isPlayed', 'Is Played'), [valueLabel]: game.isPlayed ? yes : no },
+    { [fieldLabel]: '', [valueLabel]: '' },
+    { [fieldLabel]: translate('export.gameSettings', 'Game Settings'), [valueLabel]: '' },
+    { [fieldLabel]: translate('export.numberOfPeriods', 'Number of Periods'), [valueLabel]: game.numberOfPeriods },
+    { [fieldLabel]: translate('export.periodDuration', 'Period Duration (min)'), [valueLabel]: game.periodDurationMinutes },
+    { [fieldLabel]: translate('export.substitutionInterval', 'Substitution Interval (min)'), [valueLabel]: game.subIntervalMinutes ?? '' },
+    { [fieldLabel]: translate('export.currentPeriod', 'Current Period'), [valueLabel]: game.currentPeriod },
+    { [fieldLabel]: translate('export.totalGameDuration', 'Total Game Duration'), [valueLabel]: formatTime(totalDuration) },
+    { [fieldLabel]: '', [valueLabel]: '' },
+    { [fieldLabel]: translate('export.notes', 'Notes'), [valueLabel]: game.gameNotes || '' },
   ];
 
   const gameInfoSheet = XLSX.utils.json_to_sheet(gameInfo);
-  XLSX.utils.book_append_sheet(workbook, gameInfoSheet, 'Game Info');
+  XLSX.utils.book_append_sheet(workbook, gameInfoSheet, translate('export.sheetGameInfo', 'Game Info'));
 
   // Sheet 4: Assessments (if available)
   if (game.assessments && Object.keys(game.assessments).length > 0) {
@@ -234,28 +306,28 @@ export const exportCurrentGameExcel = (
       .map((p) => {
         const assessment = game.assessments![p.id];
         return {
-          Player: p.name,
-          'Minutes Played': assessment.minutesPlayed,
-          Overall: assessment.overall,
-          Intensity: assessment.sliders.intensity,
-          Courage: assessment.sliders.courage,
-          Duels: assessment.sliders.duels,
-          Technique: assessment.sliders.technique,
-          Creativity: assessment.sliders.creativity,
-          Decisions: assessment.sliders.decisions,
-          Awareness: assessment.sliders.awareness,
-          Teamwork: assessment.sliders.teamwork,
-          'Fair Play': assessment.sliders.fair_play,
-          Impact: assessment.sliders.impact,
-          Notes: assessment.notes || '',
-          'Assessment Date': new Date(assessment.createdAt).toLocaleString(),
-          'Assessed By': assessment.createdBy || '',
+          [translate('export.player', 'Player')]: p.name,
+          [translate('export.overall', 'Overall')]: assessment.overall,
+          [translate('export.intensity', 'Intensity')]: assessment.sliders.intensity,
+          [translate('export.courage', 'Courage')]: assessment.sliders.courage,
+          [translate('export.duels', 'Duels')]: assessment.sliders.duels,
+          [translate('export.technique', 'Technique')]: assessment.sliders.technique,
+          [translate('export.creativity', 'Creativity')]: assessment.sliders.creativity,
+          [translate('export.decisions', 'Decisions')]: assessment.sliders.decisions,
+          [translate('export.awareness', 'Awareness')]: assessment.sliders.awareness,
+          [translate('export.teamwork', 'Teamwork')]: assessment.sliders.teamwork,
+          [translate('export.fairPlay', 'Fair Play')]: assessment.sliders.fair_play,
+          [translate('export.impact', 'Impact')]: assessment.sliders.impact,
+          [translate('export.notes', 'Notes')]: assessment.notes || '',
+          [translate('export.assessmentDate', 'Assessment Date')]: new Date(assessment.createdAt).toLocaleString(),
+          [translate('export.assessedBy', 'Assessed By')]: assessment.createdBy || '',
         };
       });
 
     if (assessmentData.length > 0) {
       const assessmentSheet = XLSX.utils.json_to_sheet(assessmentData);
-      XLSX.utils.book_append_sheet(workbook, assessmentSheet, 'Assessments');
+      setColumnAsText(assessmentSheet, notesHeader);
+      XLSX.utils.book_append_sheet(workbook, assessmentSheet, translate('export.sheetAssessments', 'Assessments'));
     }
   }
 
@@ -265,13 +337,13 @@ export const exportCurrentGameExcel = (
     const intervalData = intervals
       .sort((a, b) => a.timestamp - b.timestamp)
       .map((log) => ({
-        Period: log.period,
-        'Duration (mm:ss)': formatTime(log.duration),
-        Timestamp: new Date(log.timestamp).toLocaleString(),
+        [translate('export.period', 'Period')]: log.period,
+        [translate('export.duration', 'Duration (mm:ss)')]: formatTime(log.duration),
+        [translate('export.timestamp', 'Timestamp')]: new Date(log.timestamp).toLocaleString(),
       }));
 
     const intervalsSheet = XLSX.utils.json_to_sheet(intervalData);
-    XLSX.utils.book_append_sheet(workbook, intervalsSheet, 'Substitution Intervals');
+    XLSX.utils.book_append_sheet(workbook, intervalsSheet, translate('export.sheetSubstitutionIntervals', 'Substitution Intervals'));
   }
 
     const filename = `MatchOps_Game_${gameId}_${getTimestamp()}.xlsx`;
@@ -309,10 +381,14 @@ export const exportAggregateExcel = (
   tournaments: Tournament[] = [],
   externalAdjustments: PlayerStatAdjustment[] = [],
   contextType?: 'season' | 'tournament' | 'overall',
-  contextId?: string
+  contextId?: string,
+  translate: TranslationFn = defaultTranslate
 ): void => {
   try {
     const workbook = XLSX.utils.book_new();
+  const yes = translate('export.yes', 'Yes');
+  const no = translate('export.no', 'No');
+  const notesHeader = translate('export.notes', 'Notes');
 
   // Sheet 1: Player Stats Summary
   // Include zero rows when there are no games in the dataset (e.g., team filter with no games)
@@ -320,21 +396,22 @@ export const exportAggregateExcel = (
   const playerSummary = aggregateStats
     .filter((player) => includeZeroRows ? true : player.gamesPlayed > 0)
     .map((player) => ({
-      Player: player.name,
-      'Jersey #': player.jerseyNumber || '',
-      Nickname: player.nickname || '',
-      'Games Played': player.gamesPlayed,
-      Goals: player.goals,
-      Assists: player.assists,
-      Points: player.totalScore,
-      'Avg Points/Game': player.avgPoints.toFixed(2),
-      'Fair Play Awards': player.fpAwards ?? 0,
-      'Is Goalie': player.isGoalie ? 'Yes' : 'No',
-      Notes: player.notes || '',
+      [translate('export.player', 'Player')]: player.name,
+      [translate('export.jerseyNumber', 'Jersey #')]: player.jerseyNumber || '',
+      [translate('export.nickname', 'Nickname')]: player.nickname || '',
+      [translate('export.gamesPlayed', 'Games Played')]: player.gamesPlayed,
+      [translate('export.goals', 'Goals')]: player.goals,
+      [translate('export.assists', 'Assists')]: player.assists,
+      [translate('export.points', 'Points')]: player.totalScore,
+      [translate('export.avgPointsPerGame', 'Avg Points/Game')]: player.avgPoints.toFixed(2),
+      [translate('export.fairPlayAwards', 'Fair Play Awards')]: player.fpAwards ?? 0,
+      [translate('export.goalie', 'Goalie')]: player.isGoalie ? yes : no,
+      [notesHeader]: player.notes || '',
     }));
 
   const summarySheet = XLSX.utils.json_to_sheet(playerSummary);
-  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Player Stats Summary');
+  setColumnAsText(summarySheet, notesHeader);
+  XLSX.utils.book_append_sheet(workbook, summarySheet, translate('export.sheetPlayerStatsSummary', 'Player Stats Summary'));
 
   // Sheet 2: Team Performance
   const gameArray = Object.values(games);
@@ -355,21 +432,23 @@ export const exportAggregateExcel = (
   const avgGoalsFor = totalGames > 0 ? (goalsFor / totalGames).toFixed(2) : '0.00';
   const avgGoalsAgainst = totalGames > 0 ? (goalsAgainst / totalGames).toFixed(2) : '0.00';
 
+  const metricLabel = translate('export.metric', 'Metric');
+  const valueLabel = translate('export.value', 'Value');
   const performanceData = [
-    { Metric: 'Games Played', Value: totalGames },
-    { Metric: 'Wins', Value: record.wins },
-    { Metric: 'Losses', Value: record.losses },
-    { Metric: 'Ties', Value: record.ties },
-    { Metric: 'Win Percentage', Value: `${winPct}%` },
-    { Metric: 'Goals For', Value: goalsFor },
-    { Metric: 'Goals Against', Value: goalsAgainst },
-    { Metric: 'Goal Difference', Value: goalDiff > 0 ? `+${goalDiff}` : goalDiff },
-    { Metric: 'Avg Goals For/Game', Value: avgGoalsFor },
-    { Metric: 'Avg Goals Against/Game', Value: avgGoalsAgainst },
+    { [metricLabel]: translate('export.gamesPlayed', 'Games Played'), [valueLabel]: totalGames },
+    { [metricLabel]: translate('export.wins', 'Wins'), [valueLabel]: record.wins },
+    { [metricLabel]: translate('export.losses', 'Losses'), [valueLabel]: record.losses },
+    { [metricLabel]: translate('export.ties', 'Ties'), [valueLabel]: record.ties },
+    { [metricLabel]: translate('export.winPercentage', 'Win Percentage'), [valueLabel]: `${winPct}%` },
+    { [metricLabel]: translate('export.goalsFor', 'Goals For'), [valueLabel]: goalsFor },
+    { [metricLabel]: translate('export.goalsAgainst', 'Goals Against'), [valueLabel]: goalsAgainst },
+    { [metricLabel]: translate('export.goalDifference', 'Goal Difference'), [valueLabel]: goalDiff > 0 ? `+${goalDiff}` : goalDiff },
+    { [metricLabel]: translate('export.avgGoalsForPerGame', 'Avg Goals For/Game'), [valueLabel]: avgGoalsFor },
+    { [metricLabel]: translate('export.avgGoalsAgainstPerGame', 'Avg Goals Against/Game'), [valueLabel]: avgGoalsAgainst },
   ];
 
   const performanceSheet = XLSX.utils.json_to_sheet(performanceData);
-  XLSX.utils.book_append_sheet(workbook, performanceSheet, 'Team Performance');
+  XLSX.utils.book_append_sheet(workbook, performanceSheet, translate('export.sheetTeamPerformance', 'Team Performance'));
 
   // Sheet 3: Game Details
   const gameDetails = Object.entries(games).map(([id, game]) => {
@@ -377,39 +456,40 @@ export const exportAggregateExcel = (
     const ourScore = isHome ? game.homeScore : game.awayScore;
     const theirScore = isHome ? game.awayScore : game.homeScore;
     let result = '';
-    if (ourScore > theirScore) result = 'W';
-    else if (ourScore < theirScore) result = 'L';
-    else result = 'T';
+    if (ourScore > theirScore) result = translate('export.winShort', 'W');
+    else if (ourScore < theirScore) result = translate('export.lossShort', 'L');
+    else result = translate('export.tieShort', 'T');
 
     const seasonName = game.seasonId ? seasons.find((s) => s.id === game.seasonId)?.name : '';
     const tournamentName = game.tournamentId
-      ? tournaments.find((t) => t.id === game.tournamentId)?.name
+      ? tournaments.find((tr) => tr.id === game.tournamentId)?.name
       : '';
 
     return {
-      'Game ID': id,
-      Date: game.gameDate,
-      Time: game.gameTime || '',
-      Location: game.gameLocation || '',
-      'Home Team': game.teamName,
-      'Away Team': game.opponentName,
-      'Home Score': game.homeScore,
-      'Away Score': game.awayScore,
-      'We Played': game.homeOrAway,
-      Result: result,
-      'Goal Diff': ourScore - theirScore,
-      Season: seasonName || game.seasonId || '',
-      Tournament: tournamentName || game.tournamentId || '',
-      'Tournament Level': game.tournamentLevel || '',
-      'Age Group': game.ageGroup || '',
-      'Demand Factor': game.demandFactor || '',
-      'Team ID': game.teamId || '',
-      Notes: game.gameNotes || '',
+      [translate('export.gameId', 'Game ID')]: id,
+      [translate('export.date', 'Date')]: game.gameDate,
+      [translate('export.time', 'Time')]: game.gameTime || '',
+      [translate('export.location', 'Location')]: game.gameLocation || '',
+      [translate('export.homeTeam', 'Home Team')]: game.teamName,
+      [translate('export.awayTeam', 'Away Team')]: game.opponentName,
+      [translate('export.homeScore', 'Home Score')]: game.homeScore,
+      [translate('export.awayScore', 'Away Score')]: game.awayScore,
+      [translate('export.wePlayed', 'We Played')]: game.homeOrAway,
+      [translate('export.result', 'Result')]: result,
+      [translate('export.goalDiff', 'Goal Diff')]: ourScore - theirScore,
+      [translate('export.season', 'Season')]: seasonName || game.seasonId || '',
+      [translate('export.tournament', 'Tournament')]: tournamentName || game.tournamentId || '',
+      [translate('export.tournamentLevel', 'Tournament Level')]: game.tournamentLevel || '',
+      [translate('export.ageGroup', 'Age Group')]: game.ageGroup || '',
+      [translate('export.demandFactor', 'Demand Factor')]: game.demandFactor || '',
+      [translate('export.teamId', 'Team ID')]: game.teamId || '',
+      [notesHeader]: game.gameNotes || '',
     };
   });
 
   const gamesSheet = XLSX.utils.json_to_sheet(gameDetails);
-  XLSX.utils.book_append_sheet(workbook, gamesSheet, 'Game Details');
+  setColumnAsText(gamesSheet, notesHeader);
+  XLSX.utils.book_append_sheet(workbook, gamesSheet, translate('export.sheetGameDetails', 'Game Details'));
 
   // Sheet 4: Season Breakdown (if we have multiple seasons in dataset)
   const seasonMap = new Map<string, { games: number; goals: number; assists: number; points: number }>();
@@ -438,15 +518,15 @@ export const exportAggregateExcel = (
 
   if (seasonMap.size > 0) {
     const seasonBreakdown = Array.from(seasonMap.entries()).map(([name, stats]) => ({
-      Season: name,
-      'Games Played': stats.games,
-      Goals: stats.goals,
-      Assists: stats.assists,
-      Points: stats.points,
+      [translate('export.season', 'Season')]: name,
+      [translate('export.gamesPlayed', 'Games Played')]: stats.games,
+      [translate('export.goals', 'Goals')]: stats.goals,
+      [translate('export.assists', 'Assists')]: stats.assists,
+      [translate('export.points', 'Points')]: stats.points,
     }));
 
     const seasonSheet = XLSX.utils.json_to_sheet(seasonBreakdown);
-    XLSX.utils.book_append_sheet(workbook, seasonSheet, 'Season Breakdown');
+    XLSX.utils.book_append_sheet(workbook, seasonSheet, translate('export.sheetSeasonBreakdown', 'Season Breakdown'));
   }
 
   // Sheet 5: Tournament Breakdown (if we have multiple tournaments in dataset)
@@ -476,22 +556,21 @@ export const exportAggregateExcel = (
 
   if (tournamentMap.size > 0) {
     const tournamentBreakdown = Array.from(tournamentMap.entries()).map(([name, stats]) => ({
-      Tournament: name,
-      'Games Played': stats.games,
-      Goals: stats.goals,
-      Assists: stats.assists,
-      Points: stats.points,
+      [translate('export.tournament', 'Tournament')]: name,
+      [translate('export.gamesPlayed', 'Games Played')]: stats.games,
+      [translate('export.goals', 'Goals')]: stats.goals,
+      [translate('export.assists', 'Assists')]: stats.assists,
+      [translate('export.points', 'Points')]: stats.points,
     }));
 
     const tournamentSheet = XLSX.utils.json_to_sheet(tournamentBreakdown);
-    XLSX.utils.book_append_sheet(workbook, tournamentSheet, 'Tournament Breakdown');
+    XLSX.utils.book_append_sheet(workbook, tournamentSheet, translate('export.sheetTournamentBreakdown', 'Tournament Breakdown'));
   }
 
   // Sheet 6: Assessments Summary (average ratings per player across all games)
   const assessmentMap = new Map<string, {
     name: string;
     count: number;
-    totalMinutes: number;
     overall: number;
     intensity: number;
     courage: number;
@@ -515,7 +594,6 @@ export const exportAggregateExcel = (
         assessmentMap.set(playerId, {
           name: player.name,
           count: 0,
-          totalMinutes: 0,
           overall: 0,
           intensity: 0,
           courage: 0,
@@ -532,7 +610,6 @@ export const exportAggregateExcel = (
 
       const stats = assessmentMap.get(playerId)!;
       stats.count++;
-      stats.totalMinutes += assessment.minutesPlayed;
       stats.overall += assessment.overall;
       stats.intensity += assessment.sliders.intensity;
       stats.courage += assessment.sliders.courage;
@@ -549,25 +626,23 @@ export const exportAggregateExcel = (
 
   if (assessmentMap.size > 0) {
     const assessmentSummary = Array.from(assessmentMap.values()).map((stats) => ({
-      Player: stats.name,
-      'Games Assessed': stats.count,
-      'Total Minutes': stats.totalMinutes,
-      'Avg Minutes/Game': (stats.totalMinutes / stats.count).toFixed(1),
-      'Avg Overall': (stats.overall / stats.count).toFixed(1),
-      'Avg Intensity': (stats.intensity / stats.count).toFixed(1),
-      'Avg Courage': (stats.courage / stats.count).toFixed(1),
-      'Avg Duels': (stats.duels / stats.count).toFixed(1),
-      'Avg Technique': (stats.technique / stats.count).toFixed(1),
-      'Avg Creativity': (stats.creativity / stats.count).toFixed(1),
-      'Avg Decisions': (stats.decisions / stats.count).toFixed(1),
-      'Avg Awareness': (stats.awareness / stats.count).toFixed(1),
-      'Avg Teamwork': (stats.teamwork / stats.count).toFixed(1),
-      'Avg Fair Play': (stats.fairPlay / stats.count).toFixed(1),
-      'Avg Impact': (stats.impact / stats.count).toFixed(1),
+      [translate('export.player', 'Player')]: stats.name,
+      [translate('export.gamesAssessed', 'Games Assessed')]: stats.count,
+      [translate('export.avgOverall', 'Avg Overall')]: (stats.overall / stats.count).toFixed(1),
+      [translate('export.avgIntensity', 'Avg Intensity')]: (stats.intensity / stats.count).toFixed(1),
+      [translate('export.avgCourage', 'Avg Courage')]: (stats.courage / stats.count).toFixed(1),
+      [translate('export.avgDuels', 'Avg Duels')]: (stats.duels / stats.count).toFixed(1),
+      [translate('export.avgTechnique', 'Avg Technique')]: (stats.technique / stats.count).toFixed(1),
+      [translate('export.avgCreativity', 'Avg Creativity')]: (stats.creativity / stats.count).toFixed(1),
+      [translate('export.avgDecisions', 'Avg Decisions')]: (stats.decisions / stats.count).toFixed(1),
+      [translate('export.avgAwareness', 'Avg Awareness')]: (stats.awareness / stats.count).toFixed(1),
+      [translate('export.avgTeamwork', 'Avg Teamwork')]: (stats.teamwork / stats.count).toFixed(1),
+      [translate('export.avgFairPlay', 'Avg Fair Play')]: (stats.fairPlay / stats.count).toFixed(1),
+      [translate('export.avgImpact', 'Avg Impact')]: (stats.impact / stats.count).toFixed(1),
     }));
 
     const assessmentSheet = XLSX.utils.json_to_sheet(assessmentSummary);
-    XLSX.utils.book_append_sheet(workbook, assessmentSheet, 'Assessments Summary');
+    XLSX.utils.book_append_sheet(workbook, assessmentSheet, translate('export.sheetAssessmentsSummary', 'Assessments Summary'));
   }
 
   // Sheet 7: External Games (if any adjustments exist)
@@ -575,30 +650,31 @@ export const exportAggregateExcel = (
     const externalData = externalAdjustments.map((adj) => {
       const player = aggregateStats.find((p) => p.id === adj.playerId);
       const season = adj.seasonId ? seasons.find((s) => s.id === adj.seasonId)?.name : '';
-      const tournament = adj.tournamentId ? tournaments.find((t) => t.id === adj.tournamentId)?.name : '';
+      const tournament = adj.tournamentId ? tournaments.find((tr) => tr.id === adj.tournamentId)?.name : '';
 
       return {
-        Player: player?.name || adj.playerId,
-        Date: adj.gameDate || '',
-        'External Team': adj.externalTeamName || '',
-        Opponent: adj.opponentName || '',
-        'Score For': adj.scoreFor ?? '',
-        'Score Against': adj.scoreAgainst ?? '',
-        'Home/Away': adj.homeOrAway || '',
-        'Games Played': adj.gamesPlayedDelta,
-        Goals: adj.goalsDelta,
-        Assists: adj.assistsDelta,
-        'Fair Play Cards': adj.fairPlayCardsDelta ?? 0,
-        Season: season,
-        Tournament: tournament,
-        'Include in Stats': adj.includeInSeasonTournament ? 'Yes' : 'No',
-        Notes: adj.note || '',
-        'Applied At': new Date(adj.appliedAt).toLocaleString(),
+        [translate('export.player', 'Player')]: player?.name || adj.playerId,
+        [translate('export.date', 'Date')]: adj.gameDate || '',
+        [translate('export.externalTeam', 'External Team')]: adj.externalTeamName || '',
+        [translate('export.opponent', 'Opponent')]: adj.opponentName || '',
+        [translate('export.scoreFor', 'Score For')]: adj.scoreFor ?? '',
+        [translate('export.scoreAgainst', 'Score Against')]: adj.scoreAgainst ?? '',
+        [translate('export.homeAway', 'Home/Away')]: adj.homeOrAway || '',
+        [translate('export.gamesPlayed', 'Games Played')]: adj.gamesPlayedDelta,
+        [translate('export.goals', 'Goals')]: adj.goalsDelta,
+        [translate('export.assists', 'Assists')]: adj.assistsDelta,
+        [translate('export.fairPlayCards', 'Fair Play Cards')]: adj.fairPlayCardsDelta ?? 0,
+        [translate('export.season', 'Season')]: season,
+        [translate('export.tournament', 'Tournament')]: tournament,
+        [translate('export.includeInStats', 'Include in Stats')]: adj.includeInSeasonTournament ? yes : no,
+        [notesHeader]: adj.note || '',
+        [translate('export.appliedAt', 'Applied At')]: new Date(adj.appliedAt).toLocaleString(),
       };
     });
 
     const externalSheet = XLSX.utils.json_to_sheet(externalData);
-    XLSX.utils.book_append_sheet(workbook, externalSheet, 'External Games');
+    setColumnAsText(externalSheet, notesHeader);
+    XLSX.utils.book_append_sheet(workbook, externalSheet, translate('export.sheetExternalGames', 'External Games'));
   }
 
   // Generate filename based on context
@@ -645,10 +721,14 @@ export const exportPlayerExcel = (
   games: SavedGamesCollection,
   seasons: Season[] = [],
   tournaments: Tournament[] = [],
-  externalAdjustments: PlayerStatAdjustment[] = []
+  externalAdjustments: PlayerStatAdjustment[] = [],
+  translate: TranslationFn = defaultTranslate
 ): void => {
   try {
     const workbook = XLSX.utils.book_new();
+  const yes = translate('export.yes', 'Yes');
+  const no = translate('export.no', 'No');
+  const notesHeader = translate('export.notes', 'Notes');
 
   // Sheet 1: Player Summary
   // Incorporate external adjustments (external games) to align with on-screen totals
@@ -669,21 +749,22 @@ export const exportPlayerExcel = (
   const avgPoints = totalGames > 0 ? (totalPoints / totalGames) : 0;
 
   const summary = [{
-    'Player Name': playerData.name,
-    'Jersey Number': playerData.jerseyNumber || '',
-    Nickname: playerData.nickname || '',
-    'Total Games': totalGames,
-    'Total Goals': totalGoals,
-    'Total Assists': totalAssists,
-    'Total Points': totalPoints,
-    'Avg Points/Game': avgPoints.toFixed(2),
-    'Fair Play Awards': playerData.fpAwards ?? 0,
-    'Is Goalie': playerData.isGoalie ? 'Yes' : 'No',
-    Notes: playerData.notes || '',
+    [translate('export.playerName', 'Player Name')]: playerData.name,
+    [translate('export.jerseyNumber', 'Jersey #')]: playerData.jerseyNumber || '',
+    [translate('export.nickname', 'Nickname')]: playerData.nickname || '',
+    [translate('export.totalGames', 'Total Games')]: totalGames,
+    [translate('export.totalGoals', 'Total Goals')]: totalGoals,
+    [translate('export.totalAssists', 'Total Assists')]: totalAssists,
+    [translate('export.totalPoints', 'Total Points')]: totalPoints,
+    [translate('export.avgPointsPerGame', 'Avg Points/Game')]: avgPoints.toFixed(2),
+    [translate('export.fairPlayAwards', 'Fair Play Awards')]: playerData.fpAwards ?? 0,
+    [translate('export.goalie', 'Goalie')]: playerData.isGoalie ? yes : no,
+    [notesHeader]: playerData.notes || '',
   }];
 
   const summarySheet = XLSX.utils.json_to_sheet(summary);
-  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Player Summary');
+  setColumnAsText(summarySheet, notesHeader);
+  XLSX.utils.book_append_sheet(workbook, summarySheet, translate('export.sheetPlayerSummary', 'Player Summary'));
 
   // Sheet 2: Game History
   const playerGames = Object.entries(games)
@@ -697,38 +778,37 @@ export const exportPlayerExcel = (
       const ourScore = isHome ? game.homeScore : game.awayScore;
       const theirScore = isHome ? game.awayScore : game.homeScore;
       let result = '';
-      if (ourScore > theirScore) result = 'W';
-      else if (ourScore < theirScore) result = 'L';
-      else result = 'T';
+      if (ourScore > theirScore) result = translate('export.winShort', 'W');
+      else if (ourScore < theirScore) result = translate('export.lossShort', 'L');
+      else result = translate('export.tieShort', 'T');
 
       const seasonName = game.seasonId ? seasons.find((s) => s.id === game.seasonId)?.name : '';
-      const tournamentName = game.tournamentId ? tournaments.find((t) => t.id === game.tournamentId)?.name : '';
+      const tournamentName = game.tournamentId ? tournaments.find((tr) => tr.id === game.tournamentId)?.name : '';
 
       // Get player from this game's roster snapshot for accurate per-game data
       const playerInGame = game.availablePlayers?.find(p => p.id === playerId);
 
       return {
-        'Game ID': id,
-        Date: game.gameDate,
-        Opponent: game.opponentName,
-        'Home/Away': game.homeOrAway,
-        Result: result,
-        'Our Score': ourScore,
-        'Their Score': theirScore,
-        Goals: goals,
-        Assists: assists,
-        Points: goals + assists,
-        'Fair Play': playerInGame?.receivedFairPlayCard ? 'Yes' : 'No',
-        'Minutes Played': assessment?.minutesPlayed || '',
-        'Overall Rating': assessment?.overall || '',
-        Season: seasonName,
-        Tournament: tournamentName,
+        [translate('export.gameId', 'Game ID')]: id,
+        [translate('export.date', 'Date')]: game.gameDate,
+        [translate('export.opponent', 'Opponent')]: game.opponentName,
+        [translate('export.homeAway', 'Home/Away')]: game.homeOrAway,
+        [translate('export.result', 'Result')]: result,
+        [translate('export.ourScore', 'Our Score')]: ourScore,
+        [translate('export.theirScore', 'Their Score')]: theirScore,
+        [translate('export.goals', 'Goals')]: goals,
+        [translate('export.assists', 'Assists')]: assists,
+        [translate('export.points', 'Points')]: goals + assists,
+        [translate('export.fairPlay', 'Fair Play')]: playerInGame?.receivedFairPlayCard ? yes : no,
+        [translate('export.overallRating', 'Overall Rating')]: assessment?.overall || '',
+        [translate('export.season', 'Season')]: seasonName,
+        [translate('export.tournament', 'Tournament')]: tournamentName,
       };
     });
 
   if (playerGames.length > 0) {
     const historySheet = XLSX.utils.json_to_sheet(playerGames);
-    XLSX.utils.book_append_sheet(workbook, historySheet, 'Game History');
+    XLSX.utils.book_append_sheet(workbook, historySheet, translate('export.sheetGameHistory', 'Game History'));
   }
 
   // Sheet 3: Assessments
@@ -737,29 +817,29 @@ export const exportPlayerExcel = (
     .map(([id, game]) => {
       const assessment = game.assessments![playerId];
       return {
-        'Game ID': id,
-        Date: game.gameDate,
-        Opponent: game.opponentName,
-        'Minutes Played': assessment.minutesPlayed,
-        Overall: assessment.overall,
-        Intensity: assessment.sliders.intensity,
-        Courage: assessment.sliders.courage,
-        Duels: assessment.sliders.duels,
-        Technique: assessment.sliders.technique,
-        Creativity: assessment.sliders.creativity,
-        Decisions: assessment.sliders.decisions,
-        Awareness: assessment.sliders.awareness,
-        Teamwork: assessment.sliders.teamwork,
-        'Fair Play': assessment.sliders.fair_play,
-        Impact: assessment.sliders.impact,
-        Notes: assessment.notes || '',
-        'Assessment Date': new Date(assessment.createdAt).toLocaleString(),
+        [translate('export.gameId', 'Game ID')]: id,
+        [translate('export.date', 'Date')]: game.gameDate,
+        [translate('export.opponent', 'Opponent')]: game.opponentName,
+        [translate('export.overall', 'Overall')]: assessment.overall,
+        [translate('export.intensity', 'Intensity')]: assessment.sliders.intensity,
+        [translate('export.courage', 'Courage')]: assessment.sliders.courage,
+        [translate('export.duels', 'Duels')]: assessment.sliders.duels,
+        [translate('export.technique', 'Technique')]: assessment.sliders.technique,
+        [translate('export.creativity', 'Creativity')]: assessment.sliders.creativity,
+        [translate('export.decisions', 'Decisions')]: assessment.sliders.decisions,
+        [translate('export.awareness', 'Awareness')]: assessment.sliders.awareness,
+        [translate('export.teamwork', 'Teamwork')]: assessment.sliders.teamwork,
+        [translate('export.fairPlay', 'Fair Play')]: assessment.sliders.fair_play,
+        [translate('export.impact', 'Impact')]: assessment.sliders.impact,
+        [notesHeader]: assessment.notes || '',
+        [translate('export.assessmentDate', 'Assessment Date')]: new Date(assessment.createdAt).toLocaleString(),
       };
     });
 
   if (assessments.length > 0) {
     const assessmentSheet = XLSX.utils.json_to_sheet(assessments);
-    XLSX.utils.book_append_sheet(workbook, assessmentSheet, 'Assessments');
+    setColumnAsText(assessmentSheet, notesHeader);
+    XLSX.utils.book_append_sheet(workbook, assessmentSheet, translate('export.sheetAssessments', 'Assessments'));
   }
 
   // Sheet 4: Season Performance
@@ -784,16 +864,16 @@ export const exportPlayerExcel = (
 
   if (seasonStats.size > 0) {
     const seasonPerformance = Array.from(seasonStats.entries()).map(([name, stats]) => ({
-      Season: name,
-      'Games Played': stats.games,
-      Goals: stats.goals,
-      Assists: stats.assists,
-      Points: stats.goals + stats.assists,
-      'Fair Play Awards': stats.fairPlay,
+      [translate('export.season', 'Season')]: name,
+      [translate('export.gamesPlayed', 'Games Played')]: stats.games,
+      [translate('export.goals', 'Goals')]: stats.goals,
+      [translate('export.assists', 'Assists')]: stats.assists,
+      [translate('export.points', 'Points')]: stats.goals + stats.assists,
+      [translate('export.fairPlayAwards', 'Fair Play Awards')]: stats.fairPlay,
     }));
 
     const seasonSheet = XLSX.utils.json_to_sheet(seasonPerformance);
-    XLSX.utils.book_append_sheet(workbook, seasonSheet, 'Season Performance');
+    XLSX.utils.book_append_sheet(workbook, seasonSheet, translate('export.sheetSeasonPerformance', 'Season Performance'));
   }
 
   // Sheet 5: Tournament Performance
@@ -818,16 +898,16 @@ export const exportPlayerExcel = (
 
   if (tournamentStats.size > 0) {
     const tournamentPerformance = Array.from(tournamentStats.entries()).map(([name, stats]) => ({
-      Tournament: name,
-      'Games Played': stats.games,
-      Goals: stats.goals,
-      Assists: stats.assists,
-      Points: stats.goals + stats.assists,
-      'Fair Play Awards': stats.fairPlay,
+      [translate('export.tournament', 'Tournament')]: name,
+      [translate('export.gamesPlayed', 'Games Played')]: stats.games,
+      [translate('export.goals', 'Goals')]: stats.goals,
+      [translate('export.assists', 'Assists')]: stats.assists,
+      [translate('export.points', 'Points')]: stats.goals + stats.assists,
+      [translate('export.fairPlayAwards', 'Fair Play Awards')]: stats.fairPlay,
     }));
 
     const tournamentSheet = XLSX.utils.json_to_sheet(tournamentPerformance);
-    XLSX.utils.book_append_sheet(workbook, tournamentSheet, 'Tournament Performance');
+    XLSX.utils.book_append_sheet(workbook, tournamentSheet, translate('export.sheetTournamentPerformance', 'Tournament Performance'));
   }
 
   // Sheet 6: External Games for this player
@@ -835,29 +915,30 @@ export const exportPlayerExcel = (
   if (playerAdjustments.length > 0) {
     const externalData = playerAdjustments.map((adj) => {
       const season = adj.seasonId ? seasons.find((s) => s.id === adj.seasonId)?.name : '';
-      const tournament = adj.tournamentId ? tournaments.find((t) => t.id === adj.tournamentId)?.name : '';
+      const tournament = adj.tournamentId ? tournaments.find((tr) => tr.id === adj.tournamentId)?.name : '';
 
       return {
-        Date: adj.gameDate || '',
-        'External Team': adj.externalTeamName || '',
-        Opponent: adj.opponentName || '',
-        'Score For': adj.scoreFor ?? '',
-        'Score Against': adj.scoreAgainst ?? '',
-        'Home/Away': adj.homeOrAway || '',
-        'Games Played': adj.gamesPlayedDelta,
-        Goals: adj.goalsDelta,
-        Assists: adj.assistsDelta,
-        'Fair Play Cards': adj.fairPlayCardsDelta ?? 0,
-        Season: season,
-        Tournament: tournament,
-        'Include in Stats': adj.includeInSeasonTournament ? 'Yes' : 'No',
-        Notes: adj.note || '',
-        'Applied At': new Date(adj.appliedAt).toLocaleString(),
+        [translate('export.date', 'Date')]: adj.gameDate || '',
+        [translate('export.externalTeam', 'External Team')]: adj.externalTeamName || '',
+        [translate('export.opponent', 'Opponent')]: adj.opponentName || '',
+        [translate('export.scoreFor', 'Score For')]: adj.scoreFor ?? '',
+        [translate('export.scoreAgainst', 'Score Against')]: adj.scoreAgainst ?? '',
+        [translate('export.homeAway', 'Home/Away')]: adj.homeOrAway || '',
+        [translate('export.gamesPlayed', 'Games Played')]: adj.gamesPlayedDelta,
+        [translate('export.goals', 'Goals')]: adj.goalsDelta,
+        [translate('export.assists', 'Assists')]: adj.assistsDelta,
+        [translate('export.fairPlayCards', 'Fair Play Cards')]: adj.fairPlayCardsDelta ?? 0,
+        [translate('export.season', 'Season')]: season,
+        [translate('export.tournament', 'Tournament')]: tournament,
+        [translate('export.includeInStats', 'Include in Stats')]: adj.includeInSeasonTournament ? yes : no,
+        [notesHeader]: adj.note || '',
+        [translate('export.appliedAt', 'Applied At')]: new Date(adj.appliedAt).toLocaleString(),
       };
     });
 
     const externalSheet = XLSX.utils.json_to_sheet(externalData);
-    XLSX.utils.book_append_sheet(workbook, externalSheet, 'External Games');
+    setColumnAsText(externalSheet, notesHeader);
+    XLSX.utils.book_append_sheet(workbook, externalSheet, translate('export.sheetExternalGames', 'External Games'));
   }
 
     const filename = `MatchOps_Player_${playerData.name}_${getTimestamp()}.xlsx`;
