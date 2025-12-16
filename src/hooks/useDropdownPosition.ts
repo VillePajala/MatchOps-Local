@@ -1,5 +1,8 @@
 import { useCallback } from 'react';
 
+/** Default estimated menu height - typical for 3-4 menu items */
+const DEFAULT_MENU_HEIGHT = 150;
+
 interface UseDropdownPositionOptions {
   /** Estimated menu height in pixels (default: 150) */
   menuHeight?: number;
@@ -26,7 +29,7 @@ interface UseDropdownPositionOptions {
  * <div className={openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}>
  */
 export function useDropdownPosition(options: UseDropdownPositionOptions = {}) {
-  const { menuHeight = 150 } = options;
+  const { menuHeight = DEFAULT_MENU_HEIGHT } = options;
 
   const calculatePosition = useCallback((triggerElement: HTMLElement | null): boolean => {
     if (!triggerElement) return false;
