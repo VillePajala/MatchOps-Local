@@ -72,6 +72,12 @@ export function GoalEventList({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [goalActionsMenuId]);
 
+  const handleActionsMenuToggle = (e: React.MouseEvent<HTMLButtonElement>, goalId: string) => {
+    const shouldOpenUpward = calculatePosition(e.currentTarget);
+    setMenuPositions(prev => ({ ...prev, [goalId]: shouldOpenUpward }));
+    setGoalActionsMenuId(goalActionsMenuId === goalId ? null : goalId);
+  };
+
   return (
     <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner">
       <h3 className="text-xl font-semibold text-slate-200 mb-4">
@@ -176,11 +182,7 @@ export function GoalEventList({
                 </div>
                 <div className="relative" ref={goalActionsMenuId === goal.id ? actionsMenuRef : null}>
                   <button
-                    onClick={(e) => {
-                      const shouldOpenUpward = calculatePosition(e.currentTarget);
-                      setMenuPositions(prev => ({ ...prev, [goal.id]: shouldOpenUpward }));
-                      setGoalActionsMenuId(goalActionsMenuId === goal.id ? null : goal.id);
-                    }}
+                    onClick={(e) => handleActionsMenuToggle(e, goal.id)}
                     className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-600 transition-colors"
                     aria-label={t('common.actions', 'Actions')}
                   >

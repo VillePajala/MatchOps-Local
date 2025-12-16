@@ -437,6 +437,12 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [eventActionsMenuId]);
 
+  const handleActionsMenuToggle = (e: React.MouseEvent<HTMLButtonElement>, eventId: string) => {
+    const shouldOpenUpward = calculatePosition(e.currentTarget);
+    setMenuPositions(prev => ({ ...prev, [eventId]: shouldOpenUpward }));
+    setEventActionsMenuId(eventActionsMenuId === eventId ? null : eventId);
+  };
+
   // State for game time
   const [gameHour, setGameHour] = useState<string>('');
   const [gameMinute, setGameMinute] = useState<string>('');
@@ -2091,11 +2097,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                         </div>
                         <div className="relative" ref={eventActionsMenuId === event.id ? actionsMenuRef : null}>
                           <button
-                            onClick={(e) => {
-                              const shouldOpenUpward = calculatePosition(e.currentTarget);
-                              setMenuPositions(prev => ({ ...prev, [event.id]: shouldOpenUpward }));
-                              setEventActionsMenuId(eventActionsMenuId === event.id ? null : event.id);
-                            }}
+                            onClick={(e) => handleActionsMenuToggle(e, event.id)}
                             className="p-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-600 transition-colors"
                             aria-label={t('gameSettingsModal.eventActions', 'Event actions')}
                             disabled={isProcessing}
