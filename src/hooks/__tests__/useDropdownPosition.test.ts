@@ -188,6 +188,85 @@ describe('useDropdownPosition', () => {
       // Space below: 100, menuHeight: 150 → upward (true)
       expect(openUpward).toBe(true);
     });
+
+    it('should handle menu taller than viewport', () => {
+      // Window height: 800, menuHeight: 1000 (exceeds viewport)
+      // Element bottom: 400, space below: 400
+      // Menu is too tall for either direction - should return consistent result
+      const { result } = renderHook(() => useDropdownPosition({ menuHeight: 1000 }));
+      const element = createMockElement(400);
+
+      const openUpward = result.current.calculatePosition(element);
+
+      // 400 < 1000 → opens upward (less likely to clip bottom of viewport)
+      expect(openUpward).toBe(true);
+    });
+  });
+
+  describe('multiple instances', () => {
+    it('should handle multiple independent hook instances', () => {
+      // Simulate multiple dropdown menus with different configurations
+      const { result: result1 } = renderHook(() => useDropdownPosition({ menuHeight: 100 }));
+      const { result: result2 } = renderHook(() => useDropdownPosition({ menuHeight: 200 }));
+      const { result: result3 } = renderHook(() => useDropdownPosition({ menuHeight: 300 }));
+
+      const element = createMockElement(650); // Space below: 150
+
+      // Each instance should calculate independently based on its menuHeight
+      expect(result1.current.calculatePosition(element)).toBe(false); // 150 >= 100
+      expect(result2.current.calculatePosition(element)).toBe(true);  // 150 < 200
+      expect(result3.current.calculatePosition(element)).toBe(true);  // 150 < 300
+    });
+
+    it('should not interfere when called simultaneously', () => {
+      const { result: result1 } = renderHook(() => useDropdownPosition());
+      const { result: result2 } = renderHook(() => useDropdownPosition());
+
+      const elementTop = createMockElement(100);    // Space below: 700
+      const elementBottom = createMockElement(700); // Space below: 100
+
+      // Interleaved calls should not affect each other
+      expect(result1.current.calculatePosition(elementTop)).toBe(false);
+      expect(result2.current.calculatePosition(elementBottom)).toBe(true);
+      expect(result1.current.calculatePosition(elementBottom)).toBe(true);
+      expect(result2.current.calculatePosition(elementTop)).toBe(false);
+    });
+  });
+
+  describe('stress tests', () => {
+    it('should handle rapid position calculations', () => {
+      const { result } = renderHook(() => useDropdownPosition());
+
+      // Rapidly calculate positions 100 times
+      const results: boolean[] = [];
+      for (let i = 0; i < 100; i++) {
+        const bottom = (i % 2 === 0) ? 700 : 100; // Alternate between top and bottom
+        results.push(result.current.calculatePosition(createMockElement(bottom)));
+      }
+
+      // Verify all calculations returned expected values
+      results.forEach((openUpward, i) => {
+        const expectedUpward = i % 2 === 0; // 700 → upward, 100 → downward
+        expect(openUpward).toBe(expectedUpward);
+      });
+    });
+
+    it('should handle rapid menuHeight changes', () => {
+      const { result, rerender } = renderHook(
+        ({ menuHeight }) => useDropdownPosition({ menuHeight }),
+        { initialProps: { menuHeight: 150 } }
+      );
+
+      const element = createMockElement(600); // Space below: 200
+
+      // Rapidly change menuHeight and verify correct calculations
+      for (let height = 100; height <= 300; height += 50) {
+        rerender({ menuHeight: height });
+        const openUpward = result.current.calculatePosition(element);
+        const expectedUpward = 200 < height; // Space below: 200
+        expect(openUpward).toBe(expectedUpward);
+      }
+    });
   });
 
   describe('function stability', () => {

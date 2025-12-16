@@ -1,8 +1,8 @@
 {
-  "version": "66a43e0b",
+  "version": "69381d11",
   "date": "2025-12-16",
   "notes": {
-    "en": "Improve Excel exports with i18n support and format fixes",
-    "fi": "Improve Excel exports with i18n support and format fixes"
+    "en": "Extract DEFAULT_MENU_HEIGHT constant",
+    "fi": "Extract DEFAULT_MENU_HEIGHT constant"
   }
 }

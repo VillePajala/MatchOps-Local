@@ -62,7 +62,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
   // Refs
   const actionsMenuRef = useRef<HTMLDivElement>(null);
-  const [openUpward, setOpenUpward] = useState(false);
+  const [menuPositions, setMenuPositions] = useState<Record<string, boolean>>({});
   const { calculatePosition } = useDropdownPosition();
 
   // Mutations
@@ -387,7 +387,8 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                           <div className="relative" ref={actionsMenuTeamId === team.id ? actionsMenuRef : null}>
                             <button
                               onClick={(e) => {
-                                setOpenUpward(calculatePosition(e.currentTarget));
+                                const shouldOpenUpward = calculatePosition(e.currentTarget);
+                                setMenuPositions(prev => ({ ...prev, [team.id]: shouldOpenUpward }));
                                 setActionsMenuTeamId(actionsMenuTeamId === team.id ? null : team.id);
                               }}
                               className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
@@ -397,7 +398,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                             </button>
 
                             {actionsMenuTeamId === team.id && (
-                              <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                              <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${menuPositions[team.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                                 <button
                                   onClick={() => handleEditTeam(team.id)}
                                   className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"

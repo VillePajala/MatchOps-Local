@@ -104,7 +104,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
   // Actions menu state
   const [actionsMenuId, setActionsMenuId] = useState<string | null>(null);
   const actionsMenuRef = React.useRef<HTMLDivElement>(null);
-  const [openUpward, setOpenUpward] = useState(false);
+  const [menuPositions, setMenuPositions] = useState<Record<string, boolean>>({});
   const { calculatePosition } = useDropdownPosition();
 
   // Create entity maps for O(1) lookups (live entity names)
@@ -416,7 +416,8 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setOpenUpward(calculatePosition(e.currentTarget));
+                            const shouldOpenUpward = calculatePosition(e.currentTarget);
+                            setMenuPositions(prev => ({ ...prev, [gameId]: shouldOpenUpward }));
                             setActionsMenuId(actionsMenuId === gameId ? null : gameId);
                           }}
                           className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700/50 rounded transition-colors"
@@ -435,7 +436,7 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
 
                         {/* Actions dropdown menu */}
                         {actionsMenuId === gameId && (
-                          <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+                          <div className={`absolute right-0 w-48 bg-slate-700 border border-slate-600 rounded-md shadow-lg z-50 ${menuPositions[gameId] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
