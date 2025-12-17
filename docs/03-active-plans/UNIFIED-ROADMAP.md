@@ -1,6 +1,6 @@
 # MatchOps-Local: Unified Project Roadmap
 
-**Last Updated**: December 14, 2025
+**Last Updated**: December 17, 2025
 **Status**: Active
 **Purpose**: Single source of truth for ALL project work
 
@@ -10,11 +10,12 @@
 
 | Category | Status |
 |----------|--------|
-| Codebase Health | ✅ Excellent (2,393 tests, 62-line HomePage, 6 extracted hooks) |
+| Codebase Health | ✅ Excellent (2,616 tests, 62-line HomePage, 6 extracted hooks) |
 | Security | ✅ All vulnerabilities fixed |
 | Performance | ✅ React.memo optimization complete |
 | Framework | ✅ Next.js 16 + React 19.2 |
-| Next Major Work | 🎯 **Play Store Release - In Internal Testing** |
+| Communication Infrastructure | ✅ Complete (domains, email, Sentry, websites, social) |
+| Next Major Work | 🎯 **Play Store Release - Waiting for Business Setup (Jan 2, 2026)** |
 
 ---
 
@@ -84,11 +85,11 @@
 
 | Phase | When | Tasks |
 |-------|------|-------|
-| **Now** | Dec 14-31 | P4E: Communication infrastructure (domains, email, social) |
-| **Now** | Dec 14-31 | Thorough app testing (internal testing track) |
+| ~~**Done**~~ | ~~Dec 14-17~~ | ~~P4E: Communication infrastructure~~ ✅ COMPLETE |
+| **Now** | Dec 17-31 | Thorough app testing (internal testing track) |
 | **Jan 2** | Jan 2, 2026 | P4D: Register Toiminimi at ytj.fi |
 | **Jan 3-10** | Jan 2026 | Receive Y-tunnus, open bank account, Google Payments Profile |
-| **Jan 10+** | Jan 2026 | P4C: Play Billing integration |
+| **Jan 10+** | Jan 2026 | P4C: Play Billing integration (~2-3h coding) |
 | **Late Jan/Feb** | 2026 | Production release 🚀 |
 
 ### Completed Work
@@ -101,9 +102,9 @@
 - [x] **Currently in internal testing**
 
 ### Remaining Work (BEFORE PRODUCTION RELEASE)
-**⚠️ CRITICAL: Monetization not yet enforced - complete before public release!**
+**⚠️ Play Billing (P4C) required before public release - needs business setup first (Jan 2, 2026)**
 
-- [ ] **P4B: Upgrade UI & Limit Enforcement** (PR #9) - IMPLEMENTED on `feature/p4b-upgrade-ui` branch
+- [x] **P4B: Upgrade UI & Limit Enforcement** ✅ COMPLETE (merged to master)
   - [x] Create `UpgradePromptModal.tsx` component
   - [x] Create `UpgradePromptManager.tsx` (connects modal to PremiumContext)
   - [x] Integrate `canCreate()` checks into newGameHandlers (game creation)
@@ -112,7 +113,6 @@
   - [x] Integrate `canCreate()` checks into SeasonTournamentManagementModal
   - [x] Premium Status section in SettingsModal (with limits breakdown)
   - [x] Translations (EN/FI)
-  - [ ] Merge to master after testing
 - [ ] **P4C: Play Billing API integration** (PR #10) - NOT DONE
   - **See**: [`docs/04-features/play-billing-implementation.md`](../04-features/play-billing-implementation.md) for detailed implementation guide
   - **Requires**: Business setup complete (see P4D below)
@@ -148,17 +148,18 @@
   - Fiscal year: Calendar year (Jan 1 - Dec 31) for Toiminimi
   - VAT threshold: 15,000 €/year (below = no VAT registration needed)
   - Google handles EU VAT for digital goods sold via Play Store
-- [ ] **P4E: Communication Infrastructure** - DO IN PARALLEL ⚡
+- [x] **P4E: Communication Infrastructure** ✅ COMPLETE
   - **See**: [`docs/07-business/communication-infrastructure-plan.md`](../07-business/communication-infrastructure-plan.md)
-  - **Can be done now** while waiting for business setup
-  - [ ] Register velomoai.com domain (~10 €)
-  - [ ] Set up Cloudflare for DNS (free)
-  - [ ] Set up Cloudflare Email Routing for velomoai.com (alerts@, dev@, hello@)
-  - [ ] Set up Zoho Mail for matchops.com (support@, hello@)
-  - [ ] Update Sentry notifications to alerts@velomoai.com
-  - [ ] Create @MatchOpsApp on X/Twitter
-  - [ ] Create Velomo AI LinkedIn page
-  - [ ] Gmail labels and filters
+  - **See**: [`docs/07-business/infrastructure-map.md`](../07-business/infrastructure-map.md) (complete infrastructure overview)
+  - [x] Register velomoai.com domain (Namecheap, ~$13/year)
+  - [x] Set up Cloudflare for DNS (both velomoai.com and match-ops.com)
+  - [x] Cloudflare Email Routing: alerts@, dev@, hello@ → Gmail
+  - [x] Cloudflare Email Routing: support@match-ops.com, hello@match-ops.com → Gmail
+  - [x] Update Sentry notifications to alerts@velomoai.com
+  - [x] Gmail labels and filters (MatchOps, Velomo AI, Dev, Alerts)
+  - [x] Velomo AI LinkedIn page created
+  - [x] velomoai.com website live on Vercel (Next.js 16.x + Tailwind 4.x)
+  - Note: X/Twitter using personal account for now (can create @MatchOpsApp later)
 - [ ] Complete internal testing
 - [ ] Submit for production review
 - [ ] Public release
@@ -497,6 +498,8 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 
 | Date | Update |
 |------|--------|
+| 2025-12-17 | 📋 **Roadmap cleanup** - Corrected P4B status (already merged to master, not on separate branch) |
+| 2025-12-17 | ✅ **P4E Communication Infrastructure COMPLETE** - velomoai.com domain + website, Cloudflare DNS/email routing for both domains, Sentry alerts, Gmail filters, LinkedIn page. See infrastructure-map.md |
 | 2025-12-14 | ✅ **Warm-up Plan feature documented** - customizable pre-match routine (bundled with P4B branch) |
 | 2025-12-14 | 📋 **Added P4D (Business Setup) and P4E (Communication Infrastructure)** - required before Play Billing |
 | 2025-12-13 | ✅ **Gender Handling COMPLETED** - merged to master |

@@ -168,6 +168,7 @@ export function useSavedGameManager({
             completedIntervalDurations: gameData.completedIntervalDurations,
             lastSubConfirmationTimeSeconds: gameData.lastSubConfirmationTimeSeconds,
             showPlayerNames: gameData.showPlayerNames,
+            timeElapsedInSeconds: gameData.timeElapsedInSeconds,
           },
         });
       } else {

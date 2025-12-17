@@ -1372,6 +1372,114 @@ describe('gameSessionReducer', () => {
       expect(result.lastSubConfirmationTimeSeconds).toBe(400);
     });
 
+    it('should restore persisted lastSubConfirmationTimeSeconds and calculate nextSubDueTimeSeconds from it', () => {
+      // Scenario: Game at 12:00, user had confirmed subs at 10:00 (600s), 5-min intervals
+      // On reload, nextSubDueTimeSeconds should be 15:00 (900s), not 17:00 (1020s)
+      const state = createBaseState();
+      const action: GameSessionAction = {
+        type: 'LOAD_PERSISTED_GAME_DATA',
+        payload: {
+          timeElapsedInSeconds: 720, // 12 minutes
+          lastSubConfirmationTimeSeconds: 600, // 10 minutes (last sub confirmed)
+          subIntervalMinutes: 5,
+        },
+      };
+
+      const result = gameSessionReducer(state, action);
+
+      // nextSubDueTimeSeconds should be calculated from lastSubConfirmationTimeSeconds, not timeElapsedInSeconds
+      expect(result.lastSubConfirmationTimeSeconds).toBe(600); // Restored from persisted data
+      expect(result.nextSubDueTimeSeconds).toBe(900); // 600 + 300 (5 min interval)
+      expect(result.timeElapsedInSeconds).toBe(720); // Current time preserved
+    });
+
+    it('should recalculate subAlertLevel to "due" when loaded time exceeds nextSubDueTime', () => {
+      // Scenario: Game at 16:00 (960s), subs confirmed at 10:00 (600s), 5-min intervals
+      // nextSubDueTime = 600 + 300 = 900s. Current time (960s) > 900s → alert should be 'due'
+      const state = createBaseState();
+      const action: GameSessionAction = {
+        type: 'LOAD_PERSISTED_GAME_DATA',
+        payload: {
+          timeElapsedInSeconds: 960, // 16 minutes - past due time
+          lastSubConfirmationTimeSeconds: 600, // 10 minutes
+          subIntervalMinutes: 5,
+        },
+      };
+
+      const result = gameSessionReducer(state, action);
+
+      expect(result.timeElapsedInSeconds).toBe(960);
+      expect(result.nextSubDueTimeSeconds).toBe(900); // 600 + 300
+      expect(result.subAlertLevel).toBe('due'); // 960 >= 900
+    });
+
+    it('should recalculate subAlertLevel to "warning" when loaded time is within warning window', () => {
+      // Scenario: Game at 14:30 (870s), subs confirmed at 10:00 (600s), 5-min intervals
+      // nextSubDueTime = 900s, warningTime = 900 - 60 = 840s
+      // Current time (870s) is between 840s and 900s → alert should be 'warning'
+      const state = createBaseState();
+      const action: GameSessionAction = {
+        type: 'LOAD_PERSISTED_GAME_DATA',
+        payload: {
+          timeElapsedInSeconds: 870, // 14:30 - in warning window
+          lastSubConfirmationTimeSeconds: 600, // 10:00
+          subIntervalMinutes: 5,
+        },
+      };
+
+      const result = gameSessionReducer(state, action);
+
+      expect(result.timeElapsedInSeconds).toBe(870);
+      expect(result.nextSubDueTimeSeconds).toBe(900);
+      expect(result.subAlertLevel).toBe('warning'); // 870 >= 840 (warning) but < 900 (due)
+    });
+
+    it('should keep subAlertLevel as "none" when loaded time is before warning window', () => {
+      // Scenario: Game at 12:00 (720s), subs confirmed at 10:00 (600s), 5-min intervals
+      // nextSubDueTime = 900s, warningTime = 840s
+      // Current time (720s) < 840s → alert should be 'none'
+      const state = createBaseState();
+      const action: GameSessionAction = {
+        type: 'LOAD_PERSISTED_GAME_DATA',
+        payload: {
+          timeElapsedInSeconds: 720, // 12:00 - before warning window
+          lastSubConfirmationTimeSeconds: 600, // 10:00
+          subIntervalMinutes: 5,
+        },
+      };
+
+      const result = gameSessionReducer(state, action);
+
+      expect(result.timeElapsedInSeconds).toBe(720);
+      expect(result.nextSubDueTimeSeconds).toBe(900);
+      expect(result.subAlertLevel).toBe('none'); // 720 < 840 (warning)
+    });
+
+    it('should handle period boundary: loading game at start of second period', () => {
+      // Scenario: Second period just started, timer at 15:00 (900s) for a 15-min first period
+      // User hasn't confirmed subs yet in this period
+      const state = createBaseState();
+      const action: GameSessionAction = {
+        type: 'LOAD_PERSISTED_GAME_DATA',
+        payload: {
+          timeElapsedInSeconds: 900, // Start of second period (15:00)
+          currentPeriod: 2,
+          periodDurationMinutes: 15,
+          gameStatus: 'periodEnd',
+          subIntervalMinutes: 5,
+          // No lastSubConfirmationTimeSeconds - should default to timeElapsedAtLoad
+        },
+      };
+
+      const result = gameSessionReducer(state, action);
+
+      expect(result.timeElapsedInSeconds).toBe(900);
+      expect(result.currentPeriod).toBe(2);
+      expect(result.lastSubConfirmationTimeSeconds).toBe(900); // Defaults to timeElapsedAtLoad
+      expect(result.nextSubDueTimeSeconds).toBe(1200); // 900 + 300 (5 min)
+      expect(result.subAlertLevel).toBe('none'); // Fresh start of period
+    });
+
     it('should load all supported optional fields', () => {
       const state = createBaseState();
       const events = [createGameEvent()];

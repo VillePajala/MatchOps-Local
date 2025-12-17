@@ -979,6 +979,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
         completedIntervalDurations: gameData.completedIntervalDurations,
         lastSubConfirmationTimeSeconds: gameData.lastSubConfirmationTimeSeconds,
         showPlayerNames: gameData.showPlayerNames,
+        timeElapsedInSeconds: gameData.timeElapsedInSeconds,
       };
       dispatchGameSession({ type: 'LOAD_PERSISTED_GAME_DATA', payload });
     } else {
