@@ -500,6 +500,20 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
       // Use saved timeElapsedInSeconds if available, otherwise fall back to calculated value
       const timeElapsedAtLoad = loadedData.timeElapsedInSeconds ?? fallbackTimeElapsed;
 
+      // Use persisted lastSubConfirmationTimeSeconds if available, otherwise use timeElapsedAtLoad as fallback
+      const lastSubConfirmation = loadedData.lastSubConfirmationTimeSeconds ?? timeElapsedAtLoad;
+      // Calculate next due time from last confirmation, not from current time
+      const nextSubDueTime = lastSubConfirmation + (subIntervalMinutes * 60);
+
+      // Recalculate alert level based on restored timer position (matches logic in SET_TIMER_ELAPSED)
+      let recalculatedAlertLevel: SubAlertLevel = 'none';
+      const warningTime = nextSubDueTime - 60;
+      if (timeElapsedAtLoad >= nextSubDueTime) {
+        recalculatedAlertLevel = 'due';
+      } else if (warningTime >= 0 && timeElapsedAtLoad >= warningTime) {
+        recalculatedAlertLevel = 'warning';
+      }
+
       const stateToBeReturned: GameSessionState = {
         teamName,
         opponentName,
@@ -535,9 +549,9 @@ export const gameSessionReducer = (state: GameSessionState, action: GameSessionA
         timeElapsedInSeconds: timeElapsedAtLoad,
         startTimestamp: null,
         isTimerRunning: false,
-        nextSubDueTimeSeconds: timeElapsedAtLoad + (subIntervalMinutes * 60),
-        subAlertLevel: 'none',
-        lastSubConfirmationTimeSeconds: timeElapsedAtLoad,
+        nextSubDueTimeSeconds: nextSubDueTime,
+        subAlertLevel: recalculatedAlertLevel,
+        lastSubConfirmationTimeSeconds: lastSubConfirmation,
       };
       logger.log('[gameSessionReducer] LOAD_PERSISTED_GAME_DATA - state to be returned:', JSON.parse(JSON.stringify(stateToBeReturned)));
       return stateToBeReturned;
