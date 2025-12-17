@@ -1,7 +1,7 @@
 # Communication Infrastructure Plan
 
-**Status**: ⚡ **NEXT PRIORITY** - Do in parallel with business setup
-**Last Updated**: December 14, 2025
+**Status**: ✅ **COMPLETE** - All phases done
+**Last Updated**: December 17, 2025
 **Owner**: Ville Pajala
 
 > **Note**: This can be done NOW while waiting for Toiminimi registration and bank account setup. Email infrastructure is needed before Play Store production release.
@@ -39,28 +39,31 @@ Velomo AI (Company)
 ### Email Architecture
 
 ```
-velomoai.com (Company Domain)
+velomoai.com (Company Domain) - Cloudflare Email Routing → Gmail
 ├── alerts@velomoai.com     → Sentry, monitoring, automated systems
 ├── dev@velomoai.com        → Play Store, Vercel, developer platforms
 └── hello@velomoai.com      → Company inquiries
 
-matchops.com (Product Domain)
-├── support@matchops.com    → User support (can send replies)
-└── hello@matchops.com      → General product inquiries
+match-ops.com (Product Domain) - Cloudflare Email Routing → Gmail
+├── support@match-ops.com   → User support (receive only)
+└── hello@match-ops.com     → General product inquiries
 ```
+
+> **Note**: Email sending (reply as support@match-ops.com) can be added later via Brevo SMTP if needed. Current setup is receive-only, forwarding to personal Gmail.
 
 ### Target Setup
 
-| Component | Provider | Cost |
-|-----------|----------|------|
-| velomoai.com domain | Namecheap | ~10/year |
-| DNS (both domains) | Cloudflare | Free |
-| Email receiving | Cloudflare Email Routing | Free |
-| Email sending | Zoho Mail (matchops.com) | Free tier |
-| Websites | Vercel | Free tier |
-| Social media | X, LinkedIn | Free |
+| Component | Provider | Cost | Status |
+|-----------|----------|------|--------|
+| velomoai.com domain | Namecheap | ~$12/year | ✅ Done |
+| DNS (both domains) | Cloudflare | Free | ✅ Done |
+| Email receiving | Cloudflare Email Routing | Free | ✅ Done |
+| Email sending | Brevo (optional, later) | Free tier | ⏸️ Skipped |
+| velomoai.com website | Vercel | Free tier | ✅ Done |
+| match-ops.com website | Vercel | Free tier | ✅ Done |
+| Social media | LinkedIn + personal X | Free | ✅ Done |
 
-**Total Annual Cost:** ~10/year
+**Total Annual Cost:** ~$12/year
 
 ---
 
@@ -555,44 +558,42 @@ Do this:
 
 ## Checklist
 
-### Phase 1: Domains & DNS
-- [ ] Register velomoai.com on Namecheap
-- [ ] Create Cloudflare account
-- [ ] Move matchops.com DNS to Cloudflare
-- [ ] Move velomoai.com DNS to Cloudflare
-- [ ] Verify matchops.com still works on Vercel
+### Phase 1: Domains & DNS ✅ COMPLETE
+- [x] Register velomoai.com on Namecheap
+- [x] Create Cloudflare account
+- [x] Move match-ops.com DNS to Cloudflare
+- [x] Move velomoai.com DNS to Cloudflare
+- [x] Verify match-ops.com still works on Vercel
 
-### Phase 2: Email
-- [ ] Set up Cloudflare Email Routing for velomoai.com
-- [ ] Create alerts@velomoai.com forwarding
-- [ ] Create dev@velomoai.com forwarding
-- [ ] Create hello@velomoai.com forwarding
-- [ ] Set up Zoho Mail for matchops.com
-- [ ] Create support@matchops.com in Zoho
-- [ ] Create hello@matchops.com in Zoho
-- [ ] Configure SPF, DKIM, MX records
-- [ ] Test sending and receiving
+### Phase 2: Email ✅ COMPLETE (Receive Only)
+- [x] Set up Cloudflare Email Routing for velomoai.com
+- [x] Create alerts@velomoai.com forwarding
+- [x] Create dev@velomoai.com forwarding
+- [x] Create hello@velomoai.com forwarding
+- [x] Set up Cloudflare Email Routing for match-ops.com
+- [x] Create support@match-ops.com forwarding
+- [x] Create hello@match-ops.com forwarding
+- [ ] ~~Set up Zoho Mail for sending~~ (skipped - using receive-only for now)
+- [ ] Add Brevo SMTP for sending (optional, later if needed)
 
-### Phase 3: Sentry
-- [ ] Update Sentry notification email to alerts@velomoai.com
-- [ ] Configure alert rules
-- [ ] Create Gmail filter for Sentry
+### Phase 3: Sentry ✅ COMPLETE
+- [x] Update Sentry notification email to alerts@velomoai.com
+- [x] Configure alert rules
+- [x] Create Gmail filter for Sentry
 
-### Phase 4: Websites
-- [ ] Create simple Velomo AI landing page
-- [ ] Deploy to Vercel
-- [ ] Connect velomoai.com domain
-- [ ] Add /support page to matchops.com (optional)
+### Phase 4: Websites ✅ COMPLETE
+- [x] Create simple Velomo AI landing page → See [velomoai-website-spec.md](./velomoai-website-spec.md)
+- [x] Deploy to Vercel
+- [x] Connect velomoai.com domain
 
-### Phase 5: Social Media
-- [ ] Create @MatchOpsApp on X/Twitter
-- [ ] Complete profile with branding
-- [ ] Create Velomo AI LinkedIn page
-- [ ] Reserve handles on other platforms
+### Phase 5: Social Media ✅ COMPLETE
+- [x] Create Velomo AI LinkedIn page
+- [x] X/Twitter: Using personal account to promote MatchOps (no separate account needed)
+- [ ] ~~Reserve handles on other platforms~~ (skipped - low priority for niche app)
 
-### Phase 6: Gmail Organization
-- [ ] Create labels in Gmail
-- [ ] Set up filters for automatic labeling
+### Phase 6: Gmail Organization ✅ COMPLETE
+- [x] Create labels in Gmail
+- [x] Set up filters for automatic labeling
 - [ ] Store all credentials in password manager
 
 ---
@@ -603,11 +604,11 @@ Do this:
 
 | Address | Purpose | Setup |
 |---------|---------|-------|
-| alerts@velomoai.com | Sentry, monitoring | Cloudflare → Gmail |
-| dev@velomoai.com | Developer platforms | Cloudflare → Gmail |
-| hello@velomoai.com | Company inquiries | Cloudflare → Gmail |
-| support@matchops.com | User support | Zoho (can send) |
-| hello@matchops.com | Product inquiries | Zoho (can send) |
+| alerts@velomoai.com | Sentry, monitoring | Cloudflare → Gmail ✅ |
+| dev@velomoai.com | Developer platforms | Cloudflare → Gmail ✅ |
+| hello@velomoai.com | Company inquiries | Cloudflare → Gmail ✅ |
+| support@match-ops.com | User support | Cloudflare → Gmail ✅ |
+| hello@match-ops.com | Product inquiries | Cloudflare → Gmail ✅ |
 
 ### DNS Records Quick Reference
 
@@ -618,13 +619,12 @@ A     @    → 76.76.21.21 (Vercel)
 CNAME www  → cname.vercel-dns.com
 ```
 
-**matchops.com (Cloudflare)**
+**match-ops.com (Cloudflare)**
 ```
-MX    @    → mx.zoho.eu (priority 10)
-MX    @    → mx2.zoho.eu (priority 20)
-MX    @    → mx3.zoho.eu (priority 50)
-TXT   @    → v=spf1 include:zoho.eu ~all
-TXT   zmail._domainkey → (DKIM from Zoho)
+MX    @    → route1.mx.cloudflare.net (priority 19)
+MX    @    → route2.mx.cloudflare.net (priority 94)
+MX    @    → route3.mx.cloudflare.net (priority 33)
+TXT   @    → v=spf1 include:_spf.mx.cloudflare.net ~all
 A     @    → (Vercel IP)
 CNAME www  → cname.vercel-dns.com
 ```
