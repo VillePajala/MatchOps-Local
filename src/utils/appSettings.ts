@@ -282,6 +282,79 @@ export const saveDrawingModeEnabled = async (value: boolean): Promise<boolean> =
   }
 };
 
+// ============================================
+// Install Prompt Utilities
+// ============================================
+// These manage the PWA install prompt dismissal tracking
+// Key: 'installPromptDismissed' (stored as timestamp string)
+
+/**
+ * Gets the timestamp when the install prompt was last dismissed
+ * @returns A promise that resolves to the timestamp (ms since epoch), or null if never dismissed
+ */
+export const getInstallPromptDismissedTime = async (): Promise<number | null> => {
+  try {
+    const value = await getStorageItem('installPromptDismissed');
+    if (!value) return null;
+    const timestamp = Number(value);
+    return isNaN(timestamp) ? null : timestamp;
+  } catch (error) {
+    logger.debug('Failed to get install prompt dismissed time (non-critical)', { error });
+    return null;
+  }
+};
+
+/**
+ * Sets the install prompt as dismissed (stores current timestamp)
+ * @returns A promise that resolves when complete
+ */
+export const setInstallPromptDismissed = async (): Promise<void> => {
+  try {
+    await setStorageItem('installPromptDismissed', Date.now().toString());
+  } catch (error) {
+    // Silent fail - dismissal tracking is not critical
+    logger.debug('Failed to set install prompt dismissed (non-critical)', { error });
+  }
+};
+
+// ============================================
+// First Game Guide Utilities
+// ============================================
+// These manage the first-time user game guide display
+// Key: 'hasSeenFirstGameGuide' (stored as 'true' string)
+
+/**
+ * Gets whether the user has seen the first game guide
+ * @returns A promise that resolves to true if seen, false otherwise
+ */
+export const getHasSeenFirstGameGuide = async (): Promise<boolean> => {
+  try {
+    const value = await getStorageItem('hasSeenFirstGameGuide');
+    return value === 'true';
+  } catch (error) {
+    logger.debug('Failed to get first game guide status (non-critical)', { error });
+    return false;
+  }
+};
+
+/**
+ * Sets the first game guide as seen
+ * @param value - Whether the guide has been seen
+ * @returns A promise that resolves when complete
+ */
+export const setHasSeenFirstGameGuide = async (value: boolean): Promise<void> => {
+  try {
+    if (value) {
+      await setStorageItem('hasSeenFirstGameGuide', 'true');
+    } else {
+      const { removeStorageItem } = await import('./storage');
+      await removeStorageItem('hasSeenFirstGameGuide');
+    }
+  } catch (error) {
+    logger.debug('Failed to set first game guide status (non-critical)', { error });
+  }
+};
+
 /**
  * Clears all application settings, resetting to defaults
  * Uses clearStorage() to completely wipe IndexedDB for a clean reset

@@ -7,6 +7,10 @@ import {
   getLastHomeTeamName,
   saveLastHomeTeamName,
   resetAppSettings,
+  getInstallPromptDismissedTime,
+  setInstallPromptDismissed,
+  getHasSeenFirstGameGuide,
+  setHasSeenFirstGameGuide,
   AppSettings
 } from './appSettings';
 import { APP_SETTINGS_KEY, LAST_HOME_TEAM_NAME_KEY } from '@/config/storageKeys';
@@ -522,6 +526,130 @@ describe('App Settings Utilities', () => {
       // Should still return migrated values in memory
       expect(result.clubSeasonStartDate).toBe('2000-10-01');
       expect(result.clubSeasonEndDate).toBe('2000-05-01');
+    });
+  });
+
+  describe('getInstallPromptDismissedTime', () => {
+    it('should return timestamp when install prompt was dismissed', async () => {
+      const timestamp = Date.now();
+      mockGetStorageItem.mockResolvedValue(timestamp.toString());
+
+      const result = await getInstallPromptDismissedTime();
+
+      expect(mockGetStorageItem).toHaveBeenCalledWith('installPromptDismissed');
+      expect(result).toBe(timestamp);
+    });
+
+    it('should return null if install prompt was never dismissed', async () => {
+      mockGetStorageItem.mockResolvedValue(null);
+
+      const result = await getInstallPromptDismissedTime();
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null if stored value is not a valid number', async () => {
+      mockGetStorageItem.mockResolvedValue('invalid');
+
+      const result = await getInstallPromptDismissedTime();
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null and not throw if storage access fails', async () => {
+      mockGetStorageItem.mockRejectedValue(new Error('Storage error'));
+
+      const result = await getInstallPromptDismissedTime();
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('setInstallPromptDismissed', () => {
+    it('should store current timestamp when called', async () => {
+      const beforeCall = Date.now();
+      await setInstallPromptDismissed();
+      const afterCall = Date.now();
+
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
+        'installPromptDismissed',
+        expect.any(String)
+      );
+
+      // Verify the stored timestamp is within the expected range
+      const storedValue = Number(mockSetStorageItem.mock.calls[0][1]);
+      expect(storedValue).toBeGreaterThanOrEqual(beforeCall);
+      expect(storedValue).toBeLessThanOrEqual(afterCall);
+    });
+
+    it('should not throw if storage access fails', async () => {
+      mockSetStorageItem.mockRejectedValue(new Error('Storage error'));
+
+      // Should not throw
+      await expect(setInstallPromptDismissed()).resolves.toBeUndefined();
+    });
+  });
+
+  describe('getHasSeenFirstGameGuide', () => {
+    it('should return true if first game guide was seen', async () => {
+      mockGetStorageItem.mockResolvedValue('true');
+
+      const result = await getHasSeenFirstGameGuide();
+
+      expect(mockGetStorageItem).toHaveBeenCalledWith('hasSeenFirstGameGuide');
+      expect(result).toBe(true);
+    });
+
+    it('should return false if first game guide was not seen', async () => {
+      mockGetStorageItem.mockResolvedValue(null);
+
+      const result = await getHasSeenFirstGameGuide();
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false for any value other than "true"', async () => {
+      mockGetStorageItem.mockResolvedValue('false');
+
+      const result = await getHasSeenFirstGameGuide();
+
+      expect(result).toBe(false);
+    });
+
+    it('should return false and not throw if storage access fails', async () => {
+      mockGetStorageItem.mockRejectedValue(new Error('Storage error'));
+
+      const result = await getHasSeenFirstGameGuide();
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('setHasSeenFirstGameGuide', () => {
+    it('should store "true" when setting guide as seen', async () => {
+      await setHasSeenFirstGameGuide(true);
+
+      expect(mockSetStorageItem).toHaveBeenCalledWith('hasSeenFirstGameGuide', 'true');
+    });
+
+    it('should remove storage key when setting guide as not seen', async () => {
+      await setHasSeenFirstGameGuide(false);
+
+      expect(mockRemoveStorageItem).toHaveBeenCalledWith('hasSeenFirstGameGuide');
+    });
+
+    it('should not throw if storage access fails when setting true', async () => {
+      mockSetStorageItem.mockRejectedValue(new Error('Storage error'));
+
+      // Should not throw
+      await expect(setHasSeenFirstGameGuide(true)).resolves.toBeUndefined();
+    });
+
+    it('should not throw if storage access fails when setting false', async () => {
+      mockRemoveStorageItem.mockRejectedValue(new Error('Storage error'));
+
+      // Should not throw
+      await expect(setHasSeenFirstGameGuide(false)).resolves.toBeUndefined();
     });
   });
 }); 
