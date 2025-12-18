@@ -54,6 +54,7 @@ export interface AuthService {
    * Get the current authenticated user.
    * In local mode, returns a pseudo-user representing the local device.
    * @returns User object or null if not authenticated
+   * @throws NetworkError if connection fails (cloud mode only)
    */
   getCurrentUser(): Promise<User | null>;
 
@@ -94,6 +95,8 @@ export interface AuthService {
    * @param password - User's password
    * @returns Authentication result with user and session
    * @throws NotSupportedError in local mode
+   * @throws AuthError if credentials invalid or user not found
+   * @throws NetworkError if connection fails
    */
   signIn(email: string, password: string): Promise<AuthResult>;
 
@@ -117,6 +120,7 @@ export interface AuthService {
   /**
    * Get the current session.
    * @returns Session object or null if not authenticated
+   * @throws NetworkError if connection fails (cloud mode only)
    */
   getSession(): Promise<Session | null>;
 
