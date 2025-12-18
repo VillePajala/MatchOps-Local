@@ -1,8 +1,8 @@
 {
-  "version": "847ff1ff",
+  "version": "f90133eb",
   "date": "2025-12-18",
   "notes": {
-    "en": "Add token security requirements and enhanced documentation for AuthService",
-    "fi": "Add token security requirements and enhanced documentation for AuthService"
+    "en": "Recommend Option A for LocalAuthService onAuthStateChange",
+    "fi": "Recommend Option A for LocalAuthService onAuthStateChange"
   }
 }
