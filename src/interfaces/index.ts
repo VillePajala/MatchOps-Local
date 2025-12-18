@@ -1,13 +1,13 @@
 /**
- * DataStore Interfaces
+ * Backend Abstraction Interfaces
  *
- * Public exports for the DataStore abstraction layer.
- * Part of Phase 2 backend abstraction (PR #4).
+ * Public exports for the DataStore and AuthService abstraction layers.
+ * Part of Phase 2 backend abstraction (PRs #4-5).
  *
  * @example
  * ```typescript
- * import type { DataStore } from '@/interfaces';
- * import { DataStoreError, NotFoundError } from '@/interfaces';
+ * import type { DataStore, AuthService } from '@/interfaces';
+ * import { DataStoreError, NotFoundError, LOCAL_USER } from '@/interfaces';
  * ```
  *
  * @see docs/03-active-plans/backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md
@@ -42,3 +42,26 @@ export {
   NotSupportedError,
   ConflictError,
 } from './DataStoreErrors';
+
+// ==========================================================================
+// AUTH SERVICE (PR #5)
+// ==========================================================================
+
+// Auth interface
+export type { AuthService } from './AuthService';
+
+// Auth types
+export type {
+  User,
+  Session,
+  AuthResult,
+  AuthErrorInfo,
+  AuthErrorCode,
+  AuthState,
+  AuthStateCallback,
+  SignUpOptions,
+  SignInOptions,
+} from './AuthTypes';
+
+// Auth constants
+export { LOCAL_USER } from './AuthTypes';
