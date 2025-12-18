@@ -1045,6 +1045,8 @@ export class LocalDataStore implements DataStore {
 2. Mock `@/utils/storage` functions (NOT managers)
 3. Test each method independently
 4. Test error handling and edge cases
+5. **Runtime interface contract tests** - Verify implementation matches DataStore interface
+   (TypeScript only checks at compile time; runtime tests catch missing methods)
 
 **File Created**: `src/datastore/LocalDataStore.test.ts` (~400 lines)
 
@@ -1145,6 +1147,7 @@ export function getAuthService(): AuthService {
 
 **Acceptance Criteria**:
 - [ ] LocalAuthService implements all methods
+- [ ] Runtime interface contract tests verify AuthService compliance
 - [ ] Factory returns singleton instance
 - [ ] All tests pass
 - [ ] TypeScript compiles
