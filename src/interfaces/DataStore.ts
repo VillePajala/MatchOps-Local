@@ -50,7 +50,12 @@ export interface DataStore {
 
   /**
    * Get the backend name for logging/debugging.
-   * @returns Backend identifier (e.g., 'local', 'supabase')
+   * @returns Backend identifier (e.g., 'local', 'supabase', 'firebase')
+   *
+   * @remarks
+   * Returns a specific backend identifier string, allowing for multiple
+   * cloud providers. Compare with AuthService.getMode() which returns
+   * a high-level mode ('local' | 'cloud').
    */
   getBackendName(): string;
 

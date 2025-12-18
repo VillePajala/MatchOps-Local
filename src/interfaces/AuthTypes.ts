@@ -55,10 +55,13 @@ export interface Session {
   accessToken: string;
   /** Refresh token for obtaining new access tokens - see @security notes above */
   refreshToken: string;
-  /** When the access token expires (ISO timestamp) */
+  /** When the access token expires (ISO 8601 timestamp) */
   expiresAt: string;
-  /** Token type (usually 'bearer') */
-  tokenType: string;
+  /**
+   * Token type per OAuth 2.0 RFC 6750.
+   * @remarks 'bearer' is the standard value (case-insensitive per spec, lowercase preferred)
+   */
+  tokenType: 'bearer' | (string & {});
   /** Associated user */
   user: User;
 }
@@ -82,6 +85,10 @@ export interface AuthResult {
  * Auth methods throw errors from DataStoreErrors (e.g., NotSupportedError, AuthError).
  *
  * @reserved Phase 4 - Used for parsing Supabase auth error responses
+ * @example
+ * // Phase 4: Parse Supabase error into AuthError
+ * const errorInfo: AuthErrorInfo = parseSupabaseError(supabaseError);
+ * throw new AuthError(errorInfo.message); // attach errorInfo.code for debugging
  */
 export interface AuthErrorInfo {
   /** Error code for programmatic handling */
