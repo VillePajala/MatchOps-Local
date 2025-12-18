@@ -85,10 +85,21 @@ export interface AuthResult {
  * Auth methods throw error classes from DataStoreErrors (NotSupportedError, AuthError, NetworkError).
  *
  * @reserved Phase 4 - Used for parsing Supabase auth error responses
+ *
+ * @remarks
+ * Phase 4 may extend AuthError to accept AuthErrorInfo for structured error handling:
+ * ```typescript
+ * // Current: AuthError(message, cause?)
+ * // Phase 4: AuthError(message, cause?, errorInfo?)
+ * ```
+ *
  * @example
- * // Phase 4: Parse Supabase error into AuthError
+ * ```typescript
+ * // Phase 4: Parse Supabase error and throw with structured info
  * const errorInfo: AuthErrorInfo = parseSupabaseError(supabaseError);
- * throw new AuthError(errorInfo.message); // attach errorInfo.code for debugging
+ * throw new AuthError(errorInfo.message, undefined, errorInfo);
+ * // Callers can then access: error.authErrorCode, error.status
+ * ```
  */
 export interface AuthErrorInfo {
   /** Error code for programmatic handling */
