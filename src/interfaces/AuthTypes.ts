@@ -79,10 +79,10 @@ export interface AuthResult {
 }
 
 /**
- * Authentication error information (from auth provider responses).
+ * Authentication error information parsed from auth provider responses.
  *
- * Note: This is a data structure for error information, not a throwable Error.
- * Auth methods throw errors from DataStoreErrors (e.g., NotSupportedError, AuthError).
+ * DATA STRUCTURE only - NOT a throwable Error class.
+ * Auth methods throw error classes from DataStoreErrors (NotSupportedError, AuthError, NetworkError).
  *
  * @reserved Phase 4 - Used for parsing Supabase auth error responses
  * @example
