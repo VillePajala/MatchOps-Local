@@ -4,12 +4,14 @@ import "@testing-library/jest-dom";
 import "@/i18n";
 import InstallPrompt from "./InstallPrompt";
 
-// Mock the storage module
-jest.mock("@/utils/storage");
+// Mock the appSettings module
+const mockSetInstallPromptDismissed = jest.fn();
+const mockGetInstallPromptDismissedTime = jest.fn();
 
-// Import mocked functions after jest.mock
-import { setStorageItem } from "@/utils/storage";
-import { clearMockStore } from "@/utils/__mocks__/storage";
+jest.mock("@/utils/appSettings", () => ({
+  setInstallPromptDismissed: () => mockSetInstallPromptDismissed(),
+  getInstallPromptDismissedTime: () => mockGetInstallPromptDismissedTime(),
+}));
 
 interface TestInstallEvent extends Event {
   prompt: () => Promise<void>;
@@ -27,7 +29,8 @@ function dispatchInstallEvent(promptMock: jest.Mock) {
 
 describe("InstallPrompt", () => {
   beforeEach(() => {
-    clearMockStore();
+    jest.clearAllMocks();
+    mockGetInstallPromptDismissedTime.mockResolvedValue(null);
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: jest.fn().mockReturnValue({
@@ -75,10 +78,7 @@ describe("InstallPrompt", () => {
 
     // Wait for async storage operation to complete
     await waitFor(() => {
-      expect(setStorageItem).toHaveBeenCalledWith(
-        "installPromptDismissed",
-        expect.any(String)
-      );
+      expect(mockSetInstallPromptDismissed).toHaveBeenCalled();
     });
   });
 });
