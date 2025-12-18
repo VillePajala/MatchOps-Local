@@ -1099,7 +1099,7 @@ export class LocalDataStore implements DataStore {
         return null;
       }
 
-      return parsed as WarmupPlan;
+      return parsed as unknown as WarmupPlan;
     } catch (error) {
       logger.error('[LocalDataStore] Error reading warmup plan', error);
       return null;
