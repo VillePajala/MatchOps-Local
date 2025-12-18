@@ -17,6 +17,7 @@ import {
   saveHasSeenAppGuide,
   getLastHomeTeamName as utilGetLastHomeTeamName,
   updateAppSettings as utilUpdateAppSettings,
+  getHasSeenFirstGameGuide,
 } from '@/utils/appSettings';
 import { getTeams, getTeam } from '@/utils/teams';
 import { Player, Team } from '@/types';
@@ -870,7 +871,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
     const checkFirstGameGuide = async () => {
       try {
-        const firstGameGuideShown = await getStorageItem('hasSeenFirstGameGuide').catch(() => null);
+        const firstGameGuideShown = await getHasSeenFirstGameGuide();
 
         // Also check if user has any saved games (imported or created)
         const savedGames = await utilGetSavedGames();
