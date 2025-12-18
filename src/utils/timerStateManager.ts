@@ -19,8 +19,12 @@ import logger from './logger';
  * Timer state persisted to IndexedDB.
  *
  * IMPORTANT: This schema must match exactly what useGameTimer.ts expects.
+ * DO NOT CHANGE without migration logic:
  * - `timestamp`: Used to calculate elapsed time while tab was hidden
  * - `wasRunning`: Only set when saving on tab hidden, determines if timer auto-resumes
+ *
+ * @schema-version 1.0 (December 2025)
+ * @migration-required If changing this interface, add migration in src/utils/migration.ts
  */
 export interface TimerState {
   /** Game ID this timer state belongs to */
