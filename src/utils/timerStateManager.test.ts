@@ -22,7 +22,9 @@ jest.mock('./storage', () => ({
 }));
 
 // Mock logger to prevent console output during tests
+// __esModule: true prevents Babel's _interopRequireDefault from wrapping again
 jest.mock('./logger', () => ({
+  __esModule: true,
   default: {
     debug: jest.fn(),
     log: jest.fn(),
@@ -47,6 +49,14 @@ describe('timerStateManager', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('Storage Key Integrity', () => {
+    it('should use correct storage key to maintain backward compatibility', () => {
+      // This test ensures we never accidentally change the key
+      // Changing this would orphan existing timer states in user browsers
+      expect(TIMER_STATE_KEY).toBe('soccerTimerState');
+    });
   });
 
   describe('saveTimerState', () => {
