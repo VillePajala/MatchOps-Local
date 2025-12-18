@@ -8,6 +8,8 @@
  * @see docs/03-active-plans/backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md
  */
 
+import type { AuthErrorCode, AuthErrorInfo } from './AuthTypes';
+
 /**
  * Error codes for DataStore operations.
  */
@@ -138,9 +140,14 @@ export class NetworkError extends DataStoreError {
  * Error thrown for authentication/authorization failures.
  */
 export class AuthError extends DataStoreError {
-  constructor(message: string, cause?: Error) {
+  public readonly authErrorCode?: AuthErrorCode;
+  public readonly status?: number;
+
+  constructor(message: string, cause?: Error, errorInfo?: AuthErrorInfo) {
     super(message, 'AUTH_ERROR', cause);
     this.name = 'AuthError';
+    this.authErrorCode = errorInfo?.code;
+    this.status = errorInfo?.status;
   }
 }
 
