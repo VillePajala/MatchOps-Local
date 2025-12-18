@@ -96,6 +96,54 @@ describe('AuthService Interface Exports', () => {
     });
   });
 
+  describe('type validation', () => {
+    it('should accept a valid AuthService implementation', () => {
+      const localUser: User = { ...LOCAL_USER };
+      const mockAuth: AuthService = {
+        initialize: async () => {},
+        getMode: () => 'local',
+        getCurrentUser: async () => localUser,
+        isAuthenticated: () => true,
+        signUp: async () => ({ user: localUser, session: null }),
+        signIn: async () => ({ user: localUser, session: null }),
+        signOut: async () => {},
+        resetPassword: async () => {},
+        getSession: async () => null,
+        refreshSession: async () => null,
+        onAuthStateChange: () => () => {},
+      };
+
+      expect(mockAuth).toBeDefined();
+    });
+
+    it('should document all AuthErrorCode values', () => {
+      const authErrorCodeMap: Record<AuthErrorCode, true> = {
+        invalid_credentials: true,
+        user_not_found: true,
+        email_taken: true,
+        weak_password: true,
+        invalid_email: true,
+        email_not_confirmed: true,
+        session_expired: true,
+        network_error: true,
+        rate_limited: true,
+        not_supported: true,
+        unknown: true,
+      };
+
+      expect(authErrorCodeMap.unknown).toBe(true);
+    });
+
+    it('should restrict Session.tokenType to bearer', () => {
+      const tokenType: Session['tokenType'] = 'bearer';
+      expect(tokenType).toBe('bearer');
+
+      // @ts-expect-error - tokenType should only allow 'bearer' unless extended
+      const _invalidTokenType: Session['tokenType'] = 'mac';
+      expect(_invalidTokenType).toBeDefined();
+    });
+  });
+
   describe('LOCAL_USER constant', () => {
     it('should export LOCAL_USER with correct values', () => {
       expect(LOCAL_USER).toEqual({
@@ -111,12 +159,20 @@ describe('AuthService Interface Exports', () => {
     });
 
     it('should not allow property modification', () => {
+      const original = LOCAL_USER.id;
+
       // TypeScript prevents this at compile time (Readonly<User>)
-      // This test verifies runtime protection via Object.freeze
-      expect(() => {
+      // This test verifies runtime protection via Object.freeze.
+      // In non-strict mode, assigning to a frozen object fails silently
+      // instead of throwing, so assert value remains unchanged.
+      try {
         // @ts-expect-error - Testing runtime immutability
         LOCAL_USER.id = 'modified';
-      }).toThrow();
+      } catch {
+        // In strict mode, this throws a TypeError.
+      }
+
+      expect(LOCAL_USER.id).toBe(original);
     });
   });
 });
