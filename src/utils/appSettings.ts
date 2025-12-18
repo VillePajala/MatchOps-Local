@@ -14,6 +14,7 @@ import {
 import {
   getStorageItem,
   setStorageItem,
+  removeStorageItem,
 } from './storage';
 import logger from '@/utils/logger';
 import { withKeyLock } from './storageKeyLock';
@@ -347,7 +348,6 @@ export const setHasSeenFirstGameGuide = async (value: boolean): Promise<void> =>
     if (value) {
       await setStorageItem('hasSeenFirstGameGuide', 'true');
     } else {
-      const { removeStorageItem } = await import('./storage');
       await removeStorageItem('hasSeenFirstGameGuide');
     }
   } catch (error) {
