@@ -1,5 +1,10 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-import { APP_SETTINGS_KEY, LAST_HOME_TEAM_NAME_KEY } from '@/config/storageKeys';
+import {
+  APP_SETTINGS_KEY,
+  LAST_HOME_TEAM_NAME_KEY,
+  INSTALL_PROMPT_DISMISSED_KEY,
+  HAS_SEEN_FIRST_GAME_GUIDE_KEY,
+} from '@/config/storageKeys';
 import type { AppSettings } from './appSettings';
 
 // Create mock store for in-memory testing
@@ -601,7 +606,7 @@ describe('App Settings Utilities', () => {
 
       const result = await getInstallPromptDismissedTime();
 
-      expect(mockGetStorageItem).toHaveBeenCalledWith('installPromptDismissed');
+      expect(mockGetStorageItem).toHaveBeenCalledWith(INSTALL_PROMPT_DISMISSED_KEY);
       expect(result).toBeNull();
     });
 
@@ -638,7 +643,7 @@ describe('App Settings Utilities', () => {
       await setInstallPromptDismissed();
 
       expect(mockSetStorageItem).toHaveBeenCalledWith(
-        'installPromptDismissed',
+        INSTALL_PROMPT_DISMISSED_KEY,
         expect.any(String)
       );
 
@@ -660,7 +665,7 @@ describe('App Settings Utilities', () => {
 
       const result = await getHasSeenFirstGameGuide();
 
-      expect(mockGetStorageItem).toHaveBeenCalledWith('hasSeenFirstGameGuide');
+      expect(mockGetStorageItem).toHaveBeenCalledWith(HAS_SEEN_FIRST_GAME_GUIDE_KEY);
       expect(result).toBe(false);
     });
 
@@ -696,13 +701,13 @@ describe('App Settings Utilities', () => {
     it('should save "true" to storage when setting to true', async () => {
       await setHasSeenFirstGameGuide(true);
 
-      expect(mockSetStorageItem).toHaveBeenCalledWith('hasSeenFirstGameGuide', 'true');
+      expect(mockSetStorageItem).toHaveBeenCalledWith(HAS_SEEN_FIRST_GAME_GUIDE_KEY, 'true');
     });
 
     it('should remove storage key when setting to false', async () => {
       await setHasSeenFirstGameGuide(false);
 
-      expect(mockRemoveStorageItem).toHaveBeenCalledWith('hasSeenFirstGameGuide');
+      expect(mockRemoveStorageItem).toHaveBeenCalledWith(HAS_SEEN_FIRST_GAME_GUIDE_KEY);
       expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
