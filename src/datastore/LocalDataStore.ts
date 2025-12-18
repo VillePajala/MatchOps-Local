@@ -40,6 +40,7 @@ import {
   TIMER_STATE_KEY,
 } from '@/config/storageKeys';
 import { AGE_GROUPS } from '@/config/gameOptions';
+import { VALIDATION_LIMITS } from '@/config/validationLimits';
 import {
   clearAdapterCacheWithCleanup,
   getStorageItem,
@@ -51,6 +52,7 @@ import {
 } from '@/utils/storage';
 import { withKeyLock } from '@/utils/storageKeyLock';
 import { withRosterLock } from '@/utils/lockManager';
+import { generateId } from '@/utils/idGenerator';
 import logger from '@/utils/logger';
 
 // Team index storage format: { [teamId: string]: Team }
@@ -73,8 +75,6 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   clubSeasonEndDate: '2000-05-01',
 };
 
-const MAX_TEAM_NOTES_LENGTH = 1000;
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -94,18 +94,7 @@ const convertMonthToDate = (month: number): string => {
   return `2000-${monthStr}-01`;
 };
 
-const generateShortUuid = (): string => {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID().split('-')[0];
-  }
-  return Math.random().toString(16).substring(2, 10);
-};
-
-const generateGameId = (): string => {
-  const timestamp = Date.now();
-  const uuid = generateShortUuid();
-  return `game_${timestamp}_${uuid}`;
-};
+const generateGameId = (): string => generateId('game');
 
 const migrateTournamentLevel = (tournament: Tournament): Tournament => {
   if (tournament.series && tournament.series.length > 0) {
@@ -168,7 +157,7 @@ export class LocalDataStore implements DataStore {
       const roster = await this.loadPlayers();
       const newPlayer: Player = {
         ...player,
-        id: `player_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        id: generateId('player'),
         name: trimmedName,
         isGoalie: player.isGoalie ?? false,
         receivedFairPlayCard: player.receivedFairPlayCard ?? false,
@@ -263,7 +252,7 @@ export class LocalDataStore implements DataStore {
     }
 
     const normalizedNotes = normalizeOptionalString(team.notes);
-    if (normalizedNotes && normalizedNotes.length > MAX_TEAM_NOTES_LENGTH) {
+    if (normalizedNotes && normalizedNotes.length > VALIDATION_LIMITS.TEAM_NOTES_MAX) {
       throw new ValidationError('Team notes cannot exceed 1000 characters', 'notes', team.notes);
     }
 
@@ -280,7 +269,7 @@ export class LocalDataStore implements DataStore {
 
       const now = new Date().toISOString();
       const newTeam: Team = {
-        id: `team_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        id: generateId('team'),
         name: trimmedName,
         color: team.color,
         ageGroup: normalizedAgeGroup,
@@ -316,7 +305,7 @@ export class LocalDataStore implements DataStore {
 
     if (updates.notes !== undefined) {
       const normalizedNotes = normalizeOptionalString(updates.notes);
-      if (normalizedNotes && normalizedNotes.length > MAX_TEAM_NOTES_LENGTH) {
+      if (normalizedNotes && normalizedNotes.length > VALIDATION_LIMITS.TEAM_NOTES_MAX) {
         throw new ValidationError('Team notes cannot exceed 1000 characters', 'notes', updates.notes);
       }
       updates.notes = normalizedNotes;
@@ -422,7 +411,7 @@ export class LocalDataStore implements DataStore {
       }
 
       const newSeason: Season = {
-        id: `season_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        id: generateId('season'),
         name: trimmedName,
         ...(extra || {}),
       };
@@ -517,7 +506,7 @@ export class LocalDataStore implements DataStore {
 
       const { level, ageGroup, ...rest } = extra || {};
       const newTournament: Tournament = {
-        id: `tournament_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+        id: generateId('tournament'),
         name: trimmedName,
         ...rest,
         ...(level ? { level } : {}),
@@ -620,16 +609,15 @@ export class LocalDataStore implements DataStore {
       }
 
       const now = new Date().toISOString();
-      const id = `personnel_${Date.now()}_${generateShortUuid()}`;
       const newPersonnel: Personnel = {
         ...data,
-        id,
+        id: generateId('personnel'),
         name: trimmedName,
         createdAt: now,
         updatedAt: now,
       };
 
-      collection[id] = newPersonnel;
+      collection[newPersonnel.id] = newPersonnel;
       await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
       return newPersonnel;
     });
@@ -959,8 +947,15 @@ export class LocalDataStore implements DataStore {
 
         try {
           await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
+          logger.info('[LocalDataStore] Successfully migrated app settings to new format');
         } catch (saveError) {
-          logger.error('[LocalDataStore] Failed to save migrated app settings', saveError);
+          // Don't re-throw: app can still work with in-memory migrated values.
+          // Old format is preserved, so migration will retry on next startup.
+          // This is safe but inefficient - logs warning to help diagnose if it persists.
+          logger.warn(
+            '[LocalDataStore] Failed to persist migrated app settings - will retry on next startup',
+            { error: saveError }
+          );
         }
       }
 
@@ -1005,7 +1000,7 @@ export class LocalDataStore implements DataStore {
     return withKeyLock(PLAYER_ADJUSTMENTS_KEY, async () => {
       const all = await this.loadPlayerAdjustments();
       const newAdjustment: PlayerStatAdjustment = {
-        id: adjustment.id || `adj_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        id: adjustment.id || generateId('adj'),
         appliedAt: adjustment.appliedAt || new Date().toISOString(),
         playerId: adjustment.playerId,
         seasonId: adjustment.seasonId,
