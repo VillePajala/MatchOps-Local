@@ -87,10 +87,10 @@ export interface AuthResult {
  * @reserved Phase 4 - Used for parsing Supabase auth error responses
  *
  * @remarks
- * Phase 4 may extend AuthError to accept AuthErrorInfo for structured error handling:
+ * AuthError accepts AuthErrorInfo for structured error handling (Phase 4 usage):
  * ```typescript
  * // Current: AuthError(message, cause?)
- * // Phase 4: AuthError(message, cause?, errorInfo?)
+ * // With structured info: AuthError(message, cause?, errorInfo?)
  * ```
  *
  * @example

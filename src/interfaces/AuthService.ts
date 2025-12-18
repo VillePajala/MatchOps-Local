@@ -81,7 +81,16 @@ export interface AuthService {
   /**
    * Sign up a new user with email and password.
    * @param email - User's email address (must be valid email format)
-   * @param password - User's password (cloud mode: min 6 chars per Supabase; additional complexity rules TBD in Phase 4)
+   * @param password - User's password
+   *
+   * @security Password Requirements (Phase 4 Implementation)
+   * Minimum requirements for cloud mode:
+   * - Length: 12+ characters (Supabase default of 6 is too weak)
+   * - Complexity: at least 3 of 4 character types (upper, lower, digit, special)
+   * - Validation: check against common password lists (for example, Have I Been Pwned)
+   * - Strength meter: provide real-time feedback to users
+   *
+   * Local mode: no password validation (no authentication needed)
    * @returns Authentication result with user and session
    * @throws NotSupportedError in local mode
    * @throws ValidationError if email format invalid or password too weak
@@ -93,6 +102,10 @@ export interface AuthService {
    * Sign in an existing user with email and password.
    * @param email - User's email address
    * @param password - User's password
+   *
+   * @security Password Validation
+   * Password complexity is enforced at sign-up; sign-in should not add extra
+   * validation to avoid locking out existing accounts with legacy passwords.
    * @returns Authentication result with user and session
    * @throws NotSupportedError in local mode
    * @throws AuthError if credentials invalid or user not found
@@ -119,20 +132,22 @@ export interface AuthService {
 
   /**
    * Get the current session.
-   * @returns Session object or null if not authenticated
+   * @returns Session object, or null if no valid session exists
+   * @throws NotInitializedError if called before initialize()
    * @throws NetworkError if connection fails (cloud mode only)
    */
   getSession(): Promise<Session | null>;
 
   /**
    * Refresh the current session.
-   * @returns New session, or null if no valid session exists to refresh
+   * @returns New session, or null if refresh fails (expired/invalid token)
    * @throws NotSupportedError in local mode
+   * @throws NotInitializedError if called before initialize()
+   * @throws NetworkError if connection fails
    *
    * @remarks
    * Returns null (rather than throwing) when refresh fails due to expired/invalid
    * refresh token. This allows callers to handle re-authentication gracefully.
-   * Throws NetworkError only for connection failures.
    */
   refreshSession(): Promise<Session | null>;
 
@@ -144,8 +159,7 @@ export interface AuthService {
    *
    * @remarks
    * - Callbacks are invoked asynchronously
-   * - Call the returned unsubscribe function when the subscriber is no longer needed
-   * - CRITICAL: Failure to call unsubscribe will cause memory leaks
+   * - CRITICAL: Always call the returned unsubscribe function to prevent memory leaks
    *
    * @example
    * ```typescript
@@ -187,6 +201,20 @@ export interface AuthService {
 //    - Return cached boolean, no async operations
 //    - In local mode, always return true
 //
+// 4. SINGLETON PATTERN
+//    - LocalAuthService should be a singleton (like LocalDataStore)
+//    - See factory.ts pattern from PR #8
+//    - Example:
+//      ```typescript
+//      let authServiceInstance: AuthService | null = null;
+//      export function getAuthService(): AuthService {
+//        if (!authServiceInstance) {
+//          authServiceInstance = new LocalAuthService();
+//        }
+//        return authServiceInstance;
+//      }
+//      ```
+//
 // =============================================================================
 
 // =============================================================================
@@ -199,6 +227,15 @@ export interface AuthService {
 //    - Never log accessToken or refreshToken values
 //    - Add ESLint rule or token scrubber to catch accidental logging
 //    - Mask tokens in error messages (show only last 4 chars if needed)
+//
+//    Suggested utility (add to src/utils/security.ts):
+//    ```typescript
+//    /** Mask sensitive token for safe logging: 'abc123xyz' => '***xyz' */
+//    export function maskToken(token: string): string {
+//      if (!token || token.length < 4) return '***';
+//      return '***' + token.slice(-4);
+//    }
+//    ```
 //
 // 2. TOKEN ROTATION
 //    - Implement automatic token rotation on refreshSession()
@@ -220,4 +257,21 @@ export interface AuthService {
 //    - Validate session on app resume/visibility change
 //    - Handle session revocation gracefully (server-side logout)
 //    - Clear local state when session becomes invalid
+//
+// 6. AUTHERROR EXTENSION
+//    - AuthError accepts AuthErrorInfo for richer auth failure metadata
+//    - When implementing SupabaseAuthService, pass errorInfo to AuthError
+//    - See src/interfaces/AuthTypes.ts AuthErrorInfo for reserved fields
+//    - Example:
+//      ```typescript
+//      class AuthError extends DataStoreError {
+//        public readonly authErrorCode?: AuthErrorCode;
+//
+//        constructor(message: string, cause?: Error, errorInfo?: AuthErrorInfo) {
+//          super(message, 'AUTH_ERROR', cause);
+//          this.authErrorCode = errorInfo?.code;
+//          // ... attach other AuthErrorInfo fields as needed
+//        }
+//      }
+//      ```
 // =============================================================================
