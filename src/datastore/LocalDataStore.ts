@@ -259,7 +259,7 @@ export class LocalDataStore implements DataStore {
     return withKeyLock(TEAMS_INDEX_KEY, async () => {
       const teamsIndex = await this.loadTeamsIndex();
       const normalizedName = normalizeTeamNameForCompare(trimmedName);
-      const nameExists = Object.values(teamsIndex).some((existing) =>
+      const nameExists = Object.values(teamsIndex).some(existing =>
         normalizeTeamNameForCompare(existing.name) === normalizedName
       );
 
@@ -329,7 +329,7 @@ export class LocalDataStore implements DataStore {
 
       if (updates.name) {
         const normalizedName = normalizeTeamNameForCompare(updates.name);
-        const nameExists = Object.values(teamsIndex).some((team) =>
+        const nameExists = Object.values(teamsIndex).some(team =>
           team.id !== id && normalizeTeamNameForCompare(team.name) === normalizedName
         );
 
@@ -774,7 +774,7 @@ export class LocalDataStore implements DataStore {
       completedIntervalDurations: game.completedIntervalDurations || [],
       lastSubConfirmationTimeSeconds:
         game.lastSubConfirmationTimeSeconds === undefined ? 0 : game.lastSubConfirmationTimeSeconds,
-      gamePersonnel: Array.isArray(game.gamePersonnel) ? game.gamePersonnel : [],
+      gamePersonnel: game.gamePersonnel ?? [],
       ...game,
     };
 

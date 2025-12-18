@@ -436,3 +436,115 @@ export interface DataStore {
    */
   clearTimerState(): Promise<void>;
 }
+
+// =============================================================================
+// PHASE 3 IMPLEMENTATION NOTES (LocalDataStore)
+// =============================================================================
+//
+// CRITICAL: Lock Acquisition Order (Deadlock Prevention)
+// ------------------------------------------------------
+// Multi-key atomic operations (e.g., removePersonnelMember cascade delete)
+// use nested locks. To prevent deadlocks, ALL implementations MUST acquire
+// locks in this GLOBAL ORDER:
+//
+//   1. PERSONNEL_KEY (first)
+//   2. SAVED_GAMES_KEY (second)
+//
+// Example (correct):
+//   ```typescript
+//   return withKeyLock(PERSONNEL_KEY, async () => {
+//     return withKeyLock(SAVED_GAMES_KEY, async () => {
+//       // Safe: locks acquired in global order
+//     });
+//   });
+//   ```
+//
+// NEVER acquire SAVED_GAMES_KEY before PERSONNEL_KEY in any operation.
+// This ensures all concurrent operations wait in the same order.
+//
+// Known Limitations (acceptable for local-first PWA):
+// ---------------------------------------------------
+// 1. NO LOCK TIMEOUTS: Locks wait indefinitely. Acceptable because:
+//    - Single-user app, low contention
+//    - Operations are fast (IndexedDB is local)
+//    - Deadlock prevention via global order eliminates infinite waits
+//
+// 2. SINGLE-TAB ONLY: LockManager is in-memory, no cross-tab coordination.
+//    - If multi-tab support needed later, add BroadcastChannel or navigator.locks
+//    - Current behavior: concurrent tabs may cause lost updates (rare edge case)
+//
+// 3. NO TRANSACTION COORDINATOR: Nested locks are manual, not a formal
+//    transaction system. Rollback is manual (backup → try → catch → restore).
+//
+// 4. ROLLBACK VERIFICATION GAP: After rollback, restored data is not verified.
+//    - If rollback itself fails, data may be inconsistent
+//    - No write-ahead log (WAL) for crash recovery
+//    - Mitigation: User can restore from fullBackup.ts exports
+//
+//    Recovery path for inconsistent state:
+//    a. App detects corruption via storageRecovery.ts validation
+//    b. Corrupted data quarantined (quarantine:* keys)
+//    c. User prompted to restore from backup or reset
+//
+//    Future enhancement (if needed):
+//    ```typescript
+//    // Verify rollback succeeded
+//    const restoredPersonnel = await getStorageItem(PERSONNEL_KEY);
+//    const restoredGames = await getStorageItem(SAVED_GAMES_KEY);
+//    if (restoredPersonnel !== JSON.stringify(backup.personnel) ||
+//        restoredGames !== JSON.stringify(backup.games)) {
+//      logger.error('Rollback verification failed - data may be corrupt');
+//      // Trigger recovery flow
+//    }
+//    ```
+//
+// See: REALISTIC-IMPLEMENTATION-PLAN.md Section 3 (Atomicity & Concurrency)
+// See: src/utils/storageRecovery.ts for corruption detection/quarantine
+//
+// 5. INPUT SANITIZATION (Design Decision)
+//    Current validation coverage:
+//    - Names (players, teams, seasons, tournaments): trimmed, length-checked, non-empty
+//    - Notes (team, game, player adjustments): length-checked only
+//    - Dates: no explicit format validation
+//
+//    Why limited sanitization is acceptable for local-first PWA:
+//    - XSS risk is minimal: user can only "attack" themselves
+//    - Data never sent to server or other users (local IndexedDB only)
+//    - React automatically escapes strings in JSX (primary XSS defense)
+//
+//    Known gaps (acceptable risk, document for future reference):
+//    - Control characters in notes could cause display issues
+//    - Invalid date strings stored as-is (validated at display time)
+//    - No HTML stripping (React escapes on render)
+//
+//    If stricter validation needed later (e.g., for cloud sync):
+//    ```typescript
+//    // Strip control characters except newlines/tabs
+//    function sanitizeText(input: string): string {
+//      return input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+//    }
+//
+//    // Validate ISO 8601 date format
+//    function isValidDateString(date: string): boolean {
+//      return !isNaN(Date.parse(date)) && /^\d{4}-\d{2}-\d{2}/.test(date);
+//    }
+//    ```
+//
+// 6. PERFORMANCE CONSIDERATIONS (Acceptable for Current Scale)
+//    Current scale per CLAUDE.md: 1 user, 50-100 players, 50-100 games/season
+//
+//    Known O(n) operations (acceptable, monitor if scale increases):
+//    - Name uniqueness checks: Linear scan via Object.values().some()
+//    - JSON parse/stringify: Entire collection on every read/write
+//    - Team roster lookups: Iterates all rosters
+//
+//    If scale increases significantly (1000+ records), consider:
+//    - Normalized name index for O(1) uniqueness checks
+//    - Caching Object.values() results within transactions
+//    - Partial updates instead of full collection rewrites
+//    - IndexedDB indexes for frequently queried fields
+//
+//    Current implementation prioritizes simplicity over optimization.
+//    Profile before optimizing - premature optimization is the root of all evil.
+//
+// =============================================================================

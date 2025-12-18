@@ -10,6 +10,7 @@ import { withRosterLock } from './lockManager';
 import { withKeyLock } from './storageKeyLock';
 import logger from '@/utils/logger';
 import { AGE_GROUPS } from '@/config/gameOptions';
+import { VALIDATION_LIMITS } from '@/config/validationLimits';
 
 // Team index storage format: { [teamId: string]: Team }
 export interface TeamsIndex {
@@ -45,9 +46,6 @@ export const getTeam = async (teamId: string): Promise<Team | null> => {
   return teamsIndex[teamId] || null;
 };
 
-// Constants for validation
-const MAX_NOTES_LENGTH = 1000;
-
 // Normalize optional string fields: trim and convert empty strings to undefined
 const normalizeOptionalString = (value?: string): string | undefined => {
   if (value === undefined) return undefined;
@@ -61,8 +59,8 @@ const validateTeamName = async (name: string, excludeTeamId?: string): Promise<v
   if (!trimmed) {
     throw new Error('Team name cannot be empty');
   }
-  if (trimmed.length > 48) {
-    throw new Error('Team name cannot exceed 48 characters');
+  if (trimmed.length > VALIDATION_LIMITS.TEAM_NAME_MAX) {
+    throw new Error(`Team name cannot exceed ${VALIDATION_LIMITS.TEAM_NAME_MAX} characters`);
   }
 
   const teams = await getTeams();
@@ -80,8 +78,8 @@ const validateTeamName = async (name: string, excludeTeamId?: string): Promise<v
 
 // Validate team notes length
 const validateTeamNotes = (notes?: string): void => {
-  if (notes && notes.length > MAX_NOTES_LENGTH) {
-    throw new Error(`Team notes cannot exceed ${MAX_NOTES_LENGTH} characters`);
+  if (notes && notes.length > VALIDATION_LIMITS.TEAM_NOTES_MAX) {
+    throw new Error(`Team notes cannot exceed ${VALIDATION_LIMITS.TEAM_NOTES_MAX} characters`);
   }
 };
 
