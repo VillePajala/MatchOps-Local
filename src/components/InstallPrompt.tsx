@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useTranslation } from "react-i18next";
 import styles from "./InstallPrompt.module.css";
 import logger from "@/utils/logger";
-import { getStorageItem, setStorageItem } from "@/utils/storage";
+import { getInstallPromptDismissedTime, setInstallPromptDismissed } from "@/utils/appSettings";
 
 // Define proper interfaces for better type safety
 interface BeforeInstallPromptEvent extends Event {
@@ -39,17 +39,9 @@ const InstallPrompt: React.FC = () => {
     }
 
     // Check storage to see if the user dismissed the prompt recently
-    try {
-      const lastPromptTime = await getStorageItem("installPromptDismissed");
-      if (
-        lastPromptTime &&
-        Date.now() - Number(lastPromptTime) < 24 * 60 * 60 * 1000
-      ) {
-        return false; // Don't show prompt if dismissed in the last 24 hours
-      }
-    } catch (error) {
-      // Silent fail - proceed to show prompt if storage check fails
-      logger.debug('Failed to check install prompt dismissal status (non-critical)', { error });
+    const lastPromptTime = await getInstallPromptDismissedTime();
+    if (lastPromptTime && Date.now() - lastPromptTime < 24 * 60 * 60 * 1000) {
+      return false; // Don't show prompt if dismissed in the last 24 hours
     }
 
     // If not installed and not recently dismissed, show prompt
@@ -124,12 +116,7 @@ const InstallPrompt: React.FC = () => {
       } else {
         logger.log("User dismissed the install prompt");
         // Store the time when dismissed to avoid showing it again too soon
-        try {
-          await setStorageItem("installPromptDismissed", Date.now().toString());
-        } catch (error) {
-          // Silent fail - dismissal tracking is not critical
-          logger.debug('Failed to store install prompt dismissal (non-critical)', { error });
-        }
+        await setInstallPromptDismissed();
         // Only hide if user dismissed
         setInstallPrompt(null);
         setIsVisible(false);
@@ -143,12 +130,7 @@ const InstallPrompt: React.FC = () => {
   };
 
   const handleDismiss = async () => {
-    try {
-      await setStorageItem("installPromptDismissed", Date.now().toString());
-    } catch (error) {
-      // Silent fail - dismissal tracking is not critical
-      logger.debug('Failed to store install prompt dismissal on dismiss (non-critical)', { error });
-    }
+    await setInstallPromptDismissed();
     setIsVisible(false);
   };
 
