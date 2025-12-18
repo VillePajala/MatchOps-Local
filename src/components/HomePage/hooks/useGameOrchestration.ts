@@ -34,7 +34,7 @@ import { queryKeys } from '@/config/queryKeys';
 import { updateGameDetails as utilUpdateGameDetails } from '@/utils/savedGames';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { MASTER_ROSTER_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
-import { loadTimerState, clearTimerState } from '@/utils/timerStateManager';
+import { loadTimerStateForGame, clearTimerState } from '@/utils/timerStateManager';
 import { exportJson } from '@/utils/exportGames';
 import { exportCurrentGameExcel, exportAggregateExcel, exportPlayerExcel } from '@/utils/exportExcel';
 import { useToast } from '@/contexts/ToastProvider';
@@ -814,20 +814,19 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       if (!gameDataManagement.isLoading) {
         // --- TIMER RESTORATION LOGIC ---
         try {
-          const savedTimerState = await loadTimerState();
           const lastGameId = gameDataManagement.currentGameIdSetting;
+          const savedTimerState = await loadTimerStateForGame(lastGameId || '');
 
           if (savedTimerState) {
-            if (savedTimerState.gameId === lastGameId) {
-              const elapsedOfflineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
-              const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
+            const elapsedOfflineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
+            const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
 
-              dispatchGameSession({ type: 'SET_TIMER_ELAPSED', payload: correctedElapsedSeconds });
-              // Use START_TIMER instead of SET_TIMER_RUNNING to properly set startTimestamp
-              dispatchGameSession({ type: 'START_TIMER' });
-            } else {
-              await clearTimerState();
-            }
+            dispatchGameSession({ type: 'SET_TIMER_ELAPSED', payload: correctedElapsedSeconds });
+            // Use START_TIMER instead of SET_TIMER_RUNNING to properly set startTimestamp
+            dispatchGameSession({ type: 'START_TIMER' });
+          } else {
+            // Clear any stale timer state (might be for a different game)
+            await clearTimerState();
           }
         } catch (error) {
           logger.error('[EFFECT init] Error restoring timer state:', error);
