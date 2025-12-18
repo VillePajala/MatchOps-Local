@@ -1,10 +1,8 @@
 import React, { useEffect, useCallback, useRef, useState } from 'react';
-import { TIMER_STATE_KEY } from '@/config/storageKeys';
-import { setStorageJSON, getStorageJSON, removeStorageItem } from '@/utils/storage';
+import { saveTimerState, loadTimerState, clearTimerState, TimerState } from '@/utils/timerStateManager';
 import { useWakeLock } from './useWakeLock';
 import { usePrecisionTimer, useTimerRestore } from './usePrecisionTimer';
 import { GameSessionState, GameSessionAction } from './useGameSessionReducer';
-import logger from '@/utils/logger';
 
 interface UseGameTimerArgs {
   state: GameSessionState;
@@ -56,12 +54,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
 
   const reset = useCallback(async () => {
     // Clear timer state from IndexedDB
-    try {
-      await removeStorageItem(TIMER_STATE_KEY);
-    } catch (error) {
-      // Silent fail - timer state clear is not critical
-      logger.debug('Failed to clear timer state (non-critical)', { error });
-    }
+    await clearTimerState();
     // Clear any pending debounced save
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
@@ -97,7 +90,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
 
     // Save timer state with debouncing to reduce IndexedDB writes
     if (currentGameId) {
-      const timerState = {
+      const timerState: TimerState = {
         gameId: currentGameId,
         timeElapsedInSeconds: elapsedSeconds,
         timestamp: Date.now(),
@@ -110,12 +103,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
 
       // Set up debounced save
       saveTimerRef.current = setTimeout(async () => {
-        try {
-          await setStorageJSON(TIMER_STATE_KEY, timerState);
-        } catch (error) {
-          // Silent fail - timer state save is not critical
-          logger.debug('Failed to save timer state (non-critical)', { error });
-        }
+        await saveTimerState(timerState);
       }, SAVE_DEBOUNCE_MS);
     }
 
@@ -127,9 +115,7 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
         saveTimerRef.current = null;
       }
       // Clear timer state asynchronously
-      removeStorageItem(TIMER_STATE_KEY).catch(() => {
-        // Silent fail - timer state clear is not critical
-      });
+      clearTimerState();
       if (s.currentPeriod === s.numberOfPeriods) {
         dispatch({ type: 'END_PERIOD_OR_GAME', payload: { newStatus: 'gameEnd', finalTime: periodEnd } });
       } else {
@@ -171,53 +157,38 @@ export const useGameTimer = ({ state, dispatch, currentGameId }: UseGameTimerArg
       if (document.hidden) {
         // Save timer state when tab becomes hidden
         if (state.isTimerRunning) {
-          const timerState = {
+          const timerState: TimerState = {
             gameId: currentGameId || '',
             timeElapsedInSeconds: precisionTimer.getCurrentTime(),
             timestamp: Date.now(),
             wasRunning: true, // Track that timer should resume on return
           };
           // Save immediately when tab becomes hidden
-          try {
-            await setStorageJSON(TIMER_STATE_KEY, timerState);
-          } catch (error) {
-            // Silent fail - timer state save is not critical
-            logger.debug('Failed to save timer state on tab hidden (non-critical)', { error });
-          }
+          await saveTimerState(timerState);
           dispatch({ type: 'PAUSE_TIMER_FOR_HIDDEN' });
         }
       } else {
         // Restore timer state when tab becomes visible
-        try {
-          const savedTimerState = await getStorageJSON<{
-            gameId: string;
-            timeElapsedInSeconds: number;
-            timestamp: number;
-            wasRunning?: boolean;
-          }>(TIMER_STATE_KEY);
+        const savedTimerState = await loadTimerState();
 
-          if (savedTimerState && savedTimerState.wasRunning && savedTimerState.gameId === currentGameId) {
-            // Use the precision restore utility
-            handleVisibilityChange(
-              savedTimerState.timestamp,
-              savedTimerState.timeElapsedInSeconds,
-              (restoredTime) => {
-                // Update stable start time BEFORE dispatching to prevent precision timer from using old value
-                setStableStartTime(restoredTime);
+        if (savedTimerState && savedTimerState.wasRunning && savedTimerState.gameId === currentGameId) {
+          // Use the precision restore utility
+          handleVisibilityChange(
+            savedTimerState.timestamp,
+            savedTimerState.timeElapsedInSeconds,
+            (restoredTime) => {
+              // Update stable start time BEFORE dispatching to prevent precision timer from using old value
+              setStableStartTime(restoredTime);
 
-                dispatch({
-                  type: 'RESTORE_TIMER_STATE',
-                  payload: {
-                    savedTime: restoredTime,
-                    timestamp: savedTimerState.timestamp,
-                  },
-                });
-              }
-            );
-          }
-        } catch (error) {
-          // Silent fail - timer state restore is not critical
-          logger.debug('Failed to restore timer state on tab visible (non-critical)', { error });
+              dispatch({
+                type: 'RESTORE_TIMER_STATE',
+                payload: {
+                  savedTime: restoredTime,
+                  timestamp: savedTimerState.timestamp,
+                },
+              });
+            }
+          );
         }
       }
     };
