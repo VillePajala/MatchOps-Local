@@ -28,13 +28,13 @@ import logger from './logger';
  */
 export interface TimerState {
   /** Game ID this timer state belongs to */
-  gameId: string;
+  readonly gameId: string;
   /** Elapsed time in seconds when state was saved */
-  timeElapsedInSeconds: number;
+  readonly timeElapsedInSeconds: number;
   /** Date.now() when state was saved - used for restore calculations */
-  timestamp: number;
+  readonly timestamp: number;
   /** True if timer was running when tab was hidden - used to decide if timer auto-resumes */
-  wasRunning?: boolean;
+  readonly wasRunning?: boolean;
 }
 
 /**
