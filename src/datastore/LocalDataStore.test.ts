@@ -65,7 +65,7 @@ const mockSetStorageItem = setStorageItem as jest.MockedFunction<typeof setStora
 const mockRemoveStorageItem = removeStorageItem as jest.MockedFunction<typeof removeStorageItem>;
 const mockGetStorageJSON = getStorageJSON as jest.MockedFunction<typeof getStorageJSON>;
 const mockSetStorageJSON = setStorageJSON as jest.MockedFunction<typeof setStorageJSON>;
-const mockIsIndexedDBAvailable = isIndexedDBAvailable as jest.MockedFunction<typeof isIndexedDBAvailable>;
+const mockIsIndexedDBAvailable = isIndexedDBAvailable as jest.MockedFunction<() => boolean>;
 const mockClearAdapterCacheWithCleanup = clearAdapterCacheWithCleanup as jest.MockedFunction<typeof clearAdapterCacheWithCleanup>;
 
 describe('LocalDataStore', () => {
@@ -78,7 +78,7 @@ describe('LocalDataStore', () => {
     mockRemoveStorageItem.mockResolvedValue(undefined);
     mockGetStorageJSON.mockResolvedValue(null);
     mockSetStorageJSON.mockResolvedValue(undefined);
-    mockIsIndexedDBAvailable.mockResolvedValue(true);
+    mockIsIndexedDBAvailable.mockReturnValue(true);
     mockClearAdapterCacheWithCleanup.mockResolvedValue(undefined);
 
     dataStore = new LocalDataStore();
@@ -103,10 +103,10 @@ describe('LocalDataStore', () => {
     });
 
     it('should report availability based on IndexedDB', async () => {
-      mockIsIndexedDBAvailable.mockResolvedValue(true);
+      mockIsIndexedDBAvailable.mockReturnValue(true);
       expect(await dataStore.isAvailable()).toBe(true);
 
-      mockIsIndexedDBAvailable.mockResolvedValue(false);
+      mockIsIndexedDBAvailable.mockReturnValue(false);
       expect(await dataStore.isAvailable()).toBe(false);
     });
 
@@ -428,8 +428,8 @@ describe('LocalDataStore', () => {
 
     describe('Team Rosters', () => {
       const mockRoster: TeamPlayer[] = [
-        { playerId: 'player_1', position: 'forward' },
-        { playerId: 'player_2', position: 'defender' },
+        { id: 'player_1', name: 'Player One', jerseyNumber: '9' },
+        { id: 'player_2', name: 'Player Two', jerseyNumber: '4' },
       ];
 
       it('should get team roster', async () => {
@@ -694,7 +694,7 @@ describe('LocalDataStore', () => {
     const mockPersonnel: Personnel = {
       id: 'personnel_123',
       name: 'Coach Smith',
-      role: 'coach',
+      role: 'head_coach',
       createdAt: '2025-01-01T00:00:00.000Z',
       updatedAt: '2025-01-01T00:00:00.000Z',
     };
@@ -748,7 +748,7 @@ describe('LocalDataStore', () => {
 
         const personnel = await dataStore.addPersonnelMember({
           name: '  New Coach  ',
-          role: 'coach',
+          role: 'head_coach',
         });
 
         expect(personnel.name).toBe('New Coach');
@@ -759,7 +759,7 @@ describe('LocalDataStore', () => {
 
       it('should throw ValidationError on empty name', async () => {
         await expect(
-          dataStore.addPersonnelMember({ name: '   ', role: 'coach' })
+          dataStore.addPersonnelMember({ name: '   ', role: 'head_coach' })
         ).rejects.toThrow(ValidationError);
       });
 
@@ -769,7 +769,7 @@ describe('LocalDataStore', () => {
         );
 
         await expect(
-          dataStore.addPersonnelMember({ name: 'Coach Smith', role: 'assistant' })
+          dataStore.addPersonnelMember({ name: 'Coach Smith', role: 'assistant_coach' })
         ).rejects.toThrow(AlreadyExistsError);
       });
     });
@@ -794,7 +794,7 @@ describe('LocalDataStore', () => {
         );
 
         const updated = await dataStore.updatePersonnelMember('personnel_123', {
-          role: 'assistant',
+          role: 'assistant_coach',
         });
 
         expect(updated?.createdAt).toBe(mockPersonnel.createdAt);
@@ -1035,11 +1035,10 @@ describe('LocalDataStore', () => {
 
     describe('Game Events', () => {
       const mockEvent: GameEvent = {
+        id: 'event_1',
         type: 'goal',
         time: 300,
-        period: 1,
-        playerId: 'player_1',
-        teamType: 'home',
+        scorerId: 'player_1',
       };
 
       describe('addGameEvent', () => {
@@ -1156,7 +1155,7 @@ describe('LocalDataStore', () => {
       it('should migrate legacy month-based season dates', async () => {
         const legacySettings = {
           ...mockSettings,
-          clubSeasonStartMonth: 9,
+          clubSeasonStartMonth: 10,
           clubSeasonEndMonth: 5,
           clubSeasonStartDate: undefined,
           clubSeasonEndDate: undefined,
@@ -1164,7 +1163,7 @@ describe('LocalDataStore', () => {
         mockGetStorageItem.mockResolvedValue(JSON.stringify(legacySettings));
 
         const settings = await dataStore.getSettings();
-        expect(settings.clubSeasonStartDate).toBe('2000-09-01');
+        expect(settings.clubSeasonStartDate).toBe('2000-10-01');
         expect(settings.clubSeasonEndDate).toBe('2000-05-01');
       });
 
@@ -1300,12 +1299,13 @@ describe('LocalDataStore', () => {
   // ============================================================
   describe('Warmup Plan', () => {
     const mockPlan: WarmupPlan = {
+      id: 'user_warmup_plan',
+      version: 1,
       sections: [
         {
           id: 'section_1',
           title: 'Dynamic Stretching',
-          duration: 5,
-          exercises: [],
+          content: '- Leg swings\n- Arm circles\n- Hip rotations',
         },
       ],
       lastModified: '2025-01-01T00:00:00.000Z',
