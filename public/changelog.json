@@ -1,8 +1,8 @@
 {
-  "version": "150c2364",
-  "date": "2025-12-16",
+  "version": "847ff1ff",
+  "date": "2025-12-18",
   "notes": {
-    "en": "Update snapshot tests for timer state persistence",
-    "fi": "Update snapshot tests for timer state persistence"
+    "en": "Add token security requirements and enhanced documentation for AuthService",
+    "fi": "Add token security requirements and enhanced documentation for AuthService"
   }
 }
