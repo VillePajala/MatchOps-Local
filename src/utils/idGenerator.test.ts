@@ -1,4 +1,4 @@
-import { generatePlayerId, generatePlayerIds } from './idGenerator';
+import { generateId, generatePlayerId, generatePlayerIds } from './idGenerator';
 
 describe('idGenerator', () => {
   describe('generatePlayerId', () => {
@@ -192,6 +192,89 @@ describe('idGenerator', () => {
       const pattern = /^player_\d+_[a-z0-9]{8,9}_\d+$/;
       expect(singleId).toMatch(pattern);
       expect(batchIds[0]).toMatch(pattern);
+    });
+  });
+
+  describe('generateId', () => {
+    /**
+     * @critical - Ensures generic ID generation produces unique identifiers
+     */
+    test('should generate ID with correct format for any prefix', () => {
+      const playerId = generateId('player');
+      const teamId = generateId('team');
+      const seasonId = generateId('season');
+      const tournamentId = generateId('tournament');
+
+      // Format: {prefix}_{timestamp}_{random} where random is 8 hex/alphanumeric chars
+      expect(playerId).toMatch(/^player_\d+_[a-f0-9]{8}$/);
+      expect(teamId).toMatch(/^team_\d+_[a-f0-9]{8}$/);
+      expect(seasonId).toMatch(/^season_\d+_[a-f0-9]{8}$/);
+      expect(tournamentId).toMatch(/^tournament_\d+_[a-f0-9]{8}$/);
+    });
+
+    test('should generate unique IDs for consecutive calls', () => {
+      const id1 = generateId('test');
+      const id2 = generateId('test');
+      const id3 = generateId('test');
+
+      expect(id1).not.toBe(id2);
+      expect(id2).not.toBe(id3);
+      expect(id1).not.toBe(id3);
+    });
+
+    test('should include timestamp component', () => {
+      const beforeTimestamp = Date.now();
+      const id = generateId('test');
+      const afterTimestamp = Date.now();
+
+      // Extract timestamp from ID (format: prefix_{timestamp}_{random})
+      const timestampMatch = id.match(/^test_(\d+)_/);
+      expect(timestampMatch).not.toBeNull();
+
+      const extractedTimestamp = parseInt(timestampMatch![1], 10);
+      expect(extractedTimestamp).toBeGreaterThanOrEqual(beforeTimestamp);
+      expect(extractedTimestamp).toBeLessThanOrEqual(afterTimestamp);
+    });
+
+    test('should generate 8-character random component', () => {
+      const id = generateId('test');
+
+      // Extract random part (format: prefix_{timestamp}_{random})
+      const randomMatch = id.match(/^test_\d+_([a-f0-9]+)$/);
+      expect(randomMatch).not.toBeNull();
+      expect(randomMatch![1]).toHaveLength(8);
+    });
+
+    /**
+     * @edge-case - Tests various prefix types
+     */
+    test('should handle different prefix formats', () => {
+      const shortPrefix = generateId('x');
+      const longPrefix = generateId('very_long_prefix');
+      const numericPrefix = generateId('123');
+
+      expect(shortPrefix).toMatch(/^x_\d+_[a-f0-9]{8}$/);
+      expect(longPrefix).toMatch(/^very_long_prefix_\d+_[a-f0-9]{8}$/);
+      expect(numericPrefix).toMatch(/^123_\d+_[a-f0-9]{8}$/);
+    });
+
+    /**
+     * @performance - Ensures ID generation is efficient
+     */
+    test('should efficiently generate many IDs', () => {
+      const startTime = Date.now();
+      const ids: string[] = [];
+      for (let i = 0; i < 100; i++) {
+        ids.push(generateId('perf'));
+      }
+      const duration = Date.now() - startTime;
+
+      expect(ids).toHaveLength(100);
+      expect(duration).toBeLessThan(100); // Should complete in under 100ms
+
+      // Verify all unique
+      const uniqueIds = new Set(ids);
+      expect(uniqueIds.size).toBe(100);
     });
   });
 });
