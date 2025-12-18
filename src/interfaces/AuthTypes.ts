@@ -22,19 +22,38 @@ export interface User {
   displayName?: string;
   /** User's avatar URL (optional) */
   avatarUrl?: string;
-  /** When the user was created */
+  /** When the user was created (ISO 8601 timestamp) */
   createdAt?: string;
-  /** When the user was last updated */
+  /** When the user was last updated (ISO 8601 timestamp) */
   updatedAt?: string;
 }
 
 /**
  * Authentication session.
+ *
+ * @security Token Storage Requirements (Phase 3/4 Implementation)
+ *
+ * NEVER store tokens in localStorage or sessionStorage (XSS vulnerable).
+ *
+ * Recommended storage strategies for cloud mode:
+ * 1. **httpOnly cookies** (preferred) - Tokens set by server, inaccessible to JS
+ * 2. **Secure memory only** - Store in JS variables, cleared on page refresh
+ * 3. **Supabase default** - Supabase JS client handles token storage securely
+ *
+ * For this PWA:
+ * - Local mode: No tokens needed (LocalAuthService returns null session)
+ * - Cloud mode: Supabase client manages tokens; avoid manual token handling
+ *
+ * If manual token handling is required:
+ * - Use short-lived access tokens (15 min)
+ * - Refresh tokens via httpOnly cookies only
+ * - Clear tokens on sign-out and browser close
+ * - Never log or expose tokens in error messages
  */
 export interface Session {
-  /** Access token for API requests */
+  /** Access token for API requests - see @security notes above */
   accessToken: string;
-  /** Refresh token for obtaining new access tokens */
+  /** Refresh token for obtaining new access tokens - see @security notes above */
   refreshToken: string;
   /** When the access token expires (ISO timestamp) */
   expiresAt: string;
@@ -61,6 +80,8 @@ export interface AuthResult {
  *
  * Note: This is a data structure for error information, not a throwable Error.
  * Auth methods throw errors from DataStoreErrors (e.g., NotSupportedError, AuthError).
+ *
+ * @reserved Phase 4 - Used for parsing Supabase auth error responses
  */
 export interface AuthErrorInfo {
   /** Error code for programmatic handling */
@@ -99,7 +120,8 @@ export type AuthStateCallback = (state: AuthState, session: Session | null) => v
 
 /**
  * Options for sign-up.
- * @reserved Phase 4 - for extended sign-up options
+ * @reserved Phase 4 - Not used in current AuthService interface.
+ * Will be added to signUp() signature when Supabase integration is implemented.
  */
 export interface SignUpOptions {
   /** Additional user metadata */
@@ -110,7 +132,8 @@ export interface SignUpOptions {
 
 /**
  * Options for sign-in.
- * @reserved Phase 4 - for extended sign-in options
+ * @reserved Phase 4 - Not used in current AuthService interface.
+ * Will be added to signIn() signature when Supabase integration is implemented.
  */
 export interface SignInOptions {
   /** Remember the user (persist session) */
@@ -120,10 +143,11 @@ export interface SignInOptions {
 /**
  * Local user constant for local-only mode.
  * This pseudo-user represents the local device owner.
+ * Frozen to prevent accidental mutation.
  */
-export const LOCAL_USER: User = {
+export const LOCAL_USER: Readonly<User> = Object.freeze({
   id: 'local',
   email: null,
   isAnonymous: true,
   displayName: 'Local User',
-};
+});

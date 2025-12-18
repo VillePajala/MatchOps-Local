@@ -55,7 +55,12 @@ export interface AuthService {
   /**
    * Check if a user is currently authenticated.
    * In local mode, always returns true (local user is always "authenticated").
+   *
    * @returns true if authenticated
+   *
+   * @remarks
+   * This is a synchronous check against cached state. In cloud mode,
+   * the result may be stale if called before initialize() completes.
    */
   isAuthenticated(): boolean;
 
@@ -70,9 +75,10 @@ export interface AuthService {
   /**
    * Sign up a new user with email and password.
    * @param email - User's email address
-   * @param password - User's password
+   * @param password - User's password (requirements defined by auth backend)
    * @returns Authentication result with user and session
    * @throws NotSupportedError in local mode
+   * @throws ValidationError if email/password don't meet backend requirements
    */
   signUp(email: string, password: string): Promise<AuthResult>;
 
@@ -110,15 +116,26 @@ export interface AuthService {
 
   /**
    * Refresh the current session.
-   * @returns New session or null if refresh failed
+   * @returns New session, or null if no valid session exists to refresh
    * @throws NotSupportedError in local mode
+   *
+   * @remarks
+   * Returns null (rather than throwing) when refresh fails due to expired/invalid
+   * refresh token. This allows callers to handle re-authentication gracefully.
+   * Throws NetworkError only for connection failures.
    */
   refreshSession(): Promise<Session | null>;
 
   /**
    * Subscribe to authentication state changes.
+   *
    * @param callback - Function called when auth state changes
-   * @returns Unsubscribe function
+   * @returns Unsubscribe function - call on component unmount to prevent memory leaks
+   *
+   * @remarks
+   * - Callbacks are invoked asynchronously
+   * - Call the returned unsubscribe function when the subscriber is no longer needed
+   * - In React, typically call unsubscribe in useEffect cleanup
    */
   onAuthStateChange(callback: AuthStateCallback): () => void;
 }
