@@ -1,5 +1,79 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import { APP_SETTINGS_KEY, LAST_HOME_TEAM_NAME_KEY } from '@/config/storageKeys';
-import {
+import type { AppSettings } from './appSettings';
+
+// Create mock store for in-memory testing
+const mockStore: Record<string, string> = {};
+
+// Helper to clear mock store
+const clearMockStore = () => {
+  Object.keys(mockStore).forEach(key => delete mockStore[key]);
+};
+
+// Create mock functions
+const mockGetStorageItem = jest.fn(async (key: string) => mockStore[key] || null);
+const mockSetStorageItem = jest.fn(async (key: string, value: string) => { mockStore[key] = value; });
+const mockRemoveStorageItem = jest.fn(async (key: string) => { delete mockStore[key]; });
+const mockClearStorage = jest.fn(async () => { Object.keys(mockStore).forEach(key => delete mockStore[key]); });
+const mockClearLocalStorage = jest.fn();
+
+// Reset module cache and set up mocks BEFORE loading appSettings
+jest.resetModules();
+
+jest.doMock('./storage', () => ({
+  __esModule: true,
+  getStorageItem: mockGetStorageItem,
+  setStorageItem: mockSetStorageItem,
+  removeStorageItem: mockRemoveStorageItem,
+  clearStorage: mockClearStorage,
+  getStorageJSON: jest.fn(async (key: string) => {
+    const value = mockStore[key];
+    return value ? JSON.parse(value) : null;
+  }),
+  setStorageJSON: jest.fn(async (key: string, value: unknown) => {
+    mockStore[key] = JSON.stringify(value);
+  }),
+  getStorageAdapter: jest.fn(async () => ({
+    getItem: jest.fn(),
+    setItem: jest.fn(),
+    removeItem: jest.fn(),
+    clear: jest.fn(),
+    getKeys: jest.fn(async () => Object.keys(mockStore)),
+    getBackendName: jest.fn(() => 'mock')
+  })),
+  clearAdapterCache: jest.fn(),
+  clearAdapterCacheWithCleanup: jest.fn(async () => {}),
+  performMemoryCleanup: jest.fn(async () => ({ itemsRemoved: 0, keysScanned: 0 })),
+}));
+
+jest.doMock('./storageConfigManager', () => ({
+  __esModule: true,
+  storageConfigManager: {
+    getStorageConfig: jest.fn(async () => ({
+      mode: 'localStorage',
+      version: '1.0.0',
+      migrationState: 'not-started',
+      migrationFailureCount: 0
+    })),
+    resetToDefaults: jest.fn(async () => {}),
+  },
+}));
+
+jest.doMock('./storageKeyLock', () => ({
+  __esModule: true,
+  withKeyLock: jest.fn(async (_key: string, operation: () => Promise<unknown>) => operation()),
+  isKeyLocked: jest.fn(() => false),
+  getKeyLockQueueSize: jest.fn(() => 0),
+}));
+
+jest.doMock('./localStorage', () => ({
+  __esModule: true,
+  clearLocalStorage: mockClearLocalStorage,
+}));
+
+// Require appSettings AFTER doMock setup (not import, to avoid hoisting)
+const appSettingsModule = require('./appSettings');
+const {
   getAppSettings,
   saveAppSettings,
   updateAppSettings,
@@ -12,67 +86,32 @@ import {
   setInstallPromptDismissed,
   getHasSeenFirstGameGuide,
   setHasSeenFirstGameGuide,
-  AppSettings
-} from './appSettings';
+} = appSettingsModule;
 
-// Mock storage module (jest.mock is hoisted above imports)
-jest.mock('./storage');
-jest.mock('./localStorage', () => ({
-  clearLocalStorage: jest.fn(),
-}));
-
-// Import mocked functions AFTER jest.mock
-import { getStorageItem, setStorageItem, removeStorageItem, clearStorage } from './storage';
-import { clearLocalStorage } from './localStorage';
-
-// Create mock store for in-memory testing
-const mockStore: Record<string, string> = {};
-
-// Setup mock implementations
-(getStorageItem as jest.Mock).mockImplementation(async (key: string) => {
-  return mockStore[key] || null;
-});
-
-(setStorageItem as jest.Mock).mockImplementation(async (key: string, value: string) => {
-  mockStore[key] = value;
-});
-
-(removeStorageItem as jest.Mock).mockImplementation(async (key: string) => {
-  delete mockStore[key];
-});
-
-(clearStorage as jest.Mock).mockImplementation(async () => {
-  Object.keys(mockStore).forEach(key => delete mockStore[key]);
-});
-
-// Typed mock references for assertions
-const mockGetStorageItem = getStorageItem as jest.MockedFunction<typeof getStorageItem>;
-const mockSetStorageItem = setStorageItem as jest.MockedFunction<typeof setStorageItem>;
-const mockRemoveStorageItem = removeStorageItem as jest.MockedFunction<typeof removeStorageItem>;
-const mockClearStorage = clearStorage as jest.MockedFunction<typeof clearStorage>;
-const mockClearLocalStorage = clearLocalStorage as jest.MockedFunction<typeof clearLocalStorage>;
-
-// Helper to clear mock store
-const clearMockStore = () => {
-  Object.keys(mockStore).forEach(key => delete mockStore[key]);
+// Setup mock implementations - refresh after each test
+const setupMockImplementations = () => {
+  mockGetStorageItem.mockImplementation(async (key: string) => mockStore[key] || null);
+  mockSetStorageItem.mockImplementation(async (key: string, value: string) => { mockStore[key] = value; });
+  mockRemoveStorageItem.mockImplementation(async (key: string) => { delete mockStore[key]; });
+  mockClearStorage.mockImplementation(async () => { Object.keys(mockStore).forEach(key => delete mockStore[key]); });
 };
 
 describe('App Settings Utilities', () => {
 
   // Reset mocks before each test
   beforeEach(() => {
+    // Clear the mock store data
     clearMockStore();
-    mockGetStorageItem.mockReset();
-    mockSetStorageItem.mockReset();
-    mockRemoveStorageItem.mockReset();
-    mockClearStorage.mockReset();
-    mockClearLocalStorage.mockReset();
 
-    // Reset to default behavior - successful operations
-    mockSetStorageItem.mockImplementation(async () => {});
-    mockGetStorageItem.mockResolvedValue(null);
-    mockRemoveStorageItem.mockImplementation(async () => {});
-    mockClearStorage.mockImplementation(async () => {});
+    // Clear call history but keep implementations (mockClear, not mockReset!)
+    mockGetStorageItem.mockClear();
+    mockSetStorageItem.mockClear();
+    mockRemoveStorageItem.mockClear();
+    mockClearStorage.mockClear();
+    mockClearLocalStorage.mockClear();
+
+    // Re-establish mock implementations for this test
+    setupMockImplementations();
     mockClearLocalStorage.mockImplementation(() => {});
   });
 
@@ -556,44 +595,126 @@ describe('App Settings Utilities', () => {
     });
   });
 
-  // Note: Due to a pre-existing Jest mock hoisting issue in this codebase,
-  // the storage module mock doesn't properly intercept calls.
-  // These tests verify error handling behavior (functions handle storage failures gracefully).
-
   describe('getInstallPromptDismissedTime', () => {
-    it('should return null when storage is unavailable or empty', async () => {
+    it('should return null when nothing is stored', async () => {
+      mockGetStorageItem.mockResolvedValue(null);
+
       const result = await getInstallPromptDismissedTime();
+
+      expect(mockGetStorageItem).toHaveBeenCalledWith('installPromptDismissed');
       expect(result).toBeNull();
     });
 
-    it('should not throw on storage errors', async () => {
-      await expect(getInstallPromptDismissedTime()).resolves.toBeNull();
+    it('should return timestamp when install prompt was dismissed', async () => {
+      const timestamp = 1702900000000;
+      mockGetStorageItem.mockResolvedValue(timestamp.toString());
+
+      const result = await getInstallPromptDismissedTime();
+
+      expect(result).toBe(timestamp);
+    });
+
+    it('should return null for invalid stored value', async () => {
+      mockGetStorageItem.mockResolvedValue('not-a-number');
+
+      const result = await getInstallPromptDismissedTime();
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null on storage errors', async () => {
+      mockGetStorageItem.mockRejectedValue(new Error('Storage error'));
+
+      const result = await getInstallPromptDismissedTime();
+
+      expect(result).toBeNull();
     });
   });
 
   describe('setInstallPromptDismissed', () => {
+    it('should save current timestamp to storage', async () => {
+      const beforeTime = Date.now();
+
+      await setInstallPromptDismissed();
+
+      expect(mockSetStorageItem).toHaveBeenCalledWith(
+        'installPromptDismissed',
+        expect.any(String)
+      );
+
+      const savedTimestamp = parseInt(mockSetStorageItem.mock.calls[0][1], 10);
+      expect(savedTimestamp).toBeGreaterThanOrEqual(beforeTime);
+      expect(savedTimestamp).toBeLessThanOrEqual(Date.now());
+    });
+
     it('should not throw on storage errors', async () => {
+      mockSetStorageItem.mockRejectedValue(new Error('Storage error'));
+
       await expect(setInstallPromptDismissed()).resolves.toBeUndefined();
     });
   });
 
   describe('getHasSeenFirstGameGuide', () => {
-    it('should return false when storage is unavailable or empty', async () => {
+    it('should return false when nothing is stored', async () => {
+      mockGetStorageItem.mockResolvedValue(null);
+
       const result = await getHasSeenFirstGameGuide();
+
+      expect(mockGetStorageItem).toHaveBeenCalledWith('hasSeenFirstGameGuide');
       expect(result).toBe(false);
     });
 
-    it('should not throw on storage errors', async () => {
-      await expect(getHasSeenFirstGameGuide()).resolves.toBe(false);
+    it('should return true when "true" is stored', async () => {
+      mockGetStorageItem.mockResolvedValue('true');
+
+      const result = await getHasSeenFirstGameGuide();
+
+      expect(result).toBe(true);
+    });
+
+    it('should return false for any value other than "true"', async () => {
+      mockGetStorageItem.mockResolvedValue('false');
+      expect(await getHasSeenFirstGameGuide()).toBe(false);
+
+      mockGetStorageItem.mockResolvedValue('1');
+      expect(await getHasSeenFirstGameGuide()).toBe(false);
+
+      mockGetStorageItem.mockResolvedValue('yes');
+      expect(await getHasSeenFirstGameGuide()).toBe(false);
+    });
+
+    it('should return false on storage errors', async () => {
+      mockGetStorageItem.mockRejectedValue(new Error('Storage error'));
+
+      const result = await getHasSeenFirstGameGuide();
+
+      expect(result).toBe(false);
     });
   });
 
   describe('setHasSeenFirstGameGuide', () => {
+    it('should save "true" to storage when setting to true', async () => {
+      await setHasSeenFirstGameGuide(true);
+
+      expect(mockSetStorageItem).toHaveBeenCalledWith('hasSeenFirstGameGuide', 'true');
+    });
+
+    it('should remove storage key when setting to false', async () => {
+      await setHasSeenFirstGameGuide(false);
+
+      expect(mockRemoveStorageItem).toHaveBeenCalledWith('hasSeenFirstGameGuide');
+      expect(mockSetStorageItem).not.toHaveBeenCalled();
+    });
+
     it('should not throw on storage errors when setting true', async () => {
+      mockSetStorageItem.mockRejectedValue(new Error('Storage error'));
+
       await expect(setHasSeenFirstGameGuide(true)).resolves.toBeUndefined();
     });
 
     it('should not throw on storage errors when setting false', async () => {
+      mockRemoveStorageItem.mockRejectedValue(new Error('Storage error'));
+
       await expect(setHasSeenFirstGameGuide(false)).resolves.toBeUndefined();
     });
   });
