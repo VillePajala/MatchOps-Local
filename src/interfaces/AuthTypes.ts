@@ -59,9 +59,9 @@ export interface Session {
   expiresAt: string;
   /**
    * Token type per OAuth 2.0 RFC 6750.
-   * @remarks 'bearer' is the standard value (case-insensitive per spec, lowercase preferred)
+   * Supabase uses 'bearer'. Extend union if other providers needed (e.g., 'mac', 'dpop').
    */
-  tokenType: 'bearer' | (string & {});
+  tokenType: 'bearer';
   /** Associated user */
   user: User;
 }

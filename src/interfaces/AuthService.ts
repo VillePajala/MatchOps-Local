@@ -81,7 +81,7 @@ export interface AuthService {
   /**
    * Sign up a new user with email and password.
    * @param email - User's email address (must be valid email format)
-   * @param password - User's password (cloud mode: min 6 chars, specific rules TBD by Supabase in Phase 4)
+   * @param password - User's password (cloud mode: min 6 chars per Supabase; additional complexity rules TBD in Phase 4)
    * @returns Authentication result with user and session
    * @throws NotSupportedError in local mode
    * @throws ValidationError if email format invalid or password too weak
@@ -173,16 +173,14 @@ export interface AuthService {
 //
 // 2. onAuthStateChange() MEMORY LEAK PREVENTION
 //    - LocalAuthService never fires auth state changes (no cloud events)
-//    - Option A: Store no subscribers, return no-op unsubscribe
+//    - RECOMMENDED: Option A - No-op implementation (simplest, zero overhead)
 //      ```typescript
 //      onAuthStateChange(_callback: AuthStateCallback): () => void {
 //        return () => {}; // No-op: local mode never fires state changes
 //      }
 //      ```
-//    - Option B: If storing subscribers (for future flexibility), ensure:
-//      - Subscribers are stored in a Set (fast add/remove)
-//      - Unsubscribe function removes from Set
-//      - Set is cleared on service disposal
+//    - NOT RECOMMENDED for LocalAuthService: Option B (subscriber tracking)
+//      Reserve subscriber management for SupabaseAuthService in Phase 4.
 //    - AVOID: Growing array of callbacks that are never cleaned up
 //
 // 3. isAuthenticated() MUST BE SYNCHRONOUS
