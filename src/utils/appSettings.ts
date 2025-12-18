@@ -10,6 +10,8 @@ import {
   TEAMS_INDEX_KEY,
   TEAM_ROSTERS_KEY,
   APP_DATA_VERSION_KEY,
+  INSTALL_PROMPT_DISMISSED_KEY,
+  HAS_SEEN_FIRST_GAME_GUIDE_KEY,
 } from '@/config/storageKeys';
 import {
   getStorageItem,
@@ -287,7 +289,7 @@ export const saveDrawingModeEnabled = async (value: boolean): Promise<boolean> =
 // Install Prompt Utilities
 // ============================================
 // These manage the PWA install prompt dismissal tracking
-// Key: 'installPromptDismissed' (stored as timestamp string)
+// Key: INSTALL_PROMPT_DISMISSED_KEY (stored as timestamp string)
 
 /**
  * Gets the timestamp when the install prompt was last dismissed
@@ -295,7 +297,7 @@ export const saveDrawingModeEnabled = async (value: boolean): Promise<boolean> =
  */
 export const getInstallPromptDismissedTime = async (): Promise<number | null> => {
   try {
-    const value = await getStorageItem('installPromptDismissed');
+    const value = await getStorageItem(INSTALL_PROMPT_DISMISSED_KEY);
     if (!value) return null;
     const timestamp = Number(value);
     return isNaN(timestamp) ? null : timestamp;
@@ -311,7 +313,7 @@ export const getInstallPromptDismissedTime = async (): Promise<number | null> =>
  */
 export const setInstallPromptDismissed = async (): Promise<void> => {
   try {
-    await setStorageItem('installPromptDismissed', Date.now().toString());
+    await setStorageItem(INSTALL_PROMPT_DISMISSED_KEY, Date.now().toString());
   } catch (error) {
     // Silent fail - dismissal tracking is not critical
     logger.debug('Failed to set install prompt dismissed (non-critical)', { error });
@@ -322,7 +324,7 @@ export const setInstallPromptDismissed = async (): Promise<void> => {
 // First Game Guide Utilities
 // ============================================
 // These manage the first-time user game guide display
-// Key: 'hasSeenFirstGameGuide' (stored as 'true' string)
+// Key: HAS_SEEN_FIRST_GAME_GUIDE_KEY (stored as 'true' string)
 
 /**
  * Gets whether the user has seen the first game guide
@@ -330,7 +332,7 @@ export const setInstallPromptDismissed = async (): Promise<void> => {
  */
 export const getHasSeenFirstGameGuide = async (): Promise<boolean> => {
   try {
-    const value = await getStorageItem('hasSeenFirstGameGuide');
+    const value = await getStorageItem(HAS_SEEN_FIRST_GAME_GUIDE_KEY);
     return value === 'true';
   } catch (error) {
     logger.debug('Failed to get first game guide status (non-critical)', { error });
@@ -346,9 +348,9 @@ export const getHasSeenFirstGameGuide = async (): Promise<boolean> => {
 export const setHasSeenFirstGameGuide = async (value: boolean): Promise<void> => {
   try {
     if (value) {
-      await setStorageItem('hasSeenFirstGameGuide', 'true');
+      await setStorageItem(HAS_SEEN_FIRST_GAME_GUIDE_KEY, 'true');
     } else {
-      await removeStorageItem('hasSeenFirstGameGuide');
+      await removeStorageItem(HAS_SEEN_FIRST_GAME_GUIDE_KEY);
     }
   } catch (error) {
     logger.debug('Failed to set first game guide status (non-critical)', { error });
@@ -379,7 +381,8 @@ export const resetAppSettings = async (): Promise<boolean> => {
       removeStorageItem(TEAM_ROSTERS_KEY),
       removeStorageItem(APP_DATA_VERSION_KEY),
       removeStorageItem(LAST_HOME_TEAM_NAME_KEY),
-      removeStorageItem('hasSeenFirstGameGuide'),
+      removeStorageItem(HAS_SEEN_FIRST_GAME_GUIDE_KEY),
+      removeStorageItem(INSTALL_PROMPT_DISMISSED_KEY),
       removeStorageItem('storage-mode'),
       removeStorageItem('storage-version'),
     ]);
