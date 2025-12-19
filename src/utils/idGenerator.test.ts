@@ -50,13 +50,13 @@ describe('idGenerator', () => {
       expect(extractedTimestamp).toBeLessThanOrEqual(afterTimestamp);
     });
 
-    test('should generate IDs with 9-character random component', () => {
+    test('should generate IDs with 8-character random component', () => {
       const id = generatePlayerId(0);
 
       // Extract random part (format: player_{timestamp}_{random}_{index})
       const randomMatch = id.match(/^player_\d+_([a-z0-9]+)_\d+$/);
       expect(randomMatch).not.toBeNull();
-      expect(randomMatch![1]).toHaveLength(9);
+      expect(randomMatch![1]).toHaveLength(8);
     });
 
     /**

@@ -44,11 +44,11 @@ export function generateId(prefix: string): string {
  *
  * @example
  * const id = generatePlayerId(0);
- * // Returns: "player_1703123456789_a1b2c3d4e_0"
+ * // Returns: "player_1703123456789_a1b2c3d4_0"
  */
 export function generatePlayerId(index: number = 0): string {
   const timestamp = Date.now();
-  const randomPart = Math.random().toString(36).substring(2, 11);
+  const randomPart = generateRandomPart();
   return `player_${timestamp}_${randomPart}_${index}`;
 }
 
@@ -60,12 +60,12 @@ export function generatePlayerId(index: number = 0): string {
  *
  * @example
  * const ids = generatePlayerIds(3);
- * // Returns: ["player_1703123456789_a1b2c3d4e_0", "player_1703123456789_f5g6h7i8j_1", ...]
+ * // Returns: ["player_1703123456789_a1b2c3d4_0", "player_1703123456789_f5g6h7i8_1", ...]
  */
 export function generatePlayerIds(count: number): string[] {
   const timestamp = Date.now();
   return Array.from({ length: count }, (_, index) => {
-    const randomPart = Math.random().toString(36).substring(2, 11);
+    const randomPart = generateRandomPart();
     return `player_${timestamp}_${randomPart}_${index}`;
   });
 }
