@@ -26,7 +26,7 @@ jest.mock('@/utils/storage', () => ({
   removeStorageItem: jest.fn(),
   getStorageJSON: jest.fn(),
   setStorageJSON: jest.fn(),
-  isIndexedDBAvailable: jest.fn(() => Promise.resolve(true)),
+  isIndexedDBAvailable: jest.fn(() => true),
   clearAdapterCacheWithCleanup: jest.fn(),
 }));
 
@@ -65,7 +65,7 @@ const mockSetStorageItem = setStorageItem as jest.MockedFunction<typeof setStora
 const mockRemoveStorageItem = removeStorageItem as jest.MockedFunction<typeof removeStorageItem>;
 const mockGetStorageJSON = getStorageJSON as jest.MockedFunction<typeof getStorageJSON>;
 const mockSetStorageJSON = setStorageJSON as jest.MockedFunction<typeof setStorageJSON>;
-const mockIsIndexedDBAvailable = isIndexedDBAvailable as jest.MockedFunction<() => boolean>;
+const mockIsIndexedDBAvailable = isIndexedDBAvailable as jest.MockedFunction<typeof isIndexedDBAvailable>;
 const mockClearAdapterCacheWithCleanup = clearAdapterCacheWithCleanup as jest.MockedFunction<typeof clearAdapterCacheWithCleanup>;
 
 describe('LocalDataStore', () => {
@@ -904,6 +904,71 @@ describe('LocalDataStore', () => {
           'soccerPersonnel',
           JSON.stringify({ personnel_123: mockPersonnel })
         );
+      });
+
+      /**
+       * @critical Rollback when game update fails during cascade delete
+       */
+      it('should rollback personnel deletion if game update fails', async () => {
+        const gameWithPersonnel: AppState = {
+          gamePersonnel: ['personnel_123'],
+          playersOnField: [],
+          opponents: [],
+          drawings: [],
+          availablePlayers: [],
+          showPlayerNames: true,
+          teamName: 'Team',
+          gameEvents: [],
+          opponentName: 'Opponent',
+          gameDate: '2025-01-01',
+          homeScore: 0,
+          awayScore: 0,
+          gameNotes: '',
+          homeOrAway: 'home',
+          numberOfPeriods: 2,
+          periodDurationMinutes: 10,
+          currentPeriod: 1,
+          gameStatus: 'notStarted',
+          isPlayed: false,
+          selectedPlayerIds: [],
+          assessments: {},
+          seasonId: '',
+          tournamentId: '',
+          tournamentLevel: '',
+          ageGroup: '',
+          gameLocation: '',
+          gameTime: '',
+          tacticalDiscs: [],
+          tacticalDrawings: [],
+          tacticalBallPosition: { relX: 0.5, relY: 0.5 },
+          subIntervalMinutes: 5,
+          completedIntervalDurations: [],
+          lastSubConfirmationTimeSeconds: 0,
+        };
+
+        mockGetStorageItem
+          .mockResolvedValueOnce(JSON.stringify({ personnel_123: mockPersonnel })) // backup personnel
+          .mockResolvedValueOnce(JSON.stringify({ game_1: gameWithPersonnel })) // backup games
+          .mockResolvedValueOnce(JSON.stringify({ personnel_123: mockPersonnel })) // personnel for deletion
+          .mockResolvedValueOnce(JSON.stringify({ game_1: gameWithPersonnel })); // games for update
+
+        // First call succeeds (games update), second call fails (personnel delete)
+        mockSetStorageItem
+          .mockResolvedValueOnce(undefined) // games update succeeds
+          .mockRejectedValueOnce(new Error('Personnel storage error')); // personnel delete fails
+
+        await expect(
+          dataStore.removePersonnelMember('personnel_123')
+        ).rejects.toThrow('Personnel storage error');
+
+        // Verify rollback was attempted for both personnel and games
+        const setStorageCalls = mockSetStorageItem.mock.calls;
+        const rollbackCalls = setStorageCalls.filter(
+          call => call[0] === 'soccerPersonnel' || call[0] === 'savedSoccerGames'
+        );
+
+        // Should have at least 2 calls (original + rollback attempts)
+        expect(rollbackCalls.length).toBeGreaterThanOrEqual(2);
       });
     });
   });
