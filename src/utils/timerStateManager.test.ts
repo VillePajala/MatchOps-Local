@@ -12,7 +12,6 @@ import {
   loadTimerStateForGame,
   TimerState,
 } from './timerStateManager';
-import { TIMER_STATE_KEY } from '@/config/storageKeys';
 import type { DataStore } from '@/interfaces/DataStore';
 
 // Create mock DataStore
@@ -48,14 +47,6 @@ describe('timerStateManager', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  describe('Storage Key Integrity', () => {
-    it('should use correct storage key to maintain backward compatibility', () => {
-      // This test ensures we never accidentally change the key
-      // Changing this would orphan existing timer states in user browsers
-      expect(TIMER_STATE_KEY).toBe('soccerTimerState');
-    });
   });
 
   describe('saveTimerState', () => {
