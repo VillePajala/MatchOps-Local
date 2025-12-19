@@ -40,6 +40,9 @@ export const addPlayerAdjustment = async (
 /**
  * Delete a player stat adjustment.
  * @returns true if deleted, false if not found OR if operation fails (check logs for errors)
+ *
+ * Design: In local-first mode, both "not found" and "error" return false
+ * because UI recovery is the same (refresh/retry). Errors are logged for debugging.
  */
 export const deletePlayerAdjustment = async (playerId: string, adjustmentId: string): Promise<boolean> => {
   try {
@@ -54,6 +57,9 @@ export const deletePlayerAdjustment = async (playerId: string, adjustmentId: str
 /**
  * Update an existing player stat adjustment.
  * @returns Updated adjustment if successful, null if not found OR if operation fails (check logs for errors)
+ *
+ * Design: In local-first mode, both "not found" and "error" return null
+ * because UI recovery is the same (refresh/retry). Errors are logged for debugging.
  */
 export const updatePlayerAdjustment = async (
   playerId: string,
