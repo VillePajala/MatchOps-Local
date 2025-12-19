@@ -13,16 +13,21 @@ import {
   TimerState,
 } from './timerStateManager';
 import { TIMER_STATE_KEY } from '@/config/storageKeys';
+import type { DataStore } from '@/interfaces/DataStore';
 
-// Mock the storage module
-jest.mock('./storage', () => ({
-  getStorageJSON: jest.fn(),
-  setStorageJSON: jest.fn(),
-  removeStorageItem: jest.fn(),
+// Create mock DataStore
+const mockDataStore: jest.Mocked<Pick<DataStore, 'getTimerState' | 'saveTimerState' | 'clearTimerState'>> = {
+  getTimerState: jest.fn(),
+  saveTimerState: jest.fn(),
+  clearTimerState: jest.fn(),
+};
+
+// Mock the datastore factory
+jest.mock('@/datastore', () => ({
+  getDataStore: jest.fn(() => Promise.resolve(mockDataStore)),
 }));
 
 // Mock logger to prevent console output during tests
-// __esModule: true prevents Babel's _interopRequireDefault from wrapping again
 jest.mock('./logger', () => ({
   __esModule: true,
   default: {
@@ -32,12 +37,6 @@ jest.mock('./logger', () => ({
     error: jest.fn(),
   },
 }));
-
-import { getStorageJSON, setStorageJSON, removeStorageItem } from './storage';
-
-const mockGetStorageJSON = getStorageJSON as jest.MockedFunction<typeof getStorageJSON>;
-const mockSetStorageJSON = setStorageJSON as jest.MockedFunction<typeof setStorageJSON>;
-const mockRemoveStorageItem = removeStorageItem as jest.MockedFunction<typeof removeStorageItem>;
 
 describe('timerStateManager', () => {
   const mockTimerState: TimerState = {
@@ -60,17 +59,17 @@ describe('timerStateManager', () => {
   });
 
   describe('saveTimerState', () => {
-    it('should save timer state to storage with correct key', async () => {
-      mockSetStorageJSON.mockResolvedValue(undefined);
+    it('should save timer state via DataStore', async () => {
+      mockDataStore.saveTimerState.mockResolvedValue(undefined);
 
       await saveTimerState(mockTimerState);
 
-      expect(mockSetStorageJSON).toHaveBeenCalledTimes(1);
-      expect(mockSetStorageJSON).toHaveBeenCalledWith(TIMER_STATE_KEY, mockTimerState);
+      expect(mockDataStore.saveTimerState).toHaveBeenCalledTimes(1);
+      expect(mockDataStore.saveTimerState).toHaveBeenCalledWith(mockTimerState);
     });
 
     it('should save timer state without wasRunning field', async () => {
-      mockSetStorageJSON.mockResolvedValue(undefined);
+      mockDataStore.saveTimerState.mockResolvedValue(undefined);
       const stateWithoutWasRunning: TimerState = {
         gameId: 'game-456',
         timeElapsedInSeconds: 120,
@@ -79,11 +78,11 @@ describe('timerStateManager', () => {
 
       await saveTimerState(stateWithoutWasRunning);
 
-      expect(mockSetStorageJSON).toHaveBeenCalledWith(TIMER_STATE_KEY, stateWithoutWasRunning);
+      expect(mockDataStore.saveTimerState).toHaveBeenCalledWith(stateWithoutWasRunning);
     });
 
-    it('should handle storage errors gracefully (non-critical)', async () => {
-      mockSetStorageJSON.mockRejectedValue(new Error('Storage error'));
+    it('should handle DataStore errors gracefully (non-critical)', async () => {
+      mockDataStore.saveTimerState.mockRejectedValue(new Error('DataStore error'));
 
       // Should not throw - timer state save is not critical
       await expect(saveTimerState(mockTimerState)).resolves.not.toThrow();
@@ -91,26 +90,25 @@ describe('timerStateManager', () => {
   });
 
   describe('loadTimerState', () => {
-    it('should load timer state from storage', async () => {
-      mockGetStorageJSON.mockResolvedValue(mockTimerState);
+    it('should load timer state from DataStore', async () => {
+      mockDataStore.getTimerState.mockResolvedValue(mockTimerState);
 
       const result = await loadTimerState();
 
-      expect(mockGetStorageJSON).toHaveBeenCalledTimes(1);
-      expect(mockGetStorageJSON).toHaveBeenCalledWith(TIMER_STATE_KEY);
+      expect(mockDataStore.getTimerState).toHaveBeenCalledTimes(1);
       expect(result).toEqual(mockTimerState);
     });
 
     it('should return null when no timer state exists', async () => {
-      mockGetStorageJSON.mockResolvedValue(null);
+      mockDataStore.getTimerState.mockResolvedValue(null);
 
       const result = await loadTimerState();
 
       expect(result).toBeNull();
     });
 
-    it('should return null and handle storage errors gracefully', async () => {
-      mockGetStorageJSON.mockRejectedValue(new Error('Storage error'));
+    it('should return null and handle DataStore errors gracefully', async () => {
+      mockDataStore.getTimerState.mockRejectedValue(new Error('DataStore error'));
 
       const result = await loadTimerState();
 
@@ -119,17 +117,16 @@ describe('timerStateManager', () => {
   });
 
   describe('clearTimerState', () => {
-    it('should remove timer state from storage', async () => {
-      mockRemoveStorageItem.mockResolvedValue(undefined);
+    it('should clear timer state via DataStore', async () => {
+      mockDataStore.clearTimerState.mockResolvedValue(undefined);
 
       await clearTimerState();
 
-      expect(mockRemoveStorageItem).toHaveBeenCalledTimes(1);
-      expect(mockRemoveStorageItem).toHaveBeenCalledWith(TIMER_STATE_KEY);
+      expect(mockDataStore.clearTimerState).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle storage errors gracefully (non-critical)', async () => {
-      mockRemoveStorageItem.mockRejectedValue(new Error('Storage error'));
+    it('should handle DataStore errors gracefully (non-critical)', async () => {
+      mockDataStore.clearTimerState.mockRejectedValue(new Error('DataStore error'));
 
       // Should not throw - timer state clear is not critical
       await expect(clearTimerState()).resolves.not.toThrow();
@@ -138,7 +135,7 @@ describe('timerStateManager', () => {
 
   describe('hasTimerState', () => {
     it('should return true when timer state exists', async () => {
-      mockGetStorageJSON.mockResolvedValue(mockTimerState);
+      mockDataStore.getTimerState.mockResolvedValue(mockTimerState);
 
       const result = await hasTimerState();
 
@@ -146,15 +143,15 @@ describe('timerStateManager', () => {
     });
 
     it('should return false when no timer state exists', async () => {
-      mockGetStorageJSON.mockResolvedValue(null);
+      mockDataStore.getTimerState.mockResolvedValue(null);
 
       const result = await hasTimerState();
 
       expect(result).toBe(false);
     });
 
-    it('should return false when storage errors occur', async () => {
-      mockGetStorageJSON.mockRejectedValue(new Error('Storage error'));
+    it('should return false when DataStore errors occur', async () => {
+      mockDataStore.getTimerState.mockRejectedValue(new Error('DataStore error'));
 
       const result = await hasTimerState();
 
@@ -164,7 +161,7 @@ describe('timerStateManager', () => {
 
   describe('loadTimerStateForGame', () => {
     it('should return timer state when game ID matches', async () => {
-      mockGetStorageJSON.mockResolvedValue(mockTimerState);
+      mockDataStore.getTimerState.mockResolvedValue(mockTimerState);
 
       const result = await loadTimerStateForGame('game-123');
 
@@ -172,7 +169,7 @@ describe('timerStateManager', () => {
     });
 
     it('should return null when game ID does not match', async () => {
-      mockGetStorageJSON.mockResolvedValue(mockTimerState);
+      mockDataStore.getTimerState.mockResolvedValue(mockTimerState);
 
       const result = await loadTimerStateForGame('different-game');
 
@@ -180,15 +177,15 @@ describe('timerStateManager', () => {
     });
 
     it('should return null when no timer state exists', async () => {
-      mockGetStorageJSON.mockResolvedValue(null);
+      mockDataStore.getTimerState.mockResolvedValue(null);
 
       const result = await loadTimerStateForGame('game-123');
 
       expect(result).toBeNull();
     });
 
-    it('should return null when storage errors occur', async () => {
-      mockGetStorageJSON.mockRejectedValue(new Error('Storage error'));
+    it('should return null when DataStore errors occur', async () => {
+      mockDataStore.getTimerState.mockRejectedValue(new Error('DataStore error'));
 
       const result = await loadTimerStateForGame('game-123');
 

@@ -2,7 +2,7 @@
  * Timer State Manager
  *
  * Centralizes all timer state persistence operations.
- * Part of Phase 1 backend abstraction (PR #2).
+ * Uses DataStore abstraction for backend-agnostic storage.
  *
  * Timer state is ephemeral - used for:
  * - Recovering timer position when returning to hidden tab
@@ -11,8 +11,7 @@
  * Schema matches existing useGameTimer.ts implementation (lines 100-104, 174-179).
  */
 
-import { TIMER_STATE_KEY } from '@/config/storageKeys';
-import { getStorageJSON, setStorageJSON, removeStorageItem } from './storage';
+import { getDataStore } from '@/datastore';
 import logger from './logger';
 
 /**
@@ -48,7 +47,8 @@ export interface TimerState {
  */
 export async function saveTimerState(state: TimerState): Promise<void> {
   try {
-    await setStorageJSON(TIMER_STATE_KEY, state);
+    const dataStore = await getDataStore();
+    await dataStore.saveTimerState(state);
   } catch (error) {
     // Timer state save is not critical - log and continue
     logger.debug('[timerStateManager] Failed to save timer state (non-critical)', { error });
@@ -66,7 +66,8 @@ export async function saveTimerState(state: TimerState): Promise<void> {
  */
 export async function loadTimerState(): Promise<TimerState | null> {
   try {
-    return await getStorageJSON<TimerState>(TIMER_STATE_KEY);
+    const dataStore = await getDataStore();
+    return await dataStore.getTimerState();
   } catch (error) {
     logger.debug('[timerStateManager] Failed to load timer state (non-critical)', { error });
     return null;
@@ -85,7 +86,8 @@ export async function loadTimerState(): Promise<TimerState | null> {
  */
 export async function clearTimerState(): Promise<void> {
   try {
-    await removeStorageItem(TIMER_STATE_KEY);
+    const dataStore = await getDataStore();
+    await dataStore.clearTimerState();
   } catch (error) {
     // Timer state clear is not critical - silent fail
     logger.debug('[timerStateManager] Failed to clear timer state (non-critical)', { error });
