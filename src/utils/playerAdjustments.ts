@@ -38,6 +38,7 @@ export const addPlayerAdjustment = async (
 
 /**
  * Delete a player stat adjustment.
+ * @returns true if deleted, false if not found OR if operation fails (check logs for errors)
  */
 export const deletePlayerAdjustment = async (playerId: string, adjustmentId: string): Promise<boolean> => {
   try {
@@ -51,6 +52,7 @@ export const deletePlayerAdjustment = async (playerId: string, adjustmentId: str
 
 /**
  * Update an existing player stat adjustment.
+ * @returns Updated adjustment if successful, null if not found OR if operation fails (check logs for errors)
  */
 export const updatePlayerAdjustment = async (
   playerId: string,
