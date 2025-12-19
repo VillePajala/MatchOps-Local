@@ -92,8 +92,9 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isValidAppSettings = (value: unknown): value is Partial<AppSettings> => {
   if (!isRecord(value)) return false;
 
-  // Validate language if present
-  if (value.language !== undefined && !['en', 'fi'].includes(value.language as string)) {
+  // Validate language if present (check type before value)
+  if (value.language !== undefined &&
+      (typeof value.language !== 'string' || !['en', 'fi'].includes(value.language))) {
     return false;
   }
 

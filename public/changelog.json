@@ -1,8 +1,8 @@
 {
-  "version": "4c6cbe6a",
+  "version": "241b4f6c",
   "date": "2025-12-19",
   "notes": {
-    "en": "Update documentation for Phase 1-3 completion",
-    "fi": "Update documentation for Phase 1-3 completion"
+    "en": "Update PR reference in factory.ts comment",
+    "fi": "Update PR reference in factory.ts comment"
   }
 }
