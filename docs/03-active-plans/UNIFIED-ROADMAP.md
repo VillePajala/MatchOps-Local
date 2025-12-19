@@ -454,6 +454,7 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 |------|--------|-------|
 | Season League area/age filtering | 1 week | See Priority 5 above |
 | **Game Autosave** | Low-Medium | Auto-save game on: switch games, goals, period ends. Prevents timer/score loss when switching between games without manual Quick Save. |
+| **External Game Cards styling** | Low | PlayerStatsView external game cards need further polish to fully match saved games cards style |
 
 ### ⚽ Future Features
 | Item | Effort | Doc |
