@@ -851,6 +851,10 @@ export class LocalDataStore implements DataStore {
       throw new ValidationError(`Game notes cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters (got ${game.gameNotes.length})`, 'gameNotes', game.gameNotes);
     }
 
+    if (game.ageGroup && !AGE_GROUPS.includes(game.ageGroup)) {
+      throw new ValidationError('Invalid age group', 'ageGroup', game.ageGroup);
+    }
+
     const gameId = generateGameId();
     const newGame: AppState = {
       playersOnField: game.playersOnField || [],
@@ -900,6 +904,10 @@ export class LocalDataStore implements DataStore {
 
     if (game.gameNotes && game.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) {
       throw new ValidationError(`Game notes cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters (got ${game.gameNotes.length})`, 'gameNotes', game.gameNotes);
+    }
+
+    if (game.ageGroup && !AGE_GROUPS.includes(game.ageGroup)) {
+      throw new ValidationError('Invalid age group', 'ageGroup', game.ageGroup);
     }
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
