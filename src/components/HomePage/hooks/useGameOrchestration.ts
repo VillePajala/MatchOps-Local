@@ -17,10 +17,11 @@ import {
   saveHasSeenAppGuide,
   getLastHomeTeamName as utilGetLastHomeTeamName,
   updateAppSettings as utilUpdateAppSettings,
+  getHasSeenFirstGameGuide,
 } from '@/utils/appSettings';
 import { getTeams, getTeam } from '@/utils/teams';
 import { Player, Team } from '@/types';
-import type { GameEvent, AppState, SavedGamesCollection, TimerState, PlayerAssessment } from "@/types";
+import type { GameEvent, AppState, SavedGamesCollection, PlayerAssessment } from "@/types";
 import { saveMasterRoster } from '@/utils/masterRoster';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRoster } from '@/hooks/useRoster';
@@ -33,7 +34,8 @@ import { getStorageItem, setStorageItem, removeStorageItem } from '@/utils/stora
 import { queryKeys } from '@/config/queryKeys';
 import { updateGameDetails as utilUpdateGameDetails } from '@/utils/savedGames';
 import { DEFAULT_GAME_ID } from '@/config/constants';
-import { MASTER_ROSTER_KEY, TIMER_STATE_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
+import { MASTER_ROSTER_KEY, SEASONS_LIST_KEY } from "@/config/storageKeys";
+import { loadTimerStateForGame, clearTimerState } from '@/utils/timerStateManager';
 import { exportJson } from '@/utils/exportGames';
 import { exportCurrentGameExcel, exportAggregateExcel, exportPlayerExcel } from '@/utils/exportExcel';
 import { useToast } from '@/contexts/ToastProvider';
@@ -813,29 +815,23 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       if (!gameDataManagement.isLoading) {
         // --- TIMER RESTORATION LOGIC ---
         try {
-          const savedTimerStateJSON = await getStorageItem(TIMER_STATE_KEY).catch(() => null);
           const lastGameId = gameDataManagement.currentGameIdSetting;
+          const savedTimerState = await loadTimerStateForGame(lastGameId || '');
 
-          if (savedTimerStateJSON) {
-            const savedTimerState: TimerState = JSON.parse(savedTimerStateJSON);
-            if (savedTimerState && savedTimerState.gameId === lastGameId) {
-              const elapsedOfflineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
-              const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
+          if (savedTimerState) {
+            const elapsedOfflineSeconds = (Date.now() - savedTimerState.timestamp) / 1000;
+            const correctedElapsedSeconds = Math.round(savedTimerState.timeElapsedInSeconds + elapsedOfflineSeconds);
 
-              dispatchGameSession({ type: 'SET_TIMER_ELAPSED', payload: correctedElapsedSeconds });
-              // Use START_TIMER instead of SET_TIMER_RUNNING to properly set startTimestamp
-              dispatchGameSession({ type: 'START_TIMER' });
-            } else {
-              await removeStorageItem(TIMER_STATE_KEY).catch((err) => {
-                logger.debug('[EFFECT init] Failed to clear stale timer state (non-critical)', { error: err });
-              });
-            }
+            dispatchGameSession({ type: 'SET_TIMER_ELAPSED', payload: correctedElapsedSeconds });
+            // Use START_TIMER instead of SET_TIMER_RUNNING to properly set startTimestamp
+            dispatchGameSession({ type: 'START_TIMER' });
+          } else {
+            // Clear any stale timer state (might be for a different game)
+            await clearTimerState();
           }
         } catch (error) {
           logger.error('[EFFECT init] Error restoring timer state:', error);
-          await removeStorageItem(TIMER_STATE_KEY).catch((err) => {
-            logger.debug('[EFFECT init] Failed to clear timer state after error (non-critical)', { error: err });
-          });
+          await clearTimerState();
         }
         // --- END TIMER RESTORATION LOGIC ---
 
@@ -875,7 +871,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
     const checkFirstGameGuide = async () => {
       try {
-        const firstGameGuideShown = await getStorageItem('hasSeenFirstGameGuide').catch(() => null);
+        const firstGameGuideShown = await getHasSeenFirstGameGuide();
 
         // Also check if user has any saved games (imported or created)
         const savedGames = await utilGetSavedGames();

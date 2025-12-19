@@ -106,9 +106,12 @@ export const appStateSchema = z.object({
     .optional()
     .default(1),
   gameLocation: z.string().optional(),
-  gameTime: z.string()
-    .regex(/^([01]?\d|2[0-3]):[0-5]\d$/, 'Time must be in HH:MM format')
-    .optional(),
+  // gameTime is frequently persisted as an empty string for JSON consistency.
+  // Accept '' as a valid "unset" value in addition to a valid HH:MM string.
+  gameTime: z.union([
+    z.literal(''),
+    z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/, 'Time must be in HH:MM format'),
+  ]).optional(),
   subIntervalMinutes: z.number()
     .min(1, 'Sub interval must be at least 1 minute')
     .max(60, 'Sub interval cannot exceed 60 minutes')

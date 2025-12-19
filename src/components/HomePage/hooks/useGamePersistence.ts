@@ -65,8 +65,7 @@ import {
   createGame as utilCreateGame,
 } from '@/utils/savedGames';
 import { saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
-import { removeStorageItem } from '@/utils/storage';
-import { TIMER_STATE_KEY } from '@/config/storageKeys';
+import { clearTimerState } from '@/utils/timerStateManager';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import { queryKeys } from '@/config/queryKeys';
 import logger from '@/utils/logger';
@@ -461,16 +460,8 @@ export function useGamePersistence({
     logger.log(`[handleLoadGame] Attempting to load game: ${gameId}`);
 
     // Clear any existing timer state before loading a new game
-    // Note: We await this to ensure cleanup completes before proceeding, but if it fails,
-    // it's safe to continue because loadGameStateFromData() will overwrite with the loaded
-    // game's timer state, and the timer component will re-initialize from that state.
-    try {
-      await removeStorageItem(TIMER_STATE_KEY);
-    } catch (error) {
-      // Safe to ignore: Timer state will be overwritten by the loaded game's state.
-      // Cleanup failure doesn't block game loading or affect UX.
-      logger.debug('Failed to clear timer state before loading game (non-critical)', { error });
-    }
+    // Note: clearTimerState() handles errors internally (non-critical), so no try/catch needed
+    await clearTimerState();
 
     setProcessingGameId(gameId);
     setIsGameLoading(true);

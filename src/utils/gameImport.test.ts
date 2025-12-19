@@ -176,6 +176,25 @@ describe('Game Import with Partial Success', () => {
       expect(result.successful).toBe(1);
       expect(result.failed).toHaveLength(0);
     });
+
+    it('should accept empty string gameTime (unset) as valid', async () => {
+      const validGames = {
+        'game-empty-time': {
+          ...createValidGameData('game-empty-time', 'Team A'),
+          gameTime: '',
+        },
+      };
+
+      const result = await importGamesFromJson(JSON.stringify(validGames));
+
+      if (result.successful !== 1) {
+        const errorDetails = result.failed.map(f => `  ${f.gameId}: ${f.error}`).join('\n');
+        fail(`Expected 1 successful import but got ${result.successful}.\nValidation errors:\n${errorDetails}`);
+      }
+
+      expect(result.successful).toBe(1);
+      expect(result.failed).toHaveLength(0);
+    });
   });
 
   describe('partial import scenarios', () => {
@@ -467,4 +486,3 @@ describe('Game Import with Partial Success', () => {
     });
   });
 });
-

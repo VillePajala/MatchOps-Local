@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## ✅ Project Status: Healthy
 
-**Last Updated**: December 16, 2025
+**Last Updated**: December 19, 2025
 
 ### Quick Stats
 - ✅ **2,616 tests** passing across 168 suites
@@ -22,9 +22,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Next.js 16.0.7 + React 19.2 upgrade**
 - Layer 3 performance polish
 - Test coverage improvement (+694 tests)
+- **Backend Abstraction Phase 1-3** - DataStore interface, LocalDataStore, LocalAuthService, factory (PR #137 ready to merge)
 
 ### What's Next (Optional)
-- **New features**: Tournament Series & Season Leagues
+- **Backend Abstraction**: Merge PR #137 to master, then optionally add Supabase (Phase 4)
 - **Play Store Release**: See master-execution-guide.md
 
 ### Essential Reading
@@ -191,6 +192,10 @@ See `docs/PROJECT_OVERVIEW.md` and `docs/LOCAL_FIRST_PHILOSOPHY.md` for details.
 - `src/types/index.ts` - Core TypeScript interfaces
 - `src/utils/localStorage.ts` - Async localStorage wrapper
 - `src/utils/logger.ts` - Centralized logging utility
+- `src/interfaces/DataStore.ts` - Backend-agnostic data access interface
+- `src/datastore/LocalDataStore.ts` - IndexedDB implementation of DataStore
+- `src/datastore/factory.ts` - Singleton factory for DataStore/AuthService
+- `src/auth/LocalAuthService.ts` - No-op auth service for local mode
 
 ## Testing Rules and Principles
 

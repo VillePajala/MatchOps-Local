@@ -1,7 +1,6 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import { APP_SETTINGS_KEY } from '@/config/storageKeys';
-import { getStorageJSON } from '@/utils/storage';
+import { getAppSettings } from '@/utils/appSettings';
 // Use the comprehensive translation files
 // Load translations from the public folder so all keys are available
 import fi from '../public/locales/fi/common.json';
@@ -18,12 +17,8 @@ export const resources = {
  */
 const loadLanguagePreference = async (): Promise<void> => {
   try {
-    // Use storage helper instead of direct localStorage access
-    const settings = await getStorageJSON<{ language?: string }>(APP_SETTINGS_KEY, {
-      defaultValue: { language: 'fi' }
-    });
-
-    const preferredLanguage = settings?.language || 'fi';
+    const settings = await getAppSettings();
+    const preferredLanguage = settings.language || 'fi';
     if (preferredLanguage !== i18n.language) {
       await i18n.changeLanguage(preferredLanguage);
     }
