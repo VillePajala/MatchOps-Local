@@ -688,125 +688,123 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     );
                   }
 
+                  // Determine result for the colored strip
+                  const getAdjustmentResult = (): 'W' | 'L' | 'D' | 'N/A' => {
+                    if (typeof a.scoreFor !== 'number' || typeof a.scoreAgainst !== 'number') return 'N/A';
+                    if (a.scoreFor > a.scoreAgainst) return 'W';
+                    if (a.scoreFor < a.scoreAgainst) return 'L';
+                    return 'D';
+                  };
+                  const adjResult = getAdjustmentResult();
+
                   return (
-                    <div key={a.id} className="bg-slate-700/40 p-3 rounded-lg border border-slate-600/50">
-                      {/* Header with date and association */}
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-slate-200">{dateText}</span>
+                    <div key={a.id} className="relative bg-gradient-to-br from-slate-600/50 to-slate-800/30 border border-slate-700/50 p-4 rounded-md transition-all shadow-inner">
+                      {/* Result color strip */}
+                      <span className={`absolute inset-y-0 left-0 w-1 rounded-l-md ${getResultClass(adjResult)}`}></span>
+
+                      <div className="flex justify-between items-start">
+                        {/* Left side: Match info */}
+                        <div className="flex-1 pl-2">
+                          <p className="font-semibold text-slate-100 drop-shadow-lg">
+                            {scoreDisplay ? (
+                              <>
+                                {scoreDisplay}
+                                <span className="ml-2 text-xs text-slate-400">
+                                  ({a.homeOrAway === 'home' ? t('playerStats.home', 'Home') : a.homeOrAway === 'away' ? t('playerStats.away', 'Away') : t('playerStats.neutral', 'Neutral')})
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                {extName} {t('playerStats.vs', 'vs')} {oppName}
+                                <span className="ml-2 text-xs text-slate-400">
+                                  ({a.homeOrAway === 'home' ? t('playerStats.home', 'Home') : a.homeOrAway === 'away' ? t('playerStats.away', 'Away') : t('playerStats.neutral', 'Neutral')})
+                                </span>
+                              </>
+                            )}
+                            {/* Inline badges like saved games cards */}
+                            <span className="ml-2 inline-block bg-purple-600/50 text-purple-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.externalGame', 'External Game')}>{t('playerStats.external', 'EXT')}</span>
                             {seasonName && (
-                              <span className="px-2 py-0.5 bg-blue-600/20 text-blue-300 text-xs rounded-full border border-blue-500/30">
-                                {seasonName}
-                              </span>
+                              <span className="ml-2 inline-block bg-blue-600/50 text-blue-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={seasonName}>{seasonName}</span>
                             )}
                             {tournamentName && (
-                              <span className="px-2 py-0.5 bg-purple-600/20 text-purple-300 text-xs rounded-full border border-purple-500/30">
-                                {tournamentName}
-                              </span>
+                              <span className="ml-2 inline-block bg-amber-600/50 text-amber-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={tournamentName}>{tournamentName}</span>
+                            )}
+                          </p>
+                          <p className="text-xs text-slate-400">{dateText}</p>
+                          {/* Note if present */}
+                          {a.note && (
+                            <p className="text-xs text-slate-300 italic mt-1">&ldquo;{a.note}&rdquo;</p>
+                          )}
+                        </div>
+
+                        {/* Right side: Stats and actions */}
+                        <div className="flex items-center gap-2">
+                          {/* Stats */}
+                          <div className="flex items-center">
+                            <div className="text-center mx-2">
+                              <p className={`font-bold text-xl ${a.goalsDelta > 0 ? 'text-green-400' : 'text-slate-300'}`}>{a.goalsDelta}</p>
+                              <p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p>
+                            </div>
+                            <div className="text-center mx-2">
+                              <p className={`font-bold text-xl ${a.assistsDelta > 0 ? 'text-blue-400' : 'text-slate-300'}`}>{a.assistsDelta}</p>
+                              <p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p>
+                            </div>
+                          </div>
+
+                          {/* Actions menu */}
+                          <div className="shrink-0 relative actions-menu-container">
+                            <button
+                              type="button"
+                              className="p-1 hover:bg-slate-600 rounded transition-colors"
+                              onClick={() => setShowActionsMenu(showActionsMenu === a.id ? null : a.id)}
+                              aria-label={t('common.actions', 'Actions')}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="text-slate-400 hover:text-slate-200">
+                                <circle cx="8" cy="2.5" r="1.5"/>
+                                <circle cx="8" cy="8" r="1.5"/>
+                                <circle cx="8" cy="13.5" r="1.5"/>
+                              </svg>
+                            </button>
+                            {showActionsMenu === a.id && (
+                              <div className="absolute right-0 top-8 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[120px]">
+                                <button
+                                  type="button"
+                                  className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors text-slate-200 first:rounded-t-lg"
+                                  onClick={() => {
+                                    setEditingAdjId(a.id);
+                                    setEditGames(a.gamesPlayedDelta);
+                                    setEditGoals(a.goalsDelta);
+                                    setEditAssists(a.assistsDelta);
+                                    setEditFairPlayCards(a.fairPlayCardsDelta || 0);
+                                    setEditNote(a.note || '');
+                                    setEditHomeAway(a.homeOrAway || 'neutral');
+                                    setEditExternalTeam(a.externalTeamName || '');
+                                    setEditOpponentName(a.opponentName || '');
+                                    setEditTournamentId(a.tournamentId || '');
+                                    setEditGameDate(a.gameDate || '');
+                                    setEditScoreFor(typeof a.scoreFor === 'number' ? a.scoreFor : '');
+                                    setEditScoreAgainst(typeof a.scoreAgainst === 'number' ? a.scoreAgainst : '');
+                                    setEditIncludeInSeasonTournament(a.includeInSeasonTournament || false);
+                                    setShowActionsMenu(null);
+                                  }}
+                                >
+                                  {t('common.edit', 'Edit')}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors text-red-400 hover:text-red-300 last:rounded-b-lg"
+                                  onClick={() => {
+                                    setShowDeleteConfirm(a.id);
+                                    setShowActionsMenu(null);
+                                  }}
+                                >
+                                  {t('common.delete', 'Delete')}
+                                </button>
+                              </div>
                             )}
                           </div>
                         </div>
-                        <div className="shrink-0 relative actions-menu-container">
-                          <button
-                            type="button"
-                            className="p-1 hover:bg-slate-600 rounded transition-colors"
-                            onClick={() => setShowActionsMenu(showActionsMenu === a.id ? null : a.id)}
-                            aria-label={t('common.actions', 'Actions')}
-                          >
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="text-slate-400 hover:text-slate-200">
-                              <circle cx="8" cy="2.5" r="1.5"/>
-                              <circle cx="8" cy="8" r="1.5"/>
-                              <circle cx="8" cy="13.5" r="1.5"/>
-                            </svg>
-                          </button>
-                          {showActionsMenu === a.id && (
-                            <div className="absolute right-0 top-8 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[120px]">
-                              <button
-                                type="button"
-                                className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors text-slate-200 first:rounded-t-lg"
-                                onClick={() => {
-                                  setEditingAdjId(a.id);
-                                  setEditGames(a.gamesPlayedDelta);
-                                  setEditGoals(a.goalsDelta);
-                                  setEditAssists(a.assistsDelta);
-                                  setEditFairPlayCards(a.fairPlayCardsDelta || 0);
-                                  setEditNote(a.note || '');
-                                  setEditHomeAway(a.homeOrAway || 'neutral');
-                                  setEditExternalTeam(a.externalTeamName || '');
-                                  setEditOpponentName(a.opponentName || '');
-                                  setEditTournamentId(a.tournamentId || '');
-                                  setEditGameDate(a.gameDate || '');
-                                  setEditScoreFor(typeof a.scoreFor === 'number' ? a.scoreFor : '');
-                                  setEditScoreAgainst(typeof a.scoreAgainst === 'number' ? a.scoreAgainst : '');
-                                  setEditIncludeInSeasonTournament(a.includeInSeasonTournament || false);
-                                  setShowActionsMenu(null);
-                                }}
-                              >
-                                {t('common.edit', 'Edit')}
-                              </button>
-                              <button
-                                type="button"
-                                className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors text-red-400 hover:text-red-300 last:rounded-b-lg"
-                                onClick={() => {
-                                  setShowDeleteConfirm(a.id);
-                                  setShowActionsMenu(null);
-                                }}
-                              >
-                                {t('common.delete', 'Delete')}
-                              </button>
-                            </div>
-                          )}
-                        </div>
                       </div>
-
-                      {/* Match details */}
-                      <div className="mb-2">
-                        {scoreDisplay ? (
-                          <div className="font-medium text-slate-100 mb-1">
-                            {scoreDisplay}
-                            <span className="ml-2 text-xs text-slate-400">
-                              ({a.homeOrAway === 'home' ? t('playerStats.home', 'Home') : a.homeOrAway === 'away' ? t('playerStats.away', 'Away') : t('playerStats.neutral', 'Neutral')})
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="font-medium text-slate-100 mb-1">
-                            {extName} {t('playerStats.vs', 'vs')} {oppName}
-                            <span className="ml-2 text-xs text-slate-400">
-                              ({a.homeOrAway === 'home' ? t('playerStats.home', 'Home') : a.homeOrAway === 'away' ? t('playerStats.away', 'Away') : t('playerStats.neutral', 'Neutral')})
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Statistics */}
-                      <div className="flex items-center gap-4 text-sm">
-                        {a.gamesPlayedDelta > 0 && (
-                          <span className="flex items-center gap-1">
-                            <span className="text-slate-400">{t('playerStats.gamesPlayed_short', 'GP')}:</span>
-                            <span className="font-semibold text-yellow-400">+{a.gamesPlayedDelta}</span>
-                          </span>
-                        )}
-                        {a.goalsDelta > 0 && (
-                          <span className="flex items-center gap-1">
-                            <span className="text-slate-400">{t('playerStats.goals', 'Goals')}:</span>
-                            <span className="font-semibold text-green-400">+{a.goalsDelta}</span>
-                          </span>
-                        )}
-                        {a.assistsDelta > 0 && (
-                          <span className="flex items-center gap-1">
-                            <span className="text-slate-400">{t('playerStats.assists', 'Assists')}:</span>
-                            <span className="font-semibold text-blue-400">+{a.assistsDelta}</span>
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Note if present */}
-                      {a.note && (
-                        <div className="mt-2 text-sm text-slate-300 italic">
-                          &ldquo;{a.note}&rdquo;
-                        </div>
-                      )}
                     </div>
                   );
                 })}
