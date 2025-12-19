@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
 import {
   APP_SETTINGS_KEY,
   LAST_HOME_TEAM_NAME_KEY,
