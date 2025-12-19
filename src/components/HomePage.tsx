@@ -60,3 +60,4 @@ function HomePage(props: HomePageProps) {
 }
 
 export default HomePage;
+

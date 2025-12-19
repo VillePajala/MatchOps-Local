@@ -4,14 +4,13 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
 
 import { DEFAULT_GAME_ID } from '@/config/constants';
-import { TIMER_STATE_KEY } from '@/config/storageKeys';
 import { queryKeys } from '@/config/queryKeys';
 import type { AppState, Player, SavedGamesCollection, Team } from '@/types';
 import type { GameSessionAction, GameSessionState } from '@/hooks/useGameSessionReducer';
 import { saveGame as utilSaveGame, deleteGame as utilDeleteGame, getLatestGameId } from '@/utils/savedGames';
 import { saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting } from '@/utils/appSettings';
 import { getTeam, getTeams } from '@/utils/teams';
-import { removeStorageItem } from '@/utils/storage';
+import { clearTimerState } from '@/utils/timerStateManager';
 import logger from '@/utils/logger';
 
 interface UseSavedGameManagerOptions {
@@ -215,11 +214,9 @@ export function useSavedGameManager({
     async (gameId: string) => {
       logger.log('[LOAD GAME] Attempting to load game', gameId);
 
-      try {
-        await removeStorageItem(TIMER_STATE_KEY);
-      } catch (error) {
-        logger.debug('Failed to clear timer state before loading game (non-critical)', { error });
-      }
+      // Clear any existing timer state before loading a new game
+      // Note: clearTimerState() handles errors internally (non-critical), so no try/catch needed
+      await clearTimerState();
 
       if (!isMountedRef.current) return;
 

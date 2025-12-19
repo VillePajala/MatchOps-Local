@@ -23,6 +23,31 @@ interface PerformanceWithMemory extends Performance {
 // Mock storage module - uses __mocks__/storage.ts for in-memory storage
 jest.mock('@/utils/storage');
 
+// Mock appSettings module to prevent real storage access
+jest.mock('@/utils/appSettings', () => ({
+  getAppSettings: jest.fn().mockResolvedValue({
+    currentGameId: null,
+    lastHomeTeamName: '',
+    language: 'fi',
+    hasSeenAppGuide: false,
+  }),
+  saveAppSettings: jest.fn().mockResolvedValue(true),
+  updateAppSettings: jest.fn().mockResolvedValue({}),
+  getCurrentGameIdSetting: jest.fn().mockResolvedValue(null),
+  saveCurrentGameIdSetting: jest.fn().mockResolvedValue(true),
+  getLastHomeTeamName: jest.fn().mockResolvedValue(''),
+  saveLastHomeTeamName: jest.fn().mockResolvedValue(true),
+  getHasSeenAppGuide: jest.fn().mockResolvedValue(false),
+  saveHasSeenAppGuide: jest.fn().mockResolvedValue(true),
+  getDrawingModeEnabled: jest.fn().mockResolvedValue(false),
+  saveDrawingModeEnabled: jest.fn().mockResolvedValue(true),
+  getHasSeenFirstGameGuide: jest.fn().mockResolvedValue(true), // Skip the guide in tests
+  setHasSeenFirstGameGuide: jest.fn().mockResolvedValue(undefined),
+  getInstallPromptDismissedTime: jest.fn().mockResolvedValue(null),
+  setInstallPromptDismissed: jest.fn().mockResolvedValue(undefined),
+  resetAppSettings: jest.fn().mockResolvedValue(true),
+}));
+
 // Mock logger with createLogger
 jest.mock('@/utils/logger', () => ({
   __esModule: true,

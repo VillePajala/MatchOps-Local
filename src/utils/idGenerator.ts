@@ -3,6 +3,40 @@
  */
 
 /**
+ * Generates a short random string for ID generation.
+ * Uses crypto.randomUUID() when available for better randomness,
+ * falls back to Math.random() otherwise.
+ *
+ * @returns 8-character random string
+ */
+const generateRandomPart = (): string => {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    // Use first segment of UUID (8 hex characters)
+    return crypto.randomUUID().split('-')[0];
+  }
+  // Fallback: 8 characters from base36
+  return Math.random().toString(36).substring(2, 10);
+};
+
+/**
+ * Generates a unique ID with the specified prefix.
+ * Format: {prefix}_{timestamp}_{random}
+ *
+ * @param prefix - The entity type prefix (e.g., 'player', 'team', 'season')
+ * @returns Unique ID string
+ *
+ * @example
+ * generateId('player');   // "player_1703123456789_a1b2c3d4"
+ * generateId('team');     // "team_1703123456789_e5f6g7h8"
+ * generateId('season');   // "season_1703123456789_i9j0k1l2"
+ */
+export function generateId(prefix: string): string {
+  const timestamp = Date.now();
+  const randomPart = generateRandomPart();
+  return `${prefix}_${timestamp}_${randomPart}`;
+}
+
+/**
  * Generates a unique player ID using timestamp and random string
  *
  * @param index - Optional index to append (useful for batch operations)
@@ -10,11 +44,11 @@
  *
  * @example
  * const id = generatePlayerId(0);
- * // Returns: "player_1703123456789_a1b2c3d4e_0"
+ * // Returns: "player_1703123456789_a1b2c3d4_0"
  */
 export function generatePlayerId(index: number = 0): string {
   const timestamp = Date.now();
-  const randomPart = Math.random().toString(36).substring(2, 11);
+  const randomPart = generateRandomPart();
   return `player_${timestamp}_${randomPart}_${index}`;
 }
 
@@ -26,12 +60,12 @@ export function generatePlayerId(index: number = 0): string {
  *
  * @example
  * const ids = generatePlayerIds(3);
- * // Returns: ["player_1703123456789_a1b2c3d4e_0", "player_1703123456789_f5g6h7i8j_1", ...]
+ * // Returns: ["player_1703123456789_a1b2c3d4_0", "player_1703123456789_f5g6h7i8_1", ...]
  */
 export function generatePlayerIds(count: number): string[] {
   const timestamp = Date.now();
   return Array.from({ length: count }, (_, index) => {
-    const randomPart = Math.random().toString(36).substring(2, 11);
+    const randomPart = generateRandomPart();
     return `player_${timestamp}_${randomPart}_${index}`;
   });
 }

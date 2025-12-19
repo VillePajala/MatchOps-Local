@@ -49,6 +49,7 @@ export interface AuthService {
   /**
    * Get the current authenticated user
    * @returns User object or null if not authenticated
+   * @throws {NetworkError} If connection fails (cloud mode only)
    */
   getCurrentUser(): Promise<User | null>;
 
