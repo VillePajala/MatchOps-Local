@@ -21,7 +21,8 @@ export const getAdjustmentsForPlayer = async (playerId: string): Promise<PlayerS
 
 /**
  * Add a new player stat adjustment.
- * DataStore handles ID generation, appliedAt, and persistence.
+ * DataStore handles ID generation and appliedAt timestamp automatically.
+ * Optional id/appliedAt parameters exist for backup/restore flows only.
  * @throws Error if DataStore operation fails (write operations surface errors)
  */
 export const addPlayerAdjustment = async (
