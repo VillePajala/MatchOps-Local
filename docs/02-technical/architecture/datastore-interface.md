@@ -69,15 +69,9 @@ export interface DataStore {
   /**
    * Get all players for current user
    * @returns Array of players (empty if none)
+   * Note: No getPlayerById - filter from getPlayers() in consuming code
    */
   getPlayers(): Promise<Player[]>;
-
-  /**
-   * Get player by ID
-   * @param id - Player ID
-   * @returns Player or null if not found
-   */
-  getPlayerById(id: string): Promise<Player | null>;
 
   /**
    * Create a new player
@@ -179,15 +173,9 @@ export interface DataStore {
    * Get all seasons for current user
    * @param includeArchived - Include archived seasons
    * @returns Array of seasons (empty if none)
+   * Note: No getSeasonById - filter from getSeasons() in consuming code
    */
   getSeasons(includeArchived?: boolean): Promise<Season[]>;
-
-  /**
-   * Get season by ID
-   * @param id - Season ID
-   * @returns Season or null if not found
-   */
-  getSeasonById(id: string): Promise<Season | null>;
 
   /**
    * Create a new season
@@ -224,15 +212,9 @@ export interface DataStore {
    * Get all tournaments for current user
    * @param includeArchived - Include archived tournaments
    * @returns Array of tournaments (empty if none)
+   * Note: No getTournamentById - filter from getTournaments() in consuming code
    */
   getTournaments(includeArchived?: boolean): Promise<Tournament[]>;
-
-  /**
-   * Get tournament by ID
-   * @param id - Tournament ID
-   * @returns Tournament or null if not found
-   */
-  getTournamentById(id: string): Promise<Tournament | null>;
 
   /**
    * Create a new tournament

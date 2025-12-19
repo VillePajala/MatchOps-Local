@@ -18,11 +18,16 @@ import { LocalAuthService } from '@/auth/LocalAuthService';
 let dataStoreInstance: DataStore | null = null;
 let authServiceInstance: AuthService | null = null;
 
+// Initialization promises to prevent race conditions during concurrent calls
+let dataStoreInitPromise: Promise<DataStore> | null = null;
+let authServiceInitPromise: Promise<AuthService> | null = null;
+
 /**
  * Get the DataStore singleton instance.
  *
  * Creates and initializes the DataStore on first call.
  * Subsequent calls return the same instance.
+ * Handles concurrent calls safely by sharing the initialization promise.
  *
  * @returns Initialized DataStore instance
  *
@@ -36,11 +41,25 @@ let authServiceInstance: AuthService | null = null;
  * ```
  */
 export async function getDataStore(): Promise<DataStore> {
-  if (!dataStoreInstance) {
-    dataStoreInstance = new LocalDataStore();
-    await dataStoreInstance.initialize();
+  // Already initialized - return immediately
+  if (dataStoreInstance) {
+    return dataStoreInstance;
   }
-  return dataStoreInstance;
+
+  // Initialization in progress - wait for it
+  if (dataStoreInitPromise) {
+    return dataStoreInitPromise;
+  }
+
+  // Start initialization and store the promise
+  dataStoreInitPromise = (async () => {
+    const instance = new LocalDataStore();
+    await instance.initialize();
+    dataStoreInstance = instance;
+    return instance;
+  })();
+
+  return dataStoreInitPromise;
 }
 
 /**
@@ -48,15 +67,30 @@ export async function getDataStore(): Promise<DataStore> {
  *
  * Creates and initializes the AuthService on first call.
  * Subsequent calls return the same instance.
+ * Handles concurrent calls safely by sharing the initialization promise.
  *
  * @returns Initialized AuthService instance
  */
 export async function getAuthService(): Promise<AuthService> {
-  if (!authServiceInstance) {
-    authServiceInstance = new LocalAuthService();
-    await authServiceInstance.initialize();
+  // Already initialized - return immediately
+  if (authServiceInstance) {
+    return authServiceInstance;
   }
-  return authServiceInstance;
+
+  // Initialization in progress - wait for it
+  if (authServiceInitPromise) {
+    return authServiceInitPromise;
+  }
+
+  // Start initialization and store the promise
+  authServiceInitPromise = (async () => {
+    const instance = new LocalAuthService();
+    await instance.initialize();
+    authServiceInstance = instance;
+    return instance;
+  })();
+
+  return authServiceInitPromise;
 }
 
 /**
@@ -73,6 +107,9 @@ export async function resetFactory(): Promise<void> {
     dataStoreInstance = null;
   }
   authServiceInstance = null;
+  // Clear initialization promises
+  dataStoreInitPromise = null;
+  authServiceInitPromise = null;
 }
 
 /**

@@ -244,34 +244,51 @@ Install App → Sign Up/Sign In → Sync Devices
 - Need to maintain two implementations
 - ✅ Worth it for clean separation and future flexibility
 
-### 2. Wrapper Pattern for LocalDataStore
+### 2. Direct Storage Access Pattern for LocalDataStore
 
-**Decision**: LocalDataStore wraps existing storage code without modifying it
+**Decision**: LocalDataStore accesses storage directly (NOT delegation to managers)
 
-**Rationale**:
-- Preserve existing functionality (battle-tested)
-- Minimize regression risk
-- Gradual migration (no big bang rewrite)
+**Rationale** (see REALISTIC-IMPLEMENTATION-PLAN.md Section 6, Option B):
+- Avoids circular dependencies (Managers → DataStore → Managers)
+- Both backends implement identical DataStore interface
+- Managers become thin wrappers calling DataStore for business logic
 
-**Implementation**:
+**Implementation** (actual pattern from `src/datastore/LocalDataStore.ts`):
 ```typescript
 class LocalDataStore implements DataStore {
   async getPlayers(): Promise<Player[]> {
-    // Delegate to existing function
-    return getMasterRoster(); // from masterRoster.ts
+    // Direct storage access - NOT delegation to managers
+    const json = await getStorageItem(MASTER_ROSTER_KEY);
+    return json ? JSON.parse(json) : [];
   }
 
   async createPlayer(player: Omit<Player, 'id'>): Promise<Player> {
-    // Delegate to existing function
-    return addPlayerToRoster(player.name, player); // from masterRoster.ts
+    // Direct storage with validation
+    return withKeyLock(MASTER_ROSTER_KEY, async () => {
+      const roster = await this.loadPlayers();
+      const newPlayer = { ...player, id: generateId('player') };
+      roster.push(newPlayer);
+      await setStorageItem(MASTER_ROSTER_KEY, JSON.stringify(roster));
+      return newPlayer;
+    });
   }
 }
 ```
 
+**Architecture**:
+```
+App → Managers (business logic) → DataStore interface
+                                        ↓
+                          ┌─────────────┴─────────────┐
+                          ↓                           ↓
+                    LocalDataStore              SupabaseDataStore
+                          ↓                           ↓
+                      IndexedDB                    Supabase
+```
+
 **Trade-offs**:
-- Temporary code duplication
-- Two APIs exist simultaneously (old + new)
-- ✅ Worth it for safety and backward compatibility
+- Data access logic duplicated between DataStore implementations (acceptable - different backends need different code)
+- ✅ Worth it for clean architecture and no circular dependencies
 
 ### 3. No Foreign Keys on Player References
 

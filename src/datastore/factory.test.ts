@@ -151,5 +151,51 @@ describe('Factory', () => {
       expect(as1).toBe(as2);
       expect(as2).toBe(as3);
     });
+
+    /**
+     * Verify that all concurrent callers receive fully initialized instances.
+     * This guards against the race condition where early callers could receive
+     * an instance before initialize() completes.
+     * @critical
+     */
+    it('should return fully initialized DataStore for all concurrent callers', async () => {
+      const results = await Promise.all([
+        getDataStore(),
+        getDataStore(),
+        getDataStore(),
+      ]);
+
+      // All should be same instance
+      expect(results[0]).toBe(results[1]);
+      expect(results[1]).toBe(results[2]);
+
+      // All should be initialized - calling methods should not throw NotInitializedError
+      // getBackendName() is a simple method that requires initialization
+      for (const ds of results) {
+        expect(ds.getBackendName()).toBe('local');
+      }
+    });
+
+    /**
+     * Verify that all concurrent callers receive fully initialized AuthService.
+     * @critical
+     */
+    it('should return fully initialized AuthService for all concurrent callers', async () => {
+      const results = await Promise.all([
+        getAuthService(),
+        getAuthService(),
+        getAuthService(),
+      ]);
+
+      // All should be same instance
+      expect(results[0]).toBe(results[1]);
+      expect(results[1]).toBe(results[2]);
+
+      // All should be initialized - calling methods should not throw
+      for (const as of results) {
+        expect(as.getMode()).toBe('local');
+        expect(as.isAuthenticated()).toBe(true);
+      }
+    });
   });
 });
