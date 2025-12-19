@@ -454,8 +454,9 @@ export class LocalDataStore implements DataStore {
 
     return withKeyLock(SEASONS_LIST_KEY, async () => {
       const currentSeasons = await this.loadSeasons();
+      const normalizedName = normalizeNameForCompare(trimmedName);
       const nameExists = currentSeasons.some(
-        (season) => season.name.toLowerCase() === trimmedName.toLowerCase()
+        (season) => normalizeNameForCompare(season.name) === normalizedName
       );
 
       if (nameExists) {
@@ -498,8 +499,9 @@ export class LocalDataStore implements DataStore {
         return null;
       }
 
+      const normalizedName = normalizeNameForCompare(trimmedName);
       const nameExists = currentSeasons.some(
-        (item) => item.id !== season.id && item.name.toLowerCase() === trimmedName.toLowerCase()
+        (item) => item.id !== season.id && normalizeNameForCompare(item.name) === normalizedName
       );
 
       if (nameExists) {
@@ -567,8 +569,9 @@ export class LocalDataStore implements DataStore {
 
     return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
       const currentTournaments = await this.loadTournaments();
+      const normalizedName = normalizeNameForCompare(trimmedName);
       const nameExists = currentTournaments.some(
-        (tournament) => tournament.name.toLowerCase() === trimmedName.toLowerCase()
+        (tournament) => normalizeNameForCompare(tournament.name) === normalizedName
       );
 
       if (nameExists) {
@@ -614,8 +617,9 @@ export class LocalDataStore implements DataStore {
         return null;
       }
 
+      const normalizedName = normalizeNameForCompare(trimmedName);
       const nameExists = currentTournaments.some(
-        (item) => item.id !== tournament.id && item.name.toLowerCase() === trimmedName.toLowerCase()
+        (item) => item.id !== tournament.id && normalizeNameForCompare(item.name) === normalizedName
       );
 
       if (nameExists) {
@@ -684,8 +688,9 @@ export class LocalDataStore implements DataStore {
     return withKeyLock(PERSONNEL_KEY, async () => {
       const collection = await this.loadPersonnelCollection();
       const existingPersonnel = Object.values(collection);
+      const normalizedName = normalizeNameForCompare(trimmedName);
       const nameExists = existingPersonnel.some(
-        (person) => person.name.toLowerCase() === trimmedName.toLowerCase()
+        (person) => normalizeNameForCompare(person.name) === normalizedName
       );
 
       if (nameExists) {
@@ -731,8 +736,9 @@ export class LocalDataStore implements DataStore {
           throw new ValidationError(`Personnel name cannot exceed ${VALIDATION_LIMITS.PERSONNEL_NAME_MAX} characters (got ${trimmedName.length})`, 'name', updates.name);
         }
 
+        const normalizedName = normalizeNameForCompare(trimmedName);
         const nameExists = Object.values(collection).some(
-          (person) => person.id !== id && person.name.toLowerCase() === trimmedName.toLowerCase()
+          (person) => person.id !== id && normalizeNameForCompare(person.name) === normalizedName
         );
 
         if (nameExists) {
