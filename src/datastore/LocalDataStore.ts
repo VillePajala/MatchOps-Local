@@ -54,6 +54,7 @@ import { withKeyLock } from '@/utils/storageKeyLock';
 import { withRosterLock } from '@/utils/lockManager';
 import { generateId } from '@/utils/idGenerator';
 import logger from '@/utils/logger';
+import { normalizeName, normalizeNameForCompare } from '@/utils/normalization';
 
 // Team index storage format: { [teamId: string]: Team }
 type TeamsIndex = Record<string, Team>;
@@ -80,11 +81,38 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
  *
  * Note: This is a weak structural check that only verifies the value is
  * a non-null, non-array object. It does not validate content or shape.
- * For complex types (WarmupPlan, AppSettings), subsequent field checks
- * are required. Consider stronger validation in Phase 4 if needed.
  */
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
+
+/**
+ * Type guard for AppSettings with basic field validation.
+ * Prevents settings corruption that could break the app.
+ */
+const isValidAppSettings = (value: unknown): value is Partial<AppSettings> => {
+  if (!isRecord(value)) return false;
+
+  // Validate language if present
+  if (value.language !== undefined && !['en', 'fi'].includes(value.language as string)) {
+    return false;
+  }
+
+  // Validate currentGameId if present (must be string or null)
+  if (value.currentGameId !== undefined && value.currentGameId !== null && typeof value.currentGameId !== 'string') {
+    return false;
+  }
+
+  // Validate boolean fields if present
+  if (value.hasSeenAppGuide !== undefined && typeof value.hasSeenAppGuide !== 'boolean') {
+    return false;
+  }
+
+  if (value.useDemandCorrection !== undefined && typeof value.useDemandCorrection !== 'boolean') {
+    return false;
+  }
+
+  return true;
+};
 
 const normalizeOptionalString = (value?: string): string | undefined => {
   if (value === undefined) return undefined;
@@ -92,10 +120,9 @@ const normalizeOptionalString = (value?: string): string | undefined => {
   return trimmed === '' ? undefined : trimmed;
 };
 
-const normalizeTeamName = (name: string): string => name.trim();
-
-const normalizeTeamNameForCompare = (name: string): string =>
-  normalizeTeamName(name).toLowerCase().normalize('NFKC');
+// Team-specific aliases for semantic clarity (use shared normalization utilities)
+const normalizeTeamName = normalizeName;
+const normalizeTeamNameForCompare = normalizeNameForCompare;
 
 const convertMonthToDate = (month: number): string => {
   const monthStr = month.toString().padStart(2, '0');
@@ -162,7 +189,7 @@ export class LocalDataStore implements DataStore {
     }
 
     if (trimmedName.length > VALIDATION_LIMITS.PLAYER_NAME_MAX) {
-      throw new ValidationError(`Player name cannot exceed ${VALIDATION_LIMITS.PLAYER_NAME_MAX} characters`, 'name', player.name);
+      throw new ValidationError(`Player name cannot exceed ${VALIDATION_LIMITS.PLAYER_NAME_MAX} characters (got ${trimmedName.length})`, 'name', player.name);
     }
 
     return withKeyLock(MASTER_ROSTER_KEY, async () => {
@@ -190,7 +217,7 @@ export class LocalDataStore implements DataStore {
         throw new ValidationError('Player name cannot be empty', 'name', updates.name);
       }
       if (trimmedName.length > VALIDATION_LIMITS.PLAYER_NAME_MAX) {
-        throw new ValidationError(`Player name cannot exceed ${VALIDATION_LIMITS.PLAYER_NAME_MAX} characters`, 'name', updates.name);
+        throw new ValidationError(`Player name cannot exceed ${VALIDATION_LIMITS.PLAYER_NAME_MAX} characters (got ${trimmedName.length})`, 'name', updates.name);
       }
     }
 
@@ -237,12 +264,9 @@ export class LocalDataStore implements DataStore {
   async getTeams(includeArchived = false): Promise<Team[]> {
     this.ensureInitialized();
 
-    const teams = Object.values(await this.loadTeamsIndex());
-    if (includeArchived) {
-      return teams;
-    }
-
-    return teams.filter((team) => !team.archived);
+    return Object.values(await this.loadTeamsIndex()).filter(
+      (team) => includeArchived || !team.archived
+    );
   }
 
   async getTeamById(id: string): Promise<Team | null> {
@@ -261,7 +285,7 @@ export class LocalDataStore implements DataStore {
     }
 
     if (trimmedName.length > VALIDATION_LIMITS.TEAM_NAME_MAX) {
-      throw new ValidationError(`Team name cannot exceed ${VALIDATION_LIMITS.TEAM_NAME_MAX} characters`, 'name', team.name);
+      throw new ValidationError(`Team name cannot exceed ${VALIDATION_LIMITS.TEAM_NAME_MAX} characters (got ${trimmedName.length})`, 'name', team.name);
     }
 
     const normalizedAgeGroup = normalizeOptionalString(team.ageGroup);
@@ -271,7 +295,7 @@ export class LocalDataStore implements DataStore {
 
     const normalizedNotes = normalizeOptionalString(team.notes);
     if (normalizedNotes && normalizedNotes.length > VALIDATION_LIMITS.TEAM_NOTES_MAX) {
-      throw new ValidationError('Team notes cannot exceed 1000 characters', 'notes', team.notes);
+      throw new ValidationError(`Team notes cannot exceed ${VALIDATION_LIMITS.TEAM_NOTES_MAX} characters (got ${normalizedNotes.length})`, 'notes', team.notes);
     }
 
     return withKeyLock(TEAMS_INDEX_KEY, async () => {
@@ -315,7 +339,7 @@ export class LocalDataStore implements DataStore {
       }
 
       if (trimmedName.length > VALIDATION_LIMITS.TEAM_NAME_MAX) {
-        throw new ValidationError(`Team name cannot exceed ${VALIDATION_LIMITS.TEAM_NAME_MAX} characters`, 'name', updates.name);
+        throw new ValidationError(`Team name cannot exceed ${VALIDATION_LIMITS.TEAM_NAME_MAX} characters (got ${trimmedName.length})`, 'name', updates.name);
       }
 
       updates.name = trimmedName;
@@ -324,7 +348,7 @@ export class LocalDataStore implements DataStore {
     if (updates.notes !== undefined) {
       const normalizedNotes = normalizeOptionalString(updates.notes);
       if (normalizedNotes && normalizedNotes.length > VALIDATION_LIMITS.TEAM_NOTES_MAX) {
-        throw new ValidationError('Team notes cannot exceed 1000 characters', 'notes', updates.notes);
+        throw new ValidationError(`Team notes cannot exceed ${VALIDATION_LIMITS.TEAM_NOTES_MAX} characters (got ${normalizedNotes.length})`, 'notes', updates.notes);
       }
       updates.notes = normalizedNotes;
     }
@@ -406,8 +430,9 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     const seasons = await this.loadSeasons();
-    const filtered = includeArchived ? seasons : seasons.filter((season) => !season.archived);
-    return filtered.map((season) => ({ ...season, ageGroup: season.ageGroup ?? undefined }));
+    return seasons
+      .filter((season) => includeArchived || !season.archived)
+      .map((season) => ({ ...season, ageGroup: season.ageGroup ?? undefined }));
   }
 
   async createSeason(name: string, extra?: Partial<Omit<Season, 'id' | 'name'>>): Promise<Season> {
@@ -419,7 +444,12 @@ export class LocalDataStore implements DataStore {
     }
 
     if (trimmedName.length > VALIDATION_LIMITS.SEASON_NAME_MAX) {
-      throw new ValidationError(`Season name cannot exceed ${VALIDATION_LIMITS.SEASON_NAME_MAX} characters`, 'name', name);
+      throw new ValidationError(`Season name cannot exceed ${VALIDATION_LIMITS.SEASON_NAME_MAX} characters (got ${trimmedName.length})`, 'name', name);
+    }
+
+    const normalizedAgeGroup = normalizeOptionalString(extra?.ageGroup);
+    if (normalizedAgeGroup && !AGE_GROUPS.includes(normalizedAgeGroup)) {
+      throw new ValidationError('Invalid age group', 'ageGroup', extra?.ageGroup);
     }
 
     return withKeyLock(SEASONS_LIST_KEY, async () => {
@@ -452,7 +482,12 @@ export class LocalDataStore implements DataStore {
     }
 
     if (trimmedName.length > VALIDATION_LIMITS.SEASON_NAME_MAX) {
-      throw new ValidationError(`Season name cannot exceed ${VALIDATION_LIMITS.SEASON_NAME_MAX} characters`, 'name', season.name);
+      throw new ValidationError(`Season name cannot exceed ${VALIDATION_LIMITS.SEASON_NAME_MAX} characters (got ${trimmedName.length})`, 'name', season.name);
+    }
+
+    const normalizedAgeGroup = normalizeOptionalString(season.ageGroup);
+    if (normalizedAgeGroup && !AGE_GROUPS.includes(normalizedAgeGroup)) {
+      throw new ValidationError('Invalid age group', 'ageGroup', season.ageGroup);
     }
 
     return withKeyLock(SEASONS_LIST_KEY, async () => {
@@ -498,15 +533,16 @@ export class LocalDataStore implements DataStore {
   async getTournaments(includeArchived = false): Promise<Tournament[]> {
     this.ensureInitialized();
 
-    const tournaments = (await this.loadTournaments()).map((tournament) =>
-      migrateTournamentLevel({
-        ...tournament,
-        level: tournament.level ?? undefined,
-        ageGroup: tournament.ageGroup ?? undefined,
-      })
-    );
-
-    return includeArchived ? tournaments : tournaments.filter((tournament) => !tournament.archived);
+    // Filter first, then map - avoids migrating tournaments that will be filtered out
+    return (await this.loadTournaments())
+      .filter((tournament) => includeArchived || !tournament.archived)
+      .map((tournament) =>
+        migrateTournamentLevel({
+          ...tournament,
+          level: tournament.level ?? undefined,
+          ageGroup: tournament.ageGroup ?? undefined,
+        })
+      );
   }
 
   async createTournament(
@@ -521,7 +557,12 @@ export class LocalDataStore implements DataStore {
     }
 
     if (trimmedName.length > VALIDATION_LIMITS.TOURNAMENT_NAME_MAX) {
-      throw new ValidationError(`Tournament name cannot exceed ${VALIDATION_LIMITS.TOURNAMENT_NAME_MAX} characters`, 'name', name);
+      throw new ValidationError(`Tournament name cannot exceed ${VALIDATION_LIMITS.TOURNAMENT_NAME_MAX} characters (got ${trimmedName.length})`, 'name', name);
+    }
+
+    const normalizedAgeGroup = normalizeOptionalString(extra?.ageGroup);
+    if (normalizedAgeGroup && !AGE_GROUPS.includes(normalizedAgeGroup)) {
+      throw new ValidationError('Invalid age group', 'ageGroup', extra?.ageGroup);
     }
 
     return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
@@ -557,7 +598,12 @@ export class LocalDataStore implements DataStore {
     }
 
     if (trimmedName.length > VALIDATION_LIMITS.TOURNAMENT_NAME_MAX) {
-      throw new ValidationError(`Tournament name cannot exceed ${VALIDATION_LIMITS.TOURNAMENT_NAME_MAX} characters`, 'name', tournament.name);
+      throw new ValidationError(`Tournament name cannot exceed ${VALIDATION_LIMITS.TOURNAMENT_NAME_MAX} characters (got ${trimmedName.length})`, 'name', tournament.name);
+    }
+
+    const normalizedAgeGroup = normalizeOptionalString(tournament.ageGroup);
+    if (normalizedAgeGroup && !AGE_GROUPS.includes(normalizedAgeGroup)) {
+      throw new ValidationError('Invalid age group', 'ageGroup', tournament.ageGroup);
     }
 
     return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
@@ -632,7 +678,7 @@ export class LocalDataStore implements DataStore {
     }
 
     if (trimmedName.length > VALIDATION_LIMITS.PERSONNEL_NAME_MAX) {
-      throw new ValidationError(`Personnel name cannot exceed ${VALIDATION_LIMITS.PERSONNEL_NAME_MAX} characters`, 'name', data.name);
+      throw new ValidationError(`Personnel name cannot exceed ${VALIDATION_LIMITS.PERSONNEL_NAME_MAX} characters (got ${trimmedName.length})`, 'name', data.name);
     }
 
     return withKeyLock(PERSONNEL_KEY, async () => {
@@ -682,7 +728,7 @@ export class LocalDataStore implements DataStore {
         }
 
         if (trimmedName.length > VALIDATION_LIMITS.PERSONNEL_NAME_MAX) {
-          throw new ValidationError(`Personnel name cannot exceed ${VALIDATION_LIMITS.PERSONNEL_NAME_MAX} characters`, 'name', updates.name);
+          throw new ValidationError(`Personnel name cannot exceed ${VALIDATION_LIMITS.PERSONNEL_NAME_MAX} characters (got ${trimmedName.length})`, 'name', updates.name);
         }
 
         const nameExists = Object.values(collection).some(
@@ -710,11 +756,26 @@ export class LocalDataStore implements DataStore {
     });
   }
 
+  /**
+   * Remove a personnel member and cascade delete references.
+   *
+   * @remarks
+   * CASCADE DELETE: Removes personnel ID from all games' gamePersonnel arrays.
+   * Uses atomic backup/rollback pattern for data integrity - if any operation
+   * fails, both personnel and games are restored to their pre-deletion state.
+   *
+   * @param id - The personnel member ID to remove
+   * @returns true if deleted, false if not found
+   * @throws Error if cascade delete fails and rollback also fails (data may be inconsistent)
+   */
   async removePersonnelMember(id: string): Promise<boolean> {
     this.ensureInitialized();
 
     return withKeyLock(PERSONNEL_KEY, async () => {
       return withKeyLock(SAVED_GAMES_KEY, async () => {
+        // Backup for rollback: Personnel IDs are only referenced in games via gamePersonnel[].
+        // Seasons, tournaments, and teams have free-text notes fields (not ID references),
+        // so they are unaffected by cascade delete and don't need backup.
         const backup = {
           personnel: await this.loadPersonnelCollection(),
           games: await this.loadSavedGames(),
@@ -781,7 +842,7 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     if (game.gameNotes && game.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) {
-      throw new ValidationError(`Game notes cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters`, 'gameNotes', game.gameNotes);
+      throw new ValidationError(`Game notes cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters (got ${game.gameNotes.length})`, 'gameNotes', game.gameNotes);
     }
 
     const gameId = generateGameId();
@@ -832,7 +893,7 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     if (game.gameNotes && game.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) {
-      throw new ValidationError(`Game notes cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters`, 'gameNotes', game.gameNotes);
+      throw new ValidationError(`Game notes cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters (got ${game.gameNotes.length})`, 'gameNotes', game.gameNotes);
     }
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
@@ -967,7 +1028,8 @@ export class LocalDataStore implements DataStore {
         return { ...DEFAULT_APP_SETTINGS };
       }
 
-      if (!parsed || !isRecord(parsed)) {
+      if (!parsed || !isValidAppSettings(parsed)) {
+        logger.warn('[LocalDataStore] Invalid app settings structure, using defaults');
         return { ...DEFAULT_APP_SETTINGS };
       }
 
@@ -1048,7 +1110,7 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     if (adjustment.note && adjustment.note.length > VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX) {
-      throw new ValidationError(`Adjustment note cannot exceed ${VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX} characters`, 'note', adjustment.note);
+      throw new ValidationError(`Adjustment note cannot exceed ${VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX} characters (got ${adjustment.note.length})`, 'note', adjustment.note);
     }
 
     return withKeyLock(PLAYER_ADJUSTMENTS_KEY, async () => {
@@ -1091,7 +1153,7 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     if (patch.note !== undefined && patch.note && patch.note.length > VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX) {
-      throw new ValidationError(`Adjustment note cannot exceed ${VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX} characters`, 'note', patch.note);
+      throw new ValidationError(`Adjustment note cannot exceed ${VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX} characters (got ${patch.note.length})`, 'note', patch.note);
     }
 
     return withKeyLock(PLAYER_ADJUSTMENTS_KEY, async () => {
