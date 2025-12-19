@@ -92,6 +92,10 @@ describe('LocalDataStore', () => {
   // ============================================================
   // LIFECYCLE TESTS
   // ============================================================
+  /**
+   * Tests core initialization and lifecycle management.
+   * @critical - App cannot function without proper initialization
+   */
   describe('Lifecycle', () => {
     it('should initialize successfully', async () => {
       const store = new LocalDataStore();
@@ -130,6 +134,10 @@ describe('LocalDataStore', () => {
   // ============================================================
   // PLAYER TESTS
   // ============================================================
+  /**
+   * Tests core Player CRUD operations.
+   * @critical - Player roster is fundamental to game tracking
+   */
   describe('Players', () => {
     const mockPlayer: Player = {
       id: 'player_123',
@@ -690,6 +698,10 @@ describe('LocalDataStore', () => {
   // ============================================================
   // PERSONNEL TESTS
   // ============================================================
+  /**
+   * Tests Personnel CRUD operations including cascade delete.
+   * @critical - Personnel deletion affects game references
+   */
   describe('Personnel', () => {
     const mockPersonnel: Personnel = {
       id: 'personnel_123',
@@ -812,10 +824,12 @@ describe('LocalDataStore', () => {
       });
     });
 
+    /**
+     * Tests cascade delete behavior with atomic rollback.
+     * @critical - Data integrity depends on proper cascade handling
+     */
     describe('removePersonnelMember - CASCADE DELETE', () => {
-      /**
-       * @critical CASCADE DELETE with rollback
-       */
+      /** @critical */
       it('should remove personnel from all games', async () => {
         const gameWithPersonnel: AppState = {
           gamePersonnel: ['personnel_123', 'personnel_456'],
@@ -976,6 +990,10 @@ describe('LocalDataStore', () => {
   // ============================================================
   // GAME TESTS
   // ============================================================
+  /**
+   * Tests Game CRUD operations and event management.
+   * @critical - Games are the primary user data
+   */
   describe('Games', () => {
     const mockGame: AppState = {
       playersOnField: [],
