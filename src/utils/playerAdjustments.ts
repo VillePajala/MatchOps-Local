@@ -22,12 +22,18 @@ export const getAdjustmentsForPlayer = async (playerId: string): Promise<PlayerS
 /**
  * Add a new player stat adjustment.
  * DataStore handles ID generation, appliedAt, and persistence.
+ * @throws Error if DataStore operation fails (write operations surface errors)
  */
 export const addPlayerAdjustment = async (
   adj: Omit<PlayerStatAdjustment, 'id' | 'appliedAt'> & { id?: string; appliedAt?: string }
 ): Promise<PlayerStatAdjustment> => {
-  const dataStore = await getDataStore();
-  return await dataStore.addPlayerAdjustment(adj);
+  try {
+    const dataStore = await getDataStore();
+    return await dataStore.addPlayerAdjustment(adj);
+  } catch (error) {
+    logger.error('Failed to add player adjustment', { playerId: adj.playerId, error });
+    throw error;
+  }
 };
 
 /**
