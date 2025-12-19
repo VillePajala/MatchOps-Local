@@ -75,6 +75,14 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   clubSeasonEndDate: '2000-05-01',
 };
 
+/**
+ * Type guard for checking if a value is a plain object (Record).
+ *
+ * Note: This is a weak structural check that only verifies the value is
+ * a non-null, non-array object. It does not validate content or shape.
+ * For complex types (WarmupPlan, AppSettings), subsequent field checks
+ * are required. Consider stronger validation in Phase 4 if needed.
+ */
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value);
 
@@ -153,6 +161,10 @@ export class LocalDataStore implements DataStore {
       throw new ValidationError('Player name cannot be empty', 'name', player.name);
     }
 
+    if (trimmedName.length > VALIDATION_LIMITS.PLAYER_NAME_MAX) {
+      throw new ValidationError(`Player name cannot exceed ${VALIDATION_LIMITS.PLAYER_NAME_MAX} characters`, 'name', player.name);
+    }
+
     return withKeyLock(MASTER_ROSTER_KEY, async () => {
       const roster = await this.loadPlayers();
       const newPlayer: Player = {
@@ -172,8 +184,14 @@ export class LocalDataStore implements DataStore {
   async updatePlayer(id: string, updates: Partial<Player>): Promise<Player | null> {
     this.ensureInitialized();
 
-    if (updates.name !== undefined && !updates.name.trim()) {
-      throw new ValidationError('Player name cannot be empty', 'name', updates.name);
+    if (updates.name !== undefined) {
+      const trimmedName = updates.name.trim();
+      if (!trimmedName) {
+        throw new ValidationError('Player name cannot be empty', 'name', updates.name);
+      }
+      if (trimmedName.length > VALIDATION_LIMITS.PLAYER_NAME_MAX) {
+        throw new ValidationError(`Player name cannot exceed ${VALIDATION_LIMITS.PLAYER_NAME_MAX} characters`, 'name', updates.name);
+      }
     }
 
     return withKeyLock(MASTER_ROSTER_KEY, async () => {
@@ -242,8 +260,8 @@ export class LocalDataStore implements DataStore {
       throw new ValidationError('Team name cannot be empty', 'name', team.name);
     }
 
-    if (trimmedName.length > 48) {
-      throw new ValidationError('Team name cannot exceed 48 characters', 'name', team.name);
+    if (trimmedName.length > VALIDATION_LIMITS.TEAM_NAME_MAX) {
+      throw new ValidationError(`Team name cannot exceed ${VALIDATION_LIMITS.TEAM_NAME_MAX} characters`, 'name', team.name);
     }
 
     const normalizedAgeGroup = normalizeOptionalString(team.ageGroup);
@@ -296,8 +314,8 @@ export class LocalDataStore implements DataStore {
         throw new ValidationError('Team name cannot be empty', 'name', updates.name);
       }
 
-      if (trimmedName.length > 48) {
-        throw new ValidationError('Team name cannot exceed 48 characters', 'name', updates.name);
+      if (trimmedName.length > VALIDATION_LIMITS.TEAM_NAME_MAX) {
+        throw new ValidationError(`Team name cannot exceed ${VALIDATION_LIMITS.TEAM_NAME_MAX} characters`, 'name', updates.name);
       }
 
       updates.name = trimmedName;
@@ -400,6 +418,10 @@ export class LocalDataStore implements DataStore {
       throw new ValidationError('Season name cannot be empty', 'name', name);
     }
 
+    if (trimmedName.length > VALIDATION_LIMITS.SEASON_NAME_MAX) {
+      throw new ValidationError(`Season name cannot exceed ${VALIDATION_LIMITS.SEASON_NAME_MAX} characters`, 'name', name);
+    }
+
     return withKeyLock(SEASONS_LIST_KEY, async () => {
       const currentSeasons = await this.loadSeasons();
       const nameExists = currentSeasons.some(
@@ -427,6 +449,10 @@ export class LocalDataStore implements DataStore {
     const trimmedName = season.name?.trim();
     if (!season.id || !trimmedName) {
       throw new ValidationError('Season name cannot be empty', 'name', season.name);
+    }
+
+    if (trimmedName.length > VALIDATION_LIMITS.SEASON_NAME_MAX) {
+      throw new ValidationError(`Season name cannot exceed ${VALIDATION_LIMITS.SEASON_NAME_MAX} characters`, 'name', season.name);
     }
 
     return withKeyLock(SEASONS_LIST_KEY, async () => {
@@ -494,6 +520,10 @@ export class LocalDataStore implements DataStore {
       throw new ValidationError('Tournament name cannot be empty', 'name', name);
     }
 
+    if (trimmedName.length > VALIDATION_LIMITS.TOURNAMENT_NAME_MAX) {
+      throw new ValidationError(`Tournament name cannot exceed ${VALIDATION_LIMITS.TOURNAMENT_NAME_MAX} characters`, 'name', name);
+    }
+
     return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
       const currentTournaments = await this.loadTournaments();
       const nameExists = currentTournaments.some(
@@ -524,6 +554,10 @@ export class LocalDataStore implements DataStore {
     const trimmedName = tournament.name?.trim();
     if (!tournament.id || !trimmedName) {
       throw new ValidationError('Tournament name cannot be empty', 'name', tournament.name);
+    }
+
+    if (trimmedName.length > VALIDATION_LIMITS.TOURNAMENT_NAME_MAX) {
+      throw new ValidationError(`Tournament name cannot exceed ${VALIDATION_LIMITS.TOURNAMENT_NAME_MAX} characters`, 'name', tournament.name);
     }
 
     return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
@@ -597,6 +631,10 @@ export class LocalDataStore implements DataStore {
       throw new ValidationError('Personnel name cannot be empty', 'name', data.name);
     }
 
+    if (trimmedName.length > VALIDATION_LIMITS.PERSONNEL_NAME_MAX) {
+      throw new ValidationError(`Personnel name cannot exceed ${VALIDATION_LIMITS.PERSONNEL_NAME_MAX} characters`, 'name', data.name);
+    }
+
     return withKeyLock(PERSONNEL_KEY, async () => {
       const collection = await this.loadPersonnelCollection();
       const existingPersonnel = Object.values(collection);
@@ -641,6 +679,10 @@ export class LocalDataStore implements DataStore {
         const trimmedName = updates.name.trim();
         if (!trimmedName) {
           throw new ValidationError('Personnel name cannot be empty', 'name', updates.name);
+        }
+
+        if (trimmedName.length > VALIDATION_LIMITS.PERSONNEL_NAME_MAX) {
+          throw new ValidationError(`Personnel name cannot exceed ${VALIDATION_LIMITS.PERSONNEL_NAME_MAX} characters`, 'name', updates.name);
         }
 
         const nameExists = Object.values(collection).some(
@@ -738,6 +780,10 @@ export class LocalDataStore implements DataStore {
   async createGame(game: Partial<AppState>): Promise<{ gameId: string; gameData: AppState }> {
     this.ensureInitialized();
 
+    if (game.gameNotes && game.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) {
+      throw new ValidationError(`Game notes cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters`, 'gameNotes', game.gameNotes);
+    }
+
     const gameId = generateGameId();
     const newGame: AppState = {
       playersOnField: game.playersOnField || [],
@@ -784,6 +830,10 @@ export class LocalDataStore implements DataStore {
 
   async saveGame(id: string, game: AppState): Promise<AppState> {
     this.ensureInitialized();
+
+    if (game.gameNotes && game.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) {
+      throw new ValidationError(`Game notes cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters`, 'gameNotes', game.gameNotes);
+    }
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
       const games = await this.loadSavedGames();
@@ -997,6 +1047,10 @@ export class LocalDataStore implements DataStore {
   ): Promise<PlayerStatAdjustment> {
     this.ensureInitialized();
 
+    if (adjustment.note && adjustment.note.length > VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX) {
+      throw new ValidationError(`Adjustment note cannot exceed ${VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX} characters`, 'note', adjustment.note);
+    }
+
     return withKeyLock(PLAYER_ADJUSTMENTS_KEY, async () => {
       const all = await this.loadPlayerAdjustments();
       const newAdjustment: PlayerStatAdjustment = {
@@ -1035,6 +1089,10 @@ export class LocalDataStore implements DataStore {
     patch: Partial<PlayerStatAdjustment>
   ): Promise<PlayerStatAdjustment | null> {
     this.ensureInitialized();
+
+    if (patch.note !== undefined && patch.note && patch.note.length > VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX) {
+      throw new ValidationError(`Adjustment note cannot exceed ${VALIDATION_LIMITS.ADJUSTMENT_NOTES_MAX} characters`, 'note', patch.note);
+    }
 
     return withKeyLock(PLAYER_ADJUSTMENTS_KEY, async () => {
       const all = await this.loadPlayerAdjustments();
