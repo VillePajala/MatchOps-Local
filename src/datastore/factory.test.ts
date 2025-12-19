@@ -158,21 +158,29 @@ describe('Factory', () => {
      * an instance before initialize() completes.
      * @critical
      */
-    it('should return fully initialized DataStore for all concurrent callers', async () => {
-      const results = await Promise.all([
-        getDataStore(),
-        getDataStore(),
-        getDataStore(),
-      ]);
+    it('should not expose an uninitialized DataStore instance under concurrency', async () => {
+      const originalInitialize = LocalDataStore.prototype.initialize;
+      const initializeSpy = jest
+        .spyOn(LocalDataStore.prototype, 'initialize')
+        .mockImplementation(async function mockInitialize(this: LocalDataStore) {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          return originalInitialize.apply(this);
+        });
 
-      // All should be same instance
-      expect(results[0]).toBe(results[1]);
-      expect(results[1]).toBe(results[2]);
+      try {
+        const [ds1, ds2, ds3] = await Promise.all([
+          getDataStore(),
+          getDataStore(),
+          getDataStore(),
+        ]);
 
-      // All should be initialized - calling methods should not throw NotInitializedError
-      // getBackendName() is a simple method that requires initialization
-      for (const ds of results) {
-        expect(ds.getBackendName()).toBe('local');
+        expect(ds1).toBe(ds2);
+        expect(ds2).toBe(ds3);
+
+        // getPlayers() requires initialize() to have completed (guards NotInitializedError).
+        await expect(ds1.getPlayers()).resolves.toEqual([]);
+      } finally {
+        initializeSpy.mockRestore();
       }
     });
 
@@ -180,21 +188,27 @@ describe('Factory', () => {
      * Verify that all concurrent callers receive fully initialized AuthService.
      * @critical
      */
-    it('should return fully initialized AuthService for all concurrent callers', async () => {
-      const results = await Promise.all([
-        getAuthService(),
-        getAuthService(),
-        getAuthService(),
-      ]);
+    it('should not expose an uninitialized AuthService instance under concurrency', async () => {
+      const originalInitialize = LocalAuthService.prototype.initialize;
+      const initializeSpy = jest
+        .spyOn(LocalAuthService.prototype, 'initialize')
+        .mockImplementation(async function mockInitialize(this: LocalAuthService) {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          return originalInitialize.apply(this);
+        });
 
-      // All should be same instance
-      expect(results[0]).toBe(results[1]);
-      expect(results[1]).toBe(results[2]);
+      try {
+        const [as1, as2, as3] = (await Promise.all([
+          getAuthService(),
+          getAuthService(),
+          getAuthService(),
+        ])) as [LocalAuthService, LocalAuthService, LocalAuthService];
 
-      // All should be initialized - calling methods should not throw
-      for (const as of results) {
-        expect(as.getMode()).toBe('local');
-        expect(as.isAuthenticated()).toBe(true);
+        expect(as1).toBe(as2);
+        expect(as2).toBe(as3);
+        expect(as1.isInitialized()).toBe(true);
+      } finally {
+        initializeSpy.mockRestore();
       }
     });
   });

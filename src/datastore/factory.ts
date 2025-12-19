@@ -57,7 +57,10 @@ export async function getDataStore(): Promise<DataStore> {
     await instance.initialize();
     dataStoreInstance = instance;
     return instance;
-  })();
+  })().finally(() => {
+    // Allow retry on failure, and keep the steady state as `dataStoreInstance !== null`.
+    dataStoreInitPromise = null;
+  });
 
   return dataStoreInitPromise;
 }
@@ -88,7 +91,9 @@ export async function getAuthService(): Promise<AuthService> {
     await instance.initialize();
     authServiceInstance = instance;
     return instance;
-  })();
+  })().finally(() => {
+    authServiceInitPromise = null;
+  });
 
   return authServiceInitPromise;
 }
@@ -102,12 +107,30 @@ export async function getAuthService(): Promise<AuthService> {
  * @internal
  */
 export async function resetFactory(): Promise<void> {
+  // If initialization is in-flight, await it to avoid leaving an initialized instance around
+  // after clearing the promise references.
+  if (dataStoreInitPromise) {
+    try {
+      await dataStoreInitPromise;
+    } catch {
+      // Best-effort cleanup: ignore init errors.
+    }
+  }
+
   if (dataStoreInstance) {
     await dataStoreInstance.close();
     dataStoreInstance = null;
   }
+
+  if (authServiceInitPromise) {
+    try {
+      await authServiceInitPromise;
+    } catch {
+      // Best-effort cleanup: ignore init errors.
+    }
+  }
+
   authServiceInstance = null;
-  // Clear initialization promises
   dataStoreInitPromise = null;
   authServiceInitPromise = null;
 }
