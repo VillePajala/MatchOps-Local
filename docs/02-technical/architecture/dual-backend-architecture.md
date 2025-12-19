@@ -463,9 +463,8 @@ Component
   → useRoster()
     → dataStore.getPlayers()
       → LocalDataStore
-        → getMasterRoster() (existing util)
-          → getStorageItem(MASTER_ROSTER_KEY)
-            → IndexedDB
+        → getStorageItem(MASTER_ROSTER_KEY)  // Direct storage access
+          → IndexedDB
 ```
 
 **Cloud Mode**:
@@ -635,7 +634,9 @@ test('sign up → create player → sign out → sign in → load player', async
   await authService.signIn('test@example.com', 'password123');
 
   // Load player (RLS should allow)
-  const loaded = await dataStore.getPlayerById(player.id);
+  // Note: No getPlayerById - filter from getPlayers()
+  const players = await dataStore.getPlayers();
+  const loaded = players.find(p => p.id === player.id);
   expect(loaded).toEqual(player);
 });
 ```

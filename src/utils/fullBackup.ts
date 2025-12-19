@@ -11,6 +11,7 @@ import {
   TEAMS_INDEX_KEY,
   TEAM_ROSTERS_KEY,
   PERSONNEL_KEY,
+  WARMUP_PLAN_KEY,
 } from "@/config/storageKeys";
 import logger from "@/utils/logger";
 import i18n from "i18next";
@@ -26,6 +27,7 @@ import type { PlayerAdjustmentsIndex } from './playerAdjustments';
 import type { TeamsIndex, TeamRostersIndex } from './teams';
 import type { AppSettings } from './appSettings';
 import type { PersonnelCollection } from '@/types/personnel';
+import type { WarmupPlan } from '@/types/warmupPlan';
 import { processImportedGames } from './gameImportHelper';
 import type { BackupRestoreResult } from '@/components/BackupRestoreResultsModal';
 
@@ -45,6 +47,7 @@ interface FullBackupData {
     [TEAMS_INDEX_KEY]?: TeamsIndex | null;
     [TEAM_ROSTERS_KEY]?: TeamRostersIndex | null;
     [PERSONNEL_KEY]?: PersonnelCollection | null;
+    [WARMUP_PLAN_KEY]?: WarmupPlan | null;
   };
 }
 
@@ -67,6 +70,7 @@ export const generateFullBackupJson = async (): Promise<string> => {
     TEAMS_INDEX_KEY,
     TEAM_ROSTERS_KEY,
     PERSONNEL_KEY,
+    WARMUP_PLAN_KEY,
   ];
 
   for (const key of keysToBackup) {
@@ -235,6 +239,7 @@ export const importFullBackup = async (
       TEAMS_INDEX_KEY,
       TEAM_ROSTERS_KEY,
       PERSONNEL_KEY,
+      WARMUP_PLAN_KEY,
     ];
 
     for (const key of allKeysToReset) {

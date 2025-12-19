@@ -9,12 +9,14 @@ import {
   MASTER_ROSTER_KEY,
   TEAMS_INDEX_KEY,
   TEAM_ROSTERS_KEY,
+  WARMUP_PLAN_KEY,
 } from "@/config/storageKeys";
 import { DEFAULT_GAME_ID } from "@/config/constants";
 import type { SavedGamesCollection, AppState } from "@/types/game";
 import type { AppSettings } from "./appSettings";
 import type { Season, Tournament, Player } from "@/types";
 import type { TeamsIndex, TeamRostersIndex } from "./teams";
+import type { WarmupPlan } from "@/types/warmupPlan";
 
 // Mock the storage module (not localStorage directly!)
 jest.mock("./storage");
@@ -175,6 +177,7 @@ function createBackupData(overrides: {
   roster?: Player[];
   teams?: TeamsIndex;
   teamRosters?: TeamRostersIndex;
+  warmupPlan?: WarmupPlan;
 } = {}) {
   return {
     meta: { schema: 1, exportedAt: new Date().toISOString() },
@@ -186,6 +189,7 @@ function createBackupData(overrides: {
       ...(overrides.roster !== undefined && { [MASTER_ROSTER_KEY]: overrides.roster }),
       ...(overrides.teams !== undefined && { [TEAMS_INDEX_KEY]: overrides.teams }),
       ...(overrides.teamRosters !== undefined && { [TEAM_ROSTERS_KEY]: overrides.teamRosters }),
+      ...(overrides.warmupPlan !== undefined && { [WARMUP_PLAN_KEY]: overrides.warmupPlan }),
     },
   };
 }
@@ -989,6 +993,7 @@ describe("exportFullBackup", () => {
     ];
     const teamsData = { team_1: { id: "team_1", name: "FC United", color: "#FF0000", createdAt: "2024-01-01", updatedAt: "2024-01-01" } };
     const teamRostersData = { team_1: [{ id: "p1", name: "Player One", jerseyNumber: "10", isGoalkeeper: false }] };
+    const warmupPlanData = { id: "user_warmup_plan", sections: [], lastModified: "2024-01-01T00:00:00.000Z", isDefault: false };
 
     // Store data in mockStore (exportFullBackup reads from storage module which uses mockStore)
     mockStore[SAVED_GAMES_KEY] = gamesData;
@@ -998,6 +1003,7 @@ describe("exportFullBackup", () => {
     mockStore[TOURNAMENTS_LIST_KEY] = tournamentsDataDb;
     mockStore[TEAMS_INDEX_KEY] = teamsData;
     mockStore[TEAM_ROSTERS_KEY] = teamRostersData;
+    mockStore[WARMUP_PLAN_KEY] = warmupPlanData;
     // mockStore['someOtherCustomKey'] = { custom: 'value' }; // This key is not in APP_DATA_KEYS, so it won't be backed up.
 
     await exportFullBackup();
@@ -1024,6 +1030,7 @@ describe("exportFullBackup", () => {
     );
     expect(backupData.localStorage[TEAMS_INDEX_KEY]).toEqual(teamsData);
     expect(backupData.localStorage[TEAM_ROSTERS_KEY]).toEqual(teamRostersData);
+    expect(backupData.localStorage[WARMUP_PLAN_KEY]).toEqual(warmupPlanData);
     // expect(backupData.localStorage['someOtherCustomKey']).toEqual({ custom: 'value' }); // This key is not expected now.
     expect(backupData.localStorage["someOtherCustomKey"]).toBeUndefined(); // Explicitly check it's not there
   });
@@ -1045,6 +1052,7 @@ describe("exportFullBackup", () => {
     expect(backupData.localStorage[MASTER_ROSTER_KEY]).toBeNull();
     expect(backupData.localStorage[SEASONS_LIST_KEY]).toBeNull();
     expect(backupData.localStorage[TOURNAMENTS_LIST_KEY]).toBeNull();
+    expect(backupData.localStorage[WARMUP_PLAN_KEY]).toBeNull();
   });
 
   it("should log an error and set value to null if a localStorage item is malformed JSON", async () => {
