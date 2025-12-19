@@ -1,8 +1,8 @@
 {
-  "version": "bf75b89f",
-  "date": "2025-12-18",
+  "version": "e96a9eeb",
+  "date": "2025-12-19",
   "notes": {
-    "en": "Add comprehensive LocalDataStore test suite",
-    "fi": "Add comprehensive LocalDataStore test suite"
+    "en": "Merge pull request #135 from VillePajala/pr6-local-datastore-core",
+    "fi": "Merge pull request #135 from VillePajala/pr6-local-datastore-core"
   }
 }
