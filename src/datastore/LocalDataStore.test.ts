@@ -177,7 +177,7 @@ describe('LocalDataStore', () => {
         });
 
         expect(player.name).toBe('New Player');
-        expect(player.id).toMatch(/^player_\d+_/);
+        expect(player.id).toMatch(/^player_\d+_[a-f0-9]{8}$/);
         expect(mockSetStorageItem).toHaveBeenCalled();
       });
 
@@ -322,7 +322,7 @@ describe('LocalDataStore', () => {
         });
 
         expect(team.name).toBe('New Team');
-        expect(team.id).toMatch(/^team_\d+_/);
+        expect(team.id).toMatch(/^team_\d+_[a-f0-9]{8}$/);
         expect(team.createdAt).toBeDefined();
         expect(team.updatedAt).toBeDefined();
       });
@@ -508,7 +508,7 @@ describe('LocalDataStore', () => {
 
         const season = await dataStore.createSeason('  New Season  ');
         expect(season.name).toBe('New Season');
-        expect(season.id).toMatch(/^season_\d+_/);
+        expect(season.id).toMatch(/^season_\d+_[a-f0-9]{8}$/);
       });
 
       it('should throw ValidationError on empty name', async () => {
@@ -637,7 +637,7 @@ describe('LocalDataStore', () => {
 
         const tournament = await dataStore.createTournament('  New Tournament  ');
         expect(tournament.name).toBe('New Tournament');
-        expect(tournament.id).toMatch(/^tournament_\d+_/);
+        expect(tournament.id).toMatch(/^tournament_\d+_[a-f0-9]{8}$/);
       });
 
       it('should throw ValidationError on empty name', async () => {
@@ -764,7 +764,7 @@ describe('LocalDataStore', () => {
         });
 
         expect(personnel.name).toBe('New Coach');
-        expect(personnel.id).toMatch(/^personnel_\d+_/);
+        expect(personnel.id).toMatch(/^personnel_\d+_[a-f0-9]{8}$/);
         expect(personnel.createdAt).toBeDefined();
         expect(personnel.updatedAt).toBeDefined();
       });
@@ -1322,7 +1322,7 @@ describe('LocalDataStore', () => {
           assistsDelta: 0,
         });
 
-        expect(adjustment.id).toMatch(/^adj_\d+_/);
+        expect(adjustment.id).toMatch(/^adj_\d+_[a-f0-9]{8}$/);
         expect(adjustment.appliedAt).toBeDefined();
       });
     });
