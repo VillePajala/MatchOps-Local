@@ -440,33 +440,33 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gamesPlayed', 'Games')}</label>
                 <div className="flex items-center gap-2">
-                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setAdjGames(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjGames(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
                   <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(adjGames)} onChange={e => setAdjGames(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setAdjGames(v => (Number(v) || 0) + 1)}>+</button>
+                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjGames(v => (Number(v) || 0) + 1)}>+</button>
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.goals', 'Goals')}</label>
                 <div className="flex items-center gap-2">
-                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setAdjGoals(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjGoals(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
                   <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(adjGoals)} onChange={e => setAdjGoals(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setAdjGoals(v => (Number(v) || 0) + 1)}>+</button>
+                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjGoals(v => (Number(v) || 0) + 1)}>+</button>
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.assists', 'Assists')}</label>
                 <div className="flex items-center gap-2">
-                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setAdjAssists(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjAssists(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
                   <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(adjAssists)} onChange={e => setAdjAssists(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setAdjAssists(v => (Number(v) || 0) + 1)}>+</button>
+                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjAssists(v => (Number(v) || 0) + 1)}>+</button>
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.fairPlayCards', 'Fair Play Cards')}</label>
                 <div className="flex items-center gap-2">
-                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setAdjFairPlayCards(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjFairPlayCards(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
                   <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(adjFairPlayCards)} onChange={e => setAdjFairPlayCards(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setAdjFairPlayCards(v => (Number(v) || 0) + 1)}>+</button>
+                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjFairPlayCards(v => (Number(v) || 0) + 1)}>+</button>
                 </div>
               </div>
               <div className="lg:col-span-3">
@@ -490,8 +490,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 <input type="text" value={adjNote} onChange={e => setAdjNote(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t('playerStats.noteOptional', 'Optional note about this game') as string} />
               </div>
               <div className="lg:col-span-3 flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowAdjForm(false)} className="px-4 py-2 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600 text-sm font-medium">{t('common.cancel', 'Cancel')}</button>
-                <button type="submit" className="px-4 py-2 bg-indigo-600 rounded hover:bg-indigo-500 text-sm font-medium">{t('common.save', 'Save')}</button>
+                <button type="button" onClick={() => setShowAdjForm(false)} className="px-4 py-2 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600 text-sm font-medium text-white">{t('common.cancel', 'Cancel')}</button>
+                <button type="submit" className="px-4 py-2 bg-indigo-600 rounded hover:bg-indigo-500 text-sm font-medium text-white">{t('common.save', 'Save')}</button>
               </div>
             </form>
           )}
@@ -631,33 +631,33 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.gamesPlayed', 'Games')}</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditGames(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGames(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
                             <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editGames)} onChange={e => setEditGames(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditGames(v => (Number(v) || 0) + 1)}>+</button>
+                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGames(v => (Number(v) || 0) + 1)}>+</button>
                           </div>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.goals', 'Goals')}</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditGoals(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGoals(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
                             <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editGoals)} onChange={e => setEditGoals(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditGoals(v => (Number(v) || 0) + 1)}>+</button>
+                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditGoals(v => (Number(v) || 0) + 1)}>+</button>
                           </div>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.assists', 'Assists')}</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditAssists(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditAssists(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
                             <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editAssists)} onChange={e => setEditAssists(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditAssists(v => (Number(v) || 0) + 1)}>+</button>
+                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditAssists(v => (Number(v) || 0) + 1)}>+</button>
                           </div>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.fairPlayCards', 'Fair Play Cards')}</label>
                           <div className="flex items-center gap-2">
-                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditFairPlayCards(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
+                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditFairPlayCards(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
                             <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editFairPlayCards)} onChange={e => setEditFairPlayCards(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600" onClick={() => setEditFairPlayCards(v => (Number(v) || 0) + 1)}>+</button>
+                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditFairPlayCards(v => (Number(v) || 0) + 1)}>+</button>
                           </div>
                         </div>
                         <div className="lg:col-span-3">
@@ -681,8 +681,8 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                           <input type="text" value={editNote} onChange={e => setEditNote(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" placeholder={t('playerStats.noteOptional', 'Optional note about this game') as string} />
                         </div>
                         <div className="lg:col-span-3 flex justify-end gap-3 pt-2">
-                          <button type="button" onClick={() => setEditingAdjId(null)} className="px-4 py-2 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600 text-sm font-medium">{t('common.cancel', 'Cancel')}</button>
-                          <button type="submit" className="px-4 py-2 bg-indigo-600 rounded hover:bg-indigo-500 text-sm font-medium">{t('common.save', 'Save')}</button>
+                          <button type="button" onClick={() => setEditingAdjId(null)} className="px-4 py-2 bg-slate-700 rounded border border-slate-600 hover:bg-slate-600 text-sm font-medium text-white">{t('common.cancel', 'Cancel')}</button>
+                          <button type="submit" className="px-4 py-2 bg-indigo-600 rounded hover:bg-indigo-500 text-sm font-medium text-white">{t('common.save', 'Save')}</button>
                         </div>
                       </form>
                     );
