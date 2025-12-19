@@ -16,32 +16,34 @@ import {
   deleteWarmupPlan,
   createDefaultWarmupPlan,
 } from './warmupPlan';
-import { WARMUP_PLAN_KEY } from '@/config/storageKeys';
 import { WARMUP_PLAN_SCHEMA_VERSION } from '@/types/warmupPlan';
 import type { WarmupPlan } from '@/types/warmupPlan';
+import type { DataStore } from '@/interfaces/DataStore';
 import type { TFunction } from 'i18next';
 
-// Mock storage utilities
-jest.mock('@/utils/storage', () => ({
-  getStorageItem: jest.fn(),
-  setStorageItem: jest.fn(),
-}));
+// Create mock DataStore
+const mockDataStore: jest.Mocked<Pick<DataStore, 'getWarmupPlan' | 'saveWarmupPlan' | 'deleteWarmupPlan'>> = {
+  getWarmupPlan: jest.fn(),
+  saveWarmupPlan: jest.fn(),
+  deleteWarmupPlan: jest.fn(),
+};
 
-// Mock storageKeyLock
-jest.mock('./storageKeyLock', () => ({
-  withKeyLock: jest.fn((key, fn) => fn()),
+// Mock the datastore factory
+jest.mock('@/datastore', () => ({
+  getDataStore: jest.fn(() => Promise.resolve(mockDataStore)),
 }));
 
 // Mock logger to avoid console noise
 jest.mock('@/utils/logger', () => ({
-  error: jest.fn(),
-  log: jest.fn(),
-  debug: jest.fn(),
-  warn: jest.fn(),
-  info: jest.fn(),
+  __esModule: true,
+  default: {
+    error: jest.fn(),
+    log: jest.fn(),
+    debug: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn(),
+  },
 }));
-
-const { getStorageItem, setStorageItem } = jest.requireMock('@/utils/storage');
 
 // Mock translation function
 const createMockT = (): TFunction => {
@@ -89,50 +91,26 @@ describe('warmupPlan utilities', () => {
   });
 
   describe('getWarmupPlan', () => {
-    it('returns null when no plan exists in storage', async () => {
-      getStorageItem.mockResolvedValue(null);
+    it('returns null when no plan exists', async () => {
+      mockDataStore.getWarmupPlan.mockResolvedValue(null);
 
       const result = await getWarmupPlan();
 
       expect(result).toBeNull();
-      expect(getStorageItem).toHaveBeenCalledWith(WARMUP_PLAN_KEY);
+      expect(mockDataStore.getWarmupPlan).toHaveBeenCalledTimes(1);
     });
 
-    it('returns null when storage contains empty string', async () => {
-      getStorageItem.mockResolvedValue('');
-
-      const result = await getWarmupPlan();
-
-      expect(result).toBeNull();
-    });
-
-    it('returns parsed plan when valid JSON exists', async () => {
+    it('returns plan when it exists', async () => {
       const validPlan = createValidPlan();
-      getStorageItem.mockResolvedValue(JSON.stringify(validPlan));
+      mockDataStore.getWarmupPlan.mockResolvedValue(validPlan);
 
       const result = await getWarmupPlan();
 
       expect(result).toEqual(validPlan);
     });
 
-    it('returns null when JSON is invalid', async () => {
-      getStorageItem.mockResolvedValue('not valid json {{{');
-
-      const result = await getWarmupPlan();
-
-      expect(result).toBeNull();
-    });
-
-    it('returns null when parsed data lacks sections field', async () => {
-      getStorageItem.mockResolvedValue(JSON.stringify({ id: 'test', version: 1 }));
-
-      const result = await getWarmupPlan();
-
-      expect(result).toBeNull();
-    });
-
-    it('returns null when storage throws an error', async () => {
-      getStorageItem.mockRejectedValue(new Error('Storage error'));
+    it('returns null when DataStore throws an error', async () => {
+      mockDataStore.getWarmupPlan.mockRejectedValue(new Error('DataStore error'));
 
       const result = await getWarmupPlan();
 
@@ -141,38 +119,27 @@ describe('warmupPlan utilities', () => {
   });
 
   describe('saveWarmupPlan', () => {
-    it('saves plan to storage with updated lastModified', async () => {
-      setStorageItem.mockResolvedValue(undefined);
+    it('saves plan via DataStore', async () => {
+      mockDataStore.saveWarmupPlan.mockResolvedValue(true);
       const plan = createValidPlan();
-      const originalLastModified = plan.lastModified;
 
       const result = await saveWarmupPlan(plan);
 
       expect(result).toBe(true);
-      expect(setStorageItem).toHaveBeenCalledWith(
-        WARMUP_PLAN_KEY,
-        expect.any(String)
-      );
-
-      // Verify the saved data
-      const savedData = JSON.parse(setStorageItem.mock.calls[0][1]);
-      expect(savedData.lastModified).not.toBe(originalLastModified);
-      expect(savedData.isDefault).toBe(false);
+      expect(mockDataStore.saveWarmupPlan).toHaveBeenCalledWith(plan);
     });
 
-    it('sets isDefault to false when saving', async () => {
-      setStorageItem.mockResolvedValue(undefined);
+    it('returns false when DataStore save fails', async () => {
+      mockDataStore.saveWarmupPlan.mockResolvedValue(false);
       const plan = createValidPlan();
-      plan.isDefault = true;
 
-      await saveWarmupPlan(plan);
+      const result = await saveWarmupPlan(plan);
 
-      const savedData = JSON.parse(setStorageItem.mock.calls[0][1]);
-      expect(savedData.isDefault).toBe(false);
+      expect(result).toBe(false);
     });
 
-    it('returns false when storage throws an error', async () => {
-      setStorageItem.mockRejectedValue(new Error('Storage error'));
+    it('returns false when DataStore throws an error', async () => {
+      mockDataStore.saveWarmupPlan.mockRejectedValue(new Error('DataStore error'));
       const plan = createValidPlan();
 
       const result = await saveWarmupPlan(plan);
@@ -182,17 +149,25 @@ describe('warmupPlan utilities', () => {
   });
 
   describe('deleteWarmupPlan', () => {
-    it('clears the plan from storage', async () => {
-      setStorageItem.mockResolvedValue(undefined);
+    it('deletes plan via DataStore', async () => {
+      mockDataStore.deleteWarmupPlan.mockResolvedValue(true);
 
       const result = await deleteWarmupPlan();
 
       expect(result).toBe(true);
-      expect(setStorageItem).toHaveBeenCalledWith(WARMUP_PLAN_KEY, '');
+      expect(mockDataStore.deleteWarmupPlan).toHaveBeenCalledTimes(1);
     });
 
-    it('returns false when storage throws an error', async () => {
-      setStorageItem.mockRejectedValue(new Error('Storage error'));
+    it('returns false when DataStore delete fails', async () => {
+      mockDataStore.deleteWarmupPlan.mockResolvedValue(false);
+
+      const result = await deleteWarmupPlan();
+
+      expect(result).toBe(false);
+    });
+
+    it('returns false when DataStore throws an error', async () => {
+      mockDataStore.deleteWarmupPlan.mockRejectedValue(new Error('DataStore error'));
 
       const result = await deleteWarmupPlan();
 
