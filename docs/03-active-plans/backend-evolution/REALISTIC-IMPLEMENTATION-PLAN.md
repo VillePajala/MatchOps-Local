@@ -474,6 +474,38 @@ IndexedDB     Supabase
 3. Business logic (validation, cascade delete) stays in managers
 4. Both backends implement identical DataStore interface
 
+#### Responsibility Boundary: DataStore vs Managers
+
+| Concern | DataStore | Managers |
+|---------|-----------|----------|
+| **Data Access** | ✅ CRUD operations, storage I/O | ❌ |
+| **Storage Safety** | ✅ Handle corruption, parse errors | ❌ |
+| **Structural Invariants** | ✅ ID immutability, timestamps | ❌ |
+| **Business Validation** | ❌ | ✅ Name uniqueness, format rules |
+| **Normalization** | ❌ | ✅ Trim whitespace, default values |
+| **Referential Integrity** | ⚠️ Cascade deletes (internal) | ✅ Orchestration, locks |
+| **Derived Queries** | ❌ | ✅ countGamesForTeam, getFiltered |
+| **Archive Filtering** | ✅ `includeArchived` param | ✅ Policy decisions |
+
+**DataStore responsibilities** (pure data access):
+- Read/write operations to storage backend
+- JSON parsing, storage error handling
+- Generate IDs, set timestamps on create/update
+- Return all records by default (matches current utilities)
+- Support `includeArchived` filter parameter where applicable
+
+**Manager responsibilities** (business logic):
+- Validation: name uniqueness, required fields, format rules
+- Normalization: trim whitespace, apply defaults
+- Derived operations: `countGamesForTeam()`, `getFilteredGames()`
+- Complex orchestration: export/import, duplicate operations
+- Policy decisions: what gets archived, when to filter archived items
+
+**Archive Filtering Policy**:
+- DataStore methods like `getSeasons()`, `getTournaments()`, `getTeams()` accept `includeArchived?: boolean`
+- Default: return ALL records (matches current utility behavior)
+- Managers decide when to filter: UI lists may exclude archived, exports include all
+
 **Migration path**:
 - Phase 3: LocalDataStore directly accesses `@/utils/storage`
 - Managers refactored to call DataStore instead of storage
@@ -1266,6 +1298,7 @@ This allows gradual rollout and easy rollback.
 
 | Date | Update |
 |------|--------|
+| 2025-12-18 | Added explicit **Responsibility Boundary** table in Section 6 documenting DataStore (pure data access) vs Managers (business logic) separation |
 | 2025-12-18 | ✅ **Phase 1 COMPLETE**: All 3 PRs merged to feature/backend-abstraction (timerStateManager created, appSettings extended, all hooks updated) |
 | 2025-12-18 | **Consistency pass**: Fixed Phase 3 PR #6-7 to match Option B (LocalDataStore uses direct storage access, NOT manager delegation); fixed Operations Inventory with verified function names; added DataStore scope decisions (Section 9); updated Success Criteria |
 | 2025-12-18 | **DATA CONTRACT section**: Added comprehensive authoritative reference covering complete key inventory (including infrastructure keys), data shapes, atomicity guarantees, error handling contract, backup gaps, architecture decision, migration clarification, and complete operations inventory |
