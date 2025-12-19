@@ -4,7 +4,7 @@
  * Provides singleton instances of DataStore and AuthService.
  * Currently only supports local mode; cloud mode will be added in Phase 4.
  *
- * Part of Phase 3 backend abstraction (PR #8).
+ * Part of Phase 3 backend abstraction (PR #137).
  *
  * @see docs/03-active-plans/backend-evolution/REALISTIC-IMPLEMENTATION-PLAN.md
  */
