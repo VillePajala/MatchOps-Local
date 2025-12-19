@@ -144,6 +144,19 @@ describe('playerAdjustments', () => {
       expect(result.teamId).toBe('team-1');
       expect(result.note).toBe('Test note');
     });
+
+    it('should throw error when DataStore fails (write operations surface errors)', async () => {
+      mockDataStore.addPlayerAdjustment.mockRejectedValue(new Error('DataStore error'));
+
+      await expect(
+        addPlayerAdjustment({
+          playerId: 'player-1',
+          gamesPlayedDelta: 1,
+          goalsDelta: 0,
+          assistsDelta: 0,
+        })
+      ).rejects.toThrow('DataStore error');
+    });
   });
 
   // ============================================
