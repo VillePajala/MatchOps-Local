@@ -1,9 +1,7 @@
-import { WARMUP_PLAN_KEY } from '@/config/storageKeys';
+import { getDataStore } from '@/datastore';
 import type { WarmupPlan, WarmupPlanSection } from '@/types/warmupPlan';
 import { WARMUP_PLAN_SCHEMA_VERSION } from '@/types/warmupPlan';
 import logger from '@/utils/logger';
-import { getStorageItem, setStorageItem } from '@/utils/storage';
-import { withKeyLock } from './storageKeyLock';
 import type { TFunction } from 'i18next';
 
 /**
@@ -18,52 +16,28 @@ const generateId = (): string =>
  */
 export const getWarmupPlan = async (): Promise<WarmupPlan | null> => {
   try {
-    const planJson = await getStorageItem(WARMUP_PLAN_KEY);
-    if (!planJson) {
-      return null;
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(planJson);
-    } catch (parseError) {
-      logger.error('[getWarmupPlan] JSON parse failed - data may be corrupted.', { error: parseError });
-      return null;
-    }
-
-    // Basic validation
-    if (!parsed || typeof parsed !== 'object' || !('sections' in parsed)) {
-      logger.error('[getWarmupPlan] Invalid warmup plan structure');
-      return null;
-    }
-
-    return parsed as WarmupPlan;
+    const dataStore = await getDataStore();
+    return await dataStore.getWarmupPlan();
   } catch (error) {
-    logger.error('[getWarmupPlan] Error reading warmup plan from storage:', error);
+    logger.error('[getWarmupPlan] Error reading warmup plan:', error);
     return null;
   }
 };
 
 /**
  * Saves a warm-up plan to storage.
+ * DataStore handles lastModified update and setting isDefault to false.
  * @param plan - The WarmupPlan to save.
  * @returns true if successful, false otherwise.
  */
 export const saveWarmupPlan = async (plan: WarmupPlan): Promise<boolean> => {
-  return withKeyLock(WARMUP_PLAN_KEY, async () => {
-    try {
-      const planToSave: WarmupPlan = {
-        ...plan,
-        lastModified: new Date().toISOString(),
-        isDefault: false, // Once saved, it's no longer the default
-      };
-      await setStorageItem(WARMUP_PLAN_KEY, JSON.stringify(planToSave));
-      return true;
-    } catch (error) {
-      logger.error('[saveWarmupPlan] Error saving warmup plan to storage:', error);
-      return false;
-    }
-  });
+  try {
+    const dataStore = await getDataStore();
+    return await dataStore.saveWarmupPlan(plan);
+  } catch (error) {
+    logger.error('[saveWarmupPlan] Error saving warmup plan:', error);
+    return false;
+  }
 };
 
 /**
@@ -71,15 +45,13 @@ export const saveWarmupPlan = async (plan: WarmupPlan): Promise<boolean> => {
  * @returns true if successful, false otherwise.
  */
 export const deleteWarmupPlan = async (): Promise<boolean> => {
-  return withKeyLock(WARMUP_PLAN_KEY, async () => {
-    try {
-      await setStorageItem(WARMUP_PLAN_KEY, '');
-      return true;
-    } catch (error) {
-      logger.error('[deleteWarmupPlan] Error deleting warmup plan:', error);
-      return false;
-    }
-  });
+  try {
+    const dataStore = await getDataStore();
+    return await dataStore.deleteWarmupPlan();
+  } catch (error) {
+    logger.error('[deleteWarmupPlan] Error deleting warmup plan:', error);
+    return false;
+  }
 };
 
 /**
