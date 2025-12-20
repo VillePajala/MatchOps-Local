@@ -355,6 +355,14 @@ export interface DataStore {
    */
   saveSettings(settings: AppSettings): Promise<void>;
 
+  /**
+   * Atomically update application settings.
+   * Performs read-modify-write within a single lock to prevent race conditions.
+   * @param updates - Partial settings to merge with existing settings
+   * @returns Updated settings
+   */
+  updateSettings(updates: Partial<AppSettings>): Promise<AppSettings>;
+
   // ==========================================================================
   // PLAYER ADJUSTMENTS (External Stats)
   // ==========================================================================

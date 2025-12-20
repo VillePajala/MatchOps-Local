@@ -23,6 +23,12 @@ interface PerformanceWithMemory extends Performance {
 // Mock storage module - uses __mocks__/storage.ts for in-memory storage
 jest.mock('@/utils/storage');
 
+// Mock datastore factory (used by appSettings)
+jest.mock('@/datastore', () => ({
+  __esModule: true,
+  getDataStore: jest.fn(),
+}));
+
 // Mock appSettings module to prevent real storage access
 jest.mock('@/utils/appSettings', () => ({
   getAppSettings: jest.fn().mockResolvedValue({
