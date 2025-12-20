@@ -90,6 +90,13 @@ jest.doMock('./storageConfigManager', () => ({
   },
 }));
 
+jest.doMock('./storageKeyLock', () => ({
+  __esModule: true,
+  withKeyLock: jest.fn(async (_key: string, operation: () => Promise<unknown>) => operation()),
+  isKeyLocked: jest.fn(() => false),
+  getKeyLockQueueSize: jest.fn(() => 0),
+}));
+
 jest.doMock('./localStorage', () => ({
   __esModule: true,
   clearLocalStorage: mockClearLocalStorage,
