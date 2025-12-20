@@ -21,6 +21,7 @@ import {
 import logger from '@/utils/logger';
 import { storageConfigManager } from './storageConfigManager';
 import { getDataStore } from '@/datastore';
+import { withKeyLock } from './storageKeyLock';
 /**
  * Interface for application settings
  */
@@ -89,16 +90,18 @@ export const saveAppSettings = async (settings: AppSettings): Promise<boolean> =
 
 /**
  * Updates specific application settings while preserving others.
- * Uses DataStore for atomic read-modify-write operations.
+ * Uses withKeyLock to ensure atomic read-modify-write operations.
  * @param settingsUpdate - Partial settings to update
  * @returns A promise that resolves to the updated settings
  */
 export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>): Promise<AppSettings> => {
-  const dataStore = await getDataStore();
-  const currentSettings = await dataStore.getSettings();
-  const updatedSettings = { ...currentSettings, ...settingsUpdate };
-  await dataStore.saveSettings(updatedSettings);
-  return updatedSettings;
+  return withKeyLock(APP_SETTINGS_KEY, async () => {
+    const dataStore = await getDataStore();
+    const currentSettings = await dataStore.getSettings();
+    const updatedSettings = { ...currentSettings, ...settingsUpdate };
+    await dataStore.saveSettings(updatedSettings);
+    return updatedSettings;
+  });
 };
 
 /**
