@@ -21,7 +21,6 @@ import {
 import logger from '@/utils/logger';
 import { storageConfigManager } from './storageConfigManager';
 import { getDataStore } from '@/datastore';
-import { withKeyLock } from './storageKeyLock';
 /**
  * Interface for application settings
  */
@@ -90,18 +89,13 @@ export const saveAppSettings = async (settings: AppSettings): Promise<boolean> =
 
 /**
  * Updates specific application settings while preserving others.
- * Uses withKeyLock to ensure atomic read-modify-write operations.
+ * DataStore.updateSettings handles atomic read-modify-write internally.
  * @param settingsUpdate - Partial settings to update
  * @returns A promise that resolves to the updated settings
  */
 export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>): Promise<AppSettings> => {
-  return withKeyLock(APP_SETTINGS_KEY, async () => {
-    const dataStore = await getDataStore();
-    const currentSettings = await dataStore.getSettings();
-    const updatedSettings = { ...currentSettings, ...settingsUpdate };
-    await dataStore.saveSettings(updatedSettings);
-    return updatedSettings;
-  });
+  const dataStore = await getDataStore();
+  return dataStore.updateSettings(settingsUpdate);
 };
 
 /**
@@ -141,7 +135,7 @@ export const getLastHomeTeamName = async (): Promise<string> => {
     // Wait for getAppSettings to resolve
     const settings = await getAppSettings();
     if (settings.lastHomeTeamName) {
-      return Promise.resolve(settings.lastHomeTeamName);
+      return settings.lastHomeTeamName;
     }
     
     // Fall back to legacy approach (using dedicated key)
@@ -161,7 +155,9 @@ export const getLastHomeTeamName = async (): Promise<string> => {
 export const saveLastHomeTeamName = async (teamName: string): Promise<boolean> => {
   try {
     // Save in both the modern way and legacy way for backwards compatibility
-    // Wait for updateAppSettings to resolve
+    // TODO: Remove legacy dual-write after v1.1.0 (target: Q2 2026)
+    // PWA auto-updates ensure users migrate quickly, but keep for ~6 months post-release
+    // to handle edge cases (offline users, cached service workers)
     await updateAppSettings({ lastHomeTeamName: teamName });
     try {
       await setStorageItem(LAST_HOME_TEAM_NAME_KEY, teamName); // Legacy async save

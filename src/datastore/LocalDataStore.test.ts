@@ -6,28 +6,54 @@
  * cascade deletes, and edge cases.
  */
 
-import { LocalDataStore } from './LocalDataStore';
-import {
-  AlreadyExistsError,
-  NotInitializedError,
-  ValidationError,
-} from '@/interfaces/DataStoreErrors';
+// Error classes and LocalDataStore are imported via require after mocks,
+// but we need the type for TypeScript annotations
+import type { LocalDataStore as LocalDataStoreType } from './LocalDataStore';
 import type { Player, Team, TeamPlayer, Season, Tournament } from '@/types';
 import type { AppState, GameEvent } from '@/types/game';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
-import type { AppSettings } from '@/utils/appSettings';
 import type { TimerState } from '@/utils/timerStateManager';
+
+// AppSettings type definition (to avoid importing appSettings module which has circular deps)
+interface AppSettings {
+  currentGameId: string | null;
+  lastHomeTeamName?: string;
+  language?: string;
+  hasSeenAppGuide?: boolean;
+  useDemandCorrection?: boolean;
+  isDrawingModeEnabled?: boolean;
+  clubSeasonStartDate?: string;
+  clubSeasonEndDate?: string;
+  hasConfiguredSeasonDates?: boolean;
+}
+
+// Create mock functions BEFORE jest.mock (so they can be referenced in mocks)
+const mockGetStorageItem = jest.fn();
+const mockSetStorageItem = jest.fn();
+const mockRemoveStorageItem = jest.fn();
+const mockGetStorageJSON = jest.fn();
+const mockSetStorageJSON = jest.fn();
+const mockIsIndexedDBAvailable = jest.fn(() => true);
+const mockClearAdapterCacheWithCleanup = jest.fn();
+
+// Reset modules to ensure clean mocking
+jest.resetModules();
 
 // Mock storage layer
 jest.mock('@/utils/storage', () => ({
-  getStorageItem: jest.fn(),
-  setStorageItem: jest.fn(),
-  removeStorageItem: jest.fn(),
-  getStorageJSON: jest.fn(),
-  setStorageJSON: jest.fn(),
-  isIndexedDBAvailable: jest.fn(() => true),
-  clearAdapterCacheWithCleanup: jest.fn(),
+  getStorageItem: mockGetStorageItem,
+  setStorageItem: mockSetStorageItem,
+  removeStorageItem: mockRemoveStorageItem,
+  getStorageJSON: mockGetStorageJSON,
+  setStorageJSON: mockSetStorageJSON,
+  isIndexedDBAvailable: mockIsIndexedDBAvailable,
+  clearAdapterCacheWithCleanup: mockClearAdapterCacheWithCleanup,
+}));
+
+// Mock appSettings to prevent import of @/datastore (which would load the real storage)
+jest.mock('@/utils/appSettings', () => ({
+  __esModule: true,
 }));
 
 // Mock lock managers
@@ -50,26 +76,13 @@ jest.mock('@/utils/logger', () => ({
   },
 }));
 
-import {
-  getStorageItem,
-  setStorageItem,
-  removeStorageItem,
-  getStorageJSON,
-  setStorageJSON,
-  isIndexedDBAvailable,
-  clearAdapterCacheWithCleanup,
-} from '@/utils/storage';
-
-const mockGetStorageItem = getStorageItem as jest.MockedFunction<typeof getStorageItem>;
-const mockSetStorageItem = setStorageItem as jest.MockedFunction<typeof setStorageItem>;
-const mockRemoveStorageItem = removeStorageItem as jest.MockedFunction<typeof removeStorageItem>;
-const mockGetStorageJSON = getStorageJSON as jest.MockedFunction<typeof getStorageJSON>;
-const mockSetStorageJSON = setStorageJSON as jest.MockedFunction<typeof setStorageJSON>;
-const mockIsIndexedDBAvailable = isIndexedDBAvailable as jest.MockedFunction<typeof isIndexedDBAvailable>;
-const mockClearAdapterCacheWithCleanup = clearAdapterCacheWithCleanup as jest.MockedFunction<typeof clearAdapterCacheWithCleanup>;
+// Import LocalDataStore and error classes AFTER mocks are set up
+// Using require to ensure the same class instances are used in tests and implementation
+const { LocalDataStore } = require('./LocalDataStore');
+const { AlreadyExistsError, NotInitializedError, ValidationError } = require('@/interfaces/DataStoreErrors');
 
 describe('LocalDataStore', () => {
-  let dataStore: LocalDataStore;
+  let dataStore: LocalDataStoreType;
 
   beforeEach(async () => {
     jest.clearAllMocks();

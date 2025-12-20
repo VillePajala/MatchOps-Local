@@ -31,9 +31,13 @@ const clearMockStore = () => {
 };
 
 // Create mock DataStore
-const mockDataStore: jest.Mocked<Pick<DataStore, 'getSettings' | 'saveSettings'>> = {
+const mockDataStore: jest.Mocked<Pick<DataStore, 'getSettings' | 'saveSettings' | 'updateSettings'>> = {
   getSettings: jest.fn(async () => ({ ...mockSettings })),
   saveSettings: jest.fn(async (settings: AppSettings) => { mockSettings = { ...settings }; }),
+  updateSettings: jest.fn(async (updates: Partial<AppSettings>) => {
+    mockSettings = { ...mockSettings, ...updates };
+    return mockSettings;
+  }),
 };
 
 // Create mock functions for storage (still used by install prompt, first game guide, etc.)
@@ -90,13 +94,6 @@ jest.doMock('./storageConfigManager', () => ({
   },
 }));
 
-jest.doMock('./storageKeyLock', () => ({
-  __esModule: true,
-  withKeyLock: jest.fn(async (_key: string, operation: () => Promise<unknown>) => operation()),
-  isKeyLocked: jest.fn(() => false),
-  getKeyLockQueueSize: jest.fn(() => 0),
-}));
-
 jest.doMock('./localStorage', () => ({
   __esModule: true,
   clearLocalStorage: mockClearLocalStorage,
@@ -123,6 +120,10 @@ const {
 const setupMockImplementations = () => {
   mockDataStore.getSettings.mockImplementation(async () => ({ ...mockSettings }));
   mockDataStore.saveSettings.mockImplementation(async (settings: AppSettings) => { mockSettings = { ...settings }; });
+  mockDataStore.updateSettings.mockImplementation(async (updates: Partial<AppSettings>) => {
+    mockSettings = { ...mockSettings, ...updates };
+    return mockSettings;
+  });
   mockGetStorageItem.mockImplementation(async (key: string) => mockKeyStore[key] || null);
   mockSetStorageItem.mockImplementation(async (key: string, value: string) => { mockKeyStore[key] = value; });
   mockRemoveStorageItem.mockImplementation(async (key: string) => { delete mockKeyStore[key]; });
@@ -139,6 +140,7 @@ describe('App Settings Utilities', () => {
     // Clear call history but keep implementations (mockClear, not mockReset!)
     mockDataStore.getSettings.mockClear();
     mockDataStore.saveSettings.mockClear();
+    mockDataStore.updateSettings.mockClear();
     mockGetStorageItem.mockClear();
     mockSetStorageItem.mockClear();
     mockRemoveStorageItem.mockClear();
@@ -263,10 +265,8 @@ describe('App Settings Utilities', () => {
         clubSeasonEndDate: '2000-05-01'
       });
 
-      // Check that saveSettings was called with updated settings
-      expect(mockDataStore.saveSettings).toHaveBeenCalledWith(
-        expect.objectContaining({ currentGameId: 'game456' })
-      );
+      // Check that updateSettings was called with the partial update
+      expect(mockDataStore.updateSettings).toHaveBeenCalledWith({ currentGameId: 'game456' });
     });
 
     it('should update the language setting', async () => {
@@ -284,10 +284,8 @@ describe('App Settings Utilities', () => {
         language: 'en',
       });
 
-      // Verify saveSettings was called with correct structure
-      expect(mockDataStore.saveSettings).toHaveBeenCalledWith(
-        expect.objectContaining({ language: 'en' })
-      );
+      // Verify updateSettings was called with the partial update
+      expect(mockDataStore.updateSettings).toHaveBeenCalledWith({ language: 'en' });
     });
 
     it('should throw an error if update fails', async () => {
@@ -297,10 +295,10 @@ describe('App Settings Utilities', () => {
         lastHomeTeamName: 'InitialTeam',
         language: 'en'
       };
-      // Simulate saveSettings failing
-      mockDataStore.saveSettings.mockRejectedValueOnce(new Error('Save failed'));
+      // Simulate updateSettings failing
+      mockDataStore.updateSettings.mockRejectedValueOnce(new Error('Save failed'));
 
-      // Expect updateAppSettings to throw the error from saveSettings
+      // Expect updateAppSettings to throw the error from updateSettings
       try {
         await updateAppSettings({ currentGameId: 'updatedGame' });
         fail('Expected updateAppSettings to throw an error');
@@ -309,8 +307,8 @@ describe('App Settings Utilities', () => {
         expect((error as Error).message).toBe('Save failed');
       }
 
-      // Ensure saveSettings was called (attempted to save)
-      expect(mockDataStore.saveSettings).toHaveBeenCalledTimes(1);
+      // Ensure updateSettings was called (attempted to update)
+      expect(mockDataStore.updateSettings).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -344,22 +342,15 @@ describe('App Settings Utilities', () => {
 
       const result = await saveCurrentGameIdSetting('newGameId');
 
-      // Verify saveSettings was called with correct structure
-      expect(mockDataStore.saveSettings).toHaveBeenCalledWith(
-        expect.objectContaining({
-          currentGameId: 'newGameId',
-          lastHomeTeamName: 'Team B',
-          language: 'fi',
-          hasSeenAppGuide: false,
-        })
-      );
+      // Verify updateSettings was called with the game ID update
+      expect(mockDataStore.updateSettings).toHaveBeenCalledWith({ currentGameId: 'newGameId' });
       expect(result).toBe(true);
     });
 
     it('should return false if saving fails', async () => {
       mockSettings = { ...DEFAULT_APP_SETTINGS, currentGameId: 'old' };
-      // Simulate error during saveSettings call
-      mockDataStore.saveSettings.mockRejectedValueOnce(new Error('Cannot save'));
+      // Simulate error during updateSettings call
+      mockDataStore.updateSettings.mockRejectedValueOnce(new Error('Cannot save'));
 
       const result = await saveCurrentGameIdSetting('newGameId');
       expect(result).toBe(false);
@@ -408,15 +399,8 @@ describe('App Settings Utilities', () => {
 
       const result = await saveLastHomeTeamName('New Team Name');
 
-      // Check saveSettings was called with updated settings
-      expect(mockDataStore.saveSettings).toHaveBeenCalledWith(
-        expect.objectContaining({
-          currentGameId: 'game123',
-          lastHomeTeamName: 'New Team Name',
-          language: 'fi',
-          hasSeenAppGuide: false,
-        })
-      );
+      // Check updateSettings was called with the team name update
+      expect(mockDataStore.updateSettings).toHaveBeenCalledWith({ lastHomeTeamName: 'New Team Name' });
 
       // Check legacy save
       expect(mockSetStorageItem).toHaveBeenCalledWith(LAST_HOME_TEAM_NAME_KEY, 'New Team Name');
@@ -425,8 +409,8 @@ describe('App Settings Utilities', () => {
 
     it('should return false if saving to app settings fails', async () => {
       mockSettings = { ...DEFAULT_APP_SETTINGS, currentGameId: 'game123' };
-      // Simulate saveSettings failing
-      mockDataStore.saveSettings.mockRejectedValueOnce(new Error('Cannot save app settings'));
+      // Simulate updateSettings failing
+      mockDataStore.updateSettings.mockRejectedValueOnce(new Error('Cannot save app settings'));
 
       const result = await saveLastHomeTeamName('New Team Name');
       expect(result).toBe(false);
