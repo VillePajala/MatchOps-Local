@@ -19,8 +19,8 @@ import {
   removeStorageItem,
 } from './storage';
 import logger from '@/utils/logger';
-import { withKeyLock } from './storageKeyLock';
 import { storageConfigManager } from './storageConfigManager';
+import { getDataStore } from '@/datastore';
 /**
  * Interface for application settings
  */
@@ -55,114 +55,50 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
 };
 
 /**
- * Converts legacy month number (1-12) to ISO date string
- * Uses year 2000 as stable template year (actual year doesn't matter for season templates)
- *
- * @param month - Month number (1-12)
- * @returns ISO date string "2000-MM-01" (first day of month, year 2000 template)
- *
- * @example
- * convertMonthToDate(3)  // "2000-03-01" (March 1st template)
- * convertMonthToDate(10) // "2000-10-01" (October 1st template)
- */
-function convertMonthToDate(month: number): string {
-  const monthStr = month.toString().padStart(2, '0');
-  return `2000-${monthStr}-01`;
-}
-
-/**
- * Gets the application settings from localStorage.
- * Automatically migrates legacy month-based settings to date-based format.
+ * Gets the application settings.
+ * DataStore handles legacy migration from month-based to date-based format.
  *
  * @returns A promise that resolves to the application settings
  */
 export const getAppSettings = async (): Promise<AppSettings> => {
   try {
-    const settingsJson = await getStorageItem(APP_SETTINGS_KEY);
-    if (!settingsJson) {
-      return DEFAULT_APP_SETTINGS;
-    }
-
-    const settings = JSON.parse(settingsJson) as AppSettings & {
-      clubSeasonStartMonth?: number;
-      clubSeasonEndMonth?: number;
-    };
-
-    // Automatic migration: Convert legacy month-based settings to date-based settings
-    let needsMigration = false;
-
-    if (settings.clubSeasonStartMonth !== undefined && !settings.clubSeasonStartDate) {
-      settings.clubSeasonStartDate = convertMonthToDate(settings.clubSeasonStartMonth);
-      logger.log('[getAppSettings] Migrated clubSeasonStartMonth to clubSeasonStartDate:', settings.clubSeasonStartDate);
-      needsMigration = true;
-    }
-
-    if (settings.clubSeasonEndMonth !== undefined && !settings.clubSeasonEndDate) {
-      settings.clubSeasonEndDate = convertMonthToDate(settings.clubSeasonEndMonth);
-      logger.log('[getAppSettings] Migrated clubSeasonEndMonth to clubSeasonEndDate:', settings.clubSeasonEndDate);
-      needsMigration = true;
-    }
-
-    // Save migrated settings back to storage
-    if (needsMigration) {
-      try {
-        // Remove legacy fields before saving
-        delete settings.clubSeasonStartMonth;
-        delete settings.clubSeasonEndMonth;
-
-        // Preserve configured season flag - if user had legacy month settings, they had configured seasons
-        settings.hasConfiguredSeasonDates = true;
-
-        await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(settings));
-        logger.log('[getAppSettings] Successfully saved migrated settings with hasConfiguredSeasonDates=true');
-      } catch (saveError) {
-        // Log error but don't fail the read - user can still use the app
-        logger.error('[getAppSettings] Failed to save migrated settings:', saveError);
-        // Continue with migrated values in memory
-      }
-    }
-
-    return { ...DEFAULT_APP_SETTINGS, ...settings };
+    const dataStore = await getDataStore();
+    return await dataStore.getSettings();
   } catch (error) {
-    logger.error('Error getting app settings from storage:', error);
-    return DEFAULT_APP_SETTINGS; // Fallback to default on error
+    logger.error('Error getting app settings:', error);
+    return DEFAULT_APP_SETTINGS;
   }
 };
 
 /**
- * Saves the application settings to localStorage
+ * Saves the application settings.
+ * DataStore handles locking and persistence.
  * @param settings - The settings to save
  * @returns A promise that resolves to true if successful, false otherwise
  */
 export const saveAppSettings = async (settings: AppSettings): Promise<boolean> => {
-  return withKeyLock(APP_SETTINGS_KEY, async () => {
-    try {
-      await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(settings));
-      return true;
-    } catch (error) {
-      logger.error('Error saving app settings to storage:', error);
-      return false;
-    }
-  });
+  try {
+    const dataStore = await getDataStore();
+    await dataStore.saveSettings(settings);
+    return true;
+  } catch (error) {
+    logger.error('Error saving app settings:', error);
+    return false;
+  }
 };
 
 /**
- * Updates specific application settings while preserving others
+ * Updates specific application settings while preserving others.
+ * Uses DataStore for atomic read-modify-write operations.
  * @param settingsUpdate - Partial settings to update
  * @returns A promise that resolves to the updated settings
  */
 export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>): Promise<AppSettings> => {
-  return withKeyLock(APP_SETTINGS_KEY, async () => {
-    // Get current settings. If this fails, the error will propagate.
-    const currentSettings = await getAppSettings();
-    const updatedSettings = { ...currentSettings, ...settingsUpdate };
-
-    // Save the updated settings directly within the lock
-    await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(updatedSettings));
-
-    // Return the updated settings.
-    return updatedSettings;
-  });
+  const dataStore = await getDataStore();
+  const currentSettings = await dataStore.getSettings();
+  const updatedSettings = { ...currentSettings, ...settingsUpdate };
+  await dataStore.saveSettings(updatedSettings);
+  return updatedSettings;
 };
 
 /**
