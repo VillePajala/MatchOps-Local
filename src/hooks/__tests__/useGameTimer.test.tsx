@@ -22,6 +22,13 @@ jest.mock('@/utils/storage', () => ({
   removeStorageItem: jest.fn().mockResolvedValue(undefined),
 }));
 
+// Mock timerStateManager (now uses DataStore internally)
+jest.mock('@/utils/timerStateManager', () => ({
+  saveTimerState: jest.fn().mockResolvedValue(undefined),
+  loadTimerState: jest.fn().mockResolvedValue(null),
+  clearTimerState: jest.fn().mockResolvedValue(undefined),
+}));
+
 // Mock useWakeLock
 jest.mock('../useWakeLock', () => ({
   useWakeLock: () => ({
@@ -275,7 +282,7 @@ describe('useGameTimer', () => {
     });
 
     it('should clear timer state from storage', async () => {
-      const { removeStorageItem } = jest.requireMock('@/utils/storage');
+      const { clearTimerState } = jest.requireMock('@/utils/timerStateManager');
       const initialState = createInitialState({ timeElapsedInSeconds: 300 });
 
       const { result } = renderHook(() => {
@@ -287,7 +294,7 @@ describe('useGameTimer', () => {
         await result.current.reset();
       });
 
-      expect(removeStorageItem).toHaveBeenCalled();
+      expect(clearTimerState).toHaveBeenCalled();
     });
   });
 

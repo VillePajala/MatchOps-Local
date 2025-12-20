@@ -1112,6 +1112,19 @@ export class LocalDataStore implements DataStore {
     });
   }
 
+  async updateSettings(updates: Partial<AppSettings>): Promise<AppSettings> {
+    this.ensureInitialized();
+
+    return withKeyLock(APP_SETTINGS_KEY, async () => {
+      // Read current settings (getSettings doesn't lock, safe to call here)
+      const current = await this.getSettings();
+      const updated = { ...current, ...updates };
+      // Write directly without nested lock
+      await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }
+
   async getPlayerAdjustments(playerId: string): Promise<PlayerStatAdjustment[]> {
     this.ensureInitialized();
 
