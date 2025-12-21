@@ -22,7 +22,7 @@ import {
 import { getTeams, getTeam } from '@/utils/teams';
 import { Player, Team } from '@/types';
 import type { GameEvent, AppState, SavedGamesCollection, PlayerAssessment } from "@/types";
-import { saveMasterRoster } from '@/utils/masterRoster';
+import { setPlayerFairPlayCardStatus } from '@/utils/masterRoster';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRoster } from '@/hooks/useRoster';
 import { useGameDataManagement } from './useGameDataManagement';
@@ -1493,13 +1493,19 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     setAvailablePlayers(updatedAvailablePlayers);
     fieldCoordination.setPlayersOnField(updatedPlayersOnField);
 
+    // Persist fair play card changes to master roster via DataStore
+    // Uses individual player updates rather than replacing entire roster
     try {
-      const success = await saveMasterRoster(updatedAvailablePlayers);
-      if (!success) {
-        logger.error('[handleAwardFairPlayCard] Failed to save master roster');
+      // Clear previous holder (if any)
+      if (currentlyAwardedPlayerId) {
+        await setPlayerFairPlayCardStatus(currentlyAwardedPlayerId, false);
+      }
+      // Award to new player (if different from cleared)
+      if (playerId && playerId !== currentlyAwardedPlayerId) {
+        await setPlayerFairPlayCardStatus(playerId, true);
       }
     } catch (error) {
-      logger.error('[handleAwardFairPlayCard] Error saving master roster:', error);
+      logger.error('[handleAwardFairPlayCard] Error updating fair play card status:', error);
     }
 
     saveStateToHistory({ playersOnField: updatedPlayersOnField, availablePlayers: updatedAvailablePlayers });
