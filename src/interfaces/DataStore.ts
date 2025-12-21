@@ -22,7 +22,7 @@ import type { Player, Team, TeamPlayer, Season, Tournament, PlayerStatAdjustment
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
-import type { AppSettings } from '@/utils/appSettings';
+import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 
 /**
