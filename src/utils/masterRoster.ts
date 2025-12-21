@@ -51,6 +51,11 @@ export const saveMasterRoster = async (players: Player[]): Promise<boolean> => {
 /**
  * Adds a new player to the master roster.
  * DataStore handles ID generation, validation, and storage.
+ *
+ * Error handling: Returns null on failure (graceful degradation for local-first UX).
+ * Errors are logged with context for debugging. Callers should handle null returns
+ * gracefully rather than expecting exceptions.
+ *
  * @param playerData - The player data to add. Must contain at least a name.
  * @returns The new Player object with generated ID, or null if operation failed.
  */
@@ -78,7 +83,10 @@ export const addPlayerToRoster = async (playerData: {
     });
     return newPlayer;
   } catch (error) {
-    logger.error('[addPlayerToRoster] Unexpected error adding player:', error);
+    logger.error('[addPlayerToRoster] Unexpected error adding player:', {
+      playerName: trimmedName,
+      error
+    });
     return null;
   }
 };
@@ -116,7 +124,11 @@ export const updatePlayerInRoster = async (
 
     return updatedPlayer;
   } catch (error) {
-    logger.error('[updatePlayerInRoster] Unexpected error updating player:', error);
+    logger.error('[updatePlayerInRoster] Unexpected error updating player:', {
+      playerId,
+      updateFields: Object.keys(updateData),
+      error
+    });
     return null;
   }
 };
@@ -144,7 +156,10 @@ export const removePlayerFromRoster = async (playerId: string): Promise<boolean>
 
     return true;
   } catch (error) {
-    logger.error('[removePlayerFromRoster] Unexpected error removing player:', error);
+    logger.error('[removePlayerFromRoster] Unexpected error removing player:', {
+      playerId,
+      error
+    });
     return false;
   }
 };
@@ -154,14 +169,14 @@ export const removePlayerFromRoster = async (playerId: string): Promise<boolean>
  * Only one player can be goalie at a time - setting a new goalie clears others.
  * DataStore handles individual player updates; this function coordinates the exclusive logic.
  *
- * DESIGN NOTE (Race Condition - Accepted Risk):
- * The goalie clearing loop performs multiple sequential updatePlayer calls without
- * transaction guarantees. If a failure occurs mid-loop, partial updates may persist.
- * This is acceptable for a local-first PWA because:
- * - Single user, no concurrent access from other clients
- * - IndexedDB failures mid-operation are extremely rare
- * - Recovery is trivial: user simply sets the goalie again
- * - Adding rollback complexity isn't justified for this edge case
+ * DESIGN NOTE (Partial Atomicity):
+ * The goalie clearing loop tracks success/failure of each update. If any clear fails,
+ * the operation aborts before setting the new goalie, preventing multiple goalies.
+ * True rollback (reverting successful clears) is not implemented - for a local-first
+ * PWA with 50-100 players, the added complexity isn't justified.
+ *
+ * PERFORMANCE NOTE: Multiple storage operations (getPlayers + N updatePlayer calls).
+ * Acceptable for roster size of 50-100 players. Optimize only if profiling shows need.
  *
  * @param playerId - The ID of the player to update.
  * @param isGoalie - Whether the player should be marked as a goalie.
@@ -188,11 +203,23 @@ export const setPlayerGoalieStatus = async (
     }
 
     // If setting as goalie, first clear goalie status from all other players
-    // Note: Sequential updates without atomicity - see DESIGN NOTE above
     if (isGoalie) {
       const otherGoalies = currentRoster.filter(p => p.id !== playerId && p.isGoalie);
+      const clearResults: Array<{ id: string; success: boolean }> = [];
+
       for (const goalie of otherGoalies) {
-        await dataStore.updatePlayer(goalie.id, { isGoalie: false });
+        const result = await dataStore.updatePlayer(goalie.id, { isGoalie: false });
+        clearResults.push({ id: goalie.id, success: result !== null });
+      }
+
+      // Check if all clears succeeded before setting new goalie
+      const failedClears = clearResults.filter(r => !r.success);
+      if (failedClears.length > 0) {
+        logger.error('[setPlayerGoalieStatus] Failed to clear existing goalies:', {
+          failedPlayerIds: failedClears.map(r => r.id),
+          playerId,
+        });
+        return null;
       }
     }
 
@@ -200,7 +227,11 @@ export const setPlayerGoalieStatus = async (
     const updatedPlayer = await dataStore.updatePlayer(playerId, { isGoalie });
     return updatedPlayer;
   } catch (error) {
-    logger.error('[setPlayerGoalieStatus] Unexpected error:', error);
+    logger.error('[setPlayerGoalieStatus] Unexpected error:', {
+      playerId,
+      isGoalie,
+      error
+    });
     return null;
   }
 };
