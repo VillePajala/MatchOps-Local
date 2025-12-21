@@ -211,6 +211,19 @@ describe('Master Roster Utilities', () => {
       expect(mockDataStore.updatePlayer).toHaveBeenCalledWith('player_1', updateData);
     });
 
+    it('should trim whitespace from updated player name', async () => {
+      mockRoster = [...mockPlayers];
+
+      const result = await updatePlayerInRoster('player_1', { name: '  Trimmed Update  ' });
+
+      expect(result).not.toBeNull();
+      expect(result?.name).toBe('Trimmed Update');
+      expect(mockDataStore.updatePlayer).toHaveBeenCalledWith(
+        'player_1',
+        expect.objectContaining({ name: 'Trimmed Update' })
+      );
+    });
+
     it('should return null and log error if player not found', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       mockDataStore.updatePlayer.mockResolvedValueOnce(null);

@@ -1,8 +1,8 @@
 {
-  "version": "528f0a78",
+  "version": "68216bb2",
   "date": "2025-12-21",
   "notes": {
-    "en": "Address code review feedback for settings DataStore wiring",
-    "fi": "Address code review feedback for settings DataStore wiring"
+    "en": "Wire masterRoster.ts to use DataStore",
+    "fi": "Wire masterRoster.ts to use DataStore"
   }
 }
