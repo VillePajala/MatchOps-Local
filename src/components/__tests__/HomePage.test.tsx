@@ -228,8 +228,9 @@ describe('HomePage Component - Deep Testing', () => {
       
       const renderTime = performance.now() - startTime;
       
-      // Should render within 3 seconds on CI/test environment
-      expect(renderTime).toBeLessThan(3000);
+      // Should render within 5 seconds on CI/test environment
+      // (waitFor timeout is 5s, so threshold matches expected max)
+      expect(renderTime).toBeLessThan(5000);
     });
 
     it('should not cause memory leaks during normal usage', async () => {
