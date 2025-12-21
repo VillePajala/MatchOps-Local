@@ -1,28 +1,38 @@
 import { MASTER_ROSTER_KEY } from '@/config/storageKeys';
 import type { Player } from '@/types';
 import logger from '@/utils/logger';
-import { getStorageItem, setStorageItem } from '@/utils/storage';
+import { setStorageItem } from '@/utils/storage';
 import { withKeyLock } from './storageKeyLock';
+import { getDataStore } from '@/datastore';
+
+// Note: MASTER_ROSTER_KEY, setStorageItem, and withKeyLock are still needed
+// for the deprecated saveMasterRoster() function (used by tests).
 
 /**
  * Retrieves the master roster of players from IndexedDB.
+ * DataStore handles initialization and storage access.
  * @returns An array of Player objects.
  */
 export const getMasterRoster = async (): Promise<Player[]> => {
   try {
-    const rosterJson = await getStorageItem(MASTER_ROSTER_KEY);
-    if (!rosterJson) {
-      return Promise.resolve([]);
-    }
-    return Promise.resolve(JSON.parse(rosterJson) as Player[]);
+    const dataStore = await getDataStore();
+    return await dataStore.getPlayers();
   } catch (error) {
-    logger.error('[getMasterRoster] Error getting master roster from IndexedDB:', error);
-    return Promise.resolve([]); // Return empty array on error
+    logger.error('[getMasterRoster] Error getting master roster:', error);
+    return [];
   }
 };
 
 /**
  * Saves the master roster to IndexedDB, overwriting any existing roster.
+ *
+ * @deprecated This function bypasses DataStore and should not be used for new code.
+ * Use individual player operations (addPlayerToRoster, updatePlayerInRoster, etc.)
+ * which route through DataStore for proper abstraction.
+ *
+ * KEPT FOR: Test setup (mocking storage directly). In production code, use
+ * setPlayerFairPlayCardStatus() instead of saving entire roster.
+ *
  * @param players - The array of Player objects to save.
  * @returns {boolean} True if successful, false otherwise.
  */
@@ -30,17 +40,17 @@ export const saveMasterRoster = async (players: Player[]): Promise<boolean> => {
   return withKeyLock(MASTER_ROSTER_KEY, async () => {
     try {
       await setStorageItem(MASTER_ROSTER_KEY, JSON.stringify(players));
-      return Promise.resolve(true);
+      return true;
     } catch (error) {
       logger.error('[saveMasterRoster] Error saving master roster to IndexedDB:', error);
-      // Handle potential errors, e.g., IndexedDB quota exceeded
-      return Promise.resolve(false);
+      return false;
     }
   });
 };
 
 /**
- * Adds a new player to the master roster in IndexedDB.
+ * Adds a new player to the master roster.
+ * DataStore handles ID generation, validation, and storage.
  * @param playerData - The player data to add. Must contain at least a name.
  * @returns The new Player object with generated ID, or null if operation failed.
  */
@@ -53,36 +63,29 @@ export const addPlayerToRoster = async (playerData: {
   const trimmedName = playerData.name?.trim();
   if (!trimmedName) {
     logger.warn('[addPlayerToRoster] Validation Failed: Player name cannot be empty.');
-    return Promise.resolve(null);
+    return null;
   }
 
-  return withKeyLock(MASTER_ROSTER_KEY, async () => {
-    try {
-      const currentRoster = await getMasterRoster();
-
-      // Create new player with unique ID
-      const newPlayer: Player = {
-        id: `player_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-        name: trimmedName,
-        nickname: playerData.nickname,
-        jerseyNumber: playerData.jerseyNumber,
-        notes: playerData.notes,
-        isGoalie: false, // Default to not goalie
-        receivedFairPlayCard: false, // Default to not having received fair play card
-      };
-
-      const updatedRoster = [...currentRoster, newPlayer];
-      await setStorageItem(MASTER_ROSTER_KEY, JSON.stringify(updatedRoster));
-      return Promise.resolve(newPlayer);
-    } catch (error) {
-      logger.error('[addPlayerToRoster] Unexpected error adding player:', error);
-      return Promise.resolve(null);
-    }
-  });
+  try {
+    const dataStore = await getDataStore();
+    const newPlayer = await dataStore.createPlayer({
+      name: trimmedName,
+      nickname: playerData.nickname,
+      jerseyNumber: playerData.jerseyNumber,
+      notes: playerData.notes,
+      isGoalie: false,
+      receivedFairPlayCard: false,
+    });
+    return newPlayer;
+  } catch (error) {
+    logger.error('[addPlayerToRoster] Unexpected error adding player:', error);
+    return null;
+  }
 };
 
 /**
  * Updates an existing player in the master roster.
+ * DataStore handles validation and storage.
  * @param playerId - The ID of the player to update.
  * @param updateData - The player data to update.
  * @returns The updated Player object, or null if player not found or operation failed.
@@ -93,80 +96,73 @@ export const updatePlayerInRoster = async (
 ): Promise<Player | null> => {
   if (!playerId) {
     logger.error('[updatePlayerInRoster] Validation Failed: Player ID cannot be empty.');
-    return Promise.resolve(null);
+    return null;
   }
 
-  return withKeyLock(MASTER_ROSTER_KEY, async () => {
-    try {
-      const currentRoster = await getMasterRoster();
-      const playerIndex = currentRoster.findIndex(p => p.id === playerId);
+  // Validate name is not empty if being updated
+  if (updateData.name !== undefined && !updateData.name?.trim()) {
+    logger.error('[updatePlayerInRoster] Validation Failed: Player name cannot be empty.');
+    return null;
+  }
 
-      if (playerIndex === -1) {
-        logger.error(`[updatePlayerInRoster] Player with ID ${playerId} not found.`);
-        return Promise.resolve(null);
-      }
+  try {
+    const dataStore = await getDataStore();
+    const updatedPlayer = await dataStore.updatePlayer(playerId, updateData);
 
-      // Create updated player object
-      const updatedPlayer = {
-        ...currentRoster[playerIndex],
-        ...updateData
-      };
-
-      // Ensure name is not empty if it's being updated
-      if (updateData.name !== undefined && !updatedPlayer.name?.trim()) {
-        logger.error('[updatePlayerInRoster] Validation Failed: Player name cannot be empty.');
-        return Promise.resolve(null);
-      }
-      // Ensure name is trimmed if updated
-      if (updatedPlayer.name) {
-        updatedPlayer.name = updatedPlayer.name.trim();
-      }
-
-      // Update roster
-      const updatedRoster = [...currentRoster];
-      updatedRoster[playerIndex] = updatedPlayer;
-      await setStorageItem(MASTER_ROSTER_KEY, JSON.stringify(updatedRoster));
-
-      return Promise.resolve(updatedPlayer);
-    } catch (error) {
-      logger.error('[updatePlayerInRoster] Unexpected error updating player:', error);
-      return Promise.resolve(null);
+    if (!updatedPlayer) {
+      logger.error(`[updatePlayerInRoster] Player with ID ${playerId} not found.`);
+      return null;
     }
-  });
+
+    return updatedPlayer;
+  } catch (error) {
+    logger.error('[updatePlayerInRoster] Unexpected error updating player:', error);
+    return null;
+  }
 };
 
 /**
  * Removes a player from the master roster.
+ * DataStore handles storage and atomicity.
  * @param playerId - The ID of the player to remove.
  * @returns True if player was successfully removed, false otherwise.
  */
 export const removePlayerFromRoster = async (playerId: string): Promise<boolean> => {
   if (!playerId) {
     logger.error('[removePlayerFromRoster] Validation Failed: Player ID cannot be empty.');
-    return Promise.resolve(false);
+    return false;
   }
 
-  return withKeyLock(MASTER_ROSTER_KEY, async () => {
-    try {
-      const currentRoster = await getMasterRoster();
-      const updatedRoster = currentRoster.filter(p => p.id !== playerId);
+  try {
+    const dataStore = await getDataStore();
+    const deleted = await dataStore.deletePlayer(playerId);
 
-      if (updatedRoster.length === currentRoster.length) {
-        logger.error(`[removePlayerFromRoster] Player with ID ${playerId} not found.`);
-        return Promise.resolve(false);
-      }
-
-      await setStorageItem(MASTER_ROSTER_KEY, JSON.stringify(updatedRoster));
-      return Promise.resolve(true);
-    } catch (error) {
-      logger.error('[removePlayerFromRoster] Unexpected error removing player:', error);
-      return Promise.resolve(false);
+    if (!deleted) {
+      logger.error(`[removePlayerFromRoster] Player with ID ${playerId} not found.`);
+      return false;
     }
-  });
+
+    return true;
+  } catch (error) {
+    logger.error('[removePlayerFromRoster] Unexpected error removing player:', error);
+    return false;
+  }
 };
 
 /**
  * Sets the goalie status for a player in the master roster.
+ * Only one player can be goalie at a time - setting a new goalie clears others.
+ * DataStore handles individual player updates; this function coordinates the exclusive logic.
+ *
+ * DESIGN NOTE (Race Condition - Accepted Risk):
+ * The goalie clearing loop performs multiple sequential updatePlayer calls without
+ * transaction guarantees. If a failure occurs mid-loop, partial updates may persist.
+ * This is acceptable for a local-first PWA because:
+ * - Single user, no concurrent access from other clients
+ * - IndexedDB failures mid-operation are extremely rare
+ * - Recovery is trivial: user simply sets the goalie again
+ * - Adding rollback complexity isn't justified for this edge case
+ *
  * @param playerId - The ID of the player to update.
  * @param isGoalie - Whether the player should be marked as a goalie.
  * @returns The updated Player object, or null if player not found or operation failed.
@@ -177,58 +173,41 @@ export const setPlayerGoalieStatus = async (
 ): Promise<Player | null> => {
   if (!playerId) {
     logger.error('[setPlayerGoalieStatus] Validation Failed: Player ID cannot be empty.');
-    return Promise.resolve(null);
+    return null;
   }
 
-  return withKeyLock(MASTER_ROSTER_KEY, async () => {
-    try {
-      const currentRoster = await getMasterRoster();
-      let targetPlayer: Player | undefined = undefined;
+  try {
+    const dataStore = await getDataStore();
+    const currentRoster = await dataStore.getPlayers();
 
-      const updatedRoster = currentRoster.map(player => {
-        if (player.id === playerId) {
-          targetPlayer = { ...player, isGoalie };
-          return targetPlayer;
-        }
-        // If we are setting a new goalie, unset goalie status for all other players.
-        if (isGoalie && player.isGoalie) {
-          return { ...player, isGoalie: false };
-        }
-        return player;
-      });
-
-      if (!targetPlayer) {
-        logger.error(`[setPlayerGoalieStatus] Player with ID ${playerId} not found.`);
-        return Promise.resolve(null);
-      }
-
-      // If isGoalie is true, we need a second pass to ensure the target player is definitely the goalie
-      // This handles the case where the target player was not the one initially having player.isGoalie = true
-      // when isGoalie=true was passed.
-      let finalRoster = updatedRoster;
-      if (isGoalie) {
-        finalRoster = updatedRoster.map(p => {
-          if (p.id === playerId) return { ...p, isGoalie: true };
-          // Ensure all others are not goalie if we are definitively setting one.
-          // This is slightly redundant if the first pass caught it, but ensures correctness.
-          if (p.id !== playerId && p.isGoalie) return { ...p, isGoalie: false};
-          return p;
-        });
-        // Update targetPlayer reference from the finalRoster
-        targetPlayer = finalRoster.find(p => p.id === playerId);
-      }
-
-      await setStorageItem(MASTER_ROSTER_KEY, JSON.stringify(finalRoster));
-      return Promise.resolve(targetPlayer || null); // Should always be targetPlayer if found earlier
-    } catch (error) {
-      logger.error('[setPlayerGoalieStatus] Unexpected error:', error);
-      return Promise.resolve(null);
+    // Check if target player exists
+    const targetPlayer = currentRoster.find(p => p.id === playerId);
+    if (!targetPlayer) {
+      logger.error(`[setPlayerGoalieStatus] Player with ID ${playerId} not found.`);
+      return null;
     }
-  });
+
+    // If setting as goalie, first clear goalie status from all other players
+    // Note: Sequential updates without atomicity - see DESIGN NOTE above
+    if (isGoalie) {
+      const otherGoalies = currentRoster.filter(p => p.id !== playerId && p.isGoalie);
+      for (const goalie of otherGoalies) {
+        await dataStore.updatePlayer(goalie.id, { isGoalie: false });
+      }
+    }
+
+    // Update the target player's goalie status
+    const updatedPlayer = await dataStore.updatePlayer(playerId, { isGoalie });
+    return updatedPlayer;
+  } catch (error) {
+    logger.error('[setPlayerGoalieStatus] Unexpected error:', error);
+    return null;
+  }
 };
 
 /**
  * Sets the fair play card status for a player in the master roster.
+ * Delegates to updatePlayerInRoster which routes through DataStore.
  * @param playerId - The ID of the player to update.
  * @param receivedFairPlayCard - Whether the player should be marked as having received the fair play card.
  * @returns The updated Player object, or null if player not found or operation failed.
