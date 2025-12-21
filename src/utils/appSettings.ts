@@ -21,24 +21,10 @@ import {
 import logger from '@/utils/logger';
 import { storageConfigManager } from './storageConfigManager';
 import { getDataStore } from '@/datastore';
-/**
- * Interface for application settings
- */
-export interface AppSettings {
-  currentGameId: string | null;
-  lastHomeTeamName?: string;
-  language?: string;
-  hasSeenAppGuide?: boolean;
-  useDemandCorrection?: boolean;
-  isDrawingModeEnabled?: boolean;
-  /** Club season start date (ISO format YYYY-MM-DD, default: "2000-10-01" = October 1st) */
-  clubSeasonStartDate?: string;
-  /** Club season end date (ISO format YYYY-MM-DD, default: "2000-05-01" = May 1st) */
-  clubSeasonEndDate?: string;
-  /** Tracks whether user has explicitly configured season dates (enables season filtering UI) */
-  hasConfiguredSeasonDates?: boolean;
-  // Add other settings as needed
-}
+import type { AppSettings } from '@/types/settings';
+
+// Re-export for backwards compatibility
+export type { AppSettings } from '@/types/settings';
 
 /**
  * Default application settings
@@ -90,9 +76,12 @@ export const saveAppSettings = async (settings: AppSettings): Promise<boolean> =
 /**
  * Updates specific application settings while preserving others.
  * DataStore.updateSettings handles atomic read-modify-write internally.
+ *
+ * Error handling: Returns current settings on failure (update becomes no-op).
+ * This is consistent with other settings functions that fail gracefully.
+ *
  * @param settingsUpdate - Partial settings to update
- * @returns A promise that resolves to the updated settings
- * @throws Error if the update fails (caller should handle)
+ * @returns A promise that resolves to the updated settings (or current settings on error)
  */
 export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>): Promise<AppSettings> => {
   try {
@@ -100,7 +89,9 @@ export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>): P
     return await dataStore.updateSettings(settingsUpdate);
   } catch (error) {
     logger.error('Error updating app settings:', error);
-    throw error;
+    // Return current settings on error (update becomes a no-op)
+    // This matches the graceful degradation pattern used throughout settings
+    return getAppSettings();
   }
 };
 
@@ -162,6 +153,7 @@ export const saveLastHomeTeamName = async (teamName: string): Promise<boolean> =
   try {
     // Save in both the modern way and legacy way for backwards compatibility
     // TODO: Remove legacy dual-write after v1.1.0 (target: Q2 2026)
+    // Tracking: https://github.com/VillePajala/MatchOps-Local/issues/145
     // PWA auto-updates ensure users migrate quickly, but keep for ~6 months post-release
     // to handle edge cases (offline users, cached service workers)
     await updateAppSettings({ lastHomeTeamName: teamName });
