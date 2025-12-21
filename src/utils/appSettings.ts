@@ -157,22 +157,29 @@ export const getLastHomeTeamName = async (): Promise<string> => {
 };
 
 /**
- * Saves the last used home team name
+ * Saves the last used home team name.
+ *
+ * LEGACY COMPATIBILITY (TODO: Remove after v1.1.0, target Q2 2026):
+ * - Modern: Stored in DataStore (AppSettings.lastHomeTeamName)
+ * - Legacy: Stored in dedicated key (LAST_HOME_TEAM_NAME_KEY)
+ *
+ * Dual-write ensures backward compatibility during gradual rollout.
+ * PWA auto-updates mean most users migrate quickly, but edge cases
+ * (offline users, cached service workers) benefit from 6-month grace period.
+ *
+ * Tracking: https://github.com/VillePajala/MatchOps-Local/issues/145
+ *
  * @param teamName - The team name to save
  * @returns A promise that resolves to true if successful, false otherwise
  */
 export const saveLastHomeTeamName = async (teamName: string): Promise<boolean> => {
   try {
-    // Save in both the modern way and legacy way for backwards compatibility
-    // TODO: Remove legacy dual-write after v1.1.0 (target: Q2 2026)
-    // Tracking: https://github.com/VillePajala/MatchOps-Local/issues/145
-    // PWA auto-updates ensure users migrate quickly, but keep for ~6 months post-release
-    // to handle edge cases (offline users, cached service workers)
     await updateAppSettings({ lastHomeTeamName: teamName });
+
+    // Legacy dual-write (see JSDoc for removal timeline)
     try {
-      await setStorageItem(LAST_HOME_TEAM_NAME_KEY, teamName); // Legacy async save
+      await setStorageItem(LAST_HOME_TEAM_NAME_KEY, teamName);
     } catch (error) {
-      // Silent fail - legacy save is not critical
       logger.debug('Failed to save legacy lastHomeTeamName key (non-critical)', { teamName, error });
     }
     return true;
