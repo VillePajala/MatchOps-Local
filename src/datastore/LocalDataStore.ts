@@ -17,7 +17,7 @@ import type {
 import type { AppState, SavedGamesCollection, GameEvent } from '@/types/game';
 import type { Personnel, PersonnelCollection } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
-import type { AppSettings } from '@/utils/appSettings';
+import type { AppSettings } from '@/types/settings';
 import type { TimerState } from '@/utils/timerStateManager';
 import type { DataStore } from '@/interfaces/DataStore';
 import {
@@ -1119,12 +1119,45 @@ export class LocalDataStore implements DataStore {
   async updateSettings(updates: Partial<AppSettings>): Promise<AppSettings> {
     this.ensureInitialized();
 
+    if (Object.keys(updates).length === 0) {
+      throw new ValidationError('Cannot update with empty object', 'updates', updates);
+    }
+
     return withKeyLock(APP_SETTINGS_KEY, async () => {
-      // Read directly from storage (avoid nested lock and migration side effects)
+      // Read directly from storage (avoid nested lock)
       const stored = await getStorageItem(APP_SETTINGS_KEY);
-      const current = stored ? { ...DEFAULT_APP_SETTINGS, ...JSON.parse(stored) } : { ...DEFAULT_APP_SETTINGS };
+      const parsed = stored ? JSON.parse(stored) as AppSettings & {
+        clubSeasonStartMonth?: number;
+        clubSeasonEndMonth?: number;
+      } : null;
+
+      const current: AppSettings = parsed
+        ? { ...DEFAULT_APP_SETTINGS, ...parsed }
+        : { ...DEFAULT_APP_SETTINGS };
+
+      // Apply same migration logic as getSettings to handle legacy month fields
+      if (parsed) {
+        if (parsed.clubSeasonStartMonth !== undefined && !parsed.clubSeasonStartDate) {
+          current.clubSeasonStartDate = convertMonthToDate(parsed.clubSeasonStartMonth);
+          current.hasConfiguredSeasonDates = true;
+        }
+        if (parsed.clubSeasonEndMonth !== undefined && !parsed.clubSeasonEndDate) {
+          current.clubSeasonEndDate = convertMonthToDate(parsed.clubSeasonEndMonth);
+          current.hasConfiguredSeasonDates = true;
+        }
+      }
+
       const updated = { ...current, ...updates };
-      await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(updated));
+
+      // Remove legacy fields before saving
+      const toSave = { ...updated } as AppSettings & {
+        clubSeasonStartMonth?: number;
+        clubSeasonEndMonth?: number;
+      };
+      delete toSave.clubSeasonStartMonth;
+      delete toSave.clubSeasonEndMonth;
+
+      await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
       return updated;
     });
   }
