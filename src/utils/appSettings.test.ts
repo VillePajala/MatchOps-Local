@@ -47,12 +47,15 @@ const mockRemoveStorageItem = jest.fn(async (key: string) => { delete mockKeySto
 const mockClearStorage = jest.fn(async () => { Object.keys(mockKeyStore).forEach(key => delete mockKeyStore[key]); });
 const mockClearLocalStorage = jest.fn();
 
+// Mock getDataStore - controllable for error injection tests
+const mockGetDataStore = jest.fn(() => Promise.resolve(mockDataStore));
+
 // Reset module cache and set up mocks BEFORE loading appSettings
 jest.resetModules();
 
 jest.doMock('@/datastore', () => ({
   __esModule: true,
-  getDataStore: jest.fn(() => Promise.resolve(mockDataStore)),
+  getDataStore: mockGetDataStore,
 }));
 
 jest.doMock('./storage', () => ({
@@ -141,6 +144,7 @@ describe('App Settings Utilities', () => {
     mockDataStore.getSettings.mockClear();
     mockDataStore.saveSettings.mockClear();
     mockDataStore.updateSettings.mockClear();
+    mockGetDataStore.mockClear();
     mockGetStorageItem.mockClear();
     mockSetStorageItem.mockClear();
     mockRemoveStorageItem.mockClear();
@@ -149,6 +153,7 @@ describe('App Settings Utilities', () => {
 
     // Re-establish mock implementations for this test
     setupMockImplementations();
+    mockGetDataStore.mockImplementation(() => Promise.resolve(mockDataStore));
     mockClearLocalStorage.mockImplementation(() => {});
   });
 
@@ -289,6 +294,9 @@ describe('App Settings Utilities', () => {
     });
 
     it('should throw an error if update fails', async () => {
+      // Suppress expected console.error from logger
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
       mockSettings = {
         ...DEFAULT_APP_SETTINGS,
         currentGameId: 'initialGame',
@@ -309,6 +317,30 @@ describe('App Settings Utilities', () => {
 
       // Ensure updateSettings was called (attempted to update)
       expect(mockDataStore.updateSettings).toHaveBeenCalledTimes(1);
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle concurrent updates correctly', async () => {
+      // Start with clean settings
+      mockSettings = { ...DEFAULT_APP_SETTINGS };
+
+      // Simulate atomic behavior: each update reads current state and merges
+      // The mock already does this correctly via the implementation in setupMockImplementations
+      const [result1, result2] = await Promise.all([
+        updateAppSettings({ currentGameId: 'game1' }),
+        updateAppSettings({ lastHomeTeamName: 'Team A' })
+      ]);
+
+      // Both updates should have been called
+      expect(mockDataStore.updateSettings).toHaveBeenCalledTimes(2);
+      expect(mockDataStore.updateSettings).toHaveBeenCalledWith({ currentGameId: 'game1' });
+      expect(mockDataStore.updateSettings).toHaveBeenCalledWith({ lastHomeTeamName: 'Team A' });
+
+      // Final state should contain both updates (lock serializes them)
+      const final = await getAppSettings();
+      expect(final.currentGameId).toBe('game1');
+      expect(final.lastHomeTeamName).toBe('Team A');
     });
   });
 
@@ -569,6 +601,81 @@ describe('App Settings Utilities', () => {
       mockRemoveStorageItem.mockRejectedValue(new Error('Storage error'));
 
       await expect(setHasSeenFirstGameGuide(false)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('Edge Cases', () => {
+    describe('DataStore initialization failure', () => {
+      it('should return default settings when getDataStore throws', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        mockGetDataStore.mockRejectedValueOnce(new Error('DataStore initialization failed'));
+
+        const result = await getAppSettings();
+
+        expect(result).toEqual(DEFAULT_APP_SETTINGS);
+        consoleSpy.mockRestore();
+      });
+
+      it('should return false when saveAppSettings cannot get DataStore', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        mockGetDataStore.mockRejectedValueOnce(new Error('DataStore unavailable'));
+
+        const result = await saveAppSettings({ currentGameId: 'test' });
+
+        expect(result).toBe(false);
+        consoleSpy.mockRestore();
+      });
+
+      it('should throw when updateAppSettings cannot get DataStore', async () => {
+        mockGetDataStore.mockRejectedValueOnce(new Error('DataStore unavailable'));
+
+        await expect(updateAppSettings({ currentGameId: 'test' }))
+          .rejects.toThrow('DataStore unavailable');
+      });
+
+      it('should return false when saveCurrentGameIdSetting cannot get DataStore', async () => {
+        const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        mockGetDataStore.mockRejectedValueOnce(new Error('DataStore unavailable'));
+
+        const result = await saveCurrentGameIdSetting('game123');
+
+        expect(result).toBe(false);
+        consoleSpy.mockRestore();
+      });
+    });
+
+    describe('Malformed settings data', () => {
+      it('should handle empty settings object from DataStore', async () => {
+        mockDataStore.getSettings.mockResolvedValueOnce({} as AppSettings);
+
+        const result = await getAppSettings();
+
+        // Should return whatever DataStore returns (DataStore handles defaults)
+        expect(result).toEqual({});
+      });
+
+      it('should handle null values in settings gracefully', async () => {
+        mockSettings = {
+          ...DEFAULT_APP_SETTINGS,
+          currentGameId: null,
+          lastHomeTeamName: undefined as unknown as string,
+        };
+
+        const result = await getAppSettings();
+
+        expect(result.currentGameId).toBeNull();
+        expect(result.lastHomeTeamName).toBeUndefined();
+      });
+
+      it('should preserve partial updates even with unusual values', async () => {
+        mockSettings = { ...DEFAULT_APP_SETTINGS };
+
+        // Update with empty string (valid but edge case)
+        await updateAppSettings({ lastHomeTeamName: '' });
+
+        expect(mockDataStore.updateSettings).toHaveBeenCalledWith({ lastHomeTeamName: '' });
+        expect(mockSettings.lastHomeTeamName).toBe('');
+      });
     });
   });
 }); 
