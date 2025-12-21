@@ -1076,6 +1076,12 @@ export class LocalDataStore implements DataStore {
     });
   }
 
+  /**
+   * Gets application settings from storage.
+   *
+   * NOTE: This method does not use locking. For atomic read-modify-write
+   * operations, use updateSettings() instead of get-modify-save patterns.
+   */
   async getSettings(): Promise<AppSettings> {
     this.ensureInitialized();
 
@@ -1177,12 +1183,13 @@ export class LocalDataStore implements DataStore {
       const stored = await getStorageItem(APP_SETTINGS_KEY);
 
       // Parse with validation - fall back to defaults on corruption
+      // Use same validation as getSettings() for consistency
       let parsed: ParsedSettingsWithLegacy | null = null;
       if (stored) {
         try {
           const rawParsed = JSON.parse(stored);
-          // Basic validation: must be a non-null object (not array, not primitive)
-          if (rawParsed && typeof rawParsed === 'object' && !Array.isArray(rawParsed)) {
+          // Full validation: object type + isValidAppSettings (matches getSettings behavior)
+          if (rawParsed && typeof rawParsed === 'object' && !Array.isArray(rawParsed) && isValidAppSettings(rawParsed)) {
             parsed = rawParsed as ParsedSettingsWithLegacy;
           } else {
             logger.warn('[LocalDataStore.updateSettings] Invalid settings structure, using defaults');
