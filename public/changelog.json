@@ -1,8 +1,8 @@
 {
-  "version": "f9fdb4a3",
+  "version": "e5639e23",
   "date": "2025-12-21",
   "notes": {
-    "en": "Improve appSettings error handling and add edge case tests",
-    "fi": "Improve appSettings error handling and add edge case tests"
+    "en": "Add migration caching and improve error handling in settings",
+    "fi": "Add migration caching and improve error handling in settings"
   }
 }

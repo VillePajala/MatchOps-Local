@@ -202,6 +202,15 @@ export class LocalDataStore implements DataStore {
     return clean;
   }
 
+  /**
+   * Merge parsed settings with defaults.
+   * @param parsed - Parsed settings from storage (may be null)
+   * @returns Complete settings with defaults applied
+   */
+  private mergeWithDefaults(parsed: Partial<AppSettings> | null): AppSettings {
+    return parsed ? { ...DEFAULT_APP_SETTINGS, ...parsed } : { ...DEFAULT_APP_SETTINGS };
+  }
+
   async initialize(): Promise<void> {
     this.initialized = true;
   }
@@ -1073,6 +1082,7 @@ export class LocalDataStore implements DataStore {
     try {
       const settingsJson = await getStorageItem(APP_SETTINGS_KEY);
       if (!settingsJson) {
+        this.settingsMigrated = false; // Reset so migration runs when settings restored
         return { ...DEFAULT_APP_SETTINGS };
       }
 
@@ -1088,11 +1098,13 @@ export class LocalDataStore implements DataStore {
         };
       } catch (parseError) {
         logger.error('[LocalDataStore] Failed to parse app settings, using defaults', parseError);
+        this.settingsMigrated = false; // Reset so migration runs when valid settings restored
         return { ...DEFAULT_APP_SETTINGS };
       }
 
       if (!parsed || !isValidAppSettings(parsed)) {
         logger.warn('[LocalDataStore] Invalid app settings structure, using defaults');
+        this.settingsMigrated = false; // Reset so migration runs when valid settings restored
         return { ...DEFAULT_APP_SETTINGS };
       }
 
@@ -1100,7 +1112,7 @@ export class LocalDataStore implements DataStore {
       let settings: AppSettings;
       if (this.settingsMigrated) {
         // Already migrated - just merge with defaults
-        settings = { ...DEFAULT_APP_SETTINGS, ...parsed };
+        settings = this.mergeWithDefaults(parsed);
       } else {
         const { settings: migratedSettings, needsMigration } = this.migrateSeasonDates(parsed);
         settings = migratedSettings;
@@ -1163,12 +1175,27 @@ export class LocalDataStore implements DataStore {
     return withKeyLock(APP_SETTINGS_KEY, async () => {
       // Read directly from storage (avoid nested lock)
       const stored = await getStorageItem(APP_SETTINGS_KEY);
-      const parsed = stored ? JSON.parse(stored) as ParsedSettingsWithLegacy : null;
+
+      // Parse with validation - fall back to defaults on corruption
+      let parsed: ParsedSettingsWithLegacy | null = null;
+      if (stored) {
+        try {
+          const rawParsed = JSON.parse(stored);
+          // Basic validation: must be a non-null object (not array, not primitive)
+          if (rawParsed && typeof rawParsed === 'object' && !Array.isArray(rawParsed)) {
+            parsed = rawParsed as ParsedSettingsWithLegacy;
+          } else {
+            logger.warn('[LocalDataStore.updateSettings] Invalid settings structure, using defaults');
+          }
+        } catch (parseError) {
+          logger.warn('[LocalDataStore.updateSettings] Corrupted settings JSON, using defaults', { error: parseError });
+        }
+      }
 
       // Get current settings - skip migration if already done this session
       let current: AppSettings;
       if (this.settingsMigrated || !parsed) {
-        current = parsed ? { ...DEFAULT_APP_SETTINGS, ...parsed } : { ...DEFAULT_APP_SETTINGS };
+        current = this.mergeWithDefaults(parsed);
       } else {
         current = this.migrateSeasonDates(parsed).settings;
       }

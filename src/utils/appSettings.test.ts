@@ -5,6 +5,7 @@ import {
 } from '@/config/storageKeys';
 import type { AppSettings } from './appSettings';
 import type { DataStore } from '@/interfaces/DataStore';
+import { ValidationError } from '@/interfaces/DataStoreErrors';
 
 // Default settings matching the implementation
 const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -35,6 +36,10 @@ const mockDataStore: jest.Mocked<Pick<DataStore, 'getSettings' | 'saveSettings' 
   getSettings: jest.fn(async () => ({ ...mockSettings })),
   saveSettings: jest.fn(async (settings: AppSettings) => { mockSettings = { ...settings }; }),
   updateSettings: jest.fn(async (updates: Partial<AppSettings>) => {
+    // Match real LocalDataStore behavior: throw for empty updates
+    if (Object.keys(updates).length === 0) {
+      throw new ValidationError('Cannot update with empty object', 'updates', updates);
+    }
     mockSettings = { ...mockSettings, ...updates };
     return mockSettings;
   }),
@@ -124,6 +129,10 @@ const setupMockImplementations = () => {
   mockDataStore.getSettings.mockImplementation(async () => ({ ...mockSettings }));
   mockDataStore.saveSettings.mockImplementation(async (settings: AppSettings) => { mockSettings = { ...settings }; });
   mockDataStore.updateSettings.mockImplementation(async (updates: Partial<AppSettings>) => {
+    // Match real LocalDataStore behavior: throw for empty updates
+    if (Object.keys(updates).length === 0) {
+      throw new ValidationError('Cannot update with empty object', 'updates', updates);
+    }
     mockSettings = { ...mockSettings, ...updates };
     return mockSettings;
   });
@@ -347,26 +356,16 @@ describe('App Settings Utilities', () => {
       expect(final.lastHomeTeamName).toBe('Team A');
     });
 
-    it('should be a no-op when called with empty object', async () => {
-      // Suppress expected warning for empty updates
-      jest.spyOn(console, 'warn').mockImplementation(() => {});
-
+    it('should throw ValidationError when called with empty object', async () => {
       mockSettings = {
         ...DEFAULT_APP_SETTINGS,
         currentGameId: 'existingGame',
         lastHomeTeamName: 'Existing Team',
       };
 
-      const result = await updateAppSettings({});
-
-      // Should NOT call updateSettings - short-circuits before DataStore call
-      expect(mockDataStore.updateSettings).not.toHaveBeenCalled();
-      // Should call getSettings instead to return current settings
-      expect(mockDataStore.getSettings).toHaveBeenCalled();
-
-      // Settings should remain unchanged
-      expect(result.currentGameId).toBe('existingGame');
-      expect(result.lastHomeTeamName).toBe('Existing Team');
+      // Empty updates should throw ValidationError (fail-fast for programming errors)
+      await expect(updateAppSettings({})).rejects.toThrow(ValidationError);
+      await expect(updateAppSettings({})).rejects.toThrow('Cannot update with empty object');
     });
   });
 
