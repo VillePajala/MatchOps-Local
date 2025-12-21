@@ -25,7 +25,7 @@ import { getLatestGameId } from './savedGames';
 import { DEFAULT_GAME_ID } from '@/config/constants';
 import type { PlayerAdjustmentsIndex } from './playerAdjustments';
 import type { TeamsIndex, TeamRostersIndex } from './teams';
-import type { AppSettings } from './appSettings';
+import type { AppSettings } from '@/types/settings';
 import type { PersonnelCollection } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import { processImportedGames } from './gameImportHelper';

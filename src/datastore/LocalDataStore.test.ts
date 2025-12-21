@@ -14,19 +14,7 @@ import type { AppState, GameEvent } from '@/types/game';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import type { TimerState } from '@/utils/timerStateManager';
-
-// AppSettings type definition (to avoid importing appSettings module which has circular deps)
-interface AppSettings {
-  currentGameId: string | null;
-  lastHomeTeamName?: string;
-  language?: string;
-  hasSeenAppGuide?: boolean;
-  useDemandCorrection?: boolean;
-  isDrawingModeEnabled?: boolean;
-  clubSeasonStartDate?: string;
-  clubSeasonEndDate?: string;
-  hasConfiguredSeasonDates?: boolean;
-}
+import type { AppSettings } from '@/types/settings';
 
 // Create mock functions BEFORE jest.mock (so they can be referenced in mocks)
 const mockGetStorageItem = jest.fn();
@@ -1299,6 +1287,51 @@ describe('LocalDataStore', () => {
           'soccerAppSettings',
           JSON.stringify(mockSettings)
         );
+      });
+    });
+
+    describe('updateSettings', () => {
+      it('should update settings atomically', async () => {
+        mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSettings));
+
+        const updated = await dataStore.updateSettings({ language: 'fi' });
+
+        expect(updated.language).toBe('fi');
+        expect(updated.currentGameId).toBe('game_1'); // Preserved from original
+        expect(mockSetStorageItem).toHaveBeenCalled();
+      });
+
+      it('should migrate legacy month fields when called before getSettings', async () => {
+        const legacySettings = {
+          currentGameId: 'game_1',
+          lastHomeTeamName: 'Test Team',
+          clubSeasonStartMonth: 9,
+          clubSeasonEndMonth: 6,
+          // No clubSeasonStartDate or clubSeasonEndDate
+        };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify(legacySettings));
+
+        const updated = await dataStore.updateSettings({ language: 'en' });
+
+        // Should have migrated the month fields to date format
+        expect(updated.clubSeasonStartDate).toBe('2000-09-01');
+        expect(updated.clubSeasonEndDate).toBe('2000-06-01');
+        expect(updated.hasConfiguredSeasonDates).toBe(true);
+        expect(updated.language).toBe('en');
+
+        // Saved data should not contain legacy month fields
+        expect(mockSetStorageItem).toHaveBeenCalledWith(
+          'soccerAppSettings',
+          expect.not.stringContaining('clubSeasonStartMonth')
+        );
+        expect(mockSetStorageItem).toHaveBeenCalledWith(
+          'soccerAppSettings',
+          expect.not.stringContaining('clubSeasonEndMonth')
+        );
+      });
+
+      it('should throw ValidationError on empty updates', async () => {
+        await expect(dataStore.updateSettings({})).rejects.toThrow(ValidationError);
       });
     });
   });

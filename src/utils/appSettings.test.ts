@@ -293,7 +293,7 @@ describe('App Settings Utilities', () => {
       expect(mockDataStore.updateSettings).toHaveBeenCalledWith({ language: 'en' });
     });
 
-    it('should throw an error if update fails', async () => {
+    it('should return current settings on error (graceful degradation)', async () => {
       // Suppress expected console.error from logger
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
@@ -306,17 +306,21 @@ describe('App Settings Utilities', () => {
       // Simulate updateSettings failing
       mockDataStore.updateSettings.mockRejectedValueOnce(new Error('Save failed'));
 
-      // Expect updateAppSettings to throw the error from updateSettings
-      try {
-        await updateAppSettings({ currentGameId: 'updatedGame' });
-        fail('Expected updateAppSettings to throw an error');
-      } catch (error) {
-        expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toBe('Save failed');
-      }
+      // Should return current settings instead of throwing (no-op on error)
+      const result = await updateAppSettings({ currentGameId: 'updatedGame' });
+
+      // Should return the current (unchanged) settings
+      expect(result.currentGameId).toBe('initialGame');
+      expect(result.lastHomeTeamName).toBe('InitialTeam');
 
       // Ensure updateSettings was called (attempted to update)
       expect(mockDataStore.updateSettings).toHaveBeenCalledTimes(1);
+
+      // Error should be logged
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error updating app settings'),
+        expect.any(Error)
+      );
 
       consoleSpy.mockRestore();
     });
@@ -327,7 +331,7 @@ describe('App Settings Utilities', () => {
 
       // Simulate atomic behavior: each update reads current state and merges
       // The mock already does this correctly via the implementation in setupMockImplementations
-      const [result1, result2] = await Promise.all([
+      const [_result1, _result2] = await Promise.all([
         updateAppSettings({ currentGameId: 'game1' }),
         updateAppSettings({ lastHomeTeamName: 'Team A' })
       ]);
@@ -341,6 +345,23 @@ describe('App Settings Utilities', () => {
       const final = await getAppSettings();
       expect(final.currentGameId).toBe('game1');
       expect(final.lastHomeTeamName).toBe('Team A');
+    });
+
+    it('should be a no-op when called with empty object', async () => {
+      mockSettings = {
+        ...DEFAULT_APP_SETTINGS,
+        currentGameId: 'existingGame',
+        lastHomeTeamName: 'Existing Team',
+      };
+
+      const result = await updateAppSettings({});
+
+      // Should call updateSettings with empty object
+      expect(mockDataStore.updateSettings).toHaveBeenCalledWith({});
+
+      // Settings should remain unchanged
+      expect(result.currentGameId).toBe('existingGame');
+      expect(result.lastHomeTeamName).toBe('Existing Team');
     });
   });
 
@@ -626,11 +647,15 @@ describe('App Settings Utilities', () => {
         consoleSpy.mockRestore();
       });
 
-      it('should throw when updateAppSettings cannot get DataStore', async () => {
+      it('should return default settings when updateAppSettings cannot get DataStore', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
         mockGetDataStore.mockRejectedValueOnce(new Error('DataStore unavailable'));
 
-        await expect(updateAppSettings({ currentGameId: 'test' }))
-          .rejects.toThrow('DataStore unavailable');
+        const result = await updateAppSettings({ currentGameId: 'test' });
+
+        // Falls back to getAppSettings which also fails, returning defaults
+        expect(result).toEqual(DEFAULT_APP_SETTINGS);
+        consoleSpy.mockRestore();
       });
 
       it('should return false when saveCurrentGameIdSetting cannot get DataStore', async () => {

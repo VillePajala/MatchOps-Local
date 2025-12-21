@@ -202,6 +202,7 @@ export * from './playerAssessment';
 export * from "./game";
 export * from './personnel';
 export * from './modals';
+export * from './settings';
 
 // Player-level manual stat adjustments (e.g., external games not tracked in app)
 export interface PlayerStatAdjustment {
