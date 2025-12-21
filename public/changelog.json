@@ -1,8 +1,8 @@
 {
-  "version": "eccee642",
+  "version": "f9fdb4a3",
   "date": "2025-12-21",
   "notes": {
-    "en": "Prevent nested lock in updateSettings by reading from storage directly",
-    "fi": "Prevent nested lock in updateSettings by reading from storage directly"
+    "en": "Improve appSettings error handling and add edge case tests",
+    "fi": "Improve appSettings error handling and add edge case tests"
   }
 }
