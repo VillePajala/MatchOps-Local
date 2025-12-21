@@ -20,7 +20,10 @@ const clearMockStore = () => {
   Object.keys(mockKeyStore).forEach(key => delete mockKeyStore[key]);
 };
 
-// Create mock DataStore for player operations
+// Create mock DataStore for player operations.
+// Only mocking methods actually used by masterRoster.ts (standard Jest pattern).
+// Trade-off: If code adds new DataStore calls, tests won't catch until runtime.
+// Acceptable because: TypeScript ensures method exists, and full mock adds boilerplate.
 const mockDataStore: jest.Mocked<Pick<DataStore, 'getPlayers' | 'createPlayer' | 'updatePlayer' | 'deletePlayer'>> = {
   getPlayers: jest.fn(async () => [...mockRoster]),
   createPlayer: jest.fn(async (player: Omit<Player, 'id'>) => {
@@ -52,7 +55,10 @@ const mockSetStorageItem = jest.fn(async (key: string, value: string) => { mockK
 // Mock getDataStore
 const mockGetDataStore = jest.fn(() => Promise.resolve(mockDataStore));
 
-// Reset module cache and set up mocks BEFORE loading masterRoster
+// Reset module cache and set up mocks BEFORE loading masterRoster.
+// Using jest.doMock + require() pattern because masterRoster.ts imports
+// getDataStore at module load time. This is the standard Jest approach;
+// dependency injection would simplify testing but adds API complexity.
 jest.resetModules();
 
 jest.doMock('@/datastore', () => ({
@@ -183,7 +189,10 @@ describe('Master Roster Utilities', () => {
       const result = await addPlayerToRoster({ name: 'Valid Player' });
 
       expect(result).toBeNull();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[addPlayerToRoster] Unexpected error'), saveError);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[addPlayerToRoster] Unexpected error'),
+        expect.objectContaining({ playerName: 'Valid Player', error: saveError })
+      );
       consoleSpy.mockRestore();
     });
   });
@@ -232,7 +241,10 @@ describe('Master Roster Utilities', () => {
       const result = await updatePlayerInRoster('player_1', { name: 'Valid Update' });
 
       expect(result).toBeNull();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[updatePlayerInRoster] Unexpected error'), saveError);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[updatePlayerInRoster] Unexpected error'),
+        expect.objectContaining({ playerId: 'player_1', error: saveError })
+      );
       consoleSpy.mockRestore();
     });
 
@@ -273,7 +285,10 @@ describe('Master Roster Utilities', () => {
       const result = await removePlayerFromRoster('player_1');
 
       expect(result).toBe(false);
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[removePlayerFromRoster] Unexpected error'), saveError);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[removePlayerFromRoster] Unexpected error'),
+        expect.objectContaining({ playerId: 'player_1', error: saveError })
+      );
       consoleSpy.mockRestore();
     });
 
@@ -325,7 +340,10 @@ describe('Master Roster Utilities', () => {
       const result = await setPlayerGoalieStatus('player_1', true);
 
       expect(result).toBeNull();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[setPlayerGoalieStatus] Unexpected error'), saveError);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[setPlayerGoalieStatus] Unexpected error'),
+        expect.objectContaining({ playerId: 'player_1', isGoalie: true, error: saveError })
+      );
       consoleSpy.mockRestore();
     });
 
@@ -335,6 +353,34 @@ describe('Master Roster Utilities', () => {
       expect(result).toBeNull();
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Player ID cannot be empty'));
       consoleSpy.mockRestore();
+    });
+
+    it('should be idempotent when setting same player as goalie twice', async () => {
+      mockRoster = [
+        { id: 'player_1', name: 'John', jerseyNumber: '10', isGoalie: true, receivedFairPlayCard: false },
+        { id: 'player_2', name: 'Jane', jerseyNumber: '7', isGoalie: false, receivedFairPlayCard: false }
+      ];
+
+      const result = await setPlayerGoalieStatus('player_1', true);
+
+      expect(result).not.toBeNull();
+      expect(result?.isGoalie).toBe(true);
+      // Should not have tried to clear other goalies (player_1 was already the goalie)
+      expect(mockDataStore.updatePlayer).toHaveBeenCalledTimes(1);
+      expect(mockDataStore.updatePlayer).toHaveBeenCalledWith('player_1', { isGoalie: true });
+    });
+
+    it('should clear goalie status when setting isGoalie to false', async () => {
+      mockRoster = [
+        { id: 'player_1', name: 'John', jerseyNumber: '10', isGoalie: true, receivedFairPlayCard: false },
+        { id: 'player_2', name: 'Jane', jerseyNumber: '7', isGoalie: false, receivedFairPlayCard: false }
+      ];
+
+      const result = await setPlayerGoalieStatus('player_1', false);
+
+      expect(result).not.toBeNull();
+      expect(result?.isGoalie).toBe(false);
+      expect(mockDataStore.updatePlayer).toHaveBeenCalledWith('player_1', { isGoalie: false });
     });
   });
 
@@ -367,7 +413,10 @@ describe('Master Roster Utilities', () => {
       const result = await setPlayerFairPlayCardStatus('player_1', true);
 
       expect(result).toBeNull();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[updatePlayerInRoster] Unexpected error'), saveError);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[updatePlayerInRoster] Unexpected error'),
+        expect.objectContaining({ playerId: 'player_1', error: saveError })
+      );
       consoleSpy.mockRestore();
     });
   });
