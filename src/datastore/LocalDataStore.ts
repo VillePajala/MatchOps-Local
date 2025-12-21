@@ -1079,8 +1079,9 @@ export class LocalDataStore implements DataStore {
   /**
    * Gets application settings from storage.
    *
-   * NOTE: This method does not use locking. For atomic read-modify-write
-   * operations, use updateSettings() instead of get-modify-save patterns.
+   * NOTE: Reads are unlocked for performance. Migration writes (one-time) use
+   * locking for consistency. For atomic read-modify-write operations, use
+   * updateSettings() instead of get-modify-save patterns.
    */
   async getSettings(): Promise<AppSettings> {
     this.ensureInitialized();
@@ -1126,19 +1127,22 @@ export class LocalDataStore implements DataStore {
         if (needsMigration) {
           const toSave = this.removeLegacyMonthFields(settings);
 
-          try {
-            await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
-            logger.info('[LocalDataStore] Successfully migrated app settings to new format');
-            this.settingsMigrated = true;
-          } catch (saveError) {
-            // Don't re-throw: app can still work with in-memory migrated values.
-            // Old format is preserved, so migration will retry on next startup.
-            logger.warn(
-              '[LocalDataStore] Failed to persist migrated app settings - will retry on next startup',
-              { error: saveError }
-            );
-            // Don't set settingsMigrated - retry on next call
-          }
+          // Use lock for migration write to prevent race with updateSettings()
+          await withKeyLock(APP_SETTINGS_KEY, async () => {
+            try {
+              await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
+              logger.info('[LocalDataStore] Successfully migrated app settings to new format');
+              this.settingsMigrated = true;
+            } catch (saveError) {
+              // Don't re-throw: app can still work with in-memory migrated values.
+              // Old format is preserved, so migration will retry on next startup.
+              logger.warn(
+                '[LocalDataStore] Failed to persist migrated app settings - will retry on next startup',
+                { error: saveError }
+              );
+              // Don't set settingsMigrated - retry on next call
+            }
+          });
         } else {
           // No legacy fields - mark as migrated to skip future checks
           this.settingsMigrated = true;
