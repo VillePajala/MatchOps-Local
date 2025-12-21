@@ -1251,16 +1251,28 @@ describe('LocalDataStore', () => {
       it('should migrate legacy month-based season dates', async () => {
         const legacySettings = {
           ...mockSettings,
-          clubSeasonStartMonth: 10,
-          clubSeasonEndMonth: 5,
+          clubSeasonStartMonth: 9,
+          clubSeasonEndMonth: 6,
           clubSeasonStartDate: undefined,
           clubSeasonEndDate: undefined,
+          hasConfiguredSeasonDates: false,
         };
         mockGetStorageItem.mockResolvedValue(JSON.stringify(legacySettings));
 
         const settings = await dataStore.getSettings();
-        expect(settings.clubSeasonStartDate).toBe('2000-10-01');
-        expect(settings.clubSeasonEndDate).toBe('2000-05-01');
+        expect(settings.clubSeasonStartDate).toBe('2000-09-01');
+        expect(settings.clubSeasonEndDate).toBe('2000-06-01');
+        expect(settings.hasConfiguredSeasonDates).toBe(true);
+
+        // Migration should persist without legacy month fields
+        expect(mockSetStorageItem).toHaveBeenCalledWith(
+          'soccerAppSettings',
+          expect.not.stringContaining('clubSeasonStartMonth')
+        );
+        expect(mockSetStorageItem).toHaveBeenCalledWith(
+          'soccerAppSettings',
+          expect.not.stringContaining('clubSeasonEndMonth')
+        );
       });
 
       it('should handle malformed JSON gracefully', async () => {

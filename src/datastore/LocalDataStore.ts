@@ -1048,23 +1048,27 @@ export class LocalDataStore implements DataStore {
         return { ...DEFAULT_APP_SETTINGS };
       }
 
+      // Merge defaults, but keep migration detection based on the raw stored values (`parsed`).
+      // Otherwise defaults would mask "missing" fields and prevent migration.
       const settings: AppSettings = { ...DEFAULT_APP_SETTINGS, ...parsed };
       let needsMigration = false;
 
-      if (parsed.clubSeasonStartMonth !== undefined && !settings.clubSeasonStartDate) {
+      if (parsed.clubSeasonStartMonth !== undefined && !parsed.clubSeasonStartDate) {
         settings.clubSeasonStartDate = convertMonthToDate(parsed.clubSeasonStartMonth);
         needsMigration = true;
       }
 
-      if (parsed.clubSeasonEndMonth !== undefined && !settings.clubSeasonEndDate) {
+      if (parsed.clubSeasonEndMonth !== undefined && !parsed.clubSeasonEndDate) {
         settings.clubSeasonEndDate = convertMonthToDate(parsed.clubSeasonEndMonth);
         needsMigration = true;
       }
 
       if (needsMigration) {
+        // If legacy month fields existed, user had configured seasons — reflect that immediately.
+        settings.hasConfiguredSeasonDates = true;
+
         const toSave = {
           ...settings,
-          hasConfiguredSeasonDates: true,
         } as AppSettings & {
           clubSeasonStartMonth?: number;
           clubSeasonEndMonth?: number;
