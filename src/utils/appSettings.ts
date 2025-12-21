@@ -92,10 +92,16 @@ export const saveAppSettings = async (settings: AppSettings): Promise<boolean> =
  * DataStore.updateSettings handles atomic read-modify-write internally.
  * @param settingsUpdate - Partial settings to update
  * @returns A promise that resolves to the updated settings
+ * @throws Error if the update fails (caller should handle)
  */
 export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>): Promise<AppSettings> => {
-  const dataStore = await getDataStore();
-  return dataStore.updateSettings(settingsUpdate);
+  try {
+    const dataStore = await getDataStore();
+    return await dataStore.updateSettings(settingsUpdate);
+  } catch (error) {
+    logger.error('Error updating app settings:', error);
+    throw error;
+  }
 };
 
 /**

@@ -1120,10 +1120,10 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     return withKeyLock(APP_SETTINGS_KEY, async () => {
-      // Read current settings (getSettings doesn't lock, safe to call here)
-      const current = await this.getSettings();
+      // Read directly from storage (avoid nested lock and migration side effects)
+      const stored = await getStorageItem(APP_SETTINGS_KEY);
+      const current = stored ? { ...DEFAULT_APP_SETTINGS, ...JSON.parse(stored) } : { ...DEFAULT_APP_SETTINGS };
       const updated = { ...current, ...updates };
-      // Write directly without nested lock
       await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(updated));
       return updated;
     });
