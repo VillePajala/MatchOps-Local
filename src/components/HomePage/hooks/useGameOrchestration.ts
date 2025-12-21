@@ -1496,13 +1496,14 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     // Persist fair play card changes to master roster via DataStore
     // Uses individual player updates rather than replacing entire roster
     try {
-      // Clear previous holder (if any)
-      if (currentlyAwardedPlayerId) {
+      // Clear previous holder (if different from new recipient)
+      if (currentlyAwardedPlayerId && currentlyAwardedPlayerId !== playerId) {
         await setPlayerFairPlayCardStatus(currentlyAwardedPlayerId, false);
       }
-      // Award to new player (if different from cleared)
-      if (playerId && playerId !== currentlyAwardedPlayerId) {
-        await setPlayerFairPlayCardStatus(playerId, true);
+      // Award to new player (or toggle off if same player clicked again)
+      if (playerId) {
+        const shouldAward = playerId !== currentlyAwardedPlayerId;
+        await setPlayerFairPlayCardStatus(playerId, shouldAward);
       }
     } catch (error) {
       logger.error('[handleAwardFairPlayCard] Error updating fair play card status:', error);
