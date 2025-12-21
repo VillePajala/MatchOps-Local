@@ -1,8 +1,8 @@
 {
-  "version": "e5639e23",
+  "version": "528f0a78",
   "date": "2025-12-21",
   "notes": {
-    "en": "Add migration caching and improve error handling in settings",
-    "fi": "Add migration caching and improve error handling in settings"
+    "en": "Address code review feedback for settings DataStore wiring",
+    "fi": "Address code review feedback for settings DataStore wiring"
   }
 }

@@ -1334,6 +1334,19 @@ describe('LocalDataStore', () => {
         await expect(dataStore.updateSettings({})).rejects.toThrow(ValidationError);
       });
 
+      it('should handle corrupted settings during update', async () => {
+        // Suppress expected warning
+        jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+        mockGetStorageItem.mockResolvedValue('{ invalid json }');
+
+        const result = await dataStore.updateSettings({ language: 'en' });
+
+        // Should fall back to defaults and apply update
+        expect(result.language).toBe('en');
+        expect(result.currentGameId).toBe(null); // from defaults
+      });
+
       it('should handle concurrent updateSettings calls safely', async () => {
         // Track storage state with a variable for proper concurrent simulation
         let storedValue = JSON.stringify({
