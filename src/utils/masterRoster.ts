@@ -30,8 +30,7 @@ export const getMasterRoster = async (): Promise<Player[]> => {
  * Use individual player operations (addPlayerToRoster, updatePlayerInRoster, etc.)
  * which route through DataStore for proper abstraction.
  *
- * KEPT FOR: Test setup (mocking storage directly). In production code, use
- * setPlayerFairPlayCardStatus() instead of saving entire roster.
+ * @internal Kept for test setup only (mocking storage directly).
  *
  * @param players - The array of Player objects to save.
  * @returns {boolean} True if successful, false otherwise.
@@ -107,10 +106,14 @@ export const updatePlayerInRoster = async (
     return null;
   }
 
-  // Validate name is not empty if being updated
-  if (updateData.name !== undefined && !updateData.name?.trim()) {
-    logger.error('[updatePlayerInRoster] Validation Failed: Player name cannot be empty.');
-    return null;
+  // Validate and trim name if being updated
+  if (updateData.name !== undefined) {
+    const trimmedName = updateData.name.trim();
+    if (!trimmedName) {
+      logger.error('[updatePlayerInRoster] Validation Failed: Player name cannot be empty.');
+      return null;
+    }
+    updateData = { ...updateData, name: trimmedName };
   }
 
   try {
