@@ -152,8 +152,55 @@ const migrateTournamentLevel = (tournament: Tournament): Tournament => {
   return tournament;
 };
 
+// Type for parsed settings with legacy month fields
+type ParsedSettingsWithLegacy = AppSettings & {
+  clubSeasonStartMonth?: number;
+  clubSeasonEndMonth?: number;
+};
+
 export class LocalDataStore implements DataStore {
   private initialized = false;
+  private settingsMigrated = false;
+
+  /**
+   * Migrate legacy month-based season date fields to date format.
+   * Used by both getSettings and updateSettings to ensure consistent migration.
+   * @param parsed - Parsed settings from storage (may contain legacy fields)
+   * @returns Object with migrated settings and flag indicating if migration occurred
+   */
+  private migrateSeasonDates(parsed: ParsedSettingsWithLegacy): {
+    settings: AppSettings;
+    needsMigration: boolean;
+  } {
+    const settings: AppSettings = { ...DEFAULT_APP_SETTINGS, ...parsed };
+    let needsMigration = false;
+
+    if (parsed.clubSeasonStartMonth !== undefined && !parsed.clubSeasonStartDate) {
+      settings.clubSeasonStartDate = convertMonthToDate(parsed.clubSeasonStartMonth);
+      settings.hasConfiguredSeasonDates = true;
+      needsMigration = true;
+    }
+
+    if (parsed.clubSeasonEndMonth !== undefined && !parsed.clubSeasonEndDate) {
+      settings.clubSeasonEndDate = convertMonthToDate(parsed.clubSeasonEndMonth);
+      settings.hasConfiguredSeasonDates = true;
+      needsMigration = true;
+    }
+
+    return { settings, needsMigration };
+  }
+
+  /**
+   * Remove legacy month fields from settings before saving.
+   * @param settings - Settings object that may contain legacy fields
+   * @returns Clean settings object without legacy fields
+   */
+  private removeLegacyMonthFields(settings: AppSettings): AppSettings {
+    const clean = { ...settings } as ParsedSettingsWithLegacy;
+    delete clean.clubSeasonStartMonth;
+    delete clean.clubSeasonEndMonth;
+    return clean;
+  }
 
   async initialize(): Promise<void> {
     this.initialized = true;
@@ -165,6 +212,7 @@ export class LocalDataStore implements DataStore {
     }
 
     this.initialized = false;
+    this.settingsMigrated = false;
     await clearAdapterCacheWithCleanup();
   }
 
@@ -1048,45 +1096,34 @@ export class LocalDataStore implements DataStore {
         return { ...DEFAULT_APP_SETTINGS };
       }
 
-      // Merge defaults, but keep migration detection based on the raw stored values (`parsed`).
-      // Otherwise defaults would mask "missing" fields and prevent migration.
-      const settings: AppSettings = { ...DEFAULT_APP_SETTINGS, ...parsed };
-      let needsMigration = false;
+      // Migrate legacy month fields if needed (skip if already migrated this session)
+      let settings: AppSettings;
+      if (this.settingsMigrated) {
+        // Already migrated - just merge with defaults
+        settings = { ...DEFAULT_APP_SETTINGS, ...parsed };
+      } else {
+        const { settings: migratedSettings, needsMigration } = this.migrateSeasonDates(parsed);
+        settings = migratedSettings;
 
-      if (parsed.clubSeasonStartMonth !== undefined && !parsed.clubSeasonStartDate) {
-        settings.clubSeasonStartDate = convertMonthToDate(parsed.clubSeasonStartMonth);
-        needsMigration = true;
-      }
+        if (needsMigration) {
+          const toSave = this.removeLegacyMonthFields(settings);
 
-      if (parsed.clubSeasonEndMonth !== undefined && !parsed.clubSeasonEndDate) {
-        settings.clubSeasonEndDate = convertMonthToDate(parsed.clubSeasonEndMonth);
-        needsMigration = true;
-      }
-
-      if (needsMigration) {
-        // If legacy month fields existed, user had configured seasons — reflect that immediately.
-        settings.hasConfiguredSeasonDates = true;
-
-        const toSave = {
-          ...settings,
-        } as AppSettings & {
-          clubSeasonStartMonth?: number;
-          clubSeasonEndMonth?: number;
-        };
-        delete toSave.clubSeasonStartMonth;
-        delete toSave.clubSeasonEndMonth;
-
-        try {
-          await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
-          logger.info('[LocalDataStore] Successfully migrated app settings to new format');
-        } catch (saveError) {
-          // Don't re-throw: app can still work with in-memory migrated values.
-          // Old format is preserved, so migration will retry on next startup.
-          // This is safe but inefficient - logs warning to help diagnose if it persists.
-          logger.warn(
-            '[LocalDataStore] Failed to persist migrated app settings - will retry on next startup',
-            { error: saveError }
-          );
+          try {
+            await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
+            logger.info('[LocalDataStore] Successfully migrated app settings to new format');
+            this.settingsMigrated = true;
+          } catch (saveError) {
+            // Don't re-throw: app can still work with in-memory migrated values.
+            // Old format is preserved, so migration will retry on next startup.
+            logger.warn(
+              '[LocalDataStore] Failed to persist migrated app settings - will retry on next startup',
+              { error: saveError }
+            );
+            // Don't set settingsMigrated - retry on next call
+          }
+        } else {
+          // No legacy fields - mark as migrated to skip future checks
+          this.settingsMigrated = true;
         }
       }
 
@@ -1126,38 +1163,24 @@ export class LocalDataStore implements DataStore {
     return withKeyLock(APP_SETTINGS_KEY, async () => {
       // Read directly from storage (avoid nested lock)
       const stored = await getStorageItem(APP_SETTINGS_KEY);
-      const parsed = stored ? JSON.parse(stored) as AppSettings & {
-        clubSeasonStartMonth?: number;
-        clubSeasonEndMonth?: number;
-      } : null;
+      const parsed = stored ? JSON.parse(stored) as ParsedSettingsWithLegacy : null;
 
-      const current: AppSettings = parsed
-        ? { ...DEFAULT_APP_SETTINGS, ...parsed }
-        : { ...DEFAULT_APP_SETTINGS };
-
-      // Apply same migration logic as getSettings to handle legacy month fields
-      if (parsed) {
-        if (parsed.clubSeasonStartMonth !== undefined && !parsed.clubSeasonStartDate) {
-          current.clubSeasonStartDate = convertMonthToDate(parsed.clubSeasonStartMonth);
-          current.hasConfiguredSeasonDates = true;
-        }
-        if (parsed.clubSeasonEndMonth !== undefined && !parsed.clubSeasonEndDate) {
-          current.clubSeasonEndDate = convertMonthToDate(parsed.clubSeasonEndMonth);
-          current.hasConfiguredSeasonDates = true;
-        }
+      // Get current settings - skip migration if already done this session
+      let current: AppSettings;
+      if (this.settingsMigrated || !parsed) {
+        current = parsed ? { ...DEFAULT_APP_SETTINGS, ...parsed } : { ...DEFAULT_APP_SETTINGS };
+      } else {
+        current = this.migrateSeasonDates(parsed).settings;
       }
 
       const updated = { ...current, ...updates };
 
       // Remove legacy fields before saving
-      const toSave = { ...updated } as AppSettings & {
-        clubSeasonStartMonth?: number;
-        clubSeasonEndMonth?: number;
-      };
-      delete toSave.clubSeasonStartMonth;
-      delete toSave.clubSeasonEndMonth;
+      const toSave = this.removeLegacyMonthFields(updated);
 
       await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
+      // Legacy fields removed from storage - mark as migrated
+      this.settingsMigrated = true;
       return updated;
     });
   }

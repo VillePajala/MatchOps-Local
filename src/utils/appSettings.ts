@@ -84,6 +84,12 @@ export const saveAppSettings = async (settings: AppSettings): Promise<boolean> =
  * @returns A promise that resolves to the updated settings (or current settings on error)
  */
 export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>): Promise<AppSettings> => {
+  // Early return for empty updates - avoid unnecessary DataStore call
+  if (Object.keys(settingsUpdate).length === 0) {
+    logger.warn('updateAppSettings called with empty object, returning current settings');
+    return getAppSettings();
+  }
+
   try {
     const dataStore = await getDataStore();
     return await dataStore.updateSettings(settingsUpdate);
@@ -91,7 +97,12 @@ export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>): P
     logger.error('Error updating app settings:', error);
     // Return current settings on error (update becomes a no-op)
     // This matches the graceful degradation pattern used throughout settings
-    return getAppSettings();
+    try {
+      return await getAppSettings();
+    } catch (fallbackError) {
+      logger.error('Fallback getAppSettings also failed:', fallbackError);
+      return DEFAULT_APP_SETTINGS;
+    }
   }
 };
 

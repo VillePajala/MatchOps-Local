@@ -348,6 +348,9 @@ describe('App Settings Utilities', () => {
     });
 
     it('should be a no-op when called with empty object', async () => {
+      // Suppress expected warning for empty updates
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+
       mockSettings = {
         ...DEFAULT_APP_SETTINGS,
         currentGameId: 'existingGame',
@@ -356,8 +359,10 @@ describe('App Settings Utilities', () => {
 
       const result = await updateAppSettings({});
 
-      // Should call updateSettings with empty object
-      expect(mockDataStore.updateSettings).toHaveBeenCalledWith({});
+      // Should NOT call updateSettings - short-circuits before DataStore call
+      expect(mockDataStore.updateSettings).not.toHaveBeenCalled();
+      // Should call getSettings instead to return current settings
+      expect(mockDataStore.getSettings).toHaveBeenCalled();
 
       // Settings should remain unchanged
       expect(result.currentGameId).toBe('existingGame');
