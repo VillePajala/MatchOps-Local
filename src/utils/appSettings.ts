@@ -21,6 +21,7 @@ import {
 import logger from '@/utils/logger';
 import { storageConfigManager } from './storageConfigManager';
 import { getDataStore } from '@/datastore';
+// ValidationError check uses code property (not instanceof) to avoid module boundary issues
 import type { AppSettings } from '@/types/settings';
 
 // Re-export for backwards compatibility
@@ -77,26 +78,26 @@ export const saveAppSettings = async (settings: AppSettings): Promise<boolean> =
  * Updates specific application settings while preserving others.
  * DataStore.updateSettings handles atomic read-modify-write internally.
  *
- * Error handling: Returns current settings on failure (update becomes no-op).
- * This is consistent with other settings functions that fail gracefully.
+ * Error handling:
+ * - Throws ValidationError for empty updates (programming error - fix your code)
+ * - Returns current settings on storage failures (graceful degradation)
  *
- * @param settingsUpdate - Partial settings to update
- * @returns A promise that resolves to the updated settings (or current settings on error)
+ * @param settingsUpdate - Partial settings to update (must not be empty)
+ * @returns A promise that resolves to the updated settings (or current settings on storage error)
+ * @throws {ValidationError} If settingsUpdate is an empty object
  */
 export const updateAppSettings = async (settingsUpdate: Partial<AppSettings>): Promise<AppSettings> => {
-  // Early return for empty updates - avoid unnecessary DataStore call
-  if (Object.keys(settingsUpdate).length === 0) {
-    logger.warn('updateAppSettings called with empty object, returning current settings');
-    return getAppSettings();
-  }
-
   try {
     const dataStore = await getDataStore();
     return await dataStore.updateSettings(settingsUpdate);
   } catch (error) {
+    // Re-throw ValidationError - it's a programming error, caller should fix their code
+    // Check by code property to avoid instanceof issues across module boundaries
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'VALIDATION_ERROR') {
+      throw error;
+    }
+    // Graceful degradation for unexpected errors (storage failures, etc.)
     logger.error('Error updating app settings:', error);
-    // Return current settings on error (update becomes a no-op)
-    // This matches the graceful degradation pattern used throughout settings
     try {
       return await getAppSettings();
     } catch (fallbackError) {

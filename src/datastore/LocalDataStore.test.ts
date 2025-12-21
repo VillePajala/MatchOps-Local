@@ -1333,6 +1333,46 @@ describe('LocalDataStore', () => {
       it('should throw ValidationError on empty updates', async () => {
         await expect(dataStore.updateSettings({})).rejects.toThrow(ValidationError);
       });
+
+      it('should handle concurrent updateSettings calls safely', async () => {
+        // Track storage state with a variable for proper concurrent simulation
+        let storedValue = JSON.stringify({
+          ...mockSettings,
+          language: 'fi',
+          hasSeenAppGuide: false,
+        });
+
+        // Mock get to always return current state
+        mockGetStorageItem.mockImplementation(async () => storedValue);
+
+        // Mock set to update state
+        mockSetStorageItem.mockImplementation(async (_key: string, value: string) => {
+          storedValue = value;
+        });
+
+        // Mock lock to properly serialize concurrent calls
+        const { withKeyLock } = require('@/utils/storageKeyLock');
+        let lockQueue: Promise<unknown> = Promise.resolve();
+        withKeyLock.mockImplementation((_key: string, fn: () => Promise<unknown>) => {
+          lockQueue = lockQueue.then(() => fn());
+          return lockQueue;
+        });
+
+        // Execute concurrent updates - lock ensures serialization
+        const [result1, result2] = await Promise.all([
+          dataStore.updateSettings({ language: 'en' }),
+          dataStore.updateSettings({ hasSeenAppGuide: true })
+        ]);
+
+        // Both updates should complete without error
+        expect(result1).toBeDefined();
+        expect(result2).toBeDefined();
+
+        // Final state should have both updates applied (lock ensures no lost updates)
+        const final = await dataStore.getSettings();
+        expect(final.language).toBe('en');
+        expect(final.hasSeenAppGuide).toBe(true);
+      });
     });
   });
 
