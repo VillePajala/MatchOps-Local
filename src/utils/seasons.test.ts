@@ -5,7 +5,8 @@
  * when routed through DataStore abstraction.
  *
  * Test Strategy:
- * - Mock DataStore at module level using jest.doMock + require pattern
+ * - Mock DataStore using standard jest.mock() (works because getDataStore()
+ *   is called within async functions, not at module load time)
  * - Tests verify utility functions correctly delegate to DataStore
  * - Edge cases and error handling are tested at utility layer
  */
@@ -14,7 +15,7 @@ import { SEASONS_LIST_KEY } from '@/config/storageKeys';
 import type { Season } from '@/types';
 import type { SavedGamesCollection } from '@/types/game';
 
-// Mock DataStore state
+// Mock DataStore state (module-level for mock factory access)
 let mockSeasons: Season[] = [];
 let mockGames: SavedGamesCollection = {};
 let mockCreateSeasonResult: Season | null = null;
@@ -22,6 +23,7 @@ let mockUpdateSeasonResult: Season | null = null;
 let mockDeleteSeasonResult = true;
 let mockShouldThrow = false;
 let mockValidationError = false;
+let seasonIdCounter = 0; // Deterministic ID counter per CLAUDE.md testing rules
 
 // Mock DataStore implementation
 const mockDataStore = {
@@ -36,8 +38,9 @@ const mockDataStore = {
       (error as Error & { code: string }).code = 'VALIDATION_ERROR';
       throw error;
     }
+    seasonIdCounter++;
     const newSeason: Season = {
-      id: `season_${Date.now()}_test`,
+      id: `season_test_${seasonIdCounter}`,
       name,
       ...extra,
     };
@@ -69,18 +72,17 @@ const mockDataStore = {
   }),
 };
 
-// Mock the datastore factory BEFORE importing seasons
-jest.doMock('@/datastore', () => ({
+// Mock DataStore - standard jest.mock works because getDataStore() is called
+// within async functions, not at module load time
+jest.mock('@/datastore', () => ({
   getDataStore: jest.fn(async () => mockDataStore),
 }));
 
 // Mock storage for deprecated saveSeasons
 jest.mock('./storage');
-import { setStorageItem } from './storage';
-const mockSetStorageItem = setStorageItem as jest.MockedFunction<typeof setStorageItem>;
 
-// Import after mocking
-const {
+import { setStorageItem } from './storage';
+import {
   getSeasons,
   saveSeasons,
   addSeason,
@@ -89,7 +91,9 @@ const {
   countGamesForSeason,
   updateTeamPlacement,
   getTeamPlacement,
-} = require('./seasons') as typeof import('./seasons');
+} from './seasons';
+
+const mockSetStorageItem = setStorageItem as jest.MockedFunction<typeof setStorageItem>;
 
 // Mock console methods
 let consoleErrorSpy: jest.SpyInstance;
@@ -104,6 +108,7 @@ beforeEach(() => {
   mockDeleteSeasonResult = true;
   mockShouldThrow = false;
   mockValidationError = false;
+  seasonIdCounter = 0; // Reset deterministic ID counter
 
   // Clear all mock call history
   jest.clearAllMocks();
