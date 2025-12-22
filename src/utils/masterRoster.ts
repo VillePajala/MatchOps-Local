@@ -175,8 +175,9 @@ export const removePlayerFromRoster = async (playerId: string): Promise<boolean>
  * DESIGN NOTE (Partial Atomicity):
  * The goalie clearing loop tracks success/failure of each update. If any clear fails,
  * the operation aborts before setting the new goalie, preventing multiple goalies.
- * True rollback (reverting successful clears) is not implemented - for a local-first
- * PWA with 50-100 players, the added complexity isn't justified.
+ * Trade-off: If clears succeed but abort triggers, the roster may have no goalie
+ * (old cleared, new not set). True rollback is not implemented - for a local-first
+ * PWA with 50-100 players, the added complexity isn't justified. User can retry.
  *
  * PERFORMANCE NOTE: Multiple storage operations (getPlayers + N updatePlayer calls).
  * Acceptable for roster size of 50-100 players. Optimize only if profiling shows need.
