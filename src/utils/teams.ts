@@ -280,8 +280,16 @@ export const duplicateTeam = async (teamId: string): Promise<Team | null> => {
  * Count games associated with a team (for deletion impact analysis).
  * DataStore handles loading saved games.
  *
+ * Error handling: Returns 0 on failure (graceful degradation for UI display).
+ * This function is used for informational purposes (showing deletion impact),
+ * not critical logic. Silent failure is acceptable - user can still proceed.
+ *
+ * Defensive checks: IndexedDB data could be corrupted or from old app versions,
+ * so we validate each game entry before accessing properties.
+ *
  * @param teamId - The ID of the team to count games for.
  * @returns A promise that resolves to the number of games associated with this team.
+ *          Returns 0 if team has no games OR if an error occurs (logged for debugging).
  */
 export const countGamesForTeam = async (teamId: string): Promise<number> => {
   try {
@@ -290,7 +298,7 @@ export const countGamesForTeam = async (teamId: string): Promise<number> => {
 
     let count = 0;
     for (const gameState of Object.values(savedGames)) {
-      // Defensive check: ensure gameState has teamId property
+      // Defensive check: IndexedDB data could be corrupted or from old versions
       if (gameState && typeof gameState === 'object' && 'teamId' in gameState) {
         if (gameState.teamId === teamId) {
           count++;
