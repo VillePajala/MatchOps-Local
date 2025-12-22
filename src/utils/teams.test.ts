@@ -1,16 +1,173 @@
-import { setTeamRoster, getTeamRoster, addPlayerToRoster, addTeam, duplicateTeam, getTeam, updateTeam } from './teams';
-import { TeamPlayer } from '@/types';
-import { clearMockStore } from './__mocks__/storage';
+/**
+ * @fileoverview Tests for team utilities
+ * Tests DataStore integration for team CRUD operations.
+ *
+ * Note: Team CRUD operations now handled by DataStore (LocalDataStore.ts).
+ * These tests verify the utility layer correctly delegates to DataStore.
+ */
 
-// Auto-mock the storage module
-jest.mock('./storage');
+import type { Team, TeamPlayer } from '@/types';
+
+// Mock DataStore state (module-level for mock factory access)
+let mockTeams: { [id: string]: Team } = {};
+let mockRosters: { [teamId: string]: TeamPlayer[] } = {};
+let mockShouldThrow = false;
+let teamIdCounter = 0;
+
+// Mock DataStore implementation
+const mockDataStore = {
+  getTeams: jest.fn(async () => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    return Object.values(mockTeams);
+  }),
+  getTeamById: jest.fn(async (id: string) => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    return mockTeams[id] || null;
+  }),
+  createTeam: jest.fn(async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+
+    // Simulate validation
+    const trimmedName = teamData.name?.trim();
+    if (!trimmedName) {
+      const error = new Error('Team name cannot be empty');
+      (error as Error & { code: string }).code = 'VALIDATION_ERROR';
+      throw error;
+    }
+
+    // Normalize empty strings to undefined
+    const normalizeOptionalString = (value?: string): string | undefined => {
+      if (value === undefined) return undefined;
+      const trimmed = value.trim();
+      return trimmed === '' ? undefined : trimmed;
+    };
+
+    const normalizedAgeGroup = normalizeOptionalString(teamData.ageGroup);
+    const normalizedNotes = normalizeOptionalString(teamData.notes);
+
+    // Validate notes length
+    if (normalizedNotes && normalizedNotes.length > 1000) {
+      const error = new Error('Team notes cannot exceed 1000 characters');
+      (error as Error & { code: string }).code = 'VALIDATION_ERROR';
+      throw error;
+    }
+
+    // Validate age group
+    const validAgeGroups = ['U7', 'U8', 'U9', 'U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'U19', 'U20', 'U21'];
+    if (normalizedAgeGroup && !validAgeGroups.includes(normalizedAgeGroup)) {
+      const error = new Error(`Invalid age group: ${normalizedAgeGroup}. Must be one of: ${validAgeGroups.join(', ')}`);
+      (error as Error & { code: string }).code = 'VALIDATION_ERROR';
+      throw error;
+    }
+
+    teamIdCounter++;
+    const now = new Date().toISOString();
+    const newTeam: Team = {
+      id: `team_test_${teamIdCounter}`,
+      name: trimmedName,
+      color: teamData.color,
+      ageGroup: normalizedAgeGroup,
+      notes: normalizedNotes,
+      createdAt: now,
+      updatedAt: now,
+    };
+    mockTeams[newTeam.id] = newTeam;
+    return newTeam;
+  }),
+  updateTeam: jest.fn(async (id: string, updates: Partial<Team>) => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    const existing = mockTeams[id];
+    if (!existing) return null;
+
+    // Normalize empty strings to undefined
+    const normalizeOptionalString = (value?: string): string | undefined => {
+      if (value === undefined) return undefined;
+      const trimmed = value.trim();
+      return trimmed === '' ? undefined : trimmed;
+    };
+
+    // Apply normalization
+    if (updates.ageGroup !== undefined) {
+      updates.ageGroup = normalizeOptionalString(updates.ageGroup);
+    }
+    if (updates.notes !== undefined) {
+      updates.notes = normalizeOptionalString(updates.notes);
+    }
+
+    // Validate notes length
+    if (updates.notes && updates.notes.length > 1000) {
+      const error = new Error('Team notes cannot exceed 1000 characters');
+      (error as Error & { code: string }).code = 'VALIDATION_ERROR';
+      throw error;
+    }
+
+    // Validate age group
+    const validAgeGroups = ['U7', 'U8', 'U9', 'U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'U19', 'U20', 'U21'];
+    if (updates.ageGroup && !validAgeGroups.includes(updates.ageGroup)) {
+      const error = new Error(`Invalid age group: ${updates.ageGroup}. Must be one of: ${validAgeGroups.join(', ')}`);
+      (error as Error & { code: string }).code = 'VALIDATION_ERROR';
+      throw error;
+    }
+
+    const updatedTeam: Team = {
+      ...existing,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    mockTeams[id] = updatedTeam;
+    return updatedTeam;
+  }),
+  deleteTeam: jest.fn(async (id: string) => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    if (!mockTeams[id]) return false;
+    delete mockTeams[id];
+    return true;
+  }),
+  getGames: jest.fn(async () => ({})),
+};
+
+// Mock DataStore
+jest.mock('@/datastore', () => ({
+  getDataStore: jest.fn(async () => mockDataStore),
+}));
+
+// Mock storage for roster operations and deprecated saveTeams
+jest.mock('./storage', () => ({
+  getStorageItem: jest.fn(async (key: string) => {
+    if (key === 'soccerTeamRosters') {
+      return Object.keys(mockRosters).length > 0 ? JSON.stringify(mockRosters) : null;
+    }
+    return null;
+  }),
+  setStorageItem: jest.fn(async (key: string, value: string) => {
+    if (key === 'soccerTeamRosters') {
+      mockRosters = JSON.parse(value);
+    }
+  }),
+}));
+
+import { setTeamRoster, getTeamRoster, addPlayerToRoster, addTeam, duplicateTeam, getTeam, updateTeam, getTeams } from './teams';
+
+// Mock console methods
+let consoleErrorSpy: jest.SpyInstance;
+let consoleWarnSpy: jest.SpyInstance;
+
+beforeEach(() => {
+  mockTeams = {};
+  mockRosters = {};
+  mockShouldThrow = false;
+  teamIdCounter = 0;
+  jest.clearAllMocks();
+  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+});
+
+afterEach(() => {
+  consoleErrorSpy.mockRestore();
+  consoleWarnSpy.mockRestore();
+});
 
 describe('Teams Lock Integration', () => {
-  beforeEach(() => {
-    // Clear the mock store
-    clearMockStore();
-  });
-
   const createTestPlayer = (id: string, name: string): TeamPlayer => ({
     id,
     name,
@@ -39,7 +196,7 @@ describe('Teams Lock Integration', () => {
 
     // Check final roster state
     const finalRoster = await getTeamRoster(teamId);
-    
+
     expect(finalRoster).toHaveLength(5);
     expect(finalRoster.map(p => p.name).sort()).toEqual([
       'Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5'
@@ -66,11 +223,11 @@ describe('Teams Lock Integration', () => {
     ];
 
     const results = await Promise.all(operations);
-    
+
     // The final roster should have all 4 players
     const finalRoster = await getTeamRoster(teamId);
     expect(finalRoster).toHaveLength(4);
-    
+
     // Check that all read operations returned valid arrays
     const readResults = [results[0], results[2], results[4]] as TeamPlayer[][];
     for (const roster of readResults) {
@@ -82,7 +239,7 @@ describe('Teams Lock Integration', () => {
   it('should maintain data integrity under high concurrency', async () => {
     const teamId = 'stress-test-team';
     const operationCount = 20;
-    
+
     // Create many concurrent add operations
     const addOperations = Array.from({ length: operationCount }, (_, i) =>
       addPlayerToRoster(teamId, createTestPlayer(`stress-${i}`, `Stress Player ${i}`))
@@ -91,10 +248,10 @@ describe('Teams Lock Integration', () => {
     await Promise.all(addOperations);
 
     const finalRoster = await getTeamRoster(teamId);
-    
+
     // Should have exactly the number of players we added
     expect(finalRoster).toHaveLength(operationCount);
-    
+
     // All players should have unique IDs
     const playerIds = finalRoster.map(p => p.id);
     const uniqueIds = new Set(playerIds);
@@ -102,11 +259,65 @@ describe('Teams Lock Integration', () => {
   });
 });
 
-describe('Team metadata fields', () => {
-  beforeEach(() => {
-    clearMockStore();
+describe('Team CRUD via DataStore', () => {
+  /**
+   * Tests basic team creation
+   * @critical
+   */
+  it('should create a team via DataStore', async () => {
+    const team = await addTeam({
+      name: 'Test Team',
+      color: '#FF0000'
+    });
+
+    expect(team).not.toBeNull();
+    expect(team.name).toBe('Test Team');
+    expect(team.color).toBe('#FF0000');
+    expect(mockDataStore.createTeam).toHaveBeenCalledWith({
+      name: 'Test Team',
+      color: '#FF0000'
+    });
   });
 
+  /**
+   * Tests team retrieval via DataStore
+   */
+  it('should get a team by ID via DataStore', async () => {
+    const created = await addTeam({ name: 'Get Test' });
+    const retrieved = await getTeam(created.id);
+
+    expect(retrieved).not.toBeNull();
+    expect(retrieved?.name).toBe('Get Test');
+    expect(mockDataStore.getTeamById).toHaveBeenCalledWith(created.id);
+  });
+
+  /**
+   * Tests getting all teams via DataStore
+   */
+  it('should get all teams via DataStore', async () => {
+    await addTeam({ name: 'Team 1' });
+    await addTeam({ name: 'Team 2' });
+
+    const teams = await getTeams();
+
+    expect(teams).toHaveLength(2);
+    expect(mockDataStore.getTeams).toHaveBeenCalled();
+  });
+
+  /**
+   * Tests team update via DataStore
+   */
+  it('should update a team via DataStore', async () => {
+    const created = await addTeam({ name: 'Update Test' });
+    const updated = await updateTeam(created.id, { name: 'Updated Name' });
+
+    expect(updated).not.toBeNull();
+    expect(updated?.name).toBe('Updated Name');
+    expect(mockDataStore.updateTeam).toHaveBeenCalledWith(created.id, { name: 'Updated Name' });
+  });
+});
+
+describe('Team metadata fields', () => {
   /**
    * Tests preservation of ageGroup and notes when creating a team
    * @critical
