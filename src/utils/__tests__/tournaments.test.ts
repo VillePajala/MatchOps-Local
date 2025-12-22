@@ -1,115 +1,153 @@
 /**
  * @fileoverview Tests for tournament utilities including series migration
- * TDD: These tests are written BEFORE the implementation
+ * Tests DataStore integration for tournament series handling.
+ *
+ * Note: Series migration is now handled by DataStore (LocalDataStore.ts).
+ * These tests verify the utility layer correctly delegates to DataStore.
  */
 
-import { getTournaments, addTournament, updateTournament } from '../tournaments';
-import { getStorageItem, setStorageItem } from '../storage';
 import type { Tournament, TournamentSeries } from '@/types';
 
-// Mock storage with jest.requireActual for better isolation
-jest.mock('../storage', () => ({
-  ...jest.requireActual('../storage'),
-  getStorageItem: jest.fn(),
-  setStorageItem: jest.fn(),
+// Mock DataStore state (module-level for mock factory access)
+let mockTournaments: Tournament[] = [];
+let mockShouldThrow = false;
+let tournamentIdCounter = 0;
+
+// Mock DataStore implementation with migration support
+const mockDataStore = {
+  getTournaments: jest.fn(async () => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    // DataStore handles migration - return as-is for testing
+    return [...mockTournaments];
+  }),
+  createTournament: jest.fn(async (name: string, extra?: Partial<Omit<Tournament, 'id' | 'name'>>) => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    tournamentIdCounter++;
+    const newTournament: Tournament = {
+      id: `tournament_test_${tournamentIdCounter}`,
+      name,
+      ...extra,
+    };
+    mockTournaments.push(newTournament);
+    return newTournament;
+  }),
+  updateTournament: jest.fn(async (tournament: Tournament) => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    const index = mockTournaments.findIndex(t => t.id === tournament.id);
+    if (index === -1) return null;
+    mockTournaments[index] = { ...tournament };
+    return mockTournaments[index];
+  }),
+  deleteTournament: jest.fn(async (id: string) => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    const index = mockTournaments.findIndex(t => t.id === id);
+    if (index === -1) return false;
+    mockTournaments.splice(index, 1);
+    return true;
+  }),
+  getGames: jest.fn(async () => ({})),
+};
+
+// Mock DataStore
+jest.mock('@/datastore', () => ({
+  getDataStore: jest.fn(async () => mockDataStore),
 }));
 
-const mockGetStorageItem = getStorageItem as jest.MockedFunction<typeof getStorageItem>;
-const mockSetStorageItem = setStorageItem as jest.MockedFunction<typeof setStorageItem>;
+// Mock storage for deprecated saveTournaments
+jest.mock('../storage');
+
+import { getTournaments, addTournament, updateTournament } from '../tournaments';
+
+// Mock console methods
+let consoleErrorSpy: jest.SpyInstance;
+let consoleWarnSpy: jest.SpyInstance;
+
+beforeEach(() => {
+  mockTournaments = [];
+  mockShouldThrow = false;
+  tournamentIdCounter = 0;
+  jest.clearAllMocks();
+  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+});
+
+afterEach(() => {
+  consoleErrorSpy.mockRestore();
+  consoleWarnSpy.mockRestore();
+});
 
 describe('Tournament Series Migration', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   describe('getTournaments - legacy migration', () => {
-    it('should migrate legacy level field to series array with deterministic ID', async () => {
-      // Setup: tournament with level but no series
-      const legacyTournament = {
+    /**
+     * Note: Series migration now happens in DataStore (LocalDataStore.ts).
+     * These tests verify that tournaments.ts correctly returns migrated data from DataStore.
+     */
+
+    it('should return tournaments with migrated series from DataStore', async () => {
+      // Setup: DataStore returns migrated tournament (migration happens in DataStore)
+      mockTournaments = [{
         id: 'tournament_123',
         name: 'Summer Cup',
         level: 'Elite',
-      };
-      mockGetStorageItem.mockResolvedValue(JSON.stringify([legacyTournament]));
+        series: [{ id: 'series_tournament_123_elite', level: 'Elite' }],
+      }];
 
       // Act
       const tournaments = await getTournaments();
 
-      // Assert: series array should contain one item with matching level
+      // Assert: series is present (migrated by DataStore)
       expect(tournaments).toHaveLength(1);
       expect(tournaments[0].series).toBeDefined();
       expect(tournaments[0].series).toHaveLength(1);
       expect(tournaments[0].series![0].level).toBe('Elite');
-      // Deterministic ID: series_{tournamentId}_{level-lowercase}
       expect(tournaments[0].series![0].id).toBe('series_tournament_123_elite');
     });
 
-    it('should generate idempotent series IDs on repeated migration calls', async () => {
-      // Setup: same legacy tournament
-      const legacyTournament = {
-        id: 'tournament_456',
-        name: 'Winter Cup',
-        level: 'Kilpa',
-      };
-      mockGetStorageItem.mockResolvedValue(JSON.stringify([legacyTournament]));
-
-      // Act: call twice
-      const first = await getTournaments();
-      const second = await getTournaments();
-
-      // Assert: IDs are identical (idempotent)
-      expect(first[0].series![0].id).toBe(second[0].series![0].id);
-      expect(first[0].series![0].id).toBe('series_tournament_456_kilpa');
-    });
-
-    it('should preserve existing series array (no duplicate migration)', async () => {
+    it('should preserve existing series array from DataStore', async () => {
       // Setup: tournament with series already defined
       const existingSeries: TournamentSeries[] = [
         { id: 'series_existing_1', level: 'Elite' },
         { id: 'series_existing_2', level: 'Kilpa' },
       ];
-      const tournamentWithSeries = {
+      mockTournaments = [{
         id: 'tournament_456',
         name: 'Winter Cup',
-        level: 'Elite', // Legacy field still present
+        level: 'Elite',
         series: existingSeries,
-      };
-      mockGetStorageItem.mockResolvedValue(JSON.stringify([tournamentWithSeries]));
+      }];
 
       // Act
       const tournaments = await getTournaments();
 
-      // Assert: series unchanged, no duplicate migration
+      // Assert: series unchanged
       expect(tournaments).toHaveLength(1);
       expect(tournaments[0].series).toHaveLength(2);
       expect(tournaments[0].series![0].id).toBe('series_existing_1');
       expect(tournaments[0].series![1].id).toBe('series_existing_2');
     });
 
-    it('should handle tournament without level (no series created)', async () => {
+    it('should handle tournament without level or series', async () => {
       // Setup: tournament without level or series
-      const tournamentNoLevel = {
+      mockTournaments = [{
         id: 'tournament_789',
         name: 'Friendly Tournament',
-      };
-      mockGetStorageItem.mockResolvedValue(JSON.stringify([tournamentNoLevel]));
+      }];
 
       // Act
       const tournaments = await getTournaments();
 
-      // Assert: no series array created
+      // Assert: no series array
       expect(tournaments).toHaveLength(1);
       expect(tournaments[0].series).toBeUndefined();
     });
 
-    it('should migrate multiple tournaments correctly', async () => {
-      // Setup: mix of legacy and new format
-      const mixedTournaments = [
-        { id: 't1', name: 'Tournament 1', level: 'Kilpa' }, // legacy
-        { id: 't2', name: 'Tournament 2', series: [{ id: 's1', level: 'Elite' }] }, // new
-        { id: 't3', name: 'Tournament 3' }, // no level
+    it('should return mix of tournaments correctly', async () => {
+      // Setup: mix of formats (all migrated by DataStore)
+      mockTournaments = [
+        { id: 't1', name: 'Tournament 1', level: 'Kilpa', series: [{ id: 's1_t1', level: 'Kilpa' }] },
+        { id: 't2', name: 'Tournament 2', series: [{ id: 's1', level: 'Elite' }] },
+        { id: 't3', name: 'Tournament 3' },
       ];
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mixedTournaments));
 
       // Act
       const tournaments = await getTournaments();
@@ -126,9 +164,6 @@ describe('Tournament Series Migration', () => {
 
   describe('addTournament with series', () => {
     it('should create tournament with series array', async () => {
-      mockGetStorageItem.mockResolvedValue(JSON.stringify([]));
-      mockSetStorageItem.mockResolvedValue(undefined);
-
       const newSeries: TournamentSeries[] = [
         { id: 'series_new_1', level: 'Elite' },
         { id: 'series_new_2', level: 'Harraste' },
@@ -139,9 +174,8 @@ describe('Tournament Series Migration', () => {
       expect(result).not.toBeNull();
       expect(result?.series).toEqual(newSeries);
 
-      // Verify storage was called with series
-      const savedData = JSON.parse(mockSetStorageItem.mock.calls[0][1] as string);
-      expect(savedData[0].series).toEqual(newSeries);
+      // Verify DataStore was called with series
+      expect(mockDataStore.createTournament).toHaveBeenCalledWith('New Tournament', { series: newSeries });
     });
   });
 
@@ -152,8 +186,7 @@ describe('Tournament Series Migration', () => {
         name: 'Update Test',
         series: [{ id: 's1', level: 'Elite' }],
       };
-      mockGetStorageItem.mockResolvedValue(JSON.stringify([existingTournament]));
-      mockSetStorageItem.mockResolvedValue(undefined);
+      mockTournaments = [existingTournament];
 
       const updatedSeries: TournamentSeries[] = [
         { id: 's1', level: 'Elite' },
@@ -178,10 +211,6 @@ describe('Tournament Series Migration', () => {
        * - Series can be removed from tournament (no validation against games)
        * - Games with orphaned tournamentSeriesId continue to function
        * - Game still has tournamentLevel string as fallback for display
-       * - This is acceptable because:
-       *   1. Series info is optional/supplementary
-       *   2. UI gracefully handles missing series
-       *   3. Core game data is unaffected
        */
       const tournamentWithSeries: Tournament = {
         id: 'tournament_orphan_test',
@@ -191,8 +220,7 @@ describe('Tournament Series Migration', () => {
           { id: 'series_to_keep', level: 'Kilpa' },
         ],
       };
-      mockGetStorageItem.mockResolvedValue(JSON.stringify([tournamentWithSeries]));
-      mockSetStorageItem.mockResolvedValue(undefined);
+      mockTournaments = [tournamentWithSeries];
 
       // Simulate deleting a series (as done in TournamentDetailsModal)
       const updatedTournament: Tournament = {
@@ -209,9 +237,6 @@ describe('Tournament Series Migration', () => {
 
       // Verify: deleted series ID no longer exists
       expect(result?.series?.find(s => s.id === 'series_to_delete')).toBeUndefined();
-
-      // Note: Any game with tournamentSeriesId='series_to_delete' now has an orphaned reference.
-      // This is acceptable - games store tournamentLevel as string backup for display.
     });
   });
 });
