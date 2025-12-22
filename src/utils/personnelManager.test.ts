@@ -17,15 +17,14 @@ import {
   getGamesWithPersonnel,
 } from './personnelManager';
 import type { Personnel, PersonnelRole } from '@/types/personnel';
-import type { SavedGameState } from '@/types';
+import type { AppState } from '@/types';
 import logger from '@/utils/logger';
 
 // Mock DataStore state (module-level for mock factory access)
 let mockPersonnel: { [id: string]: Personnel } = {};
-let mockGames: { [gameId: string]: SavedGameState } = {};
+let mockGames: { [gameId: string]: AppState } = {};
 let mockShouldThrow = false;
 let mockValidationError: Error | null = null;
-let personnelIdCounter = 0;
 
 /**
  * Simple mock DataStore implementation for testing personnelManager.ts delegation.
@@ -52,7 +51,6 @@ const mockDataStore = {
     if (mockShouldThrow) throw new Error('DataStore error');
     if (mockValidationError) throw mockValidationError;
 
-    personnelIdCounter++;
     const now = new Date().toISOString();
     const newPersonnel: Personnel = {
       id: `personnel_${Date.now()}_${Math.random().toString(16).slice(2, 10)}`,
@@ -109,7 +107,6 @@ beforeEach(() => {
   mockGames = {};
   mockShouldThrow = false;
   mockValidationError = null;
-  personnelIdCounter = 0;
   jest.clearAllMocks();
   consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -369,11 +366,10 @@ describe('Personnel Manager Utilities', () => {
     });
 
     /**
-     * Tests that invalid ID returns false (graceful handling)
+     * Tests that invalid ID throws error
      */
-    it('should return false for empty ID', async () => {
-      const result = await removePersonnelMember('');
-      expect(result).toBe(false);
+    it('should throw for empty ID', async () => {
+      await expect(removePersonnelMember('')).rejects.toThrow('Invalid personnel ID provided');
     });
   });
 
@@ -423,9 +419,9 @@ describe('Personnel Manager Utilities', () => {
 
       // Add some games referencing this personnel
       mockGames = {
-        'game1': { gamePersonnel: [member.id] } as unknown as SavedGameState,
-        'game2': { gamePersonnel: ['other-personnel'] } as unknown as SavedGameState,
-        'game3': { gamePersonnel: [member.id, 'other-personnel'] } as unknown as SavedGameState,
+        'game1': { gamePersonnel: [member.id] } as unknown as AppState,
+        'game2': { gamePersonnel: ['other-personnel'] } as unknown as AppState,
+        'game3': { gamePersonnel: [member.id, 'other-personnel'] } as unknown as AppState,
       };
 
       const gameIds = await getGamesWithPersonnel(member.id);
@@ -566,12 +562,12 @@ describe('Personnel Manager Utilities', () => {
     });
 
     /**
-     * Tests that removePersonnelMember handles DataStore errors gracefully
+     * Tests that removePersonnelMember propagates DataStore errors
+     * @critical
      */
-    it('should return false on removePersonnelMember DataStore error', async () => {
+    it('should propagate DataStore errors from removePersonnelMember', async () => {
       mockShouldThrow = true;
-      const result = await removePersonnelMember('some-id');
-      expect(result).toBe(false);
+      await expect(removePersonnelMember('some-id')).rejects.toThrow('DataStore error');
     });
 
     /**
