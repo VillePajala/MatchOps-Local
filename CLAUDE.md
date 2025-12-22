@@ -433,24 +433,31 @@ const largeDataset = Array.from({ length: 10000 }, () => createPlayer());
 2. Add test to prevent regression
 3. Update this document if pattern is common
 
-## Git and Version Control Rules
+## Git, Tests, and CI Rules
 
-### Critical Git Guidelines
+### Critical: User Controls All Operations
 
-**NEVER COMMIT OR PUSH** unless explicitly requested by the user.
+**NEVER run these operations automatically:**
+- `git add`, `git commit`, `git push`
+- `npm test`, `npm run build`, `npm run lint`
+- Creating branches or pull requests
+- Any CI/verification commands
 
-**Always wait for explicit permission before:**
-- Running `git add`, `git commit`, `git push`
-- Creating or modifying branches
-- Making any git operations that change repository state
+**Always wait for explicit user command.** Do not assume, do not infer, do not "help" by running these proactively.
 
-**The user controls when changes are committed:**
-- Complete work and verify it functions correctly
-- Inform user when work is ready for commit
-- Wait for explicit instruction to commit/push
-- Let them review changes before version control
+**Correct workflow:**
+1. Make code changes
+2. Stop and report: "Changes complete. Ready for your command."
+3. Wait for user to say "commit", "push", "run tests", etc.
+4. Only then execute the specific command requested
 
-**Exception:** Only commit/push immediately if user specifically requests it (e.g., "fix this and commit it", "push this change").
+**Examples:**
+- User says "fix the bug" → Fix code, then STOP. Do not commit.
+- User says "fix and commit" → Fix code, then commit. Do not push.
+- User says "there is no PR" → Ask "Should I push and create the PR?" Do not assume.
+- User gives code review feedback → Make changes, then STOP. Do not commit or push.
+
+**When uncertain, ASK.** Never assume the user wants you to commit, push, or run tests.
 
 ## Vercel Build & ESLint Rules
 
