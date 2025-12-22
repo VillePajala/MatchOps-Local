@@ -1,549 +1,516 @@
+/**
+ * Tests for tournaments.ts - Tournament management utilities
+ *
+ * These tests verify the tournaments utility functions work correctly
+ * when routed through DataStore abstraction.
+ *
+ * Test Strategy:
+ * - Mock DataStore using standard jest.mock() (works because getDataStore()
+ *   is called within async functions, not at module load time)
+ * - Tests verify utility functions correctly delegate to DataStore
+ * - Edge cases and error handling are tested at utility layer
+ */
+
 import { TOURNAMENTS_LIST_KEY } from '@/config/storageKeys';
+import type { Tournament } from '@/types';
+import type { SavedGamesCollection } from '@/types/game';
+
+// Mock DataStore state (module-level for mock factory access)
+let mockTournaments: Tournament[] = [];
+let mockGames: SavedGamesCollection = {};
+let mockCreateTournamentResult: Tournament | null = null;
+let mockUpdateTournamentResult: Tournament | null = null;
+let mockDeleteTournamentResult = true;
+let mockShouldThrow = false;
+let mockValidationError = false;
+let mockAlreadyExistsError = false;
+let tournamentIdCounter = 0; // Deterministic ID counter per CLAUDE.md testing rules
+
+// Mock DataStore implementation
+const mockDataStore = {
+  getTournaments: jest.fn(async () => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    return [...mockTournaments];
+  }),
+  createTournament: jest.fn(async (name: string, extra?: Partial<Omit<Tournament, 'id' | 'name'>>) => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    if (mockValidationError) {
+      const error = new Error('Validation error');
+      (error as Error & { code: string }).code = 'VALIDATION_ERROR';
+      throw error;
+    }
+    if (mockAlreadyExistsError) {
+      const error = new Error('Tournament already exists');
+      (error as Error & { code: string }).code = 'ALREADY_EXISTS';
+      throw error;
+    }
+    tournamentIdCounter++;
+    const newTournament: Tournament = {
+      id: `tournament_test_${tournamentIdCounter}`,
+      name,
+      ...extra,
+    };
+    mockTournaments.push(newTournament);
+    return mockCreateTournamentResult ?? newTournament;
+  }),
+  updateTournament: jest.fn(async (tournament: Tournament) => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    if (mockValidationError) {
+      const error = new Error('Name conflict');
+      (error as Error & { code: string }).code = 'VALIDATION_ERROR';
+      throw error;
+    }
+    const index = mockTournaments.findIndex(t => t.id === tournament.id);
+    if (index === -1) return null;
+    mockTournaments[index] = { ...tournament };
+    return mockUpdateTournamentResult ?? mockTournaments[index];
+  }),
+  deleteTournament: jest.fn(async (id: string) => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    const index = mockTournaments.findIndex(t => t.id === id);
+    if (index === -1) return false;
+    mockTournaments.splice(index, 1);
+    return mockDeleteTournamentResult;
+  }),
+  getGames: jest.fn(async () => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    return { ...mockGames };
+  }),
+};
+
+// Mock DataStore - standard jest.mock works because getDataStore() is called
+// within async functions, not at module load time
+jest.mock('@/datastore', () => ({
+  getDataStore: jest.fn(async () => mockDataStore),
+}));
+
+// Mock storage for deprecated saveTournaments
+jest.mock('./storage');
+
+import { setStorageItem } from './storage';
 import {
   getTournaments,
+  saveTournaments,
   addTournament,
   updateTournament,
   deleteTournament,
-  saveTournaments, // We will test this directly, and also its effects when called by others
+  countGamesForTournament,
   updateTeamPlacement,
-  getTeamPlacement
+  getTeamPlacement,
 } from './tournaments';
-import type { Tournament } from '@/types';
-import { clearMockStore } from './__mocks__/storage';
-import { getStorageItem, setStorageItem } from './storage';
 
-// Auto-mock the storage module
-jest.mock('./storage');
-
-// Type the mocked functions
-const mockGetStorageItem = getStorageItem as jest.MockedFunction<typeof getStorageItem>;
 const mockSetStorageItem = setStorageItem as jest.MockedFunction<typeof setStorageItem>;
 
-describe('Tournament Management Utilities (storage)', () => {
+// Mock console methods
 let consoleErrorSpy: jest.SpyInstance;
 let consoleWarnSpy: jest.SpyInstance;
 
 beforeEach(() => {
-    clearMockStore();
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  // Reset mock state
+  mockTournaments = [];
+  mockGames = {};
+  mockCreateTournamentResult = null;
+  mockUpdateTournamentResult = null;
+  mockDeleteTournamentResult = true;
+  mockShouldThrow = false;
+  mockValidationError = false;
+  mockAlreadyExistsError = false;
+  tournamentIdCounter = 0; // Reset deterministic ID counter
+
+  // Clear all mock call history
+  jest.clearAllMocks();
+
+  // Mock console methods
+  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
-afterEach(async () => {
-  // Restore console spies after each test
+afterEach(() => {
   consoleErrorSpy.mockRestore();
   consoleWarnSpy.mockRestore();
-  // Ensure complete cleanup after each test
-  clearMockStore();
 });
 
+describe('Tournament Management Utilities (DataStore)', () => {
   const sampleTournaments: Tournament[] = [
     { id: 't1', name: 'Regional Cup Q1' },
     { id: 't2', name: 'Champions League Pre-Season' },
     { id: 't3', name: 'Local Charity Shield' },
   ];
 
-  const tournamentWithAward: Tournament = {
-    id: 't4',
-    name: 'Championship Finals',
-    awardedPlayerId: 'player_123',
-    level: 'competitive',
-  };
-
   describe('getTournaments', () => {
-    it('should return an empty array if no tournaments are in storage', async () => {
-      // mockGetStorageItem will return null by default if store is empty
+    it('should return an empty array if no tournaments are stored', async () => {
       expect(await getTournaments()).toEqual([]);
-      expect(mockGetStorageItem).toHaveBeenCalledWith(TOURNAMENTS_LIST_KEY);
+      expect(mockDataStore.getTournaments).toHaveBeenCalled();
     });
 
-    it('should return tournaments from storage if they exist', async () => {
-      mockGetStorageItem.mockResolvedValueOnce(JSON.stringify(sampleTournaments));
+    it('should return tournaments from DataStore', async () => {
+      mockTournaments = [...sampleTournaments];
       expect(await getTournaments()).toEqual(sampleTournaments);
-      expect(mockGetStorageItem).toHaveBeenCalledWith(TOURNAMENTS_LIST_KEY);
     });
 
-    it('should return an empty array and log an error if storage data is malformed', async () => {
-      mockGetStorageItem.mockResolvedValueOnce('invalid-json-format');
+    it('should return an empty array and log error if DataStore fails', async () => {
+      mockShouldThrow = true;
       expect(await getTournaments()).toEqual([]);
-      // With graceful degradation, the error message has changed to be more descriptive
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[getTournaments] JSON parse failed'), expect.objectContaining({ error: expect.any(SyntaxError) }));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[getTournaments]'),
+        expect.any(Error)
+      );
     });
   });
 
-  describe('saveTournaments (direct test of the utility)', () => {
+  describe('saveTournaments (deprecated)', () => {
     it('should save tournaments to storage and return true', async () => {
-      // Use isolated test data to avoid contamination
       const testData: Tournament[] = [{ id: 'test_save', name: 'Test Save Tournament' }];
       const result = await saveTournaments(testData);
       expect(result).toBe(true);
       expect(mockSetStorageItem).toHaveBeenCalledWith(TOURNAMENTS_LIST_KEY, JSON.stringify(testData));
-      // Data persistence verified through mock calls
     });
 
-    it('should save empty array to storage and return true', async () => {
-      const result = await saveTournaments([]);
-      expect(result).toBe(true);
-      expect(mockSetStorageItem).toHaveBeenCalledWith(TOURNAMENTS_LIST_KEY, JSON.stringify([]));
-      // Data persistence verified through mock calls
-    });
-
-    it('should return false and log an error if saving fails (storage.setItem throws)', async () => {
-      const testData: Tournament[] = [{ id: 'test_fail', name: 'Test Fail Tournament' }];
-      const errorMsg = 'Storage full';
-      mockSetStorageItem.mockImplementationOnce(async () => {
-        throw new Error(errorMsg);
-      });
-      const result = await saveTournaments(testData);
+    it('should return false and log error if storage throws', async () => {
+      mockSetStorageItem.mockRejectedValueOnce(new Error('Storage error'));
+      const result = await saveTournaments([{ id: 'test', name: 'Test' }]);
       expect(result).toBe(false);
-      expect(mockSetStorageItem).toHaveBeenCalledWith(TOURNAMENTS_LIST_KEY, JSON.stringify(testData));
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[saveTournaments] Error saving tournaments to storage:'), expect.objectContaining({ message: errorMsg }));
+      expect(consoleErrorSpy).toHaveBeenCalled();
     });
   });
 
   describe('addTournament', () => {
-    beforeEach(async () => {
-      // Start with an empty list of tournaments in storage for most add tests
-      // mock data handled automatically = JSON.stringify([]);
-    });
-    
-    it('should add a new tournament, save it, and return the new object', async () => {
-      const newTournamentName = 'Newcomers Trophy';
-      const newTournament = await addTournament(newTournamentName);
-      
-      expect(newTournament).not.toBeNull();
-      expect(newTournament?.name).toBe(newTournamentName);
-      expect(mockSetStorageItem).toHaveBeenCalledTimes(1); // Called by saveTournaments
-      
-      const storedTournaments: Tournament[] = [newTournament!];
-      expect(storedTournaments.length).toBe(1);
-      expect(storedTournaments[0]).toEqual(expect.objectContaining({ name: newTournamentName }));
-    });
-
-    it('should add to an existing list, save it, and return the new object', async () => {
-      // mock data handled automatically = JSON.stringify([sampleTournaments[0]]); // Prime with one tournament
-      
-      const newTournamentName = 'Invitational Cup';
-      const newTournament = await addTournament(newTournamentName);
-
-      expect(newTournament).not.toBeNull();
-      if (newTournament) {
-        expect(newTournament.name).toBe(newTournamentName);
-      }
-      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
-
-      const storedTournaments: Tournament[] = [sampleTournaments[0], newTournament!];
-      expect(storedTournaments.length).toBe(2);
-      expect(storedTournaments).toEqual(expect.arrayContaining([
-        sampleTournaments[0],
-        expect.objectContaining({ name: newTournamentName })
-      ]));
-    });
-
-    it('should return null if underlying saveTournaments fails (e.g., storage.setItem throws)', async () => {
-      mockSetStorageItem.mockImplementationOnce(async () => {
-        throw new Error('Simulated storage error during save');
-      });
-      const newTournamentName = 'Ephemeral Tourney';
+    it('should add a new tournament and return the tournament object', async () => {
+      const newTournamentName = 'Winter Championship';
       const result = await addTournament(newTournamentName);
 
-      expect(result).toBeNull();
-      expect(mockSetStorageItem).toHaveBeenCalledTimes(1); // Attempted to save
-      // Check for the error logged by addTournament
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[addTournament] Unexpected error adding tournament:'), expect.any(Error));
+      expect(result).not.toBeNull();
+      expect(result?.name).toBe(newTournamentName);
+      expect(mockDataStore.createTournament).toHaveBeenCalledWith(newTournamentName, {});
     });
 
-    it('should return null and log error if name is empty, without attempting to save', async () => {
-      const result = await addTournament('');
-      expect(result).toBeNull();
-      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('[addTournament] Validation failed: Tournament name cannot be empty.'));
-      expect(mockSetStorageItem).not.toHaveBeenCalled();
+    it('should pass extra fields to DataStore', async () => {
+      const extra = { level: 'competitive' };
+      await addTournament('Test Tournament', extra);
+
+      expect(mockDataStore.createTournament).toHaveBeenCalledWith('Test Tournament', extra);
     });
 
-    it('should return null and log error if name already exists (case-insensitive), without attempting to save', async () => {
-      // First save a tournament to test against
-      await saveTournaments([sampleTournaments[0]]); // 'Regional Cup Q1'
-      const duplicateName = 'regional cup q1';
-      const result = await addTournament(duplicateName);
+    it('should trim whitespace from the tournament name', async () => {
+      await addTournament('  Spaced Out Cup   ');
 
-      expect(result).toBeNull();
-      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`[addTournament] Validation failed: A tournament with name "${duplicateName}" already exists.`));
+      expect(mockDataStore.createTournament).toHaveBeenCalledWith('Spaced Out Cup', {});
     });
-  });
 
-  describe('Tournament Player Awards', () => {
-    it('should save and retrieve tournaments with awardedPlayerId field', async () => {
-      const tournamentsWithAward = [tournamentWithAward, sampleTournaments[0]];
-      const result = await saveTournaments(tournamentsWithAward);
+    it('should return null and log warning if tournament name is empty', async () => {
+      expect(await addTournament('')).toBeNull();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Tournament name cannot be empty')
+      );
+      expect(mockDataStore.createTournament).not.toHaveBeenCalled();
+    });
 
-      expect(result).toBe(true);
-      expect(mockSetStorageItem).toHaveBeenCalledWith(
-        TOURNAMENTS_LIST_KEY,
-        JSON.stringify(tournamentsWithAward)
+    it('should return null and log warning if tournament name is whitespace only', async () => {
+      expect(await addTournament('   ')).toBeNull();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Tournament name cannot be empty')
       );
     });
 
-    it('should update tournament to add awardedPlayerId', async () => {
-      await saveTournaments([sampleTournaments[0]]);
-
-      const updatedWithAward: Tournament = {
-        ...sampleTournaments[0],
-        awardedPlayerId: 'player_456',
-      };
-      const result = await updateTournament(updatedWithAward);
-
-      expect(result).not.toBeNull();
-      expect(result?.awardedPlayerId).toBe('player_456');
+    it('should return null if DataStore throws validation error', async () => {
+      mockValidationError = true;
+      expect(await addTournament('Invalid Tournament')).toBeNull();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[addTournament] Operation failed'),
+        expect.any(Object)
+      );
     });
 
-    it('should update tournament to remove awardedPlayerId', async () => {
-      await saveTournaments([tournamentWithAward]);
-
-      const updatedWithoutAward: Tournament = {
-        ...tournamentWithAward,
-        awardedPlayerId: undefined,
-      };
-      const result = await updateTournament(updatedWithoutAward);
-
-      expect(result).not.toBeNull();
-      expect(result?.awardedPlayerId).toBeUndefined();
+    it('should return null if DataStore throws already exists error (duplicate name)', async () => {
+      mockAlreadyExistsError = true;
+      expect(await addTournament('Duplicate Tournament')).toBeNull();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[addTournament] Operation failed'),
+        expect.any(Object)
+      );
     });
 
-    it('should handle tournaments with and without awardedPlayerId in same list', async () => {
-      const mixedTournaments = [...sampleTournaments, tournamentWithAward];
-      const saveResult = await saveTournaments(mixedTournaments);
-
-      expect(saveResult).toBe(true);
-
-      // Verify the data structure is preserved
-      const savedData = mockSetStorageItem.mock.calls[mockSetStorageItem.mock.calls.length - 1][1];
-      const parsed = JSON.parse(savedData as string);
-
-      expect(parsed).toHaveLength(4);
-      expect(parsed[3].awardedPlayerId).toBe('player_123');
-      expect(parsed[0].awardedPlayerId).toBeUndefined();
+    it('should return null and log error if DataStore fails', async () => {
+      mockShouldThrow = true;
+      expect(await addTournament('New Tournament')).toBeNull();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[addTournament] Unexpected error'),
+        expect.any(Object)
+      );
     });
   });
 
   describe('updateTournament', () => {
-    it('should update existing tournament, save it, and return updated object', async () => {
-      // Set up test data
-      await saveTournaments([...sampleTournaments]);
-
-      const tournamentToUpdate: Tournament = { ...sampleTournaments[0], name: 'Regional Cup Q1 - Finals' };
-      const updatedTournament = await updateTournament(tournamentToUpdate);
-
-      expect(updatedTournament).not.toBeNull();
-      if (updatedTournament) {
-        expect(updatedTournament.name).toBe('Regional Cup Q1 - Finals');
-      }
-      expect(mockSetStorageItem).toHaveBeenCalledWith(TOURNAMENTS_LIST_KEY, expect.any(String));
-
-      const storedTournaments: Tournament[] = [tournamentToUpdate, sampleTournaments[1], sampleTournaments[2]];
-      const changed = storedTournaments.find((t: Tournament) => t.id === tournamentToUpdate.id);
-      expect(changed?.name).toBe('Regional Cup Q1 - Finals');
+    beforeEach(() => {
+      mockTournaments = [...sampleTournaments];
     });
 
-    it('should return null if underlying saveTournaments fails (e.g., storage.setItem throws)', async () => {
-      // Set up test data
-      await saveTournaments([...sampleTournaments]);
-
-      mockSetStorageItem.mockImplementationOnce(async () => {
-        throw new Error('Simulated storage error during save');
-      });
-      const tournamentToUpdate: Tournament = { ...sampleTournaments[0], name: 'Update Fail Tourney' };
+    it('should update an existing tournament and return the updated object', async () => {
+      const tournamentToUpdate: Tournament = { ...sampleTournaments[0], name: 'Regional Cup Updated' };
       const result = await updateTournament(tournamentToUpdate);
 
-      expect(result).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[updateTournament] Unexpected error updating tournament:'), expect.any(Error));
+      expect(result).not.toBeNull();
+      expect(result?.name).toBe('Regional Cup Updated');
+      expect(mockDataStore.updateTournament).toHaveBeenCalledWith(tournamentToUpdate);
     });
 
-    it('should return null and log error if tournament to update is not found, without attempting to save', async () => {
-      const nonExistentTournament: Tournament = { id: 't99', name: 'Phantom Tournament' };
-      const result = await updateTournament(nonExistentTournament);
+    it('should return null and log error if tournament not found', async () => {
+      mockTournaments = []; // Empty so tournament won't be found
+      const nonExistentTournament: Tournament = { id: 't99', name: 'Ghost Tournament' };
 
-      expect(result).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining(`[updateTournament] Tournament with ID ${nonExistentTournament.id} not found.`));
-      expect(mockSetStorageItem).not.toHaveBeenCalled();
+      expect(await updateTournament(nonExistentTournament)).toBeNull();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Tournament with ID t99 not found')
+      );
     });
 
-    it('should return null and log error if updated name conflicts, without attempting to save', async () => {
-      // Set up test data
-      await saveTournaments([...sampleTournaments]);
-
-      const conflictingName = sampleTournaments[1].name.toUpperCase(); // "CHAMPIONS LEAGUE PRE-SEASON"
-      const tournamentToUpdate: Tournament = { ...sampleTournaments[0], name: conflictingName };
-      const result = await updateTournament(tournamentToUpdate);
-
-      expect(result).toBeNull();
-      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`[updateTournament] Validation failed: Another tournament with name "${conflictingName}" already exists.`));
-    });
-
-    it('should return null for invalid update data (e.g., empty name), without attempting to save', async () => {
+    it('should return null and log error for invalid update data (empty name)', async () => {
       const invalidTournament: Tournament = { ...sampleTournaments[0], name: '   ' };
-      const result = await updateTournament(invalidTournament);
+      expect(await updateTournament(invalidTournament)).toBeNull();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid tournament data provided')
+      );
+    });
 
-      expect(result).toBeNull();
-      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('[updateTournament] Invalid tournament data provided for update.'));
-      expect(mockSetStorageItem).not.toHaveBeenCalled();
+    it('should return null and log error for invalid update data (missing id)', async () => {
+      const invalidTournament = { name: 'Valid Name' } as Tournament;
+      expect(await updateTournament(invalidTournament)).toBeNull();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid tournament data provided')
+      );
+    });
+
+    it('should return null if DataStore throws validation error', async () => {
+      mockValidationError = true;
+      const tournamentToUpdate: Tournament = { ...sampleTournaments[0], name: 'Conflict Name' };
+
+      expect(await updateTournament(tournamentToUpdate)).toBeNull();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[updateTournament] Operation failed'),
+        expect.any(Object)
+      );
+    });
+
+    it('should return null and log error if DataStore fails', async () => {
+      mockShouldThrow = true;
+      const tournamentToUpdate: Tournament = { ...sampleTournaments[0], name: 'Updated' };
+
+      expect(await updateTournament(tournamentToUpdate)).toBeNull();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[updateTournament] Unexpected error'),
+        expect.any(Object)
+      );
     });
   });
 
   describe('deleteTournament', () => {
-    it('should delete existing tournament by ID, save, and return true', async () => {
-      // Set up test data
-      await saveTournaments([...sampleTournaments]);
+    beforeEach(() => {
+      mockTournaments = [...sampleTournaments];
+    });
 
-      const tournamentIdToDelete = sampleTournaments[0].id;
-      const result = await deleteTournament(tournamentIdToDelete);
+    it('should delete an existing tournament and return true', async () => {
+      const result = await deleteTournament('t1');
 
       expect(result).toBe(true);
-      expect(mockSetStorageItem).toHaveBeenCalledWith(TOURNAMENTS_LIST_KEY, expect.any(String));
-
-      const storedTournaments: Tournament[] = [sampleTournaments[1], sampleTournaments[2]];
-      expect(storedTournaments.find((t: Tournament) => t.id === tournamentIdToDelete)).toBeUndefined();
-      expect(storedTournaments.length).toBe(sampleTournaments.length - 1);
+      expect(mockDataStore.deleteTournament).toHaveBeenCalledWith('t1');
     });
 
-    it('should return false if underlying saveTournaments fails (e.g., storage.setItem throws)', async () => {
-      // Set up test data
-      await saveTournaments([...sampleTournaments]);
-
-      mockSetStorageItem.mockImplementationOnce(async () => {
-        throw new Error('Simulated storage error during save');
-      });
-      const tournamentIdToDelete = sampleTournaments[0].id;
-      const result = await deleteTournament(tournamentIdToDelete);
-
-      expect(result).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[deleteTournament] Unexpected error deleting tournament:'), expect.any(Error));
+    it('should return false and log error if tournament not found', async () => {
+      mockTournaments = [];
+      expect(await deleteTournament('t99')).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Tournament with id t99 not found')
+      );
     });
 
-    it('should return false and log error if tournament to delete is not found, without attempting to save', async () => {
-      const nonExistentId = 't-non-existent';
-      const result = await deleteTournament(nonExistentId);
-
-      expect(result).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining(`[deleteTournament] Tournament with id ${nonExistentId} not found.`));
-      expect(mockSetStorageItem).not.toHaveBeenCalled();
+    it('should return false and log error for invalid tournament ID', async () => {
+      expect(await deleteTournament('')).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid tournament ID provided')
+      );
     });
 
-    it('should return false for invalid delete ID, without attempting to save', async () => {
-      const result = await deleteTournament('');
-      expect(result).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[deleteTournament] Invalid tournament ID provided.'));
-      expect(mockSetStorageItem).not.toHaveBeenCalled();
+    it('should return false and log error if DataStore fails', async () => {
+      mockShouldThrow = true;
+      expect(await deleteTournament('t1')).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[deleteTournament] Unexpected error'),
+        expect.any(Object)
+      );
+    });
+  });
+
+  describe('countGamesForTournament', () => {
+    it('should return 0 when no games exist', async () => {
+      expect(await countGamesForTournament('t1')).toBe(0);
+    });
+
+    it('should count games matching the tournament ID', async () => {
+      mockGames = {
+        game1: { tournamentId: 't1' } as never,
+        game2: { tournamentId: 't1' } as never,
+        game3: { tournamentId: 't2' } as never,
+      };
+
+      expect(await countGamesForTournament('t1')).toBe(2);
+      expect(await countGamesForTournament('t2')).toBe(1);
+      expect(await countGamesForTournament('t3')).toBe(0);
+    });
+
+    it('should return 0 and log warning if DataStore fails', async () => {
+      mockShouldThrow = true;
+      expect(await countGamesForTournament('t1')).toBe(0);
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[countGamesForTournament]'),
+        expect.any(Object)
+      );
     });
   });
 
   describe('updateTeamPlacement', () => {
-
-    /**
-     * Tests adding a new team placement
-     * @critical - Core placement feature
-     */
-    it('should add a new team placement to a tournament', async () => {
-      // Setup: create tournament without placements
-      const tournament: Tournament = { id: 't1', name: 'Test Tournament' };
-      await saveTournaments([tournament]);
-
-      const result = await updateTeamPlacement('t1', 'team1', 1, 'Champion', 'Great job');
-
-      expect(result).toBe(true);
-      const tournaments = await getTournaments();
-      expect(tournaments[0].teamPlacements).toEqual({
-        team1: {
-          placement: 1,
-          award: 'Champion',
-          note: 'Great job',
-        },
-      });
+    beforeEach(() => {
+      mockTournaments = [{ id: 't1', name: 'Test Tournament' }];
     });
 
-    /**
-     * Tests updating existing placement
-     * @critical - Ensures placement updates work correctly
-     */
+    it('should add a new team placement to a tournament', async () => {
+      const result = await updateTeamPlacement('t1', 'team1', 1, 'Champion', 'Excellent tournament');
+
+      expect(result).toBe(true);
+      expect(mockDataStore.updateTournament).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 't1',
+          teamPlacements: {
+            team1: {
+              placement: 1,
+              award: 'Champion',
+              note: 'Excellent tournament',
+            },
+          },
+        })
+      );
+    });
+
     it('should update an existing team placement', async () => {
-      // Setup: create tournament with existing placement
-      const tournament: Tournament = {
+      mockTournaments = [{
         id: 't1',
         name: 'Test Tournament',
-        teamPlacements: {
-          team1: { placement: 2, award: 'Runner-up' },
-        },
-      };
-      await saveTournaments([tournament]);
+        teamPlacements: { team1: { placement: 2, award: 'Runner-up' } },
+      }];
 
       const result = await updateTeamPlacement('t1', 'team1', 1, 'Champion');
 
       expect(result).toBe(true);
-      const tournaments = await getTournaments();
-      expect(tournaments[0].teamPlacements?.team1).toEqual({
-        placement: 1,
-        award: 'Champion',
-      });
+      expect(mockDataStore.updateTournament).toHaveBeenCalledWith(
+        expect.objectContaining({
+          teamPlacements: {
+            team1: { placement: 1, award: 'Champion' },
+          },
+        })
+      );
     });
 
-    /**
-     * Tests removing a placement
-     * @critical - Required for clearing placements
-     */
     it('should remove a team placement when placement is null', async () => {
-      // Setup: create tournament with placement
-      const tournament: Tournament = {
+      mockTournaments = [{
         id: 't1',
         name: 'Test Tournament',
         teamPlacements: {
           team1: { placement: 1 },
           team2: { placement: 2 },
         },
-      };
-      await saveTournaments([tournament]);
+      }];
 
       const result = await updateTeamPlacement('t1', 'team1', null);
 
       expect(result).toBe(true);
-      const tournaments = await getTournaments();
-      expect(tournaments[0].teamPlacements).toEqual({
-        team2: { placement: 2 },
-      });
+      expect(mockDataStore.updateTournament).toHaveBeenCalledWith(
+        expect.objectContaining({
+          teamPlacements: { team2: { placement: 2 } },
+        })
+      );
     });
 
-    /**
-     * Tests cleanup of empty placements object
-     * @edge-case - Prevents empty objects in storage
-     */
     it('should remove teamPlacements object when last placement is removed', async () => {
-      const tournament: Tournament = {
+      mockTournaments = [{
         id: 't1',
         name: 'Test Tournament',
-        teamPlacements: {
-          team1: { placement: 1 },
-        },
-      };
-      await saveTournaments([tournament]);
+        teamPlacements: { team1: { placement: 1 } },
+      }];
 
       const result = await updateTeamPlacement('t1', 'team1', null);
 
       expect(result).toBe(true);
-      const tournaments = await getTournaments();
-      expect(tournaments[0].teamPlacements).toBeUndefined();
+      const updateCall = mockDataStore.updateTournament.mock.calls[0][0];
+      expect(updateCall.teamPlacements).toBeUndefined();
     });
 
-    /**
-     * Tests handling invalid tournament ID
-     * @edge-case - Validates error handling
-     */
     it('should return false when tournament ID is invalid', async () => {
-      const result = await updateTeamPlacement('', 'team1', 1);
-
-      expect(result).toBe(false);
+      expect(await updateTeamPlacement('', 'team1', 1)).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid tournament ID or team ID')
+      );
     });
 
-    /**
-     * Tests handling non-existent tournament
-     * @edge-case - Prevents placement on missing tournaments
-     */
+    it('should return false when team ID is invalid', async () => {
+      expect(await updateTeamPlacement('t1', '', 1)).toBe(false);
+    });
+
     it('should return false when tournament is not found', async () => {
-      await saveTournaments([{ id: 't1', name: 'Test' }]);
-
-      const result = await updateTeamPlacement('nonexistent', 'team1', 1);
-
-      expect(result).toBe(false);
+      mockTournaments = [];
+      expect(await updateTeamPlacement('nonexistent', 'team1', 1)).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Tournament with ID nonexistent not found')
+      );
     });
 
-    /**
-     * Tests multiple teams with placements
-     * @integration - Multi-team scenario
-     */
-    it('should handle multiple teams with different placements', async () => {
-      const tournament: Tournament = {
-        id: 't1',
-        name: 'Test Tournament',
-        teamPlacements: {
-          team1: { placement: 1, award: 'Champion' },
-        },
-      };
-      await saveTournaments([tournament]);
-
-      await updateTeamPlacement('t1', 'team2', 2, 'Runner-up');
-      await updateTeamPlacement('t1', 'team3', 3, 'Third Place');
-
-      const tournaments = await getTournaments();
-      expect(tournaments[0].teamPlacements).toEqual({
-        team1: { placement: 1, award: 'Champion' },
-        team2: { placement: 2, award: 'Runner-up' },
-        team3: { placement: 3, award: 'Third Place' },
-      });
+    it('should return false and log error if DataStore fails', async () => {
+      mockShouldThrow = true;
+      expect(await updateTeamPlacement('t1', 'team1', 1)).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[updateTeamPlacement] Unexpected error'),
+        expect.any(Object)
+      );
     });
   });
 
   describe('getTeamPlacement', () => {
-
-    /**
-     * Tests retrieving existing placement
-     * @critical - Core read functionality
-     */
     it('should return team placement when it exists', async () => {
-      const tournament: Tournament = {
+      mockTournaments = [{
         id: 't1',
         name: 'Test Tournament',
-        teamPlacements: {
-          team1: { placement: 1, award: 'Champion' },
-        },
-      };
-      await saveTournaments([tournament]);
+        teamPlacements: { team1: { placement: 1, award: 'Champion' } },
+      }];
 
       const result = await getTeamPlacement('t1', 'team1');
 
-      expect(result).toEqual({
-        placement: 1,
-        award: 'Champion',
-      });
+      expect(result).toEqual({ placement: 1, award: 'Champion' });
     });
 
-    /**
-     * Tests handling non-existent tournament
-     * @edge-case - Returns null for missing tournament
-     */
     it('should return null when tournament is not found', async () => {
-      await saveTournaments([{ id: 't1', name: 'Test' }]);
-
-      const result = await getTeamPlacement('nonexistent', 'team1');
-
-      expect(result).toBeNull();
+      mockTournaments = [{ id: 't1', name: 'Test' }];
+      expect(await getTeamPlacement('nonexistent', 'team1')).toBeNull();
     });
 
-    /**
-     * Tests handling tournament without placements
-     * @edge-case - Returns null when no placements exist
-     */
     it('should return null when tournament has no placements', async () => {
-      await saveTournaments([{ id: 't1', name: 'Test' }]);
-
-      const result = await getTeamPlacement('t1', 'team1');
-
-      expect(result).toBeNull();
+      mockTournaments = [{ id: 't1', name: 'Test Tournament' }];
+      expect(await getTeamPlacement('t1', 'team1')).toBeNull();
     });
 
-    /**
-     * Tests handling non-existent team placement
-     * @edge-case - Returns null for missing team
-     */
-    it('should return null when team has no placement', async () => {
-      const tournament: Tournament = {
+    it('should return null when team has no placement in tournament', async () => {
+      mockTournaments = [{
         id: 't1',
         name: 'Test Tournament',
-        teamPlacements: {
-          team1: { placement: 1 },
-        },
-      };
-      await saveTournaments([tournament]);
+        teamPlacements: { team2: { placement: 1 } },
+      }];
+      expect(await getTeamPlacement('t1', 'team1')).toBeNull();
+    });
 
-      const result = await getTeamPlacement('t1', 'team2');
-
-      expect(result).toBeNull();
+    it('should return null and log error if DataStore fails', async () => {
+      mockShouldThrow = true;
+      expect(await getTeamPlacement('t1', 'team1')).toBeNull();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[getTeamPlacement]'),
+        expect.any(Object)
+      );
     });
   });
 });
