@@ -114,17 +114,13 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
     }
   }, [isOpen, mode, team]);
 
-  // Normalizer for robust name comparisons (handles case/diacritics)
-  const normalizeName = (value: string | undefined | null) =>
-    (value || '').normalize('NFKC').toLowerCase().trim();
-
   // Pre-select existing roster players when in edit mode
-  // Match by name since roster uses team-local IDs, not master roster IDs
+  // Match by ID since team roster stores the same player IDs as master roster
   React.useLayoutEffect(() => {
     if (mode === 'edit' && existingRoster.length > 0 && masterRoster.length > 0) {
-      const teamPlayerNames = new Set(existingRoster.map(p => normalizeName(p.name)));
+      const teamPlayerIds = new Set(existingRoster.map(p => p.id));
       const matchedMasterIds = masterRoster
-        .filter(p => teamPlayerNames.has(normalizeName(p.name)))
+        .filter(p => teamPlayerIds.has(p.id))
         .map(p => p.id);
       setSelectedPlayerIds(matchedMasterIds);
     }
