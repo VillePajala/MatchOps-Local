@@ -44,12 +44,14 @@ jest.mock('@/utils/storage');
 
 // Mock DataStore state for seasons
 let mockSeasons: Season[] = [];
+let seasonIdCounter = 0; // Deterministic ID counter per CLAUDE.md testing rules
 
 const mockDataStore = {
   getSeasons: jest.fn(async () => [...mockSeasons]),
   createSeason: jest.fn(async (name: string, extra?: Partial<Omit<Season, 'id' | 'name'>>) => {
+    seasonIdCounter++;
     const newSeason: Season = {
-      id: `season_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      id: `season_test_${seasonIdCounter}`,
       name,
       ...extra,
     };
@@ -92,6 +94,7 @@ describe('Game Type Persistence Integration Tests', () => {
   beforeEach(() => {
     clearMockStore();
     mockSeasons = []; // Reset mock seasons state
+    seasonIdCounter = 0; // Reset deterministic ID counter
     jest.clearAllMocks();
   });
 

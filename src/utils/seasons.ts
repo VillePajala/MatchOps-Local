@@ -10,6 +10,17 @@ import { getDataStore } from '@/datastore';
 // for the deprecated saveSeasons() function (used by tests).
 
 /**
+ * Type guard to check if an error is a ValidationError from DataStore.
+ * Uses code property checking instead of instanceof to avoid module boundary issues.
+ * @see src/datastore/errors.ts for ValidationError class definition
+ */
+const isValidationError = (error: unknown): boolean =>
+  error !== null &&
+  typeof error === 'object' &&
+  'code' in error &&
+  error.code === 'VALIDATION_ERROR';
+
+/**
  * Retrieves all seasons from IndexedDB.
  * DataStore handles initialization and storage access.
  * @returns A promise that resolves to an array of Season objects.
@@ -72,8 +83,7 @@ export const addSeason = async (newSeasonName: string, extra: Partial<Season> = 
     const newSeason = await dataStore.createSeason(trimmedName, extra);
     return newSeason;
   } catch (error) {
-    // Check if it's a validation error (duplicate name, etc.)
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'VALIDATION_ERROR') {
+    if (isValidationError(error)) {
       logger.warn('[addSeason] Validation failed:', { error });
       return null;
     }
@@ -106,8 +116,7 @@ export const updateSeason = async (updatedSeasonData: Season): Promise<Season | 
 
     return updatedSeason;
   } catch (error) {
-    // Check if it's a validation error (duplicate name, etc.)
-    if (error && typeof error === 'object' && 'code' in error && error.code === 'VALIDATION_ERROR') {
+    if (isValidationError(error)) {
       logger.warn('[updateSeason] Validation failed:', { error });
       return null;
     }
@@ -165,8 +174,11 @@ export const countGamesForSeason = async (seasonId: string): Promise<number> => 
 
     let count = 0;
     for (const gameState of Object.values(savedGames)) {
-      if ((gameState as AppState).seasonId === seasonId) {
-        count++;
+      // Defensive check: ensure gameState has seasonId property
+      if (gameState && typeof gameState === 'object' && 'seasonId' in gameState) {
+        if (gameState.seasonId === seasonId) {
+          count++;
+        }
       }
     }
 
@@ -180,6 +192,10 @@ export const countGamesForSeason = async (seasonId: string): Promise<number> => 
 /**
  * Updates a team's placement in a season.
  * DataStore handles individual season updates; this function coordinates the placement logic.
+ *
+ * PERFORMANCE NOTE: Loads all seasons to find target (no getSeasonById in DataStore interface).
+ * This is a deliberate design decision - per CLAUDE.md the expected scale is ~10 seasons,
+ * so filtering client-side is acceptable. Optimize only if profiling shows need.
  *
  * @param seasonId - The ID of the season.
  * @param teamId - The ID of the team.
@@ -249,6 +265,10 @@ export const updateTeamPlacement = async (
 /**
  * Gets a team's placement in a season.
  * DataStore handles loading seasons.
+ *
+ * PERFORMANCE NOTE: Loads all seasons to find target (no getSeasonById in DataStore interface).
+ * This is a deliberate design decision - per CLAUDE.md the expected scale is ~10 seasons,
+ * so filtering client-side is acceptable. Optimize only if profiling shows need.
  *
  * @param seasonId - The ID of the season.
  * @param teamId - The ID of the team.
