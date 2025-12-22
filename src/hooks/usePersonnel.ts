@@ -73,18 +73,25 @@ export const useAddPersonnel = () => {
         logger.error('Storage quota exceeded - cannot add personnel', { error });
       } else if (errorName === 'InvalidStateError') {
         logger.error('IndexedDB in invalid state - database may be corrupted', { error });
+      } else if (errorName === 'AlreadyExistsError') {
+        logger.warn('Personnel already exists:', errorMessage);
+      } else if (errorName === 'ValidationError') {
+        logger.warn('Personnel validation failed:', errorMessage);
       } else {
-        logger.error('Failed to add personnel:', { error, errorName, errorMessage });
+        logger.error('Failed to add personnel:', errorMessage);
       }
     },
-    // Retry logic: Don't retry quota errors, retry transient errors
+    // Retry logic: Don't retry validation/business logic errors, only transient errors
     retry: (failureCount, error) => {
-      // Don't retry quota or state errors
+      // Don't retry validation, duplicate, quota, or state errors
       if (error instanceof Error &&
-          (error.name === 'QuotaExceededError' || error.name === 'InvalidStateError')) {
+          (error.name === 'QuotaExceededError' ||
+           error.name === 'InvalidStateError' ||
+           error.name === 'AlreadyExistsError' ||
+           error.name === 'ValidationError')) {
         return false;
       }
-      // Retry up to 2 times for other errors
+      // Retry up to 2 times for transient errors only
       return failureCount < 2;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
@@ -121,13 +128,20 @@ export const useUpdatePersonnel = () => {
         logger.error('Storage quota exceeded - cannot update personnel', { error });
       } else if (errorName === 'InvalidStateError') {
         logger.error('IndexedDB in invalid state - database may be corrupted', { error });
+      } else if (errorName === 'AlreadyExistsError') {
+        logger.warn('Personnel name already exists:', errorMessage);
+      } else if (errorName === 'ValidationError') {
+        logger.warn('Personnel validation failed:', errorMessage);
       } else {
-        logger.error('Failed to update personnel:', { error, errorName, errorMessage });
+        logger.error('Failed to update personnel:', errorMessage);
       }
     },
     retry: (failureCount, error) => {
       if (error instanceof Error &&
-          (error.name === 'QuotaExceededError' || error.name === 'InvalidStateError')) {
+          (error.name === 'QuotaExceededError' ||
+           error.name === 'InvalidStateError' ||
+           error.name === 'AlreadyExistsError' ||
+           error.name === 'ValidationError')) {
         return false;
       }
       return failureCount < 2;
