@@ -51,7 +51,6 @@ import {
   setStorageJSON,
 } from '@/utils/storage';
 import { withKeyLock } from '@/utils/storageKeyLock';
-import { withRosterLock } from '@/utils/lockManager';
 import { generateId } from '@/utils/idGenerator';
 import logger from '@/utils/logger';
 import { normalizeName, normalizeNameForCompare } from '@/utils/normalization';
@@ -465,23 +464,27 @@ export class LocalDataStore implements DataStore {
     });
   }
 
+  /**
+   * Get team roster. Raw storage operation - no locking.
+   * Callers (teams.ts) are responsible for atomicity via withRosterLock.
+   */
   async getTeamRoster(teamId: string): Promise<TeamPlayer[]> {
     this.ensureInitialized();
 
-    return withRosterLock(async () => {
-      const rostersIndex = await this.loadTeamRosters();
-      return rostersIndex[teamId] || [];
-    });
+    const rostersIndex = await this.loadTeamRosters();
+    return rostersIndex[teamId] || [];
   }
 
+  /**
+   * Set team roster. Raw storage operation - no locking.
+   * Callers (teams.ts) are responsible for atomicity via withRosterLock.
+   */
   async setTeamRoster(teamId: string, roster: TeamPlayer[]): Promise<void> {
     this.ensureInitialized();
 
-    await withRosterLock(async () => {
-      const rostersIndex = await this.loadTeamRosters();
-      rostersIndex[teamId] = roster;
-      await setStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
-    });
+    const rostersIndex = await this.loadTeamRosters();
+    rostersIndex[teamId] = roster;
+    await setStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
   }
 
   async getSeasons(includeArchived = false): Promise<Season[]> {
