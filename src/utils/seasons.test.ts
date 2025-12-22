@@ -23,6 +23,7 @@ let mockUpdateSeasonResult: Season | null = null;
 let mockDeleteSeasonResult = true;
 let mockShouldThrow = false;
 let mockValidationError = false;
+let mockAlreadyExistsError = false;
 let seasonIdCounter = 0; // Deterministic ID counter per CLAUDE.md testing rules
 
 // Mock DataStore implementation
@@ -34,8 +35,13 @@ const mockDataStore = {
   createSeason: jest.fn(async (name: string, extra?: Partial<Omit<Season, 'id' | 'name'>>) => {
     if (mockShouldThrow) throw new Error('DataStore error');
     if (mockValidationError) {
-      const error = new Error('Season already exists');
+      const error = new Error('Validation error');
       (error as Error & { code: string }).code = 'VALIDATION_ERROR';
+      throw error;
+    }
+    if (mockAlreadyExistsError) {
+      const error = new Error('Season already exists');
+      (error as Error & { code: string }).code = 'ALREADY_EXISTS';
       throw error;
     }
     seasonIdCounter++;
@@ -108,6 +114,7 @@ beforeEach(() => {
   mockDeleteSeasonResult = true;
   mockShouldThrow = false;
   mockValidationError = false;
+  mockAlreadyExistsError = false;
   seasonIdCounter = 0; // Reset deterministic ID counter
 
   // Clear all mock call history
@@ -205,11 +212,20 @@ describe('Season Management Utilities (DataStore)', () => {
       );
     });
 
-    it('should return null if DataStore throws validation error (duplicate name)', async () => {
+    it('should return null if DataStore throws validation error', async () => {
       mockValidationError = true;
+      expect(await addSeason('Invalid Season')).toBeNull();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[addSeason] Operation failed'),
+        expect.any(Object)
+      );
+    });
+
+    it('should return null if DataStore throws already exists error (duplicate name)', async () => {
+      mockAlreadyExistsError = true;
       expect(await addSeason('Duplicate Season')).toBeNull();
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[addSeason] Validation failed'),
+        expect.stringContaining('[addSeason] Operation failed'),
         expect.any(Object)
       );
     });
@@ -270,7 +286,7 @@ describe('Season Management Utilities (DataStore)', () => {
 
       expect(await updateSeason(seasonToUpdate)).toBeNull();
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        expect.stringContaining('[updateSeason] Validation failed'),
+        expect.stringContaining('[updateSeason] Operation failed'),
         expect.any(Object)
       );
     });
