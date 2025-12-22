@@ -1,41 +1,22 @@
-// Mock storage module FIRST - uses __mocks__/storage.ts for in-memory storage
-jest.mock('./storage');
-
 import { importGamesFromJson } from './savedGames';
-import { AppState } from '@/types';
+import { AppState, SavedGamesCollection } from '@/types';
 import type { ZodIssue } from 'zod';
 import { appStateSchema } from './appStateSchema';
 
-// Import mock utilities from the mocked module (not from __mocks__ directly)
-// This ensures we get the same instance that jest.mock() creates
-// Using jest.requireMock to get the mocked module instance
-const storageModule = jest.requireMock('./storage') as {
-  clearMockStore: () => void;
-  getMockStore: () => Record<string, string>;
-};
-const { clearMockStore, getMockStore } = storageModule;
+// In-memory store for games
+let mockGamesStore: SavedGamesCollection = {};
 
-// Mock localStorage with proper cleanup to prevent memory leaks
-let mockLocalStorageStore: Record<string, string> = {};
-
-const mockLocalStorage = {
-  getItem: jest.fn((key: string) => mockLocalStorageStore[key] || null),
-  setItem: jest.fn((key: string, value: string) => {
-    mockLocalStorageStore[key] = value;
+// Mock DataStore
+const mockDataStore = {
+  getGames: jest.fn(async () => ({ ...mockGamesStore })),
+  saveAllGames: jest.fn(async (games: SavedGamesCollection) => {
+    mockGamesStore = { ...games };
   }),
-  removeItem: jest.fn((key: string) => {
-    delete mockLocalStorageStore[key];
-  }),
-  clear: jest.fn(() => {
-    mockLocalStorageStore = {};
-  }),
-  getStore: () => ({ ...mockLocalStorageStore })
 };
 
-Object.defineProperty(global, 'localStorage', {
-  value: mockLocalStorage,
-  configurable: true
-});
+jest.mock('@/datastore', () => ({
+  getDataStore: jest.fn(async () => mockDataStore),
+}));
 
 // Mock logger
 jest.mock('./logger', () => ({
@@ -58,20 +39,17 @@ jest.mock('./logger', () => ({
 
 describe('Game Import with Partial Success', () => {
   beforeEach(() => {
-    // Note: clearMockStore() is NOT called here because it interferes with async operations
-    // The mock store will be empty initially, and tests should handle existing data if needed
-    mockLocalStorage.clear(); // Keep for legacy if needed
-    jest.clearAllTimers(); // Clear any pending timers
-    // Note: jest.clearAllMocks() would reset our storage mock implementations
-    // Instead, we only clear mocks that we explicitly create in tests
+    mockGamesStore = {}; // Clear the games store
+    jest.clearAllMocks();
+    // Re-setup mock implementations after clearAllMocks
+    mockDataStore.getGames.mockImplementation(async () => ({ ...mockGamesStore }));
+    mockDataStore.saveAllGames.mockImplementation(async (games: SavedGamesCollection) => {
+      mockGamesStore = { ...games };
+    });
   });
 
   afterEach(() => {
-    // Clean up to prevent memory leaks
-    clearMockStore();
-    mockLocalStorage.clear();
-    mockLocalStorageStore = {}; // Explicitly clear the store to break references
-    jest.clearAllTimers();
+    mockGamesStore = {};
   });
 
   // Helper to validate test data against schema
@@ -236,14 +214,11 @@ describe('Game Import with Partial Success', () => {
       expect(result.failed).toHaveLength(2); // Two invalid games failed
       expect(result.skipped).toBe(0);
 
-      // Check that valid games were actually saved to IndexedDB mock store
-      const savedData = getMockStore();
-      expect(savedData['savedSoccerGames']).toBeDefined();
-      const parsedSaved = JSON.parse(savedData['savedSoccerGames']);
-      expect(parsedSaved['valid-game']).toBeDefined();
-      expect(parsedSaved['another-valid-game']).toBeDefined();
-      expect(parsedSaved['invalid-game-1']).toBeUndefined();
-      expect(parsedSaved['invalid-game-2']).toBeUndefined();
+      // Check that valid games were actually saved to mock store
+      expect(mockGamesStore['valid-game']).toBeDefined();
+      expect(mockGamesStore['another-valid-game']).toBeDefined();
+      expect(mockGamesStore['invalid-game-1']).toBeUndefined();
+      expect(mockGamesStore['invalid-game-2']).toBeUndefined();
     });
 
     it('should provide detailed error messages for failed imports', async () => {
