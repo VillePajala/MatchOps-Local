@@ -134,11 +134,25 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
       }
     } catch (error) {
       logger.error('Failed to save personnel:', error);
-      setErrorMessage(
-        mode === 'create'
-          ? t('personnelDetailsModal.errors.createFailed', 'Failed to add personnel. Please try again.')
-          : t('personnelDetailsModal.errors.updateFailed', 'Failed to update personnel. Please try again.')
-      );
+
+      // Check for specific error types
+      const errorName = error instanceof Error ? error.name : '';
+
+      if (errorName === 'AlreadyExistsError') {
+        setErrorMessage(
+          t('personnelDetailsModal.errors.duplicateName', 'A personnel member with this name already exists. Please choose a different name.')
+        );
+      } else if (errorName === 'ValidationError') {
+        setErrorMessage(
+          t('personnelDetailsModal.errors.validationFailed', 'Invalid input. Please check the form and try again.')
+        );
+      } else {
+        setErrorMessage(
+          mode === 'create'
+            ? t('personnelDetailsModal.errors.createFailed', 'Failed to add personnel. Please try again.')
+            : t('personnelDetailsModal.errors.updateFailed', 'Failed to update personnel. Please try again.')
+        );
+      }
     }
   };
 
