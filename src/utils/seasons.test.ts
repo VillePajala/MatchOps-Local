@@ -1,34 +1,124 @@
+/**
+ * Tests for seasons.ts - Season management utilities
+ *
+ * These tests verify the seasons utility functions work correctly
+ * when routed through DataStore abstraction.
+ *
+ * Test Strategy:
+ * - Mock DataStore at module level using jest.doMock + require pattern
+ * - Tests verify utility functions correctly delegate to DataStore
+ * - Edge cases and error handling are tested at utility layer
+ */
+
 import { SEASONS_LIST_KEY } from '@/config/storageKeys';
-import { getSeasons, saveSeasons, addSeason, updateSeason, deleteSeason, updateTeamPlacement, getTeamPlacement } from './seasons'; // Adjust path as needed
-import type { Season } from '@/types'; // Import Season type directly from types
-import { clearMockStore } from './__mocks__/storage';
-import { getStorageItem, setStorageItem } from './storage';
+import type { Season } from '@/types';
+import type { SavedGamesCollection } from '@/types/game';
 
-// Auto-mock the storage module
+// Mock DataStore state
+let mockSeasons: Season[] = [];
+let mockGames: SavedGamesCollection = {};
+let mockCreateSeasonResult: Season | null = null;
+let mockUpdateSeasonResult: Season | null = null;
+let mockDeleteSeasonResult = true;
+let mockShouldThrow = false;
+let mockValidationError = false;
+
+// Mock DataStore implementation
+const mockDataStore = {
+  getSeasons: jest.fn(async () => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    return [...mockSeasons];
+  }),
+  createSeason: jest.fn(async (name: string, extra?: Partial<Omit<Season, 'id' | 'name'>>) => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    if (mockValidationError) {
+      const error = new Error('Season already exists');
+      (error as Error & { code: string }).code = 'VALIDATION_ERROR';
+      throw error;
+    }
+    const newSeason: Season = {
+      id: `season_${Date.now()}_test`,
+      name,
+      ...extra,
+    };
+    mockSeasons.push(newSeason);
+    return mockCreateSeasonResult ?? newSeason;
+  }),
+  updateSeason: jest.fn(async (season: Season) => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    if (mockValidationError) {
+      const error = new Error('Name conflict');
+      (error as Error & { code: string }).code = 'VALIDATION_ERROR';
+      throw error;
+    }
+    const index = mockSeasons.findIndex(s => s.id === season.id);
+    if (index === -1) return null;
+    mockSeasons[index] = { ...season };
+    return mockUpdateSeasonResult ?? mockSeasons[index];
+  }),
+  deleteSeason: jest.fn(async (id: string) => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    const index = mockSeasons.findIndex(s => s.id === id);
+    if (index === -1) return false;
+    mockSeasons.splice(index, 1);
+    return mockDeleteSeasonResult;
+  }),
+  getGames: jest.fn(async () => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    return { ...mockGames };
+  }),
+};
+
+// Mock the datastore factory BEFORE importing seasons
+jest.doMock('@/datastore', () => ({
+  getDataStore: jest.fn(async () => mockDataStore),
+}));
+
+// Mock storage for deprecated saveSeasons
 jest.mock('./storage');
-
-// Type the mocked functions
-const mockGetStorageItem = getStorageItem as jest.MockedFunction<typeof getStorageItem>;
+import { setStorageItem } from './storage';
 const mockSetStorageItem = setStorageItem as jest.MockedFunction<typeof setStorageItem>;
 
-// Mock console.error and console.warn to prevent output during tests and allow assertions
+// Import after mocking
+const {
+  getSeasons,
+  saveSeasons,
+  addSeason,
+  updateSeason,
+  deleteSeason,
+  countGamesForSeason,
+  updateTeamPlacement,
+  getTeamPlacement,
+} = require('./seasons') as typeof import('./seasons');
+
+// Mock console methods
 let consoleErrorSpy: jest.SpyInstance;
 let consoleWarnSpy: jest.SpyInstance;
 
 beforeEach(() => {
-  clearMockStore();
+  // Reset mock state
+  mockSeasons = [];
+  mockGames = {};
+  mockCreateSeasonResult = null;
+  mockUpdateSeasonResult = null;
+  mockDeleteSeasonResult = true;
+  mockShouldThrow = false;
+  mockValidationError = false;
+
+  // Clear all mock call history
+  jest.clearAllMocks();
+
+  // Mock console methods
   consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
-afterEach(async () => {
+afterEach(() => {
   consoleErrorSpy.mockRestore();
   consoleWarnSpy.mockRestore();
-  // Ensure complete cleanup after each test
-  clearMockStore();
 });
 
-describe('Season Management Utilities (storage)', () => {
+describe('Season Management Utilities (DataStore)', () => {
   const sampleSeasons: Season[] = [
     { id: 's1', name: 'Spring League 2023' },
     { id: 's2', name: 'Summer Tournament' },
@@ -36,362 +126,370 @@ describe('Season Management Utilities (storage)', () => {
   ];
 
   describe('getSeasons', () => {
-    it('should return an empty array if no seasons are in storage', async () => {
+    it('should return an empty array if no seasons are stored', async () => {
       expect(await getSeasons()).toEqual([]);
+      expect(mockDataStore.getSeasons).toHaveBeenCalled();
     });
 
-    it('should return seasons from storage if they exist', async () => {
-      mockGetStorageItem.mockResolvedValueOnce(JSON.stringify(sampleSeasons));
+    it('should return seasons from DataStore', async () => {
+      mockSeasons = [...sampleSeasons];
       expect(await getSeasons()).toEqual(sampleSeasons);
     });
 
-    it('should return an empty array and log an error if storage data is malformed', async () => {
-      mockGetStorageItem.mockResolvedValueOnce('invalid-json');
+    it('should return an empty array and log error if DataStore fails', async () => {
+      mockShouldThrow = true;
       expect(await getSeasons()).toEqual([]);
-      expect(consoleErrorSpy).toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[getSeasons]'),
+        expect.any(Error)
+      );
     });
   });
 
-  describe('saveSeasons', () => {
+  describe('saveSeasons (deprecated)', () => {
     it('should save seasons to storage and return true', async () => {
-      // Use isolated test data to avoid contamination
       const testData: Season[] = [{ id: 'test_save', name: 'Test Save Season' }];
       const result = await saveSeasons(testData);
       expect(result).toBe(true);
       expect(mockSetStorageItem).toHaveBeenCalledWith(SEASONS_LIST_KEY, JSON.stringify(testData));
-      // Data persistence verified through mock calls
     });
 
-    it('should save empty array to storage and return true', async () => {
-      const result = await saveSeasons([]);
-      expect(result).toBe(true);
-      expect(mockSetStorageItem).toHaveBeenCalledWith(SEASONS_LIST_KEY, JSON.stringify([]));
-      // Data persistence verified through mock calls
-    });
-
-    it('should log an error and return false if saving to storage fails', async () => {
-      const testData: Season[] = [{ id: 'test_fail', name: 'Test Fail Season' }];
-      mockSetStorageItem.mockImplementationOnce(async () => {
-        throw new Error('Quota exceeded');
-      });
-      const result = await saveSeasons(testData);
+    it('should return false and log error if storage throws', async () => {
+      mockSetStorageItem.mockRejectedValueOnce(new Error('Storage error'));
+      const result = await saveSeasons([{ id: 'test', name: 'Test' }]);
       expect(result).toBe(false);
       expect(consoleErrorSpy).toHaveBeenCalled();
     });
   });
 
   describe('addSeason', () => {
-    it('should add a new season to an empty list and return the new season object', async () => {
+    it('should add a new season and return the season object', async () => {
       const newSeasonName = 'Winter Championship';
-      const newSeason = await addSeason(newSeasonName);
-      expect(newSeason).not.toBeNull();
-      expect(newSeason?.name).toBe(newSeasonName);
-      const seasonsInStorage = await getSeasons();
-      expect(seasonsInStorage).toHaveLength(1);
-      expect(seasonsInStorage[0]).toEqual(newSeason);
+      const result = await addSeason(newSeasonName);
+
+      expect(result).not.toBeNull();
+      expect(result?.name).toBe(newSeasonName);
+      expect(mockDataStore.createSeason).toHaveBeenCalledWith(newSeasonName, {});
     });
 
-    it('should add a new season to an existing list and return the new object', async () => {
-      await saveSeasons([sampleSeasons[0]]);
-      const newSeasonName = 'Annual Gala';
-      const newSeason = await addSeason(newSeasonName);
-      expect(newSeason).not.toBeNull();
-      expect(newSeason?.name).toBe(newSeasonName);
-      const seasonsInStorage = await getSeasons();
-      expect(seasonsInStorage).toHaveLength(2);
-      expect(seasonsInStorage.find(s => s.id === newSeason?.id)).toEqual(newSeason);
+    it('should pass extra fields to DataStore', async () => {
+      const extra = { ageGroup: 'U12' };
+      await addSeason('Test Season', extra);
+
+      expect(mockDataStore.createSeason).toHaveBeenCalledWith('Test Season', extra);
     });
 
-    it('should trim whitespace from the new season name', async () => {
-      const newSeasonName = '  Spaced Out Cup   ';
-      const newSeason = await addSeason(newSeasonName);
-      expect(newSeason).not.toBeNull();
-      expect(newSeason?.name).toBe('Spaced Out Cup');
+    it('should trim whitespace from the season name', async () => {
+      await addSeason('  Spaced Out Cup   ');
+
+      expect(mockDataStore.createSeason).toHaveBeenCalledWith('Spaced Out Cup', {});
     });
 
-    it('should return null and log error if the season name is empty', async () => {
+    it('should return null and log warning if season name is empty', async () => {
       expect(await addSeason('')).toBeNull();
-      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Season name cannot be empty'));
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Season name cannot be empty')
+      );
+      expect(mockDataStore.createSeason).not.toHaveBeenCalled();
+    });
+
+    it('should return null and log warning if season name is whitespace only', async () => {
       expect(await addSeason('   ')).toBeNull();
-      expect(consoleWarnSpy).toHaveBeenCalledTimes(2);
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Season name cannot be empty')
+      );
     });
 
-    it('should return null and log error if a season with the same name already exists', async () => {
-      await saveSeasons([sampleSeasons[0]]); // 'Spring League 2023'
-      expect(await addSeason('spring league 2023')).toBeNull();
-      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('[addSeason] Validation failed: A season with name "spring league 2023" already exists.'));
+    it('should return null if DataStore throws validation error (duplicate name)', async () => {
+      mockValidationError = true;
+      expect(await addSeason('Duplicate Season')).toBeNull();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[addSeason] Validation failed'),
+        expect.any(Object)
+      );
     });
 
-    it('should return null if saving fails during add', async () => {
-      mockSetStorageItem.mockImplementationOnce(async () => { throw new Error('Save failed'); });
-      expect(await addSeason('Ephemeral Season')).toBeNull();
-      // addSeason catches and logs the error at the high-level function
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[addSeason] Unexpected error adding season:'), expect.any(Error));
+    it('should return null and log error if DataStore fails', async () => {
+      mockShouldThrow = true;
+      expect(await addSeason('New Season')).toBeNull();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[addSeason] Unexpected error'),
+        expect.any(Object)
+      );
     });
   });
 
   describe('updateSeason', () => {
-    beforeEach(async () => {
-      await saveSeasons([...sampleSeasons]); 
+    beforeEach(() => {
+      mockSeasons = [...sampleSeasons];
     });
 
-    it('should update an existing season\'s name and return the updated object', async () => {
-      const seasonToUpdateData: Season = { ...sampleSeasons[0], name: 'Spring League Updated' };
-      const updatedSeason = await updateSeason(seasonToUpdateData);
-      expect(updatedSeason).not.toBeNull();
-      expect(updatedSeason?.name).toBe('Spring League Updated');
-      const currentSeasons = await getSeasons();
-      expect(currentSeasons.find(s => s.id === sampleSeasons[0].id)?.name).toBe('Spring League Updated');
+    it('should update an existing season and return the updated object', async () => {
+      const seasonToUpdate: Season = { ...sampleSeasons[0], name: 'Spring League Updated' };
+      const result = await updateSeason(seasonToUpdate);
+
+      expect(result).not.toBeNull();
+      expect(result?.name).toBe('Spring League Updated');
+      expect(mockDataStore.updateSeason).toHaveBeenCalledWith(seasonToUpdate);
     });
 
-    it('should trim whitespace from updated name', async () => {
-      const seasonToUpdateData: Season = { ...sampleSeasons[0], name: '  Trimmed Update ' };
-      const updatedSeason = await updateSeason(seasonToUpdateData);
-      expect(updatedSeason).not.toBeNull();
-      expect(updatedSeason?.name).toBe('Trimmed Update');
-      const currentSeasons = await getSeasons();
-      expect(currentSeasons.find(s => s.id === sampleSeasons[0].id)?.name).toBe('Trimmed Update');
-    });
-
-    it('should return null and log error if trying to update a non-existent season', async () => {
+    it('should return null and log error if season not found', async () => {
+      mockSeasons = []; // Empty so season won't be found
       const nonExistentSeason: Season = { id: 's99', name: 'Ghost Season' };
+
       expect(await updateSeason(nonExistentSeason)).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Season with ID s99 not found'));
-    });
-
-    it('should return null and log error if updated name conflicts with another season', async () => {
-      const seasonToUpdateData: Season = { ...sampleSeasons[0], name: sampleSeasons[1].name.toUpperCase() };
-      expect(await updateSeason(seasonToUpdateData)).toBeNull();
-      expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining(`[updateSeason] Validation failed: Another season with name "${sampleSeasons[1].name.toUpperCase()}" already exists.`));
-    });
-
-    it('should return null if saving fails during update', async () => {
-      mockSetStorageItem.mockImplementationOnce(async () => {
-        throw new Error('Save failed');
-      });
-      const seasonToUpdateData: Season = { ...sampleSeasons[0], name: 'Update Fail Season' };
-      expect(await updateSeason(seasonToUpdateData)).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[updateSeason] Unexpected error updating season:'), expect.any(Error));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Season with ID s99 not found')
+      );
     });
 
     it('should return null and log error for invalid update data (empty name)', async () => {
       const invalidSeason: Season = { ...sampleSeasons[0], name: '   ' };
       expect(await updateSeason(invalidSeason)).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[updateSeason] Invalid season data provided for update.'));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid season data provided')
+      );
     });
 
     it('should return null and log error for invalid update data (missing id)', async () => {
       const invalidSeason = { name: 'Valid Name' } as Season;
       expect(await updateSeason(invalidSeason)).toBeNull();
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid season data provided for update'));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid season data provided')
+      );
+    });
+
+    it('should return null if DataStore throws validation error', async () => {
+      mockValidationError = true;
+      const seasonToUpdate: Season = { ...sampleSeasons[0], name: 'Conflict Name' };
+
+      expect(await updateSeason(seasonToUpdate)).toBeNull();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[updateSeason] Validation failed'),
+        expect.any(Object)
+      );
+    });
+
+    it('should return null and log error if DataStore fails', async () => {
+      mockShouldThrow = true;
+      const seasonToUpdate: Season = { ...sampleSeasons[0], name: 'Updated' };
+
+      expect(await updateSeason(seasonToUpdate)).toBeNull();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[updateSeason] Unexpected error'),
+        expect.any(Object)
+      );
     });
   });
 
   describe('deleteSeason', () => {
-    beforeEach(async () => {
-      await saveSeasons([...sampleSeasons]); 
+    beforeEach(() => {
+      mockSeasons = [...sampleSeasons];
     });
 
-    it('should delete an existing season by ID and return true', async () => {
-      const seasonIdToDelete = sampleSeasons[1].id;
-      const result = await deleteSeason(seasonIdToDelete);
+    it('should delete an existing season and return true', async () => {
+      const result = await deleteSeason('s1');
+
       expect(result).toBe(true);
-      const currentSeasons = await getSeasons();
-      expect(currentSeasons.find(s => s.id === seasonIdToDelete)).toBeUndefined();
+      expect(mockDataStore.deleteSeason).toHaveBeenCalledWith('s1');
     });
 
-    it('should return false and log error if trying to delete a non-existent season ID', async () => {
-      const nonExistentId = 's99';
-      const result = await deleteSeason(nonExistentId);
-      expect(result).toBe(false);
-      const currentSeasons = await getSeasons();
-      expect(currentSeasons).toHaveLength(sampleSeasons.length);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(`[deleteSeason] Season with id ${nonExistentId} not found.`);
+    it('should return false and log error if season not found', async () => {
+      mockSeasons = [];
+      expect(await deleteSeason('s99')).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Season with id s99 not found')
+      );
     });
 
-    it('should handle deleting the last season and return true', async () => {
-      await saveSeasons([sampleSeasons[0]]);
-      const result = await deleteSeason(sampleSeasons[0].id);
-      expect(result).toBe(true);
-      expect(await getSeasons()).toEqual([]);
-    });
-
-    it('should return false if saving fails during delete', async () => {
-      mockSetStorageItem.mockImplementationOnce(async () => { throw new Error('Save failed'); });
-      const seasonIdToDelete = sampleSeasons[1].id;
-      expect(await deleteSeason(seasonIdToDelete)).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[deleteSeason] Unexpected error deleting season:'), expect.any(Error));
-      const currentSeasons = await getSeasons();
-      expect(currentSeasons.find(s => s.id === seasonIdToDelete)).toBeDefined(); // Should still be there if save failed
-    });
-
-    it('should return false and log error for invalid delete ID', async () => {
+    it('should return false and log error for invalid season ID', async () => {
       expect(await deleteSeason('')).toBe(false);
-      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('[deleteSeason] Invalid season ID provided'));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid season ID provided')
+      );
+    });
+
+    it('should return false and log error if DataStore fails', async () => {
+      mockShouldThrow = true;
+      expect(await deleteSeason('s1')).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[deleteSeason] Unexpected error'),
+        expect.any(Object)
+      );
     });
   });
 
-  describe('updateTeamPlacement (seasons)', () => {
+  describe('countGamesForSeason', () => {
+    it('should return 0 when no games exist', async () => {
+      expect(await countGamesForSeason('s1')).toBe(0);
+    });
 
-    /**
-     * Tests adding team placement to season
-     * @critical - Core placement feature for seasons
-     */
+    it('should count games matching the season ID', async () => {
+      mockGames = {
+        game1: { seasonId: 's1' } as never,
+        game2: { seasonId: 's1' } as never,
+        game3: { seasonId: 's2' } as never,
+      };
+
+      expect(await countGamesForSeason('s1')).toBe(2);
+      expect(await countGamesForSeason('s2')).toBe(1);
+      expect(await countGamesForSeason('s3')).toBe(0);
+    });
+
+    it('should return 0 and log warning if DataStore fails', async () => {
+      mockShouldThrow = true;
+      expect(await countGamesForSeason('s1')).toBe(0);
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[countGamesForSeason]'),
+        expect.any(Object)
+      );
+    });
+  });
+
+  describe('updateTeamPlacement', () => {
+    beforeEach(() => {
+      mockSeasons = [{ id: 's1', name: 'Spring 2025' }];
+    });
+
     it('should add a new team placement to a season', async () => {
-      const season: Season = { id: 's1', name: 'Spring 2025' };
-      await saveSeasons([season]);
-
       const result = await updateTeamPlacement('s1', 'team1', 1, 'Champion', 'Excellent season');
 
       expect(result).toBe(true);
-      const seasons = await getSeasons();
-      expect(seasons[0].teamPlacements).toEqual({
-        team1: {
-          placement: 1,
-          award: 'Champion',
-          note: 'Excellent season',
-        },
-      });
+      expect(mockDataStore.updateSeason).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 's1',
+          teamPlacements: {
+            team1: {
+              placement: 1,
+              award: 'Champion',
+              note: 'Excellent season',
+            },
+          },
+        })
+      );
     });
 
-    /**
-     * Tests updating existing season placement
-     * @critical - Ensures placement updates work correctly
-     */
-    it('should update an existing team placement in season', async () => {
-      const season: Season = {
+    it('should update an existing team placement', async () => {
+      mockSeasons = [{
         id: 's1',
         name: 'Spring 2025',
-        teamPlacements: {
-          team1: { placement: 2, award: 'Runner-up' },
-        },
-      };
-      await saveSeasons([season]);
+        teamPlacements: { team1: { placement: 2, award: 'Runner-up' } },
+      }];
 
       const result = await updateTeamPlacement('s1', 'team1', 1, 'Champion');
 
       expect(result).toBe(true);
-      const seasons = await getSeasons();
-      expect(seasons[0].teamPlacements?.team1).toEqual({
-        placement: 1,
-        award: 'Champion',
-      });
+      expect(mockDataStore.updateSeason).toHaveBeenCalledWith(
+        expect.objectContaining({
+          teamPlacements: {
+            team1: { placement: 1, award: 'Champion' },
+          },
+        })
+      );
     });
 
-    /**
-     * Tests removing season placement
-     * @critical - Required for clearing placements
-     */
     it('should remove a team placement when placement is null', async () => {
-      const season: Season = {
+      mockSeasons = [{
         id: 's1',
         name: 'Spring 2025',
         teamPlacements: {
           team1: { placement: 1 },
           team2: { placement: 2 },
         },
-      };
-      await saveSeasons([season]);
+      }];
 
       const result = await updateTeamPlacement('s1', 'team1', null);
 
       expect(result).toBe(true);
-      const seasons = await getSeasons();
-      expect(seasons[0].teamPlacements).toEqual({
-        team2: { placement: 2 },
-      });
+      expect(mockDataStore.updateSeason).toHaveBeenCalledWith(
+        expect.objectContaining({
+          teamPlacements: { team2: { placement: 2 } },
+        })
+      );
     });
 
-    /**
-     * Tests cleanup of empty placements object in season
-     * @edge-case - Prevents empty objects in storage
-     */
     it('should remove teamPlacements object when last placement is removed', async () => {
-      const season: Season = {
+      mockSeasons = [{
         id: 's1',
         name: 'Spring 2025',
-        teamPlacements: {
-          team1: { placement: 1 },
-        },
-      };
-      await saveSeasons([season]);
+        teamPlacements: { team1: { placement: 1 } },
+      }];
 
       const result = await updateTeamPlacement('s1', 'team1', null);
 
       expect(result).toBe(true);
-      const seasons = await getSeasons();
-      expect(seasons[0].teamPlacements).toBeUndefined();
+      const updateCall = mockDataStore.updateSeason.mock.calls[0][0];
+      expect(updateCall.teamPlacements).toBeUndefined();
     });
 
-    /**
-     * Tests handling invalid season ID
-     * @edge-case - Validates error handling
-     */
     it('should return false when season ID is invalid', async () => {
-      const result = await updateTeamPlacement('', 'team1', 1);
-
-      expect(result).toBe(false);
+      expect(await updateTeamPlacement('', 'team1', 1)).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Invalid season ID or team ID')
+      );
     });
 
-    /**
-     * Tests handling non-existent season
-     * @edge-case - Prevents placement on missing seasons
-     */
+    it('should return false when team ID is invalid', async () => {
+      expect(await updateTeamPlacement('s1', '', 1)).toBe(false);
+    });
+
     it('should return false when season is not found', async () => {
-      await saveSeasons([{ id: 's1', name: 'Test' }]);
+      mockSeasons = [];
+      expect(await updateTeamPlacement('nonexistent', 'team1', 1)).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Season with ID nonexistent not found')
+      );
+    });
 
-      const result = await updateTeamPlacement('nonexistent', 'team1', 1);
-
-      expect(result).toBe(false);
+    it('should return false and log error if DataStore fails', async () => {
+      mockShouldThrow = true;
+      expect(await updateTeamPlacement('s1', 'team1', 1)).toBe(false);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[updateTeamPlacement] Unexpected error'),
+        expect.any(Object)
+      );
     });
   });
 
-  describe('getTeamPlacement (seasons)', () => {
-
-    /**
-     * Tests retrieving existing placement from season
-     * @critical - Core read functionality
-     */
-    it('should return team placement when it exists in season', async () => {
-      const season: Season = {
+  describe('getTeamPlacement', () => {
+    it('should return team placement when it exists', async () => {
+      mockSeasons = [{
         id: 's1',
         name: 'Spring 2025',
-        teamPlacements: {
-          team1: { placement: 1, award: 'Champion' },
-        },
-      };
-      await saveSeasons([season]);
+        teamPlacements: { team1: { placement: 1, award: 'Champion' } },
+      }];
 
       const result = await getTeamPlacement('s1', 'team1');
 
-      expect(result).toEqual({
-        placement: 1,
-        award: 'Champion',
-      });
+      expect(result).toEqual({ placement: 1, award: 'Champion' });
     });
 
-    /**
-     * Tests handling non-existent season
-     * @edge-case - Returns null for missing season
-     */
     it('should return null when season is not found', async () => {
-      await saveSeasons([{ id: 's1', name: 'Test' }]);
-
-      const result = await getTeamPlacement('nonexistent', 'team1');
-
-      expect(result).toBeNull();
+      mockSeasons = [{ id: 's1', name: 'Test' }];
+      expect(await getTeamPlacement('nonexistent', 'team1')).toBeNull();
     });
 
-    /**
-     * Tests handling season without placements
-     * @edge-case - Returns null when no placements exist
-     */
     it('should return null when season has no placements', async () => {
-      await saveSeasons([{ id: 's1', name: 'Spring 2025' }]);
+      mockSeasons = [{ id: 's1', name: 'Spring 2025' }];
+      expect(await getTeamPlacement('s1', 'team1')).toBeNull();
+    });
 
-      const result = await getTeamPlacement('s1', 'team1');
+    it('should return null when team has no placement in season', async () => {
+      mockSeasons = [{
+        id: 's1',
+        name: 'Spring 2025',
+        teamPlacements: { team2: { placement: 1 } },
+      }];
+      expect(await getTeamPlacement('s1', 'team1')).toBeNull();
+    });
 
-      expect(result).toBeNull();
+    it('should return null and log error if DataStore fails', async () => {
+      mockShouldThrow = true;
+      expect(await getTeamPlacement('s1', 'team1')).toBeNull();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[getTeamPlacement]'),
+        expect.any(Object)
+      );
     });
   });
-}); 
+});
