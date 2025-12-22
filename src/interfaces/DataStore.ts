@@ -302,6 +302,13 @@ export interface DataStore {
   saveGame(id: string, game: AppState): Promise<AppState>;
 
   /**
+   * Save all games (bulk replace).
+   * @param games - Full games collection to save
+   * @remarks Used by import/migration operations. Replaces entire collection atomically.
+   */
+  saveAllGames(games: SavedGamesCollection): Promise<void>;
+
+  /**
    * Delete a game.
    * @param id - Game ID
    * @returns true if deleted, false if not found

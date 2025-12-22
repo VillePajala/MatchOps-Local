@@ -8,8 +8,7 @@
  * saveSeasons to ensure proper data flow through the abstraction layer.
  */
 
-import type { Season, AppState } from '@/types';
-import { clearMockStore } from '@/utils/__mocks__/storage';
+import type { Season, AppState, SavedGamesCollection } from '@/types';
 
 // Helper to create a minimal valid AppState for testing
 const createTestAppState = (overrides: Partial<AppState> & { testId: string }): AppState => ({
@@ -39,14 +38,13 @@ const createTestAppState = (overrides: Partial<AppState> & { testId: string }): 
   ...overrides,
 });
 
-// Mock storage module - uses __mocks__/storage.ts for in-memory storage
-jest.mock('@/utils/storage');
-
-// Mock DataStore state for seasons
+// Mock DataStore state
 let mockSeasons: Season[] = [];
+let mockGames: SavedGamesCollection = {};
 let seasonIdCounter = 0; // Deterministic ID counter per CLAUDE.md testing rules
 
 const mockDataStore = {
+  // Season methods
   getSeasons: jest.fn(async () => [...mockSeasons]),
   createSeason: jest.fn(async (name: string, extra?: Partial<Omit<Season, 'id' | 'name'>>) => {
     seasonIdCounter++;
@@ -60,7 +58,13 @@ const mockDataStore = {
   }),
   updateSeason: jest.fn(),
   deleteSeason: jest.fn(),
-  getGames: jest.fn(async () => ({})),
+  // Game methods
+  getGames: jest.fn(async () => ({ ...mockGames })),
+  getGameById: jest.fn(async (gameId: string) => mockGames[gameId] || null),
+  saveGame: jest.fn(async (gameId: string, gameData: AppState) => {
+    mockGames[gameId] = gameData;
+    return gameData;
+  }),
 };
 
 jest.mock('@/datastore', () => ({
@@ -92,10 +96,18 @@ import { saveGame, getGame } from '@/utils/savedGames';
 
 describe('Game Type Persistence Integration Tests', () => {
   beforeEach(() => {
-    clearMockStore();
     mockSeasons = []; // Reset mock seasons state
+    mockGames = {}; // Reset mock games state
     seasonIdCounter = 0; // Reset deterministic ID counter
     jest.clearAllMocks();
+    // Re-setup mock implementations after clearAllMocks
+    mockDataStore.getSeasons.mockImplementation(async () => [...mockSeasons]);
+    mockDataStore.getGames.mockImplementation(async () => ({ ...mockGames }));
+    mockDataStore.getGameById.mockImplementation(async (gameId: string) => mockGames[gameId] || null);
+    mockDataStore.saveGame.mockImplementation(async (gameId: string, gameData: AppState) => {
+      mockGames[gameId] = gameData;
+      return gameData;
+    });
   });
 
   /**

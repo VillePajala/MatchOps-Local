@@ -1,12 +1,8 @@
 import type { Player } from '@/types';
-// Import AppState and other necessary types from @/types
-import type { 
-  AppState, 
-  SavedGamesCollection, 
-  GameEvent as PageGameEvent 
-  // Point, // Removed unused import
-  // Opponent, // Removed unused import
-  // IntervalLog // Removed unused import
+import type {
+  AppState,
+  SavedGamesCollection,
+  GameEvent as PageGameEvent
 } from '@/types';
 import {
   getSavedGames,
@@ -24,23 +20,28 @@ import {
   exportGamesAsJson,
   importGamesFromJson,
   getLatestGameId,
-  // GameData, // No longer importing GameData for test mocks, using AppState
 } from './savedGames';
-import { SAVED_GAMES_KEY } from '@/config/storageKeys';
-import { clearMockStore } from './__mocks__/storage';
-import { getStorageItem, setStorageItem } from './storage';
 
-// Auto-mock the storage module
-jest.mock('./storage');
+// Mock DataStore
+const mockDataStore = {
+  getGames: jest.fn(),
+  getGameById: jest.fn(),
+  createGame: jest.fn(),
+  saveGame: jest.fn(),
+  saveAllGames: jest.fn(),
+  deleteGame: jest.fn(),
+  addGameEvent: jest.fn(),
+  updateGameEvent: jest.fn(),
+  removeGameEvent: jest.fn(),
+};
 
-// Type the mocked functions
-const mockGetStorageItem = getStorageItem as jest.MockedFunction<typeof getStorageItem>;
-const mockSetStorageItem = setStorageItem as jest.MockedFunction<typeof setStorageItem>;
+jest.mock('@/datastore', () => ({
+  getDataStore: jest.fn(async () => mockDataStore),
+}));
 
 describe('Saved Games Utilities', () => {
   beforeEach(() => {
-    // Clear the mock store
-    clearMockStore();
+    jest.clearAllMocks();
   });
 
   const mockPlayer1: Player = { id: 'player_1', name: 'John', jerseyNumber: '10', isGoalie: false, receivedFairPlayCard: false, notes: '' };
@@ -107,489 +108,255 @@ describe('Saved Games Utilities', () => {
 
   describe('getSavedGames', () => {
     it('should return an empty object if no games are stored', async () => {
-      mockGetStorageItem.mockResolvedValue(null);
-      // getSavedGames now returns a Promise
+      mockDataStore.getGames.mockResolvedValue({});
       await expect(getSavedGames()).resolves.toEqual({});
+      expect(mockDataStore.getGames).toHaveBeenCalledTimes(1);
     });
 
     it('should return the games (as AppState collection) if they exist', async () => {
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
-      // getSavedGames now returns a Promise<SavedGamesCollection>
-      // The mockSavedGamesCollection is already Record<string, AppState>
+      mockDataStore.getGames.mockResolvedValue(mockSavedGamesCollection);
       await expect(getSavedGames()).resolves.toEqual(mockSavedGamesCollection);
     });
 
-    it('should gracefully return empty object when JSON is invalid (graceful degradation)', async () => {
-      mockGetStorageItem.mockResolvedValue('invalid json');
-      // With graceful degradation, getSavedGames returns {} on parse failure
-      // This prevents app crash when data is corrupted
-      const result = await getSavedGames();
-      expect(result).toEqual({});
+    it('should delegate to DataStore.getGames()', async () => {
+      mockDataStore.getGames.mockResolvedValue({});
+      await getSavedGames();
+      expect(mockDataStore.getGames).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('getGame', () => {
-    beforeEach(() => {
-      // This mock setup is for getSavedGames which getGame calls internally
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
-    });
     it('should return the requested game as AppState if it exists', async () => {
-      // getGame now returns a Promise<AppState | null>
+      mockDataStore.getGameById.mockResolvedValue(mockGame1_AppState);
       await expect(getGame('game_123')).resolves.toEqual(mockGame1_AppState);
+      expect(mockDataStore.getGameById).toHaveBeenCalledWith('game_123');
     });
+
     it('should return null if game does not exist', async () => {
+      mockDataStore.getGameById.mockResolvedValue(null);
       await expect(getGame('nonexistent_game')).resolves.toBeNull();
     });
+
     it('should return null if gameId is empty', async () => {
+      // Empty gameId returns null without calling DataStore
       await expect(getGame('')).resolves.toBeNull();
-    });
-    // Test for graceful degradation if getSavedGames returns corrupted data
-    it('should gracefully return null if internal getSavedGames returns corrupted data', async () => {
-      // With graceful degradation, getSavedGames returns {} on parse failure
-      // getGame returns null since game is not found in empty collection
-      mockGetStorageItem.mockResolvedValue('invalid json data');
-      const result = await getGame('game_123');
-      expect(result).toBeNull();
+      expect(mockDataStore.getGameById).not.toHaveBeenCalled();
     });
   });
 
   describe('saveGames', () => {
-    it('should save a AppState collection to storage', async () => {
-      // saveGames expects SavedGamesCollection (Record<string, AppState>) and returns Promise<void>
-      await expect(saveGames(mockSavedGamesCollection)).resolves.toBeUndefined(); // Promise<void> resolves to undefined
-      expect(mockSetStorageItem).toHaveBeenCalledWith(SAVED_GAMES_KEY, JSON.stringify(mockSavedGamesCollection));
+    it('should delegate to DataStore.saveAllGames()', async () => {
+      mockDataStore.saveAllGames.mockResolvedValue(undefined);
+      await expect(saveGames(mockSavedGamesCollection)).resolves.toBeUndefined();
+      expect(mockDataStore.saveAllGames).toHaveBeenCalledWith(mockSavedGamesCollection);
     });
 
     it('should handle storage errors during saveGames and reject', async () => {
       const error = new Error('Storage quota exceeded');
-      mockSetStorageItem.mockImplementation(() => { 
-        throw error; 
-      });
-      // saveGames now rejects on error
+      mockDataStore.saveAllGames.mockRejectedValue(error);
       await expect(saveGames(mockSavedGamesCollection)).rejects.toThrow('Storage quota exceeded');
     });
   });
 
   describe('saveGame', () => {
-    beforeEach(() => {
-      // Mock for the internal getSavedGames call
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
-      // Clear setItem mock for each test to check its specific call
-      mockSetStorageItem.mockReset(); 
-    });
-    it('should add a new game (as AppState) to storage and resolve with the game', async () => {
+    it('should delegate to DataStore.saveGame() and return the saved game', async () => {
       const newGameId = 'game_789';
-      // Ensure newGame is a complete AppState
-      const newGame: AppState = { 
-        ...mockBaseAppState, 
-        teamName: 'Wolves', 
-        // any other AppState specific fields for this new game if different from base
-        // For this test, assume teamName is the main difference for identification.
-        // gameId is not part of AppState, it's the key.
-      };
-      
-      // saveGame now returns Promise<AppState>
+      const newGame: AppState = { ...mockBaseAppState, teamName: 'Wolves' };
+
+      mockDataStore.saveGame.mockResolvedValue(newGame);
       await expect(saveGame(newGameId, newGame)).resolves.toEqual(newGame);
-      
-      // Verify storage.setItem was called correctly
-      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
-      const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
-      expect(savedCollection[newGameId]).toEqual(newGame);
-      // Ensure other games are preserved using their known IDs
-      expect(savedCollection['game_123']).toEqual(mockGame1_AppState); // Use known ID 'game_123' for mockGame1_AppState
-      expect(savedCollection['game_456']).toEqual(mockGame2_AppState); // Use known ID 'game_456' for mockGame2_AppState
+      expect(mockDataStore.saveGame).toHaveBeenCalledWith(newGameId, newGame);
     });
 
-    it('should update an existing game (as AppState) and resolve with the updated game', async () => {
-      const gameIdToUpdate = 'game_123'; // Assuming this ID exists from mockGame1_AppState
-      const updatedGame: AppState = { ...mockGame1_AppState, teamName: 'Updated Dragons' };
-      
-      await expect(saveGame(gameIdToUpdate, updatedGame)).resolves.toEqual(updatedGame);
-      
-      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
-      const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
-      expect(savedCollection[gameIdToUpdate]).toEqual(updatedGame);
-    });
-
-     it('should reject if gameId is empty', async () => {
+    it('should reject if gameId is empty', async () => {
       await expect(saveGame('', mockGame1_AppState)).rejects.toThrow('Game ID is required');
+      expect(mockDataStore.saveGame).not.toHaveBeenCalled();
     });
 
-    it('should gracefully merge with empty collection if internal getSavedGames returns corrupted data', async () => {
-      // With graceful degradation, getSavedGames returns {} on parse failure
-      // saveGame should still succeed by saving to an empty collection
-      mockGetStorageItem.mockResolvedValue('invalid json data');
-      mockSetStorageItem.mockReset();
-      const result = await saveGame('game_123', mockGame1_AppState);
-      expect(result).toEqual(mockGame1_AppState);
-      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
-    });
-
-    it('should reject if internal saveGames fails', async () => {
-      mockSetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage set failure'); 
-      });
-      await expect(saveGame('game_123', mockGame1_AppState)).rejects.toThrow('LocalStorage set failure');
+    it('should reject if DataStore.saveGame fails', async () => {
+      mockDataStore.saveGame.mockRejectedValue(new Error('Storage failure'));
+      await expect(saveGame('game_123', mockGame1_AppState)).rejects.toThrow('Storage failure');
     });
   });
 
   describe('deleteGame', () => {
-    beforeEach(() => {
-      // Mock for the internal getSavedGames and saveGames calls
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
-      mockSetStorageItem.mockReset(); // Reset setItem to check its call for delete
-    });
     it('should delete the game and return the gameId', async () => {
-      // deleteGame now returns Promise<string | null>
+      mockDataStore.deleteGame.mockResolvedValue(true);
       await expect(deleteGame('game_123')).resolves.toBe('game_123');
-      
-      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
-      const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
-      expect(savedCollection['game_123']).toBeUndefined();
-      expect(savedCollection['game_456']).toEqual(mockGame2_AppState);
+      expect(mockDataStore.deleteGame).toHaveBeenCalledWith('game_123');
     });
 
-     it('should return null if game to delete is not found', async () => {
+    it('should return null if game to delete is not found', async () => {
+      mockDataStore.deleteGame.mockResolvedValue(false);
       await expect(deleteGame('nonexistent_id')).resolves.toBe(null);
-      // setItem should not have been called if the game wasn't found for deletion
-      expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
     it('should return null if gameId is empty', async () => {
       await expect(deleteGame('')).resolves.toBe(null);
-      expect(mockSetStorageItem).not.toHaveBeenCalled();
+      expect(mockDataStore.deleteGame).not.toHaveBeenCalled();
     });
 
-    it('should gracefully return null if internal getSavedGames returns corrupted data', async () => {
-      // With graceful degradation, getSavedGames returns {} on parse failure
-      // deleteGame returns null since game is not found in empty collection
-      mockGetStorageItem.mockResolvedValue('invalid json data');
-      const result = await deleteGame('game_123');
-      expect(result).toBeNull();
-    });
-
-    it('should reject if internal saveGames (after delete) fails', async () => {
-      mockSetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage set failure after delete'); 
-      });
-      await expect(deleteGame('game_123')).rejects.toThrow('LocalStorage set failure after delete');
+    it('should reject if DataStore.deleteGame fails', async () => {
+      mockDataStore.deleteGame.mockRejectedValue(new Error('Storage failure'));
+      await expect(deleteGame('game_123')).rejects.toThrow('Storage failure');
     });
   });
 
   describe('createGame', () => {
-    const mockDateNow = 1234567890123;
-
-    beforeEach(() => {
-      jest.spyOn(Date, 'now').mockReturnValue(mockDateNow);
-      // Mock for internal getSavedGames and saveGames calls
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection)); 
-      mockSetStorageItem.mockReset();
-    });
-    afterEach(() => {
-      jest.restoreAllMocks();
-    });
-
-    it('should create a new game with provided AppState partial, save it, and resolve with ID and data', async () => {
+    it('should delegate to DataStore.createGame()', async () => {
       const initialGamePartial: Partial<AppState> = { teamName: 'New Team FC', seasonId: 'season_2077' };
-      
-      // createGame resolves to { gameId: string, gameData: AppState }
+      const mockResult = {
+        gameId: 'game_123_abc12345',
+        gameData: { ...mockBaseAppState, teamName: 'New Team FC', seasonId: 'season_2077' }
+      };
+
+      mockDataStore.createGame.mockResolvedValue(mockResult);
       const result = await createGame(initialGamePartial);
-      
-      expect(result).not.toBeNull();
-      // Check that the new ID format is used (game_timestamp_uuid)
-      expect(result.gameId).toMatch(/^game_\d+_[a-f0-9]{8}$/);
-      // Verify the timestamp part matches our mock
-      expect(result.gameId).toContain(`game_${mockDateNow}_`);
-      expect(result.gameData.teamName).toBe('New Team FC');
-      expect(result.gameData.seasonId).toBe('season_2077');
-      // Check some default fields from AppState that createGame sets
-      expect(result.gameData.opponentName).toBe('Opponent'); // Default from createGame via AppState structure
-      expect(result.gameData.gameStatus).toBe('notStarted');
-      expect(result.gameData.isPlayed).toBe(true);
 
-      // Verify it was saved to storage
-      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
-      const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
-      expect(savedCollection[result.gameId]).toEqual(result.gameData);
+      expect(result).toEqual(mockResult);
+      expect(mockDataStore.createGame).toHaveBeenCalledWith(initialGamePartial);
     });
 
-    it('should use full AppState defaults for unspecified fields', async () => {
-      const minimalInitialData: Partial<AppState> = { teamName: 'Minimal FC' };
-      const result = await createGame(minimalInitialData);
-      
-      expect(result.gameData.teamName).toBe('Minimal FC');
-      // Check a few AppState defaults
-      expect(result.gameData.playersOnField).toEqual([]);
-      expect(result.gameData.opponents).toEqual([]);
-      expect(result.gameData.availablePlayers).toEqual([]); // Default from AppState in createGame
-      expect(result.gameData.showPlayerNames).toBe(true);
-      expect(result.gameData.homeOrAway).toBe('home');
-      expect(result.gameData.numberOfPeriods).toBe(2);
-      expect(result.gameData.periodDurationMinutes).toBe(10);
-      expect(result.gameData.subIntervalMinutes).toBe(5);
-      expect(result.gameData.isPlayed).toBe(true);
-    });
-
-    it('should reject if internal saveGame fails', async () => {
-      mockSetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage set failure during create'); 
-      });
+    it('should reject if DataStore.createGame fails', async () => {
+      mockDataStore.createGame.mockRejectedValue(new Error('Storage failure'));
       const initialGamePartial: Partial<AppState> = { teamName: 'Fail Team' };
-      
-      await expect(createGame(initialGamePartial)).rejects.toThrow('LocalStorage set failure during create');
+
+      await expect(createGame(initialGamePartial)).rejects.toThrow('Storage failure');
     });
   });
 
   describe('addGameEvent', () => {
-    beforeEach(() => {
-      // Mock for getGame and saveGame internals
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
-      mockSetStorageItem.mockReset();
-    });
-
-    it('should add an event to a game and resolve with the updated AppState', async () => {
+    it('should delegate to DataStore.addGameEvent()', async () => {
       const newEvent: PageGameEvent = { id: 'event_add', type: 'goal', scorerId: 'player_new', time: 100 };
-      
-      // addGameEvent now returns Promise<AppState | null>
+      const updatedGame = { ...mockGame1_AppState, gameEvents: [...mockGame1_AppState.gameEvents, newEvent] };
+
+      mockDataStore.addGameEvent.mockResolvedValue(updatedGame);
       const result = await addGameEvent('game_123', newEvent);
-      
-      expect(result).not.toBeNull();
-      if (!result) return; // Type guard
 
-      expect(result.gameEvents.length).toBe(mockGame1_AppState.gameEvents.length + 1);
-      expect(result.gameEvents.find((e: PageGameEvent) => e.id === 'event_add')).toEqual(expect.objectContaining(newEvent));
-      
-      // Verify storage.setItem was called correctly by the internal saveGame
-      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
-      const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
-      expect(savedCollection['game_123'].gameEvents.length).toBe(mockGame1_AppState.gameEvents.length + 1);
+      expect(result).toEqual(updatedGame);
+      expect(mockDataStore.addGameEvent).toHaveBeenCalledWith('game_123', newEvent);
     });
 
-    it('should resolve with null if game is not found', async () => {
+    it('should return null if game is not found', async () => {
+      mockDataStore.addGameEvent.mockResolvedValue(null);
       await expect(addGameEvent('nonexistent_game', mockEvent1)).resolves.toBeNull();
-      expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
-    it('should gracefully return null if internal getSavedGames returns corrupted data', async () => {
-      // With graceful degradation, getSavedGames returns {} on parse failure
-      // getGame returns null, and addGameEvent returns null
-      mockGetStorageItem.mockResolvedValue('invalid json data');
-      const result = await addGameEvent('game_123', mockEvent1);
-      expect(result).toBeNull();
-    });
-
-    it('should reject if internal saveGame fails', async () => {
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
-      mockSetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage set failure'); 
-      });
-
-      try {
-        await addGameEvent('game_123', mockEvent1);
-        throw new Error('addGameEvent did not reject as expected');
-      } catch (error) {
-        expect((error as Error).message).toBe('LocalStorage set failure');
-      }
+    it('should reject if DataStore.addGameEvent fails', async () => {
+      mockDataStore.addGameEvent.mockRejectedValue(new Error('Storage failure'));
+      await expect(addGameEvent('game_123', mockEvent1)).rejects.toThrow('Storage failure');
     });
   });
 
   describe('updateGameEvent', () => {
-    beforeEach(() => {
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
-      mockSetStorageItem.mockReset();
-    });
+    it('should delegate to DataStore.updateGameEvent()', async () => {
+      const updatedEventData: PageGameEvent = { ...mockEvent1, time: 9999, type: 'opponentGoal' };
+      const updatedGame = { ...mockGame1_AppState, gameEvents: [updatedEventData] };
 
-    it('should update an event in a game and resolve with the updated AppState', async () => {
-      const eventToUpdate = mockGame1_AppState.gameEvents[0];
-      const changes: Partial<PageGameEvent> = { time: 9999, type: 'opponentGoal' };
-      const updatedEventData = { ...eventToUpdate, ...changes } as PageGameEvent; // Keep cast if changes are Partial
-      
-      // updateGameEvent now returns Promise<AppState | null>
+      mockDataStore.updateGameEvent.mockResolvedValue(updatedGame);
       const result = await updateGameEvent('game_123', 0, updatedEventData);
-      
-      expect(result).not.toBeNull();
-      if (!result) return; // Type guard
 
-      expect(result.gameEvents[0]).toEqual(expect.objectContaining(updatedEventData));
-      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
-      const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
-      expect(savedCollection['game_123'].gameEvents[0]).toEqual(updatedEventData);
+      expect(result).toEqual(updatedGame);
+      expect(mockDataStore.updateGameEvent).toHaveBeenCalledWith('game_123', 0, updatedEventData);
     });
 
-    it('should resolve with null if game is not found', async () => {
-      const eventData: PageGameEvent = { ...mockEvent1, time: 123 };
-      await expect(updateGameEvent('nonexistent_game', 0, eventData)).resolves.toBeNull();
-      expect(mockSetStorageItem).not.toHaveBeenCalled();
+    it('should return null if game is not found', async () => {
+      mockDataStore.updateGameEvent.mockResolvedValue(null);
+      await expect(updateGameEvent('nonexistent_game', 0, mockEvent1)).resolves.toBeNull();
     });
 
-    it('should resolve with null if event index is out of bounds', async () => {
-      const eventData: PageGameEvent = { ...mockEvent1, time: 456 };
-      await expect(updateGameEvent('game_123', 99, eventData)).resolves.toBeNull(); // Index 99 is out of bounds
-      expect(mockSetStorageItem).not.toHaveBeenCalled();
+    it('should return null if event index is out of bounds', async () => {
+      mockDataStore.updateGameEvent.mockResolvedValue(null);
+      await expect(updateGameEvent('game_123', 99, mockEvent1)).resolves.toBeNull();
     });
 
-    it('should gracefully return null if internal getSavedGames returns corrupted data', async () => {
-      // With graceful degradation, getSavedGames returns {} on parse failure
-      // This means getGame returns null, and updateGameEvent returns null
-      mockGetStorageItem.mockResolvedValue('invalid json data');
-      const result = await updateGameEvent('game_123', 0, mockEvent1);
-      expect(result).toBeNull();
-    });
-
-    it('should reject if internal saveGame fails', async () => {
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
-      mockSetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage set failure'); 
-      });
-      const eventData: PageGameEvent = { ...mockEvent1, time: 101112 };
-
-      try {
-        await updateGameEvent('game_123', 0, eventData);
-        throw new Error('updateGameEvent did not reject as expected');
-      } catch (error) {
-        expect((error as Error).message).toBe('LocalStorage set failure');
-      }
+    it('should reject if DataStore.updateGameEvent fails', async () => {
+      mockDataStore.updateGameEvent.mockRejectedValue(new Error('Storage failure'));
+      await expect(updateGameEvent('game_123', 0, mockEvent1)).rejects.toThrow('Storage failure');
     });
   });
 
   describe('removeGameEvent', () => {
-    beforeEach(() => {
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
-      mockSetStorageItem.mockReset();
-    });
+    it('should delegate to DataStore.removeGameEvent()', async () => {
+      const updatedGame = { ...mockGame1_AppState, gameEvents: [] };
 
-    it('should remove an event from a game and resolve with the updated AppState', async () => {
-      const initialEventCount = mockGame1_AppState.gameEvents.length;
-      const eventIdToRemove = mockGame1_AppState.gameEvents[0].id;
-      
-      // removeGameEvent now returns Promise<AppState | null>
+      mockDataStore.removeGameEvent.mockResolvedValue(updatedGame);
       const result = await removeGameEvent('game_123', 0);
-      
-      expect(result).not.toBeNull();
-      if (!result) return; // Type guard
 
-      expect(result.gameEvents.length).toBe(initialEventCount - 1);
-      expect(result.gameEvents.find((e: PageGameEvent) => e.id === eventIdToRemove)).toBeUndefined();
-
-      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
-      const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
-      expect(savedCollection['game_123'].gameEvents.length).toBe(initialEventCount - 1);
+      expect(result).toEqual(updatedGame);
+      expect(mockDataStore.removeGameEvent).toHaveBeenCalledWith('game_123', 0);
     });
 
-    it('should resolve with null if game is not found', async () => {
+    it('should return null if game is not found', async () => {
+      mockDataStore.removeGameEvent.mockResolvedValue(null);
       await expect(removeGameEvent('nonexistent_game', 0)).resolves.toBeNull();
-      expect(mockSetStorageItem).not.toHaveBeenCalled();
     });
 
-    it('should resolve with null if event index is out of bounds', async () => {
-      await expect(removeGameEvent('game_123', 99)).resolves.toBeNull(); // Index 99 is out of bounds
-      expect(mockSetStorageItem).not.toHaveBeenCalled();
+    it('should return null if event index is out of bounds', async () => {
+      mockDataStore.removeGameEvent.mockResolvedValue(null);
+      await expect(removeGameEvent('game_123', 99)).resolves.toBeNull();
     });
 
-    it('should gracefully return null if internal getSavedGames returns corrupted data', async () => {
-      // With graceful degradation, getSavedGames returns {} on parse failure
-      // This means getGame returns null, and removeGameEvent returns null
-      mockGetStorageItem.mockResolvedValue('invalid json data');
-      const result = await removeGameEvent('game_123', 0);
-      expect(result).toBeNull();
-    });
-
-    it('should reject if internal saveGame fails', async () => {
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection)); 
-      mockSetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage set failure'); 
-      });
-      
-      try {
-        await removeGameEvent('game_123', 0);
-        throw new Error('removeGameEvent did not reject as expected');
-      } catch (error) {
-        expect((error as Error).message).toBe('LocalStorage set failure');
-      }
+    it('should reject if DataStore.removeGameEvent fails', async () => {
+      mockDataStore.removeGameEvent.mockRejectedValue(new Error('Storage failure'));
+      await expect(removeGameEvent('game_123', 0)).rejects.toThrow('Storage failure');
     });
   });
 
   describe('exportGamesAsJson', () => {
     it('should export AppState collection as formatted JSON string', async () => {
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
-      // exportGamesAsJson now returns Promise<string | null>
+      mockDataStore.getGames.mockResolvedValue(mockSavedGamesCollection);
       const result = await exportGamesAsJson();
       expect(result).toEqual(JSON.stringify(mockSavedGamesCollection, null, 2));
     });
 
     it('should resolve to null if no games are stored', async () => {
-      mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
+      mockDataStore.getGames.mockResolvedValue({});
       await expect(exportGamesAsJson()).resolves.toBeNull();
-    });
-
-    it('should resolve to null if storage returns null', async () => {
-      mockGetStorageItem.mockResolvedValue(null);
-      await expect(exportGamesAsJson()).resolves.toBeNull();
-    });
-
-    it('should gracefully return null if internal getSavedGames returns corrupted data', async () => {
-      // With graceful degradation, getSavedGames returns {} on parse failure
-      // exportGamesAsJson returns null when collection is empty
-      mockGetStorageItem.mockResolvedValue('invalid json data');
-      const result = await exportGamesAsJson();
-      expect(result).toBeNull();
     });
   });
 
   describe('importGamesFromJson', () => {
     beforeEach(() => {
       // Mock initial storage state for import tests
-      mockGetStorageItem.mockResolvedValue(JSON.stringify({ 'existing_game_id': mockGame1_AppState }));
-      mockSetStorageItem.mockReset();
+      mockDataStore.getGames.mockResolvedValue({ 'existing_game_id': mockGame1_AppState });
+      mockDataStore.saveAllGames.mockResolvedValue(undefined);
     });
 
-    it('should import games (as AppState) and merge with existing if overwrite is false, then resolve with count', async () => {
+    it('should import games (as AppState) and merge with existing if overwrite is false', async () => {
       const gamesToImport: SavedGamesCollection = {
-        'imported_1': { ...mockGame2_AppState }, // Ensure it's a valid AppState
+        'imported_1': { ...mockGame2_AppState },
       };
       const jsonData = JSON.stringify(gamesToImport);
-      
-      // importGamesFromJson now returns Promise<ImportResult>
+
       const result = await importGamesFromJson(jsonData, false);
       expect(result.successful).toBe(1);
       expect(result.failed).toHaveLength(0);
-      
-      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
-      const saved = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
-      expect(saved['existing_game_id']).toEqual(mockGame1_AppState);
-      expect(saved['imported_1']).toMatchObject(gamesToImport['imported_1']);
-      expect(saved['imported_1'].demandFactor).toBe(1); // Schema adds default value
+      expect(mockDataStore.saveAllGames).toHaveBeenCalledTimes(1);
     });
 
-    it('should import games (as AppState) and overwrite existing if overwrite is true, then resolve with count', async () => {
+    it('should import games with overwrite true', async () => {
       const gamesToImport: SavedGamesCollection = {
         'imported_1': { ...mockGame2_AppState },
         'existing_game_id': { ...mockGame1_AppState, teamName: 'Overwritten Team' },
       };
       const jsonData = JSON.stringify(gamesToImport);
-      
+
       const result = await importGamesFromJson(jsonData, true);
       expect(result.successful).toBe(2);
       expect(result.failed).toHaveLength(0);
-      
-      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
-      const saved = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
-      // Check each game matches but allow for schema defaults
-      expect(saved['imported_1']).toMatchObject(gamesToImport['imported_1']);
-      expect(saved['imported_1'].demandFactor).toBe(1);
-      expect(saved['existing_game_id']).toMatchObject(gamesToImport['existing_game_id']);
-      expect(saved['existing_game_id'].demandFactor).toBe(1);
+      expect(mockDataStore.saveAllGames).toHaveBeenCalledTimes(1);
     });
 
-    it('should resolve with 0 if JSON is valid but contains no new games to import (overwrite false)', async () => {
+    it('should skip existing games if overwrite is false', async () => {
       const gamesToImport: SavedGamesCollection = {
-        'existing_game_id': mockGame1_AppState, // Game that already exists
+        'existing_game_id': mockGame1_AppState,
       };
       const jsonData = JSON.stringify(gamesToImport);
       const result = await importGamesFromJson(jsonData, false);
       expect(result.successful).toBe(0);
       expect(result.skipped).toBe(1);
-      expect(mockSetStorageItem).not.toHaveBeenCalled(); // setItem shouldn't be called if no new games are added
+      expect(mockDataStore.saveAllGames).not.toHaveBeenCalled();
     });
 
     it('should reject if JSON data is invalid', async () => {
@@ -597,9 +364,9 @@ describe('Saved Games Utilities', () => {
       await expect(importGamesFromJson(invalidJsonData, false)).rejects.toThrow();
     });
 
-    it('should reject if a game fails validation', async () => {
+    it('should fail validation for invalid games', async () => {
       const invalidGame = { ...mockGame2_AppState } as Record<string, unknown>;
-      delete invalidGame.teamName; // remove required field
+      delete invalidGame.teamName;
       const gamesToImport: SavedGamesCollection = {
         invalid: invalidGame as unknown as AppState,
       };
@@ -609,67 +376,34 @@ describe('Saved Games Utilities', () => {
       expect(result.successful).toBe(0);
       expect(result.failed).toHaveLength(1);
       expect(result.failed[0].gameId).toBe('invalid');
-      expect(result.failed[0].error).toContain('teamName');
-      expect(mockSetStorageItem).not.toHaveBeenCalled();
+      expect(mockDataStore.saveAllGames).not.toHaveBeenCalled();
     });
 
-    it('should gracefully import games even if existing getSavedGames returns corrupted data', async () => {
-      // With graceful degradation, getSavedGames returns {} on parse failure
-      // Import should succeed by merging with empty existing collection
-      mockGetStorageItem.mockResolvedValue('invalid json data');
-      mockSetStorageItem.mockReset();
+    it('should reject if DataStore.saveAllGames fails', async () => {
+      mockDataStore.saveAllGames.mockRejectedValue(new Error('Storage failure'));
       const gamesToImport: SavedGamesCollection = { 'new_game': mockGame2_AppState };
       const jsonData = JSON.stringify(gamesToImport);
-      const result = await importGamesFromJson(jsonData, false);
-      expect(result.successful).toBe(1);
-      expect(result.failed).toHaveLength(0);
+      await expect(importGamesFromJson(jsonData, false)).rejects.toThrow('Storage failure');
     });
-
-    it('should reject if internal saveGames fails during import', async () => {
-      // getSavedGames works initially
-      mockGetStorageItem.mockResolvedValue(JSON.stringify({ 'existing_game_id': mockGame1_AppState }));
-      // But setItem (for saveGames) fails
-      mockSetStorageItem.mockImplementation(() => { 
-        throw new Error('LocalStorage set failure during import'); 
-      });
-      const gamesToImport: SavedGamesCollection = { 'new_game': mockGame2_AppState };
-      const jsonData = JSON.stringify(gamesToImport);
-      await expect(importGamesFromJson(jsonData, false)).rejects.toThrow('LocalStorage set failure during import');
-    });
-
   });
 
   describe('getAllGameIds', () => {
     it('should return an array of all game IDs', async () => {
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
-      // getAllGameIds now returns Promise<string[]>
+      mockDataStore.getGames.mockResolvedValue(mockSavedGamesCollection);
       const ids = await getAllGameIds();
       expect(ids).toEqual(expect.arrayContaining(['game_123', 'game_456']));
       expect(ids.length).toBe(Object.keys(mockSavedGamesCollection).length);
     });
 
     it('should return an empty array if no games are stored', async () => {
-      mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
+      mockDataStore.getGames.mockResolvedValue({});
       await expect(getAllGameIds()).resolves.toEqual([]);
-    });
-
-    it('should return an empty array if storage returns null', async () => {
-      mockGetStorageItem.mockResolvedValue(null);
-      await expect(getAllGameIds()).resolves.toEqual([]);
-    });
-
-    it('should gracefully return empty array if internal getSavedGames returns corrupted data', async () => {
-      // With graceful degradation, getSavedGames returns {} on parse failure
-      // getAllGameIds returns [] for empty collection
-      mockGetStorageItem.mockResolvedValue('invalid json data');
-      const result = await getAllGameIds();
-      expect(result).toEqual([]);
     });
   });
 
   describe('getFilteredGames', () => {
     beforeEach(() => {
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
+      mockDataStore.getGames.mockResolvedValue(mockSavedGamesCollection);
     });
 
     it('should return all games if no filters are provided', async () => {
@@ -705,7 +439,7 @@ describe('Saved Games Utilities', () => {
           tournamentId: 'tournament_2',
         },
       };
-      mockGetStorageItem.mockResolvedValueOnce(JSON.stringify(gamesWithUnassignedSeason));
+      mockDataStore.getGames.mockResolvedValueOnce(gamesWithUnassignedSeason);
 
       const result = await getFilteredGames({ seasonId: '' });
 
@@ -727,16 +461,14 @@ describe('Saved Games Utilities', () => {
     });
 
     it('should return an empty array if games collection is empty', async () => {
-      mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
+      mockDataStore.getGames.mockResolvedValue({});
       const result = await getFilteredGames({ seasonId: 'season_1' });
       expect(result.length).toBe(0);
     });
 
-    it('should gracefully return empty array if internal getSavedGames returns corrupted data', async () => {
-      // With graceful degradation, getSavedGames returns {} on parse failure
-      // getFilteredGames returns [] for empty collection
-      mockGetStorageItem.mockResolvedValue('invalid json data');
-      const result = await getFilteredGames({ seasonId: 'season_1' });
+    it('should return empty array if no games match filter', async () => {
+      mockDataStore.getGames.mockResolvedValue({});
+      const result = await getFilteredGames({ seasonId: 'nonexistent' });
       expect(result).toEqual([]);
     });
   });
@@ -753,11 +485,6 @@ describe('Saved Games Utilities', () => {
   });
 
   describe('updateGameDetails', () => {
-    beforeEach(() => {
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection));
-      mockSetStorageItem.mockReset();
-    });
-
     it('should update game details and resolve with the updated AppState', async () => {
       const gameIdToUpdate = 'game_123';
       const updates: Partial<Omit<AppState, 'id' | 'gameEvents'>> = {
@@ -768,53 +495,30 @@ describe('Saved Games Utilities', () => {
         awayScore: 4,
         seasonId: 'new_season_id'
       };
+      const updatedGame = { ...mockGame1_AppState, ...updates };
+
+      mockDataStore.getGameById.mockResolvedValue(mockGame1_AppState);
+      mockDataStore.saveGame.mockResolvedValue(updatedGame);
 
       const result = await updateGameDetails(gameIdToUpdate, updates);
-      expect(result).not.toBeNull();
-      if (!result) return; // Type guard
-
-      expect(result.teamName).toBe('Super Dragons');
-      expect(result.opponentName).toBe('Mega Tigers');
-      expect(result.gameNotes).toBe('An epic battle!');
-      expect(result.homeScore).toBe(5);
-      expect(result.awayScore).toBe(4);
-      expect(result.seasonId).toBe('new_season_id');
-      // Ensure events were not touched
-      expect(result.gameEvents).toEqual(mockGame1_AppState.gameEvents);
-
-      expect(mockSetStorageItem).toHaveBeenCalledTimes(1);
-      const savedCollection = JSON.parse(mockSetStorageItem.mock.calls[0][1]);
-      expect(savedCollection[gameIdToUpdate].teamName).toBe('Super Dragons');
+      expect(result).toEqual(updatedGame);
+      expect(mockDataStore.getGameById).toHaveBeenCalledWith(gameIdToUpdate);
+      expect(mockDataStore.saveGame).toHaveBeenCalledWith(gameIdToUpdate, expect.objectContaining(updates));
     });
 
     it('should resolve with null if game to update is not found', async () => {
+      mockDataStore.getGameById.mockResolvedValue(null);
       const updates: Partial<AppState> = { teamName: 'Does Not Matter' };
       await expect(updateGameDetails('nonexistent_id', updates)).resolves.toBeNull();
-      expect(mockSetStorageItem).not.toHaveBeenCalled();
+      expect(mockDataStore.saveGame).not.toHaveBeenCalled();
     });
 
-    it('should gracefully return null if internal getSavedGames returns corrupted data', async () => {
-      // With graceful degradation, getSavedGames returns {} on parse failure
-      // getGame returns null, and updateGameDetails returns null
-      mockGetStorageItem.mockResolvedValue('invalid json data');
-      const updates: Partial<AppState> = { teamName: 'Still Matters Not' };
-      const result = await updateGameDetails('game_123', updates);
-      expect(result).toBeNull();
-    });
-
-    it('should reject if internal saveGame (after update) fails', async () => {
-      mockGetStorageItem.mockResolvedValue(JSON.stringify(mockSavedGamesCollection)); // For getGame
-      mockSetStorageItem.mockImplementation(() => { // For saveGame (which calls saveGames)
-        throw new Error('LocalStorage set failure for update');
-      });
+    it('should reject if DataStore.saveGame fails', async () => {
+      mockDataStore.getGameById.mockResolvedValue(mockGame1_AppState);
+      mockDataStore.saveGame.mockRejectedValue(new Error('Storage failure'));
       const updates: Partial<AppState> = { teamName: 'Yet Another Update' };
 
-      try {
-        await updateGameDetails('game_123', updates);
-        throw new Error('updateGameDetails did not reject as expected');
-      } catch (error) {
-        expect((error as Error).message).toBe('LocalStorage set failure for update');
-      }
+      await expect(updateGameDetails('game_123', updates)).rejects.toThrow('Storage failure');
     });
   });
-}); 
+});

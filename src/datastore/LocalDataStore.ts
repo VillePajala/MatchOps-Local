@@ -979,6 +979,19 @@ export class LocalDataStore implements DataStore {
     });
   }
 
+  async saveAllGames(games: SavedGamesCollection): Promise<void> {
+    this.ensureInitialized();
+
+    // Basic validation - callers (e.g., importGamesFromJson) handle per-game validation
+    if (!games || typeof games !== 'object' || Array.isArray(games)) {
+      throw new ValidationError('Invalid games collection', 'games', games);
+    }
+
+    return withKeyLock(SAVED_GAMES_KEY, async () => {
+      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
+    });
+  }
+
   async deleteGame(id: string): Promise<boolean> {
     this.ensureInitialized();
 
