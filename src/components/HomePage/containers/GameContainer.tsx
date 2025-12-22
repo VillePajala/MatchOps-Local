@@ -74,26 +74,8 @@ export function GameContainer({
         />
       </div>
 
-      {orphanedGameInfo && (
-        <div className="bg-amber-500/20 border-b border-amber-500/30 px-4 py-2">
-          <div className="flex items-center justify-between max-w-7xl mx-auto">
-            <div className="flex items-center gap-2">
-              <span className="text-amber-400 text-xl">⚠️</span>
-              <span className="text-amber-300 text-sm font-medium">
-                {t('orphanedGame.banner', 'Original team "{{teamName}}" no longer exists. Using master roster.', {
-                  teamName: orphanedGameInfo.teamName || t('orphanedGame.unknownTeam', 'Unknown Team'),
-                })}
-              </span>
-            </div>
-            <button
-              onClick={onOpenTeamReassignModal}
-              className="px-3 py-1 bg-amber-500/30 hover:bg-amber-500/40 text-amber-300 rounded-md text-sm font-medium transition-colors"
-            >
-              {t('orphanedGame.reassignButton', 'Reassign to Team')}
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Orphaned game banner removed - warning in TeamManagerModal is sufficient.
+          Functionality (orphanedGameInfo, TeamReassignModal) kept for potential future use. */}
 
       <FieldContainer {...fieldProps} />
 
