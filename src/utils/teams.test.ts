@@ -12,16 +12,17 @@ import type { Team, TeamPlayer } from '@/types';
 let mockTeams: { [id: string]: Team } = {};
 let mockRosters: { [teamId: string]: TeamPlayer[] } = {};
 let mockShouldThrow = false;
+let mockValidationError: Error | null = null;
 let teamIdCounter = 0;
 
 /**
- * Mock DataStore implementation with validation logic.
+ * Simple mock DataStore implementation for testing teams.ts delegation.
  *
- * SYNC REQUIREMENT: The validation logic in this mock must stay in sync with
- * LocalDataStore.ts. If validation rules change in LocalDataStore (e.g., name
- * length limits, age group values, notes max length), update this mock accordingly.
+ * DESIGN: This mock does NOT duplicate validation logic from LocalDataStore.
+ * Validation is tested in LocalDataStore.test.ts. This test file verifies
+ * that teams.ts correctly delegates to DataStore.
  *
- * @see src/datastore/LocalDataStore.ts - createTeam, updateTeam methods
+ * @see src/datastore/__tests__/LocalDataStore.test.ts - for validation tests
  */
 const mockDataStore = {
   getTeams: jest.fn(async () => {
@@ -34,48 +35,16 @@ const mockDataStore = {
   }),
   createTeam: jest.fn(async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (mockShouldThrow) throw new Error('DataStore error');
-
-    // Simulate validation
-    const trimmedName = teamData.name?.trim();
-    if (!trimmedName) {
-      const error = new Error('Team name cannot be empty');
-      (error as Error & { code: string }).code = 'VALIDATION_ERROR';
-      throw error;
-    }
-
-    // Normalize empty strings to undefined
-    const normalizeOptionalString = (value?: string): string | undefined => {
-      if (value === undefined) return undefined;
-      const trimmed = value.trim();
-      return trimmed === '' ? undefined : trimmed;
-    };
-
-    const normalizedAgeGroup = normalizeOptionalString(teamData.ageGroup);
-    const normalizedNotes = normalizeOptionalString(teamData.notes);
-
-    // Validate notes length
-    if (normalizedNotes && normalizedNotes.length > 1000) {
-      const error = new Error('Team notes cannot exceed 1000 characters');
-      (error as Error & { code: string }).code = 'VALIDATION_ERROR';
-      throw error;
-    }
-
-    // Validate age group
-    const validAgeGroups = ['U7', 'U8', 'U9', 'U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'U19', 'U20', 'U21'];
-    if (normalizedAgeGroup && !validAgeGroups.includes(normalizedAgeGroup)) {
-      const error = new Error(`Invalid age group: ${normalizedAgeGroup}. Must be one of: ${validAgeGroups.join(', ')}`);
-      (error as Error & { code: string }).code = 'VALIDATION_ERROR';
-      throw error;
-    }
+    if (mockValidationError) throw mockValidationError;
 
     teamIdCounter++;
     const now = new Date().toISOString();
     const newTeam: Team = {
       id: `team_test_${teamIdCounter}`,
-      name: trimmedName,
+      name: teamData.name,
       color: teamData.color,
-      ageGroup: normalizedAgeGroup,
-      notes: normalizedNotes,
+      ageGroup: teamData.ageGroup,
+      notes: teamData.notes,
       createdAt: now,
       updatedAt: now,
     };
@@ -86,36 +55,6 @@ const mockDataStore = {
     if (mockShouldThrow) throw new Error('DataStore error');
     const existing = mockTeams[id];
     if (!existing) return null;
-
-    // Normalize empty strings to undefined
-    const normalizeOptionalString = (value?: string): string | undefined => {
-      if (value === undefined) return undefined;
-      const trimmed = value.trim();
-      return trimmed === '' ? undefined : trimmed;
-    };
-
-    // Apply normalization
-    if (updates.ageGroup !== undefined) {
-      updates.ageGroup = normalizeOptionalString(updates.ageGroup);
-    }
-    if (updates.notes !== undefined) {
-      updates.notes = normalizeOptionalString(updates.notes);
-    }
-
-    // Validate notes length
-    if (updates.notes && updates.notes.length > 1000) {
-      const error = new Error('Team notes cannot exceed 1000 characters');
-      (error as Error & { code: string }).code = 'VALIDATION_ERROR';
-      throw error;
-    }
-
-    // Validate age group
-    const validAgeGroups = ['U7', 'U8', 'U9', 'U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'U19', 'U20', 'U21'];
-    if (updates.ageGroup && !validAgeGroups.includes(updates.ageGroup)) {
-      const error = new Error(`Invalid age group: ${updates.ageGroup}. Must be one of: ${validAgeGroups.join(', ')}`);
-      (error as Error & { code: string }).code = 'VALIDATION_ERROR';
-      throw error;
-    }
 
     const updatedTeam: Team = {
       ...existing,
@@ -154,7 +93,7 @@ jest.mock('./storage', () => ({
   }),
 }));
 
-import { setTeamRoster, getTeamRoster, addPlayerToRoster, addTeam, duplicateTeam, getTeam, updateTeam, getTeams } from './teams';
+import { setTeamRoster, getTeamRoster, addPlayerToRoster, addTeam, duplicateTeam, getTeam, updateTeam, getTeams, deleteTeam } from './teams';
 
 // Mock console methods
 let consoleErrorSpy: jest.SpyInstance;
@@ -164,6 +103,7 @@ beforeEach(() => {
   mockTeams = {};
   mockRosters = {};
   mockShouldThrow = false;
+  mockValidationError = null;
   teamIdCounter = 0;
   jest.clearAllMocks();
   consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -327,7 +267,8 @@ describe('Team CRUD via DataStore', () => {
 
 describe('Team metadata fields', () => {
   /**
-   * Tests preservation of ageGroup and notes when creating a team
+   * Tests preservation of ageGroup and notes when creating a team.
+   * Note: Validation (limits, normalization) is tested in LocalDataStore.test.ts.
    * @critical
    */
   it('should preserve ageGroup and notes when creating team', async () => {
@@ -366,52 +307,12 @@ describe('Team metadata fields', () => {
   });
 
   /**
-   * Tests handling of empty ageGroup and notes at the DATA LAYER.
-   * Empty strings are normalized to undefined to ensure data consistency.
-   * This prevents having two representations of "no value" (undefined vs empty string).
-   * @edge-case
-   */
-  it('should normalize empty ageGroup and notes to undefined', async () => {
-    const team = await addTeam({
-      name: 'Minimal Team',
-      ageGroup: '',
-      notes: ''
-    });
-
-    // Empty strings are normalized to undefined for data consistency
-    expect(team.ageGroup).toBeUndefined();
-    expect(team.notes).toBeUndefined();
-  });
-
-  /**
-   * Tests backwards compatibility with the (|| undefined) pattern.
-   * Note: The UI layer (UnifiedTeamModal) no longer uses this pattern since the
-   * data layer automatically normalizes empty strings to undefined. However, this
-   * test validates that the pattern still works correctly for programmatic access.
-   * @edge-case
-   */
-  it('should handle legacy || undefined pattern for backwards compatibility', async () => {
-    const ageGroup = '';
-    const notes = '';
-
-    const team = await addTeam({
-      name: 'Legacy Pattern Team',
-      ageGroup: ageGroup || undefined,
-      notes: notes || undefined
-    });
-
-    // Both the || undefined pattern and data layer normalization result in undefined
-    expect(team.ageGroup).toBeUndefined();
-    expect(team.notes).toBeUndefined();
-  });
-
-  /**
    * Tests handling of undefined ageGroup and notes
    * @edge-case
    */
   it('should handle undefined ageGroup and notes gracefully', async () => {
     const team = await addTeam({
-      name: 'Minimal Team 2'
+      name: 'Minimal Team'
       // ageGroup and notes intentionally omitted
     });
 
@@ -454,37 +355,6 @@ describe('Team metadata fields', () => {
   });
 
   /**
-   * Tests that notes cannot exceed the maximum length (1000 characters)
-   * @critical
-   */
-  it('should reject notes that exceed 1000 characters', async () => {
-    const tooLongNotes = 'A'.repeat(1001);
-
-    await expect(
-      addTeam({
-        name: 'Team with Long Notes',
-        notes: tooLongNotes
-      })
-    ).rejects.toThrow('Team notes cannot exceed 1000 characters');
-  });
-
-  /**
-   * Tests that notes can contain exactly 1000 characters (boundary)
-   * @edge-case
-   */
-  it('should accept notes with exactly 1000 characters', async () => {
-    const maxLengthNotes = 'A'.repeat(1000);
-
-    const team = await addTeam({
-      name: 'Team with Max Notes',
-      notes: maxLengthNotes
-    });
-
-    expect(team.notes).toBe(maxLengthNotes);
-    expect(team.notes?.length).toBe(1000);
-  });
-
-  /**
    * Tests that notes can contain special characters and Unicode
    * @edge-case
    */
@@ -501,157 +371,92 @@ describe('Team metadata fields', () => {
     const retrieved = await getTeam(team.id);
     expect(retrieved?.notes).toBe(specialNotes);
   });
+});
 
+describe('Error handling', () => {
   /**
-   * Tests that updateTeam also validates notes length
+   * Tests that DataStore errors are propagated for addTeam
    * @critical
    */
-  it('should reject notes that exceed 1000 characters when updating', async () => {
-    const team = await addTeam({
-      name: 'Team to Update',
-      notes: 'Initial notes'
-    });
-
-    const tooLongNotes = 'B'.repeat(1001);
-
-    await expect(
-      updateTeam(team.id, { notes: tooLongNotes })
-    ).rejects.toThrow('Team notes cannot exceed 1000 characters');
+  it('should propagate DataStore errors from addTeam', async () => {
+    mockShouldThrow = true;
+    await expect(addTeam({ name: 'Test Team' })).rejects.toThrow('DataStore error');
   });
 
   /**
-   * Tests that invalid age groups are rejected
+   * Tests that ValidationError is propagated from DataStore
    * @critical
    */
-  it('should reject invalid age groups', async () => {
-    await expect(
-      addTeam({
-        name: 'Team with Invalid Age Group',
-        ageGroup: 'InvalidAgeGroup'
-      })
-    ).rejects.toThrow(/Invalid age group: InvalidAgeGroup/);
+  it('should propagate ValidationError from DataStore', async () => {
+    const validationError = new Error('Team name cannot be empty');
+    (validationError as Error & { code: string }).code = 'VALIDATION_ERROR';
+    mockValidationError = validationError;
 
-    await expect(
-      addTeam({
-        name: 'Team with U22',
-        ageGroup: 'U22'
-      })
-    ).rejects.toThrow(/Invalid age group: U22/);
+    await expect(addTeam({ name: '' })).rejects.toThrow('Team name cannot be empty');
   });
 
   /**
-   * Tests that all valid age groups are accepted
-   * This test already exists but validates that ALL age groups pass validation
+   * Tests that AlreadyExistsError is propagated from DataStore
    * @critical
    */
-  it('should accept all valid age groups (U7-U21)', async () => {
-    const validAgeGroups = ['U7', 'U8', 'U9', 'U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'U19', 'U20', 'U21'];
+  it('should propagate AlreadyExistsError from DataStore', async () => {
+    const alreadyExistsError = new Error("A team named 'Test Team' already exists");
+    (alreadyExistsError as Error & { code: string }).code = 'ALREADY_EXISTS';
+    mockValidationError = alreadyExistsError;
 
-    for (const ageGroup of validAgeGroups) {
-      const team = await addTeam({
-        name: `Valid Team ${ageGroup}`,
-        ageGroup
-      });
-
-      expect(team.ageGroup).toBe(ageGroup);
-    }
+    await expect(addTeam({ name: 'Test Team' })).rejects.toThrow("A team named 'Test Team' already exists");
   });
 
   /**
-   * Tests that updateTeam also validates age group
+   * Tests that getTeams returns empty array on DataStore error (graceful degradation)
    * @critical
    */
-  it('should reject invalid age groups when updating', async () => {
-    const team = await addTeam({
-      name: 'Team to Update Age Group',
-      ageGroup: 'U10'
-    });
-
-    await expect(
-      updateTeam(team.id, { ageGroup: 'InvalidValue' })
-    ).rejects.toThrow(/Invalid age group: InvalidValue/);
+  it('should return empty array on getTeams DataStore error', async () => {
+    mockShouldThrow = true;
+    const result = await getTeams();
+    expect(result).toEqual([]);
   });
 
   /**
-   * Tests that undefined age group is allowed
-   * @edge-case
-   */
-  it('should allow undefined age group', async () => {
-    const team = await addTeam({
-      name: 'Team without Age Group'
-      // ageGroup intentionally omitted
-    });
-
-    expect(team.ageGroup).toBeUndefined();
-  });
-
-  /**
-   * Tests that empty string age group is normalized to undefined
-   * @edge-case
-   */
-  it('should normalize empty string age group to undefined', async () => {
-    const team = await addTeam({
-      name: 'Team with Empty Age Group',
-      ageGroup: ''
-    });
-
-    expect(team.ageGroup).toBeUndefined();
-  });
-
-  /**
-   * Tests that whitespace-only fields are trimmed and normalized
-   * @edge-case
-   */
-  it('should trim and normalize whitespace in ageGroup and notes', async () => {
-    const team = await addTeam({
-      name: 'Team with Whitespace',
-      ageGroup: '  U10  ',
-      notes: '  Test notes  '
-    });
-
-    expect(team.ageGroup).toBe('U10');
-    expect(team.notes).toBe('Test notes');
-  });
-
-  /**
-   * Tests that whitespace-only strings are normalized to undefined
-   * @edge-case
-   */
-  it('should normalize whitespace-only strings to undefined', async () => {
-    const team = await addTeam({
-      name: 'Team with Whitespace Only',
-      ageGroup: '   ',
-      notes: '   '
-    });
-
-    expect(team.ageGroup).toBeUndefined();
-    expect(team.notes).toBeUndefined();
-  });
-
-  /**
-   * Tests that updateTeam also normalizes empty strings and whitespace
+   * Tests that getTeam returns null on DataStore error (graceful degradation)
    * @critical
    */
-  it('should normalize empty strings and whitespace when updating', async () => {
-    const team = await addTeam({
-      name: 'Team to Update Normalization',
-      ageGroup: 'U10',
-      notes: 'Initial notes'
-    });
+  it('should return null on getTeam DataStore error', async () => {
+    mockShouldThrow = true;
+    const result = await getTeam('some-id');
+    expect(result).toBeNull();
+  });
 
-    // Update with empty string - should become undefined
-    const updated1 = await updateTeam(team.id, { ageGroup: '', notes: '' });
-    expect(updated1?.ageGroup).toBeUndefined();
-    expect(updated1?.notes).toBeUndefined();
+  /**
+   * Tests that updateTeam returns null when team not found
+   */
+  it('should return null when updating non-existent team', async () => {
+    const result = await updateTeam('non-existent-id', { name: 'New Name' });
+    expect(result).toBeNull();
+  });
 
-    // Update with whitespace - should be trimmed
-    const updated2 = await updateTeam(team.id, { ageGroup: '  U12  ', notes: '  New notes  ' });
-    expect(updated2?.ageGroup).toBe('U12');
-    expect(updated2?.notes).toBe('New notes');
+  /**
+   * Tests that deleteTeam returns false when team not found
+   */
+  it('should return false when deleting non-existent team', async () => {
+    const result = await deleteTeam('non-existent-id');
+    expect(result).toBe(false);
+  });
 
-    // Update with whitespace-only - should become undefined
-    const updated3 = await updateTeam(team.id, { ageGroup: '   ', notes: '   ' });
-    expect(updated3?.ageGroup).toBeUndefined();
-    expect(updated3?.notes).toBeUndefined();
+  /**
+   * Tests that deleteTeam handles DataStore errors gracefully
+   */
+  it('should return false on deleteTeam DataStore error', async () => {
+    mockShouldThrow = true;
+    const result = await deleteTeam('some-id');
+    expect(result).toBe(false);
   });
 });
+
+/**
+ * NOTE: Validation tests (empty name, invalid ageGroup, notes length limits,
+ * normalization of whitespace/empty strings) are tested in LocalDataStore.test.ts.
+ * This test file focuses on teams.ts delegation to DataStore.
+ *
+ * @see src/datastore/__tests__/LocalDataStore.test.ts
+ */

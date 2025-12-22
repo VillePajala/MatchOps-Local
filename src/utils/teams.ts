@@ -112,7 +112,8 @@ export const saveTeams = async (teams: Team[]): Promise<boolean> => {
 
 /**
  * Creates a new team.
- * DataStore handles ID generation, validation (name, ageGroup, notes), and storage.
+ * DataStore handles ID generation, validation (name, ageGroup, notes), storage,
+ * and initializing an empty roster for the new team.
  *
  * Error handling: Throws on validation errors (empty name, invalid ageGroup, duplicate name, etc.)
  * to match the existing contract. Use try/catch in calling code.
@@ -123,12 +124,7 @@ export const saveTeams = async (teams: Team[]): Promise<boolean> => {
  */
 export const addTeam = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>): Promise<Team> => {
   const dataStore = await getDataStore();
-  const newTeam = await dataStore.createTeam(teamData);
-
-  // Initialize empty roster for new team
-  await setTeamRoster(newTeam.id, []);
-
-  return newTeam;
+  return await dataStore.createTeam(teamData);
 };
 
 /**
