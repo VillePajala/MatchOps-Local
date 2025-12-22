@@ -3,12 +3,13 @@
  * @integration
  *
  * Tests the flow: Season creation → Game creation → Save → Load → Verify gameType
+ *
+ * Note: This test uses addSeason (routed through DataStore) instead of deprecated
+ * saveSeasons to ensure proper data flow through the abstraction layer.
  */
 
-import { saveSeasons, getSeasons } from '@/utils/seasons';
-import { saveGame, getGame } from '@/utils/savedGames';
-import { clearMockStore } from '@/utils/__mocks__/storage';
 import type { Season, AppState } from '@/types';
+import { clearMockStore } from '@/utils/__mocks__/storage';
 
 // Helper to create a minimal valid AppState for testing
 const createTestAppState = (overrides: Partial<AppState> & { testId: string }): AppState => ({
@@ -41,6 +42,29 @@ const createTestAppState = (overrides: Partial<AppState> & { testId: string }): 
 // Mock storage module - uses __mocks__/storage.ts for in-memory storage
 jest.mock('@/utils/storage');
 
+// Mock DataStore state for seasons
+let mockSeasons: Season[] = [];
+
+const mockDataStore = {
+  getSeasons: jest.fn(async () => [...mockSeasons]),
+  createSeason: jest.fn(async (name: string, extra?: Partial<Omit<Season, 'id' | 'name'>>) => {
+    const newSeason: Season = {
+      id: `season_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+      name,
+      ...extra,
+    };
+    mockSeasons.push(newSeason);
+    return newSeason;
+  }),
+  updateSeason: jest.fn(),
+  deleteSeason: jest.fn(),
+  getGames: jest.fn(async () => ({})),
+};
+
+jest.mock('@/datastore', () => ({
+  getDataStore: jest.fn(async () => mockDataStore),
+}));
+
 // Mock logger
 jest.mock('@/utils/logger', () => ({
   __esModule: true,
@@ -60,9 +84,15 @@ jest.mock('@/utils/logger', () => ({
   }))
 }));
 
+// Import after mocking
+import { addSeason, getSeasons } from '@/utils/seasons';
+import { saveGame, getGame } from '@/utils/savedGames';
+
 describe('Game Type Persistence Integration Tests', () => {
   beforeEach(() => {
     clearMockStore();
+    mockSeasons = []; // Reset mock seasons state
+    jest.clearAllMocks();
   });
 
   /**
@@ -76,17 +106,15 @@ describe('Game Type Persistence Integration Tests', () => {
    * @integration
    */
   it('should preserve gameType from season through game creation to saved game', async () => {
-    // Step 1: Create a season with gameType: 'futsal'
-    const futsalSeason: Season = {
-      id: 'season-futsal-2024',
-      name: 'Indoor Futsal League 2024',
+    // Step 1: Create a season with gameType: 'futsal' using addSeason (routes through DataStore)
+    const futsalSeason = await addSeason('Indoor Futsal League 2024', {
       gameType: 'futsal',
       periodCount: 2,
       periodDuration: 20,
       location: 'Indoor Arena',
-    };
+    });
 
-    await saveSeasons([futsalSeason]);
+    expect(futsalSeason).not.toBeNull();
 
     // Verify season was saved correctly
     const savedSeasons = await getSeasons();
@@ -102,7 +130,7 @@ describe('Game Type Persistence Integration Tests', () => {
       opponentName: 'Away Futsal United',
       numberOfPeriods: 2,
       periodDurationMinutes: 20,
-      seasonId: futsalSeason.id,
+      seasonId: futsalSeason!.id,
       // This is the key field we're testing - inherited from season
       gameType: 'futsal',
     });
@@ -116,7 +144,7 @@ describe('Game Type Persistence Integration Tests', () => {
     // Step 5: Verify gameType persisted
     expect(loadedGame).toBeDefined();
     expect(loadedGame!.gameType).toBe('futsal');
-    expect(loadedGame!.seasonId).toBe('season-futsal-2024');
+    expect(loadedGame!.seasonId).toBe(futsalSeason!.id);
   });
 
   it('should preserve gameType: soccer when game is created without season', async () => {
