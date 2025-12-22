@@ -55,7 +55,9 @@ export const getPersonnelById = async (personnelId: string): Promise<Personnel |
  *
  * @param personnelData - Personnel data without id, createdAt, updatedAt.
  * @returns The newly created Personnel object.
- * @throws Error if validation fails (empty name, duplicate name).
+ * @throws {ValidationError} If name is empty or exceeds max length.
+ * @throws {AlreadyExistsError} If name already exists (case-insensitive).
+ * @throws {Error} For storage/DataStore failures.
  */
 export const addPersonnelMember = async (
   personnelData: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>
@@ -71,7 +73,9 @@ export const addPersonnelMember = async (
  * @param personnelId - The ID of the personnel to update.
  * @param updates - Partial personnel data to update.
  * @returns The updated Personnel object, or null if not found.
- * @throws Error if validation fails (empty name, duplicate name).
+ * @throws {ValidationError} If name is empty or exceeds max length.
+ * @throws {AlreadyExistsError} If name already exists (case-insensitive).
+ * @throws {Error} For storage/DataStore failures.
  */
 export const updatePersonnelMember = async (
   personnelId: string,
@@ -91,12 +95,12 @@ export const updatePersonnelMember = async (
  * DataStore handles cascade delete (removes personnel from all games).
  *
  * @param personnelId - The ID of the personnel to remove.
- * @returns True if deleted, false if not found or error occurs.
+ * @returns True if deleted, false if not found.
+ * @throws Error if storage operation fails.
  */
 export const removePersonnelMember = async (personnelId: string): Promise<boolean> => {
   if (!personnelId) {
-    logger.error('[removePersonnelMember] Invalid personnel ID provided.');
-    return false;
+    throw new Error('Invalid personnel ID provided');
   }
 
   try {
@@ -104,7 +108,7 @@ export const removePersonnelMember = async (personnelId: string): Promise<boolea
     return await dataStore.removePersonnelMember(personnelId);
   } catch (error) {
     logger.error('[removePersonnelMember] Error removing personnel:', { personnelId, error });
-    return false;
+    throw error;
   }
 };
 
