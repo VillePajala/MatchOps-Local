@@ -71,6 +71,15 @@ const mockDataStore = {
     return true;
   }),
   getGames: jest.fn(async () => ({})),
+  // Roster operations (raw storage, no locking - teams.ts handles locking)
+  getTeamRoster: jest.fn(async (teamId: string) => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    return mockRosters[teamId] || [];
+  }),
+  setTeamRoster: jest.fn(async (teamId: string, roster: TeamPlayer[]) => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    mockRosters[teamId] = roster;
+  }),
 };
 
 // Mock DataStore
@@ -78,18 +87,14 @@ jest.mock('@/datastore', () => ({
   getDataStore: jest.fn(async () => mockDataStore),
 }));
 
-// Mock storage for roster operations
+// Mock storage for getAllTeamRosters() which reads directly from storage
+// Note: setStorageItem no longer needed - roster writes go through DataStore
 jest.mock('./storage', () => ({
   getStorageItem: jest.fn(async (key: string) => {
     if (key === 'soccerTeamRosters') {
       return Object.keys(mockRosters).length > 0 ? JSON.stringify(mockRosters) : null;
     }
     return null;
-  }),
-  setStorageItem: jest.fn(async (key: string, value: string) => {
-    if (key === 'soccerTeamRosters') {
-      mockRosters = JSON.parse(value);
-    }
   }),
 }));
 

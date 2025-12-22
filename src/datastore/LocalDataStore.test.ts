@@ -1678,14 +1678,10 @@ describe('LocalDataStore', () => {
         expect(withKeyLock).toHaveBeenCalledWith('soccerMasterRoster', expect.any(Function));
       });
 
-      it('should use roster lock for team roster operations', async () => {
-        const { withRosterLock } = jest.requireMock('@/utils/lockManager');
-
-        mockGetStorageItem.mockResolvedValue(JSON.stringify({}));
-        await dataStore.getTeamRoster('team_1');
-
-        expect(withRosterLock).toHaveBeenCalled();
-      });
+      // Note: Roster locking is handled by teams.ts (the public API layer),
+      // not by LocalDataStore. This allows teams.ts to wrap multiple DataStore
+      // operations in a single lock for atomic read-modify-write operations.
+      // See teams.ts:addPlayerToRoster, updatePlayerInRoster, removePlayerFromRoster.
     });
   });
 });

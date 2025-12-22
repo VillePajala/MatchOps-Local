@@ -1,12 +1,12 @@
 import { Team, TeamPlayer } from '@/types';
 import { TEAM_ROSTERS_KEY } from '@/config/storageKeys';
-import { getStorageItem, setStorageItem } from './storage';
+import { getStorageItem } from './storage';
 import { withRosterLock } from './lockManager';
 import logger from '@/utils/logger';
 import { getDataStore } from '@/datastore';
 
-// Note: TEAM_ROSTERS_KEY, storage imports, and withRosterLock are still needed
-// for roster operations (next PR will migrate these to DataStore).
+// Note: TEAM_ROSTERS_KEY and getStorageItem are still needed for getAllTeamRosters()
+// which returns all rosters as an index (used by TeamManagerModal for roster counts).
 
 // Team index storage format: { [teamId: string]: Team }
 export interface TeamsIndex {
@@ -160,41 +160,38 @@ export const getAllTeamRosters = async (): Promise<TeamRostersIndex> => {
 
 export const getTeamRoster = async (teamId: string): Promise<TeamPlayer[]> => {
   return withRosterLock(async () => {
-    const rostersIndex = await getAllTeamRosters();
-    return rostersIndex[teamId] || [];
+    const dataStore = await getDataStore();
+    return await dataStore.getTeamRoster(teamId);
   });
 };
 
 export const setTeamRoster = async (teamId: string, roster: TeamPlayer[]): Promise<void> => {
   return withRosterLock(async () => {
-    const rostersIndex = await getAllTeamRosters();
-    rostersIndex[teamId] = roster;
-    await setStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+    const dataStore = await getDataStore();
+    await dataStore.setTeamRoster(teamId, roster);
   });
 };
 
 // Add player to team roster (atomic operation)
 export const addPlayerToRoster = async (teamId: string, player: TeamPlayer): Promise<void> => {
   return withRosterLock(async () => {
-    const rostersIndex = await getAllTeamRosters();
-    const roster = rostersIndex[teamId] || [];
+    const dataStore = await getDataStore();
+    const roster = await dataStore.getTeamRoster(teamId);
     const updatedRoster = [...roster, player];
-    rostersIndex[teamId] = updatedRoster;
-    await setStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+    await dataStore.setTeamRoster(teamId, updatedRoster);
   });
 };
 
 // Update player in team roster (atomic operation)
 export const updatePlayerInRoster = async (teamId: string, playerId: string, updates: Partial<TeamPlayer>): Promise<boolean> => {
   return withRosterLock(async () => {
-    const rostersIndex = await getAllTeamRosters();
-    const roster = rostersIndex[teamId] || [];
+    const dataStore = await getDataStore();
+    const roster = await dataStore.getTeamRoster(teamId);
     const playerIndex = roster.findIndex(p => p.id === playerId);
     if (playerIndex === -1) return false;
 
     roster[playerIndex] = { ...roster[playerIndex], ...updates };
-    rostersIndex[teamId] = roster;
-    await setStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+    await dataStore.setTeamRoster(teamId, roster);
     return true;
   });
 };
@@ -202,13 +199,12 @@ export const updatePlayerInRoster = async (teamId: string, playerId: string, upd
 // Remove player from team roster (atomic operation)
 export const removePlayerFromRoster = async (teamId: string, playerId: string): Promise<boolean> => {
   return withRosterLock(async () => {
-    const rostersIndex = await getAllTeamRosters();
-    const roster = rostersIndex[teamId] || [];
+    const dataStore = await getDataStore();
+    const roster = await dataStore.getTeamRoster(teamId);
     const filteredRoster = roster.filter(p => p.id !== playerId);
     if (filteredRoster.length === roster.length) return false; // Player not found
 
-    rostersIndex[teamId] = filteredRoster;
-    await setStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
+    await dataStore.setTeamRoster(teamId, filteredRoster);
     return true;
   });
 };
