@@ -152,8 +152,7 @@ export class LockManager {
 export const lockManager = new LockManager();
 
 // Convenience function for roster operations
+// Uses default timeout (10s) - sufficient for local IndexedDB operations
 export const withRosterLock = <T>(operation: () => Promise<T>): Promise<T> => {
-  return lockManager.withLock('roster_operations', operation, {
-    timeout: 15000 // Roster operations might take longer
-  });
+  return lockManager.withLock('roster_operations', operation);
 };

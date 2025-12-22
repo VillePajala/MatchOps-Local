@@ -87,8 +87,8 @@ jest.mock('@/datastore', () => ({
   getDataStore: jest.fn(async () => mockDataStore),
 }));
 
-// Mock storage for getAllTeamRosters() which reads directly from storage
-// Note: setStorageItem no longer needed - roster writes go through DataStore
+// Mock storage for getAllTeamRosters() which reads directly from storage.
+// TODO: Remove this mock entirely when getAllTeamRosters() is migrated to DataStore.
 jest.mock('./storage', () => ({
   getStorageItem: jest.fn(async (key: string) => {
     if (key === 'soccerTeamRosters') {
