@@ -1,86 +1,48 @@
-import { TOURNAMENTS_LIST_KEY, SAVED_GAMES_KEY } from '@/config/storageKeys';
-import type { Tournament, TournamentSeries } from '@/types'; // Import Tournament type from shared types
-import type { AppState } from '@/types/game';
+import { TOURNAMENTS_LIST_KEY } from '@/config/storageKeys';
+import type { Tournament } from '@/types';
 import logger from '@/utils/logger';
-import { getStorageItem, setStorageItem } from '@/utils/storage';
+import { setStorageItem } from '@/utils/storage';
 import { withKeyLock } from './storageKeyLock';
+import { getDataStore } from '@/datastore';
+
+// Note: TOURNAMENTS_LIST_KEY, setStorageItem, and withKeyLock are still needed
+// for the deprecated saveTournaments() function (used by tests).
 
 /**
- * Migrates legacy tournament level to series format.
- * Called during getTournaments() to ensure backwards compatibility.
- *
- * @remarks
- * - If tournament already has series array with items, return as-is
- * - If tournament has legacy `level` field but no series, create series array
- * - If tournament has neither, return as-is
- * - Migration happens in-memory only; changes persist on next save operation
+ * Type guard to check if an error is an expected DataStore error (validation or duplicate).
+ * Uses code property checking instead of instanceof to avoid module boundary issues.
+ * @see src/interfaces/DataStoreErrors.ts for error class definitions
  */
-function migrateTournamentLevel(tournament: Tournament): Tournament {
-  // If already has series with items, no migration needed
-  if (tournament.series && tournament.series.length > 0) {
-    return tournament;
-  }
-
-  // If has legacy level but no series, migrate
-  // Use deterministic ID based on tournament.id + level for idempotent migration
-  if (tournament.level) {
-    const newSeries: TournamentSeries = {
-      id: `series_${tournament.id}_${tournament.level.toLowerCase().replace(/\s+/g, '-')}`,
-      level: tournament.level,
-    };
-    return {
-      ...tournament,
-      series: [newSeries],
-    };
-  }
-
-  // No level set, return as-is (series will be undefined)
-  return tournament;
-}
+const isExpectedDataStoreError = (error: unknown): boolean =>
+  error !== null &&
+  typeof error === 'object' &&
+  'code' in error &&
+  (error.code === 'VALIDATION_ERROR' || error.code === 'ALREADY_EXISTS');
 
 /**
- * Retrieves all tournaments from storage.
+ * Retrieves all tournaments from IndexedDB.
+ * DataStore handles initialization, storage access, and legacy level-to-series migration.
  * @returns A promise that resolves to an array of Tournament objects.
- *
- * @note Implements graceful degradation - if JSON is corrupted or invalid,
- * returns empty array and logs error rather than crashing.
  */
 export const getTournaments = async (): Promise<Tournament[]> => {
   try {
-    const tournamentsJson = await getStorageItem(TOURNAMENTS_LIST_KEY);
-    if (!tournamentsJson) {
-      return [];
-    }
-
-    // Safe JSON parsing
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(tournamentsJson);
-    } catch (parseError) {
-      logger.error('[getTournaments] JSON parse failed - data may be corrupted.', { error: parseError });
-      return [];
-    }
-
-    // Validate parsed data is an array
-    if (!Array.isArray(parsed)) {
-      logger.error('[getTournaments] Parsed data is not an array. Returning empty.', { type: typeof parsed });
-      return [];
-    }
-
-    // Apply migration to convert legacy level to series format
-    return parsed.map(t => migrateTournamentLevel({
-      ...t,
-      level: t.level ?? undefined,
-      ageGroup: t.ageGroup ?? undefined,
-    })) as Tournament[];
+    const dataStore = await getDataStore();
+    return await dataStore.getTournaments();
   } catch (error) {
-    logger.error('[getTournaments] Error getting tournaments from storage:', error);
+    logger.error('[getTournaments] Error getting tournaments:', error);
     return [];
   }
 };
 
 /**
  * Saves an array of tournaments to storage, overwriting any existing tournaments.
+ *
+ * @deprecated This function bypasses DataStore and should not be used for new code.
+ * Use individual tournament operations (addTournament, updateTournament, deleteTournament)
+ * which route through DataStore for proper abstraction.
+ *
+ * @internal Kept for test setup only (mocking storage directly).
+ *
  * @param tournaments - The array of Tournament objects to save.
  * @returns A promise that resolves to true if successful, false otherwise.
  */
@@ -88,153 +50,152 @@ export const saveTournaments = async (tournaments: Tournament[]): Promise<boolea
   return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
     try {
       await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(tournaments));
-      return Promise.resolve(true);
+      return true;
     } catch (error) {
       logger.error('[saveTournaments] Error saving tournaments to storage:', error);
-      return Promise.resolve(false);
+      return false;
     }
   });
 };
 
 /**
  * Adds a new tournament to the list of tournaments in storage.
+ * DataStore handles ID generation, validation, and storage.
+ *
+ * Error handling: Returns null on failure (graceful degradation for local-first UX).
+ * Errors are logged with context for debugging. Callers should handle null returns
+ * gracefully rather than expecting exceptions.
+ *
  * @param newTournamentName - The name of the new tournament.
- * @param extra - Optional additional fields for the tournament.
+ * @param extra - Optional additional fields for the tournament (excludes id and name).
  * @returns A promise that resolves to the newly created Tournament object, or null if validation/save fails.
  */
-export const addTournament = async (newTournamentName: string, extra: Partial<Tournament> = {}): Promise<Tournament | null> => {
-  const trimmedName = newTournamentName.trim();
+export const addTournament = async (newTournamentName: string, extra: Partial<Omit<Tournament, 'id' | 'name'>> = {}): Promise<Tournament | null> => {
+  const trimmedName = newTournamentName?.trim();
   if (!trimmedName) {
     logger.warn('[addTournament] Validation failed: Tournament name cannot be empty.');
-    return Promise.resolve(null);
+    return null;
   }
 
-  return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
-    try {
-      const currentTournaments = await getTournaments();
-      if (currentTournaments.some(t => t.name.toLowerCase() === trimmedName.toLowerCase())) {
-        logger.warn(`[addTournament] Validation failed: A tournament with name "${trimmedName}" already exists.`);
-        return Promise.resolve(null);
-      }
-      const { level, ageGroup, ...rest } = extra;
-      const newTournament: Tournament = {
-        id: `tournament_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-        name: trimmedName,
-        ...rest,
-        ...(level ? { level } : {}),
-        ...(ageGroup ? { ageGroup } : {}),
-      };
-      const updatedTournaments = [...currentTournaments, newTournament];
-      await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(updatedTournaments));
-      return Promise.resolve(newTournament);
-    } catch (error) {
-      logger.error('[addTournament] Unexpected error adding tournament:', error);
-      return Promise.resolve(null);
+  try {
+    const dataStore = await getDataStore();
+    const newTournament = await dataStore.createTournament(trimmedName, extra);
+    return newTournament;
+  } catch (error) {
+    if (isExpectedDataStoreError(error)) {
+      logger.warn('[addTournament] Operation failed:', { error });
+      return null;
     }
-  });
+    logger.error('[addTournament] Unexpected error adding tournament:', { tournamentName: trimmedName, error });
+    return null;
+  }
 };
 
 /**
  * Updates an existing tournament in storage.
+ * DataStore handles validation and storage.
+ *
  * @param updatedTournamentData - The Tournament object with updated details.
  * @returns A promise that resolves to the updated Tournament object, or null if not found or save fails.
  */
 export const updateTournament = async (updatedTournamentData: Tournament): Promise<Tournament | null> => {
   if (!updatedTournamentData || !updatedTournamentData.id || !updatedTournamentData.name?.trim()) {
-    logger.warn('[updateTournament] Invalid tournament data provided for update.');
-    return Promise.resolve(null);
+    logger.error('[updateTournament] Invalid tournament data provided for update.');
+    return null;
   }
-  const trimmedName = updatedTournamentData.name.trim();
 
-  return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
-    try {
-      const currentTournaments = await getTournaments();
-      const tournamentIndex = currentTournaments.findIndex(t => t.id === updatedTournamentData.id);
+  try {
+    const dataStore = await getDataStore();
+    const updatedTournament = await dataStore.updateTournament(updatedTournamentData);
 
-      if (tournamentIndex === -1) {
-        logger.error(`[updateTournament] Tournament with ID ${updatedTournamentData.id} not found.`);
-        return Promise.resolve(null);
-      }
-
-      if (currentTournaments.some(t => t.id !== updatedTournamentData.id && t.name.toLowerCase() === trimmedName.toLowerCase())) {
-        logger.warn(`[updateTournament] Validation failed: Another tournament with name "${trimmedName}" already exists.`);
-        return Promise.resolve(null);
-      }
-
-      const tournamentsToUpdate = [...currentTournaments];
-      tournamentsToUpdate[tournamentIndex] = {
-        ...currentTournaments[tournamentIndex],
-        ...updatedTournamentData,
-        name: trimmedName,
-      };
-
-      await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(tournamentsToUpdate));
-      return Promise.resolve(tournamentsToUpdate[tournamentIndex]);
-    } catch (error) {
-      logger.error('[updateTournament] Unexpected error updating tournament:', error);
-      return Promise.resolve(null);
+    if (!updatedTournament) {
+      logger.error(`[updateTournament] Tournament with ID ${updatedTournamentData.id} not found.`);
+      return null;
     }
-  });
+
+    return updatedTournament;
+  } catch (error) {
+    if (isExpectedDataStoreError(error)) {
+      logger.warn('[updateTournament] Operation failed:', { error });
+      return null;
+    }
+    logger.error('[updateTournament] Unexpected error updating tournament:', {
+      tournamentId: updatedTournamentData.id,
+      error
+    });
+    return null;
+  }
 };
 
 /**
  * Deletes a tournament from storage by its ID.
+ * DataStore handles storage and atomicity.
+ *
  * @param tournamentId - The ID of the tournament to delete.
  * @returns A promise that resolves to true if successful, false if not found or error occurs.
  */
 export const deleteTournament = async (tournamentId: string): Promise<boolean> => {
   if (!tournamentId) {
     logger.error('[deleteTournament] Invalid tournament ID provided.');
-    return Promise.resolve(false);
+    return false;
   }
 
-  return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
-    try {
-      const currentTournaments = await getTournaments();
-      const updatedTournaments = currentTournaments.filter(t => t.id !== tournamentId);
+  try {
+    const dataStore = await getDataStore();
+    const deleted = await dataStore.deleteTournament(tournamentId);
 
-      if (updatedTournaments.length === currentTournaments.length) {
-        logger.error(`[deleteTournament] Tournament with id ${tournamentId} not found.`);
-        return Promise.resolve(false);
-      }
-
-      await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(updatedTournaments));
-      return Promise.resolve(true);
-    } catch (error) {
-      logger.error('[deleteTournament] Unexpected error deleting tournament:', error);
-      return Promise.resolve(false);
+    if (!deleted) {
+      logger.error(`[deleteTournament] Tournament with id ${tournamentId} not found.`);
+      return false;
     }
-  });
+
+    return true;
+  } catch (error) {
+    logger.error('[deleteTournament] Unexpected error deleting tournament:', {
+      tournamentId,
+      error
+    });
+    return false;
+  }
 };
 
 /**
  * Count games associated with a tournament (for deletion impact analysis).
+ * DataStore handles loading saved games.
+ *
  * @param tournamentId - The ID of the tournament to count games for.
  * @returns A promise that resolves to the number of games associated with this tournament.
  */
 export const countGamesForTournament = async (tournamentId: string): Promise<number> => {
   try {
-    const savedGamesJson = await getStorageItem(SAVED_GAMES_KEY);
-    if (!savedGamesJson) return 0;
+    const dataStore = await getDataStore();
+    const savedGames = await dataStore.getGames();
 
-    const savedGames = JSON.parse(savedGamesJson);
     let count = 0;
-
     for (const gameState of Object.values(savedGames)) {
-      if ((gameState as AppState).tournamentId === tournamentId) {
-        count++;
+      // Defensive check: ensure gameState has tournamentId property
+      if (gameState && typeof gameState === 'object' && 'tournamentId' in gameState) {
+        if (gameState.tournamentId === tournamentId) {
+          count++;
+        }
       }
     }
 
     return count;
   } catch (error) {
-    logger.warn('Failed to count games for tournament, returning 0', { tournamentId, error });
+    logger.warn('[countGamesForTournament] Failed to count games for tournament, returning 0', { tournamentId, error });
     return 0;
   }
 };
 
 /**
  * Updates a team's placement in a tournament.
+ * DataStore handles individual tournament updates; this function coordinates the placement logic.
+ *
+ * PERFORMANCE NOTE: Loads all tournaments to find target (no getTournamentById in DataStore interface).
+ * This is a deliberate design decision - per CLAUDE.md the expected scale is ~10 tournaments,
+ * so filtering client-side is acceptable. Optimize only if profiling shows need.
+ *
  * @param tournamentId - The ID of the tournament.
  * @param teamId - The ID of the team.
  * @param placement - The team's placement (1 = 1st place, 2 = 2nd place, etc.). Pass null to remove placement.
@@ -249,25 +210,65 @@ export const updateTeamPlacement = async (
   award?: string,
   note?: string
 ): Promise<boolean> => {
-  const { updateTeamPlacementGeneric } = await import('./teamPlacements');
+  if (!tournamentId || !teamId) {
+    logger.error('[updateTeamPlacement] Invalid tournament ID or team ID provided.');
+    return false;
+  }
 
-  return updateTeamPlacementGeneric({
-    storageKey: TOURNAMENTS_LIST_KEY,
-    entityType: 'tournament',
-    entityId: tournamentId,
-    teamId,
-    placement,
-    award,
-    note,
-    getItems: getTournaments,
-    saveItems: async (items) => {
-      await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify(items));
-    },
-  });
+  try {
+    const dataStore = await getDataStore();
+    const tournaments = await dataStore.getTournaments();
+    const tournament = tournaments.find(t => t.id === tournamentId);
+
+    if (!tournament) {
+      logger.error(`[updateTeamPlacement] Tournament with ID ${tournamentId} not found.`);
+      return false;
+    }
+
+    // Clone the tournament for modification
+    const updatedTournament = { ...tournament };
+
+    if (placement === null) {
+      // Remove the team's placement
+      if (updatedTournament.teamPlacements) {
+        delete updatedTournament.teamPlacements[teamId];
+        // Clean up empty object
+        if (Object.keys(updatedTournament.teamPlacements).length === 0) {
+          delete updatedTournament.teamPlacements;
+        }
+      }
+    } else {
+      // Set or update the team's placement
+      updatedTournament.teamPlacements = {
+        ...updatedTournament.teamPlacements,
+        [teamId]: {
+          placement,
+          ...(award && { award }),
+          ...(note && { note }),
+        },
+      };
+    }
+
+    const result = await dataStore.updateTournament(updatedTournament);
+    return result !== null;
+  } catch (error) {
+    logger.error('[updateTeamPlacement] Unexpected error updating team placement:', {
+      tournamentId,
+      teamId,
+      error
+    });
+    return false;
+  }
 };
 
 /**
  * Gets a team's placement in a tournament.
+ * DataStore handles loading tournaments.
+ *
+ * PERFORMANCE NOTE: Loads all tournaments to find target (no getTournamentById in DataStore interface).
+ * This is a deliberate design decision - per CLAUDE.md the expected scale is ~10 tournaments,
+ * so filtering client-side is acceptable. Optimize only if profiling shows need.
+ *
  * @param tournamentId - The ID of the tournament.
  * @param teamId - The ID of the team.
  * @returns A promise that resolves to the team's placement data, or null if not found.
@@ -277,7 +278,8 @@ export const getTeamPlacement = async (
   teamId: string
 ): Promise<{ placement: number; award?: string; note?: string } | null> => {
   try {
-    const tournaments = await getTournaments();
+    const dataStore = await getDataStore();
+    const tournaments = await dataStore.getTournaments();
     const tournament = tournaments.find(t => t.id === tournamentId);
 
     if (!tournament || !tournament.teamPlacements || !tournament.teamPlacements[teamId]) {
@@ -286,7 +288,7 @@ export const getTeamPlacement = async (
 
     return tournament.teamPlacements[teamId];
   } catch (error) {
-    logger.error('[getTeamPlacement] Error getting team placement:', error);
+    logger.error('[getTeamPlacement] Error getting team placement:', { tournamentId, teamId, error });
     return null;
   }
-}; 
+};
