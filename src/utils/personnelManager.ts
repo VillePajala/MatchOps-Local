@@ -1,24 +1,15 @@
-import { PERSONNEL_KEY, SAVED_GAMES_KEY } from '@/config/storageKeys';
-import { getStorageItem, setStorageItem } from './storage';
 import type { Personnel, PersonnelCollection } from '@/types/personnel';
 import logger from '@/utils/logger';
-import { withKeyLock } from './storageKeyLock';
-import { getSavedGames } from './savedGames';
+import { getDataStore } from '@/datastore';
 
 /**
- * Get all personnel from storage
+ * Get all personnel from storage.
+ * DataStore handles sorting by createdAt (newest first).
  */
 export const getAllPersonnel = async (): Promise<Personnel[]> => {
   try {
-    const personnelJson = await getStorageItem(PERSONNEL_KEY);
-    if (!personnelJson) {
-      return [];
-    }
-    const collection: PersonnelCollection = JSON.parse(personnelJson);
-    // Sort by creation date, newest first
-    return Object.values(collection).sort((a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    const dataStore = await getDataStore();
+    return await dataStore.getAllPersonnel();
   } catch (error) {
     logger.error('Error getting personnel:', error);
     throw error;
@@ -26,15 +17,18 @@ export const getAllPersonnel = async (): Promise<Personnel[]> => {
 };
 
 /**
- * Get personnel collection as object
+ * Get personnel collection as object.
+ * @deprecated Use getAllPersonnel() or getPersonnelById() instead.
+ * Kept for backwards compatibility during migration.
  */
 export const getPersonnelCollection = async (): Promise<PersonnelCollection> => {
   try {
-    const personnelJson = await getStorageItem(PERSONNEL_KEY);
-    if (!personnelJson) {
-      return {};
+    const allPersonnel = await getAllPersonnel();
+    const collection: PersonnelCollection = {};
+    for (const person of allPersonnel) {
+      collection[person.id] = person;
     }
-    return JSON.parse(personnelJson) as PersonnelCollection;
+    return collection;
   } catch (error) {
     logger.error('Error getting personnel collection:', error);
     throw error;
@@ -42,12 +36,13 @@ export const getPersonnelCollection = async (): Promise<PersonnelCollection> => 
 };
 
 /**
- * Get single personnel by ID
+ * Get single personnel by ID.
+ * DataStore handles storage access.
  */
 export const getPersonnelById = async (personnelId: string): Promise<Personnel | null> => {
   try {
-    const collection = await getPersonnelCollection();
-    return collection[personnelId] || null;
+    const dataStore = await getDataStore();
+    return await dataStore.getPersonnelById(personnelId);
   } catch (error) {
     logger.error('Error getting personnel by ID:', error);
     throw error;
@@ -55,212 +50,66 @@ export const getPersonnelById = async (personnelId: string): Promise<Personnel |
 };
 
 /**
- * Add new personnel member
+ * Add new personnel member.
+ * DataStore handles ID generation, validation (name, duplicate check), and storage.
+ *
+ * @param personnelData - Personnel data without id, createdAt, updatedAt.
+ * @returns The newly created Personnel object.
+ * @throws Error if validation fails (empty name, duplicate name).
  */
 export const addPersonnelMember = async (
   personnelData: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>
-): Promise<Personnel | null> => {
-  const trimmedName = personnelData.name?.trim();
-  if (!trimmedName) {
-    logger.warn('[addPersonnelMember] Validation failed: Personnel name cannot be empty.');
-    return Promise.resolve(null);
-  }
-
-  return withKeyLock(PERSONNEL_KEY, async () => {
-    try {
-      const collection = await getPersonnelCollection();
-      const existingPersonnel = Object.values(collection);
-
-      // Check for duplicate name (case-insensitive)
-      if (existingPersonnel.some(p => p.name.toLowerCase() === trimmedName.toLowerCase())) {
-        logger.warn(`[addPersonnelMember] Validation failed: A personnel member with name "${trimmedName}" already exists.`);
-        return Promise.resolve(null);
-      }
-
-      // Generate unique ID
-      const timestamp = Date.now();
-      let uuid: string;
-
-      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-        uuid = crypto.randomUUID().split('-')[0];
-      } else {
-        uuid = Math.random().toString(16).substring(2, 10);
-      }
-
-      const personnelId = `personnel_${timestamp}_${uuid}`;
-      const now = new Date().toISOString();
-
-      const newPersonnel: Personnel = {
-        ...personnelData,
-        name: trimmedName,
-        id: personnelId,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      collection[personnelId] = newPersonnel;
-
-      await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
-      logger.log('Personnel member added:', personnelId);
-
-      return newPersonnel;
-    } catch (error) {
-      logger.error('Error adding personnel member:', error);
-      throw error;
-    }
-  });
+): Promise<Personnel> => {
+  const dataStore = await getDataStore();
+  return await dataStore.addPersonnelMember(personnelData);
 };
 
 /**
- * Update existing personnel member
+ * Update existing personnel member.
+ * DataStore handles validation and storage.
+ *
+ * @param personnelId - The ID of the personnel to update.
+ * @param updates - Partial personnel data to update.
+ * @returns The updated Personnel object, or null if not found.
+ * @throws Error if validation fails (empty name, duplicate name).
  */
 export const updatePersonnelMember = async (
   personnelId: string,
   updates: Partial<Omit<Personnel, 'id' | 'createdAt'>>
 ): Promise<Personnel | null> => {
-  return withKeyLock(PERSONNEL_KEY, async () => {
-    try {
-      const collection = await getPersonnelCollection();
-      const existing = collection[personnelId];
+  if (!personnelId) {
+    logger.error('[updatePersonnelMember] Invalid personnel ID provided.');
+    return null;
+  }
 
-      if (!existing) {
-        logger.warn('Personnel member not found for update:', personnelId);
-        return null;
-      }
-
-      // Check for duplicate name if name is being updated
-      if (updates.name) {
-        const trimmedName = updates.name.trim();
-        if (!trimmedName) {
-          logger.warn('[updatePersonnelMember] Validation failed: Personnel name cannot be empty.');
-          return Promise.resolve(null);
-        }
-
-        const existingPersonnel = Object.values(collection);
-        // Check if another personnel member has this name (excluding current one)
-        if (existingPersonnel.some(p => p.id !== personnelId && p.name.toLowerCase() === trimmedName.toLowerCase())) {
-          logger.warn(`[updatePersonnelMember] Validation failed: Another personnel member with name "${trimmedName}" already exists.`);
-          return Promise.resolve(null);
-        }
-
-        // Update name with trimmed version
-        updates.name = trimmedName;
-      }
-
-      const updated: Personnel = {
-        ...existing,
-        ...updates,
-        id: personnelId, // Ensure ID never changes
-        createdAt: existing.createdAt, // Preserve creation time
-        updatedAt: new Date().toISOString(),
-      };
-
-      collection[personnelId] = updated;
-      await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
-      logger.log('Personnel member updated:', personnelId);
-
-      return updated;
-    } catch (error) {
-      logger.error('Error updating personnel member:', error);
-      throw error;
-    }
-  });
+  const dataStore = await getDataStore();
+  return await dataStore.updatePersonnelMember(personnelId, updates);
 };
 
 /**
- * Remove personnel member
+ * Remove personnel member.
+ * DataStore handles cascade delete (removes personnel from all games).
  *
- * @remarks
- * This function performs a cascade delete - it removes the personnel from all games
- * that reference them before deleting the personnel record itself.
- *
- * **Concurrency Control** (Two-Phase Locking):
- * - Locks PERSONNEL_KEY first to prevent concurrent personnel deletions
- * - Locks SAVED_GAMES_KEY second to prevent race conditions during cascade delete
- * - Nested locking ensures atomic CASCADE DELETE across both storage keys
- * - Prevents data loss in multi-tab scenarios:
- *   - Tab A: Deleting personnel
- *   - Tab B: Editing game personnel assignments
- *   - Without nested lock: Tab B's changes could be overwritten
- *   - With nested lock: Operations are serialized, no data loss
- *
- * **Performance**: Nested locking increases lock duration but ensures data integrity.
- * This is the correct trade-off for CASCADE DELETE operations.
+ * @param personnelId - The ID of the personnel to remove.
+ * @returns True if deleted, false if not found or error occurs.
  */
 export const removePersonnelMember = async (personnelId: string): Promise<boolean> => {
-  // Two-phase locking: Lock both keys to ensure atomic CASCADE DELETE
-  return withKeyLock(PERSONNEL_KEY, async () => {
-    return withKeyLock(SAVED_GAMES_KEY, async () => {
-      // BACKUP: Capture state before any modifications
-      // This enables rollback if any operation fails during cascade delete
-      //
-      // Memory consideration: Full collection backup is used for simplicity and safety.
-      // For datasets beyond ~100 games, consider selective backup (only affected games).
-      // Current scale (50-100 games per CLAUDE.md) works well with this approach.
-      const backup = {
-        personnel: await getPersonnelCollection(),
-        games: await getSavedGames(),
-      };
+  if (!personnelId) {
+    logger.error('[removePersonnelMember] Invalid personnel ID provided.');
+    return false;
+  }
 
-      try {
-        const collection = await getPersonnelCollection();
-
-        if (!collection[personnelId]) {
-          logger.warn('Personnel member not found for removal:', personnelId);
-          return false;
-        }
-
-        // CASCADE DELETE: Remove personnel from all games
-        // LOCK SAFETY: Reading games here is safe - already inside withKeyLock(SAVED_GAMES_KEY)
-        const games = await getSavedGames();
-        let gamesUpdated = 0;
-
-        for (const [gameId, gameState] of Object.entries(games)) {
-          if (gameState.gamePersonnel?.includes(personnelId)) {
-            // Remove personnel from this game
-            gameState.gamePersonnel = gameState.gamePersonnel.filter(id => id !== personnelId);
-            games[gameId] = gameState;
-            gamesUpdated++;
-          }
-        }
-
-        // Save updated games if any were modified
-        if (gamesUpdated > 0) {
-          await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
-          logger.log(`Removed personnel ${personnelId} from ${gamesUpdated} games`);
-        }
-
-        // Now delete the personnel record
-        delete collection[personnelId];
-        await setStorageItem(PERSONNEL_KEY, JSON.stringify(collection));
-        logger.log('Personnel member removed:', personnelId);
-
-        return true;
-      } catch (error) {
-        // ROLLBACK: Restore original state on any failure
-        try {
-          await setStorageItem(PERSONNEL_KEY, JSON.stringify(backup.personnel));
-          await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(backup.games));
-          logger.log('Rollback successful after personnel deletion error:', error);
-        } catch (rollbackError) {
-          // Critical: Rollback failed - data may be corrupted
-          logger.error('CRITICAL: Rollback failed - data may be corrupted', {
-            originalError: error,
-            rollbackError,
-            personnelId,
-          });
-          // Re-throw rollback error as it's more critical
-          throw new Error(`CASCADE DELETE failed and rollback also failed: ${rollbackError}`);
-        }
-        logger.error('Error removing personnel member (rolled back):', error);
-        throw error;
-      }
-    });
-  });
+  try {
+    const dataStore = await getDataStore();
+    return await dataStore.removePersonnelMember(personnelId);
+  } catch (error) {
+    logger.error('[removePersonnelMember] Error removing personnel:', { personnelId, error });
+    return false;
+  }
 };
 
 /**
- * Get personnel by role (future enhancement - filtering)
+ * Get personnel by role (future enhancement - filtering).
  */
 export const getPersonnelByRole = async (role: Personnel['role']): Promise<Personnel[]> => {
   try {
@@ -273,14 +122,16 @@ export const getPersonnelByRole = async (role: Personnel['role']): Promise<Perso
 };
 
 /**
- * Get all games that reference a specific personnel member
+ * Get all games that reference a specific personnel member.
+ * DataStore handles loading saved games.
  *
- * @param personnelId - The personnel ID to search for
- * @returns Array of game IDs that reference this personnel member
+ * @param personnelId - The personnel ID to search for.
+ * @returns Array of game IDs that reference this personnel member.
  */
 export const getGamesWithPersonnel = async (personnelId: string): Promise<string[]> => {
   try {
-    const games = await getSavedGames();
+    const dataStore = await getDataStore();
+    const games = await dataStore.getGames();
     const gameIds: string[] = [];
 
     for (const [gameId, gameState] of Object.entries(games)) {

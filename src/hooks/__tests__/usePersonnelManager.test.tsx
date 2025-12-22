@@ -211,10 +211,11 @@ describe('usePersonnelManager', () => {
 
     /**
      * Tests personnel addition validation failure
-     * @edge-case - Validation returns null
+     * @edge-case - Validation throws error
      */
-    it('should return null when validation fails', async () => {
-      addPersonnelMember.mockResolvedValue(null);
+    it('should throw when validation fails', async () => {
+      const validationError = new Error('Personnel name cannot be empty');
+      addPersonnelMember.mockRejectedValue(validationError);
       const queryClient = createTestQueryClient();
       const wrapper = createTestWrapper(queryClient);
 
@@ -224,19 +225,18 @@ describe('usePersonnelManager', () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      let addedPersonnel: Personnel | null = null;
       await act(async () => {
-        addedPersonnel = await result.current.addPersonnel({
-          name: '',
-          role: 'head_coach',
-          phone: '',
-          email: '',
-          certifications: [],
-          notes: '',
-        });
+        await expect(
+          result.current.addPersonnel({
+            name: '',
+            role: 'head_coach',
+            phone: '',
+            email: '',
+            certifications: [],
+            notes: '',
+          })
+        ).rejects.toThrow('Personnel name cannot be empty');
       });
-
-      expect(addedPersonnel).toBeNull();
     });
   });
 
@@ -273,10 +273,10 @@ describe('usePersonnelManager', () => {
     });
 
     /**
-     * Tests update validation failure
-     * @edge-case - Validation returns null
+     * Tests update returns null when personnel not found
+     * @edge-case - Personnel not found returns null
      */
-    it('should return null when update validation fails', async () => {
+    it('should return null when personnel not found', async () => {
       updatePersonnelMember.mockResolvedValue(null);
       const queryClient = createTestQueryClient();
       const wrapper = createTestWrapper(queryClient);
@@ -289,10 +289,33 @@ describe('usePersonnelManager', () => {
 
       let updatedPersonnel: Personnel | null = null;
       await act(async () => {
-        updatedPersonnel = await result.current.updatePersonnel('some-id', { name: '' });
+        updatedPersonnel = await result.current.updatePersonnel('non-existent-id', { name: 'New Name' });
       });
 
       expect(updatedPersonnel).toBeNull();
+    });
+
+    /**
+     * Tests update validation failure throws error
+     * @edge-case - Validation throws error
+     */
+    it('should throw when update validation fails', async () => {
+      const validationError = new Error('Personnel name cannot be empty');
+      updatePersonnelMember.mockRejectedValue(validationError);
+      const queryClient = createTestQueryClient();
+      const wrapper = createTestWrapper(queryClient);
+
+      const { result } = renderHook(() => usePersonnelManager(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      await act(async () => {
+        await expect(
+          result.current.updatePersonnel('personnel-1', { name: '' })
+        ).rejects.toThrow('Personnel name cannot be empty');
+      });
     });
   });
 
