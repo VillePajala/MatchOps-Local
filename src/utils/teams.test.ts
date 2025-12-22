@@ -14,7 +14,15 @@ let mockRosters: { [teamId: string]: TeamPlayer[] } = {};
 let mockShouldThrow = false;
 let teamIdCounter = 0;
 
-// Mock DataStore implementation
+/**
+ * Mock DataStore implementation with validation logic.
+ *
+ * SYNC REQUIREMENT: The validation logic in this mock must stay in sync with
+ * LocalDataStore.ts. If validation rules change in LocalDataStore (e.g., name
+ * length limits, age group values, notes max length), update this mock accordingly.
+ *
+ * @see src/datastore/LocalDataStore.ts - createTeam, updateTeam methods
+ */
 const mockDataStore = {
   getTeams: jest.fn(async () => {
     if (mockShouldThrow) throw new Error('DataStore error');
