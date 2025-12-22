@@ -1,16 +1,12 @@
 import { Team, TeamPlayer } from '@/types';
-import {
-  TEAMS_INDEX_KEY,
-  TEAM_ROSTERS_KEY,
-} from '@/config/storageKeys';
+import { TEAM_ROSTERS_KEY } from '@/config/storageKeys';
 import { getStorageItem, setStorageItem } from './storage';
 import { withRosterLock } from './lockManager';
-import { withKeyLock } from './storageKeyLock';
 import logger from '@/utils/logger';
 import { getDataStore } from '@/datastore';
 
-// Note: TEAMS_INDEX_KEY, TEAM_ROSTERS_KEY, storage imports, withRosterLock, and withKeyLock
-// are still needed for deprecated saveTeams() and roster operations.
+// Note: TEAM_ROSTERS_KEY, storage imports, and withRosterLock are still needed
+// for roster operations (next PR will migrate these to DataStore).
 
 // Team index storage format: { [teamId: string]: Team }
 export interface TeamsIndex {
@@ -74,40 +70,6 @@ export const getTeam = async (teamId: string): Promise<Team | null> => {
     logger.error('[getTeam] Error getting team:', { teamId, error });
     return null;
   }
-};
-
-/**
- * Saves an array of teams to storage, overwriting any existing teams.
- *
- * @deprecated This function bypasses DataStore and should not be used for new code.
- * Use individual team operations (addTeam, updateTeam, deleteTeam)
- * which route through DataStore for proper abstraction.
- *
- * @internal TEST SETUP ONLY - Do not use in production code.
- * @throws {Error} if called in production environment
- *
- * @param teams - The array of Team objects to save.
- * @returns A promise that resolves to true if successful, false otherwise.
- */
-export const saveTeams = async (teams: Team[]): Promise<boolean> => {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('saveTeams() is deprecated - use DataStore operations (addTeam, updateTeam, deleteTeam)');
-  }
-
-  return withKeyLock(TEAMS_INDEX_KEY, async () => {
-    try {
-      // Convert array to index format
-      const teamsIndex: TeamsIndex = {};
-      for (const team of teams) {
-        teamsIndex[team.id] = team;
-      }
-      await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
-      return true;
-    } catch (error) {
-      logger.error('[saveTeams] Error saving teams to storage:', error);
-      return false;
-    }
-  });
 };
 
 /**

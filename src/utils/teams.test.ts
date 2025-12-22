@@ -78,7 +78,7 @@ jest.mock('@/datastore', () => ({
   getDataStore: jest.fn(async () => mockDataStore),
 }));
 
-// Mock storage for roster operations and deprecated saveTeams
+// Mock storage for roster operations
 jest.mock('./storage', () => ({
   getStorageItem: jest.fn(async (key: string) => {
     if (key === 'soccerTeamRosters') {
