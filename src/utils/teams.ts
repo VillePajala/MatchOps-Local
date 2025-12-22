@@ -83,12 +83,17 @@ export const getTeam = async (teamId: string): Promise<Team | null> => {
  * Use individual team operations (addTeam, updateTeam, deleteTeam)
  * which route through DataStore for proper abstraction.
  *
- * @internal Kept for test setup only (mocking storage directly).
+ * @internal TEST SETUP ONLY - Do not use in production code.
+ * @throws {Error} if called in production environment
  *
  * @param teams - The array of Team objects to save.
  * @returns A promise that resolves to true if successful, false otherwise.
  */
 export const saveTeams = async (teams: Team[]): Promise<boolean> => {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('saveTeams() is deprecated - use DataStore operations (addTeam, updateTeam, deleteTeam)');
+  }
+
   return withKeyLock(TEAMS_INDEX_KEY, async () => {
     try {
       // Convert array to index format
