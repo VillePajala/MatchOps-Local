@@ -7,6 +7,7 @@ import { getDataStore } from '@/datastore';
 
 // Note: TEAM_ROSTERS_KEY and getStorageItem are still needed for getAllTeamRosters()
 // which returns all rosters as an index (used by TeamManagerModal for roster counts).
+// TODO: Consider adding getAllTeamRosters() to DataStore interface for full consistency.
 
 // Team index storage format: { [teamId: string]: Team }
 export interface TeamsIndex {
