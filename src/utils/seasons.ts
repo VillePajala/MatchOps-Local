@@ -1,6 +1,5 @@
 import { SEASONS_LIST_KEY } from '@/config/storageKeys';
 import type { Season } from '@/types';
-import type { AppState } from '@/types/game';
 import logger from '@/utils/logger';
 import { setStorageItem } from '@/utils/storage';
 import { withKeyLock } from './storageKeyLock';
@@ -10,15 +9,15 @@ import { getDataStore } from '@/datastore';
 // for the deprecated saveSeasons() function (used by tests).
 
 /**
- * Type guard to check if an error is a ValidationError from DataStore.
+ * Type guard to check if an error is an expected DataStore error (validation or duplicate).
  * Uses code property checking instead of instanceof to avoid module boundary issues.
- * @see src/datastore/errors.ts for ValidationError class definition
+ * @see src/interfaces/DataStoreErrors.ts for error class definitions
  */
-const isValidationError = (error: unknown): boolean =>
+const isExpectedDataStoreError = (error: unknown): boolean =>
   error !== null &&
   typeof error === 'object' &&
   'code' in error &&
-  error.code === 'VALIDATION_ERROR';
+  (error.code === 'VALIDATION_ERROR' || error.code === 'ALREADY_EXISTS');
 
 /**
  * Retrieves all seasons from IndexedDB.
@@ -68,10 +67,10 @@ export const saveSeasons = async (seasons: Season[]): Promise<boolean> => {
  * gracefully rather than expecting exceptions.
  *
  * @param newSeasonName - The name of the new season.
- * @param extra - Optional additional fields for the season.
+ * @param extra - Optional additional fields for the season (excludes id and name).
  * @returns A promise that resolves to the newly created Season object, or null if validation/save fails.
  */
-export const addSeason = async (newSeasonName: string, extra: Partial<Season> = {}): Promise<Season | null> => {
+export const addSeason = async (newSeasonName: string, extra: Partial<Omit<Season, 'id' | 'name'>> = {}): Promise<Season | null> => {
   const trimmedName = newSeasonName?.trim();
   if (!trimmedName) {
     logger.warn('[addSeason] Validation failed: Season name cannot be empty.');
@@ -83,8 +82,8 @@ export const addSeason = async (newSeasonName: string, extra: Partial<Season> = 
     const newSeason = await dataStore.createSeason(trimmedName, extra);
     return newSeason;
   } catch (error) {
-    if (isValidationError(error)) {
-      logger.warn('[addSeason] Validation failed:', { error });
+    if (isExpectedDataStoreError(error)) {
+      logger.warn('[addSeason] Operation failed:', { error });
       return null;
     }
     logger.error('[addSeason] Unexpected error adding season:', { seasonName: trimmedName, error });
@@ -116,8 +115,8 @@ export const updateSeason = async (updatedSeasonData: Season): Promise<Season | 
 
     return updatedSeason;
   } catch (error) {
-    if (isValidationError(error)) {
-      logger.warn('[updateSeason] Validation failed:', { error });
+    if (isExpectedDataStoreError(error)) {
+      logger.warn('[updateSeason] Operation failed:', { error });
       return null;
     }
     logger.error('[updateSeason] Unexpected error updating season:', {
