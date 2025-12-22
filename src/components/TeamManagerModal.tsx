@@ -149,7 +149,8 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     }
   }, [isOpen]);
 
-  // Load roster counts when modal opens or teams change
+  // Load roster counts when modal opens, teams change, or master roster changes
+  // (master roster changes can affect team roster counts via sync/matching)
   React.useLayoutEffect(() => {
     const loadRosterCounts = async () => {
       if (!isOpen) return;
@@ -166,7 +167,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
       }
     };
     loadRosterCounts();
-  }, [isOpen, teams]);
+  }, [isOpen, teams, masterRoster]);
 
   // Mutations for archive/unarchive
   const updateTeamMutation = useMutation({
