@@ -1,16 +1,16 @@
 import { Team, TeamPlayer } from '@/types';
-import type { AppState } from '@/types/game';
 import {
   TEAMS_INDEX_KEY,
   TEAM_ROSTERS_KEY,
-  SAVED_GAMES_KEY
 } from '@/config/storageKeys';
 import { getStorageItem, setStorageItem } from './storage';
 import { withRosterLock } from './lockManager';
 import { withKeyLock } from './storageKeyLock';
 import logger from '@/utils/logger';
-import { AGE_GROUPS } from '@/config/gameOptions';
-import { VALIDATION_LIMITS } from '@/config/validationLimits';
+import { getDataStore } from '@/datastore';
+
+// Note: TEAMS_INDEX_KEY, TEAM_ROSTERS_KEY, storage imports, withRosterLock, and withKeyLock
+// are still needed for deprecated saveTeams() and roster operations.
 
 // Team index storage format: { [teamId: string]: Team }
 export interface TeamsIndex {
@@ -22,154 +22,160 @@ export interface TeamRostersIndex {
   [teamId: string]: TeamPlayer[];
 }
 
-// Get all teams
+/**
+ * Retrieves all teams from IndexedDB as an index (object map by teamId).
+ * DataStore handles initialization and storage access.
+ *
+ * @internal Used internally for roster operations that need the index format.
+ * @returns A promise that resolves to a TeamsIndex object.
+ */
 export const getAllTeams = async (): Promise<TeamsIndex> => {
   try {
-    const json = await getStorageItem(TEAMS_INDEX_KEY);
-    if (!json) return {};
-    return JSON.parse(json) as TeamsIndex;
+    const dataStore = await getDataStore();
+    const teams = await dataStore.getTeams();
+    // Convert array to index format for backwards compatibility
+    const teamsIndex: TeamsIndex = {};
+    for (const team of teams) {
+      teamsIndex[team.id] = team;
+    }
+    return teamsIndex;
   } catch (error) {
-    logger.warn('Failed to load teams index, returning empty', { error });
+    logger.warn('[getAllTeams] Failed to load teams, returning empty', { error });
     return {};
   }
 };
 
-// Get teams as array
+/**
+ * Retrieves all teams from IndexedDB as an array.
+ * DataStore handles initialization and storage access.
+ * @returns A promise that resolves to an array of Team objects.
+ */
 export const getTeams = async (): Promise<Team[]> => {
-  const teamsIndex = await getAllTeams();
-  return Object.values(teamsIndex);
+  try {
+    const dataStore = await getDataStore();
+    return await dataStore.getTeams();
+  } catch (error) {
+    logger.error('[getTeams] Error getting teams:', error);
+    return [];
+  }
 };
 
-// Get single team by id
+/**
+ * Retrieves a single team by ID.
+ * DataStore handles storage access.
+ * @param teamId - The ID of the team to retrieve.
+ * @returns A promise that resolves to the Team object, or null if not found.
+ */
 export const getTeam = async (teamId: string): Promise<Team | null> => {
-  const teamsIndex = await getAllTeams();
-  return teamsIndex[teamId] || null;
-};
-
-// Normalize optional string fields: trim and convert empty strings to undefined
-const normalizeOptionalString = (value?: string): string | undefined => {
-  if (value === undefined) return undefined;
-  const trimmed = value.trim();
-  return trimmed === '' ? undefined : trimmed;
-};
-
-// Validate team name uniqueness (case-insensitive, normalized)
-const validateTeamName = async (name: string, excludeTeamId?: string): Promise<void> => {
-  const trimmed = name.trim();
-  if (!trimmed) {
-    throw new Error('Team name cannot be empty');
-  }
-  if (trimmed.length > VALIDATION_LIMITS.TEAM_NAME_MAX) {
-    throw new Error(`Team name cannot exceed ${VALIDATION_LIMITS.TEAM_NAME_MAX} characters`);
-  }
-
-  const teams = await getTeams();
-  const normalizedName = trimmed.toLowerCase().normalize('NFKC');
-
-  const existingTeam = teams.find(team =>
-    team.id !== excludeTeamId &&
-    team.name.toLowerCase().normalize('NFKC') === normalizedName
-  );
-
-  if (existingTeam) {
-    throw new Error(`A team named '${trimmed}' already exists.`);
+  try {
+    const dataStore = await getDataStore();
+    return await dataStore.getTeamById(teamId);
+  } catch (error) {
+    logger.error('[getTeam] Error getting team:', { teamId, error });
+    return null;
   }
 };
 
-// Validate team notes length
-const validateTeamNotes = (notes?: string): void => {
-  if (notes && notes.length > VALIDATION_LIMITS.TEAM_NOTES_MAX) {
-    throw new Error(`Team notes cannot exceed ${VALIDATION_LIMITS.TEAM_NOTES_MAX} characters`);
-  }
+/**
+ * Saves an array of teams to storage, overwriting any existing teams.
+ *
+ * @deprecated This function bypasses DataStore and should not be used for new code.
+ * Use individual team operations (addTeam, updateTeam, deleteTeam)
+ * which route through DataStore for proper abstraction.
+ *
+ * @internal Kept for test setup only (mocking storage directly).
+ *
+ * @param teams - The array of Team objects to save.
+ * @returns A promise that resolves to true if successful, false otherwise.
+ */
+export const saveTeams = async (teams: Team[]): Promise<boolean> => {
+  return withKeyLock(TEAMS_INDEX_KEY, async () => {
+    try {
+      // Convert array to index format
+      const teamsIndex: TeamsIndex = {};
+      for (const team of teams) {
+        teamsIndex[team.id] = team;
+      }
+      await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+      return true;
+    } catch (error) {
+      logger.error('[saveTeams] Error saving teams to storage:', error);
+      return false;
+    }
+  });
 };
 
-// Validate team age group
-const validateTeamAgeGroup = (ageGroup?: string): void => {
-  if (ageGroup && !AGE_GROUPS.includes(ageGroup)) {
-    throw new Error(`Invalid age group: ${ageGroup}. Must be one of: ${AGE_GROUPS.join(', ')}`);
-  }
-};
-
-// Create new team
+/**
+ * Creates a new team.
+ * DataStore handles ID generation, validation (name, ageGroup, notes), and storage.
+ *
+ * Error handling: Throws on validation errors (empty name, invalid ageGroup, duplicate name, etc.)
+ * to match the existing contract. Use try/catch in calling code.
+ *
+ * @param teamData - The team data without id, createdAt, updatedAt.
+ * @returns A promise that resolves to the newly created Team object.
+ * @throws Error if validation fails (empty name, invalid ageGroup, too long notes, duplicate name).
+ */
 export const addTeam = async (teamData: Omit<Team, 'id' | 'createdAt' | 'updatedAt'>): Promise<Team> => {
-  // Normalize optional fields (trim and convert empty strings to undefined)
-  const normalizedAgeGroup = normalizeOptionalString(teamData.ageGroup);
-  const normalizedNotes = normalizeOptionalString(teamData.notes);
+  const dataStore = await getDataStore();
+  const newTeam = await dataStore.createTeam(teamData);
 
-  await validateTeamName(teamData.name);
-  validateTeamNotes(normalizedNotes);
-  validateTeamAgeGroup(normalizedAgeGroup);
+  // Initialize empty roster for new team
+  await setTeamRoster(newTeam.id, []);
 
-  return withKeyLock(TEAMS_INDEX_KEY, async () => {
-    const now = new Date().toISOString();
-    const team: Team = {
-      id: `team_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      ...teamData,
-      name: teamData.name.trim(), // Ensure trimmed
-      ageGroup: normalizedAgeGroup,
-      notes: normalizedNotes,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    const teamsIndex = await getAllTeams();
-    teamsIndex[team.id] = team;
-    await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
-
-    // Initialize empty roster for new team
-    await setTeamRoster(team.id, []);
-
-    return team;
-  });
+  return newTeam;
 };
 
-// Update existing team
+/**
+ * Updates an existing team.
+ * DataStore handles validation and storage.
+ *
+ * @param teamId - The ID of the team to update.
+ * @param updates - Partial team data to update (excludes id, createdAt).
+ * @returns A promise that resolves to the updated Team object, or null if not found.
+ * @throws Error if validation fails (empty name, invalid ageGroup, too long notes, duplicate name).
+ */
 export const updateTeam = async (teamId: string, updates: Partial<Omit<Team, 'id' | 'createdAt'>>): Promise<Team | null> => {
-  return withKeyLock(TEAMS_INDEX_KEY, async () => {
-    const teamsIndex = await getAllTeams();
-    const existing = teamsIndex[teamId];
-    if (!existing) return null;
+  if (!teamId) {
+    logger.error('[updateTeam] Invalid team ID provided.');
+    return null;
+  }
 
-    // Validate name if being updated
-    if (updates.name !== undefined) {
-      await validateTeamName(updates.name, teamId);
-      updates.name = updates.name.trim();
-    }
-
-    // Normalize and validate notes if being updated
-    if (updates.notes !== undefined) {
-      updates.notes = normalizeOptionalString(updates.notes);
-      validateTeamNotes(updates.notes);
-    }
-
-    // Normalize and validate age group if being updated
-    if (updates.ageGroup !== undefined) {
-      updates.ageGroup = normalizeOptionalString(updates.ageGroup);
-      validateTeamAgeGroup(updates.ageGroup);
-    }
-
-    const updatedTeam: Team = {
-      ...existing,
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
-
-    teamsIndex[teamId] = updatedTeam;
-    await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
-    return updatedTeam;
-  });
+  const dataStore = await getDataStore();
+  return await dataStore.updateTeam(teamId, updates);
 };
 
-// Delete team (remove from index but keep roster data for potential recovery)
+/**
+ * Deletes a team from storage by its ID.
+ * DataStore handles storage and atomicity.
+ * Note: Roster data is kept for potential recovery (not deleted).
+ *
+ * @param teamId - The ID of the team to delete.
+ * @returns A promise that resolves to true if successful, false if not found or error occurs.
+ */
 export const deleteTeam = async (teamId: string): Promise<boolean> => {
-  return withKeyLock(TEAMS_INDEX_KEY, async () => {
-    const teamsIndex = await getAllTeams();
-    if (!teamsIndex[teamId]) return false;
+  if (!teamId) {
+    logger.error('[deleteTeam] Invalid team ID provided.');
+    return false;
+  }
 
-    delete teamsIndex[teamId];
-    await setStorageItem(TEAMS_INDEX_KEY, JSON.stringify(teamsIndex));
+  try {
+    const dataStore = await getDataStore();
+    const deleted = await dataStore.deleteTeam(teamId);
+
+    if (!deleted) {
+      logger.error(`[deleteTeam] Team with id ${teamId} not found.`);
+      return false;
+    }
+
     return true;
-  });
+  } catch (error) {
+    logger.error('[deleteTeam] Unexpected error deleting team:', {
+      teamId,
+      error
+    });
+    return false;
+  }
 };
 
 // Note: Active team management removed - teams are contextually selected
@@ -269,24 +275,31 @@ export const duplicateTeam = async (teamId: string): Promise<Team | null> => {
   return newTeam;
 };
 
-// Count games associated with a team (for deletion impact analysis)
+/**
+ * Count games associated with a team (for deletion impact analysis).
+ * DataStore handles loading saved games.
+ *
+ * @param teamId - The ID of the team to count games for.
+ * @returns A promise that resolves to the number of games associated with this team.
+ */
 export const countGamesForTeam = async (teamId: string): Promise<number> => {
   try {
-    const savedGamesJson = await getStorageItem(SAVED_GAMES_KEY);
-    if (!savedGamesJson) return 0;
-    
-    const savedGames = JSON.parse(savedGamesJson);
+    const dataStore = await getDataStore();
+    const savedGames = await dataStore.getGames();
+
     let count = 0;
-    
     for (const gameState of Object.values(savedGames)) {
-      if ((gameState as AppState).teamId === teamId) {
-        count++;
+      // Defensive check: ensure gameState has teamId property
+      if (gameState && typeof gameState === 'object' && 'teamId' in gameState) {
+        if (gameState.teamId === teamId) {
+          count++;
+        }
       }
     }
 
     return count;
   } catch (error) {
-    logger.warn('Failed to count games for team, returning 0', { teamId, error });
+    logger.warn('[countGamesForTeam] Failed to count games for team, returning 0', { teamId, error });
     return 0;
   }
 };
