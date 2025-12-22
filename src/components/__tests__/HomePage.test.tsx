@@ -217,19 +217,23 @@ describe('HomePage Component - Deep Testing', () => {
   });
 
   describe('Performance', () => {
+    /**
+     * Tests that HomePage renders within acceptable time.
+     * @flaky Threshold relaxed from 3s to 5s after DataStore wiring.
+     * @see https://github.com/VillePajala/MatchOps-Local/issues/147
+     */
     it('should render within reasonable time', async () => {
       const startTime = performance.now();
-      
+
       render(<HomePage />);
-      
+
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
       }, { timeout: 5000 });
-      
+
       const renderTime = performance.now() - startTime;
-      
-      // Should render within 5 seconds on CI/test environment
-      // (waitFor timeout is 5s, so threshold matches expected max)
+
+      // Threshold relaxed from 3s to 5s - see issue #147 for investigation
       expect(renderTime).toBeLessThan(5000);
     });
 
