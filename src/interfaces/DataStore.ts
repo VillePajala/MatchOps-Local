@@ -305,6 +305,7 @@ export interface DataStore {
    * Save all games (bulk replace).
    * @param games - Full games collection to save
    * @remarks Used by import/migration operations. Replaces entire collection atomically.
+   * @remarks Does NOT validate individual games - caller must validate before calling.
    */
   saveAllGames(games: SavedGamesCollection): Promise<void>;
 

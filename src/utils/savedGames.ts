@@ -75,6 +75,9 @@ export const saveGame = async (gameId: string, gameData: unknown): Promise<AppSt
   if (!gameId) {
     throw new Error('Game ID is required');
   }
+  if (!gameData || typeof gameData !== 'object' || Array.isArray(gameData)) {
+    throw new Error('Invalid game data: expected an object');
+  }
   const dataStore = await getDataStore();
   return dataStore.saveGame(gameId, gameData as AppState);
 };
