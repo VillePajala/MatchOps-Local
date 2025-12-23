@@ -448,6 +448,9 @@ export const importGamesFromJson = async (
     }
 
     // Save all valid games
+    // Note: saveGames → DataStore.saveAllGames also validates each game (defense-in-depth).
+    // This double validation is intentional to ensure data integrity at the storage layer,
+    // even if future callers of saveAllGames forget to validate first.
     if (result.successful > 0) {
       await saveGames(gamesToSave);
       logger.log(`Successfully imported ${result.successful} games`);
