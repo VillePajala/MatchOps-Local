@@ -1159,6 +1159,37 @@ describe('LocalDataStore', () => {
           dataStore.saveAllGames('not-an-object' as unknown as SavedGamesCollection)
         ).rejects.toThrow('Invalid games collection');
       });
+
+      it('should reject collection with null game', async () => {
+        const games = { game_1: null } as unknown as SavedGamesCollection;
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Invalid game data for game_1');
+      });
+
+      it('should reject collection with non-object game', async () => {
+        const games = { game_1: 'not-a-game' } as unknown as SavedGamesCollection;
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Invalid game data for game_1');
+      });
+
+      it('should reject game missing teamName', async () => {
+        const games = {
+          game_1: { ...mockGame, teamName: '' }
+        };
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Missing required fields in game game_1');
+      });
+
+      it('should reject game missing opponentName', async () => {
+        const games = {
+          game_1: { ...mockGame, opponentName: '' }
+        };
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Missing required fields in game game_1');
+      });
+
+      it('should reject game missing gameDate', async () => {
+        const games = {
+          game_1: { ...mockGame, gameDate: '' }
+        };
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Missing required fields in game game_1');
+      });
     });
 
     describe('Game Events', () => {

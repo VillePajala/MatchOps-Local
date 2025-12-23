@@ -982,9 +982,24 @@ export class LocalDataStore implements DataStore {
   async saveAllGames(games: SavedGamesCollection): Promise<void> {
     this.ensureInitialized();
 
-    // Basic validation - callers (e.g., importGamesFromJson) handle per-game validation
     if (!games || typeof games !== 'object' || Array.isArray(games)) {
       throw new ValidationError('Invalid games collection', 'games', games);
+    }
+
+    // Defense in depth: validate each game before bulk save to prevent corruption
+    // Even if callers validate, this ensures data integrity at the storage layer
+    for (const [gameId, game] of Object.entries(games)) {
+      if (!game || typeof game !== 'object') {
+        throw new ValidationError(`Invalid game data for ${gameId}`, 'games', game);
+      }
+      // Basic required field validation (matches saveGame pattern)
+      if (!game.teamName || !game.opponentName || !game.gameDate) {
+        throw new ValidationError(
+          `Missing required fields in game ${gameId}`,
+          'games',
+          { gameId, hasTeamName: !!game.teamName, hasOpponentName: !!game.opponentName, hasGameDate: !!game.gameDate }
+        );
+      }
     }
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
