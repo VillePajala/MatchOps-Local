@@ -5,6 +5,7 @@ import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/
 import { useTranslation } from 'react-i18next';
 import { Personnel, PersonnelRole } from '@/types/personnel';
 import logger from '@/utils/logger';
+import { AlreadyExistsError, ValidationError } from '@/interfaces/DataStoreErrors';
 import CertificationManager from './CertificationManager';
 
 interface PersonnelDetailsModalProps {
@@ -135,14 +136,12 @@ const PersonnelDetailsModal: React.FC<PersonnelDetailsModalProps> = ({
     } catch (error) {
       logger.error('Failed to save personnel:', error);
 
-      // Check for specific error types
-      const errorName = error instanceof Error ? error.name : '';
-
-      if (errorName === 'AlreadyExistsError') {
+      // Check for specific error types using instanceof for type safety
+      if (error instanceof AlreadyExistsError) {
         setErrorMessage(
           t('personnelDetailsModal.errors.duplicateName', 'A personnel member with this name already exists. Please choose a different name.')
         );
-      } else if (errorName === 'ValidationError') {
+      } else if (error instanceof ValidationError) {
         setErrorMessage(
           t('personnelDetailsModal.errors.validationFailed', 'Invalid input. Please check the form and try again.')
         );
