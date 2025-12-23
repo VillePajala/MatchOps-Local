@@ -1,8 +1,8 @@
 {
-  "version": "68216bb2",
-  "date": "2025-12-21",
+  "version": "1b711959",
+  "date": "2025-12-23",
   "notes": {
-    "en": "Wire masterRoster.ts to use DataStore",
-    "fi": "Wire masterRoster.ts to use DataStore"
+    "en": "Backend Abstraction Phase 1-3 complete - DataStore architecture",
+    "fi": "Backend Abstraction Phase 1-3 complete - DataStore architecture"
   }
 }

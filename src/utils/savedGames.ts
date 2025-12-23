@@ -1,14 +1,9 @@
 import { DEFAULT_GAME_ID } from '@/config/constants';
-import { SAVED_GAMES_KEY } from '@/config/storageKeys';
-import {
-  getStorageItem,
-  setStorageItem,
-} from './storage';
 import type { SavedGamesCollection, AppState, GameEvent as PageGameEvent, Point, Opponent, IntervalLog } from '@/types';
 import type { Player } from '@/types';
 import logger from '@/utils/logger';
 import { appStateSchema } from './appStateSchema';
-import { withKeyLock } from './storageKeyLock';
+import { getDataStore } from '@/datastore';
 
 // Note: AppState (imported from @/types) is the primary type used for live game state
 // and for storing games in IndexedDB via SavedGamesCollection.
@@ -51,62 +46,23 @@ export interface GameData {
  * Gets all saved games from storage (IndexedDB)
  * @returns Promise resolving to an Object containing saved games mapped by ID
  *
- * @note Implements graceful degradation - if JSON is corrupted, returns empty
- * collection and logs the error rather than crashing the app.
+ * @note Delegates to DataStore which implements graceful degradation -
+ * if JSON is corrupted, returns empty collection and logs error.
  */
 export const getSavedGames = async (): Promise<SavedGamesCollection> => {
-  try {
-    const gamesJson = await getStorageItem(SAVED_GAMES_KEY);
-    if (!gamesJson) {
-      return {};
-    }
-
-    // Safe JSON parsing with graceful degradation
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(gamesJson);
-    } catch (parseError) {
-      logger.error('[getSavedGames] JSON parse failed - data may be corrupted. Returning empty collection.', {
-        error: parseError,
-        dataLength: gamesJson.length,
-        dataPreview: gamesJson.substring(0, 100),
-      });
-      // Return empty collection instead of crashing - user can restore from backup
-      return {};
-    }
-
-    // Basic type validation - must be an object
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      logger.error('[getSavedGames] Parsed data is not a valid object. Returning empty collection.', {
-        type: typeof parsed,
-        isArray: Array.isArray(parsed),
-      });
-      return {};
-    }
-
-    return parsed as SavedGamesCollection;
-  } catch (error) {
-    logger.error('Error getting saved games from storage:', error);
-    // Return empty collection for graceful degradation instead of throwing
-    return {};
-  }
+  const dataStore = await getDataStore();
+  return dataStore.getGames();
 };
 
 /**
  * Saves all games to storage (IndexedDB)
  * @param games - Collection of games to save
  * @returns Promise resolving when complete
+ * @remarks Delegates to DataStore.saveAllGames() for atomic bulk save.
  */
 export const saveGames = async (games: SavedGamesCollection): Promise<void> => {
-  return withKeyLock(SAVED_GAMES_KEY, async () => {
-    try {
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
-      return;
-    } catch (error) {
-      logger.error('Error saving games to storage:', error);
-      throw error;
-    }
-  });
+  const dataStore = await getDataStore();
+  return dataStore.saveAllGames(games);
 };
 
 /**
@@ -115,22 +71,12 @@ export const saveGames = async (games: SavedGamesCollection): Promise<void> => {
  * @param gameData - Game data to save
  * @returns Promise resolving to the saved game data
  */
-export const saveGame = async (gameId: string, gameData: unknown): Promise<AppState> => {
-  return withKeyLock(SAVED_GAMES_KEY, async () => {
-    try {
-      if (!gameId) {
-        throw new Error('Game ID is required');
-      }
-
-      const allGames = await getSavedGames();
-      allGames[gameId] = gameData as AppState;
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(allGames));
-      return gameData as AppState;
-    } catch (error) {
-      logger.error('Error saving game:', error);
-      throw error;
-    }
-  });
+export const saveGame = async (gameId: string, gameData: AppState): Promise<AppState> => {
+  if (!gameId || !gameId.trim()) {
+    throw new Error('Game ID is required');
+  }
+  const dataStore = await getDataStore();
+  return dataStore.saveGame(gameId, gameData);
 };
 
 /**
@@ -139,18 +85,11 @@ export const saveGame = async (gameId: string, gameData: unknown): Promise<AppSt
  * @returns Promise resolving to the game data, or null if not found
  */
 export const getGame = async (gameId: string): Promise<AppState | null> => {
-  try {
-    if (!gameId) {
-      return null;
-    }
-    
-    const allGames = await getSavedGames();
-    const game = allGames[gameId] ? (allGames[gameId] as AppState) : null;
-    return game;
-  } catch (error) {
-    logger.error('Error getting game:', error);
-    throw error;
+  if (!gameId) {
+    return null;
   }
+  const dataStore = await getDataStore();
+  return dataStore.getGameById(gameId);
 };
 
 /**
@@ -159,93 +98,32 @@ export const getGame = async (gameId: string): Promise<AppState | null> => {
  * @returns Promise resolving to the gameId if the game was deleted, null otherwise
  */
 export const deleteGame = async (gameId: string): Promise<string | null> => {
-  return withKeyLock(SAVED_GAMES_KEY, async () => {
-    try {
-      if (!gameId) {
-        logger.warn('deleteGame: gameId is null or empty.');
-        return null;
-      }
+  if (!gameId) {
+    logger.warn('deleteGame: gameId is null or empty.');
+    return null;
+  }
 
-      const allGames = await getSavedGames();
-      if (!allGames[gameId]) {
-        logger.warn(`deleteGame: Game with ID ${gameId} not found.`);
-        return null; // Game not found
-      }
+  const dataStore = await getDataStore();
+  const deleted = await dataStore.deleteGame(gameId);
 
-      delete allGames[gameId];
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(allGames));
-      logger.log(`deleteGame: Game with ID ${gameId} successfully deleted.`);
-      return gameId; // Successfully deleted, return the gameId
-    } catch (error) {
-      logger.error('Error deleting game:', error);
-      throw error; // Re-throw other errors
-    }
-  });
+  if (deleted) {
+    logger.log(`deleteGame: Game with ID ${gameId} successfully deleted.`);
+    return gameId;
+  } else {
+    logger.warn(`deleteGame: Game with ID ${gameId} not found.`);
+    return null;
+  }
 };
 
 /**
  * Creates a new game with the given data
  * @param gameData - Initial game data
- * @returns Promise resolving to the ID of the new game and the game data, or null on error
+ * @returns Promise resolving to the ID of the new game and the game data
+ * @remarks Delegates to DataStore.createGame() which handles ID generation and defaults.
  */
 export const createGame = async (gameData: Partial<AppState>): Promise<{ gameId: string, gameData: AppState }> => {
-  try {
-    // Generate unique ID combining timestamp (for sorting) and UUID (for uniqueness)
-    const timestamp = Date.now();
-    let uuid: string;
-    
-    // Use crypto.randomUUID if available, fallback to timestamp-based UUID for compatibility
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      uuid = crypto.randomUUID().split('-')[0]; // Use first part of UUID for brevity
-    } else {
-      // Fallback: generate pseudo-random hex string
-      uuid = Math.random().toString(16).substring(2, 10);
-    }
-    
-    const gameId = `game_${timestamp}_${uuid}`;
-    const newGameAppState: AppState = {
-      playersOnField: gameData.playersOnField || [],
-      opponents: gameData.opponents || [],
-      drawings: gameData.drawings || [],
-      availablePlayers: gameData.availablePlayers || [],
-      showPlayerNames: gameData.showPlayerNames === undefined ? true : gameData.showPlayerNames,
-      teamName: gameData.teamName || 'My Team',
-      gameEvents: gameData.gameEvents || [],
-      opponentName: gameData.opponentName || 'Opponent',
-      gameDate: gameData.gameDate || new Date().toISOString().split('T')[0],
-      homeScore: gameData.homeScore || 0,
-      awayScore: gameData.awayScore || 0,
-      gameNotes: gameData.gameNotes || '',
-      homeOrAway: gameData.homeOrAway || 'home',
-      numberOfPeriods: gameData.numberOfPeriods || 2,
-      periodDurationMinutes: gameData.periodDurationMinutes || 10,
-      currentPeriod: gameData.currentPeriod || 1,
-      gameStatus: gameData.gameStatus || 'notStarted',
-      isPlayed: gameData.isPlayed === undefined ? true : gameData.isPlayed,
-      selectedPlayerIds: gameData.selectedPlayerIds || [],
-      assessments: gameData.assessments || {},
-      seasonId: gameData.seasonId || '',
-      tournamentId: gameData.tournamentId || '',
-      tournamentLevel: gameData.tournamentLevel || '',
-      ageGroup: gameData.ageGroup || '',
-      gameLocation: gameData.gameLocation || '',
-      gameTime: gameData.gameTime || '',
-      tacticalDiscs: gameData.tacticalDiscs || [],
-      tacticalDrawings: gameData.tacticalDrawings || [],
-      tacticalBallPosition: gameData.tacticalBallPosition === undefined ? { relX: 0.5, relY: 0.5 } : gameData.tacticalBallPosition,
-      subIntervalMinutes: gameData.subIntervalMinutes === undefined ? 5 : gameData.subIntervalMinutes,
-      completedIntervalDurations: gameData.completedIntervalDurations || [],
-      lastSubConfirmationTimeSeconds: gameData.lastSubConfirmationTimeSeconds === undefined ? 0 : gameData.lastSubConfirmationTimeSeconds,
-      gamePersonnel: Array.isArray(gameData.gamePersonnel) ? gameData.gamePersonnel : [],
-      ...gameData,
-    };
-    
-    const result = await saveGame(gameId, newGameAppState);
-    return { gameId, gameData: result };
-  } catch (error) {
-    logger.error('Error creating new game:', error);
-    throw error; // Rethrow to indicate failure
-  }
+  const dataStore = await getDataStore();
+  return dataStore.createGame(gameData);
 };
 
 /**
@@ -391,28 +269,20 @@ export const updateGameDetails = async (
   gameId: string,
   updateData: Partial<Omit<AppState, 'id' | 'events'>>
 ): Promise<AppState | null> => {
-  return withKeyLock(SAVED_GAMES_KEY, async () => {
-    try {
-      const game = await getGame(gameId);
-      if (!game) {
-        logger.warn(`Game with ID ${gameId} not found for update.`);
-        return null;
-      }
+  const dataStore = await getDataStore();
+  const game = await dataStore.getGameById(gameId);
 
-      const updatedGame = {
-        ...game,
-        ...updateData,
-      };
+  if (!game) {
+    logger.warn(`Game with ID ${gameId} not found for update.`);
+    return null;
+  }
 
-      const allGames = await getSavedGames();
-      allGames[gameId] = updatedGame;
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(allGames));
-      return updatedGame;
-    } catch (error) {
-      logger.error('Error updating game details:', error);
-      throw error; // Propagate error
-    }
-  });
+  const updatedGame: AppState = {
+    ...game,
+    ...updateData,
+  };
+
+  return dataStore.saveGame(gameId, updatedGame);
 };
 
 /**
@@ -422,28 +292,8 @@ export const updateGameDetails = async (
  * @returns Promise resolving to the updated game data, or null on error
  */
 export const addGameEvent = async (gameId: string, event: PageGameEvent): Promise<AppState | null> => {
-  return withKeyLock(SAVED_GAMES_KEY, async () => {
-    try {
-      const game = await getGame(gameId);
-      if (!game) {
-        logger.warn(`Game with ID ${gameId} not found for adding event.`);
-        return null;
-      }
-
-      const updatedGame = {
-        ...game,
-        gameEvents: [...(game.gameEvents || []), event], // Ensure events is an array and cast event
-      };
-
-      const allGames = await getSavedGames();
-      allGames[gameId] = updatedGame;
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(allGames));
-      return updatedGame;
-    } catch (error) {
-      logger.error('Error adding game event:', error);
-      throw error;
-    }
-  });
+  const dataStore = await getDataStore();
+  return dataStore.addGameEvent(gameId, event);
 };
 
 /**
@@ -454,36 +304,8 @@ export const addGameEvent = async (gameId: string, event: PageGameEvent): Promis
  * @returns Promise resolving to the updated game data, or null on error
  */
 export const updateGameEvent = async (gameId: string, eventIndex: number, eventData: PageGameEvent): Promise<AppState | null> => {
-  return withKeyLock(SAVED_GAMES_KEY, async () => {
-    try {
-      const game = await getGame(gameId);
-      if (!game) {
-        logger.warn(`Game with ID ${gameId} not found for updating event.`);
-        return null;
-      }
-
-      const events = [...(game.gameEvents || [])];
-      if (eventIndex < 0 || eventIndex >= events.length) {
-        logger.warn(`Event index ${eventIndex} out of bounds for game ${gameId}.`);
-        return null;
-      }
-
-      events[eventIndex] = eventData; // Cast eventData
-
-      const updatedGame = {
-        ...game,
-        gameEvents: events,
-      };
-
-      const allGames = await getSavedGames();
-      allGames[gameId] = updatedGame;
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(allGames));
-      return updatedGame;
-    } catch (error) {
-      logger.error('Error updating game event:', error);
-      throw error;
-    }
-  });
+  const dataStore = await getDataStore();
+  return dataStore.updateGameEvent(gameId, eventIndex, eventData);
 };
 
 /**
@@ -493,36 +315,8 @@ export const updateGameEvent = async (gameId: string, eventIndex: number, eventD
  * @returns Promise resolving to the updated game data, or null on error
  */
 export const removeGameEvent = async (gameId: string, eventIndex: number): Promise<AppState | null> => {
-  return withKeyLock(SAVED_GAMES_KEY, async () => {
-    try {
-      const game = await getGame(gameId);
-      if (!game) {
-        logger.warn(`Game with ID ${gameId} not found for removing event.`);
-        return null;
-      }
-
-      const events = [...(game.gameEvents || [])];
-      if (eventIndex < 0 || eventIndex >= events.length) {
-        logger.warn(`Event index ${eventIndex} out of bounds for game ${gameId}.`);
-        return null;
-      }
-
-      events.splice(eventIndex, 1);
-
-      const updatedGame = {
-        ...game,
-        gameEvents: events,
-      };
-
-      const allGames = await getSavedGames();
-      allGames[gameId] = updatedGame;
-      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(allGames));
-      return updatedGame;
-    } catch (error) {
-      logger.error('Error removing game event:', error);
-      throw error;
-    }
-  });
+  const dataStore = await getDataStore();
+  return dataStore.removeGameEvent(gameId, eventIndex);
 };
 
 /**
@@ -654,6 +448,9 @@ export const importGamesFromJson = async (
     }
 
     // Save all valid games
+    // Note: saveGames → DataStore.saveAllGames also validates each game (defense-in-depth).
+    // This double validation is intentional to ensure data integrity at the storage layer,
+    // even if future callers of saveAllGames forget to validate first.
     if (result.successful > 0) {
       await saveGames(gamesToSave);
       logger.log(`Successfully imported ${result.successful} games`);

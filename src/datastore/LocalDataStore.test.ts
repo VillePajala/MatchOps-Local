@@ -10,7 +10,7 @@
 // but we need the type for TypeScript annotations
 import type { LocalDataStore as LocalDataStoreType } from './LocalDataStore';
 import type { Player, Team, TeamPlayer, Season, Tournament } from '@/types';
-import type { AppState, GameEvent } from '@/types/game';
+import type { AppState, GameEvent, SavedGamesCollection } from '@/types/game';
 import type { Personnel } from '@/types/personnel';
 import type { WarmupPlan } from '@/types/warmupPlan';
 import type { TimerState } from '@/utils/timerStateManager';
@@ -1099,6 +1099,24 @@ describe('LocalDataStore', () => {
         expect(saved).toEqual(mockGame);
         expect(mockSetStorageItem).toHaveBeenCalled();
       });
+
+      it('should reject game missing teamName', async () => {
+        const invalidGame = { ...mockGame, teamName: '' };
+        await expect(dataStore.saveGame('game_1', invalidGame))
+          .rejects.toThrow('Missing required game fields');
+      });
+
+      it('should reject game missing opponentName', async () => {
+        const invalidGame = { ...mockGame, opponentName: '' };
+        await expect(dataStore.saveGame('game_1', invalidGame))
+          .rejects.toThrow('Missing required game fields');
+      });
+
+      it('should reject game missing gameDate', async () => {
+        const invalidGame = { ...mockGame, gameDate: '' };
+        await expect(dataStore.saveGame('game_1', invalidGame))
+          .rejects.toThrow('Missing required game fields');
+      });
     });
 
     describe('deleteGame', () => {
@@ -1114,6 +1132,98 @@ describe('LocalDataStore', () => {
 
         const result = await dataStore.deleteGame('non_existent');
         expect(result).toBe(false);
+      });
+    });
+
+    describe('saveAllGames', () => {
+      it('should save games collection', async () => {
+        const games = { game_1: mockGame, game_2: { ...mockGame, teamName: 'Team B' } };
+
+        await dataStore.saveAllGames(games);
+        expect(mockSetStorageItem).toHaveBeenCalledWith(
+          'savedSoccerGames',
+          JSON.stringify(games)
+        );
+      });
+
+      it('should save empty collection', async () => {
+        await dataStore.saveAllGames({});
+        expect(mockSetStorageItem).toHaveBeenCalledWith(
+          'savedSoccerGames',
+          JSON.stringify({})
+        );
+      });
+
+      it('should reject null', async () => {
+        await expect(
+          dataStore.saveAllGames(null as unknown as SavedGamesCollection)
+        ).rejects.toThrow('Invalid games collection');
+      });
+
+      it('should reject undefined', async () => {
+        await expect(
+          dataStore.saveAllGames(undefined as unknown as SavedGamesCollection)
+        ).rejects.toThrow('Invalid games collection');
+      });
+
+      it('should reject arrays', async () => {
+        await expect(
+          dataStore.saveAllGames([] as unknown as SavedGamesCollection)
+        ).rejects.toThrow('Invalid games collection');
+      });
+
+      it('should reject non-objects', async () => {
+        await expect(
+          dataStore.saveAllGames('not-an-object' as unknown as SavedGamesCollection)
+        ).rejects.toThrow('Invalid games collection');
+      });
+
+      it('should reject collection with null game', async () => {
+        const games = { game_1: null } as unknown as SavedGamesCollection;
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Invalid game data for game_1');
+      });
+
+      it('should reject collection with non-object game', async () => {
+        const games = { game_1: 'not-a-game' } as unknown as SavedGamesCollection;
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Invalid game data for game_1');
+      });
+
+      it('should reject game missing teamName', async () => {
+        const games = {
+          game_1: { ...mockGame, teamName: '' }
+        };
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Missing required fields in game game_1');
+      });
+
+      it('should reject game missing opponentName', async () => {
+        const games = {
+          game_1: { ...mockGame, opponentName: '' }
+        };
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Missing required fields in game game_1');
+      });
+
+      it('should reject game missing gameDate', async () => {
+        const games = {
+          game_1: { ...mockGame, gameDate: '' }
+        };
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Missing required fields in game game_1');
+      });
+
+      // Storage layer error tests
+      it('should propagate IndexedDB storage errors', async () => {
+        const games = { game_1: mockGame };
+        mockSetStorageItem.mockRejectedValue(new Error('Storage write failed'));
+
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Storage write failed');
+      });
+
+      it('should propagate quota exceeded errors', async () => {
+        const games = { game_1: mockGame };
+        const quotaError = new Error('QuotaExceededError');
+        quotaError.name = 'QuotaExceededError';
+        mockSetStorageItem.mockRejectedValue(quotaError);
+
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('QuotaExceededError');
       });
     });
 

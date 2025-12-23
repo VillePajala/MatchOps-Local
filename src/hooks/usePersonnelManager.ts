@@ -94,7 +94,7 @@ export const usePersonnelManager = (): PersonnelManagerReturn => {
         return result;
       } catch (error) {
         logger.error('[usePersonnelManager] Error adding personnel:', error);
-        throw error instanceof Error ? error : new Error(String(error));
+        throw error; // DataStore guarantees Error types
       }
     },
     [addMutation]
@@ -116,7 +116,7 @@ export const usePersonnelManager = (): PersonnelManagerReturn => {
         return result;
       } catch (error) {
         logger.error('[usePersonnelManager] Error updating personnel:', error);
-        throw error instanceof Error ? error : new Error(String(error));
+        throw error; // DataStore guarantees Error types
       }
     },
     [updateMutation]
@@ -130,7 +130,7 @@ export const usePersonnelManager = (): PersonnelManagerReturn => {
         logger.log('[usePersonnelManager] Personnel removed successfully');
       } catch (error) {
         logger.error('[usePersonnelManager] Error removing personnel:', error);
-        throw error instanceof Error ? error : new Error(String(error));
+        throw error; // DataStore guarantees Error types
       }
     },
     [removeMutation]

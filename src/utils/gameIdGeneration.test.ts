@@ -1,31 +1,6 @@
 import { createGame } from './savedGames';
+import { generateId } from './idGenerator';
 import { AppState } from '@/types';
-import { clearMockStore } from './__mocks__/storage';
-
-// Mock localStorage
-const mockLocalStorage = (() => {
-  let store: Record<string, string> = {};
-  
-  return {
-    getItem: jest.fn((key: string) => store[key] || null),
-    setItem: jest.fn((key: string, value: string) => {
-      store[key] = value;
-    }),
-    removeItem: jest.fn((key: string) => {
-      delete store[key];
-    }),
-    clear: jest.fn(() => {
-      store = {};
-    }),
-    getStore: () => ({ ...store })
-  };
-})();
-
-Object.defineProperty(global, 'localStorage', {
-  value: mockLocalStorage,
-  configurable: true,
-  writable: true,
-});
 
 // Mock crypto.randomUUID for test environment
 const mockRandomUUID = jest.fn(() => 'abcd1234-5678-9abc-def0-123456789abc');
@@ -57,13 +32,49 @@ jest.mock('./logger', () => ({
   }))
 }));
 
-// Mock storage module - uses __mocks__/storage.ts for in-memory storage
-jest.mock('./storage');
+// Mock DataStore - uses actual generateId from idGenerator.ts to stay in sync
+const mockDataStore = {
+  createGame: jest.fn(async (gameData: Partial<AppState>) => {
+    const gameId = generateId('game');
+    // Create full game data with defaults - cast via unknown since we're testing
+    const fullGameData = {
+      playersOnField: [],
+      opponents: [],
+      drawings: [],
+      availablePlayers: [],
+      showPlayerNames: true,
+      teamName: 'Unnamed Team',
+      gameEvents: [],
+      opponentName: 'Opponent',
+      gameDate: new Date().toISOString().split('T')[0],
+      homeScore: 0,
+      awayScore: 0,
+      gameNotes: '',
+      homeOrAway: 'home',
+      numberOfPeriods: 2,
+      periodDurationMinutes: 10,
+      currentPeriod: 1,
+      gameStatus: 'notStarted',
+      selectedPlayerIds: [],
+      assessments: {},
+      seasonId: '',
+      tournamentId: '',
+      tacticalDiscs: [],
+      tacticalDrawings: [],
+      tacticalBallPosition: null,
+      // Merge with provided data
+      ...gameData,
+    } as unknown as AppState;
+    return { gameId, gameData: fullGameData };
+  }),
+};
+
+jest.mock('@/datastore', () => ({
+  getDataStore: jest.fn(async () => mockDataStore),
+}));
 
 describe('Game ID Generation', () => {
   beforeEach(() => {
-    clearMockStore(); // Clear IndexedDB mock storage
-    mockLocalStorage.clear(); // Keep for legacy if needed
     jest.clearAllMocks();
     // Restore crypto mock after clearAllMocks
     mockRandomUUID.mockReturnValue('abcd1234-5678-9abc-def0-123456789abc');
@@ -209,8 +220,8 @@ describe('Game ID Generation', () => {
       // Should fall back gracefully and still create a valid game
       const result = await createGame(gameData);
       
-      // Verify it still creates a valid ID with fallback UUID
-      expect(result.gameId).toMatch(/^game_\d+_[a-f0-9]{8}$/);
+      // Verify it still creates a valid ID with fallback UUID (base36 includes a-z, not just hex)
+      expect(result.gameId).toMatch(/^game_\d+_[a-z0-9]{8}$/);
       expect(result.gameData.teamName).toBe('Test Team');
       
     } finally {

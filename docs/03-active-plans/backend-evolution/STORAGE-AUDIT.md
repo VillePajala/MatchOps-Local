@@ -1,8 +1,8 @@
 # Storage Audit - December 18, 2025
 
 **Purpose**: Authoritative inventory of all storage calls in the codebase
-**Status**: Current (audited against actual code)
-**Last Updated**: December 18, 2025
+**Status**: ✅ PHASE 1-3 COMPLETE - All refactoring done, ready for master merge
+**Last Updated**: December 23, 2025
 
 ---
 
@@ -63,9 +63,15 @@ These files SHOULD have direct storage access:
 | `fullBackup.ts` | Multiple | Import/export |
 | `__mocks__/storage.ts` | Mock | Test mock |
 
-### Files Needing Refactoring - DIRECT STORAGE ACCESS
+### Files Needing Refactoring - ✅ ALL COMPLETE
 
-These files bypass domain managers and need fixing:
+These files previously had direct storage access. All have been refactored:
+- ✅ Timer state calls → `timerStateManager.ts` (PR #2)
+- ✅ App settings calls → `appSettings.ts` (PR #3)
+- ✅ Install prompt calls → `appSettings.ts` (PR #3)
+- ✅ i18n calls → `appSettings.ts` (PR #3)
+
+**Remaining legacy migration code** (lines 771-780 in useGameOrchestration.ts) is intentional one-time migration for old storage keys and should stay as-is.
 
 #### 1. `src/components/HomePage/hooks/useGameOrchestration.ts`
 

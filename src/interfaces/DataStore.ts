@@ -231,11 +231,17 @@ export interface DataStore {
 
   // ==========================================================================
   // PERSONNEL
+  //
+  // Error handling pattern:
+  // - Return null: Entity not found (valid query, no result)
+  // - Throw Error: Validation failures (bad input - empty name, duplicates)
+  // - Throw Error: Storage/system failures
   // ==========================================================================
 
   /**
    * Get all personnel members.
    * @returns All personnel as array
+   * @throws {Error} If storage operation fails
    */
   getAllPersonnel(): Promise<Personnel[]>;
 
@@ -243,6 +249,7 @@ export interface DataStore {
    * Get a personnel member by ID.
    * @param id - Personnel ID
    * @returns Personnel or null if not found
+   * @throws {Error} If storage operation fails
    */
   getPersonnelById(id: string): Promise<Personnel | null>;
 
@@ -250,6 +257,9 @@ export interface DataStore {
    * Add a new personnel member.
    * @param data - Personnel data (id, createdAt, updatedAt will be generated)
    * @returns The created personnel member
+   * @throws {ValidationError} If name is empty or exceeds max length
+   * @throws {AlreadyExistsError} If name already exists (case-insensitive)
+   * @throws {Error} If storage operation fails
    */
   addPersonnelMember(data: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>): Promise<Personnel>;
 
@@ -258,6 +268,9 @@ export interface DataStore {
    * @param id - Personnel ID
    * @param updates - Partial personnel data to update
    * @returns Updated personnel or null if not found
+   * @throws {ValidationError} If name is empty or exceeds max length
+   * @throws {AlreadyExistsError} If name already exists (case-insensitive)
+   * @throws {Error} If storage operation fails
    */
   updatePersonnelMember(id: string, updates: Partial<Personnel>): Promise<Personnel | null>;
 
@@ -266,16 +279,22 @@ export interface DataStore {
    * CASCADE DELETE: Also removes from all games' gamePersonnel arrays.
    * @param id - Personnel ID
    * @returns true if deleted, false if not found
+   * @throws {Error} If storage operation fails
    */
   removePersonnelMember(id: string): Promise<boolean>;
 
   // ==========================================================================
   // GAMES
+  //
+  // Error handling pattern:
+  // - Return null: Game not found (valid query, no result)
+  // - Throw Error: Storage/system failures
   // ==========================================================================
 
   /**
    * Get all saved games.
    * @returns Games collection (object map by gameId)
+   * @throws {Error} If storage operation fails
    */
   getGames(): Promise<SavedGamesCollection>;
 
@@ -283,6 +302,7 @@ export interface DataStore {
    * Get a game by ID.
    * @param id - Game ID
    * @returns Game state or null if not found
+   * @throws {Error} If storage operation fails
    */
   getGameById(id: string): Promise<AppState | null>;
 
@@ -290,6 +310,7 @@ export interface DataStore {
    * Create a new game.
    * @param game - Partial game data (defaults will be applied)
    * @returns Object containing generated gameId and full game data
+   * @throws {Error} If storage operation fails
    */
   createGame(game: Partial<AppState>): Promise<{ gameId: string; gameData: AppState }>;
 
@@ -298,13 +319,28 @@ export interface DataStore {
    * @param id - Game ID
    * @param game - Full game state
    * @returns The saved game state
+   * @throws {Error} If storage operation fails
    */
   saveGame(id: string, game: AppState): Promise<AppState>;
+
+  /**
+   * Save all games (bulk replace).
+   * @param games - Full games collection to save
+   * @remarks
+   * - Used by import/migration operations
+   * - Replaces entire collection atomically
+   * - Validates each game has required fields (teamName, opponentName, gameDate)
+   * - Validation is atomic: if ANY game fails validation, NO games are saved
+   * @throws {ValidationError} If games collection is invalid or contains invalid games
+   * @throws {Error} If storage operation fails
+   */
+  saveAllGames(games: SavedGamesCollection): Promise<void>;
 
   /**
    * Delete a game.
    * @param id - Game ID
    * @returns true if deleted, false if not found
+   * @throws {Error} If storage operation fails
    */
   deleteGame(id: string): Promise<boolean>;
 
@@ -312,6 +348,10 @@ export interface DataStore {
   // GAME EVENTS
   // Events are stored inside game documents, not separately.
   // Operations use index-based access to match current implementation.
+  //
+  // Error handling pattern:
+  // - Return null: Game or event not found (valid query, no result)
+  // - Throw Error: Storage/system failures
   // ==========================================================================
 
   /**
@@ -319,6 +359,7 @@ export interface DataStore {
    * @param gameId - Game ID
    * @param event - Event to add
    * @returns Updated game state or null if game not found
+   * @throws {Error} If storage operation fails
    */
   addGameEvent(gameId: string, event: GameEvent): Promise<AppState | null>;
 
@@ -328,6 +369,7 @@ export interface DataStore {
    * @param eventIndex - Index of event in gameEvents array
    * @param event - Updated event data
    * @returns Updated game state or null if game/event not found
+   * @throws {Error} If storage operation fails
    */
   updateGameEvent(gameId: string, eventIndex: number, event: GameEvent): Promise<AppState | null>;
 
@@ -336,6 +378,7 @@ export interface DataStore {
    * @param gameId - Game ID
    * @param eventIndex - Index of event in gameEvents array
    * @returns Updated game state or null if game/event not found
+   * @throws {Error} If storage operation fails
    */
   removeGameEvent(gameId: string, eventIndex: number): Promise<AppState | null>;
 
