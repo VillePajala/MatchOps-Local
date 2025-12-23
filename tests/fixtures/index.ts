@@ -16,6 +16,8 @@
 
 import type { Player as _Player, Season as _Season, Tournament as _Tournament, AppState, GameEvent as _GameEvent } from '@/types';
 export { TestIdGenerator, BaseFixture } from './base';
+export { createMockDataStore, createStatefulMockDataStore, resetMockDataStore } from './mockDataStore';
+export type { MockDataStoreOverrides } from './mockDataStore';
 
 // Import all fixture factories individually to avoid naming conflicts
 import * as PlayersFixtures from './players';
@@ -26,6 +28,7 @@ import * as SettingsFixtures from './settings';
 import * as ErrorsFixtures from './errors';
 import * as PersonnelFixtures from './personnel';
 import * as GameContainerFixtures from './gameContainer';
+import * as MockDataStoreFixtures from './mockDataStore';
 
 // Use the same imported factories
 const players = PlayersFixtures;
@@ -36,6 +39,7 @@ const settings = SettingsFixtures;
 const errors = ErrorsFixtures;
 const personnel = PersonnelFixtures;
 const gameContainer = GameContainerFixtures;
+const mockDataStore = MockDataStoreFixtures;
 
 /**
  * Centralized test fixtures namespace providing organized access to all test data
@@ -95,6 +99,12 @@ export const TestFixtures = {
    * @example TestFixtures.gameContainer.createGameContainerProps({ isDrawingEnabled: true })
    */
   gameContainer,
+
+  /**
+   * Mock DataStore factory for testing
+   * @example TestFixtures.mockDataStore.createMockDataStore({ getGames: jest.fn() })
+   */
+  mockDataStore,
 
   /**
    * Utility methods for common test scenarios

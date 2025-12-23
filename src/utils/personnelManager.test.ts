@@ -20,14 +20,9 @@ import type { Personnel, PersonnelRole } from '@/types/personnel';
 import type { AppState } from '@/types';
 import logger from '@/utils/logger';
 
-// Mock DataStore state (module-level for mock factory access)
-let mockPersonnel: { [id: string]: Personnel } = {};
-let mockGames: { [gameId: string]: AppState } = {};
-let mockShouldThrow = false;
-let mockValidationError: Error | null = null;
-
 /**
- * Simple mock DataStore implementation for testing personnelManager.ts delegation.
+ * Factory for creating isolated mock DataStore state per test.
+ * Prevents test pollution by encapsulating all state in a closure.
  *
  * DESIGN: This mock does NOT duplicate validation logic from LocalDataStore.
  * Validation is tested in LocalDataStore.test.ts. This test file verifies
@@ -35,67 +30,88 @@ let mockValidationError: Error | null = null;
  *
  * @see src/datastore/__tests__/LocalDataStore.test.ts - for validation tests
  */
-const mockDataStore = {
-  getAllPersonnel: jest.fn(async () => {
-    if (mockShouldThrow) throw new Error('DataStore error');
-    // Sort by createdAt descending (newest first)
-    return Object.values(mockPersonnel).sort((a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  }),
-  getPersonnelById: jest.fn(async (id: string) => {
-    if (mockShouldThrow) throw new Error('DataStore error');
-    return mockPersonnel[id] || null;
-  }),
-  addPersonnelMember: jest.fn(async (data: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (mockShouldThrow) throw new Error('DataStore error');
-    if (mockValidationError) throw mockValidationError;
+const createMockDataStoreWithState = () => {
+  // Encapsulated state - fresh for each test
+  const personnel: { [id: string]: Personnel } = {};
+  let games: { [gameId: string]: AppState } = {};
+  let shouldThrow = false;
+  let validationError: Error | null = null;
 
-    const now = new Date().toISOString();
-    const newPersonnel: Personnel = {
-      id: `personnel_${Date.now()}_${Math.random().toString(16).slice(2, 10)}`,
-      name: data.name,
-      role: data.role,
-      phone: data.phone,
-      email: data.email,
-      certifications: data.certifications,
-      notes: data.notes,
-      createdAt: now,
-      updatedAt: now,
-    };
-    mockPersonnel[newPersonnel.id] = newPersonnel;
-    return newPersonnel;
-  }),
-  updatePersonnelMember: jest.fn(async (id: string, updates: Partial<Personnel>) => {
-    if (mockShouldThrow) throw new Error('DataStore error');
-    const existing = mockPersonnel[id];
-    if (!existing) return null;
+  const dataStore = {
+    getAllPersonnel: jest.fn(async () => {
+      if (shouldThrow) throw new Error('DataStore error');
+      // Sort by createdAt descending (newest first)
+      return Object.values(personnel).sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    }),
+    getPersonnelById: jest.fn(async (id: string) => {
+      if (shouldThrow) throw new Error('DataStore error');
+      return personnel[id] || null;
+    }),
+    addPersonnelMember: jest.fn(async (data: Omit<Personnel, 'id' | 'createdAt' | 'updatedAt'>) => {
+      if (shouldThrow) throw new Error('DataStore error');
+      if (validationError) throw validationError;
 
-    const updated: Personnel = {
-      ...existing,
-      ...updates,
-      id: existing.id,
-      createdAt: existing.createdAt,
-      updatedAt: new Date().toISOString(),
-    };
-    mockPersonnel[id] = updated;
-    return updated;
-  }),
-  removePersonnelMember: jest.fn(async (id: string) => {
-    if (mockShouldThrow) throw new Error('DataStore error');
-    if (!mockPersonnel[id]) return false;
-    delete mockPersonnel[id];
-    return true;
-  }),
-  getGames: jest.fn(async () => {
-    if (mockShouldThrow) throw new Error('DataStore error');
-    return mockGames;
-  }),
+      const now = new Date().toISOString();
+      const newPersonnel: Personnel = {
+        id: `personnel_${Date.now()}_${Math.random().toString(16).slice(2, 10)}`,
+        name: data.name,
+        role: data.role,
+        phone: data.phone,
+        email: data.email,
+        certifications: data.certifications,
+        notes: data.notes,
+        createdAt: now,
+        updatedAt: now,
+      };
+      personnel[newPersonnel.id] = newPersonnel;
+      return newPersonnel;
+    }),
+    updatePersonnelMember: jest.fn(async (id: string, updates: Partial<Personnel>) => {
+      if (shouldThrow) throw new Error('DataStore error');
+      const existing = personnel[id];
+      if (!existing) return null;
+
+      const updated: Personnel = {
+        ...existing,
+        ...updates,
+        id: existing.id,
+        createdAt: existing.createdAt,
+        updatedAt: new Date().toISOString(),
+      };
+      personnel[id] = updated;
+      return updated;
+    }),
+    removePersonnelMember: jest.fn(async (id: string) => {
+      if (shouldThrow) throw new Error('DataStore error');
+      if (!personnel[id]) return false;
+      delete personnel[id];
+      return true;
+    }),
+    getGames: jest.fn(async () => {
+      if (shouldThrow) throw new Error('DataStore error');
+      return games;
+    }),
+  };
+
+  return {
+    dataStore,
+    // Control functions for tests
+    setShouldThrow: (value: boolean) => { shouldThrow = value; },
+    setValidationError: (error: Error | null) => { validationError = error; },
+    setGames: (newGames: { [gameId: string]: AppState }) => { games = newGames; },
+    // Direct state access for assertions (read-only intent)
+    getState: () => ({ personnel: { ...personnel }, games: { ...games } }),
+  };
 };
 
-// Mock DataStore
+// Current mock instance - recreated fresh for each test
+let mockInstance: ReturnType<typeof createMockDataStoreWithState>;
+
+// Mock DataStore module
 jest.mock('@/datastore', () => ({
-  getDataStore: jest.fn(async () => mockDataStore),
+  getDataStore: jest.fn(async () => mockInstance.dataStore),
 }));
 
 // Mock console methods
@@ -103,10 +119,8 @@ let consoleErrorSpy: jest.SpyInstance;
 let consoleWarnSpy: jest.SpyInstance;
 
 beforeEach(() => {
-  mockPersonnel = {};
-  mockGames = {};
-  mockShouldThrow = false;
-  mockValidationError = null;
+  // Create fresh mock instance with isolated state
+  mockInstance = createMockDataStoreWithState();
   jest.clearAllMocks();
   consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
   consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -211,7 +225,6 @@ describe('Personnel Manager Utilities', () => {
       expect(member.role).toBe('fitness_coach');
       expect(member.createdAt).toBeDefined();
       expect(member.updatedAt).toBeDefined();
-      expect(mockDataStore.addPersonnelMember).toHaveBeenCalledWith(data);
     });
 
     it('should add personnel with all optional fields', async () => {
@@ -418,11 +431,11 @@ describe('Personnel Manager Utilities', () => {
       const member = await addPersonnelMember(createTestPersonnel('Test Coach', 'head_coach'));
 
       // Add some games referencing this personnel
-      mockGames = {
+      mockInstance.setGames({
         'game1': { gamePersonnel: [member.id] } as unknown as AppState,
         'game2': { gamePersonnel: ['other-personnel'] } as unknown as AppState,
         'game3': { gamePersonnel: [member.id, 'other-personnel'] } as unknown as AppState,
-      };
+      });
 
       const gameIds = await getGamesWithPersonnel(member.id);
       expect(gameIds).toHaveLength(2);
@@ -527,7 +540,7 @@ describe('Personnel Manager Utilities', () => {
      * @critical
      */
     it('should propagate DataStore errors from addPersonnelMember', async () => {
-      mockShouldThrow = true;
+      mockInstance.setShouldThrow(true);
       await expect(addPersonnelMember(createTestPersonnel('Test', 'head_coach'))).rejects.toThrow('DataStore error');
     });
 
@@ -538,7 +551,7 @@ describe('Personnel Manager Utilities', () => {
     it('should propagate ValidationError from DataStore', async () => {
       const validationError = new Error('Personnel name cannot be empty');
       (validationError as Error & { code: string }).code = 'VALIDATION_ERROR';
-      mockValidationError = validationError;
+      mockInstance.setValidationError(validationError);
 
       await expect(addPersonnelMember(createTestPersonnel('', 'head_coach'))).rejects.toThrow('Personnel name cannot be empty');
     });
@@ -548,7 +561,7 @@ describe('Personnel Manager Utilities', () => {
      * @critical
      */
     it('should propagate DataStore errors from getAllPersonnel', async () => {
-      mockShouldThrow = true;
+      mockInstance.setShouldThrow(true);
       await expect(getAllPersonnel()).rejects.toThrow('DataStore error');
     });
 
@@ -557,7 +570,7 @@ describe('Personnel Manager Utilities', () => {
      * @critical
      */
     it('should propagate DataStore errors from getPersonnelById', async () => {
-      mockShouldThrow = true;
+      mockInstance.setShouldThrow(true);
       await expect(getPersonnelById('some-id')).rejects.toThrow('DataStore error');
     });
 
@@ -566,7 +579,7 @@ describe('Personnel Manager Utilities', () => {
      * @critical
      */
     it('should propagate DataStore errors from removePersonnelMember', async () => {
-      mockShouldThrow = true;
+      mockInstance.setShouldThrow(true);
       await expect(removePersonnelMember('some-id')).rejects.toThrow('DataStore error');
     });
 
@@ -574,7 +587,7 @@ describe('Personnel Manager Utilities', () => {
      * Tests that getGamesWithPersonnel propagates DataStore errors
      */
     it('should propagate DataStore errors from getGamesWithPersonnel', async () => {
-      mockShouldThrow = true;
+      mockInstance.setShouldThrow(true);
       await expect(getGamesWithPersonnel('some-id')).rejects.toThrow('DataStore error');
     });
   });

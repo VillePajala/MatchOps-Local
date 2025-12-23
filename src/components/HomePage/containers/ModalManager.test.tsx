@@ -3,7 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ModalManager } from './ModalManager';
 import { PremiumProvider } from '@/contexts/PremiumContext';
 import { initialGameSessionStatePlaceholder } from '@/hooks/useGameSessionReducer';
-import type { Season, Tournament, Team, PlayerAssessment, Personnel } from '@/types';
+import { TestFixtures } from '../../../../tests/fixtures';
+import type { Season, Tournament, Team, PlayerAssessment } from '@/types';
 import type { ModalManagerProps } from './ModalManager';
 import type { UseMutationResult } from '@tanstack/react-query';
 
@@ -105,7 +106,7 @@ const createProps = (): ModalManagerProps => ({
     masterRoster: [],
     personnel: [],
     personnelManager: {
-      addPersonnel: async () => ({ id: 'test', name: 'Test', role: 'head_coach', createdAt: '', updatedAt: '' } as Personnel),
+      addPersonnel: async () => TestFixtures.personnel.headCoach({ name: 'Test' }),
       updatePersonnel: async () => null,
       removePersonnel: async () => {},
       isLoading: false,
