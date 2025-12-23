@@ -1431,22 +1431,28 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       });
       fieldCoordination.setPlayersOnField(updatedFieldPlayers);
 
-      // Save the updated state (must include all AppState fields)
+      // Save the updated state - merge with existing game to preserve all AppState fields
       if (currentGameId) {
-        await utilSaveGame(currentGameId, {
-          ...gameSessionState,
-          availablePlayers: updatedAvailablePlayers,
-          playersOnField: updatedFieldPlayers,
-          // Include field coordination state for complete AppState
-          opponents: fieldCoordination.opponents,
-          drawings: fieldCoordination.drawings,
-          tacticalDiscs: fieldCoordination.tacticalDiscs,
-          tacticalDrawings: fieldCoordination.tacticalDrawings,
-          tacticalBallPosition: fieldCoordination.tacticalBallPosition,
-        });
+        const currentGame = savedGames[currentGameId];
+        if (currentGame) {
+          await utilSaveGame(currentGameId, {
+            ...currentGame,  // Start with complete saved state to preserve all fields
+            ...gameSessionState,  // Apply session state updates
+            availablePlayers: updatedAvailablePlayers,
+            playersOnField: updatedFieldPlayers,
+            // Include field coordination state
+            opponents: fieldCoordination.opponents,
+            drawings: fieldCoordination.drawings,
+            tacticalDiscs: fieldCoordination.tacticalDiscs,
+            tacticalDrawings: fieldCoordination.tacticalDrawings,
+            tacticalBallPosition: fieldCoordination.tacticalBallPosition,
+          });
 
-        // Invalidate React Query cache to update LoadGameModal
-        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+          // Invalidate React Query cache to update LoadGameModal
+          queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+        } else {
+          logger.warn(`[handleToggleGoalieForModal] Cannot save - game ${currentGameId} not found in savedGames`);
+        }
       }
 
       logger.log(`[Page.tsx] per-game goalie toggle success for ${playerId}.`);
@@ -1455,7 +1461,7 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
   }, [
     // Data dependencies (values that change the function's behavior)
-    availablePlayers, currentGameId, gameSessionState, t,
+    availablePlayers, currentGameId, gameSessionState, savedGames, t,
     // Setter dependencies (React guarantees these are stable but ESLint requires them)
     setAvailablePlayers, setRosterError, queryClient,
     // fieldCoordination provides playersOnField and setPlayersOnField
