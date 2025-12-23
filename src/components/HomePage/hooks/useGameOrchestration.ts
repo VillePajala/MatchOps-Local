@@ -10,7 +10,7 @@ import i18n from '@/i18n';
 import { useFieldCoordination } from './useFieldCoordination';
 import { useTimerManagement } from './useTimerManagement';
 import { GameSessionState } from '@/hooks/useGameSessionReducer';
-import { saveGame as utilSaveGame, getLatestGameId, getSavedGames as utilGetSavedGames } from '@/utils/savedGames';
+import { saveGame as utilSaveGame, getGame as utilGetGame, getLatestGameId, getSavedGames as utilGetSavedGames } from '@/utils/savedGames';
 import {
   saveCurrentGameIdSetting as utilSaveCurrentGameIdSetting,
   resetAppSettings as utilResetAppSettings,
@@ -1438,20 +1438,64 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       });
       fieldCoordination.setPlayersOnField(updatedFieldPlayers);
 
-      // Save the updated state - merge with existing game to preserve all AppState fields
+      // Save the updated state - fetch FRESH state from storage to avoid stale data
       //
-      // MERGE ORDER (later overrides earlier):
-      // 1. currentGameForSave - preserves fields not in reducer: assessments, isPlayed, etc.
-      // 2. gameSessionState - applies timer, score, status changes from reducer
-      // 3. Explicit fields - the specific changes from this operation
+      // WHY FRESH FETCH: currentGameForSave is memoized from React state and could be
+      // stale if the game was modified elsewhere (e.g., another save operation completed,
+      // or React Query invalidation hasn't updated savedGames state yet). Fetching fresh
+      // ensures we don't overwrite fields like assessments, isPlayed, etc.
       //
-      // Performance: Triple-spread creates 2 intermediate objects (~30 fields each).
-      // Acceptable for user-triggered action; not a hot loop.
-      if (currentGameId && currentGameForSave) {
+      // WHITELIST APPROACH: Explicitly list fields from each source to prevent stale data.
+      // 1. freshGameState - fresh from storage (preserves assessments, isPlayed, etc.)
+      // 2. Reducer-authoritative fields - timer, score, status, metadata from gameSessionState
+      // 3. Field coordination - player positions, tactical elements
+      if (currentGameId) {
+        const freshGameState = await utilGetGame(currentGameId);
+
+        if (!freshGameState) {
+          logger.warn(`[handleToggleGoalieForModal] Cannot save - game ${currentGameId} not found in storage`);
+          return;
+        }
+
         await utilSaveGame(currentGameId, {
-          ...currentGameForSave,
-          ...gameSessionState,
-          // Explicit updates from this operation
+          // Base: fresh from storage, preserves fields not managed elsewhere
+          ...freshGameState,
+          // Reducer-authoritative: game metadata
+          teamName: gameSessionState.teamName,
+          opponentName: gameSessionState.opponentName,
+          gameDate: gameSessionState.gameDate,
+          gameNotes: gameSessionState.gameNotes,
+          homeOrAway: gameSessionState.homeOrAway,
+          seasonId: gameSessionState.seasonId,
+          tournamentId: gameSessionState.tournamentId,
+          leagueId: gameSessionState.leagueId,
+          customLeagueName: gameSessionState.customLeagueName,
+          teamId: gameSessionState.teamId,
+          gameType: gameSessionState.gameType,
+          gender: gameSessionState.gender,
+          ageGroup: gameSessionState.ageGroup,
+          tournamentLevel: gameSessionState.tournamentLevel,
+          tournamentSeriesId: gameSessionState.tournamentSeriesId,
+          gameLocation: gameSessionState.gameLocation,
+          gameTime: gameSessionState.gameTime,
+          demandFactor: gameSessionState.demandFactor,
+          gamePersonnel: gameSessionState.gamePersonnel,
+          selectedPlayerIds: gameSessionState.selectedPlayerIds,
+          showPlayerNames: gameSessionState.showPlayerNames,
+          // Reducer-authoritative: game progress
+          homeScore: gameSessionState.homeScore,
+          awayScore: gameSessionState.awayScore,
+          currentPeriod: gameSessionState.currentPeriod,
+          gameStatus: gameSessionState.gameStatus,
+          numberOfPeriods: gameSessionState.numberOfPeriods,
+          periodDurationMinutes: gameSessionState.periodDurationMinutes,
+          gameEvents: gameSessionState.gameEvents,
+          // Reducer-authoritative: timer/substitution state (only persisted fields)
+          // Note: nextSubDueTimeSeconds and subAlertLevel are runtime-only (not in AppState)
+          subIntervalMinutes: gameSessionState.subIntervalMinutes,
+          lastSubConfirmationTimeSeconds: gameSessionState.lastSubConfirmationTimeSeconds,
+          completedIntervalDurations: gameSessionState.completedIntervalDurations,
+          // Field coordination: player arrays and tactical elements
           availablePlayers: updatedAvailablePlayers,
           playersOnField: updatedFieldPlayers,
           opponents: fieldCoordination.opponents,
@@ -1463,18 +1507,15 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
 
         // Invalidate React Query cache to update LoadGameModal
         queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
-      } else if (currentGameId) {
-        logger.warn(`[handleToggleGoalieForModal] Cannot save - game ${currentGameId} not found`);
       }
 
       logger.log(`[Page.tsx] per-game goalie toggle success for ${playerId}.`);
     } catch (error) {
       logger.error(`[Page.tsx] Exception during per-game goalie toggle of ${playerId}:`, error);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- currentGameForSave is used: condition check + spread
   }, [
     // Data dependencies (values that change the function's behavior)
-    // Note: currentGameForSave is memoized from savedGames[currentGameId], avoiding
-    // callback recreation when other games change.
     availablePlayers, currentGameId, currentGameForSave, gameSessionState, t,
     // Setter dependencies (React guarantees these are stable but ESLint requires them)
     setAvailablePlayers, setRosterError, queryClient,

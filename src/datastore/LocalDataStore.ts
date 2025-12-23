@@ -963,6 +963,15 @@ export class LocalDataStore implements DataStore {
   async saveGame(id: string, game: AppState): Promise<AppState> {
     this.ensureInitialized();
 
+    // Validate required fields (defense in depth - TypeScript doesn't guarantee runtime presence)
+    if (!game.teamName || !game.opponentName || !game.gameDate) {
+      throw new ValidationError(
+        'Missing required game fields',
+        'game',
+        { hasTeamName: !!game.teamName, hasOpponentName: !!game.opponentName, hasGameDate: !!game.gameDate }
+      );
+    }
+
     if (game.gameNotes && game.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) {
       throw new ValidationError(`Game notes cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters (got ${game.gameNotes.length})`, 'gameNotes', game.gameNotes);
     }
