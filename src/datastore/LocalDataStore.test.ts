@@ -1099,6 +1099,24 @@ describe('LocalDataStore', () => {
         expect(saved).toEqual(mockGame);
         expect(mockSetStorageItem).toHaveBeenCalled();
       });
+
+      it('should reject game missing teamName', async () => {
+        const invalidGame = { ...mockGame, teamName: '' };
+        await expect(dataStore.saveGame('game_1', invalidGame))
+          .rejects.toThrow('Missing required game fields');
+      });
+
+      it('should reject game missing opponentName', async () => {
+        const invalidGame = { ...mockGame, opponentName: '' };
+        await expect(dataStore.saveGame('game_1', invalidGame))
+          .rejects.toThrow('Missing required game fields');
+      });
+
+      it('should reject game missing gameDate', async () => {
+        const invalidGame = { ...mockGame, gameDate: '' };
+        await expect(dataStore.saveGame('game_1', invalidGame))
+          .rejects.toThrow('Missing required game fields');
+      });
     });
 
     describe('deleteGame', () => {

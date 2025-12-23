@@ -1,10 +1,11 @@
 import React from 'react';
-import { render, screen, act, within } from '@testing-library/react';
+import { render, screen, act, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PersonnelDetailsModal from './PersonnelDetailsModal';
 import { Personnel } from '@/types/personnel';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
+import { AlreadyExistsError, ValidationError } from '@/interfaces/DataStoreErrors';
 
 type PersonnelDetailsModalProps = React.ComponentProps<typeof PersonnelDetailsModal>;
 
@@ -764,6 +765,72 @@ describe('PersonnelDetailsModal', () => {
       await user.click(addButton);
 
       expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to save personnel:', expect.any(Error));
+      consoleErrorSpy.mockRestore();
+    });
+
+    /**
+     * @critical - Verifies AlreadyExistsError shows duplicate name message
+     */
+    it('shows duplicate name error message for AlreadyExistsError', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      const onAddPersonnel = jest.fn().mockRejectedValue(
+        new AlreadyExistsError('Personnel', 'John Doe')
+      );
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders({
+          mode: 'create',
+          personnel: undefined,
+          onAddPersonnel,
+          onUpdatePersonnel: undefined,
+        });
+      });
+
+      const nameInput = screen.getByPlaceholderText('Enter name');
+      await user.type(nameInput, 'John Doe');
+
+      const addButton = screen.getByRole('button', { name: /^Add$/i });
+      await user.click(addButton);
+
+      // Wait for error message to appear
+      await waitFor(() => {
+        expect(screen.getByText(/already exists/i)).toBeInTheDocument();
+      });
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    /**
+     * @critical - Verifies ValidationError shows validation failed message
+     */
+    it('shows validation error message for ValidationError', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      const onAddPersonnel = jest.fn().mockRejectedValue(
+        new ValidationError('Personnel name cannot be empty', 'name', '')
+      );
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders({
+          mode: 'create',
+          personnel: undefined,
+          onAddPersonnel,
+          onUpdatePersonnel: undefined,
+        });
+      });
+
+      const nameInput = screen.getByPlaceholderText('Enter name');
+      await user.type(nameInput, 'Test');
+
+      const addButton = screen.getByRole('button', { name: /^Add$/i });
+      await user.click(addButton);
+
+      // Wait for error message to appear
+      await waitFor(() => {
+        expect(screen.getByText(/Invalid input|check the form/i)).toBeInTheDocument();
+      });
+
       consoleErrorSpy.mockRestore();
     });
   });
