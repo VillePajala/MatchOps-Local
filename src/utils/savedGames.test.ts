@@ -521,4 +521,91 @@ describe('Saved Games Utilities', () => {
       await expect(updateGameDetails('game_123', updates)).rejects.toThrow('Storage failure');
     });
   });
+
+  describe('Edge Cases', () => {
+    /**
+     * @edge-case Concurrent saveGame calls should be serialized by DataStore lock
+     */
+    it('should handle concurrent saveGame calls for same game ID', async () => {
+      const gameId = 'concurrent_test_game';
+      const callOrder: number[] = [];
+      let callCount = 0;
+
+      // Mock saveGame to track call order and simulate async work
+      mockDataStore.saveGame.mockImplementation(async (_id: string, game: AppState) => {
+        const myCall = ++callCount;
+        callOrder.push(myCall);
+        // Simulate async storage operation
+        await new Promise(resolve => setTimeout(resolve, 10));
+        return game;
+      });
+
+      // Launch concurrent saves
+      const save1 = saveGame(gameId, { ...mockGame1_AppState, teamName: 'Update 1' });
+      const save2 = saveGame(gameId, { ...mockGame1_AppState, teamName: 'Update 2' });
+      const save3 = saveGame(gameId, { ...mockGame1_AppState, teamName: 'Update 3' });
+
+      await Promise.all([save1, save2, save3]);
+
+      // All three should complete (DataStore handles locking internally)
+      expect(mockDataStore.saveGame).toHaveBeenCalledTimes(3);
+      expect(callOrder).toHaveLength(3);
+    });
+
+    /**
+     * @edge-case @performance Large collection handling
+     */
+    it('should handle saveAllGames with 1000+ games', async () => {
+      const largeCollection: SavedGamesCollection = {};
+      for (let i = 0; i < 1000; i++) {
+        largeCollection[`game_${i}`] = {
+          ...mockGame1_AppState,
+          teamName: `Team ${i}`,
+          opponentName: `Opponent ${i}`,
+        };
+      }
+
+      mockDataStore.saveAllGames.mockResolvedValue(undefined);
+
+      await expect(saveGames(largeCollection)).resolves.not.toThrow();
+      expect(mockDataStore.saveAllGames).toHaveBeenCalledWith(largeCollection);
+      expect(Object.keys(largeCollection)).toHaveLength(1000);
+    });
+
+    /**
+     * @edge-case Non-standard game IDs in collections
+     * Game IDs are object keys - unicode and special chars are valid,
+     * but empty strings should be handled gracefully.
+     */
+    it('should handle games with unicode and special character IDs', async () => {
+      const gamesWithSpecialIds: SavedGamesCollection = {
+        'game-with-dashes': mockGame1_AppState,
+        'game_with_underscores': mockGame1_AppState,
+        'game.with.dots': mockGame1_AppState,
+        'émoji🎮game': mockGame1_AppState,
+        '日本語ゲーム': mockGame1_AppState,
+      };
+
+      mockDataStore.saveAllGames.mockResolvedValue(undefined);
+
+      await expect(saveGames(gamesWithSpecialIds)).resolves.not.toThrow();
+      expect(mockDataStore.saveAllGames).toHaveBeenCalledWith(gamesWithSpecialIds);
+    });
+
+    /**
+     * @edge-case Empty game ID in saveGame should be rejected
+     */
+    it('should reject saveGame with empty game ID', async () => {
+      await expect(saveGame('', mockGame1_AppState)).rejects.toThrow('Game ID is required');
+      expect(mockDataStore.saveGame).not.toHaveBeenCalled();
+    });
+
+    /**
+     * @edge-case Whitespace-only game ID should be rejected
+     */
+    it('should reject saveGame with whitespace-only game ID', async () => {
+      await expect(saveGame('   ', mockGame1_AppState)).rejects.toThrow('Game ID is required');
+      expect(mockDataStore.saveGame).not.toHaveBeenCalled();
+    });
+  });
 });
