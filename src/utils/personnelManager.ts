@@ -22,6 +22,9 @@ export const getAllPersonnel = async (): Promise<Personnel[]> => {
  * Kept for backwards compatibility during migration.
  */
 export const getPersonnelCollection = async (): Promise<PersonnelCollection> => {
+  logger.warn(
+    '[DEPRECATED] getPersonnelCollection() is deprecated. Use getAllPersonnel() or getPersonnelById() instead.'
+  );
   try {
     const allPersonnel = await getAllPersonnel();
     const collection: PersonnelCollection = {};

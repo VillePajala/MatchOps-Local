@@ -1190,6 +1190,23 @@ describe('LocalDataStore', () => {
         };
         await expect(dataStore.saveAllGames(games)).rejects.toThrow('Missing required fields in game game_1');
       });
+
+      // Storage layer error tests
+      it('should propagate IndexedDB storage errors', async () => {
+        const games = { game_1: mockGame };
+        mockSetStorageItem.mockRejectedValue(new Error('Storage write failed'));
+
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Storage write failed');
+      });
+
+      it('should propagate quota exceeded errors', async () => {
+        const games = { game_1: mockGame };
+        const quotaError = new Error('QuotaExceededError');
+        quotaError.name = 'QuotaExceededError';
+        mockSetStorageItem.mockRejectedValue(quotaError);
+
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('QuotaExceededError');
+      });
     });
 
     describe('Game Events', () => {

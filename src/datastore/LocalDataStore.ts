@@ -986,13 +986,16 @@ export class LocalDataStore implements DataStore {
       throw new ValidationError('Invalid games collection', 'games', games);
     }
 
-    // Defense in depth: validate each game before bulk save to prevent corruption
-    // Even if callers validate, this ensures data integrity at the storage layer
+    // Defense in depth: lightweight validation before bulk save.
+    // Note: importGamesFromJson validates with Zod schema (more comprehensive - validates
+    // format, types, ranges). This check is a fast presence-only validation that catches
+    // null/undefined games and missing required fields. Intentionally duplicates a subset
+    // of Zod validation to protect against future callers that bypass Zod.
     for (const [gameId, game] of Object.entries(games)) {
       if (!game || typeof game !== 'object') {
         throw new ValidationError(`Invalid game data for ${gameId}`, 'games', game);
       }
-      // Basic required field validation (matches saveGame pattern)
+      // Presence-only check (Zod validates format: min(1), regex for date)
       if (!game.teamName || !game.opponentName || !game.gameDate) {
         throw new ValidationError(
           `Missing required fields in game ${gameId}`,

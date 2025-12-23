@@ -1,8 +1,8 @@
 {
-  "version": "b73c0725",
+  "version": "e36f7da4",
   "date": "2025-12-23",
   "notes": {
-    "en": "Fix lint errors and test regex",
-    "fi": "Fix lint errors and test regex"
+    "en": "Clarify merge order semantics in goalie toggle save",
+    "fi": "Clarify merge order semantics in goalie toggle save"
   }
 }
