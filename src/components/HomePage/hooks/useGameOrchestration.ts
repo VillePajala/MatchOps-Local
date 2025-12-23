@@ -1432,6 +1432,9 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       fieldCoordination.setPlayersOnField(updatedFieldPlayers);
 
       // Save the updated state - merge with existing game to preserve all AppState fields
+      // Note: Triple-spread creates intermediate objects but is acceptable for our scale
+      // (single-user, 50-100 games). If this becomes a performance concern, consider
+      // a dedicated mergeGameState() helper that avoids intermediate object creation.
       if (currentGameId) {
         const currentGame = savedGames[currentGameId];
         if (currentGame) {
