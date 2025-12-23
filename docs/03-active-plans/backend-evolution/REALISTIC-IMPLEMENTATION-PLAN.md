@@ -444,9 +444,12 @@ interface DataStoreErrorContract {
 - `installPromptDismissed` ❌ (UI state - intentionally excluded)
 - `quarantine:*` ❌ (recovery data - intentionally excluded)
 
-**Action**: Add `WARMUP_PLAN_KEY` to backup (separate fix, not part of Phase 1-3).
+**Action**: ✅ DONE - `WARMUP_PLAN_KEY` was added to `fullBackup.ts` during Phase 3 work.
 
-**Follow-up after PR #137 merge**: Quick 10-minute fix to add warmup plan to `fullBackup.ts` export/import.
+The warmup plan is now included in:
+- Export: `keysToBackup` array (line 73)
+- Import: `allKeysToReset` array (line 242)
+- Type definition: `FullBackupData.localStorage` interface (line 50)
 
 ---
 
@@ -1310,6 +1313,7 @@ This allows gradual rollout and easy rollback.
 
 | Date | Update |
 |------|--------|
+| 2025-12-23 | **Final verification**: All 2,885 tests pass, lint and type-check clean. WARMUP_PLAN_KEY gap confirmed fixed. STORAGE-AUDIT.md updated to show Phase 1-3 complete. Ready for PR to merge feature/backend-wiring → master |
 | 2025-12-19 | ✅ **Phase 1-3 COMPLETE**: All 8 PRs merged to feature/backend-abstraction. PR #137 created to merge to master. Includes DataStore interface, LocalDataStore (2,700+ tests), LocalAuthService, factory pattern |
 | 2025-12-18 | Added explicit **Responsibility Boundary** table in Section 6 documenting DataStore (pure data access) vs Managers (business logic) separation |
 | 2025-12-18 | ✅ **Phase 1 COMPLETE**: All 3 PRs merged to feature/backend-abstraction (timerStateManager created, appSettings extended, all hooks updated) |
