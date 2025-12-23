@@ -1432,18 +1432,23 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       fieldCoordination.setPlayersOnField(updatedFieldPlayers);
 
       // Save the updated state - merge with existing game to preserve all AppState fields
-      // Note: Triple-spread creates intermediate objects but is acceptable for our scale
-      // (single-user, 50-100 games). If this becomes a performance concern, consider
-      // a dedicated mergeGameState() helper that avoids intermediate object creation.
+      //
+      // MERGE ORDER (later overrides earlier):
+      // 1. currentGame - preserves fields not in reducer: assessments, isPlayed, etc.
+      // 2. gameSessionState - applies timer, score, status changes from reducer
+      // 3. Explicit fields - the specific changes from this operation
+      //
+      // Performance: Triple-spread creates 2 intermediate objects (~30 fields each).
+      // Acceptable for user-triggered action; not a hot loop.
       if (currentGameId) {
         const currentGame = savedGames[currentGameId];
         if (currentGame) {
           await utilSaveGame(currentGameId, {
-            ...currentGame,  // Start with complete saved state to preserve all fields
-            ...gameSessionState,  // Apply session state updates
+            ...currentGame,
+            ...gameSessionState,
+            // Explicit updates from this operation
             availablePlayers: updatedAvailablePlayers,
             playersOnField: updatedFieldPlayers,
-            // Include field coordination state
             opponents: fieldCoordination.opponents,
             drawings: fieldCoordination.drawings,
             tacticalDiscs: fieldCoordination.tacticalDiscs,
@@ -1468,7 +1473,10 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     // Setter dependencies (React guarantees these are stable but ESLint requires them)
     setAvailablePlayers, setRosterError, queryClient,
     // fieldCoordination provides playersOnField and setPlayersOnField
-    fieldCoordination
+    fieldCoordination,
+    // Note: savedGames dependency causes recreation on every game save. For high-frequency
+    // scenarios, consider extracting savedGames[currentGameId] into useMemo. Acceptable
+    // for current scale (single-user, 50-100 games).
   ]);
 
   // --- END Roster Management Handlers ---
