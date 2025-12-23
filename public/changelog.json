@@ -1,8 +1,8 @@
 {
-  "version": "68216bb2",
-  "date": "2025-12-21",
+  "version": "8ab2337a",
+  "date": "2025-12-23",
   "notes": {
-    "en": "Wire masterRoster.ts to use DataStore",
-    "fi": "Wire masterRoster.ts to use DataStore"
+    "en": "Prevent data loss in goalie toggle save operation",
+    "fi": "Prevent data loss in goalie toggle save operation"
   }
 }

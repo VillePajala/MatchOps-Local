@@ -33,6 +33,13 @@ import {
 import type { Personnel } from '@/types/personnel';
 import logger from '@/utils/logger';
 
+/**
+ * Ensures error is an Error instance for consistent error handling.
+ * DataStore already throws Error types, but this handles edge cases.
+ */
+const ensureError = (error: unknown): Error =>
+  error instanceof Error ? error : new Error(String(error));
+
 export interface PersonnelManagerReturn {
   /** All personnel members */
   personnel: Personnel[];
@@ -94,7 +101,7 @@ export const usePersonnelManager = (): PersonnelManagerReturn => {
         return result;
       } catch (error) {
         logger.error('[usePersonnelManager] Error adding personnel:', error);
-        throw error instanceof Error ? error : new Error(String(error));
+        throw ensureError(error);
       }
     },
     [addMutation]
@@ -116,7 +123,7 @@ export const usePersonnelManager = (): PersonnelManagerReturn => {
         return result;
       } catch (error) {
         logger.error('[usePersonnelManager] Error updating personnel:', error);
-        throw error instanceof Error ? error : new Error(String(error));
+        throw ensureError(error);
       }
     },
     [updateMutation]
@@ -130,7 +137,7 @@ export const usePersonnelManager = (): PersonnelManagerReturn => {
         logger.log('[usePersonnelManager] Personnel removed successfully');
       } catch (error) {
         logger.error('[usePersonnelManager] Error removing personnel:', error);
-        throw error instanceof Error ? error : new Error(String(error));
+        throw ensureError(error);
       }
     },
     [removeMutation]
