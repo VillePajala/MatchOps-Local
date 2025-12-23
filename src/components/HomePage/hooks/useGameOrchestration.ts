@@ -249,6 +249,13 @@ export function useGameOrchestration({ initialAction, skipInitialSetup = false, 
   // caused game data to reset to defaults when navigating between games.
   const [savedGames, setSavedGames] = useState<SavedGamesCollection>({});
 
+  // Memoize current game to avoid callback recreation when other games change.
+  // This optimizes handleToggleGoalieForModal which previously depended on savedGames.
+  const currentGameForSave = useMemo(
+    () => (currentGameId ? savedGames[currentGameId] : null),
+    [currentGameId, savedGames]
+  );
+
   const [initialLoadComplete, setInitialLoadComplete] = useState<boolean>(false);
   const [defaultTeamNameSetting, setDefaultTeamNameSetting] = useState<string>('');
   const [appLanguage, setAppLanguage] = useState<string>(i18n.language);
@@ -1434,33 +1441,30 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       // Save the updated state - merge with existing game to preserve all AppState fields
       //
       // MERGE ORDER (later overrides earlier):
-      // 1. currentGame - preserves fields not in reducer: assessments, isPlayed, etc.
+      // 1. currentGameForSave - preserves fields not in reducer: assessments, isPlayed, etc.
       // 2. gameSessionState - applies timer, score, status changes from reducer
       // 3. Explicit fields - the specific changes from this operation
       //
       // Performance: Triple-spread creates 2 intermediate objects (~30 fields each).
       // Acceptable for user-triggered action; not a hot loop.
-      if (currentGameId) {
-        const currentGame = savedGames[currentGameId];
-        if (currentGame) {
-          await utilSaveGame(currentGameId, {
-            ...currentGame,
-            ...gameSessionState,
-            // Explicit updates from this operation
-            availablePlayers: updatedAvailablePlayers,
-            playersOnField: updatedFieldPlayers,
-            opponents: fieldCoordination.opponents,
-            drawings: fieldCoordination.drawings,
-            tacticalDiscs: fieldCoordination.tacticalDiscs,
-            tacticalDrawings: fieldCoordination.tacticalDrawings,
-            tacticalBallPosition: fieldCoordination.tacticalBallPosition,
-          });
+      if (currentGameId && currentGameForSave) {
+        await utilSaveGame(currentGameId, {
+          ...currentGameForSave,
+          ...gameSessionState,
+          // Explicit updates from this operation
+          availablePlayers: updatedAvailablePlayers,
+          playersOnField: updatedFieldPlayers,
+          opponents: fieldCoordination.opponents,
+          drawings: fieldCoordination.drawings,
+          tacticalDiscs: fieldCoordination.tacticalDiscs,
+          tacticalDrawings: fieldCoordination.tacticalDrawings,
+          tacticalBallPosition: fieldCoordination.tacticalBallPosition,
+        });
 
-          // Invalidate React Query cache to update LoadGameModal
-          queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
-        } else {
-          logger.warn(`[handleToggleGoalieForModal] Cannot save - game ${currentGameId} not found in savedGames`);
-        }
+        // Invalidate React Query cache to update LoadGameModal
+        queryClient.invalidateQueries({ queryKey: queryKeys.savedGames });
+      } else if (currentGameId) {
+        logger.warn(`[handleToggleGoalieForModal] Cannot save - game ${currentGameId} not found`);
       }
 
       logger.log(`[Page.tsx] per-game goalie toggle success for ${playerId}.`);
@@ -1469,14 +1473,13 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
     }
   }, [
     // Data dependencies (values that change the function's behavior)
-    availablePlayers, currentGameId, gameSessionState, savedGames, t,
+    // Note: currentGameForSave is memoized from savedGames[currentGameId], avoiding
+    // callback recreation when other games change.
+    availablePlayers, currentGameId, currentGameForSave, gameSessionState, t,
     // Setter dependencies (React guarantees these are stable but ESLint requires them)
     setAvailablePlayers, setRosterError, queryClient,
     // fieldCoordination provides playersOnField and setPlayersOnField
     fieldCoordination,
-    // Note: savedGames dependency causes recreation on every game save. For high-frequency
-    // scenarios, consider extracting savedGames[currentGameId] into useMemo. Acceptable
-    // for current scale (single-user, 50-100 games).
   ]);
 
   // --- END Roster Management Handlers ---
