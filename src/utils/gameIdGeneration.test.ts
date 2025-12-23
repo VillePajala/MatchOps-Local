@@ -1,4 +1,5 @@
 import { createGame } from './savedGames';
+import { generateId } from './idGenerator';
 import { AppState } from '@/types';
 
 // Mock crypto.randomUUID for test environment
@@ -31,19 +32,10 @@ jest.mock('./logger', () => ({
   }))
 }));
 
-// Helper function to generate game ID (mirrors LocalDataStore)
-const generateGameId = (): string => {
-  const timestamp = Date.now();
-  const uuid = typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID().split('-')[0]
-    : Math.random().toString(16).substring(2, 10);
-  return `game_${timestamp}_${uuid}`;
-};
-
-// Mock DataStore
+// Mock DataStore - uses actual generateId from idGenerator.ts to stay in sync
 const mockDataStore = {
   createGame: jest.fn(async (gameData: Partial<AppState>) => {
-    const gameId = generateGameId();
+    const gameId = generateId('game');
     // Create full game data with defaults - cast via unknown since we're testing
     const fullGameData = {
       playersOnField: [],
@@ -228,8 +220,8 @@ describe('Game ID Generation', () => {
       // Should fall back gracefully and still create a valid game
       const result = await createGame(gameData);
       
-      // Verify it still creates a valid ID with fallback UUID
-      expect(result.gameId).toMatch(/^game_\d+_[a-f0-9]{8}$/);
+      // Verify it still creates a valid ID with fallback UUID (base36 includes a-z, not just hex)
+      expect(result.gameId).toMatch(/^game_\d+_[a-z0-9]{8}$/);
       expect(result.gameData.teamName).toBe('Test Team');
       
     } finally {
