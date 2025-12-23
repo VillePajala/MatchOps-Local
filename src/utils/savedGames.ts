@@ -71,15 +71,12 @@ export const saveGames = async (games: SavedGamesCollection): Promise<void> => {
  * @param gameData - Game data to save
  * @returns Promise resolving to the saved game data
  */
-export const saveGame = async (gameId: string, gameData: unknown): Promise<AppState> => {
-  if (!gameId) {
+export const saveGame = async (gameId: string, gameData: AppState): Promise<AppState> => {
+  if (!gameId || !gameId.trim()) {
     throw new Error('Game ID is required');
   }
-  if (!gameData || typeof gameData !== 'object' || Array.isArray(gameData)) {
-    throw new Error('Invalid game data: expected an object');
-  }
   const dataStore = await getDataStore();
-  return dataStore.saveGame(gameId, gameData as AppState);
+  return dataStore.saveGame(gameId, gameData);
 };
 
 /**

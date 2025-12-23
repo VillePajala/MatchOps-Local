@@ -1431,12 +1431,18 @@ type UpdateGameDetailsMeta = UpdateGameDetailsMetaBase & { sequence: number };
       });
       fieldCoordination.setPlayersOnField(updatedFieldPlayers);
 
-      // Save the updated state
+      // Save the updated state (must include all AppState fields)
       if (currentGameId) {
         await utilSaveGame(currentGameId, {
           ...gameSessionState,
           availablePlayers: updatedAvailablePlayers,
           playersOnField: updatedFieldPlayers,
+          // Include field coordination state for complete AppState
+          opponents: fieldCoordination.opponents,
+          drawings: fieldCoordination.drawings,
+          tacticalDiscs: fieldCoordination.tacticalDiscs,
+          tacticalDrawings: fieldCoordination.tacticalDrawings,
+          tacticalBallPosition: fieldCoordination.tacticalBallPosition,
         });
 
         // Invalidate React Query cache to update LoadGameModal
