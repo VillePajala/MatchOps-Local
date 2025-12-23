@@ -80,11 +80,12 @@ The build process includes a custom manifest generation step that runs before Ne
 - `ControlBar` - Main app controls
 - Various modals for game settings, stats, and management
 
-**Data Persistence**: All data stored in browser IndexedDB via `src/utils/storage.ts`:
-- Player roster (`src/utils/masterRosterManager.ts`)
-- Game saves (`src/utils/savedGames.ts`)
-- Seasons and tournaments (`src/utils/seasons.ts`, `src/utils/tournaments.ts`)
-- App settings (`src/utils/appSettings.ts`)
+**Data Persistence**: All data stored in browser IndexedDB via DataStore abstraction:
+- **DataStore Interface**: `src/interfaces/DataStore.ts` (backend-agnostic contract)
+- **LocalDataStore**: `src/datastore/LocalDataStore.ts` (IndexedDB implementation)
+- **Factory**: `src/datastore/factory.ts` (singleton access via `getDataStore()`)
+- Player roster, games, seasons, tournaments, personnel, settings
+- Legacy utilities (`src/utils/savedGames.ts`, etc.) now delegate to DataStore
 
 **Game Types**: Supports both soccer and futsal games via `gameType: 'soccer' | 'futsal'` field on games, seasons, and tournaments. Legacy games without `gameType` default to soccer. See `docs/04-features/game-type-support.md`.
 

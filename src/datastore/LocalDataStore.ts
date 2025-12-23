@@ -963,6 +963,15 @@ export class LocalDataStore implements DataStore {
   async saveGame(id: string, game: AppState): Promise<AppState> {
     this.ensureInitialized();
 
+    // Validate required fields (defense in depth - TypeScript doesn't guarantee runtime presence)
+    if (!game.teamName || !game.opponentName || !game.gameDate) {
+      throw new ValidationError(
+        'Missing required game fields',
+        'game',
+        { hasTeamName: !!game.teamName, hasOpponentName: !!game.opponentName, hasGameDate: !!game.gameDate }
+      );
+    }
+
     if (game.gameNotes && game.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) {
       throw new ValidationError(`Game notes cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters (got ${game.gameNotes.length})`, 'gameNotes', game.gameNotes);
     }
@@ -976,6 +985,37 @@ export class LocalDataStore implements DataStore {
       games[id] = game;
       await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
       return game;
+    });
+  }
+
+  async saveAllGames(games: SavedGamesCollection): Promise<void> {
+    this.ensureInitialized();
+
+    if (!games || typeof games !== 'object' || Array.isArray(games)) {
+      throw new ValidationError('Invalid games collection', 'games', games);
+    }
+
+    // Defense in depth: lightweight validation before bulk save.
+    // Note: importGamesFromJson validates with Zod schema (more comprehensive - validates
+    // format, types, ranges). This check is a fast presence-only validation that catches
+    // null/undefined games and missing required fields. Intentionally duplicates a subset
+    // of Zod validation to protect against future callers that bypass Zod.
+    for (const [gameId, game] of Object.entries(games)) {
+      if (!game || typeof game !== 'object') {
+        throw new ValidationError(`Invalid game data for ${gameId}`, 'games', game);
+      }
+      // Presence-only check (Zod validates format: min(1), regex for date)
+      if (!game.teamName || !game.opponentName || !game.gameDate) {
+        throw new ValidationError(
+          `Missing required fields in game ${gameId}`,
+          'games',
+          { gameId, hasTeamName: !!game.teamName, hasOpponentName: !!game.opponentName, hasGameDate: !!game.gameDate }
+        );
+      }
+    }
+
+    return withKeyLock(SAVED_GAMES_KEY, async () => {
+      await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(games));
     });
   }
 
