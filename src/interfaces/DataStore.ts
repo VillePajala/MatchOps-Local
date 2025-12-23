@@ -330,6 +330,7 @@ export interface DataStore {
    * - Used by import/migration operations
    * - Replaces entire collection atomically
    * - Validates each game has required fields (teamName, opponentName, gameDate)
+   * - Validation is atomic: if ANY game fails validation, NO games are saved
    * @throws {ValidationError} If games collection is invalid or contains invalid games
    * @throws {Error} If storage operation fails
    */

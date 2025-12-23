@@ -1,8 +1,8 @@
 {
-  "version": "e36f7da4",
+  "version": "1b711959",
   "date": "2025-12-23",
   "notes": {
-    "en": "Clarify merge order semantics in goalie toggle save",
-    "fi": "Clarify merge order semantics in goalie toggle save"
+    "en": "Add storage error tests, improve validation docs, deprecate getPersonnelCollection",
+    "fi": "Add storage error tests, improve validation docs, deprecate getPersonnelCollection"
   }
 }
