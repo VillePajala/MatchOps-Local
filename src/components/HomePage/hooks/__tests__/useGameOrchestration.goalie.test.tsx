@@ -11,6 +11,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useGameOrchestration } from '../useGameOrchestration';
 import type { Player, AppState } from '@/types';
 
+/** Time needed for React Query initialization and hook bootstrapping */
+const BOOTSTRAPPING_TIMEOUT_MS = 5000;
+
 // Mock savedGames utilities
 const mockSaveGame = jest.fn().mockResolvedValue({});
 const mockGetSavedGames = jest.fn();
@@ -274,7 +277,7 @@ describe('useGameOrchestration - Goalie Toggle Save Path', () => {
     // Wait for hook to initialize
     await waitFor(() => {
       expect(result.current.isBootstrapping).toBe(false);
-    }, { timeout: 5000 });
+    }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
 
     // Get the onToggleGoalie handler from gameContainerProps
     const { onToggleGoalie } = result.current.gameContainerProps;
@@ -304,7 +307,7 @@ describe('useGameOrchestration - Goalie Toggle Save Path', () => {
 
     await waitFor(() => {
       expect(result.current.isBootstrapping).toBe(false);
-    }, { timeout: 5000 });
+    }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
 
     const { onToggleGoalie } = result.current.gameContainerProps;
 
@@ -325,7 +328,7 @@ describe('useGameOrchestration - Goalie Toggle Save Path', () => {
 
     await waitFor(() => {
       expect(result.current.isBootstrapping).toBe(false);
-    }, { timeout: 5000 });
+    }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
 
     const { onToggleGoalie } = result.current.gameContainerProps;
 
@@ -349,7 +352,7 @@ describe('useGameOrchestration - Goalie Toggle Save Path', () => {
 
     await waitFor(() => {
       expect(result.current.isBootstrapping).toBe(false);
-    }, { timeout: 5000 });
+    }, { timeout: BOOTSTRAPPING_TIMEOUT_MS });
 
     const { onToggleGoalie } = result.current.gameContainerProps;
 
