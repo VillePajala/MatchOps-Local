@@ -211,6 +211,14 @@ export function useFieldCoordination({
   // --- State for reset field confirmation modal ---
   const [showResetFieldConfirm, setShowResetFieldConfirm] = useState<boolean>(false);
 
+  // --- Ref to always access latest availablePlayers (fixes goalie toggle race condition) ---
+  // When user toggles goalie and immediately places player, the callback closure might
+  // have stale availablePlayers. This ref ensures we always read the current value.
+  const availablePlayersRef = useRef<Player[]>(availablePlayers);
+  useEffect(() => {
+    availablePlayersRef.current = availablePlayers;
+  }, [availablePlayers]);
+
   // --- Ref to track pending history save after player move end ---
   // This avoids calling saveStateToHistory inside setState (React anti-pattern)
   // Uses a version counter to trigger the effect without changing state
@@ -292,18 +300,20 @@ export function useFieldCoordination({
   /**
    * Handle player drop from player bar onto field
    *
-   * Stable callback that only recreates when roster changes (infrequent).
+   * Uses ref to access latest availablePlayers to avoid race conditions when
+   * user toggles goalie status and immediately places player on field.
    * handlePlayerDrop is stable because useGameState uses functional setState
    * pattern, avoiding dependency on playersOnField.
    */
   const handleDropOnField = useCallback((playerId: string, relX: number, relY: number) => {
-    const droppedPlayer = availablePlayers.find(p => p.id === playerId);
+    // Use ref to get the most current availablePlayers (fixes goalie toggle race condition)
+    const droppedPlayer = availablePlayersRef.current.find(p => p.id === playerId);
     if (droppedPlayer) {
       handlePlayerDrop(droppedPlayer, { relX, relY });
     } else {
       logger.error(`Dropped player with ID ${playerId} not found in availablePlayers.`);
     }
-  }, [availablePlayers, handlePlayerDrop]);
+  }, [handlePlayerDrop]); // availablePlayers removed - using ref instead
 
   /**
    * Handle player movement on field (dragging)

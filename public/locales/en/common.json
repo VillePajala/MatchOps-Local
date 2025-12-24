@@ -727,6 +727,7 @@
     "customLeaguePlaceholder": "Enter league name"
   },
   "gameSettingsModal": {
+    "gameTypeLabel": "Link to Competition",
     "unknownPlayer": "Unknown Player",
     "logTypeOpponentGoal": "Opponent Goal",
     "logTypePeriodEnd": "End of Period",
