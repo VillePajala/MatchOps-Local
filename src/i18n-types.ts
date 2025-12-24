@@ -433,6 +433,7 @@ export type TranslationKey =
   | 'gameSettingsModal.gameInfo'
   | 'gameSettingsModal.gameRulesLabel'
   | 'gameSettingsModal.gameTimeLabel'
+  | 'gameSettingsModal.gameTypeLabel'
   | 'gameSettingsModal.home'
   | 'gameSettingsModal.homeOrAwayLabel'
   | 'gameSettingsModal.hourPlaceholder'

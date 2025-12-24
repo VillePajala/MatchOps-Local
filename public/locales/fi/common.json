@@ -1138,6 +1138,7 @@
     "roster": "Kokoonpano"
   },
   "gameSettingsModal": {
+    "gameTypeLabel": "Linkitä kilpailuun",
     "unknownPlayer": "Tuntematon pelaaja",
     "logTypeOpponentGoal": "Vastustajan maali",
     "logTypePeriodEnd": "Erän loppu",
