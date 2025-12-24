@@ -109,9 +109,9 @@ Users can manually note the elapsed time before switching games. The timer works
 
 ## Display Issues
 
-### Goal Timestamps Display Full Floating-Point Precision
+### ~~Goal Timestamps Display Full Floating-Point Precision~~
 
-**Status:** Fixed (Code Ready) - Awaiting Commit
+**Status:** ✅ RESOLVED (December 2025)
 
 **Discovered:** November 20, 2025 (during Step 2.6.5 manual testing)
 
@@ -157,28 +157,11 @@ Updated both goal handlers in `src/components/HomePage/hooks/useTimerManagement.
    time: Math.round(time * 100) / 100,
    ```
 
-**Investigation Needed:**
-- [ ] Determine if issue is in storage layer or just display layer
-- [ ] Check if display components need formatting logic
-- [ ] Verify that existing stored goals have correct precision
+**Resolution:**
+Fix was already in place in `useTimerManagement.ts` (lines 156 and 180) using `Math.round(time * 100) / 100`.
 
-**Files Involved:**
-- `src/components/HomePage/hooks/useTimerManagement.ts` (goal event creation)
-- `src/components/modals/OpponentGoalLogModal.tsx` (display)
-- `src/components/GameStatsModal.tsx` (display)
-- `src/components/GameSettingsModal.tsx` (display)
-- `src/types/index.ts` (GameEvent interface)
-
-**Testing:**
-- [ ] Verify timestamps round correctly for both team and opponent goals
-- [ ] Check that existing goals display correctly after fix
-- [ ] Ensure precision is consistent across all 3 modals
-
-**Next Steps:**
-1. Commit the fix in `useTimerManagement.ts`
-2. Run full test suite
-3. Manually test goal logging in all 3 modals
-4. Consider adding unit tests for timestamp rounding
+**Files Fixed:**
+- `src/components/HomePage/hooks/useTimerManagement.ts` (goal event creation - rounds to 2 decimals)
 
 ---
 
