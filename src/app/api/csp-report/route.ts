@@ -61,9 +61,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ received: true }, { status: 204 });
+    // 204 No Content - CSP reports don't expect a response body
+    return new NextResponse(null, { status: 204 });
   } catch {
     // Invalid report format - silently accept to prevent retries
-    return NextResponse.json({ received: true }, { status: 204 });
+    return new NextResponse(null, { status: 204 });
   }
 }
