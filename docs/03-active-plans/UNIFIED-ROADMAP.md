@@ -474,8 +474,8 @@ Current league selection in SeasonDetailsModal shows flat list of 34 leagues. Co
 |------|--------|-------|
 | GameSettingsModal split | ~1 hour | 1,969 lines → Container/View |
 | TournamentSeriesManager extraction | ~2 hours | Extract from parent component |
-| Gate tactical logging behind DEBUG | Minor | P3 items in tactical hooks |
-| Delete/complete useNewGameFlow.ts | Minor | TODO: file extraction incomplete |
+| ~~Gate tactical logging behind DEBUG~~ | ~~Minor~~ | ✅ Already implemented - all 7 locations gated |
+| ~~Delete/complete useNewGameFlow.ts~~ | ~~Minor~~ | ✅ Deleted Dec 2025 - was dead code |
 
 ### 🧪 Testing Improvements
 | Item | Notes |

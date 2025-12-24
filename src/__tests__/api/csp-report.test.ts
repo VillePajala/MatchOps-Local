@@ -52,8 +52,8 @@ describe('CSP Report Endpoint', () => {
 
     it('should handle invalid JSON gracefully', () => {
       expect(routeContent).toContain('catch');
-      // Should not throw on invalid input
-      expect(routeContent).toContain('received: true');
+      // Should return 204 No Content even on invalid input (silently accept)
+      expect(routeContent).toContain('new NextResponse(null');
     });
 
     it('should log violations in development', () => {
