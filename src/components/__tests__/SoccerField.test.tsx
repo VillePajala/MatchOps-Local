@@ -266,7 +266,8 @@ describe('SoccerField Component - Interaction Testing', () => {
     });
 
     it('cancels active drawing when drawing mode is disabled', () => {
-      const props = { ...defaultProps, isDrawingEnabled: true };
+      // Drawing requires both isDrawingEnabled AND isTacticsBoardView
+      const props = { ...defaultProps, isDrawingEnabled: true, isTacticsBoardView: true };
       const { rerender } = render(<SoccerField {...props} />);
 
       const canvas = document.querySelector('canvas') as HTMLCanvasElement | null;

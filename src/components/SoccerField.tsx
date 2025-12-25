@@ -929,8 +929,9 @@ const SoccerField: React.FC<SoccerFieldProps> = React.memo(({
         }
     }
 
-    // Start drawing (only if drawing mode is enabled)
-    if (isDrawingEnabled) {
+    // Start drawing (only if drawing mode is enabled AND in tactics mode)
+    // Guard against stale isDrawingEnabled from storage when tactics mode is off
+    if (isDrawingEnabled && isTacticsBoardView) {
       setIsDrawing(true);
       onDrawingStart(relPos); // Pass relative pos
       if (canvasRef.current) canvasRef.current.style.cursor = 'crosshair';
@@ -1112,7 +1113,8 @@ const SoccerField: React.FC<SoccerFieldProps> = React.memo(({
       setIsDraggingTacticalDisc(true);
       setDraggingTacticalDiscId(tappedTargetId);
       e.preventDefault();
-    } else if (!draggingPlayerFromBarInfo && isDrawingEnabled) {
+    } else if (!draggingPlayerFromBarInfo && isDrawingEnabled && isTacticsBoardView) {
+      // Only allow drawing in tactics mode (guard against stale isDrawingEnabled)
       // If a previous stroke didn't finalize (missed touchend), finalize it now
       if (isDrawing) {
         onDrawingEnd();
