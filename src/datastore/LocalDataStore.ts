@@ -114,6 +114,35 @@ const isValidAppSettings = (value: unknown): value is Partial<AppSettings> => {
   return true;
 };
 
+/**
+ * Type guard for WarmupPlanSection with field validation.
+ */
+const isValidWarmupPlanSection = (value: unknown): boolean => {
+  if (!isRecord(value)) return false;
+  if (typeof value.id !== 'string' || value.id.length === 0) return false;
+  if (typeof value.title !== 'string') return false;
+  if (typeof value.content !== 'string') return false;
+  return true;
+};
+
+/**
+ * Type guard for WarmupPlan with structure validation.
+ * Validates that sections is an array and each section has required fields.
+ */
+const isValidWarmupPlan = (value: unknown): boolean => {
+  if (!isRecord(value)) return false;
+  if (typeof value.id !== 'string') return false;
+  if (typeof value.version !== 'number') return false;
+  if (!('sections' in value) || !Array.isArray(value.sections)) return false;
+
+  // Validate each section has required structure
+  for (const section of value.sections) {
+    if (!isValidWarmupPlanSection(section)) return false;
+  }
+
+  return true;
+};
+
 const normalizeOptionalString = (value?: string): string | undefined => {
   if (value === undefined) return undefined;
   const trimmed = value.trim();
@@ -151,6 +180,41 @@ const migrateTournamentLevel = (tournament: Tournament): Tournament => {
   return tournament;
 };
 
+/**
+ * Validate a game's required and optional fields.
+ * Throws ValidationError if validation fails.
+ * Used by both saveGame and saveAllGames for consistent validation.
+ *
+ * @param game - The game state to validate
+ * @param context - Optional context for error messages (e.g., gameId for batch operations)
+ */
+const validateGame = (game: AppState, context?: string): void => {
+  const prefix = context ? `Game ${context}: ` : '';
+
+  // Validate required fields
+  if (!game.teamName || !game.opponentName || !game.gameDate) {
+    throw new ValidationError(
+      `${prefix}Missing required game fields`,
+      'game',
+      { hasTeamName: !!game.teamName, hasOpponentName: !!game.opponentName, hasGameDate: !!game.gameDate }
+    );
+  }
+
+  // Validate gameNotes length
+  if (game.gameNotes && game.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) {
+    throw new ValidationError(
+      `${prefix}Game notes cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters (got ${game.gameNotes.length})`,
+      'gameNotes',
+      game.gameNotes
+    );
+  }
+
+  // Validate ageGroup if present
+  if (game.ageGroup && !AGE_GROUPS.includes(game.ageGroup)) {
+    throw new ValidationError(`${prefix}Invalid age group`, 'ageGroup', game.ageGroup);
+  }
+};
+
 // Type for parsed settings with legacy month fields
 type ParsedSettingsWithLegacy = AppSettings & {
   clubSeasonStartMonth?: number;
@@ -160,6 +224,7 @@ type ParsedSettingsWithLegacy = AppSettings & {
 export class LocalDataStore implements DataStore {
   private initialized = false;
   private settingsMigrated = false;
+  private settingsMigrationPromise: Promise<void> | null = null;
 
   /**
    * Migrate legacy month-based season date fields to date format.
@@ -221,6 +286,7 @@ export class LocalDataStore implements DataStore {
 
     this.initialized = false;
     this.settingsMigrated = false;
+    this.settingsMigrationPromise = null;
     await clearAdapterCacheWithCleanup();
   }
 
@@ -885,6 +951,25 @@ export class LocalDataStore implements DataStore {
           try {
             await setStorageItem(PERSONNEL_KEY, JSON.stringify(backup.personnel));
             await setStorageItem(SAVED_GAMES_KEY, JSON.stringify(backup.games));
+
+            // Verify rollback succeeded by re-reading data
+            const restoredPersonnel = await this.loadPersonnelCollection();
+            const restoredGames = await this.loadSavedGames();
+
+            const personnelRestored = Object.keys(restoredPersonnel).length === Object.keys(backup.personnel).length;
+            const gamesRestored = Object.keys(restoredGames).length === Object.keys(backup.games).length;
+
+            if (!personnelRestored || !gamesRestored) {
+              logger.error('Rollback verification failed - data may be inconsistent', {
+                originalError: error,
+                personnelId: id,
+                expectedPersonnelCount: Object.keys(backup.personnel).length,
+                actualPersonnelCount: Object.keys(restoredPersonnel).length,
+                expectedGamesCount: Object.keys(backup.games).length,
+                actualGamesCount: Object.keys(restoredGames).length,
+              });
+              throw new Error('CASCADE DELETE rollback verification failed - data may be inconsistent');
+            }
           } catch (rollbackError) {
             logger.error('Rollback failed after personnel deletion error', {
               originalError: error,
@@ -971,22 +1056,8 @@ export class LocalDataStore implements DataStore {
   async saveGame(id: string, game: AppState): Promise<AppState> {
     this.ensureInitialized();
 
-    // Validate required fields (defense in depth - TypeScript doesn't guarantee runtime presence)
-    if (!game.teamName || !game.opponentName || !game.gameDate) {
-      throw new ValidationError(
-        'Missing required game fields',
-        'game',
-        { hasTeamName: !!game.teamName, hasOpponentName: !!game.opponentName, hasGameDate: !!game.gameDate }
-      );
-    }
-
-    if (game.gameNotes && game.gameNotes.length > VALIDATION_LIMITS.GAME_NOTES_MAX) {
-      throw new ValidationError(`Game notes cannot exceed ${VALIDATION_LIMITS.GAME_NOTES_MAX} characters (got ${game.gameNotes.length})`, 'gameNotes', game.gameNotes);
-    }
-
-    if (game.ageGroup && !AGE_GROUPS.includes(game.ageGroup)) {
-      throw new ValidationError('Invalid age group', 'ageGroup', game.ageGroup);
-    }
+    // Validate using shared helper (defense in depth - TypeScript doesn't guarantee runtime presence)
+    validateGame(game);
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
       const games = await this.loadSavedGames();
@@ -1003,23 +1074,15 @@ export class LocalDataStore implements DataStore {
       throw new ValidationError('Invalid games collection', 'games', games);
     }
 
-    // Defense in depth: lightweight validation before bulk save.
+    // Defense in depth: validate each game using shared helper.
     // Note: importGamesFromJson validates with Zod schema (more comprehensive - validates
-    // format, types, ranges). This check is a fast presence-only validation that catches
-    // null/undefined games and missing required fields. Intentionally duplicates a subset
-    // of Zod validation to protect against future callers that bypass Zod.
+    // format, types, ranges). This validation protects against future callers that bypass Zod.
     for (const [gameId, game] of Object.entries(games)) {
       if (!game || typeof game !== 'object') {
         throw new ValidationError(`Invalid game data for ${gameId}`, 'games', game);
       }
-      // Presence-only check (Zod validates format: min(1), regex for date)
-      if (!game.teamName || !game.opponentName || !game.gameDate) {
-        throw new ValidationError(
-          `Missing required fields in game ${gameId}`,
-          'games',
-          { gameId, hasTeamName: !!game.teamName, hasOpponentName: !!game.opponentName, hasGameDate: !!game.gameDate }
-        );
-      }
+      // Use shared validation (required fields, gameNotes length, ageGroup)
+      validateGame(game, gameId);
     }
 
     return withKeyLock(SAVED_GAMES_KEY, async () => {
@@ -1172,31 +1235,48 @@ export class LocalDataStore implements DataStore {
         // Already migrated - just merge with defaults
         settings = this.mergeWithDefaults(parsed);
       } else {
-        const { settings: migratedSettings, needsMigration } = this.migrateSeasonDates(parsed);
-        settings = migratedSettings;
-
-        if (needsMigration) {
-          const toSave = this.removeLegacyMonthFields(settings);
-
-          // Use lock for migration write to prevent race with updateSettings()
-          await withKeyLock(APP_SETTINGS_KEY, async () => {
-            try {
-              await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
-              logger.info('[LocalDataStore] Successfully migrated app settings to new format');
-              this.settingsMigrated = true;
-            } catch (saveError) {
-              // Don't re-throw: app can still work with in-memory migrated values.
-              // Old format is preserved, so migration will retry on next startup.
-              logger.warn(
-                '[LocalDataStore] Failed to persist migrated app settings - will retry on next startup',
-                { error: saveError }
-              );
-              // Don't set settingsMigrated - retry on next call
-            }
-          });
+        // Wait for any in-progress migration to complete
+        if (this.settingsMigrationPromise) {
+          await this.settingsMigrationPromise;
+          // After waiting, check if migration completed
+          if (this.settingsMigrated) {
+            settings = this.mergeWithDefaults(parsed);
+          } else {
+            // Migration failed, proceed with in-memory migration
+            const { settings: migratedSettings } = this.migrateSeasonDates(parsed);
+            settings = migratedSettings;
+          }
         } else {
-          // No legacy fields - mark as migrated to skip future checks
-          this.settingsMigrated = true;
+          const { settings: migratedSettings, needsMigration } = this.migrateSeasonDates(parsed);
+          settings = migratedSettings;
+
+          if (needsMigration) {
+            const toSave = this.removeLegacyMonthFields(settings);
+
+            // Create migration promise to synchronize concurrent calls
+            this.settingsMigrationPromise = withKeyLock(APP_SETTINGS_KEY, async () => {
+              try {
+                await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
+                logger.info('[LocalDataStore] Successfully migrated app settings to new format');
+                this.settingsMigrated = true;
+              } catch (saveError) {
+                // Don't re-throw: app can still work with in-memory migrated values.
+                // Old format is preserved, so migration will retry on next startup.
+                logger.warn(
+                  '[LocalDataStore] Failed to persist migrated app settings - will retry on next startup',
+                  { error: saveError }
+                );
+                // Don't set settingsMigrated - retry on next call
+              }
+            }).finally(() => {
+              this.settingsMigrationPromise = null;
+            });
+
+            await this.settingsMigrationPromise;
+          } else {
+            // No legacy fields - mark as migrated to skip future checks
+            this.settingsMigrated = true;
+          }
         }
       }
 
@@ -1386,12 +1466,12 @@ export class LocalDataStore implements DataStore {
         return null;
       }
 
-      if (!parsed || !isRecord(parsed) || !('sections' in parsed)) {
+      if (!isValidWarmupPlan(parsed)) {
         logger.error('[LocalDataStore] Invalid warmup plan structure');
         return null;
       }
 
-      return parsed as unknown as WarmupPlan;
+      return parsed as WarmupPlan;
     } catch (error) {
       logger.error('[LocalDataStore] Error reading warmup plan', error);
       return null;

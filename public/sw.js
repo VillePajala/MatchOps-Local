@@ -3,18 +3,19 @@
  *
  * Caching Strategy:
  * - Static assets (JS, CSS, images, fonts): Cache-first with network fallback
- * - HTML documents: Network-only (never cached to ensure app updates work)
+ * - HTML documents: Network-first with cache fallback (enables offline startup)
  * - manifest.json: Stale-while-revalidate (fast load, background update)
  * - External requests: Pass through to network
  *
  * Production-hardened:
- * - No HTML caching to prevent stale app versions
+ * - Network-first HTML ensures users get latest version when online
+ * - Cached HTML enables offline app startup
  * - Versioned cache for clean updates
  * - Minimal logging (errors only in production)
  * - Dedicated offline page for graceful offline experience
  */
 
-const CACHE_NAME = 'matchops-2025-12-23T09-29-20';
+const CACHE_NAME = 'matchops-2025-12-25T12-00-00';
 
 // Cache size limit - prevents unbounded growth from dynamically cached assets
 // Note: Entire cache is cleared on SW update, so this just limits runtime growth
@@ -114,23 +115,40 @@ self.addEventListener('fetch', (event) => {
     return; // Let browser handle external requests normally
   }
 
-  // NEVER cache HTML documents - always fetch from network
-  // This ensures app updates are always reflected
+  // Network-first for HTML documents with offline fallback
+  // Cache HTML for offline use, but always try network first to get updates
   if (request.destination === 'document' || request.mode === 'navigate') {
     event.respondWith(
-      fetch(request).catch(() => {
-        // If offline, serve the cached offline page
-        return caches.match('/offline.html').then((response) => {
-          if (response) {
-            return response;
+      fetch(request)
+        .then((response) => {
+          // Cache successful HTML responses for offline use
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, clone);
+            });
           }
-          // Final fallback if offline.html not in cache (e.g., first visit while offline)
-          return new Response(
-            '<html><head><title>Offline</title></head><body style="font-family:system-ui;text-align:center;padding:40px"><h1>Offline</h1><p>Please check your connection and try again.</p></body></html>',
-            { headers: { 'Content-Type': 'text/html' } }
-          );
-        });
-      })
+          return response;
+        })
+        .catch(() => {
+          // Offline: try to serve cached HTML first
+          return caches.match(request).then((cached) => {
+            if (cached) {
+              return cached;
+            }
+            // Fall back to offline.html if specific page not cached
+            return caches.match('/offline.html').then((offlinePage) => {
+              if (offlinePage) {
+                return offlinePage;
+              }
+              // Final fallback if nothing cached
+              return new Response(
+                '<html><head><title>Offline</title></head><body style="font-family:system-ui;text-align:center;padding:40px"><h1>Offline</h1><p>Please check your connection and try again.</p></body></html>',
+                { headers: { 'Content-Type': 'text/html' } }
+              );
+            });
+          });
+        })
     );
     return;
   }

@@ -11,6 +11,71 @@ interface StateGroup {
 }
 
 /**
+ * Check if an error is transient and worth retrying.
+ * Transient errors are temporary failures that may succeed on retry.
+ */
+const isTransientError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) return false;
+
+  const message = error.message.toLowerCase();
+  const name = error.name.toLowerCase();
+
+  // Storage quota temporarily exceeded
+  if (message.includes('quota') || name.includes('quota')) return true;
+
+  // IndexedDB locked by another tab/operation
+  if (message.includes('locked') || message.includes('busy')) return true;
+
+  // Temporary unavailable
+  if (message.includes('temporarily unavailable')) return true;
+
+  // Network errors (if syncing in future)
+  if (message.includes('network') || message.includes('timeout')) return true;
+
+  // AbortError (operation was aborted, may work on retry)
+  if (name === 'aborterror') return true;
+
+  return false;
+};
+
+/**
+ * Retry a save operation with exponential backoff.
+ * Only retries transient errors; permanent errors are thrown immediately.
+ *
+ * @param saveFn - The save function to execute
+ * @param maxRetries - Maximum number of retry attempts (default: 3)
+ * @param context - Context for logging (e.g., 'immediate', 'short-delay')
+ * @returns Promise that resolves when save succeeds
+ * @throws Error if all retries fail or error is not transient
+ */
+const saveWithRetry = async (
+  saveFn: () => void | Promise<void>,
+  maxRetries: number = 3,
+  context: string = 'auto-save'
+): Promise<void> => {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      await saveFn();
+      return; // Success
+    } catch (error) {
+      const isLastAttempt = attempt === maxRetries - 1;
+      const isTransient = isTransientError(error);
+
+      if (!isTransient || isLastAttempt) {
+        // Not transient or final attempt - give up
+        throw error;
+      }
+
+      // Exponential backoff: 1s, 2s, 4s
+      const delay = Math.pow(2, attempt) * 1000;
+      logger.log(`[useAutoSave] ${context} retry ${attempt + 1}/${maxRetries} in ${delay}ms`);
+
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+};
+
+/**
  * Configuration for useAutoSave hook
  */
 interface UseAutoSaveConfig {
@@ -113,17 +178,17 @@ export const useAutoSave = ({
     if (prevImmediateRef.current !== null && prevImmediateRef.current !== currentSerialized) {
       logger.log(`[useAutoSave] Immediate save triggered for game ${currentGameId}`);
 
-      // Defensive try-catch: Assume saveFunction handles errors internally,
-      // but catch any unexpected errors to prevent app crashes
       // Use async IIFE since useEffect callbacks can't be async
+      // Retry transient errors with exponential backoff
       (async () => {
         try {
-          await saveFunctionRef.current();
+          await saveWithRetry(saveFunctionRef.current, 3, 'immediate');
         } catch (error) {
-          logger.error('[useAutoSave] Unexpected error from saveFunction (immediate):', error);
+          // All retries failed or error was not transient
+          logger.error('[useAutoSave] Save failed after retries (immediate):', error);
           Sentry.captureException(error, {
             tags: { operation: 'auto_save_immediate', gameId: currentGameId || 'unknown' },
-            extra: { trigger: 'immediate_state_change' },
+            extra: { trigger: 'immediate_state_change', retriesFailed: true },
           });
           // Don't re-throw - let app continue running
         }
@@ -153,15 +218,15 @@ export const useAutoSave = ({
         if (enabled) {
           logger.log(`[useAutoSave] Short-delay save triggered for game ${currentGameId}`);
 
-          // Defensive try-catch: Assume saveFunction handles errors internally,
-          // but catch any unexpected errors to prevent app crashes
+          // Retry transient errors with exponential backoff
           try {
-            await saveFunctionRef.current();
+            await saveWithRetry(saveFunctionRef.current, 3, 'short-delay');
           } catch (error) {
-            logger.error('[useAutoSave] Unexpected error from saveFunction (short-delay):', error);
+            // All retries failed or error was not transient
+            logger.error('[useAutoSave] Save failed after retries (short-delay):', error);
             Sentry.captureException(error, {
               tags: { operation: 'auto_save_short_delay', gameId: currentGameId || 'unknown' },
-              extra: { trigger: 'short_delay_state_change', delay: short.delay },
+              extra: { trigger: 'short_delay_state_change', delay: short.delay, retriesFailed: true },
             });
             // Don't re-throw - let app continue running
           }
@@ -194,15 +259,15 @@ export const useAutoSave = ({
         if (enabled) {
           logger.log(`[useAutoSave] Long-delay save triggered for game ${currentGameId}`);
 
-          // Defensive try-catch: Assume saveFunction handles errors internally,
-          // but catch any unexpected errors to prevent app crashes
+          // Retry transient errors with exponential backoff
           try {
-            await saveFunctionRef.current();
+            await saveWithRetry(saveFunctionRef.current, 3, 'long-delay');
           } catch (error) {
-            logger.error('[useAutoSave] Unexpected error from saveFunction (long-delay):', error);
+            // All retries failed or error was not transient
+            logger.error('[useAutoSave] Save failed after retries (long-delay):', error);
             Sentry.captureException(error, {
               tags: { operation: 'auto_save_long_delay', gameId: currentGameId || 'unknown' },
-              extra: { trigger: 'long_delay_state_change', delay: long.delay },
+              extra: { trigger: 'long_delay_state_change', delay: long.delay, retriesFailed: true },
             });
             // Don't re-throw - let app continue running
           }

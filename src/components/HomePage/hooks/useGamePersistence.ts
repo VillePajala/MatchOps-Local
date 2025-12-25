@@ -414,6 +414,8 @@ export function useGamePersistence({
         gameEvents: gameSessionState.gameEvents,
         homeScore: gameSessionState.homeScore,
         awayScore: gameSessionState.awayScore,
+        // Timer progress is critical - must be saved to preserve when switching games
+        timeElapsedInSeconds: gameSessionState.timeElapsedInSeconds,
       },
       delay: 0,
     },

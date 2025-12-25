@@ -9,6 +9,81 @@ import { clearMockStore } from '@/utils/__mocks__/storage';
 // Mock storage module - uses __mocks__/storage.ts for in-memory storage
 jest.mock('@/utils/storage');
 
+// Mock DataStore factory to avoid storage factory retry/backoff delays in tests
+// This eliminates the ~2s overhead from storage initialization attempts
+jest.mock('@/datastore', () => ({
+  getDataStore: jest.fn(async () => ({
+    // Player/Roster operations
+    getPlayers: jest.fn(async () => []),
+    addPlayer: jest.fn(async () => ({ id: 'mock-player-id' })),
+    updatePlayer: jest.fn(async () => true),
+    deletePlayer: jest.fn(async () => true),
+
+    // Game operations
+    getGames: jest.fn(async () => ({})),
+    getGameById: jest.fn(async () => null),
+    saveGame: jest.fn(async () => true),
+    saveAllGames: jest.fn(async () => true),
+    deleteGame: jest.fn(async () => true),
+    addGameEvent: jest.fn(async () => null),
+    updateGameEvent: jest.fn(async () => null),
+    removeGameEvent: jest.fn(async () => null),
+
+    // Season operations
+    getSeasons: jest.fn(async () => []),
+    addSeason: jest.fn(async () => true),
+    updateSeason: jest.fn(async () => true),
+    deleteSeason: jest.fn(async () => true),
+
+    // Tournament operations
+    getTournaments: jest.fn(async () => []),
+    addTournament: jest.fn(async () => true),
+    updateTournament: jest.fn(async () => true),
+    deleteTournament: jest.fn(async () => true),
+
+    // Team operations
+    getTeams: jest.fn(async () => []),
+    getTeamById: jest.fn(async () => null),
+    addTeam: jest.fn(async () => ({ id: 'mock-team-id' })),
+    updateTeam: jest.fn(async () => true),
+    deleteTeam: jest.fn(async () => true),
+    getTeamRoster: jest.fn(async () => null),
+    setTeamRoster: jest.fn(async () => true),
+    getAllTeamRosters: jest.fn(async () => ({})),
+
+    // Personnel operations
+    getAllPersonnel: jest.fn(async () => []),
+    addPersonnelMember: jest.fn(async () => ({ id: 'mock-personnel-id' })),
+    updatePersonnelMember: jest.fn(async () => true),
+    deletePersonnelMember: jest.fn(async () => true),
+
+    // Settings operations
+    getSettings: jest.fn(async () => ({
+      gameType: 'soccer',
+      currentGameId: null,
+      lastHomeTeamName: '',
+      language: 'fi',
+      hasSeenAppGuide: false,
+    })),
+    updateSettings: jest.fn(async () => true),
+
+    // Warmup plan operations
+    getWarmupPlan: jest.fn(async () => null),
+    saveWarmupPlan: jest.fn(async () => true),
+    deleteWarmupPlan: jest.fn(async () => true),
+
+    // Backup/Restore
+    createBackup: jest.fn(async () => '{}'),
+    restoreFromBackup: jest.fn(async () => ({ success: true })),
+  })),
+  getAuthService: jest.fn(async () => ({
+    getCurrentUser: jest.fn(async () => null),
+    signIn: jest.fn(async () => ({ success: false })),
+    signOut: jest.fn(async () => {}),
+    isAuthenticated: jest.fn(async () => false),
+  })),
+}));
+
 // Mock appSettings module to prevent real storage access
 jest.mock('@/utils/appSettings', () => ({
   getAppSettings: jest.fn().mockResolvedValue({
@@ -219,8 +294,10 @@ describe('HomePage Component - Deep Testing', () => {
   describe('Performance', () => {
     /**
      * Tests that HomePage renders within acceptable time.
-     * @flaky Threshold relaxed from 3s to 5s after DataStore wiring.
-     * @see https://github.com/VillePajala/MatchOps-Local/issues/147
+     *
+     * Previously had a 5s threshold due to storage factory retry/backoff overhead
+     * when IndexedDB wasn't available in Jest environment. Fixed by adding proper
+     * DataStore mock (issue #147). Now completes in ~300-500ms.
      */
     it('should render within reasonable time', async () => {
       const startTime = performance.now();
@@ -229,12 +306,12 @@ describe('HomePage Component - Deep Testing', () => {
 
       await waitFor(() => {
         expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
-      }, { timeout: 5000 });
+      }, { timeout: 3000 });
 
       const renderTime = performance.now() - startTime;
 
-      // Threshold relaxed from 3s to 5s - see issue #147 for investigation
-      expect(renderTime).toBeLessThan(5000);
+      // Original 3s threshold restored after fixing DataStore mock
+      expect(renderTime).toBeLessThan(3000);
     });
 
     it('should not cause memory leaks during normal usage', async () => {

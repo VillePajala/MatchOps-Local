@@ -19,12 +19,14 @@ describe('Service Worker Configuration', () => {
       expect(swContent).toMatch(/const CACHE_NAME = ['"]matchops-/);
     });
 
-    it('should NOT cache HTML documents', () => {
-      // Check that HTML/navigate requests go to network
+    it('should use network-first for HTML documents with cache fallback', () => {
+      // Check that HTML/navigate requests are handled
       expect(swContent).toContain("request.destination === 'document'");
       expect(swContent).toContain("request.mode === 'navigate'");
-      // And that they use fetch, not cache
-      expect(swContent).toContain('fetch(request).catch');
+      // Network-first: try fetch, cache response, fallback to cache on failure
+      expect(swContent).toContain('fetch(request)');
+      expect(swContent).toContain('cache.put(request');
+      expect(swContent).toContain('caches.match(request)');
     });
 
     it('should have offline assets in precache list', () => {
@@ -37,9 +39,9 @@ describe('Service Worker Configuration', () => {
       expect(swContent).toContain("caches.match('/offline.html')");
     });
 
-    it('should have final fallback if offline.html not in cache', () => {
-      // If offline.html itself fails to load from cache, return minimal inline HTML
-      expect(swContent).toContain('Final fallback if offline.html not in cache');
+    it('should have final fallback if nothing cached', () => {
+      // If neither the requested page nor offline.html is cached, return minimal inline HTML
+      expect(swContent).toContain('Final fallback if nothing cached');
       expect(swContent).toContain("new Response(");
       expect(swContent).toContain("'Content-Type': 'text/html'");
     });
