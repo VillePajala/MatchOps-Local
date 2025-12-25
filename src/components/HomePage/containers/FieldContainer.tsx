@@ -1,5 +1,6 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import logger from '@/utils/logger';
 import { HiOutlineCamera } from 'react-icons/hi2';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import TimerOverlay from '@/components/TimerOverlay';
@@ -163,6 +164,39 @@ export function FieldContainer({
   const { showToast } = useToast();
   const fieldRef = useRef<SoccerFieldHandle>(null);
 
+  // Memoize export metadata to reduce useCallback dependencies
+  const exportMetadata = useMemo(() => ({
+    teamName: gameSessionState.teamName,
+    opponentName: gameSessionState.opponentName,
+    gameDate: gameSessionState.gameDate,
+    gameTime: gameSessionState.gameTime,
+    gameLocation: gameSessionState.gameLocation,
+    ageGroup: gameSessionState.ageGroup,
+    gameType: gameSessionState.gameType,
+    homeOrAway: gameSessionState.homeOrAway,
+    currentPeriod: gameSessionState.currentPeriod,
+    numberOfPeriods: gameSessionState.numberOfPeriods,
+    timeElapsedInSeconds: timerVM.timeElapsedInSeconds,
+    score: {
+      home: gameSessionState.homeScore,
+      away: gameSessionState.awayScore,
+    },
+  }), [
+    gameSessionState.teamName,
+    gameSessionState.opponentName,
+    gameSessionState.gameDate,
+    gameSessionState.gameTime,
+    gameSessionState.gameLocation,
+    gameSessionState.ageGroup,
+    gameSessionState.gameType,
+    gameSessionState.homeOrAway,
+    gameSessionState.currentPeriod,
+    gameSessionState.numberOfPeriods,
+    gameSessionState.homeScore,
+    gameSessionState.awayScore,
+    timerVM.timeElapsedInSeconds,
+  ]);
+
   const handleExportField = useCallback(async () => {
     if (!isExportSupported()) {
       showToast(t('export.notSupported', 'Export not supported in this browser'), 'error');
@@ -177,44 +211,15 @@ export function FieldContainer({
 
     try {
       await exportFieldAsImage(canvas, {
-        teamName: gameSessionState.teamName,
-        opponentName: gameSessionState.opponentName,
-        gameDate: gameSessionState.gameDate,
-        gameTime: gameSessionState.gameTime,
-        gameLocation: gameSessionState.gameLocation,
-        ageGroup: gameSessionState.ageGroup,
-        gameType: gameSessionState.gameType,
-        homeOrAway: gameSessionState.homeOrAway,
-        currentPeriod: gameSessionState.currentPeriod,
-        numberOfPeriods: gameSessionState.numberOfPeriods,
-        timeElapsedInSeconds: timerVM.timeElapsedInSeconds,
+        ...exportMetadata,
         includeOverlay: true,
-        score: {
-          home: gameSessionState.homeScore,
-          away: gameSessionState.awayScore,
-        },
       });
       showToast(t('export.success', 'Field exported successfully'), 'success');
-    } catch {
+    } catch (error) {
+      logger.error('[FieldContainer] Export failed:', error);
       showToast(t('export.failed', 'Failed to export field'), 'error');
     }
-  }, [
-    gameSessionState.teamName,
-    gameSessionState.opponentName,
-    gameSessionState.gameDate,
-    gameSessionState.gameTime,
-    gameSessionState.gameLocation,
-    gameSessionState.ageGroup,
-    gameSessionState.gameType,
-    gameSessionState.homeOrAway,
-    gameSessionState.currentPeriod,
-    gameSessionState.numberOfPeriods,
-    gameSessionState.homeScore,
-    gameSessionState.awayScore,
-    timerVM.timeElapsedInSeconds,
-    showToast,
-    t
-  ]);
+  }, [exportMetadata, showToast, t]);
 
   const { players, opponents, drawing, tactical, touch } = interactions;
 
@@ -327,6 +332,12 @@ export function FieldContainer({
       {currentGameId !== DEFAULT_GAME_ID && isExportSupported() && (
         <button
           onClick={handleExportField}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleExportField();
+            }
+          }}
           className="absolute top-4 right-4 z-20 p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm"
           title={t('export.buttonTitle', 'Export field as image')}
           aria-label={t('export.buttonTitle', 'Export field as image')}
