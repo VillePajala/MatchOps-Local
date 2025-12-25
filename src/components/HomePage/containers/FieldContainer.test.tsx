@@ -17,6 +17,7 @@ jest.mock('@/components/SoccerField', () => {
 
     React.useImperativeHandle(ref, () => ({
       getCanvas: () => mockCanvas.current,
+      renderForExport: () => mockCanvas.current,
     }));
 
     return (

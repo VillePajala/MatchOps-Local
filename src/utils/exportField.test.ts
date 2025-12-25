@@ -55,8 +55,10 @@ describe('exportField', () => {
       expect(sanitizeFilename('@#$%^&*()')).toBe('export');
     });
 
-    it('should handle Finnish characters by removing them', () => {
-      expect(sanitizeFilename('Äänekoski FC')).toBe('nekoski_FC');
+    it('should transliterate Finnish/Nordic characters', () => {
+      expect(sanitizeFilename('Äänekoski FC')).toBe('Aanekoski_FC');
+      expect(sanitizeFilename('Örebro SK')).toBe('Orebro_SK');
+      expect(sanitizeFilename('Malmö FF')).toBe('Malmo_FF');
     });
 
     it('should prefix Windows reserved names', () => {
