@@ -86,6 +86,7 @@ export const createMockDataStore = (overrides: MockDataStoreOverrides = {}): jes
     // Team Rosters
     getTeamRoster: jest.fn(async () => []) as unknown as jest.MockedFunction<DataStore['getTeamRoster']>,
     setTeamRoster: jest.fn(async () => {}) as unknown as jest.MockedFunction<DataStore['setTeamRoster']>,
+    getAllTeamRosters: jest.fn(async () => ({})) as unknown as jest.MockedFunction<DataStore['getAllTeamRosters']>,
 
     // Seasons
     getSeasons: jest.fn(async () => []),

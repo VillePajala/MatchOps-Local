@@ -80,22 +80,15 @@ const mockDataStore = {
     if (mockShouldThrow) throw new Error('DataStore error');
     mockRosters[teamId] = roster;
   }),
+  getAllTeamRosters: jest.fn(async () => {
+    if (mockShouldThrow) throw new Error('DataStore error');
+    return mockRosters;
+  }),
 };
 
 // Mock DataStore
 jest.mock('@/datastore', () => ({
   getDataStore: jest.fn(async () => mockDataStore),
-}));
-
-// Mock storage for getAllTeamRosters() which reads directly from storage.
-// TODO: Remove this mock entirely when getAllTeamRosters() is migrated to DataStore.
-jest.mock('./storage', () => ({
-  getStorageItem: jest.fn(async (key: string) => {
-    if (key === 'soccerTeamRosters') {
-      return Object.keys(mockRosters).length > 0 ? JSON.stringify(mockRosters) : null;
-    }
-    return null;
-  }),
 }));
 
 import { setTeamRoster, getTeamRoster, addPlayerToRoster, addTeam, duplicateTeam, getTeam, updateTeam, getTeams, deleteTeam } from './teams';

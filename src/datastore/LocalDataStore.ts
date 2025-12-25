@@ -487,6 +487,14 @@ export class LocalDataStore implements DataStore {
     await setStorageItem(TEAM_ROSTERS_KEY, JSON.stringify(rostersIndex));
   }
 
+  /**
+   * Get all team rosters as an index.
+   */
+  async getAllTeamRosters(): Promise<Record<string, TeamPlayer[]>> {
+    this.ensureInitialized();
+    return await this.loadTeamRosters();
+  }
+
   async getSeasons(includeArchived = false): Promise<Season[]> {
     this.ensureInitialized();
 
