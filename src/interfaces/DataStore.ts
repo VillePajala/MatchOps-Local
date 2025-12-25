@@ -159,6 +159,12 @@ export interface DataStore {
    */
   setTeamRoster(teamId: string, roster: TeamPlayer[]): Promise<void>;
 
+  /**
+   * Get all team rosters as an index.
+   * @returns Record mapping team IDs to their rosters
+   */
+  getAllTeamRosters(): Promise<Record<string, TeamPlayer[]>>;
+
   // ==========================================================================
   // SEASONS
   // Note: No getSeasonById - filter from getSeasons() in consuming code.

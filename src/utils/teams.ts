@@ -1,12 +1,7 @@
 import { Team, TeamPlayer } from '@/types';
-import { TEAM_ROSTERS_KEY } from '@/config/storageKeys';
-import { getStorageItem } from './storage';
 import { withRosterLock } from './lockManager';
 import logger from '@/utils/logger';
 import { getDataStore } from '@/datastore';
-
-// Note: TEAM_ROSTERS_KEY and getStorageItem are needed for getAllTeamRosters().
-// See getAllTeamRosters() JSDoc for design rationale.
 
 // Team index storage format: { [teamId: string]: Team }
 export interface TeamsIndex {
@@ -145,22 +140,13 @@ export const deleteTeam = async (teamId: string): Promise<boolean> => {
 
 /**
  * Get all team rosters as an index.
- *
- * NOTE: Reads directly from storage (not via DataStore) for bulk read performance.
  * Used by TeamManagerModal for roster count display.
  *
- * @see DataStore interface - consider adding getAllTeamRosters() for full backend abstraction
  * @returns Promise resolving to TeamRostersIndex (empty object on error)
  */
 export const getAllTeamRosters = async (): Promise<TeamRostersIndex> => {
-  try {
-    const json = await getStorageItem(TEAM_ROSTERS_KEY);
-    if (!json) return {};
-    return JSON.parse(json) as TeamRostersIndex;
-  } catch (error) {
-    logger.warn('Failed to load team rosters index, returning empty', { error });
-    return {};
-  }
+  const dataStore = await getDataStore();
+  return await dataStore.getAllTeamRosters();
 };
 
 // Lock mechanism for atomic roster operations is now handled by lockManager
