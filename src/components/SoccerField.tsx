@@ -1,6 +1,6 @@
 'use client'; // Need this for client-side interactions like canvas
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Player } from '@/types'; // Import Player from types
 import { Point, Opponent, TacticalDisc } from '@/types'; // Import Point and Opponent from page
 import tinycolor from 'tinycolor2';
@@ -37,6 +37,14 @@ interface SoccerFieldProps {
   tacticalBallPosition: Point | null;
   onTacticalBallMove: (position: Point) => void;
   isDrawingEnabled: boolean;
+}
+
+/**
+ * Ref handle for SoccerField - exposes canvas for export
+ */
+export interface SoccerFieldHandle {
+  /** Get the canvas element for export */
+  getCanvas: () => HTMLCanvasElement | null;
 }
 
 // Constants
@@ -297,7 +305,7 @@ const createFieldBackground = (
   return offscreenCanvas;
 };
 
-const SoccerField: React.FC<SoccerFieldProps> = React.memo(({
+const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   players,
   opponents,
   drawings,
@@ -324,8 +332,13 @@ const SoccerField: React.FC<SoccerFieldProps> = React.memo(({
   tacticalBallPosition,
   onTacticalBallMove,
   isDrawingEnabled
-}) => {
+}, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Expose canvas via ref for export functionality
+  useImperativeHandle(ref, () => ({
+    getCanvas: () => canvasRef.current,
+  }), []);
   const [isDraggingPlayer, setIsDraggingPlayer] = useState<boolean>(false);
   const [draggingPlayerId, setDraggingPlayerId] = useState<string | null>(null);
   const [isDraggingOpponent, setIsDraggingOpponent] = useState<boolean>(false);
@@ -1278,6 +1291,9 @@ const SoccerField: React.FC<SoccerFieldProps> = React.memo(({
   );
 });
 
-SoccerField.displayName = 'SoccerField';
+SoccerFieldInner.displayName = 'SoccerField';
+
+// Wrap with React.memo for performance
+const SoccerField = React.memo(SoccerFieldInner);
 
 export default SoccerField; 
