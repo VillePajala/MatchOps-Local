@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { HiOutlineCamera } from 'react-icons/hi2';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import TimerOverlay from '@/components/TimerOverlay';
-import SoccerField from '@/components/SoccerField';
+import SoccerField, { SoccerFieldHandle } from '@/components/SoccerField';
 import { FirstGameGuide } from '@/components/HomePage/components/FirstGameGuide';
 import { DEFAULT_GAME_ID } from '@/config/constants';
+import { exportFieldAsImage, isExportSupported } from '@/utils/exportField';
+import { useToast } from '@/contexts/ToastProvider';
 import type {
   Player,
   Team,
@@ -157,6 +160,61 @@ export function FieldContainer({
   timerInteractions,
 }: FieldContainerProps) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
+  const fieldRef = useRef<SoccerFieldHandle>(null);
+
+  const handleExportField = useCallback(async () => {
+    if (!isExportSupported()) {
+      showToast(t('export.notSupported', 'Export not supported in this browser'), 'error');
+      return;
+    }
+
+    const canvas = fieldRef.current?.getCanvas();
+    if (!canvas) {
+      showToast(t('export.noCanvas', 'Could not capture field'), 'error');
+      return;
+    }
+
+    try {
+      await exportFieldAsImage(canvas, {
+        teamName: gameSessionState.teamName,
+        opponentName: gameSessionState.opponentName,
+        gameDate: gameSessionState.gameDate,
+        gameTime: gameSessionState.gameTime,
+        gameLocation: gameSessionState.gameLocation,
+        ageGroup: gameSessionState.ageGroup,
+        gameType: gameSessionState.gameType,
+        homeOrAway: gameSessionState.homeOrAway,
+        currentPeriod: gameSessionState.currentPeriod,
+        numberOfPeriods: gameSessionState.numberOfPeriods,
+        timeElapsedInSeconds: timerVM.timeElapsedInSeconds,
+        includeOverlay: true,
+        score: {
+          home: gameSessionState.homeScore,
+          away: gameSessionState.awayScore,
+        },
+      });
+      showToast(t('export.success', 'Field exported successfully'), 'success');
+    } catch {
+      showToast(t('export.failed', 'Failed to export field'), 'error');
+    }
+  }, [
+    gameSessionState.teamName,
+    gameSessionState.opponentName,
+    gameSessionState.gameDate,
+    gameSessionState.gameTime,
+    gameSessionState.gameLocation,
+    gameSessionState.ageGroup,
+    gameSessionState.gameType,
+    gameSessionState.homeOrAway,
+    gameSessionState.currentPeriod,
+    gameSessionState.numberOfPeriods,
+    gameSessionState.homeScore,
+    gameSessionState.awayScore,
+    timerVM.timeElapsedInSeconds,
+    showToast,
+    t
+  ]);
 
   const { players, opponents, drawing, tactical, touch } = interactions;
 
@@ -235,6 +293,7 @@ export function FieldContainer({
         }
       >
         <SoccerField
+          ref={fieldRef}
           players={fcPlayersOnField}
           opponents={fcOpponents}
           drawings={fcIsTactics ? fcTacticalDrawings : fcDrawings}
@@ -263,6 +322,18 @@ export function FieldContainer({
           isDrawingEnabled={fcIsDrawingEnabled}
         />
       </ErrorBoundary>
+
+      {/* Export button - visible when there's content to export */}
+      {currentGameId !== DEFAULT_GAME_ID && isExportSupported() && (
+        <button
+          onClick={handleExportField}
+          className="absolute top-4 right-4 z-20 p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm"
+          title={t('export.buttonTitle', 'Export field as image')}
+          aria-label={t('export.buttonTitle', 'Export field as image')}
+        >
+          <HiOutlineCamera className="w-5 h-5" />
+        </button>
+      )}
 
       {/* First game setup guidance */}
       {tmInitialLoad &&
