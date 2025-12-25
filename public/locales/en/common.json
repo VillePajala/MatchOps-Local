@@ -1603,7 +1603,12 @@
     "theirScore": "Their Score",
     "overallRating": "Overall Rating",
     "sheetSeasonPerformance": "Season Performance",
-    "sheetTournamentPerformance": "Tournament Performance"
+    "sheetTournamentPerformance": "Tournament Performance",
+    "notSupported": "Export not supported in this browser",
+    "noCanvas": "Could not capture field",
+    "success": "Field exported successfully",
+    "failed": "Failed to export field",
+    "buttonTitle": "Export field as image"
   },
   "reset": {
     "resetting": "Resetting Application...",
