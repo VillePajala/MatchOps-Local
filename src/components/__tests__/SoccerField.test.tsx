@@ -579,5 +579,50 @@ describe('SoccerField Component - Interaction Testing', () => {
 
       expect(canvasBefore).toBe(canvasAfter);
     });
+
+    /**
+     * Tests renderForExport method for high-quality export
+     * @critical - Required for sharp image exports
+     */
+    it('should expose renderForExport method via ref', () => {
+      const ref = React.createRef<SoccerFieldHandle>();
+      render(<SoccerField {...defaultProps} ref={ref} />);
+
+      expect(ref.current).not.toBeNull();
+      expect(typeof ref.current?.renderForExport).toBe('function');
+    });
+
+    it('should return canvas from renderForExport', () => {
+      const ref = React.createRef<SoccerFieldHandle>();
+      render(<SoccerField {...defaultProps} ref={ref} />);
+
+      // Mock getBoundingClientRect since JSDOM doesn't render
+      const canvas = document.querySelector('canvas');
+      if (canvas) {
+        jest.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+          width: 800, height: 600, top: 0, left: 0, right: 800, bottom: 600, x: 0, y: 0, toJSON: () => ({})
+        });
+      }
+
+      const exportCanvas = ref.current?.renderForExport();
+      expect(exportCanvas).toBeInstanceOf(HTMLCanvasElement);
+    });
+
+    it('should accept scale parameter in renderForExport', () => {
+      const ref = React.createRef<SoccerFieldHandle>();
+      render(<SoccerField {...defaultProps} ref={ref} />);
+
+      // Mock getBoundingClientRect since JSDOM doesn't render
+      const canvas = document.querySelector('canvas');
+      if (canvas) {
+        jest.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({
+          width: 800, height: 600, top: 0, left: 0, right: 800, bottom: 600, x: 0, y: 0, toJSON: () => ({})
+        });
+      }
+
+      // Should not throw with scale parameter
+      const exportCanvas = ref.current?.renderForExport(2);
+      expect(exportCanvas).toBeInstanceOf(HTMLCanvasElement);
+    });
   });
 });
