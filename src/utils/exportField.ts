@@ -18,11 +18,18 @@ const URL_REVOKE_DELAY_MS = 5000;
 const WINDOWS_RESERVED_NAMES = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'];
 
 /**
- * Sanitize filename for safe downloads
+ * Sanitize filename for safe downloads.
+ * Transliterates Finnish/Nordic characters before removing special chars.
  * @internal Exported for testing
  */
 export const sanitizeFilename = (name: string): string => {
   let clean = name
+    // Transliterate Finnish/Nordic characters (preserve case)
+    .replace(/Ä/g, 'A').replace(/ä/g, 'a')
+    .replace(/Ö/g, 'O').replace(/ö/g, 'o')
+    .replace(/Å/g, 'A').replace(/å/g, 'a')
+    .replace(/Ü/g, 'U').replace(/ü/g, 'u')
+    // Remove remaining special characters
     .replace(/[^a-zA-Z0-9\-_ ]/g, '')
     .replace(/\s+/g, '_')
     .replace(/_{2,}/g, '_')
@@ -170,24 +177,39 @@ const calculateHeaderHeight = (width: number): number => {
 };
 
 /**
- * Load the MatchOps logo image
+ * Load the MatchOps logo image with race condition protection
  */
 const loadLogo = (): Promise<HTMLImageElement | null> => {
   return new Promise((resolve) => {
+    let resolved = false;
+
     const img = new Image();
     img.crossOrigin = 'anonymous'; // Prevent canvas tainting
-    img.onload = () => resolve(img);
-    img.onerror = () => {
-      logger.warn('[exportField] Failed to load logo, continuing without it');
-      resolve(null);
+
+    img.onload = () => {
+      if (!resolved) {
+        resolved = true;
+        resolve(img);
+      }
     };
-    // Add timeout for logo loading
+
+    img.onerror = () => {
+      if (!resolved) {
+        resolved = true;
+        logger.warn('[exportField] Failed to load logo, continuing without it');
+        resolve(null);
+      }
+    };
+
+    // Timeout for slow connections
     setTimeout(() => {
-      if (!img.complete) {
+      if (!resolved && !img.complete) {
+        resolved = true;
         logger.warn('[exportField] Logo loading timed out, continuing without it');
         resolve(null);
       }
     }, 3000);
+
     img.src = '/logos/app-logo-yellow.png';
   });
 };
@@ -335,7 +357,8 @@ export const exportFieldAsImage = async (
 ): Promise<void> => {
   const format = options.format || 'png';
   const quality = options.quality || 0.92;
-  const scale = options.scale ?? 1; // 1x = native resolution (no upscaling blur)
+  // Clamp scale to reasonable range: 0.5x (half) to 4x (ultra high-res)
+  const scale = Math.max(0.5, Math.min(4, options.scale ?? 1));
   const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
 
   try {

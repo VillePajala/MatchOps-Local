@@ -164,7 +164,8 @@ export function FieldContainer({
   const { showToast } = useToast();
   const fieldRef = useRef<SoccerFieldHandle>(null);
 
-  // Memoize export metadata to reduce useCallback dependencies
+  // Memoize export metadata to reduce handleExportField dependencies.
+  // Only includes static game info (not timer), so updates only on game/score changes.
   const exportMetadata = useMemo(() => {
     return {
       teamName: gameSessionState.teamName,
@@ -339,7 +340,7 @@ export function FieldContainer({
               handleExportField();
             }
           }}
-          className="absolute top-4 right-4 z-20 p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm"
+          className="absolute top-4 right-4 z-20 p-2 bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg shadow-lg transition-colors backdrop-blur-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none"
           title={t('export.buttonTitle', 'Export field as image')}
           aria-label={t('export.buttonTitle', 'Export field as image')}
         >
