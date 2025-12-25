@@ -1014,6 +1014,7 @@ export type TranslationKey =
   | 'playerStats.points'
   | 'playerStats.pointsPerGame'
   | 'playerStats.ratedGames'
+  | 'playerStats.receivedFairPlayCard'
   | 'playerStats.requiredFields'
   | 'playerStats.score'
   | 'playerStats.searchPlaceholder'

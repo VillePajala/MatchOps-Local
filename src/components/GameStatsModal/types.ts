@@ -69,6 +69,10 @@ export interface GameStatsParams {
   selectedSeriesIdFilter: string | 'all';
   selectedGameTypeFilter: GameType | 'all';
   selectedGenderFilter: Gender | 'all';
+  // Club season filter (e.g., "24/25")
+  selectedClubSeason?: string | 'all';
+  clubSeasonStartDate?: string;
+  clubSeasonEndDate?: string;
   sortColumn: SortableColumn;
   sortDirection: SortDirection;
   filterText: string;
