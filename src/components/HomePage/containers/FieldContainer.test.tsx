@@ -11,7 +11,21 @@ jest.mock('@/components/TimerOverlay', () => {
   return { __esModule: true, default: TimerOverlay };
 });
 jest.mock('@/components/SoccerField', () => {
-  const SoccerField = () => <div data-testid="soccer-field" />;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const React = require('react');
+  const SoccerField = React.forwardRef((_props: unknown, ref: unknown) => {
+    const mockCanvas = React.useRef(null);
+
+    React.useImperativeHandle(ref, () => ({
+      getCanvas: () => mockCanvas.current,
+    }));
+
+    return (
+      <div data-testid="soccer-field">
+        <canvas ref={mockCanvas} width={800} height={600} />
+      </div>
+    );
+  });
   SoccerField.displayName = 'SoccerField';
   return { __esModule: true, default: SoccerField };
 });
@@ -27,6 +41,30 @@ jest.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: string) => fallback ?? _key,
   }),
+}));
+
+const mockShowToast = jest.fn();
+jest.mock('@/contexts/ToastProvider', () => ({
+  useToast: () => ({
+    showToast: mockShowToast,
+  }),
+}));
+
+const mockExportFieldAsImage = jest.fn();
+const mockIsExportSupported = jest.fn(() => true);
+jest.mock('@/utils/exportField', () => ({
+  exportFieldAsImage: (...args: unknown[]) => mockExportFieldAsImage(...args),
+  isExportSupported: () => mockIsExportSupported(),
+}));
+
+jest.mock('@/utils/logger', () => ({
+  __esModule: true,
+  default: {
+    log: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  },
 }));
 
 const baseProps = () => ({
@@ -150,5 +188,78 @@ describe('FieldContainer', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /manage seasons & tournaments/i }));
     expect(props.onOpenSeasonTournamentModal).toHaveBeenCalledTimes(1);
+  });
+
+  describe('Export Button', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockIsExportSupported.mockReturnValue(true);
+    });
+
+    it('shows export button when game is active and export is supported', () => {
+      render(
+        <FieldContainer
+          {...baseProps()}
+          currentGameId="game-123"
+        />,
+      );
+
+      expect(screen.getByRole('button', { name: /export field as image/i })).toBeInTheDocument();
+    });
+
+    it('hides export button on default game ID', () => {
+      render(<FieldContainer {...baseProps()} />);
+
+      expect(screen.queryByRole('button', { name: /export field as image/i })).not.toBeInTheDocument();
+    });
+
+    it('hides export button when export is not supported', () => {
+      mockIsExportSupported.mockReturnValue(false);
+
+      render(
+        <FieldContainer
+          {...baseProps()}
+          currentGameId="game-123"
+        />,
+      );
+
+      expect(screen.queryByRole('button', { name: /export field as image/i })).not.toBeInTheDocument();
+    });
+
+    it('calls exportFieldAsImage when export button is clicked', async () => {
+      mockExportFieldAsImage.mockResolvedValue(undefined);
+
+      render(
+        <FieldContainer
+          {...baseProps()}
+          currentGameId="game-123"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /export field as image/i }));
+
+      // Wait for async operation
+      await screen.findByRole('button', { name: /export field as image/i });
+
+      expect(mockShowToast).toHaveBeenCalledWith('Field exported successfully', 'success');
+    });
+
+    it('shows error toast when export fails', async () => {
+      mockExportFieldAsImage.mockRejectedValue(new Error('Export failed'));
+
+      render(
+        <FieldContainer
+          {...baseProps()}
+          currentGameId="game-123"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /export field as image/i }));
+
+      // Wait for async operation
+      await screen.findByRole('button', { name: /export field as image/i });
+
+      expect(mockShowToast).toHaveBeenCalledWith('Failed to export field', 'error');
+    });
   });
 });

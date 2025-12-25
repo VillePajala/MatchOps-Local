@@ -2,8 +2,9 @@
  * @jest-environment jsdom
  */
 
+import React from 'react';
 import { render, fireEvent } from '../../../tests/utils/test-utils';
-import SoccerField from '../SoccerField';
+import SoccerField, { SoccerFieldHandle } from '../SoccerField';
 import { Player, Opponent, Point } from '@/types';
 
 // Mock players for testing
@@ -531,6 +532,52 @@ describe('SoccerField Component - Interaction Testing', () => {
       // Canvas should still be in DOM and functional
       const canvasAfter = document.querySelector('canvas');
       expect(canvasAfter).toBeInTheDocument();
+    });
+  });
+
+  describe('Ref Exposure for Export', () => {
+    /**
+     * Tests that SoccerFieldHandle ref is properly exposed via forwardRef
+     * @critical - Required for field export functionality
+     */
+    it('should expose getCanvas method via ref', () => {
+      const ref = React.createRef<SoccerFieldHandle>();
+      render(<SoccerField {...defaultProps} ref={ref} />);
+
+      expect(ref.current).not.toBeNull();
+      expect(typeof ref.current?.getCanvas).toBe('function');
+    });
+
+    it('should return canvas element from getCanvas', () => {
+      const ref = React.createRef<SoccerFieldHandle>();
+      render(<SoccerField {...defaultProps} ref={ref} />);
+
+      const canvas = ref.current?.getCanvas();
+      expect(canvas).toBeInstanceOf(HTMLCanvasElement);
+    });
+
+    it('should return the same canvas element as rendered', () => {
+      const ref = React.createRef<SoccerFieldHandle>();
+      render(<SoccerField {...defaultProps} ref={ref} />);
+
+      const canvasFromRef = ref.current?.getCanvas();
+      const canvasFromDom = document.querySelector('canvas');
+
+      expect(canvasFromRef).toBe(canvasFromDom);
+    });
+
+    it('should maintain ref stability across re-renders', () => {
+      const ref = React.createRef<SoccerFieldHandle>();
+      const { rerender } = render(<SoccerField {...defaultProps} ref={ref} />);
+
+      const canvasBefore = ref.current?.getCanvas();
+
+      // Re-render with updated props
+      rerender(<SoccerField {...defaultProps} timeElapsedInSeconds={100} ref={ref} />);
+
+      const canvasAfter = ref.current?.getCanvas();
+
+      expect(canvasBefore).toBe(canvasAfter);
     });
   });
 });
