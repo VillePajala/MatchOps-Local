@@ -346,13 +346,13 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                     >
                       <div className="flex items-center justify-between">
                         <div
-                          className="flex items-center gap-2 flex-1 cursor-pointer hover:opacity-80 transition-opacity py-1"
+                          className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:opacity-80 transition-opacity py-1"
                           onClick={() => handleEditTeam(team.id)}
                           title={t('teamManager.roster', 'Roster')}
                         >
-                          <div>
+                          <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-slate-200">{team.name}</span>
+                              <span className="text-slate-200 truncate" title={team.name}>{team.name}</span>
                               {team.archived && (
                                 <span className="text-xs px-2 py-0.5 rounded bg-slate-700/70 text-slate-400 border border-slate-600">
                                   {t('teamManager.archivedBadge', 'Archived')}
