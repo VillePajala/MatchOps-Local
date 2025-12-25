@@ -1603,7 +1603,12 @@
     "theirScore": "Heidän tulos",
     "overallRating": "Kokonaisarvio",
     "sheetSeasonPerformance": "Kauden suorituskyky",
-    "sheetTournamentPerformance": "Turnauksen suorituskyky"
+    "sheetTournamentPerformance": "Turnauksen suorituskyky",
+    "notSupported": "Vienti ei ole tuettu tässä selaimessa",
+    "noCanvas": "Kentän kaappaus epäonnistui",
+    "success": "Kenttä viety onnistuneesti",
+    "failed": "Kentän vienti epäonnistui",
+    "buttonTitle": "Vie kenttä kuvana"
   },
   "reset": {
     "resetting": "Nollataan sovellusta...",
