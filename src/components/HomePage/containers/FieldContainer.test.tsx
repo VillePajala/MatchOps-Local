@@ -11,7 +11,6 @@ jest.mock('@/components/TimerOverlay', () => {
   return { __esModule: true, default: TimerOverlay };
 });
 jest.mock('@/components/SoccerField', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react');
   const SoccerField = React.forwardRef((_props: unknown, ref: unknown) => {
     const mockCanvas = React.useRef(null);
@@ -40,6 +39,9 @@ jest.mock('@/components/ErrorBoundary', () => ({
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_key: string, fallback?: string) => fallback ?? _key,
+    i18n: {
+      language: 'en',
+    },
   }),
 }));
 

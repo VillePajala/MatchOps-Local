@@ -13,18 +13,28 @@ const OVERLAY_PADDING = 16;
 const OVERLAY_FONT_SIZE_MIN = 14;
 const OVERLAY_FONT_SIZE_MAX = 32;
 const OVERLAY_FONT_SIZE_DIVISOR = 40;
+const BLOB_CREATION_TIMEOUT_MS = 30000;
+const URL_REVOKE_DELAY_MS = 5000;
+const WINDOWS_RESERVED_NAMES = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'];
 
 /**
  * Sanitize filename for safe downloads
  * @internal Exported for testing
  */
 export const sanitizeFilename = (name: string): string => {
-  return name
+  let clean = name
     .replace(/[^a-zA-Z0-9\-_ ]/g, '')
     .replace(/\s+/g, '_')
     .replace(/_{2,}/g, '_')
     .substring(0, MAX_FILENAME_LENGTH)
     .replace(/^_+|_+$/g, '');
+
+  // Prefix Windows reserved names to prevent filesystem issues
+  if (WINDOWS_RESERVED_NAMES.includes(clean.toUpperCase())) {
+    clean = `_${clean}`;
+  }
+
+  return clean || 'export';
 };
 
 /**
@@ -49,18 +59,20 @@ export interface FieldExportOptions {
   score?: { home: number; away: number };
   /** Whether team is home or away */
   homeOrAway?: 'home' | 'away';
-  /** Current period number */
-  currentPeriod?: number;
-  /** Total number of periods */
-  numberOfPeriods?: number;
-  /** Elapsed time in seconds */
-  timeElapsedInSeconds?: number;
   /** Game location/venue */
   gameLocation?: string;
   /** Age group (e.g., "U12", "P11") */
   ageGroup?: string;
-  /** Game type */
+  /** Game type (used for filename only) */
   gameType?: 'soccer' | 'futsal';
+  /** Translated game type label for overlay (e.g., "Jalkapallo", "Futsal") */
+  gameTypeLabel?: string;
+  /** Translated prefix for filename (e.g., "Jalkapallo", "Soccer") - replaces "field" */
+  filenamePrefix?: string;
+  /** Locale for date formatting (e.g., 'en', 'fi') */
+  locale?: string;
+  /** Export scale multiplier (default: 1 for native resolution) */
+  scale?: number;
 }
 
 /**
@@ -68,7 +80,11 @@ export interface FieldExportOptions {
  * @internal Exported for testing
  */
 export const generateFilename = (options: FieldExportOptions): string => {
-  const parts: string[] = ['field'];
+  // Use translated prefix or fall back to 'field'
+  const prefix = options.filenamePrefix
+    ? sanitizeFilename(options.filenamePrefix)
+    : 'field';
+  const parts: string[] = [prefix];
 
   if (options.teamName) {
     parts.push(sanitizeFilename(options.teamName));
@@ -100,7 +116,8 @@ export const formatTime = (seconds: number): string => {
 };
 
 /**
- * Truncate text to fit within a maximum width
+ * Truncate text to fit within a maximum width using binary search.
+ * O(n log n) instead of O(n²) for long strings.
  * @internal Exported for testing
  */
 export const truncateText = (
@@ -109,20 +126,31 @@ export const truncateText = (
   ctx: CanvasRenderingContext2D
 ): string => {
   if (ctx.measureText(text).width <= maxWidth) return text;
-  let truncated = text;
-  while (ctx.measureText(truncated + '…').width > maxWidth && truncated.length > 0) {
-    truncated = truncated.slice(0, -1);
+
+  // Binary search for the optimal truncation point
+  let low = 0;
+  let high = text.length;
+
+  while (low < high) {
+    const mid = Math.floor((low + high + 1) / 2);
+    const testText = text.slice(0, mid) + '…';
+    if (ctx.measureText(testText).width <= maxWidth) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
   }
-  return truncated.length > 0 ? truncated + '…' : '…';
+
+  return low > 0 ? text.slice(0, low) + '…' : '…';
 };
 
 /**
  * Format date for display (localized if possible)
  */
-const formatDate = (dateStr: string): string => {
+const formatDate = (dateStr: string, locale?: string): string => {
   try {
     const date = new Date(dateStr);
-    return date.toLocaleDateString(undefined, {
+    return date.toLocaleDateString(locale, {
       day: 'numeric',
       month: 'short',
       year: 'numeric'
@@ -133,153 +161,169 @@ const formatDate = (dateStr: string): string => {
 };
 
 /**
- * Draw metadata overlay on a canvas with header and footer bars
+ * Calculate the height needed for the header section
  */
-const drawOverlay = (
+const calculateHeaderHeight = (width: number): number => {
+  const fontSize = Math.max(OVERLAY_FONT_SIZE_MIN, Math.min(OVERLAY_FONT_SIZE_MAX, width / OVERLAY_FONT_SIZE_DIVISOR));
+  // Header has: score row + team names row + metadata row + padding
+  return fontSize * 5 + OVERLAY_PADDING * 3;
+};
+
+/**
+ * Load the MatchOps logo image
+ */
+const loadLogo = (): Promise<HTMLImageElement | null> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous'; // Prevent canvas tainting
+    img.onload = () => resolve(img);
+    img.onerror = () => {
+      logger.warn('[exportField] Failed to load logo, continuing without it');
+      resolve(null);
+    };
+    // Add timeout for logo loading
+    setTimeout(() => {
+      if (!img.complete) {
+        logger.warn('[exportField] Logo loading timed out, continuing without it');
+        resolve(null);
+      }
+    }, 3000);
+    img.src = '/logos/app-logo-yellow.png';
+  });
+};
+
+/**
+ * Draw game info header section (above the field, not overlaying it)
+ */
+const drawHeader = (
   ctx: CanvasRenderingContext2D,
   width: number,
-  height: number,
-  options: FieldExportOptions
+  headerHeight: number,
+  options: FieldExportOptions,
+  logo: HTMLImageElement | null
 ): void => {
   const padding = OVERLAY_PADDING;
   const fontSize = Math.max(OVERLAY_FONT_SIZE_MIN, Math.min(OVERLAY_FONT_SIZE_MAX, width / OVERLAY_FONT_SIZE_DIVISOR));
-  const headerHeight = fontSize * 2.5 + padding;
-  const footerHeight = fontSize * 2 + padding;
 
   ctx.save();
 
-  // === HEADER BAR ===
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+  // Dark background for header
+  ctx.fillStyle = '#1e293b'; // Slate-800
   ctx.fillRect(0, 0, width, headerHeight);
 
-  ctx.textBaseline = 'middle';
-  const headerY = headerHeight / 2;
+  // === LOGOS on left and right ===
+  if (logo) {
+    const logoHeight = headerHeight - padding * 2;
+    const aspectRatio = logo.width / logo.height;
+    const logoWidth = logoHeight * aspectRatio;
+    // Left logo
+    ctx.drawImage(logo, padding, padding, logoWidth, logoHeight);
+    // Right logo
+    ctx.drawImage(logo, width - padding - logoWidth, padding, logoWidth, logoHeight);
+  }
 
-  // Calculate reserved widths for header layout
-  let scoreWidth = 0;
-  let dateTimeWidth = 0;
+  // Content stays centered on full width
+  const centerX = width / 2;
 
-  // Score on the left (large)
+  // === ROW 1: Score (large, centered) ===
+  const row1Y = padding + fontSize * 1.2;
   if (options.score) {
-    ctx.font = `bold ${fontSize * 1.6}px system-ui, sans-serif`;
+    ctx.font = `bold ${fontSize * 2.5}px Rajdhani, sans-serif`;
     ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     const scoreText = `${options.score.home} - ${options.score.away}`;
-    scoreWidth = ctx.measureText(scoreText).width + padding * 2;
-    ctx.fillText(scoreText, padding, headerY);
+    ctx.fillText(scoreText, centerX, row1Y);
   }
 
-  // Calculate date/time width first (for matchup truncation)
-  const dateTimeParts: string[] = [];
-  if (options.gameDate) {
-    dateTimeParts.push(formatDate(options.gameDate));
-  }
-  if (options.gameTime) {
-    dateTimeParts.push(options.gameTime);
-  }
-  if (dateTimeParts.length > 0) {
-    ctx.font = `${fontSize * 0.9}px system-ui, sans-serif`;
-    const dateTimeText = dateTimeParts.join(' · ');
-    dateTimeWidth = ctx.measureText(dateTimeText).width + padding * 2;
-  }
-
-  // Team names in center (with truncation to fit between score and date)
-  // Convention: home team listed first (standard sports notation)
+  // === ROW 2: Team names ===
+  const row2Y = row1Y + fontSize * 2;
   const teamText = options.teamName || 'Team';
   const opponentText = options.opponentName || 'Opponent';
   const isHome = options.homeOrAway === 'home';
   const matchupText = isHome
-    ? `${teamText} vs ${opponentText}`
-    : `${opponentText} vs ${teamText}`;
+    ? `${teamText}  vs  ${opponentText}`
+    : `${opponentText}  vs  ${teamText}`;
 
-  ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
+  ctx.font = `bold ${fontSize * 1.2}px Rajdhani, sans-serif`;
   ctx.fillStyle = '#ffffff';
-  const maxMatchupWidth = width - scoreWidth - dateTimeWidth - padding * 2;
-  const truncatedMatchup = truncateText(matchupText, maxMatchupWidth, ctx);
-  const matchupWidth = ctx.measureText(truncatedMatchup).width;
-  ctx.fillText(truncatedMatchup, (width - matchupWidth) / 2, headerY);
+  ctx.textAlign = 'center';
+  const truncatedMatchup = truncateText(matchupText, width - padding * 2, ctx);
+  ctx.fillText(truncatedMatchup, centerX, row2Y);
 
-  // Date/time on the right
-  if (dateTimeParts.length > 0) {
-    ctx.font = `${fontSize * 0.9}px system-ui, sans-serif`;
-    ctx.fillStyle = '#cccccc';
-    const dateTimeText = dateTimeParts.join(' · ');
-    const dtWidth = ctx.measureText(dateTimeText).width;
-    ctx.fillText(dateTimeText, width - dtWidth - padding, headerY);
+  // === ROW 3: Metadata (date, time, age group, location) ===
+  const row3Y = row2Y + fontSize * 1.8;
+  const metaItems: string[] = [];
+
+  // Date and time
+  if (options.gameDate) {
+    metaItems.push(formatDate(options.gameDate, options.locale));
   }
-
-  // === FOOTER BAR ===
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-  ctx.fillRect(0, height - footerHeight, width, footerHeight);
-
-  const footerY = height - footerHeight / 2;
-
-  // Calculate right side width first (for left side truncation)
-  let footerRightWidth = 0;
-  const rightItems: string[] = [];
-
-  if (options.currentPeriod && options.numberOfPeriods) {
-    rightItems.push(`Period ${options.currentPeriod}/${options.numberOfPeriods}`);
-  }
-
-  if (options.timeElapsedInSeconds !== undefined && options.timeElapsedInSeconds >= 0) {
-    rightItems.push(`⏱ ${formatTime(options.timeElapsedInSeconds)}`);
-  }
-
-  if (rightItems.length > 0) {
-    ctx.font = `bold ${fontSize * 0.9}px system-ui, sans-serif`;
-    const rightText = rightItems.join('  ·  ');
-    footerRightWidth = ctx.measureText(rightText).width + padding * 2;
-  }
-
-  // Footer left side: metadata (with truncation)
-  const footerItems: string[] = [];
-
-  // Game type icon/text
-  if (options.gameType) {
-    footerItems.push(options.gameType === 'futsal' ? '⚽ Futsal' : '⚽ Soccer');
+  if (options.gameTime) {
+    metaItems.push(options.gameTime);
   }
 
   // Age group
   if (options.ageGroup) {
-    footerItems.push(options.ageGroup);
+    metaItems.push(options.ageGroup);
   }
 
   // Location
   if (options.gameLocation) {
-    footerItems.push(`📍 ${options.gameLocation}`);
+    metaItems.push(`📍 ${options.gameLocation}`);
   }
 
-  if (footerItems.length > 0) {
-    ctx.font = `${fontSize * 0.85}px system-ui, sans-serif`;
-    ctx.fillStyle = '#aaaaaa';
-    const footerLeftText = footerItems.join('  ·  ');
-    // Reserve space for watermark in center (~80px) and right items
-    const maxFooterLeftWidth = width / 2 - padding * 2 - 40;
-    const truncatedFooter = truncateText(footerLeftText, maxFooterLeftWidth, ctx);
-    ctx.fillText(truncatedFooter, padding, footerY);
+  if (metaItems.length > 0) {
+    ctx.font = `${fontSize}px Rajdhani, sans-serif`;
+    ctx.fillStyle = '#94a3b8'; // Slate-400
+    ctx.textAlign = 'center';
+    const metaText = metaItems.join('  ·  ');
+    const truncatedMeta = truncateText(metaText, width - padding * 2, ctx);
+    ctx.fillText(truncatedMeta, centerX, row3Y);
   }
 
-  // Footer right side: period and timer
-  if (rightItems.length > 0) {
-    ctx.font = `bold ${fontSize * 0.9}px system-ui, sans-serif`;
-    ctx.fillStyle = '#ffffff';
-    const rightText = rightItems.join('  ·  ');
-    const rightWidth = ctx.measureText(rightText).width;
-    ctx.fillText(rightText, width - rightWidth - padding, footerY);
-  }
+  ctx.restore();
+};
 
-  // MatchOps watermark (subtle, bottom center)
-  ctx.font = `${fontSize * 0.7}px system-ui, sans-serif`;
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-  const watermark = 'MatchOps';
-  const watermarkWidth = ctx.measureText(watermark).width;
-  ctx.fillText(watermark, (width - watermarkWidth) / 2, footerY);
+/**
+ * Draw subtle watermark footer (below the field)
+ */
+const drawFooter = (
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  yOffset: number,
+  footerHeight: number
+): void => {
+  const fontSize = Math.max(10, Math.min(14, width / 50));
+
+  ctx.save();
+
+  // Dark background
+  ctx.fillStyle = '#0f172a'; // Slate-900
+  ctx.fillRect(0, yOffset, width, footerHeight);
+
+  // Watermark
+  ctx.font = `${fontSize}px Rajdhani, sans-serif`;
+  ctx.fillStyle = '#475569'; // Slate-600
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('MatchOps', width / 2, yOffset + footerHeight / 2);
 
   ctx.restore();
 };
 
 /**
  * Export a canvas element as a downloadable image
+ *
+ * @example
+ * ```typescript
+ * await exportFieldAsImage(canvas, {
+ *   teamName: 'Eagles',
+ *   opponentName: 'Hawks',
+ *   includeOverlay: true,
+ *   score: { home: 2, away: 1 }
+ * });
+ * ```
  *
  * @param canvas - The canvas element to export
  * @param options - Export options
@@ -291,43 +335,78 @@ export const exportFieldAsImage = async (
 ): Promise<void> => {
   const format = options.format || 'png';
   const quality = options.quality || 0.92;
+  const scale = options.scale ?? 1; // 1x = native resolution (no upscaling blur)
   const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
 
   try {
-    // Create a copy of the canvas if we need to add overlay
-    // Note: This temporarily doubles memory usage for large canvases (e.g., 4K displays)
-    // The temporary canvas is garbage collected after blob creation completes
-    let exportCanvas = canvas;
+    const sourceWidth = canvas.width;
+    const sourceHeight = canvas.height;
+    const fieldWidth = Math.round(sourceWidth * scale);
+    const fieldHeight = Math.round(sourceHeight * scale);
 
-    if (options.includeOverlay) {
-      exportCanvas = document.createElement('canvas');
-      exportCanvas.width = canvas.width;
-      exportCanvas.height = canvas.height;
+    // Load logo for header (if overlay enabled)
+    const logo = options.includeOverlay ? await loadLogo() : null;
 
-      const ctx = exportCanvas.getContext('2d');
-      if (!ctx) {
-        logger.error('[exportField] Failed to get 2d context - possible WebGL exhaustion or memory pressure');
-        throw new Error('Failed to get canvas context - try closing other tabs');
-      }
+    // Calculate header and footer sizes at scaled resolution
+    const headerHeight = options.includeOverlay ? calculateHeaderHeight(fieldWidth) : 0;
+    const footerHeight = options.includeOverlay ? Math.round(24 * scale) : 0;
 
-      // Draw original canvas
-      ctx.drawImage(canvas, 0, 0);
+    // Create export canvas with space for header + field + footer
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = fieldWidth;
+    exportCanvas.height = headerHeight + fieldHeight + footerHeight;
 
-      // Draw overlay
-      drawOverlay(ctx, canvas.width, canvas.height, options);
+    const ctx = exportCanvas.getContext('2d');
+    if (!ctx) {
+      logger.error('[exportField] Failed to get 2d context - possible WebGL exhaustion or memory pressure');
+      throw new Error('Failed to get canvas context - try closing other tabs');
     }
 
-    // Convert to blob
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      exportCanvas.toBlob(
-        (b) => {
-          if (b) resolve(b);
-          else reject(new Error('Failed to create image blob'));
-        },
-        mimeType,
-        quality
-      );
-    });
+    // Draw header section at top (with smoothing for crisp logo)
+    if (options.includeOverlay) {
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      drawHeader(ctx, fieldWidth, headerHeight, options, logo);
+    }
+
+    // Draw the field at native resolution (disable smoothing for 1:1 pixel copy)
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(canvas, 0, headerHeight);
+
+    // Draw footer section at bottom (re-enable smoothing)
+    if (options.includeOverlay) {
+      ctx.imageSmoothingEnabled = true;
+      drawFooter(ctx, fieldWidth, headerHeight + fieldHeight, footerHeight);
+    }
+
+    // Log canvas size for debugging
+    logger.log(`[exportField] Canvas size: ${exportCanvas.width}x${exportCanvas.height}`);
+
+    // Convert to blob - try toBlob first, fall back to toDataURL
+    let blob: Blob;
+    try {
+      blob = await new Promise<Blob>((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('toBlob timed out'));
+        }, BLOB_CREATION_TIMEOUT_MS);
+
+        exportCanvas.toBlob(
+          (b) => {
+            clearTimeout(timeoutId);
+            if (b) resolve(b);
+            else reject(new Error('toBlob returned null'));
+          },
+          mimeType,
+          quality
+        );
+      });
+    } catch (toBlobError) {
+      // Fallback to toDataURL method
+      logger.warn('[exportField] toBlob failed, trying toDataURL fallback:', toBlobError);
+      const dataUrl = exportCanvas.toDataURL(mimeType, quality);
+      const response = await fetch(dataUrl);
+      blob = await response.blob();
+    }
 
     // Generate filename
     const filename = generateFilename(options);
@@ -341,8 +420,8 @@ export const exportFieldAsImage = async (
     link.click();
     document.body.removeChild(link);
 
-    // Clean up immediately - modern browsers queue the download before revoke takes effect
-    URL.revokeObjectURL(url);
+    // Delay cleanup for slower devices where download may not have started yet
+    setTimeout(() => URL.revokeObjectURL(url), URL_REVOKE_DELAY_MS);
 
     logger.log('[exportField] Field exported successfully:', filename);
   } catch (error) {
