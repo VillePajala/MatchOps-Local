@@ -160,28 +160,29 @@ export function FieldContainer({
   interactions,
   timerInteractions,
 }: FieldContainerProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { showToast } = useToast();
   const fieldRef = useRef<SoccerFieldHandle>(null);
 
   // Memoize export metadata to reduce useCallback dependencies
-  const exportMetadata = useMemo(() => ({
-    teamName: gameSessionState.teamName,
-    opponentName: gameSessionState.opponentName,
-    gameDate: gameSessionState.gameDate,
-    gameTime: gameSessionState.gameTime,
-    gameLocation: gameSessionState.gameLocation,
-    ageGroup: gameSessionState.ageGroup,
-    gameType: gameSessionState.gameType,
-    homeOrAway: gameSessionState.homeOrAway,
-    currentPeriod: gameSessionState.currentPeriod,
-    numberOfPeriods: gameSessionState.numberOfPeriods,
-    timeElapsedInSeconds: timerVM.timeElapsedInSeconds,
-    score: {
-      home: gameSessionState.homeScore,
-      away: gameSessionState.awayScore,
-    },
-  }), [
+  const exportMetadata = useMemo(() => {
+    return {
+      teamName: gameSessionState.teamName,
+      opponentName: gameSessionState.opponentName,
+      gameDate: gameSessionState.gameDate,
+      gameTime: gameSessionState.gameTime,
+      gameLocation: gameSessionState.gameLocation,
+      ageGroup: gameSessionState.ageGroup,
+      gameType: gameSessionState.gameType,
+      filenamePrefix: 'MatchOps',
+      homeOrAway: gameSessionState.homeOrAway,
+      locale: i18n.language,
+      score: {
+        home: gameSessionState.homeScore,
+        away: gameSessionState.awayScore,
+      },
+    };
+  }, [
     gameSessionState.teamName,
     gameSessionState.opponentName,
     gameSessionState.gameDate,
@@ -190,11 +191,9 @@ export function FieldContainer({
     gameSessionState.ageGroup,
     gameSessionState.gameType,
     gameSessionState.homeOrAway,
-    gameSessionState.currentPeriod,
-    gameSessionState.numberOfPeriods,
     gameSessionState.homeScore,
     gameSessionState.awayScore,
-    timerVM.timeElapsedInSeconds,
+    i18n.language,
   ]);
 
   const handleExportField = useCallback(async () => {
@@ -203,7 +202,8 @@ export function FieldContainer({
       return;
     }
 
-    const canvas = fieldRef.current?.getCanvas();
+    // Use renderForExport for high-quality output (2x resolution)
+    const canvas = fieldRef.current?.renderForExport(2);
     if (!canvas) {
       showToast(t('export.noCanvas', 'Could not capture field'), 'error');
       return;
@@ -213,6 +213,7 @@ export function FieldContainer({
       await exportFieldAsImage(canvas, {
         ...exportMetadata,
         includeOverlay: true,
+        scale: 1, // Already rendered at high res, no additional scaling needed
       });
       showToast(t('export.success', 'Field exported successfully'), 'success');
     } catch (error) {

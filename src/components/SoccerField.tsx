@@ -45,6 +45,8 @@ interface SoccerFieldProps {
 export interface SoccerFieldHandle {
   /** Get the canvas element for export */
   getCanvas: () => HTMLCanvasElement | null;
+  /** Render field at specified resolution for high-quality export */
+  renderForExport: (scale?: number) => HTMLCanvasElement | null;
 }
 
 // Constants
@@ -334,11 +336,6 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
   isDrawingEnabled
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  // Expose canvas via ref for export functionality
-  useImperativeHandle(ref, () => ({
-    getCanvas: () => canvasRef.current,
-  }), []);
   const [isDraggingPlayer, setIsDraggingPlayer] = useState<boolean>(false);
   const [draggingPlayerId, setDraggingPlayerId] = useState<string | null>(null);
   const [isDraggingOpponent, setIsDraggingOpponent] = useState<boolean>(false);
@@ -356,6 +353,363 @@ const SoccerFieldInner = forwardRef<SoccerFieldHandle, SoccerFieldProps>(({
     img.src = '/ball.png';
     img.onload = () => setBallImage(img);
   }, []);
+
+  // Render field at high resolution for export (bypasses CSS-resolution cache)
+  const renderForExport = useCallback((exportScale: number = 2): HTMLCanvasElement | null => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+
+    const rect = canvas.getBoundingClientRect();
+    const W = rect.width * exportScale;
+    const H = rect.height * exportScale;
+
+    if (W <= 0 || H <= 0) return null;
+
+    // Create temporary high-res canvas
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = W;
+    exportCanvas.height = H;
+    const ctx = exportCanvas.getContext('2d');
+    if (!ctx) return null;
+
+    // Render background at full export resolution (no cache)
+    const bgCanvas = document.createElement('canvas');
+    bgCanvas.width = W;
+    bgCanvas.height = H;
+    const bgCtx = bgCanvas.getContext('2d');
+    if (!bgCtx) return null;
+
+    // 1. Base grass color
+    bgCtx.fillStyle = '#427B44';
+    bgCtx.fillRect(0, 0, W, H);
+
+    // 2. Add dual noise patterns for grass texture
+    const cloudPattern = createNoisePattern(bgCtx, 400, 400, 0.02);
+    if (cloudPattern) {
+      bgCtx.fillStyle = cloudPattern;
+      bgCtx.fillRect(0, 0, W, H);
+    }
+    const grainPattern = createNoisePattern(bgCtx, 100, 100, 0.03);
+    if (grainPattern) {
+      bgCtx.fillStyle = grainPattern;
+      bgCtx.fillRect(0, 0, W, H);
+    }
+
+    // 3. Mowing stripes
+    const numStripes = 9;
+    const stripeWidth = W / numStripes;
+    bgCtx.globalCompositeOperation = 'soft-light';
+    for (let i = 0; i < numStripes; i++) {
+      bgCtx.fillStyle = (i % 2 === 0) ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)';
+      bgCtx.fillRect(i * stripeWidth, 0, stripeWidth, H);
+    }
+    bgCtx.globalCompositeOperation = 'source-over';
+
+    // 4. Lighting gradients
+    const linearGradient = bgCtx.createLinearGradient(0, 0, 0, H);
+    linearGradient.addColorStop(0, 'rgba(0, 0, 0, 0.03)');
+    linearGradient.addColorStop(1, 'rgba(0, 0, 0, 0.25)');
+    bgCtx.fillStyle = linearGradient;
+    bgCtx.fillRect(0, 0, W, H);
+
+    const radialGradient = bgCtx.createRadialGradient(W / 2, H * 0.3, 0, W / 2, H * 0.3, H * 0.8);
+    radialGradient.addColorStop(0, 'rgba(255, 255, 255, 0.10)');
+    radialGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    bgCtx.fillStyle = radialGradient;
+    bgCtx.fillRect(0, 0, W, H);
+
+    // 5. Field lines with shadows
+    bgCtx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    bgCtx.lineWidth = 2 * exportScale;
+    bgCtx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+    bgCtx.shadowBlur = 2 * exportScale;
+    bgCtx.shadowOffsetY = 1 * exportScale;
+
+    const lineMargin = 5 * exportScale;
+    const centerRadius = Math.min(W, H) * 0.08;
+    const penaltyBoxWidth = W * 0.6;
+    const penaltyBoxHeight = H * 0.18;
+    const goalBoxWidth = W * 0.3;
+    const goalBoxHeight = H * 0.07;
+    const penaltySpotDist = H * 0.12;
+    const cornerRadius = Math.min(W, H) * 0.02;
+
+    // Outer boundary
+    bgCtx.beginPath();
+    bgCtx.strokeRect(lineMargin, lineMargin, W - 2 * lineMargin, H - 2 * lineMargin);
+
+    // Halfway line
+    bgCtx.beginPath();
+    bgCtx.moveTo(lineMargin, H / 2);
+    bgCtx.lineTo(W - lineMargin, H / 2);
+    bgCtx.stroke();
+
+    // Center circle
+    bgCtx.beginPath();
+    bgCtx.arc(W / 2, H / 2, centerRadius, 0, Math.PI * 2);
+    bgCtx.stroke();
+
+    // Top Penalty Area & Arc
+    const topPenaltyX = (W - penaltyBoxWidth) / 2;
+    bgCtx.beginPath();
+    bgCtx.rect(topPenaltyX, lineMargin, penaltyBoxWidth, penaltyBoxHeight);
+    bgCtx.stroke();
+    bgCtx.beginPath();
+    bgCtx.arc(W / 2, lineMargin + penaltyBoxHeight, centerRadius * 0.8, 0, Math.PI, false);
+    bgCtx.stroke();
+
+    // Top Goal Area
+    const topGoalX = (W - goalBoxWidth) / 2;
+    bgCtx.beginPath();
+    bgCtx.strokeRect(topGoalX, lineMargin, goalBoxWidth, goalBoxHeight);
+
+    // Bottom Penalty Area & Arc
+    const bottomPenaltyY = H - lineMargin - penaltyBoxHeight;
+    bgCtx.beginPath();
+    bgCtx.rect(topPenaltyX, bottomPenaltyY, penaltyBoxWidth, penaltyBoxHeight);
+    bgCtx.stroke();
+    bgCtx.beginPath();
+    bgCtx.arc(W / 2, H - lineMargin - penaltyBoxHeight, centerRadius * 0.8, Math.PI, 0, false);
+    bgCtx.stroke();
+
+    // Bottom Goal Area
+    const bottomGoalY = H - lineMargin - goalBoxHeight;
+    bgCtx.beginPath();
+    bgCtx.strokeRect(topGoalX, bottomGoalY, goalBoxWidth, goalBoxHeight);
+
+    // Corner Arcs
+    bgCtx.beginPath();
+    bgCtx.arc(lineMargin, lineMargin, cornerRadius, 0, Math.PI / 2);
+    bgCtx.stroke();
+    bgCtx.beginPath();
+    bgCtx.arc(W - lineMargin, lineMargin, cornerRadius, Math.PI / 2, Math.PI);
+    bgCtx.stroke();
+    bgCtx.beginPath();
+    bgCtx.arc(lineMargin, H - lineMargin, cornerRadius, Math.PI * 1.5, 0);
+    bgCtx.stroke();
+    bgCtx.beginPath();
+    bgCtx.arc(W - lineMargin, H - lineMargin, cornerRadius, Math.PI, Math.PI * 1.5);
+    bgCtx.stroke();
+
+    // Reset shadow for spots
+    bgCtx.shadowColor = 'transparent';
+    bgCtx.shadowBlur = 0;
+    bgCtx.shadowOffsetY = 0;
+
+    // Draw spots (no shadow)
+    bgCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    const spotRadius = 3 * exportScale;
+    // Center Spot
+    bgCtx.beginPath();
+    bgCtx.arc(W / 2, H / 2, spotRadius, 0, Math.PI * 2);
+    bgCtx.fill();
+    // Top Penalty Spot
+    bgCtx.beginPath();
+    bgCtx.arc(W / 2, lineMargin + penaltySpotDist, spotRadius, 0, Math.PI * 2);
+    bgCtx.fill();
+    // Bottom Penalty Spot
+    bgCtx.beginPath();
+    bgCtx.arc(W / 2, H - lineMargin - penaltySpotDist, spotRadius, 0, Math.PI * 2);
+    bgCtx.fill();
+
+    // Draw background to export canvas
+    ctx.drawImage(bgCanvas, 0, 0);
+
+    // Scale factor for elements
+    const scale = exportScale;
+    const playerRadius = PLAYER_RADIUS * scale;
+    const opponentRadius = PLAYER_RADIUS * 0.9 * scale;
+
+    // Draw drawings
+    ctx.strokeStyle = '#FB923C';
+    ctx.lineWidth = 3 * scale;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    drawings.forEach(path => {
+      if (path.length < 2) return;
+      ctx.beginPath();
+      ctx.moveTo(path[0].relX * W, path[0].relY * H);
+      for (let i = 1; i < path.length; i++) {
+        ctx.lineTo(path[i].relX * W, path[i].relY * H);
+      }
+      ctx.stroke();
+    });
+
+    // Draw opponents (if not tactics board view) with polished enamel effect
+    if (!isTacticsBoardView) {
+      opponents.forEach(opponent => {
+        if (typeof opponent.relX !== 'number' || typeof opponent.relY !== 'number') return;
+        const absX = opponent.relX * W;
+        const absY = opponent.relY * H;
+
+        const baseColor = tinycolor('#DC2626'); // Opponent Red
+
+        // 1. Base Disc Color
+        ctx.beginPath();
+        ctx.arc(absX, absY, opponentRadius, 0, Math.PI * 2);
+        ctx.fillStyle = baseColor.toString();
+        ctx.fill();
+
+        // 2. Create clipping mask for gradient effects
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(absX, absY, opponentRadius, 0, Math.PI * 2);
+        ctx.clip();
+
+        // 3. Top-left Highlight (Sheen)
+        const highlightGradient = ctx.createRadialGradient(
+          absX - opponentRadius * 0.3, absY - opponentRadius * 0.3, 0,
+          absX - opponentRadius * 0.3, absY - opponentRadius * 0.3, opponentRadius * 1.2
+        );
+        highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+        highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = highlightGradient;
+        ctx.fillRect(absX - opponentRadius, absY - opponentRadius, opponentRadius * 2, opponentRadius * 2);
+
+        // 4. Bottom-right Inner Shadow for depth
+        const shadowGradient = ctx.createRadialGradient(
+          absX + opponentRadius * 0.4, absY + opponentRadius * 0.4, 0,
+          absX + opponentRadius * 0.4, absY + opponentRadius * 0.4, opponentRadius * 1.5
+        );
+        shadowGradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
+        shadowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = shadowGradient;
+        ctx.fillRect(absX - opponentRadius, absY - opponentRadius, opponentRadius * 2, opponentRadius * 2);
+
+        // 5. Restore and add white border
+        ctx.restore();
+        ctx.beginPath();
+        ctx.arc(absX, absY, opponentRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.lineWidth = 1.5 * scale;
+        ctx.stroke();
+      });
+    }
+
+    // Draw players with polished enamel effect
+    players.forEach(player => {
+      if (typeof player.relX !== 'number' || typeof player.relY !== 'number') return;
+      const absX = player.relX * W;
+      const absY = player.relY * H;
+
+      // Polished enamel disc effect (matches on-screen display)
+      const baseColor = tinycolor(player.isGoalie ? '#F97316' : (player.color || '#7E22CE'));
+
+      // 1. Base Disc Color
+      ctx.beginPath();
+      ctx.arc(absX, absY, playerRadius, 0, Math.PI * 2);
+      ctx.fillStyle = baseColor.toString();
+      ctx.fill();
+
+      // 2. Create clipping mask for gradient effects
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(absX, absY, playerRadius, 0, Math.PI * 2);
+      ctx.clip();
+
+      // 3. Top-left Highlight (Sheen)
+      const highlightGradient = ctx.createRadialGradient(
+        absX - playerRadius * 0.3, absY - playerRadius * 0.3, 0,
+        absX - playerRadius * 0.3, absY - playerRadius * 0.3, playerRadius * 1.2
+      );
+      highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+      highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      ctx.fillStyle = highlightGradient;
+      ctx.fillRect(absX - playerRadius, absY - playerRadius, playerRadius * 2, playerRadius * 2);
+
+      // 4. Bottom-right Inner Shadow for depth
+      const shadowGradient = ctx.createRadialGradient(
+        absX + playerRadius * 0.4, absY + playerRadius * 0.4, 0,
+        absX + playerRadius * 0.4, absY + playerRadius * 0.4, playerRadius * 1.5
+      );
+      shadowGradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
+      shadowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = shadowGradient;
+      ctx.fillRect(absX - playerRadius, absY - playerRadius, playerRadius * 2, playerRadius * 2);
+
+      // 5. Restore and add white border
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(absX, absY, playerRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.lineWidth = 1.5 * scale;
+      ctx.stroke();
+
+      // Player name with engraved effect (matches on-screen display)
+      if (showPlayerNames) {
+        const text = player.nickname || player.name || '';
+        ctx.font = `600 ${12 * scale}px Rajdhani, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // 1. Dark shadow on top-left for "pressed-in" look
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+        ctx.fillText(text, absX - 0.5 * scale, absY - 0.5 * scale);
+
+        // 2. Light highlight on bottom-right
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+        ctx.fillText(text, absX + 0.5 * scale, absY + 0.5 * scale);
+
+        // 3. Main text fill
+        ctx.fillStyle = '#F0F0F0';
+        ctx.fillText(text, absX, absY);
+      }
+    });
+
+    // Draw ball (only in tactics board view)
+    if (isTacticsBoardView && tacticalBallPosition && ballImage) {
+      const ballSize = 24 * scale;
+      const bx = tacticalBallPosition.relX * W;
+      const by = tacticalBallPosition.relY * H;
+      ctx.drawImage(ballImage, bx - ballSize / 2, by - ballSize / 2, ballSize, ballSize);
+    }
+
+    // Draw tactical discs (matches on-screen display with shadow effect)
+    if (isTacticsBoardView) {
+      const tacticalDiscRadius = PLAYER_RADIUS * 0.9 * scale;
+      tacticalDiscs.forEach(disc => {
+        if (typeof disc.relX !== 'number' || typeof disc.relY !== 'number') return;
+        const absX = disc.relX * W;
+        const absY = disc.relY * H;
+
+        // Draw shadow first
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 5 * scale;
+        ctx.shadowOffsetX = 1 * scale;
+        ctx.shadowOffsetY = 2 * scale;
+
+        ctx.beginPath();
+        ctx.arc(absX, absY, tacticalDiscRadius, 0, Math.PI * 2);
+
+        // Fill colors based on disc type (matches main draw)
+        if (disc.type === 'home') {
+          ctx.fillStyle = '#7E22CE'; // Purple
+        } else if (disc.type === 'opponent') {
+          ctx.fillStyle = '#DC2626'; // Red
+        } else if (disc.type === 'goalie') {
+          ctx.fillStyle = '#F97316'; // Orange
+        }
+        ctx.fill();
+        ctx.restore();
+
+        // Add white border
+        ctx.beginPath();
+        ctx.arc(absX, absY, tacticalDiscRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.lineWidth = 1.5 * scale;
+        ctx.stroke();
+      });
+    }
+
+    return exportCanvas;
+  }, [players, opponents, drawings, tacticalDiscs, tacticalBallPosition, ballImage, isTacticsBoardView, showPlayerNames]);
+
+  // Expose canvas via ref for export functionality
+  useImperativeHandle(ref, () => ({
+    getCanvas: () => canvasRef.current,
+    renderForExport,
+  }), [renderForExport]);
 
   // --- Drawing Logic ---
   const draw = useCallback(() => { 

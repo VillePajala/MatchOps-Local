@@ -30,8 +30,8 @@ describe('exportField', () => {
       expect(sanitizeFilename('Team@#$%Name!')).toBe('TeamName');
     });
 
-    it('should preserve alphanumeric, dash, underscore, dot, and space', () => {
-      expect(sanitizeFilename('Team-Name_2024.txt')).toBe('Team-Name_2024.txt');
+    it('should preserve alphanumeric, dash, underscore, and space (dots removed)', () => {
+      expect(sanitizeFilename('Team-Name_2024.txt')).toBe('Team-Name_2024txt');
     });
 
     it('should replace spaces with underscores', () => {
@@ -47,23 +47,28 @@ describe('exportField', () => {
       expect(sanitizeFilename(longName)).toHaveLength(100);
     });
 
-    it('should handle empty string', () => {
-      expect(sanitizeFilename('')).toBe('');
+    it('should return fallback for empty string', () => {
+      expect(sanitizeFilename('')).toBe('export');
     });
 
-    it('should handle string with only special characters', () => {
-      expect(sanitizeFilename('@#$%^&*()')).toBe('');
+    it('should return fallback for string with only special characters', () => {
+      expect(sanitizeFilename('@#$%^&*()')).toBe('export');
     });
 
     it('should handle Finnish characters by removing them', () => {
       expect(sanitizeFilename('Äänekoski FC')).toBe('nekoski_FC');
     });
+
+    it('should prefix Windows reserved names', () => {
+      expect(sanitizeFilename('CON')).toBe('_CON');
+      expect(sanitizeFilename('PRN')).toBe('_PRN');
+      expect(sanitizeFilename('NUL')).toBe('_NUL');
+      expect(sanitizeFilename('COM1')).toBe('_COM1');
+      expect(sanitizeFilename('LPT1')).toBe('_LPT1');
+    });
   });
 
   describe('generateFilename', () => {
-    // Mock Date for consistent testing
-    const realDate = Date;
-
     beforeEach(() => {
       jest.useFakeTimers();
       jest.setSystemTime(new Date('2025-06-15T12:00:00Z'));
@@ -247,9 +252,26 @@ describe('exportField', () => {
     let appendChildSpy: jest.SpyInstance;
     let removeChildSpy: jest.SpyInstance;
     let createElementSpy: jest.SpyInstance;
+    let originalImage: typeof Image;
 
     beforeEach(() => {
       jest.useRealTimers(); // Start with real timers, switch when needed
+
+      // Mock Image to immediately fail loading (logo is optional)
+      originalImage = global.Image;
+      global.Image = class MockImage {
+        crossOrigin = '';
+        src = '';
+        complete = false;
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        constructor() {
+          // Simulate image load failure after a tick
+          setTimeout(() => {
+            if (this.onerror) this.onerror();
+          }, 0);
+        }
+      } as unknown as typeof Image;
 
       // Create mock canvas
       mockCanvas = document.createElement('canvas');
@@ -291,6 +313,7 @@ describe('exportField', () => {
       jest.restoreAllMocks();
       URL.createObjectURL = originalCreateObjectURL;
       URL.revokeObjectURL = originalRevokeObjectURL;
+      global.Image = originalImage;
       jest.useRealTimers();
     });
 
@@ -352,12 +375,19 @@ describe('exportField', () => {
       );
     });
 
-    it('should clean up object URL immediately after download', async () => {
+    it('should schedule object URL cleanup after delay', async () => {
+      // Spy on setTimeout to verify delayed cleanup is scheduled
+      const setTimeoutSpy = jest.spyOn(global, 'setTimeout');
+
       await exportFieldAsImage(mockCanvas, {});
 
-      // URL should have been created and then revoked
+      // URL should have been created
       expect(URL.createObjectURL).toHaveBeenCalled();
-      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+
+      // setTimeout should have been called to schedule cleanup
+      expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 5000);
+
+      setTimeoutSpy.mockRestore();
     });
 
     it('should include all metadata in overlay export', async () => {
@@ -369,12 +399,10 @@ describe('exportField', () => {
         gameTime: '14:30',
         score: { home: 3, away: 2 },
         homeOrAway: 'home',
-        currentPeriod: 2,
-        numberOfPeriods: 2,
-        timeElapsedInSeconds: 1234,
         gameLocation: 'Central Stadium',
         ageGroup: 'U12',
         gameType: 'soccer',
+        gameTypeLabel: 'Soccer',
       };
 
       await exportFieldAsImage(mockCanvas, options);
@@ -392,16 +420,25 @@ describe('exportField', () => {
     });
 
     // Error handling tests at the end (they modify mocks)
-    it('should handle toBlob failure gracefully', async () => {
+    it('should handle toBlob failure with fallback', async () => {
+      // Mock toBlob to fail, triggering the toDataURL fallback
       const toBlobSpy = jest.spyOn(mockCanvas, 'toBlob').mockImplementation((callback) => {
         callback(null);
       });
 
-      await expect(exportFieldAsImage(mockCanvas, {})).rejects.toThrow(
-        'Failed to create image blob'
-      );
+      // Mock fetch for the toDataURL fallback
+      const mockBlob = new Blob(['test'], { type: 'image/png' });
+      global.fetch = jest.fn().mockResolvedValue({
+        blob: () => Promise.resolve(mockBlob),
+      });
+
+      // Should succeed using the fallback
+      await exportFieldAsImage(mockCanvas, {});
+
+      expect(mockLink.click).toHaveBeenCalled();
 
       toBlobSpy.mockRestore();
+      (global.fetch as jest.Mock).mockRestore();
     });
 
     it('should throw when canvas context cannot be obtained for overlay', async () => {
