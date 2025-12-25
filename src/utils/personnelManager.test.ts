@@ -165,9 +165,18 @@ describe('Personnel Manager Utilities', () => {
     });
 
     it('should sort personnel by creation date (newest first)', async () => {
+      // Use fake timers to control timestamps deterministically
+      jest.useFakeTimers();
+      const baseTime = new Date('2024-01-01T10:00:00Z').getTime();
+      jest.setSystemTime(baseTime);
+
       const first = await addPersonnelMember(createTestPersonnel('First', 'head_coach'));
-      await new Promise(resolve => setTimeout(resolve, 10)); // Ensure different timestamps
+
+      // Advance time by 1 second to ensure different timestamp
+      jest.setSystemTime(baseTime + 1000);
       const second = await addPersonnelMember(createTestPersonnel('Second', 'assistant_coach'));
+
+      jest.useRealTimers();
 
       const personnel = await getAllPersonnel();
       // Newest should come first
@@ -288,15 +297,22 @@ describe('Personnel Manager Utilities', () => {
     });
 
     it('should update personnel member fields', async () => {
+      // Use fake timers to control timestamps deterministically
+      jest.useFakeTimers();
+      const baseTime = new Date('2024-01-01T10:00:00Z').getTime();
+      jest.setSystemTime(baseTime);
+
       const member = await addPersonnelMember(createTestPersonnel('Original Name', 'head_coach'));
 
-      // Wait 10ms to ensure different timestamp
-      await new Promise(resolve => setTimeout(resolve, 10));
+      // Advance time by 1 second to ensure different timestamp
+      jest.setSystemTime(baseTime + 1000);
 
       const updated = await updatePersonnelMember(member.id, {
         name: 'Updated Name',
         role: 'assistant_coach',
       });
+
+      jest.useRealTimers();
 
       expect(updated).not.toBeNull();
       expect(updated?.name).toBe('Updated Name');

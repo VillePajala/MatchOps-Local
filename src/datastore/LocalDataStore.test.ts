@@ -905,7 +905,9 @@ describe('LocalDataStore', () => {
           .mockResolvedValueOnce(JSON.stringify({ personnel_123: mockPersonnel })) // backup
           .mockResolvedValueOnce(JSON.stringify({})) // games backup
           .mockResolvedValueOnce(JSON.stringify({ personnel_123: mockPersonnel })) // personnel
-          .mockResolvedValueOnce(JSON.stringify({})); // games
+          .mockResolvedValueOnce(JSON.stringify({})) // games
+          .mockResolvedValueOnce(JSON.stringify({ personnel_123: mockPersonnel })) // verification: personnel
+          .mockResolvedValueOnce(JSON.stringify({})); // verification: games
 
         // Make the personnel save fail
         mockSetStorageItem.mockRejectedValueOnce(new Error('Storage error'));
@@ -965,7 +967,9 @@ describe('LocalDataStore', () => {
           .mockResolvedValueOnce(JSON.stringify({ personnel_123: mockPersonnel })) // backup personnel
           .mockResolvedValueOnce(JSON.stringify({ game_1: gameWithPersonnel })) // backup games
           .mockResolvedValueOnce(JSON.stringify({ personnel_123: mockPersonnel })) // personnel for deletion
-          .mockResolvedValueOnce(JSON.stringify({ game_1: gameWithPersonnel })); // games for update
+          .mockResolvedValueOnce(JSON.stringify({ game_1: gameWithPersonnel })) // games for update
+          .mockResolvedValueOnce(JSON.stringify({ personnel_123: mockPersonnel })) // verification: personnel
+          .mockResolvedValueOnce(JSON.stringify({ game_1: gameWithPersonnel })); // verification: games
 
         // First call succeeds (games update), second call fails (personnel delete)
         mockSetStorageItem
@@ -1192,21 +1196,21 @@ describe('LocalDataStore', () => {
         const games = {
           game_1: { ...mockGame, teamName: '' }
         };
-        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Missing required fields in game game_1');
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Game game_1: Missing required game fields');
       });
 
       it('should reject game missing opponentName', async () => {
         const games = {
           game_1: { ...mockGame, opponentName: '' }
         };
-        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Missing required fields in game game_1');
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Game game_1: Missing required game fields');
       });
 
       it('should reject game missing gameDate', async () => {
         const games = {
           game_1: { ...mockGame, gameDate: '' }
         };
-        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Missing required fields in game game_1');
+        await expect(dataStore.saveAllGames(games)).rejects.toThrow('Game game_1: Missing required game fields');
       });
 
       // Storage layer error tests

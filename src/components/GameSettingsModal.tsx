@@ -23,22 +23,18 @@ import { ModalFooter, primaryButtonStyle } from '@/styles/modalStyles';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 
 /**
- * Delay before applying prefill mutations to prevent race conditions on mobile devices.
- * 100ms is chosen to:
- * - Allow React state updates to complete
- * - Prevent localStorage conflicts on slow devices
- * - Still feel instant to users (< 200ms threshold)
- *
- * Note: This is an educated guess based on React lifecycle timing and mobile device
- * performance characteristics. Consider adding telemetry to measure:
- * - Actual race condition frequency at different delay values
- * - User-perceived latency (time from selection to visible update)
- * - Failed mutation rate vs delay correlation
- *
- * Hypothesis: 100ms is sufficient for 99%+ of devices. If telemetry shows issues,
- * consider adaptive delay based on device performance detection.
+ * Defer prefill mutations to prevent race conditions on mobile devices.
+ * Uses double requestAnimationFrame to ensure:
+ * - React state updates have flushed
+ * - Game creation has completed before mutation
+ * - No arbitrary timeout delays
  */
-const PREFILL_MUTATION_DELAY_MS = 100;
+const deferToNextFrame = (callback: () => void): number => {
+  return requestAnimationFrame(() => {
+    // Double RAF to ensure React state updates have flushed
+    requestAnimationFrame(callback);
+  });
+};
 
 export type GameEventType = 'goal' | 'opponentGoal' | 'substitution' | 'periodEnd' | 'gameEnd' | 'fairPlayCard';
 
@@ -289,7 +285,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
   const isMountedRef = useRef<boolean>(true);
   const mutationSequenceRef = useRef<number>(0);
 
-  // Track mount state to prevent race conditions with setTimeout
+  // Track mount state to prevent race conditions with deferred mutations
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -691,8 +687,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     // Apply all updates in a single mutation call to prevent mobile localStorage conflicts
     if (currentGameId && hasUpdates) {
 
-      // Add a small delay to ensure game is fully created on Vercel preview
-      const timeoutId = setTimeout(async () => {
+      // Defer mutation to next frame to ensure game creation has flushed
+      const rafId = deferToNextFrame(async () => {
         const targetSeasonId = seasonId;
         // Check if component is still mounted before calling mutation
         if (!isMountedRef.current) {
@@ -721,10 +717,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           // Reset ref on error so it can be retried
           appliedSeasonRef.current = null;
         }
-      }, PREFILL_MUTATION_DELAY_MS);
+      });
 
-      // Cleanup: Clear timeout if effect re-runs (e.g., user changes season rapidly)
-      return () => clearTimeout(timeoutId);
+      // Cleanup: Cancel RAF if effect re-runs (e.g., user changes season rapidly)
+      return () => cancelAnimationFrame(rafId);
     }
 
     // Don't update roster selection here to avoid dependency loop
@@ -814,8 +810,8 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     // Apply all updates in a single mutation call to prevent mobile localStorage conflicts
     if (currentGameId && hasUpdates) {
 
-      // Add a small delay to ensure game is fully created on Vercel preview
-      const timeoutId = setTimeout(async () => {
+      // Defer mutation to next frame to ensure game creation has flushed
+      const rafId = deferToNextFrame(async () => {
         const targetTournamentId = tournamentId;
         // Check if component is still mounted before calling mutation
         if (!isMountedRef.current) {
@@ -843,10 +839,10 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
           // Reset ref on error so it can be retried
           appliedTournamentRef.current = null;
         }
-      }, PREFILL_MUTATION_DELAY_MS);
+      });
 
-      // Cleanup: Clear timeout if effect re-runs (e.g., user changes tournament rapidly)
-      return () => clearTimeout(timeoutId);
+      // Cleanup: Cancel RAF if effect re-runs (e.g., user changes tournament rapidly)
+      return () => cancelAnimationFrame(rafId);
     }
 
     // Don't update roster selection here to avoid dependency loop

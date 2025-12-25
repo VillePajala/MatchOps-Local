@@ -372,9 +372,11 @@ export interface DataStore {
   /**
    * Update an event in a game.
    * @param gameId - Game ID
-   * @param eventIndex - Index of event in gameEvents array
+   * @param eventIndex - Index of event in gameEvents array (0-based)
    * @param event - Updated event data
-   * @returns Updated game state or null if game/event not found
+   * @returns Updated game state, or null if:
+   *   - Game not found (gameId doesn't exist)
+   *   - Event not found (eventIndex < 0 or eventIndex >= gameEvents.length)
    * @throws {Error} If storage operation fails
    */
   updateGameEvent(gameId: string, eventIndex: number, event: GameEvent): Promise<AppState | null>;
@@ -382,8 +384,10 @@ export interface DataStore {
   /**
    * Remove an event from a game.
    * @param gameId - Game ID
-   * @param eventIndex - Index of event in gameEvents array
-   * @returns Updated game state or null if game/event not found
+   * @param eventIndex - Index of event in gameEvents array (0-based)
+   * @returns Updated game state, or null if:
+   *   - Game not found (gameId doesn't exist)
+   *   - Event not found (eventIndex < 0 or eventIndex >= gameEvents.length)
    * @throws {Error} If storage operation fails
    */
   removeGameEvent(gameId: string, eventIndex: number): Promise<AppState | null>;

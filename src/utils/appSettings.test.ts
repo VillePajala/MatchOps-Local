@@ -446,7 +446,7 @@ describe('App Settings Utilities', () => {
   });
 
   describe('saveLastHomeTeamName', () => {
-    it('should save to both app settings and legacy location and return true', async () => {
+    it('should save to app settings and return true', async () => {
       mockSettings = {
         ...DEFAULT_APP_SETTINGS,
         currentGameId: 'game123',
@@ -458,9 +458,6 @@ describe('App Settings Utilities', () => {
 
       // Check updateSettings was called with the team name update
       expect(mockDataStore.updateSettings).toHaveBeenCalledWith({ lastHomeTeamName: 'New Team Name' });
-
-      // Check legacy save
-      expect(mockSetStorageItem).toHaveBeenCalledWith(LAST_HOME_TEAM_NAME_KEY, 'New Team Name');
       expect(result).toBe(true);
     });
 
