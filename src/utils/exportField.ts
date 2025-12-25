@@ -7,14 +7,24 @@
 
 import logger from '@/utils/logger';
 
+// Export configuration constants
+const MAX_FILENAME_LENGTH = 100;
+const OVERLAY_PADDING = 16;
+const OVERLAY_FONT_SIZE_MIN = 14;
+const OVERLAY_FONT_SIZE_MAX = 32;
+const OVERLAY_FONT_SIZE_DIVISOR = 40;
+
 /**
  * Sanitize filename for safe downloads
+ * @internal Exported for testing
  */
-const sanitizeFilename = (name: string): string => {
+export const sanitizeFilename = (name: string): string => {
   return name
-    .replace(/[^a-zA-Z0-9\-_. ]/g, '')
+    .replace(/[^a-zA-Z0-9\-_ ]/g, '')
     .replace(/\s+/g, '_')
-    .substring(0, 100);
+    .replace(/_{2,}/g, '_')
+    .substring(0, MAX_FILENAME_LENGTH)
+    .replace(/^_+|_+$/g, '');
 };
 
 /**
@@ -55,8 +65,9 @@ export interface FieldExportOptions {
 
 /**
  * Generate a filename for the exported image
+ * @internal Exported for testing
  */
-const generateFilename = (options: FieldExportOptions): string => {
+export const generateFilename = (options: FieldExportOptions): string => {
   const parts: string[] = ['field'];
 
   if (options.teamName) {
@@ -80,11 +91,29 @@ const generateFilename = (options: FieldExportOptions): string => {
 
 /**
  * Format seconds to MM:SS
+ * @internal Exported for testing
  */
-const formatTime = (seconds: number): string => {
+export const formatTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+/**
+ * Truncate text to fit within a maximum width
+ * @internal Exported for testing
+ */
+export const truncateText = (
+  text: string,
+  maxWidth: number,
+  ctx: CanvasRenderingContext2D
+): string => {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let truncated = text;
+  while (ctx.measureText(truncated + '…').width > maxWidth && truncated.length > 0) {
+    truncated = truncated.slice(0, -1);
+  }
+  return truncated.length > 0 ? truncated + '…' : '…';
 };
 
 /**
@@ -112,8 +141,8 @@ const drawOverlay = (
   height: number,
   options: FieldExportOptions
 ): void => {
-  const padding = 16;
-  const fontSize = Math.max(14, Math.min(20, width / 35));
+  const padding = OVERLAY_PADDING;
+  const fontSize = Math.max(OVERLAY_FONT_SIZE_MIN, Math.min(OVERLAY_FONT_SIZE_MAX, width / OVERLAY_FONT_SIZE_DIVISOR));
   const headerHeight = fontSize * 2.5 + padding;
   const footerHeight = fontSize * 2 + padding;
 
@@ -126,28 +155,20 @@ const drawOverlay = (
   ctx.textBaseline = 'middle';
   const headerY = headerHeight / 2;
 
+  // Calculate reserved widths for header layout
+  let scoreWidth = 0;
+  let dateTimeWidth = 0;
+
   // Score on the left (large)
   if (options.score) {
     ctx.font = `bold ${fontSize * 1.6}px system-ui, sans-serif`;
     ctx.fillStyle = '#ffffff';
     const scoreText = `${options.score.home} - ${options.score.away}`;
+    scoreWidth = ctx.measureText(scoreText).width + padding * 2;
     ctx.fillText(scoreText, padding, headerY);
   }
 
-  // Team names in center
-  const teamText = options.teamName || 'Team';
-  const opponentText = options.opponentName || 'Opponent';
-  const isHome = options.homeOrAway === 'home';
-  const matchupText = isHome
-    ? `${teamText} vs ${opponentText}`
-    : `${opponentText} vs ${teamText}`;
-
-  ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
-  ctx.fillStyle = '#ffffff';
-  const matchupWidth = ctx.measureText(matchupText).width;
-  ctx.fillText(matchupText, (width - matchupWidth) / 2, headerY);
-
-  // Date/time on the right
+  // Calculate date/time width first (for matchup truncation)
   const dateTimeParts: string[] = [];
   if (options.gameDate) {
     dateTimeParts.push(formatDate(options.gameDate));
@@ -157,10 +178,33 @@ const drawOverlay = (
   }
   if (dateTimeParts.length > 0) {
     ctx.font = `${fontSize * 0.9}px system-ui, sans-serif`;
+    const dateTimeText = dateTimeParts.join(' · ');
+    dateTimeWidth = ctx.measureText(dateTimeText).width + padding * 2;
+  }
+
+  // Team names in center (with truncation to fit between score and date)
+  // Convention: home team listed first (standard sports notation)
+  const teamText = options.teamName || 'Team';
+  const opponentText = options.opponentName || 'Opponent';
+  const isHome = options.homeOrAway === 'home';
+  const matchupText = isHome
+    ? `${teamText} vs ${opponentText}`
+    : `${opponentText} vs ${teamText}`;
+
+  ctx.font = `bold ${fontSize}px system-ui, sans-serif`;
+  ctx.fillStyle = '#ffffff';
+  const maxMatchupWidth = width - scoreWidth - dateTimeWidth - padding * 2;
+  const truncatedMatchup = truncateText(matchupText, maxMatchupWidth, ctx);
+  const matchupWidth = ctx.measureText(truncatedMatchup).width;
+  ctx.fillText(truncatedMatchup, (width - matchupWidth) / 2, headerY);
+
+  // Date/time on the right
+  if (dateTimeParts.length > 0) {
+    ctx.font = `${fontSize * 0.9}px system-ui, sans-serif`;
     ctx.fillStyle = '#cccccc';
     const dateTimeText = dateTimeParts.join(' · ');
-    const dateTimeWidth = ctx.measureText(dateTimeText).width;
-    ctx.fillText(dateTimeText, width - dateTimeWidth - padding, headerY);
+    const dtWidth = ctx.measureText(dateTimeText).width;
+    ctx.fillText(dateTimeText, width - dtWidth - padding, headerY);
   }
 
   // === FOOTER BAR ===
@@ -168,6 +212,26 @@ const drawOverlay = (
   ctx.fillRect(0, height - footerHeight, width, footerHeight);
 
   const footerY = height - footerHeight / 2;
+
+  // Calculate right side width first (for left side truncation)
+  let footerRightWidth = 0;
+  const rightItems: string[] = [];
+
+  if (options.currentPeriod && options.numberOfPeriods) {
+    rightItems.push(`Period ${options.currentPeriod}/${options.numberOfPeriods}`);
+  }
+
+  if (options.timeElapsedInSeconds !== undefined && options.timeElapsedInSeconds >= 0) {
+    rightItems.push(`⏱ ${formatTime(options.timeElapsedInSeconds)}`);
+  }
+
+  if (rightItems.length > 0) {
+    ctx.font = `bold ${fontSize * 0.9}px system-ui, sans-serif`;
+    const rightText = rightItems.join('  ·  ');
+    footerRightWidth = ctx.measureText(rightText).width + padding * 2;
+  }
+
+  // Footer left side: metadata (with truncation)
   const footerItems: string[] = [];
 
   // Game type icon/text
@@ -185,24 +249,17 @@ const drawOverlay = (
     footerItems.push(`📍 ${options.gameLocation}`);
   }
 
-  // Footer left side: metadata
   if (footerItems.length > 0) {
     ctx.font = `${fontSize * 0.85}px system-ui, sans-serif`;
     ctx.fillStyle = '#aaaaaa';
-    ctx.fillText(footerItems.join('  ·  '), padding, footerY);
+    const footerLeftText = footerItems.join('  ·  ');
+    // Reserve space for watermark in center (~80px) and right items
+    const maxFooterLeftWidth = width / 2 - padding * 2 - 40;
+    const truncatedFooter = truncateText(footerLeftText, maxFooterLeftWidth, ctx);
+    ctx.fillText(truncatedFooter, padding, footerY);
   }
 
   // Footer right side: period and timer
-  const rightItems: string[] = [];
-
-  if (options.currentPeriod && options.numberOfPeriods) {
-    rightItems.push(`Period ${options.currentPeriod}/${options.numberOfPeriods}`);
-  }
-
-  if (options.timeElapsedInSeconds !== undefined && options.timeElapsedInSeconds > 0) {
-    rightItems.push(`⏱ ${formatTime(options.timeElapsedInSeconds)}`);
-  }
-
   if (rightItems.length > 0) {
     ctx.font = `bold ${fontSize * 0.9}px system-ui, sans-serif`;
     ctx.fillStyle = '#ffffff';
@@ -238,6 +295,8 @@ export const exportFieldAsImage = async (
 
   try {
     // Create a copy of the canvas if we need to add overlay
+    // Note: This temporarily doubles memory usage for large canvases (e.g., 4K displays)
+    // The temporary canvas is garbage collected after blob creation completes
     let exportCanvas = canvas;
 
     if (options.includeOverlay) {
@@ -247,7 +306,8 @@ export const exportFieldAsImage = async (
 
       const ctx = exportCanvas.getContext('2d');
       if (!ctx) {
-        throw new Error('Failed to get canvas context');
+        logger.error('[exportField] Failed to get 2d context - possible WebGL exhaustion or memory pressure');
+        throw new Error('Failed to get canvas context - try closing other tabs');
       }
 
       // Draw original canvas
@@ -281,8 +341,8 @@ export const exportFieldAsImage = async (
     link.click();
     document.body.removeChild(link);
 
-    // Clean up
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    // Clean up immediately - modern browsers queue the download before revoke takes effect
+    URL.revokeObjectURL(url);
 
     logger.log('[exportField] Field exported successfully:', filename);
   } catch (error) {
@@ -293,10 +353,17 @@ export const exportFieldAsImage = async (
 
 /**
  * Check if field export is supported in the current browser
+ * Verifies: canvas.toBlob, URL.createObjectURL, and anchor download attribute
  */
 export const isExportSupported = (): boolean => {
-  if (typeof document === 'undefined') return false;
+  if (typeof document === 'undefined' || typeof URL === 'undefined') return false;
 
   const canvas = document.createElement('canvas');
-  return typeof canvas.toBlob === 'function';
+  const anchor = document.createElement('a');
+
+  return (
+    typeof canvas.toBlob === 'function' &&
+    typeof URL.createObjectURL === 'function' &&
+    'download' in anchor
+  );
 };
