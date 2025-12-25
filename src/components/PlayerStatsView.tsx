@@ -393,10 +393,6 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                     if (tournamentId) {
                       const tournament = tournaments.find(t => t.id === tournamentId);
                       if (tournament) {
-                        // Prefill location as team name if external team is empty
-                        if (!adjExternalTeam && tournament.location) {
-                          setAdjExternalTeam(tournament.location);
-                        }
                         // Prefill game date with tournament start date or first game date if available
                         const tournamentDate = tournament.startDate || (tournament.gameDates && tournament.gameDates[0]);
                         if (tournamentDate) {
@@ -462,12 +458,16 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.fairPlayCards', 'Fair Play Cards')}</label>
-                <div className="flex items-center gap-2">
-                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjFairPlayCards(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
-                  <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(adjFairPlayCards)} onChange={e => setAdjFairPlayCards(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                  <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setAdjFairPlayCards(v => (Number(v) || 0) + 1)}>+</button>
-                </div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={adjFairPlayCards > 0}
+                    onChange={(e) => setAdjFairPlayCards(e.target.checked ? 1 : 0)}
+                    className="form-checkbox h-4 w-4 text-green-600 bg-slate-600 border-slate-500 rounded"
+                  />
+                  <span className="text-xs font-medium text-slate-400">{t('playerStats.receivedFairPlayCard', 'Received Fair Play Card')}</span>
+                  <span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span>
+                </label>
               </div>
               <div className="lg:col-span-3">
                 <label className="flex items-center gap-2">
@@ -653,12 +653,16 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                           </div>
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">{t('playerStats.fairPlayCards', 'Fair Play Cards')}</label>
-                          <div className="flex items-center gap-2">
-                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditFairPlayCards(v => Math.max(0, (Number(v) || 0) - 1))}>-</button>
-                            <input type="tel" inputMode="numeric" pattern="[0-9]*" value={String(editFairPlayCards)} onChange={e => setEditFairPlayCards(Math.max(0, parseInt(e.target.value || '0', 10)))} className="flex-1 text-center bg-slate-700 border border-slate-600 rounded-md text-white px-2 py-2 text-sm focus:ring-2 focus:ring-indigo-500" min="0" />
-                            <button type="button" className="px-3 py-2 bg-slate-700 border border-slate-600 rounded hover:bg-slate-600 text-white" onClick={() => setEditFairPlayCards(v => (Number(v) || 0) + 1)}>+</button>
-                          </div>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={editFairPlayCards > 0}
+                              onChange={(e) => setEditFairPlayCards(e.target.checked ? 1 : 0)}
+                              className="form-checkbox h-4 w-4 text-green-600 bg-slate-600 border-slate-500 rounded"
+                            />
+                            <span className="text-xs font-medium text-slate-400">{t('playerStats.receivedFairPlayCard', 'Received Fair Play Card')}</span>
+                            <span className="inline-block bg-green-500 text-white text-[8px] font-bold px-1 py-0.5 rounded-sm">FP</span>
+                          </label>
                         </div>
                         <div className="lg:col-span-3">
                           <label className="flex items-center gap-2">

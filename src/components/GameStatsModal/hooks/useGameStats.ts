@@ -33,6 +33,9 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
     selectedSeriesIdFilter,
     selectedGameTypeFilter,
     selectedGenderFilter,
+    selectedClubSeason = 'all',
+    clubSeasonStartDate = '2000-10-01',
+    clubSeasonEndDate = '2000-05-01',
     sortColumn,
     sortDirection,
     filterText,
@@ -74,6 +77,9 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
         seriesFilter: activeTab === 'tournament' ? selectedSeriesIdFilter : undefined,
         gameTypeFilter: selectedGameTypeFilter,
         genderFilter: selectedGenderFilter,
+        clubSeasonFilter: selectedClubSeason,
+        clubSeasonStartDate,
+        clubSeasonEndDate,
         activeTab
       });
 
@@ -206,6 +212,9 @@ export function useGameStats(params: GameStatsParams): UseGameStatsResult {
     selectedSeriesIdFilter,
     selectedGameTypeFilter,
     selectedGenderFilter,
+    selectedClubSeason,
+    clubSeasonStartDate,
+    clubSeasonEndDate,
     currentGameId,
     selectedPlayerIds
   ]);
