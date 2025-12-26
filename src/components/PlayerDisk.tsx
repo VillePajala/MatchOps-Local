@@ -129,7 +129,7 @@ const PlayerDisk: React.FC<PlayerDiskProps> = ({
       // Accessibility attributes
       tabIndex={isInBar ? 0 : -1}
       role="button"
-      aria-label={`${nickname || fullName}${isGoalie ? ' (Goalie)' : ''}`}
+      aria-label={`Select player ${nickname || fullName}${isGoalie ? ' (Goalie)' : ''}`}
       aria-pressed={selectedPlayerIdFromBar === id}
       onKeyDown={isInBar ? handleKeyDown : undefined}
     >
