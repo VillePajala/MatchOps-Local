@@ -464,7 +464,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                   onChange={(e) => {
                     setLeagueId(e.target.value);
                     // Clear custom name when selecting a non-custom league
-                    if (e.target.value !== 'muu') setCustomLeagueName('');
+                    if (e.target.value !== CUSTOM_LEAGUE_ID) setCustomLeagueName('');
                   }}
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
                 >
