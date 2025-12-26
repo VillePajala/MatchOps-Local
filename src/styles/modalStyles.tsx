@@ -44,10 +44,10 @@ export const titleStyle =
   "text-3xl font-bold text-yellow-400 tracking-wide drop-shadow-lg";
 
 export const labelStyle =
-  "text-sm font-medium text-slate-300 mb-1";
+  "text-sm font-medium text-slate-200 mb-1";
 
 export const subtextStyle =
-  "text-xs text-slate-400";
+  "text-xs text-slate-300";
 
 // ============================================================================
 // Card & Section Styles
@@ -67,7 +67,7 @@ export const itemRowEditingStyle =
 // ============================================================================
 
 export const inputBaseStyle =
-  "block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm text-white placeholder-slate-400";
+  "block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm text-white placeholder-slate-300";
 
 export const textareaStyle =
   `${inputBaseStyle} resize-none`;
@@ -98,20 +98,22 @@ export const successButtonStyle =
 // Icon Button Styles
 // ============================================================================
 
+// p-2.5 = 10px padding on each side + 20px icon = 40px minimum touch target
+// For better accessibility, using p-3 = 12px padding = 44px with 20px icon
 export const iconButtonBaseStyle =
-  "p-1.5 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+  "p-2.5 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 
 export const iconButtonEditStyle =
-  `${iconButtonBaseStyle} text-slate-400 hover:text-indigo-400`;
+  `${iconButtonBaseStyle} text-slate-300 hover:text-indigo-400`;
 
 export const iconButtonDangerStyle =
-  `${iconButtonBaseStyle} text-slate-400 hover:text-red-500`;
+  `${iconButtonBaseStyle} text-slate-300 hover:text-red-500`;
 
 export const iconButtonSuccessStyle =
   `${iconButtonBaseStyle} text-green-400 hover:bg-slate-600`;
 
 export const iconButtonCancelStyle =
-  `${iconButtonBaseStyle} text-slate-400 hover:bg-slate-600`;
+  `${iconButtonBaseStyle} text-slate-300 hover:bg-slate-600`;
 
 // ============================================================================
 // Badge Styles

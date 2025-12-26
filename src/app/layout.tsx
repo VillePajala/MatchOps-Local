@@ -57,11 +57,20 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className={rajdhani.variable}>
+        {/* Skip to main content link for keyboard users */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-indigo-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-md"
+        >
+          Skip to main content
+        </a>
         <I18nInitializer>
           <ServiceWorkerRegistration />
           <InstallPrompt />
           <QueryProvider>
-            <ClientWrapper>{children}</ClientWrapper>
+            <main id="main-content">
+              <ClientWrapper>{children}</ClientWrapper>
+            </main>
           </QueryProvider>
         </I18nInitializer>
         {/* Only load Analytics in production or when explicitly enabled */}

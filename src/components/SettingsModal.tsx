@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useToast } from '@/contexts/ToastProvider';
 import { useTranslation } from 'react-i18next';
 import { formatBytes } from '@/utils/bytes';
@@ -56,6 +57,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const [storageEstimate, setStorageEstimate] = useState<{ usage: number; quota: number } | null>(null);
   const restoreFileInputRef = useRef<HTMLInputElement>(null);
   const gameImportFileInputRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Focus trap for accessibility
+  useFocusTrap(modalRef, isOpen, onClose);
   const [showImportResults, setShowImportResults] = useState(false);
   const { importFromFile, isImporting, lastResult } = useGameImport();
   const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>('2000-10-01');
@@ -473,7 +478,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     'block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm text-white';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display">
+    <div
+      ref={modalRef}
+      className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60] font-display"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="settings-modal-title"
+    >
       <div className={`${modalContainerStyle} bg-noise-texture relative overflow-hidden h-full w-full`}>
         <div className="absolute inset-0 bg-indigo-600/10 mix-blend-soft-light" />
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 via-transparent to-transparent" />
@@ -482,7 +493,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
         <div className="relative z-10 flex flex-col h-full">
           <div className="flex justify-center items-center pt-10 pb-4 px-6 backdrop-blur-sm bg-slate-900/20 border-b border-slate-700/20 flex-shrink-0">
-            <h2 className={titleStyle}>{t('settingsModal.title', 'App Settings')}</h2>
+            <h2 id="settings-modal-title" className={titleStyle}>{t('settingsModal.title', 'App Settings')}</h2>
           </div>
           <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
             {/* Premium Status */}

@@ -86,6 +86,16 @@ const PlayerDisk: React.FC<PlayerDiskProps> = ({
     }
   };
 
+  // Keyboard handler for accessibility
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      if (onPlayerTapInBar) {
+        onPlayerTapInBar({ id, name: fullName, nickname, color, isGoalie });
+      }
+    }
+  };
+
   // HTML Drag and Drop (Keep this)
   const handleDragStart = () => {
     if (!onPlayerDragStartFromBar) return;
@@ -113,7 +123,13 @@ const PlayerDisk: React.FC<PlayerDiskProps> = ({
       onMouseDown={isInBar ? handleMouseDown : undefined}
       onTouchStart={isInBar ? handleTouchStart : undefined}
       onTouchEnd={isInBar ? handleTouchEnd : undefined}
-      onTouchCancel={isInBar ? handleTouchEnd : undefined} // Might still need cancel to deselect? Revisit if needed.
+      onTouchCancel={isInBar ? handleTouchEnd : undefined}
+      // Accessibility attributes
+      tabIndex={isInBar ? 0 : -1}
+      role="button"
+      aria-label={`${nickname || fullName}${isGoalie ? ' (Goalie)' : ''}`}
+      aria-pressed={selectedPlayerIdFromBar === id}
+      onKeyDown={isInBar ? handleKeyDown : undefined}
     >
       {isInBar && (
         <>
@@ -134,12 +150,15 @@ const PlayerDisk: React.FC<PlayerDiskProps> = ({
       {/* Goalie Toggle Icon (Only when selected - Keep this) */}
       {selectedPlayerIdFromBar === id && onToggleGoalie && (
         <button
+          type="button"
           title={isGoalie ? "Unset Goalie" : "Set Goalie"}
-          className="absolute top-0 left-0 transform -translate-x-1 -translate-y-1 p-1 bg-slate-600 hover:bg-slate-500 rounded-full shadow-md z-10"
+          aria-label={isGoalie ? `Remove ${nickname || fullName} as goalie` : `Set ${nickname || fullName} as goalie`}
+          aria-pressed={isGoalie}
+          className="absolute top-0 left-0 transform -translate-x-1 -translate-y-1 p-2 bg-slate-600 hover:bg-slate-500 rounded-full shadow-md z-10"
           onClick={handleToggleGoalieClick}
           onTouchEnd={handleToggleGoalieClick}
         >
-          <HiOutlineShieldCheck className={`w-5 h-5 ${isGoalie ? 'text-emerald-400' : 'text-slate-300'}`} />
+          <HiOutlineShieldCheck className={`w-5 h-5 ${isGoalie ? 'text-emerald-400' : 'text-slate-300'}`} aria-hidden="true" />
         </button>
       )}
 
