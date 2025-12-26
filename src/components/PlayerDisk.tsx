@@ -25,8 +25,9 @@ interface PlayerDiskProps {
 const StatBadge: React.FC<{ count: number, bgColor: string, positionClasses: string, label: string }> = ({ count, bgColor, positionClasses, label }) => (
   <div
     className={`absolute ${positionClasses} w-5 h-5 rounded-full ${bgColor} flex items-center justify-center text-xs font-bold text-slate-900 shadow-md pointer-events-none z-20`}
+    role="status"
+    aria-label={label}
   >
-    <span className="sr-only">{label}</span>
     <span aria-hidden="true">{count}</span>
   </div>
 );
@@ -79,7 +80,7 @@ const PlayerDisk: React.FC<PlayerDiskProps> = ({
   };
 
   // --- Goalie Toggle Icon Handler (Keep this) ---
-  const handleToggleGoalieClick = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleToggleGoalieClick = (e: React.SyntheticEvent) => {
     e.stopPropagation(); // IMPORTANT: Prevent click from triggering disk selection
     if (onToggleGoalie) {
       onToggleGoalie(id);
@@ -155,10 +156,16 @@ const PlayerDisk: React.FC<PlayerDiskProps> = ({
           title={isGoalie ? "Unset Goalie" : "Set Goalie"}
           aria-label={isGoalie ? `Remove ${nickname || fullName} as goalie` : `Set ${nickname || fullName} as goalie`}
           aria-pressed={isGoalie}
-          // Exception: keep smaller touch target so the toggle doesn't cover player names.
-          className="absolute top-0 left-0 transform -translate-x-1 -translate-y-1 p-2 bg-slate-600 hover:bg-slate-500 rounded-full shadow-md z-10"
+          // Keep a 44px touch target while minimizing overlap with player names.
+          className="absolute top-0 left-0 transform -translate-x-1 -translate-y-1 p-3 bg-slate-600 hover:bg-slate-500 rounded-full shadow-md z-10"
           onClick={handleToggleGoalieClick}
           onTouchEnd={handleToggleGoalieClick}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              handleToggleGoalieClick(event);
+            }
+          }}
         >
           <HiOutlineShieldCheck className={`w-5 h-5 ${isGoalie ? 'text-emerald-400' : 'text-slate-300'}`} aria-hidden="true" />
         </button>

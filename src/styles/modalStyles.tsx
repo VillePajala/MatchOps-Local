@@ -98,10 +98,9 @@ export const successButtonStyle =
 // Icon Button Styles
 // ============================================================================
 
-// p-2.5 = 10px padding on each side + 20px icon = 40px minimum touch target
-// For better accessibility, using p-3 = 12px padding = 44px with 20px icon
+// p-3 = 12px padding on each side + 20px icon = 44px minimum touch target
 export const iconButtonBaseStyle =
-  "p-2.5 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+  "p-3 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 
 export const iconButtonEditStyle =
   `${iconButtonBaseStyle} text-slate-200 hover:text-indigo-400`;
