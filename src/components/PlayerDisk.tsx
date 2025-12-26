@@ -156,7 +156,8 @@ const PlayerDisk: React.FC<PlayerDiskProps> = ({
           title={isGoalie ? "Unset Goalie" : "Set Goalie"}
           aria-label={isGoalie ? `Remove ${nickname || fullName} as goalie` : `Set ${nickname || fullName} as goalie`}
           aria-pressed={isGoalie}
-          className="absolute top-0 left-0 transform -translate-x-1 -translate-y-1 p-2.5 bg-slate-600 hover:bg-slate-500 rounded-full shadow-md z-10"
+          // Exception: keep smaller touch target so the toggle doesn't cover player names.
+          className="absolute top-0 left-0 transform -translate-x-1 -translate-y-1 p-2 bg-slate-600 hover:bg-slate-500 rounded-full shadow-md z-10"
           onClick={handleToggleGoalieClick}
           onTouchEnd={handleToggleGoalieClick}
         >
