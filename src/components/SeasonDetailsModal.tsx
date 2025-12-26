@@ -11,6 +11,7 @@ import {
   CUSTOM_LEAGUE_ID,
   LEAGUE_AREA_FILTERS,
   LEAGUE_LEVEL_FILTERS,
+  getLeagueById,
   type LeagueAreaFilter,
   type LeagueLevelFilter,
 } from '@/config/leagues';
@@ -109,8 +110,10 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         setGameType(season.gameType || 'soccer');
         setGender(season.gender);
         setErrorMessage(null);
-        setAreaFilter('all');
-        setLevelFilter('all');
+        // Set filters based on existing league to provide context when editing
+        const existingLeague = season.leagueId ? getLeagueById(season.leagueId) : undefined;
+        setAreaFilter(existingLeague?.area || 'all');
+        setLevelFilter(existingLeague?.level || 'all');
       }
     }
   }, [mode, season, isOpen]);
@@ -407,42 +410,50 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
 
                 {/* League Filters */}
                 <div className="flex gap-2 mb-2">
-                  <select
-                    id="league-level-filter"
-                    value={levelFilter}
-                    onChange={(e) => {
-                      setLevelFilter(e.target.value as LeagueLevelFilter);
-                      // Clear league selection when changing filters
-                      setLeagueId('');
-                      setCustomLeagueName('');
-                    }}
-                    className="flex-1 px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-indigo-500 focus:border-indigo-500"
-                    aria-label={t('leagues.filterByLevel', 'Filter by level')}
-                  >
-                    {LEAGUE_LEVEL_FILTERS.map(level => (
-                      <option key={level.id} value={level.id}>
-                        {t(level.labelKey, level.id === 'all' ? 'All Levels' : level.id)}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    id="league-area-filter"
-                    value={areaFilter}
-                    onChange={(e) => {
-                      setAreaFilter(e.target.value as LeagueAreaFilter);
-                      // Clear league selection when changing filters
-                      setLeagueId('');
-                      setCustomLeagueName('');
-                    }}
-                    className="flex-1 px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-indigo-500 focus:border-indigo-500"
-                    aria-label={t('leagues.filterByArea', 'Filter by area')}
-                  >
-                    {LEAGUE_AREA_FILTERS.map(area => (
-                      <option key={area.id} value={area.id}>
-                        {t(area.labelKey, area.id === 'all' ? 'All Areas' : area.id)}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex-1">
+                    <label htmlFor="league-level-filter" className="sr-only">
+                      {t('leagues.filterByLevel', 'Filter by level')}
+                    </label>
+                    <select
+                      id="league-level-filter"
+                      value={levelFilter}
+                      onChange={(e) => {
+                        setLevelFilter(e.target.value as LeagueLevelFilter);
+                        // Clear league selection when changing filters
+                        setLeagueId('');
+                        setCustomLeagueName('');
+                      }}
+                      className="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      {LEAGUE_LEVEL_FILTERS.map(level => (
+                        <option key={level.id} value={level.id}>
+                          {t(level.labelKey, level.id === 'all' ? 'All Levels' : level.id)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label htmlFor="league-area-filter" className="sr-only">
+                      {t('leagues.filterByArea', 'Filter by area')}
+                    </label>
+                    <select
+                      id="league-area-filter"
+                      value={areaFilter}
+                      onChange={(e) => {
+                        setAreaFilter(e.target.value as LeagueAreaFilter);
+                        // Clear league selection when changing filters
+                        setLeagueId('');
+                        setCustomLeagueName('');
+                      }}
+                      className="w-full px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      {LEAGUE_AREA_FILTERS.map(area => (
+                        <option key={area.id} value={area.id}>
+                          {t(area.labelKey, area.id === 'all' ? 'All Areas' : area.id)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 {/* League Dropdown */}
@@ -465,7 +476,7 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                 {/* Show count when filters active */}
                 {(areaFilter !== 'all' || levelFilter !== 'all') && (
                   <p className="mt-1 text-xs text-slate-400">
-                    {t('leagues.showingCount', '{{count}} leagues', { count: filteredLeagues.length })}
+                    {t('leagues.showingCount', '{{count}} leagues', { count: filteredLeagues.filter(l => !l.isCustom).length })}
                   </p>
                 )}
               </div>
