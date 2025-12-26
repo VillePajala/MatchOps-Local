@@ -47,7 +47,7 @@ export const labelStyle =
   "text-sm font-medium text-slate-200 mb-1";
 
 export const subtextStyle =
-  "text-xs text-slate-300";
+  "text-xs text-slate-200";
 
 // ============================================================================
 // Card & Section Styles
@@ -67,7 +67,7 @@ export const itemRowEditingStyle =
 // ============================================================================
 
 export const inputBaseStyle =
-  "block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm text-white placeholder-slate-300";
+  "block w-full bg-slate-700 border border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-indigo-500 sm:text-sm text-white placeholder-slate-200";
 
 export const textareaStyle =
   `${inputBaseStyle} resize-none`;
@@ -104,16 +104,16 @@ export const iconButtonBaseStyle =
   "p-2.5 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 
 export const iconButtonEditStyle =
-  `${iconButtonBaseStyle} text-slate-300 hover:text-indigo-400`;
+  `${iconButtonBaseStyle} text-slate-200 hover:text-indigo-400`;
 
 export const iconButtonDangerStyle =
-  `${iconButtonBaseStyle} text-slate-300 hover:text-red-500`;
+  `${iconButtonBaseStyle} text-slate-200 hover:text-red-500`;
 
 export const iconButtonSuccessStyle =
   `${iconButtonBaseStyle} text-green-400 hover:bg-slate-600`;
 
 export const iconButtonCancelStyle =
-  `${iconButtonBaseStyle} text-slate-300 hover:bg-slate-600`;
+  `${iconButtonBaseStyle} text-slate-200 hover:bg-slate-600`;
 
 // ============================================================================
 // Badge Styles
