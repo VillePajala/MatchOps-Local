@@ -64,8 +64,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
       if (league.isCustom) return true;
       // Filter by level
       if (levelFilter !== 'all' && league.level !== levelFilter) return false;
-      // Filter by area - only applies to leagues that HAVE an area (regional/local)
-      // National/Other leagues have no area and should pass area filter
+      // Filter by area - only applies to regional/local leagues with an area
+      // National/Other leagues have no area property and pass all area filters
       if (areaFilter !== 'all' && league.area) {
         return league.area === areaFilter;
       }
@@ -110,7 +110,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         setGameType(season.gameType || 'soccer');
         setGender(season.gender);
         setErrorMessage(null);
-        // Set filters based on existing league to provide context when editing
+        // Auto-set filters to match the existing league for easier editing context.
+        // Falls back to 'all' for custom/other leagues without area/level metadata.
         const existingLeague = season.leagueId ? getLeagueById(season.leagueId) : undefined;
         setAreaFilter(existingLeague?.area || 'all');
         setLevelFilter(existingLeague?.level || 'all');
