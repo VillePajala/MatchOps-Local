@@ -379,14 +379,28 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
     }
   }, [isOpen, currentGameId, tournamentId, seasonId, updateGameDetailsMutation, gameEvents, availablePlayers]);
 
-  // Clear error state and reset league filters when modal opens
+  // Clear error state when modal opens
+  // Set league filters when modal opens based on current leagueId
   useEffect(() => {
     if (isOpen) {
       setError(null);
-      setLeagueAreaFilter('all');
-      setLeagueLevelFilter('all');
+      // Set filters based on the leagueId prop (if present) to ensure the league is visible
+      if (leagueId) {
+        const league = getLeagueById(leagueId);
+        if (league) {
+          // Auto-set filters to match the league being displayed.
+          // Falls back to 'all' for custom/other leagues without area/level metadata.
+          setLeagueLevelFilter(league.level || 'all');
+          setLeagueAreaFilter(league.area || 'all');
+        }
+      } else if (!seasonId) {
+        // No league and no season - reset to 'all'
+        setLeagueAreaFilter('all');
+        setLeagueLevelFilter('all');
+      }
+      // If there's a seasonId but no leagueId, let the season prefill effect handle filters
     }
-  }, [isOpen]);
+  }, [isOpen, seasonId, leagueId]);
 
   // State for event editing within the modal
   const [localGameEvents, setLocalGameEvents] = useState<GameEvent[]>(gameEvents || []);
@@ -715,9 +729,9 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
       if (displayedLeagueId) {
         const league = getLeagueById(displayedLeagueId);
         if (league) {
-          // Set level filter to match the league's level (or 'all' if not set)
+          // Auto-set filters to match the league being displayed.
+          // Falls back to 'all' for custom/other leagues without area/level metadata.
           setLeagueLevelFilter(league.level || 'all');
-          // Set area filter to match the league's area (or 'all' if not set)
           setLeagueAreaFilter(league.area || 'all');
         }
       } else {

@@ -1024,14 +1024,16 @@ describe('<GameSettingsModal />', () => {
         </ToastProvider>
       );
 
-      // Wait for modal to reopen
+      // Wait for modal to reopen and filters to be set based on leagueId prop
       await waitFor(() => {
         expect(document.getElementById('leagueSelectGameSettings')).toBeInTheDocument();
+        // Check that filters are set to match harrastesarja (level: 'other')
+        const levelFilter = document.getElementById('league-level-filter-game') as HTMLSelectElement;
+        expect(levelFilter.value).toBe('other');
+        // The league should remain as the manual override, NOT be re-prefilled from season
+        const leagueSelect = document.getElementById('leagueSelectGameSettings') as HTMLSelectElement;
+        expect(leagueSelect.value).toBe('harrastesarja');
       });
-
-      // The league should remain as the manual override, NOT be re-prefilled from season
-      const leagueSelect = document.getElementById('leagueSelectGameSettings') as HTMLSelectElement;
-      expect(leagueSelect.value).toBe('harrastesarja');
 
       // onLeagueIdChange should NOT have been called with 'sm-sarja' (season default)
       // during the reopen - the ref prevents re-applying season defaults
