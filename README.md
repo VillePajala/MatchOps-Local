@@ -12,6 +12,7 @@
 [![React](https://img.shields.io/badge/React-19.2-blue.svg)](https://reactjs.org/)
 [![Tests](https://img.shields.io/badge/tests-2535+-green.svg)](#)
 [![PWA](https://img.shields.io/badge/PWA-Enabled-5a0fc8.svg)](https://web.dev/progressive-web-apps/)
+[![WCAG 2.1 AA](https://img.shields.io/badge/WCAG_2.1-AA_Compliant-green.svg)](https://www.w3.org/WAI/WCAG21/quickref/)
 
 MatchOps-Local is built for coaches who need privacy, offline reliability, and soccer-specific workflows without subscriptions or external servers.
 
@@ -37,7 +38,7 @@ MatchOps-Local is built for coaches who need privacy, offline reliability, and s
 - **Stats & Assessment:** Track appearances/goals/assists/playtime, slice by season/tournament/team, and run structured player assessments with contextual weighting.
 - **Seasons & Tournaments:** Organize fixtures by season/tournament, including Finnish league presets, and capture awards/winners.
 - **Backup & Recovery:** Export/import full backups or individual games; migrations handle legacy localStorage to IndexedDB with pause/resume/cancel.
-- **Accessibility & Localization:** WCAG AA-focused UI with keyboard navigation and ARIA labeling; bilingual EN/FI out of the box.
+- **Accessibility & Localization:** WCAG 2.1 AA compliant with proper color contrast, 44x44px touch targets, keyboard navigation, focus trapping, semantic landmarks, and ARIA labeling; bilingual EN/FI out of the box.
 - **Offline-first PWA:** Install to home screen, run fully offline, and rely on the service worker + offline fallback page for poor connectivity.
 
 ---

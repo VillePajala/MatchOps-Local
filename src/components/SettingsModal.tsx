@@ -694,6 +694,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 onChange={handleRestoreFileSelected}
                 accept=".json"
                 style={{ display: "none" }}
+                aria-label={t('settingsModal.restoreButton', 'Restore from Backup')}
                 data-testid="restore-backup-input"
               />
               <input
@@ -702,6 +703,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 onChange={handleGameImportFileChange}
                 accept=".json"
                 style={{ display: "none" }}
+                aria-label={t('settingsModal.importGamesButton', 'Import Games')}
                 data-testid="game-import-input"
               />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -709,14 +711,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   onClick={onCreateBackup}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium shadow-sm transition-colors"
                 >
-                  <HiOutlineDocumentArrowDown className="h-5 w-5" />
+                  <HiOutlineDocumentArrowDown className="h-5 w-5" aria-hidden="true" />
                   {t('settingsModal.backupButton', 'Backup All Data')}
                 </button>
                 <button
                   onClick={handleRestore}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-600 hover:bg-slate-500 text-slate-200 rounded-md text-sm font-medium shadow-sm transition-colors"
                 >
-                  <HiOutlineDocumentArrowUp className="h-5 w-5" />
+                  <HiOutlineDocumentArrowUp className="h-5 w-5" aria-hidden="true" />
                   {t('settingsModal.restoreButton', 'Restore from Backup')}
                 </button>
                 <button
@@ -724,7 +726,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   disabled={isImporting}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium shadow-sm transition-colors"
                 >
-                  <HiOutlineChartBar className="h-5 w-5" />
+                  <HiOutlineChartBar className="h-5 w-5" aria-hidden="true" />
                   {isImporting ? t('settingsModal.importing', 'Importing...') : t('settingsModal.importGamesButton', 'Import Games')}
                 </button>
                 <button
@@ -732,7 +734,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                   disabled={checkingForUpdates}
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md text-sm font-medium shadow-sm transition-colors"
                 >
-                  <HiOutlineArrowPath className={`h-5 w-5 ${checkingForUpdates ? 'animate-spin' : ''}`} />
+                  <HiOutlineArrowPath className={`h-5 w-5 ${checkingForUpdates ? 'animate-spin' : ''}`} aria-hidden="true" />
                   {checkingForUpdates ? t('settingsModal.checkingUpdates', 'Checking...') : t('settingsModal.checkForUpdates', 'Check for Updates')}
                 </button>
               </div>
@@ -783,7 +785,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                         )}
                   </p>
                 {storageEstimate && (
-                  <div className="w-full bg-slate-700 rounded-md h-2 overflow-hidden">
+                  <div
+                    role="progressbar"
+                    aria-valuenow={Math.round((storageEstimate.usage / storageEstimate.quota) * 100)}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={t('settingsModal.storageUsageLabel', 'Storage Usage')}
+                    className="w-full bg-slate-700 rounded-md h-2 overflow-hidden"
+                  >
                     <div
                       className="bg-indigo-500 h-2"
                       style={{ width: `${Math.min(100, (storageEstimate.usage / storageEstimate.quota) * 100)}%` }}

@@ -10,9 +10,22 @@
  * Usage:
  *   const containerRef = useRef<HTMLDivElement>(null);
  *   useFocusTrap(containerRef, isOpen, onClose);
+ *
+ * ## Modals with Existing Focus Management
+ *
+ * The following modals already have their own focus management and should NOT
+ * use this hook to avoid conflicts:
+ *
+ * - **ConfirmationModal** (`src/components/ConfirmationModal.tsx`, lines 52-79)
+ *   Has custom focus management that auto-focuses confirm button, handles Escape,
+ *   and restores focus on close.
+ *
+ * When adding focus management to a new modal, first check if it already has
+ * custom focus handling before applying this hook.
  */
 
 import { useEffect, useRef, RefObject } from 'react';
+import logger from '@/utils/logger';
 
 // Selector for all focusable elements
 const FOCUSABLE_SELECTOR = [
@@ -66,7 +79,11 @@ export function useFocusTrap(
       return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
     };
 
-    // Handle Tab key to trap focus
+    /**
+     * Keyboard event handler for focus trap and modal dismissal.
+     * Implements WCAG 2.1 SC 2.1.2 (No Keyboard Trap) by cycling focus.
+     * @accessibility Handles Escape (close) and Tab/Shift+Tab (focus cycling)
+     */
     const handleKeyDown = (event: KeyboardEvent) => {
       // Escape key handler
       if (!disableEscape && event.key === 'Escape' && onClose) {
@@ -78,7 +95,10 @@ export function useFocusTrap(
       // Tab key focus trapping
       if (event.key === 'Tab') {
         const focusableElements = getFocusableElements();
-        if (focusableElements.length === 0) return;
+        if (focusableElements.length === 0) {
+          logger.warn('[useFocusTrap] No focusable elements found in container. Focus trap cannot cycle.');
+          return;
+        }
 
         const firstElement = focusableElements[0];
         const lastElement = focusableElements[focusableElements.length - 1];

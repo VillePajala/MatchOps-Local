@@ -101,7 +101,7 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
             className="text-slate-400 hover:text-slate-200 p-1 rounded-md hover:bg-slate-700/50 transition-colors"
             aria-label="Close"
           >
-            <HiOutlineXMark className="w-5 h-5" />
+            <HiOutlineXMark className="w-5 h-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -114,7 +114,7 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
             className={`${buttonStyle} ${canUndo ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-800'}`}
             title={t('controlBar.undo', 'Undo')}
           >
-            <HiOutlineArrowUturnLeft className={iconSize} />
+            <HiOutlineArrowUturnLeft className={iconSize} aria-hidden="true" />
             <span className="text-xs mt-1 text-slate-200">
               {t('controlBar.undo', 'Undo')}
             </span>
@@ -127,7 +127,7 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
             className={`${buttonStyle} ${canRedo ? 'bg-slate-700 hover:bg-slate-600' : 'bg-slate-800'}`}
             title={t('controlBar.redo', 'Redo')}
           >
-            <HiOutlineArrowUturnRight className={iconSize} />
+            <HiOutlineArrowUturnRight className={iconSize} aria-hidden="true" />
             <span className="text-xs mt-1 text-slate-200">
               {t('controlBar.redo', 'Redo')}
             </span>
@@ -139,7 +139,7 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
             className={`${buttonStyle} ${isTacticsBoardView ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-slate-700 hover:bg-slate-600'}`}
             title={t(isTacticsBoardView ? 'controlBar.toggleTacticsBoardHide' : 'controlBar.toggleTacticsBoardShow') ?? 'Tactics'}
           >
-            <HiOutlineClipboard className={iconSize} />
+            <HiOutlineClipboard className={iconSize} aria-hidden="true" />
             <span className="text-xs mt-1 text-slate-200">
               {t('fieldTools.tactics', 'Tactics')}
             </span>
@@ -152,7 +152,7 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
               className={`${buttonStyle} bg-indigo-600 hover:bg-indigo-500`}
               title={t('controlBar.placeAllPlayers', 'Place All Players')}
             >
-              <HiOutlineSquares2X2 className={iconSize} />
+              <HiOutlineSquares2X2 className={iconSize} aria-hidden="true" />
               <span className="text-xs mt-1 text-slate-200">
                 {t('fieldTools.placeAll', 'Place All')}
               </span>
@@ -163,7 +163,7 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
               className={`${buttonStyle} bg-indigo-600 hover:bg-indigo-500`}
               title={t('controlBar.addHomeDisc', 'Add Home Disc')}
             >
-              <HiOutlinePlusCircle className={iconSize} />
+              <HiOutlinePlusCircle className={iconSize} aria-hidden="true" />
               <span className="text-xs mt-1 text-slate-200">
                 {t('fieldTools.addHome', 'Add Home')}
               </span>
@@ -176,7 +176,7 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
             className={`${buttonStyle} bg-red-600 hover:bg-red-500`}
             title={isTacticsBoardView ? t('controlBar.addOpponentDisc', 'Add Opponent Disc') : t('controlBar.addOpponent', 'Add Opponent')}
           >
-            <HiOutlinePlusCircle className={iconSize} />
+            <HiOutlinePlusCircle className={iconSize} aria-hidden="true" />
             <span className="text-xs mt-1 text-slate-200">
               {t('fieldTools.addOpponent', 'Add Opp')}
             </span>
@@ -188,7 +188,7 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
             className={`${buttonStyle} bg-amber-600 hover:bg-amber-500`}
             title={t('controlBar.clearDrawings', 'Clear Drawings')}
           >
-            <HiOutlineBackspace className={iconSize} />
+            <HiOutlineBackspace className={iconSize} aria-hidden="true" />
             <span className="text-xs mt-1 text-slate-200">
               {t('fieldTools.clear', 'Clear')}
             </span>
@@ -200,7 +200,7 @@ const FieldToolsPanel: React.FC<FieldToolsPanelProps> = ({
             className={`${buttonStyle} bg-red-600 hover:bg-red-500`}
             title={t('controlBar.resetField', 'Reset Field')}
           >
-            <HiOutlineTrash className={iconSize} />
+            <HiOutlineTrash className={iconSize} aria-hidden="true" />
             <span className="text-xs mt-1 text-slate-200">
               {t('fieldTools.reset', 'Reset')}
             </span>

@@ -22,12 +22,13 @@ interface PlayerDiskProps {
 }
 
 // Define badge component
-const StatBadge: React.FC<{ count: number, bgColor: string, positionClasses: string, title: string }> = ({ count, bgColor, positionClasses, title }) => (
-  <div 
-    title={title}
+const StatBadge: React.FC<{ count: number, bgColor: string, positionClasses: string, label: string }> = ({ count, bgColor, positionClasses, label }) => (
+  <div
+    role="status"
+    aria-label={label}
     className={`absolute ${positionClasses} w-5 h-5 rounded-full ${bgColor} flex items-center justify-center text-xs font-bold text-slate-900 shadow-md pointer-events-none z-20`}
   >
-    {count}
+    <span aria-hidden="true">{count}</span>
   </div>
 );
 
@@ -86,13 +87,14 @@ const PlayerDisk: React.FC<PlayerDiskProps> = ({
     }
   };
 
-  // Keyboard handler for accessibility
+  // Keyboard handler for accessibility (only active in PlayerBar context)
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    // Early return if not in bar context (player on field)
+    if (!onPlayerTapInBar) return;
+
     if (e.key === ' ' || e.key === 'Enter') {
       e.preventDefault();
-      if (onPlayerTapInBar) {
-        onPlayerTapInBar({ id, name: fullName, nickname, color, isGoalie });
-      }
+      onPlayerTapInBar({ id, name: fullName, nickname, color, isGoalie });
     }
   };
 
@@ -154,7 +156,7 @@ const PlayerDisk: React.FC<PlayerDiskProps> = ({
           title={isGoalie ? "Unset Goalie" : "Set Goalie"}
           aria-label={isGoalie ? `Remove ${nickname || fullName} as goalie` : `Set ${nickname || fullName} as goalie`}
           aria-pressed={isGoalie}
-          className="absolute top-0 left-0 transform -translate-x-1 -translate-y-1 p-2 bg-slate-600 hover:bg-slate-500 rounded-full shadow-md z-10"
+          className="absolute top-0 left-0 transform -translate-x-1 -translate-y-1 p-2.5 bg-slate-600 hover:bg-slate-500 rounded-full shadow-md z-10"
           onClick={handleToggleGoalieClick}
           onTouchEnd={handleToggleGoalieClick}
         >
@@ -176,7 +178,7 @@ const PlayerDisk: React.FC<PlayerDiskProps> = ({
           count={playerStats.goals}
           bgColor="bg-yellow-400"
           positionClasses="top-[2px] right-[2px]"
-          title={`${playerStats.goals} Goals`}
+          label={`${playerStats.goals} Goals`}
         />
       )}
       {playerStats.assists > 0 && (
@@ -184,7 +186,7 @@ const PlayerDisk: React.FC<PlayerDiskProps> = ({
           count={playerStats.assists}
           bgColor="bg-slate-400"
           positionClasses="bottom-[2px] right-[2px]"
-          title={`${playerStats.assists} Assists`}
+          label={`${playerStats.assists} Assists`}
         />
       )}
     </div>

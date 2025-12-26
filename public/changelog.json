@@ -1,8 +1,8 @@
 {
-  "version": "b513bb72",
-  "date": "2025-12-25",
+  "version": "0b489ab5",
+  "date": "2025-12-26",
   "notes": {
-    "en": "Enhance field export with high-res rendering and polished visuals",
-    "fi": "Enhance field export with high-res rendering and polished visuals"
+    "en": "Accessibility improvements (WCAG 2.1 AA)",
+    "fi": "Accessibility improvements (WCAG 2.1 AA)"
   }
 }

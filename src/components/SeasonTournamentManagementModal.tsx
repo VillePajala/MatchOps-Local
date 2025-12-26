@@ -223,7 +223,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                         className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
                                         aria-label={`${type} actions`}
                                     >
-                                        <HiOutlineEllipsisVertical className="w-4 h-4" />
+                                        <HiOutlineEllipsisVertical className="w-4 h-4" aria-hidden="true" />
                                     </button>
 
                                     {actionsMenuId === item.id && (
@@ -232,7 +232,7 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                                 onClick={() => handleToggleArchive(item, type)}
                                                 className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"
                                             >
-                                                <HiOutlineArchiveBox className="w-4 h-4" />
+                                                <HiOutlineArchiveBox className="w-4 h-4" aria-hidden="true" />
                                                 {item.archived
                                                     ? t('seasonTournamentModal.unarchive', 'Unarchive')
                                                     : t('seasonTournamentModal.archive', 'Archive')}
@@ -241,14 +241,14 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                                 onClick={() => handleEditClick(item, type)}
                                                 className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"
                                             >
-                                                <HiOutlinePencil className="w-4 h-4" />
+                                                <HiOutlinePencil className="w-4 h-4" aria-hidden="true" />
                                                 {t('common.edit', 'Edit')}
                                             </button>
                                             <button
                                                 onClick={() => handleDeleteClick(item, type)}
                                                 className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 transition-colors"
                                             >
-                                                <HiOutlineTrash className="w-4 h-4" />
+                                                <HiOutlineTrash className="w-4 h-4" aria-hidden="true" />
                                                 {t('common.delete', 'Delete')}
                                             </button>
                                         </div>

@@ -516,7 +516,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                                 aria-label={t('gameSettingsModal.eventActions', 'Event actions')}
                                 disabled={isProcessing}
                               >
-                                <HiOutlineEllipsisVertical className="w-5 h-5" />
+                                <HiOutlineEllipsisVertical className="w-5 h-5" aria-hidden="true" />
                               </button>
 
                               {eventActionsMenuId === event.id && (
@@ -526,7 +526,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                                     className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"
                                     disabled={isProcessing}
                                   >
-                                    <HiOutlinePencil className="w-4 h-4" />
+                                    <HiOutlinePencil className="w-4 h-4" aria-hidden="true" />
                                     {t('common.edit', 'Edit')}
                                   </button>
                                   <button
@@ -534,7 +534,7 @@ const GoalLogModal: React.FC<GoalLogModalProps> = ({
                                     className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 last:rounded-b-md transition-colors"
                                     disabled={isProcessing}
                                   >
-                                    <HiOutlineTrash className="w-4 h-4" />
+                                    <HiOutlineTrash className="w-4 h-4" aria-hidden="true" />
                                     {t('common.delete', 'Delete')}
                                   </button>
                                 </div>

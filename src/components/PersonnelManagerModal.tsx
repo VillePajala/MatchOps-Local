@@ -336,7 +336,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                             disabled={isUpdating}
                             aria-label="More options"
                           >
-                            <HiOutlineEllipsisVertical className="h-5 w-5" />
+                            <HiOutlineEllipsisVertical className="h-5 w-5" aria-hidden="true" />
                           </button>
                           {openMenuId === person.id && (
                             <div className={`absolute right-0 w-36 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-10 ${menuPositions[person.id] ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
@@ -344,7 +344,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                                 onClick={() => handleEditPersonnel(person.id)}
                                 className="w-full px-4 py-2.5 text-left text-sm text-slate-200 hover:bg-slate-700 rounded-t-lg flex items-center gap-2"
                               >
-                                <HiOutlinePencil className="h-4 w-4" />
+                                <HiOutlinePencil className="h-4 w-4" aria-hidden="true" />
                                 {t('common.edit', 'Edit')}
                               </button>
                               <button
@@ -354,7 +354,7 @@ const PersonnelManagerModal: React.FC<PersonnelManagerModalProps> = ({
                                 }}
                                 className="w-full px-4 py-2.5 text-left text-sm text-red-400 hover:bg-slate-700 rounded-b-lg flex items-center gap-2"
                               >
-                                <HiOutlineTrash className="h-4 w-4" />
+                                <HiOutlineTrash className="h-4 w-4" aria-hidden="true" />
                                 {t('common.delete', 'Delete')}
                               </button>
                             </div>

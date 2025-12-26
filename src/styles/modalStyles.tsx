@@ -150,9 +150,9 @@ export const ModalContainer: React.FC<{ children: React.ReactNode }> = ({ childr
   </div>
 );
 
-export const ModalHeader: React.FC<{ title: string }> = ({ title }) => (
+export const ModalHeader: React.FC<{ title: string; id?: string }> = ({ title, id }) => (
   <div className={headerStyle}>
-    <h2 className={titleStyle}>{title}</h2>
+    <h2 id={id} className={titleStyle}>{title}</h2>
   </div>
 );
 

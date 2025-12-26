@@ -397,7 +397,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                               className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded transition-colors"
                               aria-label="Team actions"
                             >
-                              <HiOutlineEllipsisVertical className="w-4 h-4" />
+                              <HiOutlineEllipsisVertical className="w-4 h-4" aria-hidden="true" />
                             </button>
 
                             {actionsMenuTeamId === team.id && (
@@ -406,14 +406,14 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                                   onClick={() => handleEditTeam(team.id)}
                                   className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 first:rounded-t-md transition-colors"
                                 >
-                                  <HiOutlinePencil className="w-4 h-4" />
+                                  <HiOutlinePencil className="w-4 h-4" aria-hidden="true" />
                                   {t('teamManager.edit', 'Muokkaa')}
                                 </button>
                                 <button
                                   onClick={() => handleToggleArchive(team.id, team.archived || false)}
                                   className="w-full px-4 py-2 text-left text-slate-300 hover:bg-slate-600 flex items-center gap-2 transition-colors"
                                 >
-                                  <HiOutlineArchiveBox className="w-4 h-4" />
+                                  <HiOutlineArchiveBox className="w-4 h-4" aria-hidden="true" />
                                   {team.archived
                                     ? t('teamManager.unarchive', 'Unarchive')
                                     : t('teamManager.archive', 'Archive')}
@@ -422,7 +422,7 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                                   onClick={() => handleDeleteTeam(team.id)}
                                   className="w-full px-4 py-2 text-left text-red-400 hover:bg-red-600/20 flex items-center gap-2 last:rounded-b-md transition-colors"
                                 >
-                                  <HiOutlineTrash className="w-4 h-4" />
+                                  <HiOutlineTrash className="w-4 h-4" aria-hidden="true" />
                                   {t('teamManager.delete', 'Delete')}
                                 </button>
                               </div>
