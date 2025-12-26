@@ -26,8 +26,9 @@ const StatBadge: React.FC<{ count: number, bgColor: string, positionClasses: str
   <div
     className={`absolute ${positionClasses} w-5 h-5 rounded-full ${bgColor} flex items-center justify-center text-xs font-bold text-slate-900 shadow-md pointer-events-none z-20`}
     role="status"
-    aria-label={label}
+    aria-label={`${label}: ${count}`}
   >
+    <span className="sr-only">{label}: {count}</span>
     <span aria-hidden="true">{count}</span>
   </div>
 );
