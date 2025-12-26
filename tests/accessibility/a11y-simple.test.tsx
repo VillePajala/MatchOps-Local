@@ -145,7 +145,7 @@ describe('Accessibility Tests (Simplified)', () => {
       const { container } = render(<SimpleA11yTestComponent />);
       
       const results = await axe(container);
-      (expect(results) as any).toHaveNoViolations();
+      expect(results).toHaveNoViolations();
     });
 
     it('should have proper heading hierarchy', () => {
