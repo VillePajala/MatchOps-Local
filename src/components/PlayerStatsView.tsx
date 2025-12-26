@@ -706,105 +706,112 @@ const PlayerStatsView: React.FC<PlayerStatsViewProps> = ({ player, savedGames, o
                       {/* Result color strip */}
                       <span className={`absolute inset-y-0 left-0 w-1 rounded-l-md ${getResultClass(adjResult)}`}></span>
 
-                      <div className="flex justify-between items-start">
-                        {/* Left side: Match info */}
-                        <div className="flex-1 pl-2">
-                          <p className="font-semibold text-slate-100 drop-shadow-lg">
-                            {scoreDisplay ? (
-                              <>
-                                {scoreDisplay}
-                                <span className="ml-2 text-xs text-slate-400">
-                                  ({a.homeOrAway === 'home' ? t('playerStats.home', 'Home') : a.homeOrAway === 'away' ? t('playerStats.away', 'Away') : t('playerStats.neutral', 'Neutral')})
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                {extName} {t('playerStats.vs', 'vs')} {oppName}
-                                <span className="ml-2 text-xs text-slate-400">
-                                  ({a.homeOrAway === 'home' ? t('playerStats.home', 'Home') : a.homeOrAway === 'away' ? t('playerStats.away', 'Away') : t('playerStats.neutral', 'Neutral')})
-                                </span>
-                              </>
+                      {/* Card layout with two rows */}
+                      <div className="flex flex-col gap-2">
+                        {/* Top row: Match info and stats */}
+                        <div className="flex justify-between items-start">
+                          {/* Left side: Match info */}
+                          <div className="flex-1 pl-2">
+                            <p className="font-semibold text-slate-100 drop-shadow-lg">
+                              {scoreDisplay ? scoreDisplay : <>{extName} {t('playerStats.vs', 'vs')} {oppName}</>}
+                            </p>
+                            {/* Note if present */}
+                            {a.note && (
+                              <p className="text-xs text-slate-300 italic mt-1">&ldquo;{a.note}&rdquo;</p>
                             )}
-                            {/* Inline badges like saved games cards */}
-                            <span className="ml-2 inline-block bg-purple-600/50 text-purple-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={t('playerStats.externalGame', 'External Game')}>{t('playerStats.external', 'EXT')}</span>
-                            {seasonName && (
-                              <span className="ml-2 inline-block bg-blue-600/50 text-blue-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={seasonName}>{seasonName}</span>
-                            )}
-                            {tournamentName && (
-                              <span className="ml-2 inline-block bg-amber-600/50 text-amber-200 text-[10px] font-bold px-1.5 py-0.5 rounded-sm" title={tournamentName}>{tournamentName}</span>
-                            )}
-                          </p>
-                          <p className="text-xs text-slate-400">{dateText}</p>
-                          {/* Note if present */}
-                          {a.note && (
-                            <p className="text-xs text-slate-300 italic mt-1">&ldquo;{a.note}&rdquo;</p>
-                          )}
-                        </div>
-
-                        {/* Right side: Stats and actions */}
-                        <div className="flex items-center gap-2">
-                          {/* Stats */}
-                          <div className="flex items-center">
-                            <div className="text-center mx-2">
-                              <p className={`font-bold text-xl ${a.goalsDelta > 0 ? 'text-green-400' : 'text-slate-300'}`}>{a.goalsDelta}</p>
-                              <p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p>
-                            </div>
-                            <div className="text-center mx-2">
-                              <p className={`font-bold text-xl ${a.assistsDelta > 0 ? 'text-blue-400' : 'text-slate-300'}`}>{a.assistsDelta}</p>
-                              <p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p>
-                            </div>
                           </div>
 
-                          {/* Actions menu */}
-                          <div className="shrink-0 relative actions-menu-container">
-                            <button
-                              type="button"
-                              className="p-1 hover:bg-slate-600 rounded transition-colors"
-                              onClick={() => setShowActionsMenu(showActionsMenu === a.id ? null : a.id)}
-                              aria-label={t('common.actions', 'Actions')}
-                            >
-                              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="text-slate-400 hover:text-slate-200">
-                                <circle cx="8" cy="2.5" r="1.5"/>
-                                <circle cx="8" cy="8" r="1.5"/>
-                                <circle cx="8" cy="13.5" r="1.5"/>
-                              </svg>
-                            </button>
-                            {showActionsMenu === a.id && (
-                              <div className="absolute right-0 top-8 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[120px]">
-                                <button
-                                  type="button"
-                                  className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors text-slate-200 first:rounded-t-lg"
-                                  onClick={() => {
-                                    setEditingAdjId(a.id);
-                                    setEditGames(a.gamesPlayedDelta);
-                                    setEditGoals(a.goalsDelta);
-                                    setEditAssists(a.assistsDelta);
-                                    setEditFairPlayCards(a.fairPlayCardsDelta || 0);
-                                    setEditNote(a.note || '');
-                                    setEditHomeAway(a.homeOrAway || 'neutral');
-                                    setEditExternalTeam(a.externalTeamName || '');
-                                    setEditOpponentName(a.opponentName || '');
-                                    setEditTournamentId(a.tournamentId || '');
-                                    setEditGameDate(a.gameDate || '');
-                                    setEditScoreFor(typeof a.scoreFor === 'number' ? a.scoreFor : '');
-                                    setEditScoreAgainst(typeof a.scoreAgainst === 'number' ? a.scoreAgainst : '');
-                                    setEditIncludeInSeasonTournament(a.includeInSeasonTournament || false);
-                                    setShowActionsMenu(null);
-                                  }}
-                                >
-                                  {t('common.edit', 'Edit')}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors text-red-400 hover:text-red-300 last:rounded-b-lg"
-                                  onClick={() => {
-                                    setShowDeleteConfirm(a.id);
-                                    setShowActionsMenu(null);
-                                  }}
-                                >
-                                  {t('common.delete', 'Delete')}
-                                </button>
+                          {/* Right side: Stats and actions */}
+                          <div className="flex items-center gap-2">
+                            {/* Stats */}
+                            <div className="flex items-center">
+                              <div className="text-center mx-2">
+                                <p className={`font-bold text-xl ${a.goalsDelta > 0 ? 'text-green-400' : 'text-slate-300'}`}>{a.goalsDelta}</p>
+                                <p className="text-xs text-slate-400">{t('playerStats.goals', 'Goals')}</p>
                               </div>
+                              <div className="text-center mx-2">
+                                <p className={`font-bold text-xl ${a.assistsDelta > 0 ? 'text-blue-400' : 'text-slate-300'}`}>{a.assistsDelta}</p>
+                                <p className="text-xs text-slate-400">{t('playerStats.assists', 'Assists')}</p>
+                              </div>
+                            </div>
+
+                            {/* Actions menu */}
+                            <div className="shrink-0 relative actions-menu-container">
+                              <button
+                                type="button"
+                                className="p-1 hover:bg-slate-600 rounded transition-colors"
+                                onClick={() => setShowActionsMenu(showActionsMenu === a.id ? null : a.id)}
+                                aria-label={t('common.actions', 'Actions')}
+                              >
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="text-slate-400 hover:text-slate-200">
+                                  <circle cx="8" cy="2.5" r="1.5"/>
+                                  <circle cx="8" cy="8" r="1.5"/>
+                                  <circle cx="8" cy="13.5" r="1.5"/>
+                                </svg>
+                              </button>
+                              {showActionsMenu === a.id && (
+                                <div className="absolute right-0 top-8 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50 min-w-[120px]">
+                                  <button
+                                    type="button"
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors text-slate-200 first:rounded-t-lg"
+                                    onClick={() => {
+                                      setEditingAdjId(a.id);
+                                      setEditGames(a.gamesPlayedDelta);
+                                      setEditGoals(a.goalsDelta);
+                                      setEditAssists(a.assistsDelta);
+                                      setEditFairPlayCards(a.fairPlayCardsDelta || 0);
+                                      setEditNote(a.note || '');
+                                      setEditHomeAway(a.homeOrAway || 'neutral');
+                                      setEditExternalTeam(a.externalTeamName || '');
+                                      setEditOpponentName(a.opponentName || '');
+                                      setEditTournamentId(a.tournamentId || '');
+                                      setEditGameDate(a.gameDate || '');
+                                      setEditScoreFor(typeof a.scoreFor === 'number' ? a.scoreFor : '');
+                                      setEditScoreAgainst(typeof a.scoreAgainst === 'number' ? a.scoreAgainst : '');
+                                      setEditIncludeInSeasonTournament(a.includeInSeasonTournament || false);
+                                      setShowActionsMenu(null);
+                                    }}
+                                  >
+                                    {t('common.edit', 'Edit')}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-slate-600 transition-colors text-red-400 hover:text-red-300 last:rounded-b-lg"
+                                    onClick={() => {
+                                      setShowDeleteConfirm(a.id);
+                                      setShowActionsMenu(null);
+                                    }}
+                                  >
+                                    {t('common.delete', 'Delete')}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Bottom row: Date left, category labels right */}
+                        <div className="flex items-end justify-between gap-4 pl-2 text-xs">
+                          {/* Left: Date */}
+                          <p className="text-slate-400">{dateText}</p>
+
+                          {/* Right: Category labels */}
+                          <div className="flex flex-wrap-reverse justify-end content-end gap-1.5">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-purple-600/40 text-purple-200" title={t('playerStats.externalGame', 'External Game')}>
+                              <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                              {t('playerStats.external', 'EXT')}
+                            </span>
+                            {seasonName && (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200" title={seasonName}>
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                                {seasonName}
+                              </span>
+                            )}
+                            {tournamentName && (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200" title={tournamentName}>
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                {tournamentName}
+                              </span>
                             )}
                           </div>
                         </div>
