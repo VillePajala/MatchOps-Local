@@ -784,7 +784,14 @@ describe('<GameSettingsModal />', () => {
       const leagueSelect = document.getElementById('leagueSelectGameSettings') as HTMLSelectElement;
       expect(leagueSelect.value).toBe('sm-sarja');
 
-      // Change to a different league
+      // Filters are auto-set to 'national' (sm-sarja's level)
+      // To select 'harrastesarja' (other level), first change the level filter
+      const levelFilter = document.getElementById('league-level-filter-game') as HTMLSelectElement;
+      expect(levelFilter.value).toBe('national');
+
+      await user.selectOptions(levelFilter, 'other');
+
+      // Now harrastesarja should be visible - change to it
       await user.selectOptions(leagueSelect, 'harrastesarja');
 
       await waitFor(() => {
@@ -1032,6 +1039,74 @@ describe('<GameSettingsModal />', () => {
         (call: [string | undefined]) => call[0] === 'sm-sarja'
       );
       expect(smSarjaCalls.length).toBe(0);
+    });
+
+    test('should show league filter dropdowns when season is selected', async () => {
+      renderModal({
+        ...leagueProps,
+        seasonId: 's1',
+      });
+
+      // Filter dropdowns should be visible when season is set
+      await waitFor(() => {
+        expect(document.getElementById('league-level-filter-game')).toBeInTheDocument();
+        expect(document.getElementById('league-area-filter-game')).toBeInTheDocument();
+      });
+    });
+
+    test('should filter league options by level', async () => {
+      const user = userEvent.setup();
+      // Use season s3 which has no league, so filters start at 'all'
+      renderModal({
+        ...leagueProps,
+        seasonId: 's3',
+      });
+
+      // Wait for league section to appear
+      await waitFor(() => {
+        expect(document.getElementById('leagueSelectGameSettings')).toBeInTheDocument();
+      });
+
+      // Get initial options count (all 34 leagues + placeholder when no league set)
+      const leagueSelect = document.getElementById('leagueSelectGameSettings') as HTMLSelectElement;
+      const initialOptionsCount = leagueSelect.options.length;
+      expect(initialOptionsCount).toBeGreaterThan(10); // All 34 leagues + placeholder
+
+      // Select 'national' level filter
+      const levelFilter = document.getElementById('league-level-filter-game') as HTMLSelectElement;
+      await user.selectOptions(levelFilter, 'national');
+
+      // Wait for filter to apply
+      await waitFor(() => {
+        const filteredOptionsCount = leagueSelect.options.length;
+        // 5 national + 1 custom + 1 placeholder = 7
+        expect(filteredOptionsCount).toBe(7);
+      });
+    });
+
+    test('should auto-set filters when season has a league', async () => {
+      // s1 has leagueId: 'sm-sarja' which is a national league
+      renderModal({
+        ...leagueProps,
+        seasonId: 's1',
+      });
+
+      // Wait for league section to appear
+      await waitFor(() => {
+        expect(document.getElementById('leagueSelectGameSettings')).toBeInTheDocument();
+      });
+
+      // Filters should be auto-set to match the season's league
+      const levelFilter = document.getElementById('league-level-filter-game') as HTMLSelectElement;
+      const areaFilter = document.getElementById('league-area-filter-game') as HTMLSelectElement;
+
+      // sm-sarja is national level with no area
+      expect(levelFilter.value).toBe('national');
+      expect(areaFilter.value).toBe('all');
+
+      // League dropdown should show national leagues + custom + placeholder = 7
+      const leagueSelect = document.getElementById('leagueSelectGameSettings') as HTMLSelectElement;
+      expect(leagueSelect.options.length).toBe(7);
     });
   });
 

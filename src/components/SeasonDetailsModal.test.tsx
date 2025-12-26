@@ -307,8 +307,7 @@ describe('SeasonDetailsModal', () => {
       // Custom league input should not be visible initially
       expect(screen.queryByPlaceholderText(i18n.t('seasonDetailsModal.customLeaguePlaceholder', 'Enter league name'))).not.toBeInTheDocument();
 
-      // Select "Muu (vapaa kuvaus)" - find select by its label
-      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
+      // Select "Muu (vapaa kuvaus)" - find select by ID
       const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
       await user.selectOptions(leagueSelect, 'muu');
 
@@ -323,8 +322,7 @@ describe('SeasonDetailsModal', () => {
         renderWithProviders();
       });
 
-      // Find select by its label
-      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
+      // Find select by ID
       const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
 
       // Select "Muu" and enter custom name
@@ -351,8 +349,7 @@ describe('SeasonDetailsModal', () => {
         });
       });
 
-      // Find select by its label
-      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
+      // Find select by ID
       const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
 
       // Select a league
@@ -380,8 +377,7 @@ describe('SeasonDetailsModal', () => {
         });
       });
 
-      // Find select by its label
-      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
+      // Find select by ID
       const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
 
       // Select "Muu" and enter custom name
@@ -412,8 +408,7 @@ describe('SeasonDetailsModal', () => {
         renderWithProviders({ season: seasonWithLeague });
       });
 
-      // Find select by its label and verify value
-      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
+      // Find select by ID and verify value
       const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
       expect(leagueSelect.value).toBe('harrastesarja');
     });
@@ -429,8 +424,7 @@ describe('SeasonDetailsModal', () => {
         renderWithProviders({ season: seasonWithCustomLeague });
       });
 
-      // Find select by its label and verify value is "muu"
-      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
+      // Find select by ID and verify value is "muu"
       const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
       expect(leagueSelect.value).toBe('muu');
 
@@ -450,7 +444,6 @@ describe('SeasonDetailsModal', () => {
       });
 
       // Find and select "Muu" league
-      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
       const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
       await user.selectOptions(leagueSelect, 'muu');
 
@@ -476,7 +469,6 @@ describe('SeasonDetailsModal', () => {
       });
 
       // Find and select "Muu" league
-      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
       const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
       await user.selectOptions(leagueSelect, 'muu');
 
@@ -504,7 +496,6 @@ describe('SeasonDetailsModal', () => {
       });
 
       // Find and select "Muu" league
-      const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
       const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
       await user.selectOptions(leagueSelect, 'muu');
 
@@ -671,6 +662,302 @@ describe('SeasonDetailsModal', () => {
       await user.click(soccerButton);
       expect(soccerButton).toHaveClass('bg-indigo-600');
       expect(futsalButton).not.toHaveClass('bg-indigo-600');
+    });
+  });
+
+  describe('League Filter Logic', () => {
+    it('should filter leagues by level (national)', async () => {
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders();
+      });
+
+      // Get level filter dropdown
+      const levelFilter = document.getElementById('league-level-filter') as HTMLSelectElement;
+
+      // Select 'national' level filter
+      await user.selectOptions(levelFilter, 'national');
+
+      // Get the league dropdown
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
+      const options = Array.from(leagueSelect.options).map(o => o.textContent);
+
+      // Should show 5 national leagues + placeholder + custom option = 7 options
+      // National leagues: SM-sarja, SM-karsinta, Ykkönen, Kakkonen, Kolmonen
+      expect(options).toContain('Valtakunnallinen SM-sarja');
+      expect(options).toContain('Valtakunnallinen SM-karsintasarja');
+      expect(options).toContain('Valtakunnallinen Ykkönen');
+      expect(options).toContain('Valtakunnallinen Kakkonen');
+      expect(options).toContain('Valtakunnallinen Kolmonen');
+      expect(options).toContain('Muu (vapaa kuvaus)'); // Custom always shown
+
+      // Should NOT show regional or local leagues
+      expect(options).not.toContain('Aluesarja taso 1 – Etelä');
+      expect(options).not.toContain('Paikallissarja taso 1 – Etelä');
+      expect(options).not.toContain('Harrastesarja (Palloliitto)');
+    });
+
+    it('should filter leagues by level (regional)', async () => {
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders();
+      });
+
+      // Select 'regional' level filter
+      const levelFilter = document.getElementById('league-level-filter') as HTMLSelectElement;
+      await user.selectOptions(levelFilter, 'regional');
+
+      // Get the league dropdown
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
+      const options = Array.from(leagueSelect.options).map(o => o.textContent);
+
+      // Should show 12 regional leagues (4 areas × 3 levels) + placeholder + custom = 14 options
+      expect(options).toContain('Aluesarja taso 1 – Etelä');
+      expect(options).toContain('Aluesarja taso 2 – Länsi');
+      expect(options).toContain('Aluesarja taso 3 – Pohjoinen');
+      expect(options).toContain('Muu (vapaa kuvaus)');
+
+      // Should NOT show national or local leagues
+      expect(options).not.toContain('Valtakunnallinen SM-sarja');
+      expect(options).not.toContain('Paikallissarja taso 1 – Etelä');
+    });
+
+    it('should filter leagues by area (etelä) when level is regional', async () => {
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders();
+      });
+
+      // Select 'regional' level filter first
+      const levelFilter = document.getElementById('league-level-filter') as HTMLSelectElement;
+      await user.selectOptions(levelFilter, 'regional');
+
+      // Then select 'etela' area filter
+      const areaFilter = document.getElementById('league-area-filter') as HTMLSelectElement;
+      await user.selectOptions(areaFilter, 'etela');
+
+      // Get the league dropdown
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
+      const options = Array.from(leagueSelect.options).map(o => o.textContent);
+
+      // Should show only 3 regional Etelä leagues + placeholder + custom = 5 options
+      expect(options).toContain('Aluesarja taso 1 – Etelä');
+      expect(options).toContain('Aluesarja taso 2 – Etelä');
+      expect(options).toContain('Aluesarja taso 3 – Etelä');
+      expect(options).toContain('Muu (vapaa kuvaus)');
+
+      // Should NOT show other areas
+      expect(options).not.toContain('Aluesarja taso 1 – Länsi');
+      expect(options).not.toContain('Aluesarja taso 1 – Itä');
+      expect(options).not.toContain('Aluesarja taso 1 – Pohjoinen');
+    });
+
+    it('should show national leagues regardless of area filter', async () => {
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders();
+      });
+
+      // Select 'national' level filter
+      const levelFilter = document.getElementById('league-level-filter') as HTMLSelectElement;
+      await user.selectOptions(levelFilter, 'national');
+
+      // Select 'etela' area filter
+      const areaFilter = document.getElementById('league-area-filter') as HTMLSelectElement;
+      await user.selectOptions(areaFilter, 'etela');
+
+      // Get the league dropdown
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
+      const options = Array.from(leagueSelect.options).map(o => o.textContent);
+
+      // National leagues have no area, so all 5 should still be visible
+      // even when area filter is set to 'etela'
+      expect(options).toContain('Valtakunnallinen SM-sarja');
+      expect(options).toContain('Valtakunnallinen SM-karsintasarja');
+      expect(options).toContain('Valtakunnallinen Ykkönen');
+      expect(options).toContain('Valtakunnallinen Kakkonen');
+      expect(options).toContain('Valtakunnallinen Kolmonen');
+      expect(options).toContain('Muu (vapaa kuvaus)');
+    });
+
+    it('should show "other" leagues regardless of area filter', async () => {
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders();
+      });
+
+      // Select 'other' level filter
+      const levelFilter = document.getElementById('league-level-filter') as HTMLSelectElement;
+      await user.selectOptions(levelFilter, 'other');
+
+      // Select 'pohjoinen' area filter - should have no effect
+      const areaFilter = document.getElementById('league-area-filter') as HTMLSelectElement;
+      await user.selectOptions(areaFilter, 'pohjoinen');
+
+      // Get the league dropdown
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
+      const options = Array.from(leagueSelect.options).map(o => o.textContent);
+
+      // "Other" leagues have no area, so all 4 should be visible
+      expect(options).toContain('Harrastesarja (Palloliitto)');
+      expect(options).toContain('Seuran oma harrasteliiga');
+      expect(options).toContain('Koulusarja / Koululiiga');
+      expect(options).toContain('Seuran oma pelitapahtuma / Miniliiga');
+      expect(options).toContain('Muu (vapaa kuvaus)');
+    });
+
+    it('should show count of filtered leagues', async () => {
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders();
+      });
+
+      // Initially no filter message (all selected)
+      expect(screen.queryByText(/leagues$/i)).not.toBeInTheDocument();
+
+      // Select 'national' level filter
+      const levelFilter = document.getElementById('league-level-filter') as HTMLSelectElement;
+      await user.selectOptions(levelFilter, 'national');
+
+      // Should show count: 5 national leagues (custom is excluded from count display)
+      expect(screen.getByText('5 leagues')).toBeInTheDocument();
+    });
+
+    it('should clear league selection when changing filters', async () => {
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders();
+      });
+
+      // Select a national league
+      const levelFilter = document.getElementById('league-level-filter') as HTMLSelectElement;
+      await user.selectOptions(levelFilter, 'national');
+
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
+      await user.selectOptions(leagueSelect, 'sm-sarja');
+      expect(leagueSelect.value).toBe('sm-sarja');
+
+      // Change the level filter
+      await user.selectOptions(levelFilter, 'regional');
+
+      // League selection should be cleared
+      expect(leagueSelect.value).toBe('');
+    });
+
+    it('should always show custom option in filtered results', async () => {
+      const user = userEvent.setup();
+
+      await act(async () => {
+        renderWithProviders();
+      });
+
+      // Try each level filter
+      const levelFilter = document.getElementById('league-level-filter') as HTMLSelectElement;
+
+      for (const level of ['national', 'regional', 'local', 'other']) {
+        await user.selectOptions(levelFilter, level);
+
+        const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
+        const options = Array.from(leagueSelect.options).map(o => o.value);
+
+        // Custom option should always be present
+        expect(options).toContain('muu');
+      }
+    });
+
+    it('should auto-set filters when editing season with regional league', async () => {
+      // Season with a regional league in Etelä
+      const seasonWithRegionalLeague: Season = {
+        ...mockSeason,
+        leagueId: 'aluesarja-1-etela',
+      };
+
+      await act(async () => {
+        renderWithProviders({ season: seasonWithRegionalLeague });
+      });
+
+      // Filters should be auto-set based on the league
+      const levelFilter = document.getElementById('league-level-filter') as HTMLSelectElement;
+      const areaFilter = document.getElementById('league-area-filter') as HTMLSelectElement;
+
+      expect(levelFilter.value).toBe('regional');
+      expect(areaFilter.value).toBe('etela');
+
+      // The league should still be selected and visible in the dropdown
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
+      expect(leagueSelect.value).toBe('aluesarja-1-etela');
+    });
+
+    it('should auto-set level filter when editing season with national league', async () => {
+      // Season with a national league
+      const seasonWithNationalLeague: Season = {
+        ...mockSeason,
+        leagueId: 'sm-sarja',
+      };
+
+      await act(async () => {
+        renderWithProviders({ season: seasonWithNationalLeague });
+      });
+
+      // Level filter should be set to 'national', area remains 'all' (national has no area)
+      const levelFilter = document.getElementById('league-level-filter') as HTMLSelectElement;
+      const areaFilter = document.getElementById('league-area-filter') as HTMLSelectElement;
+
+      expect(levelFilter.value).toBe('national');
+      expect(areaFilter.value).toBe('all');
+
+      // The league should still be selected
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
+      expect(leagueSelect.value).toBe('sm-sarja');
+    });
+
+    it('should keep filters at "all" when editing season without league', async () => {
+      // Season without a league
+      const seasonWithoutLeague: Season = {
+        ...mockSeason,
+        leagueId: undefined,
+      };
+
+      await act(async () => {
+        renderWithProviders({ season: seasonWithoutLeague });
+      });
+
+      // Filters should remain at 'all'
+      const levelFilter = document.getElementById('league-level-filter') as HTMLSelectElement;
+      const areaFilter = document.getElementById('league-area-filter') as HTMLSelectElement;
+
+      expect(levelFilter.value).toBe('all');
+      expect(areaFilter.value).toBe('all');
+    });
+
+    it('should auto-set filters when editing season with local league', async () => {
+      // Season with a local league in Pohjoinen
+      const seasonWithLocalLeague: Season = {
+        ...mockSeason,
+        leagueId: 'paikallissarja-2-pohjoinen',
+      };
+
+      await act(async () => {
+        renderWithProviders({ season: seasonWithLocalLeague });
+      });
+
+      // Filters should be auto-set based on the league
+      const levelFilter = document.getElementById('league-level-filter') as HTMLSelectElement;
+      const areaFilter = document.getElementById('league-area-filter') as HTMLSelectElement;
+
+      expect(levelFilter.value).toBe('local');
+      expect(areaFilter.value).toBe('pohjoinen');
+
+      // The league should still be selected
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
+      expect(leagueSelect.value).toBe('paikallissarja-2-pohjoinen');
     });
   });
 });
