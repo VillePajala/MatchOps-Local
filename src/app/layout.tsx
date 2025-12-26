@@ -60,7 +60,7 @@ export default function RootLayout({
         {/* Skip to main content link for keyboard users */}
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:bg-indigo-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-md"
+          className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-4 focus-visible:left-4 focus-visible:z-[100] focus-visible:bg-indigo-600 focus-visible:text-white focus-visible:px-4 focus-visible:py-2 focus-visible:rounded-md"
         >
           Skip to main content
         </a>

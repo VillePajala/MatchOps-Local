@@ -11,6 +11,16 @@
  *   const containerRef = useRef<HTMLDivElement>(null);
  *   useFocusTrap(containerRef, isOpen, onClose);
  *
+ * ## Usage Example
+ *
+ * ```typescript
+ * // SettingsModal.tsx - Correct implementation
+ * const modalRef = useRef<HTMLDivElement>(null);
+ * useFocusTrap(modalRef, isOpen, onClose);
+ *
+ * return <div ref={modalRef} role="dialog" aria-modal="true">...</div>;
+ * ```
+ *
  * ## Modals with Existing Focus Management
  *
  * The following modals already have their own focus management and should NOT
