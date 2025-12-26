@@ -3,7 +3,15 @@
  * TDD: These tests are written BEFORE the implementation
  */
 
-import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID, getLeagueById, getLeagueName, isValidLeagueId } from '../leagues';
+import {
+  FINNISH_YOUTH_LEAGUES,
+  CUSTOM_LEAGUE_ID,
+  LEAGUE_AREA_FILTERS,
+  LEAGUE_LEVEL_FILTERS,
+  getLeagueById,
+  getLeagueName,
+  isValidLeagueId,
+} from '../leagues';
 
 describe('Finnish Youth Leagues Configuration', () => {
   describe('FINNISH_YOUTH_LEAGUES constant', () => {
@@ -112,6 +120,98 @@ describe('Finnish Youth Leagues Configuration', () => {
 
     it('should return false for empty string', () => {
       expect(isValidLeagueId('')).toBe(false);
+    });
+  });
+
+  describe('League metadata (area/level)', () => {
+    it('should have level set on all leagues except custom', () => {
+      const nonCustomLeagues = FINNISH_YOUTH_LEAGUES.filter(l => !l.isCustom);
+      nonCustomLeagues.forEach(league => {
+        expect(league.level).toBeDefined();
+        expect(['national', 'regional', 'local', 'other']).toContain(league.level);
+      });
+    });
+
+    it('should have 5 national leagues', () => {
+      const nationalLeagues = FINNISH_YOUTH_LEAGUES.filter(l => l.level === 'national');
+      expect(nationalLeagues).toHaveLength(5);
+    });
+
+    it('should have 12 regional leagues (4 areas × 3 levels)', () => {
+      const regionalLeagues = FINNISH_YOUTH_LEAGUES.filter(l => l.level === 'regional');
+      expect(regionalLeagues).toHaveLength(12);
+      // Each should have an area
+      regionalLeagues.forEach(league => {
+        expect(league.area).toBeDefined();
+        expect(['etela', 'lansi', 'ita', 'pohjoinen']).toContain(league.area);
+      });
+    });
+
+    it('should have 12 local leagues (4 areas × 3 levels)', () => {
+      const localLeagues = FINNISH_YOUTH_LEAGUES.filter(l => l.level === 'local');
+      expect(localLeagues).toHaveLength(12);
+      // Each should have an area
+      localLeagues.forEach(league => {
+        expect(league.area).toBeDefined();
+        expect(['etela', 'lansi', 'ita', 'pohjoinen']).toContain(league.area);
+      });
+    });
+
+    it('should have 4 other leagues', () => {
+      const otherLeagues = FINNISH_YOUTH_LEAGUES.filter(l => l.level === 'other');
+      expect(otherLeagues).toHaveLength(4);
+    });
+
+    it('should have 3 regional leagues per area', () => {
+      const areas = ['etela', 'lansi', 'ita', 'pohjoinen'] as const;
+      areas.forEach(area => {
+        const areaLeagues = FINNISH_YOUTH_LEAGUES.filter(
+          l => l.level === 'regional' && l.area === area
+        );
+        expect(areaLeagues).toHaveLength(3);
+      });
+    });
+
+    it('should have 3 local leagues per area', () => {
+      const areas = ['etela', 'lansi', 'ita', 'pohjoinen'] as const;
+      areas.forEach(area => {
+        const areaLeagues = FINNISH_YOUTH_LEAGUES.filter(
+          l => l.level === 'local' && l.area === area
+        );
+        expect(areaLeagues).toHaveLength(3);
+      });
+    });
+  });
+
+  describe('LEAGUE_AREA_FILTERS', () => {
+    it('should have 5 filter options including "all"', () => {
+      expect(LEAGUE_AREA_FILTERS).toHaveLength(5);
+    });
+
+    it('should have "all" as the first option', () => {
+      expect(LEAGUE_AREA_FILTERS[0].id).toBe('all');
+    });
+
+    it('should have translation keys for all options', () => {
+      LEAGUE_AREA_FILTERS.forEach(filter => {
+        expect(filter.labelKey).toMatch(/^leagues\.areas\./);
+      });
+    });
+  });
+
+  describe('LEAGUE_LEVEL_FILTERS', () => {
+    it('should have 5 filter options including "all"', () => {
+      expect(LEAGUE_LEVEL_FILTERS).toHaveLength(5);
+    });
+
+    it('should have "all" as the first option', () => {
+      expect(LEAGUE_LEVEL_FILTERS[0].id).toBe('all');
+    });
+
+    it('should have translation keys for all options', () => {
+      LEAGUE_LEVEL_FILTERS.forEach(filter => {
+        expect(filter.labelKey).toMatch(/^leagues\.levels\./);
+      });
     });
   });
 });

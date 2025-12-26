@@ -1,12 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Season, GameType, Gender } from '@/types';
 import { UseMutationResult } from '@tanstack/react-query';
 import { AGE_GROUPS } from '@/config/gameOptions';
-import { FINNISH_YOUTH_LEAGUES, CUSTOM_LEAGUE_ID } from '@/config/leagues';
+import {
+  FINNISH_YOUTH_LEAGUES,
+  CUSTOM_LEAGUE_ID,
+  LEAGUE_AREA_FILTERS,
+  LEAGUE_LEVEL_FILTERS,
+  type LeagueAreaFilter,
+  type LeagueLevelFilter,
+} from '@/config/leagues';
 
 interface SeasonDetailsModalProps {
   isOpen: boolean;
@@ -45,6 +52,26 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
   const [gender, setGender] = useState<Gender | undefined>(undefined);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // League filter state
+  const [areaFilter, setAreaFilter] = useState<LeagueAreaFilter>('all');
+  const [levelFilter, setLevelFilter] = useState<LeagueLevelFilter>('all');
+
+  // Filtered leagues based on area and level selection
+  const filteredLeagues = useMemo(() => {
+    return FINNISH_YOUTH_LEAGUES.filter(league => {
+      // Always include custom option
+      if (league.isCustom) return true;
+      // Filter by level
+      if (levelFilter !== 'all' && league.level !== levelFilter) return false;
+      // Filter by area - only applies to leagues that HAVE an area (regional/local)
+      // National/Other leagues have no area and should pass area filter
+      if (areaFilter !== 'all' && league.area) {
+        return league.area === areaFilter;
+      }
+      return true;
+    });
+  }, [areaFilter, levelFilter]);
+
   // Initialize form when season changes or modal opens
   React.useLayoutEffect(() => {
     if (isOpen) {
@@ -64,6 +91,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         setGameType('soccer');
         setGender(undefined);
         setErrorMessage(null);
+        setAreaFilter('all');
+        setLevelFilter('all');
       } else if (season) {
         // Load existing season data for edit mode
         setName(season.name || '');
@@ -80,6 +109,8 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
         setGameType(season.gameType || 'soccer');
         setGender(season.gender);
         setErrorMessage(null);
+        setAreaFilter('all');
+        setLevelFilter('all');
       }
     }
   }, [mode, season, isOpen]);
@@ -373,6 +404,48 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                 <label htmlFor="season-league" className="block text-sm font-medium text-slate-300 mb-1">
                   {t('seasonDetailsModal.leagueLabel', 'League')}
                 </label>
+
+                {/* League Filters */}
+                <div className="flex gap-2 mb-2">
+                  <select
+                    id="league-level-filter"
+                    value={levelFilter}
+                    onChange={(e) => {
+                      setLevelFilter(e.target.value as LeagueLevelFilter);
+                      // Clear league selection when changing filters
+                      setLeagueId('');
+                      setCustomLeagueName('');
+                    }}
+                    className="flex-1 px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-indigo-500 focus:border-indigo-500"
+                    aria-label={t('leagues.filterByLevel', 'Filter by level')}
+                  >
+                    {LEAGUE_LEVEL_FILTERS.map(level => (
+                      <option key={level.id} value={level.id}>
+                        {t(level.labelKey, level.id === 'all' ? 'All Levels' : level.id)}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    id="league-area-filter"
+                    value={areaFilter}
+                    onChange={(e) => {
+                      setAreaFilter(e.target.value as LeagueAreaFilter);
+                      // Clear league selection when changing filters
+                      setLeagueId('');
+                      setCustomLeagueName('');
+                    }}
+                    className="flex-1 px-2 py-1.5 bg-slate-600 border border-slate-500 rounded text-sm text-white focus:ring-indigo-500 focus:border-indigo-500"
+                    aria-label={t('leagues.filterByArea', 'Filter by area')}
+                  >
+                    {LEAGUE_AREA_FILTERS.map(area => (
+                      <option key={area.id} value={area.id}>
+                        {t(area.labelKey, area.id === 'all' ? 'All Areas' : area.id)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* League Dropdown */}
                 <select
                   id="season-league"
                   value={leagueId}
@@ -384,10 +457,17 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                   className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   <option value="">{t('seasonDetailsModal.selectLeague', '-- Select League --')}</option>
-                  {FINNISH_YOUTH_LEAGUES.map(league => (
+                  {filteredLeagues.map(league => (
                     <option key={league.id} value={league.id}>{league.name}</option>
                   ))}
                 </select>
+
+                {/* Show count when filters active */}
+                {(areaFilter !== 'all' || levelFilter !== 'all') && (
+                  <p className="mt-1 text-xs text-slate-400">
+                    {t('leagues.showingCount', '{{count}} leagues', { count: filteredLeagues.length })}
+                  </p>
+                )}
               </div>
 
               {/* Custom League Name - shown when "Muu" selected */}

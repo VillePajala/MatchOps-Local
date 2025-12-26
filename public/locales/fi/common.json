@@ -941,6 +941,25 @@
       "customLeagueRequired": "Kirjoita sarjan nimi tai valitse eri sarja."
     }
   },
+  "leagues": {
+    "areas": {
+      "all": "Kaikki alueet",
+      "etela": "Etelä",
+      "lansi": "Länsi",
+      "ita": "Itä",
+      "pohjoinen": "Pohjoinen"
+    },
+    "levels": {
+      "all": "Kaikki tasot",
+      "national": "Valtakunnallinen",
+      "regional": "Aluesarja",
+      "local": "Paikallissarja",
+      "other": "Muut"
+    },
+    "filterByArea": "Suodata alueen mukaan",
+    "filterByLevel": "Suodata tason mukaan",
+    "showingCount": "{{count}} sarjaa"
+  },
   "tournamentDetailsModal": {
     "createTitle": "Luo turnaus",
     "editTitle": "Muokkaa turnausta",

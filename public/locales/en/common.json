@@ -1041,6 +1041,25 @@
     "customLeagueLabel": "Custom League Name",
     "customLeaguePlaceholder": "Enter league name"
   },
+  "leagues": {
+    "areas": {
+      "all": "All Areas",
+      "etela": "South (Etelä)",
+      "lansi": "West (Länsi)",
+      "ita": "East (Itä)",
+      "pohjoinen": "North (Pohjoinen)"
+    },
+    "levels": {
+      "all": "All Levels",
+      "national": "National",
+      "regional": "Regional",
+      "local": "Local",
+      "other": "Other"
+    },
+    "filterByArea": "Filter by area",
+    "filterByLevel": "Filter by level",
+    "showingCount": "{{count}} leagues"
+  },
   "tournamentDetailsModal": {
     "createTitle": "Create Tournament",
     "editTitle": "Edit Tournament",

@@ -309,7 +309,7 @@ describe('SeasonDetailsModal', () => {
 
       // Select "Muu (vapaa kuvaus)" - find select by its label
       const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
-      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
       await user.selectOptions(leagueSelect, 'muu');
 
       // Custom league input should now be visible
@@ -325,7 +325,7 @@ describe('SeasonDetailsModal', () => {
 
       // Find select by its label
       const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
-      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
 
       // Select "Muu" and enter custom name
       await user.selectOptions(leagueSelect, 'muu');
@@ -353,7 +353,7 @@ describe('SeasonDetailsModal', () => {
 
       // Find select by its label
       const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
-      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
 
       // Select a league
       await user.selectOptions(leagueSelect, 'sm-sarja');
@@ -382,7 +382,7 @@ describe('SeasonDetailsModal', () => {
 
       // Find select by its label
       const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
-      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
 
       // Select "Muu" and enter custom name
       await user.selectOptions(leagueSelect, 'muu');
@@ -414,7 +414,7 @@ describe('SeasonDetailsModal', () => {
 
       // Find select by its label and verify value
       const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
-      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
       expect(leagueSelect.value).toBe('harrastesarja');
     });
 
@@ -431,7 +431,7 @@ describe('SeasonDetailsModal', () => {
 
       // Find select by its label and verify value is "muu"
       const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
-      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
       expect(leagueSelect.value).toBe('muu');
 
       // Custom name input should be visible and populated
@@ -451,7 +451,7 @@ describe('SeasonDetailsModal', () => {
 
       // Find and select "Muu" league
       const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
-      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
       await user.selectOptions(leagueSelect, 'muu');
 
       // Don't enter any custom league name - leave it empty
@@ -477,7 +477,7 @@ describe('SeasonDetailsModal', () => {
 
       // Find and select "Muu" league
       const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
-      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
       await user.selectOptions(leagueSelect, 'muu');
 
       // Enter only 1 character (too short)
@@ -505,7 +505,7 @@ describe('SeasonDetailsModal', () => {
 
       // Find and select "Muu" league
       const leagueLabel = screen.getByText(i18n.t('seasonDetailsModal.leagueLabel', 'League'));
-      const leagueSelect = leagueLabel.parentElement?.querySelector('select') as HTMLSelectElement;
+      const leagueSelect = document.getElementById('season-league') as HTMLSelectElement;
       await user.selectOptions(leagueSelect, 'muu');
 
       // Enter exactly 2 characters (minimum valid length)
