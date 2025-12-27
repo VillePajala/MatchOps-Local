@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Tournament, Player, TournamentSeries, GameType, Gender } from '@/types';
@@ -8,6 +8,7 @@ import { UseMutationResult } from '@tanstack/react-query';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { createLogger } from '@/utils/logger';
 import TournamentSeriesManager from './TournamentSeriesManager';
+import { getClubSeasonForDate } from '@/utils/clubSeason';
 
 const logger = createLogger('TournamentDetailsModal');
 
@@ -51,6 +52,12 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   const [gender, setGender] = useState<Gender | undefined>(undefined);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Compute club season from start date
+  const calculatedClubSeason = useMemo(() => {
+    if (!startDate) return null;
+    const result = getClubSeasonForDate(startDate, '2000-10-01', '2000-05-01');
+    return result !== 'off-season' ? result : null;
+  }, [startDate]);
 
   // Initialize form when tournament changes or modal opens
   React.useLayoutEffect(() => {
@@ -432,6 +439,20 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Club Season (auto-calculated) */}
+              {calculatedClubSeason && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50 rounded-md border border-slate-600/50">
+                  <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                  <span className="text-sm text-slate-300">
+                    {t('tournamentDetailsModal.clubSeasonLabel', 'Club Season')}:
+                  </span>
+                  <span className="text-sm font-medium text-slate-100">{calculatedClubSeason}</span>
+                  <span className="text-xs text-slate-500 ml-auto">
+                    {t('tournamentDetailsModal.clubSeasonHint', 'Auto-calculated from start date')}
+                  </span>
+                </div>
+              )}
 
               {/* Period Count and Duration */}
               <div className="grid grid-cols-2 gap-3">
