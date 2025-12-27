@@ -37,8 +37,8 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   hasSeenAppGuide: false,
   useDemandCorrection: false,
   hasConfiguredSeasonDates: false,
-  clubSeasonStartDate: '2000-10-01', // October 1st (year is template, consistent with clubSeason.ts)
-  clubSeasonEndDate: '2000-05-01',   // May 1st (year is template)
+  clubSeasonStartDate: '2000-11-15', // November 15th (year is template)
+  clubSeasonEndDate: '2000-10-20',   // October 20th (year is template)
 };
 
 /**

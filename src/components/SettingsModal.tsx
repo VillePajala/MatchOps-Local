@@ -58,8 +58,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const gameImportFileInputRef = useRef<HTMLInputElement>(null);
   const [showImportResults, setShowImportResults] = useState(false);
   const { importFromFile, isImporting, lastResult } = useGameImport();
-  const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>('2000-10-01');
-  const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>('2000-05-01');
+  const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>('2000-11-15');
+  const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>('2000-10-20');
   const [backupRestoreResult, setBackupRestoreResult] = useState<BackupRestoreResult | null>(null);
   const [showRestoreResults, setShowRestoreResults] = useState(false);
 
@@ -113,13 +113,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     if (isOpen) {
       // Load club season settings
       getAppSettings().then(settings => {
-        setClubSeasonStartDate(settings.clubSeasonStartDate ?? '2000-10-01');
-        setClubSeasonEndDate(settings.clubSeasonEndDate ?? '2000-05-01');
+        setClubSeasonStartDate(settings.clubSeasonStartDate ?? '2000-11-15');
+        setClubSeasonEndDate(settings.clubSeasonEndDate ?? '2000-10-20');
       }).catch((error) => {
         // Use defaults if loading fails
         logger.error('Failed to load club season settings:', error);
-        setClubSeasonStartDate('2000-10-01');
-        setClubSeasonEndDate('2000-05-01');
+        setClubSeasonStartDate('2000-11-15');
+        setClubSeasonEndDate('2000-10-20');
       });
 
       if (navigator.storage?.estimate) {

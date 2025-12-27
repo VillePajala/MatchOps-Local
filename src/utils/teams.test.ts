@@ -472,14 +472,16 @@ describe('Team Context Display Helpers', () => {
     ...overrides,
   });
 
+  // Note: No startDate/endDate to avoid clubSeason suffix in display names
   const seasons: Season[] = [
-    { id: 'season-1', name: 'Kausi 2024-25', startDate: '2024-08-01', endDate: '2025-06-30', gameType: 'soccer' },
-    { id: 'season-2', name: 'Kausi 2023-24', startDate: '2023-08-01', endDate: '2024-06-30', gameType: 'soccer' },
+    { id: 'season-1', name: 'Kausi 2024-25', gameType: 'soccer' },
+    { id: 'season-2', name: 'Kausi 2023-24', gameType: 'soccer' },
   ];
 
+  // Note: No startDate to avoid year suffix in display names
   const tournaments: Tournament[] = [
-    { id: 'tournament-1', name: 'Helsinki Cup 2024', date: '2024-07-15', gameType: 'soccer' },
-    { id: 'tournament-2', name: 'Summer Tournament', date: '2024-06-01', gameType: 'futsal' },
+    { id: 'tournament-1', name: 'Helsinki Cup 2024', gameType: 'soccer' },
+    { id: 'tournament-2', name: 'Summer Tournament', gameType: 'futsal' },
   ];
 
   describe('getTeamContextDisplay', () => {

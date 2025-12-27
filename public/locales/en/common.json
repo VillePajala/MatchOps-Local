@@ -1049,7 +1049,9 @@
     "leagueLabel": "League",
     "selectLeague": "-- Select League --",
     "customLeagueLabel": "Custom League Name",
-    "customLeaguePlaceholder": "Enter league name"
+    "customLeaguePlaceholder": "Enter league name",
+    "seasonDatesNotConfigured": "Season dates not configured",
+    "configureInSettings": "Configure in Settings to calculate club seasons correctly."
   },
   "leagues": {
     "areas": {
@@ -1109,7 +1111,9 @@
     "addSeries": "Add Series",
     "removeSeries": "Remove series",
     "selectLevelForNewSeries": "Select level for new series",
-    "confirmAddSeries": "Confirm add series"
+    "confirmAddSeries": "Confirm add series",
+    "seasonDatesNotConfigured": "Season dates not configured",
+    "configureInSettings": "Configure in Settings to calculate club seasons correctly."
   },
   "tournaments": {
     "selectAwardWinner": "-- Select Player of Tournament --",

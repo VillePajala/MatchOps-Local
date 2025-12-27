@@ -1,8 +1,8 @@
 {
-  "version": "b513bb72",
-  "date": "2025-12-25",
+  "version": "35755dbc",
+  "date": "2025-12-27",
   "notes": {
-    "en": "Enhance field export with high-res rendering and polished visuals",
-    "fi": "Enhance field export with high-res rendering and polished visuals"
+    "en": "Add club season labels to seasons and tournaments",
+    "fi": "Add club season labels to seasons and tournaments"
   }
 }

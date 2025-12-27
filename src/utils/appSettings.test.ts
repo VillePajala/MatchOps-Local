@@ -15,8 +15,8 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   hasSeenAppGuide: false,
   useDemandCorrection: false,
   hasConfiguredSeasonDates: false,
-  clubSeasonStartDate: '2000-10-01',
-  clubSeasonEndDate: '2000-05-01',
+  clubSeasonStartDate: '2000-11-15',
+  clubSeasonEndDate: '2000-10-20',
 };
 
 // Create mock store for settings
@@ -180,8 +180,8 @@ describe('App Settings Utilities', () => {
         hasSeenAppGuide: false,
         useDemandCorrection: false,
         hasConfiguredSeasonDates: false,
-        clubSeasonStartDate: '2000-10-01',
-        clubSeasonEndDate: '2000-05-01'
+        clubSeasonStartDate: '2000-11-15',
+        clubSeasonEndDate: '2000-10-20'
       });
     });
 
@@ -202,8 +202,8 @@ describe('App Settings Utilities', () => {
         hasSeenAppGuide: false,
         useDemandCorrection: false,
         hasConfiguredSeasonDates: false,
-        clubSeasonStartDate: '2000-10-01',
-        clubSeasonEndDate: '2000-05-01'
+        clubSeasonStartDate: '2000-11-15',
+        clubSeasonEndDate: '2000-10-20'
       });
     });
 
@@ -222,8 +222,8 @@ describe('App Settings Utilities', () => {
         hasSeenAppGuide: false,
         useDemandCorrection: false,
         hasConfiguredSeasonDates: false,
-        clubSeasonStartDate: '2000-10-01',
-        clubSeasonEndDate: '2000-05-01'
+        clubSeasonStartDate: '2000-11-15',
+        clubSeasonEndDate: '2000-10-20'
       });
       consoleSpy.mockRestore();
     });
@@ -275,8 +275,8 @@ describe('App Settings Utilities', () => {
         hasSeenAppGuide: false,
         useDemandCorrection: false,
         hasConfiguredSeasonDates: false,
-        clubSeasonStartDate: '2000-10-01',
-        clubSeasonEndDate: '2000-05-01'
+        clubSeasonStartDate: '2000-11-15',
+        clubSeasonEndDate: '2000-10-20'
       });
 
       // Check that updateSettings was called with the partial update

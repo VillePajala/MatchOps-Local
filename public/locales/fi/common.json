@@ -949,7 +949,9 @@
       "updateFailed": "Kauden päivittäminen epäonnistui. Yritä uudelleen.",
       "customLeagueTooShort": "Oman sarjan nimen tulee olla vähintään 2 merkkiä.",
       "customLeagueRequired": "Kirjoita sarjan nimi tai valitse eri sarja."
-    }
+    },
+    "seasonDatesNotConfigured": "Pelikauden päivämääriä ei ole määritetty",
+    "configureInSettings": "Määritä asetuksissa laskeaksesi pelikaudet oikein."
   },
   "leagues": {
     "areas": {
@@ -1009,7 +1011,9 @@
       "duplicateName": "Turnaus tällä nimellä on jo olemassa. Valitse eri nimi.",
       "createFailed": "Turnauksen luominen epäonnistui. Yritä uudelleen.",
       "updateFailed": "Turnauksen päivittäminen epäonnistui. Yritä uudelleen."
-    }
+    },
+    "seasonDatesNotConfigured": "Pelikauden päivämääriä ei ole määritetty",
+    "configureInSettings": "Määritä asetuksissa laskeaksesi pelikaudet oikein."
   },
   "tournaments": {
     "selectAwardWinner": "-- Valitse turnauksen pelaaja --",

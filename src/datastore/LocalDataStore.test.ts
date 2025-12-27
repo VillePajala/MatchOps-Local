@@ -634,9 +634,32 @@ describe('LocalDataStore', () => {
         await expect(dataStore.createSeason('   ')).rejects.toThrow(ValidationError);
       });
 
-      it('should throw AlreadyExistsError on duplicate name', async () => {
-        mockGetStorageItem.mockResolvedValue(JSON.stringify([mockSeason]));
+      it('should throw AlreadyExistsError on duplicate name with same clubSeason', async () => {
+        const existingSeason = { ...mockSeason, startDate: '2024-10-01', clubSeason: '24/25' };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([existingSeason]));
 
+        // Same name, same clubSeason = duplicate
+        await expect(dataStore.createSeason('Test Season', { startDate: '2024-11-15' })).rejects.toThrow(
+          AlreadyExistsError
+        );
+      });
+
+      it('should allow same name with different clubSeason', async () => {
+        // Use dates within valid club season ranges (Nov 15 - Oct 20)
+        const existingSeason = { ...mockSeason, startDate: '2023-12-01', clubSeason: '23/24' };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([existingSeason]));
+
+        // Same name, different clubSeason = allowed
+        const newSeason = await dataStore.createSeason('Test Season', { startDate: '2024-12-01' });
+        expect(newSeason.name).toBe('Test Season');
+        expect(newSeason.clubSeason).toBe('24/25');
+      });
+
+      it('should allow same name when both have no dates (different undefined clubSeasons treated same)', async () => {
+        const existingSeason = { ...mockSeason };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([existingSeason]));
+
+        // Same name, both no dates = duplicate (both clubSeason undefined)
         await expect(dataStore.createSeason('Test Season')).rejects.toThrow(
           AlreadyExistsError
         );
@@ -765,9 +788,32 @@ describe('LocalDataStore', () => {
         );
       });
 
-      it('should throw AlreadyExistsError on duplicate name', async () => {
-        mockGetStorageItem.mockResolvedValue(JSON.stringify([mockTournament]));
+      it('should throw AlreadyExistsError on duplicate name with same clubSeason', async () => {
+        const existingTournament = { ...mockTournament, startDate: '2024-10-01', clubSeason: '24/25' };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([existingTournament]));
 
+        // Same name, same clubSeason = duplicate
+        await expect(dataStore.createTournament('Test Tournament', { startDate: '2024-11-15' })).rejects.toThrow(
+          AlreadyExistsError
+        );
+      });
+
+      it('should allow same name with different clubSeason', async () => {
+        // Use dates within valid club season ranges (Nov 15 - Oct 20)
+        const existingTournament = { ...mockTournament, startDate: '2023-12-01', clubSeason: '23/24' };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([existingTournament]));
+
+        // Same name, different clubSeason = allowed
+        const newTournament = await dataStore.createTournament('Test Tournament', { startDate: '2024-12-01' });
+        expect(newTournament.name).toBe('Test Tournament');
+        expect(newTournament.clubSeason).toBe('24/25');
+      });
+
+      it('should allow same name when both have no dates (both clubSeason undefined = duplicate)', async () => {
+        const existingTournament = { ...mockTournament };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify([existingTournament]));
+
+        // Same name, both no dates = duplicate (both clubSeason undefined)
         await expect(dataStore.createTournament('Test Tournament')).rejects.toThrow(
           AlreadyExistsError
         );

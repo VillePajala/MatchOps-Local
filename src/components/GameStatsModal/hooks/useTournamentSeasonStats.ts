@@ -41,8 +41,8 @@ export function useTournamentSeasonStats(
     selectedGameTypeFilter = 'all',
     selectedGenderFilter = 'all',
     selectedClubSeason = 'all',
-    clubSeasonStartDate = '2000-10-01',
-    clubSeasonEndDate = '2000-05-01',
+    clubSeasonStartDate = '2000-11-15',
+    clubSeasonEndDate = '2000-10-20',
   } = params;
 
   return useMemo(() => {

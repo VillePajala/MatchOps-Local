@@ -2,10 +2,18 @@ import React from 'react';
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TournamentDetailsModal from './TournamentDetailsModal';
-import { UseMutationResult } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, UseMutationResult } from '@tanstack/react-query';
 import { Tournament, Player } from '@/types';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
 
 const mockMutation = () => ({
   mutate: jest.fn((data, options) => {
@@ -52,9 +60,11 @@ const defaultProps = {
 
 const renderWithProviders = (props: Partial<typeof defaultProps> = {}) => {
   return render(
-    <I18nextProvider i18n={i18n}>
-      <TournamentDetailsModal {...defaultProps} {...props} />
-    </I18nextProvider>
+    <QueryClientProvider client={queryClient}>
+      <I18nextProvider i18n={i18n}>
+        <TournamentDetailsModal {...defaultProps} {...props} />
+      </I18nextProvider>
+    </QueryClientProvider>
   );
 };
 
@@ -372,12 +382,14 @@ describe('TournamentDetailsModal', () => {
 
     await act(async () => {
       rerender(
-        <I18nextProvider i18n={i18n}>
-          <TournamentDetailsModal
-            {...defaultProps}
-            tournament={newTournament}
-          />
-        </I18nextProvider>
+        <QueryClientProvider client={queryClient}>
+          <I18nextProvider i18n={i18n}>
+            <TournamentDetailsModal
+              {...defaultProps}
+              tournament={newTournament}
+            />
+          </I18nextProvider>
+        </QueryClientProvider>
       );
     });
 
@@ -554,16 +566,18 @@ describe('TournamentDetailsModal', () => {
 
       await act(async () => {
         render(
-          <I18nextProvider i18n={i18n}>
-            <TournamentDetailsModal
-              isOpen={true}
-              onClose={jest.fn()}
-              mode="create"
-              tournament={undefined}
-              masterRoster={mockPlayers}
-              addTournamentMutation={addMutation as unknown as UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>}
-            />
-          </I18nextProvider>
+          <QueryClientProvider client={queryClient}>
+            <I18nextProvider i18n={i18n}>
+              <TournamentDetailsModal
+                isOpen={true}
+                onClose={jest.fn()}
+                mode="create"
+                tournament={undefined}
+                masterRoster={mockPlayers}
+                addTournamentMutation={addMutation as unknown as UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>}
+              />
+            </I18nextProvider>
+          </QueryClientProvider>
         );
       });
 
