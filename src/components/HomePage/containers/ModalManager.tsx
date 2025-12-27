@@ -368,6 +368,7 @@ export function ModalManager({ state, data, handlers }: ModalManagerProps) {
             deleteSeasonMutation={data.seasonTournamentMutations.deleteSeason}
             updateTournamentMutation={data.seasonTournamentMutations.updateTournament}
             deleteTournamentMutation={data.seasonTournamentMutations.deleteTournament}
+            onOpenSettings={handlers.openSettingsModal}
           />
         )}
 
