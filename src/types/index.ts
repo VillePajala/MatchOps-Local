@@ -26,6 +26,9 @@ export interface PlayerStatRow extends Player {
 export interface Team {
   id: string;                 // team_...
   name: string;               // "PEPO U10"
+  boundSeasonId?: string;     // Optional: links to season for context differentiation
+  boundTournamentId?: string; // Optional: links to tournament for context differentiation
+  gameType?: GameType;        // Optional: 'soccer' | 'futsal' for context differentiation
   color?: string;             // brand/accent (optional)
   ageGroup?: string;          // Optional: age group (U7-U21) for team organization
   notes?: string;             // Optional: notes/description for the team
@@ -114,6 +117,15 @@ export interface Season {
    * Games in this season can inherit this setting or override it.
    */
   gender?: Gender;
+  /**
+   * Club season label (e.g., "24/25") auto-calculated from startDate.
+   *
+   * @remarks
+   * - Calculated using getClubSeasonForDate() with default season boundaries (Oct 1 - May 1)
+   * - Stored for performance; recalculated when startDate changes
+   * - Can be "off-season" if date falls outside season boundaries
+   */
+  clubSeason?: string;
   // Note: teamId removed - seasons are global entities per plan
   // Note: roster management removed - teams handle rosters now
 }
@@ -194,6 +206,15 @@ export interface Tournament {
    * Games in this tournament can inherit this setting or override it.
    */
   gender?: Gender;
+  /**
+   * Club season label (e.g., "24/25") auto-calculated from startDate.
+   *
+   * @remarks
+   * - Calculated using getClubSeasonForDate() with default season boundaries (Oct 1 - May 1)
+   * - Stored for performance; recalculated when startDate changes
+   * - Can be "off-season" if date falls outside season boundaries
+   */
+  clubSeason?: string;
   // Note: teamId removed - tournaments are global entities per plan
   // Note: roster management removed - teams handle rosters now
 }

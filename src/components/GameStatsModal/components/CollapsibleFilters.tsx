@@ -8,6 +8,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiAdjustmentsHorizontal } from 'react-icons/hi2';
 import { Season, Tournament, Team } from '@/types';
+import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import type { TranslationKey } from '@/i18n-types';
 import type { GameType, Gender } from '@/types/game';
 import { StatsTab } from '../types';
@@ -127,7 +128,7 @@ export function CollapsibleFilters({
           <option value="all">{t('gameStatsModal.filterAllTournaments', 'All Tournaments')}</option>
           {tournaments.map((tour) => (
             <option key={tour.id} value={tour.id}>
-              {tour.name}
+              {getTournamentDisplayName(tour)}
             </option>
           ))}
         </select>
@@ -143,7 +144,7 @@ export function CollapsibleFilters({
           <option value="all">{t('gameStatsModal.filterAllSeasons', 'All Seasons')}</option>
           {seasons.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.name}
+              {getSeasonDisplayName(s)}
             </option>
           ))}
         </select>

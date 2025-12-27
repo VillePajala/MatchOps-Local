@@ -15,6 +15,7 @@ import {
   type LeagueAreaFilter,
   type LeagueLevelFilter,
 } from '@/config/leagues';
+import { getClubSeasonForDate } from '@/utils/clubSeason';
 
 interface SeasonDetailsModalProps {
   isOpen: boolean;
@@ -72,6 +73,13 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
       return true;
     });
   }, [areaFilter, levelFilter]);
+
+  // Compute club season from start date
+  const calculatedClubSeason = useMemo(() => {
+    if (!startDate) return null;
+    const result = getClubSeasonForDate(startDate, '2000-10-01', '2000-05-01');
+    return result !== 'off-season' ? result : null;
+  }, [startDate]);
 
   // Initialize form when season changes or modal opens
   React.useLayoutEffect(() => {
@@ -524,6 +532,20 @@ const SeasonDetailsModal: React.FC<SeasonDetailsModalProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Club Season (auto-calculated) */}
+              {calculatedClubSeason && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50 rounded-md border border-slate-600/50">
+                  <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                  <span className="text-sm text-slate-300">
+                    {t('seasonDetailsModal.clubSeasonLabel', 'Club Season')}:
+                  </span>
+                  <span className="text-sm font-medium text-slate-100">{calculatedClubSeason}</span>
+                  <span className="text-xs text-slate-500 ml-auto">
+                    {t('seasonDetailsModal.clubSeasonHint', 'Auto-calculated from start date')}
+                  </span>
+                </div>
+              )}
 
               {/* Period Count and Duration */}
               <div className="grid grid-cols-2 gap-3">
