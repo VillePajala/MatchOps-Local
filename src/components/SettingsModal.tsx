@@ -14,7 +14,7 @@ import ConfirmationModal from './ConfirmationModal';
 import BackupRestoreResultsModal, { type BackupRestoreResult } from './BackupRestoreResultsModal';
 import { ModalFooter, primaryButtonStyle, dangerButtonStyle } from '@/styles/modalStyles';
 import logger from '@/utils/logger';
-import { getAppSettings, updateAppSettings } from '@/utils/appSettings';
+import { getAppSettings, updateAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
 import { usePremium } from '@/hooks/usePremium';
 import { HiSparkles } from 'react-icons/hi2';
 import { validateSeasonDates } from '@/utils/clubSeason';
@@ -58,8 +58,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   const gameImportFileInputRef = useRef<HTMLInputElement>(null);
   const [showImportResults, setShowImportResults] = useState(false);
   const { importFromFile, isImporting, lastResult } = useGameImport();
-  const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>('2000-11-15');
-  const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>('2000-10-20');
+  const [clubSeasonStartDate, setClubSeasonStartDate] = useState<string>(DEFAULT_CLUB_SEASON_START_DATE);
+  const [clubSeasonEndDate, setClubSeasonEndDate] = useState<string>(DEFAULT_CLUB_SEASON_END_DATE);
   const [backupRestoreResult, setBackupRestoreResult] = useState<BackupRestoreResult | null>(null);
   const [showRestoreResults, setShowRestoreResults] = useState(false);
 
@@ -113,13 +113,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     if (isOpen) {
       // Load club season settings
       getAppSettings().then(settings => {
-        setClubSeasonStartDate(settings.clubSeasonStartDate ?? '2000-11-15');
-        setClubSeasonEndDate(settings.clubSeasonEndDate ?? '2000-10-20');
+        setClubSeasonStartDate(settings.clubSeasonStartDate ?? DEFAULT_CLUB_SEASON_START_DATE);
+        setClubSeasonEndDate(settings.clubSeasonEndDate ?? DEFAULT_CLUB_SEASON_END_DATE);
       }).catch((error) => {
         // Use defaults if loading fails
         logger.error('Failed to load club season settings:', error);
-        setClubSeasonStartDate('2000-11-15');
-        setClubSeasonEndDate('2000-10-20');
+        setClubSeasonStartDate(DEFAULT_CLUB_SEASON_START_DATE);
+        setClubSeasonEndDate(DEFAULT_CLUB_SEASON_END_DATE);
       });
 
       if (navigator.storage?.estimate) {

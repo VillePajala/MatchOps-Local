@@ -7,6 +7,7 @@ import { SavedGamesCollection } from '@/types';
 import type { GameType, Gender } from '@/types/game';
 import { StatsTab } from '../types';
 import { getClubSeasonForDate } from '@/utils/clubSeason';
+import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 
 /**
  * Filter options for game collection
@@ -105,8 +106,8 @@ export function filterGameIds(
     genderFilter = 'all',
     activeTab,
     clubSeasonFilter = 'all',
-    clubSeasonStartDate = '2000-11-15',
-    clubSeasonEndDate = '2000-10-20',
+    clubSeasonStartDate = DEFAULT_CLUB_SEASON_START_DATE,
+    clubSeasonEndDate = DEFAULT_CLUB_SEASON_END_DATE,
   } = options;
 
   if (!games) return [];
