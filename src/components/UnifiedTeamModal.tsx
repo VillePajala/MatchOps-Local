@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Team, Player, Tournament, Season } from '@/types';
+import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import {
   useAddTeamMutation,
   useUpdateTeamMutation,
@@ -48,6 +49,13 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   const [archived, setArchived] = useState(false);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
+  // Context binding state (for differentiating teams with same name)
+  // Note: Empty strings used for form control; converted to undefined on save (see handleSave)
+  const [boundSeasonId, setBoundSeasonId] = useState<string>('');
+  const [boundTournamentId, setBoundTournamentId] = useState<string>('');
+  const [gameType, setGameType] = useState<'soccer' | 'futsal' | ''>('');
+  const [activeTab, setActiveTab] = useState<'none' | 'season' | 'tournament'>('none');
+
   // Roster state
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([]);
   const [isEditingRoster, setIsEditingRoster] = useState(false);
@@ -64,11 +72,12 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   // Query for existing roster (edit mode only)
   const { data: existingRoster = [] } = useTeamRosterQuery(teamId || null);
 
-  // Queries for tournaments, seasons, and saved games (when viewing/editing existing team)
+  // Queries for tournaments and seasons (needed for context binding selectors)
+  // Note: Loading states omitted intentionally - IndexedDB queries complete in <10ms
+  // Adding spinners would cause unnecessary UI flicker for no user benefit
   const { data: tournaments = [] } = useQuery<Tournament[]>({
     queryKey: queryKeys.tournaments,
     queryFn: getTournaments,
-    enabled: !!teamId,
     staleTime: 30000, // 30 seconds
     refetchOnWindowFocus: true,
   });
@@ -76,7 +85,6 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
   const { data: seasons = [] } = useQuery<Season[]>({
     queryKey: queryKeys.seasons,
     queryFn: getSeasons,
-    enabled: !!teamId,
     staleTime: 30000, // 30 seconds
     refetchOnWindowFocus: true,
   });
@@ -98,6 +106,10 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         setAgeGroup('');
         setNotes('');
         setArchived(false);
+        setBoundSeasonId('');
+        setBoundTournamentId('');
+        setGameType('');
+        setActiveTab('none');
         setSelectedPlayerIds([]);
         setDuplicateError(null);
         setIsEditingRoster(false);
@@ -107,6 +119,17 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         setAgeGroup(team.ageGroup || '');
         setNotes(team.notes || '');
         setArchived(team.archived || false);
+        setBoundSeasonId(team.boundSeasonId || '');
+        setBoundTournamentId(team.boundTournamentId || '');
+        setGameType(team.gameType || '');
+        // Set activeTab based on existing bindings
+        if (team.boundSeasonId) {
+          setActiveTab('season');
+        } else if (team.boundTournamentId) {
+          setActiveTab('tournament');
+        } else {
+          setActiveTab('none');
+        }
         setDuplicateError(null);
         setIsEditingRoster(false);
         // Roster will be loaded via query
@@ -126,13 +149,72 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
     }
   }, [mode, existingRoster, masterRoster]);
 
-  // Clear duplicate error when name changes
+  // Clear duplicate error when name or context changes
   React.useLayoutEffect(() => {
     if (duplicateError) {
       setDuplicateError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [name]);
+  }, [name, boundSeasonId, boundTournamentId, gameType]);
+
+  // Get the selected season/tournament for auto-inheritance
+  const selectedSeason = boundSeasonId ? seasons.find(s => s.id === boundSeasonId) : null;
+  const selectedTournament = boundTournamentId ? tournaments.find(t => t.id === boundTournamentId) : null;
+
+  // Derived gameType from association (for display purposes)
+  const inheritedGameType = selectedSeason?.gameType || selectedTournament?.gameType;
+  const hasAssociation = !!boundSeasonId || !!boundTournamentId;
+
+  // Handle tab change - clears the other binding
+  const handleTabChange = (tab: 'none' | 'season' | 'tournament') => {
+    setActiveTab(tab);
+    if (tab === 'none') {
+      setBoundSeasonId('');
+      setBoundTournamentId('');
+    } else if (tab === 'season') {
+      setBoundTournamentId('');
+    } else if (tab === 'tournament') {
+      setBoundSeasonId('');
+    }
+  };
+
+  // Handle season selection - inherits properties
+  const handleSeasonChange = (seasonId: string) => {
+    setBoundSeasonId(seasonId);
+
+    if (seasonId) {
+      const season = seasons.find(s => s.id === seasonId);
+      if (season) {
+        // Inherit gameType from season
+        if (season.gameType) {
+          setGameType(season.gameType);
+        }
+        // Prefill ageGroup from season (only if not already set)
+        if (season.ageGroup && !ageGroup) {
+          setAgeGroup(season.ageGroup);
+        }
+      }
+    }
+  };
+
+  // Handle tournament selection - inherits properties
+  const handleTournamentChange = (tournamentId: string) => {
+    setBoundTournamentId(tournamentId);
+
+    if (tournamentId) {
+      const tournament = tournaments.find(t => t.id === tournamentId);
+      if (tournament) {
+        // Inherit gameType from tournament
+        if (tournament.gameType) {
+          setGameType(tournament.gameType);
+        }
+        // Prefill ageGroup from tournament (only if not already set)
+        if (tournament.ageGroup && !ageGroup) {
+          setAgeGroup(tournament.ageGroup);
+        }
+      }
+    }
+  };
 
   // Mutation for updating team placement with optimistic updates
   const updatePlacementMutation = useMutation({
@@ -276,15 +358,23 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
       return;
     }
 
-    // Check for duplicate team name
-    const existingTeam = teams.find(
-      t => t.id !== team?.id && t.name.toLowerCase() === trimmedName.toLowerCase()
-    );
+    // Check for duplicate using composite key (name + context bindings)
+    // Teams with same name can exist if they have different context
+    const normalizedName = trimmedName.toLowerCase();
+    const existingTeam = teams.find(t => {
+      if (t.id === team?.id) return false; // Skip self in edit mode
+      if (t.name.toLowerCase() !== normalizedName) return false;
+      // Names match - check if context also matches (would be duplicate)
+      const sameSeasonBinding = (t.boundSeasonId || '') === boundSeasonId;
+      const sameTournamentBinding = (t.boundTournamentId || '') === boundTournamentId;
+      const sameGameType = (t.gameType || '') === gameType;
+      return sameSeasonBinding && sameTournamentBinding && sameGameType;
+    });
 
     if (existingTeam) {
       setDuplicateError(
         t('teamManager.duplicateNameError',
-          'A team named "{{name}}" already exists. Please choose a different name.',
+          'A team with this name and context already exists. Change the name or select different context.',
           { name: existingTeam.name }
         )
       );
@@ -296,9 +386,12 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
         // Create new team (data layer normalizes empty strings to undefined)
         const newTeam = await addTeamMutation.mutateAsync({
           name: trimmedName,
-          ageGroup: ageGroup,
-          notes: notes,
+          ageGroup: ageGroup || undefined,
+          notes: notes || undefined,
           archived,
+          boundSeasonId: boundSeasonId || undefined,
+          boundTournamentId: boundTournamentId || undefined,
+          gameType: gameType || undefined,
         });
 
         // Set roster if players were selected
@@ -317,9 +410,12 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
           teamId: team.id,
           updates: {
             name: trimmedName,
-            ageGroup: ageGroup,
-            notes: notes,
+            ageGroup: ageGroup || undefined,
+            notes: notes || undefined,
             archived,
+            boundSeasonId: boundSeasonId || undefined,
+            boundTournamentId: boundTournamentId || undefined,
+            gameType: gameType || undefined,
           },
         });
 
@@ -426,6 +522,115 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                       </select>
                     </div>
 
+                    {/* Team Context Section */}
+                    <div className="border-t border-slate-600 pt-4 mt-2">
+                      <h4 className="text-sm font-medium text-slate-300 mb-2">
+                        {t('teamDetailsModal.contextSection', 'Team Context')}
+                      </h4>
+
+                      {/* Tab buttons - same style as NewGameSetupModal */}
+                      <div className="flex gap-2 mb-3">
+                        <button
+                          type="button"
+                          onClick={() => handleTabChange('none')}
+                          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            activeTab === 'none'
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          }`}
+                        >
+                          {t('gameSettingsModal.eiMitaan', 'None')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleTabChange('season')}
+                          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            activeTab === 'season'
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          }`}
+                        >
+                          {t('gameSettingsModal.kausi', 'Season')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleTabChange('tournament')}
+                          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            activeTab === 'tournament'
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          }`}
+                        >
+                          {t('gameSettingsModal.turnaus', 'Tournament')}
+                        </button>
+                      </div>
+
+                      {/* Season Selection */}
+                      {activeTab === 'season' && (
+                        <div className="mb-3">
+                          <select
+                            value={boundSeasonId}
+                            onChange={(e) => handleSeasonChange(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                          >
+                            <option value="">{t('newGameSetupModal.selectSeason', '-- Select Season --')}</option>
+                            {seasons.filter(s => !s.archived).map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {getSeasonDisplayName(s)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Tournament Selection */}
+                      {activeTab === 'tournament' && (
+                        <div className="mb-3">
+                          <select
+                            value={boundTournamentId}
+                            onChange={(e) => handleTournamentChange(e.target.value)}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                          >
+                            <option value="">{t('newGameSetupModal.selectTournament', '-- Select Tournament --')}</option>
+                            {tournaments.filter(t => !t.archived).map((tourn) => (
+                              <option key={tourn.id} value={tourn.id}>
+                                {getTournamentDisplayName(tourn)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Game Type - inherited from association or manual selection */}
+                      <div>
+                        <label className="block text-xs font-medium text-slate-400 mb-1">
+                          {t('teamDetailsModal.gameTypeLabel', 'Game Type')}
+                          {hasAssociation && inheritedGameType && (
+                            <span className="ml-2 text-slate-500">
+                              ({t('teamDetailsModal.inheritedFromAssociation', 'from association')})
+                            </span>
+                          )}
+                        </label>
+                        {hasAssociation && inheritedGameType ? (
+                          // Show inherited value as read-only
+                          <div className="w-full px-3 py-2 text-sm bg-slate-600 border border-slate-500 rounded-md text-slate-300">
+                            {inheritedGameType === 'soccer' ? t('common.gameTypeSoccer', 'Soccer') : t('common.gameTypeFutsal', 'Futsal')}
+                          </div>
+                        ) : (
+                          // Manual selection when no association
+                          <select
+                            value={gameType}
+                            onChange={(e) => setGameType(e.target.value as 'soccer' | 'futsal' | '')}
+                            className="w-full px-3 py-2 text-sm bg-slate-700 border border-slate-600 rounded-md text-white focus:ring-indigo-500 focus:border-indigo-500"
+                          >
+                            <option value="">{t('teamDetailsModal.anyGameType', '-- Any --')}</option>
+                            <option value="soccer">{t('common.gameTypeSoccer', 'Soccer')}</option>
+                            <option value="futsal">{t('common.gameTypeFutsal', 'Futsal')}</option>
+                          </select>
+                        )}
+                      </div>
+                    </div>
+
                     {/* Notes */}
                     <div>
                       <div className="flex items-center justify-between mb-1">
@@ -521,8 +726,10 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                                   className="p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40"
                                 >
                                   <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-lg">🏆</span>
-                                    <span className="text-slate-100 font-medium">{tournament.name}</span>
+                                    <span className="text-lg" aria-hidden="true">🏆</span>
+                                    <span className="text-slate-100 font-medium">
+                                      {getTournamentDisplayName(tournament)}
+                                    </span>
                                   </div>
                                   <select
                                     value={placement}
@@ -556,8 +763,10 @@ const UnifiedTeamModal: React.FC<UnifiedTeamModalProps> = ({
                                   className="p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40"
                                 >
                                   <div className="flex items-center gap-2 mb-2">
-                                    <span className="text-lg">📅</span>
-                                    <span className="text-slate-100 font-medium">{season.name}</span>
+                                    <span className="text-lg" aria-hidden="true">📅</span>
+                                    <span className="text-slate-100 font-medium">
+                                      {getSeasonDisplayName(season)}
+                                    </span>
                                   </div>
                                   <select
                                     value={placement}

@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { useToast } from '@/contexts/ToastProvider';
 import { Player, Season, Tournament, Team, Personnel, GameType, Gender } from '@/types';
 import logger from '@/utils/logger';
-import { getTeamRoster } from '@/utils/teams';
+import { getTeamRoster, getTeamDisplayName } from '@/utils/teams';
+import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { getLastHomeTeamName as utilGetLastHomeTeamName, saveLastHomeTeamName as utilSaveLastHomeTeamName } from '@/utils/appSettings';
 import AssessmentSlider from './AssessmentSlider';
 import PlayerSelectionSection from './PlayerSelectionSection';
@@ -303,6 +304,17 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
         if (team) {
           setHomeTeamName(team.name);
           setIsTeamNameAutoFilled(true);
+
+          // Auto-apply team's bound season/tournament settings
+          if (team.boundSeasonId) {
+            setSelectedSeasonId(team.boundSeasonId);
+            setSelectedTournamentId(null);
+            applySeasonSettings(team.boundSeasonId);
+          } else if (team.boundTournamentId) {
+            setSelectedTournamentId(team.boundTournamentId);
+            setSelectedSeasonId(null);
+            applyTournamentSettings(team.boundTournamentId);
+          }
         }
       } catch (error) {
         logger.error('[NewGameSetupModal] Error loading team roster:', error);
@@ -575,7 +587,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                   </option>
                   {teams.filter(team => !team.archived).map((team) => (
                     <option key={team.id} value={team.id}>
-                      {team.name}
+                      {getTeamDisplayName(team, seasons, tournaments, { futsalLabel: t('common.futsal', 'Futsal') })}
                     </option>
                   ))}
                 </select>
@@ -685,7 +697,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                             <option value="">{t('newGameSetupModal.selectSeason', '-- Select Season --')}</option>
                             {seasons.filter(season => !season.archived).map((season) => (
                               <option key={season.id} value={season.id}>
-                                {season.name}
+                                {getSeasonDisplayName(season)}
                               </option>
                             ))}
                           </select>
@@ -742,7 +754,7 @@ const NewGameSetupModal: React.FC<NewGameSetupModalProps> = ({
                             <option value="">{t('newGameSetupModal.selectTournament', '-- Select Tournament --')}</option>
                             {tournaments.filter(tournament => !tournament.archived).map((tournament) => (
                               <option key={tournament.id} value={tournament.id}>
-                                {tournament.name}
+                                {getTournamentDisplayName(tournament)}
                               </option>
                             ))}
                           </select>

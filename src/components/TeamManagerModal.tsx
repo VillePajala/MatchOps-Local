@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { primaryButtonStyle, secondaryButtonStyle, dangerButtonStyle, ModalFooter } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -22,6 +22,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { getTournaments } from '@/utils/tournaments';
 import { getSeasons } from '@/utils/seasons';
+import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import logger from '@/utils/logger';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import UnifiedTeamModal from './UnifiedTeamModal';
@@ -88,6 +89,16 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
     queryKey: queryKeys.seasons,
     queryFn: getSeasons,
   });
+
+  // Lookup maps for O(1) access to seasons/tournaments by ID
+  const seasonMap = useMemo(() =>
+    Object.fromEntries(seasons.map(s => [s.id, s])),
+    [seasons]
+  );
+  const tournamentMap = useMemo(() =>
+    Object.fromEntries(tournaments.map(t => [t.id, t])),
+    [tournaments]
+  );
 
   // Helper function to get placement badges for a team
   const getTeamPlacements = (teamId: string): Array<{ name: string; placement: number; emoji: string }> => {
@@ -307,9 +318,29 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
 
           {/* Teams List */}
           {(() => {
+            const searchLower = searchText.toLowerCase();
             const filteredTeams = teams
               .filter(team => showArchived || !team.archived)
-              .filter(team => team.name.toLowerCase().includes(searchText.toLowerCase()));
+              .filter(team => {
+                if (!searchText) return true;
+                // Search by team name
+                if (team.name.toLowerCase().includes(searchLower)) return true;
+                // Search by ageGroup
+                if (team.ageGroup?.toLowerCase().includes(searchLower)) return true;
+                // Search by gameType
+                if (team.gameType?.toLowerCase().includes(searchLower)) return true;
+                // Search by season name (with club season)
+                if (team.boundSeasonId && seasonMap[team.boundSeasonId]) {
+                  const seasonName = getSeasonDisplayName(seasonMap[team.boundSeasonId]);
+                  if (seasonName.toLowerCase().includes(searchLower)) return true;
+                }
+                // Search by tournament name (with club season)
+                if (team.boundTournamentId && tournamentMap[team.boundTournamentId]) {
+                  const tournamentName = getTournamentDisplayName(tournamentMap[team.boundTournamentId]);
+                  if (tournamentName.toLowerCase().includes(searchLower)) return true;
+                }
+                return false;
+              });
 
             if (teams.length === 0) {
               return (
@@ -344,49 +375,20 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                       key={team.id}
                       className={`p-4 rounded-lg transition-all bg-gradient-to-br from-slate-600/50 to-slate-800/30 hover:from-slate-600/60 hover:to-slate-800/40 ${team.archived ? 'opacity-60' : ''}`}
                     >
-                      <div className="flex items-center justify-between">
+                      {/* Top row: Team name + archived badge + actions */}
+                      <div className="flex items-start justify-between gap-2">
                         <div
-                          className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:opacity-80 transition-opacity py-1"
+                          className="flex-1 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
                           onClick={() => handleEditTeam(team.id)}
                           title={t('teamManager.roster', 'Roster')}
                         >
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-slate-200 truncate" title={team.name}>{team.name}</span>
-                              {team.archived && (
-                                <span className="text-xs px-2 py-0.5 rounded bg-slate-700/70 text-slate-400 border border-slate-600">
-                                  {t('teamManager.archivedBadge', 'Archived')}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-xs text-slate-400">
-                              {rosterCounts[team.id] === 1
-                                ? t('teamManager.onePlayer', '1 player')
-                                : t('teamManager.playersCount', '{{count}} players', { count: rosterCounts[team.id] || 0 })
-                              }
-                              {" "}•{" "}
-                              {t('teamManager.createdAt', 'Created {{date}}', {
-                                date: new Date(team.createdAt).toLocaleDateString()
-                              })}
-                            </div>
-                            {/* Placement Badges */}
-                            {(() => {
-                              const placements = getTeamPlacements(team.id);
-                              if (placements.length === 0) return null;
-                              return (
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                  {placements.map((p, idx) => (
-                                    <span
-                                      key={idx}
-                                      className="text-xs px-2 py-0.5 rounded bg-yellow-900/30 text-yellow-300 border border-yellow-700/50 flex items-center gap-1"
-                                      title={p.name}
-                                    >
-                                      {p.emoji} {p.name.length > 15 ? p.name.substring(0, 15) + '...' : p.name}
-                                    </span>
-                                  ))}
-                                </div>
-                              );
-                            })()}
+                          <div className="flex items-center gap-2">
+                            <span className="text-slate-200 truncate" title={team.name}>{team.name}</span>
+                            {team.archived && (
+                              <span className="text-xs px-2 py-0.5 rounded bg-slate-700/70 text-slate-400 border border-slate-600 shrink-0">
+                                {t('teamManager.archivedBadge', 'Archived')}
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -428,6 +430,89 @@ const TeamManagerModal: React.FC<TeamManagerModalProps> = ({
                               </div>
                             )}
                           </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom row: Metadata left, context labels right */}
+                      <div className="flex items-end justify-between gap-4 mt-2 text-xs">
+                        {/* Left: Team metadata */}
+                        <div
+                          className="flex flex-col text-slate-400 cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => handleEditTeam(team.id)}
+                        >
+                          <span>
+                            {rosterCounts[team.id] === 1
+                              ? t('teamManager.onePlayer', '1 player')
+                              : t('teamManager.playersCount', '{{count}} players', { count: rosterCounts[team.id] || 0 })
+                            }
+                          </span>
+                          <span className="text-slate-500 text-[10px]">
+                            {t('teamManager.createdAt', 'Created {{date}}', {
+                              date: new Date(team.createdAt).toLocaleDateString()
+                            })}
+                          </span>
+                          {/* Placement Badges */}
+                          {(() => {
+                            const placements = getTeamPlacements(team.id);
+                            if (placements.length === 0) return null;
+                            return (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {placements.map((p, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-900/30 text-yellow-300 border border-yellow-700/50 flex items-center gap-1"
+                                    title={p.name}
+                                  >
+                                    {p.emoji} {p.name.length > 15 ? p.name.substring(0, 15) + '...' : p.name}
+                                  </span>
+                                ))}
+                              </div>
+                            );
+                          })()}
+                        </div>
+
+                        {/* Right: Context labels - wrap upward from bottom right */}
+                        <div className="flex flex-wrap-reverse justify-end content-end gap-1.5">
+                          {/* Age group */}
+                          {team.ageGroup && (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
+                              aria-label={t('teamManager.ageGroupContext', 'Age group: {{ageGroup}}', { ageGroup: team.ageGroup })}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                              {team.ageGroup}
+                            </span>
+                          )}
+                          {/* Game type */}
+                          {team.gameType === 'futsal' && (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
+                              aria-label={t('teamManager.gameTypeContext', 'Game type: Futsal')}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+                              {t('common.gameTypeFutsal', 'Futsal')}
+                            </span>
+                          )}
+                          {/* Season - shows full name with club season */}
+                          {team.boundSeasonId && seasonMap[team.boundSeasonId] && (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
+                              aria-label={t('teamManager.seasonContext', 'Season: {{name}}', { name: getSeasonDisplayName(seasonMap[team.boundSeasonId]) })}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                              {getSeasonDisplayName(seasonMap[team.boundSeasonId])}
+                            </span>
+                          )}
+                          {/* Tournament - shows full name with club season */}
+                          {team.boundTournamentId && tournamentMap[team.boundTournamentId] && (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200"
+                              aria-label={t('teamManager.tournamentContext', 'Tournament: {{name}}', { name: getTournamentDisplayName(tournamentMap[team.boundTournamentId]) })}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                              {getTournamentDisplayName(tournamentMap[team.boundTournamentId])}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

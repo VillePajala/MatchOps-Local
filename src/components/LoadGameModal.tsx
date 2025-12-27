@@ -6,6 +6,7 @@ import { SavedGamesCollection } from '@/types'; // Keep this if SavedGamesCollec
 import { Season, Tournament, Team } from '@/types'; // Corrected import path
 import type { TranslationKey } from '@/i18n-types';
 import { createEntityMaps, getDisplayNames } from '@/utils/entityLookup';
+import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
 import { getLeagueName, CUSTOM_LEAGUE_ID } from '@/config/leagues';
 import { LEVELS } from '@/config/gameOptions';
@@ -525,8 +526,9 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                       {/* Season */}
                       {season && (
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                          {season.name}
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400" aria-hidden="true"></span>
+                          <span className="sr-only">{t('common.season', 'Season')}: </span>
+                          {getSeasonDisplayName(season)}
                         </span>
                       )}
                       {/* League */}
@@ -539,8 +541,9 @@ const LoadGameModal: React.FC<LoadGameModalProps> = ({
                       {/* Tournament */}
                       {tournament && (
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
-                          {tournament.name}
+                          <span className="w-1.5 h-1.5 rounded-full bg-purple-400" aria-hidden="true"></span>
+                          <span className="sr-only">{t('common.tournament', 'Tournament')}: </span>
+                          {getTournamentDisplayName(tournament)}
                         </span>
                       )}
                       {/* Series level */}

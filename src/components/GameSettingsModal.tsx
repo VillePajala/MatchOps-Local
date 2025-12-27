@@ -7,7 +7,8 @@ import logger from '@/utils/logger';
 import { HiOutlineEllipsisVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { Season, Tournament, Player, Team, Personnel, GameType, Gender } from '@/types';
 import { AppState } from '@/types';
-import { getTeamRoster } from '@/utils/teams';
+import { getTeamRoster, getTeamDisplayName } from '@/utils/teams';
+import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import { updateGameDetails, updateGameEvent } from '@/utils/savedGames';
 import { UseMutationResult } from '@tanstack/react-query';
 import { TFunction } from 'i18next';
@@ -1424,7 +1425,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                   </option>
                   {teams.filter(team => !team.archived).map((team) => (
                     <option key={team.id} value={team.id}>
-                      {team.name}
+                      {getTeamDisplayName(team, seasons, tournaments, { futsalLabel: t('common.futsal', 'Futsal') })}
                     </option>
                   ))}
                 </select>
@@ -1590,7 +1591,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     <option value="">{t('gameSettingsModal.selectSeason', '-- Select Season --')}</option>
                     {seasons.filter(season => !season.archived).map((season) => (
                       <option key={season.id} value={season.id}>
-                        {season.name}
+                        {getSeasonDisplayName(season)}
                       </option>
                     ))}
                   </select>
@@ -1726,7 +1727,7 @@ const GameSettingsModal: React.FC<GameSettingsModalProps> = ({
                     <option value="">{t('gameSettingsModal.selectTournament', '-- Select Tournament --')}</option>
                     {tournaments.filter(tournament => !tournament.archived).map((tournament) => (
                       <option key={tournament.id} value={tournament.id}>
-                        {tournament.name}
+                        {getTournamentDisplayName(tournament)}
                       </option>
                     ))}
                   </select>

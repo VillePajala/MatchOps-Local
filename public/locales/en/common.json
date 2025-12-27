@@ -122,6 +122,7 @@
     "noPlayersMatchFilter": "No Players Match Filter",
     "none": "None",
     "ok": "OK",
+    "openSettings": "Open Settings",
     "levelElite": "Elite",
     "levelKilpa": "Competition",
     "levelHaaste": "Challenger",
@@ -963,7 +964,15 @@
     "selectAgeGroup": "-- Select Age Group --",
     "notesLabel": "Notes",
     "notesPlaceholder": "Enter team notes or description",
-    "archivedLabel": "Archived"
+    "archivedLabel": "Archived",
+    "contextSection": "Team Context",
+    "contextHelp": "Optional: Bind to season, tournament, or game type to differentiate teams with the same name.",
+    "boundSeason": "Season",
+    "boundTournament": "Tournament",
+    "gameTypeLabel": "Game Type",
+    "noSeasonSelected": "-- None --",
+    "noTournamentSelected": "-- None --",
+    "anyGameType": "-- Any --"
   },
   "playerDetailsModal": {
     "createTitle": "Add Player",
@@ -1014,6 +1023,8 @@
       "customLeagueRequired": "Please enter a custom league name or select a different league."
     },
     "title": "Season Details",
+    "clubSeasonLabel": "Club Season",
+    "clubSeasonHint": "Auto-calculated from start date",
     "gameSingular": "Game",
     "games": "Games",
     "goalSingular": "Goal",
@@ -1039,7 +1050,9 @@
     "leagueLabel": "League",
     "selectLeague": "-- Select League --",
     "customLeagueLabel": "Custom League Name",
-    "customLeaguePlaceholder": "Enter league name"
+    "customLeaguePlaceholder": "Enter league name",
+    "seasonDatesNotConfigured": "Season dates not configured",
+    "configureInSettings": "Configure in Settings to calculate club seasons correctly."
   },
   "leagues": {
     "areas": {
@@ -1069,6 +1082,8 @@
       "updateFailed": "Failed to update tournament. Please try again."
     },
     "title": "Tournament Details",
+    "clubSeasonLabel": "Club Season",
+    "clubSeasonHint": "Auto-calculated from start date",
     "gameSingular": "Game",
     "games": "Games",
     "goalSingular": "Goal",
@@ -1097,7 +1112,9 @@
     "addSeries": "Add Series",
     "removeSeries": "Remove series",
     "selectLevelForNewSeries": "Select level for new series",
-    "confirmAddSeries": "Confirm add series"
+    "confirmAddSeries": "Confirm add series",
+    "seasonDatesNotConfigured": "Season dates not configured",
+    "configureInSettings": "Configure in Settings to calculate club seasons correctly."
   },
   "tournaments": {
     "selectAwardWinner": "-- Select Player of Tournament --",
@@ -1318,6 +1335,7 @@
     "gameImportError": "Error importing games: ",
     "seasonPeriodTitle": "Season Period",
     "seasonPeriodDescription": "Define when your season runs (for filtering statistics). Month and day only - the year is just a template (e.g., October to May).",
+    "seasonDatesNote": "Note: Changing dates affects new seasons only. Existing seasons retain their original club season labels.",
     "periodStartLabel": "Period Start",
     "periodEndLabel": "Period End",
     "monthLabel": "Month",

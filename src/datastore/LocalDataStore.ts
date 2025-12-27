@@ -54,6 +54,8 @@ import { withKeyLock } from '@/utils/storageKeyLock';
 import { generateId } from '@/utils/idGenerator';
 import logger from '@/utils/logger';
 import { normalizeName, normalizeNameForCompare } from '@/utils/normalization';
+import { getClubSeasonForDate } from '@/utils/clubSeason';
+import { DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/config/clubSeasonDefaults';
 
 // Team index storage format: { [teamId: string]: Team }
 type TeamsIndex = Record<string, Team>;
@@ -71,8 +73,31 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
   hasSeenAppGuide: false,
   useDemandCorrection: false,
   hasConfiguredSeasonDates: false,
-  clubSeasonStartDate: '2000-10-01',
-  clubSeasonEndDate: '2000-05-01',
+  clubSeasonStartDate: DEFAULT_CLUB_SEASON_START_DATE,
+  clubSeasonEndDate: DEFAULT_CLUB_SEASON_END_DATE,
+};
+
+/**
+ * Calculate club season label from a date string.
+ * Uses provided season dates or falls back to defaults.
+ *
+ * @param gameDate - ISO date string (e.g., "2024-11-15")
+ * @param seasonStartDate - Season start date (defaults from DEFAULT_APP_SETTINGS)
+ * @param seasonEndDate - Season end date (defaults from DEFAULT_APP_SETTINGS)
+ * @returns Club season label (e.g., "24/25") or undefined if no date provided
+ */
+const calculateClubSeason = (
+  gameDate?: string,
+  seasonStartDate?: string,
+  seasonEndDate?: string
+): string | undefined => {
+  if (!gameDate) return undefined;
+  const result = getClubSeasonForDate(
+    gameDate,
+    seasonStartDate ?? DEFAULT_APP_SETTINGS.clubSeasonStartDate!,
+    seasonEndDate ?? DEFAULT_APP_SETTINGS.clubSeasonEndDate!
+  );
+  return result;
 };
 
 /**
@@ -153,6 +178,111 @@ const normalizeOptionalString = (value?: string): string | undefined => {
 const normalizeTeamName = normalizeName;
 const normalizeTeamNameForCompare = normalizeNameForCompare;
 
+/**
+ * Creates a composite key for team uniqueness comparison.
+ * Teams with the same name can coexist if they have different context bindings.
+ *
+ * Key structure: normalizedName[::season:id][::tournament:id][::type:gameType]
+ * - Parts are ordered deterministically: name → season → tournament → gameType
+ * - Empty/undefined values are omitted (not included in key)
+ *
+ * Entity reference validation note:
+ * - boundSeasonId/boundTournamentId are NOT validated against existing entities
+ * - Seasons/tournaments can be deleted after teams reference them
+ * - Display layer handles missing references gracefully (see getTeamContextDisplay)
+ * - This is intentional: binding persists even if referenced entity is deleted
+ *
+ * @param name - Normalized team name
+ * @param boundSeasonId - Optional season ID for context
+ * @param boundTournamentId - Optional tournament ID for context
+ * @param gameType - Optional game type for context
+ * @returns Composite key string for uniqueness check
+ */
+const createTeamCompositeKey = (
+  name: string,
+  boundSeasonId?: string,
+  boundTournamentId?: string,
+  gameType?: string
+): string => {
+  const parts = [normalizeTeamNameForCompare(name)];
+  if (boundSeasonId) parts.push(`season:${boundSeasonId}`);
+  if (boundTournamentId) parts.push(`tournament:${boundTournamentId}`);
+  if (gameType) parts.push(`type:${gameType}`);
+  return parts.join('::');
+};
+
+/**
+ * Creates a composite key for season uniqueness checking.
+ * Allows same name if any distinguishing factor differs.
+ *
+ * @param name - Season name
+ * @param clubSeason - Club season (e.g., "24/25", "off-season", or undefined)
+ * @param gameType - Sport type (soccer/futsal)
+ * @param gender - Gender (boys/girls)
+ * @param ageGroup - Age group (e.g., "U12", "U14")
+ * @param leagueId - League ID
+ * @returns Composite key string for uniqueness check
+ *
+ * @example
+ * // These are all DIFFERENT seasons despite same name:
+ * "Spring League" + "24/25" + soccer + boys + U12 + sm-sarja
+ * "Spring League" + "24/25" + soccer + girls + U12 + sm-sarja  // different gender
+ * "Spring League" + "24/25" + futsal + boys + U12 + sm-sarja   // different gameType
+ * "Spring League" + "24/25" + soccer + boys + U14 + sm-sarja   // different ageGroup
+ */
+const createSeasonCompositeKey = (
+  name: string,
+  clubSeason?: string,
+  gameType?: string,
+  gender?: string,
+  ageGroup?: string,
+  leagueId?: string
+): string => {
+  const parts = [
+    normalizeNameForCompare(name),
+    `clubSeason:${clubSeason ?? 'none'}`,
+    `gameType:${gameType ?? 'none'}`,
+    `gender:${gender ?? 'none'}`,
+    `ageGroup:${ageGroup ?? 'none'}`,
+    `leagueId:${leagueId ?? 'none'}`,
+  ];
+  return parts.join('::');
+};
+
+/**
+ * Creates a composite key for tournament uniqueness checking.
+ * Allows same name if any distinguishing factor differs.
+ *
+ * @param name - Tournament name
+ * @param clubSeason - Club season (e.g., "24/25", "off-season", or undefined)
+ * @param gameType - Sport type (soccer/futsal)
+ * @param gender - Gender (boys/girls)
+ * @param ageGroup - Age group (e.g., "U12", "U14")
+ * @returns Composite key string for uniqueness check
+ *
+ * @example
+ * // These are all DIFFERENT tournaments despite same name:
+ * "Helsinki Cup" + "24/25" + soccer + boys + U12
+ * "Helsinki Cup" + "24/25" + soccer + girls + U12  // different gender
+ * "Helsinki Cup" + "24/25" + futsal + boys + U12   // different gameType
+ */
+const createTournamentCompositeKey = (
+  name: string,
+  clubSeason?: string,
+  gameType?: string,
+  gender?: string,
+  ageGroup?: string
+): string => {
+  const parts = [
+    normalizeNameForCompare(name),
+    `clubSeason:${clubSeason ?? 'none'}`,
+    `gameType:${gameType ?? 'none'}`,
+    `gender:${gender ?? 'none'}`,
+    `ageGroup:${ageGroup ?? 'none'}`,
+  ];
+  return parts.join('::');
+};
+
 const convertMonthToDate = (month: number): string => {
   const monthStr = month.toString().padStart(2, '0');
   return `2000-${monthStr}-01`;
@@ -225,6 +355,37 @@ export class LocalDataStore implements DataStore {
   private initialized = false;
   private settingsMigrated = false;
   private settingsMigrationPromise: Promise<void> | null = null;
+  private seasonDatesCache: { start: string; end: string } | null = null;
+
+  /**
+   * Gets cached season dates or loads from settings.
+   * Used by season/tournament creation to use user-configured dates for clubSeason calculation.
+   *
+   * @cached - Results are cached until invalidateSettingsCache() is called.
+   * Cache is automatically invalidated when updateSettings() modifies season dates.
+   */
+  private async getSeasonDates(): Promise<{ start: string; end: string }> {
+    if (this.seasonDatesCache) {
+      return this.seasonDatesCache;
+    }
+
+    // Load settings to get user-configured dates
+    const settings = await this.getSettings();
+    this.seasonDatesCache = {
+      start: settings.clubSeasonStartDate ?? DEFAULT_APP_SETTINGS.clubSeasonStartDate!,
+      end: settings.clubSeasonEndDate ?? DEFAULT_APP_SETTINGS.clubSeasonEndDate!,
+    };
+    return this.seasonDatesCache;
+  }
+
+  /**
+   * Invalidates the season dates cache.
+   * Called automatically by updateSettings() when clubSeasonStartDate or clubSeasonEndDate changes.
+   * Next call to getSeasonDates() will reload fresh values from storage.
+   */
+  public invalidateSettingsCache(): void {
+    this.seasonDatesCache = null;
+  }
 
   /**
    * Migrate legacy month-based season date fields to date format.
@@ -287,6 +448,7 @@ export class LocalDataStore implements DataStore {
     this.initialized = false;
     this.settingsMigrated = false;
     this.settingsMigrationPromise = null;
+    this.seasonDatesCache = null;
     await clearAdapterCacheWithCleanup();
   }
 
@@ -423,12 +585,24 @@ export class LocalDataStore implements DataStore {
 
     return withKeyLock(TEAMS_INDEX_KEY, async () => {
       const teamsIndex = await this.loadTeamsIndex();
-      const normalizedName = normalizeTeamNameForCompare(trimmedName);
-      const nameExists = Object.values(teamsIndex).some(existing =>
-        normalizeTeamNameForCompare(existing.name) === normalizedName
+
+      // Use composite key for uniqueness: name + context bindings
+      const compositeKey = createTeamCompositeKey(
+        trimmedName,
+        team.boundSeasonId,
+        team.boundTournamentId,
+        team.gameType
+      );
+      const duplicateExists = Object.values(teamsIndex).some(existing =>
+        createTeamCompositeKey(
+          existing.name,
+          existing.boundSeasonId,
+          existing.boundTournamentId,
+          existing.gameType
+        ) === compositeKey
       );
 
-      if (nameExists) {
+      if (duplicateExists) {
         throw new AlreadyExistsError('team', trimmedName);
       }
 
@@ -436,6 +610,9 @@ export class LocalDataStore implements DataStore {
       const newTeam: Team = {
         id: generateId('team'),
         name: trimmedName,
+        boundSeasonId: team.boundSeasonId,
+        boundTournamentId: team.boundTournamentId,
+        gameType: team.gameType,
         color: team.color,
         ageGroup: normalizedAgeGroup,
         notes: normalizedNotes,
@@ -492,15 +669,25 @@ export class LocalDataStore implements DataStore {
         return null;
       }
 
-      if (updates.name) {
-        const normalizedName = normalizeTeamNameForCompare(updates.name);
-        const nameExists = Object.values(teamsIndex).some(team =>
-          team.id !== id && normalizeTeamNameForCompare(team.name) === normalizedName
-        );
+      // Check for duplicates using composite key (final state after updates)
+      const finalName = updates.name || existing.name;
+      const finalSeasonId = updates.boundSeasonId !== undefined ? updates.boundSeasonId : existing.boundSeasonId;
+      const finalTournamentId = updates.boundTournamentId !== undefined ? updates.boundTournamentId : existing.boundTournamentId;
+      const finalGameType = updates.gameType !== undefined ? updates.gameType : existing.gameType;
 
-        if (nameExists) {
-          throw new AlreadyExistsError('team', updates.name);
-        }
+      const compositeKey = createTeamCompositeKey(finalName, finalSeasonId, finalTournamentId, finalGameType);
+      const duplicateExists = Object.values(teamsIndex).some(team =>
+        team.id !== id &&
+        createTeamCompositeKey(
+          team.name,
+          team.boundSeasonId,
+          team.boundTournamentId,
+          team.gameType
+        ) === compositeKey
+      );
+
+      if (duplicateExists) {
+        throw new AlreadyExistsError('team', finalName);
       }
 
       const updatedTeam: Team = {
@@ -565,9 +752,15 @@ export class LocalDataStore implements DataStore {
     this.ensureInitialized();
 
     const seasons = await this.loadSeasons();
+    const { start, end } = await this.getSeasonDates();
     return seasons
       .filter((season) => includeArchived || !season.archived)
-      .map((season) => ({ ...season, ageGroup: season.ageGroup ?? undefined }));
+      .map((season) => ({
+        ...season,
+        ageGroup: season.ageGroup ?? undefined,
+        // Compute clubSeason on-the-fly for backward compatibility
+        clubSeason: season.clubSeason ?? calculateClubSeason(season.startDate, start, end),
+      }));
   }
 
   async createSeason(name: string, extra?: Partial<Omit<Season, 'id' | 'name'>>): Promise<Season> {
@@ -587,14 +780,36 @@ export class LocalDataStore implements DataStore {
       throw new ValidationError('Invalid age group', 'ageGroup', extra?.ageGroup);
     }
 
+    // Get user-configured season dates before acquiring lock
+    const { start, end } = await this.getSeasonDates();
+
     return withKeyLock(SEASONS_LIST_KEY, async () => {
       const currentSeasons = await this.loadSeasons();
-      const normalizedName = normalizeNameForCompare(trimmedName);
-      const nameExists = currentSeasons.some(
-        (season) => normalizeNameForCompare(season.name) === normalizedName
+
+      // Calculate clubSeason first to use in uniqueness check
+      const newClubSeason = calculateClubSeason(extra?.startDate, start, end);
+
+      // Allow same name if any distinguishing factor differs
+      const compositeKey = createSeasonCompositeKey(
+        trimmedName,
+        newClubSeason,
+        extra?.gameType,
+        extra?.gender,
+        extra?.ageGroup,
+        extra?.leagueId
+      );
+      const duplicateExists = currentSeasons.some(
+        (season) => createSeasonCompositeKey(
+          season.name,
+          season.clubSeason,
+          season.gameType,
+          season.gender,
+          season.ageGroup,
+          season.leagueId
+        ) === compositeKey
       );
 
-      if (nameExists) {
+      if (duplicateExists) {
         throw new AlreadyExistsError('season', trimmedName);
       }
 
@@ -602,6 +817,7 @@ export class LocalDataStore implements DataStore {
         id: generateId('season'),
         name: trimmedName,
         ...(extra || {}),
+        clubSeason: newClubSeason,
       };
 
       await setStorageItem(SEASONS_LIST_KEY, JSON.stringify([...currentSeasons, newSeason]));
@@ -626,6 +842,9 @@ export class LocalDataStore implements DataStore {
       throw new ValidationError('Invalid age group', 'ageGroup', season.ageGroup);
     }
 
+    // Get user-configured season dates before acquiring lock
+    const { start, end } = await this.getSeasonDates();
+
     return withKeyLock(SEASONS_LIST_KEY, async () => {
       const currentSeasons = await this.loadSeasons();
       const seasonIndex = currentSeasons.findIndex((item) => item.id === season.id);
@@ -634,16 +853,38 @@ export class LocalDataStore implements DataStore {
         return null;
       }
 
-      const normalizedName = normalizeNameForCompare(trimmedName);
-      const nameExists = currentSeasons.some(
-        (item) => item.id !== season.id && normalizeNameForCompare(item.name) === normalizedName
+      // Recalculate clubSeason from startDate
+      const newClubSeason = calculateClubSeason(season.startDate, start, end);
+
+      // Allow same name if any distinguishing factor differs
+      const compositeKey = createSeasonCompositeKey(
+        trimmedName,
+        newClubSeason,
+        season.gameType,
+        season.gender,
+        season.ageGroup,
+        season.leagueId
+      );
+      const duplicateExists = currentSeasons.some(
+        (item) => item.id !== season.id && createSeasonCompositeKey(
+          item.name,
+          item.clubSeason,
+          item.gameType,
+          item.gender,
+          item.ageGroup,
+          item.leagueId
+        ) === compositeKey
       );
 
-      if (nameExists) {
+      if (duplicateExists) {
         throw new AlreadyExistsError('season', trimmedName);
       }
 
-      const updatedSeason: Season = { ...season, name: trimmedName };
+      const updatedSeason: Season = {
+        ...season,
+        name: trimmedName,
+        clubSeason: newClubSeason,
+      };
       currentSeasons[seasonIndex] = updatedSeason;
       await setStorageItem(SEASONS_LIST_KEY, JSON.stringify(currentSeasons));
 
@@ -670,14 +911,18 @@ export class LocalDataStore implements DataStore {
   async getTournaments(includeArchived = false): Promise<Tournament[]> {
     this.ensureInitialized();
 
+    const tournaments = await this.loadTournaments();
+    const { start, end } = await this.getSeasonDates();
     // Filter first, then map - avoids migrating tournaments that will be filtered out
-    return (await this.loadTournaments())
+    return tournaments
       .filter((tournament) => includeArchived || !tournament.archived)
       .map((tournament) =>
         migrateTournamentLevel({
           ...tournament,
           level: tournament.level ?? undefined,
           ageGroup: tournament.ageGroup ?? undefined,
+          // Compute clubSeason on-the-fly for backward compatibility
+          clubSeason: tournament.clubSeason ?? calculateClubSeason(tournament.startDate, start, end),
         })
       );
   }
@@ -702,14 +947,34 @@ export class LocalDataStore implements DataStore {
       throw new ValidationError('Invalid age group', 'ageGroup', extra?.ageGroup);
     }
 
+    // Get user-configured season dates before acquiring lock
+    const { start, end } = await this.getSeasonDates();
+
     return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
       const currentTournaments = await this.loadTournaments();
-      const normalizedName = normalizeNameForCompare(trimmedName);
-      const nameExists = currentTournaments.some(
-        (tournament) => normalizeNameForCompare(tournament.name) === normalizedName
+
+      // Calculate clubSeason first to use in uniqueness check
+      const newClubSeason = calculateClubSeason(extra?.startDate, start, end);
+
+      // Allow same name if any distinguishing factor differs
+      const compositeKey = createTournamentCompositeKey(
+        trimmedName,
+        newClubSeason,
+        extra?.gameType,
+        extra?.gender,
+        extra?.ageGroup
+      );
+      const duplicateExists = currentTournaments.some(
+        (tournament) => createTournamentCompositeKey(
+          tournament.name,
+          tournament.clubSeason,
+          tournament.gameType,
+          tournament.gender,
+          tournament.ageGroup
+        ) === compositeKey
       );
 
-      if (nameExists) {
+      if (duplicateExists) {
         throw new AlreadyExistsError('tournament', trimmedName);
       }
 
@@ -720,6 +985,7 @@ export class LocalDataStore implements DataStore {
         ...rest,
         ...(level ? { level } : {}),
         ...(ageGroup ? { ageGroup } : {}),
+        clubSeason: newClubSeason,
       };
 
       await setStorageItem(TOURNAMENTS_LIST_KEY, JSON.stringify([...currentTournaments, newTournament]));
@@ -744,6 +1010,9 @@ export class LocalDataStore implements DataStore {
       throw new ValidationError('Invalid age group', 'ageGroup', tournament.ageGroup);
     }
 
+    // Get user-configured season dates before acquiring lock
+    const { start, end } = await this.getSeasonDates();
+
     return withKeyLock(TOURNAMENTS_LIST_KEY, async () => {
       const currentTournaments = await this.loadTournaments();
       const tournamentIndex = currentTournaments.findIndex((item) => item.id === tournament.id);
@@ -752,12 +1021,28 @@ export class LocalDataStore implements DataStore {
         return null;
       }
 
-      const normalizedName = normalizeNameForCompare(trimmedName);
-      const nameExists = currentTournaments.some(
-        (item) => item.id !== tournament.id && normalizeNameForCompare(item.name) === normalizedName
+      // Recalculate clubSeason from startDate
+      const newClubSeason = calculateClubSeason(tournament.startDate, start, end);
+
+      // Allow same name if any distinguishing factor differs
+      const compositeKey = createTournamentCompositeKey(
+        trimmedName,
+        newClubSeason,
+        tournament.gameType,
+        tournament.gender,
+        tournament.ageGroup
+      );
+      const duplicateExists = currentTournaments.some(
+        (item) => item.id !== tournament.id && createTournamentCompositeKey(
+          item.name,
+          item.clubSeason,
+          item.gameType,
+          item.gender,
+          item.ageGroup
+        ) === compositeKey
       );
 
-      if (nameExists) {
+      if (duplicateExists) {
         throw new AlreadyExistsError('tournament', trimmedName);
       }
 
@@ -765,6 +1050,7 @@ export class LocalDataStore implements DataStore {
         ...currentTournaments[tournamentIndex],
         ...tournament,
         name: trimmedName,
+        clubSeason: newClubSeason,
       };
 
       currentTournaments[tournamentIndex] = updatedTournament;
@@ -1304,6 +1590,9 @@ export class LocalDataStore implements DataStore {
     await withKeyLock(APP_SETTINGS_KEY, async () => {
       await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(settings));
     });
+
+    // Invalidate season dates cache in case dates were changed
+    this.invalidateSettingsCache();
   }
 
   async updateSettings(updates: Partial<AppSettings>): Promise<AppSettings> {
@@ -1350,6 +1639,12 @@ export class LocalDataStore implements DataStore {
       await setStorageItem(APP_SETTINGS_KEY, JSON.stringify(toSave));
       // Legacy fields removed from storage - mark as migrated
       this.settingsMigrated = true;
+
+      // Invalidate season dates cache if season dates were changed
+      if (updates.clubSeasonStartDate !== undefined || updates.clubSeasonEndDate !== undefined) {
+        this.invalidateSettingsCache();
+      }
+
       return updated;
     });
   }

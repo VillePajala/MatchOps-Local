@@ -122,6 +122,7 @@
     "noPlayersMatchFilter": "Ei pelaajia suodattimella",
     "none": "Ei mikään",
     "ok": "OK",
+    "openSettings": "Avaa asetukset",
     "levelElite": "Elite",
     "levelKilpa": "Kilpa",
     "levelHaaste": "Haaste",
@@ -863,7 +864,15 @@
     "selectAgeGroup": "-- Valitse ikäluokka --",
     "notesLabel": "Muistiinpanot",
     "notesPlaceholder": "Kirjoita joukkueen muistiinpanot tai kuvaus",
-    "archivedLabel": "Arkistoitu"
+    "archivedLabel": "Arkistoitu",
+    "contextSection": "Joukkueen konteksti",
+    "contextHelp": "Valinnainen: Sido kauteen, turnaukseen tai pelityyppiin erottaaksesi samannimiset joukkueet.",
+    "boundSeason": "Kausi",
+    "boundTournament": "Turnaus",
+    "gameTypeLabel": "Pelityyppi",
+    "noSeasonSelected": "-- Ei valittu --",
+    "noTournamentSelected": "-- Ei valittu --",
+    "anyGameType": "-- Mikä tahansa --"
   },
   "playerDetailsModal": {
     "createTitle": "Lisää pelaaja",
@@ -907,6 +916,8 @@
     "createTitle": "Luo kausi",
     "editTitle": "Muokkaa kautta",
     "title": "Kauden tiedot",
+    "clubSeasonLabel": "Pelikausi",
+    "clubSeasonHint": "Lasketaan automaattisesti aloituspäivästä",
     "gameSingular": "Ottelu",
     "games": "Ottelua",
     "goalSingular": "Maali",
@@ -939,7 +950,9 @@
       "updateFailed": "Kauden päivittäminen epäonnistui. Yritä uudelleen.",
       "customLeagueTooShort": "Oman sarjan nimen tulee olla vähintään 2 merkkiä.",
       "customLeagueRequired": "Kirjoita sarjan nimi tai valitse eri sarja."
-    }
+    },
+    "seasonDatesNotConfigured": "Pelikauden päivämääriä ei ole määritetty",
+    "configureInSettings": "Määritä asetuksissa laskeaksesi pelikaudet oikein."
   },
   "leagues": {
     "areas": {
@@ -964,6 +977,8 @@
     "createTitle": "Luo turnaus",
     "editTitle": "Muokkaa turnausta",
     "title": "Turnauksen tiedot",
+    "clubSeasonLabel": "Pelikausi",
+    "clubSeasonHint": "Lasketaan automaattisesti aloituspäivästä",
     "gameSingular": "Ottelu",
     "games": "Ottelua",
     "goalSingular": "Maali",
@@ -997,7 +1012,9 @@
       "duplicateName": "Turnaus tällä nimellä on jo olemassa. Valitse eri nimi.",
       "createFailed": "Turnauksen luominen epäonnistui. Yritä uudelleen.",
       "updateFailed": "Turnauksen päivittäminen epäonnistui. Yritä uudelleen."
-    }
+    },
+    "seasonDatesNotConfigured": "Pelikauden päivämääriä ei ole määritetty",
+    "configureInSettings": "Määritä asetuksissa laskeaksesi pelikaudet oikein."
   },
   "tournaments": {
     "selectAwardWinner": "-- Valitse turnauksen pelaaja --",
@@ -1318,6 +1335,7 @@
     "gameImportError": "Virhe pelien tuonnissa: ",
     "seasonPeriodTitle": "Ajanjakso",
     "seasonPeriodDescription": "Määritä ajanjakso tilastojen suodatusta varten (esim. lokakuu - toukokuu). Vain kuukausi ja päivä vaikuttavat - vuosi on vain mallipohja.",
+    "seasonDatesNote": "Huom: Päivämäärien muuttaminen vaikuttaa vain uusiin kausiin. Olemassa olevat kaudet säilyttävät alkuperäiset kausitunnisteensa.",
     "periodStartLabel": "Jakson alku",
     "periodEndLabel": "Jakson loppu",
     "monthLabel": "Kuukausi",

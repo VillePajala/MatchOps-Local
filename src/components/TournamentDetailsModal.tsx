@@ -1,13 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ModalFooter, primaryButtonStyle, secondaryButtonStyle } from '@/styles/modalStyles';
 import { useTranslation } from 'react-i18next';
 import { Tournament, Player, TournamentSeries, GameType, Gender } from '@/types';
-import { UseMutationResult } from '@tanstack/react-query';
+import { UseMutationResult, useQuery } from '@tanstack/react-query';
+import { queryKeys } from '@/config/queryKeys';
+import { getAppSettings, DEFAULT_CLUB_SEASON_START_DATE, DEFAULT_CLUB_SEASON_END_DATE } from '@/utils/appSettings';
 import { AGE_GROUPS } from '@/config/gameOptions';
 import { createLogger } from '@/utils/logger';
 import TournamentSeriesManager from './TournamentSeriesManager';
+import { getClubSeasonForDate } from '@/utils/clubSeason';
+import { HiExclamationTriangle } from 'react-icons/hi2';
 
 const logger = createLogger('TournamentDetailsModal');
 
@@ -20,6 +24,7 @@ interface TournamentDetailsModalProps {
   addTournamentMutation?: UseMutationResult<Tournament | null, Error, Partial<Tournament> & { name: string }, unknown>;
   updateTournamentMutation?: UseMutationResult<Tournament | null, Error, Tournament, unknown>;
   stats?: { games: number; goals: number };
+  onOpenSettings?: () => void;
 }
 
 const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
@@ -31,8 +36,16 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   addTournamentMutation,
   updateTournamentMutation,
   stats,
+  onOpenSettings,
 }) => {
   const { t } = useTranslation();
+
+  // Fetch app settings for club season configuration
+  const { data: settings } = useQuery({
+    queryKey: queryKeys.settings.detail(),
+    queryFn: getAppSettings,
+    staleTime: Infinity, // Settings rarely change during session
+  });
 
   // Form state
   const [name, setName] = useState('');
@@ -51,6 +64,16 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
   const [gender, setGender] = useState<Gender | undefined>(undefined);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Compute club season from start date using configured season boundaries
+  const calculatedClubSeason = useMemo(() => {
+    if (!startDate) return null;
+    const result = getClubSeasonForDate(
+      startDate,
+      settings?.clubSeasonStartDate || DEFAULT_CLUB_SEASON_START_DATE,
+      settings?.clubSeasonEndDate || DEFAULT_CLUB_SEASON_END_DATE
+    );
+    return result !== 'off-season' ? result : null;
+  }, [startDate, settings?.clubSeasonStartDate, settings?.clubSeasonEndDate]);
 
   // Initialize form when tournament changes or modal opens
   React.useLayoutEffect(() => {
@@ -269,6 +292,35 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
         <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-4 pb-6">
           <div className="bg-slate-900/70 p-4 rounded-lg border border-slate-700 shadow-inner -mx-2 sm:-mx-4 md:-mx-6">
             <div className="space-y-3">
+              {/* Season Dates Not Configured Warning */}
+              {settings && !settings.hasConfiguredSeasonDates && (
+                <div className="bg-amber-900/30 border border-amber-600/50 rounded-lg p-3">
+                  <div className="flex items-start gap-2">
+                    <HiExclamationTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    <div className="flex-1">
+                      <p className="text-amber-200 text-sm">
+                        {t('tournamentDetailsModal.seasonDatesNotConfigured', 'Season dates not configured')}
+                      </p>
+                      <p className="text-amber-300/70 text-xs mt-1">
+                        {t('tournamentDetailsModal.configureInSettings', 'Configure in Settings to calculate club seasons correctly.')}
+                      </p>
+                      {onOpenSettings && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            onOpenSettings();
+                          }}
+                          className="mt-2 text-xs text-amber-300 hover:text-amber-100 underline underline-offset-2 transition-colors"
+                        >
+                          {t('common.openSettings', 'Open Settings')}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Error Message */}
               {errorMessage && (
                 <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-md text-sm">
@@ -432,6 +484,20 @@ const TournamentDetailsModal: React.FC<TournamentDetailsModalProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Club Season (auto-calculated) */}
+              {calculatedClubSeason && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50 rounded-md border border-slate-600/50">
+                  <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                  <span className="text-sm text-slate-300">
+                    {t('tournamentDetailsModal.clubSeasonLabel', 'Club Season')}:
+                  </span>
+                  <span className="text-sm font-medium text-slate-100">{calculatedClubSeason}</span>
+                  <span className="text-xs text-slate-500 ml-auto">
+                    {t('tournamentDetailsModal.clubSeasonHint', 'Auto-calculated from start date')}
+                  </span>
+                </div>
+              )}
 
               {/* Period Count and Duration */}
               <div className="grid grid-cols-2 gap-3">

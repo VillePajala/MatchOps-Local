@@ -2,10 +2,18 @@ import React from 'react';
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SeasonDetailsModal from './SeasonDetailsModal';
-import { UseMutationResult } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, UseMutationResult } from '@tanstack/react-query';
 import { Season } from '@/types';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '@/i18n';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+    },
+  },
+});
 
 const mockMutation = () => ({
   mutate: jest.fn((data, options) => {
@@ -43,9 +51,11 @@ const defaultProps = {
 
 const renderWithProviders = (props: Partial<typeof defaultProps> = {}) => {
   return render(
-    <I18nextProvider i18n={i18n}>
-      <SeasonDetailsModal {...defaultProps} {...props} />
-    </I18nextProvider>
+    <QueryClientProvider client={queryClient}>
+      <I18nextProvider i18n={i18n}>
+        <SeasonDetailsModal {...defaultProps} {...props} />
+      </I18nextProvider>
+    </QueryClientProvider>
   );
 };
 
@@ -265,12 +275,14 @@ describe('SeasonDetailsModal', () => {
 
     await act(async () => {
       rerender(
-        <I18nextProvider i18n={i18n}>
-          <SeasonDetailsModal
-            {...defaultProps}
-            season={newSeason}
-          />
-        </I18nextProvider>
+        <QueryClientProvider client={queryClient}>
+          <I18nextProvider i18n={i18n}>
+            <SeasonDetailsModal
+              {...defaultProps}
+              season={newSeason}
+            />
+          </I18nextProvider>
+        </QueryClientProvider>
       );
     });
 
@@ -524,15 +536,17 @@ describe('SeasonDetailsModal', () => {
 
       await act(async () => {
         render(
-          <I18nextProvider i18n={i18n}>
-            <SeasonDetailsModal
-              isOpen={true}
-              onClose={jest.fn()}
-              mode="create"
-              season={undefined}
-              addSeasonMutation={addMutation as unknown as UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>}
-            />
-          </I18nextProvider>
+          <QueryClientProvider client={queryClient}>
+            <I18nextProvider i18n={i18n}>
+              <SeasonDetailsModal
+                isOpen={true}
+                onClose={jest.fn()}
+                mode="create"
+                season={undefined}
+                addSeasonMutation={addMutation as unknown as UseMutationResult<Season | null, Error, Partial<Season> & { name: string }, unknown>}
+              />
+            </I18nextProvider>
+          </QueryClientProvider>
         );
       });
 
