@@ -1276,6 +1276,7 @@ export type TranslationKey =
   | 'settingsModal.restoreButton'
   | 'settingsModal.sameStartEndDateError'
   | 'settingsModal.savePeriodDateError'
+  | 'settingsModal.seasonDatesNote'
   | 'settingsModal.seasonPeriodDescription'
   | 'settingsModal.seasonPeriodTitle'
   | 'settingsModal.storageUsageDetails'
