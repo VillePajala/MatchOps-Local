@@ -227,6 +227,8 @@ const allowedConsolePatterns = [
   // Canvas/DOM warnings in test environment
   'Canvas has invalid dimensions',
   'Wake Lock request failed',
+  // Club season validation warnings (expected in validation tests)
+  '[getClubSeasonForDate] Invalid date format',
 ];
 
 const shouldFailOnConsoleMessage = (message) => {

@@ -219,8 +219,8 @@ const GameStatsModal: React.FC<GameStatsModalProps> = ({
   });
 
   // Derive settings values with defaults
-  const clubSeasonStartDate = settings?.clubSeasonStartDate ?? '2000-10-01';
-  const clubSeasonEndDate = settings?.clubSeasonEndDate ?? '2000-05-01';
+  const clubSeasonStartDate = settings?.clubSeasonStartDate ?? '2000-11-15';
+  const clubSeasonEndDate = settings?.clubSeasonEndDate ?? '2000-10-20';
   const hasConfiguredSeasonDates = settings?.hasConfiguredSeasonDates ?? false;
 
   // Player pool for Player tab search: prefer full master roster; fall back to current game's available players
