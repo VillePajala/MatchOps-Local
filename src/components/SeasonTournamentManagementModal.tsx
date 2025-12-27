@@ -11,6 +11,7 @@ import TournamentDetailsModal from './TournamentDetailsModal';
 import ConfirmationModal from './ConfirmationModal';
 import { useResourceLimit } from '@/hooks/usePremium';
 import { useDropdownPosition } from '@/hooks/useDropdownPosition';
+import { CLUB_SEASON_OFF_SEASON } from '@/utils/entityDisplayNames';
 
 interface SeasonTournamentManagementModalProps {
     isOpen: boolean;
@@ -216,6 +217,33 @@ const SeasonTournamentManagementModal: React.FC<SeasonTournamentManagementModalP
                                         <p className="text-xs text-slate-400">{(item as Tournament).startDate || ''}{(item as Tournament).startDate && (item as Tournament).endDate ? ' - ' : ''}{(item as Tournament).endDate || ''}</p>
                                     )}
                                     <p className="text-xs text-slate-400">{t('seasonTournamentModal.statsGames')}: {stats[item.id]?.games || 0} | {t('seasonTournamentModal.statsGoals')}: {stats[item.id]?.goals || 0}</p>
+                                    {/* Context badges */}
+                                    <div className="flex flex-wrap gap-1.5 mt-2">
+                                        {/* Club Season - Green dot */}
+                                        {item.clubSeason && item.clubSeason !== CLUB_SEASON_OFF_SEASON && (
+                                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200 text-xs">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-green-400" aria-hidden="true"></span>
+                                                <span className="sr-only">{t('seasonDetailsModal.clubSeasonLabel', 'Club Season')}: </span>
+                                                {item.clubSeason}
+                                            </span>
+                                        )}
+                                        {/* Futsal - Orange dot */}
+                                        {item.gameType === 'futsal' && (
+                                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200 text-xs">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-orange-400" aria-hidden="true"></span>
+                                                <span className="sr-only">{t('common.gameTypeLabel', 'Sport Type')}: </span>
+                                                {t('common.futsal', 'Futsal')}
+                                            </span>
+                                        )}
+                                        {/* Gender - Pink dot */}
+                                        {item.gender && (
+                                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-700/60 text-slate-200 text-xs">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-pink-400" aria-hidden="true"></span>
+                                                <span className="sr-only">{t('common.genderLabel', 'Gender')}: </span>
+                                                {item.gender === 'boys' ? t('common.genderBoys', 'Boys') : t('common.genderGirls', 'Girls')}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="relative" ref={actionsMenuId === item.id ? actionsMenuRef : null} onClick={(e) => e.stopPropagation()}>
                                     <button

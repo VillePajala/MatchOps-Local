@@ -384,6 +384,99 @@ describe('LocalDataStore', () => {
         // setStorageItem called for teams AND rosters
         expect(mockSetStorageItem).toHaveBeenCalledTimes(2);
       });
+
+      it('should allow duplicate name with different boundSeasonId', async () => {
+        const existingTeam = {
+          ...mockTeam,
+          boundSeasonId: 'season_1',
+        };
+        mockGetStorageItem
+          .mockResolvedValueOnce(JSON.stringify({ team_123: existingTeam })) // teams index
+          .mockResolvedValueOnce(JSON.stringify({})); // team rosters
+
+        // Same name, different season - should succeed
+        const team = await dataStore.createTeam({
+          name: 'Test Team',
+          boundSeasonId: 'season_2',
+        });
+
+        expect(team.name).toBe('Test Team');
+        expect(team.boundSeasonId).toBe('season_2');
+      });
+
+      it('should allow duplicate name with different boundTournamentId', async () => {
+        const existingTeam = {
+          ...mockTeam,
+          boundTournamentId: 'tournament_1',
+        };
+        mockGetStorageItem
+          .mockResolvedValueOnce(JSON.stringify({ team_123: existingTeam })) // teams index
+          .mockResolvedValueOnce(JSON.stringify({})); // team rosters
+
+        // Same name, different tournament - should succeed
+        const team = await dataStore.createTeam({
+          name: 'Test Team',
+          boundTournamentId: 'tournament_2',
+        });
+
+        expect(team.name).toBe('Test Team');
+        expect(team.boundTournamentId).toBe('tournament_2');
+      });
+
+      it('should allow duplicate name with different gameType', async () => {
+        const existingTeam = {
+          ...mockTeam,
+          gameType: 'soccer' as const,
+        };
+        mockGetStorageItem
+          .mockResolvedValueOnce(JSON.stringify({ team_123: existingTeam })) // teams index
+          .mockResolvedValueOnce(JSON.stringify({})); // team rosters
+
+        // Same name, different game type - should succeed
+        const team = await dataStore.createTeam({
+          name: 'Test Team',
+          gameType: 'futsal',
+        });
+
+        expect(team.name).toBe('Test Team');
+        expect(team.gameType).toBe('futsal');
+      });
+
+      it('should throw AlreadyExistsError on duplicate name+context combination', async () => {
+        const existingTeam = {
+          ...mockTeam,
+          boundSeasonId: 'season_1',
+          boundTournamentId: 'tournament_1',
+          gameType: 'futsal' as const,
+        };
+        mockGetStorageItem.mockResolvedValue(JSON.stringify({ team_123: existingTeam }));
+
+        // Same name AND same context - should fail
+        await expect(
+          dataStore.createTeam({
+            name: 'Test Team',
+            boundSeasonId: 'season_1',
+            boundTournamentId: 'tournament_1',
+            gameType: 'futsal',
+          })
+        ).rejects.toThrow(AlreadyExistsError);
+      });
+
+      it('should allow duplicate name when adding context to existing contextless team', async () => {
+        // Existing team has no context
+        mockGetStorageItem
+          .mockResolvedValueOnce(JSON.stringify({ team_123: mockTeam })) // teams index
+          .mockResolvedValueOnce(JSON.stringify({})); // team rosters
+
+        // Same name but with context - should succeed
+        const team = await dataStore.createTeam({
+          name: 'Test Team',
+          boundSeasonId: 'season_1',
+        });
+
+        expect(team.name).toBe('Test Team');
+        expect(team.boundSeasonId).toBe('season_1');
+      });
     });
 
     describe('updateTeam', () => {
@@ -415,6 +508,31 @@ describe('LocalDataStore', () => {
 
         await expect(
           dataStore.updateTeam('team_999', { name: 'Test Team' })
+        ).rejects.toThrow(AlreadyExistsError);
+      });
+
+      it('should allow update to same name when changing context', async () => {
+        const team1 = { ...mockTeam, id: 'team_1', name: 'Shared Name', boundSeasonId: 'season_1' };
+        const team2 = { ...mockTeam, id: 'team_2', name: 'Shared Name', boundSeasonId: 'season_2' };
+        mockGetStorageItem.mockResolvedValue(
+          JSON.stringify({ team_1: team1, team_2: team2 })
+        );
+
+        // Change context on team_2 - different from team_1's context, should succeed
+        const updated = await dataStore.updateTeam('team_2', { boundSeasonId: 'season_3' });
+        expect(updated?.boundSeasonId).toBe('season_3');
+      });
+
+      it('should throw AlreadyExistsError when update would create duplicate name+context', async () => {
+        const team1 = { ...mockTeam, id: 'team_1', name: 'Shared Name', boundSeasonId: 'season_1' };
+        const team2 = { ...mockTeam, id: 'team_2', name: 'Shared Name', boundSeasonId: 'season_2' };
+        mockGetStorageItem.mockResolvedValue(
+          JSON.stringify({ team_1: team1, team_2: team2 })
+        );
+
+        // Try to change team_2's season to match team_1 - should fail
+        await expect(
+          dataStore.updateTeam('team_2', { boundSeasonId: 'season_1' })
         ).rejects.toThrow(AlreadyExistsError);
       });
     });

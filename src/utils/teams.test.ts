@@ -458,3 +458,218 @@ describe('Error handling', () => {
  *
  * @see src/datastore/__tests__/LocalDataStore.test.ts
  */
+
+import { getTeamContextDisplay, getTeamDisplayName } from './teams';
+import type { Season, Tournament } from '@/types';
+
+describe('Team Context Display Helpers', () => {
+  // Test fixtures
+  const createTestTeam = (overrides: Partial<Team> = {}): Team => ({
+    id: 'team-1',
+    name: 'Test Team',
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-01T00:00:00.000Z',
+    ...overrides,
+  });
+
+  const seasons: Season[] = [
+    { id: 'season-1', name: 'Kausi 2024-25', startDate: '2024-08-01', endDate: '2025-06-30', gameType: 'soccer' },
+    { id: 'season-2', name: 'Kausi 2023-24', startDate: '2023-08-01', endDate: '2024-06-30', gameType: 'soccer' },
+  ];
+
+  const tournaments: Tournament[] = [
+    { id: 'tournament-1', name: 'Helsinki Cup 2024', date: '2024-07-15', gameType: 'soccer' },
+    { id: 'tournament-2', name: 'Summer Tournament', date: '2024-06-01', gameType: 'futsal' },
+  ];
+
+  describe('getTeamContextDisplay', () => {
+    /**
+     * Tests empty context display when team has no bindings
+     */
+    it('should return empty string when team has no context bindings', () => {
+      const team = createTestTeam();
+      const result = getTeamContextDisplay(team, seasons, tournaments);
+      expect(result).toBe('');
+    });
+
+    /**
+     * Tests season context display
+     */
+    it('should return season name when team has boundSeasonId', () => {
+      const team = createTestTeam({ boundSeasonId: 'season-1' });
+      const result = getTeamContextDisplay(team, seasons, tournaments);
+      expect(result).toBe('Kausi 2024-25');
+    });
+
+    /**
+     * Tests tournament context display
+     */
+    it('should return tournament name when team has boundTournamentId', () => {
+      const team = createTestTeam({ boundTournamentId: 'tournament-1' });
+      const result = getTeamContextDisplay(team, seasons, tournaments);
+      expect(result).toBe('Helsinki Cup 2024');
+    });
+
+    /**
+     * Tests futsal game type display with default label
+     */
+    it('should return "Futsal" when team has futsal gameType', () => {
+      const team = createTestTeam({ gameType: 'futsal' });
+      const result = getTeamContextDisplay(team, seasons, tournaments);
+      expect(result).toBe('Futsal');
+    });
+
+    /**
+     * Tests futsal game type display with custom i18n label
+     */
+    it('should use custom futsalLabel when provided', () => {
+      const team = createTestTeam({ gameType: 'futsal' });
+      const result = getTeamContextDisplay(team, seasons, tournaments, { futsalLabel: 'Futsal-jalkapallo' });
+      expect(result).toBe('Futsal-jalkapallo');
+    });
+
+    /**
+     * Tests that soccer gameType does not add to context
+     */
+    it('should not include gameType for soccer (default)', () => {
+      const team = createTestTeam({ gameType: 'soccer' });
+      const result = getTeamContextDisplay(team, seasons, tournaments);
+      expect(result).toBe('');
+    });
+
+    /**
+     * Tests combined season and tournament context
+     */
+    it('should combine season and tournament with separator', () => {
+      const team = createTestTeam({
+        boundSeasonId: 'season-1',
+        boundTournamentId: 'tournament-1',
+      });
+      const result = getTeamContextDisplay(team, seasons, tournaments);
+      expect(result).toBe('Kausi 2024-25 / Helsinki Cup 2024');
+    });
+
+    /**
+     * Tests all context fields combined
+     */
+    it('should combine all context fields with separator', () => {
+      const team = createTestTeam({
+        boundSeasonId: 'season-1',
+        boundTournamentId: 'tournament-1',
+        gameType: 'futsal',
+      });
+      const result = getTeamContextDisplay(team, seasons, tournaments);
+      expect(result).toBe('Kausi 2024-25 / Helsinki Cup 2024 / Futsal');
+    });
+
+    /**
+     * Tests handling of invalid/missing season reference
+     * @edge-case
+     */
+    it('should skip invalid boundSeasonId gracefully', () => {
+      const team = createTestTeam({ boundSeasonId: 'non-existent-season' });
+      const result = getTeamContextDisplay(team, seasons, tournaments);
+      expect(result).toBe('');
+    });
+
+    /**
+     * Tests handling of invalid/missing tournament reference
+     * @edge-case
+     */
+    it('should skip invalid boundTournamentId gracefully', () => {
+      const team = createTestTeam({ boundTournamentId: 'non-existent-tournament' });
+      const result = getTeamContextDisplay(team, seasons, tournaments);
+      expect(result).toBe('');
+    });
+
+    /**
+     * Tests that valid bindings still show when some are invalid
+     * @edge-case
+     */
+    it('should show valid bindings when some references are invalid', () => {
+      const team = createTestTeam({
+        boundSeasonId: 'non-existent-season',
+        boundTournamentId: 'tournament-1',
+        gameType: 'futsal',
+      });
+      const result = getTeamContextDisplay(team, seasons, tournaments);
+      expect(result).toBe('Helsinki Cup 2024 / Futsal');
+    });
+
+    /**
+     * Tests with empty seasons/tournaments arrays
+     * @edge-case
+     */
+    it('should handle empty seasons and tournaments arrays', () => {
+      const team = createTestTeam({
+        boundSeasonId: 'season-1',
+        boundTournamentId: 'tournament-1',
+      });
+      const result = getTeamContextDisplay(team, [], []);
+      expect(result).toBe('');
+    });
+  });
+
+  describe('getTeamDisplayName', () => {
+    /**
+     * Tests display name with no context
+     */
+    it('should return just team name when no context', () => {
+      const team = createTestTeam({ name: 'Pepo Lila' });
+      const result = getTeamDisplayName(team, seasons, tournaments);
+      expect(result).toBe('Pepo Lila');
+    });
+
+    /**
+     * Tests display name with season context
+     */
+    it('should append season context in parentheses', () => {
+      const team = createTestTeam({
+        name: 'Pepo Lila',
+        boundSeasonId: 'season-1',
+      });
+      const result = getTeamDisplayName(team, seasons, tournaments);
+      expect(result).toBe('Pepo Lila (Kausi 2024-25)');
+    });
+
+    /**
+     * Tests display name with full context
+     */
+    it('should append full context in parentheses', () => {
+      const team = createTestTeam({
+        name: 'Pepo Lila',
+        boundSeasonId: 'season-1',
+        boundTournamentId: 'tournament-1',
+        gameType: 'futsal',
+      });
+      const result = getTeamDisplayName(team, seasons, tournaments);
+      expect(result).toBe('Pepo Lila (Kausi 2024-25 / Helsinki Cup 2024 / Futsal)');
+    });
+
+    /**
+     * Tests display name with custom futsal label
+     */
+    it('should use custom futsalLabel in display name', () => {
+      const team = createTestTeam({
+        name: 'Pepo Lila',
+        gameType: 'futsal',
+      });
+      const result = getTeamDisplayName(team, seasons, tournaments, { futsalLabel: 'Sisäpeli' });
+      expect(result).toBe('Pepo Lila (Sisäpeli)');
+    });
+
+    /**
+     * Tests display name with invalid references (graceful degradation)
+     * @edge-case
+     */
+    it('should return just team name when all references are invalid', () => {
+      const team = createTestTeam({
+        name: 'Pepo Lila',
+        boundSeasonId: 'invalid',
+        boundTournamentId: 'invalid',
+      });
+      const result = getTeamDisplayName(team, seasons, tournaments);
+      expect(result).toBe('Pepo Lila');
+    });
+  });
+});

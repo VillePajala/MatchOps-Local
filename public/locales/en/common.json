@@ -963,7 +963,15 @@
     "selectAgeGroup": "-- Select Age Group --",
     "notesLabel": "Notes",
     "notesPlaceholder": "Enter team notes or description",
-    "archivedLabel": "Archived"
+    "archivedLabel": "Archived",
+    "contextSection": "Team Context",
+    "contextHelp": "Optional: Bind to season, tournament, or game type to differentiate teams with the same name.",
+    "boundSeason": "Season",
+    "boundTournament": "Tournament",
+    "gameTypeLabel": "Game Type",
+    "noSeasonSelected": "-- None --",
+    "noTournamentSelected": "-- None --",
+    "anyGameType": "-- Any --"
   },
   "playerDetailsModal": {
     "createTitle": "Add Player",
@@ -1014,6 +1022,8 @@
       "customLeagueRequired": "Please enter a custom league name or select a different league."
     },
     "title": "Season Details",
+    "clubSeasonLabel": "Club Season",
+    "clubSeasonHint": "Auto-calculated from start date",
     "gameSingular": "Game",
     "games": "Games",
     "goalSingular": "Goal",
@@ -1069,6 +1079,8 @@
       "updateFailed": "Failed to update tournament. Please try again."
     },
     "title": "Tournament Details",
+    "clubSeasonLabel": "Club Season",
+    "clubSeasonHint": "Auto-calculated from start date",
     "gameSingular": "Game",
     "games": "Games",
     "goalSingular": "Goal",

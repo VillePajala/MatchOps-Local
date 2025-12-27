@@ -1,7 +1,8 @@
-import { Team, TeamPlayer } from '@/types';
+import { Team, TeamPlayer, Season, Tournament } from '@/types';
 import { withRosterLock } from './lockManager';
 import logger from '@/utils/logger';
 import { getDataStore } from '@/datastore';
+import { getSeasonDisplayName, getTournamentDisplayName } from './entityDisplayNames';
 
 // Team index storage format: { [teamId: string]: Team }
 export interface TeamsIndex {
@@ -263,4 +264,78 @@ export const countGamesForTeam = async (teamId: string): Promise<number> => {
     logger.warn('[countGamesForTeam] Failed to count games for team, returning 0', { teamId, error });
     return 0;
   }
+};
+
+/**
+ * Options for team context display functions.
+ */
+interface TeamContextDisplayOptions {
+  /** Label to use for futsal game type (for i18n support). Defaults to 'Futsal'. */
+  futsalLabel?: string;
+}
+
+/**
+ * Generates a display string for team context (season, tournament, game type).
+ * Used in dropdowns and team lists to differentiate teams with the same name.
+ *
+ * @param team - The team entity
+ * @param seasons - Array of all seasons for name lookup
+ * @param tournaments - Array of all tournaments for name lookup
+ * @param options - Optional display options (e.g., translated labels)
+ * @returns Context display string like "Kausi 2024-25 / Futsal" or empty string if no context
+ *
+ * @example
+ * // Basic usage
+ * getTeamContextDisplay(team, seasons, tournaments);
+ *
+ * // With translated futsal label
+ * getTeamContextDisplay(team, seasons, tournaments, { futsalLabel: t('common.futsal') });
+ */
+export const getTeamContextDisplay = (
+  team: Team,
+  seasons: Season[],
+  tournaments: Tournament[],
+  options?: TeamContextDisplayOptions
+): string => {
+  const parts: string[] = [];
+
+  if (team.boundSeasonId) {
+    const season = seasons.find(s => s.id === team.boundSeasonId);
+    if (season) {
+      parts.push(getSeasonDisplayName(season));
+    }
+  }
+
+  if (team.boundTournamentId) {
+    const tournament = tournaments.find(t => t.id === team.boundTournamentId);
+    if (tournament) {
+      parts.push(getTournamentDisplayName(tournament));
+    }
+  }
+
+  if (team.gameType === 'futsal') {
+    parts.push(options?.futsalLabel ?? 'Futsal');
+  }
+
+  return parts.join(' / ');
+};
+
+/**
+ * Gets a team's full display name including context.
+ * Format: "Team Name (Context)" or just "Team Name" if no context.
+ *
+ * @param team - The team entity
+ * @param seasons - Array of all seasons for name lookup
+ * @param tournaments - Array of all tournaments for name lookup
+ * @param options - Optional display options (e.g., translated labels)
+ * @returns Full display name like "Pepo Lila (Kausi 2024-25 / Futsal)"
+ */
+export const getTeamDisplayName = (
+  team: Team,
+  seasons: Season[],
+  tournaments: Tournament[],
+  options?: TeamContextDisplayOptions
+): string => {
+  const context = getTeamContextDisplay(team, seasons, tournaments, options);
+  return context ? `${team.name} (${context})` : team.name;
 };

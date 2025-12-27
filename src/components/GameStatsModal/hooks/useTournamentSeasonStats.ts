@@ -5,6 +5,7 @@
 
 import { useMemo } from 'react';
 import { Season, Tournament } from '@/types';
+import { getSeasonDisplayName, getTournamentDisplayName } from '@/utils/entityDisplayNames';
 import type { GameType, Gender } from '@/types/game';
 import { StatsTab, TournamentSeasonStats, OverallTournamentSeasonStats } from '../types';
 import { SavedGamesCollection } from '@/types';
@@ -63,7 +64,7 @@ export function useTournamentSeasonStats(
             if (!seasonStatsMap.has(season.id)) {
               seasonStatsMap.set(season.id, {
                 id: season.id,
-                name: season.name,
+                name: getSeasonDisplayName(season),
                 gamesPlayed: 0,
                 wins: 0,
                 losses: 0,
@@ -133,7 +134,7 @@ export function useTournamentSeasonStats(
 
           const stats: TournamentSeasonStats = {
             id: season.id,
-            name: season.name,
+            name: getSeasonDisplayName(season),
             gamesPlayed: 0,
             wins: 0,
             losses: 0,
@@ -188,7 +189,7 @@ export function useTournamentSeasonStats(
             if (!tournamentStatsMap.has(tournament.id)) {
               tournamentStatsMap.set(tournament.id, {
                 id: tournament.id,
-                name: tournament.name,
+                name: getTournamentDisplayName(tournament),
                 gamesPlayed: 0,
                 wins: 0,
                 losses: 0,
@@ -256,7 +257,7 @@ export function useTournamentSeasonStats(
 
           const stats: TournamentSeasonStats = {
             id: tournament.id,
-            name: tournament.name,
+            name: getTournamentDisplayName(tournament),
             gamesPlayed: 0,
             wins: 0,
             losses: 0,
